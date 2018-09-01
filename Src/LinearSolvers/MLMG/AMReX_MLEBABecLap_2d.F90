@@ -614,12 +614,13 @@ contains
   subroutine amrex_mlebabeclap_flux(lo, hi, fx, fxlo, fxhi, fy, fylo, fyhi,  apx, axlo, axhi, & 
                                     apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
                                     sol, slo, shi, bx, bxlo, bxhi, by, bylo, byhi,&
-                                    flag, glo, ghi, dxinv, beta, face_only) &
+                                    ccm, cmlo, cmhi, flag, glo, ghi, &
+                                    dxinv, beta, face_only) &
                                     bind(c, name='amrex_mlebabeclap_flux')
-    integer, dimension(2), intent(in)   :: lo, hi, fxlo, fxhi, fylo, fyhi, axlo, axhi, aylo, ayhi, glo, ghi 
-    integer, dimension(2), intent(in)   :: cxlo, cxhi, cylo, cyhi, slo, shi, bxlo, bxhi, bylo, byhi
+    integer, dimension(2), intent(in)   :: lo, hi, fxlo, fxhi, fylo, fyhi, axlo, axhi, aylo, ayhi, glo, ghi
+    integer, dimension(2), intent(in)   :: cxlo, cxhi, cylo, cyhi, slo, shi, bxlo, bxhi, bylo, byhi, cmlo, cmhi
 
-    integer,   value, intent(in   )     :: face_only 
+    integer,   value, intent(in   )     :: face_only
     real(amrex_real), value, intent(in) :: beta
     real(amrex_real), intent(in   )     :: dxinv(2) 
     real(amrex_real), intent(inout)     :: fx  (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
@@ -632,50 +633,25 @@ contains
     real(amrex_real), intent(in   )     :: bx  (bxlo(1):bxhi(1),bxlo(2):bxhi(2))
     real(amrex_real), intent(in   )     :: by  (bylo(1):byhi(1),bylo(2):byhi(2)) 
     integer         , intent(in   )     :: flag( glo(1): ghi(1), glo(2): ghi(2))
-    integer :: i,j, ii, jj
+    integer         , intent(in   )     ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2))
+
+    integer :: i,j, ii, jj, istride, jstride
     real(amrex_real) :: dhx, dhy, fxm, fym, fracx, fracy
 
     dhx = beta*dxinv(1)
     dhy = beta*dxinv(2)
-    if  (face_only .eq. 1) then 
-      do   j = lo(2), hi(2)
-        do i = lo(1), hi(1)+1, hi(1)+1-lo(1)
-          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i-1,j))) then
-             fx(i,j) = zero
-          else if (is_regular_cell(flag(i,j))) then
-             fx(i,j) = -dhx*bx(i,j)*(sol(i,j) - sol(i-1,j))
-          else
-             fxm = bX(i,j)*(sol(i,j)-sol(i-1,j))
-             if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
-                jj = j + int(sign(one,fcx(i,j)))
-                fracy = abs(fcx(i,j))
-                fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(sol(i,jj)-sol(i-1,jj))
-             end if
-             fx(i,j) = -fxm*dhx
-          end if
-        end do
-      end do
-      do   j = lo(2), hi(2)+1, hi(2)+1-lo(2)
-        do i = lo(1), hi(1) 
-           if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i,j-1))) then
-             fy(i,j) = zero
-          else if (is_regular_cell(flag(i,j))) then
-             fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
-          else
-             fym = bY(i,j)*(sol(i,j)-sol(i,j-1))
-             if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
-                ii = i + int(sign(one,fcy(i,j)))
-                fracx = abs(fcy(i,j))
-                fym = (one-fracx)*fym + fracx*bY(ii,j)*(sol(ii,j)-sol(ii,j-1))
-             end if
-             fy(i,j) = -fym*dhy
-          end if
-        end do
-      end do
+
+    if (face_only .eq. 1) then
+       istride = hi(1)+1-lo(1)
+       jstride = hi(2)+1-lo(2)
     else
-      do   j = lo(2), hi(2)
-        do i = lo(1), hi(1)+1
-          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i-1,j))) then
+       istride = 1
+       jstride = 1
+    end if
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)+1, istride
+          if (apx(i,j) .eq. zero) then
              fx(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fx(i,j) = -dhx*bx(i,j)*(sol(i,j) - sol(i-1,j))
@@ -683,16 +659,17 @@ contains
              fxm = bX(i,j)*(sol(i,j)-sol(i-1,j))
              if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
                 jj = j + int(sign(one,fcx(i,j)))
-                fracy = abs(fcx(i,j))
+                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
                 fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(sol(i,jj)-sol(i-1,jj))
              end if
              fx(i,j) = -fxm*dhx
           end if
-        end do
-      end do
-      do   j = lo(2), hi(2)+1
-        do i = lo(1), hi(1)
-          if (is_covered_cell(flag(i,j)).or.is_covered_cell(flag(i,j-1))) then
+       end do
+    end do
+
+    do    j = lo(2), hi(2)+1, jstride
+       do i = lo(1), hi(1)
+          if (apy(i,j) .eq. zero) then
              fy(i,j) = zero
           else if (is_regular_cell(flag(i,j))) then
              fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
@@ -700,14 +677,13 @@ contains
              fym = bY(i,j)*(sol(i,j)-sol(i,j-1))
              if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
                 ii = i + int(sign(one,fcy(i,j)))
-                fracx = abs(fcy(i,j))
+                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
                 fym = (one-fracx)*fym + fracx*bY(ii,j)*(sol(ii,j)-sol(ii,j-1))
              end if
              fy(i,j) = -fym*dhy
           end if
-        end do
-      end do
-    endif
+       end do
+    end do
   end subroutine amrex_mlebabeclap_flux
 
   subroutine amrex_mlebabeclap_grad(xlo, xhi, ylo, yhi, sol, slo, shi, gx, gxlo, gxhi, & 

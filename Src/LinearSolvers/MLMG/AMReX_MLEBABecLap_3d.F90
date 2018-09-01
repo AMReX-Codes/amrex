@@ -715,187 +715,123 @@ contains
                                     apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi,      &
                                     fcx, cxlo, cxhi, fcy, cylo, cyhi, fcz, czlo, czhi,      &
                                     x, slo, shi, bx, bxlo, bxhi, by, bylo, byhi,          &
-                                    bz, bzlo, bzhi, flag, flo, fhi, dxinv, beta, face_only) &
+                                    bz, bzlo, bzhi, ccm, cmlo, cmhi, &
+                                    flag, flo, fhi, dxinv, beta, face_only) &
                                     bind(c, name='amrex_mlebabeclap_flux')
 
-  integer, dimension(3), intent(in) :: lo, hi, slo, shi, bxlo, bxhi, bylo, byhi, bzlo, bzhi, &
-                                       flo, fhi, axlo, axhi, aylo, ayhi, azlo, azhi,         &
-                                       fxlo,fxhi,fylo, fyhi, fzlo, fzhi,  cxlo, cxhi, cylo,  &
-                                       cyhi, czlo, czhi
-   real(amrex_real), intent(in) :: dxinv(3) 
-   real(amrex_real), value, intent(in) ::  beta
-   real(amrex_real), intent(inout) ::   fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
-   real(amrex_real), intent(inout) ::   fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
-   real(amrex_real), intent(inout) ::   fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
-   real(amrex_real), intent(in   ) ::   x( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
-   real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
-   real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
-   real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
-   integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)) 
-   integer, value  , intent(in   ) :: face_only 
-   real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)) 
-   real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
-   real(amrex_real), intent(in   ) ::  apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
-   real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
-   real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2) 
-   real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2) 
-   integer  :: i, j, k, ii, jj, kk 
-   real(amrex_real) :: dhx, dhy, dhz, fxm, fym, fzm, fracx, fracy, fracz
-
-   dhx = beta*dxinv(1) 
-   dhy = beta*dxinv(2)  
-   dhz = beta*dxinv(3)
-
-   if(face_only.eq.1) then 
-     do         k = lo(3), hi(3)  
-         do     j = lo(2), hi(2) 
-             do i = lo(1), hi(1)+1, hi(1)+1-lo(1) 
-               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i-1,j,k))) then 
-                   fx(i,j,k) = zero
-                else if (is_regular_cell(flag(i,j,k))) then 
-                   fx(i,j,k) = - dhx*bX(i,j,k)*(x(i,j,k) - x(i-1,j,k)) 
-                else 
-                  fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
-                  if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
-                      jj = j + int(sign(one, fcx(i,j,k,1)))
-                      kk = k + int(sign(one, fcx(i,j,k,2)))
-                      fracy = abs(fcx(i,j,k,1))
-                      fracz = abs(fcx(i,j,k,2))
-                      fxm = (one-fracy)*(one-fracz)*fxm + &
-                           & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
-                           & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
-                           & fracy*     fracz *bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
-                  endif 
-                  fx(i,j,k) = -dhx*fxm
-                endif 
-            enddo
-         enddo 
-     enddo 
-  
-     do         k = lo(3), hi(3) 
-         do     j = lo(2), hi(2)+1, hi(2)+1-lo(2) 
-             do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j-1,k))) then 
-                   fy(i,j,k) = zero
-                else if (is_regular_cell(flag(i,j,k))) then 
-                   fy(i,j,k) = - dhy*bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
-                else 
-                  fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
-                  if (apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
-                      ii = i + int(sign(one,fcy(i,j,k,1)))
-                      kk = k + int(sign(one,fcy(i,j,k,2)))
-                      fracx = abs(fcy(i,j,k,1))
-                      fracz = abs(fcy(i,j,k,2))
-                      fym = (one-fracx)*(one-fracz)*fym + &
-                           & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
-                           & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
-                           & fracx*     fracz *bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
-                  endif 
-                  fy(i,j,k) = -dhy*fym
-                endif 
-            enddo
-         enddo 
-     enddo 
-     do         k = lo(3), hi(3)+1, hi(3)+1-lo(3) 
-         do     j = lo(2), hi(2) 
-             do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j,k-1))) then 
-                   fz(i,j,k) = zero
-                else if (is_regular_cell(flag(i,j,k))) then 
-                   fz(i,j,k) = - dhz*bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
-                else 
-                  fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
-                  if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
-                      ii = i + int(sign(one,fcz(i,j,k,1)))
-                      jj = j + int(sign(one,fcz(i,j,k,2)))
-                      fracx = abs(fcz(i,j,k,1))
-                      fracy = abs(fcz(i,j,k,2))
-                      fzm = (one-fracx)*(one-fracy)*fzm + &
-                           & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
-                           & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
-                           & fracx*     fracy *bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
-                  endif 
-                  fz(i,j,k) = -dhz*fzm
-                endif 
-            enddo
-         enddo 
-     enddo 
-   else
-     do         k = lo(3), hi(3) 
-         do     j = lo(2), hi(2) 
-             do i = lo(1), hi(1)+1 
-               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i-1,j,k))) then 
-                   fx(i,j,k) = zero
-                else if (is_regular_cell(flag(i,j,k))) then 
-                   fx(i,j,k) = - dhx*bX(i,j,k)*(x(i,j,k) - x(i-1,j,k)) 
-                else 
-                  fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
-                  if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
-                      jj = j + int(sign(one, fcx(i,j,k,1)))
-                      kk = k + int(sign(one, fcx(i,j,k,2)))
-                      fracy = abs(fcx(i,j,k,1))
-                      fracz = abs(fcx(i,j,k,2))
-                      fxm = (one-fracy)*(one-fracz)*fxm + &
-                           & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
-                           & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
-                           & fracy*     fracz *bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
-                  endif 
-                  fx(i,j,k) = -dhx*fxm
-                 endif 
-            enddo
-         enddo 
-     enddo
-
-     do         k = lo(3), hi(3) 
-         do     j = lo(2), hi(2)+1 
-             do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j-1,k))) then 
-                   fy(i,j,k) = zero
-                else if (is_regular_cell(flag(i,j,k))) then 
-                   fy(i,j,k) = - dhy*bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
-                else 
-                  fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
-                  if (apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
-                      ii = i + int(sign(one,fcy(i,j,k,1)))
-                      kk = k + int(sign(one,fcy(i,j,k,2)))
-                      fracx = abs(fcy(i,j,k,1))
-                      fracz = abs(fcy(i,j,k,2))
-                      fym = (one-fracx)*(one-fracz)*fym + &
-                           & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
-                           & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
-                           & fracx*     fracz *bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
-                  endif 
-                  fy(i,j,k) = -dhy*fym
-                endif 
-            enddo
-         enddo 
-     enddo 
-
-     do         k = lo(3), hi(3)+1 
-         do     j = lo(2), hi(2) 
-             do i = lo(1), hi(1) 
-               if(is_covered_cell(flag(i,j,k)).or.is_covered_cell(flag(i,j,k-1))) then 
-                   fz(i,j,k) = zero
-                else if (is_regular_cell(flag(i,j,k))) then 
-                   fz(i,j,k) = - dhz*bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
-                else 
-                  fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
-                  if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
-                      ii = i + int(sign(one,fcz(i,j,k,1)))
-                      jj = j + int(sign(one,fcz(i,j,k,2)))
-                      fracx = abs(fcz(i,j,k,1))
-                      fracy = abs(fcz(i,j,k,2))
-                      fzm = (one-fracx)*(one-fracy)*fzm + &
-                           & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
-                           & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
-                           & fracx*     fracy *bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
-                  endif 
-                  fz(i,j,k) = -dhz*fzm
-                endif 
-            enddo
-         enddo 
-     enddo 
-   endif
+    integer, dimension(3), intent(in) :: lo, hi, slo, shi, bxlo, bxhi, bylo, byhi, bzlo, bzhi, &
+         flo, fhi, axlo, axhi, aylo, ayhi, azlo, azhi,         &
+         fxlo,fxhi,fylo, fyhi, fzlo, fzhi,  cxlo, cxhi, cylo,  &
+         cyhi, czlo, czhi, cmlo, cmhi
+    real(amrex_real), intent(in) :: dxinv(3) 
+    real(amrex_real), value, intent(in) ::  beta
+    real(amrex_real), intent(inout) ::   fx(fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
+    real(amrex_real), intent(inout) ::   fy(fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
+    real(amrex_real), intent(inout) ::   fz(fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
+    real(amrex_real), intent(in   ) ::   x( slo(1): shi(1), slo(2): shi(2), slo(3): shi(3))
+    real(amrex_real), intent(in   ) ::   bx(bxlo(1):bxhi(1),bxlo(2):bxhi(2),bxlo(3):bxhi(3))
+    real(amrex_real), intent(in   ) ::   by(bylo(1):byhi(1),bylo(2):byhi(2),bylo(3):byhi(3))
+    real(amrex_real), intent(in   ) ::   bz(bzlo(1):bzhi(1),bzlo(2):bzhi(2),bzlo(3):bzhi(3))
+    integer         , intent(in   ) ::  ccm(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3)) 
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)) 
+    integer, value  , intent(in   ) :: face_only 
+    real(amrex_real), intent(in   ) ::  apx(axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3)) 
+    real(amrex_real), intent(in   ) ::  apy(aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
+    real(amrex_real), intent(in   ) ::  apz(azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
+    real(amrex_real), intent(in   ) ::  fcx(cxlo(1):cxhi(1),cxlo(2):cxhi(2),cxlo(3):cxhi(3),2)
+    real(amrex_real), intent(in   ) ::  fcy(cylo(1):cyhi(1),cylo(2):cyhi(2),cylo(3):cyhi(3),2) 
+    real(amrex_real), intent(in   ) ::  fcz(czlo(1):czhi(1),czlo(2):czhi(2),czlo(3):czhi(3),2) 
+    integer  :: i, j, k, ii, jj, kk, istride, jstride, kstride
+    real(amrex_real) :: dhx, dhy, dhz, fxm, fym, fzm, fracx, fracy, fracz
+    
+    dhx = beta*dxinv(1)
+    dhy = beta*dxinv(2)
+    dhz = beta*dxinv(3)
+    
+    if (face_only .eq. 1) then
+       istride = hi(1)+1-lo(1)
+       jstride = hi(2)+1-lo(2)
+       kstride = hi(3)+1-lo(3)
+    else
+       istride = 1
+       jstride = 1
+       kstride = 1
+    end if
+    
+    do       k = lo(3), hi(3) 
+       do    j = lo(2), hi(2) 
+          do i = lo(1), hi(1)+1, istride
+             if(apx(i,j,k) .eq. zero) then
+                fx(i,j,k) = zero
+             else if (is_regular_cell(flag(i,j,k))) then 
+                fx(i,j,k) = - dhx*bX(i,j,k)*(x(i,j,k) - x(i-1,j,k)) 
+             else 
+                fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
+                if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
+                   jj = j + int(sign(one, fcx(i,j,k,1)))
+                   kk = k + int(sign(one, fcx(i,j,k,2)))
+                   fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
+                   fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
+                   fxm = (one-fracy)*(one-fracz)*fxm + &
+                        & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
+                        & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
+                        & fracy*     fracz *bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
+                endif
+                fx(i,j,k) = -dhx*fxm
+             endif
+          enddo
+       enddo
+    enddo
+    
+    do       k = lo(3), hi(3) 
+       do    j = lo(2), hi(2)+1, jstride 
+          do i = lo(1), hi(1) 
+             if(apy(i,j,k) .eq. zero) then
+                fy(i,j,k) = zero
+             else if (is_regular_cell(flag(i,j,k))) then 
+                fy(i,j,k) = - dhy*bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
+             else 
+                fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
+                if (apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
+                   ii = i + int(sign(one,fcy(i,j,k,1)))
+                   kk = k + int(sign(one,fcy(i,j,k,2)))
+                   fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
+                   fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
+                   fym = (one-fracx)*(one-fracz)*fym + &
+                        & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
+                        & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
+                        & fracx*     fracz *bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
+                endif
+                fy(i,j,k) = -dhy*fym
+             endif
+          enddo
+       enddo
+    enddo
+    
+    do       k = lo(3), hi(3)+1, kstride
+       do    j = lo(2), hi(2) 
+          do i = lo(1), hi(1) 
+             if (apz(i,j,k) .eq. zero) then
+                fz(i,j,k) = zero
+             else if (is_regular_cell(flag(i,j,k))) then 
+                fz(i,j,k) = - dhz*bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
+             else 
+                fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
+                if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
+                   ii = i + int(sign(one,fcz(i,j,k,1)))
+                   jj = j + int(sign(one,fcz(i,j,k,2)))
+                   fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
+                   fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
+                   fzm = (one-fracx)*(one-fracy)*fzm + &
+                       & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
+                       & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
+                       & fracx*     fracy *bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
+                endif
+                fz(i,j,k) = -dhz*fzm
+             endif
+          enddo
+       enddo
+    enddo
   end subroutine amrex_mlebabeclap_flux
 
   subroutine amrex_mlebabeclap_grad(xlo, xhi, ylo, yhi, zlo, zhi, sol, slo, shi,            &

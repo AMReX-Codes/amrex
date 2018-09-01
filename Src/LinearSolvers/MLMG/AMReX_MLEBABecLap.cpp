@@ -9,6 +9,7 @@
 #include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
 #include <AMReX_MG_F.H>
+#include <AMReX_EBMultiFabUtil_F.H>
 
 namespace amrex {
 
@@ -586,22 +587,26 @@ void
 MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                     const FArrayBox& sol, Location loc, const int face_only) const
 {
-    BL_PROFILE("MLEBABecLap::FFlux()")
+    BL_PROFILE("MLEBABecLap::FFlux()");
+    const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
     const int mglev = 0; 
     const Box& box = mfi.tilebox();
+
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr; 
+
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize(); 
     AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
                  const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
                  const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
-    auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
+    const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
+
+    const auto fabtyp = (flags) ? (*flags)[mfi].getType(box) : FabType::regular; 
     if (fabtyp == FabType::covered) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             flux[idim]->setVal(0.0, amrex::surroundingNodes(box,idim), 0, 1);
         }
-//    } else if (fabtyp == FabType::regular) {
-    } else {
+    } else if (fabtyp == FabType::regular || !at_centroid) {
         amrex_mlabeclap_flux(BL_TO_FORTRAN_BOX(box),
                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
                                           BL_TO_FORTRAN_ANYD(*flux[1]),
@@ -611,9 +616,16 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                                           BL_TO_FORTRAN_ANYD(by),
                                           BL_TO_FORTRAN_ANYD(bz)),
                              dxinv, m_b_scalar, face_only);
-    }
-#if 0
-    else{               
+        if (fabtyp != FabType::regular && !face_only) {
+            const auto& area = factory->getAreaFrac();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const Box& fbx = amrex::surroundingNodes(box,idim);
+                amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx),
+                                           BL_TO_FORTRAN_ANYD(*flux[idim]),
+                                           BL_TO_FORTRAN_ANYD((*area[idim])[mfi]));
+            }
+        }
+    } else {               
         const auto& area = factory->getAreaFrac();
         const auto& fcent = factory->getFaceCent();
 
@@ -631,10 +643,10 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                                AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
                                             BL_TO_FORTRAN_ANYD(by),
                                             BL_TO_FORTRAN_ANYD(bz)),
+                               BL_TO_FORTRAN_ANYD(ccmask[mfi]),
                                BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                               dxinv, m_b_scalar, face_only); // */
+                               dxinv, m_b_scalar, face_only);
     }
-#endif
 }
 
 
