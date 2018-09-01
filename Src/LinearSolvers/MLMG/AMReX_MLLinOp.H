@@ -46,6 +46,8 @@ public:
 
     enum struct StateMode { Solution, Correction };
 
+    enum struct Location { Default, FaceCenter, FaceCentroid };
+
     MLLinOp ();
     virtual ~MLLinOp ();
 
@@ -217,8 +219,10 @@ protected:
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const = 0;
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const = 0;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const = 0;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const = 0;
     
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;

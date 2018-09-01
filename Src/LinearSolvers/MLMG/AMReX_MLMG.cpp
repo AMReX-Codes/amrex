@@ -1157,21 +1157,23 @@ MLMG::prepareForNSolve ()
 }
 
 void
-MLMG::getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+MLMG::getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
+                       Location a_loc)
 {
     BL_PROFILE("MLMG::getGradSolution()");
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compGrad(alev, a_grad_sol[alev], *sol[alev]);
+        linop.compGrad(alev, a_grad_sol[alev], *sol[alev], a_loc);
     }
 }
 
 void
-MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
+MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                 Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
     const Real betainv = 1.0 / linop.getBScalar();
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compFlux(alev, a_flux[alev], *sol[alev]);
+        linop.compFlux(alev, a_flux[alev], *sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
             if (betainv != 1.0) {
