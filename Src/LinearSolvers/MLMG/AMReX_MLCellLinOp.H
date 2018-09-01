@@ -135,8 +135,10 @@ protected:
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab&,
                          MultiFab&, MultiFab& fine_sol, const MultiFab&) const final;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const final;
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const final;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const final;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const final;
 
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;
@@ -150,7 +152,7 @@ protected:
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const = 0;
+                        const FArrayBox& sol, Location loc, const int face_only=0) const = 0;
 
 private:
 

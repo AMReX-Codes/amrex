@@ -524,7 +524,7 @@ MLCellLinOp::reflux (int crse_amrlev,
                 AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
                              flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
                              flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi]);
+                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
                 fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
             }
         }
@@ -542,7 +542,7 @@ MLCellLinOp::reflux (int crse_amrlev,
                              flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
                              flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 const int face_only = true;
-                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
+                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
                 fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
@@ -552,7 +552,8 @@ MLCellLinOp::reflux (int crse_amrlev,
 }
 
 void
-MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                       MultiFab& sol, Location loc) const
 {
     BL_PROFILE("MLCellLinOp::compFlux()");
 
@@ -573,7 +574,7 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
             AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
                          flux[1].resize(amrex::surroundingNodes(tbx,1));,
                          flux[2].resize(amrex::surroundingNodes(tbx,2)););
-            FFlux(amrlev, mfi, pflux, sol[mfi]);
+            FFlux(amrlev, mfi, pflux, sol[mfi], loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
                 (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, ncomp);
@@ -583,7 +584,8 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
 }
 
 void
-MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                       MultiFab& sol, Location loc) const
 {
     BL_PROFILE("MLCellLinOp::compGrad()");
 

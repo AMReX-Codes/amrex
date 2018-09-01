@@ -584,7 +584,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
 void
 MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                    const FArrayBox& sol, const int face_only) const
+                    const FArrayBox& sol, Location loc, const int face_only) const
 {
     BL_PROFILE("MLEBABecLap::FFlux()")
     const int mglev = 0; 
@@ -614,10 +614,8 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
     }
 #if 0
     else{               
-        auto area = (factory) ? factory->getAreaFrac() 
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr, nullptr, nullptr)}; 
-        auto fcent = (factory) ? factory->getFaceCent()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+        const auto& area = factory->getAreaFrac();
+        const auto& fcent = factory->getFaceCent();
 
         amrex_mlebabeclap_flux(BL_TO_FORTRAN_BOX(box), 
                                AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
