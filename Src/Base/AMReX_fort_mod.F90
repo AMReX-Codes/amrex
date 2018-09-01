@@ -102,22 +102,37 @@ contains
 
     implicit none
 
-    ! Add y to x. Do it safely if we're on the GPU.
+    ! Add y to x.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    x = x + y
+
+  end subroutine amrex_add
+
+
+
+#ifdef AMREX_USE_CUDA
+  ! Note that the device versions of these
+  ! functions are intentionally constructed
+  ! by hand rather than scripted.
+
+  attributes(device) subroutine amrex_add_device(x, y)
+
+    implicit none
+
+    ! Add y to x atomically on the GPU.
 
     real(amrex_real), intent(in   ) :: y
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
 
-    !$gpu
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicAdd(x, y)
-#else
-    x = x + y
-#endif
 
-  end subroutine amrex_add
+  end subroutine amrex_add_device
+#endif
 
 
 
@@ -125,22 +140,33 @@ contains
 
     implicit none
 
-    ! Subtract y from x. Do it safely if we're on the GPU.
+    ! Subtract y from x.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    x = x - y
+
+  end subroutine amrex_subtract
+
+
+
+#ifdef AMREX_USE_CUDA
+  attributes(device) subroutine amrex_subtract_device(x, y)
+
+    implicit none
+
+    ! Subtract y from x atomically on the GPU.
 
     real(amrex_real), intent(in   ) :: y
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
 
-    !$gpu
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicSub(x, y)
-#else
-    x = x - y
-#endif
 
-  end subroutine amrex_subtract
+  end subroutine amrex_subtract_device
+#endif
 
 
 
@@ -148,22 +174,33 @@ contains
 
     implicit none
 
-    ! Set in x the maximum of x and y. Do it safely if we're on the GPU.
+    ! Set in x the maximum of x and y.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    x = max(x, y)
+
+  end subroutine amrex_max
+
+
+
+#ifdef AMREX_USE_CUDA
+  attributes(device) subroutine amrex_max_device(x, y)
+
+    implicit none
+
+    ! Set in x the maximum of x and y atomically on the GPU.
 
     real(amrex_real), intent(in   ) :: y
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
 
-    !$gpu
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMax(x, y)
-#else
-    x = max(x, y)
-#endif
 
-  end subroutine amrex_max
+  end subroutine amrex_max_device
+#endif
 
 
 
@@ -171,21 +208,32 @@ contains
 
     implicit none
 
-    ! Set in x the minimum of x and y. Do it safely if we're on the GPU.
+    ! Set in x the minimum of x and y.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    x = min(x, y)
+
+  end subroutine amrex_min
+
+
+
+#ifdef AMREX_USE_CUDA
+  attributes(device) subroutine amrex_min_device(x, y)
+
+    implicit none
+
+    ! Set in x the minimum of x and y atomically on the GPU.
 
     real(amrex_real), intent(in   ) :: y
     real(amrex_real), intent(inout) :: x
 
     real(amrex_real) :: t
 
-    !$gpu
-
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     t = atomicMin(x, y)
-#else
-    x = min(x, y)
-#endif
 
-  end subroutine amrex_min
+  end subroutine amrex_min_device
+#endif
 
 end module amrex_fort_module
