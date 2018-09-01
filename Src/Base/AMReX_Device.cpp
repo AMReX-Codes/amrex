@@ -5,7 +5,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 
-bool amrex::Device::in_device_launch_region = false;
+bool amrex::Device::in_device_launch_region = true;
 int amrex::Device::device_id = 0;
 
 int amrex::Device::verbose = 0;
