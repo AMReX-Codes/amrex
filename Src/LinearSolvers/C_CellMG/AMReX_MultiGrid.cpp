@@ -284,7 +284,7 @@ MultiGrid::solve (MultiFab&       _sol,
     // Elide a reduction by doing these together.
     //
     Real tmp[2] = { norm_inf(_rhs,true), norm_inf(*rhs[level],true) };
-    ParallelDescriptor::ReduceRealMax(tmp,2);
+    ParallelAllReduce::Max(tmp,2,ParallelContext::CommunicatorSub());
     if ( ParallelDescriptor::IOProcessor() && verbose > 0)
     {
         Spacer(amrex::OutStream(), level);

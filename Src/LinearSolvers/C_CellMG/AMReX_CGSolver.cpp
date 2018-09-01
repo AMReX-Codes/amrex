@@ -698,7 +698,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         {
             Real tmp1[2] = { atime, gtime };
 
-            ParallelDescriptor::ReduceRealMax(tmp1,2);
+            ParallelAllReduce::Max(tmp1,2,ParallelContext::CommunicatorSub());
 
             if ( ParallelDescriptor::IOProcessor() )
             {
