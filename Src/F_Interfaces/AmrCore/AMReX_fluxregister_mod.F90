@@ -51,6 +51,16 @@ module amrex_fluxregister_module
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_fineadd
 
+     subroutine amrex_fi_fluxregister_fineadd_1fab_1dir (fr, fabdata, flo,fhi, dir, boxno, nfluxes, scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       type(c_ptr), intent(in) :: fabdata
+       integer(c_int),intent(in) :: flo(*), fhi(*)
+       integer(c_int),intent(IN),value :: dir, boxno, nfluxes
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_fineadd_1fab_1dir
+
      subroutine amrex_fi_fluxregister_crseinit (fr, flxs, scale) bind(c)
        import
        implicit none
@@ -132,6 +142,27 @@ contains
     end do
     call amrex_fi_fluxregister_fineadd(this%p, mf, scale)
   end subroutine amrex_fluxregister_fineadd
+
+  subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, boxno, scale)
+    class(amrex_fluxregister), intent(inout) :: this
+    type(amrex_fab),  intent(in) :: fluxfabs(amrex_spacedim)
+    integer(c_int),   intent(in) :: boxno
+    real(amrex_real), intent(in) :: scale
+    integer :: dir, nc
+    type(c_ptr) :: cp
+    integer,dimension(3) :: flo=(/0,0,0/),fhi=(/0,0,0/)
+    real(amrex_real), pointer, dimension(:,:,:,:) :: fp
+    do dir = 1, amrex_spacedim
+       associate(fab => fluxfabs(dir) )
+         flo(1:amrex_spacedim) = fab%bx%lo(1:amrex_spacedim)
+         fhi(1:amrex_spacedim) = fab%bx%hi(1:amrex_spacedim)  
+         fp => fab%dataPtr()
+         cp = c_loc(fp(flo(1),flo(2),flo(3),1))
+         nc =  fab%nc
+       end associate
+       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, boxno, nc, scale)
+    end do
+  end subroutine amrex_fluxregister_fineadd_1fab
 
   subroutine amrex_fluxregister_crseinit (this, fluxes, scale)
     class(amrex_fluxregister), intent(inout) :: this
