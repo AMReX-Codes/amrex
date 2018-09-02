@@ -763,20 +763,18 @@ contains
           do i = lo(1), hi(1)+1, istride
              if(apx(i,j,k) .eq. zero) then
                 fx(i,j,k) = zero
-             else if (is_regular_cell(flag(i,j,k))) then 
+             else if (is_regular_cell(flag(i,j,k)) .or. apx(i,j,k).eq.one) then
                 fx(i,j,k) = - dhx*bX(i,j,k)*(x(i,j,k) - x(i-1,j,k)) 
              else 
                 fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
-                if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
-                   jj = j + int(sign(one, fcx(i,j,k,1)))
-                   kk = k + int(sign(one, fcx(i,j,k,2)))
-                   fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
-                   fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
-                   fxm = (one-fracy)*(one-fracz)*fxm + &
-                        & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
-                        & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
-                        & fracy*     fracz *bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
-                endif
+                jj = j + int(sign(one, fcx(i,j,k,1)))
+                kk = k + int(sign(one, fcx(i,j,k,2)))
+                fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
+                fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
+                fxm = (one-fracy)*(one-fracz)*fxm + &
+                     & fracy*(one-fracz)*bX(i,jj,k )*(x(i,jj,k )-x(i-1,jj,k )) + & 
+                     & fracz*(one-fracy)*bX(i,j ,kk)*(x(i,j ,kk)-x(i-1,j ,kk)) + &
+                     & fracy*     fracz *bX(i,jj,kk)*(x(i,jj,kk)-x(i-1,jj,kk))
                 fx(i,j,k) = -dhx*fxm
              endif
           enddo
@@ -788,20 +786,18 @@ contains
           do i = lo(1), hi(1) 
              if(apy(i,j,k) .eq. zero) then
                 fy(i,j,k) = zero
-             else if (is_regular_cell(flag(i,j,k))) then 
+             else if (is_regular_cell(flag(i,j,k)) .or. apy(i,j,k).eq.one) then
                 fy(i,j,k) = - dhy*bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
              else 
                 fym = bY(i,j,k)*(x(i,j,k) - x(i,j-1,k))
-                if (apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
-                   ii = i + int(sign(one,fcy(i,j,k,1)))
-                   kk = k + int(sign(one,fcy(i,j,k,2)))
-                   fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
-                   fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
-                   fym = (one-fracx)*(one-fracz)*fym + &
-                        & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
-                        & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
-                        & fracx*     fracz *bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
-                endif
+                ii = i + int(sign(one,fcy(i,j,k,1)))
+                kk = k + int(sign(one,fcy(i,j,k,2)))
+                fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
+                fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
+                fym = (one-fracx)*(one-fracz)*fym + &
+                     & fracx*(one-fracz)*bY(ii,j,k )*(x(ii,j,k )-x(ii,j-1,k )) + & 
+                     & fracz*(one-fracx)*bY(i ,j,kk)*(x(i ,j,kk)-x(i ,j-1,kk)) + &
+                     & fracx*     fracz *bY(ii,j,kk)*(x(ii,j,kk)-x(ii,j-1,kk))
                 fy(i,j,k) = -dhy*fym
              endif
           enddo
@@ -813,20 +809,18 @@ contains
           do i = lo(1), hi(1) 
              if (apz(i,j,k) .eq. zero) then
                 fz(i,j,k) = zero
-             else if (is_regular_cell(flag(i,j,k))) then 
+             else if (is_regular_cell(flag(i,j,k)) .or. apz(i,j,k).eq.one) then
                 fz(i,j,k) = - dhz*bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
              else 
                 fzm = bZ(i,j,k)*(x(i,j,k) - x(i,j,k-1))
-                if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
-                   ii = i + int(sign(one,fcz(i,j,k,1)))
-                   jj = j + int(sign(one,fcz(i,j,k,2)))
-                   fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
-                   fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
-                   fzm = (one-fracx)*(one-fracy)*fzm + &
-                       & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
-                       & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
-                       & fracx*     fracy *bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
-                endif
+                ii = i + int(sign(one,fcz(i,j,k,1)))
+                jj = j + int(sign(one,fcz(i,j,k,2)))
+                fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
+                fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
+                fzm = (one-fracx)*(one-fracy)*fzm + &
+                     & fracx*(one-fracy)*bZ(ii,j ,k)*(x(ii,j ,k)-x(ii,j ,k-1)) + & 
+                     & fracy*(one-fracx)*bZ(i ,jj,k)*(x(i ,jj,k)-x(i ,jj,k-1)) + &
+                     & fracx*     fracy *bZ(ii,jj,k)*(x(ii,jj,k)-x(ii,jj,k-1))
                 fz(i,j,k) = -dhz*fzm
              endif
           enddo
@@ -872,20 +866,18 @@ contains
           do i = xlo(1), xhi(1) 
              if(apx(i,i,j) .eq. zero) then
                 gx(i,j,k) = zero
-             else if (is_regular_cell(flag(i,j,k))) then 
+             else if (is_regular_cell(flag(i,j,k)) .or. apx(i,j,k).eq.one) then
                 gx(i,j,k) = dhx*(sol(i,j,k) - sol(i-1,j,k)) 
              else 
                 fxm = sol(i,j,k) - sol(i-1,j,k)
-                if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
-                   jj = j + int(sign(one, fcx(i,j,k,1)))
-                   kk = k + int(sign(one, fcx(i,j,k,2)))
-                   fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
-                   fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
-                   fxm = (one-fracy)*(one-fracz)*fxm + &
-                        & fracy*(one-fracz)*(sol(i,jj,k )-sol(i-1,jj,k )) + & 
-                        & fracz*(one-fracy)*(sol(i,j ,kk)-sol(i-1,j ,kk)) + &
-                        & fracy*     fracz *(sol(i,jj,kk)-sol(i-1,jj,kk))
-                endif
+                jj = j + int(sign(one, fcx(i,j,k,1)))
+                kk = k + int(sign(one, fcx(i,j,k,2)))
+                fracy = abs(fcx(i,j,k,1))*real(ior(ccm(i-1,jj,k),ccm(i,jj,k)),amrex_real)
+                fracz = abs(fcx(i,j,k,2))*real(ior(ccm(i-1,j,kk),ccm(i,j,kk)),amrex_real)
+                fxm = (one-fracy)*(one-fracz)*fxm + &
+                     & fracy*(one-fracz)*(sol(i,jj,k )-sol(i-1,jj,k )) + & 
+                     & fracz*(one-fracy)*(sol(i,j ,kk)-sol(i-1,j ,kk)) + &
+                     & fracy*     fracz *(sol(i,jj,kk)-sol(i-1,jj,kk))
                 gx(i,j,k) = dhx*fxm
              endif
           enddo
@@ -897,20 +889,18 @@ contains
           do i = ylo(1), yhi(1) 
              if(apy(i,j,k) .eq. zero) then
                 gy(i,j,k) = zero
-             else if (is_regular_cell(flag(i,j,k))) then 
+             else if (is_regular_cell(flag(i,j,k)) .or. apy(i,j,k).eq.one) then
                 gy(i,j,k) = dhy*(sol(i,j,k) - sol(i,j-1,k))
              else 
                 fym = (sol(i,j,k) - sol(i,j-1,k))
-                if (apy(i,j,k).ne.zero.and.apy(i,j,k).ne.one) then 
-                   ii = i + int(sign(one,fcy(i,j,k,1)))
-                   kk = k + int(sign(one,fcy(i,j,k,2)))
-                   fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
-                   fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
-                   fym = (one-fracx)*(one-fracz)*fym + &
-                        & fracx*(one-fracz)*(sol(ii,j,k )-sol(ii,j-1,k )) + & 
-                        & fracz*(one-fracx)*(sol(i ,j,kk)-sol(i ,j-1,kk)) + &
-                        & fracx*     fracz *(sol(ii,j,kk)-sol(ii,j-1,kk))
-                endif
+                ii = i + int(sign(one,fcy(i,j,k,1)))
+                kk = k + int(sign(one,fcy(i,j,k,2)))
+                fracx = abs(fcy(i,j,k,1))*real(ior(ccm(ii,j-1,k),ccm(ii,j,k)),amrex_real)
+                fracz = abs(fcy(i,j,k,2))*real(ior(ccm(i,j-1,kk),ccm(i,j,kk)),amrex_real)
+                fym = (one-fracx)*(one-fracz)*fym + &
+                     & fracx*(one-fracz)*(sol(ii,j,k )-sol(ii,j-1,k )) + & 
+                     & fracz*(one-fracx)*(sol(i ,j,kk)-sol(i ,j-1,kk)) + &
+                     & fracx*     fracz *(sol(ii,j,kk)-sol(ii,j-1,kk))
                 gy(i,j,k) = dhy*fym
              endif
           enddo
@@ -922,20 +912,18 @@ contains
           do i = zlo(1), zhi(1) 
              if(apz(i,j,k) .eq. zero) then
                 gz(i,j,k) = zero
-             else if (is_regular_cell(flag(i,j,k))) then 
+             else if (is_regular_cell(flag(i,j,k)) .or. apz(i,j,k).eq.one) then
                 gz(i,j,k) = dhz*(sol(i,j,k) - sol(i,j,k-1))
              else 
                 fzm = (sol(i,j,k) - sol(i,j,k-1))
-                if (apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
-                   ii = i + int(sign(one,fcz(i,j,k,1)))
-                   jj = j + int(sign(one,fcz(i,j,k,2)))
-                   fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
-                   fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
-                   fzm = (one-fracx)*(one-fracy)*fzm + &
-                        & fracx*(one-fracy)*(sol(ii,j ,k)-sol(ii,j ,k-1)) + & 
-                        & fracy*(one-fracx)*(sol(i ,jj,k)-sol(i ,jj,k-1)) + &
-                        & fracx*     fracy *(sol(ii,jj,k)-sol(ii,jj,k-1))
-                endif
+                ii = i + int(sign(one,fcz(i,j,k,1)))
+                jj = j + int(sign(one,fcz(i,j,k,2)))
+                fracx = abs(fcz(i,j,k,1))*real(ior(ccm(ii,j,k-1),ccm(ii,j,k)),amrex_real)
+                fracy = abs(fcz(i,j,k,2))*real(ior(ccm(i,jj,k-1),ccm(i,jj,k)),amrex_real)
+                fzm = (one-fracx)*(one-fracy)*fzm + &
+                     & fracx*(one-fracy)*(sol(ii,j ,k)-sol(ii,j ,k-1)) + & 
+                     & fracy*(one-fracx)*(sol(i ,jj,k)-sol(i ,jj,k-1)) + &
+                     & fracx*     fracy *(sol(ii,jj,k)-sol(ii,jj,k-1))
                 gz(i,j,k) = dhz*fzm
              endif
           enddo
