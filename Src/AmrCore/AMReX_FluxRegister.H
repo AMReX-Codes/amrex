@@ -154,6 +154,15 @@ public:
                   int              destcomp,
                   int              numcomp,
                   Real             mult);
+  ///in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
+    void FineAdd (const Real*      flxdat,
+                  const Box&       flxbox,
+                  int              dir,
+                  int              boxno,
+                  int              srccomp,
+                  int              destcomp,
+                  int              numcomp,
+                  Real             mult);
     //
     // Increment flux correction with fine data.
     //
