@@ -653,15 +653,13 @@ contains
        do i = lo(1), hi(1)+1, istride
           if (apx(i,j) .eq. zero) then
              fx(i,j) = zero
-          else if (is_regular_cell(flag(i,j))) then
+          else if (is_regular_cell(flag(i,j)) .or. apx(i,j).eq.one) then
              fx(i,j) = -dhx*bx(i,j)*(sol(i,j) - sol(i-1,j))
           else
              fxm = bX(i,j)*(sol(i,j)-sol(i-1,j))
-             if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
-                jj = j + int(sign(one,fcx(i,j)))
-                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
-                fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(sol(i,jj)-sol(i-1,jj))
-             end if
+             jj = j + int(sign(one,fcx(i,j)))
+             fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
+             fxm = (one-fracy)*fxm + fracy*bX(i,jj)*(sol(i,jj)-sol(i-1,jj))
              fx(i,j) = -fxm*dhx
           end if
        end do
@@ -671,15 +669,13 @@ contains
        do i = lo(1), hi(1)
           if (apy(i,j) .eq. zero) then
              fy(i,j) = zero
-          else if (is_regular_cell(flag(i,j))) then
+          else if (is_regular_cell(flag(i,j)) .or. apy(i,j).eq.one) then
              fy(i,j) = -dhy*by(i,j)*(sol(i,j) - sol(i,j-1))
           else
              fym = bY(i,j)*(sol(i,j)-sol(i,j-1))
-             if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
-                ii = i + int(sign(one,fcy(i,j)))
-                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
-                fym = (one-fracx)*fym + fracx*bY(ii,j)*(sol(ii,j)-sol(ii,j-1))
-             end if
+             ii = i + int(sign(one,fcy(i,j)))
+             fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
+             fym = (one-fracx)*fym + fracx*bY(ii,j)*(sol(ii,j)-sol(ii,j-1))
              fy(i,j) = -fym*dhy
           end if
        end do
@@ -714,15 +710,13 @@ contains
        do i = xlo(1), xhi(1)
           if (apx(i,j) .eq. zero) then
              gx(i,j) = zero
-          else if (is_regular_cell(flag(i,j))) then
+          else if (is_regular_cell(flag(i,j)) .or. apx(i,j).eq.one) then
              gx(i,j) = dhx*(sol(i,j) - sol(i-1,j))
           else
              fxm = (sol(i,j)-sol(i-1,j))
-             if (apx(i,j).ne.zero .and. apx(i,j).ne.one) then
-                jj = j + int(sign(one,fcx(i,j)))
-                fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
-                fxm = (one-fracy)*fxm + fracy*(sol(i,jj)-sol(i-1,jj))
-             end if
+             jj = j + int(sign(one,fcx(i,j)))
+             fracy = abs(fcx(i,j))*real(ior(ccm(i-1,jj),ccm(i,jj)),amrex_real)
+             fxm = (one-fracy)*fxm + fracy*(sol(i,jj)-sol(i-1,jj))
              gx(i,j) = fxm*dhx
           end if
        end do
@@ -732,15 +726,13 @@ contains
        do i = ylo(1), yhi(1)
           if (apy(i,j) .eq. zero) then
              gy(i,j) = zero
-          else if (is_regular_cell(flag(i,j))) then
+          else if (is_regular_cell(flag(i,j)) .or. apy(i,j).eq.one) then
              gy(i,j) = dhy*(sol(i,j) - sol(i,j-1))
           else
              fym = (sol(i,j)-sol(i,j-1))
-             if (apy(i,j).ne.zero .and. apy(i,j).ne.one) then
-                ii = i + int(sign(one,fcy(i,j)))
-                fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
-                fym = (one-fracx)*fym + fracx*(sol(ii,j)-sol(ii,j-1))
-             end if
+             ii = i + int(sign(one,fcy(i,j)))
+             fracx = abs(fcy(i,j))*real(ior(ccm(ii,j-1),ccm(ii,j)),amrex_real)
+             fym = (one-fracx)*fym + fracx*(sol(ii,j)-sol(ii,j-1))
              gy(i,j) = fym*dhy
           end if
        end do
