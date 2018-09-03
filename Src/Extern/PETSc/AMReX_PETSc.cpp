@@ -268,9 +268,7 @@ PETScABecLap::prepareSolver ()
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -319,7 +317,7 @@ PETScABecLap::prepareSolver ()
                                      &scalar_a, &scalar_b, dx,
                                      bctype.data(), bcl.data(), &bho);
                 }
-    #ifdef AMREX_USE_EB
+#ifdef AMREX_USE_EB
                 else
                 {
                     amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
@@ -342,7 +340,7 @@ PETScABecLap::prepareSolver ()
                                         &scalar_a, &scalar_b, dx,
                                         bctype.data(), bcl.data(), &bho);
                 }
-    #endif
+#endif
                 //Load in by row! 
                int matid = 0; 
                for (int rit = 0; rit < nrows; ++rit)
