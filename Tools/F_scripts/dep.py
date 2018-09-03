@@ -11,8 +11,8 @@
 #      easily see them.  Usually this is a case of the regex not
 #      capturing how the module is defined
 #
-#   -- add `--debug` to the `dep.py` commandline (e.g., in 
-#      `C_mk/Make.rules`).  This will output a file called 
+#   -- add `--debug` to the `dep.py` commandline (e.g., in
+#      `C_mk/Make.rules`).  This will output a file called
 #      `dependencies.out` that shows details about what files are
 #      parsed, what modules they define, and what modules they require.
 #
@@ -29,9 +29,10 @@ if sys.version_info < (2, 7):
 
 if sys.version[0] == "2":
     reload(sys)
-    sys.setdefaultencoding('utf8')
+    sys.setdefaultencoding('latin-1')
 
 
+import io
 import re
 import os
 import argparse
@@ -99,7 +100,7 @@ class SourceFile(object):
 
         defines = []
 
-        with open(self.search_name(), "r") as f:
+        with io.open(self.search_name(), "r", encoding="latin-1") as f:
 
             for line in f:
 
@@ -124,7 +125,7 @@ class SourceFile(object):
 
         depends = []
 
-        with open(self.search_name(), "r") as f:
+        with io.open(self.search_name(), "r", encoding="latin-1") as f:
 
             for line in f:
 
@@ -148,7 +149,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
     """ main routine that processes the files"""
 
     if debug:
-        df = open("dependencies.out", "w")
+        df = io.open("dependencies.out", "w", encoding="latin-1")
 
 
     # module_files is a dictionary where the keys are the name of the
@@ -172,7 +173,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
                     break
         else:
             full_file = cf
-            
+
         sf = SourceFile(full_file)
 
         # preprocess, if necessary
@@ -184,7 +185,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
             if sf.preprocess:
                 df.write("preprocessed: {}\n".format(sf.cpp_name))
             df.write("\n")
-        
+
         all_files.append(sf)
 
     # for each file, figure out what modules they define and add those to
@@ -212,7 +213,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
         for d in depends:
             try: provides_obj = module_files[d]
             except KeyError:
-                print("warning: module {} required by {} not found".format(d, sf.name), 
+                print("warning: module {} required by {} not found".format(d, sf.name),
                       file=sys.stderr)
                 print("$(warning module {} required by {} not found)".format(d, sf.name))
                 continue
@@ -289,4 +290,3 @@ if __name__ == "__main__":
     except:
         # something went wrong
         print("$(error something went wrong in dep.py.  Remake, adding the option 'DEP_CHECK_OPTS=--debug' to your make command and examine the 'dependencies.out' file)")
-

@@ -1,55 +1,11 @@
 
 #include <AMReX_EBDataCollection.H>
-#include <AMReX_EBTower.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiCutFab.H>
 
 #include <AMReX_EB2_Level.H>
 
 namespace amrex {
-
-EBDataCollection::EBDataCollection (const Geometry& a_geom,
-                                    const BoxArray& a_ba_in,
-                                    const DistributionMapping& a_dm,
-                                    const Vector<int>& a_ngrow, EBSupport a_support)
-    : m_ngrow(a_ngrow),
-      m_support(a_support),
-      m_geom(a_geom)
-{
-    if (m_support >= EBSupport::basic)
-    {
-        AMREX_ALWAYS_ASSERT(EBTower::get() != nullptr);
-
-        // The BoxArray argument may not be cell-centered BoxArray.
-        const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
-
-        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
-                                                  DefaultFabFactory<EBCellFlagFab>());
-        EBTower::fillEBCellFlag(*m_cellflags, m_geom);
-
-        if (m_support >= EBSupport::volume)
-        {
-            m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
-            EBTower::fillVolFrac(*m_volfrac, m_geom);
-
-            m_centroid = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, m_ngrow[1], *m_cellflags);
-            EBTower::fillCentroid(*m_centroid, m_geom);
-        }
-
-        if (m_support == EBSupport::full)
-        {
-            const int ng = m_ngrow[2];
-            m_bndrycent = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
-            EBTower::fillBndryCent(*m_bndrycent, m_geom);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
-                m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
-                m_facecent[idim] = new MultiCutFab(faceba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
-            }
-            EBTower::fillFaceGeometry(m_areafrac, m_facecent, m_geom);
-        }
-    }
-}
 
 EBDataCollection::EBDataCollection (const EB2::Level& a_level,
                                     const Geometry& a_geom,
@@ -84,6 +40,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         const int ng = m_ngrow[2];
         m_bndrycent = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
         a_level.fillBndryCent(*m_bndrycent, m_geom);
+        m_bndryarea = new MultiCutFab(a_ba, a_dm, 1, ng, *m_cellflags);
+        a_level.fillBndryArea(*m_bndryarea, m_geom);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
             m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
@@ -100,6 +58,7 @@ EBDataCollection::~EBDataCollection ()
     delete m_volfrac;
     delete m_centroid;
     delete m_bndrycent;
+    delete m_bndryarea;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         delete m_areafrac[idim];
         delete m_facecent[idim];
@@ -132,6 +91,13 @@ EBDataCollection::getBndryCent () const
 {
     AMREX_ASSERT(m_bndrycent != nullptr);
     return *m_bndrycent;
+}
+
+const MultiCutFab&
+EBDataCollection::getBndryArea () const
+{
+    AMREX_ASSERT(m_bndryarea != nullptr);
+    return *m_bndryarea;
 }
 
 Array<const MultiCutFab*, AMREX_SPACEDIM>

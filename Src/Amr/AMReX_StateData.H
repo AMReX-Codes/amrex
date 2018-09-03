@@ -17,11 +17,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
-#ifdef AMREX_USE_EB
-#ifdef AMREX_USE_GEOMETRYSHOP
-#include <AMReX_EBLevelGrid.H>
-#endif
-#endif
 
 namespace amrex {
 

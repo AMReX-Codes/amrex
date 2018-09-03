@@ -251,7 +251,7 @@ Here is a simple example of initialize the database for an embedded sphere.
 Implicit Function
 -----------------
 
-In ``amrex/Src/EB2/``, there are a number of predefined implicit
+In ``amrex/Src/EB/``, there are a number of predefined implicit
 function classes for basic shapes.  One can use these directly or as
 template for their own classes.  
 

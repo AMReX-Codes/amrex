@@ -21,8 +21,6 @@ class EBFArrayBoxFactory
 {
 public:
 
-    EBFArrayBoxFactory (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        const Vector<int>& a_ngrow, EBSupport a_support);
     EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
                         const BoxArray& a_ba, const DistributionMapping& a_dm,
                         const Vector<int>& a_ngrow, EBSupport a_support);    
@@ -49,6 +47,8 @@ public:
     const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
 
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
+
+    const MultiCutFab& getBndryArea () const { return m_ebdc->getBndryArea(); }
 
     Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
         return m_ebdc->getAreaFrac();

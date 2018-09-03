@@ -4,6 +4,7 @@
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_Array.H>
+#include <string>
 
 class MyTest
 {
@@ -13,20 +14,25 @@ public:
 
     void solve ();
 
+    void writePlotfile ();
+
 private:
 
     void initializeEB ();
     void readParameters ();
     void initGrids ();
+    void addFineGrids ();
     void initData ();
 
     int max_level = 0;
     int ref_ratio = 2;
     int n_cell = 128;
     int max_grid_size = 64;
-    int is_periodic = 0;
-    int eb_is_dirichlet = 0;
-    
+
+    int prob_type = 2;
+
+    std::string plot_file_name{"plot"};
+ 
     amrex::Vector<amrex::Real> scalars;
 
     // For MLMG solver
@@ -47,6 +53,8 @@ private:
     amrex::Vector<std::unique_ptr<amrex::EBFArrayBoxFactory> > factory;
 
     amrex::Vector<amrex::MultiFab> phi;
+    amrex::Vector<amrex::MultiFab> phiexact;
+    amrex::Vector<amrex::MultiFab> phieb;
     amrex::Vector<amrex::MultiFab> rhs;
     amrex::Vector<amrex::MultiFab> acoef;
     amrex::Vector<amrex::Array<amrex::MultiFab,AMREX_SPACEDIM> > bcoef;

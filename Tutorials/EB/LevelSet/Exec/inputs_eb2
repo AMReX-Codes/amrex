@@ -35,8 +35,6 @@ cyl.cyl_length    = .0032
 cyl.cyl_translate = .0016 .0016 0.
 
 
-eb.use_eb2 = true
-
 
 #########################################################################
 # Level set specifications
