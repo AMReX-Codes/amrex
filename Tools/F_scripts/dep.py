@@ -11,8 +11,8 @@
 #      easily see them.  Usually this is a case of the regex not
 #      capturing how the module is defined
 #
-#   -- add `--debug` to the `dep.py` commandline (e.g., in 
-#      `C_mk/Make.rules`).  This will output a file called 
+#   -- add `--debug` to the `dep.py` commandline (e.g., in
+#      `C_mk/Make.rules`).  This will output a file called
 #      `dependencies.out` that shows details about what files are
 #      parsed, what modules they define, and what modules they require.
 #
@@ -36,7 +36,6 @@ import io
 import re
 import os
 import argparse
-import subprocess
 import preprocess
 
 # modules to ignore in the dependencies
@@ -174,7 +173,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
                     break
         else:
             full_file = cf
-            
+
         sf = SourceFile(full_file)
 
         # preprocess, if necessary
@@ -186,7 +185,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
             if sf.preprocess:
                 df.write("preprocessed: {}\n".format(sf.cpp_name))
             df.write("\n")
-        
+
         all_files.append(sf)
 
     # for each file, figure out what modules they define and add those to
@@ -214,7 +213,7 @@ def doit(prefix, search_path, files, cpp, debug=False):
         for d in depends:
             try: provides_obj = module_files[d]
             except KeyError:
-                print("warning: module {} required by {} not found".format(d, sf.name), 
+                print("warning: module {} required by {} not found".format(d, sf.name),
                       file=sys.stderr)
                 print("$(warning module {} required by {} not found)".format(d, sf.name))
                 continue
@@ -281,7 +280,8 @@ if __name__ == "__main__":
     # create a preprocessor object
     if args.cpp != "":
         cpp_pass = preprocess.Preprocessor(temp_dir=temp_dir, cpp_cmd=args.cpp,
-                                           defines=args.defines, f90_preprocess=args.f90_preprocess)
+                                           defines=args.defines,
+                                           f90_preprocess=args.f90_preprocess)
     else:
         cpp_pass = None
 
@@ -290,4 +290,3 @@ if __name__ == "__main__":
     except:
         # something went wrong
         print("$(error something went wrong in dep.py.  Remake, adding the option 'DEP_CHECK_OPTS=--debug' to your make command and examine the 'dependencies.out' file)")
-
