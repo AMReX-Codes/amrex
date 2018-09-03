@@ -67,6 +67,11 @@ MyTest::solvePoisson ()
             mlmg.setHypreInterface(hypre_interface);
         }
 #endif
+#ifdef AMREX_USE_PETSC
+        if (use_petsc) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        }
+#endif
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -101,6 +106,11 @@ MyTest::solvePoisson ()
             if (use_hypre) {
                 mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
                 mlmg.setHypreInterface(hypre_interface);
+            }
+#endif
+#ifdef AMREX_USE_PETSC
+            if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
             }
 #endif
             
@@ -174,6 +184,11 @@ MyTest::solveABecLaplacian ()
             mlmg.setHypreInterface(hypre_interface);
         }
 #endif
+#ifdef AMREX_USE_PETSC
+        if (use_petsc) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        }
+#endif
 
         mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
     }
@@ -228,6 +243,11 @@ MyTest::solveABecLaplacian ()
                 mlmg.setHypreInterface(hypre_interface);
             }
 #endif
+#ifdef AMREX_USE_PETSC
+            if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            }
+#endif
 
             mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);            
         }
@@ -278,6 +298,11 @@ MyTest::readParameters ()
         hypre_interface = Hypre::Interface::ij;
     }
 #endif
+#ifdef AMREX_USE_PETSC
+    pp.query("use_petsc", use_petsc);
+#endif
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!(use_hypre && use_petsc),
+                                     "use_hypre & use_petsc cannot be both true");
 }
 
 void
