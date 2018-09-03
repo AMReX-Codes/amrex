@@ -4,6 +4,7 @@ USE_MPI  = TRUE
 USE_OMP  = FALSE
 
 USE_HYPRE = FALSE
+USE_PETSC = FALSE
 
 COMP = gnu
 
@@ -19,6 +20,10 @@ Pdirs 	:= Base Boundary AmrCore LinearSolvers/C_CellMG LinearSolvers/MLMG
 
 ifeq ($(USE_HYPRE),TRUE)
     Pdirs += Extern/HYPRE
+endif
+
+ifeq ($(USE_PETSC),TRUE)
+    Pdirs += Extern/PETSc
 endif
 
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)

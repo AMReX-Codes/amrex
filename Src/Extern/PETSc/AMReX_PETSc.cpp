@@ -1,12 +1,13 @@
-#include <AMReX_HypreABecLap3.H>
-#include <AMReX_HypreABec_F.H>
-#include <AMReX_VisMF.H>
+
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBFabFactory.H>
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
+#include <AMReX_HypreABec_F.H>
 #include <cmath>
 #include <numeric>
 #include <limits>
@@ -15,31 +16,105 @@
 
 namespace amrex {
 
-HypreABecLap3::HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
-                              const Geometry& geom_, MPI_Comm comm_)
-    : Hypre(grids, dmap, geom_, comm_)
+constexpr PetscInt PETScABecLap::regular_stencil_size;
+constexpr PetscInt PETScABecLap::eb_stencil_size;
+
+
+std::unique_ptr<PETScABecLap>
+makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
+           const Geometry& geom, MPI_Comm comm_)
 {
+        return std::unique_ptr<PETScABecLap>(new PETScABecLap(grids, dmap, geom, comm_));
 }
-    
-HypreABecLap3::~HypreABecLap3 ()
+
+
+PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dmap,
+                            const Geometry& geom_, MPI_Comm comm_)
+    : comm(comm_),
+      geom(geom_)
 {
-    HYPRE_IJMatrixDestroy(A);
-    A= NULL;
-    HYPRE_IJVectorDestroy(b);
-    b = NULL;
-    HYPRE_IJVectorDestroy(x);
-    x = NULL;
-    HYPRE_BoomerAMGDestroy(solver);
-    solver = NULL;
+    static_assert(AMREX_SPACEDIM > 1, "PETScABecLap: 1D not supported");
+    static_assert(std::is_same<Real, PetscScalar>::value, "amrex::Real != PetscScalar");
+    static_assert(std::is_same<HYPRE_Int, PetscInt>::value, "HYPRE_Int != PetscInt");
+
+    const int ncomp = 1;
+    int ngrow = 0;
+    acoefs.define(grids, dmap, ncomp, ngrow);
+    acoefs.setVal(0.0);
+    
+#ifdef AMREX_USE_EB
+    ngrow = 1;
+#endif
+    
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        BoxArray edge_boxes(grids);
+        edge_boxes.surroundingNodes(i);
+        bcoefs[i].define(edge_boxes, dmap, ncomp, ngrow);
+        bcoefs[i].setVal(0.0);
+    }
+
+    diaginv.define(grids,dmap,ncomp,0);
+
+    PETSC_COMM_WORLD = comm;
+    PetscInitialize(0, 0, 0, 0);
+}
+
+PETScABecLap::~PETScABecLap ()
+{
+    MatDestroy(&A);
+    A = nullptr;
+
+    VecDestroy(&b);
+    b = nullptr;
+
+    VecDestroy(&x);
+    x = nullptr;
+
+    KSPDestroy(&solver);
+    solver = nullptr;
+
+    m_factory = nullptr;
+    m_bndry = nullptr;
+    m_maxorder = -1;
+    
+    PetscFinalize();
 }
 
 void
-HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
-                      int max_iter, const BndryData& bndry, int max_bndry_order)
+PETScABecLap::setScalars (Real sa, Real sb)
 {
-    BL_PROFILE("HypreABecLap3::solve()");
-    
-    if (solver == NULL || m_bndry != &bndry || m_maxorder != max_bndry_order)
+    scalar_a = sa;
+    scalar_b = sb;
+}
+
+void
+PETScABecLap::setACoeffs (const MultiFab& alpha)
+{
+    MultiFab::Copy(acoefs, alpha, 0, 0, 1, 0);
+}
+
+void
+PETScABecLap::setBCoeffs (const Array<const MultiFab*, BL_SPACEDIM>& beta)
+{
+    for (int idim=0; idim < AMREX_SPACEDIM; idim++) {
+        const int ng = std::min(bcoefs[idim].nGrow(), beta[idim]->nGrow());
+        MultiFab::Copy(bcoefs[idim], *beta[idim], 0, 0, 1, ng);
+    }
+}
+
+void
+PETScABecLap::setVerbose (int _verbose)
+{
+    verbose = _verbose;
+}
+
+void
+PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+                     int max_iter, const BndryData& bndry, int max_bndry_order)
+{
+    BL_PROFILE("PETScABecLap::solve()");
+
+    if (solver == nullptr || m_bndry != &bndry || m_maxorder != max_bndry_order)
     {
         m_bndry = &bndry;
         m_maxorder = max_bndry_order;
@@ -50,131 +125,47 @@ HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real ab
     {
         m_factory = &(rhs.Factory());
     }
-    
-    HYPRE_IJVectorInitialize(b);
-    HYPRE_IJVectorInitialize(x);
-    //
+
     loadVectors(soln, rhs);
     //
-    HYPRE_IJVectorAssemble(x);
-    HYPRE_IJVectorAssemble(b);
-    
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_ParVector par_b = NULL;
-    HYPRE_ParVector par_x = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_IJVectorGetObject(b, (void **) &par_b);
-    HYPRE_IJVectorGetObject(x, (void **) &par_x);
+    VecAssemblyBegin(x); 
+    VecAssemblyEnd(x); 
+    //
+    VecAssemblyBegin(b); 
+    VecAssemblyEnd(b); 
 
-    HYPRE_BoomerAMGSetMinIter(solver, 1);
-    HYPRE_BoomerAMGSetMaxIter(solver, max_iter);
-    HYPRE_BoomerAMGSetTol(solver, rel_tol);
-    if (abs_tol > 0.0)
-    {
-        Real bnorm = hypre_ParVectorInnerProd(par_b, par_b);
-        bnorm = std::sqrt(bnorm);
-        
-        const BoxArray& grids = rhs.boxArray();
-        Real volume = grids.numPts();
-        Real rel_tol_new = (bnorm > 0.0) ? (abs_tol / bnorm * std::sqrt(volume)) : rel_tol;
-
-        if (rel_tol_new > rel_tol) {
-            HYPRE_BoomerAMGSetTol(solver, rel_tol_new);
-        }
-    }
-
-    HYPRE_BoomerAMGSolve(solver, par_A, par_b, par_x);
-
+    KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
+    KSPSolve(solver, b, x);
     if (verbose >= 2)
     {
-        HYPRE_Int num_iterations;
+        PetscInt niters;
         Real res;
-        HYPRE_BoomerAMGGetNumIterations(solver, &num_iterations);
-        HYPRE_BoomerAMGGetFinalRelativeResidualNorm(solver, &res);
-
-        amrex::Print() <<"\n" <<  num_iterations
-                       << " Hypre IJ BoomerAMG Iterations, Relative Residual "
-                       << res << std::endl;
+        KSPGetIterationNumber(solver, &niters);
+        KSPGetResidualNorm(solver, &res);
+        amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << std::endl;
     }
 
     getSolution(soln);
 }
 
 void
-HypreABecLap3::getSolution (MultiFab& soln)
+PETScABecLap::prepareSolver ()
 {
-#ifdef AMREX_USE_EB
-    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
-    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
-#endif
-
-    FArrayBox rfab;
-    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-        const HYPRE_Int nrows = ncells_grid[mfi];
-        
-#ifdef AMREX_USE_EB
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-#else
-        auto fabtyp = FabType::regular;
-#endif
-        if (fabtyp != FabType::covered)
-        {
-            FArrayBox *xfab;
-#ifdef AMREX_USE_EB
-            if (fabtyp != FabType::regular)
-            {
-                xfab = &rfab;
-                xfab->resize(bx);
-            }
-            else
-#endif
-            {
-                if (soln.nGrow() == 0) {
-                    xfab = &soln[mfi];
-                } else {
-                    xfab = &rfab;
-                    xfab->resize(bx);
-                }
-            }
-                
-            HYPRE_IJVectorGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr());
-
-            if (fabtyp == FabType::regular && soln.nGrow() != 0)
-            {
-                soln[mfi].copy(*xfab,bx);
-            }
-#ifdef AMREX_USE_EB
-            else if (fabtyp != FabType::regular)
-            {
-                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(soln[mfi]),
-                                         xfab->dataPtr(), &nrows,
-                                         BL_TO_FORTRAN_ANYD((*flags)[mfi]));
-            }
-#endif
-        }
-    }
-}
-   
-void
-HypreABecLap3::prepareSolver ()
-{
-    BL_PROFILE("HypreABecLap3::prepareSolver()");
-    
     int num_procs, myid;
-    MPI_Comm_size(comm, &num_procs);
-    MPI_Comm_rank(comm, &myid);
+    MPI_Comm_size(PETSC_COMM_WORLD, &num_procs);
+    MPI_Comm_rank(PETSC_COMM_WORLD, &myid);
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
     
+    static_assert(std::is_same<HYPRE_Int,PetscInt>::value,
+                  "HYPRE_Int and PetscInt must be the same!"); 
+
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
     if (sizeof(HYPRE_Int) < sizeof(long)) {
         long ncells_grids = ba.numPts();
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncells_grids < static_cast<long>(std::numeric_limits<HYPRE_Int>::max()),
-                                         "You might need to configure Hypre with --enable-bigint");
+                                         "PetscInt is too short");
     }
 #endif
 
@@ -231,15 +222,20 @@ HypreABecLap3::prepareSolver ()
             }
             cid_fab.copy(ifab,bx);
         }
-    }}
+    }
+    }
 
     Vector<HYPRE_Int> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(HYPRE_Int), MPI_CHAR,
                   ncells_allprocs.data(), sizeof(HYPRE_Int), MPI_CHAR,
-                  comm);
+                  PETSC_COMM_WORLD);
     HYPRE_Int proc_begin = 0;
     for (int i = 0; i < myid; ++i) {
         proc_begin += ncells_allprocs[i];
+    }
+    HYPRE_Int ncells_world = 0;
+    for (auto i : ncells_allprocs) {
+        ncells_world += i;
     }
 
     LayoutData<HYPRE_Int> offset(ba,dm);
@@ -250,7 +246,7 @@ HypreABecLap3::prepareSolver ()
         proc_end += ncells_grid[mfi];
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
-                                     "HypreABecLap3::prepareSolver: how did this happen?");
+                                     "PETScABecLap::prepareSolver: how did this happen?");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -262,26 +258,24 @@ HypreABecLap3::prepareSolver ()
 
     cell_id.FillBoundary(geom.periodicity());
 
-    // Create and initialize A, b & x
-    HYPRE_Int ilower = proc_begin;
-    HYPRE_Int iupper = proc_end-1;
-
-    //
-    HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
-    HYPRE_IJMatrixSetObjectType(A, HYPRE_PARCSR);
-    HYPRE_IJMatrixInitialize(A);
-    //
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &b);
-    HYPRE_IJVectorSetObjectType(b, HYPRE_PARCSR);
-    //
-    HYPRE_IJVectorCreate(comm, ilower, iupper, &x);
-    HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
-    
-    // A.SetValues() & A.assemble()
+    // estimated amount of block diag elements
+    PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
+    // estimated amount of block off diag elements
+    PetscInt o_nz  = d_nz / 2;
+    MatCreate(PETSC_COMM_WORLD, &A); 
+    MatSetType(A, MATMPIAIJ);
+    MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world); 
+    MatMPIAIJSetPreallocation(A, d_nz, NULL, o_nz, NULL );
+    //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
+    MatSetUp(A); 
+    MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE); 
+ 
+    // A.SetValues
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
+
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -315,7 +309,7 @@ HypreABecLap3::prepareSolver ()
                 bctype[cdir] = bcs_i[cdir][0];
                 bcl[cdir]  = bcl_i[cdir];
             }
-            
+    
             if (fabtyp == FabType::regular)
             {
                 amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
@@ -354,48 +348,53 @@ HypreABecLap3::prepareSolver ()
                                     bctype.data(), bcl.data(), &bho);
             }
 #endif
-            HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
+            //Load in by row! 
+            int matid = 0; 
+            for (int rit = 0; rit < nrows; ++rit)
+            {
+                MatSetValues(A, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
+                matid += ncols[rit];
+            }
         }
     }
-    HYPRE_IJMatrixAssemble(A);
 
-    // Create solver
-    HYPRE_BoomerAMGCreate(&solver);
+    MatAssemblyBegin(A, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(A, MAT_FINAL_ASSEMBLY);
+    // create solver
+    KSPCreate(PETSC_COMM_WORLD, &solver);
+    KSPSetOperators(solver, A, A);
 
-    HYPRE_BoomerAMGSetOldDefault(solver); // Falgout coarsening with modified classical interpolation
-//    HYPRE_BoomerAMGSetCoarsenType(solver, 6);
-//    HYPRE_BoomerAMGSetCycleType(solver, 1);
-    HYPRE_BoomerAMGSetRelaxType(solver, 6);   /* G-S/Jacobi hybrid relaxation */
-    HYPRE_BoomerAMGSetRelaxOrder(solver, 1);   /* uses C/F relaxation */
-    HYPRE_BoomerAMGSetNumSweeps(solver, 2);   /* Sweeeps on each level */
-//    HYPRE_BoomerAMGSetStrongThreshold(solver, 0.6); // default is 0.25
+    // Set up preconditioner
+    PC pc;
+    KSPGetPC(solver, &pc);
 
-    int logging = (verbose >= 2) ? 1 : 0;
-    HYPRE_BoomerAMGSetLogging(solver, logging);
-
-    HYPRE_ParCSRMatrix par_A = NULL;
-    HYPRE_IJMatrixGetObject(A, (void**)  &par_A);
-    HYPRE_BoomerAMGSetup(solver, par_A, NULL, NULL);
+    // Classic AMG
+    PCSetType(pc, PCGAMG);
+    PCGAMGSetType(pc, PCGAMGCLASSICAL);
+    
+// we are not using command line options    KSPSetFromOptions(solver);
+    // create b & x
+    VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);
+    VecDuplicate(x, &b);
 }
 
 void
-HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
+PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
 {
-    BL_PROFILE("HypreABecLap3::loadVectors()");
-    
+    BL_PROFILE("PETScABecLap::loadVectors()");
+
 #ifdef AMREX_USE_EB
     auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
     const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
 #endif
-
     soln.setVal(0.0);
-    
+
     FArrayBox vecfab, rhsfab;
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
         const HYPRE_Int nrows = ncells_grid[mfi];
-        
+
 #ifdef AMREX_USE_EB
         const auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 #else
@@ -404,13 +403,12 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
         if (fabtyp != FabType::covered)
         {
             // soln has been set to zero.
-            HYPRE_IJVectorSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr());
-
+            VecSetValues(x, nrows, cell_id_vec[mfi].data(), soln[mfi].dataPtr(), INSERT_VALUES); 
             rhsfab.resize(bx);
             rhsfab.copy(rhs[mfi],bx);
             rhsfab.mult(diaginv[mfi]);
-            
-            FArrayBox* bfab;                            
+
+            FArrayBox* bfab;
 #ifdef AMREX_USE_EB
             if (fabtyp != FabType::regular)
             {
@@ -419,17 +417,73 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 amrex_hpeb_copy_to_vec(BL_TO_FORTRAN_BOX(bx),
                                        BL_TO_FORTRAN_ANYD(rhsfab),
                                        bfab->dataPtr(), &nrows,
-                                       BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+                                       BL_TO_FORTRAN_ANYD((*flags)[mfi])); // */
             }
             else
 #endif
             {
                 bfab = &rhsfab;
             }
-
-            HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr());
+            VecSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr(), INSERT_VALUES); 
         }
     }
 }
-    
-}  // namespace amrex
+
+void
+PETScABecLap::getSolution (MultiFab& soln)
+{
+#ifdef AMREX_USE_EB
+    auto ebfactory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory);
+    const FabArray<EBCellFlagFab>* flags = (ebfactory) ? &(ebfactory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
+    FArrayBox rfab;
+    for (MFIter mfi(soln); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+        const HYPRE_Int nrows = ncells_grid[mfi];
+
+#ifdef AMREX_USE_EB
+        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+#else
+        auto fabtyp = FabType::regular;
+#endif
+        if (fabtyp != FabType::covered)
+        {
+            FArrayBox *xfab;
+#ifdef AMREX_USE_EB
+            if (fabtyp != FabType::regular)
+            {
+                xfab = &rfab;
+                xfab->resize(bx);
+            }
+            else
+#endif
+            {
+                if (soln.nGrow() == 0) {
+                    xfab = &soln[mfi];
+                } else {
+                    xfab = &rfab;
+                    xfab->resize(bx);
+                }
+            }
+
+            VecGetValues(x, nrows, cell_id_vec[mfi].data(), xfab->dataPtr()); 
+            if (fabtyp == FabType::regular && soln.nGrow() != 0)
+            {
+                soln[mfi].copy(*xfab,bx);
+            }
+#ifdef AMREX_USE_EB
+            else if (fabtyp != FabType::regular)
+            {
+                amrex_hpeb_copy_from_vec(BL_TO_FORTRAN_BOX(bx),
+                                         BL_TO_FORTRAN_ANYD(soln[mfi]),
+                                         xfab->dataPtr(), &nrows,
+                                         BL_TO_FORTRAN_ANYD((*flags)[mfi])); // */
+            }
+#endif
+        }
+    }
+}
+
+}
