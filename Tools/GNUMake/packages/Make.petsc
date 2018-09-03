@@ -5,6 +5,6 @@ ifdef PETSC_DIR
   INCLUDE_LOCATIONS += $(PETSC_DIR)/include
   INCLUDE_LOCATIONS += $(HYPRE_DIR)/include
   LIBRARY_LOCATIONS += $(PETSC_DIR)/lib
+  LIBRARIES += -lpetsc -lHYPRE -llapack -lblas -lX11 -ldl
 endif
 
-LIBRARIES += -lpetsc -lHYPRE -llapack -lblas -lX11 -ldl
