@@ -147,7 +147,6 @@ PETScABecLap::prepareSolver ()
     int num_procs, myid;
     MPI_Comm_size(PETSC_COMM_WORLD, &num_procs);
     MPI_Comm_rank(PETSC_COMM_WORLD, &myid);
-    PetscErrorCode ierr; 
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
@@ -251,12 +250,15 @@ PETScABecLap::prepareSolver ()
     }    
 
     cell_id.FillBoundary(geom.periodicity());
-    PetscInt ndiag = regular_stencil_size-2; //estimated amount of block diag elements
-    PetscInt noff  = 2; // estimated amount of block off diag elements
+
+    // estimated amount of block diag elements
+    PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
+    // estimated amount of block off diag elements
+    PetscInt o_nz  = d_nz / 2;
     MatCreate(PETSC_COMM_WORLD, &A); 
     MatSetType(A, MATMPIAIJ);
     MatSetSizes(A, ncells_proc, ncells_proc, ncells_world, ncells_world); 
-    MatMPIAIJSetPreallocation(A, ndiag*ncells_proc, NULL, regular_stencil_size*noff, NULL );
+    MatMPIAIJSetPreallocation(A, d_nz, NULL, o_nz, NULL );
     //Maybe an over estimate of the diag/off diag #of non-zero entries, so we turn off malloc warnings
     MatSetUp(A); 
     MatSetOption(A, MAT_NEW_NONZERO_LOCATION_ERR, PETSC_FALSE); 
