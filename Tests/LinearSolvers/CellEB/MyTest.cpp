@@ -199,7 +199,7 @@ MyTest::initData ()
 
         if (is_periodic)
         {
-            constexpr Real pi = 4.0*std::atan(1.0);
+            const Real pi = 4.0*std::atan(1.0);
 
             for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
             {
