@@ -345,11 +345,8 @@ PETScABecLap::prepareSolver ()
             int matid = 0; 
             for (int rit = 0; rit < nrows; ++rit)
             {
-                for (int cit = 0; cit < ncols[rit]; ++cit)
-                {
-                    MatSetValues(A, 1, &rows[rit], 1, &cols[matid], &mat[matid], INSERT_VALUES);  
-                    matid++; 
-                }
+                MatSetValues(A, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
+                matid += ncols[rit];
             }
         }
     }
