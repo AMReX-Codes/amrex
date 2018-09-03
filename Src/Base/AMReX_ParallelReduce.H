@@ -120,7 +120,7 @@ namespace ParallelAllReduce {
     }
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::max, std::move(v), -1, comm);
+        detail::Reduce(detail::ReduceOp::max, std::forward<decltype(v)>(v), -1, comm);
     }
 
     template<typename T>
@@ -133,7 +133,7 @@ namespace ParallelAllReduce {
     }
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::min, std::move(v), -1, comm);
+        detail::Reduce(detail::ReduceOp::min, std::forward<decltype(v)>(v), -1, comm);
     }
 
     template<typename T>
@@ -146,7 +146,7 @@ namespace ParallelAllReduce {
     }
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> >&& v, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::sum, std::move(v), -1, comm);
+        detail::Reduce(detail::ReduceOp::sum, std::forward<decltype(v)>(v), -1, comm);
     }
 
     inline void Or (bool & v, MPI_Comm comm) {
@@ -174,7 +174,7 @@ namespace ParallelReduce {
     }
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::max, std::move(v), root, comm);
+        detail::Reduce(detail::ReduceOp::max, std::forward<decltype(v)>(v), root, comm);
     }
 
     template<typename T>
@@ -187,7 +187,7 @@ namespace ParallelReduce {
     }
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::min, std::move(v), root, comm);
+        detail::Reduce(detail::ReduceOp::min, std::forward<decltype(v)>(v), root, comm);
     }
 
     template<typename T>
@@ -200,7 +200,7 @@ namespace ParallelReduce {
     }
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> >&& v, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::sum, std::move(v), root, comm);
+        detail::Reduce(detail::ReduceOp::sum, std::forward<decltype(v)>(v), root, comm);
     }
 
     inline void Or (bool & v, int root, MPI_Comm comm) {
