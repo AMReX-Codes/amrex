@@ -365,7 +365,7 @@ PETScABecLap::prepareSolver ()
     PCSetType(pc, PCGAMG);
     PCGAMGSetType(pc, PCGAMGCLASSICAL);
     
-    KSPSetFromOptions(solver);
+// we are not using command line options    KSPSetFromOptions(solver);
     // create b & x
     VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x);
     VecDuplicate(x, &b);
