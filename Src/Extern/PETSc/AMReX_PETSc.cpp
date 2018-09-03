@@ -127,6 +127,13 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs
     }
 
     loadVectors(soln, rhs);
+    //
+    VecAssemblyBegin(x); 
+    VecAssemblyEnd(x); 
+    //
+    VecAssemblyBegin(b); 
+    VecAssemblyEnd(b); 
+
     KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
     KSPSolve(solver, b, x);
     if (verbose >= 2)
@@ -420,13 +427,6 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             VecSetValues(b, nrows, cell_id_vec[mfi].data(), bfab->dataPtr(), INSERT_VALUES); 
         }
     }
-
-//Vectors ASSEMBLLLLLLLLLLLLLE!!!!!!!!!!!!!!!
-    VecAssemblyBegin(x); 
-    VecAssemblyEnd(x); 
-
-    VecAssemblyBegin(b); 
-    VecAssemblyEnd(b); 
 }
 
 void
@@ -484,7 +484,6 @@ PETScABecLap::getSolution (MultiFab& soln)
 #endif
         }
     }
-  
 }
 
 }
