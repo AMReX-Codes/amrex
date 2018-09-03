@@ -36,6 +36,12 @@ extern "C"
                                  const amrex_real* ap, const int* aplo, const int* aphi, 
                                  const int* ratio, const int* idir, const int* ncomp);
 
+    void amrex_eb_avgdown_boundaries (const int* lo, const int* hi, 
+                                      const amrex_real* fine, const int* flo, const int* fhi, 
+                                      amrex_real* crse, const int* clo, const int* chi,
+                                      const amrex_real* ba, const int* blo, const int* bhi, 
+                                      const int* ratio, const int* ncomp);
+
     void amrex_compute_eb_divergence (const int* lo, const int* hi,
                                    amrex_real* divu, const int* dlo, const int* dhi,
                                    const amrex_real* u, const int* ulo, const int* uhi,

@@ -3,7 +3,7 @@ n_cell = 32 32 32
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
-max_grid_size = 64
+max_grid_size = 8
 
 prob_lo     = 0.      0.      0.      # lo corner of physical domain
 prob_hi     = 0.0032  0.0032  0.0032  # hi corner of physical domain

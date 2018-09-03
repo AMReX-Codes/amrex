@@ -384,25 +384,6 @@ AmrCoreAdv::AverageDownTo (int crse_lev)
                         0, phi_new[crse_lev].nComp(), refRatio(crse_lev));
 }
 
-// compute the number of cells at a level
-long
-AmrCoreAdv::CountCells (int lev)
-{
-    const int N = grids[lev].size();
-
-    long cnt = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:cnt)
-#endif
-    for (int i = 0; i < N; ++i)
-    {
-        cnt += grids[lev][i].numPts();
-    }
-
-    return cnt;
-}
-
 // compute a new multifab by coping in phi from valid region and filling ghost cells
 // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
 void

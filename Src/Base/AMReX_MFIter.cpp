@@ -328,17 +328,18 @@ MFIter::nodaltilebox (int dir) const
 
 // Note that a small negative ng is supported.
 Box 
-MFIter::growntilebox (int ng) const 
+MFIter::growntilebox (int a_ng) const 
 {
     Box bx = tilebox();
-    if (ng < -100) ng = fabArray.nGrow();
+    IntVect ngv{a_ng};
+    if (a_ng < -100) ngv = fabArray.nGrowVect();
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ng);
+	    bx.growLo(d, ngv[d]);
 	}
 	if (bx.bigEnd(d) == vbx.bigEnd(d)) {
-	    bx.growHi(d, ng);
+	    bx.growHi(d, ngv[d]);
 	}
     }
     return bx;
@@ -361,18 +362,19 @@ MFIter::growntilebox (const IntVect& ng) const
 }
 
 Box
-MFIter::grownnodaltilebox (int dir, int ng) const
+MFIter::grownnodaltilebox (int dir, int a_ng) const
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
     Box bx = nodaltilebox(dir);
-    if (ng < -100) ng = fabArray.nGrow();
+    IntVect ngv{a_ng};
+    if (a_ng < -100) ngv = fabArray.nGrowVect();
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ng);
+	    bx.growLo(d, ngv[d]);
 	}
 	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, ng);
+	    bx.growHi(d, ngv[d]);
 	}
     }
     return bx;

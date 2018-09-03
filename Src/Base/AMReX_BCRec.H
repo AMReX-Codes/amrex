@@ -75,6 +75,10 @@ public:
     */
     int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
     /**
+    * \brief Equal test.
+    */
+    bool operator== (const BCRec& rhs) const;
+    /**
     * \brief ASCII write to ostream.
     */
     friend std::ostream& operator << (std::ostream&, const BCRec&);

@@ -75,8 +75,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 {
     BL_PROFILE("EB_average_down");
 
-    BL_ASSERT(S_fine.ixType().cellCentered());
-    BL_ASSERT(S_crse.ixType().cellCentered());
+    AMREX_ASSERT(S_fine.ixType().cellCentered());
+    AMREX_ASSERT(S_crse.ixType().cellCentered());
 
     const DistributionMapping& fine_dm = S_fine.DistributionMap();
     BoxArray crse_S_fine_BA = S_fine.boxArray();
@@ -238,12 +238,18 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 }
 
 
-void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< MultiFab*>& crse,
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            int ratio, int ngcrse)
+{
+    EB_average_down_faces(fine, crse, IntVect{ratio}, ngcrse);
+}
+
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
                             const IntVect& ratio, int ngcrse)
 {
-    BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
-    BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
-    BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
     int ncomp = crse[0]->nComp();
     if (!(*fine[0]).hasEBFabFactory())
@@ -289,16 +295,14 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
-            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
+            Array<MultiFab,AMREX_SPACEDIM> ctmp;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
                 ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-                vctmp[idim] = &ctmp[idim];
             }
-            EB_average_down_faces(fine, vctmp, ratio, ngcrse);
+            EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
@@ -306,6 +310,60 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
         }
     }
 }
+
+void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
+                                 int ratio, int ngcrse)
+{
+    EB_average_down_boundaries(fine,crse,IntVect{ratio},ngcrse);
+}
+
+void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
+                                 const IntVect& ratio, int ngcrse)
+{
+    int ncomp = crse.nComp();
+
+    if (!fine.hasEBFabFactory())
+    {
+        crse.setVal(0.0, 0, ncomp, ngcrse);
+    }
+    else
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine.Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& barea = factory.getBndryArea();
+
+        if (isMFIterSafe(fine, crse))
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(crse, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+            {
+                const Box& tbx = mfi.growntilebox(ngcrse);
+                FabType typ = flags[mfi].getType(amrex::refine(tbx,ratio));
+
+                if (FabType::covered == typ || FabType::regular == typ) {
+                    crse[mfi].setVal(0.0, tbx, 0, 1);
+                } else {
+                    amrex_eb_avgdown_boundaries(tbx.loVect(), tbx.hiVect(),
+                                                BL_TO_FORTRAN_ANYD(fine[mfi]),
+                                                BL_TO_FORTRAN_ANYD(crse[mfi]),
+                                                BL_TO_FORTRAN_ANYD(barea[mfi]),
+                                                ratio.getVect(), &ncomp);
+                }
+            }
+        }
+        else
+        {
+            BoxArray cba = fine.boxArray();
+            cba.coarsen(ratio);
+            MultiFab ctmp(cba, fine.DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            EB_average_down_boundaries(fine, ctmp, ratio, ngcrse);
+            crse.ParallelCopy(ctmp, 0, 0, ncomp, ngcrse, ngcrse);
+        }
+    }    
+}
+
 
 void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                            const Geometry& geom)
