@@ -17,9 +17,6 @@ class EBDataCollection
 {
 public:
 
-    EBDataCollection (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
-                      const Vector<int>& a_ngrow, EBSupport a_support);
-
     EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
                       const BoxArray& a_ba, const DistributionMapping& a_dm,
                       const Vector<int>& a_ngrow, EBSupport a_support);
@@ -35,6 +32,7 @@ public:
     const MultiFab& getVolFrac () const;
     const MultiCutFab& getCentroid () const;
     const MultiCutFab& getBndryCent () const;
+    const MultiCutFab& getBndryArea () const;
     Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
     Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
 
@@ -55,6 +53,7 @@ private:
 
     // EBSupport::full
     MultiCutFab* m_bndrycent = nullptr;
+    MultiCutFab* m_bndryarea = nullptr;
     Array<MultiCutFab*,AMREX_SPACEDIM> m_areafrac {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
     Array<MultiCutFab*,AMREX_SPACEDIM> m_facecent {{AMREX_D_DECL(nullptr, nullptr, nullptr)}};
 };

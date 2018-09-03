@@ -500,10 +500,6 @@ ifeq ($(USE_EB),TRUE)
     DEFINES += -DAMREX_USE_EB
 endif
 
-ifeq ($(USE_GEOMETRYSHOP),TRUE)
-    DEFINES += -DAMREX_USE_GEOMETRYSHOP
-endif
-
 ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
 endif

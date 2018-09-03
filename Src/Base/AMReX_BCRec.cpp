@@ -49,6 +49,17 @@ BCRec::BCRec (const Box&   bx,
     }
 }
 
+bool
+BCRec::operator== (const BCRec& rhs) const
+{
+    bool retval = true;
+    for (int i = 0; i < 2*AMREX_SPACEDIM && retval; i++)
+    {
+        retval &= bc[i] == rhs.bc[i];
+    }
+    return retval;
+}
+
 void
 setBC (const Box&          bx,
                const Box&          domain,
