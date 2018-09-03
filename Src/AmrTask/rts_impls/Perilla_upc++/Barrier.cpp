@@ -44,6 +44,7 @@ void Barrier::sync() //sync all threads associated with this barrier
   } else {
       pthread_cond_wait(&condition, &condition_mutex);
   }
+  pthread_mutex_unlock(&condition_mutex);
 }
 
 void Barrier::sync(int numthreads) //sync a subset of threads

@@ -3,6 +3,7 @@
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
 
@@ -26,6 +27,13 @@ MyTest::solve ()
 {
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
+
+        const MultiFab& vfrc = factory[ilev]->getVolFrac();
+        MultiFab v(vfrc.boxArray(), vfrc.DistributionMap(), 1, 0,
+                   MFInfo(), *factory[ilev]);
+        MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
+        amrex::EB_set_covered(v, 1.0);
+        amrex::Print() << "vfrc min = " << v.min(0) << std::endl;
     }
 
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
@@ -52,15 +60,17 @@ MyTest::solve ()
         mleb.setLevelBC(ilev, &phi[ilev]);
     }
 
-    if (is_periodic) {
-        mleb.setScalars(0.0, 1.0);
-    } else {
-        mleb.setScalars(1.0, 1.0);
-    }
+    mleb.setScalars(scalars[0], scalars[1]);
 
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         mleb.setACoeffs(ilev, acoef[ilev]);
         mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
+    }
+
+    if (eb_is_dirichlet) {
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            mleb.setEBDirichlet(ilev, phi[ilev], bcoef_eb[ilev]);
+        }
     }
 
     MLMG mlmg(mleb);
@@ -89,6 +99,17 @@ MyTest::readParameters ()
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
     pp.query("is_periodic", is_periodic);
+    pp.query("eb_is_dirichlet", eb_is_dirichlet);
+
+    scalars.resize(2);
+    if (is_periodic) {
+        scalars[0] = 0.0;
+        scalars[1] = 1.0;
+    } else {
+        scalars[0] = 1.0;
+        scalars[1] = 1.0;
+    }
+    pp.queryarr("scalars", scalars);
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
@@ -145,6 +166,7 @@ MyTest::initData ()
     rhs.resize(nlevels);
     acoef.resize(nlevels);
     bcoef.resize(nlevels);
+    bcoef_eb.resize(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -160,6 +182,10 @@ MyTest::initData ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].define(amrex::convert(grids[ilev],IntVect::TheDimensionVector(idim)),
                                      dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+        }
+        if (eb_is_dirichlet) {
+            bcoef_eb[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
+            bcoef_eb[ilev].setVal(1.0);
         }
 
         phi[ilev].setVal(0.0);
@@ -185,6 +211,11 @@ MyTest::initData ()
                         p = std::sin(rx*2.*pi + 43.5)*std::sin(ry*2.*pi + 89.);
                     });
             }
+        }
+        else if (eb_is_dirichlet)
+        {
+            phi[ilev].setVal(10.0);
+            phi[ilev].setVal(0.0, 0, 1, 0); // set interior
         }
         else
         {

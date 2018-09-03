@@ -128,7 +128,7 @@ MacProjector::project (Real reltol)
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, 0.0);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes));
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

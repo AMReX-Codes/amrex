@@ -178,7 +178,7 @@ CNS::writePlotFile (const std::string& dir, std::ostream& os, VisMF::How how)
         // volfrac threshhold for amrvis
         if (level == parent->finestLevel()) {
             for (int lev = 0; lev <= parent->finestLevel(); ++lev) {
-                os << ".000001\n";
+                os << "1.0e-6\n";
             }
         }
     }

@@ -375,13 +375,36 @@ namespace amrex
 
 // *************************************************************************************************************
 
+    void average_down_faces (const Vector<const MultiFab*>& fine,
+                             const Vector<MultiFab*>& crse,
+                             const IntVect& ratio, int ngcrse)
+    {
+        average_down_faces(Array<const MultiFab*,AMREX_SPACEDIM>
+                                   {AMREX_D_DECL(fine[0],fine[1],fine[2])},
+                           Array<MultiFab*,AMREX_SPACEDIM>
+                                   {AMREX_D_DECL(crse[0],crse[1],crse[2])},
+                           ratio, ngcrse);
+    }
+
+    void average_down_faces (const Vector<const MultiFab*>& fine,
+                             const Vector<MultiFab*>& crse, int ratio, int ngcrse)
+    {
+        average_down_faces(fine,crse,IntVect{ratio},ngcrse);
+    }
+
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             int ratio, int ngcrse)
+    {
+        average_down_faces(fine,crse,IntVect{ratio},ngcrse);
+    }
+
     // Average fine face-based MultiFab onto crse face-based MultiFab.
-    void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
-	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
-	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+	AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
 
@@ -406,15 +429,13 @@ namespace amrex
         else
         {
             std::array<MultiFab,AMREX_SPACEDIM> ctmp;
-            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
                 ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-                vctmp[idim] = &ctmp[idim];
             }
-            average_down_faces(fine, vctmp, ratio, ngcrse);
+            average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);

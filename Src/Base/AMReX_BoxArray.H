@@ -72,7 +72,7 @@ struct BARef
     void define (const Box& bx);
     void define (const BoxList& bl);
     void define (BoxList&& bl) noexcept;
-    void define (std::istream& is);
+    void define (std::istream& is, int& ndims);
     //!
     void resize (long n);
 #ifdef BL_MEM_PROFILING
@@ -285,7 +285,7 @@ public:
     * Note that the BoxArray in the istream must have been written
     * using writeOn().
     */
-    void readFrom (std::istream& is);
+    int readFrom (std::istream& is);
 
     //! Output this BoxArray to a checkpoint file.
     std::ostream& writeOn (std::ostream&) const;

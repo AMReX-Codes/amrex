@@ -1,15 +1,14 @@
-#include <AMReX_PlaneIF.H>
-#include <AMReX_AllRegularService.H>
-#include <AMReX_TransformIF.H>
-#include <AMReX_IntersectionIF.H>
+
 #include <AMReX_ParmParse.H>
 
 #include <make_shapes.H>
 
 using namespace amrex;
 
-std::unique_ptr<BaseIF>
-make_poly_geom(int lev, int max_order, std::string field_prefix)
+
+
+std::unique_ptr<CylinderIF>
+make_poly_eb2_geom(int lev, int max_order, std::string field_prefix)
 {
     // Construct the ParamParse database field names based on the
     // `field_prefix` string:
@@ -17,8 +16,8 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
 
     // Coefficients vector is stored in the inputs database with the field name:
     //      <field_prefix>_[x,y,z]_coeffs
-    const std::array<const string, 3> var_names{"x", "y", "z"};
-    std::array<string, 3> field_names;
+    const std::array<const std::string, 3> var_names{"x", "y", "z"};
+    std::array<std::string, 3> field_names;
     for(int i = 0; i < 3; i++) {
         std::stringstream field_name;
         field_name << field_prefix;
@@ -35,7 +34,7 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
 
 
     // Generate vector representing polynomial
-    Vector<PolyTerm> poly;
+    Vector<EB2::PolyTerm> poly;
     for(int idir = 0; idir < 3; idir++) {
         Vector<Real> coefvec(SpaceDim);
 
@@ -49,30 +48,28 @@ make_poly_geom(int lev, int max_order, std::string field_prefix)
             IntVect powers = IntVect::Zero;
             powers[idir] = lc;
 
-            PolyTerm mono = {.coef = coef, .powers = powers};
+            EB2::PolyTerm mono = {.coef = coef, .powers = powers};
             poly.push_back(mono);
         }
     }
 
 
-    /***************************************************************************
-     * Construct PolynomialIF (and apply translation)                          *
-     ***************************************************************************/
+    /****************************************************************************
+     * Construct PolynomialIF (called CylinderIF here when used within a        *
+     * TranslationIF, see make_shapes.H )                                       *
+     ****************************************************************************/
 
     bool flip = true;
     pp.query(mirror_field.str().c_str(), flip);
 
-    PolynomialIF mirror(poly, flip);
-    RealVect translation;
-
     Vector<Real> transvec(SpaceDim);
     pp.getarr(translate_field.str().c_str(), transvec, 0, SpaceDim);
 
-    for(int idir = 0; idir < 3; idir++)
-        translation[idir] = transvec[idir];
+    RealArray offset = {AMREX_D_DECL(transvec[0], transvec[1], transvec[2])};
+    CylinderIF poly2(EB2::PolynomialIF(poly, flip), offset);
 
-    TransformIF poly2(mirror);
-    poly2.translate(translation);
+    std::unique_ptr<CylinderIF> ret = std::unique_ptr<CylinderIF>(new CylinderIF(poly2));
 
-    return std::unique_ptr<BaseIF>(poly2.newImplicitFunction());
+    return ret;
+
 }
