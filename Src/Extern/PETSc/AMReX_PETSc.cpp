@@ -298,59 +298,59 @@ PETScABecLap::prepareSolver ()
             const Vector< Vector<BoundCond> > & bcs_i = m_bndry->bndryConds(mfi);
             const BndryData::RealTuple        & bcl_i = m_bndry->bndryLocs(mfi);
             for (OrientationIter oit; oit; oit++) {
-                    int cdir(oit());
-                    bctype[cdir] = bcs_i[cdir][0];
-                    bcl[cdir]  = bcl_i[cdir];
-                }
-                
+                int cdir(oit());
+                bctype[cdir] = bcs_i[cdir][0];
+                bcl[cdir]  = bcl_i[cdir];
+            }
+    
             if (fabtyp == FabType::regular)
             {
-                    amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                     &nrows, ncols, rows, cols, mat,
-                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
-                                     &(offset[mfi]),
-                                     BL_TO_FORTRAN_ANYD(diaginv[mfi]),
-                                     BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
-                                                  BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
-                                                  BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                     &scalar_a, &scalar_b, dx,
-                                     bctype.data(), bcl.data(), &bho);
-                }
+                amrex_hpijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                 &nrows, ncols, rows, cols, mat,
+                                 BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                 &(offset[mfi]),
+                                 BL_TO_FORTRAN_ANYD(diaginv[mfi]),
+                                 BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                 AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                              BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                              BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                 &scalar_a, &scalar_b, dx,
+                                 bctype.data(), bcl.data(), &bho);
+            }
 #ifdef AMREX_USE_EB
-                else
-                {
-                    amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
-                                        &nrows, ncols, rows, cols, mat,
-                                        BL_TO_FORTRAN_ANYD(cell_id[mfi]),
-                                        &(offset[mfi]),
-                                        BL_TO_FORTRAN_ANYD(diaginv[mfi]),
-                                        BL_TO_FORTRAN_ANYD(acoefs[mfi]),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
-                                                     BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
-                                                     BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
-                                        BL_TO_FORTRAN_ANYD((*flags)[mfi]),
-                                        BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
-                                        AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
-                                                     BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                        &scalar_a, &scalar_b, dx,
-                                        bctype.data(), bcl.data(), &bho);
-                }
+            else
+            {
+                amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
+                                    &nrows, ncols, rows, cols, mat,
+                                    BL_TO_FORTRAN_ANYD(cell_id[mfi]),
+                                    &(offset[mfi]),
+                                    BL_TO_FORTRAN_ANYD(diaginv[mfi]),
+                                    BL_TO_FORTRAN_ANYD(acoefs[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bcoefs[0][mfi]),
+                                                 BL_TO_FORTRAN_ANYD(bcoefs[1][mfi]),
+                                                 BL_TO_FORTRAN_ANYD(bcoefs[2][mfi])),
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*vfrac)[mfi]),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                    AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
+                                                 BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    &scalar_a, &scalar_b, dx,
+                                    bctype.data(), bcl.data(), &bho);
+            }
 #endif
-                //Load in by row! 
-               int matid = 0; 
-               for (int rit = 0; rit < nrows; ++rit)
-               {
-                   for (int cit = 0; cit < ncols[rit]; ++cit)
-                   {
-                       MatSetValues(A, 1, &rows[rit], 1, &cols[matid], &mat[matid], INSERT_VALUES);  
-                       matid++; 
-                   }
-               }
+            //Load in by row! 
+            int matid = 0; 
+            for (int rit = 0; rit < nrows; ++rit)
+            {
+                for (int cit = 0; cit < ncols[rit]; ++cit)
+                {
+                    MatSetValues(A, 1, &rows[rit], 1, &cols[matid], &mat[matid], INSERT_VALUES);  
+                    matid++; 
+                }
+            }
         }
     }
 
