@@ -1,3 +1,4 @@
+import io
 import os
 import subprocess
 import sys
@@ -16,13 +17,13 @@ def run(command, stdin=False, outfile=None):
     p0.stdout.close()
 
     if outfile is not None:
-        try: cf = open(outfile, "w")
+        try: cf = io.open(outfile, "w", encoding="latin-1")
         except IOError:
             sys.exit("ERROR: unable to open file for writing: {}".format(outfile))
         else:
             for line in stdout0:
                 if line is not None:
-                    cf.write(line.decode("utf8"))
+                    cf.write(line.decode('latin-1'))
             cf.close()
 
     return stdout0, rc
