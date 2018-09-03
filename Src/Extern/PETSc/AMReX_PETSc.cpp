@@ -152,6 +152,9 @@ PETScABecLap::prepareSolver ()
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
     
+    static_assert(std::is_same<HYPRE_Int,PetscInt>::value,
+                  "HYPRE_Int and PetscInt must be the same!"); 
+
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
     if (sizeof(HYPRE_Int) < sizeof(long)) {
         long ncells_grids = ba.numPts();
