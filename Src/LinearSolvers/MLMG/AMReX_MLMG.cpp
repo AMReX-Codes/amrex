@@ -990,7 +990,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
 #endif
 
 #ifdef AMREX_USE_PETSC
-//    petsc_solver.reset(); 
+    petsc_solver.reset(); 
     petsc_bndry.reset(); 
 #endif
 

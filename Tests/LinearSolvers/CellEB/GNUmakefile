@@ -16,12 +16,6 @@ COMP = gnu
 DIM = 2
 
 AMREX_HOME ?= ../../..
-ifeq ($(USE_PETSC),TRUE)
-#Your PETSC Directory
-    PETSC_DIR = /usr/local/petsc
-#The Hypre directory for utilizing hypre functions
-    HYPRE_DIR = /home/sireeves/hypre/src/hypre
-endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include ./Make.package
