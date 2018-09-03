@@ -8,11 +8,9 @@
 #include <AMReX_Hypre.H>
 #endif
 
-#ifdef AMREX_USE_PETSC
-#include <petscksp.h>
-#include <AMReX_PETSc.H>
-#endif
 namespace amrex {
+
+class PETScABecLap;
 
 class MLMG
 {
