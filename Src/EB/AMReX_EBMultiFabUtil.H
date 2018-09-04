@@ -34,6 +34,8 @@ namespace amrex
     void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                                const Geometry& geom);
 
+    void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
+                                        const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
 }
 
 #endif
