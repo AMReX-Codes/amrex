@@ -373,7 +373,7 @@ private:
     int do_dive_cleaning = 0;
 
     int n_field_gather_buffer = 0;
-    int n_current_deposition_buffer = 0;
+    int n_current_deposition_buffer = -1;
 
     // PML
     int do_pml = 1;

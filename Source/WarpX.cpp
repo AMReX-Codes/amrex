@@ -511,6 +511,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     IntVect ngRho = ngJ + 1;
 #endif
 
+    if (n_current_deposition_buffer < 0) {
+        n_current_deposition_buffer = ngJ.max();
+    }
+
     int ngF = (do_moving_window) ? 2 : 0;
 
     //
