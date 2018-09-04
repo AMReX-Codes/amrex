@@ -88,6 +88,8 @@ public:
                                   const amrex::Real z_new, const amrex::Real t_boost, 
                                   const amrex::Real t_lab, const amrex::Real dt,
                                   DiagnosticParticles& diagnostic_particles) final;
+
+    bool injected = false;
     
 protected:
 
@@ -99,6 +101,8 @@ protected:
     // particle and the time of the boosted frame.
     bool boost_adjust_transverse_positions = false;
 
+    int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
+    
 };
 
 #endif
