@@ -431,8 +431,9 @@ extern "C"
                            const BL_FORT_FAB_ARG_3D(F),
                            const amrex::Real* dtdx);
 
-    void WRPX_FILTER(const amrex_real*, const int*, const int*,
-                     amrex_real*, const int*, const int*, int);
+    void WRPX_FILTER (const int* lo, const int* hi,
+                      const amrex_real*, const int*, const int*,
+                      amrex_real*, const int*, const int*, int);
 
     void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int,
                                 const amrex::Real, const int);
