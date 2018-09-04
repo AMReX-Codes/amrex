@@ -28,9 +28,11 @@ public:
                 Real a_tol_rel, Real a_tol_abs);
 
     void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
-                          Location a_loc = Location::Default);
-    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
-                    Location a_loc = Location::Default);
+                          Location a_loc = Location::FaceCenter);
+    // For (alpha * a - beta * (del dot b grad)) phi = rhs, flux means -b grad phi
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                    Location a_loc = Location::FaceCenter);
+    void getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc = Location::CellCenter);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
     // out = L(in). Note that, if no acutal solve is needed, one could

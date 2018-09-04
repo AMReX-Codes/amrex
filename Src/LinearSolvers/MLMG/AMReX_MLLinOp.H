@@ -46,7 +46,7 @@ public:
 
     enum struct StateMode { Solution, Correction };
 
-    enum struct Location { Default, FaceCenter, FaceCentroid };
+    enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
 
     MLLinOp ();
     virtual ~MLLinOp ();

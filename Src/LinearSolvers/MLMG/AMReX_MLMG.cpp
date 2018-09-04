@@ -1198,6 +1198,31 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
 }
 
 void
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
+{
+    AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
+    Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
+    for (int alev = 0; alev < namrlevs; ++alev) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const int mglev = 0;
+            const int ncomp = linop.getNComp();
+            ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
+                                                      IntVect::TheDimensionVector(idim)),
+                                       linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
+                                       *linop.m_factory[alev][mglev]);
+        }
+    }
+    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), Location::FaceCenter);
+    for (int alev = 0; alev < namrlevs; ++alev) {
+#ifdef AMREX_USE_EB
+        EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+#else
+        average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+#endif
+    }
+}
+
+void
 MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                     const Vector<MultiFab const*>& a_rhs)
 {
