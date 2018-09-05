@@ -14,6 +14,24 @@ module amrex_habec_module
   implicit none
 
 contains
+  
+  pure function blend_beta(kapp) result(beta) 
+    real(amrex_real), intent(in) :: kappa 
+    real(amrex_real) :: beta 
+#if 1 
+    real(amrex_real), parameter :: blend_kappa = -1.d-4 
+    if(kappa .lt. blend_kappa) then 
+      beta = zero
+    else
+      beta = one
+    endif
+#else
+    real(amrex_real), parameter :: blend_kappa = half 
+    real(amrex_real), parameter :: kapinv = one/(one-blend_kappa) 
+    beta = kapinv*(kappa-blend_kappa)
+    beta = min(one,max(zero,beta)
+#endif
+  end function blend_beta
 
   subroutine amrex_hpacoef (lo, hi, mat, a, alo, ahi, sa) bind(c,name='amrex_hpacoef')
     integer, intent(in) :: lo(2), hi(2), alo(2), ahi(2)
@@ -388,6 +406,9 @@ contains
     real(rt) :: fac(2), mat_tmp(-1:1,-1:1)
     real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3, bflo(0:3)
     real(rt) :: fracx, fracy, area, bc
+    real(rt) :: gx, gy, anrmx, anrmy, anorm, anorminv, sx, sy 
+    real(rt) :: bctx, bcty, bsxinv, bsyinv 
+    real(rt) :: w1, w2, dg
 
 
     is_dirichlet = is_eb_dirichlet .ne. 0 
@@ -631,7 +652,34 @@ contains
                       end if
                    end if
                 end if
-                
+               
+                if(is_dirichlet) then 
+                  anorm = sqrt((apx(i,j) - apx(i+1,j))**2 + (apy(i,j) - apy(i,j+1))**2)
+                  anorminv = one/anorm 
+                  anrmx = (apx(i,j) - apx(i+1,j))*anorminv
+                  anrmy = (apy(i,j) - apy(i,j+1))*anorminv
+                  bctx = bc(i,j,1)
+                  bcty = bc(i,j,2)
+                  if (abs(anrmx) .gt. abs(anrmy)) then 
+                    dg = dx_eb / abs(anrmx) 
+                    gx = bctx - dg*anrmx 
+                    gy = bcty - dg*anrmy 
+                    sx = sign(one,anrmx) 
+                    sy = sign(one,anrmy) 
+                  else
+                    dg = dx_eb / abs(anrmy) 
+                    gx = bctx - dg*anrmx 
+                    gy = bcty - dg*anrmy 
+                    sx = sign(one,anrmx) 
+                    sy = sign(one,anrmy) 
+                  endif
+                  ii = -int(sx) 
+                  jj = -int(sy) 
+
+                  w1 = blend_beta(vfrc(i,j))
+                  w2 = one - w1 
+                  
+                endif 
                 mat_tmp = mat_tmp * (one/vfrc(i,j))
                 mat_tmp(0,0) = mat_tmp(0,0) + sa*a(i,j)
              end if
