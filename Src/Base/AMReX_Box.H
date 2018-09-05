@@ -334,6 +334,7 @@ public:
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
@@ -427,9 +428,11 @@ public:
     }
 
     //! Shift Box (relative) by given IntVect.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; return *this; }
 
     //! Shift Box (relative) by given IntVect.
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
 
     //! Shift Box (relative) by given IntVect.
@@ -539,6 +542,7 @@ public:
     * \brief Step through the rectangle.  It is a runtime error to give
     * a point not inside rectangle.  Iteration may not be efficient.
     */
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     void next (IntVect &) const;
 
     /**
