@@ -1,3 +1,8 @@
+"""Langmuir test case
+This file is an older example of an input style that should not be used.
+It is recommended that only the PICMI style interface be used.
+The file is kept for legacy and testing purposes.
+"""
 import numpy as np
 from pywarpx import *
 
