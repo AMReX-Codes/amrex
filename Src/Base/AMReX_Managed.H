@@ -32,6 +32,22 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
+#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, ...)  \
+    { \
+      dim3 numBlocks, numThreads; \
+      Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
+      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      CudaErrorCheck(); \
+    }
+
+#define AMREX_BOXCOMPS_LAUNCH(box, comps, function, ...)  \
+    { \
+      dim3 numBlocks, numThreads; \
+      Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
+      function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      CudaErrorCheck(); \
+    }
+
 #define AMREX_BOX_L_LAUNCH(box, ...)  \
     { \
       dim3 numBlocks, numThreads; \

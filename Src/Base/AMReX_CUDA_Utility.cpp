@@ -70,6 +70,39 @@ Box getThreadBox (const Box& bx, const IntVect& typ)
 #endif
 }
 
+
+// Version of threadBox that also breaks threads across by components.
+// Each call returns the appropriate box and component for the given thread.
+// Components are laid out in the 0-direction.
+// e.g. [            0 <= x <  box.length(0)  ]---> scomp
+//      [    bx.length <= x < 2*bx.length(0)  ]---> scomp + 1
+//      [ 2* bx.length <= x < 3*bx.length(0)  ]---> scomp + 2
+AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncomp)
+{
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
+     // Don't use getThreadBox because these will initially be outside bx, which represents the
+     // component of each thread. So, don't want to do (bx & threadBox) yet until that information
+     // is extracted.
+     threadBox = Box(IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
+                                          bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
+                                          bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
+                     IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
+                                          bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
+                                          bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
+                     bx.type());
+
+     int dcomp =  ( threadBox.smallEnd()[0] / bx.length(0) );
+     scomp = scomp + dcomp;
+     threadBox.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
+     ncomp = 1;  // On GPU, each thread works on one component. (Update later for very big boxes.)
+#else
+     threadBox = bx;
+     // On CPUs, scomp and ncomp don't change.
+#endif
+}
+
+
 // If on CUDA, return index of particle being calculated locally.
 // If index is over N, return size of 0 to skip loop.
 // If not on CUDA, return values to run entire loop. (1 to N) 
