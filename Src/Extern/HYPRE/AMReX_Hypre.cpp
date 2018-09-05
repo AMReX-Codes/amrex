@@ -95,30 +95,46 @@ Hypre::setVerbose (int _verbose)
 void 
 Hypre::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
 {
-	if (m_eb_phi[amrlev] == nullptr){
-		const int mglev = 0; 
-		m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 
-								m_dmap[amrlev][mglev], 
-								1, 0, MFInfo(), 
-								*m_factory[amrlev][mglev]));
-	}
-	if (m_eb_b_coeffs[amrlev][0] == nullptr){
-		for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-	            m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
+    if (m_eb_phi[amrlev] == nullptr){
+        const int mglev = 0; 
+        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], 
+                                m_dmap[amrlev][mglev], 
+                                1, 0, MFInfo(), 
+                                *m_factory[amrlev][mglev]));
+    }
+    if (m_eb_b_coeffs[amrlev][0] == nullptr){
+        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
+                m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
                                                             m_dmap[amrlev][mglev],
                                                             1, 0, MFInfo(),
                                                             *m_factory[amrlev][mglev]));
-		}
-	}
+        }
+    }
 	
-	auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get()); 
-	const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get()); 
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
-#if
-
-
-
-	
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(phi, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox& phifab = (*m_eb_phi[amrlev])[mfi];
+        FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
+        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+        if (FabType::regular == t or FabType::covered == t) {
+            phifab.setVal(0.0, bx, 0, 1);
+            betafab.setVal(0.0, bx, 0, 1);
+        } else {
+            amrex_eb_copy_dirichlet(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD(phifab),
+                                    BL_TO_FORTRAN_ANYD(phi[mfi]),
+                                    BL_TO_FORTRAN_ANYD(betafab),
+                                    BL_TO_FORTRAN_ANYD(beta[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]));
+        }
+    }
 }
 
 }  // namespace amrex

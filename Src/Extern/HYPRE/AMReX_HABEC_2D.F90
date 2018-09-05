@@ -358,7 +358,7 @@ contains
        bx, bxlo, bxhi, by, bylo, byhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, &
        fcx, fxlo, fxhi, fcy, fylo, fyhi, &
-       sa, sb, dx, bct, bcl, bho) &
+       sa, sb, dx, bct, bcl, bho, is_eb_dirichlet) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
@@ -381,12 +381,16 @@ contains
     real(rt)          , intent(in) :: fcy    (fylo(1):fyhi(1),fylo(2):fyhi(2))
     integer, intent(in) :: bct(0:3), bho
     real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
+    integer, value, intent(in) :: is_eb_dirichlet
 
+    logical :: is_dirichlet
     integer :: i,j, irow, imat, cdir, idim, ii,jj, ioff, joff
     real(rt) :: fac(2), mat_tmp(-1:1,-1:1)
     real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3, bflo(0:3)
     real(rt) :: fracx, fracy, area, bc
 
+
+    is_dirichlet = is_eb_dirichlet .ne. 0 
     fac = sb/dx**2
 
     do cdir = 0, 3
