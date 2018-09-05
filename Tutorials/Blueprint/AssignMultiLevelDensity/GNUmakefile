@@ -6,7 +6,7 @@ AMREX_HOME ?= ../../../
 #  ascent (https://github.com/Alpine-DAV/ascent)
 #
 # Example build:
-#  make USE_CONDUIT=TRUE \
+#  make USE_CONDUIT=TRUE USE_ASCENT=TRUE \
 #       CONDUIT_DIR={path/to/conduit/install} \
 #       ASCENT_DIR={path/to/ascent/install}
 #
@@ -37,22 +37,9 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-
-ifeq ($(USE_CONDUIT), TRUE)
-  # conduit + ascent
-  INCLUDE_LOCATIONS += $(CONDUIT_DIR)/include
-  INCLUDE_LOCATIONS += $(CONDUIT_DIR)/include/conduit
-  VPATH_LOCATIONS   += $(CONDUIT_DIR)/include
-  VPATH_LOCATIONS   += $(CONDUIT_DIR)/include/conduit
-  LIBRARY_LOCATIONS += $(CONDUIT_DIR)/lib
-  LIBRARIES += -lconduit -lconduit_blueprint -lconduit_relay
-  
-  INCLUDE_LOCATIONS += $(ASCENT_DIR)/include/ascent
-  VPATH_LOCATIONS   += $(ASCENT_DIR)/include/ascent
-  LIBRARY_LOCATIONS += $(ASCENT_DIR)/lib
-  LIBRARIES += -lascent
-  
-  DEFINES += -DUSE_CONDUIT
+ifeq ($(USE_CONDUIT),TRUE)
+    include $(AMREX_HOME)/Src/Extern/Conduit/Make.package
 endif
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

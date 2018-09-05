@@ -1,0 +1,10 @@
+#
+# Conduit Blueprint Support
+#
+
+CEXE_sources += AMReX_Conduit_Blueprint.cpp
+
+CEXE_headers += AMReX_Conduit_Blueprint.H
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/Conduit
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/Conduit
