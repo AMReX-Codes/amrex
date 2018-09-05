@@ -213,8 +213,8 @@ int main(int argc, char* argv[])
 	}
 
 	MultiFab plotmf(grids, dmap, 6, 0);
-        amrex::average_edge_to_cellcenter(plotmf, 0, {Efield[0].get(),Efield[1].get(),Efield[2].get()});
-        amrex::average_face_to_cellcenter(plotmf, 3, {Bfield[0].get(),Bfield[1].get(),Bfield[2].get()});
+        amrex::average_edge_to_cellcenter(plotmf, 0, amrex::GetVecOfConstPtrs(Efield));
+        amrex::average_face_to_cellcenter(plotmf, 3, amrex::GetVecOfConstPtrs(Bfield));
 
 	Real xyzmin[3] = {0.0,0.0,0.0};
 	RealBox realbox{cc_domain, dx, xyzmin};
