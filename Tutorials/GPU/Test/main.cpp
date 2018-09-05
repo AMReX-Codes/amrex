@@ -39,14 +39,26 @@ struct PinnedData
      cudaFreeHost(d_d);
    }
 
-   T* data() &
+   T* devicePtr() &
    {
      return d_d;
    }
 
-   T const * data() const&
+   T const * devicePtr() const&
    {
      return d_d;
+   }
+
+   T hostValue () const
+   {
+     T t;
+//     cudaMemcpy(&t, d_d, sizeof(T), cudaMemDeviceToHost);
+     return t; 
+   }
+
+   void updateDevice(const T &t)
+   {
+//       cudaMemcpy(d_d, &t, sizeof(T), cudaMemHostToDevice);
    }
 
    T* data() && = delete; 
