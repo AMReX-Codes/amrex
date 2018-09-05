@@ -30,6 +30,7 @@ public:
     void setACoeffs (const MultiFab& alpha);
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
     void setVerbose (int _verbose);
+    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta); 
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                         int max_iter, const BndryData& bndry, int max_bndry_order) = 0;
 
