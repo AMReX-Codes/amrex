@@ -63,11 +63,6 @@ public:
     */
     static const IntVect Unit;
 
-    /**
-     Initializes Zero and Unit.
-    */
-    static int InitStatics();
-
     ///
     /**
     * \brief Construct an IntVect whose components are all zero.
@@ -523,16 +518,6 @@ IntVect::linearIn(void* a_buffer )
         intbuf++;
     }
 }
-
-//
-// Static initialization.  Gotta make sure there are no static object
-// definitions above here (except possibly stuff in headers).  Otherwise,
-// the danger is that some static object's constructor calls IntVect::Zero or
-// IntVect::Unit -- the very things the following definition is supposed to
-// initialize.
-//
-static int s_dummyForIntVectH = IntVect::InitStatics();
-
 
 //! Returns p + s.
 inline
