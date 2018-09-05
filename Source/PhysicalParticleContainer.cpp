@@ -198,6 +198,8 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
     }
 #endif
 
+    MultiFab* cost = WarpX::getCosts(lev);
+
 #ifdef _OPENMP
 #pragma omp parallel if (not WarpX::serialize_ics)
 #endif
@@ -207,6 +209,8 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 
         // Loop through the tiles
         for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+
+            Real wt = ParallelDescriptor::second();
 
             const Box& tile_box  = mfi.tilebox();
             const RealBox tile_realbox = WarpX::getRealBox(tile_box, lev);
@@ -344,6 +348,11 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 
                     AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
+            }
+
+            if (cost) {
+                wt = (ParallelDescriptor::second() - wt) / tile_box.d_numPts();
+                (*cost)[mfi].plus(wt, tile_box);
             }
         }
     }
