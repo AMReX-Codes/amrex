@@ -35,6 +35,17 @@ module amrex_fort_module
        type(c_ptr), value :: p
      end subroutine amrex_free
 
+     function amrex_gpu_malloc (s) bind(c,name='amrex_gpu_malloc')
+       import
+       integer(c_size_t), intent(in), value :: s
+       type(c_ptr) :: amrex_gpu_malloc
+     end function amrex_gpu_malloc
+
+     subroutine amrex_gpu_free (p) bind(c,name='amrex_gpu_free')
+       import
+       type(c_ptr), value :: p
+     end subroutine amrex_gpu_free
+
      function amrex_random () bind(c,name='amrex_random')
        import
        real(c_double) :: amrex_random
