@@ -378,8 +378,7 @@ contains
                end do
             end if
          else
-            print *,'UNKNOWN BC ON LEFT FACE IN APPLYBC'
-            call bl_error("stop")
+            call bl_error("stop UNKNOWN BC ON LEFT FACE IN APPLYBC")
          end if
 
       case (3)
@@ -467,8 +466,7 @@ contains
                end do
             end if
          else
-            print *,'UNKNOWN BC ON RIGHT FACE IN APPLYBC'
-            call bl_error("stop")
+            call bl_error("stop UNKNOWN BC ON RIGHT FACE IN APPLYBC")
          end if
 
          case (1)
@@ -556,8 +554,7 @@ contains
                   end do
                end if
             else
-               print *,'UNKNOWN BC ON BOTTOM FACE IN APPLYBC'
-               call bl_error("stop")
+               call bl_error("stop UNKNOWN BC ON BOTTOM FACE IN APPLYBC")
             end if
 
          case (4)
@@ -645,8 +642,7 @@ contains
                   end do
                end if
             else
-               print *,'UNKNOWN BC ON TOP FACE IN APPLYBC'
-               call bl_error("stop")
+               call bl_error("stop UNKNOWN BC ON TOP FACE IN APPLYBC")
             end if
 
          case (2)
@@ -734,8 +730,7 @@ contains
                   end do
                end if
             else
-               print *,'UNKNOWN BC ON FRONT FACE IN APPLYBC'
-               call bl_error("stop")
+               call bl_error("stop UNKNOWN BC ON FRONT FACE IN APPLYBC")
             end if
 
          case (5)
@@ -823,8 +818,7 @@ contains
                   end do
                end if
             else
-               print *,'UNKNOWN BC ON BACK FACE IN APPLYBC'
-               call bl_error("stop")
+               call bl_error("stop UNKNOWN BC ON BACK FACE IN APPLYBC")
             end if
          end select
 

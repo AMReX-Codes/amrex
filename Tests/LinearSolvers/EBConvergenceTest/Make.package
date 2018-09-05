@@ -1,0 +1,10 @@
+CEXE_sources    += main.cpp
+CEXE_sources    += MyTest.cpp initEB.cpp
+F90EXE_sources  += RHS.F90 acoef.F90 bcoef.F90 
+ifeq ($(DIM), 2) 
+	F90EXE_sources  += BC_2D.F90
+endif
+ifeq ($(DIM), 3)
+	F90EXE_sources  += BC_3D.F90
+endif
+CEXE_headers    += MyTest.H MyTest_F.H MyEB.H

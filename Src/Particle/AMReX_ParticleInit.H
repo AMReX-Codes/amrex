@@ -60,10 +60,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
         //
         // Only the first NReaders MPI processes read particles.
         //
-        std::ifstream ifs;
 
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
- 
+
+        std::ifstream ifs;
+
         ifs.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         ifs.open(file.c_str(), std::ios::in);
@@ -132,12 +133,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
                 if (!Where(p, pld))
                 {
-                    amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                      << "BAD PARTICLE POS " 
-                                      << AMREX_D_TERM(   p.m_rdata.pos[0],
-                                                << p.m_rdata.pos[1],
-                                                << p.m_rdata.pos[2])
-                                      << "\n";
+                    if (m_verbose) {
+                        amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                          << "BAD PARTICLE POS " 
+                                          << AMREX_D_TERM(   p.m_rdata.pos[0],
+                                                             << p.m_rdata.pos[1],
+                                                             << p.m_rdata.pos[2])
+                                          << "\n";
+                    }
                     amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid particle");
                 }
             }
@@ -183,7 +186,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
                                 PeriodicShift(p_rep);
                                 if (!Where(p_rep, pld))
                                 {
-                                    amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
+                                    if (m_verbose) {
+                                        amrex::AllPrint() << "BAD REPLICATED PARTICLE ID WOULD BE " << ParticleType::NextID() << "\n";
+                                    }
                                     amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAsciiFile(): invalid replicated particle");
                                 }
                             }
@@ -372,9 +377,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     int  NX = 0;
     long NP = 0;
 
+    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    
     std::ifstream ifs;
 
-    VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
     //
     // The "set" of MPI processor numbers of the readers.  We want
     // to be able to easily check whether or not we're a reader.
@@ -651,12 +657,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
 
                     if (!Where(p, pld))
                     {
-                        amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
-                                          << "BAD PARTICLE POS " 
-                                          << AMREX_D_TERM(   p.m_rdata.pos[0],
-                                                    << p.m_rdata.pos[2],
-                                                    << p.m_rdata.pos[3])
-                                          << "\n";
+                        if (m_verbose) {
+                            amrex::AllPrint() << "BAD PARTICLE ID WOULD BE " << ParticleType::NextID() << '\n'
+                                              << "BAD PARTICLE POS " 
+                                              << AMREX_D_TERM(   p.m_rdata.pos[0],
+                                                                 << p.m_rdata.pos[2],
+                                                                 << p.m_rdata.pos[3])
+                                              << "\n";
+                        }
                         amrex::Abort("ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinaryFile(): invalid particle");
                     }
                 }

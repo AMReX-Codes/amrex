@@ -68,8 +68,8 @@ main (int   argc,
     // Open the Grid File and Read Header //
     //------------------------------------//
 
-    std::ifstream is;
     VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+    std::ifstream is;
     is.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
     is.open(iFile.c_str(), std::ios::in);
     if (is.fail())

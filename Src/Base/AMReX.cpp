@@ -15,6 +15,10 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EB2.H>
+#endif
+
 #ifndef BL_AMRPROF
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
@@ -54,6 +58,8 @@ namespace system
     int verbose;
     int signal_handling;
     int call_addr2line;
+    int throw_exception;
+    int regtest_reduction;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
 }
@@ -65,6 +71,7 @@ namespace {
     std::new_handler prev_new_handler;
     typedef void (*SignalHandler)(int);
     SignalHandler prev_handler_sigsegv;
+    SignalHandler prev_handler_sigterm;
     SignalHandler prev_handler_sigint;
     SignalHandler prev_handler_sigabrt;
     SignalHandler prev_handler_sigfpe;
@@ -80,6 +87,8 @@ std::string amrex::Version ()
     return std::string("Unknown");
 #endif
 }
+
+int amrex::Verbose () { return amrex::system::verbose; }
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
@@ -124,9 +133,13 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-    write_lib_id("Error");
-    write_to_stderr_without_buffering(msg);
-    ParallelDescriptor::Abort();
+    if (system::throw_exception) {
+        throw RuntimeError(msg);
+    } else {
+        write_lib_id("Error");
+        write_to_stderr_without_buffering(msg);
+        ParallelDescriptor::Abort();
+    }
 }
 
 void
@@ -200,9 +213,13 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 void
 amrex::Abort (const char* msg)
 {
-    write_lib_id("Abort");
-    write_to_stderr_without_buffering(msg);
-    ParallelDescriptor::Abort();
+   if (system::throw_exception) {
+        throw RuntimeError(msg);
+    } else {
+       write_lib_id("Abort");
+       write_to_stderr_without_buffering(msg);
+       ParallelDescriptor::Abort();
+   }
 }
 
 void
@@ -253,9 +270,12 @@ amrex::Assert (const char* EX,
                  line);
     }
 
-    write_to_stderr_without_buffering(buf);
-
-    ParallelDescriptor::Abort();
+   if (system::throw_exception) {
+        throw RuntimeError(buf);
+    } else {
+       write_to_stderr_without_buffering(buf);
+       ParallelDescriptor::Abort();
+   }
 }
 
 namespace
@@ -291,8 +311,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 {
     system::exename.clear();
     system::verbose = 0;
+    system::regtest_reduction = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
+    system::throw_exception = 0;
     system::osout = &a_osout;
     system::oserr = &a_oserr;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
@@ -328,6 +350,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     upcxx::init(&argc, &argv);
     if (upcxx::myrank() != ParallelDescriptor::MyProc())
 	amrex::Abort("UPC++ rank != MPI rank");
+#elif defined PERILLA_USE_UPCXX
+    upcxx::init();
 #endif
 
 #ifdef BL_USE_MPI3
@@ -382,14 +406,25 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
 
+        pp.query("regtest_reduction", system::regtest_reduction);
+
         pp.query("signal_handling", system::signal_handling);
+        pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
-            prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg falult
+            prev_handler_sigsegv = signal(SIGSEGV, BLBackTrace::handler); // catch seg fault
             prev_handler_sigint = signal(SIGINT,  BLBackTrace::handler);
             prev_handler_sigabrt = signal(SIGABRT, BLBackTrace::handler);
+
+            int term = 0;
+            pp.query("handle_sigterm", term);
+            if (term) {
+                prev_handler_sigterm = signal(SIGTERM,  BLBackTrace::handler);
+            } else {
+                prev_handler_sigterm = SIG_ERR;
+            }
 
             prev_handler_sigfpe = SIG_ERR;
 
@@ -431,14 +466,19 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     MultiFab::Initialize();
     iMultiFab::Initialize();
     VisMF::Initialize();
+#ifdef AMREX_USE_EB
+    EB2::Initialize();
+#endif
     BL_PROFILE_INITPARAMS();
 #endif
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
-	amrex::Print() << "!\n! WARNING: Maximum of long int, "
-		       << std::numeric_limits<long>::max() 
-		       << ", might be too small for big runs.\n!\n";
+        if (system::verbose) {
+            amrex::Print() << "!\n! WARNING: Maximum of long int, "
+                           << std::numeric_limits<long>::max() 
+                           << ", might be too small for big runs.\n!\n";
+        }
     }
 
 #if defined(BL_USE_FORTRAN_MPI)
@@ -491,7 +531,7 @@ amrex::Finalize (bool finalize_parallel)
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
-    if (amrex::system::verbose)
+    if (amrex::system::verbose > 1)
     {
 	int mp_min, mp_max, mp_tot;
 	amrex_mempool_get_stats(mp_min, mp_max, mp_tot);  // in MB
@@ -531,6 +571,7 @@ amrex::Finalize (bool finalize_parallel)
     if (system::signal_handling)
     {
         if (prev_handler_sigsegv != SIG_ERR) signal(SIGSEGV, prev_handler_sigsegv);
+        if (prev_handler_sigterm != SIG_ERR) signal(SIGTERM, prev_handler_sigterm);
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);

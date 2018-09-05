@@ -4,212 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-.. _sec:basics:heat1:
-
-Example: HeatEquation_EX1_C
-===========================
-
-The source code tree for the heat equation example is simple, as shown in
-:numref:`fig:Basics_Heat_flowchart`. We recommend you study ``main.cpp`` and
-``advance.cpp`` to see some of the classes described below in action.
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig:Basics_Heat_flowchart:
-
-.. figure:: ./Basics/figs/flowchart.png
-   :width: 4in
-
-   Diagram of the source code structure for the HeatEquation_EX1_C example.
-
-.. raw:: latex
-
-   \end{center}
-
-Source code tree for the HeatEquation_EX1_C example
-
-    amrex/Src/Base
-        Contains source code for single-level simulations.  Note that in
-        ``amrex/Src`` there are many sub-directories, e.g., ``Base``, ``Amr``,
-        ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial the only source
-        code directory we need is ``Base``.
-
-    amrex/Tutorials/HeatEquation_EX1_C/Source
-        Contains the following source code specific to this tutorial:
-        
-        #. ``Make.package``: lists the source code files
-        #. ``main.cpp``: contains the C++ ``main`` function
-        #. ``advance.cpp``: advance the solution by a time step
-        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
-           initialize and advance the solution
-        #. ``myfunc.H``: header file for C++ functions
-        #. ``myfunc_F.H``: header file for fortran90 functions that are called
-           in .cpp files
-
-    amrex/Tutorials/HeatEquation_EX1_C/Exec
-        This is where you build the code with make.  There is a a GNUmakefile
-        and inputs files, inputs_2d and inputs_3d.
-
-Now we highlight a few key sections of the code.  In ``main.cpp`` we
-demonstrate how to read in parameters from the inputs file:
-
-.. highlight:: c++
-
-::
-
-    // inputs parameters
-    {
-        // ParmParse is way of reading inputs from the inputs file
-        ParmParse pp;
-
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
-
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
-
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
-        plot_int = -1;
-        pp.query("plot_int",plot_int);
-
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
-        nsteps = 10;
-        pp.query("nsteps",nsteps);
-
-        pp.queryarr("is_periodic", is_periodic);
-    }
-
-In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
-and then how to chop that ``Box`` up into multiple boxes that define a
-``BoxArray``  We also define a ``Geometry`` object that knows about the problem
-domain, the physical coordinates of the box, and the periodicity:
-
-::
-
-    // make BoxArray and Geometry
-    BoxArray ba;
-    Geometry geom;
-    {
-        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
-        Box domain(dom_lo, dom_hi);
-
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        ba.maxSize(max_grid_size);
-
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    }
-
-In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
-``BoxArray``, and then build ``MultiFabs`` with a desired number of components
-and ghost cells associated with each grid:
-
-::
-
-    // Nghost = number of ghost cells for each array 
-    int Nghost = 1;
-    
-    // Ncomp = number of components for each array
-    int Ncomp  = 1;
-  
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
-
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    MultiFab phi_old(ba, dm, Ncomp, Nghost);
-    MultiFab phi_new(ba, dm, Ncomp, Nghost);
-
-We demonstrate how to build an array of face-based ``MultiFabs`` :
-
-::
-
-    // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
-    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
-        BoxArray edge_ba = ba;
-        edge_ba.surroundingNodes(dir);
-        flux[dir].define(edge_ba, dm, 1, 0);
-    }
-
-To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
-processor loops over grids it owns to access and/or modify data on that grid:
-
-::
-
-    // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
-    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
-
-        init_phi(BL_TO_FORTRAN_BOX(bx),
-                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
-                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
-    }
-
-Note that these calls to fortran subroutines require a header in
-``myfunc_F.H``:
-
-::
-
-    void init_phi(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
-
-The associated fortran routines must shape the data accordinly:
-
-::
-
- subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
-
-   use amrex_fort_module, only : amrex_real
-
-   implicit none
-
-   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
-   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
-   real(amrex_real), intent(in   ) :: dx(2) 
-   real(amrex_real), intent(in   ) :: prob_lo(2) 
-   real(amrex_real), intent(in   ) :: prob_hi(2) 
-
-   integer          :: i,j
-   double precision :: x,y,r2
-
-   do j = lo(2), hi(2)
-      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
-      do i = lo(1), hi(1)
-         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
-
-         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
-
-         phi(i,j) = 1.d0 + exp(-r2)
-
-      end do
-   end do
-
- end subroutine init_phi
-
-Ghost cells are filled using the ``FillBoundary`` function:
-
-::
-
-    // Fill the ghost cells of each grid from the other grids
-    // includes periodic domain boundaries
-    phi_old.FillBoundary(geom.periodicity());
-
 .. _sec:basics:dim:
 
 Dimensionality
@@ -229,13 +23,15 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
-Vector
-======
+Vector and Array
+================
 
-:cpp:`Vector` class in AMReX_Vector.H is derived from :cpp:`std::vector`. The
-only difference between :cpp:`Vector` and :cpp:`std::vector` is that
+:cpp:`Vector` class in ``AMReX_Vector.H`` is derived from :cpp:`std::vector`. The
+main difference between :cpp:`Vector` and :cpp:`std::vector` is that
 :cpp:`Vector::operator[]` provides bound checking when compiled with
 :cpp:`DEBUG=TRUE`.
+
+:cpp:`Array` class in ``AMReX_Array.H`` is simply an alias to :cpp:`std::array`.
 
 Real
 ====
@@ -316,6 +112,8 @@ get mixed up. Below are some examples.
      Print(ofs) << "Print to a file" << std::endl;
      ofs.close();
 
+     AllPrintToFile("file.") << "Each process appends to its own file (e.g., file.3)\n";
+
 .. _sec:basics:parmparse:
 
 ParmParse
@@ -323,7 +121,7 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize()` is called, the first command-line argument after the
+:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line argument after the
 executable name (if there is one and it does not contain character =) is taken
 to be the inputs file, and the contents in the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
@@ -395,6 +193,46 @@ run with
 to change the value of :cpp:`ncells` and :cpp:`hydro.cfl`.
 
 
+.. _sec:basics:initialize:
+
+Initialize and Finalize
+=======================
+
+As we have mentioned, :cpp:`Initialize` must be called to initialize
+the execution environment for AMReX and :cpp:`Finalize` must be paired
+with :cpp:`Initialize` to release the resources used by AMReX.  There
+are two versions of :cpp:`Initialize`.
+
+.. highlight:: c++
+
+::
+
+    void Initialize (MPI_Comm mpi_comm,
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
+    void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
+                     MPI_Comm mpi_comm = MPI_COMM_WORLD,
+                     const std::function<void()>& func_parm_parse = {},
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr);
+
+:cpp:`Initialize` tests if MPI has been initialized.  If MPI has been
+initialized, AMReX will duplicate the ``MPI_Comm`` argument.  If not,
+AMReX will initialize MPI and ignore the ``MPI_Comm`` argument.
+
+Both versions have two optional :cpp:`std::ostream` parameters, one
+for standard output in :cpp:`Print` (section :ref:`sec:basics:print`)
+and the other for standard error, and they can be accessed with
+functions :cpp:`OutStream()` and :cpp:`ErrorStream()`.
+
+The first version of :cpp:`Initialize` does not parse the command line
+options, whereas the second version will build ParmParse database
+(section :ref:`sec:basics:parmparse`) unless ``build_parm_parse``
+parameter is :cpp:`false`.  In the second version, one can pass a
+function that adds ParmParse parameters to the database instead of
+reading from command line or input file.
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
@@ -439,7 +277,7 @@ domain in indexing space.  In :numref:`fig:basics:amrgrids`, there are 1, 2 and
 2 Boxes on levels 0, 1 and 2, respectively.  :cpp:`Box` is a
 dimension-dependent class. It has lower and upper corners (represented by
 :cpp:`IntVect`) and an index type (represented by :cpp:`IndexType`). A
-:cpp`Box` contains no floating-point data.
+:cpp:`Box` contains no floating-point data.
 
 IntVect
 -------
@@ -484,7 +322,7 @@ example,
 ::
 
      IntVect iv(AMREX_D_DECL(19, 0, 5));
-     IntVect iv2((AMREX_D_DECL(4, 8, 0));
+     IntVect iv2(AMREX_D_DECL(4, 8, 0));
      iv += iv2;  // iv is now (23,8,5)
      iv *= 2;    // iv is now (46,16,10);
 
@@ -504,7 +342,7 @@ towards zero behavior of integer division in Fortran, C and C++. For example
       iv.coarsen(2);                 // Coarsen each component by 2
       iv.coarsen(coarsening_ratio);  // Component-wise coarsening
       const auto& iv2 = amrex::coarsen(iv, 2); // Return an IntVect w/o modifying iv
-      IntVect iv3 = amrex::coarsen(iv, coarsening_return); // iv not modified
+      IntVect iv3 = amrex::coarsen(iv, coarsening_ratio); // iv not modified
 
 Finally, we note that :cpp:`operator<<` is overloaded for :cpp:`IntVect` and
 therefore one can call
@@ -674,14 +512,16 @@ the index type. Some examples are shown below.
       print() << uncoarsenable.refine(2);  // ({16,16,16}, {31,31,31});
                                            // Different from the original!
 
-Note that the behavior of refinement and coarsening depends on the index type.
-Note that in this context, the refined or coarsened :cpp:`Box` still covers the
-same physical domain. :cpp:`Box uncoarsenable` in the example above is
-considered uncoarsenable because its coarsened version does not cover the same
+Note that the behavior of refinement and coarsening depends on the
+index type.  A refined :cpp:`Box` covers the same physical domain as
+the original :cpp:`Box`, and a coarsened :cpp:`Box` also covers the
+same physical domain if the original :cpp:`Box` is coarsenable.
+:cpp:`Box uncoarsenable` in the example above is considered
+uncoarsenable because its coarsened version does not cover the same
 physical domain in the AMR context.
 
 Boxes can grow in one or all directions.  There are a number of grow functions.
-Some are member functions of the :cpp:`Box` class and others are non-member
+Some are member functions of the :cpp:`Box` class and others are free
 functions in the :cpp:`amrex` namespace.
 
 The :cpp:`Box` class provides the following member functions testing if a
@@ -721,6 +561,7 @@ following examples.
 
       b0 &= b3;             // Runtime error because of type mismatch!
 
+.. _sec:basics:geom:
 
 RealBox and Geometry
 ====================
@@ -736,10 +577,10 @@ be constructed with
 
 ::
 
-      explicit Geometry ( const Box&     dom,
-                            const RealBox* rb     = nullptr,
-                            int            coord  = -1,
-                            int*           is_per = nullptr);
+    explicit Geometry (const Box&     dom,
+                       const RealBox* rb     = nullptr,
+                       int            coord  = -1,
+                       int*           is_per = nullptr);
 
 Here the constructor takes a cell-centered :cpp:`Box` specifying the indexing
 space domain, an optional argument of :cpp:`RealBox` pointer specifying the
@@ -780,7 +621,7 @@ cells in each direction.
       int coord = 0;
       
       // This sets the boundary conditions to be doubly or triply periodic
-      std::array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
+      Array<int,AMREX_SPACEDIM> is_periodic {AMREX_D_DECL(1,1,1)};
       
       // This defines a Geometry object
       Geometry geom(domain, &real_box, coord, is_periodic.data());
@@ -831,14 +672,14 @@ The output is like below,
       ((0,0,64) (63,63,127) (0,0,0)) ((64,0,64) (127,63,127) (0,0,0))
       ((0,64,64) (63,127,127) (0,0,0)) ((64,64,64) (127,127,127) (0,0,0)) )
 
-It shows that ba now has 8 Boxes, and it also prints out each Box.
+It shows that ``ba`` now has 8 Boxes, and it also prints out each Box.
 
 In AMReX, :cpp:`BoxArray` is a global data structure. It holds all the Boxes in
 a collection, even though a single process in a parallel run only owns some of
 the Boxes via domain decomposition. In the example above, a 4-process run may
-divide the work and each process owns say 2 Boxes (cf section
+divide the work and each process owns say 2 Boxes (see section
 on :ref:`sec:basics:dm`). Each process can then allocate memory for the
-floating point data on the Boxes it owns (cf sections
+floating point data on the Boxes it owns (see sections
 on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
 
 :cpp:`BoxArray` has an indexing type, just like :cpp:`Box`. Each Box in a
@@ -1030,7 +871,7 @@ To get a pointer to the array data, one can call
 The typical usage of the returned pointer is then to pass it to a Fortran or C
 function that works on the array data (see the section on
 :ref:`sec:basics:fortran`).  :cpp:`BaseFab` has several functions that set the
-array data to a constant value (e.g., 0). Two examples are as follows.
+array data to a constant value. Two examples are as follows.
 
 .. highlight:: c++
 
@@ -1087,7 +928,7 @@ FArrayBox.
       Real a = 3.0;
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
-For more complicated expressions that not supported, one can write Fortran or C
+For more complicated expressions that are not supported, one can write Fortran or C
 functions for those (see the section on :ref:`sec:basics:fortran`).  Note that
 BaseFab does provide operators for accessing the data directly in C++. For
 example, the :cpp:`saxpy` example above can be done with
@@ -1105,11 +946,11 @@ example, the :cpp:`saxpy` example above can be done with
           }
       }
 
-But this approach is generally not recommended for performance reason.
+But this approach is generally not recommended for performance reasons.
 However, it can be handy for debugging.
 
 :cpp:`BaseFab` and its derived classes are containers for data on :cpp:`Box`.
-We recall that :cpp:`Box` has types (see the section on :ref:`sec:basics:box`).
+Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
 The examples in this section so far use the default cell based type.  However,
 some functions will result in a runtime error if the types mismatch.  For
 example.
@@ -1126,7 +967,7 @@ example.
       ndfab.copy(ccfab);   // runtime error due to type mismatch
 
 Because it typically contains a lot of data, BaseFab’s copy constructor and
-copy assignment operator are disabled for performance reason. However, it does
+copy assignment operator are disabled to prevent performance degradation. However, BaseFab does
 provide a move constructor. In addition, it also provides a constructor for
 making an alias of an existing object. Here is an example using
 :cpp:`FArrayBox`.
@@ -1140,10 +981,10 @@ making an alias of an existing object. Here is an example using
       // starting from component 1.
       FArrayBox alias_fab(orig_fab, amrex::make_alias, 1, 2);
 
-In the example, the alias :cpp:`FArrayBox` has only two components even though
+In this example, the alias :cpp:`FArrayBox` has only two components even though
 the original one has four components. The alias has a sliced component view of
 the original :cpp:`FArrayBox`. This is possible because of the array ordering.
-It is however not possible to slice in the real space (i.e., the first
+However, it is not possible to slice in the real space (i.e., the first
 ``AMREX_SPACEDIM`` dimensions).  Note that no new memory is allocated in
 constructing the alias and the alias contains a non-owning pointer. It should
 be emphasized that the alias will contain a dangling pointer after the original
@@ -1158,24 +999,24 @@ FabArray, MultiFab and iMultiFab
 :cpp:`FabArray<FAB>` is a class template in AMReX_FabArray.H for a collection
 of FABs on the same AMR level associated with a :cpp:`BoxArray` (see the
 section on :ref:`sec:basics:ba`). The template parameter :cpp:`FAB` is usually
-:cpp:`BaseFab<T>` or its derived classes (e.g., :cpp:`FArrayBox`). However, it
+:cpp:`BaseFab<T>` or its derived classes (e.g., :cpp:`FArrayBox`). However, FabArray
 can also be used to hold other data structures. To construct a FabArray, a
-:cpp:`BoxArray` must be provided because it is intended to hold *grid* data
+:cpp:`BoxArray` must be provided because the FabArray is intended to hold *grid* data
 defined on a union of rectangular regions embedded in a uniform index space.
-For example, an FabArray object can be used to hold data for one level as in
+For example, a FabArray object can be used to hold data for one level as in
 :numref:`fig:basics:amrgrids`.
 
 :cpp:`FabArray` is a parallel data structure that the data (i.e., FAB) are
-distributed among parallel processes. On each process, the FabArray contains
-only the FAB objects owned by this process, and the process operates only on
+distributed among parallel processes. For each process, a FabArray contains
+only the FAB objects owned by that process, and the process operates only on
 its local data. For operations that require data owned by other processes,
 remote communications are involved. Thus, the construction of a :cpp:`FabArray`
 requires a :cpp:`DistributionMapping` (see the section on :ref:`sec:basics:dm`)
-that specifies which process owns which Box. For level 2 (*red*) in in
+that specifies which process owns which Box. For level 2 (*red*) in
 :numref:`fig:basics:amrgrids`, there are two Boxes. Suppose there are two
 parallel processes, and we use a DistributionMapping that assigns one Box to
-each process.  For :cpp:`FabArray` on each process, it is built on a
-:cpp:`BoxArray` with 2 Boxes, but contains only one FAB.
+each process. Then the :cpp:`FabArray` on each process is built on the
+:cpp:`BoxArray` with both Boxes, but contains only the FAB associated with its process.
 
 In AMReX, there are some specialized classes derived from :cpp:`FabArray`. The
 :cpp:`iMultiFab` class in AMReX_iMultiFab.H is derived from
@@ -1280,7 +1121,7 @@ face averaged variables.
       MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
-Here all :cpp:`MultiFab` use the same :cpp:`DistributionMapping`, but their
+Here all :cpp:`MultiFabs` use the same :cpp:`DistributionMapping`, but their
 :cpp:`BoxArrays` have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
@@ -1310,7 +1151,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
       // MultiFab mfsrc: source
       // int      sc   : starting component index in mfsrc for this operation
       // int      dc   : starting component index in mfdst for this operation
-      // int      sc   : number of components for this operation
+      // int      nc   : number of components for this operation
       // int      ng   : number of ghost cells involved in this operation
       //                 mfdst and mfsrc may have more ghost cells
 
@@ -1349,7 +1190,9 @@ boundaries can be filled as well. You might have noticed that a ghost cell
 could overlap with multiple valid cells from different FArrayBoxes in the case
 of nodal index type. In that case, it is unspecified that which valid cell’s
 value is used to fill the ghost cell. It ought to be the case the values in
-those overlapping valid cells are the same up to roundoff errors.
+those overlapping valid cells are the same up to roundoff errors.  If
+a ghost cell does not overlap with any valid cells, its value will not
+be modified by :cpp:`FillBoundary`.
 
 Another type of parallel communication is copying data from one :cpp:`MultiFab`
 to another :cpp:`MultiFab` with a different :cpp:`BoxArray` or the same
@@ -1374,10 +1217,12 @@ no periodic copy is performed. Like :cpp:`FillBoundary`, one can use
 :cpp:`Geometry::periodicity()` to provide the periodicity information. The last
 parameter is also optional and is set to :cpp:`FabArrayBase::COPY` by default.
 One could also use :cpp:`FabArrayBase::ADD`. This determines whether the
-function copies or adds data from the source to the destination. Same as
-:cpp:`FillBoundary`, if a destination cell has multiple cells as source, it is
-unspecified that which source cell is used. This function has two variants, in
-which the periodicity and operation type are also optional.
+function copies or adds data from the source to the
+destination. Similar to :cpp:`FillBoundary`, if a destination cell has
+multiple cells as source, it is unspecified that which source cell is used in
+:cpp:`FabArrayBase::COPY`, and, for :cpp:`FabArrayBase::ADD`, the multiple
+values are all added to the destination cell.  This function has two
+variants, in which the periodicity and operation type are also optional.
 
 .. highlight:: c++
 
@@ -1389,9 +1234,7 @@ which the periodicity and operation type are also optional.
 
 Here the number of ghost cells involved is zero, and the copy is performed on
 all components if unspecified (assuming the two MultiFabs have the same number
-of components). Similar to :cpp:`FillBoundary`, a destination cell may have
-multiple sources and which source is used is unspecified.
-
+of components).
 
 
 .. _sec:basics:mfiter:
@@ -1437,7 +1280,7 @@ together. In this section, we will show how you can operate on the
 
           // We can now pass the information to a function that does
           // work on the region (specified by box) of the data pointed to
-          // by Real* a.  The data should be viewed as a multidimensional
+          // by Real* a.  The data should be viewed as multidimensional
           // with bounds specified by abox.
           // Function f1 has the signature of
           // void f1(const int*, const int*, Real*, const int*, const int*);
@@ -1690,7 +1533,7 @@ size larger than the grid size simply means tiling is disable in that
 direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
 no tiling in 2D. This is used when tile size is not explicitly set but the
 tiling flag is on. One can change the default size using :cpp:`ParmParse`
-parameter ``fabarray.mfiter_tile_size.``
+(section :ref:`sec:basics:parmparse`) parameter ``fabarray.mfiter_tile_size.``
 
 .. |c| image:: ./Basics/ec_validbox.png
        :width: 90%
@@ -1776,8 +1619,7 @@ multi-threaded codes race conditions could occur.
 
 :numref:`fig:basics:growbox_comparison` illustrates an example of
 :cpp:`growntilebox`. These functions in :cpp:`MFIter` return :cpp:`Box` by
-value. There are two ways of using these
-functions.
+value. There are three ways of using these functions.
 
 .. highlight:: c++
 
@@ -1789,6 +1631,10 @@ functions.
       // Compilers can optimize away the temporary object.
       Box bx2 = mfi.validbox();
       bx2.surroundingNodes();
+
+      Box&& bx3 = mfi.validbox(); // bound to the return value
+      bx3.enclosedCells();
+
 
 But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
@@ -1883,6 +1729,8 @@ version of Fortran function interface works for any spatial dimensions. If one
 wants to write a special version just for 2D and would like to use 2D arrays,
 one can use
 
+.. highlight:: fortran
+
 ::
 
     subroutine f2d(lo, hi, u, ulo, uhi) bind(c)
@@ -1930,6 +1778,8 @@ except that it provides an additional :cpp:`int *` for the number of
 components. The Fortran function matching :cpp:`BL_TO_FORTRAN_FAB(fab)` is then
 like below,
 
+.. highlight:: fortran
+
 ::
 
     subroutine f(u, ulo, uhi,nu) bind(c)
@@ -1937,6 +1787,76 @@ like below,
       integer, intent(in) :: lo(3),hi(3),ulo(3),uhi(3),nu
       real(amrex_real),intent(inout)::u(ulo(1):uhi(1),ulo(2):uhi(2),ulo(3):uhi(3),nu)
     end subroutine f
+
+There is a potential type safety issue when calling Fortran functions
+from C++.  If there is a mismatch between the function declaration on
+the C++ side and the function definition in Fortran, the compiler
+cannot catch it.  For example
+
+.. highlight:: c++
+
+::
+
+    // function declaration
+    extern "C" {
+        void f (amrex_real* x);
+    }
+    
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        f(mf[mfi].dataPtr()));
+    }
+
+    ! Fortra definition
+    subroutine f(x,y) bind(c)
+        implicit none
+        integer x, y
+    end subroutine f
+
+The code above will compile without errors even though the number of
+arguments and types don't match.  
+
+To help detect this kind of issues, AMReX provides a type check tool.
+Note that it only works when GCC is used.  In the directory an AMReX
+based code is compiled, type
+
+.. highlight:: console
+
+::
+
+    make typecheck
+
+Extra arguments used in a usual AMReX build (e.g., USE_MPI=TRUE DIM=2)
+can be added.  When it finishes, the output may look like,
+
+.. highlight:: console
+
+::
+
+    Function my_f in main_F.H vs. Fortran procedure in f.f90
+        number of arguments 1 does NOT match 2.
+        arg #1: C type ['double', 'pointer'] does NOT match Fortran type ('INTEGER 4', 'pointer', 'x').
+    22 functions checked, 1 error(s) found.  More details can be found in tmp_build_dir/t/3d.gnu.DEBUG.EXE/amrex_typecheck.ou.
+
+It should be noted that Fortran by default passes argument by
+reference.  In the example output above, ``pointer`` in ``Fortran type
+('INTEGER 4', 'pointer', 'x')`` means it's a reference to argument
+(i.e., C pointer), not a Fortran pointer.
+
+The type check tool has known limitations.  For a function to be
+checked by the tool in the GNU make build system, the declaration must
+be in a header file named ``*_f.H`` or ``*_F.H``, and the header file
+must be in the ``CEXE_headers`` make variable.  The headers are
+preprocessed first by cpp as C language, and is then parsed by
+pycparser (https://pypi.python.org/pypi/pycparser) that needs to be
+installed on your system.  Because pycparser is a C parser, C++ parts
+of the headers (e.g., :cpp:`extern "C" {`) need to be hidden with
+macro :cpp:`#ifdef __cplusplus`.  Headers like ``AMReX_BLFort.H`` can
+be used as a C header, but most other AMReX headers cannot and should
+be hidden by :cpp:`#ifdef __cplusplus` if they are included.  More
+details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
+these limitations, it is recommended to use the type check tool and
+report issues to us.
 
 
 Ghost Cells
@@ -1990,33 +1910,38 @@ examples of using the module.
 
 ::
 
-      use amrex_mempool_module, only : bl_allocate, bl_deallocate
+      use amrex_mempool_module, only : amrex_allocate, amrex_deallocate
       real(amrex_real), pointer, contiguous :: a(:,:,:), b(:,:,:,:)
       integer :: lo1, hi1, lo2, hi2, lo3, hi3, lo(4), hi(4)
       ! lo1 = ...
       ! a(lo1:hi1, lo2:hi2, lo3:hi3)
-      call bl_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
+      call amrex_allocate(a, lo1, hi1, lo2, hi2, lo3, hi3)
       ! b(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),lo(4):hi(4))
-      call bl_allocate(b, lo, hi)
+      call amrex_allocate(b, lo, hi)
       ! ......
-      call bl_deallocate(a)
-      call bl_deallocate(b)
+      call amrex_deallocate(a)
+      call amrex_deallocate(b)
 
 The downside of this is we have to use :fortran:`pointer` instead of
 :fortran:`allocatable`. This means we must explicitly free the memory via
-:fortran:`bl_deallocate` and we need to declare the pointers as
-:fortran:`contiguous` for performance reason.
+:fortran:`amrex_deallocate` and we need to declare the pointers as
+:fortran:`contiguous` for performance reason.  Also, we often
+pass the Fortran pointer to a procedure with explicit array argument
+to get rid of the pointerness completely.
 
-Abort and Assertion
-===================
+Abort, Assertion and Backtrace
+==============================
 
 :cpp:`amrex::Abort(const char * message)` is used to terminate a run usually
 when something goes wrong. This function takes a message and writes it to
-stderr. Files named like Backtrace.rg_1_rl_1 (where rg_1_rl_1 means process 1)
+stderr. Files named like ``Backtrace.1`` (where 1 means process 1)
 are produced containing backtrace information of the call stack. In Fortran, we
 can call :fortran:`amrex_abort` from the :fortran:`amrex_error_module`, which
 takes a Fortran character variable with assumed size (i.e., :fortran:`len=*`)
-as a message.
+as a message.  A ``ParmParse`` runtime boolean parameter
+``amrex.throw_handling`` (which is defaulted to 0, i.e., :cpp:`false`)
+can be set to 1 (i.e., :cpp:`true`) so that AMReX will throw an
+exception instead of aborting.
 
 :cpp:`AMREX_ASSERT` is a macro that takes a Boolean expression. For debug build
 (e.g., ``DEBUG=TRUE`` using the GNU Make build system), if the expression at
@@ -2035,7 +1960,69 @@ For example,
 
 Here for debug build we like to assert that :cpp:`MultiFab mf` has ghost cells
 and it also has the same number of components as :cpp:`MultiFab mf2`. If we
-always want the assertion, we can use :cpp:`AMREX_ALWAYS_ASSERT`.
+always want the assertion, we can use :cpp:`AMREX_ALWAYS_ASSERT`.  The
+assertion macros have a ``_WITH_MESSAGE`` variant that will print a
+message when assertion fails.  For example,
+
+.. highlight:: c++
+
+::
+
+      AMREX_ASSERT_WITH_MESSAGE(mf.boxArray() == mf2.boxArray(),
+                                "These two mfs must have the same BoxArray");
+
+
+Backtrace files are produced by AMReX signal handler by default when
+segfault occurs or ``Abort`` is called.  If the application does not
+want AMReX to handle this, ``ParmParse`` parameter
+`amrex.signal_handling=0` can be used to disable it.
+
+
+Debugging
+=========
+
+Debugging is an art.  Everyone has their own favorite method.  Here we
+offer a few tips we have found to be useful.
+
+Compiling in debug mode (e.g., ``make DEBUG=TRUE``) and running with
+``ParmParse`` parameter ``amrex.fpe_trap_invalid=1`` can be helpful.
+In debug mode, many compiler debugging flags are turned on and all
+``MultiFab`` data are initialized to signaling NaNs.  The
+``amrex.fpe_trap_invalid`` parameter will result in backtrace files
+when floating point exception occurs.  One can then examine those
+files to track down the origin of the issue.
+
+Writing a ``MultiFab`` to disk with
+
+.. highlight:: c++
+
+::
+
+    VisMF::Write(const FabArray<FArrayBox>& mf, const std::string& name)
+
+in ``AMReX_VisMF.H`` and examining it with ``Amrvis`` (section
+:ref:`sec:amrvis`) can be helpful as well.  In
+``AMReX_MultiFabUtil.H``, function
+
+.. highlight:: c++
+
+::
+
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);
+
+can output the data for a single cell.
+
+Valgrind is one of our favorite debugging tool.  For MPI runs, one can
+tell valgrind to output to different files for different processes.
+For example,
+
+.. highlight:: console
+
+::
+
+    mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
+
+
 
 .. _sec:basics:boundary:
 
@@ -2102,7 +2089,7 @@ The basic idea behind physical boundary conditions is as follows:
 
        reflect_odd
            Reflection from interior cells with sign
-           unchanged, :math:`q(-i) = -q(i)`.
+           changed, :math:`q(-i) = -q(i)`.
 
 -  We have interfaces to a fortran routine that fills ghost cells at domain
    boundaries based on the boundary condition type defined in the :cpp:`BCRec`
@@ -2141,36 +2128,238 @@ example).
     // fills interior (but not periodic domain boundary) ghost cells
     mf.FillBoundary();
 
-    // fills physical domain boundary ghost cells
+    // fills physical domain boundary ghost cells for a cell-centered multifab
+    // except for external Dirichlet
     FillDomainBoundary(mf, geom, bc);
 
-:cpp:`FillDomainBoundary()` is a function is in
-``amrex/Src/Base/AMReX_BCUtil.cpp``, and is essentially an interface to fortran
-subroutine :fortran:`amrex_fab_filcc()` in
-``amrex/Src/Base/AMReX_filcc_mod.F90``, which ultimately calls fortran
-subroutine :fortran:`filcc()` in ``amrex/Src/Base/AMReX_FILCC_XD.F``. To create
-more custom boundary conditions, create a local modified copy of
-``amrex/Src/Base/AMReX_FILCC_XD.F`` and put it your local source code.
+:cpp:`FillDomainBoundary()` is a function in
+``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
+boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
+for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
+use it as a template and insert their own function for
+:cpp:`BCType:ext_dir` like below
 
-For multi-level codes using the ``amrex/Src/AmrCore`` source code, the
-functions described above still work, however additional classes need to be set
-up since the :cpp:`FillPatch` routines call them.  In fact it is possible to
-avoid using the single-level calls directly if you fill all your grids and
-ghost cells using the :cpp:`FillPatch` routines.  Refer to
-``amrex/Tutorials/Amr/Advection_AmrCore/`` for an example.  The class
-:cpp:`PhysBCFunct` in ``amrex/Src/Base/AMReX_PhysBCFunct.cpp`` is derived from
-:cpp:`PhysBCFunctBase` and contains a :cpp:`BCRec`, :cpp:`Geometry`, and a
-pointer to a :cpp:`BndryFunctBase` function.
+.. highlight:: c++
 
-Note that :cpp:`PhyBCFunct` is an example of how to derive from
-:cpp:`PhysBCFunctBase` and is not meant to be a base class.
-:cpp:`PhysBCFunctBase` is the base class.  PhysBCFunctBase is designed for
-users to derive and extend.  You could/should write your own class derived from
-PhysBCFuncBase.  There you can make modifications such as storing a vector of
-BCRecs for, e.g., multiple component MultiFabs.
+::
 
-The function :cpp:`FillBoundary` fills physical ghost cells and has a similar
-functionality to the single-level case described above, where
-:cpp:`FillDomainBoundary` fills the physical ghost cells. In fact you can have
-your BndryFunctBase point to the same :fortran:`filcc` routines called by the
-single-level routines.
+    if (! grown_domain_box.contains(fab_box))
+    {
+        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                        BL_TO_FORTRAN_BOX(domain_box),
+                        dx, prob_lo,
+                        bc[0].data());
+        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                       BL_TO_FORTRAN_BOX(domain_box),
+                       dx, prob_lo,
+                       bc[0].data());
+    }
+
+
+.. _sec:basics:heat1:
+
+Example: HeatEquation_EX1_C
+===========================
+
+We now present an example of solving the heat equation.  The source
+code tree for the heat equation example is simple, as shown in
+:numref:`fig:Basics_Heat_flowchart`. We recommend you study
+``main.cpp`` and ``advance.cpp`` to see some of the classes described
+below in action.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig:Basics_Heat_flowchart:
+
+.. figure:: ./Basics/figs/flowchart.png
+   :width: 4in
+
+   Diagram of the source code structure for the HeatEquation_EX1_C example.
+
+.. raw:: latex
+
+   \end{center}
+
+Source code tree for the HeatEquation_EX1_C example
+
+    amrex/Src/Base
+        Contains source code for single-level simulations.  Note that in
+        ``amrex/Src`` there are many sub-directories, e.g., ``Base``, ``Amr``,
+        ``AmrCore``, ``LinearSolvers``, etc.  In this tutorial the only source
+        code directory we need is ``Base``.
+
+    amrex/Tutorials/HeatEquation_EX1_C/Source
+        Contains the following source code specific to this tutorial:
+        
+        #. ``Make.package``: lists the source code files
+        #. ``main.cpp``: contains the C++ ``main`` function
+        #. ``advance.cpp``: advance the solution by a time step
+        #. ``init_phi_Xd.f90, advance_Xd.f90``: fortran work functions used to
+           initialize and advance the solution
+        #. ``myfunc.H``: header file for C++ functions
+        #. ``myfunc_F.H``: header file for fortran90 functions that are called
+           in .cpp files
+
+    amrex/Tutorials/HeatEquation_EX1_C/Exec
+        This is where you build the code with make.  There is a GNUmakefile
+        and inputs files, inputs_2d and inputs_3d.
+
+Now we highlight a few key sections of the code.  In ``main.cpp`` we
+demonstrate how to read in parameters from the inputs file:
+
+.. highlight:: c++
+
+::
+
+    // inputs parameters
+    {
+        // ParmParse is way of reading inputs from the inputs file
+        ParmParse pp;
+
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        //   a square (or cubic) domain.
+        pp.get("n_cell",n_cell);
+
+        // The domain is broken into boxes of size max_grid_size
+        pp.get("max_grid_size",max_grid_size);
+
+        // Default plot_int to -1, allow us to set it to something else in the inputs file
+        //  If plot_int < 0 then no plot files will be writtenq
+        plot_int = -1;
+        pp.query("plot_int",plot_int);
+
+        // Default nsteps to 10, allow us to set it to something else in the inputs file
+        nsteps = 10;
+        pp.query("nsteps",nsteps);
+
+        pp.queryarr("is_periodic", is_periodic);
+    }
+
+In ``main.cpp`` we demonstrate how to define a ``Box`` for the problem domain,
+and then how to chop that ``Box`` up into multiple boxes that define a
+``BoxArray``  We also define a ``Geometry`` object that knows about the problem
+domain, the physical coordinates of the box, and the periodicity:
+
+::
+
+    // make BoxArray and Geometry
+    BoxArray ba;
+    Geometry geom;
+    {
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        Box domain(dom_lo, dom_hi);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        ba.maxSize(max_grid_size);
+
+       // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box({AMREX_D_DECL(-1.0,-1.0,-1.0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+
+        // This defines a Geometry object
+        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    }
+
+In ``main.cpp`` we demonstrate how to build a ``DistributionMapping`` from the
+``BoxArray``, and then build ``MultiFabs`` with a desired number of components
+and ghost cells associated with each grid:
+
+::
+
+    // Nghost = number of ghost cells for each array 
+    int Nghost = 1;
+    
+    // Ncomp = number of components for each array
+    int Ncomp  = 1;
+  
+    // How Boxes are distrubuted among MPI processes
+    DistributionMapping dm(ba);
+
+    // we allocate two phi multifabs; one will store the old state, the other the new.
+    MultiFab phi_old(ba, dm, Ncomp, Nghost);
+    MultiFab phi_new(ba, dm, Ncomp, Nghost);
+
+We demonstrate how to build an array of face-based ``MultiFabs`` :
+
+::
+
+    // build the flux multifabs
+    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+    {
+        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
+        BoxArray edge_ba = ba;
+        edge_ba.surroundingNodes(dir);
+        flux[dir].define(edge_ba, dm, 1, 0);
+    }
+
+To access and/or modify data n a ``MultiFab`` we use the ``MFIter``, where each
+processor loops over grids it owns to access and/or modify data on that grid:
+
+::
+
+    // Initialize phi_new by calling a Fortran routine.
+    // MFIter = MultiFab Iterator
+    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+    {
+        const Box& bx = mfi.validbox();
+
+        init_phi(BL_TO_FORTRAN_BOX(bx),
+                 BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+                 geom.CellSize(), geom.ProbLo(), geom.ProbHi());
+    }
+
+Note that these calls to fortran subroutines require a header in
+``myfunc_F.H``:
+
+::
+
+    void init_phi(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+
+The associated fortran routines must shape the data accordinly:
+
+::
+
+ subroutine init_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi) bind(C, name="init_phi")
+
+   use amrex_fort_module, only : amrex_real
+
+   implicit none
+
+   integer, intent(in) :: lo(2), hi(2), philo(2), phihi(2)
+   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2))
+   real(amrex_real), intent(in   ) :: dx(2) 
+   real(amrex_real), intent(in   ) :: prob_lo(2) 
+   real(amrex_real), intent(in   ) :: prob_hi(2) 
+
+   integer          :: i,j
+   double precision :: x,y,r2
+
+   do j = lo(2), hi(2)
+      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+      do i = lo(1), hi(1)
+         x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+
+         r2 = ((x-0.25d0)**2 + (y-0.25d0)**2) / 0.01d0
+
+         phi(i,j) = 1.d0 + exp(-r2)
+
+      end do
+   end do
+
+ end subroutine init_phi
+
+Ghost cells are filled using the ``FillBoundary`` function:
+
+::
+
+    // Fill the ghost cells of each grid from the other grids
+    // includes periodic domain boundaries
+    phi_old.FillBoundary(geom.periodicity());

@@ -1,58 +1,34 @@
-set (CXXSRC "")
-set (F90SRC "")
-set (F77SRC "")
-set (ALLHEADERS "")
-set (ALLSRC "")
+add_sources ( AMReX_EBAmrUtil_F.H     AMReX_EBCellFlag.H        AMReX_EBFArrayBox.H )
+add_sources ( AMReX_EBInterp_F.H      AMReX_EBMultiFabUtil.H    AMReX_MultiCutFab.H )
+add_sources ( AMReX_EBAmrUtil.H       AMReX_EBDataCollection.H  AMReX_EBFluxRegister_F.H )
+add_sources ( AMReX_EBInterpolater.H  AMReX_EBSupport.H         AMReX_EBCellFlag_F.H )
+add_sources ( AMReX_EBFabFactory.H    AMReX_EBFluxRegister.H    AMReX_EBMultiFabUtil_F.H )
+add_sources ( AMReX_EB_F.H            AMReX_EB_levelset.H )
 
-list ( APPEND ALLHEADERS AMReX_EBAmrUtil_F.H     AMReX_EBCellFlag.H        AMReX_EBFArrayBox.H )
-list ( APPEND ALLHEADERS AMReX_EBInterp_F.H      AMReX_EBMultiFabUtil.H    AMReX_MultiCutFab.H )
-list ( APPEND ALLHEADERS AMReX_EBAmrUtil.H       AMReX_EBDataCollection.H  AMReX_EBFluxRegister_F.H )
-list ( APPEND ALLHEADERS AMReX_EBInterpolater.H  AMReX_EBSupport.H         AMReX_EBCellFlag_F.H )
-list ( APPEND ALLHEADERS AMReX_EBFabFactory.H    AMReX_EBFluxRegister.H    AMReX_EBMultiFabUtil_F.H  AMReX_EBTower.H )
-list ( APPEND ALLHEADERS AMReX_EB_F.H            AMReX_EB_levelset.H )
+add_sources ( AMReX_EBAmrUtil.cpp       AMReX_EBDataCollection.cpp  AMReX_EBFArrayBox.cpp )
+add_sources ( AMReX_EBInterpolater.cpp )
+add_sources ( AMReX_EBCellFlag.cpp      AMReX_EBFabFactory.cpp      AMReX_EBFluxRegister.cpp   )
+add_sources ( AMReX_EBMultiFabUtil.cpp  AMReX_MultiCutFab.cpp )
+add_sources ( AMReX_EB_levelset.cpp )
 
-list ( APPEND CXXSRC AMReX_EBAmrUtil.cpp       AMReX_EBDataCollection.cpp  AMReX_EBFArrayBox.cpp )
-list ( APPEND CXXSRC AMReX_EBInterpolater.cpp  AMReX_EBTower.cpp )
-list ( APPEND CXXSRC AMReX_EBCellFlag.cpp      AMReX_EBFabFactory.cpp      AMReX_EBFluxRegister.cpp   )
-list ( APPEND CXXSRC AMReX_EBMultiFabUtil.cpp  AMReX_MultiCutFab.cpp )
-list ( APPEND CXXSRC AMReX_EB_levelset.cpp )
+add_sources ( AMReX_EBFluxRegister_${DIM}d.F90 )
+add_sources ( AMReX_EBFluxRegister_nd.F90 )
+add_sources ( AMReX_EBMultiFabUtil_${DIM}d.F90 )
+add_sources ( AMReX_EBMultiFabUtil_nd.F90 )
+add_sources ( AMReX_EBAmrUtil_nd.F90      )
+add_sources ( AMReX_ebinterp_${DIM}d.F90   )
+add_sources ( AMReX_ebcellflag_mod.F90    )
+add_sources ( AMReX_compute_normals.F90 AMReX_EB_geometry.F90 AMReX_EB_levelset_F.F90 )
 
-list ( APPEND F90SRC AMReX_EBFluxRegister_${DIM}d.F90 )
-list ( APPEND F90SRC AMReX_EBFluxRegister_nd.F90 )
-list ( APPEND F90SRC AMReX_EBMultiFabUtil_${DIM}d.F90 )
-list ( APPEND F90SRC AMReX_EBMultiFabUtil_nd.F90 )
-list ( APPEND F90SRC AMReX_EBAmrUtil_nd.F90      )
-list ( APPEND F90SRC AMReX_ebinterp_${DIM}d.F90   )
-list ( APPEND F90SRC AMReX_ebcellflag_mod.F90    )
-list ( APPEND F90SRC AMReX_compute_normals.F90 AMReX_EB_geometry.F90 AMReX_EB_levelset_F.F90 )
 
-#
-# This is an option to display arrays in GDB. It is for debugging
-# AMReX and currently not supported by cmake.# 
-# if(USE_ARRAYVIEW EQUAL TRUE)
-#   set(CXX_source_files ${CXX_source_files} AMReX_DatasetClient.cpp)
-#   set(CXX_header_files ${CXX_header_files} AMReX_DatasetClient.H)
-# endif()
+add_sources ( AMReX_EB2_F.H           AMReX_EB2_IF_Box.H        AMReX_EB2_IF_Lathe.H )
+add_sources ( AMReX_EB2_IF_Union.H    AMReX_EB2_GeometryShop.H  AMReX_EB2_IF_Complement.H )
+add_sources ( AMReX_EB2_IF_Plane.H    AMReX_EB2_IndexSpaceI.H   AMReX_EB2_Graph.H )
+add_sources ( AMReX_EB2_IF_Cylinder.H AMReX_EB2_IF_Scale.H      AMReX_EB2_Level.H )
+add_sources ( AMReX_EB2.H             AMReX_EB2_IF_Ellipsoid.H  AMReX_EB2_IF_Sphere.H )
+add_sources ( AMReX_EB2_MultiGFab.H   AMReX_EB2_IF_AllRegular.H AMReX_EB2_IF_Intersection.H )
+add_sources ( AMReX_EB2_IF_Translation.H AMReX_EB2_IF_Rotation.H AMReX_EB2_IF_Polynomial.H)
 
-# 
-#  Collect sources
-# 
-set ( ALLSRC  ${CXXSRC} ${F90SRC} ${F77SRC} )
+add_sources( AMReX_EB2.cpp  AMReX_EB2_Level.cpp  AMReX_EB2_MultiGFab.cpp )
 
-#
-# Add absolute path (needed by target_sources)
-# 
-prepend ( ALLSRC     ${CMAKE_CURRENT_LIST_DIR} )
-prepend ( ALLHEADERS ${CMAKE_CURRENT_LIST_DIR} )
-
-target_sources ( amrex PRIVATE ${ALLSRC} ${ALLHEADERS} )
-
-# 
-# Accumulate headers 
-#
-accumulate_headers (ALLHEADERS)   
-
-#
-# Add to include dirs
-#
-accumulate_include_dirs (${CMAKE_CURRENT_LIST_DIR})
+add_sources ( AMReX_eb2_${DIM}d.F90 )

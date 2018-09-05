@@ -20,11 +20,11 @@ module amrex_poisson_module
   ! interfaces to C++ functions
   
   interface
-     subroutine amrex_fi_new_poisson (poisson,n,gm,ba,dm,mt,agg,con) bind(c)
+     subroutine amrex_fi_new_poisson (poisson,n,gm,ba,dm,mt,agg,con,mcl) bind(c)
        import
        implicit none
        type(c_ptr), intent(inout) :: poisson
-       integer(c_int), value :: n, mt, agg, con
+       integer(c_int), value :: n, mt, agg, con, mcl
        type(c_ptr), intent(in) :: gm(*), ba(*), dm(*)
      end subroutine amrex_fi_new_poisson
 
@@ -47,14 +47,15 @@ contains
 
 
   subroutine amrex_poisson_build (poisson, geom, ba, dm, metric_term, &
-       agglomeration, consolidation)
+       agglomeration, consolidation, max_coarsening_level)
     type(amrex_poisson), intent(inout) :: poisson
     type(amrex_geometry), intent(in) :: geom(0:)
     type(amrex_boxarray), intent(in) :: ba(0:)
     type(amrex_distromap), intent(in) :: dm(0:)
     logical, intent(in), optional :: metric_term, agglomeration, consolidation
+    integer, intent(in), optional :: max_coarsening_level
 
-    integer(c_int) :: imt, iagg, icon
+    integer(c_int) :: imt, iagg, icon, imcl
     integer(c_int) :: ilev, nlevs
     type(c_ptr) :: gm_cp(0:size(geom)-1)
     type(c_ptr) :: ba_cp(0:size(geom)-1)
@@ -87,6 +88,11 @@ contains
        end if
     end if
 
+    imcl = 30
+    if (present(max_coarsening_level)) then
+       imcl = max_coarsening_level
+    end if
+
     nlevs = size(geom)
     do ilev = 0, nlevs-1
        gm_cp(ilev) = geom(ilev)%p
@@ -95,7 +101,7 @@ contains
     end do
 
     poisson%owner = .true.
-    call amrex_fi_new_poisson(poisson%p, nlevs, gm_cp, ba_cp, dm_cp, imt, iagg, icon)
+    call amrex_fi_new_poisson(poisson%p, nlevs, gm_cp, ba_cp, dm_cp, imt, iagg, icon, imcl)
   end subroutine amrex_poisson_build
 
 

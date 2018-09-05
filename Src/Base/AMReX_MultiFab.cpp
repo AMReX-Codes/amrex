@@ -28,6 +28,8 @@ namespace
 #endif
 }
 
+#if !defined(BL_NO_FORT)
+
 Real
 MultiFab::Dot (const MultiFab& x, int xcomp,
 	       const MultiFab& y, int ycomp,
@@ -40,7 +42,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
@@ -49,7 +51,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm);
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
     return sm;
 }
@@ -70,7 +72,7 @@ MultiFab::Dot (const iMultiFab& mask,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
@@ -79,10 +81,11 @@ MultiFab::Dot (const iMultiFab& mask,
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm);
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
     return sm;
 }
+#endif
 
 void
 MultiFab::Add (MultiFab&       dst,
@@ -153,6 +156,33 @@ MultiFab::Copy (MultiFab&       dst,
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
     }
 }
+
+
+#ifdef USE_PERILLA
+void
+MultiFab::Copy (MultiFab&       dst,
+                const MultiFab& src,
+                int             f,
+                int             srccomp,
+                int             dstcomp,
+                int             numcomp,
+                const Box&      bx)
+{
+// don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
+    BL_ASSERT(dst.distributionMap == src.distributionMap);
+    //BL_ASSERT(dst.nGrow() >= nghost); // && src.nGrow() >= nghost);
+
+    int fis = src.IndexArray()[f];
+    int fid = dst.IndexArray()[f];
+    //const Box& bx = BoxLib::grow(dst[f].box(),nghost);
+    //const Box& bx = dst[fid].box();
+
+    if (bx.ok())
+      dst[fid].copy(src[fid], bx, srccomp, bx, dstcomp, numcomp);
+
+}
+#endif
+
 
 void
 MultiFab::Subtract (MultiFab&       dst,
@@ -258,6 +288,8 @@ MultiFab::Divide (MultiFab&       dst,
             dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
 }
+
+#if !defined(BL_NO_FORT)
 
 void
 MultiFab::Saxpy (MultiFab&       dst,
@@ -366,6 +398,8 @@ MultiFab::AddProduct (MultiFab&       dst,
             dst[mfi].addproduct(bx, dstcomp, numcomp, src1[mfi], comp1, src2[mfi], comp2);
     }
 }
+
+#endif
 
 void
 MultiFab::plus (Real val,
@@ -537,6 +571,7 @@ MultiFab::define (const BoxArray&            bxs,
                   const FabFactory<FArrayBox>& factory)
 {
     define(bxs, dm, nvar, IntVect(ngrow), info, factory);
+    if (SharedMemory() && info.alloc) initVal();  // else already done in FArrayBox
 }
 
 void
@@ -588,7 +623,7 @@ MultiFab::contains_nan (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r);
+	ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
 
     return r;
 }
@@ -624,7 +659,7 @@ MultiFab::contains_inf (int scomp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceBoolOr(r);
+	ParallelAllReduce::Or(r, ParallelContext::CommunicatorSub());
 
     return r;
 }
@@ -672,7 +707,7 @@ MultiFab::min (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn);
+	ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
 
     return mn;
 }
@@ -699,7 +734,7 @@ MultiFab::min (const Box& region,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMin(mn);
+	ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
 
     return mn;
 }
@@ -723,7 +758,7 @@ MultiFab::max (int comp,
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx);
+	ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
 
     return mx;
 }
@@ -750,7 +785,7 @@ MultiFab::max (const Box& region,
     }
 	
     if (!local)
-	ParallelDescriptor::ReduceRealMax(mx);
+	ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
 
     return mx;
 }
@@ -761,9 +796,8 @@ MultiFab::minIndex (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
-    IntVect loc;
-
     Real mn = std::numeric_limits<Real>::max();
+    IntVect loc;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -794,46 +828,28 @@ MultiFab::minIndex (int comp,
 	}
     }
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
+    const int NProcs = ParallelContext::NProcsSub();
     if (NProcs > 1)
     {
-        Vector<Real> mns(1);
-        Vector<int>  locs(1);
+        Vector<Real> mns(NProcs);
+        Vector<int>  locs(NProcs * AMREX_SPACEDIM);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            mns.resize(NProcs);
-            locs.resize(NProcs*AMREX_SPACEDIM);
-        }
-
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::Gather(&mn, 1, mns.dataPtr(), 1, IOProc);
-
+        auto comm = ParallelContext::CommunicatorSub();
+        ParallelAllGather::AllGather(mn, mns.dataPtr(), comm);
         BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
+        ParallelAllGather::AllGather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), comm);
 
-        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
+        mn  = mns[0];
+        loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
+        for (int i = 1; i < NProcs; i++)
         {
-            mn  = mns[0];
-            loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-
-            for (int i = 1; i < NProcs; i++)
+            if (mns[i] < mn)
             {
-                if (mns[i] < mn)
-                {
-                    mn = mns[i];
-
-                    const int j = AMREX_SPACEDIM * i;
-
-                    loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
-                }
+                mn = mns[i];
+                const int j = AMREX_SPACEDIM * i;
+                loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
             }
         }
-
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
@@ -845,17 +861,16 @@ MultiFab::maxIndex (int comp,
 {
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
+    Real mx = std::numeric_limits<Real>::lowest();
     IntVect loc;
-
-    Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-	Real priv_mx = -std::numeric_limits<Real>::max();
+	Real priv_mx = std::numeric_limits<Real>::lowest();
 	IntVect priv_loc;
-	
+
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
@@ -878,51 +893,36 @@ MultiFab::maxIndex (int comp,
 	}
     }
 
-    const int NProcs = ParallelDescriptor::NProcs();
-
+    const int NProcs = ParallelContext::NProcsSub();
     if (NProcs > 1)
     {
-        Vector<Real> mxs(1);
-        Vector<int>  locs(1);
+        Vector<Real> mxs(NProcs);
+        Vector<int>  locs(NProcs * AMREX_SPACEDIM);
 
-        if (ParallelDescriptor::IOProcessor())
-        {
-            mxs.resize(NProcs);
-            locs.resize(NProcs*AMREX_SPACEDIM);
-        }
-
-        const int IOProc = ParallelDescriptor::IOProcessorNumber();
-
-        ParallelDescriptor::Gather(&mx, 1, mxs.dataPtr(), 1, IOProc);
-
+        auto comm = ParallelContext::CommunicatorSub();
+        ParallelAllGather::AllGather(mx, mxs.dataPtr(), comm);
         BL_ASSERT(sizeof(IntVect) == sizeof(int)*AMREX_SPACEDIM);
+        ParallelAllGather::AllGather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), comm);
 
-        ParallelDescriptor::Gather(loc.getVect(), AMREX_SPACEDIM, locs.dataPtr(), AMREX_SPACEDIM, IOProc);
-
-        if (ParallelDescriptor::IOProcessor())
+        mx  = mxs[0];
+        loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
+        for (int i = 1; i < NProcs; i++)
         {
-            mx  = mxs[0];
-            loc = IntVect(AMREX_D_DECL(locs[0],locs[1],locs[2]));
-
-            for (int i = 1; i < NProcs; i++)
+            if (mxs[i] > mx)
             {
-                if (mxs[i] > mx)
-                {
-                    mx = mxs[i];
+                mx = mxs[i];
 
-                    const int j = AMREX_SPACEDIM * i;
+                const int j = AMREX_SPACEDIM * i;
 
-                    loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
-                }
+                loc = IntVect(AMREX_D_DECL(locs[j+0],locs[j+1],locs[j+2]));
             }
         }
-
-        ParallelDescriptor::Bcast(const_cast<int*>(loc.getVect()), AMREX_SPACEDIM, IOProc);
     }
 
     return loc;
 }
 
+#if !defined(BL_NO_FORT)
 Real
 MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 {
@@ -936,10 +936,11 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 	nm0 = std::max(nm0, get(mfi).norminfmask(mfi.growntilebox(nghost), mask[mfi], comp, 1));
     }
 
-    if (!local)	ParallelDescriptor::ReduceRealMax(nm0);
+    if (!local)	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
 
     return nm0;
 }
+#endif
 
 Real
 MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
@@ -964,7 +965,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     }
  
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0);
+	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
  
     return nm0;
 }
@@ -983,7 +984,7 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0);
+	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
 
     return nm0;
 }
@@ -1030,10 +1031,12 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealMax(nm0.dataPtr(), n);
+	ParallelAllReduce::Max(nm0.dataPtr(), n, ParallelContext::CommunicatorSub());
 
     return nm0;
 }
+
+#if !defined(BL_NO_FORT)
 
 Real
 MultiFab::norm2 (int comp) const
@@ -1107,7 +1110,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 	}
     }
 
-    ParallelDescriptor::ReduceRealSum(&priv_nm2[0][0], n);
+    ParallelAllReduce::Sum(&priv_nm2[0][0], n, ParallelContext::CommunicatorSub());
 
     for (int i=0; i<n; i++) {
 	nm2[i] = std::sqrt(priv_nm2[0][i]);
@@ -1115,6 +1118,8 @@ MultiFab::norm2 (const Vector<int>& comps) const
 
     return nm2;
 }
+
+#endif
 
 Real
 MultiFab::norm1 (int comp, const Periodicity& period) const
@@ -1135,7 +1140,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     Real nm1 = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:nm1)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:nm1)
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
@@ -1143,7 +1148,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1);
+	ParallelAllReduce::Sum(nm1, ParallelContext::CommunicatorSub());
 
     return nm1;
 }
@@ -1191,7 +1196,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     }
 
     if (!local)
-	ParallelDescriptor::ReduceRealSum(nm1.dataPtr(), n);
+	ParallelAllReduce::Sum(nm1.dataPtr(), n, ParallelContext::CommunicatorSub());
 
     return nm1;
 }
@@ -1202,7 +1207,7 @@ MultiFab::sum (int comp, bool local) const
     Real sm = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
 #endif
     for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
@@ -1210,7 +1215,7 @@ MultiFab::sum (int comp, bool local) const
     }
 
     if (!local)
-        ParallelDescriptor::ReduceRealSum(sm);
+        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
     return sm;
 }
@@ -1578,6 +1583,8 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
 
+#if !defined(BL_NO_FORT)
+
 void
 MultiFab::OverrideSync (const Periodicity& period)
 {
@@ -1613,5 +1620,7 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
+
+#endif
 
 }

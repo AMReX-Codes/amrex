@@ -1,5 +1,5 @@
-#ifndef MYFUNC_F_H__
-#define MUFUNC_F_H__
+#ifndef MYFUNC_F_H_
+#define MYFUNC_F_H_
 
 #ifdef __cplusplus
 extern "C"
