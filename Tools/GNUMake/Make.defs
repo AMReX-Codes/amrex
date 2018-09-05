@@ -527,6 +527,7 @@ endif
 ifeq ($(USE_ASCENT),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.ascent...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.ascent
+endif
 
 ifeq ($(USE_PETSC),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc...)
