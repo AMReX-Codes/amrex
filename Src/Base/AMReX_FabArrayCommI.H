@@ -39,8 +39,17 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
             BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
-            get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
+            const FAB* sfab = &(get(tag.srcIndex));
+                  FAB* dfab = &(get(tag.dstIndex));
+
+            AMREX_BOX_L_LAUNCH(tag.dbox,
+            [=] AMREX_CUDA_DEVICE () mutable
+            {
+               dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
+            });
         }
+
+        Device::synchronize();
 
         return;
     }
@@ -208,21 +217,92 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe())
 #endif
-	for (int j=0; j<N_snds; ++j)
-	{
-            char* dptr = send_data[j];
-            if (dptr != nullptr)
+
+/* Stored current, failed attempt at non-BaseFab method.
+   Return from a Fortran function to C++ fails inside a kernel.
+   Would need to rewrite fortran function to take referenced value instead. 
+        if (amrex::IsBaseFab<FAB>::value)
+        {
+            unsigned long long *n = static_cast<unsigned long long*>( Device::device_malloc(sizeof(unsigned long long)) );
+            for (int j=0; j<N_snds; ++j)
             {
-                auto const& cctc = *send_cctc[j];
-                for (auto const& tag : cctc)
+                char* dptr = send_data[j];
+                if (dptr != nullptr)
                 {
+                    auto const& cctc = *send_cctc[j];
+                    for (auto const& tag : cctc)
+                    {
+                        unsigned long long zero = 0;
+                        size_t m = zero;
+                        Device::device_htod_memcpy(n, &zero, sizeof(unsigned long long));  // Reset value. Way around?
+
+                        const Box& bx = tag.sbox;
+                        const FAB* sfab = &(get(tag.srcIndex));
+
+                        AMREX_BOX_L_LAUNCH(bx,
+                        [=] AMREX_CUDA_DEVICE ()
+                        {
+                           unsigned long long bytes; // Don't need this - save reduction example.
+                           bytes = sfab->copyToMem(bx,scomp,ncomp,dptr);
+                           atomicAdd( n, bytes );   //  NEED "IF CPU" WRAPPER.
+                        });
+
+                        Device::synchronize();
+                        Device::device_dtoh_memcpy(&m, n, sizeof(unsigned long long));
+                        dptr += m;
+                    }
+                    BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+                }
+	    }
+            Device::device_free(n);
+
+        }
+*/
+
+        if (amrex::IsBaseFab<FAB>::value)
+        {
+            for (int j=0; j<N_snds; ++j)
+            {
+                char* dptr = send_data[j];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *send_cctc[j];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx = tag.sbox;
+                        const FAB* sfab = &(get(tag.srcIndex));
+
+                        AMREX_BOX_L_LAUNCH(bx,
+                        [=] AMREX_CUDA_DEVICE ()
+                        {
+                           sfab->copyToMem(bx,scomp,ncomp,dptr);
+                        });
+
+                        dptr += (bx.numPts() * sizeof(value_type)); 
+                    }
+                    BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+                }
+	    }
+            Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
+        }
+        else  // Original, accounting for non-BaseFab objects. No GPU version yet. 
+        {
+           for (int j=0; j<N_snds; ++j)
+           {
+              char* dptr = send_data[j];
+              if (dptr != nullptr)
+              {
+                 auto const& cctc = *send_cctc[j];
+                 for (auto const& tag : cctc)
+                 {
                     const Box& bx = tag.sbox;
                     auto n = (*this)[tag.srcIndex].copyToMem(bx,scomp,ncomp,dptr);
                     dptr += n;
-                }
-                BL_ASSERT(dptr == send_data[j] + send_size[j]);
-            }
-	}
+                 }
+                 BL_ASSERT(dptr == send_data[j] + send_size[j]);
+              }
+           } 
+        }
 
 #ifdef BL_USE_UPCXX
 
@@ -331,7 +411,14 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
-	    get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
+            const FAB* sfab = &(get(tag.srcIndex));
+                  FAB* dfab = &(get(tag.dstIndex));
+
+            AMREX_BOX_L_LAUNCH(tag.dbox,
+            [=] AMREX_CUDA_DEVICE () mutable
+            {
+               dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
+            });
 	});
 #endif
     }
@@ -347,11 +434,22 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 	    
-	    if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc()) {
-		get(tag.dstIndex).copy(get(tag.srcIndex),tag.sbox,scomp,tag.dbox,scomp,ncomp);
+	    if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
+            {
+                const FAB* sfab = &(get(tag.srcIndex));
+                      FAB* dfab = &(get(tag.dstIndex));
+
+                AMREX_BOX_L_LAUNCH(tag.dbox,
+                [=] AMREX_CUDA_DEVICE () mutable
+                {
+                   dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
+                });
 	    }
 	}
     }
+
+    Device::synchronize();
+
 #endif /*BL_USE_MPI*/
 }
 
@@ -418,22 +516,53 @@ FabArray<FAB>::FillBoundary_finish ()
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv)
 #endif
 
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-	    const char* dptr = fb_recv_data[k];
-            if (dptr != nullptr)
-            {
-                auto const& cctc = *recv_cctc[k];
-                for (auto const& tag : cctc)
+        if (amrex::IsBaseFab<FAB>::value)
+        {
+            for (int k = 0; k < N_rcvs; k++) 
+	    {
+	        const char* dptr = fb_recv_data[k];
+                if (dptr != nullptr)
                 {
-                    const Box& bx  = tag.dbox;
-                    std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-                    dptr += n;
-                }
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx  = tag.dbox;
+                              FAB* dfab = &(get(tag.dstIndex));
+                        const int scomp = fb_scomp;
+                        const int ncomp = fb_ncomp;
 
-                BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+                        AMREX_BOX_L_LAUNCH(bx,
+                        [=] AMREX_CUDA_DEVICE () 
+                        {
+                           dfab->copyFromMem(bx,scomp,ncomp,dptr);
+                        });
+
+                        dptr += (bx.numPts() * sizeof(value_type));
+                    }
+                    BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+                }
             }
-	}
+            Device::synchronize();
+        }
+        else  // Original, accounting for non-BaseFab objects. No GPU version for now.
+        {
+            for (int k = 0; k < N_rcvs; k++) 
+            {
+            const char* dptr = fb_recv_data[k];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx = tag.dbox;
+                        std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
+                        dptr += n;
+                    }
+
+                    BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+                }
+            }
+        }
 
         if (fb_the_recv_data)
         {
