@@ -117,14 +117,6 @@ C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
 
 #
-# Conduit Blueprint Support
-#
-ifeq ($(USE_CONDUIT),TRUE)
-	C$(AMREX_BASE)_sources += AMReX_Conduit_Blueprint.cpp
-	C$(AMREX_BASE)_headers += AMReX_Conduit_Blueprint.H
-endif
-
-#
 # Misc
 #
 C$(AMREX_BASE)_headers += AMReX_BaseUmap.H
