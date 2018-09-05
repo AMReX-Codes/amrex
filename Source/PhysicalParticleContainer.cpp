@@ -172,6 +172,8 @@ PhysicalParticleContainer::AddParticles (int lev)
 void
 PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 {
+    BL_PROFILE("PhysicalParticleContainer::AddPlasma");
+
     // If no part_realbox is provided, initialize particles in the whole domain
     const Geometry& geom = Geom(lev);
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
@@ -256,12 +258,12 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
                     Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
                     Real y = 0;
                     Real z = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
-#endif                    
+#endif
                     fac = GetRefineFac(x, y, z);
                 } else {
                     fac = 1.0;
                 }
-                
+
                 int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
                 for (int i_part=0; i_part<ref_num_ppc;i_part++) {
                     std::array<Real, 3> r;
@@ -305,7 +307,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
                       // Assuming ballistic motion, this is given by:
                       // z0_lab = gamma*( z_boost*(1-beta*betaz_lab) - ct_boost*(betaz_lab-beta) )
                       // where betaz_lab is the speed of the particle in the lab frame
-                      // 
+                      //
                       // In order for this equation to be solvable, betaz_lab
                       // is explicitly assumed to have no dependency on z0_lab
                       plasma_injector->getMomentum(u, x, y, 0.); // No z0_lab dependency
@@ -334,12 +336,12 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
                     attribs[PIdx::xold] = x;
                     attribs[PIdx::yold] = y;
                     attribs[PIdx::zold] = z;
-                    
+
                     attribs[PIdx::uxold] = u[0];
                     attribs[PIdx::uyold] = u[1];
                     attribs[PIdx::uzold] = u[2];
 #endif
-                    
+
                     AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
             }
@@ -990,10 +992,10 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
                        uxp.data(), uyp.data(), uzp.data(),
                        xpold.data(), ypold.data(), zpold.data(),
-                       uxpold.data(), uypold.data(), uzpold.data());                       
+                       uxpold.data(), uypold.data(), uzpold.data());
 
 #endif
-                           
+
     warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
                           uxp.data(), uyp.data(), uzp.data(), giv.data(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
@@ -1097,7 +1099,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                                                  DiagnosticParticles& diagnostic_particles)
 {
     BL_PROFILE("PhysicalParticleContainer::GetParticleSlice");
-    
+
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
     // Assume that the boost in the positive z direction.
 #if (AMREX_SPACEDIM == 2)
@@ -1105,10 +1107,10 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #else
     AMREX_ALWAYS_ASSERT(direction == 2);
 #endif
-    
+
     // Note the the slice should always move in the negative boost direction.
     AMREX_ALWAYS_ASSERT(z_new < z_old);
-    
+
     const int nlevs = std::max(0, finestLevel()+1);
 
     // we figure out a box for coarse-grained rejection. If the RealBox corresponding to a
@@ -1124,7 +1126,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     for (int lev = 0; lev < nlevs; ++lev) {
 
         const Real* dx  = Geom(lev).CellSize();
-        const Real* plo = Geom(lev).ProbLo(); 
+        const Real* plo = Geom(lev).ProbLo();
 
         // first we touch each map entry in serial
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -1132,19 +1134,19 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
             auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
             diagnostic_particles[index];
         }
-        
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         {
             Vector<Real> xp_new, yp_new, zp_new;
-            
+
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
                 const Box& box = pti.validbox();
 
                 auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
-                
+
                 const RealBox tile_real_box(box, dx, plo);
 
                 if ( !slice_box.intersects(tile_real_box) ) continue;
@@ -1165,12 +1167,12 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                 auto& uxp_old = attribs[PIdx::uxold];
                 auto& uyp_old = attribs[PIdx::uyold];
                 auto& uzp_old = attribs[PIdx::uzold];
-        
+
                 const long np = pti.numParticles();
 
                 Real uzfrm = -WarpX::gamma_boost*WarpX::beta_boost*PhysConst::c;
                 Real inv_c2 = 1.0/PhysConst::c/PhysConst::c;
-                
+
                 for (long i = 0; i < np; ++i) {
 
                     // if the particle did not cross the plane of z_boost in the last
@@ -1202,7 +1204,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
 
                     diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i]);
-                    
+
                     diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp);
                     diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp);
                     diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp);
@@ -1224,7 +1226,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
 {
     if (finestLevel() == 0) return 1;
     if (not WarpX::refine_plasma) return 1;
-    
+
     AMREX_ALWAYS_ASSERT(finestLevel() == 1); // need to fix for more than two levels
 
     const int fine_lev = 1;
@@ -1238,7 +1240,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
                  iv[2]=static_cast<int>(floor((z-geom.ProbLo(2))*geom.InvCellSize(2))););
 
     iv += geom.Domain().smallEnd();
-    
+
     const int dir = WarpX::moving_window_dir;
     const IntVect rr = m_gdb->refRatio(crse_lev);
     const BoxArray& fine_ba = this->ParticleBoxArray(fine_lev);
@@ -1255,7 +1257,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
 
     const int num_ghost = 0;
-    bool hit = stretched_ba.intersects(Box(iv, iv), num_ghost);    
+    bool hit = stretched_ba.intersects(Box(iv, iv), num_ghost);
     if (hit) {
         return rr[dir];
     }
