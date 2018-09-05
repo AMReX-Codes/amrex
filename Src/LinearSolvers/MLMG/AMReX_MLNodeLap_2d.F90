@@ -53,12 +53,13 @@ module amrex_mlnodelap_2d_module
   public:: amrex_mlndlap_set_stencil, amrex_mlndlap_set_stencil_s0, &
        amrex_mlndlap_adotx_sten, amrex_mlndlap_normalize_sten, &
        amrex_mlndlap_gauss_seidel_sten, amrex_mlndlap_jacobi_sten, &
-       amrex_mlndlap_interpolation_rap, amrex_mlndlap_interpolation_rap_sp, &
+       amrex_mlndlap_interpolation_rap, &
        amrex_mlndlap_restriction_rap, &
-       amrex_mlndlap_stencil_rap, amrex_mlndlap_stencil_rap_sp
+       amrex_mlndlap_stencil_rap
 
 #ifdef AMREX_USE_EB
-  public:: amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
+  public:: amrex_mlndlap_set_integral, amrex_mlndlap_set_integral_eb, &
+       amrex_mlndlap_set_connection, amrex_mlndlap_set_stencil_eb, &
        amrex_mlndlap_divu_eb, amrex_mlndlap_mknewu_eb
 #endif
 
@@ -1510,7 +1511,7 @@ contains
     real(amrex_real), intent(in) :: dxinv(2)
 
     integer :: i, j
-    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y, fp, fm
+    real(amrex_real) :: facx, facy, fxy, f2xmy, fmx2y
 
     facx = (1.d0/6.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/6.d0)*dxinv(2)*dxinv(2)
@@ -1525,7 +1526,6 @@ contains
           sten(i,j,4) = fxy*sigma(i,j)
        end do
     end do
-
   end subroutine amrex_mlndlap_set_stencil
 
 
@@ -1627,7 +1627,6 @@ contains
           end if
        end do
     end do
-
   end subroutine amrex_mlndlap_gauss_seidel_sten
 
 
@@ -1655,7 +1654,6 @@ contains
           end if
        end do
     end do
-
   end subroutine amrex_mlndlap_jacobi_sten
 
 
@@ -1711,45 +1709,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_interpolation_rap
-
-
-  subroutine amrex_mlndlap_interpolation_rap_sp (clo, chi, fine, fflo, ffhi, crse, cflo, cfhi, &
-       sten, stlo, sthi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_interpolation_rap_sp')
-    integer, dimension(2), intent(in) :: clo,chi,fflo,ffhi,cflo,cfhi,stlo,sthi, mlo, mhi
-    real(amrex_real), intent(in   ) :: crse(cflo(1):cfhi(1),cflo(2):cfhi(2))
-    real(amrex_real), intent(inout) :: fine(fflo(1):ffhi(1),fflo(2):ffhi(2))
-    real(amrex_real), intent(in   ) :: sten(stlo(1):sthi(1),stlo(2):sthi(2),5)
-    integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2))
-
-    integer :: flo(2), fhi(2), i,j, ic, jc
-    logical :: jeven, ieven
-
-    flo = 2*clo
-    fhi = 2*chi
-
-    do j = flo(2), fhi(2)
-       jc = (j-flo(2))/2 + clo(2)
-       jeven = jc*2 .eq. j
-       do i = flo(1), fhi(1)
-          if (msk(i,j) .ne. dirichlet .and. sten(i,j,1) .ne. 0.d0) then
-             ic = (i-flo(1))/2 + clo(1)
-             ieven = ic*2 .eq. i
-             if (ieven .and. jeven) then
-                fine(i,j) = crse(ic,jc)
-             else if (ieven) then
-                fine(i,j) = 0.5d0*(crse(ic,jc) + crse(ic,jc+1))
-             else if (jeven) then
-                fine(i,j) = 0.5d0*(crse(ic,jc) + crse(ic+1,jc))
-             else
-                fine(i,j) = 0.25d0*(crse(ic,jc) + crse(ic+1,jc) + crse(ic,jc+1) + crse(ic+1,jc+1))
-             end if
-          else
-             fine(i,j) = 0.d0
-          end if
-       end do
-    end do
-
-  end subroutine amrex_mlndlap_interpolation_rap_sp
 
 
   subroutine amrex_mlndlap_restriction_rap (lo, hi, crse, clo, chi, fine, flo, fhi, &
@@ -1810,7 +1769,6 @@ contains
     real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),5)
     
     integer :: i,j, ii, jj
-    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
     real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1)
 
     do    j = lo(2), hi(2)
@@ -2061,142 +2019,27 @@ contains
   end subroutine amrex_mlndlap_stencil_rap
 
 
-  subroutine amrex_mlndlap_stencil_rap_sp (lo, hi, csten, clo, chi, fsten, flo, fhi) &
-       bind(c,name='amrex_mlndlap_stencil_rap_sp')
-    integer, dimension(2), intent(in) :: lo, hi, clo, chi, flo, fhi
-    real(amrex_real), intent(inout) :: csten(clo(1):chi(1),clo(2):chi(2),5)
-    real(amrex_real), intent(in   ) :: fsten(flo(1):fhi(1),flo(2):fhi(2),5)
-
-    integer :: i,j, ii, jj
-    real(amrex_real) :: wxm, wxp, wym, wyp, wmm, wpm, wmp, wpp
-    real(amrex_real) :: ap(-1:1,-1:1), p(-1:1,-1:1)
-
-    do    j = lo(2), hi(2)
-       jj = 2*j
-       do i = lo(1), hi(1)
-          ii = 2*i
-
-          ap = 0.d0
-          p = 0.d0
-
-          ! csten(i,j,2)
-          p(-1,-1) = 0.25d0
-          p( 0,-1) = 0.5d0
-          p(-1, 0) = 0.5d0
-          p( 0, 0) = 1.d0
-          p(-1, 1) = 0.25d0
-          p( 0, 1) = 0.5d0
-
-          ap(0,-1) = Ap0(ii,jj-1)*p(-1,-1) + App(ii,jj-1)*p(-1,0)
-          ap(1,-1) = A00(ii+1,jj-1)*p(-1,-1) + Ap0(ii+1,jj-1)*p(0,-1) &
-               + A0p(ii+1,jj-1)*p(-1,0) + App(ii+1,jj-1)*p(0,0)
-          ap(0,0) = Apm(ii,jj)*p(-1,-1) + Ap0(ii,jj)*p(-1,0) + App(ii,jj)*p(-1,1)
-          ap(1,0) = A0m(ii+1,jj)*p(-1,-1) + Apm(ii+1,jj)*p(0,-1) &
-               + A00(ii+1,jj)*p(-1,0) + Ap0(ii+1,jj)*p(0,0) &
-               + A0p(ii+1,jj)*p(-1,1) + App(ii+1,jj)*p(0,1)
-          ap(0,1) = Apm(ii,jj+1)*p(-1,0) + Ap0(ii,jj+1)*p(-1,1)
-          ap(1,1) = A0m(ii+1,jj+1)*p(-1,0) + Apm(ii+1,jj+1)*p(0,0) &
-               + A00(ii+1,jj+1)*p(-1,1) + Ap0(ii+1,jj+1)*p(0,1)
-
-          csten(i,j,2) = 0.25d0*(0.5d0*ap(0,-1) + 0.25*ap(1,-1) + ap(0,0) &
-               + 0.5d0*ap(1,0) + 0.5d0*ap(0,1) + 0.25d0*ap(1,1))
-
-          ! csten(i,j,3)
-          p(-1,-1) = 0.25d0
-          p( 0,-1) = 0.5d0
-          p( 1,-1) = 0.25d0
-          p(-1, 0) = 0.5d0
-          p( 0, 0) = 1.d0
-          p( 1, 0) = 0.5d0
-          
-          ap(-1,0) = A0p(ii-1,jj)*p(-1,-1) + App(ii-1,jj)*p(0,-1)
-          ap(0,0) = Amp(ii,jj)*p(-1,-1) + A0p(ii,jj)*p(0,-1) + App(ii,jj)*p(1,-1)
-          ap(1,0) = Amp(ii+1,jj)*p(0,-1) + A0p(ii+1,jj)*p(1,-1)
-          ap(-1,1) = A00(ii-1,jj+1)*p(-1,-1) + Ap0(ii-1,jj+1)*p(0,-1) &
-               + A0p(ii-1,jj+1)*p(-1,0) + App(ii-1,jj+1)*p(0,0)
-          ap(0,1) = Am0(ii,jj+1)*p(-1,-1) + A00(ii,jj+1)*p(0,-1) + Ap0(ii,jj+1)*p(1,-1) &
-               + Amp(ii,jj+1)*p(-1,0) + A0p(ii,jj+1)*p(0,0) + App(ii,jj+1)*p(1,0)
-          ap(1,1) = Am0(ii+1,jj+1)*p(0,-1) + A00(ii+1,jj+1)*p(1,-1) &
-               + Amp(ii+1,jj+1)*p(0,0) + A0p(ii+1,jj+1)*p(1,0)
-
-          csten(i,j,3) = 0.25d0*(0.5d0*ap(-1,0) + ap(0,0) + 0.5d0*ap(1,0) &
-               + 0.25d0*ap(-1,1) + 0.5d0*ap(0,1) + 0.25d0*ap(1,1))
-
-          ! csten(i,j,4)
-          p(-1,-1) = 0.25d0
-          p( 0,-1) = 0.5d0
-          p(-1, 0) = 0.5d0
-          p( 0, 0) = 1.d0
-
-          ap(0,0) = App(ii,jj)*p(-1,-1)
-          ap(1,0) = A0p(ii+1,jj)*p(-1,-1) + App(ii+1,jj)*p(0,-1)
-          ap(0,1) = Ap0(ii,jj+1)*p(-1,-1) + App(ii,jj+1)*p(-1,0)
-          ap(1,1) = A00(ii+1,jj+1)*p(-1,-1) + Ap0(ii+1,jj+1)*p(0,-1) &
-               + A0p(ii+1,jj+1)*p(-1,0) + App(ii+1,jj+1)*p(0,0)
-
-          csten(i,j,4) = 0.25d0*(ap(0,0) + 0.5d0*ap(1,0) + 0.5d0*ap(0,1) + 0.25d0*ap(1,1))
-       end do
-    end do
-
-  contains
-
-    elemental real(amrex_real) function Amm (i,j)
-      integer, intent(in) :: i,j
-      Amm = fsten(i-1,j-1,4)
-    end function Amm
-
-    elemental real(amrex_real) function A0m (i,j)
-      integer, intent(in) :: i,j
-      A0m = fsten(i,j-1,3)
-    end function A0m
-
-    elemental real(amrex_real) function Apm (i,j)
-      integer, intent(in) :: i,j
-      Apm = fsten(i,j-1,4)
-    end function Apm
-
-    elemental real(amrex_real) function Am0 (i,j)
-      integer, intent(in) :: i,j
-      Am0 = fsten(i-1,j,2)
-    end function Am0
-
-    elemental real(amrex_real) function A00 (i,j)
-      integer, intent(in) :: i,j
-      A00 = fsten(i,j,1)
-    end function A00
-
-    elemental real(amrex_real) function Ap0 (i,j)
-      integer, intent(in) :: i,j
-      Ap0 = fsten(i,j,2)
-    end function Ap0
-
-    elemental real(amrex_real) function Amp (i,j)
-      integer, intent(in) :: i,j
-      Amp = fsten(i-1,j,4)
-    end function Amp
-
-    elemental real(amrex_real) function A0p (i,j)
-      integer, intent(in) :: i,j
-      A0p = fsten(i,j,3)
-    end function A0p
-
-    elemental real(amrex_real) function App (i,j)
-      integer, intent(in) :: i,j
-      App = fsten(i,j,4)
-    end function App
-
-  end subroutine amrex_mlndlap_stencil_rap_sp
-
-
 #ifdef AMREX_USE_EB
 
-  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+  subroutine amrex_mlndlap_set_integral (lo, hi, intg, glo, ghi) &
+       bind(c,name='amrex_mlndlap_set_integral')
+    integer, dimension(2) :: lo, hi, glo, ghi
+    real(amrex_real), intent(inout) :: intg(glo(1):ghi(1),glo(2):ghi(2),4)
+    integer :: i,j
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          intg(i,j,1:2) = 0.d0
+          intg(i,j,3:4) = twelfth
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_integral
+
+  subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, bcen, blo, bhi) &
-       bind(c,name='amrex_mlndlap_set_connection')
+       bind(c,name='amrex_mlndlap_set_integral_eb')
     use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
-    integer, dimension(2) :: lo, hi, clo, chi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
-    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
-    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),2)
+    integer, dimension(2) :: lo, hi, glo, ghi, flo, fhi, axlo, vlo, vhi, axhi, aylo, ayhi, blo, bhi
+    real(amrex_real), intent(inout) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
     real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
     real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2))
     real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2))
@@ -2214,13 +2057,12 @@ contains
        do i = lo(1), hi(1)
           if (is_covered_cell(flag(i,j))) then
 
-             conn(i,j,:) = 0.d0
              intg(i,j,:) = 0.d0
 
           else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
 
-             conn(i,j,:) = 1.d0
-             intg(i,j,2) = 0.d0
+             intg(i,j,1:2) = 0.d0
+             intg(i,j,3:4) = twelfth
 
           else
 
@@ -2231,7 +2073,7 @@ contains
 
              apnorm = sqrt((axm-axp)**2 + (aym-ayp)**2)
              if (apnorm .eq. 0.d0) then
-                call amrex_abort("amrex_mlndlap_set_connection: we are in trouble")
+                call amrex_abort("amrex_mlndlap_set_integral: we are in trouble")
              end if
 
              apnorminv = 1.d0/apnorm
@@ -2277,6 +2119,46 @@ contains
                 Sy2 = twentyfourth*(ayp+aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
              end if
 
+             intg(i,j,1) = Sx
+             intg(i,j,2) = Sy
+             intg(i,j,3) = Sx2
+             intg(i,j,4) = Sy2
+          end if
+       end do
+    end do
+  end subroutine amrex_mlndlap_set_integral_eb
+
+
+  subroutine amrex_mlndlap_set_connection (lo, hi, conn, clo, chi, intg, glo, ghi, flag, flo, fhi, &
+       vol, vlo, vhi) bind(c,name='amrex_mlndlap_set_connection')
+    use amrex_ebcellflag_module, only : is_single_valued_cell, is_regular_cell, is_covered_cell
+    integer, dimension(2), intent(in) :: lo, hi, clo, chi, glo, ghi, flo, fhi, vlo, vhi
+    real(amrex_real), intent(inout) :: conn( clo(1): chi(1), clo(2): chi(2),6)
+    real(amrex_real), intent(in   ) :: intg( glo(1): ghi(1), glo(2): ghi(2),4)
+    real(amrex_real), intent(in   ) :: vol ( vlo(1): vhi(1), vlo(2): vhi(2))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: Sx, Sx2, Sy, Sy2 ! integral of x, x2, y, and y2
+    real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
+
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (is_covered_cell(flag(i,j))) then
+
+             conn(i,j,:) = 0.d0
+
+          else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
+
+             conn(i,j,:) = 1.d0
+
+          else
+
+             Sx = intg(i,j,1)
+             Sy = intg(i,j,2)
+             Sx2 = intg(i,j,3)
+             Sy2 = intg(i,j,4)
+
              ! For d/dx of (i,j) and (i+1,j)
              conn(i,j,1) = 3.d0*Sy2 - 3.d0*Sy + 0.75d0*vol(i,j)
 
@@ -2300,9 +2182,6 @@ contains
 
              ! For d/dy of (i+1,j) and (i+1,j+1)
              conn(i,j,6) = 3.d0*Sx2 + 3.d0*Sx + 0.75d0*vol(i,j)
-
-             intg(i,j,1) = Sx
-             intg(i,j,2) = Sy
           end if
        end do
     end do

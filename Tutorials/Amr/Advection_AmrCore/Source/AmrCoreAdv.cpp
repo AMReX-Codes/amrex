@@ -384,25 +384,6 @@ AmrCoreAdv::AverageDownTo (int crse_lev)
                         0, phi_new[crse_lev].nComp(), refRatio(crse_lev));
 }
 
-// compute the number of cells at a level
-long
-AmrCoreAdv::CountCells (int lev)
-{
-    const int N = grids[lev].size();
-
-    long cnt = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:cnt)
-#endif
-    for (int i = 0; i < N; ++i)
-    {
-        cnt += grids[lev][i].numPts();
-    }
-
-    return cnt;
-}
-
 // compute a new multifab by coping in phi from valid region and filling ghost cells
 // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
 void
@@ -821,17 +802,17 @@ AmrCoreAdv::WriteCheckpointFile () const
    if (ParallelDescriptor::IOProcessor()) {
 
        std::string HeaderFileName(checkpointname + "/Header");
-       std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-				                        std::ofstream::trunc |
-				                        std::ofstream::binary);
+       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+       std::ofstream HeaderFile;
+       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+       HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+		                               std::ofstream::trunc |
+                                               std::ofstream::binary);
        if( ! HeaderFile.good()) {
            amrex::FileOpenFailed(HeaderFileName);
        }
 
        HeaderFile.precision(17);
-
-       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
-       HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
        // write out title line
        HeaderFile << "Checkpoint file for AmrCoreAdv\n";

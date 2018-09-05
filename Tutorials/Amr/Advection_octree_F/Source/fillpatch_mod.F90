@@ -35,7 +35,7 @@ contains
             &               amrex_geom(lev  ), fill_physbc   , &
             &               time, src_comp, dst_comp, num_comp, &
             &               amrex_ref_ratio(lev-1), amrex_interp_cell_cons, &
-            &               lo_bc, hi_bc)
+            &               lo_bc, hi_bc, pre_interp, post_interp)
        ! see amrex_interpolater_module for a list of interpolaters
     end if
   end subroutine fillpatch
@@ -55,7 +55,7 @@ contains
          &                     amrex_geom(lev  ),    fill_physbc,  &
          &                     time, src_comp, dst_comp, num_comp, &
          &                     amrex_ref_ratio(lev-1), amrex_interp_cell_cons, &
-         &                     lo_bc, hi_bc)
+         &                     lo_bc, hi_bc, pre_interp, post_interp)
        ! see amrex_interpolater_module for a list of interpolaters
   end subroutine fillcoarsepatch
 
@@ -70,5 +70,25 @@ contains
 !    mf = pmf
     
   end subroutine fill_physbc
+
+  subroutine pre_interp (lo, hi, d, dlo, dhi, nd, icomp, ncomp) bind(c)
+    integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    integer(c_int), intent(in), value :: nd, icomp, ncomp
+    real(amrex_real), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nd)
+
+    ! one might modify d(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),icomp:icomp+ncomp-1)
+    !
+    ! In 2d, lo(3) = hi(3) = dlo(3) = dhi(3) = 0
+  end subroutine pre_interp
+
+  subroutine post_interp (lo, hi, d, dlo, dhi, nd, icomp, ncomp) bind(c)
+    integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    integer(c_int), intent(in), value :: nd, icomp, ncomp
+    real(amrex_real), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nd)
+
+    ! one might modify d(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3),icomp:icomp+ncomp-1)
+    !
+    ! In 2d, lo(3) = hi(3) = dlo(3) = dhi(3) = 0
+  end subroutine post_interp
 
 end module fillpatch_module

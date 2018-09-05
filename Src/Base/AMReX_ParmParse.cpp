@@ -493,8 +493,10 @@ read_file (const char*                     fname,
         const char* b = filestring_cxx.c_str();
         bldTable(b, tab);
 
+#if !defined(BL_NO_FORT)
         std::string filestring_fortran = os_fortran.str();
         amrex_init_namelist(filestring_fortran.c_str());
+#endif
     }
 }
 
@@ -1075,16 +1077,18 @@ ParmParse::Finalize ()
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
       finalize_verbose = amrex::system::verbose;
-      if (finalize_verbose) std::cout << "Unused ParmParse Variables:\n";
+      if (finalize_verbose) amrex::OutStream() << "Unused ParmParse Variables:\n";
       finalize_table("[TOP]", g_table);
-      if (finalize_verbose) std::cout << "done.\n";
+      if (finalize_verbose) amrex::OutStream() << "done.\n";
 	//
 	// First loop through and delete all queried entries.
 	//
     }
     g_table.clear();
 
+#if !defined(BL_NO_FORT)
     amrex_finalize_namelist();
+#endif
 
     initialized = false;
 }

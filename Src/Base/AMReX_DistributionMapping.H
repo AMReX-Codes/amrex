@@ -18,7 +18,8 @@ namespace amrex {
 class BoxArray;
 class MultiFab;
 template <typename T> class FabArray;
-
+class FabArrayBase;
+    
 /**
 * \brief Calculates the distribution of FABs to MPI processes.
 *
@@ -39,6 +40,7 @@ class DistributionMapping
   public:
 
     template <typename T> friend class FabArray;
+    friend class FabArrayBase;
 
     //! The distribution strategies
     enum Strategy { UNDEFINED = -1, ROUNDROBIN, KNAPSACK, SFC, RRSFC };
@@ -120,14 +122,15 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const;
 
-    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts,
-                         int nprocs);
+    void SFCProcessorMap(const BoxArray& boxes, const std::vector<long>& wgts, int nprocs,
+                         bool sort=true);
     void KnapSackProcessorMap(const std::vector<long>& wgts, int nprocs,
                               Real* efficiency = 0,
 			      bool do_full_knapsack = true,
 			      int nmax = std::numeric_limits<int>::max());
     void RoundRobinProcessorMap(int nboxes, int nprocs);
     void RoundRobinProcessorMap(const std::vector<long>& wgts, int nprocs);
+
     /**
     * \brief Initializes distribution strategy from ParmParse.
     *
@@ -151,12 +154,15 @@ class DistributionMapping
     static DistributionMapping makeKnapSack   (const Vector<Real>& rcost);
 
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
-    static DistributionMapping makeSFC        (const MultiFab& weight, const BoxArray& boxes);
+    static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
 
     static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
 
 private:
 
+    const Vector<int>& getIndexArray ();
+    const std::vector<bool>& getOwnerShip ();
+    
     //! Ways to create the processor map.
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
@@ -197,7 +203,8 @@ private:
 
     void SFCProcessorMapDoIt (const BoxArray&          boxes,
                               const std::vector<long>& wgts,
-                              int                      nprocs);
+                              int                      nprocs,
+                              bool                     sort=true);
 
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
@@ -236,8 +243,11 @@ private:
 
 	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
-	//! Local data -- our processor map.
-        Vector<int> m_pmap;
+        void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
+        
+        Vector<int> m_pmap; // index array for all boxes
+        Vector<int> m_index_array;  // index array for local boxes owned by the team
+        std::vector<bool> m_ownership; // true ownership
     };
     //
     // The data -- a reference-counted pointer to a Ref.

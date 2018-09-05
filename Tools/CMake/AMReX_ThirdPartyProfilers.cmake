@@ -1,82 +1,63 @@
 #
 # This file provides the following variables
 #
-#   TPP_CFLAGS
-#   TPP_FFLAGS
-#   TPP_CXXFLAGS
-#   TPP_C_INCLUDE_PATH
-#   TPP_Fortran_INCLUDE_PATH
-#   TPP_CXX_INCLUDE_PATH
-#   TPP_C_LINK_LINE
-#   TPP_Fortran_LINK_LINE
-#   TPP_CXX_LINK_LINE
+# FUNCTION: set_amrex_profilers
+#
+# Setup the target "amrex" to use a third party profiler
+# Before using this function, target "amrex" must have been constructed.
+# This function returns right away if global variables TP_PROFILE or SITE
+# have not been defined before the call
+#
+# Author: Michele Rosso
+# Date  : June 26, 2018
+#
 # 
+function (set_amrex_profilers)
 
-#
-# Check if AMReX_Options.cmake  and AMREX_CMakeVariables.cmake
-# have been already processed
-#
-if ( NOT (DEFINED __AMREX_OPTIONS__ ) )
-   message ( FATAL_ERROR "AMReX_Options.cmake must be\
-included before AMReX_ThirdPartyProfilers.cmake" )
-endif ()
+   # 
+   # Check if target "amrex" has been defined before
+   # calling this macro
+   #
+   if (NOT TARGET amrex)
+      message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_profilers'" )     
+   endif ()
 
-if ( NOT (DEFINED __AMREX_CMAKEVARIABLES__ ) )
-   message ( FATAL_ERROR "AMReX_CMakeVariables.cmake must be\
-included before AMReX_ThirdPartyProfilers.cmake" )
-endif ()
-
-
-set ( TPP_CFLAGS )
-set ( TPP_FFLAGS ) 
-set ( TPP_CXXFLAGS )
-set ( TPP_C_INCLUDE_PATH )
-set ( TPP_Fortran_INCLUDE_PATH )
-set ( TPP_CXX_INCLUDE_PATH )
-set ( TPP_C_LINK_LINE )
-set ( TPP_Fortran_LINK_LINE )
-set ( TPP_CXX_LINK_LINE )
+   #
+   # Check that needed options have already been defined
+   # 
+   if ( ( NOT ( DEFINED TP_PROFILE ) ) OR ( NOT (DEFINED SITE) ) )
+      message ( AUTHOR_WARNING "Required options are not defined" )
+      return ()
+   endif ()
 
 
 if ( ${TP_PROFILE} MATCHES "CRAYPAT" )
 
    if ( ${SITE} MATCHES "nersc" )
-      list (APPEND TPP_Fortran_INCLUDE_PATH "$ENV{CRAYPAT_ROOT}/include")
-      list (APPEND TPP_C_INCLUDE_PATH "$ENV{CRAYPAT_ROOT}/include")
-      list (APPEND TPP_CXX_INCLUDE_PATH "$ENV{CRAYPAT_ROOT}/include")
+      target_include_directories ( amrex PUBLIC $ENV{CRAYPAT_ROOT}/include )
    endif ()
-
 
 elseif ( ${TP_PROFILE} MATCHES "FORGE" )
 
    if ( ${SITE} MATCHES "nersc" )
-      list (APPEND TPP_Fortran_INCLUDE_PATH
-	 "$ENV{ALLINEA_TOOLS_DIR}/$ENV{ALLINEA_TOOLS_VERSION}/map/wrapper")
-      list (APPEND TPP_C_INCLUDE_PATH 
-	 "$ENV{ALLINEA_TOOLS_DIR}/$ENV{ALLINEA_TOOLS_VERSION}/map/wrapper")
-      list (APPEND TPP_CXX_INCLUDE_PATH 
-	 "$ENV{ALLINEA_TOOLS_DIR}/$ENV{ALLINEA_TOOLS_VERSION}/map/wrapper")
-   endif ()
-
+      target_include_directories ( amrex PUBLIC 
+	 $ENV{ALLINEA_TOOLS_DIR}/$ENV{ALLINEA_TOOLS_VERSION}/map/wrapper )
+   endif()
 
 elseif ( ${TP_PROFILE} MATCHES "VTUNE" )
 
-   set ( TPP_CFLAGS "-debug inline-debug-info -parallel-source-info=2")
-   set ( TPP_FFLAGS "-debug inline-debug-info -parallel-source-info=2")
-   set ( TPP_CXXFLAGS "-debug inline-debug-info -parallel-source-info=2")
+   target_compile_options ( amrex PUBLIC -debug inline-debug-info -parallel-source-info=2 )
 
    if ( ${SITE} MATCHES "nersc" )
-      set ( TPP_CFLAGS "-dynamic ${TPP_CFLAGS}")
-      set ( TPP_FFLAGS "-dynamic ${TPP_FFLAGS}")
-      set ( TPP_CXXFLAGS "-dynamic ${TPP_CXXFLAGS}")
-
-      list ( APPEND TPP_Fortran_INCLUDE_PATH "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include" )
-      list ( APPEND TPP_C_INCLUDE_PATH "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include" )
-      list ( APPEND TPP_CXX_INCLUDE_PATH "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include" )
-
-      list ( APPEND TPP_Fortran_LINK_LINE "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify" )
-      list ( APPEND TPP_C_LINK_LINE "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify" )
-      list ( APPEND TPP_CXX_LINK_LINE "$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify" )
+      target_compile_options ( amrex PUBLIC -dynamic )
+      target_include_directories ( amrex PUBLIC $ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/include )
+      target_link_libraries ( amrex PUBLIC -L$ENV{VTUNE_AMPLIFIER_XE_2018_DIR}/lib64 -littnotify )
    endif ()
 
 endif ()
+   
+endfunction ()
+
+
+
+

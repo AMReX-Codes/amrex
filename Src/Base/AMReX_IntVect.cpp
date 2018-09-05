@@ -9,36 +9,8 @@
 
 namespace amrex {
 
-//
-// Static object initialization.
-//
-int IntVect::InitStatics()
-{
-  IntVect* pz = const_cast<IntVect*>( &IntVect::Zero );
-  *pz = IntVect(AMREX_D_DECL(0,0,0));
-
-  IntVect* pu = const_cast<IntVect*>( &IntVect::Unit );
-  *pu = IntVect(AMREX_D_DECL(1,1,1));
-
-  // No danger of IntVect::Zero and Unit not having been allocated, as ARM section
-  // 3.4 says "The initialization of nonlocal static objects in a translation unit
-  // is done before the first use of any function...defined in that translation
-  // unit."
-  //
-  // Had to go through the const_cast stuff because it's nice to be able to declare
-  // IntVect::Zero and IntVect::Unit as const.
-
-  return 0; // arbitrary
-}
-
-const IntVect IntVect::Zero;
-const IntVect IntVect::Unit;
-static int s_dummyForIntVectCpp( IntVect::InitStatics() );
-
-//
-// Returns IntVect which is the componentwise integer projection
-// of IntVect p1 by IntVect p2.
-//
+const IntVect IntVect::Zero = IntVect::TheZeroVector();
+const IntVect IntVect::Unit = IntVect::TheUnitVector();
 
 std::ostream&
 operator<< (std::ostream&  os,
@@ -52,9 +24,6 @@ operator<< (std::ostream&  os,
     return os;
 }
 
-//
-// Copied from <Utility.H>
-//
 #define BL_IGNORE_MAX 100000
 
 std::istream&
@@ -65,11 +34,27 @@ operator>> (std::istream& is,
     char c;
     is >> c;
 
+    AMREX_D_TERM(iv[0]=0;, iv[1]=0;, iv[2]=0);
+
     if (c == '(')
     {
-        AMREX_D_EXPR(is >> iv[0],
-               is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
-               is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
+        is >> iv[0];
+#if (AMREX_SPACEDIM >= 2)
+        is >> std::ws;
+        int ic = is.peek();
+        if (ic == static_cast<int>(',')) {
+            is.ignore(BL_IGNORE_MAX, ',');
+            is >> iv[1];
+#if (AMREX_SPACEDIM == 3)
+            is >> std::ws;
+            ic = is.peek();
+            if (ic == static_cast<int>(',')) {
+                is.ignore(BL_IGNORE_MAX, ',');
+                is >> iv[2];
+            }
+#endif
+        }
+#endif
         is.ignore(BL_IGNORE_MAX, ')');
     }
     else

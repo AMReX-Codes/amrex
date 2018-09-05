@@ -36,8 +36,8 @@ AmrMesh::AmrMesh ()
     InitAmrMesh(max_level_in,n_cell_in);    
 }
 
-  AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
-                    std::vector<int> a_refrat)
+AmrMesh::AmrMesh (const RealBox* rb, int max_level_in, const Vector<int>& n_cell_in, int coord,
+                  std::vector<int> a_refrat)
 {
   Initialize();
 
@@ -876,17 +876,9 @@ AmrMesh::checkInput ()
 }
 
 long
-AmrMesh::CountCells (int& lev)
+AmrMesh::CountCells (int lev)
 {
-        const int N = grids[lev].size();
-        long cnt = 0;
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+:cnt)
-#endif
-        for (int i = 0; i < N; ++i) {
-            cnt += grids[lev][i].numPts();
-        }
-        return cnt;
+    return grids[lev].numPts();
 }
 
 

@@ -1,6 +1,6 @@
 
-#ifndef BL_BOX_H
-#define BL_BOX_H
+#ifndef AMREX_BOX_H_
+#define AMREX_BOX_H_
 
 #include <iosfwd>
 #include <array>
@@ -123,6 +123,16 @@ public:
         return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, 1};
 #elif (AMREX_SPACEDIM == 3)
         return {bigend[0]-smallend[0]+1, bigend[1]-smallend[1]+1, bigend[2]-smallend[2]+1};
+#endif
+    }
+
+    std::array<int,3> loVect3d () const {
+#if (AMREX_SPACEDIM == 1)
+        return {smallend[0], 0, 0};
+#elif (AMREX_SPACEDIM == 2)
+        return {smallend[0], smallend[1], 0};
+#elif (AMREX_SPACEDIM == 3)
+        return {smallend[0], smallend[1], smallend[2]};
 #endif
     }
 

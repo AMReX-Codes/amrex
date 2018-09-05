@@ -184,11 +184,13 @@ module parallel
      module procedure parallel_bcast_i
      module procedure parallel_bcast_cl
      module procedure parallel_bcast_l
+     module procedure parallel_bcast_ch
      module procedure parallel_bcast_dv
      module procedure parallel_bcast_rv
      module procedure parallel_bcast_iv
      module procedure parallel_bcast_clv
      module procedure parallel_bcast_lv
+     module procedure parallel_bcast_chv
      module procedure parallel_bcast_d2v
      module procedure parallel_bcast_r2v
      module procedure parallel_bcast_i2v
@@ -1369,6 +1371,16 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_l
+  subroutine parallel_bcast_ch(a, root, comm)
+    character(len=*), intent(in) :: a
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_ch
   ! vector versions
   subroutine parallel_bcast_dv(a, root, comm)
     real(kind=dp_t), intent(in) :: a(:)
@@ -1421,6 +1433,16 @@ contains
     l_comm = m_comm
     if ( present(comm) ) l_comm = comm
   end subroutine parallel_bcast_lv
+  subroutine parallel_bcast_chv(a, root, comm)
+    character(len=*), intent(in) :: a(:)
+    integer, intent(in), optional :: root
+    integer, intent(in), optional :: comm
+    integer l_comm, l_root
+    l_root = io_processor_node
+    if ( present(root) ) l_root = root
+    l_comm = m_comm
+    if ( present(comm) ) l_comm = comm
+  end subroutine parallel_bcast_chv
   subroutine parallel_bcast_d2v(a, root, comm)
     real(kind=dp_t) :: a(:,:)
     integer, intent(in), optional :: root

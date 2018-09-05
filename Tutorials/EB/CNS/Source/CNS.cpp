@@ -111,63 +111,6 @@ CNS::initData ()
 
     MultiFab& C_new = get_new_data(Cost_Type);
     C_new.setVal(1.0);
-
-#if 0
-    testEBStuff();
-#endif
-
-}
-
-void 
-CNS::
-testEBStuff() const
-{
-  //test for geometry info outside domain
-  Box domain = geom.Domain();
-  const MultiFab& S_new = get_new_data(State_Type);
-  for(int idir = 0; idir < SpaceDim; idir++)
-  {
-    for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
-    {
-      
-      Box validbox = mfi.validbox();
-      Box grownbox = grow(validbox, 1);
-      const EBFArrayBox& sfab = dynamic_cast<EBFArrayBox const&>(S_new[mfi]);
-      const EBCellFlagFab& flagfab = sfab.getEBCellFlagFab();
-      for(BoxIterator bit(grownbox); bit.ok(); ++bit)
-      {
-        if(!domain.contains(bit()))
-        {
-          const EBCellFlag& flag = flagfab(bit(), 0); 
-          printPointStuff(flag, bit(), mfi);
-        }
-      }
-    }
-  }
-}
-
-void
-CNS::printPointStuff(const EBCellFlag& a_flag, 
-                     const IntVect&    a_iv,
-                     const MFIter &    a_mfi) const
-{
-  amrex::Print() << a_iv << ":" ;
-  if(a_flag.isRegular())
-  {
-    amrex::Print() <<  "regular, " ;
-  }
-  else if(a_flag.isCovered())
-  {
-    amrex::Print() <<  "covered, " ;
-  }
-  else
-  {
-    amrex::Print() <<  "irregular, " ;
-  }
-  Real kappa = (*volfrac)[a_mfi](a_iv, 0);
-  amrex::Print() << "kappa= " << kappa;
-  amrex::Print() << endl;
-  
 }
 
 void

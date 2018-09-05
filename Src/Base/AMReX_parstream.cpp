@@ -1,8 +1,8 @@
 #include <cstdio>
 #include <fstream>
 #include <AMReX_parstream.H>
-#include <AMReX_SPMD.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_ParallelDescriptor.H>
 
 namespace amrex
 {

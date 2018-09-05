@@ -395,7 +395,7 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     }
   }
   ParallelDescriptor::ReduceIntMax(nRanges.dataPtr(), nRanges.size());
-  int totalRanges(0);
+  long totalRanges(0);
   for(int r(0); r < nRanges.size(); ++r) {
     totalRanges += nRanges[r];
   }
@@ -419,13 +419,18 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     }
   }
 
-  Vector<Real> gAllRanges(dataNProcs * (maxRNumber + 1) * totalRanges * 2);
+  long allRanges = totalRanges * dataNProcs * (maxRNumber + 1) * 2;
+
+  Vector<Real> gAllRanges(allRanges);
   for(int p(0); p < regionTimeRanges.size(); ++p) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       if(p >= smallY && p <= bigY) {    // ---- within myproc range
         for(int t(0); t < regionTimeRanges[p][r].size(); ++t) {
-	  int index((p * (maxRNumber + 1) * totalRanges * 2) +
-	            (r * totalRanges * 2) + (t * 2));
+/*	  int index((p * (maxRNumber + 1) * totalRanges * 2) +
+	            (r * totalRanges * 2) + (t * 2)); */
+	  long index((r * totalRanges * 2) + (t * 2) +
+                     (p * (maxRNumber + 1) * totalRanges * 2));
+
           gAllRanges[index]     = regionTimeRanges[p][r][t].startTime;
           gAllRanges[index + 1] = regionTimeRanges[p][r][t].stopTime;
         }
@@ -435,8 +440,8 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
 
   Vector<int> recvDispl(nProcs, 0), recvCounts(nProcs, 0);
   for(int p(0); p < nProcs; ++p) {
-    recvCounts[p] = (gBigY[p] - gSmallY[p] + 1) * (maxRNumber + 1) * totalRanges * 2;
-    recvDispl[p]  = gSmallY[p] * (maxRNumber + 1) * totalRanges * 2;
+    recvCounts[p] = (long(gBigY[p]) - gSmallY[p] + 1) * (maxRNumber + 1) * totalRanges * 2;
+    recvDispl[p]  = long(gSmallY[p]) * (maxRNumber + 1) * totalRanges * 2;
   }
 
 
@@ -457,8 +462,10 @@ bool RegionsProfStats::InitRegionTimeRanges(const Box &procBox) {
     for(int r(0); r < regionTimeRanges[p].size(); ++r) {
       if( ! (p >= smallY && p <= bigY)) {    // ---- not within myproc range
         for(int t(0); t < regionTimeRanges[p][r].size(); ++t) {
-	  int index((p * (maxRNumber + 1) * totalRanges * 2) +
-	            (r * totalRanges * 2) + (t * 2));
+/*        int index((p * (maxRNumber + 1) * totalRanges * 2) +
+                    (r * totalRanges * 2) + (t * 2));       */
+	  long index((r * totalRanges * 2) + (t * 2) +
+                     (p * (maxRNumber + 1) * totalRanges * 2));
           regionTimeRanges[p][r][t].startTime = gAllRanges[index];
           regionTimeRanges[p][r][t].stopTime  = gAllRanges[index + 1];
         }

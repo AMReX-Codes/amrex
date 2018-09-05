@@ -1,8 +1,0 @@
-regression/aggpwlfpTest does a convergence test on linear coarse-fine interpolation.
-regression/fluxRegTest checks that the flux register is correct.
-regression/regFluxRegTest checks that the NON-EB flux register is correct.
-regression/simpleMeshRefine runs MeshRefine and outputs some grids.
-regression/ebcoarseAveTest does a convergence test on conservative restriction.
-regression/ebcoarseAveTestFace does a simple test for face averaging.
-regression/nwoEBQuadCFITest does a convergence test on higher order coarse-fine interpolation
-regression/ebFineInterpTest does a convergence test on coarse->fine interpolation (regridding or multigrid prolongation)

@@ -237,8 +237,8 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 
 void
 MLPoisson::FFlux (int amrlev, const MFIter& mfi,
-                  const std::array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                  const FArrayBox& sol, const int face_only) const
+                  const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
+                  const FArrayBox& sol, Location, const int face_only) const
 {
     BL_PROFILE("MLPoisson::FFlux()");
 

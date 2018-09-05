@@ -22,6 +22,10 @@
 #include <AMReX_ParmParse.H>
 #endif
 
+#ifdef USE_PERILLA
+#include <WorkerThread.H>
+#endif
+
 using namespace amrex;
 
 namespace
@@ -48,17 +52,23 @@ void amrex_mempool_init ()
 	pp.query("init_snan", init_snan);
 #endif
 
-#ifdef _OPENMP
-	int nthreads = omp_get_max_threads();
-#else
 	int nthreads = 1;
+
+#ifdef _OPENMP
+	nthreads = omp_get_max_threads();
 #endif
+
+#ifdef USE_PERILLA
+	//Just in case Perilla thread spawns multiple OMP threads
+        nthreads *= perilla::nThreads();
+#endif
+
 	the_memory_pool.resize(nthreads);
 	for (int i=0; i<nthreads; ++i) {
 	    the_memory_pool[i].reset(new CArena);
 	}
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel num_threads(nthreads)
 #endif
 	{
 	    size_t N = 1024*1024*sizeof(double);
@@ -87,21 +97,30 @@ void amrex_mempool_finalize ()
 
 void* amrex_mempool_alloc (size_t nbytes)
 {
+  int tid=0;
+
 #ifdef _OPENMP
-  int tid = omp_get_thread_num();
-#else
-  int tid = 0;
+  tid = omp_get_thread_num();
+#endif
+
+#ifdef USE_PERILLA
+  tid = perilla::tid()*omp_get_max_threads()+tid;
 #endif
   return the_memory_pool[tid]->alloc(nbytes);
 }
 
 void amrex_mempool_free (void* p) 
 {
+  int tid=0;
+
 #ifdef _OPENMP
-  int tid = omp_get_thread_num();
-#else
-  int tid = 0;
+  tid = omp_get_thread_num();
 #endif
+
+#ifdef USE_PERILLA
+  tid = perilla::tid()*omp_get_max_threads()+tid;
+#endif
+
   the_memory_pool[tid]->free(p);
 }
 
@@ -140,5 +159,4 @@ void amrex_array_init_snan (double* p, size_t nelems)
         std::memcpy(p++, &snan, sizeof(double));
     }
 }
-
 }

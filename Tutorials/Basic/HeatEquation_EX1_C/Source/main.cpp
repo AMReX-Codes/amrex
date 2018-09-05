@@ -6,6 +6,8 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
+using namespace amrex;
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -42,7 +44,7 @@ void main_main ()
         plot_int = -1;
         pp.query("plot_int",plot_int);
 
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
+        // Default nsteps to 10, allow us to set it to something else in the inputs file
         nsteps = 10;
         pp.query("nsteps",nsteps);
 
@@ -110,7 +112,7 @@ void main_main ()
     }
 
     // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    Array<MultiFab, AMREX_SPACEDIM> flux;
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         // flux(dir) has one component, zero ghost cells, and is nodal in direction dir

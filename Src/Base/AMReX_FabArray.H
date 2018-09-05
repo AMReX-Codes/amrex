@@ -41,8 +41,6 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_parstream.H>
-#include <AMReX_SPMD.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -114,6 +112,9 @@ struct MFInfo {
 
     template <class T>
     class MFGraph;
+#ifdef USE_PERILLA
+    class Perilla;
+#endif
 
 template <class FAB>
 class FabArray
@@ -125,6 +126,10 @@ public:
     friend class AmrTask;
     template <class T>
     friend class MFGraph;
+#ifdef USE_PERILLA
+    friend class Perilla;
+#endif
+
 
     struct FABType {
         typedef FAB value_type;
@@ -224,6 +229,15 @@ public:
 #endif
 
     const FabFactory<FAB>& Factory () const { return *m_factory; }
+
+    bool hasEBFabFactory () const {
+#ifdef AMREX_USE_EB
+        const auto f = dynamic_cast<EBFArrayBoxFactory const*>(m_factory.get());
+        return (f != nullptr);
+#else
+        return false;
+#endif
+    }
 
     Box getDomain () const { return m_factory->getDomain(); }
 

@@ -20,15 +20,6 @@ endif ()
 set (__AMREX_OPTIONS__ "")
 
 #
-# Check weather the AMReX_CMakeVariables.cmake
-# has been loaded; abort if not
-#
-if ( NOT ( DEFINED __AMREX_CMAKEVARIABLES__ ) )
-   message ( FATAL_ERROR "AMReX_CMakeVariables.cmake must be included\
-before including AMReX_Options.cmake" )
-endif ()
-
-#
 # Define a macro to check the value of the inputs integer options 
 # 
 macro (print_option var)
@@ -58,16 +49,22 @@ if ( USE_XSDK_DEFAULTS )
    if ( ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" ) OR
 	( NOT CMAKE_BUILD_TYPE ) )
       set ( DEBUG ON )
+      set ( CMAKE_BUILD_TYPE "Debug" )
    endif ()
 else ()
-   option ( DEBUG "Build in debug mode" OFF )
+  option ( DEBUG "Build in debug mode" OFF )
+  if (DEBUG)
+    set (CMAKE_BUILD_TYPE "Debug")
+  else ()
+    set (CMAKE_BUILD_TYPE "Release")
+  endif ()
 endif ()
 
-if (DEBUG)
-   set (CMAKE_BUILD_TYPE "Debug")
-else ()
-   set (CMAKE_BUILD_TYPE "Release")
-endif ()
+# if (DEBUG)
+#    set (CMAKE_BUILD_TYPE "Debug")
+# else ()
+#    set (CMAKE_BUILD_TYPE "Release")
+# endif ()
 
 if ( USE_XSDK_DEFAULTS )
    print_option (CMAKE_BUILD_TYPE)
@@ -93,7 +90,7 @@ print_option ( BUILD_SHARED_LIBS )
 print_option ( CMAKE_INSTALL_PREFIX )
 
 
-set (DIM 3 CACHE INT "Dimension of AMReX build")
+set (DIM 3 CACHE STRING "Dimension of AMReX build")
 if ( (${DIM} GREATER 3) OR (${DIM} LESS 1) )
    message ( FATAL_ERROR "DIM must be either 1, 2 or 3.")
 endif ()
@@ -145,17 +142,10 @@ endif ()
 option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option ( ENABLE_LINEAR_SOLVERS )
 
-if ( ENABLE_LINEAR_SOLVERS )
-   option ( ENABLE_LINEAR_SOLVERS_LEGACY  "Build AMReX Linear solvers (legacy components)" OFF )
-   print_option ( ENABLE_LINEAR_SOLVERS_LEGACY )
-endif ()
-
-if ( USE_XSDK_DEFAULTS )
-   set ( ENABLE_FBASELIB  OFF )
-else ()
-   option ( ENABLE_FBASELIB "Build Fortran kernel (deprecated)" ON )
-   print_option ( ENABLE_FBASELIB )
-endif ()
+############ To be removed #####################
+set ( ENABLE_FBASELIB "DEPRECATED" CACHE STRING "Build Fortran kernel (deprecated)" FORCE)
+print_option (ENABLE_FBASELIB)
+################################################
 
 option ( ENABLE_AMRDATA "Build data services" OFF)
 print_option ( ENABLE_AMRDATA )
@@ -183,12 +173,12 @@ option (ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option ( ENABLE_FPE )
 
 if (DEBUG)
-   option ( ENABLE_ASSERTION "Enable assertions" ON)
+   option ( ENABLE_ASSERTIONS "Enable assertions" ON)
 else ()
-   option ( ENABLE_ASSERTION "Enable assertions" OFF)
+   option ( ENABLE_ASSERTIONS "Enable assertions" OFF)
 endif ()
 
-print_option ( ENABLE_ASSERTION )
+print_option ( ENABLE_ASSERTIONS )
 
 
 #

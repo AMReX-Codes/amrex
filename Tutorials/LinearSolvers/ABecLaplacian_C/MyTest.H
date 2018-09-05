@@ -3,6 +3,10 @@
 
 #include <AMReX_MLMG.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_Hypre.H>
+#endif
+
 class MyTest
 {
 public:
@@ -32,7 +36,7 @@ private:
 
     // For MLMG solver
     int verbose = 2;
-    int cg_verbose = 0;
+    int bottom_verbose = 0;
     int max_iter = 100;
     int max_fmg_iter = 0;
     int linop_maxorder = 2;
@@ -40,6 +44,12 @@ private:
     bool consolidation = true;
     int max_coarsening_level = 30;
     bool use_hypre = false;
+    bool use_petsc = false;
+    
+#ifdef AMREX_USE_HYPRE
+    int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij
+    amrex::Hypre::Interface hypre_interface = amrex::Hypre::Interface::structed;
+#endif
 
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
