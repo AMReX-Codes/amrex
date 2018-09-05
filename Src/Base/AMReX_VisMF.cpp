@@ -357,7 +357,10 @@ operator>> (std::istream  &is,
     }
     BL_ASSERT(hd.m_ngrow.min() >= 0);
 
-    hd.m_ba.readFrom(is);
+    int ba_ndims = hd.m_ba.readFrom(is);
+    for (int i = ba_ndims; i < AMREX_SPACEDIM; ++i) {
+        hd.m_ngrow[i] = 0;
+    }
 
     is >> hd.m_fod;
     BL_ASSERT(hd.m_ba.size() == hd.m_fod.size());
@@ -2018,6 +2021,10 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
   VisMF::PersistentIFStream &pifs = VisMF::persistentIFStreams[fileName];
   if( ! pifs.isOpen) {
     pifs.pstr = new std::ifstream;
+    if(setBuf) {
+      pifs.ioBuffer.resize(ioBufferSize);
+      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
+    }
     pifs.pstr->open(fileName.c_str(), std::ios::in | std::ios::binary);
     if( ! pifs.pstr->good()) {
       delete pifs.pstr;
@@ -2025,10 +2032,6 @@ std::ifstream *VisMF::OpenStream(const std::string &fileName) {
     }
     pifs.isOpen = true;
     pifs.currentPosition = 0;
-    if(setBuf) {
-      pifs.ioBuffer.resize(ioBufferSize);
-      pifs.pstr->rdbuf()->pubsetbuf(pifs.ioBuffer.dataPtr(), pifs.ioBuffer.size());
-    }
   }
 
   return pifs.pstr;

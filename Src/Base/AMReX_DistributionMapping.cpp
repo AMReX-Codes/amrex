@@ -368,6 +368,7 @@ void
 DistributionMapping::define (const BoxArray& boxes,
 			     int nprocs)
 {
+    m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
 
     BL_ASSERT(m_BuildMap != 0);
@@ -378,12 +379,14 @@ DistributionMapping::define (const BoxArray& boxes,
 void
 DistributionMapping::define (const Vector<int>& pmap)
 {
+    m_ref->clear();
     m_ref->m_pmap = pmap;
 }
 
 void
 DistributionMapping::define (Vector<int>&& pmap) noexcept
 {
+    m_ref->clear();
     m_ref->m_pmap = std::move(pmap);
 }
 
@@ -450,6 +453,7 @@ void
 DistributionMapping::RoundRobinProcessorMap (int nboxes, int nprocs)
 {
     BL_ASSERT(nboxes > 0);
+    m_ref->clear();
     m_ref->m_pmap.resize(nboxes);
 
     RoundRobinDoIt(nboxes, nprocs);
@@ -493,6 +497,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<long>& wgts,
 {
     BL_ASSERT(wgts.size() > 0);
 
+    m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
     //
@@ -812,6 +817,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<long>& wgts,
 {
     BL_ASSERT(wgts.size() > 0);
 
+    m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
     if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
@@ -1151,6 +1157,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray& boxes,
 {
     BL_ASSERT(boxes.size() > 0);
 
+    m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
 
     if (boxes.size() < sfc_threshold*nprocs)
@@ -1181,6 +1188,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
     BL_ASSERT(boxes.size() > 0);
     BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
 
+    m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
     if (boxes.size() < sfc_threshold*nprocs)
@@ -1251,6 +1259,7 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
 {
     BL_ASSERT(boxes.size() > 0);
  
+    m_ref->clear();
     m_ref->m_pmap.resize(boxes.size());
 
     RRSFCDoIt(boxes,nprocs);
@@ -1432,7 +1441,44 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     return r;
 }
 
+const Vector<int>&
+DistributionMapping::getIndexArray ()
+{
+    if (m_ref->m_index_array.empty())
+    {
+        int myProc = ParallelDescriptor::MyProc();
+    
+        for(int i = 0, N = m_ref->m_pmap.size(); i < N; ++i) {
+            int rank = m_ref->m_pmap[i];
+            if (ParallelDescriptor::sameTeam(rank)) {
+                // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
+                m_ref->m_index_array.push_back(i);
+                m_ref->m_ownership.push_back(myProc == rank);
+            }
+        }
+    }
+    return m_ref->m_index_array;
+}
 
+const std::vector<bool>&
+DistributionMapping::getOwnerShip ()
+{
+    if (m_ref->m_ownership.empty())
+    {
+        int myProc = ParallelDescriptor::MyProc();
+    
+        for(int i = 0, N = m_ref->m_pmap.size(); i < N; ++i) {
+            int rank = m_ref->m_pmap[i];
+            if (ParallelDescriptor::sameTeam(rank)) {
+                // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
+                m_ref->m_index_array.push_back(i);
+                m_ref->m_ownership.push_back(myProc == rank);
+            }
+        }
+    }
+    return m_ref->m_ownership;
+}
+    
 std::ostream&
 operator<< (std::ostream&              os,
             const DistributionMapping& pmap)

@@ -1,127 +1,99 @@
 #ifndef AMREX_HYPREABEC_F_H_
 #define AMREX_HYPREABEC_F_H_
 
-#include <AMReX_REAL.H>
-
-#if        defined(BL_LANG_FORT)
-
-#if (BL_SPACEDIM == 2)
-#define FORT_HPACOEF          hpacoef_2d
-#define FORT_HPBCOEF          hpbcoef_2d
-#define FORT_HPBMAT3          hpbmat3_2d
-#define FORT_HPBVEC3          hpbvec3_2d
-#elif (BL_SPACEDIM == 3)
-#define FORT_HPACOEF          hpacoef_3d
-#define FORT_HPBCOEF          hpbcoef_3d
-#define FORT_HPBMAT3          hpbmat3_3d
-#define FORT_HPBVEC3          hpbvec3_3d
-#endif
-
-#else
-
-#if (BL_SPACEDIM == 2)
-#if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_HPACOEF          HPACOEF_2d 
-#define FORT_HPBCOEF          HPBCOEF_2d 
-#define FORT_HPBMAT3          HPBMAT3_2d
-#define FORT_HPBVEC3          HPBVEC3_2d
-#elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_HPACOEF          hpacoef_2d 
-#define FORT_HPBCOEF          hpbcoef_2d 
-#define FORT_HPBMAT3          hpbmat3_2d
-#define FORT_HPBVEC3          hpbvec3_2d
-#elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_HPACOEF          hpacoef_2d_
-#define FORT_HPBCOEF          hpbcoef_2d_
-#define FORT_HPBMAT3          hpbmat3_2d_
-#define FORT_HPBVEC3          hpbvec3_2d_
-#endif
-#endif
-
-#if (BL_SPACEDIM == 3)
-#if    defined(BL_FORT_USE_UPPERCASE)
-#define FORT_HPACOEF          HPACOEF_3d 
-#define FORT_HPBCOEF          HPBCOEF_3d 
-#define FORT_HPBMAT3          HPBMAT3_3d
-#define FORT_HPBVEC3          HPBVEC3_3d
-#elif  defined(BL_FORT_USE_LOWERCASE)
-#define FORT_HPACOEF          hpacoef_3d 
-#define FORT_HPBCOEF          hpbcoef_3d 
-#define FORT_HPBMAT3          hpbmat3_3d
-#define FORT_HPBVEC3          hpbvec3_3d
-#elif  defined(BL_FORT_USE_UNDERSCORE)
-#define FORT_HPACOEF          hpacoef_3d_
-#define FORT_HPBCOEF          hpbcoef_3d_ 
-#define FORT_HPBMAT3          hpbmat3_3d_
-#define FORT_HPBVEC3          hpbvec3_3d_
-#endif
-#endif
-
-#include <AMReX_ArrayLim.H>
 #include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void FORT_HPACOEF(amrex_real* mat, amrex_real* acoefs, ARLIM_P(alo), ARLIM_P(ahi),
-		    const int* lo, const int* hi, const amrex_real& sa);
-  void FORT_HPBCOEF(amrex_real* mat, amrex_real* bcoefs, ARLIM_P(blo), ARLIM_P(bhi),
-		    const int* lo, const int* hi, const amrex_real& sb,
-		    const amrex_real* dx, const int& idim);
-  void FORT_HPBMAT3(amrex_real* mat, amrex_real* bcoefs, ARLIM_P(blo), ARLIM_P(bhi),
-		    const int* lo, const int* hi, const amrex_real& sb, const amrex_real* dx, 
-		    const int& idim, const int& bct, const amrex_real& bcl, 
-		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi));
-  void FORT_HPBVEC3(amrex_real* vec, amrex_real* bcoefs, ARLIM_P(blo), ARLIM_P(bhi),
-		    const int* lo, const int* hi, const amrex_real& sb, const amrex_real* dx, 
-		    const int& idim, const int& bct, const amrex_real& bcl, 
-		    const int* msk, ARLIM_P(mlo), ARLIM_P(mhi),
-		    const amrex_real* bcv, ARLIM_P(bvlo), ARLIM_P(bvhi));
 
-  void amrex_hmac(amrex::Real* mat, 
-	    BL_FORT_FAB_ARG(acoefs),
-	    ARLIM_P(reglo), ARLIM_P(reghi),
-	    const amrex::Real& alpha);
+    void amrex_hpacoef (const int* lo, const int* hi, amrex_real* mat,
+                        const amrex_real* acoefs, const int* alo, const int* ahi,
+                        const amrex_real* sa);
 
-  void amrex_hmbc(amrex::Real* mat,
-	    BL_FORT_FAB_ARG(bcoefs),
-	    ARLIM_P(reglo), ARLIM_P(reghi),
-	    const amrex::Real& beta, const amrex::Real* dx, const int& n);
+    void amrex_hpbcoef (const int* lo, const int* hi, amrex_real* mat,
+                        const amrex_real* bcoefs, const int* blo, const int* bhi,
+                        const amrex_real* sb, const amrex_real* dx, const int* idim);
 
-  void amrex_hmmat(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
-	     const int& cdir, const int& bct,
-	     const int& bho, const amrex::Real& bcl,
-	     const BL_FORT_IFAB_ARG(mask),
-	     BL_FORT_FAB_ARG(bcoefs),
-	     const amrex::Real& beta, const amrex::Real* dx);
+    void amrex_hpmat (const int* lo, const int* hi, amrex_real* mat,
+                      const amrex_real* bcoefs, const int* blo, const int* bhi,
+                      const int* mask, const int* mlo, const int* mhi,
+                      const amrex_real* sb, const amrex_real* dx, const int* cdir,
+                      const int* bct, const amrex_real* bcl, const int* bho);
 
-  void amrex_hmmat3(amrex::Real* mat, ARLIM_P(reglo), ARLIM_P(reghi),
-	      const int& cdir, const int& bctype,
-	      const int& bho, const amrex::Real& bcl,
-	      const BL_FORT_IFAB_ARG(mask),
-	      BL_FORT_FAB_ARG(bcoefs),
-	      const amrex::Real& beta, const amrex::Real* dx);
+    void amrex_hpdiag (const int* lo, const int* hi, amrex_real* mat,
+                       amrex_real* diag, const int* dlo, const int* dhi);
 
-    void amrex_hbvec (amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
-                const int& cdir, const int& bctype,
-                const int& bho, const amrex::Real& bcl,
-                const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
-                const BL_FORT_IFAB_ARG(mask),
-                const BL_FORT_FAB_ARG(bcoefs),
-                const amrex::Real& beta, const amrex::Real* dx);
+    void amrex_hpijmatrix (const int* lo, const int* hi,
+                           const void* nrows, void* ncols,
+                           void* rows, void* cols, amrex_real* mat,
+                           const void* cell_id, const int* clo, const int* chi,
+                           const void* cell_id_begin,
+                           amrex_real* diaginv, const int* dlo, const int* dhi,
+                           const amrex_real* ac, const int* alo, const int* ahi,
+                           const amrex_real* bx, const int* bxlo, const int* bxhi,
+#if (AMREX_SPACEDIM >= 2)
+                           const amrex_real* by, const int* bylo, const int* byhi,
+#if (AMREX_SPACEDIM == 3)
+                           const amrex_real* bz, const int* bzlo, const int* bzhi,
+#endif
+#endif
+                           const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
+                           const int* bct, const amrex_real* bcl, const int* bho);
+                           
 
-    void amrex_hbvec3(amrex::Real* vec, ARLIM_P(reglo), ARLIM_P(reghi),
-                const int& cdir, const int& bctype,
-                const int& bho, const amrex::Real& bcl,
-                const amrex::Real* fs, ARLIM_P(fslo), ARLIM_P(fshi),
-                const BL_FORT_IFAB_ARG(mask),
-                const BL_FORT_FAB_ARG(bcoefs),
-                const amrex::Real& beta, const amrex::Real* dx);
+#ifdef AMREX_USE_EB
+    void amrex_hpeb_fill_cellid (const int* lo, const int* hi,
+                                 void* nrows, const void* cell_id, const int* clo, const int* chi,
+                                 const void* flag, const int* flo, const int* fhi);
 
+    void amrex_hpeb_copy_from_vec (const int* lo, const int* hi,
+                                   amrex_real* a, const int* alo, const int* ahi,
+                                   const amrex_real* v, const void* nv,
+                                   const void* flag, const int* flo, const int* fhi);
+
+    void amrex_hpeb_copy_to_vec (const int* lo, const int* hi,
+                                 const amrex_real* a, const int* alo, const int* ahi,
+                                 amrex_real* v, const void* nv,
+                                 const void* flag, const int* flo, const int* fhi);
+
+    void amrex_hpeb_ijmatrix (const int* lo, const int* hi,
+                              const void* nrows, void* ncols,
+                              void* rows, void* cols, amrex_real* mat,
+                              const void* cell_id, const int* clo, const int* chi,
+                              const void* cell_id_begin,
+                              amrex_real* diaginv, const int* dlo, const int* dhi,
+                              const amrex_real* ac, const int* alo, const int* ahi,
+                              const amrex_real* bx, const int* bxlo, const int* bxhi,
+#if (AMREX_SPACEDIM >= 2)
+                              const amrex_real* by, const int* bylo, const int* byhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* bz, const int* bzlo, const int* bzhi,
+#endif
+#endif
+                              const void* flag, const int* flo, const int* fhi,
+                              const amrex_real* vfrc, const int* vlo, const int* vhi,
+                              const amrex_real* apx, const int* axlo, const int* axhi,
+#if (AMREX_SPACEDIM >= 2)
+                              const amrex_real* apy, const int* aylo, const int* ayhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* apz, const int* azlo, const int* azhi,
+#endif
+#endif
+                              const amrex_real* fcx, const int* fxlo, const int* fxhi,
+#if (AMREX_SPACEDIM >= 2)
+                              const amrex_real* fcy, const int* fylo, const int* fyhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* fcz, const int* fzlo, const int* fzhi,
+#endif
+#endif                              
+                              const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
+                              const int* bct, const amrex_real* bcl, const int* bho);
+
+#endif
+    
 #ifdef __cplusplus
 };
-#endif
-
 #endif
 
 #endif /* _HYPREABEC_F_H_ */

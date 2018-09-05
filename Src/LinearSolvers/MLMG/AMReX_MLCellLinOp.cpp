@@ -3,6 +3,9 @@
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MG_F.H>
 #include <AMReX_MultiFabUtil.H>
+#ifdef AMREX_USE_EB
+#include <AMReX_MLEBABecLap_F.H>
+#endif
 
 namespace amrex {
 
@@ -60,7 +63,7 @@ MLCellLinOp::defineAuxData ()
                 m_maskvals[amrlev][mglev][face].define(m_grids[amrlev][mglev],
                                                        m_dmap[amrlev][mglev],
                                                        m_geom[amrlev][mglev],
-                                                       face, 0, ngrow, 0, ncomp, true);
+                                                       face, 0, ngrow, extent, ncomp, true);
             }
         }
     }
@@ -329,10 +332,10 @@ MLCellLinOp::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& 
 
 void
 MLCellLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                    const MLMGBndry* bndry) const
+                    StateMode s_mode, const MLMGBndry* bndry) const
 {
     BL_PROFILE("MLCellLinOp::apply()");
-    applyBC(amrlev, mglev, in, bc_mode, bndry);
+    applyBC(amrlev, mglev, in, bc_mode, s_mode, bndry);
     Fapply(amrlev, mglev, out, in);
 }
 
@@ -343,7 +346,8 @@ MLCellLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     BL_PROFILE("MLCellLinOp::smooth()");
     for (int redblack = 0; redblack < 2; ++redblack)
     {
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, nullptr, skip_fillboundary);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
+                nullptr, skip_fillboundary);
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
         skip_fillboundary = false;
     }
@@ -380,7 +384,8 @@ MLCellLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
         updateSolBC(amrlev, *crse_bcdata);
     }
     const int mglev = 0;
-    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution,
+          m_bndry_sol[amrlev].get());
 
     AMREX_ALWAYS_ASSERT(resid.nComp() == b.nComp());
     MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
@@ -394,12 +399,13 @@ MLCellLinOp::fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcd
         updateSolBC(amrlev, *crse_bcdata);
     }
     const int mglev = 0;
-    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());    
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
+            m_bndry_sol[amrlev].get());    
 }
 
 void
 MLCellLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                             BCMode bc_mode, const MultiFab* crse_bcdata)
+                                 BCMode bc_mode, const MultiFab* crse_bcdata)
 {
     BL_PROFILE("MLCellLinOp::correctionResidual()");
     const int ncomp = getNComp();
@@ -411,19 +417,20 @@ MLCellLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFa
             AMREX_ALWAYS_ASSERT(amrlev > 0);
             updateCorBC(amrlev, *crse_bcdata);
         }
-        apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, m_bndry_cor[amrlev].get());
+        apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Correction,
+              m_bndry_cor[amrlev].get());
     }
     else
     {
         AMREX_ALWAYS_ASSERT(crse_bcdata == nullptr);
-        apply(amrlev, mglev, resid, x, BCMode::Homogeneous, nullptr);
+        apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction, nullptr);
     }
 
     MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
 }
 
 void
-MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
     BL_PROFILE("MLCellLinOp::applyBC()");
@@ -498,15 +505,16 @@ MLCellLinOp::reflux (int crse_amrlev,
     const Real* fine_dx = m_geom[fine_amrlev][0].CellSize();
 
     const int mglev = 0;
-    applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, m_bndry_sol[fine_amrlev].get());
+    applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, StateMode::Solution,
+            m_bndry_sol[fine_amrlev].get());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        std::array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox,AMREX_SPACEDIM> flux;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
         for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
@@ -516,7 +524,7 @@ MLCellLinOp::reflux (int crse_amrlev,
                 AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
                              flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
                              flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi]);
+                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
                 fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
             }
         }
@@ -534,7 +542,7 @@ MLCellLinOp::reflux (int crse_amrlev,
                              flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
                              flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 const int face_only = true;
-                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], face_only);
+                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
                 fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
             }
         }
@@ -544,27 +552,29 @@ MLCellLinOp::reflux (int crse_amrlev,
 }
 
 void
-MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const
+MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                       MultiFab& sol, Location loc) const
 {
     BL_PROFILE("MLCellLinOp::compFlux()");
 
     const int mglev = 0;
     const int ncomp = getNComp();
-    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
+            m_bndry_sol[amrlev].get());
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        std::array<FArrayBox,AMREX_SPACEDIM> flux;
-        std::array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
+        Array<FArrayBox,AMREX_SPACEDIM> flux;
+        Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
         for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
             AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
                          flux[1].resize(amrex::surroundingNodes(tbx,1));,
                          flux[2].resize(amrex::surroundingNodes(tbx,2)););
-            FFlux(amrlev, mfi, pflux, sol[mfi]);
+            FFlux(amrlev, mfi, pflux, sol[mfi], loc);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 const Box& nbx = mfi.nodaltilebox(idim);
                 (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, ncomp);
@@ -574,7 +584,8 @@ MLCellLinOp::compFlux (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& f
 }
 
 void
-MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const
+MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                       MultiFab& sol, Location loc) const
 {
     BL_PROFILE("MLCellLinOp::compGrad()");
 
@@ -582,10 +593,10 @@ MLCellLinOp::compGrad (int amrlev, const std::array<MultiFab*,AMREX_SPACEDIM>& g
       amrex::Abort("MLCellLinOp::compGrad called, but only works for single-component solves");
 
     const int mglev = 0;
-    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, m_bndry_sol[amrlev].get());
+    applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
+            m_bndry_sol[amrlev].get());
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -672,8 +683,8 @@ MLCellLinOp::BndryCondLoc::BndryCondLoc (const BoxArray& ba, const DistributionM
 
 void
 MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx,
-                                            const std::array<BCType,AMREX_SPACEDIM>& lobc,
-                                            const std::array<BCType,AMREX_SPACEDIM>& hibc,
+                                            const Array<BCType,AMREX_SPACEDIM>& lobc,
+                                            const Array<BCType,AMREX_SPACEDIM>& hibc,
                                             int ratio, const RealVect& a_loc)
 {
     const Box&  domain = geom.Domain();
@@ -825,5 +836,11 @@ MLCellLinOp::MetricFactor::MetricFactor (const BoxArray& ba, const DistributionM
 }
 
 #endif
+
+void
+MLCellLinOp::update ()
+{
+    if (MLLinOp::needsUpdate()) MLLinOp::update();
+}
 
 }

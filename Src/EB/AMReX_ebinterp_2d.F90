@@ -21,8 +21,6 @@ contains
     integer :: ic, jc, n, i, j, jmin, jmax, imin, imax, glo(2), ghi(2)
     integer :: num_expected_ngbrs
 
-    integer :: ngbr(-1:1,-1:1)
-
     do jc = tclo(2)+1, tchi(2)-1
        jmin = max(jc*ratio(2)           ,tflo(2))
        jmax = min(jc*ratio(2)+ratio(2)-1,tfhi(2))

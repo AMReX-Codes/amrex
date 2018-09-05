@@ -1,38 +1,20 @@
-#include <AMReX_GeometryShop.H>
-#include <AMReX_SphereIF.H>
-#include <AMReX_PlaneIF.H>
-#include <AMReX_AllRegularService.H>
-#include <AMReX_FlatPlateGeom.H>
-#include <AMReX_EBISLayout.H>
-#include <AMReX_EBGraph.H>
-#include <AMReX_EBDebugOut.H>
-#include <AMReX_EBCellFAB.H>
-#include <AMReX_EBCellFactory.H>
+
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_EBIndexSpace.H>
-#include <AMReX_UnionIF.H>
-#include <AMReX_TransformIF.H>
-#include <AMReX_ComplementIF.H>
-#include <AMReX_IntersectionIF.H>
-#include <AMReX_LatheIF.H>
-#include <AMReX_PolynomialIF.H>
-#include <AMReX_AnisotropicDxPlaneIF.H>
-#include <AMReX_AnisotropicIF.H>
+#include <AMReX_EB2_IF_Polynomial.H>
+#include <AMReX_EB_levelset.H>
 
 #include <AMReX_ParmParse.H>
 
-#include <AMReX_EBTower.H>
-
 #include <algorithm>
-#include <AMReX_EB_levelset.H>
 
 #include <make_shapes.H>
 
 using namespace amrex;
 
+
 void
-make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
-           const Geometry & geom, LSFactory * level_set)
+make_my_eb2(int lev, const BoxArray & grids, const DistributionMapping & dmap,
+            const Geometry & geom, LSFactory * level_set)
 {
     if (geom.isAllPeriodic()) return;
 
@@ -74,23 +56,30 @@ make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
       //          => define the level set as the (signed) distance to the
       //             closest point on the EB-facets
 
-      std::unique_ptr<BaseIF> impfunc = make_poly_geom(lev, SpaceDim, "poly2");
+      std::unique_ptr<CylinderIF> impfunc = make_poly_eb2_geom(lev, SpaceDim, "poly2");
 
       Geometry geom_eb = LSUtility::make_eb_geometry(* level_set, geom);
-      GeometryShop gshop(* impfunc, eb_verbosity);
-      AMReX_EBIS::instance()->define(geom_eb.Domain(),
-                                     RealVect::Zero,  // ......... origin of EBIndexSpace
-                                     geom_eb.CellSize()[0],  // .. reference cell size of EBIndexSpace
-                                     gshop,  // ............ GeometryShop object
-                                     grid_size, max_level);
+      EB2::GeometryShop<CylinderIF> gshop(* impfunc);
 
-      EBTower::Build();
+      GShopLSFactory<CylinderIF>    cylinder_ls_gshop(gshop, * level_set);
+
+      // Implicit function used by LSFactory
+      //  -- returned MF has the same DM as LSFactory
+      std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_ls_gshop.fill_impfunc();
+
+
+      EB2::Build(gshop, geom_eb, max_level, max_level);
+
+      const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+      const EB2::Level &      cylinder_lev  = cylinder_ebis.getLevel(geom);
+
+
       int eb_pad = level_set->get_eb_pad();
-      EBFArrayBoxFactory eb_factory(geom_eb, level_set->get_eb_ba(), dmap,
+      EBFArrayBoxFactory eb_factory(cylinder_lev, geom_eb, level_set->get_eb_ba(), dmap,
                                    {eb_pad, eb_pad, eb_pad}, EBSupport::full);
 
       //Fill Level-set using eb_factory
-      level_set->intersection_ebf(eb_factory, * AMReX_EBIS::instance());
+      level_set->intersection_ebf(eb_factory, * cylinder_mf_impfunc);
 
 
 
@@ -129,7 +118,7 @@ make_my_eb(int lev, const BoxArray & grids, const DistributionMapping & dmap,
       level_set->invert();
 
       int lev  = 0;
-      make_cylinder_geom(cyl_dir, cyl_radius, cyl_length, translation,
-                         lev, geom, dmap, level_set);
+      make_cylinder_eb2_geom(cyl_dir, cyl_radius, cyl_length, translation,
+                             lev, geom, dmap, level_set);
     }
 }

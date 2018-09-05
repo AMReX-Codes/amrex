@@ -11,12 +11,12 @@ namespace amrex {
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensityFort(int rho_index,
-                                                                                     Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-                                                                                     int lev_min, int ncomp, int finest_level) const
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity(int rho_index,
+                                                                                 Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
+                                                                                 int lev_min, int ncomp, int finest_level) const
 {
     
-    BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::AssignDensityFort()");
+    BL_PROFILE("ParticleContainer::AssignDensity()");
     
     if (rho_index != 0) amrex::Abort("AssignDensity only works if rho_index = 0");
     
@@ -72,7 +72,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
             //
             // Just use the far simpler single-level version.
             //
-            this->AssignCellDensitySingleLevelFort(rho_index, *mf[0], 0, ncomp);
+            this->AssignCellDensitySingleLevel(rho_index, *mf[0], 0, ncomp);
             //
             // I believe that we don't need any information in ghost cells so we don't copy those.
             //
@@ -98,7 +98,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     
     for (int lev = lev_min; lev <= finest_level; ++lev) {
         
-        this->AssignCellDensitySingleLevelFort(rho_index, *mf[lev], lev, 1, 0);
+        this->AssignCellDensitySingleLevel(rho_index, *mf[lev], lev, 1, 0);
         
         if (lev < finest_level) {
             amrex::InterpFromCoarseLevel(*tmp[lev+1], 0.0, *mf[lev],
