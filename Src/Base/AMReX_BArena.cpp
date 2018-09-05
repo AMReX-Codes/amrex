@@ -1,6 +1,7 @@
 #include <iostream>
 #include <AMReX_Print.H>
 #include <AMReX_BArena.H>
+#include <AMReX_Device.H>
 
 void*
 amrex::BArena::alloc (std::size_t _sz)
@@ -13,6 +14,7 @@ amrex::BArena::alloc (std::size_t _sz)
      void *ptr;
      cudaMallocManaged(&ptr, _sz);
      cudaDeviceSynchronize();
+     CudaErrorCheck();
      return ptr;
 
 #else  // No CUDA or on the device. 
@@ -27,6 +29,7 @@ amrex::BArena::free (void* ptr)
 
    cudaDeviceSynchronize();
    cudaFree(ptr); 
+   CudaErrorCheck();
 
 #else 
    ::operator delete(ptr);
