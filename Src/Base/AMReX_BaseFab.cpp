@@ -714,7 +714,7 @@ BaseFab<int>::copyToMem (const Box& srcbox,
         if (stbx.ok())
         {
            IntVect curr = stbx.smallEnd();
-           for (int i=0; i<stbx.numPtr(); ++i)
+           for (int i=0; i<stbx.numPts(); ++i)
            {
               long buffidx = srcbox.index(curr);
 
