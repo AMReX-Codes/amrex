@@ -512,6 +512,17 @@ amrex::Device::stop_profiler() {
 
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
 void
+amrex::Device::c_comps_threads_and_blocks(const int* lo, int* hi, const int comps, dim3& numBlocks, dim3& numThreads) {
+
+    // Increase size of the "box" to account for the number of components.
+    // Otherwise, identical. 
+    hi[0] = ((hi[0] + 1)*comps - 1);
+
+    c_threads_and_blocks(lo, hi, numBlocks, numThreads);
+
+}
+
+void
 amrex::Device::c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) {
 
     int bx, by, bz, tx, ty, tz;

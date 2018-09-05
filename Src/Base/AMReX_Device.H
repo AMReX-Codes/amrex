@@ -146,6 +146,8 @@ public:
     static void stop_profiler();
 
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
+    static void c_comps_threads_and_blocks(const int* lo, int* hi, const int comps, dim3& numBlocks, dim3& numThreads);
+
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
 
     static void grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads);
