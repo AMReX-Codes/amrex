@@ -1,6 +1,7 @@
 #include <cstring>
 #include <cstdlib>
 
+#include <AMReX_CUDA_Utility.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
@@ -168,9 +169,12 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #ifdef __CUDA_ARCH__
-    amrex_fort_fab_copy_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+    Box dtbx = getThreadBox(destbox);
+    Box stbx = dtbx + (destbox.smallEnd() - srcbox.smallEnd());
+
+    amrex_fort_fab_copy_device(AMREX_ARLIM_3D(dtbx.loVect()), AMREX_ARLIM_3D(dtbx.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(stbx.loVect()),
 		  &numcomp);
 #else
     amrex_fort_fab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
@@ -193,17 +197,31 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
     if (srcbox.ok())
     {
 #ifdef __CUDA_ARCH__
-	long nreal =  amrex_fort_fab_copytomem_device(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
-                                         static_cast<Real*>(dst),
-                                         BL_TO_FORTRAN_N_3D(*this,srccomp),
-                                         &numcomp);
+
+        long nreal = 0;
+        Box stbx = getThreadBox(srcbox);
+        if (stbx.ok())
+        {
+           IntVect curr = stbx.smallEnd();
+           for (int i=0; i<stbx.numPts(); ++i)
+           {
+              long buffidx = srcbox.index(curr);
+
+              nreal = amrex_fort_fab_copytomem_device(AMREX_ARLIM_3D(curr.getVect()), AMREX_ARLIM_3D(curr.getVect()),
+                                          &(static_cast<Real*>(dst)[buffidx]),
+                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                          &numcomp);
+
+              stbx.next(curr);
+           }
+        }
+
 #else
 	long nreal =  amrex_fort_fab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
                                          static_cast<Real*>(dst),
                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
                                          &numcomp);
 #endif
-
 
         return sizeof(Real) * nreal;
     }
@@ -226,9 +244,23 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
     if (dstbox.ok()) 
     {
 #ifdef __CUDA_ARCH__
-	long nreal = amrex_fort_fab_copyfrommem_device(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
-                                          BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-                                          static_cast<const Real*>(src));
+
+        long nreal = 0;
+        Box dtbx = getThreadBox(dstbox);
+        if (dtbx.ok())
+        {
+           IntVect curr = dtbx.smallEnd();
+           for (int i=0; i<dtbx.numPts(); ++i)
+           {
+              long buffidx = dstbox.index(curr);
+
+              nreal = amrex_fort_fab_copyfrommem_device(AMREX_ARLIM_3D(curr.getVect()), AMREX_ARLIM_3D(curr.getVect()),
+                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                           &(static_cast<const Real*>(src)[buffidx]));
+
+              dtbx.next(curr);
+           }
+        }
 #else
 	long nreal = amrex_fort_fab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
@@ -649,9 +681,12 @@ BaseFab<int>::performCopy (const BaseFab<int>& src,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #ifdef __CUDA_ARCH__
-    amrex_fort_ifab_copy_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+    Box dtbx = getThreadBox(destbox);
+    Box stbx = dtbx + (destbox.smallEnd() - srcbox.smallEnd());
+
+    amrex_fort_ifab_copy_device(AMREX_ARLIM_3D(dtbx.loVect()), AMREX_ARLIM_3D(dtbx.hiVect()),
                    BL_TO_FORTRAN_N_3D(*this,destcomp),
-                   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(stbx.loVect()),
                    &numcomp);
 #else
     amrex_fort_ifab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
@@ -674,10 +709,23 @@ BaseFab<int>::copyToMem (const Box& srcbox,
     if (srcbox.ok())
     {
 #ifdef __CUDA_ARCH__
-	long nints =  amrex_fort_ifab_copytomem_device(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
-                                          static_cast<int*>(dst),
-                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
-                                          &numcomp);
+        long nints = 0;
+        Box stbx = getThreadBox(srcbox);
+        if (stbx.ok())
+        {
+           IntVect curr = stbx.smallEnd();
+           for (int i=0; i<stbx.numPtr(); ++i)
+           {
+              long buffidx = srcbox.index(curr);
+
+              nints =  amrex_fort_ifab_copytomem_device(AMREX_ARLIM_3D(curr.getVect()), AMREX_ARLIM_3D(curr.getVect()),
+                                           &(static_cast<int*>(dst)[buffidx]),
+                                           BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                           &numcomp);
+
+              stbx.next(curr);
+           }
+        }
 #else
 	long nints =  amrex_fort_ifab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
                                           static_cast<int*>(dst),
@@ -706,9 +754,23 @@ BaseFab<int>::copyFromMem (const Box&  dstbox,
     if (dstbox.ok()) 
     {
 #ifdef __CUDA_ARCH__
-	long nints = amrex_fort_ifab_copyfrommem_device(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
-                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-                                           static_cast<const int*>(src));
+
+        long nints;
+        Box dtbx = getThreadBox(dstbox);
+        if (dtbx.ok())
+        {
+           IntVect curr = dtbx.smallEnd();
+           for (int i=0; i<dtbx.numPts(); ++i)
+           {
+              long buffidx = dstbox.index(curr); 
+
+              nints = amrex_fort_ifab_copyfrommem_device(AMREX_ARLIM_3D(curr.getVect()), AMREX_ARLIM_3D(curr.getVect()),
+                                            BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                            &(static_cast<const int*>(src)[buffidx]));
+
+              dtbx.next(curr);
+           }
+        }
 #else
 	long nints = amrex_fort_ifab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
                                            BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
