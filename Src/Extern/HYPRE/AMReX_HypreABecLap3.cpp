@@ -333,6 +333,7 @@ HypreABecLap3::prepareSolver ()
 #ifdef AMREX_USE_EB
             else
             {
+#ifdef NOT_FINISHED
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
                                     &nrows, ncols, rows, cols, mat,
                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
@@ -352,6 +353,7 @@ HypreABecLap3::prepareSolver ()
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
                                     &scalar_a, &scalar_b, dx,
                                     bctype.data(), bcl.data(), &bho);
+#endif
             }
 #endif
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
