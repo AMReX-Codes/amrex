@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
+#include <AMReX_Device.H>
 
 namespace amrex {
 
@@ -9,7 +10,7 @@ namespace amrex {
 // If box is empty, skip the work in the MFIter loop for that thread.
 // If no CUDA, return the entire box. 
 AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-Box getThreadBox(const Box& bx)
+Box getThreadBox (const Box& bx)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      return (bx & Box(IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
@@ -24,8 +25,13 @@ Box getThreadBox(const Box& bx)
 #endif
 }
 
+
+// Extension of getThreadBox that accounts for change of box type.
+// If growing, add extra index on the big edge.
+// If shrinking, remove extra index from the big edge.
+// Any empty or broken boxes should be ignored by the GPU code threadBox.ok() check.
 AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-Box getThreadBox(const Box& bx, const IntVect& typ)
+Box getThreadBox (const Box& bx, const IntVect& typ)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      Box threadBox; 
@@ -68,7 +74,7 @@ Box getThreadBox(const Box& bx, const IntVect& typ)
 // If index is over N, return size of 0 to skip loop.
 // If not on CUDA, return values to run entire loop. (1 to N) 
 AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-void getThreadIndex(int &index, int &size, const int num_particles)
+void getThreadIndex (int &index, int &size, const int num_particles)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      index = blockDim.x*blockIdx.x + threadIdx.x;
@@ -79,4 +85,27 @@ void getThreadIndex(int &index, int &size, const int num_particles)
 #endif
 }
 
+extern "C" {
+    void* amrex_gpu_malloc (std::size_t size)
+    {
+#ifdef AMREX_USE_CUDA
+        void *ptr = nullptr;
+        cudaMalloc((void**) ptr, size); 
+        return ptr;
+#else
+        return amrex_malloc(size);
+#endif
+    }
+
+
+    void amrex_gpu_free (void* p)
+    {
+#ifdef AMREX_USE_CUDA
+        cudaFree(p); 
+#else
+        amrex_free(p);
+#endif
+    }
 }
+
+}  // namespace amrex

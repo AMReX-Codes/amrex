@@ -7,13 +7,18 @@
 namespace amrex {
 
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-    Box getThreadBox(const Box& bx);
+    Box getThreadBox (const Box& bx);
 
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-    Box getThreadBox(const Box& bx, const IntVect& typ);
+    Box getThreadBox (const Box& bx, const IntVect& typ);
 
     AMREX_CUDA_HOST AMREX_CUDA_DEVICE
-    void getThreadIndex(int &index, int &size, const int num_particles);
+    void getThreadIndex (int &index, int &size, const int num_particles);
+
+extern "C" {
+    void* amrex_gpu_malloc (std::size_t size);
+    void amrex_gpu_free (void* p);
+}
 
 }
 
