@@ -50,7 +50,6 @@ amr.plot_int          = 50      # number of timesteps between plotfiles
 amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
 
 # EB
-eb2.use_eb2 = 1
 eb2.geom_type = plane
 eb2.plane_point = 5.2 0.0 0.0
 eb2.plane_normal = 0.7547095802227719  -0.6560590289905074  0.0   # slope: 49 degree

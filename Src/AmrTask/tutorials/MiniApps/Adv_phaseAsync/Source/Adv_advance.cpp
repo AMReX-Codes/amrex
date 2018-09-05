@@ -151,7 +151,7 @@ Adv::advance (Real time,
 	    MFIter mfi(S_new, true);
 	    perilla::syncWorkerThreads(perilla::NUM_THREADS_PER_TEAM-2);
 	    for(int t=0; t<SborderFPI[iteration-1]->destGraph->fabTiles[f]->numTiles; t++)	  
-		if(nt==0)//(t % (perilla::NUM_THREADS_PER_TEAM-2) == nt)//do it serially for now since the current mempool version is not compatible with Pthreads
+		if(t % (perilla::NUM_THREADS_PER_TEAM-2) == nt)//do it serially for now since the current mempool version is not compatible with Pthreads
 		{	
 		    const Box& bx = *(SborderFPI[iteration-1]->destGraph->fabTiles[f]->tileBx[t]);
 		    for (int i = 0; i < BL_SPACEDIM ; i++) {

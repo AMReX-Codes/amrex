@@ -493,8 +493,10 @@ read_file (const char*                     fname,
         const char* b = filestring_cxx.c_str();
         bldTable(b, tab);
 
+#if !defined(BL_NO_FORT)
         std::string filestring_fortran = os_fortran.str();
         amrex_init_namelist(filestring_fortran.c_str());
+#endif
     }
 }
 
@@ -1084,7 +1086,9 @@ ParmParse::Finalize ()
     }
     g_table.clear();
 
+#if !defined(BL_NO_FORT)
     amrex_finalize_namelist();
+#endif
 
     initialized = false;
 }

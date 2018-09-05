@@ -159,16 +159,9 @@ FabArrayBase::define (const BoxArray&            bxs,
     
     BL_ASSERT(dm.ProcessorMap().size() == bxs.size());
     distributionMap = dm;
-    
-    int myProc = ParallelDescriptor::MyProc();
-    
-    for(int i = 0, N = boxarray.size(); i < N; ++i) {
-	if (ParallelDescriptor::sameTeam(distributionMap[i])) {
-            // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
-            indexArray.push_back(i);
-            ownership.push_back(myProc == distributionMap[i]);
-	}
-    }
+
+    indexArray = distributionMap.getIndexArray();
+    ownership = distributionMap.getOwnerShip();    
 }
 
 void
@@ -1345,6 +1338,7 @@ Box
 FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
                               bool include_periodic, bool include_physbndry)
 {
+#if !defined(BL_NO_FORT)
     Box bx = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
@@ -1358,6 +1352,9 @@ FabArrayBase::CFinfo::Domain (const Geometry& geom, const IntVect& ng,
         }
     }
     return bx;
+#else
+    return Box();
+#endif
 }
 
 long
@@ -1434,7 +1431,7 @@ FabArrayBase::Finalize ()
     FabArrayBase::flushCPCache();
     FabArrayBase::flushTileArrayCache();
 
-    if (ParallelDescriptor::IOProcessor() && amrex::system::verbose) {
+    if (ParallelDescriptor::IOProcessor() && amrex::system::verbose > 1) {
 	m_FA_stats.print();
 	m_TAC_stats.print();
 	m_FBC_stats.print();

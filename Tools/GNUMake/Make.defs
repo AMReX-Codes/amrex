@@ -552,6 +552,11 @@ ifeq ($(USE_HYPRE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
 endif
 
+ifeq ($(USE_PETSC),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc
+endif
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local

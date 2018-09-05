@@ -1,6 +1,6 @@
 
-#ifndef BL_BOX_H
-#define BL_BOX_H
+#ifndef AMREX_BOX_H_
+#define AMREX_BOX_H_
 
 #include <iosfwd>
 #include <array>

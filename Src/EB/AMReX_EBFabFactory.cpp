@@ -11,15 +11,6 @@
 namespace amrex
 {
 
-EBFArrayBoxFactory::EBFArrayBoxFactory (const Geometry& a_geom,
-                                        const BoxArray& a_ba,
-                                        const DistributionMapping& a_dm,
-                                        const Vector<int>& a_ngrow, EBSupport a_support)
-    : m_support(a_support),
-      m_geom(a_geom),
-      m_ebdc(std::make_shared<EBDataCollection>(a_geom,a_ba,a_dm,a_ngrow,a_support))
-{}
-
 EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
                                         const Geometry& a_geom,
                                         const BoxArray& a_ba,
@@ -27,7 +18,8 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
                                         const Vector<int>& a_ngrow, EBSupport a_support)
     : m_support(a_support),
       m_geom(a_geom),
-      m_ebdc(std::make_shared<EBDataCollection>(a_level,a_geom,a_ba,a_dm,a_ngrow,a_support))
+      m_ebdc(std::make_shared<EBDataCollection>(a_level,a_geom,a_ba,a_dm,a_ngrow,a_support)),
+      m_parent(&a_level)
 {}
 
 FArrayBox*
@@ -51,20 +43,57 @@ EBFArrayBoxFactory::clone () const
     return new EBFArrayBoxFactory(*this);
 }
 
+EB2::IndexSpace const*
+EBFArrayBoxFactory::getEBIndexSpace () const
+{
+    return (m_parent) ? m_parent->getEBIndexSpace() : nullptr;
+}
+
+int
+EBFArrayBoxFactory::maxCoarseningLevel () const
+{
+    if (m_parent) {
+        EB2::IndexSpace const* ebis = m_parent->getEBIndexSpace();
+        return EB2::maxCoarseningLevel(ebis, m_geom);
+    } else {
+        return EB2::maxCoarseningLevel(m_geom);
+    }
+}
+
 std::unique_ptr<EBFArrayBoxFactory>
-makeEBFabFactory (const Geometry& a_geom, const BoxArray& a_ba,
+makeEBFabFactory (const Geometry& a_geom,
+                  const BoxArray& a_ba,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support)
 {
     std::unique_ptr<EBFArrayBoxFactory> r;
-    if (EB2::use_eb2) {
-        const EB2::IndexSpace& index_space = EB2::IndexSpace::top();
-        const EB2::Level& eb_level = index_space.getLevel(a_geom);
-        r.reset(new EBFArrayBoxFactory(eb_level, a_geom, a_ba, a_dm, a_ngrow, a_support));
-    } else {
-        r.reset(new EBFArrayBoxFactory(a_geom, a_ba, a_dm, a_ngrow, a_support));
-    }
+    const EB2::IndexSpace& index_space = EB2::IndexSpace::top();
+    const EB2::Level& eb_level = index_space.getLevel(a_geom);
+    r.reset(new EBFArrayBoxFactory(eb_level, a_geom, a_ba, a_dm, a_ngrow, a_support));
     return r;
+}
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const EB2::Level* eb_level,
+                  const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support)
+{
+    return std::unique_ptr<EBFArrayBoxFactory> (
+        new EBFArrayBoxFactory(*eb_level, eb_level->Geom(),
+                               a_ba, a_dm, a_ngrow, a_support));
+}
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const EB2::IndexSpace* index_space, const Geometry& a_geom,
+                  const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support)
+{
+    const EB2::Level& eb_level = index_space->getLevel(a_geom);
+    return std::unique_ptr<EBFArrayBoxFactory> (
+        new EBFArrayBoxFactory(eb_level, a_geom,
+                               a_ba, a_dm, a_ngrow, a_support));
 }
 
 }

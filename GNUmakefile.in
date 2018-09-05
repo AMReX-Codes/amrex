@@ -16,6 +16,14 @@ ifeq ($(USE_LINEAR_SOLVERS),TRUE)
      Pdirs += F_Interfaces/LinearSolvers
    endif
 endif
+ifeq ($(USE_EB),TRUE)
+   Pdirs += EB
+endif
+ifeq ($(USE_HYPRE),TRUE)
+   ifeq ($(USE_LINEAR_SOLVERS),TRUE)
+      Pdirs += Extern/HYPRE
+   endif
+endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 

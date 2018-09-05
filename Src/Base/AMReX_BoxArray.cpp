@@ -70,7 +70,8 @@ BARef::BARef (BoxList&& bl) noexcept
 
 BARef::BARef (std::istream& is)
 { 
-    define(is); 
+    int ndims;
+    define(is, ndims); 
 }
 
 BARef::BARef (const BARef& rhs) 
@@ -90,7 +91,7 @@ BARef::~BARef ()
 }
 
 void
-BARef::define (std::istream& is)
+BARef::define (std::istream& is, int& ndims)
 {
     //
     // TODO -- completely remove the fiction of a hash value.
@@ -100,6 +101,34 @@ BARef::define (std::istream& is)
     unsigned long tmphash;
     is.ignore(bl_ignore_max, '(') >> maxbox >> tmphash;
     resize(maxbox);
+    auto pos = is.tellg();
+    {
+        ndims = AMREX_SPACEDIM;
+        char c1, c2;
+        int itmp;
+        is >> std::ws >> c1 >> std::ws >> c2;
+        if (c1 == '(' && c2 == '(') {
+            is >> itmp;
+            ndims = 1;
+#if (AMREX_SPACEDIM >= 2)
+            is >> std::ws;
+            int ic = is.peek();
+            if (ic == static_cast<int>(',')) {
+                is.ignore(BL_IGNORE_MAX, ',');
+                is >> itmp;
+                ++ndims;
+#if (AMREX_SPACEDIM == 3)
+                is >> std::ws;
+                ic = is.peek();
+                if (ic == static_cast<int>(',')) {
+                    ++ndims;
+                }
+#endif
+            }
+#endif
+        }
+    }
+    is.seekg(pos, std::ios_base::beg);
     for (Vector<Box>::iterator it = m_abox.begin(), End = m_abox.end(); it != End; ++it)
         is >> *it;
     is.ignore(bl_ignore_max, ')');
@@ -426,15 +455,17 @@ BoxArray::d_numPts () const
     return result;
 }
 
-void
+int
 BoxArray::readFrom (std::istream& is)
 {
     BL_ASSERT(size() == 0);
     clear();
     m_simple = true;
     m_crse_ratio = IntVect::TheUnitVector();
-    m_ref->define(is);
+    int ndims;
+    m_ref->define(is, ndims);
     type_update();
+    return ndims;
 }
 
 std::ostream&

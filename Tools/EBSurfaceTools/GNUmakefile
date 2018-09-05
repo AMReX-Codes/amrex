@@ -19,7 +19,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 DEFINES += -DBL_NOLINEVALUES -DBL_PARALLEL_IO
 
-Bdirs := Base EB AmrCore Boundary GeometryShop
+Bdirs := Base EB AmrCore Boundary
 
 Bpack	+= $(foreach dir, $(Bdirs), $(TOP)/Src/$(dir)/Make.package)
 Blocs	+= $(foreach dir, $(Bdirs), $(TOP)/Src/$(dir))

@@ -11,15 +11,16 @@
 namespace amrex
 {
 
-namespace EB2 { class Level; }
+namespace EB2 {
+    class Level;
+    class IndexSpace;
+}
 
 class EBFArrayBoxFactory
     : public FabFactory<FArrayBox>
 {
 public:
 
-    EBFArrayBoxFactory (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        const Vector<int>& a_ngrow, EBSupport a_support);
     EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
                         const BoxArray& a_ba, const DistributionMapping& a_dm,
                         const Vector<int>& a_ngrow, EBSupport a_support);    
@@ -47,6 +48,8 @@ public:
 
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
 
+    const MultiCutFab& getBndryArea () const { return m_ebdc->getBndryArea(); }
+
     Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
         return m_ebdc->getAreaFrac();
     }
@@ -55,19 +58,35 @@ public:
         return m_ebdc->getFaceCent();
     }
 
+    EB2::Level const* getEBLevel () const { return m_parent; }
+    EB2::IndexSpace const* getEBIndexSpace () const;
+    int maxCoarseningLevel () const;
+
 private:
 
     EBSupport m_support;
     Geometry m_geom;
     std::shared_ptr<EBDataCollection> m_ebdc;
-
+    EB2::Level const* m_parent = nullptr;
 };
 
 std::unique_ptr<EBFArrayBoxFactory>
-makeEBFabFactory (const Geometry& a_geom, const BoxArray& a_ba,
+makeEBFabFactory (const Geometry& a_geom,
+                  const BoxArray& a_ba,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support);
-    
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const EB2::Level*,
+                  const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support);
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const EB2::IndexSpace*, const Geometry& a_geom,
+                  const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support);
 
 }
 

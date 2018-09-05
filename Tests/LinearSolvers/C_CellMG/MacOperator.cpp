@@ -8,10 +8,6 @@
 #include <AMReX_MultiGrid.H>
 #include <AMReX_ParmParse.H>
 
-#ifdef MG_USE_HYPRE
-#include <HypreABec.H>
-#endif
-
 #include <AMReX_MGT_Solver.H>
 #include <AMReX_stencil_types.H>
 #include <mg_cpp_f.h>
@@ -394,20 +390,7 @@ mac_level_driver (AmrCore*        parent,
     }
     else if (the_solver == 2 )
     {
-#ifdef MG_USE_HYPRE
-        HypreABec hp(mac_phi->boxArray(), mac_bndry, dx, 0, false);
-        hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
-        hp.aCoefficients(mac_op.aCoefficients());
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            hp.bCoefficients(mac_op.bCoefficients(i), i);
-        }
-        hp.setup_solver(mac_tol, mac_abs_tol, 50);
-        hp.solve(*mac_phi, Rhs, true);
-        hp.clear_solver();
-#else
         amrex::Error("mac_level_driver::HypreABec not in this build");
-#endif
     }
     else if (the_solver == 3 ) 
     {
@@ -527,20 +510,7 @@ mac_sync_driver (AmrCore*            parent,
     }
     else if ( the_solver == 2 )
     {
-#ifdef MG_USE_HYPRE
-        HypreABec hp(mac_sync_phi->boxArray(), mac_bndry, dx, 0, false);
-        hp.setScalars(mac_op.get_alpha(), mac_op.get_beta());
-        hp.aCoefficients(mac_op.aCoefficients());
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            hp.bCoefficients(mac_op.bCoefficients(i), i);
-        }
-        hp.setup_solver(mac_sync_tol, mac_abs_tol, 50);
-        hp.solve(*mac_sync_phi, Rhs, true);
-        hp.clear_solver();
-#else
         amrex::Error("mac_sync_driver: HypreABec not in this build");
-#endif
     }
     else if (the_solver == 3 )
     {

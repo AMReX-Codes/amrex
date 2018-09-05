@@ -5,7 +5,7 @@ module prob_module
 
   private
 
-  public :: init_prob_data
+  public :: init_prob_data, init_part_data
 
 contains
 
@@ -47,4 +47,43 @@ contains
     
   end subroutine init_prob_data
 
+  subroutine init_part_data(pc, lev, mfi, lo, hi, dx, prob_lo)
+
+    use amrex_fort_module, only : amrex_spacedim, amrex_real
+    use amrex_particlecontainer_module, only: amrex_particlecontainer, amrex_particle, &
+         amrex_get_next_particle_id, amrex_get_cpu
+    use amrex_multifab_module, only : amrex_mfiter
+    
+    implicit none
+    type(amrex_particlecontainer), intent(inout) :: pc
+    integer, intent(in) :: lev
+    type(amrex_mfiter), intent(in) :: mfi
+    integer, intent(in) :: lo(2), hi(2)
+    real(amrex_real), intent(in) :: dx(2), prob_lo(2)
+    
+    integer          :: i,j
+    real(amrex_real) :: x,y
+    type(amrex_particle) :: p
+    
+    do j=lo(2),hi(2)
+       y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+       do i=lo(1),hi(1)
+          x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+
+          p%pos(1) = x
+          p%pos(2) = y
+
+          p%vel = 0.d0
+
+          p%id  = amrex_get_next_particle_id()
+          p%cpu = amrex_get_cpu()
+
+          call pc%add_particle(lev, mfi, p)
+          
+       end do
+    end do
+    
+  end subroutine init_part_data
+
+  
 end module prob_module

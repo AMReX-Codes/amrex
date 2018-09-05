@@ -102,13 +102,16 @@ int main (int argc, char* argv[])
                     new LSFactory(lev, levelset__refinement, levelset__eb_refinement,
                                   levelset__pad, levelset__eb_pad, grids, geom, dmap) );
 
-    // Constructs EB, followed level-set
-    make_my_eb(lev, grids, dmap, geom, level_set.get());
+    // Constructs EB, followed by level-set
+
+    make_my_eb2(lev, grids, dmap, geom, level_set.get());
 
     // Make sure that at (at least) an initial MultiFab is stored in ls[lev].
-    std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
+    //std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
 
-    VisMF::Write(*ls_data, "LevelSet");
+    const MultiFab * ls_data = level_set->get_data();
+
+    VisMF::Write(* ls_data, "LevelSet");
 
     }
 
