@@ -359,10 +359,12 @@ amrex::Device::stream_synchronize(const int idx) {
 void*
 amrex::Device::device_malloc(const std::size_t sz) {
 
-    void* ptr = NULL;
+    void* ptr = nullptr;
 
 #ifdef AMREX_USE_CUDA
     gpu_malloc(&ptr, &sz);
+#else
+    ptr = amrex_malloc(sz);
 #endif
 
     return ptr;
@@ -375,7 +377,38 @@ amrex::Device::checkManaged(const void* ptr) {
 #ifdef AMREX_USE_CUDA
      cudaPointerAttributes ptr_attr;
      cudaPointerGetAttributes(&ptr_attr, ptr);
+     cudaError_t err = cudaGetLastError(); 
+     if (err == cudaErrorInvalidValue)
+     {
+        std::cout << " cudaErrorInvalidValue ";
+        return false;
+     }
      return ptr_attr.isManaged;
+#else
+     return false;
+#endif
+
+}
+
+bool
+amrex::Device::checkDevicePtr (const void* ptr) {
+
+#ifdef AMREX_USE_CUDA
+     cudaPointerAttributes ptr_attr;
+     cudaPointerGetAttributes(&ptr_attr, ptr);
+     cudaError_t err = cudaGetLastError(); 
+     if (err == cudaErrorInvalidValue)
+     {
+        std::cout << " cudaErrorInvalidValue ";
+        return false;
+     }
+     else if (ptr_attr.memoryType == cudaMemoryTypeHost)
+     {
+        std::cout << " cudaMemoryTypeHost ";
+        return false;
+     }
+
+     return true;
 #else
      return false;
 #endif
@@ -387,6 +420,30 @@ amrex::Device::device_free(void* ptr) {
 
 #ifdef AMREX_USE_CUDA
     gpu_free(ptr);
+#else
+    amrex_free(ptr);
+#endif
+
+}
+
+void
+amrex::Device::device_htod_memcpy(void* p_d, const void* p_h, const std::size_t sz) {
+
+#ifdef AMREX_USE_CUDA
+    CudaAPICheck(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
+#else
+    p_d = p_h;     
+#endif
+
+}
+
+void
+amrex::Device::device_dtoh_memcpy(void* p_h, const void* p_d, const std::size_t sz) {
+
+#ifdef AMREX_USE_CUDA
+    CudaAPICheck(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
+#else
+    p_h = p_d;
 #endif
 
 }
@@ -396,6 +453,8 @@ amrex::Device::device_htod_memcpy_async(void* p_d, const void* p_h, const std::s
 
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_stream));
+#else
+    p_d = p_h;
 #endif
 
 }
@@ -405,6 +464,8 @@ amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::s
 
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_stream));
+#else
+    p_h = p_d;
 #endif
 
 }
