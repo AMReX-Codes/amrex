@@ -44,6 +44,8 @@
 #include <AMReX_parstream.H>
 #include <AMReX_SPMD.H>
 
+#include <AMReX_CUDA_Utility.H>
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif
@@ -623,6 +625,10 @@ public:
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
+    void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
+                      const Periodicity& period, bool cross,
+		      bool enforce_periodicity_only = false);
+
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
@@ -705,10 +711,6 @@ private:
     typedef typename std::vector<FAB*>::iterator    Iterator;
 
     void AllocFabs (const FabFactory<FAB>& factory);
-
-    void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
-                      const Periodicity& period, bool cross,
-		      bool enforce_periodicity_only = false);
 
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
