@@ -683,7 +683,8 @@ PhysicalParticleContainer::Evolve (int lev,
 
     MultiFab* cost = WarpX::getCosts(lev);
 
-    const iMultiFab* bmasks = WarpX::BufferMasks(lev);
+    const iMultiFab* current_masks = WarpX::CurrentBufferMasks(lev);
+    const iMultiFab* gather_masks = WarpX::GatherBufferMasks(lev);
     
     bool has_buffer = cEx || cjx; 
 
@@ -805,12 +806,16 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    giv.resize(np);
 
-            long nfine = np;
+            long nfine_current = np;
+            long nfine_gather = np;
             if (has_buffer && !do_not_push)
             {
                 BL_PROFILE_VAR_START(blp_partition);
                 inexflag.resize(np);
                 auto& aos = pti.GetArrayOfStructs();
+                // We need to partition the large buffer first
+                iMultiFab const* bmasks = (WarpX::n_field_gather_buffer >= WarpX::n_current_deposition_buffer) ?
+                    gather_masks : current_masks;
                 int i = 0;
                 const auto& msk = (*bmasks)[pti];
                 for (const auto& p : aos) {
@@ -820,12 +825,43 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 pid.resize(np);
                 std::iota(pid.begin(), pid.end(), 0L);
-                
+
                 auto sep = std::stable_partition(pid.begin(), pid.end(),
                                                  [&inexflag](long id) { return inexflag[id]; });
 
-                nfine = std::distance(pid.begin(), sep);
-                if (nfine != np)
+                if (WarpX::n_current_deposition_buffer == WarpX::n_field_gather_buffer) {
+                    nfine_current = nfine_gather = std::distance(pid.begin(), sep);
+                } else if (sep != pid.end()) {
+                    int n_buf;
+                    if (bmasks == gather_masks) {
+                        nfine_gather = std::distance(pid.begin(), sep);
+                        bmasks = current_masks;
+                        n_buf = WarpX::n_current_deposition_buffer;
+                    } else {
+                        nfine_current = std::distance(pid.begin(), sep);
+                        bmasks = gather_masks;
+                        n_buf = WarpX::n_field_gather_buffer;
+                    }
+                    if (n_buf > 0)
+                    {
+                        const auto& msk2 = (*bmasks)[pti];
+                        for (auto it = sep; it != pid.end(); ++it) {
+                            const long id = *it;
+                            const IntVect& iv = Index(aos[id], lev);
+                            inexflag[id] = msk2(iv);
+                        }
+
+                        auto sep2 = std::stable_partition(sep, pid.end(),
+                                                          [&inexflag](long id) {return inexflag[id];});
+                        if (bmasks == gather_masks) {
+                            nfine_gather = std::distance(pid.begin(), sep2);
+                        } else {
+                            nfine_current = std::distance(pid.begin(), sep2);
+                        }
+                    }
+                }
+
+                if (nfine_current != np || nfine_gather != np)
                 {
                     particle_tmp.resize(np);
                     for (long ip = 0; ip < np; ++ip) {
@@ -920,7 +956,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
 
-                const long np_gather = (cEx) ? nfine : np;
+                const long np_gather = (cEx) ? nfine_gather : np;
 
                 BL_PROFILE_VAR_START(blp_pxr_fg);
 
@@ -955,11 +991,11 @@ PhysicalParticleContainer::Evolve (int lev,
                     const FArrayBox& cbyfab = (*cBy)[pti];
                     const FArrayBox& cbzfab = (*cBz)[pti];
 
-                    long ncrse = np - nfine;
+                    long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
-                        &ncrse, xp.data()+nfine, yp.data()+nfine, zp.data()+nfine,
-                        Exp.data()+nfine, Eyp.data()+nfine, Ezp.data()+nfine,
-                        Bxp.data()+nfine, Byp.data()+nfine, Bzp.data()+nfine,
+                        &ncrse, xp.data()+nfine_gather, yp.data()+nfine_gather, zp.data()+nfine_gather,
+                        Exp.data()+nfine_gather, Eyp.data()+nfine_gather, Ezp.data()+nfine_gather,
+                        Bxp.data()+nfine_gather, Byp.data()+nfine_gather, Bzp.data()+nfine_gather,
                         cixyzmin_grid,
                         &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
                         &cdx[0], &cdx[1], &cdx[2],
@@ -995,7 +1031,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
                 Box gtbx, gtby, gtbz;
 
-                const long np_current = (cjx) ? nfine : np;
+                const long np_current = (cjx) ? nfine_current : np;
 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
@@ -1074,14 +1110,14 @@ PhysicalParticleContainer::Evolve (int lev,
                     jyntot = local_jy.length();
                     jzntot = local_jz.length();
 
-                    long ncrse = np - nfine;
+                    long ncrse = np - nfine_current;
                     warpx_current_deposition(
                         jx_ptr, &ngJ, jxntot,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
-                        &ncrse, xp.data()+nfine, yp.data()+nfine, zp.data()+nfine,
-                        uxp.data()+nfine, uyp.data()+nfine, uzp.data()+nfine,
-                        giv.data()+nfine, wp.data()+nfine, &this->charge,
+                        &ncrse, xp.data()+nfine_current, yp.data()+nfine_current, zp.data()+nfine_current,
+                        uxp.data()+nfine_current, uyp.data()+nfine_current, uzp.data()+nfine_current,
+                        giv.data()+nfine_current, wp.data()+nfine_current, &this->charge,
                         &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
                         &dt, &cdx[0], &cdx[1], &cdx[2],
                         &WarpX::nox,&WarpX::noy,&WarpX::noz,
