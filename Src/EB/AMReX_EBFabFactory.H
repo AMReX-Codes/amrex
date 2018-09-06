@@ -33,11 +33,11 @@ public:
     EBFArrayBoxFactory& operator= (const EBFArrayBoxFactory&) = delete;
     EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
-    virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override;
+    virtual FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const final;
 
-    virtual EBFArrayBoxFactory* clone () const override;
+    virtual void destroy (FArrayBox* fab) const final;
 
-    virtual Box getDomain () const override { return m_geom.Domain(); }
+    virtual EBFArrayBoxFactory* clone () const final;
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const
         { return m_ebdc->getMultiEBCellFlagFab(); }

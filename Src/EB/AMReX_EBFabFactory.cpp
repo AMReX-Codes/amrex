@@ -37,6 +37,20 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
+void
+EBFArrayBoxFactory::destroy (FArrayBox* fab) const
+{
+    if (m_support == EBSupport::none)
+    {
+        delete fab;
+    }
+    else
+    {
+        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
+        delete p;
+    }
+}
+
 EBFArrayBoxFactory*
 EBFArrayBoxFactory::clone () const
 {
