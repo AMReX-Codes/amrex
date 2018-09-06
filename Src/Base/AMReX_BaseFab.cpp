@@ -170,7 +170,7 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
 
 #ifdef __CUDA_ARCH__
     Box dtbx = getThreadBox(destbox);
-    Box stbx = dtbx + (destbox.smallEnd() - srcbox.smallEnd());
+    Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
 
     amrex_fort_fab_copy_device(AMREX_ARLIM_3D(dtbx.loVect()), AMREX_ARLIM_3D(dtbx.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
@@ -682,7 +682,7 @@ BaseFab<int>::performCopy (const BaseFab<int>& src,
 
 #ifdef __CUDA_ARCH__
     Box dtbx = getThreadBox(destbox);
-    Box stbx = dtbx + (destbox.smallEnd() - srcbox.smallEnd());
+    Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
 
     amrex_fort_ifab_copy_device(AMREX_ARLIM_3D(dtbx.loVect()), AMREX_ARLIM_3D(dtbx.hiVect()),
                    BL_TO_FORTRAN_N_3D(*this,destcomp),
