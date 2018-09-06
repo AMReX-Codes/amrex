@@ -16,13 +16,15 @@ module amrex_fluxregister_module
      integer     :: flev  = -1
    contains
      generic   :: assignment(=) => amrex_fluxregister_assign   ! shallow copy
-     procedure :: fineadd       => amrex_fluxregister_fineadd
+     generic   :: fineadd       => amrex_fluxregister_fineadd, amrex_fluxregister_fineadd_1fab
      procedure :: crseinit      => amrex_fluxregister_crseinit
      procedure :: crseadd       => amrex_fluxregister_crseadd
      procedure :: setval        => amrex_fluxregister_setval
      procedure :: reflux        => amrex_fluxregister_reflux
      procedure :: overwrite     => amrex_fluxregister_overwrite
      procedure, private :: amrex_fluxregister_assign
+     procedure, private :: amrex_fluxregister_fineadd
+     procedure, private :: amrex_fluxregister_fineadd_1fab
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fluxregister_destroy
 #endif
@@ -55,7 +57,7 @@ module amrex_fluxregister_module
        import
        implicit none
        type(c_ptr), value :: fr
-       type(c_ptr), intent(in) :: fabdata
+       type(c_ptr), value,intent(in) :: fabdata
        integer(c_int),intent(in) :: flo(*), fhi(*)
        integer(c_int),intent(IN),value :: dir, boxno, nfluxes
        real(amrex_real), value :: scale
@@ -150,7 +152,7 @@ contains
     real(amrex_real), intent(in) :: scale
     integer :: dir, nc
     type(c_ptr) :: cp
-    integer,dimension(3) :: flo=(/0,0,0/),fhi=(/0,0,0/)
+    integer,dimension(3) :: flo=(/1,1,1/),fhi=(/1,1,1/)
     real(amrex_real), pointer, dimension(:,:,:,:) :: fp
     do dir = 1, amrex_spacedim
        associate(fab => fluxfabs(dir) )
@@ -160,7 +162,7 @@ contains
          cp = c_loc(fp(flo(1),flo(2),flo(3),1))
          nc =  fab%nc
        end associate
-       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, boxno, nc, scale)
+       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, boxno-1, nc, scale)
     end do
   end subroutine amrex_fluxregister_fineadd_1fab
 
