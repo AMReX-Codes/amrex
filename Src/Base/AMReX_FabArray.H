@@ -856,7 +856,7 @@ FabArray<FAB>::clear ()
     }
 
     for(Iterator it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
-        delete *it;
+        m_factory->destroy(*it);
     }
     m_fabs_v.clear();
     m_factory.reset();
