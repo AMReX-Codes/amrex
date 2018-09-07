@@ -200,6 +200,12 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 
     MultiFab* cost = WarpX::getCosts(lev);
 
+    MFItInfo info;
+    if (do_tiling) {
+        info.EnableTiling(tile_size);
+    } 
+    info.SetDynamic(true);
+
 #ifdef _OPENMP
 #pragma omp parallel if (not WarpX::serialize_ics)
 #endif
@@ -208,11 +214,11 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
         attribs.fill(0.0);
 
         // Loop through the tiles
-        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+        for (MFIter mfi = MakeMFIter(lev, info); mfi.isValid(); ++mfi) {
 
             Real wt = ParallelDescriptor::second();
 
-            const Box& tile_box  = mfi.tilebox();
+            const Box& tile_box = mfi.tilebox();
             const RealBox tile_realbox = WarpX::getRealBox(tile_box, lev);
 
             // Find the cells of part_box that overlap with tile_realbox
