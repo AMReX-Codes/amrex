@@ -26,6 +26,7 @@ namespace amrex
 
     //! Average cell-centered MultiFab onto face-based MultiFab.
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc, const Geometry& geom);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
