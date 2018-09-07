@@ -6,6 +6,8 @@ from ctypes.util import find_library as _find_library
 import numpy as np
 from numpy.ctypeslib import ndpointer as _ndpointer
 
+from .Geometry import geometry
+
 # --- Is there a better way of handling constants?
 clight = 2.99792458e+8 # m/s
 
@@ -22,11 +24,22 @@ def _get_package_root():
             return ''
         cur = os.path.dirname(cur)
 
+# --- Use geometry to determine whether to import the 2D or 3D version.
+# --- This assumes that the input is setup before this module is imported,
+# --- which should normally be the case.
+# --- Default to 3D if geometry is not setup yet.
+try:
+    _prob_lo = geometry.prob_lo
+except AttributeError:
+    geometry_dim = 3
+else:
+    geometry_dim = len(_prob_lo)
+    del _prob_lo
 
 try:
-    libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx.so"))
+    libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx%dd.so"%geometry_dim))
 except OSError:
-    raise Exception('libwarpx.so was not installed. It can be installed by running "make" in the Python directory of WarpX')
+    raise Exception('libwarpx%dd.so was not installed. It can be installed by running "make" in the Python directory of WarpX'%geometry_dim)
 
 _libc = ctypes.CDLL(_find_library('c'))
 
