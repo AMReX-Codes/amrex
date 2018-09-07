@@ -777,6 +777,11 @@ public:
     //
     bool PeriodicShift (ParticleType& prt) const;
 
+    MFIter MakeMFIter (int lev, const MFItInfo& info) const {
+        BL_ASSERT(m_dummy_mf[lev] != nullptr);
+        return MFIter(*m_dummy_mf[lev], info);
+    }
+
     MFIter MakeMFIter (int lev) const {
         BL_ASSERT(m_dummy_mf[lev] != nullptr);
         return MFIter(*m_dummy_mf[lev], do_tiling ? tile_size : IntVect::TheZeroVector());
