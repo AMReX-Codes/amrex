@@ -93,6 +93,6 @@ void ConvertLabParamsToBoost()
     pp_geom.addarr("prob_hi", prob_hi);
     if (max_level > 0){
       pp_wpx.addarr("fine_tag_lo", fine_tag_lo);
-      pp_wpx.addarr("fine_tag_hi", fine_tag_lo);
+      pp_wpx.addarr("fine_tag_hi", fine_tag_hi);
     }
 }
