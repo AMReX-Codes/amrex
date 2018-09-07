@@ -1,3 +1,13 @@
+# 18.09
+
+  -- Cell-centered linear solver with homogeneous Neumann embedded
+     boundary. 
+
+  -- Hypre as a bottom solver has a IJ matrix interface and supports
+     homogeneous Neumann boundary condition on embedded boundary.
+
+  -- Old embedded boundary codes have been removed.
+
 # 18.08
 
   -- Faster geometry generation is available at Src/EB2.

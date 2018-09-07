@@ -1,5 +1,6 @@
 amrex.fpe_trap_invalid = 1
 
+#use_petsc = true
 eb2.geom_type = sphere
 eb2.sphere_center = 0.5  0.5  0.5
 eb2.sphere_radius = 0.25

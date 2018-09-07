@@ -1,10 +1,13 @@
 module amrex_eb_util_module
   use amrex_fort_module, only : amrex_real
+  use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
+  use amrex_constants_module, only : half, zero, one
   implicit none
   
   private
   public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, &
-       amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence
+       amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence, &
+       amrex_eb_avg_fc_to_cc
 
 contains
 
@@ -182,7 +185,6 @@ contains
   
   subroutine amrex_eb_avgdown_boundaries (lo, hi, fine, flo, fhi, crse, clo, chi, &
        ba, blo, bhi, lrat, ncomp) bind(c,name='amrex_eb_avgdown_boundaries')
-    use amrex_constants_module, only : zero
     integer, dimension(3), intent(in) :: lo, hi, flo, fhi, clo, chi, blo, bhi, lrat
     integer,               intent(in) :: ncomp
     real(amrex_real),   intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3),ncomp) 
@@ -227,8 +229,6 @@ contains
        apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, &
        fcx, cxlo, cxhi, fcy, cylo, cyhi, fcz, czlo, czhi, &
        dxinv) bind(c,name='amrex_compute_eb_divergence')
-    use amrex_constants_module, only : zero, one
-    use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
     implicit none
     integer, dimension(3), intent(in) :: lo, hi, dlo, dhi, ulo, uhi, vlo, vhi, wlo, whi, &
          cmlo, cmhi, flo, fhi, klo, khi, axlo, axhi, aylo, ayhi, azlo, azhi, &
@@ -342,5 +342,59 @@ contains
        end do
     end do
   end subroutine amrex_compute_eb_divergence
+
+
+  subroutine amrex_eb_avg_fc_to_cc (lo, hi, cc, cclo, cchi, fx, fxlo, fxhi, fy, fylo, fyhi, &
+       fz, fzlo, fzhi, ax, axlo, axhi, ay, aylo, ayhi, az, azlo, azhi, flag, flo, fhi) &
+       bind(c,name='amrex_eb_avg_fc_to_cc')
+    integer, dimension(3), intent(in) :: lo, hi, cclo, cchi, fxlo, fxhi, fylo, fyhi, fzlo, fzhi, &
+         axlo, axhi, aylo, ayhi, azlo, azhi, flo, fhi
+    real(amrex_real), intent(inout) :: cc  (cclo(1):cchi(1),cclo(2):cchi(2),cclo(3):cchi(3),3)
+    real(amrex_real), intent(in   ) :: fx  (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3))
+    real(amrex_real), intent(in   ) :: fy  (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3))
+    real(amrex_real), intent(in   ) :: fz  (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3))
+    real(amrex_real), intent(in   ) :: ax  (axlo(1):axhi(1),axlo(2):axhi(2),axlo(3):axhi(3))
+    real(amrex_real), intent(in   ) :: ay  (aylo(1):ayhi(1),aylo(2):ayhi(2),aylo(3):ayhi(3))
+    real(amrex_real), intent(in   ) :: az  (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
+    integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+    
+    integer :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (is_covered_cell(flag(i,j,k))) then
+                cc(i,j,k,1) = zero
+                cc(i,j,k,2) = zero
+                cc(i,j,k,3) = zero
+             else
+                if (ax(i,j,k) .eq. zero) then
+                   cc(i,j,k,1) = fx(i+1,j,k)
+                else if (ax(i+1,j,k) .eq. zero) then
+                   cc(i,j,k,1) = fx(i,j,k)
+                else
+                   cc(i,j,k,1) = half * (fx(i,j,k) + fx(i+1,j,k))
+                end if
+                
+                if (ay(i,j,k) .eq. zero) then
+                   cc(i,j,k,2) = fy(i,j+1,k)
+                else if (ay(i,j+1,k) .eq. zero) then
+                   cc(i,j,k,2) = fy(i,j,k)
+                else
+                   cc(i,j,k,2) = half * (fy(i,j,k) + fy(i,j+1,k))
+                end if
+
+                if (az(i,j,k) .eq. zero) then
+                   cc(i,j,k,3) = fz(i,j,k+1)
+                else if (az(i,j,k+1) .eq. zero) then
+                   cc(i,j,k,3) = fz(i,j,k)
+                else
+                   cc(i,j,k,3) = half * (fz(i,j,k) + fz(i,j,k+1))
+                end if
+             end if
+          end do
+       end do
+    end do
+  end subroutine amrex_eb_avg_fc_to_cc
 
 end module amrex_eb_util_module

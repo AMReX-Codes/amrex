@@ -81,7 +81,7 @@ MyTest::solve ()
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
     if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-
+    if (use_petsc) mlmg.setBottomSolver(MLMG::BottomSolver::petsc); 
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
@@ -122,6 +122,9 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
+#endif
+#ifdef AMREX_USE_PETSC
+    pp.query("use_petsc",use_petsc); 
 #endif
 }
 
@@ -196,7 +199,7 @@ MyTest::initData ()
 
         if (is_periodic)
         {
-            constexpr Real pi = 4.0*std::atan(1.0);
+            const Real pi = 4.0*std::atan(1.0);
 
             for (MFIter mfi(rhs[ilev]); mfi.isValid(); ++mfi)
             {
