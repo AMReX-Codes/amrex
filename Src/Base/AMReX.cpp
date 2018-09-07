@@ -218,6 +218,9 @@ amrex::Abort (const char* msg)
     } else {
        write_lib_id("Abort");
        write_to_stderr_without_buffering(msg);
+#ifdef _OPENMP
+#pragma omp critical (amrex_abort_omp_critical)
+#endif
        ParallelDescriptor::Abort();
    }
 }
