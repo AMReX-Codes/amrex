@@ -1470,7 +1470,7 @@ void BLProfiler::AddWait(const CommFuncType cft, const MPI_Request &req,
                          ParallelDescriptor::second()));
   } else {
       int c;
-      BL_MPI_REQUIRE( MPI_Get_count(&status, MPI_UNSIGNED_CHAR, &c) );
+      BL_MPI_REQUIRE( MPI_Get_count(const_cast<MPI_Status*>(&status), MPI_UNSIGNED_CHAR, &c) );
       vCommStats.push_back(CommStats(cft, c, status.MPI_SOURCE, status.MPI_TAG,
                            ParallelDescriptor::second()));
   }
