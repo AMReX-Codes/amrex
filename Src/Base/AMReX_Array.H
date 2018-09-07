@@ -19,7 +19,7 @@ namespace amrex {
 
 namespace amrex
 {
-    template <class T>
+    template <class T, typename = typename T::FABType>
     std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a)
     {
         return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
