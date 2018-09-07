@@ -273,7 +273,7 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
 
         # Geometry
         pywarpx.geometry.coord_sys = self.coord_sys
-        pywarpx.geometry.is_periodic = '%d %d %d'%(self.bc_xmin=='periodic', self.bc_ymin=='periodic')  # Is periodic?
+        pywarpx.geometry.is_periodic = '%d %d'%(self.bc_xmin=='periodic', self.bc_ymin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
 
