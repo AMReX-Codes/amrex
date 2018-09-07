@@ -315,7 +315,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 void
 MLALaplacian::FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only) const
+                        const FArrayBox& sol, Location, const int face_only) const
 {
     BL_PROFILE("MLALaplacian::FFlux()");
 

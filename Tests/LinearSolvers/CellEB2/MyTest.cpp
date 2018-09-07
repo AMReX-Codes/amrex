@@ -52,40 +52,80 @@ MyTest::solve ()
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
-    mleb.setMaxOrder(linop_maxorder);
+    if (composite_solve)
+    {
+        MLEBABecLap mleb (geom, grids, dmap, info, amrex::GetVecOfConstPtrs(factory));
+        mleb.setMaxOrder(linop_maxorder);
+        
+        mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
 
-    mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
-
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        mleb.setLevelBC(ilev, &phi[ilev]);
-    }
-
-    mleb.setScalars(scalars[0], scalars[1]);
-
-    for (int ilev = 0; ilev <= max_level; ++ilev) {
-        mleb.setACoeffs(ilev, acoef[ilev]);
-        mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
-    }
-
-    if (true) { // In this test we assume EB is Dirichlet.
         for (int ilev = 0; ilev <= max_level; ++ilev) {
-            mleb.setEBDirichlet(ilev, phieb[ilev], bcoef_eb[ilev]);
+            mleb.setLevelBC(ilev, &phi[ilev]);
+        }
+        
+        mleb.setScalars(scalars[0], scalars[1]);
+        
+        for (int ilev = 0; ilev <= max_level; ++ilev) {
+            mleb.setACoeffs(ilev, acoef[ilev]);
+            mleb.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoef[ilev]));
+        }
+        
+        if (true) { // In this test we assume EB is Dirichlet.
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                mleb.setEBDirichlet(ilev, phieb[ilev], bcoef_eb[ilev]);
+            }
+        }
+
+        MLMG mlmg(mleb);
+        mlmg.setMaxIter(max_iter);
+        mlmg.setMaxFmgIter(max_fmg_iter);
+        mlmg.setBottomMaxIter(max_bottom_iter);
+        mlmg.setBottomTolerance(bottom_reltol);
+        mlmg.setVerbose(verbose);
+        mlmg.setBottomVerbose(bottom_verbose);
+        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        
+        const Real tol_rel = reltol;
+        const Real tol_abs = 0.0;
+        mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+    }
+    else
+    {
+        for (int ilev = 0; ilev <= max_level; ++ilev)
+        {
+            MLEBABecLap mleb({geom[ilev]}, {grids[ilev]}, {dmap[ilev]}, info, {factory[ilev].get()});
+            mleb.setMaxOrder(linop_maxorder);
+
+            mleb.setDomainBC(mlmg_lobc, mlmg_hibc);
+
+            if (ilev > 0) {
+                mleb.setCoarseFineBC(&phi[ilev-1], 2);
+            }
+            mleb.setLevelBC(0, &phi[ilev]);
+
+            mleb.setScalars(scalars[0], scalars[1]);
+
+            mleb.setACoeffs(0, acoef[ilev]);
+            mleb.setBCoeffs(0, amrex::GetArrOfConstPtrs(bcoef[ilev]));
+
+            if (true) { // In this test we assume EB is Dirichlet.
+                mleb.setEBDirichlet(0, phieb[ilev], bcoef_eb[ilev]);
+            }
+
+            MLMG mlmg(mleb);
+            mlmg.setMaxIter(max_iter);
+            mlmg.setMaxFmgIter(max_fmg_iter);
+            mlmg.setBottomMaxIter(max_bottom_iter);
+            mlmg.setBottomTolerance(bottom_reltol);
+            mlmg.setVerbose(verbose);
+            mlmg.setBottomVerbose(bottom_verbose);
+            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            
+            const Real tol_rel = reltol;
+            const Real tol_abs = 0.0;
+            mlmg.solve({&phi[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
         }
     }
-
-    MLMG mlmg(mleb);
-    mlmg.setMaxIter(max_iter);
-    mlmg.setMaxFmgIter(max_fmg_iter);
-    mlmg.setBottomMaxIter(max_bottom_iter);
-    mlmg.setBottomTolerance(bottom_reltol);
-    mlmg.setVerbose(verbose);
-    mlmg.setBottomVerbose(bottom_verbose);
-    if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
-
-    const Real tol_rel = reltol;
-    const Real tol_abs = 0.0;
-    mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
     for (int ilev = 0; ilev <= max_level; ++ilev)
     {
@@ -164,6 +204,8 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+
+    pp.query("composite_solve", composite_solve);
 }
 
 void

@@ -30,9 +30,6 @@ add_sources ( AMReX_BLProfiler.H AMReX_BLBackTrace.H AMReX_BLFort.H )
 add_sources ( AMReX_NFiles.cpp )
 add_sources ( AMReX_NFiles.H )
    
-add_sources ( AMReX_SPMD.cpp )
-add_sources ( AMReX_SPMD.H AMReX_SPMDI.H )
-
 add_sources ( AMReX_parstream.cpp )
 add_sources ( AMReX_parstream.H )
 

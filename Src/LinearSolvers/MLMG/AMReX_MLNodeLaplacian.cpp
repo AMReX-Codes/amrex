@@ -978,7 +978,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 {
     BL_PROFILE("MLNodeLaplacian::restriction()");
 
-    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous);
+    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
     const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
 
@@ -1139,7 +1139,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
-    applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous);
+    applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1183,7 +1183,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 }
 
 void
-MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
+MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
                           bool skip_fillboundary) const
 {
     BL_PROFILE("MLNodeLaplacian::applyBC()");
@@ -1793,7 +1793,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, 2), fdm, 1, 0);
 
-    applyBC(crse_amrlev+1, 0, fine_res, BCMode::Inhomogeneous);
+    applyBC(crse_amrlev+1, 0, fine_res, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
 #pragma omp parallel
