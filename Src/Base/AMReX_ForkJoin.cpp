@@ -180,6 +180,7 @@ ForkJoin::ComponentBounds(const std::string& name, int idx) const
 void
 ForkJoin::copy_data_to_tasks ()
 {
+    BL_PROFILE("ForkJoin::copy_data_to_tasks()");
     if (flag_verbose) {
         amrex::Print() << "Copying data into fork-join tasks ...\n";
     }
@@ -241,6 +242,7 @@ ForkJoin::copy_data_to_tasks ()
 void
 ForkJoin::copy_data_from_tasks ()
 {
+    BL_PROFILE("ForkJoin::copy_data_from_tasks()");
     if (flag_verbose) {
         amrex::Print() << "Copying data out of fork-join tasks ...\n";
     }
