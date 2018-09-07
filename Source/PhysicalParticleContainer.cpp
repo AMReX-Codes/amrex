@@ -1262,11 +1262,12 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     const Box& crse_domain = this->Geom(crse_lev).Domain();
     const int num_boxes = fine_ba.size();
     Vector<Box> stretched_boxes;
+    const int safety_factor = 4;
     for (int i = 0; i < num_boxes; ++i) {
         Box bx = fine_ba[i];
         bx.coarsen(rr);
-        bx.setSmall(dir, crse_domain.smallEnd(dir));
-        bx.setBig(dir, crse_domain.bigEnd(dir));
+        bx.setSmall(dir, std::numeric_limits<int>::min()/safety_factor);
+        bx.setBig(dir, std::numeric_limits<int>::max()/safety_factor);
         stretched_boxes.push_back(bx);
     }
     BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
