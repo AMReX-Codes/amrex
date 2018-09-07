@@ -41,8 +41,6 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_parstream.H>
-#include <AMReX_SPMD.H>
 
 #include <AMReX_CUDA_Utility.H>
 
