@@ -121,6 +121,16 @@ namespace amrex
         return r;
     }
 
+    template <class T>
+    Vector<std::array<T const*,AMREX_SPACEDIM> >
+    GetVecOfArrOfPtrsConst (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
+    {
+        Vector<std::array<T const*, AMREX_SPACEDIM> > r;
+        r.reserve(a.size());
+        for (const auto& x : a)  r.push_back(GetArrOfConstPtrs(x));
+        return r;
+    }
+
     template <class T, typename std::enable_if<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
                                                int>::type = 0 >
