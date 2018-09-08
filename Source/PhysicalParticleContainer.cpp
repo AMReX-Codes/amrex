@@ -1242,40 +1242,44 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     if (finestLevel() == 0) return 1;
     if (not WarpX::refine_plasma) return 1;
 
-    AMREX_ALWAYS_ASSERT(finestLevel() == 1); // need to fix for more than two levels
-
-    const int fine_lev = 1;
-    const int crse_lev = 0;
-
     IntVect iv;
-    const Geometry& geom = Geom(crse_lev);
-
+    const Geometry& geom = Geom(0);
+    
     AMREX_D_TERM(iv[0]=static_cast<int>(floor((x-geom.ProbLo(0))*geom.InvCellSize(0)));,
                  iv[1]=static_cast<int>(floor((y-geom.ProbLo(1))*geom.InvCellSize(1)));,
                  iv[2]=static_cast<int>(floor((z-geom.ProbLo(2))*geom.InvCellSize(2))););
-
+    
     iv += geom.Domain().smallEnd();
-
+    
     const int dir = WarpX::moving_window_dir;
-    const IntVect rr = m_gdb->refRatio(crse_lev);
-    const BoxArray& fine_ba = this->ParticleBoxArray(fine_lev);
-    const Box& crse_domain = this->Geom(crse_lev).Domain();
-    const int num_boxes = fine_ba.size();
-    Vector<Box> stretched_boxes;
-    const int safety_factor = 4;
-    for (int i = 0; i < num_boxes; ++i) {
-        Box bx = fine_ba[i];
-        bx.coarsen(rr);
-        bx.setSmall(dir, std::numeric_limits<int>::min()/safety_factor);
-        bx.setBig(dir, std::numeric_limits<int>::max()/safety_factor);
-        stretched_boxes.push_back(bx);
+    
+    int ref_fac = 1;
+    for (int lev = 0; lev < finestLevel(); ++lev)
+    {        
+        const IntVect rr = m_gdb->refRatio(lev);
+        const BoxArray& fine_ba = this->ParticleBoxArray(lev+1);
+        const int num_boxes = fine_ba.size();
+        Vector<Box> stretched_boxes;
+        const int safety_factor = 4;
+        for (int i = 0; i < num_boxes; ++i) {
+            Box bx = fine_ba[i];
+            bx.coarsen(ref_fac*rr[dir]);
+            bx.setSmall(dir, std::numeric_limits<int>::min()/safety_factor);
+            bx.setBig(dir, std::numeric_limits<int>::max()/safety_factor);
+            stretched_boxes.push_back(bx);
+        }
+        BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
+        
+        const int num_ghost = 0;
+        if ( stretched_ba.intersects(Box(iv, iv), num_ghost) )
+        {
+            ref_fac *= rr[dir];
+        }
+        else
+        {
+            break;
+        }
     }
-    BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
-
-    const int num_ghost = 0;
-    bool hit = stretched_ba.intersects(Box(iv, iv), num_ghost);
-    if (hit) {
-        return rr[dir];
-    }
-    return 1;
+    
+    return ref_fac;
 }
