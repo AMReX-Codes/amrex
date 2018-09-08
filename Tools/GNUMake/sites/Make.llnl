@@ -87,6 +87,8 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel))
 
     SYSTEM_CUDA_PATH=$(CUDA_HOME)
 
+    SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
     # Specify that we want to build for Volta
 
     CUDA_ARCH = 70
