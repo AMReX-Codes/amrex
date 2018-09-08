@@ -118,6 +118,15 @@ amrex::Device::initialize_device() {
         NvmlAPICheck(nvmlDeviceGetPciInfo(handle, &pci_info));
         nvml_PCI_ids.push_back(std::string(pci_info.busId));
 
+        // Strip out leading zeros in the PCI bus ID,
+        // to ensure compatibility in the comparison with CUDA.
+
+        int j = 0;
+        while (nvml_PCI_ids[i][j] == '0')
+            ++j;
+
+        nvml_PCI_ids[i].erase(0, j);
+
     }
 
     // Count the number of CUDA visible devices.
@@ -143,6 +152,15 @@ amrex::Device::initialize_device() {
 
         cuda_PCI_ids.push_back(std::string(c));
 
+        // Strip out leading zeros in the CUDA bus ID,
+        // to ensure compatibility in the comparison with NVML.
+
+        int j = 0;
+        while (cuda_PCI_ids[cuda_device][j] == '0')
+            ++j;
+
+        cuda_PCI_ids[cuda_device].erase(0, j);
+
     }
 
     // Using the PCI bus ID as a translation factor,
@@ -161,7 +179,7 @@ amrex::Device::initialize_device() {
 
     }
 
-    // Gather the list of device UUID's from all ranks. For simplicitly we'll
+    // Gather the list of device UUID's from all ranks. For simplicity we'll
     // assume that every rank sees the same number of devices and every device
     // UUID has the same number of characters; this assumption could be lifted
     // later in situations with unequal distributions of devices per node/rank.
