@@ -61,7 +61,7 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel))
 
   XLC_ROOT = /usr/tce/packages/xl/xl-beta-2018.06.01/xlC/16.1.1/
   XLF_ROOT = /usr/tce/packages/xl/xl-beta-2018.06.01/xlf/16.1.1/
-  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-2018.06.01
+  MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
 
   ifeq ($(USE_MPI),TRUE)
     CC  = mpicc
