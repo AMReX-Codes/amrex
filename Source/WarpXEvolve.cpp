@@ -176,6 +176,8 @@ WarpX::EvolveEM (int numsteps)
 
 	if (to_make_plot)
         {
+            FillBoundaryE();
+            FillBoundaryB();
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -203,8 +205,10 @@ WarpX::EvolveEM (int numsteps)
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
     {
+        FillBoundaryE();
+        FillBoundaryB();
         UpdateAuxilaryData();
-
+        
         for (int lev = 0; lev <= finest_level; ++lev) {
             mypc->FieldGather(lev,
                               *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
