@@ -51,7 +51,7 @@ inline void ActualNvmlAPICheck(nvmlReturn_t err) {
 
 extern "C" {
 #ifdef AMREX_USE_CUDA
-    void initialize_cuda(const int* id, const int* rank, const int* num_devices, const int* num_ranks, const int* ioproc, const int* verbose);
+    void initialize_cuda(const int* id);
     void finalize_cuda();
     void set_stream_idx(const int idx);
     void get_stream_idx(int* idx);

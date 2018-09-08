@@ -56,7 +56,7 @@ module cuda_module
 
 contains
 
-  subroutine initialize_cuda(id, rank, num_devices, num_ranks, ioproc, v) bind(c, name='initialize_cuda')
+  subroutine initialize_cuda(id) bind(c, name='initialize_cuda')
 #ifdef AMREX_USE_ACC
     use openacc, only: acc_init, acc_set_device_num, acc_device_nvidia
 #endif
@@ -66,25 +66,14 @@ contains
 
     implicit none
 
-    integer, intent(in) :: id, rank, num_devices, num_ranks, ioproc, v
+    integer, intent(in) :: id
 
     integer :: i, cudaResult, ilen
-
-    character(32) :: char_id, char_rank, device_str, nproc_str
-
-    cuda_device_id = id
-
-    cudaResult = cudaSetDevice(cuda_device_id)
-    call gpu_error_test(cudaResult)
-
-    call gpu_synchronize() ! Max recommends to avoid sporadic initialization errors
 
 #ifdef AMREX_USE_ACC
     call acc_init(acc_device_nvidia)
     call acc_set_device_num(cuda_device_id, acc_device_nvidia)
 #endif
-
-    call gpu_synchronize() ! Max recommends to avoid sporadic initialization errors
 
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
     ! This stream is synchronous and blocking. It is our default choice, and we
@@ -117,18 +106,6 @@ contains
     call gpu_error_test(cudaResult)
 
     ilen = verify(prop%name, ' ', .true.)
-
-    write(char_id, '(i32)') id
-    write(char_rank, '(i32)') rank
-    write(device_str, '(i32)') num_devices
-    write(nproc_str, '(i32)') num_ranks
-
-    verbose = v
-
-    if (verbose > 0) then
-       print *, "Using GPU " // trim(adjustl(char_id)) // ": " // prop%name(1:ilen) // " on rank " // trim(adjustl(char_rank))
-    else
-    end if
 
   end subroutine initialize_cuda
 
