@@ -4,6 +4,7 @@
 #include <AMReX_Device.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
 
 bool amrex::Device::in_device_launch_region = true;
 int amrex::Device::device_id = 0;
@@ -167,6 +168,17 @@ amrex::Device::initialize_device() {
         // been handled.
 
         device_id = my_rank % cuda_device_count;
+
+        // If we detect more ranks than visible GPUs, warn the user
+        // that this will fail in the case where the devices are
+        // set to exclusive process mode and MPS is not enabled.
+
+        if (n_procs > cuda_device_count) {
+            amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
+                           << "and MPS is not enabled. In that case you will see an error such as all CUDA-capable devices are\n"
+                           << "busy. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
+                           << "on a cluster, please consult the system user guide for how to launch your job in this configuration.\n";
+        }
 
 #endif
 
