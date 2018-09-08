@@ -34,6 +34,11 @@ ifeq ($(which_computer),$(filter $(which_computer),titan))
   CUDA_ARCH = 35
   COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
 
+  # Provide system configuration information.
+
+  GPUS_PER_NODE=1
+  GPUS_PER_SOCKET=1
+
 endif
 
 
@@ -69,6 +74,11 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
   CUDA_ARCH = 60
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
+  # Provide system configuration information.
+
+  GPUS_PER_NODE=4
+  GPUS_PER_SOCKET=2
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)
   GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_60
@@ -109,6 +119,11 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   CUDA_ARCH = 70
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
+  # Provide system configuration information.
+
+  GPUS_PER_NODE=6
+  GPUS_PER_SOCKET=3
 
 ifeq ($(USE_OMP_OFFLOAD),TRUE)
   GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
