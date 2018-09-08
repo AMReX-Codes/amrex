@@ -250,7 +250,7 @@ contains
     call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=(/n1,n2,n3,n4,n5,n6/))
 #if __INTEL_COMPILER >= 1800
-    a(lo1:,lo2:,lo3:,lo4:,lo5:,lo6) => fp
+    a(lo1:,lo2:,lo3:,lo4:,lo5:,lo6:) => fp
 #else
     call shift_bound_d6(fp, lo1, lo2, lo3, lo4, lo5, lo6, a)
   contains
@@ -355,7 +355,7 @@ contains
     call amrex_real_array_init(cp, sz)
     call c_f_pointer(cp, fp, shape=n)
 #if __INTEL_COMPILER >= 1800
-    a(lo(1):,1) => fp
+    a(lo(1):,1:) => fp
 #else
     call shift_bound_d1_vc(fp, lo, a)
   contains
