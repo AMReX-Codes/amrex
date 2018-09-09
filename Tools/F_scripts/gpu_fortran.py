@@ -25,25 +25,7 @@ For each one, generate a device copy by prepending attributes(device) prior to t
 
   end subroutine sub_device
 
-Additionally, generate a host copy:
-
-  subroutine sub_host(a)
-
-    integer :: a
-
-    !$gpu
-
-    ...
-
-  end subroutine sub_host
-
-and then create a module interface for them:
-
-  interface sub
-    module procedure sub_host
-    module procedure sub_device
-  end interface sub
-
+The host copy is retained with the same name.
 """
 
 from __future__ import print_function
