@@ -131,6 +131,8 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   SYSTEM_CUDA_PATH=$(CUDAPATH)
 
+  SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
   # Specify that we want to build for Volta
 
   CUDA_VERSION = cc70

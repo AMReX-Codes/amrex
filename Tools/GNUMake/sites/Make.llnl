@@ -59,6 +59,8 @@ ifeq ($(which_computer),$(filter $(which_computer),sierra))
 
   # If the cuda module is loaded, CUDA_HOME is set as the toolkit location.
 
+  SYSTEM_NVML_PATH=/usr/lib64/nvidia
+
   SYSTEM_CUDA_PATH=$(CUDA_HOME)
 
   ifeq ($(lowercase_comp),gnu)
