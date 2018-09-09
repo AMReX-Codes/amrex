@@ -195,9 +195,7 @@ def update_fortran_procedures(ffile):
     with attributes(device), and create a host copy as well, to
     avoid the CUF restriction on attributes(host, device) In order
     to avoid name collisions, we'll name one with a _device suffix
-    and the other with a _host suffix, and then create an interface
-    in the module so that they can both be addressed with the original
-    procedure name."""
+    and the other with a _host suffix."""
 
     gpu_targets = []
 
