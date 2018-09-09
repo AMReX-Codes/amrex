@@ -90,6 +90,8 @@ std::string amrex::Version ()
 
 int amrex::Verbose () { return amrex::system::verbose; }
 
+void amrex::SetVerbose (int v) { amrex::system::verbose = v; }
+
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
 // to ensure that when writing the message to stderr, that no additional

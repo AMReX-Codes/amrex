@@ -87,6 +87,7 @@ namespace amrex
     std::ostream& ErrorStream ();
 
     int Verbose ();
+    void SetVerbose (int v);
 
     namespace system
     {
