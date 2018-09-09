@@ -27,7 +27,8 @@ private:
     int verbose = 2;
     int bottom_verbose = 0;
     int max_iter = 100;
-    amrex::Real reltol = 1.e-12;
+    int max_fmg_iter = 0;
+    amrex::Real reltol = 1.e-11;
 
     amrex::Geometry geom;
     amrex::BoxArray grids;
