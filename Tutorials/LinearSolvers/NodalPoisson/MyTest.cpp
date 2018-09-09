@@ -51,7 +51,6 @@ MyTest::compute_norms () const
     {
         MultiFab one(error.boxArray(), error.DistributionMap(), 1, 0);
         one.setVal(1.0);
-        bool local = true;
         Real r1 = MultiFab::Dot(*mask,one,0,one,0,1,0);
         Real r2 = MultiFab::Dot(*mask,one,0,error,0,1,0);
         avg = r2 / r1;

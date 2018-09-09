@@ -23,13 +23,12 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
         dm[ilev] = a_umac[ilev][0]->DistributionMap();
     }
 
-    bool has_eb = a_umac[0][0]->hasEBFabFactory();
-
     m_rhs.resize(nlevs);
     m_phi.resize(nlevs);
     m_fluxes.resize(nlevs);
 
 #ifdef AMREX_USE_EB
+    bool has_eb = a_umac[0][0]->hasEBFabFactory();
     if (has_eb)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_umac[0][0]->nGrow() > 0,
