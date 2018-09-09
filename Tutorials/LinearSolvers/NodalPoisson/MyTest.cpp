@@ -30,6 +30,7 @@ MyTest::solve ()
 
     MLMG mlmg(linop);
     mlmg.setMaxIter(max_iter);
+    mlmg.setMaxFmgIter(max_fmg_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
 
@@ -74,6 +75,7 @@ MyTest::readParameters ()
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_iter", max_iter);
+    pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("reltol", reltol);
 }
 
