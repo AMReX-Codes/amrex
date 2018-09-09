@@ -1005,11 +1005,6 @@ void AllGatherBoxes (Vector<Box>& bxs);
         return result;
     }
 
-    Vector<int> SerializeBox(const Box &b);
-    inline int SerializeBoxSize() { return (AMREX_SPACEDIM * 3); }
-    Box UnSerializeBox(const Vector<int> &serarray);
-
-
     //! Write an ASCII representation to the ostream.
     std::ostream& operator<< (std::ostream& os, const Box& bx);
 
