@@ -341,48 +341,6 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 }
 
 void
-FluxRegister::FineAdd (const Real*      flxdat,
-                       const Box&       flxbox,
-                       int              dir,
-                       int              boxno,
-                       int              srccomp,
-                       int              destcomp,
-                       int              numcomp,
-                       Real             mult)
-{
-    BL_ASSERT(srccomp >= 0);
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
-
-    const int*  flo    = flxbox.loVect();
-    const int*  fhi    = flxbox.hiVect();
-
-    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
-
-#ifdef AMREX_DEBUG
-    Box cbox = amrex::coarsen(flxbox,ratio);
-    BL_ASSERT(cbox.contains(loreg.box()));
-#endif
-    const int* rlo = loreg.box().loVect();
-    const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(destcomp);
-    amrex_frfineadd(lodat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-                   flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                   &numcomp,&dir,ratio.getVect(),&mult);
-
-    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
-
-#ifdef AMREX_DEBUG
-    BL_ASSERT(cbox.contains(hireg.box()));
-#endif
-    rlo = hireg.box().loVect();
-    rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(destcomp);
-    amrex_frfineadd(hidat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-                   flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                   &numcomp,&dir,ratio.getVect(),&mult);
-}
-
-void
 FluxRegister::FineAdd (const FArrayBox& flux,
                        const FArrayBox& area,
                        int              dir,
