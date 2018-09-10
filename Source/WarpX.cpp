@@ -150,6 +150,8 @@ WarpX::WarpX ()
     Efield_fp.resize(nlevs_max);
     Bfield_fp.resize(nlevs_max);
 
+    current_store.resize(nlevs_max);
+
     F_cp.resize(nlevs_max);
     rho_cp.resize(nlevs_max);
     current_cp.resize(nlevs_max);
@@ -231,6 +233,10 @@ WarpX::ReadParameters ()
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
+        pp.query("do_subcycling", do_subcycling);
+
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
+                                         "Subcycling method 1 only works for 2 levels.");
 
         ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
@@ -444,6 +450,8 @@ WarpX::ClearLevel (int lev)
 	Efield_fp [lev][i].reset();
 	Bfield_fp [lev][i].reset();
 
+        current_store[lev][i].reset();
+
 	current_cp[lev][i].reset();
 	Efield_cp [lev][i].reset();
 	Bfield_cp [lev][i].reset();
@@ -536,6 +544,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
+
+    if (do_subcycling == 1 && lev == 1) {
+        current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
+        current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
+        current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
+    }
 
     if (do_dive_cleaning)
     {

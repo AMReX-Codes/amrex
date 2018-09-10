@@ -675,8 +675,8 @@ WarpX::ComputeDt ()
     if (maxwell_fdtd_solver_id == 0) {
       // CFL time step Yee solver
       deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
-                                                    + 1./(dx[1]*dx[1]),
-                                                    + 1./(dx[2]*dx[2]))) * PhysConst::c );
+                                                  + 1./(dx[1]*dx[1]),
+                                                  + 1./(dx[2]*dx[2]))) * PhysConst::c );
     } else {
       // CFL time step CKC solver
 #if (BL_SPACEDIM == 3)
@@ -688,6 +688,12 @@ WarpX::ComputeDt ()
     }
     dt.resize(0);
     dt.resize(max_level+1,deltat);
+
+    if (do_subcycling) {
+        for (int lev = max_level-1; lev >= 0; --lev) {
+            dt[lev] = dt[lev+1] * refRatio(lev)[0];
+        }
+    }
 
     if (do_electrostatic) {
         dt[0] = const_dt;

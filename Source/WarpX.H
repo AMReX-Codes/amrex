@@ -34,6 +34,12 @@ enum struct DtType : int
     SecondHalf
 };
 
+enum struct PatchType : int
+{
+    fine,
+    coarse
+};
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -365,6 +371,9 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
 
+    // store fine patch
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_store;
+
     // Coarse patch
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > F_cp;
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp;
@@ -409,6 +418,8 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
+
+    int do_subcycling = 0;
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
