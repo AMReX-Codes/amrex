@@ -31,7 +31,8 @@ extern "C"
 	bx.shiftHalf(dir,-1);
 
 	BL_ASSERT(flux_reg->nComp() == nfluxes);
-	flux_reg->FineAdd(fabdata, bx, dir, boxno, 0, 0, flux_reg->nComp(), scale);
+        const FArrayBox fab(bx, nfluxes, const_cast<Real*>(fabdata));
+	flux_reg->FineAdd(fab, dir, boxno, 0, 0, flux_reg->nComp(), scale);
     }
 
     void amrex_fi_fluxregister_crseinit (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
