@@ -11,6 +11,15 @@
 
 using namespace amrex;
 
+namespace {
+    void warpx_add_params () {
+        ParmParse pp("amrex");
+        if (pp.countval("v") == 0 && pp.countval("verbose") == 0) {
+            pp.add("v", 1);
+        }
+    }
+}
+
 int main(int argc, char* argv[])
 {
 #if defined(_OPENMP) && defined(WARPX_USE_PSATD)
@@ -21,7 +30,7 @@ int main(int argc, char* argv[])
     MPI_Init(&argc, &argv);
 #endif
 
-    amrex::Initialize(argc,argv);
+    amrex::Initialize(argc,argv,true,MPI_COMM_WORLD,warpx_add_params);
 
     ConvertLabParamsToBoost();
 
