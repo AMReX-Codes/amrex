@@ -24,6 +24,16 @@ extern "C"
         }
     }
 
+  void amrex_fi_fluxregister_fineadd_1fab_1dir (FluxRegister* flux_reg, const Real* fabdata,  const int* flo, const int* fhi, int dir, int boxno, int nfluxes, Real scale)
+    {
+        Box bx;
+	bx = Box(IntVect(flo), IntVect(fhi));
+	bx.shiftHalf(dir,-1);
+
+	BL_ASSERT(flux_reg->nComp() == nfluxes);
+	flux_reg->FineAdd(fabdata, bx, dir, boxno, 0, 0, flux_reg->nComp(), scale);
+    }
+
     void amrex_fi_fluxregister_crseinit (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
     {
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
