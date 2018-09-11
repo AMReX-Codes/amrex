@@ -170,10 +170,11 @@ compiler commands.
 
 For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
 (4.2.1). It is therefore commonplace to install GCC using the `homebrew
-<https://brew.sh>`_ package manager. This in turn installs compilers with names
-reflecting the version number. If GCC 8.2 is installed, homebrew installs it as
-``gcc-8``. AMReX can be built using ``gcc-8`` without MPI by using the
-following ``amrex/Tools/GNUMake/Make.local``:
+<https://brew.sh>`_ package manager. This in turn installs compilers (using
+``brew install gcc``) with names reflecting the version number. If GCC 8.2 is
+installed, homebrew installs it as ``gcc-8``. AMReX can be built using
+``gcc-8`` without MPI by using the following
+``amrex/Tools/GNUMake/Make.local``:
 
 :: 
 
