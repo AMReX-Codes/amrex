@@ -115,6 +115,10 @@ installed using homebrew also:
 #. ``brew cask install xquartz``
 #. ``brew install openmotif``
 
+Note that you will be warned that "/usr/include/Xm does not exist". This
+warning is safe to ignore, as homebrew installs the openmotif includes into
+``/usr/local/include/Xm`` instead.
+
 
 .. _sec:visit:
 
