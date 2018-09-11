@@ -115,10 +115,9 @@ installed using homebrew also:
 #. ``brew cask install xquartz``
 #. ``brew install openmotif``
 
-Note that you will be warned that "/usr/include/Xm does not exist". This
-warning is safe to ignore, as homebrew installs the openmotif includes into
-``/usr/local/include/Xm`` instead.
-
+Note that when the ``GNUmakefile`` detects a macOS install, it assumes that
+dependencies are installed in the locations that Homebrew uses. Namely the
+``/usr/local/`` tree for regular dependencies and the ``/opt/`` tree for X11.
 
 .. _sec:visit:
 
