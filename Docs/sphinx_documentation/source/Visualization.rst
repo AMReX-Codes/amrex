@@ -103,6 +103,19 @@ you can build into a pdf using pdflatex).
    +-----+-----+
 
 
+
+Building Amrvis on macOS
+------------------------
+
+As previously outlined at the end of section :ref:`sec:build:make`, it is
+recommended to build using the `homebrew <https://brew.sh>`_ package manager to
+install gcc. Furthermore, you will also need x11 and openmotif. These can be
+installed using homebrew also:
+
+#. ``brew cask install xquartz``
+#. ``brew install openmotif``
+
+
 .. _sec:visit:
 
 VisIt
