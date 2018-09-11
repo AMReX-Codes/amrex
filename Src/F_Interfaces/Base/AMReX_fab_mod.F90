@@ -30,6 +30,11 @@ module amrex_fab_module
 #endif
   end type amrex_fab
 
+  interface amrex_fab_build
+     module procedure amrex_fab_build
+     module procedure amrex_fab_build_install
+  end interface amrex_fab_build
+
 contains
 
   subroutine amrex_fab_build (fab, bx, nc)
@@ -43,6 +48,27 @@ contains
     call amrex_allocate(fab%fp, bx%lo, bx%hi, nc)
     fab%cp = c_loc(fab%fp(bx%lo(1),bx%lo(2),bx%lo(3),1))
   end subroutine amrex_fab_build
+
+  subroutine amrex_fab_build_install (fab, dp, bx, nc)
+    type(amrex_fab), intent(inout) :: fab
+    real(amrex_real), contiguous, pointer, intent(in), dimension(:,:,:,:) :: dp
+    type(amrex_box), intent(in   ) :: bx
+    integer,optional, intent(in) :: nc
+    integer :: mync
+    call amrex_fab_destroy(fab)
+    if (associated(dp)) then
+       if (present(nc)) then
+          mync = nc
+       else
+          mync = size(dp,4)
+       end if
+       fab%bx    = bx
+       fab%nc    = mync
+       fab%owner = .false.
+       fab%fp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => dp
+       fab%cp = c_loc(fab%fp(bx%lo(1),bx%lo(2),bx%lo(3),1))
+    end if
+  end subroutine amrex_fab_build_install
 
   impure elemental subroutine amrex_fab_destroy (fab)
     type(amrex_fab), intent(inout) :: fab
