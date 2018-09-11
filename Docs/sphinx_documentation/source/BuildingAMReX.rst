@@ -11,7 +11,7 @@ In this build approach, you write your own make files defining a number of
 variables and rules. Then you invoke  ``make`` to start the building process.
 This will result in an executable upon successful completion. The temporary
 files generated in the building process are stored in a temporary directory
-named  ``tmp_build_dir`` 
+named  ``tmp_build_dir``.
 
 Dissecting a Simple Make File
 -----------------------------
@@ -53,7 +53,7 @@ At the beginning of ``amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile``,
 the example :cpp:`?=` is a conditional variable assignment operator that only
 has an effect if ``AMREX_HOME`` has not been defined (including in the
 environment). One can also set ``AMREX_HOME`` as an environment variable. For
-example in bash, one can set 
+example in bash, one can set
 
 .. highlight:: bash
 
@@ -169,14 +169,13 @@ own compile commands by setting the valiables ``CXX``, ``CC``, ``FC``, and
 compiler commands.
 
 For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
-(4.2.1). It is therefore commonplace to install GCC using the `homebrew
-<https://brew.sh>`_ package manager. This in turn installs compilers (using
-``brew install gcc``) with names reflecting the version number. If GCC 8.2 is
-installed, homebrew installs it as ``gcc-8``. AMReX can be built using
-``gcc-8`` without MPI by using the following
-``amrex/Tools/GNUMake/Make.local``:
+(4.2.1). It is therefore recommended to install GCC using the `homebrew
+<https://brew.sh>`_ package manager. Running ``brew install gcc`` installs gcc
+with names reflecting the version number. If GCC 8.2 is installed, homebrew
+installs it as ``gcc-8``. AMReX can be built using ``gcc-8`` without MPI by
+using the following ``amrex/Tools/GNUMake/Make.local``:
 
-:: 
+::
 
     ifeq ($(USE_MPI),TRUE)
       CXX = mpicxx
@@ -236,7 +235,7 @@ The CMake build process is summarized as follows:
 
     mkdir /path/to/builddir
     cd    /path/to/builddir
-    cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
+    cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex
     make  install
 
 In the above snippet, ``[options]`` indicates one or more options for the
@@ -257,7 +256,7 @@ AMReX configuration settings may be specified on the command line with the
 
 ::
 
-    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
+    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex
 
 The list of available option is reported in the table on :ref:`tab:cmakevar`
 below.
@@ -308,7 +307,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_COMM_PROFILE          |  Build with comm-profiling support              | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | OFF         | ON, OFF         | 
+   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PROFPARSER            |  Build with profile parser support              | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -330,7 +329,7 @@ below.
 The option ``ENABLE_LINEAR_SOLVERS=ON`` triggers the inclusion of C++-based
 linear solvers in the build. Fortran-based linear solvers can be included as
 well by providing the option ``ENABLE_FBASELIB=ON`` in addition to
-``ENABLE_LINEAR_SOLVERS=ON``. 
+``ENABLE_LINEAR_SOLVERS=ON``.
 
 The option ``DEBUG=ON`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
 assertions in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while
@@ -351,7 +350,7 @@ Importing AMReX into your CMake project
 --------------------------------------------------
 
 In order to import the AMReX library into your CMake project, you need
-to include the following line in the appropriate CMakeLists.txt file: 
+to include the following line in the appropriate CMakeLists.txt file:
 
 .. highlight:: cmake
 
