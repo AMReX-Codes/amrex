@@ -640,3 +640,18 @@ WarpX::SumBoundaryJ (int lev, PatchType patch_type)
     }
 }
 
+void
+WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
+{
+    const auto& period = Geom(lev).periodicity();
+    for (int idim = 0; idim < 3; ++idim) {
+        MultiFab mf(current_fp[lev][idim]->boxArray(),
+                    current_fp[lev][idim]->DistributionMap(), 1, 0);
+        mf.setVal(0.0);
+        mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
+                       current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                       period);
+        current_fp[lev][idim]->SumBoundary(period);
+        MultiFab::Copy(*current_fp[lev][idim], mf, 0, 0, 1, 0);
+    }
+}

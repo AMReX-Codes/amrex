@@ -239,12 +239,17 @@ private:
     void OneStep_sub1 (amrex::Real t);
 
     void RestrictCurrentFromFineToCoarsePatch (int lev);
+    void AddCurrentFromFineLevelandSumBoundary (int lev);
+    void StoreCurrent (int lev);
+    void RestoreCurrent (int lev);
     void SumBoundaryJ (int lev, PatchType patch_type);
+
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
 
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+    void DampPML (int lev, PatchType patch_type);
 
 #ifdef WARPX_DO_ELECTROSTATIC
     ///

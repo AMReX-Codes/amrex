@@ -545,7 +545,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
 
-    if (do_subcycling == 1 && lev == 1) {
+    if (do_subcycling == 1 && lev == 0) {
         current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
         current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
         current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
@@ -822,3 +822,23 @@ WarpX::GatherBufferMasks (int lev)
     return GetInstance().getGatherBufferMasks(lev);
 }
 
+void
+WarpX::StoreCurrent (int lev)
+{
+    for (int idim = 0; idim < 3; ++idim) {
+        if (current_store[lev][idim]) {
+            MultiFab::Copy(*current_store[lev][idim], *current_fp[lev][idim],
+                           0, 0, 1, current_store[lev][idim]->nGrowVect());
+        }
+    }
+}
+
+void
+WarpX::RestoreCurrent (int lev)
+{
+    for (int idim = 0; idim < 3; ++idim) {
+        if (current_store[lev][idim]) {
+            std::swap(current_fp[lev][idim], current_store[lev][idim]);
+        }
+    }
+}

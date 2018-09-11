@@ -246,100 +246,95 @@ WarpX::OneStep_sub1 (Real curtime)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;
     const int coarse_lev = 0;
+
     // i)
     PushParticlesandDepose(fine_lev, curtime);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     SumBoundaryJ(fine_lev, PatchType::fine);
+
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     FillBoundaryB(fine_lev, PatchType::fine);
 
-    amrex::Abort("xxxxx");
-#if 0
-    // i)
-//    PushParticlesandDepose( 1, cur_time );
-//    RestrictFineToCoarse();
-//    SumBoundaryJFine( 1 );
-//    EvolvePatchB( 1, 0.5*dt[1], fine_tag );
-//    EvolvePatchBPML( 1, 0.5*dt[1], fine_tag );
-    FillBoundaryB();
-    EvolvePatchE( 1, dt[1], fine_tag );
-    EvolvePatchEPML( 1,     dt[1], fine_tag );
-    FillBoundaryE();
-    EvolvePatchB( 1, 0.5*dt[1], fine_tag );
-    EvolvePatchBPML( 1, 0.5*dt[1], fine_tag );
-    //  xxxxx
+    EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::fine);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+
     if (do_pml) {
-        DampPatchPML(1, fine_tag); // level 1 fp
-        FillBoundaryE();   // xxxxx make it level only
+        DampPML(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine);        
     }
-    FillBoundaryB(); // xxxxx make it level only
+
+    FillBoundaryB(fine_lev, PatchType::fine);
+
     // ii)
-    PushParticlesandDepose( 0, cur_time );
-    CurrentFineToStore();
-    AddCoarseToPatchBelow();
-    SumBoundaryJCoarse(1); // xxxxx we may need to do nodal sync
-    SumBoundaryJFine(0);
-    EvolvePatchB( 1, dt[1], coarse_tag );
-    EvolvePatchBPML( 1, dt[1], coarse_tag );
-    FillBoundaryB();            
-    EvolvePatchE( 1, dt[1], coarse_tag );
-    EvolvePatchEPML( 1, dt[1], coarse_tag );
-    FillBoundaryE();
-    EvolvePatchB( 0, 0.5*dt[0], fine_tag );
-    EvolvePatchBPML( 0, 0.5*dt[0], fine_tag );
-    FillBoundaryB();
-    EvolvePatchE( 0, 0.5*dt[0], fine_tag );
-    EvolvePatchEPML( 0, 0.5*dt[0], fine_tag );
-    FillBoundaryE();
+    PushParticlesandDepose(coarse_lev, curtime);
+    StoreCurrent(coarse_lev);
+    AddCurrentFromFineLevelandSumBoundary(coarse_lev);
+
+    EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
+    FillBoundaryB(fine_lev, PatchType::coarse);
+
+    EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::coarse);
+
+    EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    FillBoundaryB(coarse_lev, PatchType::fine);
+    
+    EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    FillBoundaryE(coarse_lev, PatchType::fine);
+
     // iii)
     UpdateAuxilaryData();
+
     // iv)
-    PushParticlesandDepose( 1, cur_time+dt[1] );
-    RestrictFineToCoarse();
-    SumBoundaryJFine(1);
-    EvolvePatchB( 1, 0.5*dt[1], fine_tag );
-    EvolvePatchBPML( 1, 0.5*dt[1], fine_tag );
-    FillBoundaryB();
-    EvolvePatchE( 1, dt[1], fine_tag );
-    EvolvePatchEPML( 1,     dt[1], fine_tag );
-    FillBoundaryE();
-    EvolvePatchB( 1, 0.5*dt[1], fine_tag );
-    EvolvePatchBPML( 1, 0.5*dt[1], fine_tag );
-    //  xxxxx
+    PushParticlesandDepose(fine_lev, curtime+dt[fine_lev]);
+    RestrictCurrentFromFineToCoarsePatch(fine_lev);
+    SumBoundaryJ(fine_lev, PatchType::fine);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    FillBoundaryB(fine_lev, PatchType::fine);
+
+    EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::fine);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+
     if (do_pml) {
-        DampPatchPML(1, fine_tag); // level 1 fp
-        FillBoundaryE();   // xxxxx make it level only
+        DampPML(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine);        
     }
-    FillBoundaryB();
-    AddCoarseToPatchBelow();
-    SumBoundaryJCoarse(1);
-    SumBoundaryJFine(0);
+
+    FillBoundaryB(fine_lev, PatchType::fine);
+
     // v)
-    EvolvePatchE( 1, dt[1], coarse_tag );
-    EvolvePatchEPML( 1, dt[1], coarse_tag );
-    FillBoundaryE();
-    EvolvePatchB( 1, dt[1], coarse_tag );
-    EvolvePatchBPML( 1, dt[1], coarse_tag );
-    //  xxxxx
+    RestoreCurrent(coarse_lev);
+    AddCurrentFromFineLevelandSumBoundary(coarse_lev);
+
+    EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::coarse);
+
+    EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
+
     if (do_pml) {
-        DampPatchPML(1, coarse_tag); // level 1 cp
-        DampPatchPML(1, coarse_tag); // level 1 cp
-        FillBoundaryE();   // xxxxx make it level only
+        DampPML(fine_lev, PatchType::coarse); // do it twice
+        DampPML(fine_lev, PatchType::coarse);
+        FillBoundaryE(fine_lev, PatchType::coarse);
     }
-    FillBoundaryB();
+
+    FillBoundaryB(fine_lev, PatchType::coarse);
+
+    EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    FillBoundaryE(coarse_lev, PatchType::fine);
     
-    EvolvePatchE( 0, 0.5*dt[0], fine_tag );
-    EvolvePatchEPML( 0, 0.5*dt[0], fine_tag );
-    FillBoundaryE();
-    EvolvePatchB( 0, 0.5*dt[0], fine_tag );
-    EvolvePatchBPML( 0, 0.5*dt[0], fine_tag );
-    //  xxxxx
+    EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+
     if (do_pml) {
-        DampPatchPML(0, fine_tag); // level 0
-        FillBoundaryE();   // xxxxx make it level only
+        DampPML(coarse_lev, PatchType::fine);
+        FillBoundaryE(coarse_lev, PatchType::fine);
     }
-    FillBoundaryB();
-#endif
+
+    FillBoundaryB(coarse_lev, PatchType::fine);
 }
 
 void
@@ -685,8 +680,6 @@ WarpX::EvolveF (int lev, Real dt, DtType dt_type)
 void
 WarpX::DampPML ()
 {
-    if (!do_pml) return;
-
     for (int lev = 0; lev <= finest_level; ++lev) {
         DampPML(lev);
     }
@@ -695,54 +688,56 @@ WarpX::DampPML ()
 void
 WarpX::DampPML (int lev)
 {
+    DampPML(lev, PatchType::fine);
+    if (lev > 0) DampPML(lev, PatchType::coarse);
+}
+
+void
+WarpX::DampPML (int lev, PatchType patch_type)
+{
     if (!do_pml) return;
 
     BL_PROFILE("WarpX::DampPML()");
 
-    int npatches = (lev == 0) ? 1 : 2;
-
-    for (int ipatch = 0; ipatch < npatches; ++ipatch)
+    if (pml[lev]->ok())
     {
-        if (pml[lev]->ok())
-        {
-            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
-            const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
-            const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
-            const auto& sigba = (ipatch==0) ? pml[lev]->GetMultiSigmaBox_fp()
-                                            : pml[lev]->GetMultiSigmaBox_cp();
+        const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+        const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
+        const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+        const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
+                                                            : pml[lev]->GetMultiSigmaBox_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
-            {
-                const Box& tex  = mfi.tilebox(Ex_nodal_flag);
-                const Box& tey  = mfi.tilebox(Ey_nodal_flag);
-                const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-                const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
-                const Box& tby  = mfi.tilebox(By_nodal_flag);
-                const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-
-                WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
-                              tey.loVect(), tey.hiVect(),
-                              tez.loVect(), tez.hiVect(),
-                              tbx.loVect(), tbx.hiVect(),
-                              tby.loVect(), tby.hiVect(),
-                              tbz.loVect(), tbz.hiVect(),
-                              BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                              BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                              BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                              BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                              BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                              BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                              WRPX_PML_TO_FORTRAN(sigba[mfi]));
-
-                if (pml_F) {
-                    const Box& tnd  = mfi.nodaltilebox();
-                    WRPX_DAMP_PML_F(tnd.loVect(), tnd.hiVect(),
-                                    BL_TO_FORTRAN_3D((*pml_F)[mfi]),
-                                    WRPX_PML_TO_FORTRAN(sigba[mfi]));
-                }
+        for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
+        {
+            const Box& tex  = mfi.tilebox(Ex_nodal_flag);
+            const Box& tey  = mfi.tilebox(Ey_nodal_flag);
+            const Box& tez  = mfi.tilebox(Ez_nodal_flag);
+            const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
+            const Box& tby  = mfi.tilebox(By_nodal_flag);
+            const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
+            
+            WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
+                          tey.loVect(), tey.hiVect(),
+                          tez.loVect(), tez.hiVect(),
+                          tbx.loVect(), tbx.hiVect(),
+                          tby.loVect(), tby.hiVect(),
+                          tbz.loVect(), tbz.hiVect(),
+                          BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+                          BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+                          BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+                          BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+                          BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+                          BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+                          WRPX_PML_TO_FORTRAN(sigba[mfi]));
+            
+            if (pml_F) {
+                const Box& tnd  = mfi.nodaltilebox();
+                WRPX_DAMP_PML_F(tnd.loVect(), tnd.hiVect(),
+                                BL_TO_FORTRAN_3D((*pml_F)[mfi]),
+                                WRPX_PML_TO_FORTRAN(sigba[mfi]));
             }
         }
     }
