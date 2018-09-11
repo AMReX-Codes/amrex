@@ -145,10 +145,10 @@ contains
     call amrex_fi_fluxregister_fineadd(this%p, mf, scale)
   end subroutine amrex_fluxregister_fineadd
 
-  subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, boxno, scale)
+  subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, gridIdx, scale)
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_fab),  intent(in) :: fluxfabs(amrex_spacedim)
-    integer(c_int),   intent(in) :: boxno
+    integer(c_int),   intent(in) :: gridIdx
     real(amrex_real), intent(in) :: scale
     integer :: dir, nc
     type(c_ptr) :: cp
@@ -162,7 +162,7 @@ contains
          cp = c_loc(fp(flo(1),flo(2),flo(3),1))
          nc =  fab%nc
        end associate
-       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, boxno-1, nc, scale)
+       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, gridIdx, nc, scale)
     end do
   end subroutine amrex_fluxregister_fineadd_1fab
 
