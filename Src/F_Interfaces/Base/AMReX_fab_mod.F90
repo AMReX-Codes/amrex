@@ -5,6 +5,7 @@ module amrex_fab_module
   use amrex_fort_module
   use amrex_box_module
   use amrex_mempool_module
+  use amrex_error_module
 
   implicit none
   private
@@ -68,10 +69,10 @@ contains
        if ((bx%hi(1)-bx%lo(1)+1 .NE. size(dp,1)) .OR. &
            (bx%hi(2)-bx%lo(2)+1 .NE. size(dp,2)) .OR. &
            (bx%hi(3)-bx%lo(3)+1 .NE. size(dp,3))) then
-          ERROR STOP "amrex_fab_build_install: bx does not match shape of dp"
+          call amrex_error("amrex_fab_build_install: bx does not match shape of dp")
        end if
        if (mync > size(dp,4)) then
-          ERROR STOP "amrex_fab_build_install: nc does not match shape of dp"
+          call amrex_error("amrex_fab_build_install: nc does not match shape of dp")
        end if
 #endif
        fab%bx    = bx
