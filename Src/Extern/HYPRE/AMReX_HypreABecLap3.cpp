@@ -3,8 +3,9 @@
 #include <AMReX_VisMF.H>
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 #include <cmath>
@@ -32,52 +33,6 @@ HypreABecLap3::~HypreABecLap3 ()
     HYPRE_BoomerAMGDestroy(solver);
     solver = NULL;
 }
-
-void
-HypreABecLap3::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta)
-{
-    if (m_eb_phi[amrlev] == nullptr){
-        const int mglev = 0;
-        m_eb_phi[amrlev].reset(new MultiFab(m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
-                                m_dmap[amrlev][mglev],
-                                1, 0, MFInfo(),
-                                *m_factory[amrlev][mglev]));
-    }
-    if (m_eb_b_coeffs[amrlev][0] == nullptr){
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
-                m_eb_b_coeffs[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
-                                                            m_dmap[amrlev][mglev],
-                                                            1, 0, MFInfo(),
-                                                            *m_factory[amrlev][mglev]));
-        }
-    }
-
-    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
-    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(phi, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        FArrayBox& phifab = (*m_eb_phi[amrlev])[mfi];
-        FArrayBox& betafab = (*m_eb_b_coeffs[amrlev][0])[mfi];
-        FabType t = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
-        if (FabType::regular == t or FabType::covered == t) {
-            phifab.setVal(0.0, bx, 0, 1);
-            betafab.setVal(0.0, bx, 0, 1);
-        } else {
-            amrex_eb_copy_dirichlet(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(phifab),
-                                    BL_TO_FORTRAN_ANYD(phi[mfi]),
-                                    BL_TO_FORTRAN_ANYD(betafab),
-                                    BL_TO_FORTRAN_ANYD(beta[mfi]),
-                                    BL_TO_FORTRAN_ANYD((*flags)[mfi]));
-        }
-    }
-}
-
 
 
 void
@@ -330,8 +285,8 @@ HypreABecLap3::prepareSolver ()
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
-    const MultiCutFab* barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr; 
-    const MultiCutFab* bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr; 
+    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr; 
+    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr; 
     const int is_eb_dirichlet = isEBDirichlet(); 
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
@@ -386,7 +341,7 @@ HypreABecLap3::prepareSolver ()
             else
             {
 #ifdef NOT_FINISHED
-                FArrayBox const& beb = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo; 
+                FArrayBox const& beb = (is_eb_dirichlet) ? *(m_eb_b_coeffs[0])[mfi] : foo; 
                
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
                                     &nrows, ncols, rows, cols, mat,

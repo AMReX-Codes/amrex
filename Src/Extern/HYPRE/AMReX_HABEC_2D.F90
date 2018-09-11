@@ -10,14 +10,14 @@ module amrex_habec_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
-  use amrex_constants_module, only : zero, one, half, three
+  use amrex_constants_module, only : zero, one, half, three, third
   implicit none
   
   real(rt), parameter, private :: dx_eb = third
 
 contains
   
-  pure function blend_beta(kapp) result(beta) 
+  pure function blend_beta(kappa) result(beta) 
     real(rt), intent(in) :: kappa 
     real(rt) :: beta 
 #if 1 
@@ -401,16 +401,16 @@ contains
     real(rt)          , intent(in) :: apy    (aylo(1):ayhi(1),aylo(2):ayhi(2))
     real(rt)          , intent(in) :: fcx    (fxlo(1):fxhi(1),fxlo(2):fxhi(2))
     real(rt)          , intent(in) :: fcy    (fylo(1):fyhi(1),fylo(2):fyhi(2))
-    real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
-    real(amrex_real), intent(in   ) :: bcen(bclo(1):bchi(1),bclo(2):bchi(2),2)
-    real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
+    real(rt), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
+    real(rt), intent(in   ) :: bcen(bclo(1):bchi(1),bclo(2):bchi(2),2)
+    real(rt), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
     integer, intent(in) :: bct(0:3), bho
     real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
     integer, value, intent(in) :: is_eb_dirichlet
 
     logical :: is_dirichlet
     integer :: i,j, irow, imat, cdir, idim, ii,jj, ioff, joff, iio, jjo 
-    real(rt) :: fac(2), mat_tmp(-1:1,-1:1), phig1(4) phig2(4), feb(4) 
+    real(rt) :: fac(2), mat_tmp(-1:1,-1:1), phig1(4), phig2(4), feb(4) 
     real(rt) :: bf1(0:3), bf2(0:3), h, h2, h3, bflo(0:3), c_0(-1:0,-1:0) 
     real(rt) :: c_x(-1:0,-1:0), c_y(-1:0,-1:0), c_xy(-1:0,-1:0)
     real(rt) :: fracx, fracy, area, bc
