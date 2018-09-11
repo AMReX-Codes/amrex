@@ -244,6 +244,20 @@ customization of the build, as described in the subsection on
 build directory, we advise against doing so.  After the installation is
 complete, builddir can be removed.
 
+
+Cmake and macOS
+---------------
+
+You can also specify your own compiler in cmake using the
+``-DCMAKE_C_COMPILER`` and ``-DCMAKE_CXX_COMPILER`` options. While not strictly
+necessary when using homebrew on macOS, it is highly recommended that the user
+specifies ``-DCMAKE_C_COMPILER=$(which gcc-X) -DCMAKE_CXX_COMPILER=$(which
+g++-X)`` (where X is the GCC version installed by homebrew) when using
+gfortran. This is because homebrew's cmake defaults to the clang c/c++
+compiler. Normaly clang plays well with gfortran, but if there are some issues,
+we recommend telling cmake to use gcc for c/c++ also.
+
+
 .. _sec:build:cmake:options:
 
 Customization options
