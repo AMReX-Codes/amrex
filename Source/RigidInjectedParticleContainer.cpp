@@ -303,7 +303,11 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                         const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                         const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                         MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                        MultiFab* rho, Real t, Real dt)
+                                        MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                        MultiFab* rho,
+                                        const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                        const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+                                        Real t, Real dt)
 {
 
     // Update location of injection plane in the boosted frame
@@ -322,7 +326,11 @@ RigidInjectedParticleContainer::Evolve (int lev,
 				       Ex, Ey, Ez,
 				       Bx, By, Bz,
 				       jx, jy, jz,
-                                       rho, t, dt);
+                                       cjx, cjy, cjz,
+                                       rho,
+                                       cEx, cEy, cEz,
+                                       cBx, cBy, cBz,
+                                       t, dt);
 
     // Check if all done_injecting_temp are still true.
     done_injecting = std::all_of(done_injecting_temp.begin(), done_injecting_temp.end(),

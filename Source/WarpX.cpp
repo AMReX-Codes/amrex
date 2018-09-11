@@ -82,6 +82,9 @@ IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
+int WarpX::n_field_gather_buffer = 0;
+int WarpX::n_current_deposition_buffer = -1;
+
 WarpX* WarpX::m_instance = nullptr;
 
 WarpX&
@@ -152,6 +155,12 @@ WarpX::WarpX ()
     current_cp.resize(nlevs_max);
     Efield_cp.resize(nlevs_max);
     Bfield_cp.resize(nlevs_max);
+
+    Efield_cax.resize(nlevs_max);
+    Bfield_cax.resize(nlevs_max);
+    current_buffer_masks.resize(nlevs_max);
+    gather_buffer_masks.resize(nlevs_max);
+    current_buf.resize(nlevs_max);
 
     pml.resize(nlevs_max);
 
@@ -305,6 +314,8 @@ WarpX::ReadParameters ()
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
         pp.query("do_dive_cleaning", do_dive_cleaning);
+        pp.query("n_field_gather_buffer", n_field_gather_buffer);
+        pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -436,7 +447,14 @@ WarpX::ClearLevel (int lev)
 	current_cp[lev][i].reset();
 	Efield_cp [lev][i].reset();
 	Bfield_cp [lev][i].reset();
+
+	Efield_cax[lev][i].reset();
+	Bfield_cax[lev][i].reset();
+        current_buf[lev][i].reset();
     }
+
+    current_buffer_masks[lev].reset();
+    gather_buffer_masks[lev].reset();
 
     F_fp  [lev].reset();
     rho_fp[lev].reset();
@@ -497,6 +515,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     IntVect ngJ(ngx,ngz_nonci);
     IntVect ngRho = ngJ + 1;
 #endif
+
+    if (n_current_deposition_buffer < 0) {
+        n_current_deposition_buffer = ngJ.max();
+    }
 
     int ngF = (do_moving_window) ? 2 : 0;
 
@@ -584,6 +606,36 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 #endif
     }
 
+    //
+    // Copy of the coarse aux
+    //
+    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
+    {
+        BoxArray cba = ba;
+        cba.coarsen(refRatio(lev-1));
+
+        if (n_field_gather_buffer > 0) {
+            // Create the MultiFabs for B
+            Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+            
+            // Create the MultiFabs for E
+            Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+
+            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
+        }
+
+        if (n_current_deposition_buffer > 0) {
+            current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
+            current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
+            current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
+        }
+    }
+
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
@@ -633,6 +685,12 @@ WarpX::UpperCorner(const Box& bx, int lev)
 #elif (AMREX_SPACEDIM == 2)
     return { xyzmax[0], 1.e100, xyzmax[1] };
 #endif
+}
+
+IntVect
+WarpX::RefRatio (int lev)
+{
+    return GetInstance().refRatio(lev);
 }
 
 void
@@ -701,3 +759,52 @@ WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf)
         }
     }
 }
+
+void
+WarpX::BuildBufferMasks ()
+{
+    int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
+    for (int lev = 1; lev <= maxLevel(); ++lev)
+    {
+        for (int ipass = 0; ipass < 2; ++ipass)
+        {
+            int ngbuffer = (ipass == 0) ? n_current_deposition_buffer : n_field_gather_buffer;
+            iMultiFab* bmasks = (ipass == 0) ? current_buffer_masks[lev].get() : gather_buffer_masks[lev].get();
+            if (bmasks)
+            {
+                iMultiFab tmp(bmasks->boxArray(), bmasks->DistributionMap(), 1, ngbuffer);
+                const int covered = 1;
+                const int notcovered = 0;
+                const int physbnd = 1;
+                const int interior = 1;
+                const Box& dom = Geom(lev).Domain();
+                const auto& period = Geom(lev).periodicity();
+                tmp.BuildMask(dom, period, covered, notcovered, physbnd, interior);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
+                {
+                    const Box& tbx = mfi.tilebox();
+                    warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
+                                              BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
+                                              BL_TO_FORTRAN_ANYD(tmp[mfi]),
+                                              &ngbuffer);
+                }
+            }
+        }
+    }
+}
+
+const iMultiFab*
+WarpX::CurrentBufferMasks (int lev)
+{
+    return GetInstance().getCurrentBufferMasks(lev);
+}
+
+const iMultiFab*
+WarpX::GatherBufferMasks (int lev)
+{
+    return GetInstance().getGatherBufferMasks(lev);
+}
+
