@@ -652,6 +652,6 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                        current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                        period);
         current_fp[lev][idim]->SumBoundary(period);
-        MultiFab::Copy(*current_fp[lev][idim], mf, 0, 0, 1, 0);
+        MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
     }
 }
