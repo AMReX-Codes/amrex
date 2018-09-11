@@ -24,7 +24,6 @@ bool Perilla::genTags=true;
 std::map<int, std::map<int, std::map<int, std::map<int, std::map<int,int> > > > > Perilla::tagMap;
 std::map<int, std::map<int, std::map<int, std::map<int, int> > > > Perilla::myTagMap;
 
-#ifdef USE_PERILLA_PTHREADS
 pthread_mutex_t table_lock= PTHREAD_MUTEX_INITIALIZER;
 std::map<size_t, int> tidTable;
 void Perilla::registerId(int tid){
@@ -32,16 +31,10 @@ void Perilla::registerId(int tid){
     tidTable[pthread_self()]= tid;
     pthread_mutex_unlock(&table_lock);
 }
+
 int Perilla::tid(){//this function can be called after all threads already register their ids
     return tidTable[pthread_self()];
 }
-
-#else
-int Perilla::tid(){//this function can be called after all threads already register their ids
-    return omp_get_thread_num();
-}
-#endif
-
 
 void Perilla::communicateTags(std::vector<RegionGraph*> ga)
 {
@@ -1636,8 +1629,8 @@ void Perilla::serviceSingleGraphComm(RegionGraph* graph, int tid)
 		}		
 		//call parallel_barrier()  ---????????
 		ParallelDescriptor::Barrier("serviceSingleGraph-1");
-		graph->graphTeardown(tg);
-		graph->workerTeardown(tg);
+		graph->graphTeardown();
+		graph->workerTeardown();
 		//call parallel_barrier() ------?????????
 		ParallelDescriptor::Barrier("serviceSingleGraph-2");
 	    }
@@ -1682,8 +1675,8 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	for(int g=0; g<nGraphs; g++)
 	{
 	    ParallelDescriptor::Barrier("serviceMultipleGraph-1");
-	    graphArray[g].graphTeardown(tg);
-	    graphArray[g].workerTeardown(tg);
+	    graphArray[g].graphTeardown();
+	    graphArray[g].workerTeardown();
 	    ParallelDescriptor::Barrier("serviceMultipleGraph-2");
 	}
 } // serviceMultipleGraphComm
@@ -1730,7 +1723,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 		    serviceLocalGridCopyRequests(graphArray,g,tg);
 		}
 		if(np > 1)
-		    //if(tg==0)
+		//if(tg==0)
 		{
 		    serviceRemoteRequests(graphArray[g],g,nGraphs);
 		    if(cpyAcross)
@@ -3626,7 +3619,6 @@ void Perilla::serviceLocalGridCopyRequests(std::vector<RegionGraph*> graphArray,
 	    FabCopyAssoc* cpSrc = graphArray[g]->task[f]->cpAsc_srcHead;
 	    while(cpSrc != 0)
 	    {
-//cout<<"handling graph number"<<g <<"wtih num task"<<nfabs<<endl;
 		//std::cout<<" "<<cpSrc << " ";
 		int lockSucceeded = pthread_mutex_trylock(&(cpSrc->l_con.sLock));
 		if(lockSucceeded != 0)
@@ -3635,7 +3627,6 @@ void Perilla::serviceLocalGridCopyRequests(std::vector<RegionGraph*> graphArray,
 		    {
 			if(cpSrc->l_con.scpy[i].pQueue.queueSize()>0)
 			{
-assert(doublechecked==false);
 			    FabCopyAssoc* cpDst = cpSrc->graphPartner->task[cpSrc->l_con.scpy[i].nd]->cpAsc_dstHead;
 			    while(cpDst != 0)
 			    {
