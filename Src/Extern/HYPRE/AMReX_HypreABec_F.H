@@ -88,7 +88,11 @@ extern "C" {
 #endif
 #endif                              
                               const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
-                              const int* bct, const amrex_real* bcl, const int* bho);
+                              const int* bct, const amrex_real* bcl, const int* bho, 
+                              const int is_eb_dirichlet, 
+                              const amrex_real* ba,   const int* balo, const int* bahi, 
+                              const amrex_real* bcen, const int* bclo, const int* bchi, 
+                              const amrex_real* beb,  const int* elo,  const int* ehi);
 
 #endif
     void amrex_eb_copy_dirichlet (const int* lo, const int* hi,

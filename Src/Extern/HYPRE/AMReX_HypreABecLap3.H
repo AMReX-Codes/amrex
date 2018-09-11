@@ -5,7 +5,11 @@
 
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_MLEBABecLap_F.H>
+
+#ifdef AMREX_USE_EB
+    #include <AMReX_EBFabFactory.H>
+    #include <AMReX_MLEBABecLap_F.H>
+#endif 
 
 #include "HYPRE_parcsr_ls.h"
 #include "_hypre_parcsr_mv.h"
@@ -27,8 +31,6 @@ public:
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                         int max_iter, const BndryData& bndry, int max_bndry_order) final;
 
-    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta);
-
 private :
 
     HYPRE_IJMatrix A = NULL;
@@ -40,12 +42,12 @@ private :
     LayoutData<Vector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
 
-    Vector<std::unique_ptr<MultiFab> > m_eb_phi; //May not need this
-    Vector<Vector<std::unique_ptr<MultiFab> > > m_eb_b_coeffs; 
+    Vector<std::unique_ptr<MultiFab> > m_eb_b_coeffs; 
     
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
+    bool isEBDirichlet() const {return m_eb_b_coeffs[0] != nullptr; }; 
 };
 
 }
