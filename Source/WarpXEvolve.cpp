@@ -250,15 +250,17 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(fine_lev, curtime);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     SumBoundaryJ(fine_lev, PatchType::fine);
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    FillBoundaryB(fine_lev, PatchType::fine);
 
     amrex::Abort("xxxxx");
 #if 0
     // i)
-    PushParticlesandDepose( 1, cur_time );
-    RestrictFineToCoarse();
-    SumBoundaryJFine( 1 );
-    EvolvePatchB( 1, 0.5*dt[1], fine_tag );
-    EvolvePatchBPML( 1, 0.5*dt[1], fine_tag );
+//    PushParticlesandDepose( 1, cur_time );
+//    RestrictFineToCoarse();
+//    SumBoundaryJFine( 1 );
+//    EvolvePatchB( 1, 0.5*dt[1], fine_tag );
+//    EvolvePatchBPML( 1, 0.5*dt[1], fine_tag );
     FillBoundaryB();
     EvolvePatchE( 1, dt[1], fine_tag );
     EvolvePatchEPML( 1,     dt[1], fine_tag );

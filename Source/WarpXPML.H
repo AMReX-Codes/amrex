@@ -112,13 +112,19 @@ public:
                     const std::array<amrex::MultiFab*,3>& B_cp);
     void ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
                     const std::array<amrex::MultiFab*,3>& E_cp);
+    void ExchangeB (PatchType patch_type,
+                    const std::array<amrex::MultiFab*,3>& Bp);
+    void ExchangeE (PatchType patch_type,
+                    const std::array<amrex::MultiFab*,3>& Ep);
 
     void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp);
-    void ExchangeF (PatchType patch_type, amrex::MultiFab* F_fp);
+    void ExchangeF (PatchType patch_type, amrex::MultiFab* Fp);
 
     void FillBoundary ();
     void FillBoundaryE ();
     void FillBoundaryB ();
+    void FillBoundaryE (PatchType patch_type);
+    void FillBoundaryB (PatchType patch_type);
 
     bool ok () const { return m_ok; }
 
