@@ -34,6 +34,8 @@ WarpX::InitData ()
         WarpX::InitNCICorrector();
     }
 
+    BuildBufferMasks();
+
     InitDiagnostics();
 
     if (ParallelDescriptor::IOProcessor()) {
