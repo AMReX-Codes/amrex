@@ -200,6 +200,15 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 
     MultiFab* cost = WarpX::getCosts(lev);
 
+    if (not m_refined_injection_mask)
+    {
+        Box mask_box = geom.Domain();
+        mask_box.setSmall(WarpX::moving_window_dir, 0);
+        mask_box.setBig(WarpX::moving_window_dir, 0);        
+        m_refined_injection_mask.reset( new IArrayBox(mask_box));
+        m_refined_injection_mask->setVal(-1);
+    }
+
     MFItInfo info;
     if (do_tiling) {
         info.EnableTiling(tile_size);
@@ -1241,18 +1250,35 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
 {
     if (finestLevel() == 0) return 1;
     if (not WarpX::refine_plasma) return 1;
-
+    
     IntVect iv;
     const Geometry& geom = Geom(0);
     
-    AMREX_D_TERM(iv[0]=static_cast<int>(floor((x-geom.ProbLo(0))*geom.InvCellSize(0)));,
-                 iv[1]=static_cast<int>(floor((y-geom.ProbLo(1))*geom.InvCellSize(1)));,
-                 iv[2]=static_cast<int>(floor((z-geom.ProbLo(2))*geom.InvCellSize(2))););
+    std::array<Real, 3> offset;
+    
+#if ( AMREX_SPACEDIM == 3)
+    offset[0] = geom.ProbLo(0);
+    offset[1] = geom.ProbLo(1);
+    offset[2] = geom.ProbLo(2);
+#elif ( AMREX_SPACEDIM == 2 )
+    offset[0] = geom.ProbLo(0);
+    offset[1] = 0.0;
+    offset[2] = geom.ProbLo(1);
+#endif
+    
+    AMREX_D_TERM(iv[0]=static_cast<int>(floor((x-offset[0])*geom.InvCellSize(0)));,
+                 iv[1]=static_cast<int>(floor((y-offset[1])*geom.InvCellSize(1)));,
+                 iv[2]=static_cast<int>(floor((z-offset[2])*geom.InvCellSize(2))););
     
     iv += geom.Domain().smallEnd();
-    
+
     const int dir = WarpX::moving_window_dir;
+
+    IntVect iv2 = iv;
+    iv2[dir] = 0;
     
+    if ( (*m_refined_injection_mask)(iv2) != -1) return (*m_refined_injection_mask)(iv2);
+
     int ref_fac = 1;
     for (int lev = 0; lev < finestLevel(); ++lev)
     {        
@@ -1261,13 +1287,15 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
         const int num_boxes = fine_ba.size();
         Vector<Box> stretched_boxes;
         const int safety_factor = 4;
-        for (int i = 0; i < num_boxes; ++i) {
+        for (int i = 0; i < num_boxes; ++i)
+        {
             Box bx = fine_ba[i];
             bx.coarsen(ref_fac*rr[dir]);
             bx.setSmall(dir, std::numeric_limits<int>::min()/safety_factor);
             bx.setBig(dir, std::numeric_limits<int>::max()/safety_factor);
             stretched_boxes.push_back(bx);
         }
+
         BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
         
         const int num_ghost = 0;
@@ -1280,6 +1308,8 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
             break;
         }
     }
+
+    (*m_refined_injection_mask)(iv2) = ref_fac;
     
     return ref_fac;
 }
