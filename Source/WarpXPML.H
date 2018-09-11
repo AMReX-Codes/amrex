@@ -83,6 +83,8 @@ private:
     amrex::Real dt_E = -1.e10;
 };
 
+enum struct PatchType : int;
+
 class PML
 {
 public:
@@ -112,6 +114,7 @@ public:
                     const std::array<amrex::MultiFab*,3>& E_cp);
 
     void ExchangeF (amrex::MultiFab* F_fp, amrex::MultiFab* F_cp);
+    void ExchangeF (PatchType patch_type, amrex::MultiFab* F_fp);
 
     void FillBoundary ();
     void FillBoundaryE ();

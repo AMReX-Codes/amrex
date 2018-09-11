@@ -235,6 +235,15 @@ private:
     ///
     void EvolveEM(int numsteps);
 
+    void OneStep_nosub (amrex::Real t);
+    void OneStep_sub1 (amrex::Real t);
+
+    void RestrictCurrentFromFineToCoarsePatch (int lev);
+    void SumBoundaryJ (int lev, PatchType patch_type);
+
+    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+
 #ifdef WARPX_DO_ELECTROSTATIC
     ///
     /// Advance the simulation by numsteps steps, electrostatic case.
@@ -331,7 +340,6 @@ private:
     void ExchangeWithPmlE (int lev);
 
     void LoadBalance ();
-
 
     static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
 

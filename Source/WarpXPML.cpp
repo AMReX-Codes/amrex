@@ -554,8 +554,18 @@ PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
 void
 PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
 {
-    if (pml_F_fp) Exchange(*pml_F_fp, *F_fp, *m_geom);
-    if (pml_F_cp) Exchange(*pml_F_cp, *F_cp, *m_cgeom);
+    ExchangeF(PatchType::fine, F_fp);
+    ExchangeF(PatchType::coarse, F_cp);
+}
+
+void
+PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
+{
+    if (patch_type == PatchType::fine && pml_F_fp) {
+        Exchange(*pml_F_fp, *Fp, *m_geom);
+    } else if (patch_type == PatchType::coarse && pml_F_cp) {
+        Exchange(*pml_F_cp, *Fp, *m_cgeom);
+    }
 }
 
 void

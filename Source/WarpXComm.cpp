@@ -562,3 +562,40 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
     }
 }
 
+void
+WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
+{
+    current_cp[lev][0]->setVal(0.0);
+    current_cp[lev][1]->setVal(0.0);
+    current_cp[lev][2]->setVal(0.0);
+    
+    const IntVect& ref_ratio = refRatio(lev-1);
+    
+    std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
+                                         current_fp[lev][1].get(),
+                                         current_fp[lev][2].get() };
+    std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
+                                         current_cp[lev][1].get(),
+                                         current_cp[lev][2].get() };
+    SyncCurrent(fine, crse, ref_ratio[0]);
+}
+
+void
+WarpX::SumBoundaryJ (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine)
+    {
+        const auto& period = Geom(lev).periodicity();
+        current_fp[lev][0]->SumBoundary(period);
+        current_fp[lev][1]->SumBoundary(period);
+        current_fp[lev][2]->SumBoundary(period);
+    }
+    else if (patch_type == PatchType::coarse)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        current_cp[lev][0]->SumBoundary(cperiod);
+        current_cp[lev][1]->SumBoundary(cperiod);
+        current_cp[lev][2]->SumBoundary(cperiod);
+    }
+}
+
