@@ -30,22 +30,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     while (!this->m_gdb->LevelDefined(finest_level)) {
         finest_level--;
     }
-    
+        
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
     mf_to_be_filled.resize(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; lev++)
-        { 
-            mf_to_be_filled[lev].reset(new MultiFab(this->m_gdb->boxArray(lev),
-                                                    this->m_gdb->DistributionMap(lev),
-                                                    ncomp, 2));
-            mf_to_be_filled[lev]->setVal(0.0);
-        }
+    { 
+        auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(2,2,2)) : this->m_gdb->refRatio(lev-1);
+        mf_to_be_filled[lev].reset(new MultiFab(this->m_gdb->boxArray(lev),
+                                                this->m_gdb->DistributionMap(lev), ncomp, ng));
+        mf_to_be_filled[lev]->setVal(0.0);
+    }
     
-    // Test whether the grid structure of the boxArray is the same
-    //       as the ParticleBoxArray at all levels 
+    // Test whether the grid structure of the boxArray is the same as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
-    for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!this->OnSameGrids(lev, *mf_to_be_filled[lev])) {
+    for (int lev = lev_min; lev <= finest_level; lev++)
+    {
+        if (!this->OnSameGrids(lev, *mf_to_be_filled[lev]))
+        {
             all_grids_the_same = false;
             break;
         }
@@ -53,17 +54,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
     
     Vector<std::unique_ptr<MultiFab> > mf_part;
     if (!all_grids_the_same)
-        { 
-            // Create the space for the temporary, mf_part
-            mf_part.resize(finest_level+1);
-            for (int lev = lev_min; lev <= finest_level; lev++)
-                {
-                    mf_part[lev].reset(new MultiFab(this->ParticleBoxArray(lev), 
-                                                    this->ParticleDistributionMap(lev),
-                                                    ncomp, 2));
-                    mf_part[lev]->setVal(0.0);
-                }
+    { 
+        // Create the space for the temporary, mf_part
+        mf_part.resize(finest_level+1);
+        for (int lev = lev_min; lev <= finest_level; lev++)
+        {
+            auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(2,2,2)) : this->m_gdb->refRatio(lev-1);
+            mf_part[lev].reset(new MultiFab(this->ParticleBoxArray(lev), 
+                                            this->ParticleDistributionMap(lev), ncomp, ng));
+            mf_part[lev]->setVal(0.0);
         }
+    }
     
     auto & mf = (all_grids_the_same) ? mf_to_be_filled : mf_part;
     
