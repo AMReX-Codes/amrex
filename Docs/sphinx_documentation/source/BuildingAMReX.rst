@@ -163,17 +163,17 @@ variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
 Specifying your own compiler / GCC on macOS
 -------------------------------------------
 
-The ``amrex/Tools/GNUMake/Make.local`` file can also be
-used to specify your own compile commands by setting the valiables ``CXX``,
-``CC``, ``FC``, and ``F90``. This might be neccarry if your systems contains
-non-standard names for compiler commands.
+The ``amrex/Tools/GNUMake/Make.local`` file can also be used to specify your
+own compile commands by setting the valiables ``CXX``, ``CC``, ``FC``, and
+``F90``. This might be neccarry if your systems contains non-standard names for
+compiler commands.
 
 For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
 (4.2.1). It is therefore commonplace to install GCC using the `homebrew
 <https://brew.sh>`_ package manager. This in turn installs compilers with names
-reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
-``gcc-7``. AMReX can be built using ``gcc-7`` without MPI by using the following
-``amrex/Tools/GNUMake/Make.local``:
+reflecting the version number. If GCC 8.2 is installed, homebrew installs it as
+``gcc-8``. AMReX can be built using ``gcc-8`` without MPI by using the
+following ``amrex/Tools/GNUMake/Make.local``:
 
 :: 
 
@@ -183,14 +183,20 @@ reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
       FC  = mpif90
       F90 = mpif90
     else
-      CXX = g++-7
-      CC  = gcc-7
-      FC  = gfortran-7
-      F90 = gfortran-7
+      CXX = g++-8
+      CC  = gcc-8
+      FC  = gfortran-8
+      F90 = gfortran-8
     endif
 
-For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide
-access to the correct underlying compilers.
+For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide access to
+the correct underlying compilers.
+
+Note that if you are building AMReX using homebrew's gcc, it is recommended
+that you use homebrew's mpich. Normally is it fine to simply install its
+binaries: ``brew install mpich``. But if you are experiencing problems, we
+suggest building mpich usinging homebrew's gcc: ``brew install mpich
+--cc=gcc-8``.
 
 .. _sec:build:lib:
 
