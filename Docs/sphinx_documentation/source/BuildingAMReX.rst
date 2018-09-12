@@ -11,7 +11,7 @@ In this build approach, you write your own make files defining a number of
 variables and rules. Then you invoke  ``make`` to start the building process.
 This will result in an executable upon successful completion. The temporary
 files generated in the building process are stored in a temporary directory
-named  ``tmp_build_dir`` 
+named  ``tmp_build_dir``.
 
 Dissecting a Simple Make File
 -----------------------------
@@ -53,7 +53,7 @@ At the beginning of ``amrex/Tutorials/Basic/HelloWorld_C/GNUmakefile``,
 the example :cpp:`?=` is a conditional variable assignment operator that only
 has an effect if ``AMREX_HOME`` has not been defined (including in the
 environment). One can also set ``AMREX_HOME`` as an environment variable. For
-example in bash, one can set 
+example in bash, one can set
 
 .. highlight:: bash
 
@@ -163,19 +163,19 @@ variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
 Specifying your own compiler / GCC on macOS
 -------------------------------------------
 
-The ``amrex/Tools/GNUMake/Make.local`` file can also be
-used to specify your own compile commands by setting the valiables ``CXX``,
-``CC``, ``FC``, and ``F90``. This might be neccarry if your systems contains
-non-standard names for compiler commands.
+The ``amrex/Tools/GNUMake/Make.local`` file can also be used to specify your
+own compile commands by setting the valiables ``CXX``, ``CC``, ``FC``, and
+``F90``. This might be neccarry if your systems contains non-standard names for
+compiler commands.
 
 For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
-(4.2.1). It is therefore commonplace to install GCC using the `homebrew
-<https://brew.sh>`_ package manager. This in turn installs compilers with names
-reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
-``gcc-7``. AMReX can be built using ``gcc-7`` without MPI by using the following
-``amrex/Tools/GNUMake/Make.local``:
+(4.2.1). It is therefore recommended to install GCC using the `homebrew
+<https://brew.sh>`_ package manager. Running ``brew install gcc`` installs gcc
+with names reflecting the version number. If GCC 8.2 is installed, homebrew
+installs it as ``gcc-8``. AMReX can be built using ``gcc-8`` without MPI by
+using the following ``amrex/Tools/GNUMake/Make.local``:
 
-:: 
+::
 
     ifeq ($(USE_MPI),TRUE)
       CXX = mpicxx
@@ -183,14 +183,20 @@ reflecting the version number. If GCC 7.3 is installed, homebrew installs it as
       FC  = mpif90
       F90 = mpif90
     else
-      CXX = g++-7
-      CC  = gcc-7
-      FC  = gfortran-7
-      F90 = gfortran-7
+      CXX = g++-8
+      CC  = gcc-8
+      FC  = gfortran-8
+      F90 = gfortran-8
     endif
 
-For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide
-access to the correct underlying compilers.
+For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide access to
+the correct underlying compilers.
+
+Note that if you are building AMReX using homebrew's gcc, it is recommended
+that you use homebrew's mpich. Normally is it fine to simply install its
+binaries: ``brew install mpich``. But if you are experiencing problems, we
+suggest building mpich usinging homebrew's gcc: ``brew install mpich
+--cc=gcc-8``.
 
 .. _sec:build:lib:
 
@@ -229,7 +235,7 @@ The CMake build process is summarized as follows:
 
     mkdir /path/to/builddir
     cd    /path/to/builddir
-    cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
+    cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex
     make  install
 
 In the above snippet, ``[options]`` indicates one or more options for the
@@ -237,6 +243,20 @@ customization of the build, as described in the subsection on
 :ref:`sec:build:cmake:options`.  Although the AMReX source could be used as
 build directory, we advise against doing so.  After the installation is
 complete, builddir can be removed.
+
+
+Cmake and macOS
+---------------
+
+You can also specify your own compiler in cmake using the
+``-DCMAKE_C_COMPILER`` and ``-DCMAKE_CXX_COMPILER`` options. While not strictly
+necessary when using homebrew on macOS, it is highly recommended that the user
+specifies ``-DCMAKE_C_COMPILER=$(which gcc-X) -DCMAKE_CXX_COMPILER=$(which
+g++-X)`` (where X is the GCC version installed by homebrew) when using
+gfortran. This is because homebrew's cmake defaults to the clang c/c++
+compiler. Normaly clang plays well with gfortran, but if there are some issues,
+we recommend telling cmake to use gcc for c/c++ also.
+
 
 .. _sec:build:cmake:options:
 
@@ -250,7 +270,7 @@ AMReX configuration settings may be specified on the command line with the
 
 ::
 
-    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex 
+    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex
 
 The list of available option is reported in the table on :ref:`tab:cmakevar`
 below.
@@ -301,7 +321,7 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_COMM_PROFILE          |  Build with comm-profiling support              | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | OFF         | ON, OFF         | 
+   | ENABLE_MEM_PROFILE           |  Build with memory-profiling support            | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PROFPARSER            |  Build with profile parser support              | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -323,7 +343,7 @@ below.
 The option ``ENABLE_LINEAR_SOLVERS=ON`` triggers the inclusion of C++-based
 linear solvers in the build. Fortran-based linear solvers can be included as
 well by providing the option ``ENABLE_FBASELIB=ON`` in addition to
-``ENABLE_LINEAR_SOLVERS=ON``. 
+``ENABLE_LINEAR_SOLVERS=ON``.
 
 The option ``DEBUG=ON`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
 assertions in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while
@@ -344,7 +364,7 @@ Importing AMReX into your CMake project
 --------------------------------------------------
 
 In order to import the AMReX library into your CMake project, you need
-to include the following line in the appropriate CMakeLists.txt file: 
+to include the following line in the appropriate CMakeLists.txt file:
 
 .. highlight:: cmake
 
