@@ -407,7 +407,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 #endif
     for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
     {
-        Real wt = ParallelDescriptor::second();
+        Real wt = amrex::second();
         
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
@@ -430,7 +430,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
-            wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+            wt = (amrex::second() - wt) / cbx.d_numPts();
             (*cost)[mfi].plus(wt, cbx);
         }
     }
@@ -532,7 +532,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
 #endif
     for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
     {
-        Real wt = ParallelDescriptor::second();
+        Real wt = amrex::second();
         
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
@@ -569,7 +569,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
-            wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+            wt = (amrex::second() - wt) / cbx.d_numPts();
             (*cost)[mfi].plus(wt, cbx);
         }
     }
