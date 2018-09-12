@@ -340,8 +340,8 @@ HypreABecLap3::prepareSolver ()
 #ifdef AMREX_USE_EB
             else
             {
-#ifdef NOT_FINISHED
-                FArrayBox const& beb = (is_eb_dirichlet) ? *(m_eb_b_coeffs[0])[mfi] : foo; 
+//#ifdef NOT_FINISHED
+                FArrayBox const& beb = (is_eb_dirichlet) ? (*(m_eb_b_coeffs[0]))[mfi] : foo; 
                
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
                                     &nrows, ncols, rows, cols, mat,
@@ -363,10 +363,10 @@ HypreABecLap3::prepareSolver ()
                                     &scalar_a, &scalar_b, dx,
                                     bctype.data(), bcl.data(), &bho, 
                                     is_eb_dirichlet, 
-                                    BL_TO_FORTRAN_ANYD(*barea[mfi]), 
-                                    BL_TO_FORTRAN_ANYD(*bcent[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]), 
+                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                     BL_TO_FORTRAN_ANYD(beb));
-#endif
+//#endif
             }
 #endif
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
