@@ -31,12 +31,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         finest_level--;
     }
 
-    auto ng = std::max(2, ngrow);  // always use at least 2 for InterpFromCoarse
+    ngrow = std::max(ngrow, 2);
     
     // Create the space for mf_to_be_filled, regardless of whether we'll need a temporary mf
     mf_to_be_filled.resize(finest_level+1);
     for (int lev = lev_min; lev <= finest_level; lev++)
-    {
+    {        
+        auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow)) : this->m_gdb->refRatio(lev-1);
         mf_to_be_filled[lev].reset(new MultiFab(this->m_gdb->boxArray(lev),
                                                 this->m_gdb->DistributionMap(lev), ncomp, ng));
         mf_to_be_filled[lev]->setVal(0.0);
@@ -60,6 +61,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         mf_part.resize(finest_level+1);
         for (int lev = lev_min; lev <= finest_level; lev++)
         {
+            auto ng = lev == lev_min ? IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow)) : this->m_gdb->refRatio(lev-1);
             mf_part[lev].reset(new MultiFab(this->ParticleBoxArray(lev), 
                                             this->ParticleDistributionMap(lev), ncomp, ng));
             mf_part[lev]->setVal(0.0);
