@@ -655,3 +655,47 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
         MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
     }
 }
+
+void
+WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
+{
+    if (rho_fp[lev]) {
+        rho_cp[lev]->setVal(0.0);      
+        const IntVect& ref_ratio = refRatio(lev-1);
+        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+    }
+}
+
+void
+WarpX::SumBoundaryRho (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine && rho_fp[lev])
+    {
+        const auto& period = Geom(lev).periodicity();
+        rho_fp[lev]->SumBoundary(period);
+    }
+    else if (patch_type == PatchType::coarse && rho_cp[lev])
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        rho_cp[lev]->SumBoundary(cperiod);
+    }
+}
+
+void
+WarpX::AddRhoFromFineLevelandSumBoundary(int lev, DtType dt_type)
+{
+    if (rho_fp[lev]) {
+        const auto& period = Geom(lev).periodicity();
+        const int icomp = (dt_type == DtType::SecondHalf) ? 1 : 0;
+        const int ncomp = (dt_type == DtType::Full) ? 2 : 1;
+        MultiFab mf(rho_fp[lev]->boxArray(),
+                    rho_fp[lev]->DistributionMap(),
+                    ncomp, 0);
+        mf.setVal(0.0);
+        mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
+                       rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
+                       period);
+        rho_fp[lev]->SumBoundary(period);
+        MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);
+    }
+}

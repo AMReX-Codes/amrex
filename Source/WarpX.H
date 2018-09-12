@@ -244,11 +244,16 @@ private:
     void RestoreCurrent (int lev);
     void SumBoundaryJ (int lev, PatchType patch_type);
 
+    void RestrictRhoFromFineToCoarsePatch (int lev);
+    void SumBoundaryRho (int lev, PatchType patch_type);
+    void AddRhoFromFineLevelandSumBoundary (int lev, DtType dt_type);
+
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
 
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
     void DampPML (int lev, PatchType patch_type);
 
 #ifdef WARPX_DO_ELECTROSTATIC

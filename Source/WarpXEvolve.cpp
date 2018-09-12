@@ -243,6 +243,9 @@ WarpX::OneStep_nosub (Real cur_time)
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
+    // TODO: we could save some charge depositions
+    // TODO: We need to redistribute particles after the first sub-step on the fine level
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;
     const int coarse_lev = 0;
@@ -250,15 +253,19 @@ WarpX::OneStep_sub1 (Real curtime)
     // i)
     PushParticlesandDepose(fine_lev, curtime);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
+    RestrictRhoFromFineToCoarsePatch(fine_lev);
     SumBoundaryJ(fine_lev, PatchType::fine);
+    SumBoundaryRho(fine_lev, PatchType::fine);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::fine);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::fine);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
@@ -271,14 +278,17 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(coarse_lev, curtime);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, DtType::FirstHalf);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::coarse);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);
 
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::FirstHalf);
     FillBoundaryB(coarse_lev, PatchType::fine);
     
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
@@ -291,14 +301,17 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(fine_lev, curtime+dt[fine_lev]);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     SumBoundaryJ(fine_lev, PatchType::fine);
+    SumBoundaryRho(fine_lev, PatchType::fine);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::fine);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::fine);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
@@ -310,11 +323,13 @@ WarpX::OneStep_sub1 (Real curtime)
     // v)
     RestoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, DtType::SecondHalf);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::coarse); // do it twice
@@ -328,6 +343,7 @@ WarpX::OneStep_sub1 (Real curtime)
     FillBoundaryE(coarse_lev, PatchType::fine);
     
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
 
     if (do_pml) {
         DampPML(coarse_lev, PatchType::fine);
@@ -617,62 +633,66 @@ WarpX::EvolveF (int lev, Real dt, DtType dt_type)
 {
     if (!do_dive_cleaning) return;
 
+    EvolveF(lev, PatchType::fine, dt, dt_type);
+    if (lev > 0) EvolveF(lev, PatchType::coarse, dt, dt_type);
+}
+
+void
+WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
+{
+    if (!do_dive_cleaning) return;
+
     BL_PROFILE("WarpX::EvolveF()");
 
     static constexpr Real c2inv = 1.0/(PhysConst::c*PhysConst::c);
     static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
 
-    int npatches = (lev == 0) ? 1 : 2;
+    int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
+    const auto& dx = WarpX::CellSize(patch_level);
+    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
 
-    for (int ipatch = 0; ipatch < npatches; ++ipatch)
+    MultiFab *Ex, *Ey, *Ez, *rho, *F;
+    if (patch_type == PatchType::fine)
     {
-        int patch_level = (ipatch == 0) ? lev : lev-1;
-        const auto& dx = WarpX::CellSize(patch_level);
-        const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+        Ex = Efield_fp[lev][0].get();
+        Ey = Efield_fp[lev][1].get();
+        Ez = Efield_fp[lev][2].get();
+        rho = rho_fp[lev].get();
+        F = F_fp[lev].get();
+    }
+    else
+    {
+        Ex = Efield_cp[lev][0].get();
+        Ey = Efield_cp[lev][1].get();
+        Ez = Efield_cp[lev][2].get();
+        rho = rho_cp[lev].get();
+        F = F_cp[lev].get();
+    }
+    
+    const int rhocomp = (dt_type == DtType::FirstHalf) ? 0 : 1;
 
-        MultiFab *Ex, *Ey, *Ez, *rho, *F;
-        if (ipatch == 0)
-        {
-            Ex = Efield_fp[lev][0].get();
-            Ey = Efield_fp[lev][1].get();
-            Ez = Efield_fp[lev][2].get();
-            rho = rho_fp[lev].get();
-            F = F_fp[lev].get();
-        }
-        else
-        {
-            Ex = Efield_cp[lev][0].get();
-            Ey = Efield_cp[lev][1].get();
-            Ez = Efield_cp[lev][2].get();
-            rho = rho_cp[lev].get();
-            F = F_cp[lev].get();
-        }
-
-        const int rhocomp = (dt_type == DtType::FirstHalf) ? 0 : 1;
-
-        MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
-        ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
-        MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
-        MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
-
-        if (do_pml && pml[lev]->ok())
-        {
-            const auto& pml_F = (ipatch==0) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
-            const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
+    MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
+    ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
+    MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
+    MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
+    
+    if (do_pml && pml[lev]->ok())
+    {
+        const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
+        const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for ( MFIter mfi(*pml_F,true); mfi.isValid(); ++mfi )
-            {
-                const Box& bx = mfi.tilebox();
-                WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
-                                BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
-                                BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
-                                BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
-                                BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-                                &dtsdx[0], &dtsdx[1], &dtsdx[2]);
-            }
+        for ( MFIter mfi(*pml_F,true); mfi.isValid(); ++mfi )
+        {
+            const Box& bx = mfi.tilebox();
+            WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
+                            BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
+                            BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
+                            BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
+                            BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
+                            &dtsdx[0], &dtsdx[1], &dtsdx[2]);
         }
     }
 }
