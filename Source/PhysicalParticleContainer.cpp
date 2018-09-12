@@ -200,7 +200,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
 
     MultiFab* cost = WarpX::getCosts(lev);
 
-    if (not m_refined_injection_mask)
+    if ( (not m_refined_injection_mask) and WarpX::do_moving_window)
     {
         Box mask_box = geom.Domain();
         mask_box.setSmall(WarpX::moving_window_dir, 0);
@@ -1472,7 +1472,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
 
     IntVect iv2 = iv;
     iv2[dir] = 0;
-    
+
     if ( (*m_refined_injection_mask)(iv2) != -1) return (*m_refined_injection_mask)(iv2);
 
     int ref_fac = 1;
