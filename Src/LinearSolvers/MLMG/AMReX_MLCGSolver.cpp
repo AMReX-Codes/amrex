@@ -146,7 +146,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
             sxay(p, r,   beta, p);
         }
         MultiFab::Copy(ph,p,0,0,ncomp,0);
-        Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous);
+        Lp.apply(amrlev, mglev, v, ph, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, v);
 
         if ( Real rhTv = dotxy(rh,v) )
@@ -173,7 +173,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         if ( rnorm < eps_rel*rnorm0 || rnorm < eps_abs ) break;
 
         MultiFab::Copy(sh,s,0,0,ncomp,0);
-        Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous);
+        Lp.apply(amrlev, mglev, t, sh, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
         Lp.normalize(amrlev, mglev, t);
         //
         // This is a little funky.  I want to elide one of the reductions
@@ -311,7 +311,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
             Real beta = rho/rho_1;
             sxay(p, z, beta, p);
         }
-        Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous);
+        Lp.apply(amrlev, mglev, q, p, MLLinOp::BCMode::Homogeneous, MLLinOp::StateMode::Correction);
 
         Real alpha;
         if ( Real pw = dotxy(p,q) )
