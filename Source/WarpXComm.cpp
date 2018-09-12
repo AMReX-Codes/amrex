@@ -622,21 +622,22 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
 }
 
 void
-WarpX::SumBoundaryJ (int lev, PatchType patch_type)
+WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
 {
-    if (patch_type == PatchType::fine)
-    {
-        const auto& period = Geom(lev).periodicity();
-        current_fp[lev][0]->SumBoundary(period);
-        current_fp[lev][1]->SumBoundary(period);
-        current_fp[lev][2]->SumBoundary(period);
-    }
-    else if (patch_type == PatchType::coarse)
-    {
-        const auto& cperiod = Geom(lev-1).periodicity();
-        current_cp[lev][0]->SumBoundary(cperiod);
-        current_cp[lev][1]->SumBoundary(cperiod);
-        current_cp[lev][2]->SumBoundary(cperiod);
+    const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
+    const auto& period = Geom(glev).periodicity();
+    auto& j = (patch_type == PatchType::fine) ? current_fp[lev] : current_cp[lev];
+    for (int idim = 0; idim < 3; ++idim) {
+        if (use_filter) {
+            IntVect ng = j[idim]->nGrowVect();
+            ng += 1;
+            MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), 1, ng);
+            applyFilter(jf, *j[idim]);
+            jf.SumBoundary(period);
+            MultiFab::Copy(*j[idim], jf, 0, 0, 1, 0);
+        } else {
+            j[idim]->SumBoundary(period);
+        }
     }
 }
 
@@ -651,7 +652,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
         mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
                        current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                        period);
-        current_fp[lev][idim]->SumBoundary(period);
+        ApplyFilterandSumBoundaryJ(lev, PatchType::fine);
         MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
     }
 }
@@ -667,27 +668,28 @@ WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
 }
 
 void
-WarpX::SumBoundaryRho (int lev, PatchType patch_type)
+WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, int ncomp)
 {
-    if (patch_type == PatchType::fine && rho_fp[lev])
-    {
-        const auto& period = Geom(lev).periodicity();
-        rho_fp[lev]->SumBoundary(period);
-    }
-    else if (patch_type == PatchType::coarse && rho_cp[lev])
-    {
-        const auto& cperiod = Geom(lev-1).periodicity();
-        rho_cp[lev]->SumBoundary(cperiod);
+    const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
+    const auto& period = Geom(glev).periodicity();
+    auto& r = (patch_type == PatchType::fine) ? rho_fp[lev] : rho_cp[lev];
+    if (use_filter) {
+        IntVect ng = r->nGrowVect();
+        ng += 1;
+        MultiFab rf(r->boxArray(), r->DistributionMap(), ncomp, ng);
+        applyFilter(rf, *r, icomp, 0, ncomp);
+        rf.SumBoundary(period);
+        MultiFab::Copy(*r, rf, 0, icomp, ncomp, 0);
+    } else {
+        r->SumBoundary(icomp, ncomp, period);
     }
 }
 
 void
-WarpX::AddRhoFromFineLevelandSumBoundary(int lev, DtType dt_type)
+WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
 {
     if (rho_fp[lev]) {
         const auto& period = Geom(lev).periodicity();
-        const int icomp = (dt_type == DtType::SecondHalf) ? 1 : 0;
-        const int ncomp = (dt_type == DtType::Full) ? 2 : 1;
         MultiFab mf(rho_fp[lev]->boxArray(),
                     rho_fp[lev]->DistributionMap(),
                     ncomp, 0);
@@ -695,7 +697,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, DtType dt_type)
         mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
                        rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
                        period);
-        rho_fp[lev]->SumBoundary(period);
+        ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
         MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);
     }
 }

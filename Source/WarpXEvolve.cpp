@@ -254,8 +254,8 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(fine_lev, curtime);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     RestrictRhoFromFineToCoarsePatch(fine_lev);
-    SumBoundaryJ(fine_lev, PatchType::fine);
-    SumBoundaryRho(fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
@@ -278,7 +278,7 @@ WarpX::OneStep_sub1 (Real curtime)
     PushParticlesandDepose(coarse_lev, curtime);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, DtType::FirstHalf);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, 1);
 
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
@@ -300,8 +300,8 @@ WarpX::OneStep_sub1 (Real curtime)
     // iv)
     PushParticlesandDepose(fine_lev, curtime+dt[fine_lev]);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
-    SumBoundaryJ(fine_lev, PatchType::fine);
-    SumBoundaryRho(fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2);
 
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
@@ -323,7 +323,7 @@ WarpX::OneStep_sub1 (Real curtime)
     // v)
     RestoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
-    AddRhoFromFineLevelandSumBoundary(coarse_lev, DtType::SecondHalf);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 1, 1);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);

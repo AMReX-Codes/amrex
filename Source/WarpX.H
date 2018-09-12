@@ -242,11 +242,11 @@ private:
     void AddCurrentFromFineLevelandSumBoundary (int lev);
     void StoreCurrent (int lev);
     void RestoreCurrent (int lev);
-    void SumBoundaryJ (int lev, PatchType patch_type);
+    void ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type);
 
     void RestrictRhoFromFineToCoarsePatch (int lev);
-    void SumBoundaryRho (int lev, PatchType patch_type);
-    void AddRhoFromFineLevelandSumBoundary (int lev, DtType dt_type);
+    void ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, int ncomp);
+    void AddRhoFromFineLevelandSumBoundary (int lev, int icomp, int ncomp);
 
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
@@ -353,7 +353,8 @@ private:
 
     void LoadBalance ();
 
-    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
+    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf,
+                             int scomp = 0, int dcomp = 0, int ncomp = 10000);
 
     void BuildBufferMasks ();
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {

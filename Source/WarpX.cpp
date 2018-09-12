@@ -748,9 +748,9 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 }
 
 void
-WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf)
+WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
-    const int ncomp = srcmf.nComp();
+    ncomp = std::min(ncomp, srcmf.nComp());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -765,10 +765,10 @@ WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf)
             tmpfab.resize(gbx,ncomp);
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
-            tmpfab.copy(srcfab, ibx, 0, ibx, 0, ncomp);
+            tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
             WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
                         BL_TO_FORTRAN_ANYD(tmpfab),
-                        BL_TO_FORTRAN_ANYD(dstfab),
+                        BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
                         ncomp);
         }
     }
