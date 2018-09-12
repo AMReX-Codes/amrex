@@ -133,7 +133,7 @@ amrex::Device::initialize_device() {
         // the known number of GPUs per socket.
 
 #if (!defined(GPUS_PER_SOCKET) && !defined(GPUS_PER_NODE))
-        amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n" +
+        amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
                        "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
 #endif
 
