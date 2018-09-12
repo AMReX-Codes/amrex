@@ -3,6 +3,8 @@
 
 #include <map>
 
+#include <AMReX_IArrayBox.H>
+
 #include <PlasmaInjector.H>
 #include <WarpXParticleContainer.H>
 
@@ -102,6 +104,7 @@ protected:
     bool boost_adjust_transverse_positions = false;
 
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
+    std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
     
 };
 

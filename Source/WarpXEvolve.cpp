@@ -42,7 +42,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     bool max_time_reached = false;
-    Real walltime, walltime_start = ParallelDescriptor::second();
+    Real walltime, walltime_start = amrex::second();
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
         if (warpx_py_print_step) {
@@ -135,7 +135,7 @@ WarpX::EvolveEM (int numsteps)
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
-        walltime = ParallelDescriptor::second() - walltime_start;
+        walltime = amrex::second() - walltime_start;
         amrex::Print()<< "Walltime = " << walltime
              << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
