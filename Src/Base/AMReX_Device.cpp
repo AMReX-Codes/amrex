@@ -190,6 +190,9 @@ amrex::Device::initialize_device() {
 
     initialize_cuda_c();
 
+    if (amrex::Verbose())
+        amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
+
 #endif
 
 }
