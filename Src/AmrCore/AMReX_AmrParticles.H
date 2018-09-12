@@ -42,11 +42,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         mf_to_be_filled[lev]->setVal(0.0);
     }
     
-    // Test whether the grid structure of the boxArray is the same
-    //       as the ParticleBoxArray at all levels 
+    // Test whether the grid structure of the boxArray is the same as the ParticleBoxArray at all levels 
     bool all_grids_the_same = true; 
-    for (int lev = lev_min; lev <= finest_level; lev++) {
-        if (!this->OnSameGrids(lev, *mf_to_be_filled[lev])) {
+    for (int lev = lev_min; lev <= finest_level; lev++)
+    {
+        if (!this->OnSameGrids(lev, *mf_to_be_filled[lev]))
+        {
             all_grids_the_same = false;
             break;
         }

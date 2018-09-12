@@ -14,6 +14,7 @@ namespace perilla{
         static void init();
         static Barrier* globalBarrier;
         static Barrier* localBarriers[perilla::NUM_THREAD_TEAMS];
+        static Barrier* localBarriers1[perilla::NUM_THREAD_TEAMS];
 	static int perilla_tid();
 	static int perilla_wtid();
 	static int perilla_wid();

@@ -129,7 +129,7 @@ int main (int argc, char* argv[])
     MultiFab mf(ba, dm, Ncomp, 0);
 
     amrex::Print() << "Solving ODEs without a user-supplied Jacobian ..." << std::endl;
-    strt_time = ParallelDescriptor::second();
+    strt_time = amrex::second();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -144,7 +144,7 @@ int main (int argc, char* argv[])
         &cvode_meth,
         &cvode_itmeth);
     }
-    stop_time = ParallelDescriptor::second();
+    stop_time = amrex::second();
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
     // Tell the I/O Processor to write out the "run time"
     amrex::Print() << "Time = " << stop_time - strt_time << std::endl;
@@ -160,7 +160,7 @@ int main (int argc, char* argv[])
     }
 
     amrex::Print() << "Solving ODEs with a user-supplied Jacobian ..." << std::endl;
-    strt_time = ParallelDescriptor::second();
+    strt_time = amrex::second();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -175,7 +175,7 @@ int main (int argc, char* argv[])
         &cvode_meth,
         &cvode_itmeth);
     }
-    stop_time = ParallelDescriptor::second();
+    stop_time = amrex::second();
     ParallelDescriptor::ReduceRealMax(stop_time,IOProc);
     // Tell the I/O Processor to write out the "run time"
     amrex::Print() << "Time = " << stop_time - strt_time << std::endl;
