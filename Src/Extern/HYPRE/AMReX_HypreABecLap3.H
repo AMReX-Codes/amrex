@@ -6,11 +6,6 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
 
-#ifdef AMREX_USE_EB
-    #include <AMReX_EBFabFactory.H>
-    #include <AMReX_MLEBABecLap_F.H>
-#endif 
-
 #include "HYPRE_parcsr_ls.h"
 #include "_hypre_parcsr_mv.h"
 
