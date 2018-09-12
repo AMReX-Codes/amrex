@@ -42,7 +42,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     bool max_time_reached = false;
-    Real walltime, walltime_start = ParallelDescriptor::second();
+    Real walltime, walltime_start = amrex::second();
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
         if (warpx_py_print_step) {
@@ -157,7 +157,7 @@ WarpX::EvolveEM (int numsteps)
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
-        walltime = ParallelDescriptor::second() - walltime_start;
+        walltime = amrex::second() - walltime_start;
         amrex::Print()<< "Walltime = " << walltime
              << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
@@ -280,7 +280,7 @@ WarpX::EvolveB (int lev, Real dt)
 #endif
         for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
         {
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
@@ -303,7 +303,7 @@ WarpX::EvolveB (int lev, Real dt)
             if (cost) {
                 Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
                 if (ipatch == 1) cbx.refine(rr);
-                wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+                wt = (amrex::second() - wt) / cbx.d_numPts();
                 (*cost)[mfi].plus(wt, cbx);
             }
         }
@@ -408,7 +408,7 @@ WarpX::EvolveE (int lev, Real dt)
 #endif
         for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
         {
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
@@ -445,7 +445,7 @@ WarpX::EvolveE (int lev, Real dt)
             if (cost) {
                 Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
                 if (ipatch == 1) cbx.refine(rr);
-                wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+                wt = (amrex::second() - wt) / cbx.d_numPts();
                 (*cost)[mfi].plus(wt, cbx);
             }
         }

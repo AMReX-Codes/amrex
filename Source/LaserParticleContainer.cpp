@@ -316,7 +316,7 @@ LaserParticleContainer::Evolve (int lev,
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
 	    const Box& box = pti.validbox();
 
@@ -533,7 +533,7 @@ LaserParticleContainer::Evolve (int lev,
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
-                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                wt = (amrex::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
 	}

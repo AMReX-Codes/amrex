@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
         
-    const Real strt_total = ParallelDescriptor::second();
+    const Real strt_total = amrex::second();
 
     {
 	WarpX warpx;
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 
 	warpx.Evolve();
 	
-	Real end_total = ParallelDescriptor::second() - strt_total;
+	Real end_total = amrex::second() - strt_total;
 	
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
 	if (warpx.Verbose()) {

@@ -225,7 +225,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
         // Loop through the tiles
         for (MFIter mfi = MakeMFIter(lev, info); mfi.isValid(); ++mfi) {
 
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             const Box& tile_box = mfi.tilebox();
             const RealBox tile_realbox = WarpX::getRealBox(tile_box, lev);
@@ -366,7 +366,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
             }
 
             if (cost) {
-                wt = (ParallelDescriptor::second() - wt) / tile_box.d_numPts();
+                wt = (amrex::second() - wt) / tile_box.d_numPts();
                 (*cost)[mfi].plus(wt, tile_box);
             }
         }
@@ -607,7 +607,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
 	    const Box& box = pti.validbox();
 
@@ -670,7 +670,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
-                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                wt = (amrex::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
         }
@@ -729,7 +729,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
 	    const Box& box = pti.validbox();
 
@@ -1174,7 +1174,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
-                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                wt = (amrex::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
         }
