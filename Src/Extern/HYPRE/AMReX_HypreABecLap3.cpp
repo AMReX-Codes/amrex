@@ -250,7 +250,7 @@ HypreABecLap3::prepareSolver ()
         proc_end += ncells_grid[mfi];
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
-                                     "HypreABecLap3::prepareSolver: how did this happend?");
+                                     "HypreABecLap3::prepareSolver: how did this happen?");
 
 #ifdef _OPENMP
 #pragma omp parallel

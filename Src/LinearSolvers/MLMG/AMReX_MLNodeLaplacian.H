@@ -78,7 +78,7 @@ protected:
     virtual bool isSingular (int amrlev) const final
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     virtual bool isBottomSingular () const final { return m_is_bottom_singular; }
-    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
+    virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode s_mode,
                           bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;

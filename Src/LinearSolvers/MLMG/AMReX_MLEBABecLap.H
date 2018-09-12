@@ -54,10 +54,12 @@ protected:
 
     virtual bool isCrossStencil () const { return false; }
 
-    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode,
+    virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final;
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        const MLMGBndry* bndry=nullptr) const final;
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const final;
 
     virtual void prepareForSolve () final;
     virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
@@ -66,7 +68,8 @@ protected:
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const final;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const final;
+                        const FArrayBox& sol, Location loc,
+                        const int face_only=0) const final;
 
     virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
@@ -102,7 +105,7 @@ private:
 
     Vector<int> m_is_singular;
 
-    mutable int m_is_inhomog;
+    mutable int m_is_eb_inhomog;
 
     //
     // functions

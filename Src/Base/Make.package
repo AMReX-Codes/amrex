@@ -37,9 +37,6 @@ C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
 C$(AMREX_BASE)_headers += AMReX_NFiles.H
 
 
-C$(AMREX_BASE)_headers += AMReX_SPMD.H AMReX_SPMDI.H 
-C$(AMREX_BASE)_sources += AMReX_SPMD.cpp
-
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
@@ -108,15 +105,19 @@ endif
 #
 # Boundary-related 
 #
-C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
-C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
-C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
+  C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
+  C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
+endif
 
 #
 # Plotfile
 #
-C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
-C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
+  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+endif
 
 #
 # Misc
@@ -184,7 +185,7 @@ endif
 C$(AMREX_BASE)_headers += AMReX_MemPool.H
 C$(AMREX_BASE)_sources += AMReX_MemPool.cpp
 ifneq ($(BL_NO_FORT),TRUE)
-  f90$(AMREX_BASE)_sources += AMReX_mempool_f.f90
+  F90$(AMREX_BASE)_sources += AMReX_mempool_mod.F90
 endif
 
 # UPCXX
