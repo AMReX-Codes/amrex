@@ -1050,8 +1050,8 @@ void Perilla::serviceSingleGraphComm(RegionGraph* graph, int tid)
 		}		
 		//call parallel_barrier()  ---????????
 		ParallelDescriptor::Barrier("serviceSingleGraph-1");
-		graph->graphTeardown(tg);
-		graph->workerTeardown(tg);
+		graph->graphTeardown();
+		graph->workerTeardown();
 		//call parallel_barrier() ------?????????
 		ParallelDescriptor::Barrier("serviceSingleGraph-2");
 	    }
@@ -1097,8 +1097,8 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	for(int g=0; g<nGraphs; g++)
 	{
 	    ParallelDescriptor::Barrier("serviceMultipleGraph-1");
-	    graphArray[g].graphTeardown(tg);
-	    graphArray[g].workerTeardown(tg);
+	    graphArray[g].graphTeardown();
+	    graphArray[g].workerTeardown();
 	    ParallelDescriptor::Barrier("serviceMultipleGraph-2");
 	}
 

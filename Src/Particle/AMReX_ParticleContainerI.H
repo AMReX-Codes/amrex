@@ -861,7 +861,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   BL_PROFILE("ParticleContainer::Redistribute()");
 
   const int MyProc    = ParallelDescriptor::MyProc();
-  Real      strttime  = ParallelDescriptor::second();
+  Real      strttime  = amrex::second();
   
   if (local > 0) BuildRedistributeMask(0, local);
 
@@ -1170,7 +1170,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   BL_ASSERT(OK(lev_min, lev_max, nGrow));
   
   if (m_verbose > 0) {
-      Real stoptime = ParallelDescriptor::second() - strttime;
+      Real stoptime = amrex::second() - strttime;
       
       ByteSpread();
       
@@ -1553,7 +1553,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     const int  NProcs   = ParallelDescriptor::NProcs();
     const int  IOProcNumber   = ParallelDescriptor::IOProcessorNumber();
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
 
     std::string pdir = dir;
     if ( not pdir.empty() and pdir[pdir.size()-1] != '/') pdir += '/';
@@ -1842,7 +1842,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime, IOProcNumber);
 
@@ -2114,7 +2114,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   BL_ASSERT(!dir.empty());
   BL_ASSERT(!file.empty());
   
-  const Real strttime = ParallelDescriptor::second();
+  const Real strttime = amrex::second();
   
   int DATA_Digits_Read(5);
   ParmParse pp("particles");
@@ -2341,7 +2341,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   BL_ASSERT(OK());
   
   if (m_verbose > 1) {
-      Real stoptime = ParallelDescriptor::second() - strttime;	
+      Real stoptime = amrex::second() - strttime;	
       ParallelDescriptor::ReduceRealMax(stoptime, ParallelDescriptor::IOProcessorNumber());
       amrex::Print() << "ParticleContainer::Restart() time: " << stoptime << '\n';
   }
@@ -2441,7 +2441,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
     BL_PROFILE("ParticleContainer::WriteAsciiFile()");
     BL_ASSERT(!filename.empty());
 
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
     //
     // Count # of valid particles.
     //
@@ -2569,7 +2569,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
     
     if (m_verbose > 1)
         {
-            Real stoptime = ParallelDescriptor::second() - strttime;
+            Real stoptime = amrex::second() - strttime;
             
             ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
             
@@ -2584,7 +2584,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
     BL_PROFILE("ParticleContainer::WriteCoarsenedAsciiFile()");
     BL_ASSERT(!filename.empty());
 
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
  
     //
     // Count # of valid particles.
@@ -2717,7 +2717,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 
@@ -2764,7 +2764,7 @@ AssignCellDensitySingleLevel (int rho_index,
 #ifdef _OPENMP
     const int       ng          = mf_pointer->nGrow();
 #endif
-    const Real      strttime    = ParallelDescriptor::second();
+    const Real      strttime    = amrex::second();
     const Geometry& gm          = Geom(lev);
     const Real*     plo         = gm.ProbLo();
     const Real*     dx_particle = Geom(lev + particle_lvl_offset).CellSize();
@@ -2851,7 +2851,7 @@ AssignCellDensitySingleLevel (int rho_index,
     }
     
     if (m_verbose > 1) {
-      Real stoptime = ParallelDescriptor::second() - strttime;
+      Real stoptime = amrex::second() - strttime;
       
       ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
       
@@ -2919,7 +2919,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
     BL_ASSERT(NStructReal >= AMREX_SPACEDIM+1);
     BL_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
-    const Real strttime  = ParallelDescriptor::second();
+    const Real strttime  = amrex::second();
     const Real half_dt   = Real(0.5) * dt;
     const Real a_new_inv = 1 / a_new;
     auto&      pmap      = m_particles[lev];
@@ -2992,7 +2992,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,ParallelDescriptor::IOProcessorNumber());
 

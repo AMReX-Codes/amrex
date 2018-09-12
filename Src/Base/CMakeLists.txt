@@ -132,7 +132,7 @@ add_sources ( AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 #
 add_sources ( AMReX_MemPool.cpp )
 add_sources ( AMReX_MemPool.H )
-add_sources ( AMReX_mempool_f.f90 ) # if BL_NO_FORT = FALSE
+add_sources ( AMReX_mempool_mod.F90 ) # if BL_NO_FORT = FALSE
 
 # UPCXX mode not supported in CMake yet
 # ifeq ($(USE_UPCXX),TRUE)

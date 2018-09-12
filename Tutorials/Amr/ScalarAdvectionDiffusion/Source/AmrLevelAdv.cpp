@@ -1556,14 +1556,14 @@ namespace amrex
   {
     BL_ASSERT(level<parent->finestLevel());
 
-    const Real strt = ParallelDescriptor::second();
+    const Real strt = amrex::second();
 
     getFluxReg(level+1).Reflux(get_new_data(Phi_Type));
     
     if (verbose)
     {
       const int IOProc = ParallelDescriptor::IOProcessorNumber();
-      Real      end    = ParallelDescriptor::second() - strt;
+      Real      end    = amrex::second() - strt;
 	
       ParallelDescriptor::ReduceRealMax(end,IOProc);
 	

@@ -38,6 +38,7 @@ private:
   int front;
   int rear;
   int prear;
+  int max_size;
 public:  
   pthread_mutex_t queueLock;
   PackageQueue();
