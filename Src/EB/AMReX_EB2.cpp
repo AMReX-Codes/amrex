@@ -69,8 +69,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         Real radius;
         pp.get("cylinder_radius", radius);
 
-        Real height;
-        pp.get("cylinder_height", height);
+        Real height = -1.0;
+        pp.query("cylinder_height", height);
 
         int direction;
         pp.get("cylinder_direction", direction);
@@ -80,21 +80,10 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         bool has_fluid_inside;
         pp.get("cylinder_has_fluid_inside", has_fluid_inside);
 
-        std::unique_ptr<EB2::CylinderIF> cf;
-        if (height < 0) {
-            cf = std::unique_ptr<
-                EB2::CylinderIF
-                >(new EB2::CylinderIF(radius, direction, center, has_fluid_inside));
+        EB2::CylinderIF cf(radius, height, direction, center, has_fluid_inside);
 
-        } else {
-            cf = std::unique_ptr<
-                EB2::CylinderIF
-                >(new EB2::CylinderIF(radius, height, direction, center, has_fluid_inside));
-        }
-
-        EB2::GeometryShop<EB2::CylinderIF> gshop(* cf);
+        EB2::GeometryShop<EB2::CylinderIF> gshop(cf);
         EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
-
     }
     else if (geom_type == "plane")
     {
