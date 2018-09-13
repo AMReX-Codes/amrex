@@ -19,8 +19,8 @@ public:
           
     ~ComplementIF () {}
 
-    ComplementIF (const ComplementIF& rhs) noexcept = default;
-    ComplementIF (ComplementIF&& rhs) noexcept = default;
+    ComplementIF (const ComplementIF& rhs) = default;
+    ComplementIF (ComplementIF&& rhs) = default;
     ComplementIF& operator= (const ComplementIF& rhs) = delete;
     ComplementIF& operator= (ComplementIF&& rhs) = delete;
 
