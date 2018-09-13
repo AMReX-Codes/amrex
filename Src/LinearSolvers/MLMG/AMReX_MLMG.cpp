@@ -80,8 +80,8 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 
         if (verbose >= 1)
         {
-            amrex::Print() << "MLMG: Initial rhs               = " << rhsnorm0 << "\n";
-            amrex::Print() << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
+            amrex::Print() << "MLMG: Initial rhs               = " << rhsnorm0 << "\n"
+                           << "MLMG: Initial residual (resid0) = " << resnorm0 << "\n";
         }
     }
 
@@ -374,8 +374,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << "\n";
-            amrex::Print() << "   DN: Norm before smooth " << norm << "\n";
+            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+                           << "   DN: Norm before smooth " << norm << "\n";
         }
 
         cor[amrlev][mglev]->setVal(0.0);
@@ -406,8 +406,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev_bottom].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev_bottom << "\n";
-            amrex::Print() << "   DN: Norm before bottom " << norm << "\n";
+            amrex::Print() << "AT LEVEL "                << mglev_bottom << "\n"
+                           << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
     }
@@ -432,8 +432,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev);
             Real norm = rescor[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << "\n";
-            amrex::Print() << "   UP: Norm before smooth " << norm << "\n";
+            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+                           << "   UP: Norm before smooth " << norm << "\n";
         }
         for (int i = 0; i < nu2; ++i) {
             linop.smooth(amrlev, mglev, *cor[amrlev][mglev], res[amrlev][mglev]);
@@ -442,8 +442,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev);
             Real norm = rescor[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << "\n";
-            amrex::Print() << "   UP: Norm after  smooth " << norm << "\n";
+            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+                           << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
     BL_PROFILE_VAR_STOP(blp_up);
@@ -1140,8 +1140,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
                        << "      # of MG levels on the coarsest AMR level: " << linop.NMGLevels(0)
                        << "\n";
         if (ns_linop) {
-            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n";
-            amrex::Print() << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
+            amrex::Print() << "      # of MG levels in N-Solve: " << ns_linop->NMGLevels(0) << "\n"
+                           << "      # of grids in N-Solve: " << ns_linop->m_grids[0][0].size() << "\n";
         }
     }
 }
@@ -1194,6 +1194,31 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                 a_flux[alev][idim]->mult(betainv);
             }
         }
+    }
+}
+
+void
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
+{
+    AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
+    Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
+    for (int alev = 0; alev < namrlevs; ++alev) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            const int mglev = 0;
+            const int ncomp = linop.getNComp();
+            ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
+                                                      IntVect::TheDimensionVector(idim)),
+                                       linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
+                                       *linop.m_factory[alev][mglev]);
+        }
+    }
+    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), Location::FaceCenter);
+    for (int alev = 0; alev < namrlevs; ++alev) {
+#ifdef AMREX_USE_EB
+        EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+#else
+        average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+#endif
     }
 }
 

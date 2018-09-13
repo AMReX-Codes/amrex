@@ -38,8 +38,8 @@ private:
 	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { } 
 	int  depth; // recursive depth
 	long n;     // number of calls
-	Real dtin;  // inclusive dt
-	Real dtex;  // exclusive dt
+	double dtin;  // inclusive dt
+	double dtex;  // exclusive dt
     };
 
     //! stats across processes
@@ -47,13 +47,13 @@ private:
     {
 	ProcStats () : nmin(std::numeric_limits<long>::max()), 
 		       navg(0L), nmax(0L), 
-		       dtinmin(std::numeric_limits<Real>::max()), 
+		       dtinmin(std::numeric_limits<double>::max()), 
 		       dtinavg(0.0), dtinmax(0.0),
-		       dtexmin(std::numeric_limits<Real>::max()), 
+		       dtexmin(std::numeric_limits<double>::max()), 
 		       dtexavg(0.0), dtexmax(0.0)  {}
 	long nmin, navg, nmax;
-	Real dtinmin, dtinavg, dtinmax;
-	Real dtexmin, dtexavg, dtexmax;
+	double dtinmin, dtinavg, dtinmax;
+	double dtexmin, dtexavg, dtexmax;
 	std::string fname;
 	static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
 	    return lhs.dtexmax > rhs.dtexmax;
@@ -68,11 +68,11 @@ private:
     std::vector<Stats*> stats;
 
     static std::vector<std::string> regionstack;
-    static std::stack<std::pair<Real,Real> > ttstack;
+    static std::stack<std::pair<double,double> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
-    static Real t_init;
+    static double t_init;
 
-    static void PrintStats(std::map<std::string,Stats>& regstats, Real dt_max);
+    static void PrintStats(std::map<std::string,Stats>& regstats, double dt_max);
 };
 
 class TinyProfileRegion

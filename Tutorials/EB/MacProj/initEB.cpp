@@ -1,4 +1,5 @@
 #include <AMReX_ParmParse.H>
+#include <AMReX_EB2_IF.H>
 #include "initEB.H"
 
 using namespace amrex;

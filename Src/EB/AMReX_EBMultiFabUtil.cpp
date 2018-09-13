@@ -418,7 +418,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                          const FArrayBox& vfab = (*umac[1])[mfi];,
                          const FArrayBox& wfab = (*umac[2])[mfi];);
 
-            auto fabtyp = flagfab.getType(bx);
+            const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
                 divufab.setVal(0.0, bx, 0, 1);
             } else if (fabtyp == FabType::regular) {
@@ -444,6 +444,63 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                                                          BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                          BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
                                             dxinv);
+            }
+        }
+    }
+}
+
+void
+EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
+                               const Array<MultiFab const*,AMREX_SPACEDIM>& fmf)
+{
+    AMREX_ASSERT(ccmf.nComp() >= dcomp + AMREX_SPACEDIM);
+
+    if (!fmf[0]->hasEBFabFactory())
+    {
+        average_face_to_cellcenter(ccmf, dcomp, fmf);
+    }
+    else
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fmf[0]->Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& area = factory.getAreaFrac();
+
+	Real dx[3] = {1.0,1.0,1.0};
+	Real problo[3] = {0.,0.,0.};
+	int coord_type = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(ccmf,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& flagfab = flags[mfi];
+            auto& ccfab = ccmf[mfi];
+            AMREX_D_TERM(const auto& xfab = (*fmf[0])[mfi];,
+                         const auto& yfab = (*fmf[1])[mfi];,
+                         const auto& zfab = (*fmf[2])[mfi];);
+            const auto fabtyp = flagfab.getType(bx);
+            if (fabtyp == FabType::covered) {
+                ccfab.setVal(0.0, bx, dcomp, 1);
+            } else if (fabtyp == FabType::regular) {
+                BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
+                    (bx.loVect(), bx.hiVect(),
+                     BL_TO_FORTRAN_N(ccfab,dcomp),
+                     AMREX_D_DECL(BL_TO_FORTRAN(xfab),
+                                  BL_TO_FORTRAN(yfab),
+                                  BL_TO_FORTRAN(zfab)),
+                     dx, problo, coord_type);
+            } else {
+                amrex_eb_avg_fc_to_cc(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_N_ANYD(ccfab,dcomp),
+                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD(xfab),
+                                                   BL_TO_FORTRAN_ANYD(yfab),
+                                                   BL_TO_FORTRAN_ANYD(zfab)),
+                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                   BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                   BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                      BL_TO_FORTRAN_ANYD(flagfab));
             }
         }
     }

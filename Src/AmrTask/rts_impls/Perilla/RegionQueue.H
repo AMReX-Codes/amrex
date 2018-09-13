@@ -9,10 +9,10 @@ class RegionQueue
 {
 private:
   int* buffer;
-  int bufSize;
   int n;
   int front;
   int rear;
+  int max_size;
   pthread_mutex_t queueLock;
 public:
   RegionQueue();
@@ -25,6 +25,7 @@ public:
   int getFrontRegion(bool lockIgnore);
   int queueSize(bool lockIgnore);
   int queueSize();
+  void reallocate();
 };
 //////////////////////// class RegionQueue Declaration End /////////////////////////////////////
 

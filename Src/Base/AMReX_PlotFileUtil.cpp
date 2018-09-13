@@ -5,6 +5,10 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFabFactory.H>
+#endif
+
 namespace amrex {
 
 std::string LevelPath (int level, const std::string &levelPrefix)
@@ -238,4 +242,104 @@ WriteSingleLevelPlotfile (const std::string& plotfilename,
                             level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
 }
 
+#ifdef AMREX_USE_EB
+void
+EB_WriteSingleLevelPlotfile (const std::string& plotfilename,
+                             const MultiFab& mf, const Vector<std::string>& varnames,
+                             const Geometry& geom, Real time, int level_step,
+                             const std::string &versionName,
+                             const std::string &levelPrefix,
+                             const std::string &mfPrefix,
+                             const Vector<std::string>& extra_dirs)
+{
+    Vector<const MultiFab*> mfarr(1,&mf);
+    Vector<Geometry> geomarr(1,geom);
+    Vector<int> level_steps(1,level_step);
+    Vector<IntVect> ref_ratio;
+
+    EB_WriteMultiLevelPlotfile(plotfilename, 1, mfarr, varnames, geomarr, time,
+                               level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
+}
+
+void
+EB_WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
+                            const Vector<const MultiFab*>& mf,
+                            const Vector<std::string>& varnames,
+                            const Vector<Geometry>& geom, Real time, const Vector<int>& level_steps,
+                            const Vector<IntVect>& ref_ratio,
+                            const std::string &versionName,
+                            const std::string &levelPrefix,
+                            const std::string &mfPrefix,
+                            const Vector<std::string>& extra_dirs)
+{
+    BL_PROFILE("WriteMultiLevelPlotfile()");
+
+    BL_ASSERT(nlevels <= mf.size());
+    BL_ASSERT(nlevels <= geom.size());
+    BL_ASSERT(nlevels <= ref_ratio.size()+1);
+    BL_ASSERT(nlevels <= level_steps.size());
+    BL_ASSERT(mf[0]->nComp() == varnames.size());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf[0]->hasEBFabFactory(),
+                                     "EB_WriteMultiLevelPlotfile: does not have EB Factory");
+
+    int finest_level = nlevels-1;
+
+//    int saveNFiles(VisMF::GetNOutFiles());
+//    VisMF::SetNOutFiles(std::max(1024,saveNFiles));
+
+    bool callBarrier(false);
+    PreBuildDirectorHierarchy(plotfilename, levelPrefix, nlevels, callBarrier);
+    if (!extra_dirs.empty()) {
+        for (const auto& d : extra_dirs) {
+            const std::string ed = plotfilename+"/"+d;
+            amrex::PreBuildDirectorHierarchy(ed, levelPrefix, nlevels, callBarrier);
+        }
+    }
+    ParallelDescriptor::Barrier();
+
+    if (ParallelDescriptor::IOProcessor()) {
+        VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
+        std::string HeaderFileName(plotfilename + "/Header");
+        std::ofstream HeaderFile;
+        HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+	                                        std::ofstream::trunc |
+                                                std::ofstream::binary);
+        if( ! HeaderFile.good()) {
+            FileOpenFailed(HeaderFileName);
+        }
+        
+        Vector<BoxArray> boxArrays(nlevels);
+        for(int level(0); level < boxArrays.size(); ++level) {
+            boxArrays[level] = mf[level]->boxArray();
+        }
+        
+        Vector<std::string> vn = varnames;
+        vn.push_back("vfrac");
+        WriteGenericPlotfileHeader(HeaderFile, nlevels, boxArrays, vn,
+                                   geom, time, level_steps, ref_ratio, versionName,
+                                   levelPrefix, mfPrefix);
+
+        for (int lev = 0; lev < nlevels; ++lev) {
+            HeaderFile << "1.0e-6\n";
+        }
+    }
+
+
+    for (int level = 0; level <= finest_level; ++level)
+    {
+        const int nc = mf[level]->nComp();
+        MultiFab mf_tmp(mf[level]->boxArray(),
+                        mf[level]->DistributionMap(),
+                        nc+1, 0);
+        MultiFab::Copy(mf_tmp, *mf[level], 0, 0, nc, 0);
+        auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(mf[level]->Factory());
+        MultiFab::Copy(mf_tmp, factory.getVolFrac(), 0, nc, 1, 0);
+	VisMF::Write(mf_tmp, MultiFabFileFullPrefix(level, plotfilename, levelPrefix, mfPrefix));
+    }
+
+//    VisMF::SetNOutFiles(saveNFiles);
+}
+
+#endif
 }
