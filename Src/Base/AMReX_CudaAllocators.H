@@ -5,11 +5,14 @@
 #include <memory>
 #include <iostream>
 #include <limits>
+#include <AMReX_Print.H>
+#include <AMReX.H>
+
+#ifdef AMREX_USE_CUDA
 #include <cuda.h>
 #include <driver_types.h>
 #include <cuda_runtime.h>
-#include <AMReX_Print.H>
-#include <AMReX.H>
+#endif
 
 namespace amrex {
 
