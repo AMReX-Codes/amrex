@@ -15,6 +15,8 @@ class MLEBABecLap
 {
 public:
 
+    friend class MLMG;
+
     MLEBABecLap () {}
     MLEBABecLap (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,

@@ -287,7 +287,7 @@ HypreABecLap3::prepareSolver ()
     BaseFab<HYPRE_Int> ifab;
     auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr; 
     auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr; 
-    const int is_eb_dirichlet = isEBDirichlet(); 
+    const int is_eb_dirichlet = false; // xxxxxisEBDirichlet(); 
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
@@ -340,7 +340,7 @@ HypreABecLap3::prepareSolver ()
 #ifdef AMREX_USE_EB
             else
             {
-//#ifdef NOT_FINISHED
+#ifdef NOT_FINISHED
                 FArrayBox const& beb = (is_eb_dirichlet) ? (*(m_eb_b_coeffs[0]))[mfi] : foo; 
                
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
@@ -366,7 +366,7 @@ HypreABecLap3::prepareSolver ()
                                     BL_TO_FORTRAN_ANYD((*barea)[mfi]), 
                                     BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                     BL_TO_FORTRAN_ANYD(beb));
-//#endif
+#endif
             }
 #endif
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);

@@ -5,8 +5,7 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_BndryData.H>
- 
+#include <AMReX_BndryData.H> 
 
 #include "HYPRE.h"
 #include "_hypre_utilities.h"
@@ -69,8 +68,6 @@ protected:
 
     MultiFab diaginv;
     
-    Vector<BoxArray>             m_grids; 
-    Vector<DistributionMapping>  m_dmap; 
     FabFactory<FArrayBox> const* m_factory = nullptr;
     BndryData const* m_bndry = nullptr;
     int m_maxorder = -1;

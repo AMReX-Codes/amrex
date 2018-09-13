@@ -15,6 +15,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_MLEBABecLap.H>
 #endif
 
 // sol: full solution
@@ -1604,6 +1605,14 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             }
             hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
         }
+
+#ifdef AMREX_USE_EB
+        auto eb_linop = dynamic_cast<MLEBABecLap*>(&linop);
+        if (eb_linop) {
+            auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
+            ijmatrix_solver->setEBDirichlet(eb_linop->m_eb_b_coeffs[0][mglev].get());
+        }
+#endif
 
         hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         hypre_bndry->setHomogValues();
