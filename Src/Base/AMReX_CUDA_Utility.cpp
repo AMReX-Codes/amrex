@@ -2,6 +2,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Device.H>
+#include <AMReX_Utility.H>
 
 namespace amrex {
 
