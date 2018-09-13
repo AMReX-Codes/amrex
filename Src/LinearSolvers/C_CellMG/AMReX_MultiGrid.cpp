@@ -318,7 +318,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
   // If do_fixed_number_of_iters = 0, then relax system maxiter times, 
   //    and stop if relative error <= _eps_rel or if absolute err <= _abs_eps
   //
-  const Real strt_time = ParallelDescriptor::second();
+  const Real strt_time = amrex::second();
 
   const int level = 0;
 
@@ -455,7 +455,7 @@ MultiGrid::solve_ (MultiFab&      _sol,
      }
   }
 
-  Real run_time = (ParallelDescriptor::second() - strt_time);
+  Real run_time = (amrex::second() - strt_time);
 
   if ( verbose > 0 )
   {
@@ -712,13 +712,13 @@ MultiGrid::coarsestSmooth (MultiFab&      solL,
 	CGSolver cg(Lp, use_mg_precond, level);
 	cg.setMaxIter(maxiter_b);
 
-        const Real stime = ParallelDescriptor::second();
+        const Real stime = amrex::second();
 
 	int ret = cg.solve(solL, rhsL, rtol_b, atol_b, bc_mode);
         //
         // The whole purpose of cg_time is to accumulate time spent in CGSolver.
         //
-        cg_time += (ParallelDescriptor::second() - stime);
+        cg_time += (amrex::second() - stime);
 
 	if ( ret != 0 )
         {
