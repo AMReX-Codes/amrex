@@ -83,6 +83,7 @@ contains
     integer, intent(in   ) :: lo(3), hi(3)
     integer, intent(inout) :: blo(3), bhi(3)
 
+#ifdef USE_CUDA
     ! Get our spatial index based on the CUDA thread index
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
     blo(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
@@ -96,6 +97,7 @@ contains
     else
        bhi = blo
     endif
+#endif
 
   end subroutine get_loop_bounds_device
 
