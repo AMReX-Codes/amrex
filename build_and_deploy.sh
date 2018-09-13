@@ -46,9 +46,9 @@ mv Docs/Doxygen/html/* out/docs_html/doxygen/
 
 # now do sphinx
 cd Docs/sphinx_documentation
-make html
+make SPHINX_BUILD="python3 -msphinx" html
 cd ../sphinx_tutorials
-make html
+make SPHINX_BUILD="python3 -msphinx" html
 cd ../../
 
 mv Docs/sphinx_documentation/build/html/* out/docs_html/
