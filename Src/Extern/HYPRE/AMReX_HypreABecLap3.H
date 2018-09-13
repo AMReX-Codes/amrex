@@ -26,6 +26,10 @@ public:
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                         int max_iter, const BndryData& bndry, int max_bndry_order) final;
 
+#ifdef AMREX_USE_EB
+    void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
+#endif
+
 private :
 
     HYPRE_IJMatrix A = NULL;
@@ -37,12 +41,11 @@ private :
     LayoutData<Vector<HYPRE_Int> > cell_id_vec;
     FabArray<BaseFab<HYPRE_Int> > cell_id;
 
-    Vector<std::unique_ptr<MultiFab> > m_eb_b_coeffs; 
+    MultiFab const* m_eb_b_coeffs = nullptr;
     
     void prepareSolver ();
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
     void getSolution (MultiFab& soln);
-    bool isEBDirichlet() const {return m_eb_b_coeffs[0] != nullptr; }; 
 };
 
 }
