@@ -12,11 +12,29 @@ namespace amrex { namespace EB2 {
 class CylinderIF
 {
 public:
-
     // inside: is the fluid inside the cylinder?
-    CylinderIF (Real a_radius, Real a_height, int a_direction, const RealArray& a_center, bool a_inside)
+
+    // Overloaded constructor for infinite cylinder IF: if the user does not
+    // provide a cylinder height, the IF corresponds to a cylinder that spans
+    // the whole domain.
+    CylinderIF (Real a_radius, int a_direction,
+                const RealArray& a_center, bool a_inside)
+        : m_radius(a_radius), m_height(-1.0), m_direction(a_direction),
+          m_center(a_center), m_inside(a_inside), m_infinite(true),
+          m_radius2(a_radius * a_radius),
+          m_halfheight(-1.0),
+          m_sign(a_inside ? 1.0 : -1.0)
+    {
+        AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
+    }
+
+    // Overloaded constructor for finite cylinder IF: if the user does specify a
+    // cylinder height (length), then the IF corresponds to a cylinder extending
+    // only to height/2 from it's center.
+    CylinderIF (Real a_radius, Real a_height, int a_direction,
+                const RealArray& a_center, bool a_inside)
         : m_radius(a_radius), m_height(a_height), m_direction(a_direction),
-          m_center(a_center), m_inside(a_inside),
+          m_center(a_center), m_inside(a_inside), m_infinite(false),
           m_radius2(a_radius*a_radius),
           m_halfheight(0.5*a_height),
           m_sign(a_inside ? 1.0 : -1.0)
@@ -24,7 +42,7 @@ public:
             AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
             AMREX_ASSERT(m_height >= 0.0);
         }
-          
+
     ~CylinderIF () {}
 
     CylinderIF (const CylinderIF& rhs) noexcept = default;
@@ -67,6 +85,9 @@ public:
         }
 
         d2 -= m_radius2;
+
+        if (m_infinite) return d2;
+
         Real rtop = ( pos[m_direction] - m_halfheight);
         Real rbot = (-pos[m_direction] - m_halfheight);
         Real r = std::max(d2,std::max(rtop,rbot));
@@ -81,6 +102,7 @@ protected:
     int       m_direction;
     RealArray m_center;
     bool      m_inside;
+    bool      m_infinite;
     //
     Real      m_radius2;
     Real      m_halfheight;
