@@ -165,6 +165,9 @@ public:
                   int              destcomp,
                   int              numcomp,
                   Real             mult);
+    //
+    // Set flux correction data for a fine box (given by boxno) to a given value.
+    //
     void FineSetVal (int              dir,
                   int              boxno,
                   int              destcomp,

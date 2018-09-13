@@ -396,41 +396,15 @@ FluxRegister::FineSetVal (int              dir,
                        int              numcomp,
                        Real             val)
 {
-    // BL_ASSERT(numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    // const Box&  flxbox   = flux.box();
-    // const int*  flo      = flxbox.loVect();
-    // const int*  fhi      = flxbox.hiVect();
-    // const Real* flxdat   = flux.dataPtr(srccomp);
-
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
-
-#ifdef AMREX_DEBUG
     BL_ASSERT(numcomp <= loreg.nComp());
-#endif
     loreg.setVal(val, loreg.box(), destcomp, numcomp);
-    // const int* rlo = loreg.box().loVect();
-    // const int* rhi = loreg.box().hiVect();
-    // Real* lodat = loreg.dataPtr(destcomp);
-    // amrex_frfaadd(lodat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-    //              flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-    //              area_dat,AMREX_ARLIM(alo),AMREX_ARLIM(ahi),
-    //              &numcomp,&dir,ratio.getVect(),&mult);
 
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
-
-#ifdef AMREX_DEBUG
     BL_ASSERT(numcomp <= hireg.nComp());
-#endif
     hireg.setVal(val, hireg.box(), destcomp, numcomp);
-    // rlo = hireg.box().loVect();
-    // rhi = hireg.box().hiVect();
-    // Real* hidat = hireg.dataPtr(destcomp);
-    // amrex_frfaadd(hidat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-    //              flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-    //              area_dat,AMREX_ARLIM(alo),AMREX_ARLIM(ahi),
-    //              &numcomp,&dir,ratio.getVect(),&mult);
 }
 
 void 
