@@ -165,6 +165,11 @@ public:
                   int              destcomp,
                   int              numcomp,
                   Real             mult);
+    void FineSetVal (int              dir,
+                  int              boxno,
+                  int              destcomp,
+                  int              numcomp,
+                  Real             val);
     //
     // Apply flux correction.  Note that this takes the coarse Geometry.
     //
