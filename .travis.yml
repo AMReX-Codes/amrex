@@ -8,8 +8,9 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y mpich2 gfortran python3.6 python3.6-venv
 
-install: 
-  - pip3.6 install --user sphinx sphinx_rtd_theme
+install:
+  - pyenv global 3.6
+  - pip install --user sphinx sphinx_rtd_theme
 
 script: bash ./build_and_deploy.sh
 
