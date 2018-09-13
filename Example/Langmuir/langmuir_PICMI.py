@@ -27,9 +27,9 @@ grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
 solver = picmi.ElectromagneticSolver(grid=grid, cfl=1.)
 
 sim = picmi.Simulation(solver = solver,
-                       verbose = 1,
                        max_steps = 40,
-                       plot_int = 1,
+                       verbose = 1,
+                       warpx_plot_int = 1,
                        warpx_current_deposition_algo = 3,
                        warpx_charge_deposition_algo = 0,
                        warpx_field_gathering_algo = 0,

@@ -55,10 +55,10 @@ electrons = picmi.Species(particle_type = 'electron',
                           initial_distribution = uniform_plasma)
 
 sim = picmi.Simulation(solver = solver,
-                       plot_int = 100,
+                       max_steps = 1000,
                        verbose = 1,
                        cfl = 1.0,
-                       max_steps = 1000,
+                       warpx_plot_int = 100,
                        warpx_current_deposition_algo = 3,
                        warpx_charge_deposition_algo = 0,
                        warpx_field_gathering_algo = 0,

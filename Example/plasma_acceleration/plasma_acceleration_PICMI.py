@@ -41,8 +41,8 @@ beam = picmi.Species(particle_type='electron', name='beam', initial_distribution
 plasma = picmi.Species(particle_type='electron', name='plasma', initial_distribution=plasma_distribution)
 
 sim = picmi.Simulation(solver = solver,
-                       verbose = 1,
                        max_steps = 1000,
+                       verbose = 1,
                        warpx_plot_int = 2,
                        warpx_current_deposition_algo = 3,
                        warpx_charge_deposition_algo = 0,
