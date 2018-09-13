@@ -1,11 +1,11 @@
 language: generic
 
-python:
-  - 2.7
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install python3 mpich2 gfortran
 
 install: 
   - pip install --user sphinx sphinx_rtd_theme
-  - sudo apt-get install mpich2 gfortran
 
 script: bash ./build_and_deploy.sh
 
