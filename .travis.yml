@@ -4,9 +4,9 @@ python:
   - "3.6"
 
 before_install:
-  - sudo add-apt-repository ppa:deadsnakes/ppa
+  - sudo add-apt-repository -y ppa:deadsnakes/ppa
   - sudo apt-get update
-  - sudo apt-get install mpich2 gfortran python3.6 python3.6-venv -y
+  - sudo apt-get install -y mpich2 gfortran python3.6 python3.6-venv
 
 install: 
   - pip3.6 install --user sphinx sphinx_rtd_theme
