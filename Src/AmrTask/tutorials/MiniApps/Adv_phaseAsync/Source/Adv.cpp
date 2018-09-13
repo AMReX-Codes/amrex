@@ -277,10 +277,14 @@ Adv::avgDown (int state_indx, int iteration)
 	    crse_lev.RG_S_fine->Reset();	  
 	}
 
+
 	while(!crse_lev.RG_S_fine->isGraphEmpty())
 	{	
 	    f = crse_lev.RG_S_fine->getAnyFireableRegion();
 	    int lfi = tS_fine->IndexArray()[f];
+#if 0
+            const FArrayBox& fin = (*S_fine)[lfi]; 
+            const FArrayBox& cin = (*crse_S_fine)[lfi]; 
 
 	    int tg = perilla::wid();
 	    int nt = perilla::wtid();
@@ -291,14 +295,13 @@ Adv::avgDown (int state_indx, int iteration)
 		    const Box& tbx = *(crse_lev.RG_S_fine->fabTiles[f]->tileBx[t]);
 
 
-#if 0
-		    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-			(tbx.loVect(), tbx.hiVect(),
-			 BL_TO_FORTRAN_N(S_fine[lfi],scomp),
-			 BL_TO_FORTRAN_N(crse_S_fine[lfi],0),
+		    //BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
+		    bl_avgdown(tbx.loVect(), tbx.hiVect(),
+			 BL_TO_FORTRAN_3D(fin),
+			 BL_TO_FORTRAN_3D(cin),
 			 ratio.getVect(),&ncomp);
-#endif
 		}
+#endif
 	    perilla::syncWorkerThreads();
 	    Perilla::multifabCopyPushAsync(crse_lev.RG_S_crse, crse_lev.RG_S_fine, tS_crse, tS_fine, f, 0, 0, crse_lev.S_fine->nComp(), 0, 0, false);
 

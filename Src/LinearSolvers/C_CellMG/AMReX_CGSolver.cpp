@@ -457,7 +457,7 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
 
     for (int m = 0; m < maxiter && !BiCGStabFailed && !BiCGStabConverged; )
     {
-        const Real time1 = ParallelDescriptor::second();
+        const Real time1 = amrex::second();
         //
         // Compute the matrix powers on p[] & r[] (monomial basis).
         // The 2*SSS+1 powers of p[] followed by the 2*SSS powers of r[].
@@ -494,13 +494,13 @@ CGSolver::solve_cabicgstab (MultiFab&       sol,
         BL_ASSERT(!PR.contains_nan(2*SSS-1,1));
         BL_ASSERT(!PR.contains_nan(2*SSS,  1));
 
-        Real time2 = ParallelDescriptor::second();
+        Real time2 = amrex::second();
 
         atime += (time2-time1);
 
         BuildGramMatrix(Gg, PR, rt, SSS);
 
-        const Real time3 = ParallelDescriptor::second();
+        const Real time3 = amrex::second();
 
         gtime += (time3-time2);
         //
