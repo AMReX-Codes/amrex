@@ -112,7 +112,9 @@ contains
                 theta = atan2(x,y) + half*m_pi
                 r2 = x**2 + y**2
                 phib(i,j) = r2**2 * cos(three*theta)
-                bb(i,j) = one - r2
+                if (prob_type .eq. 2) then
+                   bb(i,j) = one - r2
+                end if
              else
                 phib(i,j) = zero
              end if
@@ -270,7 +272,9 @@ contains
                    theta = atan2(x,y) + half*m_pi
                    r2 = x**2 + y**2
                    phib(i,j,k) = r2**2 * cos(three*theta)
-                   bb(i,j,k) = one - r2
+                   if (prob_type .eq. 3) then
+                      bb(i,j,k) = one - r2
+                   end if
                 else
                    phib(i,j,k) = zero
                 end if
