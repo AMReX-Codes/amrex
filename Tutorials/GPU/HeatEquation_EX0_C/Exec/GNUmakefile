@@ -7,7 +7,7 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = TRUE 
 COMP      = pgi
-DIM       = 2 
+DIM       = 3 
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
