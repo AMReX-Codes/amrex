@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include <WritePlotfileHDF5.H>
 
@@ -89,5 +90,10 @@ int main(int argc, char* argv[])
     WriteMultiLevelPlotfileHDF5("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf), 
                                 varnames, geom, time, dt, ref_ratio);
 
+
+    Vector<int> level_steps(nlevs, 0);
+    WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
+                            varnames, geom, time, level_steps, ref_ratio);
+    
     amrex::Finalize();
 }
