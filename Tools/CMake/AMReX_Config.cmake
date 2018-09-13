@@ -40,7 +40,7 @@ function (configure_amrex)
    # Set properties for target "amrex"
    # 
    set_amrex_defines ()
-   set_amrex_compilers ()
+   set_amrex_compiler_flags ()
 
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )

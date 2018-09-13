@@ -794,7 +794,7 @@ Amr::writePlotFile ()
         amr_level[0]->setPlotVariables();
     }
 
-    Real dPlotFileTime0 = ParallelDescriptor::second();
+    Real dPlotFileTime0 = amrex::second();
 
     const std::string& pltfile = amrex::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
@@ -878,7 +878,7 @@ Amr::writePlotFile ()
 
     if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+        Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
@@ -926,7 +926,7 @@ Amr::writeSmallPlotFile ()
       return;
     }
 
-    Real dPlotFileTime0 = ParallelDescriptor::second();
+    Real dPlotFileTime0 = amrex::second();
 
     const std::string& pltfile = amrex::Concatenate(small_plot_file_root,
                                                      level_steps[0],
@@ -1003,7 +1003,7 @@ Amr::writeSmallPlotFile ()
 
     if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+        Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
@@ -1152,7 +1152,7 @@ Amr::readProbinFile (int& a_init)
     const int NSets   = (NProcs + (nAtOnce - 1)) / nAtOnce;
     const int MySet   = MyProc/nAtOnce;
 
-    Real piStart = 0, piEnd = 0, piStartAll = ParallelDescriptor::second();
+    Real piStart = 0, piEnd = 0, piStartAll = amrex::second();
 
     for (int iSet = 0; iSet < NSets; ++iSet)
     {
@@ -1161,7 +1161,7 @@ Amr::readProbinFile (int& a_init)
             //
             // Call the pesky probin reader.
             //
-            piStart = ParallelDescriptor::second();
+            piStart = amrex::second();
 
 #ifdef AMREX_DIMENSION_AGNOSTIC
 
@@ -1180,7 +1180,7 @@ Amr::readProbinFile (int& a_init)
 			   Geometry::ProbHi());
 #endif
 
-            piEnd = ParallelDescriptor::second();
+            piEnd = amrex::second();
             const int iBuff     = 0;
             const int wakeUpPID = (MyProc + nAtOnce);
             const int tag       = (MyProc % nAtOnce);
@@ -1203,7 +1203,7 @@ Amr::readProbinFile (int& a_init)
     {
         const int IOProc     = ParallelDescriptor::IOProcessorNumber();
         Real      piTotal    = piEnd - piStart;
-        Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
+        Real      piTotalAll = amrex::second() - piStartAll;
 
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
@@ -1344,7 +1344,7 @@ Amr::restart (const std::string& filename)
 
     which_level_being_advanced = -1;
 
-    Real dRestartTime0 = ParallelDescriptor::second();
+    Real dRestartTime0 = amrex::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -1628,7 +1628,7 @@ Amr::restart (const std::string& filename)
 
     if (verbose > 0)
     {
-        Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
+        Real dRestartTime = amrex::second() - dRestartTime0;
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
@@ -1658,7 +1658,7 @@ Amr::checkPoint ()
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
     VisMF::SetHeaderVersion(checkpoint_headerversion);
 
-    Real dCheckPointTime0 = ParallelDescriptor::second();
+    Real dCheckPointTime0 = amrex::second();
 
     const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
@@ -1790,7 +1790,7 @@ Amr::checkPoint ()
 
     if (verbose > 0)
     {
-        Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
+        Real dCheckPointTime = amrex::second() - dCheckPointTime0;
 
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
@@ -2053,7 +2053,7 @@ Amr::coarseTimeStep (Real stop_time)
     std::stringstream stepName;
     stepName << "timeStep STEP " << level_steps[0];
 
-    run_strt = ParallelDescriptor::second() ;
+    run_strt = amrex::second() ;
 
     //
     // Compute new dt.
@@ -2166,7 +2166,7 @@ Amr::coarseTimeStep (Real stop_time)
     if (verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        run_stop = ParallelDescriptor::second() - run_strt;
+        run_stop = amrex::second() - run_strt;
 	const int istep    = level_steps[0];
 
 #ifdef BL_LAZY
@@ -2793,7 +2793,7 @@ Amr::grid_places (int              lbase,
 {
     BL_PROFILE("Amr::grid_places()");
 
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
 
     if (lbase == 0)
     {
@@ -2868,7 +2868,7 @@ Amr::grid_places (int              lbase,
 
     if (verbose > 0)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {

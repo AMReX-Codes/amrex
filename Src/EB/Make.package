@@ -59,6 +59,9 @@ CEXE_headers += AMReX_EB2_IF_Rotation.H
 CEXE_headers += AMReX_EB2_IF_Scale.H
 CEXE_headers += AMReX_EB2_IF_Translation.H
 CEXE_headers += AMReX_EB2_IF_Union.H
+CEXE_headers += AMReX_EB2_IF_Extrusion.H
+CEXE_headers += AMReX_EB2_IF_Difference.H
+CEXE_headers += AMReX_EB2_IF.H
 
 
 CEXE_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_Level.H
