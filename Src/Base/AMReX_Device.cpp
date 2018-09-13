@@ -448,8 +448,6 @@ amrex::Device::device_htod_memcpy(void* p_d, const void* p_h, const std::size_t 
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpy(p_d, p_h, sz, cudaMemcpyHostToDevice));
 #else
-    p_d = p_h;     
-#endif
 
 }
 
@@ -459,8 +457,6 @@ amrex::Device::device_dtoh_memcpy(void* p_h, const void* p_d, const std::size_t 
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpy(p_h, p_d, sz, cudaMemcpyDeviceToHost));
 #else
-    p_h = p_d;
-#endif
 
 }
 
@@ -470,8 +466,6 @@ amrex::Device::device_htod_memcpy_async(void* p_d, const void* p_h, const std::s
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_stream));
 #else
-    p_d = p_h;
-#endif
 
 }
 
@@ -481,8 +475,6 @@ amrex::Device::device_dtoh_memcpy_async(void* p_h, const void* p_d, const std::s
 #ifdef AMREX_USE_CUDA
     CudaAPICheck(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_stream));
 #else
-    p_h = p_d;
-#endif
 
 }
 
