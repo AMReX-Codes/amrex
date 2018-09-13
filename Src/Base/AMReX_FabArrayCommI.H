@@ -6,6 +6,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
 			    bool enforce_periodicity_only)
 {
+
     fb_cross = cross;
     fb_epo   = enforce_periodicity_only;
     fb_scomp = scomp;
@@ -148,7 +149,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     (amrex::The_Arena()->alloc(nbytes));
 #endif
             }
-                    
+
             send_data.push_back(data);
             send_size.push_back(static_cast<int>(nbytes));
             send_rank.push_back(kv.first);
@@ -444,6 +445,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 {
                    dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
                 });
+
+                Device::synchronize();
 	    }
 	}
     }
