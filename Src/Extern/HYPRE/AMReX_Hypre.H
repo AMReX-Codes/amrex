@@ -5,7 +5,7 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_BndryData.H> 
+#include <AMReX_BndryData.H>
 
 #include "HYPRE.h"
 #include "_hypre_utilities.h"

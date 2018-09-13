@@ -34,7 +34,6 @@ HypreABecLap3::~HypreABecLap3 ()
     solver = NULL;
 }
 
-
 void
 HypreABecLap3::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                       int max_iter, const BndryData& bndry, int max_bndry_order)
@@ -280,14 +279,14 @@ HypreABecLap3::prepareSolver ()
     HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
     
     // A.SetValues() & A.assemble()
-    FArrayBox foo(Box::TheUnitBox()); 
+// xxxxx    FArrayBox foo(Box::TheUnitBox()); 
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
-    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr; 
-    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr; 
-    const int is_eb_dirichlet = false; // xxxxxisEBDirichlet(); 
+//xxxxx    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr; 
+//xxxxx    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr; 
+//xxxxx    const int is_eb_dirichlet = false; // xxxxxisEBDirichlet(); 
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {

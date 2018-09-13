@@ -10,30 +10,10 @@ module amrex_habec_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
-  use amrex_constants_module, only : zero, one, half, three, third
+  use amrex_constants_module, only : zero, one, half, three
   implicit none
-  
-  real(rt), parameter, private :: dx_eb = third
 
 contains
-  
-  pure function blend_beta(kappa) result(beta) 
-    real(rt), intent(in) :: kappa 
-    real(rt) :: beta 
-#if 1 
-    real(rt), parameter :: blend_kappa = -1.d-4 
-    if(kappa .lt. blend_kappa) then 
-      beta = zero
-    else
-      beta = one
-    endif
-#else
-    real(rt), parameter :: blend_kappa = half 
-    real(rt), parameter :: kapinv = one/(one-blend_kappa) 
-    beta = kapinv*(kappa-blend_kappa)
-    beta = min(one,max(zero,beta)
-#endif
-  end function blend_beta
 
   subroutine amrex_hpacoef (lo, hi, mat, a, alo, ahi, sa) bind(c,name='amrex_hpacoef')
     integer, intent(in) :: lo(2), hi(2), alo(2), ahi(2)
@@ -382,6 +362,7 @@ contains
        ba, balo, bahi, bcen, bclo, bchi, beb, elo, ehi) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
+    use amrex_mlebabeclap_2d_module, only : dx_eb, blend_beta => amrex_blend_beta
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*9-1), intent(out) :: cols
