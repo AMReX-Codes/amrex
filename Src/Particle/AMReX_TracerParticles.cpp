@@ -21,7 +21,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
            BL_ASSERT(!umac[1].contains_nan());,
            BL_ASSERT(!umac[2].contains_nan()););
 
-    const Real      strttime = ParallelDescriptor::second();
+    const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
     const Real*     dx       = geom.CellSize();
     const Real*     plo      = geom.ProbLo();
@@ -122,7 +122,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     }
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -148,7 +148,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 
     BL_ASSERT(!Ucc.contains_nan());
 
-    const Real      strttime = ParallelDescriptor::second();
+    const Real      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
 
     BL_ASSERT(OnSameGrids(lev, Ucc));
@@ -202,7 +202,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
     }
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {
@@ -236,7 +236,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     BL_ASSERT(!basename.empty());
     BL_ASSERT(lev <= m_gdb->finestLevel());
 
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
 
     const int   MyProc    = ParallelDescriptor::MyProc();
     const int   NProcs    = ParallelDescriptor::NProcs();
@@ -366,7 +366,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
         Lazy::QueueReduction( [=] () mutable {

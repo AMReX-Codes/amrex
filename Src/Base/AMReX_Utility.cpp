@@ -269,7 +269,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      if (amrex::system::verbose) {
+      if (amrex::system::verbose > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
@@ -293,7 +293,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
   {
     if(amrex::FileExists(path)) 
     {
-      if (amrex::Verbose()) {
+      if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
                          << " exists.  I am destroying it.  " << std::endl;
       }
@@ -322,7 +322,7 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      if (amrex::Verbose()) {
+      if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
                          << " exists.  Renaming to:  " << newoldname << std::endl;
       }
@@ -970,7 +970,7 @@ bool amrex::StreamRetry::TryOutput()
       ++nStreamErrors;
       int myProc(ParallelDescriptor::MyProc());
       if(tries <= maxTries) {
-          if (amrex::Verbose()) {
+          if (amrex::Verbose() > 1) {
               amrex::AllPrint() << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
                                 << tries << " :: gbfe:  "
                                 << sros.good() << sros.bad() << sros.fail() << sros.eof()
@@ -980,7 +980,7 @@ bool amrex::StreamRetry::TryOutput()
                                 << std::endl;
           }
         sros.clear();  // clear the bad bits
-        if (amrex::Verbose()) {
+        if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
                               << sros.fail() << sros.eof() << std::endl;
         }
@@ -988,7 +988,7 @@ bool amrex::StreamRetry::TryOutput()
         ++tries;
         return true;
       } else {
-        if (amrex::Verbose()) {
+        if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
                               << tries << " :: File may be corrupt.  :: gbfe:  "
                               << sros.good() << sros.bad() << sros.fail() << sros.eof()
@@ -998,7 +998,7 @@ bool amrex::StreamRetry::TryOutput()
                               << std::endl;
         }
         sros.clear();  // clear the bad bits
-        if (amrex::Verbose()) {
+        if (amrex::Verbose() > 1) {
             amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
                               << sros.fail() << sros.eof() << std::endl;
         }
@@ -1028,7 +1028,7 @@ bool amrex::StreamRetry::TryFileOutput()
         if(ParallelDescriptor::IOProcessor()) {
           const std::string& badFileName = amrex::Concatenate(fileName + ".bad",
                                                                tries - 1, 2);
-          if (amrex::Verbose()) {
+          if (amrex::Verbose() > 1) {
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
                              << fileName << "  to  " << badFileName << std::endl;
           }
