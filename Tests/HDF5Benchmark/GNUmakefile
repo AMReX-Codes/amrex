@@ -12,7 +12,7 @@ PRECISION = DOUBLE
 USE_MPI   = TRUE
 USE_OMP   = TRUE
 
-BL_HDF5   = TRUE
+TINY_PROFILE = TRUE
 
 ###################################################
 
