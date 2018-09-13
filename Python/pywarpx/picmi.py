@@ -258,7 +258,7 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
 class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
-        self.max_level = kw.pop('warpx_max_level', 0)
+        self.blocking_factor = kw.pop('warpx_blocking_factor', None)
         self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
@@ -267,9 +267,6 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
         # Maximum allowable size of each subdomain in the problem domain;
         #    this is used to decompose the domain for parallel calculations.
         pywarpx.amr.max_grid_size = self.max_grid_size
-
-        # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
-        pywarpx.amr.max_level = self.max_level
 
         # Geometry
         pywarpx.geometry.coord_sys = self.coord_sys
@@ -286,11 +283,21 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
                 pywarpx.warpx.moving_window_dir = 'y'
                 pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
 
+        if self.refined_regions:
+            assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
+            assert self.refined_regions[0][0] == 1, Exception('The one refined region can only be level 1')
+            pywarpx.amr.max_level = 1
+            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
+            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
+            # The refinement_factor is ignored (assumed to be [2,2])
+        else:
+            pywarpx.amr.max_level = 0
+
 
 class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
-        self.max_level = kw.pop('warpx_max_level', 0)
+        self.blocking_factor = kw.pop('warpx_blocking_factor', None)
         self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
@@ -300,8 +307,7 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
         #    this is used to decompose the domain for parallel calculations.
         pywarpx.amr.max_grid_size = self.max_grid_size
 
-        # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
-        pywarpx.amr.max_level = self.max_level
+        pywarpx.amr.blocking_factor = self.blocking_factor
 
         # Geometry
         pywarpx.geometry.coord_sys = self.coord_sys
@@ -321,18 +327,29 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
                 pywarpx.warpx.moving_window_dir = 'z'
                 pywarpx.warpx.moving_window_v = self.moving_window_velocity[2]/c  # in units of the speed of light
 
+        if self.refined_regions:
+            assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
+            assert self.refined_regions[0][0] == 1, Exception('The one refined region can only be level 1')
+            pywarpx.amr.max_level = 1
+            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
+            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
+            # The refinement_factor is ignored (assumed to be [2,2,2])
+        else:
+            pywarpx.amr.max_level = 0
 
 class ElectromagneticSolver(picmistandard.PICMI_ElectromagneticSolver):
     def init(self, kw):
         assert self.method is None or self.method in ['Yee', 'CKC'], Exception("Only 'Yee' and 'CKC' FDTD are supported")
 
         self.do_pml = kw.pop('warpx_do_pml', None)
+        self.pml_ncell = kw.pop('warpx_pml_ncell', None)
 
     def initialize_inputs(self):
 
         self.grid.initialize_inputs()
 
         pywarpx.warpx.do_pml = self.do_pml
+        pywarpx.warpx.pml_ncell = self.pml_ncell
 
         # --- Same method names are used, though mapped to lower case.
         pywarpx.warpx.maxwell_fdtd_solver = self.method

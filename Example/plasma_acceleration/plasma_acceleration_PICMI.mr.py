@@ -1,5 +1,6 @@
 import numpy as np
 from pywarpx import picmi
+import pywarpx
 #from warp import picmi
 
 nx = 64
@@ -15,7 +16,7 @@ zmax = +200.e-6
 
 moving_window_velocity = [0., 0., picmi.c]
 
-number_per_cell_each_dim = [2, 2, 1]
+number_per_cell_each_dim = [4, 4, 4]
 
 grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              lower_bound = [xmin, ymin, zmin],
@@ -23,9 +24,17 @@ grid = picmi.Cartesian3DGrid(number_of_cells = [nx, ny, nz],
                              lower_boundary_conditions = ['periodic', 'periodic', 'open'],
                              upper_boundary_conditions = ['periodic', 'periodic', 'open'],
                              moving_window_velocity = moving_window_velocity,
-                             warpx_max_grid_size=32, warpx_coord_sys=0)
+                             #refined_regions = [[1, [-25e-6, -25e-6, -200.e-6], [25e-6, 25e-6, 200.e-6]]],  # as argument
+                             warpx_max_grid_size=128, warpx_coord_sys=0, warpx_blocking_factor=16)
 
-solver = picmi.ElectromagneticSolver(grid=grid, cfl=1)
+# --- As a seperate function call (instead of refined_regions argument)
+grid.add_refined_region(level = 1,
+                        lo = [-25e-6, -25e-6, -200.e-6],
+                        hi = [25e-6, 25e-6, 200.e-6])
+
+solver = picmi.ElectromagneticSolver(grid=grid, cfl=1,
+                                     warpx_do_pml = 1,
+                                     warpx_pml_ncell = 10)
 
 beam_distribution = picmi.UniformDistribution(density = 1.e23,
                                               lower_bound = [-20.e-6, -20.e-6, -150.e-6],
@@ -54,7 +63,7 @@ sim.add_species(plasma, layout=picmi.GriddedLayout(grid=grid, n_macroparticle_pe
 
 # write_inputs will create an inputs file that can be used to run
 # with the compiled version.
-sim.write_input_file(file_name = 'inputs_from_PICMI')
+sim.write_input_file(file_name = 'inputs_from_PICMI.mr')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
 #sim.step()

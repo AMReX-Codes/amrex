@@ -23,7 +23,7 @@ em_order = 3
 
 grid = PICMI.Grid(nx=nx, ny=ny, nz=nz, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, zmin=zmin, zmax=zmax,
                   bcxmin='periodic', bcxmax='periodic', bcymin='periodic', bcymax='periodic', bczmin='open', bczmax='open',
-                  max_grid_size=16, max_level=0, coord_sys=0)
+                  max_grid_size=16, coord_sys=0)
 
 solver = PICMI.EM_solver(current_deposition_algo = 0,
                          charge_deposition_algo = 0,
