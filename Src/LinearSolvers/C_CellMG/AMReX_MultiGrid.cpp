@@ -355,7 +355,8 @@ MultiGrid::solve_ (MultiFab&      _sol,
   //    according to the Anorm test and not the bnorm test).
   //
   Real       norm_cor    = norm_inf(*initialsolution,true);
-  ParallelDescriptor::ReduceRealMax(norm_cor);
+  //ParallelDescriptor::ReduceRealMax(norm_cor);
+  ParallelAllReduce::Max(norm_cor,ParallelContext::CommunicatorSub());
 
   int        nit         = 1;
   const Real norm_Lp     = Lp.norm(0, level);
@@ -386,7 +387,8 @@ MultiGrid::solve_ (MultiFab&      _sol,
 
          Real tmp[2] = { norm_inf(*cor[level],true), errorEstimate(level,bc_mode,true) };
 
-         ParallelDescriptor::ReduceRealMax(tmp,2);
+         //ParallelDescriptor::ReduceRealMax(tmp,2);
+         ParallelAllReduce::Max(tmp,2,ParallelContext::CommunicatorSub());
 
          norm_cor = tmp[0];
          error    = tmp[1];
@@ -481,7 +483,8 @@ MultiGrid::solve_ (MultiFab&      _sol,
       {
           Real tmp[2] = { run_time, cg_time };
 
-          ParallelDescriptor::ReduceRealMax(tmp,2);
+          //ParallelDescriptor::ReduceRealMax(tmp,2);
+          ParallelAllReduce::Max(tmp,2,ParallelContext::CommunicatorSub());
 
           if ( ParallelDescriptor::IOProcessor() )
               amrex::OutStream() << ", Solve time: " << tmp[0] << ", CG time: " << tmp[1];
