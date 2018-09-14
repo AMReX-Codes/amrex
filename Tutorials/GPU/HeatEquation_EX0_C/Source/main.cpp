@@ -98,7 +98,8 @@ void main_main ()
         const GeometryData& geomdata = geom.data();
         FArrayBox* phiNew = &(phi_new[mfi]);
 
-        auto init = [=] AMREX_CUDA_DEVICE ()
+        AMREX_BOX_L_LAUNCH(vbx, 
+        [=] AMREX_CUDA_DEVICE ()
         {
             Box threadBox = getThreadBox(vbx);
             if (threadBox.ok())
@@ -107,9 +108,7 @@ void main_main ()
                          BL_TO_FORTRAN_ANYD(*phiNew),
                          geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
             }
-        };
-
-        AMREX_BOX_L_LAUNCH(vbx, init);
+        });
 
     }
     Device::synchronize(); 
