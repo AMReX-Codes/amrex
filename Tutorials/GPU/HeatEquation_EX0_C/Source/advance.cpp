@@ -32,10 +32,10 @@ void advance (MultiFab& phi_old,
     {
         const Box& vbx = mfi.validbox();
 	const GeometryData& geomdata = geom.data();
-	BaseFab<Real>* phiOld = &(phi_old[mfi]);
-	BaseFab<Real>* fluxX = &(flux[0][mfi]);
-	BaseFab<Real>* fluxY = &(flux[1][mfi]);
-	BaseFab<Real>* fluxZ = &(flux[2][mfi]);
+	FArrayBox* phiOld = &(phi_old[mfi]);
+	FArrayBox* fluxX = &(flux[0][mfi]);
+	FArrayBox* fluxY = &(flux[1][mfi]);
+	FArrayBox* fluxZ = &(flux[2][mfi]);
 
 	auto flux = [=] AMREX_CUDA_DEVICE ()
 	{
@@ -63,11 +63,11 @@ void advance (MultiFab& phi_old,
     {
         const Box& vbx = mfi.validbox();
 	const GeometryData& geomdata = geom.data();
-	BaseFab<Real>* phiOld = &(phi_old[mfi]);
-	BaseFab<Real>* phiNew = &(phi_new[mfi]);
-	BaseFab<Real>* fluxX = &(flux[0][mfi]);
-	BaseFab<Real>* fluxY = &(flux[1][mfi]);
-	BaseFab<Real>* fluxZ = &(flux[2][mfi]);
+	FArrayBox* phiOld = &(phi_old[mfi]);
+	FArrayBox* phiNew = &(phi_new[mfi]);
+	FArrayBox* fluxX = &(flux[0][mfi]);
+	FArrayBox* fluxY = &(flux[1][mfi]);
+	FArrayBox* fluxZ = &(flux[2][mfi]);
 
 	auto phi = [=] AMREX_CUDA_DEVICE ()
 	{
