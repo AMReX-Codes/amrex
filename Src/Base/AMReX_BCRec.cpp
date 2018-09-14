@@ -60,6 +60,12 @@ BCRec::operator== (const BCRec& rhs) const
     return retval;
 }
 
+bool
+BCRec::operator!= (const BCRec& rhs) const
+{
+    return !(*this == rhs);
+}
+
 void
 setBC (const Box&          bx,
                const Box&          domain,
