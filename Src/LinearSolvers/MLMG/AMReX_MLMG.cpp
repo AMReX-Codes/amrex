@@ -1681,6 +1681,13 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
             petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
         }
 
+#ifdef AMREX_USE_EB
+        auto eb_linop = dynamic_cast<MLEBABecLap*>(&linop);
+        if (eb_linop) {
+            petsc_solver->setEBDirichlet(eb_linop->m_eb_b_coeffs[0][mglev].get());
+        }
+#endif
+
         petsc_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         petsc_bndry->setHomogValues();
         const Real* dx = linop.m_geom[0][0].CellSize();

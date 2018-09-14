@@ -387,7 +387,7 @@ contains
     real(rt)          , intent(in) :: beb    ( elo(1): ehi(1), elo(2): ehi(2))
     integer, intent(in) :: bct(0:3), bho
     real(rt), intent(in) :: sa, sb, dx(2), bcl(0:3)
-    integer, value, intent(in) :: is_eb_dirichlet
+    integer, intent(in) :: is_eb_dirichlet
 
     logical :: is_dirichlet
     integer :: i,j, irow, imat, cdir, idim, ii,jj, ioff, joff
@@ -704,7 +704,7 @@ contains
                       phig2(4) = (c_0(-1,-1) + gx*c_x(-1,-1) + gy*c_y(-1,-1) + gx*gy*c_xy(-1,-1))
                    endif
 
-                   feb = -(w1*phig1 + w2*phig2)/dg * ba(i,j) * beb(i,j)
+                   feb = -(w1*phig1 + w2*phig2) * (ba(i,j) * beb(i,j) / dg)
                    mat_tmp(0   , 0  ) = mat_tmp(0   , 0  ) - feb(1)*fac(1)
                    mat_tmp(ioff, 0  ) = mat_tmp(ioff, 0  ) - feb(2)*fac(1)
                    mat_tmp(0   ,joff) = mat_tmp(0   ,joff) - feb(3)*fac(1)
