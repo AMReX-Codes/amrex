@@ -6,8 +6,8 @@
 #include <AMReX_Device.H>
 
 AMREX_CUDA_GLOBAL
-void compute_flux (Box bx, GeometryData geom, BaseFab<Real> &phi_old,
-                   AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ))
+void compute_flux (Box bx, GeometryData geom, FArrayBox &phi_old,
+                   AMREX_D_DECL(FArrayBox &fluxX, FArrayBox &fluxY, FArrayBox &fluxZ))
 {
      Box threadBox = getThreadBox(bx);
 
@@ -27,8 +27,8 @@ void compute_flux (Box bx, GeometryData geom, BaseFab<Real> &phi_old,
 }
 
 AMREX_CUDA_GLOBAL
-void update_phi (Box bx, GeometryData geom, BaseFab<Real> &phi_old, BaseFab<Real> &phi_new,
-                 AMREX_D_DECL(BaseFab<Real> &fluxX, BaseFab<Real> &fluxY, BaseFab<Real> &fluxZ), Real dt)
+void update_phi (Box bx, GeometryData geom, FArrayBox &phi_old, FArrayBox &phi_new,
+                 AMREX_D_DECL(FArrayBox &fluxX, FArrayBox &fluxY, FArrayBox &fluxZ), Real dt)
 {
      Box threadBox = getThreadBox(bx);
 

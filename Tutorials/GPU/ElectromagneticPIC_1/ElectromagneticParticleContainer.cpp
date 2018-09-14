@@ -199,9 +199,9 @@ InitParticles(const IntVect& a_num_particles_per_cell,
 
 AMREX_CUDA_GLOBAL
 void
-PushAndDeposeParticles (const amrex::BaseFab<amrex::Real>    &elecX, const amrex::BaseFab<amrex::Real> &elecY, const amrex::BaseFab<amrex::Real> &elecZ,
-                        const amrex::BaseFab<amrex::Real>     &magX, const amrex::BaseFab<amrex::Real>  &magY, const amrex::BaseFab<amrex::Real>  &magZ,
-                        amrex::BaseFab<amrex::Real> &currDenX, amrex::BaseFab<amrex::Real> &currDenY, amrex::BaseFab<amrex::Real> &currDenZ,
+PushAndDeposeParticles (const amrex::FArrayBox    &elecX, const amrex::FArrayBox &elecY, const amrex::FArrayBox &elecZ,
+                        const amrex::FArrayBox     &magX, const amrex::FArrayBox  &magY, const amrex::FArrayBox  &magZ,
+                        amrex::FArrayBox &currDenX, amrex::FArrayBox &currDenY, amrex::FArrayBox &currDenZ,
                         amrex::GeometryData geomData, ParticlesData pData,
                         amrex::Real charge, amrex::Real mass, amrex::Real dt)
 {
@@ -284,8 +284,8 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
 AMREX_CUDA_GLOBAL
 void
-PushParticleMomenta (const amrex::BaseFab<amrex::Real> &elecX, const amrex::BaseFab<amrex::Real> &elecY, const amrex::BaseFab<amrex::Real> &elecZ,
-                     const amrex::BaseFab<amrex::Real>  &magX, const amrex::BaseFab<amrex::Real>  &magY, const amrex::BaseFab<amrex::Real>  &magZ,
+PushParticleMomenta (const amrex::FArrayBox &elecX, const amrex::FArrayBox &elecY, const amrex::FArrayBox &elecZ,
+                     const amrex::FArrayBox  &magX, const amrex::FArrayBox  &magY, const amrex::FArrayBox  &magZ,
                      amrex::GeometryData geomData, ParticlesData pData,
                      amrex::Real charge, amrex::Real mass, amrex::Real dt)
 {

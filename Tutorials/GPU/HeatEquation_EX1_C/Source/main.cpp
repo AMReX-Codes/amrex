@@ -13,7 +13,7 @@
 using namespace amrex;
 
 AMREX_CUDA_GLOBAL
-void init_phi(Box bx, GeometryData geom, BaseFab<Real> &phi_new)
+void init_phi(Box bx, GeometryData geom, FArrayBox &phi_new)
 {
     Box threadBox = getThreadBox(bx);
 
