@@ -795,7 +795,8 @@ BuildGramMatrix (Real*           Gg,
 #endif
     }
 
-    ParallelDescriptor::ReduceRealSum(&tmp[0][0], Ntmp);
+    //ParallelDescriptor::ReduceRealSum(&tmp[0][0], Ntmp);
+    ParallelAllReduce::Sum(&tmp[0][0],Ntmp,ParallelContext::CommunicatorSub());
 
     // Now fill upper triangle with "tmp".
     int cnt = 0;
@@ -861,7 +862,8 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
     //
     Real normvals[2] = { norm_inf(r, true), Lp.norm(0, lev, true) };
 
-    ParallelDescriptor::ReduceRealMax(normvals,2);
+    //ParallelDescriptor::ReduceRealMax(normvals,2);
+    ParallelAllReduce::Max(normvals,2,ParallelContext::CommunicatorSub());
 
     Real       rnorm    = normvals[0];
     const Real Lp_norm  = normvals[1];
@@ -972,7 +974,8 @@ CGSolver::solve_bicgstab (MultiFab&       sol,
         //
         Real dotvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
-        ParallelDescriptor::ReduceRealSum(dotvals,2);
+        ParallelAllReduce::Sum(dotvals,2,ParallelContext::CommunicatorSub());
+        //ParallelDescriptor::ReduceRealSum(dotvals,2);
 
         if ( dotvals[0] )
 	{
