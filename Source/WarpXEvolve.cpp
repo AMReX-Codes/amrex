@@ -44,7 +44,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     bool max_time_reached = false;
-    Real walltime, walltime_start = ParallelDescriptor::second();
+    Real walltime, walltime_start = amrex::second();
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
 
@@ -173,7 +173,7 @@ WarpX::EvolveEM (int numsteps)
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
-        walltime = ParallelDescriptor::second() - walltime_start;
+        walltime = amrex::second() - walltime_start;
         amrex::Print()<< "Walltime = " << walltime
              << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
@@ -192,6 +192,8 @@ WarpX::EvolveEM (int numsteps)
 
 	if (to_make_plot)
         {
+            FillBoundaryE();
+            FillBoundaryB();
             UpdateAuxilaryData();
 
             for (int lev = 0; lev <= finest_level; ++lev) {
@@ -222,8 +224,10 @@ WarpX::EvolveEM (int numsteps)
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
     {
+        FillBoundaryE();
+        FillBoundaryB();
         UpdateAuxilaryData();
-
+        
         for (int lev = 0; lev <= finest_level; ++lev) {
             mypc->FieldGather(lev,
                               *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
@@ -295,7 +299,7 @@ WarpX::EvolveB (int lev, Real dt)
 #endif
         for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
         {
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
@@ -318,7 +322,7 @@ WarpX::EvolveB (int lev, Real dt)
             if (cost) {
                 Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
                 if (ipatch == 1) cbx.refine(rr);
-                wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+                wt = (amrex::second() - wt) / cbx.d_numPts();
                 (*cost)[mfi].plus(wt, cbx);
             }
         }
@@ -423,7 +427,7 @@ WarpX::EvolveE (int lev, Real dt)
 #endif
         for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
         {
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
@@ -460,7 +464,7 @@ WarpX::EvolveE (int lev, Real dt)
             if (cost) {
                 Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
                 if (ipatch == 1) cbx.refine(rr);
-                wt = (ParallelDescriptor::second() - wt) / cbx.d_numPts();
+                wt = (amrex::second() - wt) / cbx.d_numPts();
                 (*cost)[mfi].plus(wt, cbx);
             }
         }
@@ -674,7 +678,11 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
-                 rho_fp[lev].get(), cur_time, dt[lev]);
+                 current_buf[lev][0].get(), current_buf[lev][1].get(), current_buf[lev][2].get(),
+                 rho_fp[lev].get(), 
+                 Efield_cax[lev][0].get(), Efield_cax[lev][1].get(), Efield_cax[lev][2].get(),
+                 Bfield_cax[lev][0].get(), Bfield_cax[lev][1].get(), Bfield_cax[lev][2].get(),
+                 cur_time, dt[lev]);
 }
 
 void

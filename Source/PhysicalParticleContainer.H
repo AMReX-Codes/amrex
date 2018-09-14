@@ -3,6 +3,8 @@
 
 #include <map>
 
+#include <AMReX_IArrayBox.H>
+
 #include <PlasmaInjector.H>
 #include <WarpXParticleContainer.H>
 
@@ -44,7 +46,16 @@ public:
 			 amrex::MultiFab& jx,
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
+                         amrex::MultiFab* cjx,
+                         amrex::MultiFab* cjy,
+                         amrex::MultiFab* cjz,
                          amrex::MultiFab* rho,
+                         const amrex::MultiFab* cEx,
+                         const amrex::MultiFab* cEy,
+                         const amrex::MultiFab* cEz,
+                         const amrex::MultiFab* cBx,
+                         const amrex::MultiFab* cBy,
+                         const amrex::MultiFab* cBz,
                          amrex::Real t,
                          amrex::Real dt) override;
 
@@ -91,8 +102,10 @@ protected:
     // for the difference between the Lorentz transformed time of the
     // particle and the time of the boosted frame.
     bool boost_adjust_transverse_positions = false;
+    bool do_backward_propagation = false;
 
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
+    std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
     
 };
 

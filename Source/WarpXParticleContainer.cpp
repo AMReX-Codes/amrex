@@ -469,7 +469,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             auto& attribs = pti.GetAttribs();
 
@@ -505,7 +505,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
-                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                wt = (amrex::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
         }

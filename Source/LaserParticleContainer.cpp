@@ -279,7 +279,11 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, Real t, Real dt)
+                                MultiFab*, MultiFab*, MultiFab*,
+                                MultiFab* rho,
+                                const MultiFab*, const MultiFab*, const MultiFab*,
+                                const MultiFab*, const MultiFab*, const MultiFab*,
+                                Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
@@ -312,7 +316,7 @@ LaserParticleContainer::Evolve (int lev,
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
 	    const Box& box = pti.validbox();
 
@@ -529,7 +533,7 @@ LaserParticleContainer::Evolve (int lev,
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
-                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                wt = (amrex::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
 	}

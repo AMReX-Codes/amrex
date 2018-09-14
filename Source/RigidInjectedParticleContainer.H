@@ -28,7 +28,16 @@ public:
                          amrex::MultiFab& jx,
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
+                         amrex::MultiFab* cjx,
+                         amrex::MultiFab* cjy,
+                         amrex::MultiFab* cjz,
                          amrex::MultiFab* rho,
+                         const amrex::MultiFab* cEx,
+                         const amrex::MultiFab* cEy,
+                         const amrex::MultiFab* cEz,
+                         const amrex::MultiFab* cBx,
+                         const amrex::MultiFab* cBy,
+                         const amrex::MultiFab* cBz,
                          amrex::Real t,
                          amrex::Real dt) override;
 

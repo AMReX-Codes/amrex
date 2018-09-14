@@ -13,6 +13,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Interpolater.H>
@@ -91,6 +92,10 @@ public:
 
     static bool do_dynamic_scheduling;
     static bool refine_plasma;
+
+    // buffers
+    static int n_field_gather_buffer;
+    static int n_current_deposition_buffer;
     
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
@@ -166,6 +171,11 @@ public:
     static amrex::RealBox getRealBox(const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
+
+    static amrex::IntVect RefRatio (int lev);
+
+    static const amrex::iMultiFab* CurrentBufferMasks (int lev);
+    static const amrex::iMultiFab* GatherBufferMasks (int lev);
 
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;
@@ -318,6 +328,14 @@ private:
 
     static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
 
+    void BuildBufferMasks ();
+    const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
+        return current_buffer_masks[lev].get();
+    }
+    const amrex::iMultiFab* getGatherBufferMasks (int lev) const {
+        return gather_buffer_masks[lev].get();
+    }
+
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
 
@@ -352,6 +370,14 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
+
+    // Copy of the coarse aux
+    amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cax;
+    amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > current_buffer_masks;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > gather_buffer_masks;
+    // If current deposition buffers are used
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
 
     // div E cleaning
     int do_dive_cleaning = 0;
