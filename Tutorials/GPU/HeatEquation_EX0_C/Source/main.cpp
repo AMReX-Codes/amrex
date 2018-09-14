@@ -96,7 +96,7 @@ void main_main ()
     {
         const Box& vbx = mfi.validbox();
         const GeometryData& geomdata = geom.data();
-        BaseFab<Real>* phiNew = &(phi_new[mfi]);
+        FArrayBox* phiNew = &(phi_new[mfi]);
 
         auto init = [=] AMREX_CUDA_DEVICE ()
         {
