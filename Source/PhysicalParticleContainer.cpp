@@ -22,7 +22,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     ParmParse pp(species_name);
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
-
+    pp.query("do_backward_propagation", do_backward_propagation);
 }
 
 void PhysicalParticleContainer::InitData()
@@ -64,6 +64,10 @@ void PhysicalParticleContainer::MapParticletoBoostedFrame(Real& x, Real& y, Real
     Real vxpr = u[0]/gammapr;
     Real vypr = u[1]/gammapr;
     Real vzpr = u[2]/gammapr;
+
+    if (do_backward_propagation){
+        u[2] = -u[2];
+    }
 
     // Move the particles to where they will be at t = 0 in the boosted frame
     if (boost_adjust_transverse_positions) {
@@ -204,7 +208,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
     {
         Box mask_box = geom.Domain();
         mask_box.setSmall(WarpX::moving_window_dir, 0);
-        mask_box.setBig(WarpX::moving_window_dir, 0);        
+        mask_box.setBig(WarpX::moving_window_dir, 0);
         m_refined_injection_mask.reset( new IArrayBox(mask_box));
         m_refined_injection_mask->setVal(-1);
     }
@@ -212,7 +216,7 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
     MFItInfo info;
     if (do_tiling) {
         info.EnableTiling(tile_size);
-    } 
+    }
     info.SetDynamic(true);
 
 #ifdef _OPENMP
@@ -695,7 +699,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
-    
+
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
     const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
 
@@ -711,8 +715,8 @@ PhysicalParticleContainer::Evolve (int lev,
 
     const iMultiFab* current_masks = WarpX::CurrentBufferMasks(lev);
     const iMultiFab* gather_masks = WarpX::GatherBufferMasks(lev);
-    
-    bool has_buffer = cEx || cjx; 
+
+    bool has_buffer = cEx || cjx;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1033,7 +1037,7 @@ PhysicalParticleContainer::Evolve (int lev,
                         BL_TO_FORTRAN_ANYD(cbyfab),
                         BL_TO_FORTRAN_ANYD(cbzfab),
                         &ll4symtry, &l_lower_order_in_v,
-                        &lvect_fieldgathe, &WarpX::field_gathering_algo);                    
+                        &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 }
 
                 BL_PROFILE_VAR_STOP(blp_pxr_fg);
@@ -1102,11 +1106,11 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
                                             BL_TO_FORTRAN_3D(jyfab), ncomp);
-                
+
                 amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
                                             BL_TO_FORTRAN_3D(jzfab), ncomp);
                 BL_PROFILE_VAR_STOP(blp_accumulate);
-                
+
                 if (np_current < np)
                 {
                     const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
@@ -1119,7 +1123,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     tbx.grow(ngJ);
                     tby.grow(ngJ);
                     tbz.grow(ngJ);
-                
+
                     local_jx.resize(tbx);
                     local_jy.resize(tby);
                     local_jz.resize(tbz);
@@ -1131,7 +1135,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     jx_ptr = local_jx.dataPtr();
                     jy_ptr = local_jy.dataPtr();
                     jz_ptr = local_jz.dataPtr();
-                
+
                     jxntot = local_jx.length();
                     jyntot = local_jy.length();
                     jzntot = local_jz.length();
@@ -1446,12 +1450,12 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
 {
     if (finestLevel() == 0) return 1;
     if (not WarpX::refine_plasma) return 1;
-    
+
     IntVect iv;
     const Geometry& geom = Geom(0);
-    
+
     std::array<Real, 3> offset;
-    
+
 #if ( AMREX_SPACEDIM == 3)
     offset[0] = geom.ProbLo(0);
     offset[1] = geom.ProbLo(1);
@@ -1461,11 +1465,11 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     offset[1] = 0.0;
     offset[2] = geom.ProbLo(1);
 #endif
-    
+
     AMREX_D_TERM(iv[0]=static_cast<int>(floor((x-offset[0])*geom.InvCellSize(0)));,
                  iv[1]=static_cast<int>(floor((y-offset[1])*geom.InvCellSize(1)));,
                  iv[2]=static_cast<int>(floor((z-offset[2])*geom.InvCellSize(2))););
-    
+
     iv += geom.Domain().smallEnd();
 
     const int dir = WarpX::moving_window_dir;
@@ -1477,7 +1481,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
 
     int ref_fac = 1;
     for (int lev = 0; lev < finestLevel(); ++lev)
-    {        
+    {
         const IntVect rr = m_gdb->refRatio(lev);
         const BoxArray& fine_ba = this->ParticleBoxArray(lev+1);
         const int num_boxes = fine_ba.size();
@@ -1493,7 +1497,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
         }
 
         BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
-        
+
         const int num_ghost = 0;
         if ( stretched_ba.intersects(Box(iv, iv), num_ghost) )
         {
@@ -1506,6 +1510,6 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
     }
 
     (*m_refined_injection_mask)(iv2) = ref_fac;
-    
+
     return ref_fac;
 }
