@@ -37,7 +37,8 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-	auto flux = [=] AMREX_CUDA_DEVICE ()
+        AMREX_BOX_L_LAUNCH(vbx,
+	[=] AMREX_CUDA_DEVICE ()
 	{
              Box threadBox = getThreadBox(vbx);
              if (threadBox.ok())
@@ -52,9 +53,8 @@ void advance (MultiFab& phi_old,
 #endif
                              geomdata.CellSize());
              }
-	};
+	});
 
-        AMREX_BOX_L_LAUNCH(vbx, flux);
     }
     Device::synchronize();
 
@@ -69,7 +69,8 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-	auto phi = [=] AMREX_CUDA_DEVICE ()
+        AMREX_BOX_L_LAUNCH(vbx, 
+	[=] AMREX_CUDA_DEVICE ()
 	{
             Box threadBox = getThreadBox(vbx);
 
@@ -85,9 +86,8 @@ void advance (MultiFab& phi_old,
 #endif
                            geomdata.CellSize(), dt);
             }
-	};
+	});
 
-        AMREX_BOX_L_LAUNCH(vbx, phi);
     }
     Device::synchronize(); 
 
