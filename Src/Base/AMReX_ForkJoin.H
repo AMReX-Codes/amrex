@@ -104,6 +104,11 @@ class ForkJoin
         return result;
     }
 
+    static void set_task_output_file (const std::string & filename)
+    {
+        ParallelContext::set_last_frame_ofs(filename);
+    }
+
     template <class F>
     void fork_join (const F &fn)
     {
@@ -111,7 +116,7 @@ class ForkJoin
         MPI_Comm task_comm = split_tasks();
         copy_data_to_tasks(); // move data to local tasks
         ParallelContext::push(task_comm, task_me, io_rank);
-        ParallelContext::set_last_frame_ofs(get_fresh_io_filename());
+        set_task_output_file(get_fresh_io_filename());
         fn(*this);
         ParallelContext::pop();
 #ifdef BL_USE_MPI
