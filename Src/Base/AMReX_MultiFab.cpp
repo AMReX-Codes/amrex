@@ -17,6 +17,11 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+#ifdef AMREX_USE_CUDA
+#include <AMReX_Managed.H>
+#include <AMReX_CUDA_Utility.H>
+#endif
+
 namespace amrex {
 
 namespace
@@ -141,7 +146,7 @@ MultiFab::Copy (MultiFab&       dst,
                 int             numcomp,
                 const IntVect&  nghost)
 {
-// don't have to    BL_ASSERT(dst.boxArray() == src.boxArray());
+// don't have to BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
     BL_ASSERT(dst.nGrowVect().allGE(nghost));
 
@@ -151,9 +156,17 @@ MultiFab::Copy (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+        const FArrayBox* srcFab = &(src[mfi]);
+              FArrayBox* dstFab = &(dst[mfi]);
 
-        if (bx.ok())
-            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
+       AMREX_BOX_L_LAUNCH(bx,
+       [=] AMREX_CUDA_DEVICE ()
+       {
+           const Box tbx = getThreadBox(bx);
+
+           if (tbx.ok())
+               dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
+       });
     }
 }
 
