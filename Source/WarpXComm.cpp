@@ -649,9 +649,20 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
         MultiFab mf(current_fp[lev][idim]->boxArray(),
                     current_fp[lev][idim]->DistributionMap(), 1, 0);
         mf.setVal(0.0);
-        mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
-                       current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
-                       period);
+        if (use_filter) {
+            IntVect ng = current_cp[lev+1][idim]->nGrowVect();
+            ng += 1;
+            MultiFab jf(current_cp[lev+1][idim]->boxArray(),
+                        current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+            applyFilter(jf, *current_cp[lev+1][idim]);
+            mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+            MultiFab::Copy(*current_cp[lev+1][idim], jf, 0, 0, 1, 0);
+
+        } else {
+            mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
+                           current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+        }
         ApplyFilterandSumBoundaryJ(lev, PatchType::fine);
         MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
     }
@@ -695,9 +706,18 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
                     rho_fp[lev]->DistributionMap(),
                     ncomp, 0);
         mf.setVal(0.0);
-        mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
-                       rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
-                       period);
+        if (use_filter) {
+            IntVect ng = rho_cp[lev+1]->nGrowVect();
+            ng += 1;
+            MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
+            applyFilter(rf, *rho_cp[lev+1], icomp, 0, ncomp);
+            mf.ParallelAdd(rf, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
+            MultiFab::Copy(*rho_cp[lev+1], rf, 0, icomp, ncomp, 0);
+        } else {
+            mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
+                           rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+        }
         ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
         MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);
     }
