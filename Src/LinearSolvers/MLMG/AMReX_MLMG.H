@@ -6,12 +6,13 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
-#include <AMReX_HypreABecLap3.H>
 #endif
 
 namespace amrex {
 
+#ifdef AMREX_USE_PETSC
 class PETScABecLap;
+#endif
 
 class MLMG
 {

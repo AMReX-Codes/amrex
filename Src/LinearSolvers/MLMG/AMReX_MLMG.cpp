@@ -1565,6 +1565,10 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 
     if (hypre_solver == nullptr)  // We should reuse the setup
     {
+        hypre_solver = linop.makeHypre(hypre_interface);
+        hypre_solver->setVerbose(bottom_verbose);
+
+#if 0
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
@@ -1572,7 +1576,6 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         MPI_Comm comm = linop.BottomCommunicator();
 
         hypre_solver = makeHypre(ba, dm, geom, comm, hypre_interface);
-        hypre_solver->setVerbose(bottom_verbose);
 
         hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
 
@@ -1612,6 +1615,8 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
             auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
             ijmatrix_solver->setEBDirichlet(eb_linop->m_eb_b_coeffs[0][mglev].get());
         }
+#endif
+
 #endif
 
         hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));

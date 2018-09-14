@@ -13,7 +13,15 @@
 #include <AMReX_MultiCutFab.H>
 #endif
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_Hypre.H>
+#endif
+
 namespace amrex {
+
+#ifdef AMREX_USE_PETSC
+class PETScABecLap;
+#endif
 
 struct LPInfo
 {
@@ -242,6 +250,14 @@ protected:
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
+
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<Hypre> makeHypre ( return nullptr; ) const;
+#endif
+
+#ifdef AMREX_USE_PETSC
+//    virtual std::unique_ptr<PETScABecLap> makePETScABecLap () const;
+#endif
 
 private:
 
