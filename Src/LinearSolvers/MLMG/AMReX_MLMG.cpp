@@ -1558,56 +1558,9 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
         hypre_solver = linop.makeHypre(hypre_interface);
         hypre_solver->setVerbose(bottom_verbose);
 
-#if 0
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
-        const auto& factory = *(linop.m_factory[0].back());
-        MPI_Comm comm = linop.BottomCommunicator();
-
-        hypre_solver = makeHypre(ba, dm, geom, comm, hypre_interface);
-
-        hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
-
-        const int mglev = linop.NMGLevels(0)-1;
-        auto ac = linop.getACoeffs(0, mglev);
-        if (ac)
-        {
-            hypre_solver->setACoeffs(*ac);
-        }
-        else
-        {
-            MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
-            alpha.setVal(0.0);
-            hypre_solver->setACoeffs(alpha);
-        }
-
-        auto bc = linop.getBCoeffs(0, mglev);
-        if (bc[0])
-        {
-            hypre_solver->setBCoeffs(bc);
-        }
-        else
-        {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, ncomp, 0, MFInfo(), factory);
-                beta[idim].setVal(1.0);
-            }
-            hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
-        }
-
-#ifdef AMREX_USE_EB
-        auto eb_linop = dynamic_cast<MLEBABecLap*>(&linop);
-        if (eb_linop) {
-            auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
-            ijmatrix_solver->setEBDirichlet(eb_linop->m_eb_b_coeffs[0][mglev].get());
-        }
-#endif
-
-#endif
 
         hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         hypre_bndry->setHomogValues();

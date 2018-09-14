@@ -11,6 +11,10 @@
 #include <AMReX_MG_F.H>
 #include <AMReX_EBMultiFabUtil_F.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreABecLap3.H>
+#endif
+
 namespace amrex {
 
 MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
@@ -980,5 +984,16 @@ MLEBABecLap::update ()
 
     m_needs_update = false;
 }
+
+#ifdef AMREX_USE_HYPRE
+std::unique_ptr<Hypre>
+MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
+{
+    auto hypre_solver = MLCellABecLap::makeHypre(hypre_interface);
+    auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
+    ijmatrix_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
+    return hypre_solver;
+}
+#endif
     
 }
