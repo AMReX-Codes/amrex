@@ -21,9 +21,9 @@ Real compute_dt(const Geometry& geom)
 
 AMREX_CUDA_GLOBAL
 void evolve_electric_field(const Box bx, const Box tbx, const Box tby, const Box tbz,
-                           BaseFab<Real> &elecX, BaseFab<Real> &elecY, BaseFab<Real> &elecZ,
-                           const BaseFab<Real> &magX, const BaseFab<Real> &magY, const BaseFab<Real> &magZ,
-                           const BaseFab<Real> &currDenX, const BaseFab<Real> &currDenY, const BaseFab<Real> &currDenZ,
+                           FArrayBox &elecX, FArrayBox &elecY, FArrayBox &elecZ,
+                           const FArrayBox &magX, const FArrayBox &magY, const FArrayBox &magZ,
+                           const FArrayBox &currDenX, const FArrayBox &currDenY, const FArrayBox &currDenZ,
                            const Real mu_c2_dt, const CudaArray<Real,3> dtsdx_c2)
 {
 
@@ -95,8 +95,8 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
 
 AMREX_CUDA_GLOBAL
 void evolve_magnetic_field(const Box bx, const Box tbx, const Box tby, const Box tbz,
-                           const BaseFab<Real> &elecX, const BaseFab<Real> &elecY, const BaseFab<Real> &elecZ,
-                           BaseFab<Real> &magX, BaseFab<Real> &magY, BaseFab<Real> &magZ,
+                           const FArrayBox &elecX, const FArrayBox &elecY, const FArrayBox &elecZ,
+                           FArrayBox &magX, FArrayBox &magY, FArrayBox &magZ,
                            const CudaArray<Real,3> dtsdx)
 {
 

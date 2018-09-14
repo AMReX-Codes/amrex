@@ -39,15 +39,15 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tbz = mfi.tilebox(YeeGrid::Ez_nodal_flag);
         const Box& vbx = mfi.validbox();
 
-        BaseFab<Real>* elecX = &(Ex[mfi]);
-        BaseFab<Real>* elecY = &(Ey[mfi]);
-        BaseFab<Real>* elecZ = &(Ez[mfi]);
-        const BaseFab<Real>* magX  = &(Bx[mfi]);
-        const BaseFab<Real>* magY  = &(By[mfi]);
-        const BaseFab<Real>* magZ  = &(Bz[mfi]);
-        const BaseFab<Real>* currDenX = &(jx[mfi]);
-        const BaseFab<Real>* currDenY = &(jy[mfi]);
-        const BaseFab<Real>* currDenZ = &(jz[mfi]);
+        FArrayBox* elecX = &(Ex[mfi]);
+        FArrayBox* elecY = &(Ey[mfi]);
+        FArrayBox* elecZ = &(Ez[mfi]);
+        const FArrayBox* magX  = &(Bx[mfi]);
+        const FArrayBox* magY  = &(By[mfi]);
+        const FArrayBox* magZ  = &(Bz[mfi]);
+        const FArrayBox* currDenX = &(jx[mfi]);
+        const FArrayBox* currDenY = &(jy[mfi]);
+        const FArrayBox* currDenZ = &(jz[mfi]);
 
         AMREX_BOX_L_LAUNCH(vbx,
         [=] AMREX_CUDA_DEVICE ()
@@ -106,12 +106,12 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         const Box& tbz = mfi.tilebox(YeeGrid::Bz_nodal_flag);
         const Box& vbx = mfi.validbox();
 
-        const BaseFab<Real>* elecX = &(Ex[mfi]);
-        const BaseFab<Real>* elecY = &(Ey[mfi]);
-        const BaseFab<Real>* elecZ = &(Ez[mfi]);
-        BaseFab<Real>* magX  = &(Bx[mfi]);
-        BaseFab<Real>* magY  = &(By[mfi]);
-        BaseFab<Real>* magZ  = &(Bz[mfi]);
+        const FArrayBox* elecX = &(Ex[mfi]);
+        const FArrayBox* elecY = &(Ey[mfi]);
+        const FArrayBox* elecZ = &(Ez[mfi]);
+        FArrayBox* magX  = &(Bx[mfi]);
+        FArrayBox* magY  = &(By[mfi]);
+        FArrayBox* magZ  = &(Bz[mfi]);
 
 
         AMREX_BOX_L_LAUNCH(vbx,

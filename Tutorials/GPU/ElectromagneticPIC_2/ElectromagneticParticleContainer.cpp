@@ -217,15 +217,15 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         const int np    = m_particles[mfi.index()].size();
         if (np == 0) continue;
 
-        const BaseFab<Real>* elecX = &(Ex[mfi]);
-        const BaseFab<Real>* elecY = &(Ey[mfi]);
-        const BaseFab<Real>* elecZ = &(Ez[mfi]);
-        const BaseFab<Real>* magX = &(Bx[mfi]);
-        const BaseFab<Real>* magY = &(By[mfi]);
-        const BaseFab<Real>* magZ = &(Bz[mfi]);
-        BaseFab<Real>* currDenX = &(jx[mfi]);
-        BaseFab<Real>* currDenY = &(jy[mfi]);
-        BaseFab<Real>* currDenZ = &(jz[mfi]);
+        const FArrayBox* elecX = &(Ex[mfi]);
+        const FArrayBox* elecY = &(Ey[mfi]);
+        const FArrayBox* elecZ = &(Ez[mfi]);
+        const FArrayBox* magX = &(Bx[mfi]);
+        const FArrayBox* magY = &(By[mfi]);
+        const FArrayBox* magZ = &(Bz[mfi]);
+        FArrayBox* currDenX = &(jx[mfi]);
+        FArrayBox* currDenY = &(jy[mfi]);
+        FArrayBox* currDenZ = &(jz[mfi]);
         const GeometryData& geomData = m_geom.data();
         ParticlesData&& pData = m_particles[mfi.index()].data();
 
@@ -301,12 +301,12 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         const int np    = m_particles[mfi.index()].size();
         if (np == 0) continue;
 
-        const BaseFab<Real>* elecX = &(Ex[mfi]);
-        const BaseFab<Real>* elecY = &(Ey[mfi]);
-        const BaseFab<Real>* elecZ = &(Ez[mfi]);
-        const BaseFab<Real>* magX = &(Bx[mfi]);
-        const BaseFab<Real>* magY = &(By[mfi]);
-        const BaseFab<Real>* magZ = &(Bz[mfi]);
+        const FArrayBox* elecX = &(Ex[mfi]);
+        const FArrayBox* elecY = &(Ey[mfi]);
+        const FArrayBox* elecZ = &(Ez[mfi]);
+        const FArrayBox* magX = &(Bx[mfi]);
+        const FArrayBox* magY = &(By[mfi]);
+        const FArrayBox* magZ = &(Bz[mfi]);
         const GeometryData& geomData = m_geom.data();
         ParticlesData&& pData = m_particles[mfi.index()].data(); 
 
