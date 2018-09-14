@@ -671,7 +671,7 @@ contains
                       phig1 = zero
                    else
                       phig1(1) = one + gx*sx + gy*sy + gx*gy*sx*sy
-                      phig1(2) =     - gx*sy         - gx*gy*sx*sy
+                      phig1(2) =     - gx*sx         - gx*gy*sx*sy
                       phig1(3) =             - gy*sy - gx*gy*sx*sy
                       phig1(4) =                     + gx*gy*sx*sy
                    endif
@@ -682,18 +682,22 @@ contains
                       bsxinv = one/(bctx+sx)
                       bsyinv = one/(bcty+sy)
 
+                      ! c_0(0,0) = sx*sy*bsxinv*bsyinv
                       c_0(-1,0) = bctx*bsxinv
                       c_0(0,-1) = bcty*bsyinv
                       c_0(-1,-1) = -bctx*bcty*bsxinv*bsyinv
 
+                      ! c_x(0,0) = sy*bsxinv*bsyinv
                       c_x(-1,0) = -bsxinv
                       c_x(0,-1) = sx*bcty*bsyinv
                       c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
 
+                      ! c_y(0,0) = sx*bsxinv*bsyinv
                       c_y(-1,0) = sy*bctx*bsxinv
                       c_y(0,-1) = -bsyinv
                       c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
 
+                      ! c_xy(0,0) = bsxinv*bsyinv
                       c_xy(-1,0) = -sy*bsxinv
                       c_xy(0,-1) = -sx*bsyinv
                       c_xy(-1,-1) = (one+sx*bctx+sy*bcty)*bsxinv*bsyinv
