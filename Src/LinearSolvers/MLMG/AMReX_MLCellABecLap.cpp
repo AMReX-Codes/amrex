@@ -51,4 +51,50 @@ MLCellABecLap::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux
     }
 }
 
+std::unique_ptr<Hypre>
+MLCellABecLap::makeHypre (Hypre::Interface hypre_interface) const
+{
+    const BoxArray& ba = m_grids[0].back();
+    const DistributionMapping& dm = m_dmap[0].back();
+    const Geometry& geom = m_geom[0].back();
+    const auto& factory = *(m_factory[0].back());
+    MPI_Comm comm = BottomCommunicator();
+
+    auto hypre_solver = amrex::makeHypre(ba, dm, geom, comm, hypre_interface);
+
+    hypre_solver->setScalars(getAScalar(), getBScalar());
+
+    const int mglev = NMGLevels(0)-1;
+    auto ac = getACoeffs(0, mglev);
+    if (ac)
+    {
+        hypre_solver->setACoeffs(*ac);
+    }
+    else
+    {
+        MultiFab alpha(ba,dm,1,0,MFInfo(),factory);
+        alpha.setVal(0.0);
+        hypre_solver->setACoeffs(alpha);
+    }
+
+    auto bc = getBCoeffs(0, mglev);
+    if (bc[0])
+    {
+        hypre_solver->setBCoeffs(bc);
+    }
+    else
+    {
+        Array<MultiFab,AMREX_SPACEDIM> beta;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
+                              dm, 1, 0, MFInfo(), factory);
+            beta[idim].setVal(1.0);
+        }
+        hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
+    }
+
+    return hypre_solver;
+}
+
 }

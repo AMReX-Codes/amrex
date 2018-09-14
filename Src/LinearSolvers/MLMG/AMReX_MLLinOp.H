@@ -249,15 +249,21 @@ protected:
     virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MultiFab*>& a_sol,
                             Location a_loc) const {
-        amrex::Abort("MLLinOp: How did we get here?");
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
 
 #ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<Hypre> makeHypre ( return nullptr; ) const;
+    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
+        amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
 #endif
 
 #ifdef AMREX_USE_PETSC
-//    virtual std::unique_ptr<PETScABecLap> makePETScABecLap () const;
+    virtual std::unique_ptr<PETScABecLap> makePETScABecLap () const {
+        amrex::Abort("MLLinOp::makePETScABecLap: How did we get here?");
+        return {nullptr};
+    }
 #endif
 
 private:
