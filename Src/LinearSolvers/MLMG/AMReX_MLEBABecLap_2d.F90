@@ -130,7 +130,7 @@ contains
                    sy =  sign(one,anrmy)
                    ! sy = -sign(one,gy)
                 else
-                   dg = dx_eb/abs(anrmy)
+                   dg = dx_eb / abs(anrmy)
                    gx = bctx - dg*anrmx
                    gy = bcty - dg*anrmy
                    ! sx = -sign(one,gx)
@@ -173,12 +173,12 @@ contains
                    c_x(-1,0) = -bsxinv
                    c_x(0,-1) = sx*bcty*bsyinv
                    c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-                
+
                    c_y(0,0) = sx*bsxinv*bsyinv
                    c_y(-1,0) = sy*bctx*bsxinv
                    c_y(0,-1) = -bsyinv
                    c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-                   
+
                    c_xy(0,0) = bsxinv*bsyinv
                    c_xy(-1,0) = -sy*bsxinv
                    c_xy(0,-1) = -sx*bsyinv

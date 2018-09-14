@@ -285,8 +285,8 @@ HypreABecLap3::prepareSolver ()
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
-    FArrayBox foo(Box::TheUnitBox());
     BaseFab<HYPRE_Int> ifab;
+    FArrayBox foo(Box::TheUnitBox());
     const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
@@ -361,7 +361,7 @@ HypreABecLap3::prepareSolver ()
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
                                     BL_TO_FORTRAN_ANYD((*barea)[mfi]),
                                     BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
-                                    BL_TO_FORTRAN_ANYD(beb), is_eb_dirichlet,
+                                    BL_TO_FORTRAN_ANYD(beb), &is_eb_dirichlet,
                                     &scalar_a, &scalar_b, dx,
                                     bctype.data(), bcl.data(), &bho);
             }
