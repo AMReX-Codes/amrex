@@ -2,7 +2,7 @@
 #define AMREX_MLEBABECLAP_H_
 
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_MLCellLinOp.H>
+#include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
 #include <limits>
 
@@ -11,7 +11,7 @@ namespace amrex {
 // (alpha * a - beta * (del dot b grad)) phi
 
 class MLEBABecLap
-    : public MLCellLinOp
+    : public MLCellABecLap
 {
 public:
 
@@ -44,7 +44,7 @@ public:
     void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta);
 
     virtual bool needsUpdate () const final {
-        return (m_needs_update || MLCellLinOp::needsUpdate());
+        return (m_needs_update || MLCellABecLap::needsUpdate());
     }
     virtual void update () final;
 

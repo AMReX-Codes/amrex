@@ -1,7 +1,7 @@
 #ifndef AMREX_ML_ABECLAPLACIAN_H_
 #define AMREX_ML_ABECLAPLACIAN_H_
 
-#include <AMReX_MLCellLinOp.H>
+#include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
 #include <limits>
 
@@ -10,7 +10,7 @@ namespace amrex {
 // (alpha * a - beta * (del dot b grad)) phi
 
 class MLABecLaplacian
-    : public MLCellLinOp
+    : public MLCellABecLap
 {
 public:
 
@@ -38,7 +38,7 @@ public:
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
     virtual bool needsUpdate () const final {
-        return (m_needs_update || MLCellLinOp::needsUpdate());
+        return (m_needs_update || MLCellABecLap::needsUpdate());
     }
     virtual void update () final;
 

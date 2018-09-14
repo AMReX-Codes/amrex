@@ -45,7 +45,7 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, _factory);
+    MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, _factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -267,7 +267,7 @@ MLEBABecLap::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
-    MLCellLinOp::prepareForSolve();
+    MLCellABecLap::prepareForSolve();
     
     averageDownCoeffs();
 
@@ -950,7 +950,7 @@ MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode b
 void
 MLEBABecLap::update ()
 {
-    if (MLCellLinOp::needsUpdate()) MLCellLinOp::update();
+    if (MLCellABecLap::needsUpdate()) MLCellABecLap::update();
 
     averageDownCoeffs();
 
