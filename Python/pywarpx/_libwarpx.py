@@ -36,12 +36,12 @@ else:
     geometry_dim = len(_prob_lo)
     del _prob_lo
 
+_libc = ctypes.CDLL(_find_library('c'))
+
 try:
     libwarpx = ctypes.CDLL(os.path.join(_get_package_root(), "libwarpx%dd.so"%geometry_dim))
 except OSError:
     raise Exception('libwarpx%dd.so was not installed. It can be installed by running "make" in the Python directory of WarpX'%geometry_dim)
-
-_libc = ctypes.CDLL(_find_library('c'))
 
 dim = libwarpx.warpx_SpaceDim()
 
