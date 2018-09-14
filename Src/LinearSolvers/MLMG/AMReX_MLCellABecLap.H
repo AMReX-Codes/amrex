@@ -36,6 +36,14 @@ protected:
 
     virtual void prepareForSolve () override;
 
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MultiFab*>& a_sol,
+                            Location a_loc) const final;
+
+    virtual Real getAScalar () const = 0;
+    virtual Real getBScalar () const = 0;
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 };
 
 }
