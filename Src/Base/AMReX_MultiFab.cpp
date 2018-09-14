@@ -153,7 +153,7 @@ MultiFab::Copy (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         const FArrayBox* srcFab = &(src[mfi]);
