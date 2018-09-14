@@ -673,6 +673,7 @@ WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, i
     const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
     const auto& period = Geom(glev).periodicity();
     auto& r = (patch_type == PatchType::fine) ? rho_fp[lev] : rho_cp[lev];
+    if (r == nullptr) return;
     if (use_filter) {
         IntVect ng = r->nGrowVect();
         ng += 1;
