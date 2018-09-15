@@ -166,6 +166,14 @@ public:
                   int              numcomp,
                   Real             mult);
     //
+    // Set flux correction data for a fine box (given by boxno) to a given value.
+    //
+    void FineSetVal (int              dir,
+                  int              boxno,
+                  int              destcomp,
+                  int              numcomp,
+                  Real             val);
+    //
     // Apply flux correction.  Note that this takes the coarse Geometry.
     //
     void Reflux (MultiFab&       mf,

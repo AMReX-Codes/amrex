@@ -53,13 +53,13 @@ module amrex_fluxregister_module
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_fineadd
 
-     subroutine amrex_fi_fluxregister_fineadd_1fab_1dir (fr, fabdata, flo,fhi, dir, boxno, nfluxes, scale) bind(c)
+     subroutine amrex_fi_fluxregister_fineadd_1fab_1dir (fr, fabdata, flo,fhi, dir, boxno, zeroFirst, nfluxes, scale) bind(c)
        import
        implicit none
        type(c_ptr), value :: fr
        type(c_ptr), value,intent(in) :: fabdata
        integer(c_int),intent(in) :: flo(*), fhi(*)
-       integer(c_int),intent(IN),value :: dir, boxno, nfluxes
+       integer(c_int),intent(IN),value :: dir, boxno, zeroFirst, nfluxes
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_fineadd_1fab_1dir
 
@@ -145,12 +145,13 @@ contains
     call amrex_fi_fluxregister_fineadd(this%p, mf, scale)
   end subroutine amrex_fluxregister_fineadd
 
-  subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, gridIdx, scale)
+  subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, gridIdx, scale, zeroFirst)
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_fab),  intent(in) :: fluxfabs(amrex_spacedim)
     integer(c_int),   intent(in) :: gridIdx
     real(amrex_real), intent(in) :: scale
-    integer :: dir, nc
+    logical,optional, intent(in) :: zeroFirst
+    integer :: dir, nc, myZeroFirst
     type(c_ptr) :: cp
     integer,dimension(3) :: flo=(/1,1,1/),fhi=(/1,1,1/)
     real(amrex_real), pointer, dimension(:,:,:,:) :: fp
@@ -162,7 +163,11 @@ contains
          cp = c_loc(fp(flo(1),flo(2),flo(3),1))
          nc =  fab%nc
        end associate
-       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, gridIdx, nc, scale)
+       myZeroFirst = 0
+       if (present(zeroFirst)) then
+          if (zeroFirst) myZeroFirst = 1
+       end if
+       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, gridIdx, myZeroFirst, nc, scale)
     end do
   end subroutine amrex_fluxregister_fineadd_1fab
 

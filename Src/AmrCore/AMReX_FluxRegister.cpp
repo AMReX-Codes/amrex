@@ -389,6 +389,24 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                  &numcomp,&dir,ratio.getVect(),&mult);
 }
 
+void
+FluxRegister::FineSetVal (int              dir,
+                       int              boxno,
+                       int              destcomp,
+                       int              numcomp,
+                       Real             val)
+{
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
+
+    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
+    BL_ASSERT(numcomp <= loreg.nComp());
+    loreg.setVal(val, loreg.box(), destcomp, numcomp);
+
+    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
+    BL_ASSERT(numcomp <= hireg.nComp());
+    hireg.setVal(val, hireg.box(), destcomp, numcomp);
+}
+
 void 
 FluxRegister::Reflux (MultiFab&       mf,
 		      const MultiFab& volume,
