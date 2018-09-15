@@ -379,6 +379,9 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #ifdef __CUDA_ARCH__
+    Box dtbx = getThreadBox(destbox);
+    Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
+
     amrex_fort_fab_plus_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
@@ -410,6 +413,9 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #ifdef __CUDA_ARCH__
+    Box dtbx = getThreadBox(destbox);
+    Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
+
     amrex_fort_fab_mult_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		  BL_TO_FORTRAN_N_3D(*this,destcomp),
 		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
@@ -514,6 +520,9 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #ifdef __CUDA_ARCH__
+    Box dtbx = getThreadBox(destbox);
+    Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
+
     amrex_fort_fab_minus_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		   BL_TO_FORTRAN_N_3D(*this,destcomp),
 		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
@@ -545,6 +554,9 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
 #ifdef __CUDA_ARCH__
+    Box dtbx = getThreadBox(destbox);
+    Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
+
     amrex_fort_fab_divide_device(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
 		    BL_TO_FORTRAN_N_3D(*this,destcomp),
 		    BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
