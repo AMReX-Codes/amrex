@@ -171,7 +171,7 @@ endif
 C$(AMREX_BASE)_headers += AMReX_MemPool.H
 C$(AMREX_BASE)_sources += AMReX_MemPool.cpp
 ifneq ($(BL_NO_FORT),TRUE)
-  f90$(AMREX_BASE)_sources += AMReX_mempool_f.f90
+  F90$(AMREX_BASE)_sources += AMReX_mempool_mod.F90
 endif
 
 # UPCXX
