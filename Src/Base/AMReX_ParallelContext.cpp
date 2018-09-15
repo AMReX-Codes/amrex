@@ -114,6 +114,7 @@ Frame::get_inc_mpi_tag ()
 void
 Frame::set_ofs_name (std::string filename)
 {
+    m_out.reset(); // in case changing name, close previous file
     m_out_filename = std::move(filename);
 }
 
@@ -124,7 +125,7 @@ Frame::get_ofs_ptr ()
         return nullptr;
     } else {
         if (!m_out) {
-            m_out.reset(new std::ofstream(m_out_filename));
+            m_out.reset(new std::ofstream(m_out_filename, std::ios_base::app));
         }
         return m_out.get();
     }
