@@ -41,7 +41,11 @@ if sys.version[0] == "2":
 
 import os
 import argparse
+import re
 
+
+re_detect_fun = re.compile('! *function\s')
+re_detect_endcomment = re.compile('!')
 
 
 def get_procedure_type(procedure):
@@ -81,6 +85,13 @@ def append_device_to_line(line, subs):
 
     if 'use ' in line and 'only' in line and ':' in line:
 
+        # Strip off any comments at the end of the line
+        mcomment = re_detect_endcomment.search(line)
+        comment = ''
+        if mcomment:
+            comment = line[mcomment.start():]
+            line = line[:mcomment.start()]
+
         sline = line.split(':')
 
         new_line = sline[0] + ':'
@@ -90,7 +101,7 @@ def append_device_to_line(line, subs):
             found_sub = False
             for sub_name in subs:
                 if sub_name == var.strip():
-                    new_line += var + '_device'
+                    new_line += var.strip() + '_device'
                     found_sub = True
                     break
 
@@ -100,10 +111,13 @@ def append_device_to_line(line, subs):
             if var != sline[1].split(',')[-1]:
                 new_line += ','
 
+        new_line = new_line + " " + comment
+
     else:
 
         for sub_name in subs:
 
+            
             if 'call ' + sub_name + '(' in line and 'call ' + sub_name + '_device(' not in line:
                 new_line = line.split('(')[0] + '_device('
                 for word in line.split('(')[1:]:
@@ -113,15 +127,63 @@ def append_device_to_line(line, subs):
                 break
 
             elif sub_name in line.split() and sub_name + '_device' not in line.split():
-                new_line = new_line.replace(sub_name, sub_name + '_device')
-                break
+                re_argument = re.compile("\S+ +" + sub_name + " +=")
+                if not re_argument.search(line):
+                    new_line = new_line.replace(sub_name, sub_name + '_device')
+                    break
+                else:
+                    continue
 
             elif sub_name + '(' in line and sub_name + '_device' not in line:
                 # Catch function calls here.
-                new_line = new_line.replace(sub_name + '(', sub_name + '_device' + '(')
-                break
+                # Make sure "bar(" is not any of "foobar(" or "foo % bar(" or "foo_bar("
+                old_fun = sub_name + '('
+                new_fun = sub_name + '_device' + '('
+                re_old_fun = re.compile(sub_name + "\(")
+                re_not_fun = re.compile("((\w)|(% *))" + sub_name + "\(")
+                actual_new_line = ''
+                while(new_line):
+                    m_old_fun = re_old_fun.search(new_line)
+                    if m_old_fun:
+                        m_not_fun = re_not_fun.search(new_line)
+                        if m_not_fun and m_old_fun.end() == m_not_fun.end():
+                            # reject this replacement, it's not a function call
+                            actual_new_line = actual_new_line + new_line[:m_not_fun.end()]
+                            new_line = new_line[m_not_fun.end():]
+                        else:
+                            # do the replacement, it's a function call
+                            substring = new_line[:m_old_fun.end()].replace(old_fun, new_fun)
+                            actual_new_line = actual_new_line + substring
+                            new_line = new_line[m_old_fun.end():]
+                    else:
+                        actual_new_line = actual_new_line + new_line
+                        break
+                new_line = actual_new_line
+                # continue because there could be multiple functions calls on the same line
+                # or functions that satisfy the elif but not necessarily the regex criteria.
+                continue
 
     return new_line
+
+
+def get_function_uses(line):
+    # Device functions in another module will
+    # be detected expecting that the 'use/only' line contains
+    # nothing but functions and ends with "! function"
+
+    imported_functions = []
+
+    mfun = re_detect_fun.search(line)
+    if 'use ' in line and 'only' in line and ':' in line and mfun:
+        line = line[:mfun.start()]
+        sline = line.split(':')
+        for var in sline[1].split(','):
+            imported_functions.append(var.strip())
+
+    print(line)
+    print(imported_functions)
+
+    return imported_functions
 
 
 def append_device(procedure):
@@ -130,6 +192,7 @@ def append_device(procedure):
     
     called_subs = []
     for line in procedure.split('\n'):
+        called_subs = called_subs + get_function_uses(line)
         if "call " in line:
             sub_name = line.split('call ')[1].split('(')[0]
             if sub_name != "syncthreads":
@@ -250,8 +313,12 @@ def update_fortran_procedures(ffile):
                 if "AMREX_DEVICE" in procedure:
                     procedure = procedure.replace("AMREX_DEVICE", "attributes(device)", 1)
                 else:
-                    procedure = procedure.replace("subroutine", "attributes(device) subroutine", 1)
-                    procedure = procedure.replace("function", "attributes(device) function", 1)
+                    if get_procedure_type(procedure) == "subroutine":
+                        procedure = procedure.replace("subroutine", "attributes(device) subroutine", 1)
+                    elif get_procedure_type(procedure) == "function":
+                        procedure = procedure.replace("function", "attributes(device) function", 1)
+                    else:
+                        sys.exit("Error - Procedure is not a subroutine or function!")
 
                 # Capture the name of the procedure and add it to our targets list.
 
@@ -323,12 +390,26 @@ def update_fortran_procedures(ffile):
     fout = open(ffile, 'w')
 
     in_device_subroutine = False
+
+    module_imported_functions = []
+    subroutine_imported_functions = []
+    in_module_header = True
     
     for line in lines:
+
+        if in_module_header:
+            # Detect any used functions from other modules
+            module_imported_functions = module_imported_functions + get_function_uses(line)
+
+        if in_device_subroutine:
+            # Detect any used functions from other modules
+            subroutine_imported_functions = subroutine_imported_functions + get_function_uses(line)
 
         # Explicitly mark all newly created device targets as public.
 
         if "contains" in line:
+
+            in_module_header = False
 
             for target in gpu_targets:
                 fout.write('public :: ' + target + '_device\n')
@@ -345,15 +426,17 @@ def update_fortran_procedures(ffile):
 
                 if "end function " + target + "_device" in line or "end subroutine " + target + "_device" in line:
                     in_device_subroutine = False
+                    subroutine_imported_functions = []
                     break
 
                 elif "function " + target + "_device" in line or "subroutine " + target + "_device" in line:
+                    print(line)
                     in_device_subroutine = True
                     break
 
             if in_device_subroutine:
-
-                line = append_device_to_line(line, gpu_targets)
+                print(gpu_targets + module_imported_functions + subroutine_imported_functions)
+                line = append_device_to_line(line, gpu_targets + module_imported_functions + subroutine_imported_functions)
 
         fout.write(line)
 
