@@ -1583,58 +1583,18 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
 #if !defined(AMREX_USE_PETSC)
     amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
 #else
-    PETSC_COMM_WORLD = linop.BottomCommunicator();
-    
+
+    const int ncomp = linop.getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithPETSc doesn't work with ncomp > 1");
+
     if(petsc_solver == nullptr)
     { 
-        const int ncomp = linop.getNComp();
+        petsc_solver = linop.makePETSc();
+        petsc_solver->setVerbose(bottom_verbose);
+
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
-        const auto& factory = *(linop.m_factory[0].back());
-        MPI_Comm comm = linop.BottomCommunicator();
-    
-        petsc_solver = makePetsc(ba, dm, geom, comm);
-        petsc_solver->setVerbose(bottom_verbose);
-
-        petsc_solver->setScalars(linop.getAScalar(), linop.getBScalar());
-
-        const int mglev = linop.NMGLevels(0)-1;
-        auto ac = linop.getACoeffs(0, mglev);
-        if (ac)
-        {
-            petsc_solver->setACoeffs(*ac);
-        }
-        else
-        {
-            MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
-            alpha.setVal(0.0);
-            petsc_solver->setACoeffs(alpha);
-        }
-
-        auto bc = linop.getBCoeffs(0, mglev);
-        if (bc[0])
-        {
-            petsc_solver->setBCoeffs(bc);
-        }
-        else
-        {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, ncomp, 0, MFInfo(), factory);
-                beta[idim].setVal(1.0);
-            }
-            petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
-        }
-
-#ifdef AMREX_USE_EB
-        auto eb_linop = dynamic_cast<MLEBABecLap*>(&linop);
-        if (eb_linop) {
-            petsc_solver->setEBDirichlet(eb_linop->m_eb_b_coeffs[0][mglev].get());
-        }
-#endif
 
         petsc_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         petsc_bndry->setHomogValues();

@@ -97,7 +97,7 @@ protected:
 #endif
 
 #ifdef AMREX_USE_PETSC
-//    virtual std::unique_ptr<PETScABecLap> makePETScABecLap () const;
+    virtual std::unique_ptr<PETScABecLap> makePETScABecLap () const;
 #endif
 
 private:

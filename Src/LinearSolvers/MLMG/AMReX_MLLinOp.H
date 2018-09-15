@@ -260,10 +260,7 @@ protected:
 #endif
 
 #ifdef AMREX_USE_PETSC
-    virtual std::unique_ptr<PETScABecLap> makePETScABecLap () const {
-        amrex::Abort("MLLinOp::makePETScABecLap: How did we get here?");
-        return {nullptr};
-    }
+    virtual std::unique_ptr<PETScABecLap> makePETSc () const;
 #endif
 
 private:

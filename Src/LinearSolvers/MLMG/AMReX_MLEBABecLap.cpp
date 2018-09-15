@@ -15,6 +15,11 @@
 #include <AMReX_HypreABecLap3.H>
 #endif
 
+#ifdef AMREX_USE_PETSC
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
+#endif
+
 namespace amrex {
 
 MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
@@ -995,5 +1000,15 @@ MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
     return hypre_solver;
 }
 #endif
-    
+
+#ifdef AMREX_USE_PETSC
+std::unique_ptr<PETScABecLap>
+MLEBABecLap::makePETScABecLap () const
+{
+    auto petsc_solver = MLCellABecLap::makePETSc();
+    petsc_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
+}
+#endif
+
+
 }
