@@ -326,7 +326,6 @@ private:
 
     void LoadBalance ();
 
-
     static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
 
     void BuildBufferMasks ();

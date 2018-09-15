@@ -75,17 +75,17 @@ else
   SHARED_OPTION = -shared
 endif
 
-installwarpx: libwarpx.so
-	mv libwarpx.so pywarpx
-	python setup.py install
+installwarpx: libwarpx$(DIM)d.so
+	mv libwarpx$(DIM)d.so pywarpx
+	python setup.py install --with-libwarpx $(DIM) $(PYINSTALLOPTIONS)
 
-libwarpx.a: $(objForExecs)
+libwarpx$(DIM)d.a: $(objForExecs)
 	@echo Making static library $@ ...
 	$(SILENT) $(AR) -crv $@ $^
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
 	@echo SUCCESS
 
-libwarpx.so: $(objForExecs)
+libwarpx$(DIM)d.so: $(objForExecs)
 	@echo Making dynamic library $@ ...
 	$(SILENT) $(CXX) $(SHARED_OPTION) -fPIC -o $@ $^ $(LDFLAGS) $(libraries)
 	$(SILENT) $(RM) AMReX_buildInfo.cpp
@@ -93,9 +93,9 @@ libwarpx.so: $(objForExecs)
 
 clean::
 	$(SILENT) $(RM) -rf build
-	$(SILENT) $(RM) -f libwarpx.a
-	$(SILENT) $(RM) -f libwarpx.so
-	$(SILENT) $(RM) -f pywarpx/libwarpx.so
+	$(SILENT) $(RM) -f libwarpx?d.a
+	$(SILENT) $(RM) -f libwarpx?d.so
+	$(SILENT) $(RM) -f pywarpx/libwarpx?d.so
 
 else
 
