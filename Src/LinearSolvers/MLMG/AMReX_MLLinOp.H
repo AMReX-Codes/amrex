@@ -13,7 +13,15 @@
 #include <AMReX_MultiCutFab.H>
 #endif
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_Hypre.H>
+#endif
+
 namespace amrex {
+
+#ifdef AMREX_USE_PETSC
+class PETScABecLap;
+#endif
 
 struct LPInfo
 {
@@ -233,15 +241,27 @@ protected:
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
 
-    virtual Real getAScalar () const = 0;
-    virtual Real getBScalar () const = 0;
-    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
-
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
+
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MultiFab*>& a_sol,
+                            Location a_loc) const {
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+    }
+
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
+        amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
+#endif
+
+#ifdef AMREX_USE_PETSC
+    virtual std::unique_ptr<PETScABecLap> makePETSc () const;
+#endif
 
 private:
 

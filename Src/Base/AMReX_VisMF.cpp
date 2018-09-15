@@ -1403,7 +1403,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     VisMF::Header hdr;
     Real hEndTime, hStartTime, faCopyTime(0.0);
-    Real startTime(ParallelDescriptor::second());
+    Real startTime(amrex::second());
     static Real totalTime(0.0);
     int myProc(ParallelDescriptor::MyProc());
     int messTotal(0);
@@ -1415,7 +1415,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
 
     {
-        hStartTime = ParallelDescriptor::second();
+        hStartTime = amrex::second();
         std::string fileCharPtrString;
 	if(faHeader == nullptr) {
           Vector<char> fileCharPtr;
@@ -1428,7 +1428,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
         infs >> hdr;
 
-        hEndTime = ParallelDescriptor::second();
+        hEndTime = amrex::second();
     }
 
     if (mf.empty()) {
@@ -1644,9 +1644,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if( ! inFileOrder) {
-      faCopyTime = ParallelDescriptor::second();
+      faCopyTime = amrex::second();
       mf.copy(fafabFileOrder);
-      faCopyTime = ParallelDescriptor::second() - faCopyTime;
+      faCopyTime = amrex::second() - faCopyTime;
     }
 
   } else {    // ---- (noFabHeader && useSynchronousReads) == false
@@ -1824,7 +1824,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if(myProc == coordinatorProc && verbose) {
-      Real mfReadTime = ParallelDescriptor::second() - startTime;
+      Real mfReadTime = amrex::second() - startTime;
       totalTime += mfReadTime;
       amrex::AllPrint() << "FARead ::  nBoxes = " << hdr.m_ba.size()
                         << "  nMessages = " << messTotal << '\n'
