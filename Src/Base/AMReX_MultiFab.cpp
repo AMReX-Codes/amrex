@@ -118,12 +118,20 @@ MultiFab::Add (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+        const FArrayBox* srcFab = &(src[mfi]);
+              FArrayBox* dstFab = &(dst[mfi]);
 
         if (bx.ok())
-            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        {
+            AMREX_BOX_L_LAUNCH(bx,
+            [=] AMREX_CUDA_DEVICE ()
+            {
+               dstFab->plus(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -159,14 +167,14 @@ MultiFab::Copy (MultiFab&       dst,
         const FArrayBox* srcFab = &(src[mfi]);
               FArrayBox* dstFab = &(dst[mfi]);
 
-       AMREX_BOX_L_LAUNCH(bx,
-       [=] AMREX_CUDA_DEVICE ()
+       if (bx.ok())
        {
-           const Box tbx = getThreadBox(bx);
-
-           if (tbx.ok())
-               dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
-       });
+          AMREX_BOX_L_LAUNCH(bx,
+          [=] AMREX_CUDA_DEVICE ()
+          {
+             dstFab->copy(*srcFab, bx, srccomp, bx, dstcomp, numcomp);
+          });
+       }
     }
 }
 
@@ -223,12 +231,20 @@ MultiFab::Subtract (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+        const FArrayBox* srcFab = &(src[mfi]);
+              FArrayBox* dstFab = &(dst[mfi]);
 
         if (bx.ok())
-            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        {
+            AMREX_BOX_L_LAUNCH(bx,
+            [=] AMREX_CUDA_DEVICE ()
+            {
+                dstFab->minus(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -258,12 +274,20 @@ MultiFab::Multiply (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+        const FArrayBox* srcFab = &(src[mfi]);
+              FArrayBox* dstFab = &(dst[mfi]);
 
         if (bx.ok())
-            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        {
+            AMREX_BOX_L_LAUNCH(bx,
+            [=] AMREX_CUDA_DEVICE ()
+            {
+                dstFab->mult(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -293,12 +317,20 @@ MultiFab::Divide (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TrueUnlessGPU; mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
+        const FArrayBox* srcFab = &(src[mfi]);
+              FArrayBox* dstFab = &(dst[mfi]);
 
         if (bx.ok())
-            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        {
+            AMREX_BOX_L_LAUNCH(bx,
+            [=] AMREX_CUDA_DEVICE ()
+            {
+                dstFab->divide(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
