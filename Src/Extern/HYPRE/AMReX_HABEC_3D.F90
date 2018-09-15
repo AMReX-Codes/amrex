@@ -10,10 +10,9 @@ module amrex_habec_module
   use amrex_fort_module, only : rt => amrex_real
   use amrex_lo_bctypes_module, only : amrex_lo_dirichlet, amrex_lo_neumann
   use amrex_error_module, only : amrex_error
-  use amrex_constants_module, only : zero, one, half, three, third
+  use amrex_constants_module, only : zero, one, half, three
   implicit none
 
-  real(rt), parameter, private :: dx_eb = third 
 contains
 
   subroutine amrex_hpacoef (lo, hi, mat, a, alo, ahi, sa) bind(c,name='amrex_hpacoef')
@@ -457,6 +456,7 @@ contains
        sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
+    use amrex_mlebabeclap_3d_module, only : dx_eb
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*27-1), intent(out) :: cols
