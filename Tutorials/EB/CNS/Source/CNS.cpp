@@ -512,7 +512,7 @@ CNS::computeTemp (MultiFab& State, int ng)
 {
     BL_PROFILE("CNS::computeTemp()");
 
-    auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(State);
+    auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(State.Factory());
     auto const& flags = fact.getMultiEBCellFlagFab();
 
     // This will reset Eint and compute Temperature 
