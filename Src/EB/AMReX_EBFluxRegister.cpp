@@ -218,7 +218,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         
         m_crse_data.setVal(0.0);
         
-        auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state);
+        auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
         auto const& flags = factory.getMultiEBCellFlagFab();
 
 #ifdef _OPENMP
@@ -269,7 +269,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     MultiFab cf(ba, fine_state.DistributionMap(), m_ncomp, 0, MFInfo(), FArrayBoxFactory());
     cf.ParallelCopy(m_crse_data);
 
-    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state);
+    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state.Factory());
     auto const& flags = factory.getMultiEBCellFlagFab();
 
 #ifdef _OPENMP
