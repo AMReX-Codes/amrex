@@ -48,7 +48,7 @@ public:
     //
     ~StateData ();
 
-    StateData (StateData&& rhs) noexcept = default;
+    StateData (StateData&& rhs) noexcept;
     StateData (StateData const& rhs) = delete;
     void operator= (StateData && rhs) = delete;
     void operator= (StateData const& rhs);
