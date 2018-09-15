@@ -52,10 +52,10 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
 
         RealArray hi;
         pp.get("box_hi", hi);
-        
+
         bool has_fluid_inside;
         pp.get("box_has_fluid_inside", has_fluid_inside);
-        
+
         EB2::BoxIF bf(lo, hi, has_fluid_inside);
 
         EB2::GeometryShop<EB2::BoxIF> gshop(bf);
@@ -69,8 +69,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         Real radius;
         pp.get("cylinder_radius", radius);
 
-        Real height;
-        pp.get("cylinder_height", height);
+        Real height = -1.0;
+        pp.query("cylinder_height", height);
 
         int direction;
         pp.get("cylinder_direction", direction);

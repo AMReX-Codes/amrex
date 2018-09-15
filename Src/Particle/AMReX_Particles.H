@@ -724,7 +724,7 @@ public:
     
     void AssignDensity (int rho_index,
                         Vector<std::unique_ptr<MultiFab> >& mf_to_be_filled, 
-                        int lev_min, int ncomp, int finest_level) const;
+                        int lev_min, int ncomp, int finest_level, int ngrow=2) const;
 
     void Interpolate (Vector<std::unique_ptr<MultiFab> >& mesh_data, 
                       int lev_min, int lev_max);
