@@ -251,9 +251,8 @@ void RegionGraph::enableAllRegions()
     worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads        
 }
 
-void RegionGraph::disableRegion(int r, int tg, int ntid)
+void RegionGraph::disableRegion(int r, int tg)
 {
-    //if(perilla::isMasterWorkerThread())
     if(ntid==0)
 	if(WorkerThread::isMyRegion(tg, r))
 	{
@@ -262,10 +261,10 @@ void RegionGraph::disableRegion(int r, int tg, int ntid)
 	}
 }
 
-void RegionGraph::regionComputed(int r, int tg, int ntid)
+void RegionGraph::regionComputed(int r)
 {
+    int tg= perilla::wid();
     worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
-    //if(perilla::isMasterWorkerThread())
     if(ntid==0)
 	if(WorkerThread::isMyRegion(tg, r))
 	{
@@ -301,7 +300,7 @@ void RegionGraph::finalizeRegion(int r)
     worker[tg]->barr->sync(); // Barrier to synchronize team threads
 }
 
-bool RegionGraph::isFireableRegion(int r, bool patchFilled)
+bool RegionGraph::isFireableRegion(int r)
 {
     int myProc = ParallelDescriptor::MyProc();
     FabCopyAssoc *cpDst = task[r]->cpAsc_dstHead;
@@ -310,7 +309,6 @@ bool RegionGraph::isFireableRegion(int r, bool patchFilled)
 	{
 	    return false;
 	}
-    if(!patchFilled){
 	while(cpDst != 0)
 	{
 	    if(cpDst->l_con.firingRuleCnt != cpDst->l_con.ndcpy)
@@ -330,7 +328,6 @@ bool RegionGraph::isFireableRegion(int r, bool patchFilled)
 		task[r]->depTasksCompleted = true;
 	    }
 	}
-    }
 
     if(ParallelDescriptor::NProcs() == 1) return true;
 
@@ -340,7 +337,6 @@ bool RegionGraph::isFireableRegion(int r, bool patchFilled)
 	    return false;
 	}
 
-    if(!patchFilled){
 	cpDst = task[r]->cpAsc_dstHead;
 	while(cpDst != 0)
 	{
@@ -350,11 +346,10 @@ bool RegionGraph::isFireableRegion(int r, bool patchFilled)
 	    }
 	    cpDst = cpDst->next;
 	}
-    }
     return true;
 }
 
-int RegionGraph::getFireableRegion(bool patchFilled, bool isSingleThread)
+int RegionGraph::getFireableRegion(bool isSingleThread)
 {
     int r = -1;
     bool fireable;
@@ -507,18 +502,14 @@ void RegionGraph::setFireableRegion(int r)
 
 int RegionGraph::getAnyFireableRegion()
 {
-    int nt;
-    int tg;
-    int r;
-    bool fireable;
-
     int myProc = ParallelDescriptor::MyProc();
-
-    tg = perilla::wid();
-    nt = perilla::wtid();
-    if(nt == 0 && worker[tg]->fireableRegionQueue->queueSize()==0)      
+    int tg = perilla::wid();
+    int nt = perilla::wtid();
+    perilla::syncWorkerThreads();
+    if(nt ==0)
+    if(worker[tg]->fireableRegionQueue->queueSize()==0)      
     {
-	fireable = false;
+	bool fireable = false;
 	r = worker[tg]->unfireableRegionQueue->removeRegion(true);
 	while(!fireable)
 	{
@@ -532,31 +523,25 @@ int RegionGraph::getAnyFireableRegion()
 		worker[tg]->fireableRegionQueue->addRegion(r,true);
 	}
     }
-    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
-    r = worker[tg]->fireableRegionQueue->getFrontRegion(true);
-    return r;
+    perilla::syncWorkerThreads();
+    return worker[tg]->fireableRegionQueue->getFrontRegion(true);
 }
 
 
 int RegionGraph::getPulledFireableRegion()
 {
-    int nt;
-    int tg;
-    int r;
-    bool fireable;
     int myProc = ParallelDescriptor::MyProc();
-    tg = WorkerThread::perilla_wid();
-    nt = WorkerThread::perilla_wtid();
+    int tg = WorkerThread::perilla_wid();
+    int nt = WorkerThread::perilla_wtid();
     if(nt == 0 && worker[tg]->fireableRegionQueue->queueSize()==0)      
     {
 	while(worker[tg]->fireableRegionQueue->queueSize()==0);
     }
     worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
-    r = worker[tg]->fireableRegionQueue->getFrontRegion(true);
-    return r;
+    return worker[tg]->fireableRegionQueue->getFrontRegion(true);
 }
 
-void RegionGraph::graphTeardown(int tg)
+void RegionGraph::graphTeardown()
 {
     MPI_Status status;
     Package* package;
@@ -860,7 +845,7 @@ void RegionGraph::graphTeardown(int tg)
 
 }
 
-void RegionGraph::workerTeardown(int tg)
+void RegionGraph::workerTeardown()
 {
     int numfabs = numTasks;
     Package* package;

@@ -165,9 +165,16 @@ namespace amrex
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
 				     const Geometry& geom)
     {
+        average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{AMREX_D_DECL(fc[0],fc[1],fc[2])},
+                                   cc, geom);
+    }
+
+
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
+                                    const Geometry& geom)
+    {
 	AMREX_ASSERT(cc.nComp() == 1);
 	AMREX_ASSERT(cc.nGrow() >= 1);
-	AMREX_ASSERT(fc.size() == AMREX_SPACEDIM);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
