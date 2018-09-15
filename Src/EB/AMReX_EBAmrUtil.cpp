@@ -16,7 +16,7 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
     const char   tagval = TagBox::SET;
     const char clearval = TagBox::CLEAR;
 
-    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(state);
+    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
     auto const& flags = factory.getMultiEBCellFlagFab();
 
 #ifdef _OPENMP
