@@ -43,6 +43,19 @@ StateData::StateData (const Box&             p_domain,
     define(p_domain, grds, dm, *d, cur_time, dt, factory);
 }
 
+StateData::StateData (StateData&& rhs) noexcept
+    : m_factory(std::move(rhs.m_factory)),
+      desc(rhs.desc),
+      domain(rhs.domain),
+      grids(std::move(rhs.grids)),
+      dmap(std::move(rhs.dmap)),
+      new_time(rhs.new_time),
+      old_time(rhs.old_time),
+      new_data(std::move(rhs.new_data)),
+      old_data(std::move(rhs.old_data))
+{   
+}
+
 void
 StateData::operator= (StateData const& rhs)
 {
