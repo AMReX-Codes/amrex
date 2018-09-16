@@ -1007,6 +1007,7 @@ MLEBABecLap::makePETScABecLap () const
 {
     auto petsc_solver = MLCellABecLap::makePETSc();
     petsc_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
+    return petsc_solver;
 }
 #endif
 
