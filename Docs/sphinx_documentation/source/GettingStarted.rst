@@ -107,7 +107,7 @@ The result may look like,
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
 
 If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` for
-more details on how to configure the build system.  The command line
+more details on how to configure the build system.  The *optional* command line
 argument ``amrex.v=1`` sets the AMReX verbosity level
 to 1 to print the number of MPI processes used.
 More details on how runtime parameters are handled can be found in
