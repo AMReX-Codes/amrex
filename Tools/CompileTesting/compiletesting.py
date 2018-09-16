@@ -53,7 +53,7 @@ def compiletesting(arg_string):
                      'Tests/BBIOBenchmark',
                      'Tests/C_BaseLib',
                      'Tests/IOBenchmark',
-                     'Tests/LinearSolvers/NoFort',
+                     'Tests/NoFort',
                      'Tests/LinearSolvers/CellEB',
                      'Tests/LinearSolvers/CellEB2',
                      'Tests/LinearSolvers/C_CellMG',
@@ -70,7 +70,7 @@ def compiletesting(arg_string):
                      'Tutorials/LinearSolvers/ABecLaplacian_C',
                      'Tutorials/LinearSolvers/ABecLaplacian_F',
                      'Tutorials/Particles/NeighborList',
-                     'Tests/LinearSolvers/NoFort',
+                     'Tests/NoFort',
                      'Tests/LinearSolvers/CellEB2',
                      'Tests/LinearSolvers/ComparisonTest']
 
