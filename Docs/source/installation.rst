@@ -106,6 +106,14 @@ This will compile the code, and install the Python bindings as a package (named
 ``site-packages`` directory). The note on compiler options from the previous
 section also hold when compiling the Python package.
 
+In case you do not have write permissions to the default Python installation (e.g. typical on computer clusters), use the following command instead:
+
+::
+
+   make -j 4 PYINSTALLOPTIONS=--user
+In this case, you can also set the variable `PYTHONUSERBASE` to set the folder where `pywarpx` will be installed.
+
+
 In order to learn how to use the Python package, see the section :doc:`running_python/running_python`.
 
 
@@ -159,5 +167,3 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
         module swap PrgEnv-intel PrgEnv-gnu
         make -j 16 COMP=gnu
 
-
-   
