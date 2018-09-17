@@ -9,6 +9,8 @@
 #include <AMReX_BaseFab_f.H>
 #endif
 
+#include <AMReX_BaseFab_c.H>
+
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
@@ -550,10 +552,18 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
+#if 0
     return amrex_fort_fab_dot(AMREX_ARLIM_3D(xbx.loVect()), AMREX_ARLIM_3D(xbx.hiVect()),
 			BL_TO_FORTRAN_N_3D(*this,xcomp),
 			BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
 			&numcomp);
+#endif
+
+    return amrex_c_fab_dot(AMREX_ARLIM_3D(xbx.loVect()), AMREX_ARLIM_3D(xbx.hiVect()),
+                           BL_TO_FORTRAN_N_3D(*this,xcomp),
+                           BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
+                           &numcomp);
+
 }
 
 template <>
