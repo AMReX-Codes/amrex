@@ -295,6 +295,7 @@ MyTest::initData ()
         }
 
         const Real* dx = geom[ilev].CellSize();
+        const Box& domainbox = geom[ilev].Domain();
 
         const FabArray<EBCellFlagFab>& flags = factory[ilev]->getMultiEBCellFlagFab();
         const MultiCutFab& bcent = factory[ilev]->getBndryCent();
@@ -340,6 +341,14 @@ MyTest::initData ()
                                   BL_TO_FORTRAN_ANYD(cent[mfi]),
                                   BL_TO_FORTRAN_ANYD(bcent[mfi]),
                                   dx, &prob_type);
+            }
+
+            const Box& gbx = mfi.growntilebox(1);
+            if (!domainbox.contains(gbx)) {
+                mytest_set_phi_boundary(BL_TO_FORTRAN_BOX(gbx),
+                                        BL_TO_FORTRAN_BOX(domainbox),
+                                        BL_TO_FORTRAN_ANYD(phi[ilev][mfi]),
+                                        dx);
             }
         }
     }
