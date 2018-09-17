@@ -221,7 +221,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
             tline = line[:idx]
 
             for target in list(targets):
-                target_match = fortran_binding_re.search(tline.lower())
+                target_match = fortran_binding_re.search(tline)
                 if target_match:
                     if target == target_match.group(3):
                         found = target
@@ -284,7 +284,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
             # captured then we just write it out
             for target in list(signatures):
 
-                target_match = fortran_binding_re.search(tline.lower())
+                target_match = fortran_binding_re.search(tline)
                 if target_match:
                     if target == target_match.group(3):
                         found = target
@@ -340,7 +340,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
             # First write out the device signature
             device_sig = "__device__ {};\n\n".format(func_sig)
 
-            idx = func_sig.lower().find(name)
+            idx = func_sig.find(name)
 
             # here's the case-sensitive name
             case_name = func_sig[idx:idx+len(name)]
