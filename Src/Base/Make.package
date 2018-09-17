@@ -158,6 +158,9 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_ParallelDescriptor_F.F90
 endif
 
+C$(AMREX_BASE)_headers += AMReX_BaseFab_c.H
+c$(AMREX_BASE)_sources += AMReX_BaseFab_c.c
+
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
