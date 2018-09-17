@@ -1,5 +1,3 @@
-from six import iteritems
-
 class Bucket(object):
     """
     The purpose of this class is to be a named bucket for holding attributes.
@@ -25,10 +23,19 @@ class Bucket(object):
     def attrlist(self):
         "Concatenate the attributes into a string"
         result = []
-        for attr, value in iteritems(self.argvattrs):
+        for attr, value in self.argvattrs.items():
+            if value is None:
+                continue
             # --- repr is applied to value so that for floats, all of the digits are included.
             # --- The strip is then needed when value is a string.
-            attrstring = '{0}.{1}={2} '.format(self.instancename, attr, repr(value).strip("'\""))
+            if isinstance(value, str):
+                rhs = value
+            elif hasattr(value, '__iter__'):
+                # --- For lists, tuples, and arrays make a space delimited string of the values
+                rhs = ' '.join(map(repr, value))
+            else:
+                rhs = value
+            attrstring = '{0}.{1} = {2}'.format(self.instancename, attr, repr(rhs).strip("'\""))
             result += [attrstring]
         return result
 

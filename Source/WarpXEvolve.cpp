@@ -5,7 +5,9 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
+#ifdef WARPX_USE_PY
 #include <WarpX_py.H>
+#endif
 
 using namespace amrex;
 
@@ -45,12 +47,12 @@ WarpX::EvolveEM (int numsteps)
     Real walltime, walltime_start = amrex::second();
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
-        if (warpx_py_print_step) {
-            warpx_py_print_step(step);
-        }
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
+#ifdef WARPX_USE_PY
+        if (warpx_py_beforestep) warpx_py_beforestep();
+#endif
 
         if (costs[0] != nullptr)
         {
@@ -86,13 +88,13 @@ WarpX::EvolveEM (int numsteps)
                             *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
-           is_synchronized = false;
+            is_synchronized = false;
         } else {
            // Beyond one step, we have E^{n} and B^{n}.
            // Particles have p^{n-1/2} and x^{n}.
-           UpdateAuxilaryData();
+            UpdateAuxilaryData();
         }
-
+        
         if (do_subcycling == 0 || finest_level == 0) {
             OneStep_nosub(cur_time);
         } else if (do_subcycling == 1 && finest_level == 1) {
@@ -102,6 +104,9 @@ WarpX::EvolveEM (int numsteps)
             amrex::Abort("Unsupported do_subcycling type");
         }
 
+#ifdef WARPX_USE_PY
+        if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
+#endif
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // At the end of last step, push p by 0.5*dt to synchronize
             UpdateAuxilaryData();
@@ -109,9 +114,12 @@ WarpX::EvolveEM (int numsteps)
                 mypc->PushP(lev, 0.5*dt[lev],
                     *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                     *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
-                }
+            }
             is_synchronized = true;
         }
+#ifdef WARPX_USE_PY
+        if (warpx_py_afterEsolve) warpx_py_afterEsolve();
+#endif
 
         for (int lev = 0; lev <= max_level; ++lev) {
             ++istep[lev];
@@ -178,6 +186,9 @@ WarpX::EvolveEM (int numsteps)
 	    break;
 	}
 
+#ifdef WARPX_USE_PY
+        if (warpx_py_afterstep) warpx_py_afterstep();
+#endif
 	// End loop on time steps
     }
 
@@ -212,7 +223,15 @@ WarpX::OneStep_nosub (Real cur_time)
     //               from p^{n-1/2} to p^{n+1/2}
     // Deposit current j^{n+1/2}
     // Deposit charge density rho^{n}
+#ifdef WARPX_USE_PY
+    if (warpx_py_particleinjection) warpx_py_particleinjection();
+    if (warpx_py_particlescraper) warpx_py_particlescraper();
+    if (warpx_py_beforedeposition) warpx_py_beforedeposition();
+#endif
     PushParticlesandDepose(cur_time);
+#ifdef WARPX_USE_PY
+    if (warpx_py_afterdeposition) warpx_py_afterdeposition();
+#endif
 
     SyncCurrent();
 

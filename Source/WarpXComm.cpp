@@ -368,7 +368,6 @@ WarpX::SyncCurrent ()
                 }
             }
         }
-
     }
 
     // Sum up fine patch
