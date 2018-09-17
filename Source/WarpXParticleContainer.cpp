@@ -382,9 +382,11 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
     }
     
     std::array<Real, 3> mean_v;
-    mean_v[0] = vx_total / np_total;
-    mean_v[1] = vy_total / np_total;
-    mean_v[2] = vz_total / np_total;
+    if (np_total > 0) {
+        mean_v[0] = vx_total / np_total;
+        mean_v[1] = vy_total / np_total;
+        mean_v[2] = vz_total / np_total;
+    }
 
     return mean_v;
 }
