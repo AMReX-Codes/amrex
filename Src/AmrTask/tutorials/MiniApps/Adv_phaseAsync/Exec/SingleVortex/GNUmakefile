@@ -14,7 +14,7 @@ COMP	   = g++
 FCOMP	   = gfortran
 
 USE_MPI    = TRUE
-USE_OMP    = TRUE
+USE_OMP    = FALSE
 
 Bpack   := ./Make.package 
 Blocs   := . 
