@@ -42,5 +42,5 @@ sim.add_species(electrons, layout=picmi.GriddedLayout(n_macroparticle_per_cell=[
 sim.write_input_file(file_name='inputs_from_PICMI')
 
 # Alternatively, sim.step will run WarpX, controlling it from Python
-#sim.step()
+sim.step()
 
