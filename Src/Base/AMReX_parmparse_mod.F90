@@ -72,9 +72,10 @@ module amrex_parmparse_module
        type(c_ptr), value :: pp
      end subroutine amrex_delete_parmparse
 
-     integer(c_int) function amrex_parmparse_get_counts (pp, name) bind(c)
+     function amrex_parmparse_get_counts (pp, name) bind(c)
        import
        implicit none
+       integer(c_int) :: amrex_parmparse_get_counts
        type(c_ptr), value :: pp
        character(kind=c_char), intent(in) :: name(*)       
      end function amrex_parmparse_get_counts
