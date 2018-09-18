@@ -10,13 +10,18 @@
 
 namespace amrex {
 
+#ifdef AMREX_USE_PETSC
+class PETScABecLap;
+#endif
+
 class MLMG
 {
 public:
 
     using BCMode = MLLinOp::BCMode;
+    using Location = MLLinOp::Location;
 
-    enum class BottomSolver : int { smoother, bicgstab, cg, hypre };
+    enum class BottomSolver : int { smoother, bicgstab, cg, hypre, petsc };
 
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
@@ -24,8 +29,12 @@ public:
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
 
-    void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
-    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol);
+    void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
+                          Location a_loc = Location::FaceCenter);
+    // For (alpha * a - beta * (del dot b grad)) phi = rhs, flux means -b grad phi
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                    Location a_loc = Location::FaceCenter);
+    void getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc = Location::CellCenter);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
     // out = L(in). Note that, if no acutal solve is needed, one could
@@ -119,6 +128,12 @@ private:
     std::unique_ptr<MLMGBndry> hypre_bndry;
 #endif
 
+    // PETSc
+#ifdef AMREX_USE_PETSC
+    std::unique_ptr<PETScABecLap> petsc_solver; 
+    std::unique_ptr<MLMGBndry> petsc_bndry; 
+#endif
+    
     // To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     // in the frame of the original equation, not the correction form
     Vector<std::unique_ptr<MultiFab> > sol_raii;
@@ -180,6 +195,8 @@ private:
     Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
 
     void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
+
+    void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 };
 
 }

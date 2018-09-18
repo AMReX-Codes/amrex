@@ -108,11 +108,10 @@ Adv::advance (Real time,
     if(nt == perilla::NUM_THREADS_PER_TEAM-2)
     {
 	bool singleThread= true;
-	bool isFillPatched= false;
 	while(SborderFPI[iteration-1]->destGraph->worker[tg]->completedRegionQueue->queueSize(true)!=SborderFPI[iteration-1]->destGraph->worker[tg]->totalTasks ||
 		SborderFPI[iteration-1]->destGraph->worker[tg]->computedTasks!=SborderFPI[iteration-1]->destGraph->worker[tg]->totalTasks)
 	{
-	    int f = SborderFPI[iteration-1]->destGraph->getFireableRegion(isFillPatched, singleThread);
+	    int f = SborderFPI[iteration-1]->destGraph->getFireableRegion(singleThread);
 	    if(f != -1)
 	    {
 		SborderFPI[iteration-1]->FillPatchPull(NUM_GROW, time, State_Type, 0, NUM_STATE, f, true);
@@ -149,9 +148,9 @@ Adv::advance (Real time,
 	    const FArrayBox& statein = (*(Sborder))[fis];
 	    FArrayBox& stateout      =   S_new[fid];
 	    MFIter mfi(S_new, true);
-	    perilla::syncWorkerThreads(perilla::NUM_THREADS_PER_TEAM-2);
+            SborderFPI[iteration-1]->destGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
 	    for(int t=0; t<SborderFPI[iteration-1]->destGraph->fabTiles[f]->numTiles; t++)	  
-		if(t % (perilla::NUM_THREADS_PER_TEAM-2) == nt)//do it serially for now since the current mempool version is not compatible with Pthreads
+		if(t % (perilla::NUM_THREADS_PER_TEAM-2) == nt)
 		{	
 		    const Box& bx = *(SborderFPI[iteration-1]->destGraph->fabTiles[f]->tileBx[t]);
 		    for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -183,14 +182,14 @@ Adv::advance (Real time,
 			    fluxes[i][f].copy(flux[i],mfi.nodaltilebox(i));	  
 		    }
 		}   // End of single Fab computation using tiling
-	    perilla::syncWorkerThreads(perilla::NUM_THREADS_PER_TEAM-2);
+            SborderFPI[iteration-1]->destGraph->worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
 	    if (do_reflux) {
 		if (current) {
 		    for (int i = 0; i < BL_SPACEDIM ; i++)
 			current->FineAdd(fluxes[i][f], i, fluxes[i].IndexArray()[f], 0, 0, NUM_STATE, 1.0);
 		}
 	    }
-	    SborderFPI[iteration-1]->destGraph->regionComputed(f,tg,nt);
+	    SborderFPI[iteration-1]->destGraph->regionComputed(f);
 	}// while(!SborderFPI[i]->destGraph->isGraphEmpty())
     }
     if (do_reflux) {

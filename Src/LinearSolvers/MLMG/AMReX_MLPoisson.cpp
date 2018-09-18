@@ -22,7 +22,7 @@ MLPoisson::define (const Vector<Geometry>& a_geom,
                    const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLPoisson::define()");
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 
 MLPoisson::~MLPoisson ()
@@ -33,7 +33,7 @@ MLPoisson::prepareForSolve ()
 {
     BL_PROFILE("MLPoisson::prepareForSolve()");
 
-    MLCellLinOp::prepareForSolve();
+    MLCellABecLap::prepareForSolve();
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
@@ -238,7 +238,7 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 void
 MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                   const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                  const FArrayBox& sol, const int face_only) const
+                  const FArrayBox& sol, Location, const int face_only) const
 {
     BL_PROFILE("MLPoisson::FFlux()");
 

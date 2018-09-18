@@ -128,7 +128,7 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
 {
     const int mglev = 0;
     const int ncomp = b.nComp();
-    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous);
+    apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][0];
 #ifdef _OPENMP
@@ -149,16 +149,16 @@ void
 MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                  BCMode bc_mode, const MultiFab* crse_bcdata)
 {
-    apply(amrlev, mglev, resid, x, BCMode::Homogeneous);
+    apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
     int ncomp = b.nComp();
     MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
 }
 
 void
 MLNodeLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                    const MLMGBndry*) const
+                    StateMode s_mode, const MLMGBndry*) const
 {
-    applyBC(amrlev, mglev, in, bc_mode);
+    applyBC(amrlev, mglev, in, bc_mode, s_mode);
     Fapply(amrlev, mglev, out, in);
 }
 
@@ -167,7 +167,7 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                      bool skip_fillboundary) const
 {
     if (!skip_fillboundary) {
-        applyBC(amrlev, mglev, sol, BCMode::Homogeneous);
+        applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution);
     }
     Fsmooth(amrlev, mglev, sol, rhs);
 }

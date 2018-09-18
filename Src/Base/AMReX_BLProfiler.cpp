@@ -144,7 +144,7 @@ void BLProfiler::Initialize() {
     return;
   }
 
-  startTime = ParallelDescriptor::second();
+  startTime = amrex::second();
 
   int resultLen(-1);
   char cProcName[MPI_MAX_PROCESSOR_NAME + 11];
@@ -163,8 +163,8 @@ void BLProfiler::Initialize() {
   Real t0, t1;
   int nTimerTimes(1000);
   for(int i(0); i < nTimerTimes; ++i) {  // ---- time the timer
-    t0 = ParallelDescriptor::second();
-    t1 = ParallelDescriptor::second();
+    t0 = amrex::second();
+    t1 = amrex::second();
     timerTime += t1 - t0;
   }
   timerTime /= static_cast<Real> (nTimerTimes);
@@ -318,7 +318,7 @@ void BLProfiler::start() {
 #endif
 {
   bltelapsed = 0.0;
-  bltstart = ParallelDescriptor::second();
+  bltstart = amrex::second();
   ++mProfStats[fname].nCalls;
   bRunning = true;
   nestedTimeStack.push(0.0);
@@ -352,7 +352,7 @@ void BLProfiler::stop() {
 #pragma omp master
 #endif
 {
-  double tDiff(ParallelDescriptor::second() - bltstart);
+  double tDiff(amrex::second() - bltstart);
   double nestedTime(0.0);
   bltelapsed += tDiff;
   bRunning = false;
@@ -419,12 +419,12 @@ void BLProfiler::InitAMR(const int flev, const int mlev, const Vector<IntVect> &
 void BLProfiler::AddStep(const int snum) {
   currentStep = snum;
   mStepMap.insert(std::map<int, Real>::value_type(currentStep,
-                                                  ParallelDescriptor::second()));
+                                                  amrex::second()));
 }
 
 
 void BLProfiler::RegionStart(const std::string &rname) {
-  Real rsTime(ParallelDescriptor::second() - startTime);
+  Real rsTime(amrex::second() - startTime);
 
   if(rname != noRegionName) {
     ++inNRegions;
@@ -446,7 +446,7 @@ void BLProfiler::RegionStart(const std::string &rname) {
 
 
 void BLProfiler::RegionStop(const std::string &rname) {
-  Real rsTime(ParallelDescriptor::second() - startTime);
+  Real rsTime(amrex::second() - startTime);
 
   int rnameNumber;
   std::map<std::string, int>::iterator it = BLProfiler::mRegionNameNumbers.find(rname);
@@ -772,7 +772,7 @@ void WriteStats(std::ostream &ios,
 void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- write basic profiling data
 
   // --------------------------------------- gather global stats
-  Real baseProfStart(ParallelDescriptor::second());  // time the timer
+  Real baseProfStart(amrex::second());  // time the timer
   const int nProcs(ParallelDescriptor::NProcs());
   //const int myProc(ParallelDescriptor::MyProc());
   const int iopNum(ParallelDescriptor::IOProcessorNumber());
@@ -948,7 +948,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
 	             << " seekpos " << seekPosOut[p] << '\n';
       }
       phHeaderFile << "calcEndTime " << std::setprecision(16)
-                   << ParallelDescriptor::second() - startTime << '\n';
+                   << amrex::second() - startTime << '\n';
       phHeaderFile.close();
     }
 
@@ -957,7 +957,7 @@ void BLProfiler::WriteBaseProfile(bool bFlushing, bool memCheck) {   // ---- wri
     ParallelDescriptor::Barrier("BLProfiler::Finalize");
   }
   amrex::Print() << "BLProfiler::Finalize():  time:  "   // time the timer
-                 << ParallelDescriptor::second() - baseProfStart << "\n";
+                 << amrex::second() - baseProfStart << "\n";
 
 }
 
@@ -978,7 +978,7 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
       }
     }
 
-    Real wctStart(ParallelDescriptor::second());  // time the timer
+    Real wctStart(amrex::second());  // time the timer
     std::string cdir(blProfDirName);
     const int   myProc    = ParallelDescriptor::MyProc();
     const int   nProcs    = ParallelDescriptor::NProcs();
@@ -1157,14 +1157,14 @@ void BLProfiler::WriteCallTrace(bool bFlushing, bool memCheck) {   // ---- write
     vCallTrace.push_back(unusedCS);
 
     amrex::Print() << "BLProfiler::WriteCallTrace():  time:  "
-                   << ParallelDescriptor::second() - wctStart << "\n";
+                   << amrex::second() - wctStart << "\n";
 }
 
 
 
 void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
 
-  Real wcsStart(ParallelDescriptor::second());
+  Real wcsStart(amrex::second());
   bool bAllCFTypesExcluded(OnExcludeList(AllCFTypes));
   if( ! bAllCFTypesExcluded) {
     CommStats::cftExclude.insert(AllCFTypes);  // temporarily
@@ -1332,7 +1332,7 @@ void BLProfiler::WriteCommStats(bool bFlushing, bool memCheck) {
   ParallelDescriptor::Barrier("BLProfiler::WriteCommStats::end");
 
   amrex::Print() << "BLProfiler::WriteCommStats():  time:  "
-		 << ParallelDescriptor::second() - wcsStart << "\n";
+		 << amrex::second() - wcsStart << "\n";
 }
 
 
@@ -1397,7 +1397,7 @@ void BLProfiler::AddCommStat(const CommFuncType cft, const int size,
   if(OnExcludeList(cft)) {
     return;
   }
-  vCommStats.push_back(CommStats(cft, size, pid, tag, ParallelDescriptor::second()));
+  vCommStats.push_back(CommStats(cft, size, pid, tag, amrex::second()));
 }
 
 
@@ -1409,13 +1409,13 @@ void BLProfiler::AddBarrier(const std::string &message, const bool beforecall) {
   if(beforecall) {
     int tag(CommStats::barrierNumber);
     vCommStats.push_back(CommStats(cft, 0, BeforeCall(), tag,
-                                   ParallelDescriptor::second()));
+                                   amrex::second()));
     CommStats::barrierNames.push_back(std::make_pair(message, vCommStats.size() - 1));
     ++CommStats::barrierNumber;
   } else {
     int tag(CommStats::barrierNumber - 1);  // it was incremented before the call
     vCommStats.push_back(CommStats(cft, AfterCall(), AfterCall(), tag,
-                                   ParallelDescriptor::second()));
+                                   amrex::second()));
   }
 }
 
@@ -1436,7 +1436,7 @@ void BLProfiler::AddTagWrap() {
   int index(CommStats::nameTags.size());
   CommStats::tagWraps.push_back(index);
   vCommStats.push_back(CommStats(cft, index,  vCommStats.size(), tag,
-                       ParallelDescriptor::second()));
+                       amrex::second()));
 }
 
 
@@ -1449,12 +1449,12 @@ void BLProfiler::AddAllReduce(const CommFuncType cft, const int size,
   if(beforecall) {
     int tag(CommStats::reductionNumber);
     vCommStats.push_back(CommStats(cft, size, BeforeCall(), tag,
-                                   ParallelDescriptor::second()));
+                                   amrex::second()));
     ++CommStats::reductionNumber;
   } else {
     int tag(CommStats::reductionNumber - 1);
     vCommStats.push_back(CommStats(cft, size, AfterCall(), tag,
-                                   ParallelDescriptor::second()));
+                                   amrex::second()));
   }
 }
 
@@ -1467,12 +1467,12 @@ void BLProfiler::AddWait(const CommFuncType cft, const MPI_Request &req,
   }
   if(beforecall) {
     vCommStats.push_back(CommStats(cft, BeforeCall(), BeforeCall(), NoTag(),
-                         ParallelDescriptor::second()));
+                         amrex::second()));
   } else {
       int c;
-      BL_MPI_REQUIRE( MPI_Get_count(&status, MPI_UNSIGNED_CHAR, &c) );
+      BL_MPI_REQUIRE( MPI_Get_count(const_cast<MPI_Status*>(&status), MPI_UNSIGNED_CHAR, &c) );
       vCommStats.push_back(CommStats(cft, c, status.MPI_SOURCE, status.MPI_TAG,
-                           ParallelDescriptor::second()));
+                           amrex::second()));
   }
 #endif
 }
@@ -1487,14 +1487,14 @@ void BLProfiler::AddWaitsome(const CommFuncType cft, const Vector<MPI_Request> &
   }
   if(beforecall) {
     vCommStats.push_back(CommStats(cft, BeforeCall(), BeforeCall(), NoTag(),
-                         ParallelDescriptor::second()));
+                         amrex::second()));
   } else {
     for(int i(0); i < completed; ++i) {
       MPI_Status stat(status[i]);
       int c;
       BL_MPI_REQUIRE( MPI_Get_count(&stat, MPI_UNSIGNED_CHAR, &c) );
       vCommStats.push_back(CommStats(cft, c, stat.MPI_SOURCE, stat.MPI_TAG,
-                           ParallelDescriptor::second()));
+                           amrex::second()));
     }
   }
 #endif
@@ -1520,7 +1520,7 @@ void BLProfiler::AddNameTag(const std::string &name) {
   int tag(NameTagNameIndex(name));
   int index(CommStats::nameTags.size());
   vCommStats.push_back(CommStats(cft, index,  vCommStats.size(), tag,
-                       ParallelDescriptor::second()));
+                       amrex::second()));
   CommStats::nameTags.push_back(std::make_pair(tag, vCommStats.size() - 1));
 }
 

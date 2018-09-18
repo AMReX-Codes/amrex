@@ -138,8 +138,10 @@ extern "C" {
                                  const amrex_real* bz, const int* bzlo, const int* bzhi,
 #endif
 #endif
+                                 const int* ccmask, const int* cmlo, const int* cmhi,
                                  const void* flag, const int* flo, const int* fhi,
-                                 const amrex_real* dxinv, const amrex_real beta, const int face_only);
+                                 const amrex_real* dxinv, const amrex_real beta,
+                                 const int face_only);
 
     void amrex_mlebabeclap_grad( const int* xlo, const int* xhi, 
 #if (AMREX_SPACEDIM >= 2) 
@@ -170,6 +172,7 @@ extern "C" {
                                  const amrex_real* fcz, const int* fczlo, const int* fczhi,
 #endif
 #endif
+                                 const int* ccmask, const int* cmlo, const int* cmhi,
                                  const void* flag, const int* flo, const int* fhi,
                                  const amrex_real* dxinv);
 

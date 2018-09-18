@@ -70,6 +70,24 @@ extern "C"
 #endif
                                    const amrex_real* dxinv);
 
+
+    void amrex_eb_avg_fc_to_cc (const int* lo, const int* hi,
+                                amrex_real* cc, const int* cclo, const int* cchi,
+                                const amrex_real* fx, const int* fxlo, const int* fxhi,
+#if (AMREX_SPACEDIM >= 2)
+                                const amrex_real* fy, const int* fylo, const int* fyhi,
+#if (AMREX_SPACEDIM == 3)
+                                const amrex_real* fz, const int* fzlo, const int* fzhi,
+#endif
+#endif
+                                const amrex_real* apx, const int* axlo, const int* axhi,
+#if (AMREX_SPACEDIM >= 2)
+                                const amrex_real* apy, const int* aylo, const int* ayhi,
+#if (AMREX_SPACEDIM == 3)
+                                const amrex_real* apz, const int* azlo, const int* azhi,
+#endif
+#endif
+                                const void* flag, const int* flo, const int* fhi);
     
 #ifdef __cplusplus
 }

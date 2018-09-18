@@ -75,8 +75,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 {
     BL_PROFILE("EB_average_down");
 
-    BL_ASSERT(S_fine.ixType().cellCentered());
-    BL_ASSERT(S_crse.ixType().cellCentered());
+    AMREX_ASSERT(S_fine.ixType().cellCentered());
+    AMREX_ASSERT(S_crse.ixType().cellCentered());
 
     const DistributionMapping& fine_dm = S_fine.DistributionMap();
     BoxArray crse_S_fine_BA = S_fine.boxArray();
@@ -238,12 +238,18 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 }
 
 
-void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< MultiFab*>& crse,
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                            int ratio, int ngcrse)
+{
+    EB_average_down_faces(fine, crse, IntVect{ratio}, ngcrse);
+}
+
+void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                            const Array<MultiFab*,AMREX_SPACEDIM>& crse,
                             const IntVect& ratio, int ngcrse)
 {
-    BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
-    BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
-    BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+    AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
     int ncomp = crse[0]->nComp();
     if (!(*fine[0]).hasEBFabFactory())
@@ -289,16 +295,14 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
-            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
+            Array<MultiFab,AMREX_SPACEDIM> ctmp;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
                 ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-                vctmp[idim] = &ctmp[idim];
             }
-            EB_average_down_faces(fine, vctmp, ratio, ngcrse);
+            EB_average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
@@ -307,6 +311,11 @@ void EB_average_down_faces (const Vector<const MultiFab*>& fine, const Vector< M
     }
 }
 
+void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
+                                 int ratio, int ngcrse)
+{
+    EB_average_down_boundaries(fine,crse,IntVect{ratio},ngcrse);
+}
 
 void EB_average_down_boundaries (const MultiFab& fine, MultiFab& crse,
                                  const IntVect& ratio, int ngcrse)
@@ -409,7 +418,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                          const FArrayBox& vfab = (*umac[1])[mfi];,
                          const FArrayBox& wfab = (*umac[2])[mfi];);
 
-            auto fabtyp = flagfab.getType(bx);
+            const auto fabtyp = flagfab.getType(bx);
             if (fabtyp == FabType::covered) {
                 divufab.setVal(0.0, bx, 0, 1);
             } else if (fabtyp == FabType::regular) {
@@ -435,6 +444,63 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                                                          BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                          BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
                                             dxinv);
+            }
+        }
+    }
+}
+
+void
+EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
+                               const Array<MultiFab const*,AMREX_SPACEDIM>& fmf)
+{
+    AMREX_ASSERT(ccmf.nComp() >= dcomp + AMREX_SPACEDIM);
+
+    if (!fmf[0]->hasEBFabFactory())
+    {
+        average_face_to_cellcenter(ccmf, dcomp, fmf);
+    }
+    else
+    {
+        const auto& factory = dynamic_cast<EBFArrayBoxFactory const&>(fmf[0]->Factory());
+        const auto& flags = factory.getMultiEBCellFlagFab();
+        const auto& area = factory.getAreaFrac();
+
+	Real dx[3] = {1.0,1.0,1.0};
+	Real problo[3] = {0.,0.,0.};
+	int coord_type = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(ccmf,MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            const auto& flagfab = flags[mfi];
+            auto& ccfab = ccmf[mfi];
+            AMREX_D_TERM(const auto& xfab = (*fmf[0])[mfi];,
+                         const auto& yfab = (*fmf[1])[mfi];,
+                         const auto& zfab = (*fmf[2])[mfi];);
+            const auto fabtyp = flagfab.getType(bx);
+            if (fabtyp == FabType::covered) {
+                ccfab.setVal(0.0, bx, dcomp, 1);
+            } else if (fabtyp == FabType::regular) {
+                BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
+                    (bx.loVect(), bx.hiVect(),
+                     BL_TO_FORTRAN_N(ccfab,dcomp),
+                     AMREX_D_DECL(BL_TO_FORTRAN(xfab),
+                                  BL_TO_FORTRAN(yfab),
+                                  BL_TO_FORTRAN(zfab)),
+                     dx, problo, coord_type);
+            } else {
+                amrex_eb_avg_fc_to_cc(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_N_ANYD(ccfab,dcomp),
+                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD(xfab),
+                                                   BL_TO_FORTRAN_ANYD(yfab),
+                                                   BL_TO_FORTRAN_ANYD(zfab)),
+                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*area[0])[mfi]),
+                                                   BL_TO_FORTRAN_ANYD((*area[1])[mfi]),
+                                                   BL_TO_FORTRAN_ANYD((*area[2])[mfi])),
+                                      BL_TO_FORTRAN_ANYD(flagfab));
             }
         }
     }

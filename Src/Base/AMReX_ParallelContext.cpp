@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include <AMReX_ParallelContext.H>
 #include <AMReX_ParallelDescriptor.H>
 
@@ -6,9 +8,13 @@ namespace ParallelContext {
 
 Vector<Frame> frames; // stack of communicator frames
 
-Frame::Frame (MPI_Comm c)
+Frame::Frame (MPI_Comm c, int id, int io_rank)
     : comm(c),
-      m_mpi_tag(ParallelDescriptor::MinTag())
+      m_id(id),
+      m_mpi_tag(ParallelDescriptor::MinTag()),
+      m_io_rank(io_rank),
+      m_out_filename(""),
+      m_out(nullptr)
 {
 #ifdef BL_USE_MPI
     MPI_Comm_group(comm, &group);
@@ -20,12 +26,19 @@ Frame::Frame (MPI_Comm c)
 #endif
 }
 
+Frame::Frame (MPI_Comm c)
+    : Frame(c, -1, ParallelDescriptor::IOProcessorNumber()) {}
+
 Frame::Frame (Frame && rhs) noexcept
     : comm     (rhs.comm),
       group    (rhs.group),
+      m_id     (rhs.m_id),
       m_rank_me(rhs.m_rank_me),
       m_nranks (rhs.m_nranks),
-      m_mpi_tag(rhs.m_mpi_tag)
+      m_mpi_tag(rhs.m_mpi_tag),
+      m_io_rank(rhs.m_io_rank),
+      m_out_filename(std::move(rhs.m_out_filename)),
+      m_out    (std::move(rhs.m_out))
 {
     rhs.group = MPI_GROUP_NULL;
 }
@@ -96,6 +109,26 @@ Frame::get_inc_mpi_tag ()
     m_mpi_tag = (m_mpi_tag < ParallelDescriptor::MaxTag()) ?
         m_mpi_tag + 1 : ParallelDescriptor::MinTag();
     return cur_tag;
+}
+
+void
+Frame::set_ofs_name (std::string filename)
+{
+    m_out.reset(); // in case changing name, close previous file
+    m_out_filename = std::move(filename);
+}
+
+std::ofstream *
+Frame::get_ofs_ptr ()
+{
+    if (m_out_filename.empty()) {
+        return nullptr;
+    } else {
+        if (!m_out) {
+            m_out.reset(new std::ofstream(m_out_filename, std::ios_base::app));
+        }
+        return m_out.get();
+    }
 }
 
 }}

@@ -1,3 +1,10 @@
+#
+# This one does not work if amrex is build in shared mode 
+#
+if (BUILD_SHARED_LIBS)
+  return()
+endif ()
+
 get_filename_component ( DIRNAME ${CMAKE_CURRENT_LIST_DIR} NAME )
 
 set ( TESTNAME ${DIRNAME} )

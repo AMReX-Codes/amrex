@@ -13,7 +13,15 @@
 #include <AMReX_MultiCutFab.H>
 #endif
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_Hypre.H>
+#endif
+
 namespace amrex {
+
+#ifdef AMREX_USE_PETSC
+class PETScABecLap;
+#endif
 
 struct LPInfo
 {
@@ -43,6 +51,10 @@ public:
 
     enum struct BCMode { Homogeneous, Inhomogeneous };
     using BCType = LinOpBCType;
+
+    enum struct StateMode { Solution, Correction };
+
+    enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
 
     MLLinOp ();
     virtual ~MLLinOp ();
@@ -200,7 +212,7 @@ protected:
                                          const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;
 
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        const MLMGBndry* bndry=nullptr) const = 0;
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const = 0;
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                          bool skip_fillboundary=false) const = 0;
 
@@ -215,8 +227,10 @@ protected:
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes, MultiFab& sol) const = 0;
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad, MultiFab& sol) const = 0;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const = 0;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const = 0;
     
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
@@ -227,15 +241,27 @@ protected:
     virtual bool isBottomSingular () const = 0;
     virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
 
-    virtual Real getAScalar () const = 0;
-    virtual Real getBScalar () const = 0;
-    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const = 0;
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
-
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
     virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
 
     virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
+
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MultiFab*>& a_sol,
+                            Location a_loc) const {
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+    }
+
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
+        amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
+#endif
+
+#ifdef AMREX_USE_PETSC
+    virtual std::unique_ptr<PETScABecLap> makePETSc () const;
+#endif
 
 private:
 

@@ -16,13 +16,15 @@ module amrex_fluxregister_module
      integer     :: flev  = -1
    contains
      generic   :: assignment(=) => amrex_fluxregister_assign   ! shallow copy
-     procedure :: fineadd       => amrex_fluxregister_fineadd
+     generic   :: fineadd       => amrex_fluxregister_fineadd, amrex_fluxregister_fineadd_1fab
      procedure :: crseinit      => amrex_fluxregister_crseinit
      procedure :: crseadd       => amrex_fluxregister_crseadd
      procedure :: setval        => amrex_fluxregister_setval
      procedure :: reflux        => amrex_fluxregister_reflux
      procedure :: overwrite     => amrex_fluxregister_overwrite
      procedure, private :: amrex_fluxregister_assign
+     procedure, private :: amrex_fluxregister_fineadd
+     procedure, private :: amrex_fluxregister_fineadd_1fab
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fluxregister_destroy
 #endif
@@ -50,6 +52,16 @@ module amrex_fluxregister_module
        type(c_ptr), intent(in) :: flxs(*)
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_fineadd
+
+     subroutine amrex_fi_fluxregister_fineadd_1fab_1dir (fr, fabdata, flo,fhi, dir, boxno, zeroFirst, nfluxes, scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       type(c_ptr), value,intent(in) :: fabdata
+       integer(c_int),intent(in) :: flo(*), fhi(*)
+       integer(c_int),intent(IN),value :: dir, boxno, zeroFirst, nfluxes
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_fineadd_1fab_1dir
 
      subroutine amrex_fi_fluxregister_crseinit (fr, flxs, scale) bind(c)
        import
@@ -132,6 +144,32 @@ contains
     end do
     call amrex_fi_fluxregister_fineadd(this%p, mf, scale)
   end subroutine amrex_fluxregister_fineadd
+
+  subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, gridIdx, scale, zeroFirst)
+    class(amrex_fluxregister), intent(inout) :: this
+    type(amrex_fab),  intent(in) :: fluxfabs(amrex_spacedim)
+    integer(c_int),   intent(in) :: gridIdx
+    real(amrex_real), intent(in) :: scale
+    logical,optional, intent(in) :: zeroFirst
+    integer :: dir, nc, myZeroFirst
+    type(c_ptr) :: cp
+    integer,dimension(3) :: flo=(/1,1,1/),fhi=(/1,1,1/)
+    real(amrex_real), pointer, dimension(:,:,:,:) :: fp
+    do dir = 1, amrex_spacedim
+       associate(fab => fluxfabs(dir) )
+         flo(1:amrex_spacedim) = fab%bx%lo(1:amrex_spacedim)
+         fhi(1:amrex_spacedim) = fab%bx%hi(1:amrex_spacedim)  
+         fp => fab%dataPtr()
+         cp = c_loc(fp(flo(1),flo(2),flo(3),1))
+         nc =  fab%nc
+       end associate
+       myZeroFirst = 0
+       if (present(zeroFirst)) then
+          if (zeroFirst) myZeroFirst = 1
+       end if
+       call amrex_fi_fluxregister_fineadd_1fab_1dir(this%p, cp, flo,fhi, dir-1, gridIdx, myZeroFirst, nc, scale)
+    end do
+  end subroutine amrex_fluxregister_fineadd_1fab
 
   subroutine amrex_fluxregister_crseinit (this, fluxes, scale)
     class(amrex_fluxregister), intent(inout) :: this

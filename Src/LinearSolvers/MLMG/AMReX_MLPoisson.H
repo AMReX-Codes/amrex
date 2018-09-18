@@ -1,7 +1,7 @@
 #ifndef AMREX_MLPOISSON_H_
 #define AMREX_MLPOISSON_H_
 
-#include <AMReX_MLCellLinOp.H>
+#include <AMReX_MLCellABecLap.H>
 #include <AMReX_Array.H>
 #include <limits>
 
@@ -10,7 +10,7 @@ namespace amrex {
 // del dot grad phi
 
 class MLPoisson
-    : public MLCellLinOp
+    : public MLCellABecLap
 {
 public:
 
@@ -35,24 +35,24 @@ public:
 
 protected:
 
-    virtual void prepareForSolve () final;
-    virtual bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
-    virtual bool isBottomSingular () const final { return m_is_singular[0]; }
-    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final;
+    virtual void prepareForSolve () final override;
+    virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
+    virtual bool isBottomSingular () const final override { return m_is_singular[0]; }
+    virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final override;
+    virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const final override;
     virtual void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only=0) const final;
+                        const FArrayBox& sol, Location loc, const int face_only=0) const final override;
 
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
 
-    virtual Real getAScalar () const final { return  0.0; }
-    virtual Real getBScalar () const final { return -1.0; }
-    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
-    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+    virtual Real getAScalar () const final override { return  0.0; }
+    virtual Real getBScalar () const final override { return -1.0; }
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final override { return nullptr; }
+    virtual Array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final override
         { return { AMREX_D_DECL(nullptr,nullptr,nullptr)}; }
 
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final;
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const final override;
 
 private:
 
