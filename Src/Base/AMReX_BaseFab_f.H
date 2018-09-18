@@ -19,11 +19,11 @@ extern "C"
                              const int* ncomp);
 
     long amrex_fort_fab_copyfrommem (const int* lo, const int* hi,
-                               const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+                               amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                const amrex_real* src);
 
     void amrex_fort_fab_setval (const int* lo, const int* hi, 
-			  const amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+			  amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
 			  const amrex_real* val);
 
     amrex_real amrex_fort_fab_norminfmask (const int* lo, const int* hi,
