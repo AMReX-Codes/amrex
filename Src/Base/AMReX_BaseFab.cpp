@@ -9,6 +9,7 @@
 #include <AMReX_BaseFab_f.H>
 #endif
 
+#include <AMReX_BLFort.H>
 #include <AMReX_BaseFab_c.H>
 
 #ifdef BL_MEM_PROFILING
@@ -163,7 +164,6 @@ The_Arena ()
     return the_arena;
 }
 
-#if !defined(BL_NO_FORT)
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
@@ -908,7 +908,5 @@ BaseFab<int>::minus (const BaseFab<int>& src,
 #endif
     return *this;
 }
-
-#endif
 
 }

@@ -1666,7 +1666,6 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
     }
 }
 
-#if !defined(BL_NO_FORT)
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.
@@ -1800,8 +1799,6 @@ BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
 			const Box&         b,
 			int                comp,
 			int                numcomp);
-
-#endif
 
 template <class T>
 void
