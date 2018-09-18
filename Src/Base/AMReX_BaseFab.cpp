@@ -278,6 +278,20 @@ BaseFab<Real>::performSetVal (Real       val,
 #endif
 }
 
+template <>
+void
+BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, int comp, int ncomp)
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+
+    amrex_fort_fab_setval_ifnot(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                                BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                                BL_TO_FORTRAN_3D(mask),
+                                &val);
+}
+
+
 template<>
 BaseFab<Real>&
 BaseFab<Real>::invert (Real       val,

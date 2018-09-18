@@ -109,7 +109,7 @@ amrex_c_fab_setval_ifnot (const int* restrict lo, const int* restrict hi,
                           amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
                           const int* restrict ncomp,
                           const int* restrict msk, const int* restrict mlo, const int* restrict mhi,
-                          const amrex_real val)
+                          const amrex_real* restrict val)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(msk, mlo, mhi);
@@ -118,7 +118,7 @@ amrex_c_fab_setval_ifnot (const int* restrict lo, const int* restrict hi,
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
                     if (0 == GET_VALUE(msk,i,j,k)) {
-                        GET_VALUE_N(dst,i,j,k,n) = val;
+                        GET_VALUE_N(dst,i,j,k,n) = *val;
                     }
                 }
             }
