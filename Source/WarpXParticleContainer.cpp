@@ -323,17 +323,20 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
 Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
-    const int lev = 0;
     amrex::Real total_charge = 0.0;
 
+    for (int lev = 0; lev < finestLevel(); ++lev)
+    {
+        
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:total_charge)
 #endif
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& wp = pti.GetAttribs(PIdx::w);
-        for (unsigned long i = 0; i < wp.size(); i++) {
-            total_charge += wp[i];
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            auto& wp = pti.GetAttribs(PIdx::w);
+            for (unsigned long i = 0; i < wp.size(); i++) {
+                total_charge += wp[i];
+            }
         }
     }
 
@@ -344,8 +347,6 @@ Real WarpXParticleContainer::sumParticleCharge(bool local) {
 
 std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
 
-    const int lev = 0;
-
     amrex::Real vx_total = 0.0;
     amrex::Real vy_total = 0.0;
     amrex::Real vz_total = 0.0;
@@ -354,26 +355,29 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
 
     amrex::Real inv_clight_sq = 1.0/PhysConst::c/PhysConst::c;
 
+    for (int lev = 0; lev <= finestLevel(); ++lev) {
+    
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:vx_total, vy_total, vz_total, np_total)
 #endif
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& ux = pti.GetAttribs(PIdx::ux);
-        auto& uy = pti.GetAttribs(PIdx::uy);
-        auto& uz = pti.GetAttribs(PIdx::uz);
-
-        np_total += pti.numParticles();
-
-        for (unsigned long i = 0; i < ux.size(); i++) {
-            Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_clight_sq;
-            Real gaminv = 1.0/std::sqrt(1.0 + usq);
-            vx_total += ux[i]*gaminv;
-            vy_total += uy[i]*gaminv;
-            vz_total += uz[i]*gaminv;
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            auto& ux = pti.GetAttribs(PIdx::ux);
+            auto& uy = pti.GetAttribs(PIdx::uy);
+            auto& uz = pti.GetAttribs(PIdx::uz);
+            
+            np_total += pti.numParticles();
+            
+            for (unsigned long i = 0; i < ux.size(); i++) {
+                Real usq = (ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i])*inv_clight_sq;
+                Real gaminv = 1.0/std::sqrt(1.0 + usq);
+                vx_total += ux[i]*gaminv;
+                vy_total += uy[i]*gaminv;
+                vz_total += uz[i]*gaminv;
+            }
         }
     }
-
+    
     if (!local) {
         ParallelDescriptor::ReduceRealSum(vx_total);
         ParallelDescriptor::ReduceRealSum(vy_total);
@@ -382,31 +386,36 @@ std::array<Real, 3> WarpXParticleContainer::meanParticleVelocity(bool local) {
     }
     
     std::array<Real, 3> mean_v;
-    mean_v[0] = vx_total / np_total;
-    mean_v[1] = vy_total / np_total;
-    mean_v[2] = vz_total / np_total;
+    if (np_total > 0) {
+        mean_v[0] = vx_total / np_total;
+        mean_v[1] = vy_total / np_total;
+        mean_v[2] = vz_total / np_total;
+    }
 
     return mean_v;
 }
 
 Real WarpXParticleContainer::maxParticleVelocity(bool local) {
 
-    const int lev = 0;
     amrex::Real max_v = 0.0;
+
+    for (int lev = 0; lev <= finestLevel(); ++lev)
+    {
 
 #ifdef _OPENMP
 #pragma omp parallel reduction(max:max_v)
 #endif
-    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        auto& ux = pti.GetAttribs(PIdx::ux);
-        auto& uy = pti.GetAttribs(PIdx::uy);
-        auto& uz = pti.GetAttribs(PIdx::uz);
-        for (unsigned long i = 0; i < ux.size(); i++) {
-            max_v = std::max(max_v, sqrt(ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]));
+        for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            auto& ux = pti.GetAttribs(PIdx::ux);
+            auto& uy = pti.GetAttribs(PIdx::uy);
+            auto& uz = pti.GetAttribs(PIdx::uz);
+            for (unsigned long i = 0; i < ux.size(); i++) {
+                max_v = std::max(max_v, sqrt(ux[i]*ux[i] + uy[i]*uy[i] + uz[i]*uz[i]));
+            }
         }
     }
-
+    
     if (!local) ParallelDescriptor::ReduceRealMax(max_v);
     return max_v;
 }

@@ -30,6 +30,7 @@ RigidInjectedParticleContainer::RigidInjectedParticleContainer (AmrCore* amr_cor
 void RigidInjectedParticleContainer::InitData()
 {
     done_injecting.resize(finestLevel()+1, 0);
+    zinject_plane_levels.resize(finestLevel()+1, zinject_plane);
 
     AddParticles(0); // Note - add on level 0
 
@@ -252,7 +253,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         // should by advanced a fraction of a time step instead.
         // Scaling the fields is much easier and may be good enough.
         for (int i=0 ; i < zp.size() ; i++) {
-            const Real dtscale = dt - (zinject_plane_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
+            const Real dtscale = dt - (zinject_plane_lev_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
             if (0. < dtscale && dtscale < dt) {
                 Exp[i] *= dtscale;
                 Eyp[i] *= dtscale;
@@ -280,7 +281,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
         for (int i=0 ; i < zp.size() ; i++) {
-            if (zp[i] <= zinject_plane) {
+            if (zp[i] <= zinject_plane_lev) {
                 uxp[i] = uxp_save[i];
                 uyp[i] = uyp_save[i];
                 uzp[i] = uzp_save[i];
@@ -313,8 +314,9 @@ RigidInjectedParticleContainer::Evolve (int lev,
 {
 
     // Update location of injection plane in the boosted frame
-    zinject_plane_previous = zinject_plane;
-    zinject_plane -= dt*WarpX::beta_boost*PhysConst::c;
+    zinject_plane_lev_previous = zinject_plane_levels[lev];
+    zinject_plane_levels[lev] -= dt*WarpX::beta_boost*PhysConst::c;
+    zinject_plane_lev = zinject_plane_levels[lev];
 
     // Setup check of whether more particles need to be injected
 #ifdef _OPENMP
@@ -434,7 +436,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             // It is assumed that PushP will only be called on the first and last steps
             // and that no particles will cross zinject_plane.
             for (int i=0 ; i < zp.size() ; i++) {
-                if (zp[i] <= zinject_plane) {
+                if (zp[i] <= zinject_plane_levels[lev]) {
                     uxp[i] = uxp_save[i];
                     uyp[i] = uyp_save[i];
                     uzp[i] = uzp_save[i];
