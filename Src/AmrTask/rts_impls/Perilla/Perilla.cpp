@@ -24,7 +24,6 @@ bool Perilla::genTags=true;
 std::map<int, std::map<int, std::map<int, std::map<int, std::map<int,int> > > > > Perilla::tagMap;
 std::map<int, std::map<int, std::map<int, std::map<int, int> > > > Perilla::myTagMap;
 
-#ifdef USE_PERILLA_PTHREADS
 pthread_mutex_t table_lock= PTHREAD_MUTEX_INITIALIZER;
 std::map<size_t, int> tidTable;
 void Perilla::registerId(int tid){
@@ -32,16 +31,10 @@ void Perilla::registerId(int tid){
     tidTable[pthread_self()]= tid;
     pthread_mutex_unlock(&table_lock);
 }
+
 int Perilla::tid(){//this function can be called after all threads already register their ids
     return tidTable[pthread_self()];
 }
-
-#else
-int Perilla::tid(){//this function can be called after all threads already register their ids
-    return omp_get_thread_num();
-}
-#endif
-
 
 void Perilla::communicateTags(std::vector<RegionGraph*> ga)
 {
@@ -1636,8 +1629,8 @@ void Perilla::serviceSingleGraphComm(RegionGraph* graph, int tid)
 		}		
 		//call parallel_barrier()  ---????????
 		ParallelDescriptor::Barrier("serviceSingleGraph-1");
-		graph->graphTeardown(tg);
-		graph->workerTeardown(tg);
+		graph->graphTeardown();
+		graph->workerTeardown();
 		//call parallel_barrier() ------?????????
 		ParallelDescriptor::Barrier("serviceSingleGraph-2");
 	    }
@@ -1682,8 +1675,8 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	for(int g=0; g<nGraphs; g++)
 	{
 	    ParallelDescriptor::Barrier("serviceMultipleGraph-1");
-	    graphArray[g].graphTeardown(tg);
-	    graphArray[g].workerTeardown(tg);
+	    graphArray[g].graphTeardown();
+	    graphArray[g].workerTeardown();
 	    ParallelDescriptor::Barrier("serviceMultipleGraph-2");
 	}
 } // serviceMultipleGraphComm
@@ -1729,8 +1722,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 		    //std::cout<<"Processing Local GridCopy Req Graph "<< g+1 << " tg " << tg <<std::endl;
 		    serviceLocalGridCopyRequests(graphArray,g,tg);
 		}
-		if(np > 1)
-		    //if(tg==0)
+		if(np > 1)//if(tg==0)
 		{
 		    serviceRemoteRequests(graphArray[g],g,nGraphs);
 		    if(cpyAcross)
@@ -2107,17 +2099,22 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 
             //std::cout<< "Before parallel at gID " << gDst->graphID << " numTask " << gDst->numTasks << " numFabs " << gDst->numFabs <<std::endl;      
 
-#pragma omp parallel shared(gSrc, gDst, mfSrc, mfDst, nfabsSrc, nfabsDst)
+//#pragma omp parallel shared(gSrc, gDst, mfSrc, mfDst, nfabsSrc, nfabsDst)
             {
-                int tid = omp_get_thread_num();//perilla::tid();//omp_get_thread_num();   
-                int tg = tid/perilla::NUM_THREADS_PER_TEAM;//perilla::wid();//WorkerThread::perilla_wid();
-                int nt= tid%perilla::NUM_THREADS_PER_TEAM;
-                int fg;
+		
+//#ifdef _OPENMP
+//                int tid = omp_get_thread_num();//perilla::tid();//omp_get_thread_num();   
+//#else
+//		int tid = 0;
+//#endif
+//                int tg = tid/perilla::NUM_THREADS_PER_TEAM;//perilla::wid();//WorkerThread::perilla_wid();
+//                int nt= tid%perilla::NUM_THREADS_PER_TEAM;
+//                int fg;
 
                 for(int f=0; f<nfabsSrc; f++)
                 {
-		  if(nt==0)
-                    if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
+//		  if(nt==0)
+//                    if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
                     {
                         //if(gDst->graphID > 25)
                         //std::cout<< "Inside parallel Generating Send at tid " << tid << " f " << f << " gID " << gDst->graphID <<std::endl;   
@@ -2230,12 +2227,12 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                             } // for(i<nsnds_cpAsc)                               
                         } // if(np > 1)                                                                                                                                         
                     } // if(fg==tg)
-#pragma omp barrier
+//#pragma omp barrier
                     //        std::cout<< "Barrier 1" <<std::endl;            
                     if(np > 1)
                     {
                         //if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-		        if(tid==0)
+//		        if(tid==0)
                         {
 
                             // std::cout<< "Inside parallel Generating Remote Send tg 0 at tid " << tid << " f " << f << " gID " << gDst->graphID <<std::endl;  
@@ -2299,11 +2296,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                     } // if(np > 1)       
                 } // for(f<nfabsSrc)
                 //        std::cout<< "Barrier 2 " <<" tid "<<tid<<std::endl;     
-#pragma omp barrier               
+//#pragma omp barrier               
                 for(int f=0; f<nfabsDst; f++)
                 {
-		  if(nt==0)
-                    if(WorkerThread::isMyRegion(tg,f))// && perilla::isMasterWorkerThread())
+//		  if(nt==0)
+//                    if(WorkerThread::isMyRegion(tg,f))// && perilla::isMasterWorkerThread())
                     {
                         //        std::cout <<"tid: "<< tid << " f: "<< f << " is master "<<WorkerThread::isTeamMasterThread(tid) << " is my region "<<WorkerThread::isMyRegion(tg,f)<<std::endl;                 
 
@@ -2358,9 +2355,6 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                 cpDst->l_con.dcpy[dcnt].sbx = tag.sbox;
                                 cpDst->l_con.dcpy[dcnt].dbx = tag.dbox;
 
-                                // if(gDst->graphID > 25 && f == 633)
-                                //std::cout<< " Generating Package tid " << tid << " i " << i <<std::endl;      
-
                                 int psize = tag.dbox.numPts() * mfSrc.nComp(); //---------------------------------------------------------------????????????????
                                 cpDst->l_con.dcpy[dcnt].sz = psize;
 
@@ -2370,30 +2364,18 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                     {
                                         Package *tmpPkg = new  Package(psize);
 
-                                        // if(tmpPkg == nullptr)
-                                        //std::cout<<"Found the culprit tid " << tid << " f " << f << " i " << i << std::endl;
-
                                         for(int j=0; j<psize; j++)
                                             tmpPkg->databuf[j] = 0;
                                         cpDst->l_con.dcpy[dcnt].pQueue.enqueue(tmpPkg);
                                     }
 
-                                    // if(gDst->graphID > 25 && f == 633)
-                                    //std::cout<< " Generating  now in reQ Package tid " << tid << " i " << i <<std::endl;      
-
                                     for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
                                         cpDst->l_con.dcpy[dcnt].recycleQueue.enqueue(cpDst->l_con.dcpy[dcnt].pQueue.dequeue());
 
-                                    //if(gDst->graphID > 25 && f == 633)
-                                    //  std::cout<< " Generated Package tid " << tid << " i " << i <<std::endl; 
                                 }
-
                                 dcnt++;
                             }
                         }
-
-                        // if(gDst->graphID > 25 && f > 630)
-                        //std::cout<< "Safe now tid " << tid << " f " << f << " gID " << gDst->graphID << " numReciv " << nloc_cpAsc <<std::endl;       
 
                         RegionGraph* depGraph = gDst->srcLinkGraph;
                         for(int df=0; df < gDst->task[f]->depTaskIDs.size(); df++)
@@ -2487,16 +2469,14 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                                         cpdDst->r_con.rcv[i].recycleQueue.enqueue(cpdDst->r_con.rcv[i].pQueue.dequeue());
                                 }
                             }
-
-
                         } // if(np > 1)
                     }// if(fg==tg)
 
-#pragma omp barrier               
+//#pragma omp barrier               
                     if(np > 1)
                     {
                         //if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-                        if(tid==0)
+//                        if(tid==0)
                         {
 
                             //  std::cout<< "Inside parallel Generating Remote Recive tg 0 at tid " << tid << " f " << f << " gID " << gDst->graphID <<std::endl;       
@@ -2592,11 +2572,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                     //} //if(fg==tg)
             } // for(f<nfabsDst)
             // std::cout<< "Barrier 4" <<" tid "<<tid <<std::endl;                        
-#pragma omp barrier
+//#pragma omp barrier
             for(int f=0; f<nfabsSrc; f++)
             {
-	      if(nt==0)
-                if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
+//	      if(nt==0)
+//                if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
                 {
 
                     //if(gDst->graphID > 25)
@@ -2612,11 +2592,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
                 }
             } // for(f<nfabsSrc)
             //std::cout<< "Barrier 5" <<" tid "<<tid<<std::endl;                          
-#pragma omp barrier
+//#pragma omp barrier
             for(int f=0; f<nfabsDst; f++)
             {
-	      if(nt==0)
-                if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
+//	      if(nt==0)
+//                if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
                 {
 
                     //if(gDst->graphID > 25)
@@ -2769,7 +2749,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 	    #pragma omp parallel shared(gSrc, gDst, mfSrc, mfDst, nfabsSrc, nfabsDst)
 //#endif
 	    {
+#ifdef _OPENMP
 		int tid = omp_get_thread_num();//perilla::tid();//omp_get_thread_num();	  
+#else
+		int tid=0;
+#endif
 		int tg = tid/perilla::NUM_THREADS_PER_TEAM;//perilla::wid();//WorkerThread::perilla_wid();
  		int nt= tid%perilla::NUM_THREADS_PER_TEAM;
 		int fg;
@@ -3626,7 +3610,6 @@ void Perilla::serviceLocalGridCopyRequests(std::vector<RegionGraph*> graphArray,
 	    FabCopyAssoc* cpSrc = graphArray[g]->task[f]->cpAsc_srcHead;
 	    while(cpSrc != 0)
 	    {
-//cout<<"handling graph number"<<g <<"wtih num task"<<nfabs<<endl;
 		//std::cout<<" "<<cpSrc << " ";
 		int lockSucceeded = pthread_mutex_trylock(&(cpSrc->l_con.sLock));
 		if(lockSucceeded != 0)
@@ -3635,7 +3618,6 @@ void Perilla::serviceLocalGridCopyRequests(std::vector<RegionGraph*> graphArray,
 		    {
 			if(cpSrc->l_con.scpy[i].pQueue.queueSize()>0)
 			{
-assert(doublechecked==false);
 			    FabCopyAssoc* cpDst = cpSrc->graphPartner->task[cpSrc->l_con.scpy[i].nd]->cpAsc_dstHead;
 			    while(cpDst != 0)
 			    {
@@ -3670,7 +3652,6 @@ assert(doublechecked==false);
 	    } // while(cpSrc != 0)
 	} // if(tg==fg)
     } // for(f<nfabs)
-
 } // serviceLocalGridCopyRequests
 
 void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraphs, int tg)

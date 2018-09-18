@@ -23,18 +23,21 @@
 namespace amrex
 {
     typedef void (*PTR_TO_VOID_FUNC)(void);
+    typedef void (*ErrorHandler) (const char* msg);
 
     std::string Version ();
 
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,
-                     std::ostream& a_oserr = std::cerr);
+                     std::ostream& a_oserr = std::cerr,
+                     ErrorHandler a_errhandler = nullptr);
 
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
                      const std::function<void()>& func_parm_parse = {},
                      std::ostream& a_osout = std::cout,
-                     std::ostream& a_oserr = std::cerr);
+                     std::ostream& a_oserr = std::cerr,
+                     ErrorHandler a_errorhandler = nullptr);
 
     void Finalize(bool finalize_parallel = true);
     /**
@@ -69,7 +72,7 @@ namespace amrex
                  const char* msg = nullptr);
     /**
     * \brief Prints out an out-of-memory message and aborts.  It is
-    *         called by various BoxLib routines when a call to new fails.
+    *         called by various routines when a call to new fails.
     *
     *        Called as amrex::OutOfMemory(__FILE__, __LINE__);
     */
@@ -83,10 +86,13 @@ namespace amrex
     */
     void write_to_stderr_without_buffering (const char* str);
 
+    void SetErrorHandler (ErrorHandler errhandler);
+
     std::ostream& OutStream ();
     std::ostream& ErrorStream ();
 
     int Verbose ();
+    void SetVerbose (int v);
 
     namespace system
     {
@@ -110,6 +116,8 @@ namespace amrex
 
         extern std::ostream* osout;
         extern std::ostream* oserr;
+        
+        extern ErrorHandler error_handler;
     }
 
     inline void GccPlacater ()

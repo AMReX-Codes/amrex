@@ -75,6 +75,33 @@ namespace amrex
                                   const std::string &levelPrefix = "Level_",
                                   const std::string &mfPrefix = "Cell",
                                   const Vector<std::string>& extra_dirs = Vector<std::string>());
+
+#ifdef AMREX_USE_EB
+    void EB_WriteSingleLevelPlotfile (const std::string &plotfilename,
+                                      const MultiFab &mf,
+                                      const Vector<std::string> &varnames,
+                                      const Geometry &geom,
+                                      Real t,
+                                      int level_step,
+                                      const std::string &versionName = "HyperCLaw-V1.1",
+                                      const std::string &levelPrefix = "Level_",
+                                      const std::string &mfPrefix = "Cell",
+                                      const Vector<std::string>& extra_dirs = Vector<std::string>());
+
+    void EB_WriteMultiLevelPlotfile (const std::string &plotfilename,
+                                     int nlevels,
+                                     const Vector<const MultiFab*> &mf,
+                                     const Vector<std::string> &varnames,
+                                     const Vector<Geometry> &geom,
+                                     Real time,
+                                     const Vector<int> &level_steps,
+                                     const Vector<IntVect> &ref_ratio,
+                                     const std::string &versionName = "HyperCLaw-V1.1",
+                                     const std::string &levelPrefix = "Level_",
+                                     const std::string &mfPrefix = "Cell",
+                                     const Vector<std::string>& extra_dirs = Vector<std::string>());
+
+#endif
 }
 
 #endif

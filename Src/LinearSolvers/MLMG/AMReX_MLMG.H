@@ -10,7 +10,9 @@
 
 namespace amrex {
 
+#ifdef AMREX_USE_PETSC
 class PETScABecLap;
+#endif
 
 class MLMG
 {
