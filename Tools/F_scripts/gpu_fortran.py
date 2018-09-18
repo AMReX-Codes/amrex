@@ -165,10 +165,9 @@ def append_device_to_line(line, subs):
                 new_line = actual_new_line
                 break
 
-            elif sub_name in line.lower().split() and sub_name + '_device' not in line.lower().split():
-                re_argument = re.compile("\S+ +" + sub_name + " +=")
-                if not re_argument.search(line.lower()):
-                    new_line = case_insensitive_replace(new_line, sub_name, sub_name + '_device')
+            if sub_name.lower() in line.lower().split() and sub_name.lower() + '_device' not in line.lower().split():
+                new_line = case_insensitive_replace(new_line, sub_name, sub_name + '_device', 
+                                                    on_condition=lambda x: get_replace_procedure(x, sub_name.lower()))
 
             elif sub_name in line.lower() and sub_name + '_device' not in line.lower():
                 # Catch function calls here.
@@ -248,6 +247,18 @@ def append_device(procedure):
     return new_procedure
 
 
+def get_replace_procedure(line, pname):
+    m = re.search('(?P<head>(\w|(% *))*)(?P<proc>' + pname.lower() + ')(?P<tail>((\w| *%| *=)*))', line.lower())
+    istart = -1
+    iend = -1
+    found = False
+    if m and m.group('proc') and not m.group('head') and not m.group('tail'):
+        found = True
+        istart = m.start('proc')
+        iend = m.end('proc')
+    return istart, iend, found
+
+
 def create_device_version(procedure):
 
     procedure_name = get_procedure_name(procedure)
@@ -261,17 +272,6 @@ def create_device_version(procedure):
     device_procedure = []
 
     re_subroutine_dec = re.compile(procedure_type + ' +' + procedure_name)
-
-    def get_replace_procedure(line, pname):
-        m = re.search('(?P<head>(\w|(% *))*)(?P<proc>' + pname.lower() + ')(?P<tail>((\w| *%| *=)*))', line.lower())
-        istart = -1
-        iend = -1
-        found = False
-        if m and m.group('proc') and not m.group('head') and not m.group('tail'):
-            found = True
-            istart = m.start('proc')
-            iend = m.end('proc')
-        return istart, iend, found
 
     for line in procedure.split('\n'):
         m_subroutine_dec = re_subroutine_dec.search(line.lower())
