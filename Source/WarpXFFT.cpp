@@ -1,7 +1,6 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
-#include <AMReX_BaseFab_f.H>
 #include <AMReX_iMultiFab.H>
 
 using namespace amrex;
@@ -98,10 +97,8 @@ CopyDataFromFFTToValid (MultiFab& mf, const MultiFab& mf_fft, const BoxArray& ba
             // Set the value to 0 whenever the mask is 0
             // (i.e. for nodal duplicated cells, there is a single box
             // for which the mask is different than 0)
-            amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_FAB(dstfab),
-                                    BL_TO_FORTRAN_ANYD(mask[mfi]),
-                                    0.0); // if mask == 0, set value to zero
+            // if mask == 0, set value to zero
+            dstfab.setValIfNot(0.0, bx, mask[mfi], 0, 1);
         }
     }
 
