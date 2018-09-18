@@ -54,20 +54,35 @@ import re
 re_detect_fun = re.compile('! *function\s')
 re_detect_endcomment = re.compile('!')
 
-def case_insensitive_replace(s, old, new, count=-1):
+def case_insensitive_replace(s, old, new, count=-1, on_condition=None):
     # Does a case-insensitive replacement of string old
     # by string new in the string s.
     # Does count number of replacements.
+    if not old or old==new:
+        # We were passed the empty string for old.
+        # or we're replacing old with itself.
+        return s
     n_replaced = 0
     ridx_start = 0
+    old = old.lower()
+    new = new.lower()
     while(n_replaced < count or count == -1):
-        try:
-            ridx = s.index(old, ridx_start)
-        except ValueError:
-            break
-        rtext = s[ridx:ridx + len(old) - 1]
-        s.replace(rtext, new)
-        ridx_start = ridx + len(new)
+        if on_condition:
+            istart, iend, found = on_condition(s[ridx_start:])
+            if found:
+                istart += ridx_start
+                iend += ridx_start
+            else:
+                break
+        else:
+            try:
+                istart = s.lower().index(old, ridx_start)
+            except ValueError:
+                break
+            else:
+                iend = istart + len(old)
+        s = s[:istart] + new + s[iend:]
+        ridx_start = istart + len(new)
         n_replaced = n_replaced + 1
     return s
 
@@ -86,10 +101,9 @@ def get_procedure_name(procedure):
 
     procedure_type = get_procedure_type(procedure)
 
-    sprocedure = procedure.split()
-    sproc_lower = procedure.lower().split()
+    sprocedure = procedure.lower().split()
 
-    procedure_name = sprocedure[sproc_lower.index(procedure_type) + 1]
+    procedure_name = sprocedure[sprocedure.index(procedure_type) + 1]
 
     # Now split out everything before the opening parenthesis, and truncate
     # out any spaces.
@@ -124,7 +138,7 @@ def append_device_to_line(line, subs):
 
             found_sub = False
             for sub_name in subs:
-                if sub_name == var.strip().lower():
+                if sub_name.lower() == var.strip().lower():
                     new_line += var.strip().lower() + '_device'
                     found_sub = True
                     break
@@ -133,20 +147,18 @@ def append_device_to_line(line, subs):
                 new_line += var
 
             if var != sline[1].split(',')[-1]:
-                new_line += ','
+                new_line += ', '
 
         new_line = " ".join([new_line, comment])
 
     else:
 
         for sub_name in subs:
-            print('looking for subroutine call for "' + sub_name + '" in ' + new_line)
             re_subroutine_call = re.compile('(call ' + sub_name + '\s|\()')
             re_subroutine_device_call = re.compile('call ' + sub_name + '_device\s|\(')
             m_subroutine_call = re_subroutine_call.search(new_line.lower())
             m_subroutine_device_call = re_subroutine_device_call.search(new_line.lower())
             if m_subroutine_call and not m_subroutine_device_call:
-                print('no subroutine call')
                 actual_new_line = new_line[:m_subroutine_call.start()]
                 actual_new_line = actual_new_line + m_subroutine_call.group(1).replace(sub_name, sub_name + '_device')
                 actual_new_line = actual_new_line + new_line[m_subroutine_call.end():]
@@ -158,37 +170,31 @@ def append_device_to_line(line, subs):
                 if not re_argument.search(line.lower()):
                     new_line = case_insensitive_replace(new_line, sub_name, sub_name + '_device')
 
-            elif sub_name + '(' in line.lower() and sub_name + '_device' not in line.lower():
+            elif sub_name in line.lower() and sub_name + '_device' not in line.lower():
                 # Catch function calls here.
                 # Make sure "bar(" is not any of "foobar(" or "foo % bar(" or "foo_bar("
-                print('found {} in {}'.format(sub_name, line))
                 old_fun = sub_name + '('
                 new_fun = sub_name + '_device' + '('
-                re_old_fun = re.compile(sub_name + "\(")
-                re_not_fun = re.compile("((\w)|(% *))" + sub_name + "\(")
+                re_old_fun = re.compile(sub_name + " *\(")
+                re_not_fun = re.compile("((\w)|(% *))" + sub_name + " *\(")
                 actual_new_line = ''
                 while(new_line):
                     m_old_fun = re_old_fun.search(new_line.lower())
                     if m_old_fun:
-                        print('found old fun {} ending at {}'.format(old_fun, m_old_fun.end()))
                         m_not_fun = re_not_fun.search(new_line.lower())
                         if m_not_fun and m_old_fun.end() == m_not_fun.end():
-                            print('found not fun ending at {}'.format(m_not_fun.end()))
                             # reject this replacement, it's not a function call
                             actual_new_line = actual_new_line + new_line[:m_not_fun.end()]
                             new_line = new_line[m_not_fun.end():]
                         else:
-                            print('doing replacement')
                             # do the replacement, it's a function call
                             substring = case_insensitive_replace(new_line[:m_old_fun.end()], old_fun, new_fun)
                             actual_new_line = actual_new_line + substring
                             new_line = new_line[m_old_fun.end():]
                     else:
-                        print('did not find old fun {}'.format(old_fun))
                         actual_new_line = actual_new_line + new_line
                         break
                 new_line = actual_new_line
-                print('new_line is {}'.format(new_line))
                 # continue because there could be multiple functions calls on the same line
                 # or functions that satisfy the elif but not necessarily the regex criteria.
                 continue
@@ -208,10 +214,8 @@ def get_function_uses(line):
         line = line[:mfun.start()]
         sline = line.split(':')
         for var in sline[1].split(','):
-            imported_functions.append(var.strip().lower())
-
-    print(line)
-    print(imported_functions)
+            if not '_device' in var.strip().lower() and not var.strip().lower() in imported_functions:
+                imported_functions.append(var.strip().lower())
 
     return imported_functions
 
@@ -224,18 +228,24 @@ def append_device(procedure):
     for line in procedure.split('\n'):
         called_subs = called_subs + get_function_uses(line)
         if "call " in line.lower():
+            try:
+                ex_index = line.index('!')
+            except:
+                pass
+            else:
+                if ex_index > line.lower().index('call'):
+                    pass
+                else:
+                    continue
             sub_name = line.lower().split('call ')[1].split('(')[0].strip()
             if sub_name != "syncthreads":
-                if "_device" not in sub_name:
-                    called_subs.append(sub_name)
+                if not "_device" in sub_name and not sub_name.lower() in called_subs:
+                    called_subs.append(sub_name.lower())
 
-    in_specification_part = True
-
-    for line in procedure.split('\n'):
-        new_procedure = case_insensitive_replace(new_procedure, line, append_device_to_line(line, called_subs))
+    new_procedure = [append_device_to_line(line, called_subs) for line in procedure.split('\n')]
+    new_procedure = '\n'.join(new_procedure)
 
     return new_procedure
-
 
 
 def create_device_version(procedure):
@@ -244,17 +254,34 @@ def create_device_version(procedure):
 
     procedure_type = get_procedure_type(procedure)
 
-    device_procedure = procedure
-
     # Append _device to the name before writing it to the file.
     # We want to cover this both in the subroutine / end subroutine
     # statement and in the bind(c) statement.
 
-    for chunk in procedure.split(procedure_name):
-        if procedure_type in chunk.lower() or "bind" in chunk.lower():
-            chunk += procedure_name
-            new_chunk = case_insensitive_replace(chunk, procedure_name, procedure_name + '_device')
-            device_procedure = case_insensitive_replace(device_procedure, chunk, new_chunk)
+    device_procedure = []
+
+    re_subroutine_dec = re.compile(procedure_type + ' +' + procedure_name)
+
+    def get_replace_procedure(line, pname):
+        m = re.search('(?P<head>(\w|(% *))*)(?P<proc>' + pname.lower() + ')(?P<tail>((\w| *%| *=)*))', line.lower())
+        istart = -1
+        iend = -1
+        found = False
+        if m and m.group('proc') and not m.group('head') and not m.group('tail'):
+            found = True
+            istart = m.start('proc')
+            iend = m.end('proc')
+        return istart, iend, found
+
+    for line in procedure.split('\n'):
+        m_subroutine_dec = re_subroutine_dec.search(line.lower())
+        if (m_subroutine_dec or "bind" in line.lower()) and not line.strip().startswith('!'):
+            new_line = case_insensitive_replace(line, procedure_name, procedure_name + '_device', on_condition=lambda x: get_replace_procedure(x, procedure_name))
+        else:
+            new_line = line
+        device_procedure.append(new_line)
+
+    device_procedure = '\n'.join(device_procedure)
 
     # Make sure any procedure calls append _device to the procedure we are
     # calling. Note that this assumes that everything we are calling either
@@ -272,6 +299,7 @@ def create_host_version(device_procedure):
     # Create a host version of the procedure as well.
 
     host_procedure = device_procedure.replace("_device","").replace("attributes(device)", "attributes(host)")
+    assert(host_procedure.count('_device') == 0)
 
     # Some functions will have device code that is wrapped in #ifdef AMREX_USE_CUDA or
     # #if defined(AMREX_USE_CUDA), and host code otherwise. To deal with this, we'll undefine
@@ -358,12 +386,11 @@ def update_fortran_procedures(ffile):
 
                     procedure_name = get_procedure_name(procedure)
 
-                    gpu_targets.append(procedure_name)
+                    if not procedure_name.lower() in gpu_targets:
+                        gpu_targets.append(procedure_name.lower())
 
                     # Create device and host versions of the procedure.
-
                     device_procedure = create_device_version(procedure)
-
                     host_procedure = create_host_version(device_procedure)
 
                     # Blank out the original procedure; there is nothing left to do with it.
@@ -385,13 +412,13 @@ def update_fortran_procedures(ffile):
 
             # Now write out whatever we have generated.
 
-            if host_procedure != "":
+            if host_procedure:
                 fout.write(host_procedure)
 
-            if device_procedure != "":
+            if device_procedure:
                 fout.write(device_procedure)
 
-            if procedure != "":
+            if procedure:
                 fout.write(procedure)
 
             # Clear everything out for the next procedure.
@@ -432,8 +459,10 @@ def update_fortran_procedures(ffile):
         # Explicitly mark all newly created device targets as public.
 
         if "contains" in line.lower() and not line.strip().startswith('!'):
+            fout.write('\n')
             for target in gpu_targets:
-                fout.write('public :: ' + target.lower() + '_device\n')
+                fout.write('  public :: ' + target.lower() + '_device\n')
+            fout.write('\n')
 
         # If there are any calls inside a device procedure to
         # a known device procedure but it is missing the _device
@@ -442,22 +471,18 @@ def update_fortran_procedures(ffile):
         # processing to know what is a function (versus a variable).
 
         else:
-
             for target in gpu_targets:
-
-                if "end function " + target + "_device" in line.lower() or "end subroutine " + target + "_device" in line.lower():
+                if "end function " + target.lower() + "_device" in line.lower() or "end subroutine " + target.lower() + "_device" in line.lower():
                     in_device_subroutine = False
                     subroutine_imported_functions = []
                     break
 
-                elif "function " + target + "_device" in line.lower() or "subroutine " + target + "_device" in line.lower():
-                    print(line)
+                elif "function " + target.lower() + "_device" in line.lower() or "subroutine " + target.lower() + "_device" in line.lower():
                     in_device_subroutine = True
                     break
 
             if in_device_subroutine:
-                print(gpu_targets + subroutine_imported_functions)
-                line = append_device_to_line(line, gpu_targets + subroutine_imported_functions)
+                line = append_device_to_line(line, set(gpu_targets + subroutine_imported_functions))
 
         fout.write(line)
 
