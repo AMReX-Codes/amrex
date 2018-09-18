@@ -11,6 +11,7 @@ int main (int argc, char* argv[])
         MyTest mytest;
         for (int i = 0; i < 1; ++i) {
             mytest.solve();
+            mytest.writePlotfile();
         }
     }
 

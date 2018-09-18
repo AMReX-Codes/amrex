@@ -8,7 +8,7 @@ module amrex_mlebabeclap_3d_module
        get_neighbor_cells_int_single
   implicit none
 
-  real(amrex_real), parameter, private :: dx_eb = third
+  real(amrex_real), parameter, public :: dx_eb = third
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 

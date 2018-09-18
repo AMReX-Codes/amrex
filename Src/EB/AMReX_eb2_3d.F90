@@ -589,19 +589,51 @@ contains
       nyabs = abs(ny)
 
       if (nxabs .lt. tiny .or. nyabs .gt. almostone) then
-         areafrac = axm
-         centx = zero
-         centy = (eighth*(ayp-aym) + ny*half*bcy**2)/areafrac
-         Sx2 = twentyfourth*(axm+axp)
-         Sy2 = twentyfourth*(ayp+aym) + ny*third*bcy**3
-         Sxy = zero
+         areafrac = half*(axm+axp)
+         if (areafrac .gt. one-small) then
+            areafrac = one
+            centx = zero
+            centy = zero
+            Sx2 = twelfth
+            Sy2 = twelfth
+            Sxy = zero
+         else if (areafrac .lt. small) then
+            areafrac = zero
+            centx = zero
+            centy = zero
+            Sx2 = zero
+            Sy2 = zero
+            Sxy = zero
+         else
+            centx = zero
+            centy = (eighth*(ayp-aym) + ny*half*bcy**2)/areafrac
+            Sx2 = twentyfourth*(axm+axp)
+            Sy2 = twentyfourth*(ayp+aym) + ny*third*bcy**3
+            Sxy = zero
+         end if
       else if (nyabs .lt. tiny .or. nxabs .gt. almostone) then
-         areafrac = aym
-         centx = (eighth*(axp-axm) + nx*half*bcx**2)/areafrac
-         centy = zero
-         Sx2 = twentyfourth*(axp+axm) + nx*third*bcx**3
-         Sy2 = twentyfourth*(ayp+aym)
-         Sxy = zero
+         areafrac = half*(aym+ayp)
+         if (areafrac .gt. one-small) then
+            areafrac = one
+            centx = zero
+            centy = zero
+            Sx2 = twelfth
+            Sy2 = twelfth
+            Sxy = zero
+         else if (areafrac .lt. small) then
+            areafrac = zero
+            centx = zero
+            centy = zero
+            Sx2 = zero
+            Sy2 = zero
+            Sxy = zero
+         else
+            centx = (eighth*(axp-axm) + nx*half*bcx**2)/areafrac
+            centy = zero
+            Sx2 = twentyfourth*(axp+axm) + nx*third*bcx**3
+            Sy2 = twentyfourth*(ayp+aym)
+            Sxy = zero
+         end if
       else
          if (nx .gt. zero) then
             x_ym = -half + aym
@@ -756,6 +788,12 @@ contains
                 dapy = aym - ayp
                 dapz = azm - azp
                 apnorm = sqrt(dapx**2 + dapy**2 + dapz**2)
+                if (apnorm .eq. zero) then
+#ifdef AMREX_DEBUG
+                   print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
+#endif
+                   call amrex_error("amrex_eb2_build_cells: apnrom==0, multiple cuts not supported")
+                end if
                 apnorminv = one/apnorm
                 nx = dapx * apnorminv
                 ny = dapy * apnorminv

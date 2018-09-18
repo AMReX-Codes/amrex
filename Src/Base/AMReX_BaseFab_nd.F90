@@ -1,4 +1,4 @@
-module basefab_nd_module
+module amrex_basefab_nd_module
 
   use amrex_fort_module, only : amrex_real
 
@@ -980,4 +980,4 @@ contains
     end do
   end subroutine amrex_fort_ifab_minus_device
 
-end module basefab_nd_module
+end module amrex_basefab_nd_module

@@ -23,8 +23,8 @@ public:
 
     ~RotationIF () {}
 
-    RotationIF (const RotationIF& rhs) noexcept = default;
-    RotationIF (RotationIF&& rhs) noexcept = default;
+    RotationIF (const RotationIF& rhs) = default;
+    RotationIF (RotationIF&& rhs) = default;
     RotationIF& operator= (const RotationIF& rhs) = delete;
     RotationIF& operator= (RotationIF&& rhs) = delete;
 
