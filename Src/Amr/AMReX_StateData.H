@@ -48,13 +48,11 @@ public:
     //
     ~StateData ();
 
-    StateData (StateData&& rhs) noexcept = default;
+    StateData (StateData&& rhs) noexcept;
+    StateData (StateData const& rhs) = delete;
+    void operator= (StateData && rhs) = delete;
+    void operator= (StateData const& rhs);
 
-    //
-    // Takes an empty StateData object dest and defines it with the same properties
-    // as the input StateData src. Does a deep copy of the data from src into dest.
-    //
-    static void Initialize (StateData& dest, const StateData& src);
     //
     // Initializes data members if you used default constructor.
     //
@@ -82,7 +80,7 @@ public:
     //
     // Deletes the space used by the old timestep data.
     //
-    void removeOldData () { delete old_data; old_data = 0; }
+    void removeOldData () { old_data.reset(); }
     //
     // Reverts back to initial state.
     //
@@ -95,7 +93,7 @@ public:
     // Swaps old data with a new MultiFab.
     // Deletes the previous old data.
     //
-    void replaceOldData ( MultiFab* mf );
+    void replaceOldData ( MultiFab&& mf );
     //
     // Swaps old data with another StateData.
     // Does not delete the previous old data.
@@ -105,7 +103,7 @@ public:
     // Swaps new data with a new MultiFab.
     // Deletes the previous new data.
     //
-    void replaceNewData ( MultiFab* mf );
+    void replaceNewData ( MultiFab&& mf );
     //
     // Swaps new data with another StateData.
     // Does not delete the previous new data.
@@ -220,27 +218,27 @@ public:
     //
     // Returns the new data.
     //
-    MultiFab& newData () { BL_ASSERT(new_data != 0); return *new_data; }
+    MultiFab& newData () { BL_ASSERT(new_data != nullptr); return *new_data; }
     //
     // Returns the new data.
     //
-    const MultiFab& newData () const { BL_ASSERT(new_data != 0); return *new_data; }
+    const MultiFab& newData () const { BL_ASSERT(new_data != nullptr); return *new_data; }
     //
     // Returns the old data.
     //
-    MultiFab& oldData () { BL_ASSERT(old_data != 0); return *old_data; }
+    MultiFab& oldData () { BL_ASSERT(old_data != nullptr); return *old_data; }
     //
     // Returns the old data.
     //
-    const MultiFab& oldData () const { BL_ASSERT(old_data != 0); return *old_data; }
+    const MultiFab& oldData () const { BL_ASSERT(old_data != nullptr); return *old_data; }
     //
     // Returns the FAB of new data at grid index `i'.
     //
-    FArrayBox& newGrid (int i) { BL_ASSERT(new_data != 0); return (*new_data)[i]; }
+    FArrayBox& newGrid (int i) { BL_ASSERT(new_data != nullptr); return (*new_data)[i]; }
     //
     // Returns the FAB of old data at grid index `i'.
     //
-    FArrayBox& oldGrid (int i) { BL_ASSERT(old_data != 0); return (*old_data)[i]; }
+    FArrayBox& oldGrid (int i) { BL_ASSERT(old_data != nullptr); return (*old_data)[i]; }
     //
     // Returns boundary conditions of specified component on the specified grid.
     //
@@ -252,11 +250,11 @@ public:
     //
     // True if there is any old data available.
     //
-    bool hasOldData () const { return old_data != 0; }
+    bool hasOldData () const { return old_data != nullptr; }
     //
     // True if there is any new data available.
     //
-    bool hasNewData () const { return new_data != 0; }
+    bool hasNewData () const { return new_data != nullptr; }
 
     void getData (Vector<MultiFab*>& data,
 		  Vector<Real>& datatime,
@@ -305,11 +303,11 @@ private:
     //
     // Pointer to new-time data.
     //
-    MultiFab* new_data;
+    std::unique_ptr<MultiFab> new_data;
     //
     // Pointer to previous time data.
     //
-    MultiFab* old_data;
+    std::unique_ptr<MultiFab> old_data;
     //
     // This is used as a temporary collection of FabArray header
     // names written during a checkpoint
