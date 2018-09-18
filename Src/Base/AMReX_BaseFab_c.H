@@ -21,7 +21,12 @@ extern "C" {
     void amrex_c_fab_setval (const int* lo, const int* hi, 
                              amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                              const amrex_real* val);
-    
+
+    void amrex_c_fab_setval_ifnot (const int* lo, const int* hi,
+                                   amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                   const int* msk, const int* mlo, const int* mhi,
+                                   const amrex_real* val);
+
     amrex_real amrex_c_fab_norminfmask (const int* lo, const int* hi,
                                         const int* msk, const int* mlo, const int* mhi,
                                         const amrex_real* src, const int* slo, const int* shi, const int* ncomp);
@@ -125,11 +130,6 @@ extern "C" {
                              const int* src, const int* slo, const int* shi, const int* sblo,
                              const int* ncomp);    
     
-    void amrex_c_fab_setval_ifnot (const int* lo, const int* hi,
-                                   amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
-                                   const int* msk, const int* mlo, const int* mhi,
-                                   const amrex_real val);
-
 #ifdef __cplusplus
 }
 #endif
