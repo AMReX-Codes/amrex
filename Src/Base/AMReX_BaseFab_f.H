@@ -132,7 +132,7 @@ extern "C"
     void amrex_fort_fab_setval_ifnot (const int* lo, const int* hi,
                                       amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
                                       const int* msk, const int* mlo, const int* mhi,
-                                      const int val);
+                                      const amrex_real val);
 
 #ifdef __cplusplus
 }

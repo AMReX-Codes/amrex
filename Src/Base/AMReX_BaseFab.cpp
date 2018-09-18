@@ -180,10 +180,17 @@ BaseFab<Real>::performCopy (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		  &numcomp);
+                        BL_TO_FORTRAN_N_3D(*this,destcomp),
+                        BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                        &numcomp);
+#else
+    amrex_c_fab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                     BL_TO_FORTRAN_N_3D(*this,destcomp),
+                     BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                     &numcomp);
+#endif
 }
 
 template <>
@@ -198,10 +205,19 @@ BaseFab<Real>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-	long nreal =  amrex_fort_fab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
-                                         static_cast<Real*>(dst),
-                                         BL_TO_FORTRAN_N_3D(*this,srccomp),
-                                         &numcomp);
+#ifdef AMREX_USE_GPU_PRAGMA
+	long nreal =  amrex_fort_fab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()),
+                                               AMREX_ARLIM_3D(srcbox.hiVect()),
+                                               static_cast<Real*>(dst),
+                                               BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                               &numcomp);
+#else
+	long nreal =  amrex_c_fab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()),
+                                            AMREX_ARLIM_3D(srcbox.hiVect()),
+                                            static_cast<Real*>(dst),
+                                            BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                            &numcomp);
+#endif
         return sizeof(Real) * nreal;
     }
     else
@@ -222,9 +238,17 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
-	long nreal = amrex_fort_fab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
-                                          BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-                                          static_cast<const Real*>(src));
+#ifdef AMREX_USE_GPU_PRAGMA
+	long nreal = amrex_fort_fab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()),
+                                                AMREX_ARLIM_3D(dstbox.hiVect()),
+                                                BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                                static_cast<const Real*>(src));
+#else
+	long nreal = amrex_c_fab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()),
+                                             AMREX_ARLIM_3D(dstbox.hiVect()),
+                                             BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                             static_cast<const Real*>(src));
+#endif
         return sizeof(Real) * nreal;
     }
     else
@@ -243,9 +267,15 @@ BaseFab<Real>::performSetVal (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_setval(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-		    &val);
+                          BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                          &val);
+#else
+    amrex_c_fab_setval(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                       BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                       &val);
+#endif
 }
 
 template<>
@@ -258,9 +288,15 @@ BaseFab<Real>::invert (Real       val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_invert(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-		    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-		    &val);
+                          BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                          &val);
+#else
+    amrex_c_fab_invert(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                       BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                       &val);
+#endif
     return *this;
 }
 
@@ -270,10 +306,16 @@ BaseFab<Real>::norminfmask (const Box& bx, const BaseFab<int>& mask, int comp, i
 {
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
-    
+
+#ifdef AMREX_USE_GPU_PRAGMA
     return amrex_fort_fab_norminfmask(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-                                BL_TO_FORTRAN_ANYD(mask),
-                                BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+                                      BL_TO_FORTRAN_ANYD(mask),
+                                      BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+#else
+    return amrex_c_fab_norminfmask(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                                   BL_TO_FORTRAN_ANYD(mask),
+                                   BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+#endif
 }
 
 template<>
@@ -290,9 +332,15 @@ BaseFab<Real>::norm (const Box& bx,
 
     if (p == 0 || p == 1)
     {
+#ifdef AMREX_USE_GPU_PRAGMA
 	nrm = amrex_fort_fab_norm(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-			    BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-			    &p);
+                                  BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                                  &p);
+#else
+	nrm = amrex_c_fab_norm(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                               BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                               &p);
+#endif
     }
     else
     {
@@ -311,8 +359,13 @@ BaseFab<Real>::sum (const Box& bx,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+#ifdef AMREX_USE_GPU_PRAGMA
     return amrex_fort_fab_sum(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-			BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+                              BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+#else
+    return amrex_c_fab_sum(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                           BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
+#endif
 }
 
 template<>
@@ -331,10 +384,17 @@ BaseFab<Real>::plus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_plus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		  &numcomp);
+                        BL_TO_FORTRAN_N_3D(*this,destcomp),
+                        BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                        &numcomp);
+#else
+    amrex_c_fab_plus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                     BL_TO_FORTRAN_N_3D(*this,destcomp),
+                     BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                     &numcomp);
+#endif
 
     return *this;
 }
@@ -355,10 +415,17 @@ BaseFab<Real>::mult (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_mult(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		  &numcomp);
+                        BL_TO_FORTRAN_N_3D(*this,destcomp),
+                        BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                        &numcomp);
+#else
+    amrex_c_fab_mult(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                     BL_TO_FORTRAN_N_3D(*this,destcomp),
+                     BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                     &numcomp);
+#endif
     return *this;
 }
 
@@ -379,11 +446,19 @@ BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_saxpy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		   BL_TO_FORTRAN_N_3D(*this,destcomp),
-		   &a,
-		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		   &numcomp);
+                         BL_TO_FORTRAN_N_3D(*this,destcomp),
+                         &a,
+                         BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                         &numcomp);
+#else
+    amrex_c_fab_saxpy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                      BL_TO_FORTRAN_N_3D(*this,destcomp),
+                      &a,
+                      BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      &numcomp);
+#endif
     return *this;
 }
 
@@ -404,11 +479,19 @@ BaseFab<Real>::xpay (Real a, const BaseFab<Real>& src,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=     nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_xpay(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		  BL_TO_FORTRAN_N_3D(*this,destcomp),
-		  &a,
-		  BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		  &numcomp);
+                        BL_TO_FORTRAN_N_3D(*this,destcomp),
+                        &a,
+                        BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                        &numcomp);
+#else
+    amrex_c_fab_xpay(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                     BL_TO_FORTRAN_N_3D(*this,destcomp),
+                     &a,
+                     BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                     &numcomp);
+#endif
     return *this;
 }
 
@@ -428,11 +511,19 @@ BaseFab<Real>::addproduct (const Box&           destbox,
     BL_ASSERT(   comp2 >= 0 &&    comp2+numcomp <= src2.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=      nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_addproduct(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-			BL_TO_FORTRAN_N_3D(*this,destcomp),
-			BL_TO_FORTRAN_N_3D(src1,comp1),
-			BL_TO_FORTRAN_N_3D(src2,comp2),
-			&numcomp);
+                              BL_TO_FORTRAN_N_3D(*this,destcomp),
+                              BL_TO_FORTRAN_N_3D(src1,comp1),
+                              BL_TO_FORTRAN_N_3D(src2,comp2),
+                              &numcomp);
+#else
+    amrex_c_fab_addproduct(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                           BL_TO_FORTRAN_N_3D(*this,destcomp),
+                           BL_TO_FORTRAN_N_3D(src1,comp1),
+                           BL_TO_FORTRAN_N_3D(src2,comp2),
+                           &numcomp);
+#endif
     return *this;
 }
 
@@ -452,10 +543,17 @@ BaseFab<Real>::minus (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_minus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		   BL_TO_FORTRAN_N_3D(*this,destcomp),
-		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		   &numcomp);
+                         BL_TO_FORTRAN_N_3D(*this,destcomp),
+                         BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                         &numcomp);
+#else
+    amrex_c_fab_minus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                      BL_TO_FORTRAN_N_3D(*this,destcomp),
+                      BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      &numcomp);
+#endif
     return *this;
 }
 
@@ -475,10 +573,17 @@ BaseFab<Real>::divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_divide(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		    BL_TO_FORTRAN_N_3D(*this,destcomp),
-		    BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		    &numcomp);
+                          BL_TO_FORTRAN_N_3D(*this,destcomp),
+                          BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                          &numcomp);
+#else
+    amrex_c_fab_divide(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                       BL_TO_FORTRAN_N_3D(*this,destcomp),
+                       BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                       &numcomp);
+#endif
     return *this;
 }
 
@@ -498,10 +603,17 @@ BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_protdivide(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-			BL_TO_FORTRAN_N_3D(*this,destcomp),
-			BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-			&numcomp);
+                              BL_TO_FORTRAN_N_3D(*this,destcomp),
+                              BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                              &numcomp);
+#else
+    amrex_c_fab_protdivide(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                           BL_TO_FORTRAN_N_3D(*this,destcomp),
+                           BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                           &numcomp);
+#endif
     return *this;
 }
 
@@ -531,11 +643,19 @@ BaseFab<Real>::linComb (const BaseFab<Real>& f1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_lincomb(AMREX_ARLIM_3D(b.loVect()), AMREX_ARLIM_3D(b.hiVect()),
-		     BL_TO_FORTRAN_N_3D(*this,comp),
-		     &alpha, BL_TO_FORTRAN_N_3D(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
-		     &beta,  BL_TO_FORTRAN_N_3D(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
-		     &numcomp);
+                           BL_TO_FORTRAN_N_3D(*this,comp),
+                           &alpha, BL_TO_FORTRAN_N_3D(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
+                           &beta,  BL_TO_FORTRAN_N_3D(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
+                           &numcomp);
+#else
+    amrex_c_fab_lincomb(AMREX_ARLIM_3D(b.loVect()), AMREX_ARLIM_3D(b.hiVect()),
+                        BL_TO_FORTRAN_N_3D(*this,comp),
+                        &alpha, BL_TO_FORTRAN_N_3D(f1,comp1), AMREX_ARLIM_3D(b1.loVect()),
+                        &beta,  BL_TO_FORTRAN_N_3D(f2,comp2), AMREX_ARLIM_3D(b2.loVect()),
+                        &numcomp);
+#endif
     return *this;
 }
 
@@ -552,18 +672,17 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
-#if 0
+#ifdef AMREX_USE_GPU_PRAGMA
     return amrex_fort_fab_dot(AMREX_ARLIM_3D(xbx.loVect()), AMREX_ARLIM_3D(xbx.hiVect()),
-			BL_TO_FORTRAN_N_3D(*this,xcomp),
-			BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
-			&numcomp);
-#endif
-
+                              BL_TO_FORTRAN_N_3D(*this,xcomp),
+                              BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
+                              &numcomp);
+#else
     return amrex_c_fab_dot(AMREX_ARLIM_3D(xbx.loVect()), AMREX_ARLIM_3D(xbx.hiVect()),
                            BL_TO_FORTRAN_N_3D(*this,xcomp),
                            BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
                            &numcomp);
-
+#endif
 }
 
 template <>
@@ -579,11 +698,19 @@ BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     return amrex_fort_fab_dot_mask(AMREX_ARLIM_3D(xbx.loVect()), AMREX_ARLIM_3D(xbx.hiVect()),
-                             BL_TO_FORTRAN_N_3D(*this,xcomp),
-                             BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
-                             BL_TO_FORTRAN_ANYD(mask),
-                             &numcomp);
+                                   BL_TO_FORTRAN_N_3D(*this,xcomp),
+                                   BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
+                                   BL_TO_FORTRAN_ANYD(mask),
+                                   &numcomp);
+#else
+    return amrex_c_fab_dot_mask(AMREX_ARLIM_3D(xbx.loVect()), AMREX_ARLIM_3D(xbx.hiVect()),
+                                BL_TO_FORTRAN_N_3D(*this,xcomp),
+                                BL_TO_FORTRAN_N_3D(y,ycomp), AMREX_ARLIM_3D(ybx.loVect()),
+                                BL_TO_FORTRAN_ANYD(mask),
+                                &numcomp);
+#endif
 }
 
 template<>
@@ -602,10 +729,17 @@ BaseFab<int>::performCopy (const BaseFab<int>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_ifab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-                   BL_TO_FORTRAN_N_3D(*this,destcomp),
-                   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-                   &numcomp);
+                         BL_TO_FORTRAN_N_3D(*this,destcomp),
+                         BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                         &numcomp);
+#else
+    amrex_c_ifab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                      BL_TO_FORTRAN_N_3D(*this,destcomp),
+                      BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      &numcomp);
+#endif
 }
 
 template <>
@@ -620,10 +754,19 @@ BaseFab<int>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-	long nints =  amrex_fort_ifab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
-                                          static_cast<int*>(dst),
-                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
-                                          &numcomp);
+#ifdef AMREX_USE_GPU_PRAGMA
+	long nints =  amrex_fort_ifab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()),
+                                                AMREX_ARLIM_3D(srcbox.hiVect()),
+                                                static_cast<int*>(dst),
+                                                BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                                &numcomp);
+#else
+	long nints =  amrex_c_ifab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()),
+                                             AMREX_ARLIM_3D(srcbox.hiVect()),
+                                             static_cast<int*>(dst),
+                                             BL_TO_FORTRAN_N_3D(*this,srccomp),
+                                             &numcomp);
+#endif
         return sizeof(int) * nints;
     }
     else
@@ -644,9 +787,17 @@ BaseFab<int>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok()) 
     {
-	long nints = amrex_fort_ifab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
-                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-                                           static_cast<const int*>(src));
+#ifdef AMREX_USE_GPU_PRAGMA
+	long nints = amrex_fort_ifab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()),
+                                                 AMREX_ARLIM_3D(dstbox.hiVect()),
+                                                 BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                                 static_cast<const int*>(src));
+#else
+	long nints = amrex_c_ifab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()),
+                                              AMREX_ARLIM_3D(dstbox.hiVect()),
+                                              BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
+                                              static_cast<const int*>(src));
+#endif
         return sizeof(int) * nints;
     }
     else
@@ -665,9 +816,15 @@ BaseFab<int>::performSetVal (int        val,
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_ifab_setval(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-                     BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-                     &val);
+                           BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                           &val);
+#else
+    amrex_c_ifab_setval(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                        BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                        &val);
+#endif
 }
 
 template<>
@@ -686,10 +843,17 @@ BaseFab<int>::plus (const BaseFab<int>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_ifab_plus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-                   BL_TO_FORTRAN_N_3D(*this,destcomp),
-                   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-                   &numcomp);
+                         BL_TO_FORTRAN_N_3D(*this,destcomp),
+                         BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                         &numcomp);
+#else
+    amrex_c_ifab_plus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                      BL_TO_FORTRAN_N_3D(*this,destcomp),
+                      BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                      &numcomp);
+#endif
     
     return *this;
 }
@@ -710,10 +874,17 @@ BaseFab<int>::minus (const BaseFab<int>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_ifab_minus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		   BL_TO_FORTRAN_N_3D(*this,destcomp),
-		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		   &numcomp);
+                          BL_TO_FORTRAN_N_3D(*this,destcomp),
+                          BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                          &numcomp);
+#else
+    amrex_c_ifab_minus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
+                       BL_TO_FORTRAN_N_3D(*this,destcomp),
+                       BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
+                       &numcomp);
+#endif
     return *this;
 }
 
