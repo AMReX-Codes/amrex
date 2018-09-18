@@ -60,7 +60,7 @@
 #define AMREX_ARLIM_3D(x) x
 #define AMREX_ARLIM_ANYD(x) x
 #define AMREX_ZFILL(x) x
-#define AMREX_ARLIM_ARG(x) x[0]
+#define AMREX_ARLIM_ARG(x) x[0], 0, 0
 #else
 #define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
@@ -76,7 +76,7 @@
 #define AMREX_ARLIM_3D(x) x
 #define AMREX_ARLIM_ANYD(x) x
 #define AMREX_ZFILL(x) x
-#define AMREX_ARLIM_ARG(x) x[0], x[1]
+#define AMREX_ARLIM_ARG(x) x[0], x[1], 0
 #else
 #define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
