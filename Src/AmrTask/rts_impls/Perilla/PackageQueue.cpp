@@ -29,7 +29,6 @@ Package::Package(int size)
     notified = false;
     served = false;
     request = MPI_REQUEST_NULL;
-    max_size=perilla::MSG_QUEUE_DEFAULT_MAXSIZE;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
 }
 
