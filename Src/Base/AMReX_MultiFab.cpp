@@ -1608,10 +1608,10 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
         FArrayBox& fab = (*this)[mfi];
         const IArrayBox& ifab = msk[mfi];
         const Box& bx = mfi.tilebox();
-        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_FAB(fab),
-                                BL_TO_FORTRAN_ANYD(ifab),
-                                0.0);
+        amrex_fort_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
+                                     BL_TO_FORTRAN_FAB(fab),
+                                     BL_TO_FORTRAN_ANYD(ifab),
+                                     0.0);
     }
     
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());

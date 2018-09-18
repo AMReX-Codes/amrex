@@ -108,11 +108,11 @@ extern "C" {
                                  const int* ncomp);
 
     long amrex_c_ifab_copyfrommem (const int* lo, const int* hi,
-                                   const int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                   int* dst, const int* dlo, const int* dhi, const int* ncomp,
                                    const int* src);
     
     void amrex_c_ifab_setval (const int* lo, const int* hi, 
-                              const int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                              int* dst, const int* dlo, const int* dhi, const int* ncomp,
                               const int* val);
 
     void amrex_c_ifab_plus (const int* lo, const int* hi,

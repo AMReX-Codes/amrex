@@ -116,8 +116,8 @@ extern "C"
                                 const int* src);
     
     void amrex_fort_ifab_setval (const int* lo, const int* hi, 
-                           const int* dst, const int* dlo, const int* dhi, const int* ncomp,
-                           const int* val);
+                                 int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                 const int* val);
 
     void amrex_fort_ifab_plus (const int* lo, const int* hi,
                          int* dst, const int* dlo, const int* dhi,
@@ -129,10 +129,10 @@ extern "C"
                           const int* src, const int* slo, const int* shi, const int* sblo,
                           const int* ncomp);    
 
-    void amrex_fab_setval_ifnot (const int* lo, const int* hi,
-                                 amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
-                                 const int* msk, const int* mlo, const int* mhi,
-                                 const int val);
+    void amrex_fort_fab_setval_ifnot (const int* lo, const int* hi,
+                                      amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                      const int* msk, const int* mlo, const int* mhi,
+                                      const int val);
 
 #ifdef __cplusplus
 }
