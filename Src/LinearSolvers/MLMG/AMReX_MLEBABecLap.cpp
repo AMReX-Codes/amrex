@@ -11,6 +11,15 @@
 #include <AMReX_MG_F.H>
 #include <AMReX_EBMultiFabUtil_F.H>
 
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreABecLap3.H>
+#endif
+
+#ifdef AMREX_USE_PETSC
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
+#endif
+
 namespace amrex {
 
 MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
@@ -45,7 +54,7 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
         _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
     }
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, _factory);
+    MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, _factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -267,7 +276,7 @@ MLEBABecLap::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
-    MLCellLinOp::prepareForSolve();
+    MLCellABecLap::prepareForSolve();
     
     averageDownCoeffs();
 
@@ -950,7 +959,7 @@ MLEBABecLap::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode b
 void
 MLEBABecLap::update ()
 {
-    if (MLCellLinOp::needsUpdate()) MLCellLinOp::update();
+    if (MLCellABecLap::needsUpdate()) MLCellABecLap::update();
 
     averageDownCoeffs();
 
@@ -980,5 +989,27 @@ MLEBABecLap::update ()
 
     m_needs_update = false;
 }
-    
+
+#ifdef AMREX_USE_HYPRE
+std::unique_ptr<Hypre>
+MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
+{
+    auto hypre_solver = MLCellABecLap::makeHypre(hypre_interface);
+    auto ijmatrix_solver = dynamic_cast<HypreABecLap3*>(hypre_solver.get());
+    ijmatrix_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
+    return hypre_solver;
+}
+#endif
+
+#ifdef AMREX_USE_PETSC
+std::unique_ptr<PETScABecLap>
+MLEBABecLap::makePETScABecLap () const
+{
+    auto petsc_solver = MLCellABecLap::makePETSc();
+    petsc_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
+    return petsc_solver;
+}
+#endif
+
+
 }

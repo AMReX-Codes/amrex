@@ -58,7 +58,7 @@ namespace amrex {
 namespace system
 {
     std::string exename;
-    int verbose;
+    int verbose = 1;
     int signal_handling;
     int call_addr2line;
     int throw_exception;
@@ -332,7 +332,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    ErrorHandler a_errhandler)
 {
     system::exename.clear();
-    system::verbose = 0;
+//    system::verbose = 0;
     system::regtest_reduction = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;

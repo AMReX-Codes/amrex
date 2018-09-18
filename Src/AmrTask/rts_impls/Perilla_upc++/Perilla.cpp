@@ -1667,6 +1667,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			frontPackage->notified = false;
 			rg->sMap[f]->r_con.snd[i].recycleQueue.enqueue(frontPackage,true);
 			pthread_mutex_unlock(&(rg->sMap[f]->r_con.sndLock));
+
 			pthread_mutex_lock(&(rg->lMap[f]->r_con.sndLock));
 			frontPackage = rg->lMap[f]->r_con.snd[i].pQueue.dequeue(true);
 			frontPackage->completed = false;
@@ -1786,9 +1787,12 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 		{
 		    serviceLocalGridCopyRequests(graphArray,g,tg);
 		}
-		serviceRemoteRequests(graphArray[g],g,nGraphs);
-		if(cpyAcross)
-		    if(tg==0)serviceRemoteGridCopyRequests(graphArray,g,nGraphs,tg);
+                if(np > 1)//if(tg==0)
+                {
+		    serviceRemoteRequests(graphArray[g],g,nGraphs);
+		    if(cpyAcross)
+		        if(tg==0)serviceRemoteGridCopyRequests(graphArray,g,nGraphs,tg);
+                }
 	    }
 	}
 	if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
@@ -2114,17 +2118,17 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 
 	    //std::cout<< "Before parallel at gID " << gDst->graphID << " numTask " << gDst->numTasks << " numFabs " << gDst->numFabs <<std::endl;      
 
-#pragma omp parallel shared(gSrc, gDst, mfSrc, mfDst, nfabsSrc, nfabsDst)
+//#pragma omp parallel shared(gSrc, gDst, mfSrc, mfDst, nfabsSrc, nfabsDst)
 	    {
-		int tid = omp_get_thread_num();//perilla::tid();//omp_get_thread_num();   
-		int tg = tid/perilla::NUM_THREADS_PER_TEAM;//perilla::wid();//WorkerThread::perilla_wid();
-		int nt= tid%perilla::NUM_THREADS_PER_TEAM;
-		int fg;
+//		int tid = omp_get_thread_num();//perilla::tid();//omp_get_thread_num();   
+//		int tg = tid/perilla::NUM_THREADS_PER_TEAM;//perilla::wid();//WorkerThread::perilla_wid();
+//		int nt= tid%perilla::NUM_THREADS_PER_TEAM;
+//		int fg;
 
 		for(int f=0; f<nfabsSrc; f++)
 		{
-		    if(nt==0)
-			if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
+//		    if(nt==0)
+//			if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
 			{
 			    //if(gDst->graphID > 25)
 			    //std::cout<< "Inside parallel Generating Send at tid " << tid << " f " << f << " gID " << gDst->graphID <<std::endl;   
@@ -2176,6 +2180,7 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 				    {
 					Package *tmpPkg = new Package(psize);
 			                void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
+					assert(local_ptr!=0);
 					for(int j=0; j<psize; j++){
 					    //tmpPkg->databuf[j] = 0;
 					    ((double*)local_ptr)[j]=0;
@@ -2243,12 +2248,12 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 				} // for(i<nsnds_cpAsc)                               
 			    } // if(np > 1)                                                                                                                                         
 			} // if(fg==tg)
-#pragma omp barrier
+//#pragma omp barrier
 		    //        std::cout<< "Barrier 1" <<std::endl;            
 		    if(np > 1)
 		    {
 			//if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-			if(tid==0)
+			//if(tid==0)
 			{
 
 			    // std::cout<< "Inside parallel Generating Remote Send tg 0 at tid " << tid << " f " << f << " gID " << gDst->graphID <<std::endl;  
@@ -2312,11 +2317,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 		    } // if(np > 1)       
 		} // for(f<nfabsSrc)
 		//        std::cout<< "Barrier 2 " <<" tid "<<tid<<std::endl;     
-#pragma omp barrier               
+//#pragma omp barrier               
 		for(int f=0; f<nfabsDst; f++)
 		{
-		    if(nt==0)
-			if(WorkerThread::isMyRegion(tg,f))// && perilla::isMasterWorkerThread())
+		    //if(nt==0)
+			//if(WorkerThread::isMyRegion(tg,f))// && perilla::isMasterWorkerThread())
 			{
 			    //        std::cout <<"tid: "<< tid << " f: "<< f << " is master "<<WorkerThread::isTeamMasterThread(tid) << " is my region "<<WorkerThread::isMyRegion(tg,f)<<std::endl;                 
 
@@ -2512,16 +2517,14 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 					    cpdDst->r_con.rcv[i].recycleQueue.enqueue(cpdDst->r_con.rcv[i].pQueue.dequeue());
 				    }
 				}
-
-
 			    } // if(np > 1)
 			}// if(fg==tg)
 
-#pragma omp barrier               
+//#pragma omp barrier               
 		    if(np > 1)
 		    {
 			//if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-			if(tid==0)
+			//if(tid==0)
 			{
 
 			    //  std::cout<< "Inside parallel Generating Remote Recive tg 0 at tid " << tid << " f " << f << " gID " << gDst->graphID <<std::endl;       
@@ -2617,11 +2620,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 		    //} //if(fg==tg)
 	    } // for(f<nfabsDst)
 	    // std::cout<< "Barrier 4" <<" tid "<<tid <<std::endl;                        
-#pragma omp barrier
+//#pragma omp barrier
 	    for(int f=0; f<nfabsSrc; f++)
 	    {
-		if(nt==0)
-		    if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
+		//if(nt==0)
+		    //if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
 		    {
 
 			//if(gDst->graphID > 25)
@@ -2637,11 +2640,11 @@ void Perilla::multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, con
 		    }
 	    } // for(f<nfabsSrc)
 	    //std::cout<< "Barrier 5" <<" tid "<<tid<<std::endl;                          
-#pragma omp barrier
+//#pragma omp barrier
 	    for(int f=0; f<nfabsDst; f++)
 	    {
-		if(nt==0)
-		    if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
+		//if(nt==0)
+		    //if(WorkerThread::isMyRegion(tg,f))// && WorkerThread::perilla_isMasterWorkerThread())
 		    {
 
 			//if(gDst->graphID > 25)
@@ -3704,9 +3707,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
     int np = ParallelDescriptor::NProcs();
     int myProc = ParallelDescriptor::MyProc();
     int numfabs = graphArray[g]->numTasks;
-    //MultiFab* mf = graphArray[g]->assocMF;
     int graphID = graphArray[g]->graphID;
-
 
     for(int f=0; f<numfabs; f++)
     {	
@@ -3725,7 +3726,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			}
 			else
 			{			    
-			    Package *rearPackage = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.getRear(true);//!CHECK THIS POINT LATER
+			    Package *rearPackage = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.getRear(true);
 			    // Also check the recycle queue because when rear is completed it may cause unlimited recv posts
 			    if(rearPackage->completed && graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.queueSize() > 1) //!latest receive request has been completed
 			    {
@@ -3737,7 +3738,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			if(nextsReq) //!take a message from recycle pool and post a receive
 			{
 			    //!create a package to keep track of receive requests
-
 			    Package *rMetaPackage = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.dequeue(true);
 			    //!extract a package from the recycle pool at the destination NUMA node to buffer incoming data
 			    int ns = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].ns;
@@ -3745,13 +3745,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			    int lnd = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].lnd;
 			    int r_grids = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].r_grids;
 			    Package *rPackage = cpDst->r_con.rcv[i].recycleQueue.dequeue(true);
-			    //int tag = tagGen(ns, nd, graphID-1, np*r_grids, nGraphs);
-			    //int tag = Perilla::myTagMap[graphID-1][nd][ns];
-			    //int tag = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].lnd;
 			    int tag = tagMap[graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr][g][nd][ns][graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].sz];
-
-			    //  if(graphArray[g]->graphID == 25 && lnd==10 && myProc==54)
-			    //std::cout << "R Posted g " << g << " myP " << myProc << " lnd " << lnd <<" nd "<< nd << " ns "<<ns << " tag "<<tag << " pr " <<graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr << std::endl;
 
                             rPackage->request = new future<>;
 			    cpDst->r_con.rcv[i].pQueue.enqueue(rPackage,true);   //!this is not done yet
@@ -3760,12 +3754,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                             pthread_mutex_lock(&(rMsgMap.lock));
                             rMsgMap.map[graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr][tag].push_back(rPackage);
                             pthread_mutex_unlock(&(rMsgMap.lock));
-#if 0
-			    rMetaPackage->request = ParallelDescriptor::Arecv(rPackage->databuf,
-				    graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].sz,
-				    graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr, tag).req(); // tag == SeqNum in c++ ver
-#endif
-
 			}						
 		    } // for (i<i<cpDst->r_con.nrcv)
 		    pthread_mutex_unlock(&(cpDst->r_con.rcvLock));
@@ -3783,8 +3771,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 	{
 	    for(int i=0; i<cpSrc->r_con.nsnd; i++)
 	    {
-		//if(g == 17 && f == 316 && i == 164)
-		//std::cout << "Comm Thread nsnd "<< cpSrc->r_con.nsnd << " " << graphArray[g]<< std::endl;
 		if(graphArray[g]->sCopyMapHead->map[f]->r_con.snd[i].pQueue.queueSize(true) == 0) //!no message has been received or all received messages have been claimed	       	
 		    nextrReq = false;
 		else
@@ -3792,7 +3778,6 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 
 		if(nextrReq) //!take a message from recycle pool and post a receive
 		{
-
 		    Package *sMetaPackage = graphArray[g]->sCopyMapHead->map[f]->r_con.snd[i].pQueue.getFront(true);
 		    if(!sMetaPackage->served)
 		    {		    
@@ -3839,6 +3824,8 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                                     getReq_t *req= new getReq_t(src, tag, sbuf, size);
                                     pendingGetList.add(req);
                                 }
+                                //store send request to notify sender later upon completion
+                                //sFutureMap[fu]= sMetaPackage->request;
                             }
                         );
 		    } //served

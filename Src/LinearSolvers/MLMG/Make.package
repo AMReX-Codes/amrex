@@ -21,6 +21,8 @@ CEXE_sources   += AMReX_MLCellLinOp.cpp
 CEXE_headers   += AMReX_MLNodeLinOp.H
 CEXE_sources   += AMReX_MLNodeLinOp.cpp
 
+CEXE_headers   += AMReX_MLCellABecLap.H
+CEXE_sources   += AMReX_MLCellABecLap.cpp
 
 CEXE_headers   += AMReX_MLCGSolver.H
 CEXE_sources   += AMReX_MLCGSolver.cpp
