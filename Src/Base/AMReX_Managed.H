@@ -73,6 +73,7 @@ namespace amrex {
     }
 
 #ifndef __CUDA_ARCH__
+
 struct Managed {
 
   void *operator new(size_t len)
@@ -109,8 +110,10 @@ struct Pinned {
 
 };
 #else
+
 struct Managed { };
 struct Pinned  { };
+
 #endif
 
 // ************************************************
@@ -129,9 +132,6 @@ struct Pinned  { };
 #define AMREX_CUDA_DEVICE
 #define AMREX_CUDA_GLOBAL
 
-
-inline bool syncDevice() {}
-inline bool checkManaged(const void *ptr) {}
 struct Managed {};
 struct Pinned  {};
 
