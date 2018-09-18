@@ -81,8 +81,12 @@ def case_insensitive_replace(s, old, new, count=-1, on_condition=None):
                 break
             else:
                 iend = istart + len(old)
-        s = s[:istart] + new + s[iend:]
-        ridx_start = istart + len(new)
+        if new.lower() == old.lower() + '_device':
+            actual_new = s[istart:iend] + '_device'
+        else:
+            actual_new = new
+        s = s[:istart] + actual_new + s[iend:]
+        ridx_start = istart + len(actual_new)
         n_replaced = n_replaced + 1
     return s
 
@@ -214,7 +218,7 @@ def get_function_uses(line):
         sline = line.split(':')
         for var in sline[1].split(','):
             if not '_device' in var.strip().lower() and not var.strip().lower() in imported_functions:
-                imported_functions.append(var.strip().lower())
+                imported_functions.append(var.strip())
 
     return imported_functions
 
@@ -239,7 +243,7 @@ def append_device(procedure):
             sub_name = line.lower().split('call ')[1].split('(')[0].strip()
             if sub_name != "syncthreads":
                 if not "_device" in sub_name and not sub_name.lower() in called_subs:
-                    called_subs.append(sub_name.lower())
+                    called_subs.append(sub_name)
 
     new_procedure = [append_device_to_line(line, called_subs) for line in procedure.split('\n')]
     new_procedure = '\n'.join(new_procedure)
@@ -387,7 +391,7 @@ def update_fortran_procedures(ffile):
                     procedure_name = get_procedure_name(procedure)
 
                     if not procedure_name.lower() in gpu_targets:
-                        gpu_targets.append(procedure_name.lower())
+                        gpu_targets.append(procedure_name)
 
                     # Create device and host versions of the procedure.
                     device_procedure = create_device_version(procedure)
