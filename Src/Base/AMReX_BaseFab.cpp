@@ -285,10 +285,17 @@ BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, i
     BL_ASSERT(domain.contains(bx));
     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
+#ifdef AMREX_USE_GPU_PRAGMA
     amrex_fort_fab_setval_ifnot(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
                                 BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
                                 BL_TO_FORTRAN_3D(mask),
                                 &val);
+#else
+    amrex_c_fab_setval_ifnot(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
+                             BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
+                             BL_TO_FORTRAN_3D(mask),
+                             &val);
+#endif
 }
 
 
