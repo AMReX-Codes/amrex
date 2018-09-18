@@ -25,8 +25,8 @@
 void
 amrex_c_fab_copy (const int* restrict lo, const int* restrict hi,
                   amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                  const int* restrict ncomp)
+                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                  const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -45,8 +45,7 @@ amrex_c_fab_copy (const int* restrict lo, const int* restrict hi,
 }
 
 long
-amrex_c_fab_copytomem (const int* restrict lo, const int* restrict hi,
-                       amrex_real* restrict dst,
+amrex_c_fab_copytomem (const int* restrict lo, const int* restrict hi, amrex_real* restrict dst,
                        const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
                        const int* restrict ncomp)
 {
@@ -68,8 +67,8 @@ amrex_c_fab_copytomem (const int* restrict lo, const int* restrict hi,
 
 long
 amrex_c_fab_copyfrommem (const int* restrict lo, const int* restrict hi,
-                         amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi, const int* restrict ncomp,
-                         const amrex_real* restrict src)
+                         amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
+                         const int* restrict ncomp, const amrex_real* restrict src)
 {
     DEFINE_STRIDES(dst,dlo,dhi);
     long xlength = hi[0]-lo[0]+1;
@@ -90,8 +89,8 @@ amrex_c_fab_copyfrommem (const int* restrict lo, const int* restrict hi,
 
 void
 amrex_c_fab_setval (const int* restrict lo, const int* restrict hi, 
-                    amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi, const int* restrict ncomp,
-                    const amrex_real* restrict val)
+                    amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
+                    const int* restrict ncomp, const amrex_real* restrict val)
 {
     DEFINE_STRIDES(dst,dlo,dhi);
     for (int n = 0; n < *ncomp; ++n) {
@@ -108,7 +107,8 @@ amrex_c_fab_setval (const int* restrict lo, const int* restrict hi,
 amrex_real
 amrex_c_fab_norminfmask (const int* restrict lo, const int* restrict hi,
                          const int* restrict msk, const int* restrict mlo, const int* restrict mhi,
-                         const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict ncomp)
+                         const amrex_real* restrict src, const int* restrict slo,
+                         const int* restrict shi, const int* restrict ncomp)
 {
     amrex_real nrm = 0.0;
     DEFINE_STRIDES(msk,mlo,mhi);
@@ -129,8 +129,8 @@ amrex_c_fab_norminfmask (const int* restrict lo, const int* restrict hi,
 
 amrex_real
 amrex_c_fab_norm (const int* restrict lo, const int* restrict hi,
-                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict ncomp,
-                  const int* restrict p)
+                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                  const int* restrict ncomp, const int* restrict p)
 {
     amrex_real nrm = 0.0;
     DEFINE_STRIDES(src,slo,shi);
@@ -160,7 +160,8 @@ amrex_c_fab_norm (const int* restrict lo, const int* restrict hi,
 
 amrex_real
 amrex_c_fab_sum (const int* restrict lo, const int* restrict hi,
-                 const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict ncomp)
+                 const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                 const int* restrict ncomp)
 {
     amrex_real sm = 0.0;
     DEFINE_STRIDES(src,slo,shi);
@@ -179,8 +180,8 @@ amrex_c_fab_sum (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_fab_plus (const int* restrict lo, const int* restrict hi,
                   amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                  const int* restrict ncomp)
+                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                  const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -201,8 +202,8 @@ amrex_c_fab_plus (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_fab_minus (const int* restrict lo, const int* restrict hi,
                    amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                   const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                   const int* restrict ncomp)
+                   const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                   const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -223,8 +224,8 @@ amrex_c_fab_minus (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_fab_mult (const int* restrict lo, const int* restrict hi,
                   amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                  const int* restrict ncomp)
+                  const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                  const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -245,8 +246,8 @@ amrex_c_fab_mult (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_fab_divide (const int* restrict lo, const int* restrict hi,
                     amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                    const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                    const int* restrict ncomp)
+                    const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                    const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -267,8 +268,8 @@ amrex_c_fab_divide (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_fab_protdivide (const int* restrict lo, const int* restrict hi,
                         amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                        const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                        const int* restrict ncomp)
+                        const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                        const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -290,8 +291,8 @@ amrex_c_fab_protdivide (const int* restrict lo, const int* restrict hi,
     
 void
 amrex_c_fab_invert (const int* restrict lo, const int* restrict hi,
-                    amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi, const int* restrict ncomp,
-                    const amrex_real* restrict a)
+                    amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
+                    const int* restrict ncomp, const amrex_real* restrict a)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     for (int n = 0; n < *ncomp; ++n) {
@@ -309,8 +310,8 @@ void
 amrex_c_fab_saxpy (const int* restrict lo, const int* restrict hi,
                    amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
                    const amrex_real* restrict a,
-                   const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                   const int* restrict ncomp)
+                   const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                   const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -332,8 +333,8 @@ amrex_c_fab_saxpy (const int* restrict lo, const int* restrict hi,
 void amrex_c_fab_xpay (const int* restrict lo, const int* restrict hi,
                        amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
                        const amrex_real* restrict a,
-                       const amrex_real* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                       const int* restrict ncomp)
+                       const amrex_real* restrict src, const int* restrict slo, const int* restrict shi,
+                       const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -355,8 +356,10 @@ void amrex_c_fab_xpay (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_fab_lincomb (const int* restrict lo, const int* restrict hi,
                      amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                     const amrex_real* restrict a, const amrex_real* restrict x, const int* restrict xlo, const int* restrict xhi, const int* restrict xblo,
-                     const amrex_real* restrict b, const amrex_real* restrict y, const int* restrict ylo, const int* restrict yhi, const int* restrict yblo,
+                     const amrex_real* restrict a, const amrex_real* restrict x,
+                     const int* restrict xlo, const int* restrict xhi, const int* restrict xblo,
+                     const amrex_real* restrict b, const amrex_real* restrict y,
+                     const int* restrict ylo, const int* restrict yhi, const int* restrict yblo,
                      const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
@@ -406,8 +409,8 @@ amrex_c_fab_addproduct (const int* restrict lo, const int* restrict hi,
 amrex_real
 amrex_c_fab_dot (const int* restrict lo, const int* restrict hi,
                  const amrex_real* restrict x, const int* restrict xlo, const int* restrict xhi,
-                 const amrex_real* restrict y, const int* restrict ylo, const int* restrict yhi, const int* restrict yblo,
-                 const int* restrict ncomp)
+                 const amrex_real* restrict y, const int* restrict ylo, const int* restrict yhi,
+                 const int* restrict yblo, const int* restrict ncomp)
 {
     amrex_real r = 0.0;
     DEFINE_STRIDES(x, xlo, xhi);
@@ -419,7 +422,7 @@ amrex_c_fab_dot (const int* restrict lo, const int* restrict hi,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    r = r + GET_VALUE_N(x,i,j,k,n) * GET_VALUE_N(y,i+ioff,j+joff,k+koff,n);
+                    r += GET_VALUE_N(x,i,j,k,n) * GET_VALUE_N(y,i+ioff,j+joff,k+koff,n);
                 }
             }
         }
@@ -430,7 +433,8 @@ amrex_c_fab_dot (const int* restrict lo, const int* restrict hi,
 amrex_real
 amrex_c_fab_dot_mask (const int* restrict lo, const int* restrict hi,
                       const amrex_real* restrict x, const int* restrict xlo, const int* restrict xhi,
-                      const amrex_real* restrict y, const int* restrict ylo, const int* restrict yhi, const int* restrict yblo,
+                      const amrex_real* restrict y, const int* restrict ylo, const int* restrict yhi,
+                      const int* restrict yblo,
                       const int* restrict m, const int* restrict mlo, const int* restrict mhi,
                       const int* restrict ncomp)
 {
@@ -445,7 +449,7 @@ amrex_c_fab_dot_mask (const int* restrict lo, const int* restrict hi,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    r = r + GET_VALUE_N(x,i,j,k,n) * GET_VALUE_N(y,i+ioff,j+joff,k+koff,n)
+                    r += GET_VALUE_N(x,i,j,k,n) * GET_VALUE_N(y,i+ioff,j+joff,k+koff,n)
                         * GET_VALUE(m,i,j,k);
                 }
             }
@@ -457,8 +461,8 @@ amrex_c_fab_dot_mask (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_ifab_copy (const int* restrict lo, const int* restrict hi,
                    int* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                   const int* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                   const int* restrict ncomp)
+                   const int* restrict src, const int* restrict slo, const int* restrict shi,
+                   const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -477,8 +481,7 @@ amrex_c_ifab_copy (const int* restrict lo, const int* restrict hi,
 }
 
 long
-amrex_c_ifab_copytomem (const int* restrict lo, const int* restrict hi,
-                        int* restrict dst,
+amrex_c_ifab_copytomem (const int* restrict lo, const int* restrict hi, int* restrict dst,
                         const int* restrict src, const int* restrict slo, const int* restrict shi,
                         const int* restrict ncomp)
 {
@@ -500,8 +503,8 @@ amrex_c_ifab_copytomem (const int* restrict lo, const int* restrict hi,
 
 long
 amrex_c_ifab_copyfrommem (const int* restrict lo, const int* restrict hi,
-                          int* restrict dst, const int* restrict dlo, const int* restrict dhi, const int* restrict ncomp,
-                          const int* restrict src)
+                          int* restrict dst, const int* restrict dlo, const int* restrict dhi,
+                          const int* restrict ncomp, const int* restrict src)
 {
     DEFINE_STRIDES(dst,dlo,dhi);
     long xlength = hi[0]-lo[0]+1;
@@ -521,8 +524,8 @@ amrex_c_ifab_copyfrommem (const int* restrict lo, const int* restrict hi,
 
 void
 amrex_c_ifab_setval (const int* restrict lo, const int* restrict hi, 
-                     int* restrict dst, const int* restrict dlo, const int* restrict dhi, const int* restrict ncomp,
-                     const int* restrict val)
+                     int* restrict dst, const int* restrict dlo, const int* restrict dhi,
+                     const int* restrict ncomp, const int* restrict val)
 {
     DEFINE_STRIDES(dst,dlo,dhi);
     for (int n = 0; n < *ncomp; ++n) {
@@ -539,8 +542,8 @@ amrex_c_ifab_setval (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_ifab_plus (const int* restrict lo, const int* restrict hi,
                    int* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                   const int* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                   const int* restrict ncomp)
+                   const int* restrict src, const int* restrict slo, const int* restrict shi,
+                   const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -561,8 +564,8 @@ amrex_c_ifab_plus (const int* restrict lo, const int* restrict hi,
 void
 amrex_c_ifab_minus (const int* restrict lo, const int* restrict hi,
                     int* restrict dst, const int* restrict dlo, const int* restrict dhi,
-                    const int* restrict src, const int* restrict slo, const int* restrict shi, const int* restrict sblo,
-                    const int* restrict ncomp)
+                    const int* restrict src, const int* restrict slo, const int* restrict shi,
+                    const int* restrict sblo, const int* restrict ncomp)
 {
     DEFINE_STRIDES(dst, dlo, dhi);
     DEFINE_STRIDES(src, slo, shi);
@@ -582,7 +585,8 @@ amrex_c_ifab_minus (const int* restrict lo, const int* restrict hi,
     
 void
 amrex_c_fab_setval_ifnot (const int* restrict lo, const int* restrict hi,
-                          amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi, const int* restrict ncomp,
+                          amrex_real* restrict dst, const int* restrict dlo, const int* restrict dhi,
+                          const int* restrict ncomp,
                           const int* restrict msk, const int* restrict mlo, const int* restrict mhi,
                           const int val)
 {
