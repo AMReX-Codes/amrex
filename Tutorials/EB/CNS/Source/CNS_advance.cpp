@@ -87,7 +87,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         for (MFIter mfi(S, MFItInfo().EnableTiling(hydro_tile_size).SetDynamic(true));
                         mfi.isValid(); ++mfi)
         {
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
             const Box& bx = mfi.tilebox();
 
@@ -175,7 +175,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                 }
             }
 
-            wt = (ParallelDescriptor::second() - wt) / bx.d_numPts();
+            wt = (amrex::second() - wt) / bx.d_numPts();
             cost[mfi].plus(wt, bx);
         }
     }

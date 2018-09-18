@@ -1,0 +1,11 @@
+
+CPPFLAGS += -DAMREX_USE_PETSC
+
+ifdef PETSC_DIR
+  INCLUDE_LOCATIONS += $(PETSC_DIR)/include
+  LIBRARY_LOCATIONS += $(PETSC_DIR)/lib
+  ifndef CRAY_PETSC_VERSION
+      LIBRARIES += -lpetsc -lHYPRE -llapack -lblas -lX11 -ldl
+  endif
+endif
+

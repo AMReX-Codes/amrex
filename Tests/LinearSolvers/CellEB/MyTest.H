@@ -12,6 +12,7 @@ public:
     MyTest ();
 
     void solve ();
+    void writePlotfile ();
 
 private:
 
@@ -27,6 +28,8 @@ private:
     int is_periodic = 0;
     int eb_is_dirichlet = 0;
     
+    std::string plot_file_name{"plot"};
+
     amrex::Vector<amrex::Real> scalars;
 
     // For MLMG solver
@@ -40,7 +43,7 @@ private:
     int linop_maxorder = 3;
     int max_coarsening_level = 30;
     bool use_hypre = false;
-
+    bool use_petsc = false;
     amrex::Vector<amrex::Geometry> geom;
     amrex::Vector<amrex::BoxArray> grids;
     amrex::Vector<amrex::DistributionMapping> dmap;

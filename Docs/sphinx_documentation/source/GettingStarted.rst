@@ -29,7 +29,7 @@ and is also shown below.
      int main(int argc, char* argv[])
      {
          amrex::Initialize(argc,argv);
-         amrex::Print() << "Hello world from AMReX version " 
+         amrex::Print() << "Hello world from AMReX version "
                         << amrex::Version() << "\n";
          amrex::Finalize();
      }
@@ -107,9 +107,9 @@ The result may look like,
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
 
 If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` for
-more details on how to configure the build system.  The command line
-argument ``amrex.v=1`` increases the AMReX verbosity level from the
-default value of 0 to 1 to print the number of MPI processes used.
+more details on how to configure the build system.  The *optional* command line
+argument ``amrex.v=1`` sets the AMReX verbosity level
+to 1 to print the number of MPI processes used.
 More details on how runtime parameters are handled can be found in
 section :ref:`sec:basics:parmparse`.
 

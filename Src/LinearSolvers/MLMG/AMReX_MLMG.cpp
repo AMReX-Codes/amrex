@@ -6,10 +6,16 @@
 #include <AMReX_MLMG_F.H>
 #include <AMReX_MLABecLaplacian.H>
 
+#ifdef AMREX_USE_PETSC
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
+#endif
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_MLEBABecLap.H>
 #endif
 
 // sol: full solution
@@ -459,6 +465,7 @@ MLMG::mgFcycle ()
 
     for (int mglev = 1; mglev <= mg_bottom_lev; ++mglev)
     {
+        // TODO: for EB cell-centered, we need to use EB_average_down
         amrex::average_down(res[amrlev][mglev-1], res[amrlev][mglev], 0, ncomp, ratio);
     }
 
@@ -800,6 +807,10 @@ MLMG::actualBottomSolve ()
         {
           bottomSolveWithHypre(x, *bottom_b);
         }
+        else if (bottom_solver == BottomSolver::petsc)
+        {
+            bottomSolveWithPETSc(x, *bottom_b);
+        }
         else
         {
             MLCGSolver cg_solver(linop);
@@ -979,6 +990,11 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     hypre_bndry.reset();
 #endif
 
+#ifdef AMREX_USE_PETSC
+    petsc_solver.reset(); 
+    petsc_bndry.reset(); 
+#endif
+
     sol.resize(namrlevs);
     sol_raii.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
@@ -1156,27 +1172,44 @@ MLMG::prepareForNSolve ()
 }
 
 void
-MLMG::getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol)
+MLMG::getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
+                       Location a_loc)
 {
     BL_PROFILE("MLMG::getGradSolution()");
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compGrad(alev, a_grad_sol[alev], *sol[alev]);
+        linop.compGrad(alev, a_grad_sol[alev], *sol[alev], a_loc);
     }
 }
 
 void
-MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux)
+MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                 Location a_loc)
 {
-    BL_PROFILE("MLMG::getFluxes()");
-    const Real betainv = 1.0 / linop.getBScalar();
-    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compFlux(alev, a_flux[alev], *sol[alev]);
+    linop.getFluxes(a_flux, sol, a_loc);
+}
+
+void
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
+{
+    AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
+    Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
+    for (int alev = 0; alev < namrlevs; ++alev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
-            if (betainv != 1.0) {
-                a_flux[alev][idim]->mult(betainv);
-            }
+            const int mglev = 0;
+            const int ncomp = linop.getNComp();
+            ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
+                                                      IntVect::TheDimensionVector(idim)),
+                                       linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
+                                       *linop.m_factory[alev][mglev]);
         }
+    }
+    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), Location::FaceCenter);
+    for (int alev = 0; alev < namrlevs; ++alev) {
+#ifdef AMREX_USE_EB
+        EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+#else
+        average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+#endif
     }
 }
 
@@ -1233,7 +1266,11 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
             linop.reflux(alev, *a_res[alev], *sol[alev], *prhs,
                          *a_res[alev+1], *sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
+#ifdef AMREX_USE_EB
+                amrex::EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+#else
                 amrex::average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+#endif
             }
         }
     }
@@ -1293,7 +1330,11 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
             linop.reflux(alev, *out[alev], *in[alev], rh[alev],
                          *out[alev+1], *in[alev+1], rh[alev+1]);
             if (linop.isCellCentered()) {
+#ifdef AMREX_USE_EB
+                amrex::EB_average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+#else
                 amrex::average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
+#endif
             }
         }
     }
@@ -1320,7 +1361,11 @@ MLMG::averageDownAndSync ()
     {
         for (int falev = finest_amr_lev; falev > 0; --falev)
         {
+#ifdef AMREX_USE_EB
+            amrex::EB_average_down(*sol[falev], *sol[falev-1], 0, ncomp, amrrr[falev-1]);
+#else
             amrex::average_down(*sol[falev], *sol[falev-1], 0, ncomp, amrrr[falev-1]);
+#endif
         }
     }
     else
@@ -1510,46 +1555,12 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 
     if (hypre_solver == nullptr)  // We should reuse the setup
     {
+        hypre_solver = linop.makeHypre(hypre_interface);
+        hypre_solver->setVerbose(bottom_verbose);
+
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
-        const auto& factory = *(linop.m_factory[0].back());
-        MPI_Comm comm = linop.BottomCommunicator();
-
-        hypre_solver = makeHypre(ba, dm, geom, comm, hypre_interface);
-        hypre_solver->setVerbose(bottom_verbose);
-
-        hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
-
-        const int mglev = linop.NMGLevels(0)-1;
-        auto ac = linop.getACoeffs(0, mglev);
-        if (ac)
-        {
-            hypre_solver->setACoeffs(*ac);
-        }
-        else
-        {
-            MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
-            alpha.setVal(0.0);
-            hypre_solver->setACoeffs(alpha);
-        }
-
-        auto bc = linop.getBCoeffs(0, mglev);
-        if (bc[0])
-        {
-            hypre_solver->setBCoeffs(bc);
-        }
-        else
-        {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, ncomp, 0, MFInfo(), factory);
-                beta[idim].setVal(1.0);
-            }
-            hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
-        }
 
         hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         hypre_bndry->setHomogValues();
@@ -1566,4 +1577,36 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 #endif
 }
 
+void
+MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
+{
+#if !defined(AMREX_USE_PETSC)
+    amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
+#else
+
+    const int ncomp = linop.getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithPETSc doesn't work with ncomp > 1");
+
+    if(petsc_solver == nullptr)
+    { 
+        petsc_solver = linop.makePETSc();
+        petsc_solver->setVerbose(bottom_verbose);
+
+        const BoxArray& ba = linop.m_grids[0].back();
+        const DistributionMapping& dm = linop.m_dmap[0].back();
+        const Geometry& geom = linop.m_geom[0].back();
+
+        petsc_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
+        petsc_bndry->setHomogValues();
+        const Real* dx = linop.m_geom[0][0].CellSize();
+        int crse_ratio = linop.m_coarse_data_crse_ratio > 0 ? linop.m_coarse_data_crse_ratio : 1;
+        RealVect bclocation(AMREX_D_DECL(0.5*dx[0]*crse_ratio,
+                                         0.5*dx[1]*crse_ratio,
+                                         0.5*dx[2]*crse_ratio));
+        petsc_bndry->setLOBndryConds(linop.m_lobc, linop.m_hibc, -1, bclocation);
+    }
+    petsc_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
+#endif
+}
+    
 }

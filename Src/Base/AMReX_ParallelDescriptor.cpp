@@ -2049,7 +2049,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 
     Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
 
-    int fileLength(0), fileLengthPadded(0);
+    long fileLength(0), fileLengthPadded(0);
 
     std::ifstream iss;
 
@@ -2064,7 +2064,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 	  }
         } else {
           iss.seekg(0, std::ios::end);
-          fileLength = iss.tellg();
+          fileLength = static_cast<std::streamoff>(iss.tellg());
           iss.seekg(0, std::ios::beg);
 	}
     }

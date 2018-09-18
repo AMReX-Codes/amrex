@@ -1,4 +1,4 @@
-module basefab_nd_module
+module amrex_basefab_nd_module
 
   use amrex_fort_module, only : amrex_real
 
@@ -632,4 +632,4 @@ contains
     
   end subroutine amrex_fab_setval_ifnot
     
-end module basefab_nd_module
+end module amrex_basefab_nd_module

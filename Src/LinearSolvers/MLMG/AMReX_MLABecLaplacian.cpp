@@ -25,7 +25,7 @@ MLABecLaplacian::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLABecLaplacian::define()");
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     m_b_coeffs.resize(m_num_amr_levels);
@@ -180,7 +180,7 @@ MLABecLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLABecLaplacian::prepareForSolve()");
 
-    MLCellLinOp::prepareForSolve();
+    MLCellABecLap::prepareForSolve();
 
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
@@ -426,7 +426,7 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 void
 MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only) const
+                        const FArrayBox& sol, Location, const int face_only) const
 {
     BL_PROFILE("MLABecLaplacian::FFlux()");
 
@@ -451,7 +451,7 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
 void
 MLABecLaplacian::update ()
 {
-    if (MLCellLinOp::needsUpdate()) MLCellLinOp::update();
+    if (MLCellABecLap::needsUpdate()) MLCellABecLap::update();
 
 #if (AMREX_SPACEDIM != 3)
     applyMetricTermsCoeffs();
