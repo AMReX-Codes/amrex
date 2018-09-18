@@ -253,7 +253,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         // should by advanced a fraction of a time step instead.
         // Scaling the fields is much easier and may be good enough.
         for (int i=0 ; i < zp.size() ; i++) {
-            const Real dtscale = dt - (zinject_plane_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
+            const Real dtscale = dt - (zinject_plane_lev_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
             if (0. < dtscale && dtscale < dt) {
                 Exp[i] *= dtscale;
                 Eyp[i] *= dtscale;
@@ -314,7 +314,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
 {
 
     // Update location of injection plane in the boosted frame
-    zinject_plane_previous = zinject_plane_levels[lev];
+    zinject_plane_lev_previous = zinject_plane_levels[lev];
     zinject_plane_levels[lev] -= dt*WarpX::beta_boost*PhysConst::c;
     zinject_plane_lev = zinject_plane_levels[lev];
 

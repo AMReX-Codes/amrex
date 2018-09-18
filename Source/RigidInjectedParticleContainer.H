@@ -70,10 +70,10 @@ private:
     amrex::Vector<amrex::Real> zinject_plane_levels;
 
     // Temporary quantites
-    amrex::Real zinject_plane_previous;
+    amrex::Real zinject_plane_lev;
+    amrex::Real zinject_plane_lev_previous;
     amrex::Vector<int> done_injecting_temp;
     bool done_injecting_lev;
-    amrex::Real zinject_plane_lev;
 
 };
 
