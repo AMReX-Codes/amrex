@@ -140,7 +140,7 @@ amrex_c_fab_norminfmask (const int* restrict lo, const int* restrict hi,
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
                     if (1 == GET_VALUE(msk,i,j,k)) {
-                        nrm = fmax(nrm,GET_VALUE_N(src,i,j,k,n));
+                        nrm = fmax(nrm,fabs(GET_VALUE_N(src,i,j,k,n)));
                     }
                 }
             }
