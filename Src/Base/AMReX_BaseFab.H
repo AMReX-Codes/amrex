@@ -2680,7 +2680,7 @@ BaseFab<T>::plus (const BaseFab<T>& src,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    dp[INDEX_N(*this,i,j,k,n)] += sp[INDEX_N(src,i,j,k,n)];
+                    dp[INDEX_N(*this,i,j,k,n)] += sp[INDEX_N(src,i+slo[0],j+slo[1],k+slo[2],n)];
                 }
             }
         }
@@ -2751,7 +2751,7 @@ BaseFab<T>::minus (const BaseFab<T>& src,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    dp[INDEX_N(*this,i,j,k,n)] -= sp[INDEX_N(src,i,j,k,n)];
+                    dp[INDEX_N(*this,i,j,k,n)] -= sp[INDEX_N(src,i+slo[0],j+slo[1],k+slo[2],n)];
                 }
             }
         }
@@ -2862,7 +2862,7 @@ BaseFab<T>::mult (const BaseFab<T>& src,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    dp[INDEX_N(*this,i,j,k,n)] *= sp[INDEX_N(src,i,j,k,n)];
+                    dp[INDEX_N(*this,i,j,k,n)] *= sp[INDEX_N(src,i+slo[0],j+slo[1],k+slo[2],n)];
                 }
             }
         }
@@ -2973,7 +2973,7 @@ BaseFab<T>::divide (const BaseFab<T>& src,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    dp[INDEX_N(*this,i,j,k,n)] /= sp[INDEX_N(src,i,j,k,n)];
+                    dp[INDEX_N(*this,i,j,k,n)] /= sp[INDEX_N(src,i+slo[0],j+slo[1],k+slo[2],n)];
                 }
             }
         }
@@ -3044,8 +3044,8 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    if (sp[INDEX_N(src,i,j,k,n)] != 0) {
-                        dp[INDEX_N(*this,i,j,k,n)] /=  sp[INDEX_N(src,i,j,k,n)];
+                    if (sp[INDEX_N(src,i+slo[0],j+slo[1],k+slo[2],n)] != 0) {
+                        dp[INDEX_N(*this,i,j,k,n)] /=  sp[INDEX_N(src,i+slo[0],j+slo[1],k+slo[2],n)];
                     }
                 }
             }
