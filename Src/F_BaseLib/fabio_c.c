@@ -16,7 +16,7 @@
 #define FILE_MODE  (            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 #define DIR_MODE   (FILE_MODE | S_IXUSR |           S_IXGRP | S_IXOTH)
 #define O_BINARY   0
-
+//
 static const int BUFFER_SIZE = 512;
 static const int FABIO_MAX_PATH_NAME = 512;
 
