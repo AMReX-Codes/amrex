@@ -18,35 +18,16 @@ namespace amrex {
 #ifdef AMREX_USE_CUDA
 
     template<typename T>
-    class CudaManagedAllocator {
+    class CudaManagedAllocator
+    {
     public :
 
-        typedef T value_type;
-        typedef value_type* pointer;
-        typedef const value_type* const_pointer;
-        typedef value_type& reference;
-        typedef const value_type& const_reference;
-        typedef std::size_t size_type;
-        typedef std::ptrdiff_t difference_type;
-    
-        template<typename U>
-        struct rebind {
-            typedef CudaManagedAllocator<U> other;
-        };
-    
-        inline explicit CudaManagedAllocator() {}
-        inline         ~CudaManagedAllocator() {}
-        inline explicit CudaManagedAllocator(CudaManagedAllocator const&) {}
-        template<typename U>
-        inline explicit CudaManagedAllocator(CudaManagedAllocator<U> const&) {}
-    
-        inline pointer       address(reference r)       { return &r; }
-        inline const_pointer address(const_reference r) { return &r; }
-    
-        inline pointer allocate(size_type cnt,
-                                typename std::allocator<void>::const_pointer = 0) {
-            pointer result = nullptr;
-            cudaError_t error = cudaMallocManaged(&result, cnt*sizeof(T));
+        using value_type = T;
+
+        inline value_type* allocate(std::size_t n)
+        {
+            value_type* result = nullptr;
+            cudaError_t error = cudaMallocManaged(&result, n*sizeof(T));
             if(error != cudaSuccess) {
                 amrex::Print() << "Allocation failed in cudaMallocManaged \n";
                 amrex::Abort();
@@ -54,25 +35,30 @@ namespace amrex {
             return result;
         }
     
-        inline void deallocate(pointer p, size_type) {
+        inline void deallocate(value_type* p, std::size_t)
+        {
             cudaError_t error = cudaFree(p);
             if(error != cudaSuccess) {
                 amrex::Print() << "Deallocation failed in cudaFree \n";
                 amrex::Abort();
             }
-        }
-    
-        inline size_type max_size() const {
-            return std::numeric_limits<size_type>::max() / sizeof(T);
-        }
-    
-        inline void construct(pointer p, const T& t) { new(p) T(t); }
-        inline void destroy(pointer p) { p->~T(); }
-    
-        inline bool operator==(CudaManagedAllocator const&)   { return true; }
-        inline bool operator!=(CudaManagedAllocator const& a) { return !operator==(a); }
+        }    
     };
 
+    template <class T, class U>
+    bool
+    operator==(CudaManagedAllocator<T> const&, CudaManagedAllocator<U> const&) noexcept
+    {
+        return true;
+    }
+    
+    template <class T, class U>
+    bool
+    operator!=(CudaManagedAllocator<T> const& x, CudaManagedAllocator<U> const& y) noexcept
+    {
+        return !(x == y);
+    }
+    
 #endif // AMREX_USE_CUDA
 
 } // namespace amrex
