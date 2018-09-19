@@ -26,6 +26,9 @@ public:
 
     void setVerbose (int v) { m_verbose = v; }
 
+    MLMG& getMLMG () { return *m_mlmg; }
+    MLLinOp& getLinOp () { return *m_linop; }
+
 private:
 
     std::unique_ptr<MLABecLaplacian> m_abeclap;

@@ -11,7 +11,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_BaseFab_f.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -1608,10 +1607,7 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
         FArrayBox& fab = (*this)[mfi];
         const IArrayBox& ifab = msk[mfi];
         const Box& bx = mfi.tilebox();
-        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_FAB(fab),
-                                BL_TO_FORTRAN_ANYD(ifab),
-                                0.0);
+        fab.setValIfNot(0.0, bx, ifab, 0, ncomp);
     }
     
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
