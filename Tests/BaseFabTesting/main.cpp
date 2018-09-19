@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
 #include <AMReX_BaseFab.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_Utility.H>
 
 using namespace amrex;
@@ -18,6 +19,8 @@ int main(int argc, char* argv[])
         pp.get("boxsize",boxsize);
     }
 
+        amrex::Print() << std::endl;
+
 #ifdef AMREX_USE_GPU_PRAGMA
         amrex::Print() << "Fortran version of BaseFab testing suite." << std::endl;
 #else
@@ -25,7 +28,7 @@ int main(int argc, char* argv[])
 #endif
         amrex::Print() << "Cubic boxes of length: " << boxsize << std::endl;
         amrex::Print() << "Number of iterations of each test: " << iters << std::endl;
-        amrex::Print() << "=========================================" << iters << std::endl << std::endl;
+        amrex::Print() << "=========================================" << std::endl << std::endl;
 
     {
         double timer;
@@ -45,7 +48,7 @@ int main(int argc, char* argv[])
         amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
         amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
         amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl; 
+        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     {
@@ -74,7 +77,7 @@ int main(int argc, char* argv[])
         amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
         amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
         amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl; 
+        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     {
@@ -99,7 +102,7 @@ int main(int argc, char* argv[])
         timer = second() - timer;
 
         amrex::Print() << "BaseFab<Real>::copyToMem() and copyFromMem() test." << std::endl;
-        amrex::Print() << "Result: " << fab2(IntVect::TheZeroVector())  << std::endl;
+        amrex::Print() << "Result: " << fab2(IntVect(1000))  << std::endl;
         amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
         amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
         amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl; 

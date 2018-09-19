@@ -1,11 +1,11 @@
-AMREX_HOME ?= ../../../
+AMREX_HOME ?= ../../
 
 DEBUG   = FALSE
 #DEBUG   = TRUE
 
 DIM = 3
 
-COMP    = gnu
+COMP    = intel 
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
