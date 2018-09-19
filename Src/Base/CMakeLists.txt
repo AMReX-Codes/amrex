@@ -7,6 +7,8 @@ add_sources ( AMReX.cpp AMReX_error_fi.cpp )
 add_sources ( AMReX.H AMReX_Exception.H )
 add_sources ( AMReX.cpp AMReX_error_fi.cpp )
 
+add_sources ( AMReX_RESTRICT.H )
+
 add_sources ( AMReX_IndexSequence.H )
 
 add_sources ( AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp )
