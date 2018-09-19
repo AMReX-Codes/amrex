@@ -27,6 +27,26 @@
 #endif
 
 
+#define DEFINE_STRIDES(q, qlo, qhi) \
+    const int jstride_##q = qhi[0]-qlo[0]+1; \
+    const int kstride_##q = jstride_##q*(qhi[1]-qlo[1]+1); \
+    const int nstride_##q = kstride_##q*(qhi[2]-qlo[2]+1); \
+    const int xlbound_##q = qlo[0]; \
+    const int ylbound_##q = qlo[1]; \
+    const int zlbound_##q = qlo[2];
+
+#define INDEX(q,i,j,k) \
+    i-xlbound_##q + (j-ylbound_##q)*jstride_##q + (k-zlbound_##q)*kstride_##q
+#define INDEX_N(q,i,j,k,n) \
+    INDEX(q,i,j,k) + n*nstride_##q
+
+#define GET_VALUE(q,i,j,k) q[INDEX(q,i,j,k)]
+#define GET_VALUE_N(q,i,j,k,n) q[INDEX_N(q,i,j,k,n)]
+
+#define GET_PTR(q,i,j,k) q+INDEX(q,i,j,k)
+#define GET_PTR_N(q,i,j,k,n) q+INDEX_N(q,i,j,k,n)
+
+
 namespace amrex
 {
     extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
@@ -1666,6 +1686,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
     }
 }
 
+#ifdef AMREX_USE_GPU_PRAGMA
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.
@@ -1799,6 +1820,7 @@ BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
 			const Box&         b,
 			int                comp,
 			int                numcomp);
+#endif
 
 template <class T>
 void
@@ -1834,6 +1856,15 @@ BaseFab<T>::abs (const Box& subbox,
                  int        numcomp)
 {
     ForEach(subbox, comp, numcomp, [](T& x) { x = std::abs(x); });
+}
+
+template <class T>
+Real
+BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
+                         int scomp, int ncomp) const
+{
+    // xxxxx TODO
+    return 0;
 }
 
 template <class T>
@@ -2080,11 +2111,72 @@ BaseFab<T>::plus (const BaseFab<T>& x)
 
 template <class T>
 BaseFab<T>&
+BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
+                   const Box& srcbox, const Box& destbox,
+                   int srccomp, int destcomp, int numcomp)
+{
+    // xxxxx TODO
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
 BaseFab<T>::saxpy (T a, const BaseFab<T>& x)
 {
     Box ovlp(domain);
     ovlp &= x.domain;
     return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,nvar) : *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::xpay (T a, const BaseFab<T>& x,
+                  const Box& srcbox, const Box& destbox,
+                  int srccomp, int destcomp, int numcomp)
+{
+    // xxxxx TODO
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
+                        const BaseFab<T>& src1, int comp1,
+                        const BaseFab<T>& src2, int comp2)
+{
+    // xxxxx TODO
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
+                     const BaseFab<T>& f2, const Box& b2, int comp2,
+                     Real alpha, Real beta, const Box& b,
+                     int comp, int numcomp)
+{
+    // xxxxx TODO
+    return *this;
+}
+
+template <class T>
+T
+BaseFab<T>::dot (const Box& xbx, int xcomp,
+                 const BaseFab<T>& y, const Box& ybx, int ycomp,
+                 int numcomp) const
+{
+    // xxxxx TODO
+    return 0;
+}
+
+template <class T>
+T
+BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
+                     const BaseFab<T>& y, const Box& ybx, int ycomp,
+                     int numcomp) const
+{
+    // xxxxx TODO
+    return 0;
 }
 
 template <class T>
@@ -2597,5 +2689,14 @@ private:
 }
 
 static amrex::BF_init amrex_file_scope_BF_init_object;
+
+
+#undef DEFINE_STRIDES
+#undef INDEX
+#undef INDEX_N
+#undef GET_VALUE
+#undef GET_VALUE_N
+#undef GET_PTR
+#undef GET_PTR_N
 
 #endif /*BL_BASEFAB_H*/
