@@ -1,5 +1,6 @@
 #include <AMReX_BaseFab_c.H>
-#include <math.h>
+#include <cmath>
+#include <algorithm>
 
 #define DEFINE_STRIDES(q, qlo, qhi) \
     const int jstride_##q = qhi[0]-qlo[0]+1; \
@@ -21,6 +22,10 @@
 #define GET_PTR_N(q,i,j,k,n) q+INDEX_N(q,i,j,k,n)
 
 /*****************************************************************************/
+
+using namespace amrex;
+
+extern "C" {
 
 void
 amrex_c_fab_copy (const int* AMREX_RESTRICT lo, const int* AMREX_RESTRICT hi,
@@ -140,7 +145,7 @@ amrex_c_fab_norminfmask (const int* AMREX_RESTRICT lo, const int* AMREX_RESTRICT
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
                     if (1 == GET_VALUE(msk,i,j,k)) {
-                        nrm = fmax(nrm,fabs(GET_VALUE_N(src,i,j,k,n)));
+                        nrm = std::max(nrm,std::abs(GET_VALUE_N(src,i,j,k,n)));
                     }
                 }
             }
@@ -161,7 +166,7 @@ amrex_c_fab_norm (const int* AMREX_RESTRICT lo, const int* AMREX_RESTRICT hi,
             for         (int k = lo[2]; k <= hi[2]; ++k) {
                 for     (int j = lo[1]; j <= hi[1]; ++j) {
                     for (int i = lo[0]; i <= hi[0]; ++i) {
-                        nrm = fmax(nrm,fabs(GET_VALUE_N(src,i,j,k,n)));
+                        nrm = std::max(nrm,std::abs(GET_VALUE_N(src,i,j,k,n)));
                     }
                 }
             }
@@ -171,7 +176,7 @@ amrex_c_fab_norm (const int* AMREX_RESTRICT lo, const int* AMREX_RESTRICT hi,
             for         (int k = lo[2]; k <= hi[2]; ++k) {
                 for     (int j = lo[1]; j <= hi[1]; ++j) {
                     for (int i = lo[0]; i <= hi[0]; ++i) {
-                        nrm += fabs(GET_VALUE_N(src,i,j,k,n));
+                        nrm += std::abs(GET_VALUE_N(src,i,j,k,n));
                     }
                 }
             }
@@ -605,3 +610,4 @@ amrex_c_ifab_minus (const int* AMREX_RESTRICT lo, const int* AMREX_RESTRICT hi,
     }    
 }
     
+}
