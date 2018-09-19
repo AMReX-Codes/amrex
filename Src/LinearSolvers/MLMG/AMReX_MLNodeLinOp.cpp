@@ -136,12 +136,12 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
 #endif
     for (MFIter mfi(resid, true); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.tilebox();
-        amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
-                                        BL_TO_FORTRAN_ANYD(resid[mfi]),
-                                        BL_TO_FORTRAN_ANYD(b[mfi]),
-                                        BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-					&ncomp);
+	    const Box& bx = mfi.tilebox();
+	    amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
+					    BL_TO_FORTRAN_ANYD(resid[mfi]),
+					    BL_TO_FORTRAN_ANYD(b[mfi]),
+					    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+					    &ncomp);
     }
 }
 
