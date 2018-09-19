@@ -271,6 +271,15 @@ public:
     T* dataPtr (const IntVect& iv, int n = 0);
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
+    T* dataPtr (int i, int j, int k, int n = 0) {
+        AMREX_ASSERT(dptr != nullptr);
+        return dptr + ((i-lbound[0]) + (j-lbound[1])*jstride + (k-lbound[2])*kstride + n*nstride);
+    }
+    const T* dataPtr (int i, int j, int k, int n = 0) const {
+        AMREX_ASSERT(dptr != nullptr);
+        return dptr + ((i-lbound[0]) + (j-lbound[1])*jstride + (k-lbound[2])*kstride + n*nstride);
+    }
+
     void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
     //! Returns true if the data for the FAB has been allocated.
@@ -1313,7 +1322,8 @@ BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns,
     int const* AMREX_RESTRICT mp = mask.dataPtr();
     const auto lo = bx.loVect3d();
     const auto hi = bx.hiVect3d();
-
+    const int xlength = hi[0]-lo[0]+1;
+ 
     for (int n = 0; n < num; ++n) {
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
@@ -2322,25 +2332,19 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
-    T* AMREX_RESTRICT dp = dataPtr(comp);
-    T const* AMREX_RESTRICT sp1 = f1.dataPtr(comp1);
-    T const* AMREX_RESTRICT sp2 = f2.dataPtr(comp2);
     const auto lo = b.loVect3d();
-    const auto hi = b.hiVect3d();
-    const int xlength = hi[0]-lo[0]+1;
-    auto s1lo = b1.loVect3d();
-    s1lo[0] -= lo[0];  s1lo[1] -= lo[1];  s1lo[2] -= lo[2];
-    auto s2lo = b2.loVect3d();
-    s2lo[0] -= lo[0];  s2lo[1] -= lo[1];  s2lo[2] -= lo[2];
+    const auto leng = b.length3d();
+    const auto lo1 = b1.loVect3d();
+    const auto lo2 = b2.loVect3d();
 
     for (int n = 0; n < numcomp; ++n) {
-        for         (int k = lo[2]; k <= hi[2]; ++k) {
-            for     (int j = lo[1]; j <= hi[1]; ++j) {
-                T* AMREX_RESTRICT dpp = dp + INDEX_N(*this,lo[0],j,k,n);
-                T const* AMREX_RESTRICT spp1 = sp1 + INDEX_N(f1,lo[0]+s1lo[0],j+s1lo[1],k+s1lo[2],n);
-                T const* AMREX_RESTRICT spp2 = sp2 + INDEX_N(f2,lo[0]+s2lo[0],j+s2lo[1],k+s2lo[2],n);
-                for (int i = 0; i < xlength; ++i) {
-                    dpp[i] = alpha*spp1[i] + beta*spp2[i];
+        for         (int k = 0; k < leng[2]; ++k) {
+            for     (int j = 0; j < leng[1]; ++j) {
+                T      * AMREX_RESTRICT dp  = dataPtr(lo [0],j+lo [1],k+lo [2],n);
+                T const* AMREX_RESTRICT sp1 = dataPtr(lo1[0],j+lo1[1],k+lo1[2],n);
+                T const* AMREX_RESTRICT sp2 = dataPtr(lo2[0],j+lo2[1],k+lo2[2],n);
+                for (int i = 0; i < leng[0]; ++i) {
+                    dp[i] = alpha*sp1[i] + beta*sp2[i];
                 }
             }
         }
