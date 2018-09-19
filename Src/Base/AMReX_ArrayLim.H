@@ -56,15 +56,12 @@
 #define AMREX_ARLIM(x)  (x)[0]
 #define AMREX_BCREC_3D(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
 #define AMREX_BCREC_ANYD(x) std::array<int,6>{(x)[0], 0, 0, (x)[1], 0, 0}.data()
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-#define AMREX_ARLIM_3D(x) x
-#define AMREX_ARLIM_ANYD(x) x
-#define AMREX_ZFILL(x) x
-#define AMREX_ARLIM_ARG(x) x[0], 0, 0
-#else
 #define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], 0., 0.}.data()
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#define AMREX_ARLIM_ARG(x) x[0], 0, 0
+#else
 #define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #endif
 #elif   AMREX_SPACEDIM==2
@@ -72,15 +69,12 @@
 #define AMREX_ARLIM(x)  (x)[0],(x)[1]
 #define AMREX_BCREC_3D(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
 #define AMREX_BCREC_ANYD(x) std::array<int,6>{(x)[0], (x)[1], 0, (x)[2], (x)[3], 0}.data()
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-#define AMREX_ARLIM_3D(x) x
-#define AMREX_ARLIM_ANYD(x) x
-#define AMREX_ZFILL(x) x
-#define AMREX_ARLIM_ARG(x) x[0], x[1], 0
-#else
 #define AMREX_ARLIM_3D(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ARLIM_ANYD(x) std::array<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ZFILL(x) std::array<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#define AMREX_ARLIM_ARG(x) x[0], x[1], 0
+#else
 #define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #endif
 #elif   AMREX_SPACEDIM==3
