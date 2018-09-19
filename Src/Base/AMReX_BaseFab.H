@@ -2327,6 +2327,7 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     T const* AMREX_RESTRICT sp2 = f2.dataPtr(comp2);
     const auto lo = b.loVect3d();
     const auto hi = b.hiVect3d();
+    const int xlength = hi[0]-lo[0]+1;
     auto s1lo = b1.loVect3d();
     s1lo[0] -= lo[0];  s1lo[1] -= lo[1];  s1lo[2] -= lo[2];
     auto s2lo = b2.loVect3d();
@@ -2335,10 +2336,11 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
-                for (int i = lo[0]; i <= hi[0]; ++i) {
-                    dp[INDEX_N(*this,i,j,k,n)] =
-                        alpha * sp1[INDEX_N(f1,i+s1lo[0],j+s1lo[1],k+s1lo[2],n)] +
-                        beta  * sp2[INDEX_N(f2,i+s2lo[0],j+s2lo[1],k+s2lo[2],n)];
+                T* AMREX_RESTRICT dpp = dp + INDEX_N(*this,lo[0],j,k,n);
+                T const* AMREX_RESTRICT spp1 = sp1 + INDEX_N(f1,lo[0]+s1lo[0],j+s1lo[1],k+s1lo[2],n);
+                T const* AMREX_RESTRICT spp2 = sp2 + INDEX_N(f2,lo[0]+s2lo[0],j+s2lo[1],k+s2lo[2],n);
+                for (int i = 0; i < xlength; ++i) {
+                    dpp[i] = alpha*spp1[i] + beta*spp2[i];
                 }
             }
         }
@@ -2373,7 +2375,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
         for         (int k = lo[2]; k <= hi[2]; ++k) {
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
-                    r += xp[INDEX_N(*this,i,j,k,n)] * yp[INDEX_N(y,i,j,k,n)];
+                    r += xp[INDEX_N(*this,i,j,k,n)] * yp[INDEX_N(y,i+ylo[0],j+ylo[1],k+ylo[2],n)];
                 }
             }
         }
@@ -2410,7 +2412,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
             for     (int j = lo[1]; j <= hi[1]; ++j) {
                 for (int i = lo[0]; i <= hi[0]; ++i) {
                     int m = static_cast<int>(static_cast<bool>(mp[INDEX(mask,i,j,k)]));
-                    r += xp[INDEX_N(*this,i,j,k,n)] * yp[INDEX_N(y,i,j,k,n)] * m;
+                    r += xp[INDEX_N(*this,i,j,k,n)] * yp[INDEX_N(y,i+ylo[0],j+ylo[1],k+ylo[2],n)] * m;
                 }
             }
         }
