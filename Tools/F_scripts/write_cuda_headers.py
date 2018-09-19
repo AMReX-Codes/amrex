@@ -58,7 +58,7 @@ __global__ static void cuda_{}
 decls_re = re.compile("(.*?)(\\()(.*)(\\))", re.IGNORECASE|re.DOTALL)
 
 # for finding a header entry for a function binding to a fortran subroutine
-fortran_binding_re = re.compile("(void)(\\s+)((?:[a-z][a-z_]+))",
+fortran_binding_re = re.compile("(void)(\\s+)((?:[a-z0-9][a-z_0-9]+))",
                                 re.IGNORECASE|re.DOTALL)
 
 class HeaderFile(object):
