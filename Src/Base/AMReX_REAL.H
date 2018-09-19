@@ -2,6 +2,12 @@
 #ifndef AMREX_REAL_H
 #define AMREX_REAL_H
 
+#ifdef _WIN32
+#define AMREX_RESTRICT __restrict
+#else
+#define AMREX_RESTRICT __restrict__
+#endif
+
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE
 #  undef BL_USE_FLOAT
