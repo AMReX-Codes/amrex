@@ -374,14 +374,6 @@ public:
                       int               destcomp,
                       int               numcomp);
 
-  //for debugging
-  BaseFab<T>&
-  slowCopy(const BaseFab<T>& src,
-           const Box&        srcbox,
-           int               srccomp,
-           const Box&        destbox,
-           int               destcomp,
-           int               numcomp);
     /**
     * \brief As above, except the destination Box and the source Box
     * are taken to be the entire domain of the destination.   A copy
@@ -1323,6 +1315,7 @@ template <class T>
 void
 BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num)
 {
+    // xxxxx
     AMREX_ASSERT(domain.contains(bx));
     AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
     ForEachIV(bx, ns, num, [&val, &mask](T& x, IntVect const& iv)
@@ -1347,33 +1340,6 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
-    return *this;
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::slowCopy(const BaseFab<T>& src,
-                     const Box&        srcbox,
-                     int               srccomp,
-                     const Box&        destbox,
-                     int               destcomp,
-                     int               numcomp)
-{
-    AMREX_ASSERT(destbox.ok());
-    AMREX_ASSERT(srcbox.sameSize(destbox));
-    AMREX_ASSERT(src.box().contains(srcbox));
-    AMREX_ASSERT(domain.contains(destbox));
-    AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
-    for(BoxIterator bit(destbox); bit.ok(); ++bit)
-    {
-      for(int icomp = 0; icomp < numcomp; icomp++)
-      {
-        int isrc =  srccomp  + icomp;
-        int idst =  destcomp + icomp;
-        (*this)(bit(), idst) = src(bit(), isrc);
-      }
-    }
     return *this;
 }
 
@@ -1619,6 +1585,7 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
                          int               destcomp,
                          int               numcomp)
 {
+    // xxxxx
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
             [] (T& d, T const& s) { d = s; });
 }
@@ -1630,6 +1597,7 @@ BaseFab<T>::performSetVal (T          val,
                            int        ns,
                            int        num)
 {
+    // xxxxx
     AMREX_ASSERT(domain.contains(bx));
     AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
 
@@ -1655,6 +1623,7 @@ BaseFab<T>::copyToMem (const Box& srcbox,
                        int        numcomp,
                        void*      dst) const
 {
+    // xxxxx
     if (srcbox.ok())
     {
         Transform(static_cast<T*>(dst), srcbox, srccomp, numcomp,
@@ -1674,6 +1643,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
                          int         numcomp,
                          const void* src)
 {
+    // xxxxx
     if (dstbox.ok())
     {
         Transform(dstbox, dstcomp, numcomp, static_cast<T const*>(src),
@@ -1855,6 +1825,7 @@ BaseFab<T>::abs (const Box& subbox,
                  int        comp,
                  int        numcomp)
 {
+    // xxxxx
     ForEach(subbox, comp, numcomp, [](T& x) { x = std::abs(x); });
 }
 
@@ -1883,6 +1854,7 @@ BaseFab<T>::norm (const Box& subbox,
                   int        comp,
                   int        numcomp) const
 {
+    // xxxxx
     Real nrm = 0.;
 
     if (p == 0)
@@ -1924,6 +1896,7 @@ T
 BaseFab<T>::min (const Box& subbox,
                  int        comp) const
 {
+    // xxxxx
     return Accumulate(subbox, comp, 1, std::numeric_limits<T>::max(),
                       [](T r, const T& x) -> T { return std::min(r,x); });
 }
@@ -1940,6 +1913,7 @@ T
 BaseFab<T>::max (const Box& subbox,
                  int        comp) const
 {
+    // xxxxx
     return Accumulate(subbox, comp, 1, std::numeric_limits<T>::lowest(),
                       [](T r, const T& x) -> T { return std::max(r,x); });
 }
@@ -1956,6 +1930,7 @@ IntVect
 BaseFab<T>::minIndex (const Box& subbox,
                       int        comp) const
 {
+    // xxxxx
     IntVect min_loc;
     T min_val = std::numeric_limits<T>::max();
     ForEachIV(subbox, comp, 1, [&min_loc,&min_val] (T const& x, IntVect const& iv)
@@ -1981,6 +1956,7 @@ IntVect
 BaseFab<T>::maxIndex (const Box& subbox,
                       int        comp) const
 {
+    // xxxxx
     IntVect max_loc;
     T max_val = std::numeric_limits<T>::lowest();
 
@@ -2001,6 +1977,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
+    // xxxxx
     mask.resize(domain,1);
     mask.setVal(0);
 
@@ -2021,6 +1998,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
+    // xxxxx
     mask.resize(domain,1);
     mask.setVal(0);
 
@@ -2041,6 +2019,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
+    // xxxxx
     mask.resize(domain,1);
     mask.setVal(0);
 
@@ -2061,6 +2040,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
+    // xxxxx
     mask.resize(domain,1);
     mask.setVal(0);
 
@@ -2081,6 +2061,7 @@ BaseFab<T>::maskGE(BaseFab<int>& mask,
                    T             val,
                    int           comp) const
 {
+    // xxxxx
     mask.resize(domain,1);
     mask.setVal(0);
 
@@ -2235,6 +2216,7 @@ BaseFab<T>::sum (const Box& subbox,
                  int        comp,
                  int        numcomp) const
 {
+    // xxxxx
     return Accumulate(subbox, comp, 1, std::numeric_limits<T>::lowest(),
                       [](T r, const T& x) -> T { return r+x; });
 }
@@ -2260,6 +2242,7 @@ BaseFab<T>::negate (const Box& b,
                     int        comp,
                     int        numcomp)
 {
+    // xxxxx
     ForEach(b, comp, numcomp, [](T& x) { x = -x; });
     return *this;
 }
@@ -2287,6 +2270,7 @@ BaseFab<T>::invert (T          r,
                     int        comp,
                     int        numcomp)
 {
+    // xxxxx
     ForEach(b, comp, numcomp, [&r](T& x) { x = r/x; });
     return *this;
 }
@@ -2314,6 +2298,7 @@ BaseFab<T>::plus (T          r,
                   int        comp,
                   int        numcomp)
 {
+    // xxxxx
     ForEach(b, comp, numcomp, [&r](T& x) { x += r; });
     return *this;
 }
@@ -2362,6 +2347,7 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
+    // xxxxx
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
             [] (T& d, T const& s) { d += s; });
     return *this;
@@ -2411,6 +2397,7 @@ BaseFab<T>::minus (const BaseFab<T>& src,
                    int               destcomp,
                    int               numcomp)
 {
+    // xxxxx
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
             [] (T& d, T const& s) { d -= s; });
     return *this;
@@ -2439,6 +2426,7 @@ BaseFab<T>::mult (T          r,
                   int        comp,
                   int        numcomp)
 {
+    // xxxxx
     ForEach(b, comp, numcomp, [&r](T& x) { x *= r; });
     return *this;
 }
@@ -2487,6 +2475,7 @@ BaseFab<T>::mult (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
+    // xxxxx
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
             [] (T& d, T const& s) { d *= s; });
     return *this;
@@ -2515,6 +2504,7 @@ BaseFab<T>::divide (T          r,
                     int        comp,
                     int        numcomp)
 {
+    // xxxxx
     ForEach(b, comp, numcomp, [&r](T& x) { x /= r; });
     return *this;
 }
@@ -2563,6 +2553,7 @@ BaseFab<T>::divide (const BaseFab<T>& src,
                     int               destcomp,
                     int               numcomp)
 {
+    // xxxxx
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
             [] (T& d, T const& s) { d /= s; });
     return *this;
@@ -2612,6 +2603,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
                               int               destcomp,
                               int               numcomp)
 {
+    // xxxxx
     ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
             [] (T& d, T const& s) { if (s) d /= s; });
     return *this;
