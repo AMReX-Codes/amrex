@@ -280,7 +280,7 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --vpath "$(VPATH_LOCATIONS)" \
              --headers "$(FEXE_headers) $(F90EXE_headers)" \
              --cxx "$(CEXE_sources)" \
-             --cpp "$(HOST_CC) -E -P -std=c99" \
+             --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
 endif
