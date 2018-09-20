@@ -263,7 +263,6 @@ void
 WarpX::OneStep_sub1 (Real curtime)
 {
     // TODO: we could save some charge depositions
-    // TODO: We need to redistribute particles after the first sub-step on the fine level
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;

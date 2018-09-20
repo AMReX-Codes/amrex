@@ -513,16 +513,20 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         ngz = ngz_nonci;
     }
 
+    int ngJx = WarpX::nox + 1;
+    int ngJy = WarpX::noy + 1;
+    int ngJz = WarpX::noz + 1;
+
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
-    IntVect ngJ(ngx,ngy,ngz_nonci);
-    IntVect ngRho = ngJ + 1;  // One extra ghost cell, so that it's safe to deposit charge density
-                              // after pushing particle.
+    IntVect ngJ(ngJx,ngJy,ngJz);
 #elif (AMREX_SPACEDIM == 2)
     IntVect ngE(ngx,ngz);
-    IntVect ngJ(ngx,ngz_nonci);
-    IntVect ngRho = ngJ + 1;
+    IntVect ngJ(ngJx,ngJz);
 #endif
+
+    IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
+                           // after pushing particle. 
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
