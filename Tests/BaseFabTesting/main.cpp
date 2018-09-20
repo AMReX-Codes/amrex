@@ -12,11 +12,13 @@ int main(int argc, char* argv[])
 
     long iters = 0;
     int boxsize = 0;
+    int ncomps = 0;
 
     {
         ParmParse pp;
         pp.get("iters", iters);
         pp.get("boxsize",boxsize);
+        pp.get("ncomps", ncomps);
     }
 
         amrex::Print() << std::endl;
@@ -27,14 +29,17 @@ int main(int argc, char* argv[])
         amrex::Print() << "C++ version of BaseFab testing suite." << std::endl;
 #endif
         amrex::Print() << "Cubic boxes of length: " << boxsize << std::endl;
+        amrex::Print() << "Number of components: " << ncomps << std::endl;
         amrex::Print() << "Number of iterations of each test: " << iters << std::endl;
         amrex::Print() << "=========================================" << std::endl << std::endl;
 
+    // SetVal
     {
         double timer;
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
-        BaseFab<Real> fab1(bx1,1);
+        BaseFab<Real> fab1(bx1,ncomps);
+
         fab1.setVal(1.0);
 
         timer = second();
@@ -51,25 +56,26 @@ int main(int argc, char* argv[])
         amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
+    // LinComb
     {
         double timer;
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
-        BaseFab<Real> fab1(bx1,1);
+        BaseFab<Real> fab1(bx1,ncomps);
         fab1.setVal(1.0);
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
-        BaseFab<Real> fab2(bx2,1);
+        BaseFab<Real> fab2(bx2,ncomps);
         fab2.setVal(2.0);
 
         Box bx3(IntVect(10), IntVect(10+boxsize-1));
-        BaseFab<Real> fab3(bx3,1);
+        BaseFab<Real> fab3(bx3,ncomps);
         fab3.setVal(3.0);
 
         timer = second();
         for (int i=0; i<iters; ++i)
         {
-           fab1.linComb(fab2, bx2, 0, fab3, bx3, 0, 0.5, 1.5, bx1, 0, 1);
+           fab1.linComb(fab2, bx2, 0, fab3, bx3, 0, 0.5, 1.5, bx1, 0, ncomps);
         }
         timer = second() - timer;
 
@@ -80,15 +86,16 @@ int main(int argc, char* argv[])
         amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
+    // CopyToMem & CopyFromMem
     {
         double timer;
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
-        BaseFab<Real> fab1(bx1,1);
+        BaseFab<Real> fab1(bx1,ncomps);
         fab1.setVal(5.5);
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
-        BaseFab<Real> fab2(bx2,1);
+        BaseFab<Real> fab2(bx2,ncomps);
         fab2.setVal(0.0);
 
         Vector<Real> buffer(bx1.numPts(), 0.0);
@@ -96,8 +103,8 @@ int main(int argc, char* argv[])
         timer = second();
         for (int i=0; i<iters; ++i)
         {
-           fab1.copyToMem(bx1, 0, 1, buffer.data());
-           fab2.copyFromMem(bx2, 0, 1, buffer.data());
+           fab1.copyToMem(bx1, 0, ncomps, buffer.data());
+           fab2.copyFromMem(bx2, 0, ncomps, buffer.data());
         }
         timer = second() - timer;
 
