@@ -28,10 +28,11 @@ int main(int argc, char* argv[])
 #else
         amrex::Print() << "C++ version of BaseFab testing suite." << std::endl;
 #endif
-        amrex::Print() << "Cubic boxes of length: " << boxsize << std::endl;
-        amrex::Print() << "Number of components: " << ncomps << std::endl;
-        amrex::Print() << "Number of iterations of each test: " << iters << std::endl;
-        amrex::Print() << "=========================================" << std::endl << std::endl;
+        amrex::Print() << "All results should equal 5.5. " << std::endl  
+                       << "Cubic boxes of length: " << boxsize << std::endl
+                       << "Number of components: " << ncomps << std::endl
+                       << "Number of iterations of each test: " << iters << std::endl
+                       << "=========================================" << std::endl << std::endl;
 
     // ====================================================================
     // SetVal
@@ -50,11 +51,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::setVal() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::setVal() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ====================================================================
@@ -78,11 +79,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::invert() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::invert() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
     // ====================================================================
     // Norm 
@@ -100,11 +101,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::norm() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::norm() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
     // ====================================================================
 
@@ -127,11 +128,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::norminfmask() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::norminfmask() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ====================================================================
@@ -151,11 +152,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::sum() test." << std::endl;
-        amrex::Print() << "Result: " << total << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::sum() test." << std::endl
+                       << "Result: " << total << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
     // ===================================================================
     // plus 
@@ -177,11 +178,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::plus() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::plus() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
     // ===================================================================
     // minus 
@@ -203,11 +204,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::minus() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::minus() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -235,11 +236,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::mult() and BaseFab<Real>::divide() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/(iters/2.0) << " seconds/ops." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/(2*timer)   <<  " ops/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::mult() and BaseFab<Real>::divide() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/(iters/2.0) << " seconds/ops." << std::endl
+                       << "                         or: " << double(iters)/(2*timer)   <<  " ops/second." << std::endl << std::endl; 
     }
     // ===================================================================
     // mult & protected_divide 
@@ -266,11 +267,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::mult() and BaseFab<Real>::protected_divide() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/(iters/2.0) << " seconds/ops." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/(2*timer)   <<  " ops/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::mult() and BaseFab<Real>::protected_divide() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/(iters/2.0) << " seconds/ops." << std::endl
+                       << "                         or: " << double(iters)/(2*timer)   <<  " ops/second." << std::endl << std::endl; 
     }
     // ===================================================================
     // dot 
@@ -293,11 +294,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::dot() test." << std::endl;
-        amrex::Print() << "Result: " << total  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::dot() test." << std::endl
+                       << "Result: " << total  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
     // ===================================================================
     // dotmask
@@ -324,11 +325,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::dotmask() test." << std::endl;
-        amrex::Print() << "Result: " << total << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::dotmask() test." << std::endl
+                       << "Result: " << total << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -351,11 +352,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::saxpy() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::saxpy() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -378,11 +379,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::xpay() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::xpay() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -409,11 +410,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::addproduct() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::addproduct() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -440,11 +441,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::linComb() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::linComb() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -469,11 +470,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::copy() test." << std::endl;
-        amrex::Print() << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::copy() test." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
+                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
@@ -499,11 +500,11 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        amrex::Print() << "BaseFab<Real>::copyToMem() and copyFromMem() test." << std::endl;
-        amrex::Print() << "Result: " << fab2(IntVect(1000))  << std::endl;
-        amrex::Print() << "Completed in: "                <<  timer << " seconds." << std::endl;
-        amrex::Print() << " or, completed at a rate of: " <<         timer/(iters/2.0) << " seconds/op." << std::endl;
-        amrex::Print() << "                         or: " << double(iters)/(2*timer)   << " ops/second." << std::endl << std::endl; 
+        amrex::Print() << "BaseFab<Real>::copyToMem() and copyFromMem() test." << std::endl
+                       << "Result: " << fab2(IntVect(1000))  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/(iters/2.0) << " seconds/op." << std::endl
+                       << "                         or: " << double(iters)/(2*timer)   << " ops/second." << std::endl << std::endl; 
     }
     // ===================================================================
 
