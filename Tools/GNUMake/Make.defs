@@ -374,6 +374,12 @@ ifeq ($(USE_CUDA),TRUE)
         $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
     endif
 
+    ifneq ($(lowercase_comp),pgi)
+        ifneq ($(lowercase_comp),ibm)
+            $(error CUDA can only be used with COMP=pgi COMP=ibm)
+        endif
+    endif
+
     ifeq ($(USE_MPI),TRUE)
       # Make sure that the C/C++ MPI
       # wrappers are calling nvcc to compile the code.
