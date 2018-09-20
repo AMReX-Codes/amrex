@@ -182,6 +182,8 @@ PETScABecLap::prepareSolver ()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (ebfactory) ? ebfactory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
+    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
 #endif
 
     HYPRE_Int ncells_proc = 0;
@@ -275,6 +277,8 @@ PETScABecLap::prepareSolver ()
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
+    FArrayBox foo(Box::TheUnitBox());
+    const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
 
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
@@ -327,6 +331,8 @@ PETScABecLap::prepareSolver ()
 #ifdef AMREX_USE_EB
             else
             {
+                FArrayBox const& beb = (is_eb_dirichlet) ? (*m_eb_b_coeffs)[mfi] : foo;
+
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
                                     &nrows, ncols, rows, cols, mat,
                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
@@ -344,6 +350,9 @@ PETScABecLap::prepareSolver ()
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
+                                    BL_TO_FORTRAN_ANYD(beb), &is_eb_dirichlet,
                                     &scalar_a, &scalar_b, dx,
                                     bctype.data(), bcl.data(), &bho);
             }
