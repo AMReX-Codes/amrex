@@ -113,9 +113,6 @@ add_sources ( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
 add_sources ( AMReX_BaseFab_nd.f90 AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
 add_sources ( AMReX_BaseFab_f.H AMReX_MultiFabUtil_F.H )
 
-add_sources ( AMReX_BaseFab_c.H )
-add_sources ( AMReX_BaseFab_c.cpp )
-
 add_sources ( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
 add_sources ( AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
 add_sources ( AMReX_bc_types_mod.F90 )

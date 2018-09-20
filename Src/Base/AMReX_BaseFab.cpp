@@ -10,7 +10,6 @@
 #endif
 
 #include <AMReX_BLFort.H>
-#include <AMReX_BaseFab_c.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
