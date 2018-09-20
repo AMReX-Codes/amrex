@@ -328,6 +328,8 @@ public:
     //! Same as above, except all components are set.
     void setVal (T x);
 
+    void setValIfNot (T x, const Box& bx, const BaseFab<int>& mask, int nstart, int ncomp);
+
     /**
     * \brief This function is analogous to the fourth form of
     * setVal above, except that instead of setting values on the
@@ -1313,6 +1315,18 @@ BaseFab<T>::setVal (T          x,
 }
 
 template <class T>
+void
+BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num)
+{
+    AMREX_ASSERT(domain.contains(bx));
+    AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
+    ForEachIV(bx, ns, num, [&val, &mask](T& x, IntVect const& iv)
+              {
+                  if (0 == mask(iv)) x = val;
+              });
+}
+
+template <class T>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        srcbox,
@@ -1713,6 +1727,11 @@ BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
                               int        ns,
                               int        num);
+
+template <>
+void
+BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, int ns, int num);
+
 template <>
 Real
 BaseFab<Real>::norminfmask (const Box& subbox, const BaseFab<int>& mask, int comp, int ncomp) const;
