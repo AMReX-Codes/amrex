@@ -7,10 +7,10 @@ DIM = 3
 
 COMP    = intel 
 
-USE_MPI   = FALSE
+USE_MPI   = TRUE 
 USE_OMP   = FALSE
 USE_CUDA  = FALSE
-USE_GPU_PRAGMA = TRUE 
+USE_GPU_PRAGMA = FALSE 
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 include ./Make.package
