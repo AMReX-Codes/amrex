@@ -105,9 +105,10 @@ def get_procedure_name(procedure):
 
     procedure_type = get_procedure_type(procedure)
 
-    sprocedure = procedure.lower().split()
+    sprocedure_lower = procedure.lower().split()
+    sprocedure = procedure.split()
 
-    procedure_name = sprocedure[sprocedure.index(procedure_type) + 1]
+    procedure_name = sprocedure[sprocedure_lower.index(procedure_type) + 1]
 
     # Now split out everything before the opening parenthesis, and truncate
     # out any spaces.
@@ -158,13 +159,13 @@ def append_device_to_line(line, subs):
     else:
 
         for sub_name in subs:
-            re_subroutine_call = re.compile('(call ' + sub_name + '\s|\()')
-            re_subroutine_device_call = re.compile('call ' + sub_name + '_device\s|\(')
+            re_subroutine_call = re.compile('(call ' + sub_name.lower() + '\s|\()')
+            re_subroutine_device_call = re.compile('call ' + sub_name.lower() + '_device\s|\(')
             m_subroutine_call = re_subroutine_call.search(new_line.lower())
             m_subroutine_device_call = re_subroutine_device_call.search(new_line.lower())
             if m_subroutine_call and not m_subroutine_device_call:
                 actual_new_line = new_line[:m_subroutine_call.start()]
-                actual_new_line = actual_new_line + m_subroutine_call.group(1).replace(sub_name, sub_name + '_device')
+                actual_new_line = actual_new_line + m_subroutine_call.group(1).replace(sub_name.lower(), sub_name + '_device')
                 actual_new_line = actual_new_line + new_line[m_subroutine_call.end():]
                 new_line = actual_new_line
                 break
@@ -176,10 +177,10 @@ def append_device_to_line(line, subs):
             elif sub_name in line.lower() and sub_name + '_device' not in line.lower():
                 # Catch function calls here.
                 # Make sure "bar(" is not any of "foobar(" or "foo % bar(" or "foo_bar("
-                old_fun = sub_name + '('
-                new_fun = sub_name + '_device' + '('
-                re_old_fun = re.compile(sub_name + " *\(")
-                re_not_fun = re.compile("((\w)|(% *))" + sub_name + " *\(")
+                old_fun = sub_name.lower() + '('
+                new_fun = sub_name.lower() + '_device' + '('
+                re_old_fun = re.compile(sub_name.lower() + " *\(")
+                re_not_fun = re.compile("((\w)|(% *))" + sub_name.lower() + " *\(")
                 actual_new_line = ''
                 while(new_line):
                     m_old_fun = re_old_fun.search(new_line.lower())
@@ -242,13 +243,18 @@ def append_device(procedure):
                     continue
             sub_name = line.lower().split('call ')[1].split('(')[0].strip()
             if sub_name != "syncthreads":
-                if not "_device" in sub_name and not sub_name.lower() in called_subs:
+                if not "_device" in sub_name and not sub_name.lower() in lowerlist(called_subs):
                     called_subs.append(sub_name)
 
     new_procedure = [append_device_to_line(line, called_subs) for line in procedure.split('\n')]
     new_procedure = '\n'.join(new_procedure)
 
     return new_procedure
+
+
+def lowerlist(l):
+    x = [li.lower() for li in l]
+    return x
 
 
 def get_replace_procedure(line, pname):
@@ -265,7 +271,7 @@ def get_replace_procedure(line, pname):
 
 def create_device_version(procedure):
 
-    procedure_name = get_procedure_name(procedure)
+    procedure_name = get_procedure_name(procedure).lower()
 
     procedure_type = get_procedure_type(procedure)
 
@@ -465,7 +471,7 @@ def update_fortran_procedures(ffile):
         if "contains" in line.lower() and not line.strip().startswith('!'):
             fout.write('\n')
             for target in gpu_targets:
-                fout.write('  public :: ' + target.lower() + '_device\n')
+                fout.write('  public :: ' + target + '_device\n')
             fout.write('\n')
 
         # If there are any calls inside a device procedure to
