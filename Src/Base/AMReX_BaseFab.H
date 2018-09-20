@@ -2376,7 +2376,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
-    T r;
+    T r = 0;
 
     const auto xp0 = this->stridedPtr(xbx, xcomp);
     const auto yp0 =     y.stridedPtr(ybx, ycomp);
@@ -2411,7 +2411,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     BL_ASSERT(xcomp >= 0 && xcomp+numcomp <=   nComp());
     BL_ASSERT(ycomp >= 0 && ycomp+numcomp <= y.nComp());
 
-    T r;
+    T r = 0;
 
     const auto xp0 = this->stridedPtr(xbx, xcomp);
     const auto yp0 =     y.stridedPtr(ybx, ycomp);
