@@ -1185,11 +1185,38 @@ void
 MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
-    linop.getFluxes(a_flux, sol, a_loc);
+    AMREX_ASSERT(sol.size() == a_flux.size());
+    getFluxes(a_flux, sol, a_loc);
+}
+
+void
+MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                 const Vector<MultiFab*>& a_sol,
+                 Location a_loc)
+{
+    BL_PROFILE("MLMG::getFluxes()");
+    const Real betainv = 1.0 / linop.getBScalar();
+
+    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
+        linop.compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+            if (betainv != 1.0) {
+                a_flux[alev][idim]->mult(betainv);
+            }
+        }
+    }
 }
 
 void
 MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
+{
+    AMREX_ASSERT(sol.size() == a_flux.size());
+    getFluxes(a_flux, sol, a_loc);
+}
+
+void
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location a_loc)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
     Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
@@ -1203,7 +1230,7 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
                                        *linop.m_factory[alev][mglev]);
         }
     }
-    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), Location::FaceCenter);
+    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
     for (int alev = 0; alev < namrlevs; ++alev) {
 #ifdef AMREX_USE_EB
         EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
