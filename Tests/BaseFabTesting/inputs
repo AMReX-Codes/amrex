@@ -1,3 +1,3 @@
-iters = 1000000
+iters = 1000
 boxsize = 64
 ncomps = 1
