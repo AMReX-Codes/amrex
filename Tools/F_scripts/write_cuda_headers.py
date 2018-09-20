@@ -555,13 +555,12 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 # for dividing the work between the host and device.
 
                 hout.write("if (amrex::Device::inDeviceLaunchRegion()) {\n")
-                hout.write("    dim3 {}numBlocks, {}numThreads;\n" \
-                           "    Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n" \
-                           "#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
+                hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
+                hout.write("    Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
+                hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
                            "    CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
-                           "#endif\n" \
-                           "    cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(
-                               func_name, func_name, func_name, func_name, func_name, func_name, func_name, func_name, args))
+                           "#endif\n".format(func_name))
+                hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
 
                 if 'AMREX_DEBUG' in defines:
                     hout.write("CudaAPICheck(cudaDeviceSynchronize());\n")
