@@ -101,6 +101,9 @@ ifeq ($(USE_CUDA),TRUE)
   F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath
   FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath
 
+  F90FLAGS += -Mcuda=charstring
+  FFLAGS   += -Mcuda=charstring
+
   ifeq ($(DEBUG),TRUE)
     F90FLAGS += -Mcuda=debug
     FFLAGSS  += -Mcuda=debug
