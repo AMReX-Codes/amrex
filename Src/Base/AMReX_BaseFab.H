@@ -46,6 +46,18 @@ namespace amrex
     void ResetTotalBytesAllocatedInFabsHWM();
     void update_fab_stats (long n, long s, std::size_t szt);
 
+template <typename P>
+struct StridedPtr
+{
+    P p;
+    int jstride;
+    int kstride;
+    int nstride;
+    P operator() (int i, int j, int k, int n=0) const {
+        return p +(i+j*jstride+k*kstride+n*nstride);
+    }
+};
+
 /**
 *  \brief A Fortran Array-like Object
 *  BaseFab emulates the Fortran array concept.  
@@ -265,16 +277,53 @@ public:
     T* dataPtr (const IntVect& iv, int n = 0);
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
-    T* dataPtr (int i, int j, int k, int n = 0) {
-        AMREX_ASSERT(dptr != nullptr);
-        return dptr + ((i-lbound[0]) + (j-lbound[1])*jstride + (k-lbound[2])*kstride + n*nstride);
-    }
-    const T* dataPtr (int i, int j, int k, int n = 0) const {
-        AMREX_ASSERT(dptr != nullptr);
-        return dptr + ((i-lbound[0]) + (j-lbound[1])*jstride + (k-lbound[2])*kstride + n*nstride);
+    void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
+
+    StridedPtr<T const*> stridedPtr (int n = 0) const {
+        const auto& len = domain.length3d();
+        int jstride = len[0];
+        int kstride = jstride*len[1];
+        int nstride = kstride*len[2];
+        T const* p = dptr + n*nstride;
+        return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
-    void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
+    StridedPtr<T*> stridedPtr (int n = 0) {
+        const auto& len = domain.length3d();
+        int jstride = len[0];
+        int kstride = jstride*len[1];
+        int nstride = kstride*len[2];
+        T* p = dptr + n*nstride;
+        return StridedPtr<T*>{p, jstride, kstride, nstride};
+    }
+
+    StridedPtr<T const*> stridedPtr (const Box& subbox, int n = 0) const {
+        const auto& len = domain.length3d();
+        int jstride = len[0];
+        int kstride = jstride*len[1];
+        int nstride = kstride*len[2];
+        const auto& dlo = domain.loVect3d();
+        const auto& slo = subbox.loVect3d();
+        T const* p = dptr + (  (slo[0]-dlo[0])
+                             + (slo[1]-dlo[1])*jstride
+                             + (slo[2]-dlo[2])*kstride
+                             +               n*nstride);
+        return StridedPtr<T const*>{p, jstride, kstride, nstride};
+    }
+
+    StridedPtr<T*> stridedPtr (const Box& subbox, int n = 0) {
+        const auto& len = domain.length3d();
+        int jstride = len[0];
+        int kstride = jstride*len[1];
+        int nstride = kstride*len[2];
+        const auto& dlo = domain.loVect3d();
+        const auto& slo = subbox.loVect3d();
+        T* p = dptr + (  (slo[0]-dlo[0])
+                       + (slo[1]-dlo[1])*jstride
+                       + (slo[2]-dlo[2])*kstride
+                       +               n*nstride);
+        return StridedPtr<T*>{p, jstride, kstride, nstride};
+    }
 
     //! Returns true if the data for the FAB has been allocated.
     bool isAllocated () const { return dptr != 0; }
@@ -927,10 +976,6 @@ protected:
 
     Box     domain;   // My index space.
     IntVect dlen;     // Length of domain in each direction.
-    int     jstride;  // strides
-    int     kstride;
-    int     nstride;
-    std::array<int,3> lbound;
     int     nvar;     // Number components.
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
@@ -956,7 +1001,7 @@ ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
     AMREX_ASSERT(fab.contains(b));
     AMREX_ASSERT(c >= 0 && c + nc <= fab.nComp());
 
-    const auto& len3 = b.length3d();
+    const auto len3 = b.length3d();
     const int* blo = b.loVect();
     for (int n = c; n < c+nc; ++n) {
         for     (int k = 0; k < len3[2]; ++k) {
@@ -981,7 +1026,7 @@ ForEachIVImpl (B& fab, const Box& b, int c, int nc, F f)
     AMREX_ASSERT(fab.contains(b));
     AMREX_ASSERT(c >= 0 && c + nc <= fab.nComp());
 
-    const auto& len3 = b.length3d();
+    const auto len3 = b.length3d();
     const int* blo = b.loVect();
     for (int n = c; n < c+nc; ++n) {
         for     (int k = 0; k < len3[2]; ++k) {
@@ -1012,7 +1057,7 @@ BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
     AMREX_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
 
-    const auto& len3 = dstbox.length3d();
+    const auto len3 = dstbox.length3d();
     const int* dlo = dstbox.loVect();
     const int* slo = srcbox.loVect();
     for (int n = 0; n < numcomp; ++n) {
@@ -1045,7 +1090,7 @@ BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
     AMREX_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
 
-    const auto& len3 = dstbox.length3d();
+    const auto len3 = dstbox.length3d();
     const int* dlo = dstbox.loVect();
     for (int n = 0; n < numcomp; ++n) {
         for     (int k = 0; k < len3[2]; ++k) {
@@ -1068,7 +1113,7 @@ template <typename P, class F>
 P
 BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
 {
-    const auto& len3 = b.length3d();
+    const auto len3 = b.length3d();
     const int* blo = b.loVect();
     for (int n = c; n < c+nc; ++n) {
         for     (int k = 0; k < len3[2]; ++k) {
@@ -1094,7 +1139,7 @@ BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
     AMREX_ASSERT(contains(b));
     AMREX_ASSERT(c >= 0 && c + nc <= nComp());
 
-    const auto& len3 = b.length3d();
+    const auto len3 = b.length3d();
     const int* blo = b.loVect();
     for (int n = c; n < c+nc; ++n) {
         for     (int k = 0; k < len3[2]; ++k) {
@@ -1119,7 +1164,7 @@ BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
     AMREX_ASSERT(contains(b));
     AMREX_ASSERT(c >= 0 && c + nc <= nComp());
 
-    const auto& len3 = b.length3d();
+    const auto len3 = b.length3d();
     const int* blo = b.loVect();
     for (int n = c; n < c+nc; ++n) {
         for     (int k = 0; k < len3[2]; ++k) {
@@ -1312,14 +1357,16 @@ BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns,
     AMREX_ASSERT(domain.contains(bx));
     AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
 
-    const auto& lo  = bx.loVect3d();
-    const auto& len = bx.length3d();
- 
+    const auto dp0 = this->stridedPtr(bx,ns);
+    const auto mp0 =  mask.stridedPtr(bx);
+
+    const auto len = bx.length3d();
+
     for (int n = 0; n < num; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T        * AMREX_RESTRICT dp =      dataPtr(lo[0],j+lo[1],k+lo[2],n+ns);
-                int const* AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]);
+                T        * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                int const* AMREX_RESTRICT mp = mp0(0,j,k);
                 for (int i = 0; i < len[0]; ++i) {
                     if (!mp[i]) dp[i] = val;
                 }
@@ -1437,18 +1484,6 @@ BaseFab<T>::BaseFab (const Box& bx,
     :
     domain(bx),
     dlen(bx.size()),
-    jstride(dlen[0]),
-#if (AMREX_SPACEDIM > 1)
-    kstride(jstride*dlen[1]),
-#else
-    kstride(jstride),
-#endif
-#if (AMREX_SPACEDIM == 3)
-    nstride(kstride*dlen[2]),
-#else
-    nstride(kstride),
-#endif
-    lbound(domain.loVect3d()),
     nvar(n),
     numpts(bx.numPts()),
     truesize(0),
@@ -1464,10 +1499,6 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
     :
     domain(rhs.domain),
     dlen(rhs.dlen),
-    jstride(rhs.jstride),
-    kstride(rhs.kstride),
-    nstride(rhs.nstride),
-    lbound(domain.loVect3d()),
     nvar(ncomp),
     numpts(rhs.numpts),
     truesize(ncomp*rhs.numpts),
@@ -1493,18 +1524,6 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
     :
     domain(bx),
     dlen(bx.size()),
-    jstride(dlen[0]),
-#if (AMREX_SPACEDIM > 1)
-    kstride(jstride*dlen[1]),
-#else
-    kstride(jstride),
-#endif
-#if (AMREX_SPACEDIM == 3)
-    nstride(kstride*dlen[2]),
-#else
-    nstride(kstride),
-#endif
-    lbound(domain.loVect3d()),
     nvar(ncomp),
     numpts(bx.numPts()),
     truesize(bx.numPts()*ncomp),
@@ -1525,10 +1544,6 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     :
     domain(rhs.domain),
     dlen(rhs.dlen),
-    jstride(rhs.jstride),
-    kstride(rhs.kstride),
-    nstride(rhs.nstride),
-    lbound(domain.loVect3d()),
     nvar(rhs.nvar),
     numpts(rhs.numpts),
     truesize(rhs.truesize),
@@ -1556,18 +1571,6 @@ BaseFab<T>::resize (const Box& b,
     nvar   = n;
     domain = b;
     dlen   = b.size();
-    jstride = dlen[0];
-#if (AMREX_SPACEDIM > 1)
-    kstride = jstride*dlen[1];
-#else
-    kstride = jstride;
-#endif
-#if (AMREX_SPACEDIM == 3)
-    nstride = kstride*dlen[2];
-#else
-    nstride = kstride;
-#endif
-    lbound = domain.loVect3d();
     numpts = domain.numPts();
 
     if (dptr == 0)
@@ -1640,15 +1643,16 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =     dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = src.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = sp[i];
                 }
@@ -1667,13 +1671,14 @@ BaseFab<T>::performSetVal (T          val,
     AMREX_ASSERT(domain.contains(bx));
     AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
 
-    const auto& lo  = bx.loVect3d();
-    const auto& len = bx.length3d();
+    const auto dp0 = this->stridedPtr(bx,ns);
+
+    const auto len = bx.length3d();
 
     for (int n = 0; n < num; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+ns);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = val;
                 }
@@ -1694,15 +1699,16 @@ BaseFab<T>::copyToMem (const Box& srcbox,
 
     if (srcbox.ok())
     {
-        const auto& lo  = srcbox.loVect3d();
-        const auto& len = srcbox.length3d();
         T* AMREX_RESTRICT dp = static_cast<T*>(dst);
+        const auto sp0 = this->stridedPtr(srcbox,srccomp);
+
+        const auto len = srcbox.length3d();
 
         std::size_t offset = 0;
         for (int n = 0; n < numcomp; ++n) {
             for         (int k = 0; k < len[2]; ++k) {
                 for     (int j = 0; j < len[1]; ++j) {
-                    T const* AMREX_RESTRICT sp = dataPtr(lo[0],j+lo[1],k+lo[2],n+srccomp);
+                    T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
                         dp[offset+i] = sp[i];
                     }
@@ -1730,15 +1736,16 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
 
     if (dstbox.ok())
     {
-        const auto& lo  = dstbox.loVect3d();
-        const auto& len = dstbox.length3d();
+        const auto dp0 = this->stridedPtr(dstbox,dstcomp);
         T const* AMREX_RESTRICT sp = static_cast<T const*>(src);
+
+        const auto len = dstbox.length3d();
 
         std::size_t offset = 0;
         for (int n = 0; n < numcomp; ++n) {
             for         (int k = 0; k < len[2]; ++k) {
                 for     (int j = 0; j < len[1]; ++j) {
-                    T* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+dstcomp);
+                    T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
                         dp[i] = sp[offset+i];
                     }
@@ -1787,13 +1794,14 @@ BaseFab<T>::abs (const Box& subbox,
                  int        comp,
                  int        numcomp)
 {
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+
+    const auto len = subbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = std::abs(dp[i]);
                 }
@@ -1812,14 +1820,16 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
 
     Real r = 0.0;
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,scomp);
+    const auto mp0 =  mask.stridedPtr(subbox);
+
+    const auto len = subbox.length3d();
 
     for (int n = 0; n < ncomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T   const* AMREX_RESTRICT dp =      dataPtr(lo[0],j+lo[1],k+lo[2],n+scomp);
-                int const* AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]        );
+                T   const* AMREX_RESTRICT dp = dp0(0,j,k,n);
+                int const* AMREX_RESTRICT mp = mp0(0,j,k);
                 for (int i = 0; i < len[0]; ++i) {
                     if (mp[i]) {
                         r = std::max(r, static_cast<Real>(std::abs(dp[i])));
@@ -1853,15 +1863,15 @@ BaseFab<T>::norm (const Box& subbox,
 
     Real nrm = 0.;
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
 
     if (p == 0)
     {
         for (int n = 0; n < numcomp; ++n) {
             for         (int k = 0; k < len[2]; ++k) {
                 for     (int j = 0; j < len[1]; ++j) {
-                    T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                    T const* AMREX_RESTRICT dp = dp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
                         nrm = std::max(nrm, static_cast<Real>(std::abs(dp[i])));
                     }
@@ -1874,7 +1884,7 @@ BaseFab<T>::norm (const Box& subbox,
         for (int n = 0; n < numcomp; ++n) {
             for         (int k = 0; k < len[2]; ++k) {
                 for     (int j = 0; j < len[1]; ++j) {
-                    T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                    T const* AMREX_RESTRICT dp = dp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
                         nrm += std::abs(dp[i]);
                     }
@@ -1887,7 +1897,7 @@ BaseFab<T>::norm (const Box& subbox,
         for (int n = 0; n < numcomp; ++n) {
             for         (int k = 0; k < len[2]; ++k) {
                 for     (int j = 0; j < len[1]; ++j) {
-                    T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                    T const* AMREX_RESTRICT dp = dp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
                         nrm += dp[i]*dp[i];
                     }
@@ -1917,12 +1927,12 @@ BaseFab<T>::min (const Box& subbox, int comp) const
 {
     T r = std::numeric_limits<T>::max();
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],comp);
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 r = std::min(r, dp[i]);
             }
@@ -1945,12 +1955,12 @@ BaseFab<T>::max (const Box& subbox, int comp) const
 {
     T r = std::numeric_limits<T>::lowest();
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],comp);
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 r = std::max(r, dp[i]);
             }
@@ -1974,12 +1984,12 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const
     int imin, jmin, kmin;
     T min_val = std::numeric_limits<T>::max();
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],comp);
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (dp[i] < min_val) {
                     min_val = dp[i];
@@ -1989,6 +1999,7 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const
         }
     }
 
+    const auto& lo = subbox.loVect();
     return IntVect(AMREX_D_DECL(imin+lo[0],jmin+lo[1],kmin+lo[2]));
 }
 
@@ -2007,12 +2018,12 @@ BaseFab<T>::maxIndex (const Box& subbox,
     int imax, jmax, kmax;
     T max_val = std::numeric_limits<T>::lowest();
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],comp);
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (dp[i] > max_val) {
                     max_val = dp[i];
@@ -2022,6 +2033,7 @@ BaseFab<T>::maxIndex (const Box& subbox,
         }
     }
 
+    const auto& lo = subbox.loVect();
     return IntVect(AMREX_D_DECL(imax+lo[0],jmax+lo[1],kmax+lo[2]));
 }
 
@@ -2036,13 +2048,15 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
 
     int cnt = 0;
 
-    const auto& lo  = domain.loVect3d();
-    const auto& len = domain.length3d();
+    const auto sp0 = this->stridedPtr(comp);
+    const auto mp0 =  mask.stridedPtr();
+
+    const auto len = domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT sp =      dataPtr(lo[0],j+lo[1],k+lo[2],comp);
-            int    * AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]     );
+            T const* AMREX_RESTRICT sp = sp0(0,j,k);
+            int    * AMREX_RESTRICT mp = mp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (sp[i] < val) {
                     mp[i] = 1;
@@ -2066,13 +2080,15 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
 
     int cnt = 0;
 
-    const auto& lo  = domain.loVect3d();
-    const auto& len = domain.length3d();
+    const auto sp0 = this->stridedPtr(comp);
+    const auto mp0 =  mask.stridedPtr();
+
+    const auto len = domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT sp =      dataPtr(lo[0],j+lo[1],k+lo[2],comp);
-            int    * AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]     );
+            T const* AMREX_RESTRICT sp = sp0(0,j,k);
+            int    * AMREX_RESTRICT mp = mp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (sp[i] <= val) {
                     mp[i] = 1;
@@ -2096,13 +2112,15 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
 
     int cnt = 0;
 
-    const auto& lo  = domain.loVect3d();
-    const auto& len = domain.length3d();
+    const auto sp0 = this->stridedPtr(comp);
+    const auto mp0 =  mask.stridedPtr();
+
+    const auto len = domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT sp =      dataPtr(lo[0],j+lo[1],k+lo[2],comp);
-            int    * AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]     );
+            T const* AMREX_RESTRICT sp = sp0(0,j,k);
+            int    * AMREX_RESTRICT mp = mp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (sp[i] == val) {
                     mp[i] = 1;
@@ -2126,13 +2144,15 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
 
     int cnt = 0;
 
-    const auto& lo  = domain.loVect3d();
-    const auto& len = domain.length3d();
+    const auto sp0 = this->stridedPtr(comp);
+    const auto mp0 =  mask.stridedPtr();
+
+    const auto len = domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT sp =      dataPtr(lo[0],j+lo[1],k+lo[2],comp);
-            int    * AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]     );
+            T const* AMREX_RESTRICT sp = sp0(0,j,k);
+            int    * AMREX_RESTRICT mp = mp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (sp[i] > val) {
                     mp[i] = 1;
@@ -2156,13 +2176,15 @@ BaseFab<T>::maskGE(BaseFab<int>& mask,
 
     int cnt = 0;
 
-    const auto& lo  = domain.loVect3d();
-    const auto& len = domain.length3d();
+    const auto sp0 = this->stridedPtr(comp);
+    const auto mp0 =  mask.stridedPtr();
+
+    const auto len = domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT sp =      dataPtr(lo[0],j+lo[1],k+lo[2],comp);
-            int    * AMREX_RESTRICT mp = mask.dataPtr(lo[0],j+lo[1],k+lo[2]     );
+            T const* AMREX_RESTRICT sp = sp0(0,j,k);
+            int    * AMREX_RESTRICT mp = mp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 if (sp[i] >= val) {
                     mp[i] = 1;
@@ -2203,15 +2225,16 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= x.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=   nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =     x.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =   dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = x.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] += a * sp[i];
                 }
@@ -2245,15 +2268,16 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
     BL_ASSERT( srccomp >= 0 &&  srccomp+numcomp <= x.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=   nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =     x.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =   dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = x.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = sp[i] + a * dp[i];
                 }
@@ -2276,15 +2300,18 @@ BaseFab<T>::addproduct (const Box& destbox, int destcomp, int numcomp,
     BL_ASSERT(   comp2 >= 0 &&    comp2+numcomp <= src2.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <=      nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
+    const auto  dp_0 = this->stridedPtr(destbox,destcomp);
+    const auto sp1_0 =  src1.stridedPtr(destbox,comp1);
+    const auto sp2_0 =  src2.stridedPtr(destbox,comp2);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp  =      dataPtr(lo[0],j+lo[1],k+lo[2],n+destcomp );
-                T const* AMREX_RESTRICT sp1 = src1.dataPtr(lo[0],j+lo[1],k+lo[2],n+    comp1);
-                T const* AMREX_RESTRICT sp2 = src2.dataPtr(lo[0],j+lo[1],k+lo[2],n+    comp2);
+                T      * AMREX_RESTRICT dp  =  dp_0(0,j,k,n);
+                T const* AMREX_RESTRICT sp1 = sp1_0(0,j,k,n);
+                T const* AMREX_RESTRICT sp2 = sp2_0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] += sp1[i] * sp2[i];
                 }
@@ -2314,17 +2341,18 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     BL_ASSERT(comp2 >= 0 && comp2+numcomp <= f2.nComp());
     BL_ASSERT(comp  >= 0 && comp +numcomp <=    nComp());
 
-    const auto& lo  = b.loVect3d();
-    const auto& len = b.length3d();
-    const auto& lo1 = b1.loVect3d();
-    const auto& lo2 = b2.loVect3d();
+    const auto  dp_0 = this->stridedPtr(b , comp);
+    const auto sp1_0 =    f1.stridedPtr(b1, comp1);
+    const auto sp2_0 =    f2.stridedPtr(b2, comp2);
+
+    const auto len = b.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp  =    dataPtr(lo [0],j+lo [1],k+lo [2],n+comp );
-                T const* AMREX_RESTRICT sp1 = f1.dataPtr(lo1[0],j+lo1[1],k+lo1[2],n+comp1);
-                T const* AMREX_RESTRICT sp2 = f2.dataPtr(lo2[0],j+lo2[1],k+lo2[2],n+comp2);
+                T      * AMREX_RESTRICT dp  =  dp_0(0,j,k,n);
+                T const* AMREX_RESTRICT sp1 = sp1_0(0,j,k,n);
+                T const* AMREX_RESTRICT sp2 = sp2_0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = alpha*sp1[i] + beta*sp2[i];
                 }
@@ -2350,15 +2378,16 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
 
     T r;
 
-    const auto& lo  = xbx.loVect3d();
-    const auto& len = xbx.length3d();
-    const auto& ylo = ybx.loVect3d();
+    const auto xp0 = this->stridedPtr(xbx, xcomp);
+    const auto yp0 =     y.stridedPtr(ybx, ycomp);
+
+    const auto len = xbx.length3d();
     
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T const* AMREX_RESTRICT xp =   dataPtr( lo[0],j+ lo[1],k+ lo[2],n+xcomp);
-                T const* AMREX_RESTRICT yp = y.dataPtr(ylo[0],j+ylo[1],k+ylo[2],n+ycomp);
+                T const* AMREX_RESTRICT xp = xp0(0,j,k,n);
+                T const* AMREX_RESTRICT yp = yp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     r += xp[i] * yp[i];
                 }
@@ -2384,16 +2413,18 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
 
     T r;
 
-    const auto& lo  = xbx.loVect3d();
-    const auto& len = xbx.length3d();
-    const auto& ylo = ybx.loVect3d();
+    const auto xp0 = this->stridedPtr(xbx, xcomp);
+    const auto yp0 =     y.stridedPtr(ybx, ycomp);
+    const auto mp0 =  mask.stridedPtr(xbx);
+
+    const auto len = xbx.length3d();
     
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T   const* AMREX_RESTRICT xp =      dataPtr( lo[0],j+ lo[1],k+ lo[2],n+xcomp);
-                T   const* AMREX_RESTRICT yp =    y.dataPtr(ylo[0],j+ylo[1],k+ylo[2],n+ycomp);
-                int const* AMREX_RESTRICT mp = mask.dataPtr( lo[0],j+ lo[1],k+ lo[2]        );
+                T   const* AMREX_RESTRICT xp = xp0(0,j,k,n);
+                T   const* AMREX_RESTRICT yp = yp0(0,j,k,n);
+                int const* AMREX_RESTRICT mp = mp0(0,j,k);
                 for (int i = 0; i < len[0]; ++i) {
                     int m = static_cast<int>(static_cast<bool>(mp[i]));
                     r += xp[i] * yp[i] * m;
@@ -2466,13 +2497,13 @@ BaseFab<T>::sum (const Box& subbox,
 
     T r = 0;
 
-    const auto& lo  = subbox.loVect3d();
-    const auto& len = subbox.length3d();
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T const* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T const* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     r += dp[i];
                 }
@@ -2504,13 +2535,13 @@ BaseFab<T>::negate (const Box& b,
                     int        comp,
                     int        numcomp)
 {
-    const auto& lo  = b.loVect3d();
-    const auto& len = b.length3d();
+    const auto dp0 = this->stridedPtr(b,comp);
+    const auto len = b.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T * AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                    dp[i] = -dp[i];
                 }
@@ -2547,13 +2578,13 @@ BaseFab<T>::invert (T          r,
     BL_ASSERT(domain.contains(b));
     BL_ASSERT(comp >= 0 && comp + numcomp <= nvar);
 
-    const auto& lo  = b.loVect3d();
-    const auto& len = b.length3d();
+    const auto dp0 = this->stridedPtr(b,comp);
+    const auto len = b.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T * AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = r / dp[i];
                 }
@@ -2587,13 +2618,13 @@ BaseFab<T>::plus (T          r,
                   int        comp,
                   int        numcomp)
 {
-    const auto& lo  = b.loVect3d();
-    const auto& len = b.length3d();
+    const auto dp0 = this->stridedPtr(b,comp);
+    const auto len = b.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T * AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] += r;
                 }
@@ -2655,15 +2686,16 @@ BaseFab<T>::plus (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =     dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = src.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] += sp[i];
                 }
@@ -2725,15 +2757,16 @@ BaseFab<T>::minus (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =     dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = src.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] -= sp[i];
                 }
@@ -2767,13 +2800,13 @@ BaseFab<T>::mult (T          r,
                   int        comp,
                   int        numcomp)
 {
-    const auto& lo  = b.loVect3d();
-    const auto& len = b.length3d();
+    const auto dp0 = this->stridedPtr(b,comp);
+    const auto len = b.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T * AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] *= r;
                 }
@@ -2835,15 +2868,16 @@ BaseFab<T>::mult (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =     dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = src.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] *= sp[i];
                 }
@@ -2877,13 +2911,13 @@ BaseFab<T>::divide (T          r,
                     int        comp,
                     int        numcomp)
 {
-    const auto& lo  = b.loVect3d();
-    const auto& len = b.length3d();
+    const auto dp0 = this->stridedPtr(b,comp);
+    const auto len = b.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+comp);
+                T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] /= r;
                 }
@@ -2945,15 +2979,16 @@ BaseFab<T>::divide (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =     dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = src.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] /= sp[i];
                 }
@@ -3015,15 +3050,16 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    const auto& lo  = destbox.loVect3d();
-    const auto& len = destbox.length3d();
-    const auto& slo =  srcbox.loVect3d();
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
 
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T      * AMREX_RESTRICT dp =     dataPtr( lo[0],j+ lo[1],k+ lo[2],n+destcomp);
-                T const* AMREX_RESTRICT sp = src.dataPtr(slo[0],j+slo[1],k+slo[2],n+ srccomp);
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     if (sp[i] != 0) {
                         dp[i] /=  sp[i];
