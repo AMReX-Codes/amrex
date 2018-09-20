@@ -476,7 +476,7 @@ int main(int argc, char* argv[])
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
-        fab2.setVal(2/(bx2.numPts()*ncomps));
+        fab2.setVal(2.0);
 
         Box bx3(IntVect(0), IntVect(boxsize-1));
         BaseFab<int> fab3(bx3,ncomps);
@@ -496,7 +496,7 @@ int main(int argc, char* argv[])
                        << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
     }
     // ===================================================================
-    // maskLT 
+    // masks
     {
         double timer;
         int totalLT = 0;
@@ -517,19 +517,19 @@ int main(int argc, char* argv[])
         for (int i=0; i<iters; ++i)
         {
            totalLT = fab1.maskLT(fab2, 19, 0);
-           totalLT = fab1.maskLE(fab2, 5.5, 0);
-           totalLT = fab1.maskEQ(fab2, 5.5, 0);
-           totalLT = fab1.maskGE(fab2, 5.5, 0);
-           totalLT = fab1.maskGT(fab2, 1, 0);
+           totalLE = fab1.maskLE(fab2, 5.5, 0);
+           totalEQ = fab1.maskEQ(fab2, 5.5, 0);
+           totalGE = fab1.maskGE(fab2, 5.5, 0);
+           totalGT = fab1.maskGT(fab2, 1, 0);
         }
         timer = second() - timer;
 
         amrex::Print() << "BaseFab<Real>::maskLT() test." << std::endl
-                       << "Result: (LT/LE/EQ/GE/GT)" << totalLT << " " << totalLE << " " << totalEQ 
-                                                     << totalGE << " " << totalGT << " of " << fab1.nPts() << " points." << std::endl 
+                       << "Results (LT/LE/EQ/GE/GT): " << totalLT << "/" << totalLE << "/" << totalEQ << "/"
+                                                       << totalGE << "/" << totalGT << " of " << fab1.nPts() << " points." << std::endl 
                        << "Completed in: "                <<  timer << " seconds." << std::endl
-                       << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
-                       << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
+                       << " or, completed at a rate of: " <<         timer/(iters/5) << " seconds/ops." << std::endl
+                       << "                         or: " << double(iters)/(5*timer) << " ops/second." << std::endl << std::endl; 
     }
 
     // ===================================================================
