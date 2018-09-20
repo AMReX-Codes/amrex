@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 
         Box bx2(IntVect(0), IntVect(boxsize-1));
         BaseFab<int> fab2(bx2,ncomps);
-        fab2.setVal(13.5);
+        fab2.setVal(1);
 
         timer = second();
         for (int i=0; i<iters; ++i)
