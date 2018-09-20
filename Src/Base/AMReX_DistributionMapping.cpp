@@ -1311,7 +1311,7 @@ DistributionMapping::makeKnapSack (const MultiFab& weight, int nmax)
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
 
 	Real wmax = *std::max_element(rcost.begin(), rcost.end());
-	Real scale = 1.e9/wmax;
+	Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
 	
 	for (int i = 0; i < rcost.size(); ++i) {
 	    cost[i] = long(rcost[i]*scale) + 1L;

@@ -7,6 +7,8 @@
 #include <RegionGraph.H>
 #include <pthread.h>
 
+#include <RGIter.H>
+
 //#define USE_PERILLA_PTHREADS
 
 using namespace std;
@@ -39,6 +41,16 @@ namespace amrex{
 	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, int tid);
 	static void fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f);
 	static void fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f);
+
+
+  static void fillBoundaryPush(amrex::RGIter& rgi, amrex::MultiFab& mf, int tid);
+  static void fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf, int tid);
+  static void fillBoundaryPush(amrex::RGIter& rgi, RegionGraph *graph, amrex::MultiFab& mf, int tid);
+  static void fillBoundaryPull(amrex::RGIter& rgi, RegionGraph *graph, amrex::MultiFab& mf, int tid);
+  static void fillBoundaryPush(RegionGraph *graph, amrex::MultiFab& mf, int f, int tid, bool mOneThread=false, bool mTeams=true);
+  static void fillBoundaryPull(RegionGraph *graph, amrex::MultiFab& mf, int f, int tid, bool mTeams=true);
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
         void   multifabExtractCopyAssoc(void* threadInfo);
 	static void multifabExtractCopyAssoc(RegionGraph* gDst, RegionGraph* gSrc, const MultiFab& dmf, const MultiFab& smf, int nc, int ng, int ngSrc, const Periodicity& period);
