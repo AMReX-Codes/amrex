@@ -1673,7 +1673,7 @@ BaseFab<T>::performSetVal (T          val,
     for (int n = 0; n < num; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
-                T* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo [2],n+ns);
+                T* AMREX_RESTRICT dp = dataPtr(lo[0],j+lo[1],k+lo[2],n+ns);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] = val;
                 }
@@ -1838,7 +1838,6 @@ BaseFab<T>::norm (int p,
                   int comp,
                   int numcomp) const
 {
-    Real r = 0.0;
     return norm(domain,p,comp,numcomp);
 }
 
@@ -2385,9 +2384,6 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
 
     T r;
 
-    int const* AMREX_RESTRICT mp = mask.dataPtr();
-    T const* AMREX_RESTRICT xp = dataPtr(xcomp);
-    T const* AMREX_RESTRICT yp = y.dataPtr(ycomp);
     const auto& lo  = xbx.loVect3d();
     const auto& len = xbx.length3d();
     const auto& ylo = ybx.loVect3d();
@@ -2508,7 +2504,6 @@ BaseFab<T>::negate (const Box& b,
                     int        comp,
                     int        numcomp)
 {
-    T* AMREX_RESTRICT dp = dataPtr(comp);
     const auto& lo  = b.loVect3d();
     const auto& len = b.length3d();
 
