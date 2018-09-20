@@ -76,18 +76,18 @@ In order to run the code with a spectral solver, you need to:
       - Install (or load) an MPI-enabled version of FFTW.
         For instance, for Debian, this can be done with
         ::
-           
+
            apt-get install libfftw3-dev libfftw3-mpi-dev
-           
+
       - Set the environment variable ``FFTW_HOME`` to the path for FFTW.
         For instance, for Debian, this is done with
         ::
-           
+
            export FFTW_HOME=/usr/
-           
+
       - Set ``USE_PSATD=TRUE`` when compiling:
         ::
-           
+
            make -j 4 USE_PSATD=TRUE
 
 
@@ -111,6 +111,7 @@ In case you do not have write permissions to the default Python installation (e.
 ::
 
    make -j 4 PYINSTALLOPTIONS=--user
+
 In this case, you can also set the variable `PYTHONUSERBASE` to set the folder where `pywarpx` will be installed.
 
 
@@ -166,4 +167,3 @@ In order to compile for the **Knight's Landing (KNL) architecture**:
         module swap craype-haswell craype-mic-knl
         module swap PrgEnv-intel PrgEnv-gnu
         make -j 16 COMP=gnu
-
