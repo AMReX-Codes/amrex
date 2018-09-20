@@ -44,6 +44,11 @@ extern "C" {
                            const amrex_real* dx, const int* prob_type);
 
 
+    void mytest_set_phi_boundary (const int* glo, const int* ghi,
+                                  const int* dlo, const int* dhi,
+                                  amrex_real* phi, const int* phlo, const int* phhi,
+                                  const amrex_real* dx);
+
 #ifdef __cplusplus
 }
 #endif

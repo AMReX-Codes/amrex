@@ -86,7 +86,11 @@ extern "C" {
 #if (AMREX_SPACEDIM == 3)
                               const amrex_real* fcz, const int* fzlo, const int* fzhi,
 #endif
-#endif                              
+#endif
+                              const amrex_real* ba,   const int* balo, const int* bahi,
+                              const amrex_real* bcen, const int* bclo, const int* bchi,
+                              const amrex_real* beb,  const int* elo,  const int* ehi,
+                              const int* is_eb_dirichlet,
                               const amrex_real* sa, const amrex_real* sb, const amrex_real* dx,
                               const int* bct, const amrex_real* bcl, const int* bho);
 

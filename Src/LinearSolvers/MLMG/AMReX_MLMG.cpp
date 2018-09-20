@@ -15,6 +15,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
+#include <AMReX_MLEBABecLap.H>
 #endif
 
 // sol: full solution
@@ -1184,10 +1185,20 @@ void
 MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
+    AMREX_ASSERT(sol.size() == a_flux.size());
+    getFluxes(a_flux, sol, a_loc);
+}
+
+void
+MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                 const Vector<MultiFab*>& a_sol,
+                 Location a_loc)
+{
     BL_PROFILE("MLMG::getFluxes()");
     const Real betainv = 1.0 / linop.getBScalar();
+
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compFlux(alev, a_flux[alev], *sol[alev], a_loc);
+        linop.compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
             if (betainv != 1.0) {
@@ -1199,6 +1210,13 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
 
 void
 MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
+{
+    AMREX_ASSERT(sol.size() == a_flux.size());
+    getFluxes(a_flux, sol, a_loc);
+}
+
+void
+MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location a_loc)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
     Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
@@ -1212,7 +1230,7 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc)
                                        *linop.m_factory[alev][mglev]);
         }
     }
-    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), Location::FaceCenter);
+    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
     for (int alev = 0; alev < namrlevs; ++alev) {
 #ifdef AMREX_USE_EB
         EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
@@ -1564,46 +1582,12 @@ MLMG::bottomSolveWithHypre (MultiFab& x, const MultiFab& b)
 
     if (hypre_solver == nullptr)  // We should reuse the setup
     {
+        hypre_solver = linop.makeHypre(hypre_interface);
+        hypre_solver->setVerbose(bottom_verbose);
+
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
-        const auto& factory = *(linop.m_factory[0].back());
-        MPI_Comm comm = linop.BottomCommunicator();
-
-        hypre_solver = makeHypre(ba, dm, geom, comm, hypre_interface);
-        hypre_solver->setVerbose(bottom_verbose);
-
-        hypre_solver->setScalars(linop.getAScalar(), linop.getBScalar());
-
-        const int mglev = linop.NMGLevels(0)-1;
-        auto ac = linop.getACoeffs(0, mglev);
-        if (ac)
-        {
-            hypre_solver->setACoeffs(*ac);
-        }
-        else
-        {
-            MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
-            alpha.setVal(0.0);
-            hypre_solver->setACoeffs(alpha);
-        }
-
-        auto bc = linop.getBCoeffs(0, mglev);
-        if (bc[0])
-        {
-            hypre_solver->setBCoeffs(bc);
-        }
-        else
-        {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, ncomp, 0, MFInfo(), factory);
-                beta[idim].setVal(1.0);
-            }
-            hypre_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
-        }
 
         hypre_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         hypre_bndry->setHomogValues();
@@ -1626,51 +1610,18 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
 #if !defined(AMREX_USE_PETSC)
     amrex::Abort("bottomSolveWithPETSc is called without building with PETSc");
 #else
-    PETSC_COMM_WORLD = linop.BottomCommunicator();
-    
+
+    const int ncomp = linop.getNComp();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithPETSc doesn't work with ncomp > 1");
+
     if(petsc_solver == nullptr)
     { 
-        const int ncomp = linop.getNComp();
+        petsc_solver = linop.makePETSc();
+        petsc_solver->setVerbose(bottom_verbose);
+
         const BoxArray& ba = linop.m_grids[0].back();
         const DistributionMapping& dm = linop.m_dmap[0].back();
         const Geometry& geom = linop.m_geom[0].back();
-        const auto& factory = *(linop.m_factory[0].back());
-        MPI_Comm comm = linop.BottomCommunicator();
-    
-        petsc_solver = makePetsc(ba, dm, geom, comm);
-        petsc_solver->setVerbose(bottom_verbose);
-
-        petsc_solver->setScalars(linop.getAScalar(), linop.getBScalar());
-
-        const int mglev = linop.NMGLevels(0)-1;
-        auto ac = linop.getACoeffs(0, mglev);
-        if (ac)
-        {
-            petsc_solver->setACoeffs(*ac);
-        }
-        else
-        {
-            MultiFab alpha(ba,dm,ncomp,0,MFInfo(),factory);
-            alpha.setVal(0.0);
-            petsc_solver->setACoeffs(alpha);
-        }
-
-        auto bc = linop.getBCoeffs(0, mglev);
-        if (bc[0])
-        {
-            petsc_solver->setBCoeffs(bc);
-        }
-        else
-        {
-            Array<MultiFab,AMREX_SPACEDIM> beta;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                beta[idim].define(amrex::convert(ba,IntVect::TheDimensionVector(idim)),
-                                  dm, ncomp, 0, MFInfo(), factory);
-                beta[idim].setVal(1.0);
-            }
-            petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
-        }
 
         petsc_bndry.reset(new MLMGBndry(ba, dm, ncomp, geom));
         petsc_bndry->setHomogValues();
