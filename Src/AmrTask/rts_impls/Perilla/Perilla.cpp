@@ -4006,4 +4006,110 @@ void Perilla::resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, 
 	}
     } // for(f<nfabs)
 
-}
+  }
+
+
+  void Perilla::fillBoundaryPush(amrex::RGIter& rgi, amrex::MultiFab& mf, int tid)
+  {
+    if(rgi.currentItr != rgi.totalItr)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPush(rgi.itrGraph, mf, f, tid, rgi.implicit, rgi.ppteams);
+  }
+
+  void Perilla::fillBoundaryPush(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf, int tid)
+  {
+    if(rgi.currentItr != rgi.totalItr)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPush(rg, mf, f, tid, rgi.implicit, rgi.ppteams);
+  }
+
+void Perilla::fillBoundaryPush(RegionGraph* graph, amrex::MultiFab& mf, int f, int tid, bool mOneThread, bool mTeams)
+  {
+#if 0
+    int np = ParallelDescriptor::NProcs();
+    int tg= perilla::wid();
+    int ntid = WorkerThread::localTID(tid)-PerillaConfig::NUM_COMM_THREADS;
+
+    double start_time_wtime = omp_get_wtime();
+
+    //mTeams = false; 
+
+    if(np==1)
+      fillBoundaryPush_1Team(graph, mf, f, tid, mOneThread);
+    else if(mTeams)
+      {
+        if(WorkerThread::isLocPPTID(tid))
+          fillBoundaryLocPush(graph, mf, f, tid);
+        else
+            fillBoundaryRmtPush(graph, mf, f, tid);
+      }
+    else
+      fillBoundaryPush_1Team(graph, mf, f, tid, mOneThread);
+
+    if(!mOneThread)
+      graph->worker[tg]->barr->sync(PerillaConfig::NUM_THREADS_PER_TEAM-PerillaConfig::NUM_COMM_THREADS); // Barrier to synchronize team threads
+
+    double end_time_wtime = omp_get_wtime();
+    if(ntid==0)
+      Perilla::getPPPTimeSplit[0] += end_time_wtime - start_time_wtime;
+
+#endif
+  }
+
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf, int tid)
+  {
+#if 0
+    if(rgi.currentItr != 1)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPull(rgi.itrGraph, mf, f, tid, rgi.ppteams);
+#endif
+  }
+
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf, int tid)
+  {
+#if 0
+    if(rgi.currentItr != 1)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPull(rg, mf, f, tid, rgi.ppteams);
+#endif
+  }
+ void Perilla::fillBoundaryPull(RegionGraph* graph, amrex::MultiFab& mf, int f, int tid, bool mTeams)
+  {
+#if 0
+    int np = ParallelDescriptor::NProcs();
+    int tg= WorkerThread::groupID(tid);
+    int ntid = WorkerThread::localTID(tid)-PerillaConfig::NUM_COMM_THREADS;
+
+    double start_time_wtime = omp_get_wtime();
+
+    //mTeams = false; 
+
+    if(np==1)
+      fillBoundaryPull_1Team(graph, mf, f, tid);
+    else if(mTeams)
+      {
+        if(WorkerThread::isLocPPTID(tid))
+          fillBoundaryLocPull(graph, mf, f, tid);
+        else
+            fillBoundaryRmtPull(graph, mf, f, tid);
+      }
+    else
+      fillBoundaryPull_1Team(graph, mf, f, tid);
+
+    graph->worker[tg]->barr->sync(PerillaConfig::NUM_THREADS_PER_TEAM-PerillaConfig::NUM_COMM_THREADS); // Barrier to synchronize team threads
+
+    double end_time_wtime = omp_get_wtime();
+    if(ntid==0)
+      Perilla::getPPPTimeSplit[1] += end_time_wtime - start_time_wtime;
+#endif
+  }
+
+
