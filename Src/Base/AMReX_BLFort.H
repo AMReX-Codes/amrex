@@ -46,10 +46,6 @@
 
 // Define macros for doing reductions.
 
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-#define AMREX_MFITER_REDUCE_SUM(var) mfi.add_reduce_value(var, MFIter::SUM)
-#define AMREX_MFITER_REDUCE_MIN(var) mfi.add_reduce_value(var, MFIter::MIN)
-#else
 #define AMREX_MFITER_REDUCE_SUM(var) var
 #define AMREX_MFITER_REDUCE_MIN(var) var
-#endif
+#define AMREX_MFITER_REDUCE_MAX(var) var

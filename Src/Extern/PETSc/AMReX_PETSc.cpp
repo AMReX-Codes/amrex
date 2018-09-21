@@ -133,7 +133,6 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs
     //
     VecAssemblyBegin(b); 
     VecAssemblyEnd(b); 
-
     KSPSetTolerances(solver, rel_tol, PETSC_DEFAULT, PETSC_DEFAULT, max_iter);
     KSPSolve(solver, b, x);
     if (verbose >= 2)
@@ -279,7 +278,6 @@ PETScABecLap::prepareSolver ()
     BaseFab<HYPRE_Int> ifab;
     FArrayBox foo(Box::TheUnitBox());
     const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
-
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -332,7 +330,7 @@ PETScABecLap::prepareSolver ()
             else
             {
                 FArrayBox const& beb = (is_eb_dirichlet) ? (*m_eb_b_coeffs)[mfi] : foo;
-
+                
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
                                     &nrows, ncols, rows, cols, mat,
                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
@@ -379,7 +377,10 @@ PETScABecLap::prepareSolver ()
 
     // Classic AMG
     PCSetType(pc, PCGAMG);
-    PCGAMGSetType(pc, PCGAMGCLASSICAL);
+    PCGAMGSetType(pc, PCGAMGAGG);
+    PCGAMGSetNSmooths(pc,0); 
+//    PCSetType(pc, PCJACOBI); 
+
     
 // we are not using command line options    KSPSetFromOptions(solver);
     // create b & x
