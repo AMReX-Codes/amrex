@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 #else
         amrex::Print() << "C++ version of BaseFab testing suite." << std::endl;
 #endif
-        amrex::Print() << "All results should equal 5.5. " << std::endl  
+        amrex::Print() << "All results should equal 5.5, except xpay." << std::endl  
                        << "Cubic boxes of length: " << boxsize << std::endl
                        << "Number of components: " << ncomps << std::endl
                        << "Number of iterations of each test: " << iters << std::endl
@@ -190,6 +190,21 @@ int main(int argc, char* argv[])
         Box bx2(IntVect(0), IntVect(boxsize-1));
         BaseFab<int> fab2(bx2,ncomps);
         fab2.setVal(1);
+
+        for (int i = 0; i<ncomps; ++i)
+        {
+           int count = 0;
+           IntVect currIndx = bx2.smallEnd();
+           while (bx2.contains(currIndx))
+           {
+              int random = Random_int(2);
+              fab2(currIndx, i) = random;
+              count += random;
+              bx2.next(currIndx);
+           }
+           amrex::Print() << " *** norm using " << count << " 'true' masks out of " 
+                          << bx2.numPts() << " points in component " << i << "." << std::endl;
+        }
 
         timer = second();
         for (int i=0; i<iters; ++i)
@@ -472,7 +487,7 @@ int main(int argc, char* argv[])
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
         BaseFab<Real> fab1(bx1,ncomps);
-        fab1.setVal(2.75/(bx1.numPts()*ncomps));
+        fab1.setVal(1.0);
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
@@ -481,6 +496,24 @@ int main(int argc, char* argv[])
         Box bx3(IntVect(0), IntVect(boxsize-1));
         BaseFab<int> fab3(bx3,ncomps);
         fab3.setVal(1);
+
+        for (int i = 0; i<ncomps; ++i)
+        {
+           int count = 0;
+           IntVect currIndx = bx3.smallEnd();
+           while (bx3.contains(currIndx))
+           {
+              int random = Random_int(2);
+              fab3(currIndx, i) = random;
+              count += random;
+              bx3.next(currIndx);
+           }
+           fab1.setVal(2.75/(count*ncomps),i);
+
+           amrex::Print() << " *** norm using " << count << " 'true' masks out of " 
+                          << bx3.numPts() << " points in component " << i << "." << std::endl;
+        }
+
 
         timer = second();
         for (int i=0; i<iters; ++i)
@@ -543,17 +576,17 @@ int main(int argc, char* argv[])
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
-        fab2.setVal(2.25/(bx2.numPts()*ncomps));
+        fab2.setVal(2.25/iters);
 
         timer = second();
         for (int i=0; i<iters; ++i)
         {
-           fab1.saxpy(2, fab2, bx2, bx1, 0, 0, ncomps);
+           fab1.saxpy(2.0, fab2, bx2, bx1, 0, 0, ncomps);
         }
         timer = second() - timer;
 
         amrex::Print() << "BaseFab<Real>::saxpy() test." << std::endl
-                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector()) << std::endl
                        << "Completed in: "                <<  timer << " seconds." << std::endl
                        << " or, completed at a rate of: " <<         timer/iters << " seconds/iter." << std::endl
                        << "                         or: " << double(iters)/timer << " iters/second." << std::endl << std::endl; 
@@ -566,16 +599,16 @@ int main(int argc, char* argv[])
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
         BaseFab<Real> fab1(bx1,ncomps);
-        fab1.setVal(2.25/(bx1.numPts()*ncomps));
+        fab1.setVal(2.25/(iters));
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
-        fab2.setVal(1);
+        fab2.setVal(1.0/iters);
 
         timer = second();
         for (int i=0; i<iters; ++i)
         {
-           fab1.xpay(2, fab2, bx2, bx1, 0, 0, ncomps);
+           fab1.xpay(2/iters, fab2, bx2, bx1, 0, 0, ncomps);
         }
         timer = second() - timer;
 
@@ -601,7 +634,7 @@ int main(int argc, char* argv[])
 
         Box bx3(IntVect(0), IntVect(boxsize-1));
         BaseFab<Real> fab3(bx3,ncomps);
-        fab3.setVal(2.5);
+        fab3.setVal(2.5/iters);
 
         timer = second();
         for (int i=0; i<iters; ++i)
@@ -658,11 +691,11 @@ int main(int argc, char* argv[])
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
-        fab2.setVal(2.0);
+        fab2.setVal(3.0);
 
         Box bx3(IntVect(10), IntVect(10+boxsize-1));
         BaseFab<Real> fab3(bx3,ncomps);
-        fab3.setVal(3.0);
+        fab3.setVal(4.0);
 
         timer = second();
         for (int i=0; i<iters; ++i)
