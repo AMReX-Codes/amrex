@@ -147,6 +147,7 @@ MLCellABecLap::makePETSc () const
         }
         petsc_solver->setBCoeffs(amrex::GetArrOfConstPtrs(beta));
     }
+    return petsc_solver;
 }
 #endif
 

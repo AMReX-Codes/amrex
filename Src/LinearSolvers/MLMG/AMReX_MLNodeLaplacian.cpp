@@ -4,7 +4,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_BaseFab_f.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -1605,10 +1604,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 }
                 u.copy(vold[mfi], b, 0, b, 0, AMREX_SPACEDIM);
 
-                amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
-                                       BL_TO_FORTRAN_FAB(u),
-                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                       0.0);
+                u.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, AMREX_SPACEDIM);
 
                 rhs.resize(bx);
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
@@ -1625,10 +1621,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     const Box& b2 = ccbxg1 & ccvbx;
                     rhcc_fab->copy((*rhcc)[mfi], b2, 0, b2, 0, 1);
 
-                    amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
-                                           BL_TO_FORTRAN_FAB(*rhcc_fab),
-                                           BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                           0.0);                    
+                    rhcc_fab->setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
 
                     rhs2.resize(bx);
                     amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
@@ -1642,10 +1635,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 sigma.setVal(0, ccbxg1, 0, 1);
                 const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
                 sigma.copy(sigma_orig[mfi], ibx, 0, ibx, 0, 1);
-                amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
-                                       BL_TO_FORTRAN_FAB(sigma),
-                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                       0.0);
+                sigma.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
 
                 amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                        BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
