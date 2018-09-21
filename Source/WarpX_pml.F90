@@ -31,10 +31,10 @@ contains
     real(amrex_real), parameter :: sixteenth = 1.d0/16.d0
 
     integer :: i, j, k
-    
+
     real(amrex_real) :: delta, rx, ry, rz, betaxz, betaxy, betayx, betayz, betazx, betazy
     real(amrex_real) :: beta, alphax, alphay, alphaz, gammax, gammay, gammaz
-  
+
     ! solver_type: 0=Yee; 1=CKC
 
     if (solver_type==0) then
@@ -73,10 +73,10 @@ contains
               end do
            end do
         end do
-        
+
     else
 
-        ! CKC push  
+        ! CKC push
 
         ! computes coefficients according to Cowan - PRST-AB 16, 041303 (2013)
         delta = max(dtsdx,dtsdy,dtsdz)
@@ -96,7 +96,7 @@ contains
         alphax = one - two*betaxy - two* betaxz - four*gammax
         alphay = one - two*betayx - two* betayz - four*gammay
         alphaz = one - two*betazx - two* betazy - four*gammaz
-    
+
         betaxy = dtsdx*betaxy
         betaxz = dtsdx*betaxz
         betayx = dtsdy*betayx
@@ -243,7 +243,7 @@ contains
               end do
            end do
         end do
-        
+
     end if
 
   end subroutine warpx_push_pml_bvec_3d
@@ -327,14 +327,14 @@ contains
     real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
 
     integer :: i, k
-    
+
     real(amrex_real) :: delta, rx, rz, betaxz, betazx, alphax, alphaz
-  
-    
+
+
     ! solver_type: 0=Yee; 1=CKC
 
     if (solver_type==0) then
-  
+
     ! Yee push
 
         do    k = xlo(2), xhi(2)
@@ -385,7 +385,7 @@ contains
                                       + betazx*(Ey(i+1,k+1,1)+Ey(i+1,k+1,2)+Ey(i+1,k+1,3)  &
                                                -Ey(i+1,k  ,1)-Ey(i+1,k  ,2)-Ey(i+1,k  ,3)  &
                                                +Ey(i-1,k+1,1)+Ey(i-1,k+1,2)+Ey(i-1,k+1,3)  &
-                                               -Ey(i-1,k  ,1)-Ey(i-1,k  ,2)-Ey(i-1,k  ,3))) 
+                                               -Ey(i-1,k  ,1)-Ey(i-1,k  ,2)-Ey(i-1,k  ,3)))
            end do
         end do
 
@@ -398,13 +398,13 @@ contains
                                                +Ex(i-1,k+1,1)+Ex(i-1,k+1,2)+Ex(i-1,k+1,3)  &
                                                -Ex(i-1,k  ,1)-Ex(i-1,k  ,2)-Ex(i-1,k  ,3)))
 
-              By(i,k,2) = By(i,k,2) + ( alphax*(Ez(i+1,k  ,1)+Ez(i+1,k  ,2)+Ez(i+1,k  ,3)  & 
+              By(i,k,2) = By(i,k,2) + ( alphax*(Ez(i+1,k  ,1)+Ez(i+1,k  ,2)+Ez(i+1,k  ,3)  &
                                                -Ez(i  ,k  ,1)-Ez(i  ,k  ,2)-Ez(i  ,k  ,3)) &
-                                      + betaxz*(Ez(i+1,k+1,1)+Ez(i+1,k+1,2)+Ez(i+1,k+1,3)  & 
+                                      + betaxz*(Ez(i+1,k+1,1)+Ez(i+1,k+1,2)+Ez(i+1,k+1,3)  &
                                                -Ez(i  ,k+1,1)-Ez(i  ,k+1,2)-Ez(i  ,k+1,3)  &
-                                               +Ez(i+1,k-1,1)+Ez(i+1,k-1,2)+Ez(i+1,k-1,3)  & 
+                                               +Ez(i+1,k-1,1)+Ez(i+1,k-1,2)+Ez(i+1,k-1,3)  &
                                                -Ez(i  ,k-1,1)-Ez(i  ,k-1,2)-Ez(i  ,k-1,3)))
-                   
+
            end do
         end do
 
@@ -535,53 +535,179 @@ contains
     end do
   end subroutine warpx_push_pml_f_2d
 
-
   subroutine warpx_push_pml_evec_f_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
        &                             Ex, Exlo, Exhi, &
        &                             Ey, Eylo, Eyhi, &
        &                             Ez, Ezlo, Ezhi, &
        &                              f,  flo,  fhi, &
-       &                             dtdx) &
+       &                             dtdx, solver_type) &
        bind(c,name='warpx_push_pml_evec_f_3d')
+    use amrex_constants_module, only : one, two, four, eighth
     integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
-         Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), flo(3), fhi(3)
+         Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), flo(3), fhi(3), &
+         solver_type
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3),3)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3),3)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3),3)
     real(amrex_real), intent(in   ) ::  f ( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3),3)
     real(amrex_real), intent(in) :: dtdx(3)
 
+    real(amrex_real), parameter :: sixteenth = 1.d0/16.d0
+
     integer :: i, j, k
 
-    do       k = xlo(3), xhi(3)
-       do    j = xlo(2), xhi(2)
-          do i = xlo(1), xhi(1)
-             Ex(i,j,k,3) = Ex(i,j,k,3) + dtdx(1)*((f(i+1,j,k,1)-f(i,j,k,1)) &
-                  &                             + (f(i+1,j,k,2)-f(i,j,k,2)) &
-                  &                             + (f(i+1,j,k,3)-f(i,j,k,3)))
-          end do
-       end do
-    end do
+    real(amrex_real) :: delta, rx, ry, rz, betaxz, betaxy, betayx, betayz, betazx, betazy
+    real(amrex_real) :: beta, alphax, alphay, alphaz, gammax, gammay, gammaz
 
-    do       k = ylo(3), yhi(3)
-       do    j = ylo(2), yhi(2)
-          do i = ylo(1), yhi(1)
-             Ey(i,j,k,3) = Ey(i,j,k,3) + dtdx(2)*((f(i,j+1,k,1)-f(i,j,k,1)) &
-                  &                             + (f(i,j+1,k,2)-f(i,j,k,2)) &
-                  &                             + (f(i,j+1,k,3)-f(i,j,k,3)))
-          end do
-       end do
-    end do
+    ! solver_type: 0=Yee; 1=CKC
 
-    do       k = zlo(3), zhi(3)
-       do    j = zlo(2), zhi(2)
-          do i = zlo(1), zhi(1)
-             Ez(i,j,k,3) = Ez(i,j,k,3) + dtdx(3)*((f(i,j,k+1,1)-f(i,j,k,1)) &
-                  &                             + (f(i,j,k+1,2)-f(i,j,k,2)) &
-                  &                             + (f(i,j,k+1,3)-f(i,j,k,3)))
-          end do
-       end do
-    end do
+    if (solver_type==0) then
+
+        do       k = xlo(3), xhi(3)
+           do    j = xlo(2), xhi(2)
+              do i = xlo(1), xhi(1)
+                 Ex(i,j,k,3) = Ex(i,j,k,3) + dtdx(1)*((f(i+1,j,k,1)-f(i,j,k,1)) &
+                   &                                + (f(i+1,j,k,2)-f(i,j,k,2)) &
+                   &                                + (f(i+1,j,k,3)-f(i,j,k,3)))
+              end do
+           end do
+        end do
+
+        do       k = ylo(3), yhi(3)
+           do    j = ylo(2), yhi(2)
+              do i = ylo(1), yhi(1)
+                 Ey(i,j,k,3) = Ey(i,j,k,3) + dtdx(2)*((f(i,j+1,k,1)-f(i,j,k,1)) &
+                   &                                + (f(i,j+1,k,2)-f(i,j,k,2)) &
+                   &                                + (f(i,j+1,k,3)-f(i,j,k,3)))
+              end do
+           end do
+        end do
+
+        do       k = zlo(3), zhi(3)
+           do    j = zlo(2), zhi(2)
+              do i = zlo(1), zhi(1)
+                 Ez(i,j,k,3) = Ez(i,j,k,3) + dtdx(3)*((f(i,j,k+1,1)-f(i,j,k,1)) &
+                   &                                + (f(i,j,k+1,2)-f(i,j,k,2)) &
+                   &                                + (f(i,j,k+1,3)-f(i,j,k,3)))
+              end do
+           end do
+        end do
+
+    else
+
+        ! CKC push
+
+        ! computes coefficients according to Cowan - PRST-AB 16, 041303 (2013)
+        delta = max(dtsdx,dtsdy,dtsdz)
+        rx = (dtsdx/delta)**2
+        ry = (dtsdy/delta)**2
+        rz = (dtsdz/delta)**2
+        beta = eighth*(one-rx*ry*rz/(ry*rz+rz*rx+rx*ry))
+        betaxy = ry*beta
+        betaxz = rz*beta
+        betayx = rx*beta
+        betayz = rz*beta
+        betazx = rx*beta
+        betazy = ry*beta
+        gammax = ry*rz*(sixteenth-eighth*ry*rz/(ry*rz+rz*rx+rx*ry))
+        gammay = rx*rz*(sixteenth-eighth*rx*rz/(ry*rz+rz*rx+rx*ry))
+        gammaz = rx*ry*(sixteenth-eighth*rx*ry/(ry*rz+rz*rx+rx*ry))
+        alphax = one - two*betaxy - two* betaxz - four*gammax
+        alphay = one - two*betayx - two* betayz - four*gammay
+        alphaz = one - two*betazx - two* betazy - four*gammaz
+
+        betaxy = dtsdx*betaxy
+        betaxz = dtsdx*betaxz
+        betayx = dtsdy*betayx
+        betayz = dtsdy*betayz
+        betazx = dtsdz*betazx
+        betazy = dtsdz*betazy
+        alphax = dtsdx*alphax
+        alphay = dtsdy*alphay
+        alphaz = dtsdz*alphaz
+        gammax = dtsdx*gammax
+        gammay = dtsdy*gammay
+        gammaz = dtsdz*gammaz
+
+        do       k = xlo(3), xhi(3)
+           do    j = xlo(2), xhi(2)
+              do i = xlo(1), xhi(1)
+                 Ex(i,j,k,3) = Ex(i,j,k,3) &
+                     +alphax*(f(i+1,j  ,k  ,1)+f(i+1,j  ,k  ,1)+f(i+1,j  ,k  ,1)  &
+                             -f(i  ,j  ,k  ,1)-f(i  ,j  ,k  ,1)-f(i  ,j  ,k  ,1)) &
+                     +betaxy*(f(i+1,j+1,k  ,1)+f(i+1,j+1,k  ,1)+f(i+1,j+1,k  ,1)  &
+                             -f(i  ,j+1,k  ,1)-f(i  ,j+1,k  ,1)-f(i  ,j+1,k  ,1)  &
+                             +f(i+1,j-1,k  ,1)+f(i+1,j-1,k  ,1)+f(i+1,j-1,k  ,1)  &
+                             -f(i  ,j-1,k  ,1)-f(i  ,j-1,k  ,1)-f(i  ,j-1,k  ,1)) &
+                     +betaxz*(f(i+1,j  ,k+1,1)+f(i+1,j  ,k+1,1)+f(i+1,j  ,k+1,1)  &
+                             -f(i  ,j  ,k+1,1)-f(i  ,j  ,k+1,1)-f(i  ,j  ,k+1,1)  &
+                             +f(i+1,j  ,k-1,1)+f(i+1,j  ,k-1,1)+f(i+1,j  ,k-1,1)  &
+                             -f(i  ,j  ,k-1,1)-f(i  ,j  ,k-1,1)-f(i  ,j  ,k-1,1)) &
+                     +gammax*(f(i+1,j+1,k+1,1)+f(i+1,j+1,k+1,1)+f(i+1,j+1,k+1,1)  &
+                             -f(i  ,j+1,k+1,1)-f(i  ,j+1,k+1,1)-f(i  ,j+1,k+1,1)  &
+                             +f(i+1,j-1,k+1,1)+f(i+1,j-1,k+1,1)+f(i+1,j-1,k+1,1)  &
+                             -f(i  ,j-1,k+1,1)-f(i  ,j-1,k+1,1)-f(i  ,j-1,k+1,1)  &
+                             +f(i+1,j+1,k-1,1)+f(i+1,j+1,k-1,1)+f(i+1,j+1,k-1,1)  &
+                             -f(i  ,j+1,k-1,1)-f(i  ,j+1,k-1,1)-f(i  ,j+1,k-1,1)  &
+                             +f(i+1,j-1,k-1,1)+f(i+1,j-1,k-1,1)+f(i+1,j-1,k-1,1)  &
+                             -f(i  ,j-1,k-1,1)-f(i  ,j-1,k-1,1)-f(i  ,j-1,k-1,1))
+              end do
+           end do
+        end do
+
+        do       k = ylo(3), yhi(3)
+           do    j = ylo(2), yhi(2)
+              do i = ylo(1), yhi(1)
+                 Ey(i,j,k,3) = Ey(i,j,k,3) &
+                     +alphay*(f(i  ,j+1,k  ,1)+f(i  ,j+1,k  ,1)+f(i  ,j+1,k  ,1)  &
+                             -f(i  ,j  ,k  ,1)-f(i  ,j  ,k  ,1)-f(i  ,j  ,k  ,1)) &
+                     +betayx*(f(i+1,j+1,k  ,1)+f(i+1,j+1,k  ,1)+f(i+1,j+1,k  ,1)  &
+                             -f(i+1,j  ,k  ,1)-f(i+1,j  ,k  ,1)-f(i+1,j  ,k  ,1)  &
+                             +f(i-1,j+1,k  ,1)+f(i-1,j+1,k  ,1)+f(i-1,j+1,k  ,1)  &
+                             -f(i-1,j  ,k  ,1)-f(i-1,j  ,k  ,1)-f(i-1,j  ,k  ,1)) &
+                     +betayz*(f(i  ,j+1,k+1,1)+f(i  ,j+1,k+1,1)+f(i  ,j+1,k+1,1)  &
+                             -f(i  ,j  ,k+1,1)-f(i  ,j  ,k+1,1)-f(i  ,j  ,k+1,1)  &
+                             +f(i  ,j+1,k-1,1)+f(i  ,j+1,k-1,1)+f(i  ,j+1,k-1,1)  &
+                             -f(i  ,j  ,k-1,1)-f(i  ,j  ,k-1,1)-f(i  ,j  ,k-1,1)) &
+                     +gammay*(f(i+1,j+1,k+1,1)+f(i+1,j+1,k+1,1)+f(i+1,j+1,k+1,1)  &
+                             -f(i+1,j  ,k+1,1)-f(i+1,j  ,k+1,1)-f(i+1,j  ,k+1,1)  &
+                             +f(i-1,j+1,k+1,1)+f(i-1,j+1,k+1,1)+f(i-1,j+1,k+1,1)  &
+                             -f(i-1,j  ,k+1,1)-f(i-1,j  ,k+1,1)-f(i-1,j  ,k+1,1)  &
+                             +f(i+1,j+1,k-1,1)+f(i+1,j+1,k-1,1)+f(i+1,j+1,k-1,1)  &
+                             -f(i+1,j  ,k-1,1)-f(i+1,j  ,k-1,1)-f(i+1,j  ,k-1,1)  &
+                             +f(i-1,j+1,k-1,1)+f(i-1,j+1,k-1,1)+f(i-1,j+1,k-1,1)  &
+                             -f(i-1,j  ,k-1,1)-f(i-1,j  ,k-1,1)-f(i-1,j  ,k-1,1)))
+              end do
+           end do
+        end do
+
+        do       k = zlo(3), zhi(3)
+           do    j = zlo(2), zhi(2)
+              do i = zlo(1), zhi(1)
+                 Ez(i,j,k,3) = Ez(i,j,k,3) &
+                     +alphaz*(f(i  ,j  ,k+1,1)+f(i  ,j  ,k+1,1)+f(i  ,j  ,k+1,1)  &
+                             -f(i  ,j  ,k  ,1)-f(i  ,j  ,k  ,1)-f(i  ,j  ,k  ,1)) &
+                     +betazx*(f(i+1,j  ,k+1,1)+f(i+1,j  ,k+1,1)+f(i+1,j  ,k+1,1)  &
+                             -f(i+1,j  ,k  ,1)-f(i+1,j  ,k  ,1)-f(i+1,j  ,k  ,1)  &
+                             +f(i-1,j  ,k+1,1)+f(i-1,j  ,k+1,1)+f(i-1,j  ,k+1,1)  &
+                             -f(i-1,j  ,k  ,1)-f(i-1,j  ,k  ,1)-f(i-1,j  ,k  ,1)) &
+                     +betazy*(f(i  ,j+1,k+1,1)+f(i  ,j+1,k+1,1)+f(i  ,j+1,k+1,1)  &
+                             -f(i  ,j+1,k  ,1)-f(i  ,j+1,k  ,1)-f(i  ,j+1,k  ,1)  &
+                             +f(i  ,j-1,k+1,1)+f(i  ,j-1,k+1,1)+f(i  ,j-1,k+1,1)  &
+                             -f(i  ,j-1,k  ,1)-f(i  ,j-1,k  ,1)-f(i  ,j-1,k  ,1)) &
+                     +gammaz*(f(i+1,j+1,k+1,1)+f(i+1,j+1,k+1,1)+f(i+1,j+1,k+1,1)  &
+                             -f(i+1,j+1,k  ,1)-f(i+1,j+1,k  ,1)-f(i+1,j+1,k  ,1)  &
+                             +f(i-1,j+1,k+1,1)+f(i-1,j+1,k+1,1)+f(i-1,j+1,k+1,1)  &
+                             -f(i-1,j+1,k  ,1)-f(i-1,j+1,k  ,1)-f(i-1,j+1,k  ,1)  &
+                             +f(i+1,j-1,k+1,1)+f(i+1,j-1,k+1,1)+f(i+1,j-1,k+1,1)  &
+                             -f(i+1,j-1,k  ,1)-f(i+1,j-1,k  ,1)-f(i+1,j-1,k  ,1)  &
+                             +f(i-1,j-1,k+1,1)+f(i-1,j-1,k+1,1)+f(i-1,j-1,k+1,1)  &
+                             -f(i-1,j-1,k  ,1)-f(i-1,j-1,k  ,1)-f(i-1,j-1,k  ,1))
+              end do
+           end do
+        end do
+
+    endif
 
   end subroutine warpx_push_pml_evec_f_3d
 
@@ -621,7 +747,7 @@ contains
 
   end subroutine warpx_push_pml_evec_f_2d
 
-  
+
   subroutine warpx_damp_pml_2d (texlo, texhi, teylo, teyhi, tezlo, tezhi, &
        &                        tbxlo, tbxhi, tbylo, tbyhi, tbzlo, tbzhi, &
        &                        ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo, ezhi, &
@@ -660,7 +786,7 @@ contains
           ey(i,k,2) = ey(i,k,2) * sigex(i)
        end do
     end do
-    
+
     do    k = tezlo(2), tezhi(2)
        do i = tezlo(1), tezhi(1)
           ez(i,k,1) = ez(i,k,1) * sigex(i)
@@ -689,7 +815,7 @@ contains
 
   end subroutine warpx_damp_pml_2d
 
-  
+
   subroutine warpx_damp_pml_3d (texlo, texhi, teylo, teyhi, tezlo, tezhi, &
        &                        tbxlo, tbxhi, tbylo, tbyhi, tbzlo, tbzhi, &
        &                        ex, exlo, exhi, ey, eylo, eyhi, ez, ezlo, ezhi, &
@@ -799,7 +925,7 @@ contains
     end do
   end subroutine warpx_damp_pml_f_2d
 
-  
+
   subroutine warpx_damp_pml_f_3d (tndlo, tndhi, f, flo, fhi,&
        &                          sigex, sexlo, sexhi, sigey, seylo, seyhi, sigez, sezlo, sezhi, &
        &                          sigcx, scxlo, scxhi, sigcy, scylo, scyhi, sigcz, sczlo, sczhi) &
