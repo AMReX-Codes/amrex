@@ -583,11 +583,9 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     ex, exlo, exhi, &
     ey, eylo, eyhi, &
     ez, ezlo, ezhi, &
-    bx, bxlo, bxhi, &
-    by, bylo, byhi, &
-    bz, bzlo, bzhi, &
+    f, flo, fhi, &
     dtsdx_c2, dtsdy_c2, dtsdz_c2, &
-    maxwell_fdtd_solver_id) bind(C, name="warpx_push_bvec")
+    maxwell_fdtd_solver_id) bind(C, name="warpx_push_evec_f")
 
     integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
       ylo(BL_SPACEDIM), yhi(BL_SPACEDIM), zlo(BL_SPACEDIM), zhi(BL_SPACEDIM), &
