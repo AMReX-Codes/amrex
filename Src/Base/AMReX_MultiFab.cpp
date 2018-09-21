@@ -11,7 +11,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_BaseFab_f.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -27,8 +26,6 @@ namespace
     int num_multifabs_hwm = 0;
 #endif
 }
-
-#if !defined(BL_NO_FORT)
 
 Real
 MultiFab::Dot (const MultiFab& x, int xcomp,
@@ -85,7 +82,6 @@ MultiFab::Dot (const iMultiFab& mask,
 
     return sm;
 }
-#endif
 
 void
 MultiFab::Add (MultiFab&       dst,
@@ -289,8 +285,6 @@ MultiFab::Divide (MultiFab&       dst,
     }
 }
 
-#if !defined(BL_NO_FORT)
-
 void
 MultiFab::Saxpy (MultiFab&       dst,
 		 Real            a, 
@@ -398,8 +392,6 @@ MultiFab::AddProduct (MultiFab&       dst,
             dst[mfi].addproduct(bx, dstcomp, numcomp, src1[mfi], comp1, src2[mfi], comp2);
     }
 }
-
-#endif
 
 void
 MultiFab::plus (Real val,
@@ -922,7 +914,6 @@ MultiFab::maxIndex (int comp,
     return loc;
 }
 
-#if !defined(BL_NO_FORT)
 Real
 MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 {
@@ -940,7 +931,6 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 
     return nm0;
 }
-#endif
 
 Real
 MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
@@ -1036,8 +1026,6 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     return nm0;
 }
 
-#if !defined(BL_NO_FORT)
-
 Real
 MultiFab::norm2 (int comp) const
 {
@@ -1118,8 +1106,6 @@ MultiFab::norm2 (const Vector<int>& comps) const
 
     return nm2;
 }
-
-#endif
 
 Real
 MultiFab::norm1 (int comp, const Periodicity& period) const
@@ -1583,8 +1569,6 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
 
-#if !defined(BL_NO_FORT)
-
 void
 MultiFab::OverrideSync (const Periodicity& period)
 {
@@ -1608,10 +1592,7 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
         FArrayBox& fab = (*this)[mfi];
         const IArrayBox& ifab = msk[mfi];
         const Box& bx = mfi.tilebox();
-        amrex_fab_setval_ifnot (BL_TO_FORTRAN_BOX(bx),
-                                BL_TO_FORTRAN_FAB(fab),
-                                BL_TO_FORTRAN_ANYD(ifab),
-                                0.0);
+        fab.setValIfNot(0.0, bx, ifab, 0, ncomp);
     }
     
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
@@ -1620,7 +1601,5 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
-
-#endif
 
 }
