@@ -24,7 +24,7 @@ WarpX::Evolve (int numsteps) {
 #else
     EvolveEM(numsteps);
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
 }
 
 void
@@ -227,7 +227,7 @@ WarpX::EvolveEM (int numsteps)
         FillBoundaryE();
         FillBoundaryB();
         UpdateAuxilaryData();
-        
+
         for (int lev = 0; lev <= finest_level; ++lev) {
             mypc->FieldGather(lev,
                               *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
@@ -451,14 +451,19 @@ WarpX::EvolveE (int lev, Real dt)
                 &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
 
             if (F) {
-                WRPX_CLEAN_EVEC(tex.loVect(), tex.hiVect(),
-                                tey.loVect(), tey.hiVect(),
-                                tez.loVect(), tez.hiVect(),
-                                BL_TO_FORTRAN_3D((*Ex)[mfi]),
-                                BL_TO_FORTRAN_3D((*Ey)[mfi]),
-                                BL_TO_FORTRAN_3D((*Ez)[mfi]),
-                                BL_TO_FORTRAN_3D((*F)[mfi]),
-                                &dtsdx_c2[0]);
+
+                // Call picsar routine for each tile
+                warpx_push_evec_f(
+                    tex.loVect(), tex.hiVect(),
+                    tey.loVect(), tey.hiVect(),
+                    tez.loVect(), tez.hiVect(),
+                    BL_TO_FORTRAN_3D((*Ex)[mfi]),
+                    BL_TO_FORTRAN_3D((*Ey)[mfi]),
+                    BL_TO_FORTRAN_3D((*Ez)[mfi]),
+                    BL_TO_FORTRAN_3D((*F)[mfi]),
+                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+                    &WarpX::maxwell_fdtd_solver_id);
+
             }
 
             if (cost) {
@@ -679,7 +684,7 @@ WarpX::PushParticlesandDepose (int lev, Real cur_time)
                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2],
                  *current_fp[lev][0],*current_fp[lev][1],*current_fp[lev][2],
                  current_buf[lev][0].get(), current_buf[lev][1].get(), current_buf[lev][2].get(),
-                 rho_fp[lev].get(), 
+                 rho_fp[lev].get(),
                  Efield_cax[lev][0].get(), Efield_cax[lev][1].get(), Efield_cax[lev][2].get(),
                  Bfield_cax[lev][0].get(), Bfield_cax[lev][1].get(), Bfield_cax[lev][2].get(),
                  cur_time, dt[lev]);
@@ -690,7 +695,7 @@ WarpX::ComputeDt ()
 {
     const Real* dx = geom[max_level].CellSize();
     Real deltat = 0.;
-    
+
     if (maxwell_fdtd_solver_id == 0) {
       // CFL time step Yee solver
       deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),

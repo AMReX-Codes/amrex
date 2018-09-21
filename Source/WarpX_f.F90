@@ -38,9 +38,9 @@ contains
        uzpold(n) = uzp(n)
 
     end do
-    
+
   end subroutine warpx_copy_attribs
-    
+
   subroutine warpx_compute_E (lo, hi, &
        phi, phlo, phhi, &
        Ex,  Exlo, Exhi, &
@@ -221,7 +221,7 @@ contains
                      ( fine(ii,jj) + 0.5d0 *(fine(ii-1,jj  )+fine(ii+1,jj  ) &
                      &                     + fine(ii  ,jj-1)+fine(ii  ,jj+1)) &
                      &             + 0.25d0*(fine(ii-1,jj-1)+fine(ii+1,jj-1) &
-                     &                     + fine(ii-1,jj+1)+fine(ii+1,jj+1)) ) 
+                     &                     + fine(ii-1,jj+1)+fine(ii+1,jj+1)) )
           end do
        end do
     end if
@@ -295,88 +295,13 @@ contains
     end if
   end subroutine warpx_sync_current_3d
 
-  subroutine warpx_clean_evec_2d (xlo, xhi, ylo, yhi, zlo, zhi, &
-       &                          Ex, Exlo, Exhi, &
-       &                          Ey, Eylo, Eyhi, &
-       &                          Ez, Ezlo, Ezhi, &
-       &                          F,  flo,  fhi,  &
-       dtdx) bind(c, name='warpx_clean_evec_2d')
-    integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
-         Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), flo(2), fhi(2)
-    real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2))
-    real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2))
-    real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2))
-    real(amrex_real), intent(in   ) :: F  ( flo(1): fhi(1), flo(2): fhi(2))
-    real(amrex_real), intent(in   ) :: dtdx(3)
-
-    integer :: i,j
-    
-    do    j = xlo(2), xhi(2)
-       do i = xlo(1), xhi(1)
-          Ex(i,j) = Ex(i,j) + dtdx(1) * (F(i+1,j)-F(i,j))
-       end do
-    end do
-
-    ! Ey doesn't change
-
-    do    j = zlo(2), zhi(2)
-       do i = zlo(1), zhi(1)
-          Ez(i,j) = Ez(i,j) + dtdx(3) * (F(i,j+1)-F(i,j))
-       end do
-    end do
-
-  end subroutine warpx_clean_evec_2d
-
-  subroutine warpx_clean_evec_3d (xlo, xhi, ylo, yhi, zlo, zhi, &
-       &                          Ex, Exlo, Exhi, &
-       &                          Ey, Eylo, Eyhi, &
-       &                          Ez, Ezlo, Ezhi, &
-       &                          F,  flo,  fhi,  &
-       dtdx) bind(c, name='warpx_clean_evec_3d')
-    integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
-         Exlo(3), Exhi(3), Eylo(3), Eyhi(3), Ezlo(3), Ezhi(3), flo(3), fhi(3)
-    real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),Exlo(3):Exhi(3))
-    real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3))
-    real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3))
-    real(amrex_real), intent(in   ) :: F  ( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
-    real(amrex_real), intent(in   ) :: dtdx(3)
-
-    integer :: i,j,k
-
-    do       k = xlo(3), xhi(3)
-       do    j = xlo(2), xhi(2)
-          do i = xlo(1), xhi(1)
-             Ex(i,j,k) = Ex(i,j,k) + dtdx(1)*(F(i+1,j,k)-F(i,j,k))
-          end do
-       end do
-    end do
-
-    do       k = xlo(3), xhi(3)
-       do    j = xlo(2), xhi(2)
-          do i = xlo(1), xhi(1)
-             Ey(i,j,k) = Ey(i,j,k) + dtdx(2)*(F(i,j+1,k)-F(i,j,k))
-          end do
-       end do
-    end do
-
-
-    do       k = xlo(3), xhi(3)
-       do    j = xlo(2), xhi(2)
-          do i = xlo(1), xhi(1)
-             Ez(i,j,k) = Ez(i,j,k) + dtdx(3)*(F(i,j,k+1)-F(i,j,k))
-          end do
-       end do
-    end do
-
-  end subroutine warpx_clean_evec_3d
-
 
   subroutine warpx_sync_rho_2d (lo, hi, crse, clo, chi, fine, flo, fhi, nc) &
        bind(c, name='warpx_sync_rho_2d')
     integer, intent(in) :: lo(2), hi(2), flo(2), fhi(2), clo(2), chi(2), nc
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),nc)
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),nc)
-    
+
     integer :: i,j,ii,jj,m
 
     do m = 1, nc
@@ -388,7 +313,7 @@ contains
                   ( fine(ii,jj,m) + 0.5d0 *(fine(ii-1,jj  ,m)+fine(ii+1,jj  ,m) &
                   &                       + fine(ii  ,jj-1,m)+fine(ii  ,jj+1,m)) &
                   &               + 0.25d0*(fine(ii-1,jj-1,m)+fine(ii+1,jj-1,m) &
-                  &                       + fine(ii-1,jj+1,m)+fine(ii+1,jj+1,m)) ) 
+                  &                       + fine(ii-1,jj+1,m)+fine(ii+1,jj+1,m)) )
           end do
        end do
     end do
@@ -436,7 +361,7 @@ contains
     integer, intent(in   ) :: gmsk(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
     integer, intent(inout) ::  msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
     integer, intent(in) :: ng
-    
+
     integer :: i,j,k
 
     if (amrex_spacedim .eq. 2) then
