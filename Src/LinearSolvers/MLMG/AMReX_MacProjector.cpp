@@ -104,6 +104,8 @@ MacProjector::project (Real reltol)
         m_mlmg->setVerbose(m_verbose);
     }
 
+    m_mlmg->setBottomSolver(bottom_solver_type);
+
     const int nlevs = m_rhs.size();
 
     for (int ilev = 0; ilev < nlevs; ++ilev)

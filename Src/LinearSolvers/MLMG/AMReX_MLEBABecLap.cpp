@@ -1003,7 +1003,7 @@ MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
 
 #ifdef AMREX_USE_PETSC
 std::unique_ptr<PETScABecLap>
-MLEBABecLap::makePETScABecLap () const
+MLEBABecLap::makePETSc () const
 {
     auto petsc_solver = MLCellABecLap::makePETSc();
     petsc_solver->setEBDirichlet(m_eb_b_coeffs[0].back().get());
