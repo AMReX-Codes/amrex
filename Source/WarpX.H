@@ -243,10 +243,12 @@ private:
     void StoreCurrent (int lev);
     void RestoreCurrent (int lev);
     void ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type);
+    void NodalSyncJ (int lev, PatchType patch_type);
 
     void RestrictRhoFromFineToCoarsePatch (int lev);
     void ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, int ncomp);
     void AddRhoFromFineLevelandSumBoundary (int lev, int icomp, int ncomp);
+    void NodalSyncRho (int lev, PatchType patch_type, int icomp, int ncomp);
 
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);

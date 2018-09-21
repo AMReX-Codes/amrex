@@ -460,7 +460,7 @@ WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = fine[0]->nGrowVect()/ref_ratio;
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) /ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -578,7 +578,7 @@ void
 WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = fine.nGrowVect()/ref_ratio;
+    const IntVect& ng = (fine.nGrowVect()+1)/ref_ratio;
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
@@ -657,15 +657,19 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
             applyFilter(jf, *current_cp[lev+1][idim]);
             mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+            jf.SumBoundary(period);
             MultiFab::Copy(*current_cp[lev+1][idim], jf, 0, 0, 1, 0);
 
         } else {
             mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
                            current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
+            current_cp[lev+1][idim]->SumBoundary(period);
         }
         MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
     }
+    NodalSyncJ(lev, PatchType::fine);
+    NodalSyncJ(lev+1, PatchType::coarse);
 }
 
 void
@@ -712,13 +716,54 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
             MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
             applyFilter(rf, *rho_cp[lev+1], icomp, 0, ncomp);
             mf.ParallelAdd(rf, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
+            rf.SumBoundary(icomp, ncomp, period);
             MultiFab::Copy(*rho_cp[lev+1], rf, 0, icomp, ncomp, 0);
         } else {
             mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
                            rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
+            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
         }
         ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
         MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);
+
+        NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
+        NodalSyncRho(lev+1, PatchType::coarse, icomp, ncomp);
+    }
+}
+
+void
+WarpX::NodalSyncJ (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine)
+    {
+        const auto& period = Geom(lev).periodicity();
+        current_fp[lev][0]->OverrideSync(period);
+        current_fp[lev][1]->OverrideSync(period);
+        current_fp[lev][2]->OverrideSync(period);
+    }
+    else if (patch_type == PatchType::coarse)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        current_cp[lev][0]->OverrideSync(cperiod);
+        current_cp[lev][1]->OverrideSync(cperiod);
+        current_cp[lev][2]->OverrideSync(cperiod);
+    }
+}
+
+void
+WarpX::NodalSyncRho (int lev, PatchType patch_type, int icomp, int ncomp)
+{
+    if (patch_type == PatchType::fine && rho_fp[lev])
+    {
+        const auto& period = Geom(lev).periodicity();
+        MultiFab rhof(*rho_fp[lev], amrex::make_alias, icomp, ncomp);
+        rhof.OverrideSync(period);
+    }
+    else if (patch_type == PatchType::coarse && rho_cp[lev])
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        MultiFab rhoc(*rho_cp[lev], amrex::make_alias, icomp, ncomp);
+        rhoc.OverrideSync(cperiod);
     }
 }
