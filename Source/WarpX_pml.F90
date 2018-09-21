@@ -719,8 +719,10 @@ contains
        &                              f,  flo,  fhi, &
        &                             dtsdx, dtsdy, dtsdz, solver_type) &
        bind(c,name='warpx_push_pml_evec_f_2d')
+    use amrex_constants_module, only : one, two, four, eighth
     integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
-         Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), flo(2), fhi(2)
+         Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), flo(2), fhi(2), &
+         solver_type
     real(amrex_real), intent(inout) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),3)
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),3)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),3)
@@ -777,7 +779,7 @@ contains
                       + betaxz*(f(i+1,k+1,1)+f(i+1,k+1,2)+f(i+1,k+1,3)  &
                                -f(i  ,k+1,1)-f(i  ,k+1,2)-f(i  ,k+1,3)  &
                                +f(i+1,k-1,1)+f(i+1,k-1,2)+f(i+1,k-1,3)  &
-                               -f(i  ,k-1,1)-f(i  ,k-1,2)-f(i  ,k-1,3)))
+                               -f(i  ,k-1,1)-f(i  ,k-1,2)-f(i  ,k-1,3))
            end do
         end do
 
@@ -789,7 +791,7 @@ contains
                       + betazx*(f(i+1,k+1,1)+f(i+1,k+1,2)+f(i+1,k+1,3)  &
                                -f(i+1,k  ,1)-f(i+1,k  ,2)-f(i+1,k  ,3)  &
                                +f(i-1,k+1,1)+f(i-1,k+1,2)+f(i-1,k+1,3)  &
-                               -f(i-1,k  ,1)-f(i-1,k  ,2)-f(i-1,k  ,3)))
+                               -f(i-1,k  ,1)-f(i-1,k  ,2)-f(i-1,k  ,3))
            end do
         end do
 
