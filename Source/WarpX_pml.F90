@@ -511,24 +511,24 @@ contains
        &                          Ex, Exlo, Exhi, &
        &                          Ey, Eylo, Eyhi, &
        &                          Ez, Ezlo, Ezhi, &
-       &                          dtsdx, dtsdy, dtsdz, solver_type) &
+       &                          dtdx, dtdy, dtdz) &
        bind(c,name='warpx_push_pml_f_2d')
     integer, intent(in) :: lo(2), hi(2), Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
-         flo(2), fhi(2), solver_type
+         flo(2), fhi(2)
     real(amrex_real), intent(inout) :: f  ( flo(1): fhi(1), flo(2): fhi(2),3)
     real(amrex_real), intent(in   ) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),3)
     real(amrex_real), intent(in   ) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),3)
     real(amrex_real), intent(in   ) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),3)
-    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
+    real(amrex_real), intent(in) :: dtdx, dtdy, dtdz
 
     integer :: i, k
 
     do    k = lo(2), hi(2)
        do i = lo(1), hi(1)
-          f(i,k,1) = f(i,k,1) + dtsdx*((Ex(i,k,1)-Ex(i-1,k,1)) &
+          f(i,k,1) = f(i,k,1) + dtdx*((Ex(i,k,1)-Ex(i-1,k,1)) &
                &                    + (Ex(i,k,2)-Ex(i-1,k,2)) &
                &                    + (Ex(i,k,3)-Ex(i-1,k,3)))
-          f(i,k,3) = f(i,k,3) + dtsdz*((Ez(i,k,1)-Ez(i,k-1,1)) &
+          f(i,k,3) = f(i,k,3) + dtdz*((Ez(i,k,1)-Ez(i,k-1,1)) &
                &                    + (Ez(i,k,2)-Ez(i,k-1,2)) &
                &                    + (Ez(i,k,3)-Ez(i,k-1,3)))
        end do
@@ -717,7 +717,7 @@ contains
        &                             Ey, Eylo, Eyhi, &
        &                             Ez, Ezlo, Ezhi, &
        &                              f,  flo,  fhi, &
-       &                             dtdx) &
+       &                             dtsdx, dtsdy, dtsdz, solver_type) &
        bind(c,name='warpx_push_pml_evec_f_2d')
     integer, intent(in) :: xlo(2), xhi(2), ylo(2), yhi(2), zlo(2), zhi(2), &
          Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), flo(2), fhi(2)
@@ -725,25 +725,75 @@ contains
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),3)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),3)
     real(amrex_real), intent(in   ) ::  f ( flo(1): fhi(1), flo(2): fhi(2),3)
-    real(amrex_real), intent(in) :: dtdx(3)
+    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
 
     integer :: i, k
 
-    do    k = xlo(2), xhi(2)
-       do i = xlo(1), xhi(1)
-          Ex(i,k,3) = Ex(i,k,3) + dtdx(1)*((f(i+1,k,1)-f(i,k,1)) &
-               &                         + (f(i+1,k,2)-f(i,k,2)) &
-               &                         + (f(i+1,k,3)-f(i,k,3)))
-       end do
-    end do
+    real(amrex_real) :: delta, rx, rz, betaxz, betazx, alphax, alphaz
 
-    do    k = zlo(2), zhi(2)
-       do i = zlo(1), zhi(1)
-          Ez(i,k,3) = Ez(i,k,3) + dtdx(3)*((f(i,k+1,1)-f(i,k,1)) &
-               &                         + (f(i,k+1,2)-f(i,k,2)) &
-               &                         + (f(i,k+1,3)-f(i,k,3)))
-       end do
-    end do
+    ! solver_type: 0=Yee; 1=CKC
+
+    if (solver_type==0) then
+
+        do    k = xlo(2), xhi(2)
+           do i = xlo(1), xhi(1)
+              Ex(i,k,3) = Ex(i,k,3) +   dtsdx*((f(i+1,k,1)-f(i,k,1)) &
+                   &                         + (f(i+1,k,2)-f(i,k,2)) &
+                   &                         + (f(i+1,k,3)-f(i,k,3)))
+           end do
+        end do
+
+        do    k = zlo(2), zhi(2)
+           do i = zlo(1), zhi(1)
+              Ez(i,k,3) = Ez(i,k,3) +   dtsdz*((f(i,k+1,1)-f(i,k,1)) &
+                   &                         + (f(i,k+1,2)-f(i,k,2)) &
+                   &                         + (f(i,k+1,3)-f(i,k,3)))
+           end do
+        end do
+
+    else
+
+        ! Cole-Karkkainen-Cowan push
+
+        ! computes coefficients according to Cowan - PRST-AB 16, 041303 (2013)
+        delta = max(dtsdx,dtsdz)
+        rx = (dtsdx/delta)**2
+        rz = (dtsdz/delta)**2
+        betaxz = eighth*rz
+ 	    betazx = eighth*rx
+        alphax = one - two*betaxz
+        alphaz = one - two*betazx
+
+        betaxz = dtsdx*betaxz
+        betazx = dtsdz*betazx
+        alphax = dtsdx*alphax
+        alphaz = dtsdz*alphaz
+
+        do    k = xlo(2), xhi(2)
+           do i = xlo(1), xhi(1)
+              Ex(i,k,3) = Ex(i,k,3) &
+                      + alphax*(f(i+1,k  ,1)+f(i+1,k  ,2)+f(i+1,k  ,3)  &
+                               -f(i  ,k  ,1)-f(i  ,k  ,2)-f(i  ,k  ,3)) &
+                      + betaxz*(f(i+1,k+1,1)+f(i+1,k+1,2)+f(i+1,k+1,3)  &
+                               -f(i  ,k+1,1)-f(i  ,k+1,2)-f(i  ,k+1,3)  &
+                               +f(i+1,k-1,1)+f(i+1,k-1,2)+f(i+1,k-1,3)  &
+                               -f(i  ,k-1,1)-f(i  ,k-1,2)-f(i  ,k-1,3)))
+           end do
+        end do
+
+        do    k = zlo(2), zhi(2)
+           do i = zlo(1), zhi(1)
+              Ez(i,k,3) = Ez(i,k,3) &
+                      + alphaz*(f(i  ,k+1,1)+f(i  ,k+1,2)+f(i  ,k+1,3)  &
+                               -f(i  ,k  ,1)-f(i  ,k  ,2)-f(i  ,k  ,3)) &
+                      + betazx*(f(i+1,k+1,1)+f(i+1,k+1,2)+f(i+1,k+1,3)  &
+                               -f(i+1,k  ,1)-f(i+1,k  ,2)-f(i+1,k  ,3)  &
+                               +f(i-1,k+1,1)+f(i-1,k+1,2)+f(i-1,k+1,3)  &
+                               -f(i-1,k  ,1)-f(i-1,k  ,2)-f(i-1,k  ,3)))
+           end do
+        end do
+
+    endif
 
   end subroutine warpx_push_pml_evec_f_2d
 
