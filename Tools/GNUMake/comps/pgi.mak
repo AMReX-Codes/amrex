@@ -50,7 +50,7 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH),lineinfo,ptxinfo -Minfo=accel -mcmodel=medium
+  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
@@ -98,11 +98,8 @@ FFLAGS   += -Mnomain
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath
-  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath
-
-  F90FLAGS += -Mcuda=charstring
-  FFLAGS   += -Mcuda=charstring
+  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
+  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
 
   ifeq ($(DEBUG),TRUE)
     F90FLAGS += -Mcuda=debug

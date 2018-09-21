@@ -1,11 +1,14 @@
 #
 # If we are using CUDA, pull in the gcc compiler first
 # and override it as necessary. This is done because the
-# nvcc compiler driver does not work optimally with pgc++
-# as a host compiler at present.
+# nvcc compiler driver does not always accept pgc++
+# as a host compiler at present. However, if we're using
+# OpenACC, then PGI is required, so we cannot do this.
 #
 
-include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
+ifneq ($(USE_ACC),TRUE)
+  include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
+endif
 
 # Force immediate expansion of the GCC defines,
 # since after this point GCC will no longer be
