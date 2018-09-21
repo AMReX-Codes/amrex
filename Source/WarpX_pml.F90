@@ -511,24 +511,24 @@ contains
        &                          Ex, Exlo, Exhi, &
        &                          Ey, Eylo, Eyhi, &
        &                          Ez, Ezlo, Ezhi, &
-       &                          dtdx, dtdy, dtdz) &
+       &                          dtsdx, dtsdy, dtsdz, solver_type) &
        bind(c,name='warpx_push_pml_f_2d')
     integer, intent(in) :: lo(2), hi(2), Exlo(2), Exhi(2), Eylo(2), Eyhi(2), Ezlo(2), Ezhi(2), &
-         flo(2), fhi(2)
+         flo(2), fhi(2), solver_type
     real(amrex_real), intent(inout) :: f  ( flo(1): fhi(1), flo(2): fhi(2),3)
     real(amrex_real), intent(in   ) :: Ex (Exlo(1):Exhi(1),Exlo(2):Exhi(2),3)
     real(amrex_real), intent(in   ) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),3)
     real(amrex_real), intent(in   ) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),3)
-    real(amrex_real), intent(in) :: dtdx, dtdy, dtdz
+    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
 
     integer :: i, k
 
     do    k = lo(2), hi(2)
        do i = lo(1), hi(1)
-          f(i,k,1) = f(i,k,1) + dtdx*((Ex(i,k,1)-Ex(i-1,k,1)) &
+          f(i,k,1) = f(i,k,1) + dtsdx*((Ex(i,k,1)-Ex(i-1,k,1)) &
                &                    + (Ex(i,k,2)-Ex(i-1,k,2)) &
                &                    + (Ex(i,k,3)-Ex(i-1,k,3)))
-          f(i,k,3) = f(i,k,3) + dtdz*((Ez(i,k,1)-Ez(i,k-1,1)) &
+          f(i,k,3) = f(i,k,3) + dtsdz*((Ez(i,k,1)-Ez(i,k-1,1)) &
                &                    + (Ez(i,k,2)-Ez(i,k-1,2)) &
                &                    + (Ez(i,k,3)-Ez(i,k-1,3)))
        end do
@@ -540,7 +540,7 @@ contains
        &                             Ey, Eylo, Eyhi, &
        &                             Ez, Ezlo, Ezhi, &
        &                              f,  flo,  fhi, &
-       &                             dtdx, solver_type) &
+       &                             dtsdx, dtsdy, dtsdz, solver_type) &
        bind(c,name='warpx_push_pml_evec_f_3d')
     use amrex_constants_module, only : one, two, four, eighth
     integer, intent(in) :: xlo(3), xhi(3), ylo(3), yhi(3), zlo(3), zhi(3), &
@@ -550,7 +550,7 @@ contains
     real(amrex_real), intent(inout) :: Ey (Eylo(1):Eyhi(1),Eylo(2):Eyhi(2),Eylo(3):Eyhi(3),3)
     real(amrex_real), intent(inout) :: Ez (Ezlo(1):Ezhi(1),Ezlo(2):Ezhi(2),Ezlo(3):Ezhi(3),3)
     real(amrex_real), intent(in   ) ::  f ( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3),3)
-    real(amrex_real), intent(in) :: dtdx(3)
+    real(amrex_real), intent(in) :: dtsdx, dtsdy, dtsdz
 
     real(amrex_real), parameter :: sixteenth = 1.d0/16.d0
 
@@ -566,7 +566,7 @@ contains
         do       k = xlo(3), xhi(3)
            do    j = xlo(2), xhi(2)
               do i = xlo(1), xhi(1)
-                 Ex(i,j,k,3) = Ex(i,j,k,3) + dtdx(1)*((f(i+1,j,k,1)-f(i,j,k,1)) &
+                 Ex(i,j,k,3) = Ex(i,j,k,3) + dtsdx*((f(i+1,j,k,1)-f(i,j,k,1)) &
                    &                                + (f(i+1,j,k,2)-f(i,j,k,2)) &
                    &                                + (f(i+1,j,k,3)-f(i,j,k,3)))
               end do
@@ -576,7 +576,7 @@ contains
         do       k = ylo(3), yhi(3)
            do    j = ylo(2), yhi(2)
               do i = ylo(1), yhi(1)
-                 Ey(i,j,k,3) = Ey(i,j,k,3) + dtdx(2)*((f(i,j+1,k,1)-f(i,j,k,1)) &
+                 Ey(i,j,k,3) = Ey(i,j,k,3) + dtsdx*((f(i,j+1,k,1)-f(i,j,k,1)) &
                    &                                + (f(i,j+1,k,2)-f(i,j,k,2)) &
                    &                                + (f(i,j+1,k,3)-f(i,j,k,3)))
               end do
@@ -586,7 +586,7 @@ contains
         do       k = zlo(3), zhi(3)
            do    j = zlo(2), zhi(2)
               do i = zlo(1), zhi(1)
-                 Ez(i,j,k,3) = Ez(i,j,k,3) + dtdx(3)*((f(i,j,k+1,1)-f(i,j,k,1)) &
+                 Ez(i,j,k,3) = Ez(i,j,k,3) + dtsdx*((f(i,j,k+1,1)-f(i,j,k,1)) &
                    &                                + (f(i,j,k+1,2)-f(i,j,k,2)) &
                    &                                + (f(i,j,k+1,3)-f(i,j,k,3)))
               end do
@@ -676,7 +676,7 @@ contains
                              +f(i+1,j+1,k-1,1)+f(i+1,j+1,k-1,2)+f(i+1,j+1,k-1,3)  &
                              -f(i+1,j  ,k-1,1)-f(i+1,j  ,k-1,2)-f(i+1,j  ,k-1,3)  &
                              +f(i-1,j+1,k-1,1)+f(i-1,j+1,k-1,2)+f(i-1,j+1,k-1,3)  &
-                             -f(i-1,j  ,k-1,1)-f(i-1,j  ,k-1,2)-f(i-1,j  ,k-1,3)))
+                             -f(i-1,j  ,k-1,1)-f(i-1,j  ,k-1,2)-f(i-1,j  ,k-1,3))
               end do
            end do
         end do
