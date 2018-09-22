@@ -516,6 +516,7 @@ int main(int argc, char* argv[])
         BaseFab<int> fab3(bx3,ncomps);
         fab3.setVal(1);
 
+        timer = second();
         for (int i=0; i<iters; ++i)
         {
            total = fab1.dotmask(fab3, bx1, 0, fab2, bx2, 0, ncomps);
@@ -743,7 +744,7 @@ int main(int argc, char* argv[])
     // ===================================================================
     // CopyToMem & CopyFromMem
     {
-        double timer, timer2;
+        double timer;
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
         BaseFab<Real> fab1(bx1,ncomps);
@@ -762,12 +763,12 @@ int main(int argc, char* argv[])
         }
         timer = second() - timer;
 
-        timer2 = second();
+        timer = second();
         for (int i=0; i<iters; ++i)
         {
            fab2.copyFromMem(bx2, 0, ncomps, buffer.data());
         }
-        timer2 = second() - timer;
+        timer = second() - timer;
 
         amrex::Print() << "BaseFab<Real>::copyToMem() test." << std::endl
                        << "Result: " << fab2(IntVect(1000))  << std::endl
