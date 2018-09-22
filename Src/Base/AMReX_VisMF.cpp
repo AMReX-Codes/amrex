@@ -1622,7 +1622,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	      } else {          // ---- cannot use one read
 	        for(int i(0); i < frc.size(); ++i) {
 	          if(myProc == frc[i].rankToRead) {
-	            if(nfi.SeekPos() != frc[i].fileOffset) {
+	            if(static_cast<std::streamoff>(nfi.SeekPos()) != frc[i].fileOffset) {
                       nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
 	            }
 	            FArrayBox &fab = whichFA[frc[i].faIndex];

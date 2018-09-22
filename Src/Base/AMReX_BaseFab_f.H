@@ -134,8 +134,8 @@ extern "C"
                                 const int* src);
     
     void amrex_fort_ifab_setval (const int* lo, const int* hi, 
-                           const int* dst, const int* dlo, const int* dhi, const int* ncomp,
-                           const int* val);
+                                 int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                 const int* val);
 
     void amrex_fort_ifab_plus (const int* lo, const int* hi,
                          int* dst, const int* dlo, const int* dhi,

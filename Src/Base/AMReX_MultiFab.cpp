@@ -27,8 +27,6 @@ namespace
 #endif
 }
 
-#if !defined(BL_NO_FORT)
-
 Real
 MultiFab::Dot (const MultiFab& x, int xcomp,
 	       const MultiFab& y, int ycomp,
@@ -86,7 +84,6 @@ MultiFab::Dot (const iMultiFab& mask,
 
     return sm;
 }
-#endif
 
 void
 MultiFab::Add (MultiFab&       dst,
@@ -309,8 +306,6 @@ MultiFab::Divide (MultiFab&       dst,
 
 }
 
-#if !defined(BL_NO_FORT)
-
 void
 MultiFab::Saxpy (MultiFab&       dst,
 		 Real            a, 
@@ -428,8 +423,6 @@ MultiFab::AddProduct (MultiFab&       dst,
             dst[mfi].addproduct(bx, dstcomp, numcomp, src1[mfi], comp1, src2[mfi], comp2);
     }
 }
-
-#endif
 
 void
 MultiFab::plus (Real val,
@@ -952,7 +945,6 @@ MultiFab::maxIndex (int comp,
     return loc;
 }
 
-#if !defined(BL_NO_FORT)
 Real
 MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 {
@@ -970,7 +962,6 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 
     return nm0;
 }
-#endif
 
 Real
 MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
@@ -1066,8 +1057,6 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     return nm0;
 }
 
-#if !defined(BL_NO_FORT)
-
 Real
 MultiFab::norm2 (int comp) const
 {
@@ -1148,8 +1137,6 @@ MultiFab::norm2 (const Vector<int>& comps) const
 
     return nm2;
 }
-
-#endif
 
 Real
 MultiFab::norm1 (int comp, const Periodicity& period) const
@@ -1613,8 +1600,6 @@ MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
 
-#if !defined(BL_NO_FORT)
-
 void
 MultiFab::OverrideSync (const Periodicity& period)
 {
@@ -1647,7 +1632,5 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
-
-#endif
 
 }

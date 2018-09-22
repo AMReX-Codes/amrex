@@ -175,6 +175,12 @@ else
   EBASE := main
 endif
 
+ifdef USE_GPU_PRAGMA
+  USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
+else
+  USE_GPU_PRAGMA := FALSE
+endif
+
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
@@ -348,6 +354,10 @@ else
   endif
 endif
 
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+    CPPFLAGS += -DAMREX_USE_GPU_PRAGMA
+endif
+
 ifeq ($(USE_OMP),TRUE)
     OMPSuffix	:= .OMP
     CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
@@ -411,6 +421,8 @@ ifeq ($(USE_CUDA),TRUE)
         DEFINES += -DAMREX_USE_CUDA_UM
 	DEFINES += -DBL_COALESCE_FABS
     endif
+
+    DEFINES += -DAMREX_USE_GPU_PRAGMA
 
     CUDASuffix := .CUDA
 
