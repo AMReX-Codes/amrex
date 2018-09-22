@@ -716,7 +716,7 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
             MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
             applyFilter(rf, *rho_cp[lev+1], icomp, 0, ncomp);
             mf.ParallelAdd(rf, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
-            rf.SumBoundary(icomp, ncomp, period);
+            rf.SumBoundary(0, ncomp, period);
             MultiFab::Copy(*rho_cp[lev+1], rf, 0, icomp, ncomp, 0);
         } else {
             mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
