@@ -21,7 +21,6 @@
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_3d
 #define WRPX_SYNC_CURRENT                warpx_sync_current_3d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_3d
-#define WRPX_CLEAN_EVEC                  warpx_clean_evec_3d
 
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_3d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_3d
@@ -53,7 +52,6 @@
 #define WRPX_COMPUTE_DIVE                warpx_compute_dive_2d
 #define WRPX_SYNC_CURRENT                warpx_sync_current_2d
 #define WRPX_SYNC_RHO                    warpx_sync_rho_2d
-#define WRPX_CLEAN_EVEC                  warpx_clean_evec_2d
 
 #define WRPX_PUSH_PML_BVEC               warpx_push_pml_bvec_2d
 #define WRPX_PUSH_PML_EVEC               warpx_push_pml_evec_2d
@@ -91,12 +89,12 @@ extern "C"
                             const amrex_real* uxp, const amrex_real* uyp, const amrex_real* uzp,
                             amrex_real* xpold, amrex_real* ypold, amrex_real* zpold,
                             amrex_real* uxpold, amrex_real* uypold, amrex_real* uzpold);
-#endif    
+#endif
         void WRPX_COPY_SLICE(const int* lo, const int* hi,
                              const amrex_real* tmp, const int* tlo, const int* thi,
                              amrex_real* buf, const int* blo, const int* bhi,
                              const int* ncomp, const int* i_boost, const int* i_lab);
-   
+
 	// Charge deposition
 	void warpx_charge_deposition(amrex::Real* rho,
             const long* np,	const amrex::Real* xp, const amrex::Real* yp, const amrex::Real* zp,	const amrex::Real* w,
@@ -198,8 +196,8 @@ extern "C"
                 const BL_FORT_FAB_ARG_3D(jy),
                 const BL_FORT_FAB_ARG_3D(jz),
                 const amrex::Real* mudt,
-                const amrex::Real* dtsdx, 
-                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdx,
+                const amrex::Real* dtsdy,
                 const amrex::Real* dtsdz);
 
         void warpx_push_bvec(
@@ -212,9 +210,22 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(bx),
                 BL_FORT_FAB_ARG_3D(by),
                 BL_FORT_FAB_ARG_3D(bz),
-                const amrex::Real* dtsdx, 
-                const amrex::Real* dtsdy, 
+                const amrex::Real* dtsdx,
+                const amrex::Real* dtsdy,
                 const amrex::Real* dtsdz,
+		const int* maxwell_fdtd_solver_id);
+
+        void warpx_push_evec_f(
+                const int* xlo, const int* xhi,
+                const int* ylo, const int* yhi,
+                const int* zlo, const int* zhi,
+                BL_FORT_FAB_ARG_3D(ex),
+                BL_FORT_FAB_ARG_3D(ey),
+                BL_FORT_FAB_ARG_3D(ez),
+                const BL_FORT_FAB_ARG_3D(f),
+                const amrex::Real* dtsdx_c2,
+                const amrex::Real* dtsdy_c2,
+                const amrex::Real* dtsdz_c2,
 		const int* maxwell_fdtd_solver_id);
 
 #ifdef USE_OPENBC_POISSON
@@ -354,8 +365,8 @@ extern "C"
                             const BL_FORT_FAB_ARG_3D(bx),
                             const BL_FORT_FAB_ARG_3D(by),
                             const BL_FORT_FAB_ARG_3D(bz),
-                            const amrex::Real* dtsdx, 
-                            const amrex::Real* dtsdy, 
+                            const amrex::Real* dtsdx,
+                            const amrex::Real* dtsdy,
                             const amrex::Real* dtsdz);
 
     void WRPX_PUSH_PML_EVEC_F(const int* xlo, const int* xhi,
@@ -372,8 +383,8 @@ extern "C"
                          const BL_FORT_FAB_ARG_3D(ex),
                          const BL_FORT_FAB_ARG_3D(ey),
                          const BL_FORT_FAB_ARG_3D(ez),
-                         const amrex::Real* dtsdx, 
-                         const amrex::Real* dtsdy, 
+                         const amrex::Real* dtsdx,
+                         const amrex::Real* dtsdy,
                          const amrex::Real* dtsdz);
 
     void WRPX_DAMP_PML (const int* texlo, const int* texhi,
@@ -397,7 +408,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                         const amrex::Real* sigby, int sigby_lo, int sigby_hi,
 #endif
-                        const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);                        
+                        const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
 
     void WRPX_DAMP_PML_F (const int* tndlo, const int* tndhi,
                           amrex::Real* F,  const int* flo, const int* fhi,
@@ -410,7 +421,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                           const amrex::Real* sigby, int sigby_lo, int sigby_hi,
 #endif
-                          const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);                        
+                          const amrex::Real* sigbz, int sigbz_lo, int sigbz_hi);
 
     void WRPX_SYNC_CURRENT (const int* lo, const int* hi,
                              BL_FORT_FAB_ARG_ANYD(crse),
@@ -421,15 +432,6 @@ extern "C"
                         BL_FORT_FAB_ARG_ANYD(crse),
                         const BL_FORT_FAB_ARG_ANYD(fine),
                         const int* ncomp);
-
-    void WRPX_CLEAN_EVEC (const int* xlo, const int* xhi,
-                           const int* ylo, const int* yhi,
-                           const int* zlo, const int* zhi,
-                           BL_FORT_FAB_ARG_3D(ex),
-                           BL_FORT_FAB_ARG_3D(ey),
-                           BL_FORT_FAB_ARG_3D(ez),
-                           const BL_FORT_FAB_ARG_3D(F),
-                           const amrex::Real* dtdx);
 
     void WRPX_FILTER (const int* lo, const int* hi,
                       const amrex_real*, const int*, const int*,
