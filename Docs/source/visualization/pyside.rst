@@ -1,7 +1,7 @@
 PySide-based visualization GUI: PICViewer
 ================
 
-.. figure:: sample_image.jpg
+.. figure:: sample_image_png
    :alt: picture
 
 The toolkit provides various easy-to-use functions for data analysis of
