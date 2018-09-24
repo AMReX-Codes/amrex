@@ -220,6 +220,7 @@ MultiParticleContainer::Evolve (int lev,
     if (cjy) cjy->setVal(0.0);
     if (cjz) cjz->setVal(0.0);
     if (rho) rho->setVal(0.0);
+    if (crho) crho->setVal(0.0);
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
                    rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
