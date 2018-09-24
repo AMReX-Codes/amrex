@@ -197,7 +197,7 @@ MultiParticleContainer::Evolve (int lev,
                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                 MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                 MultiFab* cjx,  MultiFab* cjy, MultiFab* cjz,
-                                MultiFab* rho,
+                                MultiFab* rho, MultiFab* crho,
                                 const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                 const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                 Real t, Real dt)
@@ -211,7 +211,7 @@ MultiParticleContainer::Evolve (int lev,
     if (rho) rho->setVal(0.0);
     for (auto& pc : allcontainers) {
 	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
-                   rho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
+                   rho, crho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
     }
 }
 
