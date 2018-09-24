@@ -338,6 +338,8 @@ WarpX::ReadParameters ()
         pp.query("plot_proc_number"  , plot_proc_number);
         pp.query("plot_dive"         , plot_dive);
         pp.query("plot_divb"         , plot_divb);
+        pp.query("plot_rho"          , plot_rho);
+        pp.query("plot_F"            , plot_F);
 
         if (maxLevel() > 0) {
             pp.query("plot_finepatch", plot_finepatch);

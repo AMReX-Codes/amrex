@@ -464,6 +464,8 @@ private:
     bool plot_proc_number   = false;
     bool plot_dive          = false;
     bool plot_divb          = true;
+    bool plot_rho           = false;
+    bool plot_F             = false;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
