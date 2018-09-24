@@ -134,20 +134,25 @@ WarpX::InitNCICorrector ()
 {
     if (warpx_use_fdtd_nci_corr())
     {
-        const Geometry& gm = Geom(finest_level);
-        const Real* dx = gm.CellSize();
-        const int l_lower_order_in_v = warpx_l_lower_order_in_v();
-        amrex::Real dz, cdtodz;
-        if (AMREX_SPACEDIM == 3){ 
-            dz = dx[2]; 
-        }else{ 
-            dz = dx[1]; 
+        mypc->fdtd_nci_stencilz_ex.resize(max_level+1);
+        mypc->fdtd_nci_stencilz_by.resize(max_level+1);
+        for (int lev = 0; lev <= max_level; ++lev)
+        {
+            const Geometry& gm = Geom(lev);
+            const Real* dx = gm.CellSize();
+            const int l_lower_order_in_v = warpx_l_lower_order_in_v();
+            amrex::Real dz, cdtodz;
+            if (AMREX_SPACEDIM == 3){ 
+                dz = dx[2]; 
+            }else{ 
+                dz = dx[1]; 
+            }
+            cdtodz = PhysConst::c * dt[lev] / dz;
+            WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(), 
+                                    (mypc->fdtd_nci_stencilz_by)[lev].data(), 
+                                    mypc->nstencilz_fdtd_nci_corr, cdtodz, 
+                                    l_lower_order_in_v);
         }
-        cdtodz = PhysConst::c * dt[finest_level] / dz;
-        WRPX_PXR_NCI_CORR_INIT( mypc->fdtd_nci_stencilz_ex.data(), 
-                                mypc->fdtd_nci_stencilz_by.data(), 
-                                mypc->nstencilz_fdtd_nci_corr, cdtodz, 
-                                l_lower_order_in_v);
     }
 }
 
