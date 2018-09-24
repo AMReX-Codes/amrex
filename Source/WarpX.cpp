@@ -520,6 +520,13 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     IntVect ngRho = ngJ + 1;
 #endif
 
+    IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
+                           // after pushing particle. 
+
+    if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
+        n_current_deposition_buffer = 1;
+    }
+
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
     }
