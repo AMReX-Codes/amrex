@@ -140,7 +140,7 @@ WarpX::WarpX ()
             ppc.injected = true;
         }
     }
-    
+
     Efield_aux.resize(nlevs_max);
     Bfield_aux.resize(nlevs_max);
 
@@ -164,11 +164,11 @@ WarpX::WarpX ()
 
     pml.resize(nlevs_max);
 
-#ifdef WARPX_DO_ELECTROSTATIC    
+#ifdef WARPX_DO_ELECTROSTATIC
     masks.resize(nlevs_max);
     gather_masks.resize(nlevs_max);
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     costs.resize(nlevs_max);
 
 #ifdef WARPX_USE_PSATD
@@ -256,13 +256,13 @@ WarpX::ReadParameters ()
 		const std::string msg = "Unknown moving_window_dir: "+s;
 		amrex::Abort(msg.c_str());
 	    }
-            
+
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);
-            
+
 	    pp.get("moving_window_v", moving_window_v);
 	    moving_window_v *= PhysConst::c;
 	}
-        
+
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
 	  pp.get("num_injected_species", num_injected_species);
@@ -521,6 +521,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     }
 
     int ngF = (do_moving_window) ? 2 : 0;
+    // CKC solver requires one additional guard cell
+    if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
 
     //
     // The fine patch
@@ -545,7 +547,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 #ifdef WARPX_USE_PSATD
     else
     {
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));        
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
     }
 #endif
 
@@ -619,7 +621,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
             Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
             Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
-            
+
             // Create the MultiFabs for E
             Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
             Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
@@ -807,5 +809,3 @@ WarpX::GatherBufferMasks (int lev)
 {
     return GetInstance().getGatherBufferMasks(lev);
 }
-
-

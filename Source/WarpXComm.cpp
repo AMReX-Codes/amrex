@@ -68,7 +68,7 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dBx, *Bfield_cp[lev][0], 0, 0, 1, ng);
             MultiFab::Subtract(dBy, *Bfield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dBz, *Bfield_cp[lev][2], 0, 0, 1, ng);
-            
+
             const Real* dx = Geom(lev-1).CellSize();
             const int ref_ratio = refRatio(lev-1)[0];
 #ifdef _OPENMP
@@ -81,7 +81,7 @@ WarpX::UpdateAuxilaryData ()
                     Box ccbx = mfi.fabbox();
                     ccbx.enclosedCells();
                     ccbx.coarsen(ref_ratio).refine(ref_ratio); // so that ccbx is coarsenable
-                    
+
                     const FArrayBox& cxfab = dBx[mfi];
                     const FArrayBox& cyfab = dBy[mfi];
                     const FArrayBox& czfab = dBz[mfi];
@@ -110,7 +110,7 @@ WarpX::UpdateAuxilaryData ()
                                            BL_TO_FORTRAN_ANYD(cyfab),
                                            &ref_ratio,&use_limiter);
 #endif
-                    
+
                     for (int idim = 0; idim < 3; ++idim)
                     {
                         FArrayBox& aux = (*Bfield_aux[lev][idim])[mfi];
@@ -143,7 +143,7 @@ WarpX::UpdateAuxilaryData ()
             MultiFab::Subtract(dEx, *Efield_cp[lev][0], 0, 0, 1, ng);
             MultiFab::Subtract(dEy, *Efield_cp[lev][1], 0, 0, 1, ng);
             MultiFab::Subtract(dEz, *Efield_cp[lev][2], 0, 0, 1, ng);
-            
+
             const int ref_ratio = refRatio(lev-1)[0];
 #ifdef _OPEMP
 #pragma omp parallel
@@ -155,7 +155,7 @@ WarpX::UpdateAuxilaryData ()
                     Box ccbx = mfi.fabbox();
                     ccbx.enclosedCells();
                     ccbx.coarsen(ref_ratio).refine(ref_ratio); // so that ccbx is coarsenable
-                    
+
                     const FArrayBox& cxfab = dEx[mfi];
                     const FArrayBox& cyfab = dEy[mfi];
                     const FArrayBox& czfab = dEz[mfi];
@@ -184,7 +184,7 @@ WarpX::UpdateAuxilaryData ()
                                            BL_TO_FORTRAN_ANYD(cyfab),
                                            &ref_ratio);
 #endif
-                    
+
                     for (int idim = 0; idim < 3; ++idim)
                     {
                         FArrayBox& aux = (*Efield_aux[lev][idim])[mfi];
@@ -214,6 +214,15 @@ WarpX::FillBoundaryE ()
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         FillBoundaryE(lev);
+    }
+}
+
+void
+WarpX::FillBoundaryF ()
+{
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        FillBoundaryF(lev);
     }
 }
 
@@ -265,17 +274,37 @@ WarpX::FillBoundaryB(int lev)
 }
 
 void
+WarpX::FillBoundaryF(int lev)
+{
+    const auto& period = Geom(lev).periodicity();
+
+/*   if (do_pml && pml[lev]->ok())
+    {
+        ExchangeWithPmlF(lev);
+        pml[lev]->FillBoundaryF();
+    }
+*/
+    (*F_fp[lev]).FillBoundary(period);
+
+    if (lev > 0)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        (*F_cp[lev]).FillBoundary(cperiod);
+    }
+}
+
+void
 WarpX::SyncCurrent ()
 {
     BL_PROFILE("SyncCurrent()");
 
     // Restrict fine patch current onto the coarse patch, before fine patch SumBoundary
-    for (int lev = 1; lev <= finest_level; ++lev) 
+    for (int lev = 1; lev <= finest_level; ++lev)
     {
         current_cp[lev][0]->setVal(0.0);
         current_cp[lev][1]->setVal(0.0);
         current_cp[lev][2]->setVal(0.0);
-      
+
         const IntVect& ref_ratio = refRatio(lev-1);
 
         std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
@@ -452,9 +481,9 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     if (!rhof[0]) return;
 
     // Restrict fine patch onto the coarse patch, before fine patch SumBoundary
-    for (int lev = 1; lev <= finest_level; ++lev) 
+    for (int lev = 1; lev <= finest_level; ++lev)
     {
-        rhoc[lev]->setVal(0.0);      
+        rhoc[lev]->setVal(0.0);
         const IntVect& ref_ratio = refRatio(lev-1);
         SyncRho(*rhof[lev], *rhoc[lev], ref_ratio[0]);
     }
@@ -560,4 +589,3 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
         }
     }
 }
-

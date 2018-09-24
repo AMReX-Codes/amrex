@@ -121,6 +121,7 @@ WarpX::EvolveEM (int numsteps)
         FillBoundaryB();
 #else
         EvolveF(0.5*dt[0], DtType::FirstHalf);
+        FillBoundaryF();
         EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
         FillBoundaryB();
         EvolveE(dt[0]); // We now have E^{n+1}
