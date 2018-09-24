@@ -498,24 +498,28 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
+    const int ngx_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::nox+1 : WarpX::nox;
+    const int ngy_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noy+1 : WarpX::noy;
+    const int ngz_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noz+1 : WarpX::noz;
+
     // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
     // jx, jy, jz and rho have the same number of ghost cells.
     // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
     // but different number of ghost cells in z-direction if NCI filter is used.
-    int ngx = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    int ngy = (WarpX::noy % 2) ? WarpX::noy+1 : WarpX::noy;  // Always even number
-    int ngz_nonci = (WarpX::noz % 2) ? WarpX::noz+1 : WarpX::noz;  // Always even number
+    int ngx = (ngx_tmp % 2) ? ngx_tmp+1 : ngx_tmp;  // Always even number
+    int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
+    int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (warpx_use_fdtd_nci_corr()) {
-        int ng = WarpX::noz + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
     }
 
-    int ngJx = WarpX::nox + 1;
-    int ngJy = WarpX::noy + 1;
-    int ngJz = WarpX::noz + 1;
+    int ngJx = ngx_tmp;
+    int ngJy = ngy_tmp;
+    int ngJz = ngz_tmp;
 
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
