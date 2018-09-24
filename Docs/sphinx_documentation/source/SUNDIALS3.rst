@@ -5,17 +5,16 @@
    :language: fortran
 
 
-Compiling AMReX with CVODE (Cray or Sundials version 2.7)
-=========================================
+Compiling AMReX with CVODE (Sundials version 3.X)
+==================================================
 
 The following steps describe how to compile an AMReX application with
-CVODE support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
+SUNDIALS_3.X support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
 a system module called ``cray-tpsl`` (“Cray Third-Party Scientific Libraries”)
-which contains the latest version of the SUNDIALS solver suite (including
-CVODE).  Simply type ``module load cray-tpsl`` and set ``USE_CVODE=TRUE`` in
-the ``GNUmakefile``, and AMReX will automatically link the SUNDIALS libraries.
+which as of this writing contains the 2.7 version of the SUNDIALS solver suite (including
+CVODE).  
 
-On systems which are not Cray:
+In order to use the Sundials 3.X version:
 
 #. Obtain the CVODE source code, which is hosted here:
    https://computation.llnl.gov/projects/sundials/sundials-software.
@@ -68,15 +67,17 @@ On systems which are not Cray:
    compiling the examples via the ``"-DEXAMPLES_ENABLE=OFF"`` flag.
 
 #. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
-   interface to , add ``USE_CVODE = TRUE``, which will compile the Fortran 2003
+   interface to , add ``USE_SUNDIALS3 = TRUE``, which will compile the Fortran 2003
    interfaces and link the  libraries.  Note that one must define the
    ``CVODE_LIB_DIR`` environment variable to point to the location where the
    libraries are installed.
 
-CVODE Tutorials
-===================
+SUNDIALS 3.X Tutorials
+======================
 
-AMReX provides two CVODE tutorials in the ``amrex/Tutorials/CVODE`` directory, called
-``EX1`` and ``EX2``.  See the Tutorials CVODE_ documentation for more detail.
+AMReX provides five tutorials in the ``amrex/Tutorials/SUNDIALS3`` directory.
+``EX1`` is modeled after the CVODE Tutorial ``EX1`` showing use with AMReX.
+The other four tutorials are based on examples provided with the interface, which
+are more closely modeled after CVODE examples.
 
-.. _CVODE: https://amrex-codes.github.io/amrex/tutorials_html/CVODE_Tutorial.html
+.. _SUNDIALS3:
