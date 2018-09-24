@@ -891,6 +891,10 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                 }
 
+                if (deposit_on_main_grid && lev > 0) {
+                    nfine_current = 0;
+                }
+
                 if (nfine_current != np || nfine_gather != np)
                 {
                     particle_tmp.resize(np);
@@ -1065,51 +1069,54 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
-                tbx.grow(ngJ);
-                tby.grow(ngJ);
-                tbz.grow(ngJ);
+                if (np_current > 0)
+                {
+                    tbx.grow(ngJ);
+                    tby.grow(ngJ);
+                    tbz.grow(ngJ);
+                    
+                    local_jx.resize(tbx);
+                    local_jy.resize(tby);
+                    local_jz.resize(tbz);
 
-                local_jx.resize(tbx);
-                local_jy.resize(tby);
-                local_jz.resize(tbz);
+                    local_jx = 0.0;
+                    local_jy = 0.0;
+                    local_jz = 0.0;
 
-                local_jx = 0.0;
-                local_jy = 0.0;
-                local_jz = 0.0;
+                    jx_ptr = local_jx.dataPtr();
+                    jy_ptr = local_jy.dataPtr();
+                    jz_ptr = local_jz.dataPtr();
 
-                jx_ptr = local_jx.dataPtr();
-                jy_ptr = local_jy.dataPtr();
-                jz_ptr = local_jz.dataPtr();
+                    jxntot = local_jx.length();
+                    jyntot = local_jy.length();
+                    jzntot = local_jz.length();
 
-                jxntot = local_jx.length();
-                jyntot = local_jy.length();
-                jzntot = local_jz.length();
+                    warpx_current_deposition(
+                        jx_ptr, &ngJ, jxntot,
+                        jy_ptr, &ngJ, jyntot,
+                        jz_ptr, &ngJ, jzntot,
+                        &np_current, xp.data(), yp.data(), zp.data(),
+                        uxp.data(), uyp.data(), uzp.data(),
+                        giv.data(), wp.data(), &this->charge,
+                        &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                        &dt, &dx[0], &dx[1], &dx[2],
+                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                        &lvect,&WarpX::current_deposition_algo);
 
-                warpx_current_deposition(
-                    jx_ptr, &ngJ, jxntot,
-                    jy_ptr, &ngJ, jyntot,
-                    jz_ptr, &ngJ, jzntot,
-                    &np_current, xp.data(), yp.data(), zp.data(),
-                    uxp.data(), uyp.data(), uzp.data(),
-                    giv.data(), wp.data(), &this->charge,
-                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                    &dt, &dx[0], &dx[1], &dx[2],
-                    &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                    &lvect,&WarpX::current_deposition_algo);
+                    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-                BL_PROFILE_VAR_STOP(blp_pxr_cd);
+                    BL_PROFILE_VAR_START(blp_accumulate);
+                    const int ncomp = 1;
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
 
-                BL_PROFILE_VAR_START(blp_accumulate);
-                const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
-                BL_PROFILE_VAR_STOP(blp_accumulate);
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
+                    BL_PROFILE_VAR_STOP(blp_accumulate);
+                }
 
                 if (np_current < np)
                 {
