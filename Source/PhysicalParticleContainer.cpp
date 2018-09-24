@@ -964,7 +964,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     const long ny = 0;
                     const long nz = rholen[1]-1-2*ngRho;
 #endif
-                    warpx_charge_deposition(data_ptr, &np,
+                    warpx_charge_deposition(data_ptr, &np_current,
                                             xp.data(), yp.data(), zp.data(), wp.data(),
                                             &this->charge,
                                             &xyzmin[0], &xyzmin[1], &xyzmin[2],
