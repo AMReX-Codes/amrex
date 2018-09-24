@@ -643,14 +643,14 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
             Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
 
-            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
+            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
         }
 
         if (n_current_deposition_buffer > 0) {
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
+            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
         }
     }
 
@@ -790,7 +790,8 @@ WarpX::BuildBufferMasks ()
             iMultiFab* bmasks = (ipass == 0) ? current_buffer_masks[lev].get() : gather_buffer_masks[lev].get();
             if (bmasks)
             {
-                iMultiFab tmp(bmasks->boxArray(), bmasks->DistributionMap(), 1, ngbuffer);
+                const int ngtmp = ngbuffer + bmasks->nGrow();
+                iMultiFab tmp(bmasks->boxArray(), bmasks->DistributionMap(), 1, ngtmp);
                 const int covered = 1;
                 const int notcovered = 0;
                 const int physbnd = 1;
@@ -803,7 +804,7 @@ WarpX::BuildBufferMasks ()
 #endif
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.tilebox();
+                    const Box& tbx = mfi.growntilebox();
                     warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
                                               BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
                                               BL_TO_FORTRAN_ANYD(tmp[mfi]),

@@ -645,12 +645,37 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
 {
     ApplyFilterandSumBoundaryJ(lev, PatchType::fine);
   
+    // When there are current buffers, unlike coarse patch,
+    // we don't care about the final state of them.
+
     const auto& period = Geom(lev).periodicity();
     for (int idim = 0; idim < 3; ++idim) {
         MultiFab mf(current_fp[lev][idim]->boxArray(),
                     current_fp[lev][idim]->DistributionMap(), 1, 0);
         mf.setVal(0.0);
-        if (use_filter) {
+        if (use_filter && current_buf[lev+1][idim])
+        {
+            // coarse patch of fine level
+            IntVect ng = current_cp[lev+1][idim]->nGrowVect();
+            ng += 1;
+            MultiFab jfc(current_cp[lev+1][idim]->boxArray(),
+                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+            applyFilter(jfc, *current_cp[lev+1][idim]);
+
+            // buffer patch of fine level
+            MultiFab jfb(current_buf[lev+1][idim]->boxArray(),
+                         current_buf[lev+1][idim]->DistributionMap(), 1, ng);
+            applyFilter(jfb, *current_buf[lev+1][idim]);
+
+            MultiFab::Copy(jfb, jfc, 0, 0, 1, ng);
+            mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+
+            jfc.SumBoundary(period);
+            MultiFab::Copy(*current_cp[lev+1][idim], jfc, 0, 0, 1, 0);
+        }
+        else if (use_filter) // but no buffer
+        {
+            // coarse patch of fine level
             IntVect ng = current_cp[lev+1][idim]->nGrowVect();
             ng += 1;
             MultiFab jf(current_cp[lev+1][idim]->boxArray(),
@@ -659,8 +684,19 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
             mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
             jf.SumBoundary(period);
             MultiFab::Copy(*current_cp[lev+1][idim], jf, 0, 0, 1, 0);
-
-        } else {
+        }
+        else if (current_buf[lev+1][idim]) // but no filter
+        {
+            MultiFab::Copy(*current_buf[lev+1][idim],
+                           *current_cp [lev+1][idim], 0, 0, 1,
+                           current_cp[lev+1][idim]->nGrow());
+            mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, 1,
+                           current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+            current_cp[lev+1][idim]->SumBoundary(period);
+        }
+        else // no filter, no buffer
+        {
             mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
                            current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
