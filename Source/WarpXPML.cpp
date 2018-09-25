@@ -606,6 +606,7 @@ PML::FillBoundary ()
 {
     FillBoundaryE();
     FillBoundaryB();
+    FillBoundaryF();
 }
 
 void
@@ -645,6 +646,22 @@ PML::FillBoundaryB ()
         pml_B_cp[0]->FillBoundary(period);
         pml_B_cp[1]->FillBoundary(period);
         pml_B_cp[2]->FillBoundary(period);
+    }
+}
+
+void
+PML::FillBoundaryF ()
+{
+    if (pml_F_fp && pml_F_fp->nGrowVect().max() > 0)
+    {
+        const auto& period = m_geom->periodicity();
+        pml_F_fp->FillBoundary(period);
+    }    
+
+    if (pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
+    {
+        const auto& period = m_cgeom->periodicity();
+        pml_F_cp->FillBoundary(period);
     }
 }
 

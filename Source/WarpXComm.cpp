@@ -36,6 +36,15 @@ WarpX::ExchangeWithPmlE (int lev)
 }
 
 void
+WarpX::ExchangeWithPmlF (int lev)
+{
+    if (do_pml && pml[lev]->ok()) {
+        pml[lev]->ExchangeF(F_fp[lev].get(),
+                            F_cp[lev].get());
+    }
+}
+
+void
 WarpX::UpdateAuxilaryData ()
 {
     BL_PROFILE("UpdateAuxilaryData()");
@@ -278,12 +287,12 @@ WarpX::FillBoundaryF(int lev)
 {
     const auto& period = Geom(lev).periodicity();
 
-/*   if (do_pml && pml[lev]->ok())
+    if (do_pml && pml[lev]->ok())
     {
         ExchangeWithPmlF(lev);
         pml[lev]->FillBoundaryF();
     }
-*/
+    
     if (F_fp[lev]) F_fp[lev]->FillBoundary(period);
 
     if (lev > 0)
