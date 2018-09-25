@@ -942,7 +942,7 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    long lvect = 8;
 
-            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
+            auto depositCharge = [&] (MultiFab* rhomf, MultiFab* crhomf, int icomp)
             {
                 long ngRho = rhomf->nGrow();
                 Real* data_ptr;
@@ -1021,7 +1021,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                             &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                             &lvect, &WarpX::charge_deposition_algo);
 
-                    FArrayBox& crhofab = (*crho)[pti];
+                    FArrayBox& crhofab = (*crhomf)[pti];
                     
                     const int ncomp = 1;
                     amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
@@ -1029,7 +1029,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 }                
             };
 
-            if (rho) depositCharge(rho,0);
+            if (rho) depositCharge(rho, crho, 0);
 
             if (! do_not_push)
             {
@@ -1229,7 +1229,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
-            if (rho) depositCharge(rho,1);
+            if (rho) depositCharge(rho, crho, 1);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
