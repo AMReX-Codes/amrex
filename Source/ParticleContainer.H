@@ -180,6 +180,8 @@ public:
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
 
+    std::vector<std::string> GetSpeciesNames() const { return species_names; }
+    
 protected:
 
     // Particle container types
