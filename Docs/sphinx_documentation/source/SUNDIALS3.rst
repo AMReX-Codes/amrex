@@ -5,7 +5,7 @@
    :language: fortran
 
 
-Compiling AMReX with CVODE (Sundials version 3.X)
+Compiling AMReX with Sundials version 3.X
 ==================================================
 
 The following steps describe how to compile an AMReX application with
@@ -67,17 +67,23 @@ In order to use the Sundials 3.X version:
    compiling the examples via the ``"-DEXAMPLES_ENABLE=OFF"`` flag.
 
 #. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
-   interface to , add ``USE_SUNDIALS3 = TRUE``, which will compile the Fortran 2003
+   interface to CVODE or ARKODE, add ``USE_SUNDIALS3 = TRUE``, which will compile the Fortran 2003
    interfaces and link the  libraries.  Note that one must define the
    ``CVODE_LIB_DIR`` environment variable to point to the location where the
    libraries are installed.
 
+#. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
+   interface to ARKODE, also add ``USE_ARKODE = TRUE``. It is assumed that the
+   ``CVODE_LIB_DIR`` environment variable points to the location where the ARKODE
+   libraries are installed as well.
+
 SUNDIALS 3.X Tutorials
 ======================
 
-AMReX provides five tutorials in the ``amrex/Tutorials/SUNDIALS3`` directory.
+AMReX provides six tutorials in the ``amrex/Tutorials/SUNDIALS3`` directory.
 ``EX1`` is modeled after the CVODE Tutorial ``EX1`` showing use with AMReX.
-The other four tutorials are based on examples provided with the interface, which
-are more closely modeled after CVODE examples.
+The four ``EX_ch_*`` tutorials are based on examples provided with the interface, which
+are more closely modeled after CVODE examples. The ``EX_ark_analytic_fp`` tutorial is based
+on the ``EX_cv_analytic_fp`` tutorial, but uses ARKODE instead of CVODE.
 
 .. _SUNDIALS3:
