@@ -519,7 +519,8 @@ WarpX::EvolveE (int lev, Real dt)
                         BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
                         BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                        &dtsdx_c2[0]);
+                        &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+                        &WarpX::maxwell_fdtd_solver_id);
                 }
             }
         }
