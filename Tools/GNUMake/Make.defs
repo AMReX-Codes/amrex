@@ -515,6 +515,11 @@ ifeq ($(USE_CVODE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif
 
+ifeq ($(USE_SUNDIALS3),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
+endif
+
 ifeq ($(USE_HYPRE),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
