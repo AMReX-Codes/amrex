@@ -37,7 +37,7 @@ FFLAGS   += -module $(fmoddir) -I$(fmoddir)
 
 ########################################################################
 
-GENERIC_COMP_FLAGS = #-D__i486__
+GENERIC_COMP_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
   GENERIC_COMP_FLAGS += -fopenmp
