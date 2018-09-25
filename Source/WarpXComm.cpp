@@ -502,7 +502,8 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
 
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
-
+    Vector<std::unique_ptr<MultiFab> > rho_buf_g(finest_level+1);
+    
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             const int ncomp = rhof[lev]->nComp();
@@ -524,6 +525,18 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
             applyFilter(*rho_c_g[lev], *rhoc[lev]);
             std::swap(rho_c_g[lev], rhoc[lev]);
         }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            if (charge_buf[lev]) {
+                const int ncomp = charge_buf[lev]->nComp();
+                IntVect ng = charge_buf[lev]->nGrowVect();                
+                ng += 1;
+                rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
+                                                  charge_buf[lev]->DistributionMap(),
+                                                  ncomp, ng));
+                applyFilter(*rho_buf_g[lev], *charge_buf[lev]);
+                std::swap(*rho_buf_g[lev], *charge_buf[lev]);
+            }
+        }
     }
 
     // Sum up fine patch
@@ -540,7 +553,14 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         const int ncomp = rhoc[lev+1]->nComp();
         const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
         const IntVect ngdst = IntVect::TheZeroVector();
-        rhof[lev]->copy(*rhoc[lev+1],0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
+        const MultiFab* crho = rhoc[lev+1].get();
+        if (charge_buf[lev+1])
+        {
+            MultiFab::Add(*charge_buf[lev+1], *rhoc[lev+1], 0, 0, ncomp, ngsrc);
+            crho = charge_buf[lev+1].get();
+        }
+
+        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);        
     }
 
     // Sum up coarse patch
@@ -558,6 +578,13 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 1; lev <= finest_level; ++lev) {
             std::swap(rho_c_g[lev], rhoc[lev]);
             MultiFab::Copy(*rhoc[lev], *rho_c_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev)
+        {
+            if (rho_buf_g[lev]) {
+                std::swap(rho_buf_g[lev], charge_buf[lev]);
+                MultiFab::Copy(*charge_buf[lev], *rho_buf_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+            }
         }
     }
 
@@ -746,7 +773,28 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
                     rho_fp[lev]->DistributionMap(),
                     ncomp, 0);
         mf.setVal(0.0);
-        if (use_filter) {
+        if (use_filter && charge_buf[lev+1])
+        {
+            // coarse patch of fine level
+            IntVect ng = rho_cp[lev+1]->nGrowVect();
+            ng += 1;
+            MultiFab rhofc(rho_cp[lev+1]->boxArray(),
+                         rho_cp[lev+1]->DistributionMap(), ncomp, ng);
+            applyFilter(rhofc, *rho_cp[lev+1], icomp, 0, ncomp);
+
+            // buffer patch of fine level
+            MultiFab rhofb(charge_buf[lev+1]->boxArray(),
+                           charge_buf[lev+1]->DistributionMap(), ncomp, ng);
+            applyFilter(rhofb, *charge_buf[lev+1], icomp, 0, ncomp);
+
+            MultiFab::Add(rhofb, rhofc, 0, 0, ncomp, ng);
+            mf.ParallelAdd(rhofb, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
+
+            rhofc.SumBoundary(period);
+            MultiFab::Copy(*rho_cp[lev+1], rhofc, 0, 0, ncomp, 0);
+        }
+        else if (use_filter) // but no buffer
+        {
             IntVect ng = rho_cp[lev+1]->nGrowVect();
             ng += 1;
             MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
@@ -754,7 +802,20 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
             mf.ParallelAdd(rf, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
             rf.SumBoundary(0, ncomp, period);
             MultiFab::Copy(*rho_cp[lev+1], rf, 0, icomp, ncomp, 0);
-        } else {
+        }
+        else if (charge_buf[lev+1]) // but no filter
+        {
+            MultiFab::Copy(*charge_buf[lev+1],
+                           *rho_cp[lev+1], icomp, icomp, ncomp,
+                           rho_cp[lev+1]->nGrow());
+            mf.ParallelAdd(*charge_buf[lev+1], icomp, 0,
+                           ncomp,
+                           charge_buf[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
+        }
+        else // no filter, no buffer
+        {
             mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
                            rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
