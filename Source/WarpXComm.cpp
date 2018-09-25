@@ -667,7 +667,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                          current_buf[lev+1][idim]->DistributionMap(), 1, ng);
             applyFilter(jfb, *current_buf[lev+1][idim]);
 
-            MultiFab::Copy(jfb, jfc, 0, 0, 1, ng);
+            MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
             mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
 
             jfc.SumBoundary(period);
