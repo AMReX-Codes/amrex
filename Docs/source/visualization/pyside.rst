@@ -1,121 +1,66 @@
-PySide-based GUI
+PySide-based visualization GUI: PICViewer
 ================
 
-.. figure:: sample_image.jpg
+.. figure:: sample_image_png
    :alt: picture
 
-
 The toolkit provides various easy-to-use functions for data analysis of
-Warp/WarpX simulations. Figure shows a snapshot of the existing
-prototype GUI widget toolkit, which includes several widget tools in the
-left side and multi-plot panels in the right side. This GUI is still
-under development to include several functionalities.
+Warp/WarpX simulations.
 
-To run it, go to a folder where your WarpX simulation data files are
-located, and type in the terminal window,
 
-::
+## Main features
 
-     ~/warpx_pyside/warpx_analysis.py
+* 2D/3D openPMD or WarpX data visualization,
+* Multi-plot panels (up to 6 rows x 5 columns) controllable independently or synchronously
+* Interactive mouse functions (panel selection, image zoom-in, local data selection, etc)
+* Animation from a single or multiple panel(s)
+* Saving your job configuration and loading it later
+* Interface to use VisIt, yt, or mayavi for 3D volume rendering (currently updating)
+
+
+## Required software
+* python 2.7 or higher:
+http://docs.continuum.io/anaconda/install.
+
+* PySide
+```
+conda install -c conda-forge pyside
+```
+* h5py
+* matplotlib
+* numpy
+* yt
+```
+pip install git+https://github.com/yt-project/yt.git --user
+```
+* numba
+
 
 Installation
 ------------
 
-Generic instructions
-~~~~~~~~~~~~~~~~~~~~
+```
+pip install picviewer
+```
+You need to install yt and PySide separately.
 
-Before you run it, check if you have installed the following python libraries,
+You can install from the source for the latest update,
+```
+pip install git+https://bitbucket.org/jaehong2013/picviewer/
+```
 
-(1) h5py
+## To install manually
 
-    ::
+* Clone this repository 
+```
+git clone https://jaehong2013@bitbucket.org/jaehong2013/picviewer.git
+```
 
-        conda install h5py
+* Switch to the cloned directory with `cd picviewer` and type `python setup.py install`
 
-(2) matplotlib
+## To run
 
-    ::
-
-        conda install matplotlib
-
-    To open Warp simulation data, the GUI uses openPMD-viewer.
-
-(3) openPMD-viewer
-
-    ::
-
-        conda install -c rlehe openpmd_viewer
-
-    To open WarpX simulation data, the GUI uses yt
-
-(4) yt
-
-    ::
-
-        conda install -c conda-forge yt
-
-(5) PySide
-
-    ::
-
-        conda install -c conda-forge pyside
-
-Instructions for NERSC and ALCF
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Caution: PySide may not be installed on NERSC or other clusters by
-typing the command above in (5). Instead, you can install "pyside" in
-the following way:
-
-(1) download miniconda2
-
-    ::
-
-        wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
-
-(2) install miniconda2
-
-    ::
-
-        bash Miniconda2-latest-Linux-x86_64.sh
-
-(3) activate miniconda2
-
-    ::
-
-        source miniconda2/bin/activate
-
-(4) finally, install "pyside" using conda,
-
-    ::
-
-        conda install -c conda-forge pyside
-
-If you are using ALCF clusters, you can install "pyside" on Cooley,
-and you should comment out the path of miniconda2 from .bashrc file,
-
-::
-
-    #export PATH=$HOME/miniconda2/bin:$PATH
-
-due to version collision between python 2.6 and 2.7.
+* You can start PICViewer from any directory. Type `picviewer` in the command line. Select a folder where your data files are located. 
+* You can directly open your data. Move on to a folder where your data files ae located (`cd [your data folder]`) and type `picviewer` in the command line.
 
 
-Using the GUI
--------------
-
-If you have installed all the libraries, git clone the GUI source files.
-
-::
-
-    git clone https://jaehong2013@bitbucket.org/jaehong2013/warpx_pyside.git
-
-and go to the folder where your simulation data files are located, and
-then
-
-::
-
-     ~/warpx_pyside/warpx_analysis.py
-
-The python package may be located at $HOME/warpx\_pyside/ depending on
-your download folder.

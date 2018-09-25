@@ -1402,6 +1402,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     slice_box.setLo(direction, z_min);
     slice_box.setHi(direction, z_max);
 
+    diagnostic_particles.resize(finestLevel()+1);
+    
     for (int lev = 0; lev < nlevs; ++lev) {
 
         const Real* dx  = Geom(lev).CellSize();
@@ -1411,7 +1413,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
-            diagnostic_particles[index];
+            diagnostic_particles[lev][index];
         }
 
 #ifdef _OPENMP
@@ -1482,15 +1484,15 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uyp = uyp_old[i]*weight_old + uyp_new[i]*weight_new;
                     Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i]);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::w).push_back(wp[i]);
+                    
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::x).push_back(xp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::y).push_back(yp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::z).push_back(zp);
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp);
-
-                    diagnostic_particles[index].GetRealData(DiagIdx::ux).push_back(uxp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::uy).push_back(uyp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::uz).push_back(uzp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::ux).push_back(uxp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::uy).push_back(uyp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::uz).push_back(uzp);
                 }
             }
         }

@@ -284,12 +284,12 @@ WarpX::ReadParameters ()
               current_injection_position = geom[0].ProbLo(moving_window_dir);
           }
 	}
-
+        
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
         if (do_boosted_frame_diagnostic) {
-
+            
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
-                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
+                 "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
             std::string s;
     	    pp.get("boost_direction", s);
