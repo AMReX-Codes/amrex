@@ -98,9 +98,7 @@ Mask::readFrom (std::istream& is)
 Mask&
 Mask::And (const Mask& src)
 {
-    ForEach(domain, 0, nComp(), src, 0,
-            [] (int& d, int const& s) { d = (d ? s : 0); });
-    return *this;
+    return this->And(src,domain,domain,0,0,nvar);
 }
 
 Mask&
@@ -109,9 +107,7 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp)
 {
-    ForEach(box(), destcomp, numcomp, src, srccomp,
-            [] (int&d, int const& s) { d = (d ? s : 0); });
-    return *this;
+    return this->And(src,domain,domain,srccomp,destcomp,numcomp);
 }
 
 Mask&
@@ -121,9 +117,7 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp)
 {
-    ForEach(subbox, destcomp, numcomp, src, srccomp,
-            [] (int& d, int const& s) { d = (d ? s : 0); });
-    return *this;
+    return this->And(src,subbox,subbox,srccomp,destcomp,numcomp);
 }
 
 Mask&
@@ -134,17 +128,29 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp)
 {
-    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
-            [] (int& d, int const& s) { d = (d ? s : 0); });
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+    const auto len = destbox.length3d();
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len[2]; ++k) {
+            for     (int j = 0; j < len[1]; ++j) {
+                value_type       * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                value_type const * AMREX_RESTRICT sp = sp0(0,j,k,n);
+                for (int i = 0; i < len[0]; ++i) {
+                    dp[i] = dp[i] ? sp[0] : 0;
+                }
+            }
+        }
+    }
+
     return *this;
 }
 
 Mask&
 Mask::Or (const Mask& src)
 {
-    ForEach(domain, 0, nComp(), src, 0,
-            [] (int& d, int const& s) { d = (d ? 1 : s); });
-    return *this;
+    return this->Or(src,domain,domain,0,0,nvar);
 }
 
 Mask&
@@ -153,9 +159,7 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp)
 {
-    ForEach(box(), destcomp, numcomp, src, srccomp,
-            [] (int& d, int const& s) { d = (d ? 1 : s); });
-    return *this;
+    return this->Or(src,domain,domain,srccomp,destcomp,numcomp);
 }
 
 Mask&
@@ -165,9 +169,7 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp)
 {
-    ForEach(subbox, destcomp, numcomp, src, srccomp,
-            [] (int& d, int const& s) { d = (d ? 1 : s); });
-    return *this;
+    return this->Or(src,subbox,subbox,srccomp,destcomp,numcomp);
 }
 
 Mask&
@@ -178,8 +180,22 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp)
 {
-    ForEach(destbox, destcomp, numcomp, src, srcbox, srccomp,
-            [] (int&d, int const& s) { d = (d ? 1 : s); });
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+    const auto len = destbox.length3d();
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len[2]; ++k) {
+            for     (int j = 0; j < len[1]; ++j) {
+                value_type       * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                value_type const * AMREX_RESTRICT sp = sp0(0,j,k,n);
+                for (int i = 0; i < len[0]; ++i) {
+                    dp[i] = dp[i] ? 1: sp[0];
+                }
+            }
+        }
+    }
+
     return *this;
 }
 
