@@ -284,12 +284,12 @@ WarpX::FillBoundaryF(int lev)
         pml[lev]->FillBoundaryF();
     }
 */
-    (*F_fp[lev]).FillBoundary(period);
+    if (F_fp[lev]) F_fp[lev]->FillBoundary(period);
 
     if (lev > 0)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        (*F_cp[lev]).FillBoundary(cperiod);
+        if (F_cp[lev]) F_cp[lev]->FillBoundary(cperiod);
     }
 }
 
