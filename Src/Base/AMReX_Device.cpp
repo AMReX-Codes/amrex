@@ -12,6 +12,8 @@ int amrex::Device::device_id = 0;
 int amrex::Device::verbose = 0;
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+const int amrex::Device::max_cuda_streams;
+
 cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
 cudaStream_t amrex::Device::cuda_stream;
 
