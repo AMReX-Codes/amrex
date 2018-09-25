@@ -1,4 +1,5 @@
 from glob import glob
+import os
 import numpy as np
 from collections import namedtuple
 
@@ -99,7 +100,6 @@ def read_lab_snapshot(snapshot, global_header):
     z = np.linspace(local_info['zmin'], local_info['zmax'], data['Bx'].shape[-1])
     info.update({ 'zmin' : local_info['zmin'], 'zmax' : local_info['zmax'], 'z' : z })
     return data, info
-
 ## -----------------------------------------------------------
 ## USE THIS INSTEAD OF THE 5 PREVIOUS LINES IF Header contains
 ## (x,y,z) min and max vectors instead of zmin and zmax
@@ -122,6 +122,18 @@ def read_lab_snapshot(snapshot, global_header):
 #         info.update({ 'ymin' : ymin, 'ymax' : ymax, 'y' : y })
 #     return data, info
 
+# For the moment, the back-transformed diagnostics must be read with 
+# custom functions like this one.
+# It should be OpenPMD-compliant hdf5 files soon, making this part outdated.
+def get_particle_field(snapshot, species, field):
+    fn = snapshot + '/' + species
+    files = glob(os.path.join(fn, field + '_*'))
+    files.sort()
+    all_data = np.array([])
+    for f in files:
+        data = np.fromfile(f)
+        all_data = np.concatenate((all_data, data))
+    return all_data
 
 def _get_field_names(raw_file):
     header_files = glob(raw_file + "*_H")

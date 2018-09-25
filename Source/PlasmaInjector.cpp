@@ -43,6 +43,8 @@ namespace {
             return PhysConst::m_e;
         } else if (name == "m_p"){
             return PhysConst::m_p;
+        } else if (name == "inf"){
+	    return std::numeric_limits<double>::infinity();
         } else if (pp.query("mass", result)) {
             return result;
         } else {
@@ -170,7 +172,7 @@ RandomPosition::RandomPosition(int num_particles_per_cell):
   _num_particles_per_cell(num_particles_per_cell)
 {}
 
-void RandomPosition::getPositionUnitBox(vec3& r, int i_part){
+void RandomPosition::getPositionUnitBox(vec3& r, int i_part, int ref_fac){
     r[0] = amrex::Random();
     r[1] = amrex::Random();
     r[2] = amrex::Random();
@@ -180,12 +182,16 @@ RegularPosition::RegularPosition(const amrex::Vector<int>& num_particles_per_cel
     : _num_particles_per_cell_each_dim(num_particles_per_cell_each_dim)
 {}
 
-void RegularPosition::getPositionUnitBox(vec3& r, int i_part)
+void RegularPosition::getPositionUnitBox(vec3& r, int i_part, int ref_fac)
 {
-  int nx = _num_particles_per_cell_each_dim[0];
-  int ny = _num_particles_per_cell_each_dim[1];
-  int nz = _num_particles_per_cell_each_dim[2];
-
+  int nx = ref_fac*_num_particles_per_cell_each_dim[0];
+  int ny = ref_fac*_num_particles_per_cell_each_dim[1];
+#if AMREX_SPACEDIM == 3
+  int nz = ref_fac*_num_particles_per_cell_each_dim[2];
+#else
+  int nz = 1;
+#endif
+  
   int ix_part = i_part/(ny * nz);
   int iy_part = (i_part % (ny * nz)) % ny;
   int iz_part = (i_part % (ny * nz)) / ny;
@@ -350,8 +356,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     }
 }
 
-void PlasmaInjector::getPositionUnitBox(vec3& r, int i_part) {
-  return part_pos->getPositionUnitBox(r, i_part);
+void PlasmaInjector::getPositionUnitBox(vec3& r, int i_part, int ref_fac) {
+    return part_pos->getPositionUnitBox(r, i_part, ref_fac);
 }
 
 void PlasmaInjector::getMomentum(vec3& u, Real x, Real y, Real z) {

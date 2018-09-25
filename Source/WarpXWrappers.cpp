@@ -97,6 +97,8 @@ extern "C"
     {
 	WarpX& warpx = WarpX::GetInstance();
 	warpx.InitData();
+        if (warpx_py_afterinit) warpx_py_afterinit();
+        if (warpx_py_particleloader) warpx_py_particleloader();
     }
 
     void warpx_finalize ()
@@ -104,9 +106,53 @@ extern "C"
 	WarpX::ResetInstance();
     }
 
-    void warpx_set_callback_py_funcs (WARPX_CALLBACK_PY_FUNC_1 print_step)
+    void warpx_set_callback_py_afterinit (WARPX_CALLBACK_PY_FUNC_0 callback)
     {
-        warpx_py_print_step = print_step;
+        warpx_py_afterinit = callback;
+    }
+    void warpx_set_callback_py_beforeEsolve (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_beforeEsolve = callback;
+    }
+    void warpx_set_callback_py_afterEsolve (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterEsolve = callback;
+    }
+    void warpx_set_callback_py_beforedeposition (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_beforedeposition = callback;
+    }
+    void warpx_set_callback_py_afterdeposition (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterdeposition = callback;
+    }
+    void warpx_set_callback_py_particlescraper (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_particlescraper = callback;
+    }
+    void warpx_set_callback_py_particleloader (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_particleloader = callback;
+    }
+    void warpx_set_callback_py_beforestep (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_beforestep = callback;
+    }
+    void warpx_set_callback_py_afterstep (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterstep = callback;
+    }
+    void warpx_set_callback_py_afterrestart (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_afterrestart = callback;
+    }
+    void warpx_set_callback_py_particleinjection (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_particleinjection = callback;
+    }
+    void warpx_set_callback_py_appliedfields (WARPX_CALLBACK_PY_FUNC_0 callback)
+    {
+        warpx_py_appliedfields = callback;
     }
 
     void warpx_evolve (int numsteps)
@@ -260,11 +306,16 @@ extern "C"
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
         const int level = 0;
-        *num_tiles = myspc.numLocalTilesAtLevel(level);
-        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
-        
-        double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
+
         int i = 0;
+        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {}
+
+        // *num_tiles = myspc.numLocalTilesAtLevel(level);
+        *num_tiles = i;
+        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
+
+        double** data = (double**) malloc(*num_tiles*sizeof(typename WarpXParticleContainer::ParticleType*));
+        i = 0;
         for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
             auto& aos = pti.GetArrayOfStructs();
             data[i] = (double*) aos.data();
@@ -279,11 +330,16 @@ extern "C"
         auto & myspc = mypc.GetParticleContainer(speciesnumber);
 
         const int level = 0;
-        *num_tiles = myspc.numLocalTilesAtLevel(level);
-        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
-        
-        double** data = (double**) malloc(*num_tiles*sizeof(double*));
+
         int i = 0;
+        for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {}
+
+        // *num_tiles = myspc.numLocalTilesAtLevel(level);
+        *num_tiles = i;
+        *particles_per_tile = (int*) malloc(*num_tiles*sizeof(int));
+
+        double** data = (double**) malloc(*num_tiles*sizeof(double*));
+        i = 0;
         for (WarpXParIter pti(myspc, level); pti.isValid(); ++pti, ++i) {
             auto& soa = pti.GetStructOfArrays();
             data[i] = (double*) soa.GetRealData(comp).dataPtr();
@@ -301,13 +357,13 @@ extern "C"
         warpx.MoveWindow (true);
     }
 
-    void warpx_EvolveE (double dt, int dttype) {
+    void warpx_EvolveE (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveE (dt, static_cast<DtType>(dttype));
+        warpx.EvolveE (dt);
     }
-    void warpx_EvolveB (double dt, int dttype) {
+    void warpx_EvolveB (double dt) {
         WarpX& warpx = WarpX::GetInstance();
-        warpx.EvolveB (dt, static_cast<DtType>(dttype));
+        warpx.EvolveB (dt);
     }
     void warpx_FillBoundaryE () {
         WarpX& warpx = WarpX::GetInstance();

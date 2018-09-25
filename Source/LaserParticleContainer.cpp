@@ -57,6 +57,9 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_duration", profile_duration);
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
+	   pp.query("zeta", zeta);
+	   pp.query("beta", beta);
+	   pp.query("phi2", phi2);
 	}
 
   if ( profile == laser_t::Harris ) {
@@ -276,7 +279,10 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, MultiFab* rho2,
+                                MultiFab*, MultiFab*, MultiFab*,
+                                MultiFab* rho,
+                                const MultiFab*, const MultiFab*, const MultiFab*,
+                                const MultiFab*, const MultiFab*, const MultiFab*,
                                 Real t, Real dt)
 {
     BL_PROFILE("Laser::Evolve()");
@@ -288,7 +294,6 @@ LaserParticleContainer::Evolve (int lev,
 
     // WarpX assumes the same number of guard cells for Jx, Jy, Jz
     long ngJ  = jx.nGrow();
-    long ngJDeposit   = (WarpX::use_filter) ? ngJ +1   : ngJ;
 
     Real t_lab = t;
     if (WarpX::gamma_boost > 1) {
@@ -308,11 +313,10 @@ LaserParticleContainer::Evolve (int lev,
     {
 	Vector<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
-        FArrayBox filtered_rho, filtered_jx, filtered_jy, filtered_jz;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
-            Real wt = ParallelDescriptor::second();
+            Real wt = amrex::second();
 
 	    const Box& box = pti.validbox();
 
@@ -364,10 +368,9 @@ LaserParticleContainer::Evolve (int lev,
 
             long lvect = 8;
 
-            auto depositCharge = [&] (MultiFab* rhomf)
+            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
             {
                 long ngRho = rhomf->nGrow();
-                long ngRhoDeposit = (WarpX::use_filter) ? ngRho +1 : ngRho;
 
                 Real* data_ptr;
                 const int *rholen;
@@ -376,60 +379,35 @@ LaserParticleContainer::Evolve (int lev,
                 Box grown_box;
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
                 tile_box.grow(ngRho);
-                if (WarpX::use_filter) {
-                    grown_box = tile_box;
-                    grown_box.grow(1);
-                    local_rho.resize(grown_box);
-                } else {
-                    local_rho.resize(tile_box);
-                }
+                local_rho.resize(tile_box);
                 local_rho = 0.0;
                 data_ptr = local_rho.dataPtr();
                 rholen = local_rho.length();
 
 #if (AMREX_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRhoDeposit;
-                const long ny = rholen[1]-1-2*ngRhoDeposit;
-                const long nz = rholen[2]-1-2*ngRhoDeposit;
+                const long nx = rholen[0]-1-2*ngRho;
+                const long ny = rholen[1]-1-2*ngRho;
+                const long nz = rholen[2]-1-2*ngRho;
 #else
-                const long nx = rholen[0]-1-2*ngRhoDeposit;
+                const long nx = rholen[0]-1-2*ngRho;
                 const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRhoDeposit;
+                const long nz = rholen[1]-1-2*ngRho;
 #endif
             	warpx_charge_deposition(data_ptr, &np,
 					xp.data(), yp.data(), zp.data(), wp.data(),
                                         &this->charge,
 					&xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRhoDeposit, &ngRhoDeposit, &ngRhoDeposit,
+                                        &ngRho, &ngRho, &ngRho,
 					&WarpX::nox,&WarpX::noy,&WarpX::noz,
                                         &lvect, &WarpX::charge_deposition_algo);
 
                 const int ncomp = 1;
-                if (WarpX::use_filter) {
-
-                    filtered_rho.resize(tile_box);
-                    filtered_rho = 0;
-
-                    WRPX_FILTER(local_rho.dataPtr(),
-                                local_rho.loVect(),
-                                local_rho.hiVect(),
-                                filtered_rho.dataPtr(),
-                                filtered_rho.loVect(),
-                                filtered_rho.hiVect(),
-                                ncomp);
-
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_rho),
-                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
-
-
-                } else {
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                                BL_TO_FORTRAN_3D(rhofab), ncomp);
-                }
+                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                            BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
             };
 
-            if (rho) depositCharge(rho);
+            if (rho) depositCharge(rho,0);
 
 	    //
 	    // Particle Push
@@ -440,7 +418,8 @@ LaserParticleContainer::Evolve (int lev,
 	    if (profile == laser_t::Gaussian) {
 		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
 				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.data() );
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.data(),
+				      &zeta, &beta, &phi2 );
 	    }
 
             if (profile == laser_t::Harris) {
@@ -498,7 +477,6 @@ LaserParticleContainer::Evolve (int lev,
             Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
             Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
             Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
-            Box gtbx, gtby, gtbz;
 
             const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
@@ -506,25 +484,9 @@ LaserParticleContainer::Evolve (int lev,
             tby.grow(ngJ);
             tbz.grow(ngJ);
 
-            if (WarpX::use_filter) {
-
-                gtbx = tbx;
-                gtbx.grow(1);
-
-                gtby = tby;
-                gtby.grow(1);
-
-                gtbz = tbz;
-                gtbz.grow(1);
-
-                local_jx.resize(gtbx);
-                local_jy.resize(gtby);
-                local_jz.resize(gtbz);
-            } else {
-                local_jx.resize(tbx);
-                local_jy.resize(tby);
-                local_jz.resize(tbz);
-            }
+            local_jx.resize(tbx);
+            local_jy.resize(tby);
+            local_jz.resize(tbz);
 
             local_jx = 0.0;
             local_jy = 0.0;
@@ -539,9 +501,9 @@ LaserParticleContainer::Evolve (int lev,
             jzntot = local_jz.length();
 
             warpx_current_deposition(
-                jx_ptr, &ngJDeposit, jxntot,
-                jy_ptr, &ngJDeposit, jyntot,
-                jz_ptr, &ngJDeposit, jzntot,
+                jx_ptr, &ngJ, jxntot,
+                jy_ptr, &ngJ, jyntot,
+                jz_ptr, &ngJ, jzntot,
                 &np, xp.data(), yp.data(), zp.data(),
                 uxp.data(), uyp.data(), uzp.data(),
                 giv.data(), wp.data(), &this->charge,
@@ -551,65 +513,16 @@ LaserParticleContainer::Evolve (int lev,
                 &lvect,&WarpX::current_deposition_algo);
 
             const int ncomp = 1;
-            if (WarpX::use_filter) {
-
-                filtered_jx.resize(tbx);
-                filtered_jx = 0.0;
-
-                WRPX_FILTER(local_jx.dataPtr(),
-                            local_jx.loVect(),
-                            local_jx.hiVect(),
-                            filtered_jx.dataPtr(),
-                            filtered_jx.loVect(),
-                            filtered_jx.hiVect(),
-                            ncomp);
-
-                filtered_jy.resize(tby);
-                filtered_jy = 0.0;
-
-                WRPX_FILTER(local_jy.dataPtr(),
-                            local_jy.loVect(),
-                            local_jy.hiVect(),
-                            filtered_jy.dataPtr(),
-                            filtered_jy.loVect(),
-                            filtered_jy.hiVect(),
-                            ncomp);
-
-                filtered_jz.resize(tbz);
-                filtered_jz = 0.0;
-
-                WRPX_FILTER(local_jz.dataPtr(),
-                            local_jz.loVect(),
-                            local_jz.hiVect(),
-                            filtered_jz.dataPtr(),
-                            filtered_jz.loVect(),
-                            filtered_jz.hiVect(),
-                            ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jx),
-                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jy),
-                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(filtered_jz),
-                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
-
-            } else {
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
-            }
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                        BL_TO_FORTRAN_3D(jxfab), ncomp);
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                        BL_TO_FORTRAN_3D(jyfab), ncomp);
+            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                        BL_TO_FORTRAN_3D(jzfab), ncomp);
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-            if (rho2) depositCharge(rho2);
+            if (rho) depositCharge(rho,1);
 
 	    //
 	    // copy particle data back
@@ -620,7 +533,7 @@ LaserParticleContainer::Evolve (int lev,
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
-                wt = (ParallelDescriptor::second() - wt) / tbx.d_numPts();
+                wt = (amrex::second() - wt) / tbx.d_numPts();
                 (*cost)[pti].plus(wt, tbx);
             }
 	}

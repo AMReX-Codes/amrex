@@ -115,6 +115,30 @@ MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiF
 }
 
 void
+MultiParticleContainer::Evolve (int lev,
+                                const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
+                                const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
+                                MultiFab& jx, MultiFab& jy, MultiFab& jz,
+                                MultiFab* cjx,  MultiFab* cjy, MultiFab* cjz, 
+                                MultiFab* rho,
+                                const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+                                Real t, Real dt)
+{
+    jx.setVal(0.0);
+    jy.setVal(0.0);
+    jz.setVal(0.0);
+    if (cjx) cjx->setVal(0.0);
+    if (cjy) cjy->setVal(0.0);
+    if (cjz) cjz->setVal(0.0);
+    if (rho) rho->setVal(0.0);
+    for (auto& pc : allcontainers) {
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
+                   rho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
+    }    
+}
+
+void
 MultiParticleContainer::PushXES (Real dt)
 {
     for (auto& pc : allcontainers) {
@@ -172,15 +196,22 @@ MultiParticleContainer::Evolve (int lev,
                                 const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                 const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                 MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab* rho, MultiFab* rho2, Real t, Real dt)
+                                MultiFab* cjx,  MultiFab* cjy, MultiFab* cjz,
+                                MultiFab* rho,
+                                const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
+                                Real t, Real dt)
 {
     jx.setVal(0.0);
     jy.setVal(0.0);
     jz.setVal(0.0);
+    if (cjx) cjx->setVal(0.0);
+    if (cjy) cjy->setVal(0.0);
+    if (cjz) cjz->setVal(0.0);
     if (rho) rho->setVal(0.0);
-    if (rho2) rho2->setVal(0.0);
     for (auto& pc : allcontainers) {
-	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, rho, rho2, t, dt);
+	pc->Evolve(lev, Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, cjx, cjy, cjz,
+                   rho, cEx, cEy, cEz, cBx, cBy, cBz, t, dt);
     }
 }
 

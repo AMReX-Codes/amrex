@@ -296,11 +296,7 @@ contains
     rhoold => rhoold_wrpx
 
     ! Call the corresponding PICSAR function
-#if (BL_SPACEDIM == 3)
-    CALL push_psatd_ebfield_3d()
-#elif (BL_SPACEDIM == 2)
-    CALL push_psatd_ebfield_2d()
-#endif
+    CALL push_psatd_ebfield()
 
     ex => null()
     ey => null()

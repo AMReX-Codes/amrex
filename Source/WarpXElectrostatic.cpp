@@ -63,6 +63,9 @@ WarpX::EvolveES (int numsteps) {
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
+#ifdef WARPX_USE_PY
+        if (warpx_py_beforestep) warpx_py_beforestep();
+#endif
 
         // At initialization, particles have p^{n-1/2} and x^{n-1/2}.
         // Beyond one step, particles have p^{n-1/2} and x^{n}.
@@ -86,10 +89,22 @@ WarpX::EvolveES (int numsteps) {
         // Evolve particles to p^{n+1/2} and x^{n+1}
         mypc->EvolveES(eFieldNodal, rhoNodal, cur_time, dt[lev]);
 
+#ifdef WARPX_USE_PY
+        if (warpx_py_particleinjection) warpx_py_particleinjection();
+        if (warpx_py_particlescraper) warpx_py_particlescraper();
+        if (warpx_py_beforedeposition) warpx_py_beforedeposition();
+#endif
         mypc->DepositCharge(rhoNodal);
+#ifdef WARPX_USE_PY
+        if (warpx_py_afterdeposition) warpx_py_afterdeposition();
 
+        if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
+#endif
         computePhi(rhoNodal, phiNodal);
         computeE(eFieldNodal, phiNodal);
+#ifdef WARPX_USE_PY
+        if (warpx_py_afterEsolve) warpx_py_afterEsolve();
+#endif
 
         if (cur_time + dt[0] >= stop_time - 1.e-3*dt[0] || step == numsteps_max-1) {
             // on last step, push by only 0.5*dt to synchronize all at n+1/2
@@ -135,6 +150,9 @@ WarpX::EvolveES (int numsteps) {
 	    break;
 	}
 
+#ifdef WARPX_USE_PY
+        if (warpx_py_afterstep) warpx_py_afterstep();
+#endif
 	// End loop on time steps
     }
 

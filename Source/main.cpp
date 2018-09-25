@@ -2,10 +2,12 @@
 #include <iostream>
 
 #include <AMReX.H>
+#include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
 
 #include <WarpX.H>
+#include <WarpXUtil.H>
 
 using namespace amrex;
 
@@ -19,11 +21,13 @@ int main(int argc, char* argv[])
     MPI_Init(&argc, &argv);
 #endif
 
-    amrex::Initialize(argc,argv,MPI_COMM_WORLD);
+    amrex::Initialize(argc,argv);
+
+    ConvertLabParamsToBoost();
 
     BL_PROFILE_VAR("main()", pmain);
-
-    const Real strt_total = ParallelDescriptor::second();
+        
+    const Real strt_total = amrex::second();
 
     {
 	WarpX warpx;
@@ -32,7 +36,7 @@ int main(int argc, char* argv[])
 
 	warpx.Evolve();
 	
-	Real end_total = ParallelDescriptor::second() - strt_total;
+	Real end_total = amrex::second() - strt_total;
 	
 	ParallelDescriptor::ReduceRealMax(end_total ,ParallelDescriptor::IOProcessorNumber());
 	if (warpx.Verbose()) {

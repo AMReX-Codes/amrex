@@ -4,6 +4,8 @@
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic
 #define WRPX_PXR_PUSH_BVEC                pxrpush_em3d_bvec
 #define WRPX_PXR_PUSH_BVEC_CKC            pxrpush_em3d_bvec_ckc
+#define WRPX_PXR_PUSH_EVEC_F              pxrpush_em3d_evec_f
+#define WRPX_PXR_PUSH_EVEC_F_CKC          pxrpush_em3d_evec_f_ckc
 #define WRPX_PXR_PUSH_EVEC                pxrpush_em3d_evec
 
 #elif (AMREX_SPACEDIM == 2)
@@ -12,6 +14,8 @@
 #define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
 #define WRPX_PXR_PUSH_BVEC                pxrpush_em2d_bvec
 #define WRPX_PXR_PUSH_BVEC_CKC            pxrpush_em2d_bvec_ckc
+#define WRPX_PXR_PUSH_EVEC_F              pxrpush_em2d_evec_f
+#define WRPX_PXR_PUSH_EVEC_F_CKC          pxrpush_em2d_evec_f_ckc
 #define WRPX_PXR_PUSH_EVEC                pxrpush_em2d_evec
 
 #endif
@@ -456,7 +460,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !>            the current arrays
   !> @param[in] mudt normalized time step mu_0 * c**2 * dt
   !> @param[in] dtsdx, dtsdy, dtsdz factors c**2 * dt/(dx, dy, dz)
-  subroutine warpx_push_evec( & 
+  subroutine warpx_push_evec( &
     xlo, xhi, ylo, yhi, zlo, zhi, &
     ex, exlo, exhi, &
     ey, eylo, eyhi, &
@@ -505,14 +509,14 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   !>
   !> @param[in] xlo, xhi, ylo, yhi, zlo, zhi lower and higher bounds
   !>            where to apply the solver (PICSAR's valid cells)
-  !> @param[inout] ex, ey, ez arrays for electric field to update
-  !> @param[in] bx, by, bz arrays for magnetic field
+  !> @param[in] ex, ey, ez arrays for electric field
+  !> @param[inout] bx, by, bz arrays for magnetic field to update
   !> @param[in] exlo, exhi, eylo, eyhi, ezlo, ezhi lower and higher bound for
   !>            the electric field arrays
   !> @param[in] bxlo, bxhi, bylo, byhi, bzlo, bzhi lower and higher bound for
   !>            the magnetic field arrays
   !> @param[in] dtsdx, dtsdy, dtsdz factors 0.5 * dt/(dx, dy, dz)
-  subroutine warpx_push_bvec( & 
+  subroutine warpx_push_bvec( &
     xlo, xhi, ylo, yhi, zlo, zhi, &
     ex, exlo, exhi, &
     ey, eylo, eyhi, &
@@ -558,7 +562,62 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
       	by, bylo, byhi, &
       	bz, bzlo, bzhi, &
       	dtsdx,dtsdy,dtsdz)
-    ENDIF			
+    ENDIF
   end subroutine warpx_push_bvec
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
+  !> Subroutine for pushing E with the grad F terms
+  !>
+  !> @param[in] xlo, xhi, ylo, yhi, zlo, zhi lower and higher bounds
+  !>            where to apply the solver (PICSAR's valid cells)
+  !> @param[inout] ex, ey, ez arrays for electric field to update
+  !> @param[in] f array for the charge-correction term
+  !> @param[in] exlo, exhi, eylo, eyhi, ezlo, ezhi lower and higher bound for
+  !>            the electric field arrays
+  !> @param[in] flo, fhi, lower and higher bound for the charge-correction term
+  !> @param[in] dtsdx_c2, dtsdy_c2, dtsdz_c2 factors dt/(dx, dy, dz)*c2
+  subroutine warpx_push_evec_f( &
+    xlo, xhi, ylo, yhi, zlo, zhi, &
+    ex, exlo, exhi, &
+    ey, eylo, eyhi, &
+    ez, ezlo, ezhi, &
+    f, flo, fhi, &
+    dtsdx_c2, dtsdy_c2, dtsdz_c2, &
+    maxwell_fdtd_solver_id) bind(C, name="warpx_push_evec_f")
+
+    integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
+      ylo(BL_SPACEDIM), yhi(BL_SPACEDIM), zlo(BL_SPACEDIM), zhi(BL_SPACEDIM), &
+      exlo(BL_SPACEDIM), exhi(BL_SPACEDIM), eylo(BL_SPACEDIM), eyhi(BL_SPACEDIM), &
+      ezlo(BL_SPACEDIM), ezhi(BL_SPACEDIM), flo(BL_SPACEDIM), fhi(BL_SPACEDIM), &
+      maxwell_fdtd_solver_id
+
+    real(amrex_real), intent(IN OUT):: ex(*), ey(*), ez(*)
+
+    real(amrex_real), intent(IN):: f
+
+    real(amrex_real), intent(IN) :: dtsdx_c2, dtsdy_c2, dtsdz_c2
+
+    IF (maxwell_fdtd_solver_id .eq. 0) THEN
+      ! Yee FDTD solver
+      CALL WRPX_PXR_PUSH_EVEC_F( &
+        xlo, xhi, ylo, yhi, zlo, zhi, &
+      	ex, exlo, exhi, &
+      	ey, eylo, eyhi, &
+      	ez, ezlo, ezhi, &
+      	f, flo, fhi, &
+      	dtsdx_c2, dtsdy_c2, dtsdz_c2)
+    ELSE IF (maxwell_fdtd_solver_id .eq. 1) THEN
+      ! Cole-Karkkainen FDTD solver
+      CALL WRPX_PXR_PUSH_EVEC_F_CKC( &
+        xlo, xhi, ylo, yhi, zlo, zhi, &
+      	ex, exlo, exhi, &
+      	ey, eylo, eyhi, &
+      	ez, ezlo, ezhi, &
+      	f, flo, fhi, &
+      	dtsdx_c2, dtsdy_c2, dtsdz_c2)
+    ENDIF
+  end subroutine warpx_push_evec_f
 
 end module warpx_to_pxr_module

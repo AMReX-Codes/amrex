@@ -28,8 +28,16 @@ public:
                          amrex::MultiFab& jx,
                          amrex::MultiFab& jy,
                          amrex::MultiFab& jz,
+                         amrex::MultiFab* cjx,
+                         amrex::MultiFab* cjy,
+                         amrex::MultiFab* cjz,
                          amrex::MultiFab* rho,
-                         amrex::MultiFab* rho2,
+                         const amrex::MultiFab* cEx,
+                         const amrex::MultiFab* cEy,
+                         const amrex::MultiFab* cEz,
+                         const amrex::MultiFab* cBx,
+                         const amrex::MultiFab* cBy,
+                         const amrex::MultiFab* cBz,
                          amrex::Real t,
                          amrex::Real dt) override;
 
@@ -58,11 +66,14 @@ private:
 
     amrex::Real vzbeam_ave_boosted;
 
-    bool done_injecting = false;
+    amrex::Vector<int> done_injecting;
+    amrex::Vector<amrex::Real> zinject_plane_levels;
 
     // Temporary quantites
-    amrex::Real zinject_plane_previous;
+    amrex::Real zinject_plane_lev;
+    amrex::Real zinject_plane_lev_previous;
     amrex::Vector<int> done_injecting_temp;
+    bool done_injecting_lev;
 
 };
 

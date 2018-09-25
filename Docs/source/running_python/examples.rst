@@ -10,5 +10,3 @@ physical situations.
 
 Laser wakefield acceleration
 ----------------------------
-
-* :download:`Without mesh refinement<../../../Example/laser_acceleration/laser_acceleration.py>`

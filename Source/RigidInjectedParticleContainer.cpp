@@ -29,6 +29,9 @@ RigidInjectedParticleContainer::RigidInjectedParticleContainer (AmrCore* amr_cor
 
 void RigidInjectedParticleContainer::InitData()
 {
+    done_injecting.resize(finestLevel()+1, 0);
+    zinject_plane_levels.resize(finestLevel()+1, zinject_plane);
+
     AddParticles(0); // Note - add on level 0
 
     // Particles added by AddParticles should already be in the boosted frame
@@ -60,49 +63,52 @@ RigidInjectedParticleContainer::RemapParticles()
 
         vzbeam_ave_boosted = meanParticleVelocity(false)[2];
 
+        for (int lev = 0; lev <= finestLevel(); lev++) {
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        {
-            // Get the average beam velocity in the boosted frame.
-            // Note that the particles are already in the boosted frame.
-            // This value is saved to advance the particles not injected yet
-
-            Vector<Real> xp, yp, zp;
-
-            for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
             {
+                // Get the average beam velocity in the boosted frame.
+                // Note that the particles are already in the boosted frame.
+                // This value is saved to advance the particles not injected yet
 
-                auto& attribs = pti.GetAttribs();
-                auto& uxp = attribs[PIdx::ux];
-                auto& uyp = attribs[PIdx::uy];
-                auto& uzp = attribs[PIdx::uz];
+                Vector<Real> xp, yp, zp;
 
-                // Copy data from particle container to temp arrays
-                pti.GetPosition(xp, yp, zp);
+                for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+                {
 
-                // Loop over particles
-                const long np = pti.numParticles();
-                for (int i=0 ; i < np ; i++) {
+                    auto& attribs = pti.GetAttribs();
+                    auto& uxp = attribs[PIdx::ux];
+                    auto& uyp = attribs[PIdx::uy];
+                    auto& uzp = attribs[PIdx::uz];
 
-                    const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
-                    const Real vzpr = uzp[i]/gammapr;
+                    // Copy data from particle container to temp arrays
+                    pti.GetPosition(xp, yp, zp);
 
-                    // Back out the value of z_lab
-                    const Real z_lab = (zp[i] + uz_boost*t_lab + WarpX::gamma_boost*t_lab*vzpr)/(WarpX::gamma_boost + uz_boost*vzpr/csq);
+                    // Loop over particles
+                    const long np = pti.numParticles();
+                    for (int i=0 ; i < np ; i++) {
 
-                    // Time of the particle in the boosted frame given its position in the lab frame at t=0.
-                    const Real tpr = WarpX::gamma_boost*t_lab - uz_boost*z_lab/csq;
+                        const Real gammapr = std::sqrt(1. + (uxp[i]*uxp[i] + uyp[i]*uyp[i] + uzp[i]*uzp[i])/csq);
+                        const Real vzpr = uzp[i]/gammapr;
 
-                    // Adjust the position, taking away its motion from its own velocity and adding
-                    // the motion from the average velocity
-                    zp[i] = zp[i] + tpr*vzpr - tpr*vzbeam_ave_boosted;
+                        // Back out the value of z_lab
+                        const Real z_lab = (zp[i] + uz_boost*t_lab + WarpX::gamma_boost*t_lab*vzpr)/(WarpX::gamma_boost + uz_boost*vzpr/csq);
+
+                        // Time of the particle in the boosted frame given its position in the lab frame at t=0.
+                        const Real tpr = WarpX::gamma_boost*t_lab - uz_boost*z_lab/csq;
+
+                        // Adjust the position, taking away its motion from its own velocity and adding
+                        // the motion from the average velocity
+                        zp[i] = zp[i] + tpr*vzpr - tpr*vzbeam_ave_boosted;
+
+                    }
+
+                    // Copy the data back to the particle container
+                    pti.SetPosition(xp, yp, zp);
 
                 }
-
-                // Copy the data back to the particle container
-                pti.SetPosition(xp, yp, zp);
-
             }
         }
     }
@@ -235,7 +241,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     // Save the position and momenta, making copies
     Vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
 
-    if (!done_injecting) {
+    if (!done_injecting_lev) {
         xp_save = xp;
         yp_save = yp;
         zp_save = zp;
@@ -247,7 +253,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         // should by advanced a fraction of a time step instead.
         // Scaling the fields is much easier and may be good enough.
         for (int i=0 ; i < zp.size() ; i++) {
-            const Real dtscale = dt - (zinject_plane_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
+            const Real dtscale = dt - (zinject_plane_lev_previous - zp[i])/(vzbeam_ave_boosted + WarpX::beta_boost*PhysConst::c);
             if (0. < dtscale && dtscale < dt) {
                 Exp[i] *= dtscale;
                 Eyp[i] *= dtscale;
@@ -266,12 +272,16 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                           &this->charge, &this->mass, &dt,
                           &WarpX::particle_pusher_algo);
 
-    if (!done_injecting) {
+    if (!done_injecting_lev) {
+#ifdef _OPENMP
+        const int tid = omp_get_thread_num();
+#else
+        const int tid = 0;
+#endif
         // Undo the push for particles not injected yet.
         // The zp are advanced a fixed amount.
-        bool done = true;
         for (int i=0 ; i < zp.size() ; i++) {
-            if (zp[i] <= zinject_plane) {
+            if (zp[i] <= zinject_plane_lev) {
                 uxp[i] = uxp_save[i];
                 uyp[i] = uyp_save[i];
                 uzp[i] = uzp_save[i];
@@ -284,16 +294,9 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                 else {
                     zp[i] = zp_save[i] + dt*uzp[i]*giv[i];
                 }
-                done = false;
+                done_injecting_temp[tid] = 0;
             }
         }
-
-#ifdef _OPENMP
-        const int tid = omp_get_thread_num();
-#else
-        const int tid = 0;
-#endif
-        done_injecting_temp[tid] = done;
     }
 
 }
@@ -303,13 +306,17 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                         const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                         const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                         MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                        MultiFab* rho, MultiFab* rho2,
+                                        MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                        MultiFab* rho,
+                                        const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
+                                        const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                         Real t, Real dt)
 {
 
     // Update location of injection plane in the boosted frame
-    zinject_plane_previous = zinject_plane;
-    zinject_plane -= dt*WarpX::beta_boost*PhysConst::c;
+    zinject_plane_lev_previous = zinject_plane_levels[lev];
+    zinject_plane_levels[lev] -= dt*WarpX::beta_boost*PhysConst::c;
+    zinject_plane_lev = zinject_plane_levels[lev];
 
     // Setup check of whether more particles need to be injected
 #ifdef _OPENMP
@@ -318,17 +325,21 @@ RigidInjectedParticleContainer::Evolve (int lev,
     const int nthreads = 1;
 #endif
     done_injecting_temp.assign(nthreads, 1); // We do not use bool because vector<bool> is special.
+    done_injecting_lev = done_injecting[lev];
 
     PhysicalParticleContainer::Evolve (lev,
 				       Ex, Ey, Ez,
 				       Bx, By, Bz,
 				       jx, jy, jz,
-                                       rho, rho2,
+                                       cjx, cjy, cjz,
+                                       rho,
+                                       cEx, cEy, cEz,
+                                       cBx, cBy, cBz,
                                        t, dt);
 
     // Check if all done_injecting_temp are still true.
-    done_injecting = std::all_of(done_injecting_temp.begin(), done_injecting_temp.end(),
-                                 [](int i) -> bool { return i; });
+    done_injecting[lev] = std::all_of(done_injecting_temp.begin(), done_injecting_temp.end(),
+                                      [](int i) -> bool { return i; });
 }
 
 void
@@ -425,7 +436,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             // It is assumed that PushP will only be called on the first and last steps
             // and that no particles will cross zinject_plane.
             for (int i=0 ; i < zp.size() ; i++) {
-                if (zp[i] <= zinject_plane) {
+                if (zp[i] <= zinject_plane_levels[lev]) {
                     uxp[i] = uxp_save[i];
                     uyp[i] = uyp_save[i];
                     uzp[i] = uzp_save[i];

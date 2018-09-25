@@ -18,7 +18,7 @@ or with the `Anaconda distribution <https://anaconda.org/>`__ of python (recomme
 
 ::
 
-    conda install -c conda-forge yt jupyter
+    conda install -c atmyers yt
 
 Visualizing the data
 --------------------

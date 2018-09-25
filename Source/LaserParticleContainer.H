@@ -27,7 +27,10 @@ public:
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
-                         amrex::MultiFab* rho, amrex::MultiFab* rho2,
+                         amrex::MultiFab*, amrex::MultiFab*, amrex::MultiFab*,
+                         amrex::MultiFab* rho,
+                         const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
+                         const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
                          amrex::Real t, amrex::Real dt) final;
 
     virtual void PushP (int lev, amrex::Real dt,
@@ -66,6 +69,9 @@ private:
     amrex::Real profile_duration       = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_t_peak         = std::numeric_limits<amrex::Real>::quiet_NaN();
     amrex::Real profile_focal_distance = std::numeric_limits<amrex::Real>::quiet_NaN();
+    amrex::Real zeta = 0.;
+    amrex::Real beta = 0.;
+    amrex::Real phi2 = 0.;
 
     // parse_field_function profile
     int parser_instance_number = 0;

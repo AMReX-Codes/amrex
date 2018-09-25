@@ -13,6 +13,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
 #include <AMReX_RealVect.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_LayoutData.H>
 #include <AMReX_Interpolater.H>
@@ -87,10 +88,15 @@ public:
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
-    static amrex::Vector<amrex::Real> boost_direction;
+    static amrex::Vector<int> boost_direction;
 
     static bool do_dynamic_scheduling;
+    static bool refine_plasma;
 
+    // buffers
+    static int n_field_gather_buffer;
+    static int n_current_deposition_buffer;
+    
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
@@ -115,12 +121,15 @@ public:
     void MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
-    void EvolveE (         amrex::Real dt, DtType typ);
-    void EvolveE (int lev, amrex::Real dt, DtType typ);
-    void EvolveB (         amrex::Real dt, DtType typ);
-    void EvolveB (int lev, amrex::Real dt, DtType typ);
-    void EvolveF (         amrex::Real dt, DtType typ);
-    void EvolveF (int lev, amrex::Real dt, DtType typ);
+    void EvolveE (         amrex::Real dt);
+    void EvolveE (int lev, amrex::Real dt);
+    void EvolveB (         amrex::Real dt);
+    void EvolveB (int lev, amrex::Real dt);
+    void EvolveF (         amrex::Real dt, DtType dt_type);
+    void EvolveF (int lev, amrex::Real dt, DtType dt_type);
+
+    void DampPML ();
+    void DampPML (int lev);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -136,8 +145,8 @@ public:
     void FillBoundaryB (int lev);
 
     void SyncCurrent ();
-    void SyncRho (const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
-                  const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
+    void SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
+                  amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhoc);
 
     int getistep (int lev) const {return istep[lev];}
     void setistep (int lev, int ii) {istep[lev] = ii;}
@@ -163,6 +172,11 @@ public:
     static std::array<amrex::Real,3> LowerCorner (const amrex::Box& bx, int lev);
     static std::array<amrex::Real,3> UpperCorner (const amrex::Box& bx, int lev);
 
+    static amrex::IntVect RefRatio (int lev);
+
+    static const amrex::iMultiFab* CurrentBufferMasks (int lev);
+    static const amrex::iMultiFab* GatherBufferMasks (int lev);
+
     static amrex::IntVect Bx_nodal_flag;
     static amrex::IntVect By_nodal_flag;
     static amrex::IntVect Bz_nodal_flag;
@@ -176,7 +190,8 @@ public:
     static amrex::IntVect jz_nodal_flag;
 
     static int do_moving_window;
-
+    static int moving_window_dir;
+    
 protected:
 
     //! Tagging cells for refinement
@@ -285,6 +300,10 @@ private:
 
     std::unique_ptr<amrex::MultiFab> GetCellCenteredData();
 
+    std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedE(int lev) const;
+
+    std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
+
     static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
 				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
 
@@ -306,6 +325,16 @@ private:
     void ExchangeWithPmlE (int lev);
 
     void LoadBalance ();
+
+    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
+
+    void BuildBufferMasks ();
+    const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
+        return current_buffer_masks[lev].get();
+    }
+    const amrex::iMultiFab* getGatherBufferMasks (int lev) const {
+        return gather_buffer_masks[lev].get();
+    }
 
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
@@ -342,6 +371,14 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp;
 
+    // Copy of the coarse aux
+    amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cax;
+    amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > current_buffer_masks;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > gather_buffer_masks;
+    // If current deposition buffers are used
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
+
     // div E cleaning
     int do_dive_cleaning = 0;
 
@@ -349,11 +386,7 @@ private:
     int do_pml = 1;
     int pml_ncell = 10;
     int pml_delta = 10;
-    std::string pml_type = "pml";   // or apml
     amrex::Vector<std::unique_ptr<PML> > pml;
-
-    // Moving window parameters
-    int moving_window_dir = -1;
 
     amrex::Real moving_window_x = std::numeric_limits<amrex::Real>::max();
     amrex::Real moving_window_v = std::numeric_limits<amrex::Real>::max();
@@ -416,22 +449,17 @@ private:
     bool is_synchronized = true;
 
 #ifdef WARPX_USE_PSATD
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_fp;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho2_cp;
-
     // Store fields in real space on the dual grid (i.e. the grid for the FFT push of the fields)
     // This includes data for the FFT guard cells (between FFT groups)
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_fp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_fp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_fp_fft;
 
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cp_fft;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_prev_cp_fft;
-    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_next_cp_fft;
+    amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > rho_cp_fft;
 
 public:
     // FFTData is a stuct containing a 22 pointers to auxiliary arrays

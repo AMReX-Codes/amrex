@@ -86,19 +86,19 @@ Distribution across MPI ranks and parallelization
     This relies on each MPI rank handling several (in fact many) subdomains
     (see ``max_grid_size``).
 
-* ``warpx.load_balance_with_sfc`` (`0` or `1`)
+* ``warpx.load_balance_with_sfc`` (`0` or `1`) optional (default `0`)
     If this is `1`: use a Space-Filling Curve (SFC) algorithm in order to perform load-balancing of the simulation.
-    If this is `0` (default): the Knapsack algorithm is used instead.
+    If this is `0`: the Knapsack algorithm is used instead.
 
-* ``warpx.do_dynamic_scheduling`` (`0` or `1`)
-    Whether to activate OpenMP dynamic scheduling. (Activated by default)
+* ``warpx.do_dynamic_scheduling`` (`0` or `1`) optional (default `1`)
+    Whether to activate OpenMP dynamic scheduling.
 
 Math parser and user-defined constants
 --------------------------------------
 
 WarpX provides a math parser that reads expressions in the input file.
-It can be used to define the plasma density profile, the plasma momentum 
-distribution or the laser field (see below `Particle initialization` and 
+It can be used to define the plasma density profile, the plasma momentum
+distribution or the laser field (see below `Particle initialization` and
 `Laser initialization`).
 
 The parser reads python-style expressions between double quotes, for instance
@@ -130,6 +130,12 @@ Particle initialization
 
 * ``particles.use_fdtd_nci_corr`` (`0` or `1`)
     Whether to activate the FDTD Numerical Cherenkov Instability corrector.
+
+* ``particles.rigid_injected_species`` (`strings`, separated by spaces)
+    List of species injected using the rigid injection method. For species injected
+    using this method, particles are translated along the `+z` axis with constant velocity
+    as long as their ``z`` coordinate verifies ``z<zinject_plane``. When ``z>zinject_plane``,
+    particles are pushed in a standard way, using the specified pusher.
 
 * ``<species_name>.charge`` (`float`)
     The charge of one `physical` particle of this species.
@@ -163,26 +169,44 @@ Particle initialization
 
 * ``<species_name>.momentum_distribution_type`` (`string`)
     Distribution of the normalized momentum (`u=p/mc`) for this species. The options are:
-    
-    * ``constant``: constant momentum profile. This requires additional parameters 
-      ``<species_name>.ux``, ``<species_name>.uy`` and ``<species_name>.uz``, the normalized 
+
+    * ``constant``: constant momentum profile. This requires additional parameters
+      ``<species_name>.ux``, ``<species_name>.uy`` and ``<species_name>.uz``, the normalized
       momenta in the x, y and z direction respectively.
 
-    * ``gaussian``: gaussian momentum distribution in all 3 directions. This requires 
-      additional arguments for the average momenta along each direction 
-      ``<species_name>.ux_m``, ``<species_name>.uy_m`` and ``<species_name>.uz_m`` as 
-      well as standard deviations along each direction ``<species_name>.ux_th``, 
+    * ``gaussian``: gaussian momentum distribution in all 3 directions. This requires
+      additional arguments for the average momenta along each direction
+      ``<species_name>.ux_m``, ``<species_name>.uy_m`` and ``<species_name>.uz_m`` as
+      well as standard deviations along each direction ``<species_name>.ux_th``,
       ``<species_name>.uy_th`` and ``<species_name>.uz_th``.
 
-    * ``radial_expansion``: momentum depends on the radial coordinate linearly. This 
+    * ``radial_expansion``: momentum depends on the radial coordinate linearly. This
       requires additional parameter ``u_over_r`` which is the slope.
-    
+
     * ``parse_momentum_function``: the momentum is given by a function in the input
-      file. It requires additional arguments ``<species_name>.momentum_function_ux(x,y,z)``, 
-      ``<species_name>.momentum_function_uy(x,y,z)`` and ``<species_name>.momentum_function_uz(x,y,z)``, 
-      which gives the distribution of each component of the momentum as a function of space.    
-      Note that using this momentum distribution type will turn 
+      file. It requires additional arguments ``<species_name>.momentum_function_ux(x,y,z)``,
+      ``<species_name>.momentum_function_uy(x,y,z)`` and ``<species_name>.momentum_function_uz(x,y,z)``,
+      which gives the distribution of each component of the momentum as a function of space.
+      Note that using this momentum distribution type will turn
       ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
+
+* ``<species_name>.zinject_plane`` (`float`)
+    Only read if  ``<species_name>`` is in ``particles.rigid_injected_species``.
+    Injection plane when using the rigid injection method.
+    See ``particles.rigid_injected_species`` above.
+
+* ``<species_name>.rigid_avance`` (`bool`)
+    Only read if ``<species_name>`` is in ``particles.rigid_injected_species``.
+
+    * If ``false``, each particle is advanced with its
+      own velocity ``vz`` until it reaches ``zinject_plane``.
+
+    * If ``true``, each particle is advanced with the average speed of the species
+      ``vzbar`` until it reaches ``zinject_plane``.
+
+* ``<species_name>.do_backward_injection`` (`bool`)
+    Inject a backward-propagating beam to reduce the effect of charge-separation
+    fields when running in the boosted frame. See examples.
 
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
@@ -315,6 +339,17 @@ Laser initialization
     ``laser.profile_focal_distance`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
+* ``laser.zeta`` (`float`; in meters.seconds) optional (default `0.`)
+    Spatial chirp at focus in the ``x`` direction. See definition in
+    Akturk et al., Opt Express, vol 12, no 19 (2014).
+
+* ``laser.beta`` (`float`; in seconds) optional (default `0.`)
+    Angular dispersion (or angular chirp) at focus in the ``x`` direction.
+    See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
+
+* ``laser.phi2`` (`float`; in seconds**2) optional (default `0.`)
+    Temporal chirp at focus in the ``x`` direction.
+    See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 Numerics and algorithms
 -----------------------
@@ -365,7 +400,7 @@ Numerics and algorithms
     The algorithm for the FDTD Maxwell field solver:
 
      - ``yee``: Yee FDTD solver
-     - ``ckc``: Cole-Karkkainen solver with Cowan 
+     - ``ckc``: Cole-Karkkainen solver with Cowan
        coefficients (see Cowan - PRST-AB 16, 041303 (2013))
 
 * ``interpolation.nox``, ``interpolation.noy``, ``interpolation.noz`` (`integer`)
@@ -375,9 +410,8 @@ Numerics and algorithms
     Note that the implementation in WarpX is more efficient when these 3 numbers are equal,
     and when they are between 1 and 3.
 
-* ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`)
+* ``psatd.nox``, ``psatd.noy``, ``pstad.noz`` (`integer`) optional (default `16` for all)
     The order of accuracy of the spatial derivatives, when using the code compiled with a PSATD solver.
-    If this is not set, the default is ``psatd.nox = psatd.noy = psatd.noz = 16``.
 
 * ``psatd.ngroups_fft`` (`integer`)
     The number of MPI groups that are created for the FFT, when using the code compiled with a PSATD solver.
@@ -415,7 +449,7 @@ Diagnostics and output
     The time interval inbetween the lab-frame snapshots (where this
     time interval is expressed in the laboratory frame).
 
-* ``warpx.plot_raw_fields`` (`0` or `1`)
+* ``warpx.plot_raw_fields`` (`0` or `1`) optional (default `0`)
     By default, the fields written in the plot files are averaged on the nodes.
     When ```warpx.plot_raw_fields`` is `1`, then the raw (i.e. unaveraged)
     fields are also saved in the plot files.
