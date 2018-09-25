@@ -10,5 +10,10 @@ CVODE_LIB_DIR ?= ../../../../sundials/instdir/lib
 
 #CPPFLAGS += -Wl,-rpath,${CVODE_LIB_DIR}
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
+
+ifeq ($(USE_ARKODE),TRUE)
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_arkode
+endif
+
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecserial
 LIBRARIES += -Wl,-rpath,${CVODE_LIB_DIR}
