@@ -694,7 +694,7 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
                          current_buf[lev+1][idim]->DistributionMap(), 1, ng);
             applyFilter(jfb, *current_buf[lev+1][idim]);
 
-            MultiFab::Copy(jfb, jfc, 0, 0, 1, ng);
+            MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
             mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
 
             jfc.SumBoundary(period);
@@ -773,22 +773,21 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
                     rho_fp[lev]->DistributionMap(),
                     ncomp, 0);
         mf.setVal(0.0);
-        if (use_filter && charge_buf[lev])
+        if (use_filter && charge_buf[lev+1])
         {
             // coarse patch of fine level
             IntVect ng = rho_cp[lev+1]->nGrowVect();
-            const int ncomp = rho_cp[lev+1]->nComp();
             ng += 1;
             MultiFab rhofc(rho_cp[lev+1]->boxArray(),
                          rho_cp[lev+1]->DistributionMap(), ncomp, ng);
-            applyFilter(rhofc, *rho_cp[lev+1]);
+            applyFilter(rhofc, *rho_cp[lev+1], icomp, 0, ncomp);
 
             // buffer patch of fine level
             MultiFab rhofb(charge_buf[lev+1]->boxArray(),
                            charge_buf[lev+1]->DistributionMap(), ncomp, ng);
-            applyFilter(rhofb, *charge_buf[lev+1]);
+            applyFilter(rhofb, *charge_buf[lev+1], icomp, 0, ncomp);
 
-            MultiFab::Copy(rhofb, rhofc, 0, 0, ncomp, ng);
+            MultiFab::Add(rhofb, rhofc, 0, 0, ncomp, ng);
             mf.ParallelAdd(rhofb, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
 
             rhofc.SumBoundary(period);
@@ -807,14 +806,13 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
         else if (charge_buf[lev+1]) // but no filter
         {
             MultiFab::Copy(*charge_buf[lev+1],
-                           *rho_cp[lev+1], 0, 0,
-                           rho_cp[lev+1]->nComp(),
+                           *rho_cp[lev+1], icomp, icomp, ncomp,
                            rho_cp[lev+1]->nGrow());
-            mf.ParallelAdd(*charge_buf[lev+1], 0, 0,
-                           rho_cp[lev+1]->nComp(),
+            mf.ParallelAdd(*charge_buf[lev+1], icomp, 0,
+                           ncomp,
                            charge_buf[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
                            period);
-            rho_cp[lev+1]->SumBoundary(period);
+            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
         }
         else // no filter, no buffer
         {
