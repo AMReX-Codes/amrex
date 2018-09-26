@@ -324,22 +324,36 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
 }
 
 void
-WarpX::FillBoundaryF(int lev)
+WarpX::FillBoundaryF (int lev)
 {
-    const auto& period = Geom(lev).periodicity();
+    FillBoundaryF(lev, PatchType::fine);
+    if (lev > 0) FillBoundaryF(lev, PatchType::coarse);
+}
 
-    if (do_pml && pml[lev]->ok())
+void
+WarpX::FillBoundaryF (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine && F_fp[lev])
     {
-        ExchangeWithPmlF(lev);
-        pml[lev]->FillBoundaryF();
+        if (do_pml && pml[lev]->ok())
+        {
+            pml[lev]->ExchangeF(patch_type, F_fp[lev].get());
+            pml[lev]->FillBoundaryF(patch_type);
+        }
+
+        const auto& period = Geom(lev).periodicity();
+        F_fp[lev]->FillBoundary(period);
     }
-    
-    if (F_fp[lev]) F_fp[lev]->FillBoundary(period);
-
-    if (lev > 0)
+    else if (patch_type == PatchType::coarse && F_cp[lev])
     {
+        if (do_pml && pml[lev]->ok())
+        {
+            pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
+            pml[lev]->FillBoundaryF(patch_type);
+        }
+
         const auto& cperiod = Geom(lev-1).periodicity();
-        if (F_cp[lev]) F_cp[lev]->FillBoundary(cperiod);
+        F_cp[lev]->FillBoundary(cperiod);
     }
 }
 

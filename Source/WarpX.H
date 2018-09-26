@@ -254,6 +254,7 @@ private:
 
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
+    void FillBoundaryF (int lev, PatchType patch_type);
 
     void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);

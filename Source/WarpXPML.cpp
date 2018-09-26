@@ -691,13 +691,19 @@ PML::FillBoundaryB (PatchType patch_type)
 void
 PML::FillBoundaryF ()
 {
-    if (pml_F_fp && pml_F_fp->nGrowVect().max() > 0)
+    FillBoundaryF(PatchType::fine);
+    FillBoundaryF(PatchType::coarse);
+}
+
+void
+PML::FillBoundaryF (PatchType patch_type)
+{
+    if (patch_type == PatchType::fine && pml_F_fp && pml_F_fp->nGrowVect().max() > 0)
     {
         const auto& period = m_geom->periodicity();
         pml_F_fp->FillBoundary(period);
     }    
-
-    if (pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
+    else if (patch_type == PatchType::coarse && pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
     {
         const auto& period = m_cgeom->periodicity();
         pml_F_cp->FillBoundary(period);

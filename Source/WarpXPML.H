@@ -126,6 +126,7 @@ public:
     void FillBoundaryF ();
     void FillBoundaryE (PatchType patch_type);
     void FillBoundaryB (PatchType patch_type);
+    void FillBoundaryF (PatchType patch_type);
 
     bool ok () const { return m_ok; }
 
