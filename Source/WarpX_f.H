@@ -376,7 +376,10 @@ extern "C"
                               BL_FORT_FAB_ARG_3D(ey),
                               BL_FORT_FAB_ARG_3D(ez),
                               const BL_FORT_FAB_ARG_3D(f),
-                              const amrex::Real* dtdx);
+                              const amrex::Real* dtsdx,
+                              const amrex::Real* dtsdy,
+                              const amrex::Real* dtsdz,
+                              const int* maxwell_fdtd_solver_id);
 
     void WRPX_PUSH_PML_F(const int* lo, const int* hi,
                          BL_FORT_FAB_ARG_3D(f),

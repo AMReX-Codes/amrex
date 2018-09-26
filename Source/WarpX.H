@@ -90,7 +90,7 @@ public:
     static amrex::Real dt_snapshots_lab;
     static bool do_boosted_frame_fields;
     static bool do_boosted_frame_particles;
-    
+
     // Boosted frame parameters
     static amrex::Real gamma_boost;
     static amrex::Real beta_boost;
@@ -102,7 +102,7 @@ public:
     // buffers
     static int n_field_gather_buffer;
     static int n_current_deposition_buffer;
-    
+
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
@@ -147,8 +147,10 @@ public:
     // Fill boundary cells including coarse/fine boundaries
     void FillBoundaryB ();
     void FillBoundaryE ();
+    void FillBoundaryF ();
     void FillBoundaryE (int lev);
     void FillBoundaryB (int lev);
+    void FillBoundaryF (int lev);
 
     void SyncCurrent ();
     void SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
@@ -197,7 +199,7 @@ public:
 
     static int do_moving_window;
     static int moving_window_dir;
-    
+
 protected:
 
     //! Tagging cells for refinement
@@ -303,7 +305,7 @@ private:
     // used to gather the field from the coarse level in electrostatic mode.
     amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > > gather_masks;
 #endif // WARPX_DO_ELECTROSTATIC
-    
+
     void ReadParameters ();
 
     void InitFromScratch ();
@@ -352,6 +354,7 @@ private:
 
     void ExchangeWithPmlB (int lev);
     void ExchangeWithPmlE (int lev);
+    void ExchangeWithPmlF (int lev);
 
     void LoadBalance ();
 

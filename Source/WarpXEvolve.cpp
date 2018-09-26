@@ -247,6 +247,7 @@ WarpX::OneStep_nosub (Real cur_time)
     FillBoundaryB();
 #else
     EvolveF(0.5*dt[0], DtType::FirstHalf);
+    FillBoundaryF();
     EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
     FillBoundaryB();
     EvolveE(dt[0]); // We now have E^{n+1}
@@ -639,7 +640,8 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
                     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                    &dtsdx_c2[0]);
+                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+                    &WarpX::maxwell_fdtd_solver_id);
             }
         }
     }

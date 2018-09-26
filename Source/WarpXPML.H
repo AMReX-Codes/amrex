@@ -123,6 +123,7 @@ public:
     void FillBoundary ();
     void FillBoundaryE ();
     void FillBoundaryB ();
+    void FillBoundaryF ();
     void FillBoundaryE (PatchType patch_type);
     void FillBoundaryB (PatchType patch_type);
 

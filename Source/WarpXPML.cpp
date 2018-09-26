@@ -346,7 +346,8 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     int nge = 2;
     int ngb = 2;
     int ngf = (do_moving_window) ? 2 : 0;
-
+    if (WarpX::maxwell_fdtd_solver_id == 1) ngf = std::max( ngf, 1 );
+    
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 3, nge));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 3, nge));
     pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 3, nge));
@@ -632,6 +633,7 @@ PML::FillBoundary ()
 {
     FillBoundaryE();
     FillBoundaryB();
+    FillBoundaryF();
 }
 
 void
@@ -683,6 +685,22 @@ PML::FillBoundaryB (PatchType patch_type)
         pml_B_cp[0]->FillBoundary(period);
         pml_B_cp[1]->FillBoundary(period);
         pml_B_cp[2]->FillBoundary(period);
+    }
+}
+
+void
+PML::FillBoundaryF ()
+{
+    if (pml_F_fp && pml_F_fp->nGrowVect().max() > 0)
+    {
+        const auto& period = m_geom->periodicity();
+        pml_F_fp->FillBoundary(period);
+    }    
+
+    if (pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
+    {
+        const auto& period = m_cgeom->periodicity();
+        pml_F_cp->FillBoundary(period);
     }
 }
 
