@@ -155,7 +155,7 @@ amrex::Device::initialize_device() {
         // We have no preference on how ranks get ordered within this communicator.
         int key = 0;
 
-        MPI_Comm_split_type(MPI_COMM_WORLD, split_type, key, MPI_INFO_NULL, &local_comm);
+        MPI_Comm_split_type(ParallelDescriptor::Communicator(), split_type, key, MPI_INFO_NULL, &local_comm);
 
         // Get rank within the local communicator, and number of ranks.
         int n_procs;
