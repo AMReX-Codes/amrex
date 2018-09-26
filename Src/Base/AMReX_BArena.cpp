@@ -32,7 +32,7 @@ amrex::BArena::alloc (std::size_t _sz)
 
     }
 #else
-    pt = operator new(_sz);
+    pt = ::operator new(_sz);
 #endif
 
     return pt;
@@ -47,7 +47,7 @@ amrex::BArena::free (void* pt)
     else
 	gpu_freehost(pt);
 #else
-    operator delete(pt);
+    ::operator delete(pt);
 #endif
 }
 
