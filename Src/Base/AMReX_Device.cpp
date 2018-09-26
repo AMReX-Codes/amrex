@@ -134,7 +134,7 @@ amrex::Device::initialize_device() {
         // this is if the number of visible devices is smaller than
         // the known number of GPUs per socket.
 
-#if (!defined(GPUS_PER_SOCKET) && !defined(GPUS_PER_NODE))
+#if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
         amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
                        "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
 #endif
@@ -143,8 +143,8 @@ amrex::Device::initialize_device() {
 
         int split_type;
 
-#if (defined(OPEN_MPI) && defined(GPUS_PER_SOCKET))
-        if (cuda_device_count <= GPUS_PER_SOCKET)
+#if (defined(OPEN_MPI) && defined(AMREX_GPUS_PER_SOCKET))
+        if (cuda_device_count <= AMREX_GPUS_PER_SOCKET)
             split_type = OMPI_COMM_TYPE_SOCKET;
         else
             split_type = OMPI_COMM_TYPE_NODE;

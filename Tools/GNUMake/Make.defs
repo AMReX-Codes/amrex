@@ -673,11 +673,11 @@ ifeq ($(USE_CUDA),TRUE)
     # Provide system configuration, if available.
 
     ifdef GPUS_PER_SOCKET
-       DEFINES += -DGPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
+       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
     endif
 
     ifdef GPUS_PER_NODE
-       DEFINES += -DGPUS_PER_NODE=$(GPUS_PER_NODE)
+       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
     endif
 
     # Set the CUDA threads define in case the user updated it.
