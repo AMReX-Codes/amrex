@@ -116,12 +116,10 @@ MultiFab::Add (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	const int idx = mfi.tileIndex();
 
         if (bx.ok())
             dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
-
 }
 
 void
@@ -155,12 +153,10 @@ MultiFab::Copy (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	const int idx = mfi.tileIndex();
 
         if (bx.ok())
             dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
     }
-
 }
 
 
@@ -221,7 +217,6 @@ MultiFab::Subtract (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	const int idx = mfi.tileIndex();
 
         if (bx.ok())
             dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
@@ -259,12 +254,10 @@ MultiFab::Multiply (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	const int idx = mfi.tileIndex();
 
         if (bx.ok())
             dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
-
 }
 
 void
@@ -298,12 +291,10 @@ MultiFab::Divide (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	const int idx = mfi.tileIndex();
 
         if (bx.ok())
             dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
-
 }
 
 void
@@ -327,12 +318,10 @@ MultiFab::Saxpy (MultiFab&       dst,
     for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-	const int idx = mfi.tileIndex();
 
         if (bx.ok())
             dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
     }
-
 }
 
 void
