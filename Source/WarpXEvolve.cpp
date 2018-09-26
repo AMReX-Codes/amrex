@@ -283,6 +283,7 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryF(fine_lev, PatchType::fine);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::fine);
@@ -306,6 +307,7 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
     EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::coarse);
+    FillBoundaryF(fine_lev, PatchType::coarse);
 
     EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::coarse);
@@ -313,7 +315,8 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::FirstHalf);
     FillBoundaryB(coarse_lev, PatchType::fine);
-    
+    FillBoundaryF(coarse_lev, PatchType::fine);
+
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     FillBoundaryE(coarse_lev, PatchType::fine);
 
@@ -332,6 +335,7 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
     EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
     FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryF(fine_lev, PatchType::fine);
 
     EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
     FillBoundaryE(fine_lev, PatchType::fine);
@@ -345,6 +349,7 @@ WarpX::OneStep_sub1 (Real curtime)
     }
 
     FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryF(fine_lev, PatchType::fine);
 
     // v)
     RestoreCurrent(coarse_lev);
@@ -364,6 +369,7 @@ WarpX::OneStep_sub1 (Real curtime)
     }
 
     FillBoundaryB(fine_lev, PatchType::coarse);
+    FillBoundaryF(fine_lev, PatchType::coarse);
 
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     FillBoundaryE(coarse_lev, PatchType::fine);
