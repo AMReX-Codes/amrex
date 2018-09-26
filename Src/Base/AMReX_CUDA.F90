@@ -239,7 +239,7 @@ contains
 
     if (AMREX_SPACEDIM .eq. 1) then
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), AMREX_CUDA_MAX_THREADS))
        numThreads % y = 1
        numThreads % z = 1
 
@@ -249,8 +249,8 @@ contains
 
     else if (AMREX_SPACEDIM .eq. 2) then
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS / numThreadsMin % y))
-       numThreads % y = max(numThreadsMin % y, min(tile_size(2), CUDA_MAX_THREADS / numThreads % x   ))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), AMREX_CUDA_MAX_THREADS / numThreadsMin % y))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), AMREX_CUDA_MAX_THREADS / numThreads % x   ))
        numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
@@ -259,9 +259,9 @@ contains
 
     else
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), min(max_threads_dim(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z))))
-       numThreads % y = max(numThreadsMin % y, min(tile_size(2), min(max_threads_dim(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z))))
-       numThreads % z = max(numThreadsMin % z, min(tile_size(3), min(max_threads_dim(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   ))))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), min(max_threads_dim(1), AMREX_CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z))))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), min(max_threads_dim(2), AMREX_CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z))))
+       numThreads % z = max(numThreadsMin % z, min(tile_size(3), min(max_threads_dim(3), AMREX_CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   ))))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y

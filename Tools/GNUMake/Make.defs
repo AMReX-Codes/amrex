@@ -682,6 +682,6 @@ ifeq ($(USE_CUDA),TRUE)
 
     # Set the CUDA threads define in case the user updated it.
 
-    DEFINES += -DCUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
+    DEFINES += -DAMREX_CUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
 
 endif
