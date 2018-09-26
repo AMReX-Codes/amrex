@@ -526,6 +526,15 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngJy = ngy_tmp;
     int ngJz = ngz_tmp;
 
+    if (do_moving_window) {
+        ngx = std::max(ngx,2);
+        ngy = std::max(ngy,2);
+        ngz = std::max(ngz,2);
+        ngJx = std::max(ngJx,2);
+        ngJy = std::max(ngJy,2);
+        ngJz = std::max(ngJz,2);
+    }
+
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngJx,ngJy,ngJz);
