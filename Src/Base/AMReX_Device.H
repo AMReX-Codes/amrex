@@ -163,7 +163,6 @@ private:
 
     static bool in_device_launch_region;
     static int device_id;
-    static int is_device_program_running;
 
     static int verbose;
 
