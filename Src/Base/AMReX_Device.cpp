@@ -164,6 +164,9 @@ amrex::Device::initialize_device() {
         int my_rank;
         MPI_Comm_rank(local_comm, &my_rank);
 
+        // Free the local communicator.
+        MPI_Comm_free(&local_comm);
+
         // For each rank that shares a GPU, use round-robin assignment
         // to assign MPI ranks to GPUs. We will arbitrarily assign
         // ranks to GPUs, assuming that socket awareness has already
