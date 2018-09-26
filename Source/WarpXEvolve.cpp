@@ -478,7 +478,6 @@ WarpX::EvolveE (int lev, Real dt)
 
     if (do_pml && pml[lev]->ok())
     {
-        pml[lev]->ExchangeF(F_fp[lev].get(), F_cp[lev].get());
 
         for (int ipatch = 0; ipatch < npatches; ++ipatch)
         {
