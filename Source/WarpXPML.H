@@ -116,6 +116,7 @@ public:
     void FillBoundary ();
     void FillBoundaryE ();
     void FillBoundaryB ();
+    void FillBoundaryF ();
 
     bool ok () const { return m_ok; }
 
