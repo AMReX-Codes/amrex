@@ -13,6 +13,9 @@ endif
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
   CXXFLAGS += -fPIC
+ifeq ($(USE_OMP),TRUE)
+  LDFLAGS += -fopenmp
+endif
   CFLAGS   += -fPIC
   FFLAGS   += -fPIC
   F90FLAGS += -fPIC
