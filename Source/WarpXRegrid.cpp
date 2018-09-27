@@ -63,6 +63,14 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 // pmf->Redistribute(*current_fp[lev][idim], 0, 0, 1, ng);
                 current_fp[lev][idim] = std::move(pmf);
             }
+            if (current_store[lev][idim])
+            {
+                const IntVect& ng = current_store[lev][idim]->nGrowVect();
+                auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_store[lev][idim]->boxArray(),
+                                                                  dm, 1, ng));
+                // no need to redistribute
+                current_store[lev][idim] = std::move(pmf);
+            }
         }
 
         if (F_fp[lev] != nullptr) {
