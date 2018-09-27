@@ -432,7 +432,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     }
 
     MultiFab* cost = costs[lev].get();
-    const IntVect& rr = (lev < finestLevel()) ? refRatio(lev) : IntVect::TheUnitVector();
+    const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
@@ -557,7 +557,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
     }
 
     MultiFab* cost = costs[lev].get();
-    const IntVect& rr = (lev < finestLevel()) ? refRatio(lev) : IntVect::TheUnitVector();
+    const IntVect& rr = (lev > 0) ? refRatio(lev-1) : IntVect::TheUnitVector();
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
