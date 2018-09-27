@@ -59,6 +59,7 @@ WarpX::EvolveEM (int numsteps)
 #ifdef WARPX_USE_PSATD
             amrex::Abort("LoadBalance for PSATD: TODO");
 #endif
+
             if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
