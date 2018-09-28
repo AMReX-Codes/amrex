@@ -58,7 +58,7 @@ You can install from the source for the latest update,
 
 ::
 
-  pip install git+https://bitbucket.org/jaehong2013/picviewer/
+  pip install git+https://bitbucket.org/ecp_warpx/picviewer/
 
 
 To install manually
@@ -68,7 +68,7 @@ To install manually
 
   ::
 
-    git clone https://jaehong2013@bitbucket.org/jaehong2013/picviewer.git
+    git clone https://bitbucket.org/ecp_warpx/picviewer/
 
 * Switch to the cloned directory with `cd picviewer` and type `python setup.py install`
 
