@@ -46,15 +46,18 @@ mv Docs/Doxygen/html/* out/docs_html/doxygen/
 
 # now do sphinx
 cd Docs/sphinx_documentation
-make SPHINX_BUILD="python3.6 -msphinx" html latexpdf
+make SPHINX_BUILD="python3.6 -msphinx" latexpdf
+mv Docs/sphinx_documentation/build/latex/amrex.pdf Docs/sphinx_documentation/source
+make SPHINX_BUILD="python3.6 -msphinx" html
+
 cd ../sphinx_tutorials
-make SPHINX_BUILD="python3.6 -msphinx" html latexpdf
+make SPHINX_BUILD="python3.6 -msphinx" latexpdf
+mv Docs/sphinx_tutorials/build/latex/amrex.pdf Docs/sphinx_tutorials/source
+make SPHINX_BUILD="python3.6 -msphinx" html
 cd ../../
 
 mv Docs/sphinx_documentation/build/html/* out/docs_html/
-mv Docs/sphinx_documentation/build/latex/amrex.pdf out/docs_html/
 mv Docs/sphinx_tutorials/build/html/*     out/tutorials_html/
-mv Docs/sphinx_tutorials/build/latex/amrex.pdf     out/tutorials_html/
 touch out/.nojekyll
 
 # Now let's go have some fun with the cloned repo
