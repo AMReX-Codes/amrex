@@ -68,7 +68,7 @@ public:
     /**
     * \brief Construct an IntVect whose components are all zero.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
 
     /**
@@ -76,11 +76,11 @@ public:
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
+    AMREX_CUDA_HOST_DEVICE 
     IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     explicit IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
 #endif
 
@@ -88,7 +88,7 @@ public:
     * \brief Construct an IntVect setting the coordinates to the
     * corresponding values in the integer array a.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     explicit IntVect (const int* a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {}
 
     /**
@@ -111,7 +111,7 @@ public:
     }
 
     /// maximum (no absolute values) value
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int max() const
     {
 #if (AMREX_SPACEDIM == 1)
@@ -124,7 +124,7 @@ public:
     }
 
     /// minimum (no absolute values) value
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int min() const
     {
 #if (AMREX_SPACEDIM == 1)
@@ -141,15 +141,15 @@ public:
 
     //! Returns a reference to the i'th coordinate of the IntVect.
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE 
+    AMREX_CUDA_HOST_DEVICE 
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& setVal (int i, int val)
     {
         BL_ASSERT(i >=0 && i < AMREX_SPACEDIM); vect[i] = val; return *this;
@@ -159,11 +159,11 @@ public:
     * \brief Returns a const pointer to an array of coordinates of the
     * IntVect.  Useful for arguments to FORTRAN calls.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* getVect () const& { return vect; }
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int*       getVect () &      { return vect; }
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int*       getVect () && = delete;
 
     //! Returns true if all components are equal to the argument val.
@@ -173,20 +173,20 @@ public:
     }
 
     //! Returns true if any component is not equal to the argument val.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool operator!= (int val) const
     {
         return AMREX_D_TERM(vect[0] != val, || vect[1] != val, || vect[2] != val);
     }
 
     //! Returns true if this is equivalent to rhs.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool operator== (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] == rhs[0], && vect[1] == rhs[1], && vect[2] == rhs[2]);
     }
     //! Returns true if this is different from rhs.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool operator!= (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
@@ -246,7 +246,7 @@ public:
     * \brief Returns true if this is greater than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool allGE (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
@@ -256,13 +256,13 @@ public:
     //! Unary Minus -- negates all components.
     IntVect operator- () const { return IntVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //! Modifies IntVect by addition of a scalar to each component.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator+= (int s)
     {
         AMREX_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modifies IntVect by component-wise addition with argument.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator+= (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
@@ -298,7 +298,7 @@ public:
         AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
     }
     //! Returns component-wise sum of IntVect and argument.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator+ (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
@@ -309,7 +309,7 @@ public:
         return IntVect(AMREX_D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
     }
     //! Returns component-wise difference of IntVect and argument.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator- (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
@@ -340,7 +340,7 @@ public:
         return IntVect(AMREX_D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
     }
     //! Modifies IntVect by taking component-wise min with argument.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& min (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] = (vect[0] < p.vect[0] ? vect[0] : p.vect[0]),
@@ -349,7 +349,7 @@ public:
         return *this;
     }
     //! Modifies IntVect by taking component-wise max with argument.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& max (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] = (vect[0] > p.vect[0] ? vect[0] : p.vect[0]),
@@ -370,13 +370,13 @@ public:
         return *this;
     }
     //! Modify IntVect by adding s to given coordinate.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& shift (int coord, int s)
     {
         BL_ASSERT(coord >= 0 && coord < AMREX_SPACEDIM); vect[coord] += s; return *this;
     }
     //! Equivalent to shift(0,iv[0]).shift(1,iv[1]) ...
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect& shift (const IntVect& iv) { *this += iv; return *this; }
     //! Modify IntVect by adding s to each coordinate.
     IntVect& diagShift (int s)
@@ -551,7 +551,7 @@ IntVect operator+ (int s, const IntVect& p)
 }
 //! Returns -p + s.
 inline
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 IntVect operator- (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(s - p[0], s - p[1], s - p[2]));

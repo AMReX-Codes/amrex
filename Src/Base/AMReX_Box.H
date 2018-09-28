@@ -40,7 +40,7 @@ public:
     * invalid and may be tested for validity with ok(). 
     * DO NOT CHANGE THIS BEHAVIOR!
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box ()
         : smallend(1),
           bigend(0),
@@ -48,14 +48,14 @@ public:
         {}
 
     //! Construct cell-centered type Box.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big)
         : smallend(small),
           bigend(big)
         {}
 
     //! Construct box with specified lengths.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box (const IntVect& small, const int* vec_len)
         : smallend(small),
           bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
@@ -67,7 +67,7 @@ public:
     * \brief Construct Box with given type.  small and big are expected
     * to be consistent with given type.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big, const IntVect& typ)
         : smallend(small),
           bigend(big),
@@ -79,7 +79,7 @@ public:
     //
     // Construct dimension specific Boxes.
     //
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big, IndexType t)
         : smallend(small),
           bigend(big),
@@ -89,36 +89,36 @@ public:
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Get the smallend of the box.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const IntVect& smallEnd () const& { return smallend; }
     const IntVect& smallEnd () && = delete;
 
     //! Returns the coordinate of the low end in the given direction.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int smallEnd (int dir) const& { return smallend[dir]; }
 
     //! Get the bigend.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const IntVect& bigEnd () const& { return bigend; }
     const IntVect& bigEnd () && = delete;
 
     //! Returns the coordinate of the high end in the given direction.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int bigEnd (int dir) const { return bigend[dir]; }
 
     //! Returns the indexing type.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IndexType ixType () const { return btype; }
 
     //! Returns the indexing type.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect type () const { return btype.ixType(); }
 
     //! Returns the indexing type in the specified direction.
     IndexType::CellIndex type (int dir) const { return btype.ixType(dir); }
 
     //! Return the length of the Box.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     IntVect size () const
     {
         return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
@@ -127,10 +127,10 @@ public:
     }
 
     //! Return the length of the Box in given direction.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     std::array<int,3> length3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0]-smallend[0]+1, 1, 1};
@@ -141,7 +141,7 @@ public:
 #endif
     }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     CudaArray<int,3> loVect3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {smallend[0], 0, 0};
@@ -152,7 +152,7 @@ public:
 #endif
     }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     CudaArray<int,3> hiVect3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0], 0, 0};
@@ -164,14 +164,14 @@ public:
     }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* loVect () const& { return smallend.getVect(); }
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* loVect () && = delete;
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* hiVect () const& { return bigend.getVect(); }
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
@@ -184,7 +184,7 @@ public:
     bool isEmpty () const { return !ok(); }
 
     //! Checks if it is a proper Box (including a valid type).
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool ok () const { return bigend.allGE(smallend) && btype.ok(); }
 
     //! Returns true if argument is contained within Box.
@@ -215,7 +215,7 @@ public:
     * \brief Returns true if Boxes have non-null intersections.
     * It is an error if the Boxes have different types.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool intersects (const Box& b) const { Box isect(*this); isect &= b; return isect.ok(); }
 
     /**
@@ -233,7 +233,7 @@ public:
     bool sameType (const Box &b) const { return btype == b.btype; }
 
     //! Returns true if Boxes are identical (including type).
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool operator== (const Box& b) const { return smallend == b.smallend && bigend == b.bigend && b.btype == btype; }
 
     //! Returns true if Boxes differ (including type).
@@ -257,14 +257,14 @@ public:
     }
 
     //! Returns true if Box is cell-centered in all indexing directions.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     bool cellCentered () const { return !btype.any(); }
 
     /**
     * \brief Returns the number of points contained in the Box, else
     * abort()s if the number cannot be represented in a long.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     long numPts () const {
         auto r = AMREX_D_TERM( static_cast<unsigned long>(length(0)),
                               *static_cast<unsigned long>(length(1)),
@@ -316,7 +316,7 @@ public:
     * index(smallend) -> 0, bigend would return numPts()-1.
     * Is used in accessing FArrayBox.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     long index (const IntVect& v) const;
 
     //! Redefine the small end of the Box.
@@ -326,11 +326,11 @@ public:
     Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
 
     //! Redefine the big end of the Box.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
 
     //! Redefine the big end of the Box.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& setBig (int dir, int bg_index) { bigend.setVal(dir,bg_index); return *this; }
 
     /**
@@ -343,11 +343,11 @@ public:
                    int n_cells = 1);
 
     //! Set indexing type
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
@@ -374,7 +374,7 @@ public:
     * type NODE -> CELL : reduce coordinate by one on high end
     * other type mappings make no change.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& convert (IndexType typ);
 
     /**
@@ -384,7 +384,7 @@ public:
     * type NODE -> CELL : reduce coordinate by one on high end
     * other type mappings make no change.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& convert (const IntVect& typ);
 
     //! Convert to NODE type in all directions.
@@ -403,11 +403,11 @@ public:
     * \brief Return Box that is intersection of this Box
     * and argument.  The Boxes MUST be of same type.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
 
     //! Intersect this Box with its argument. The Boxes MUST be of the same type.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& operator&= (const Box& rhs)
     {
         BL_ASSERT(sameType(rhs));
@@ -441,11 +441,11 @@ public:
     }
 
     //! Shift Box (relative) by given IntVect.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; return *this; }
 
     //! Shift Box (relative) by given IntVect.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
 
     //! Shift Box (relative) by given IntVect.
@@ -494,7 +494,7 @@ public:
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
 
     //! Grow in the direction of the given face.
@@ -555,7 +555,7 @@ public:
     * \brief Step through the rectangle.  It is a runtime error to give
     * a point not inside rectangle.  Iteration may not be efficient.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void next (IntVect &) const;
 
     /**
@@ -645,7 +645,7 @@ Box::coarsen (const IntVect& ref_ratio)
 }
 
 inline
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 Box&
 Box::convert (const IntVect& typ)
 {
@@ -657,7 +657,7 @@ Box::convert (const IntVect& typ)
 }
 
 inline
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 Box&
 Box::convert (IndexType t)
 {

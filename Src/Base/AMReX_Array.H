@@ -27,11 +27,11 @@ namespace amrex {
     template <class T, std::size_t N>
     struct CudaArray
     {
-        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+        AMREX_CUDA_HOST_DEVICE
         inline const T& operator [] (int i) const { return arr[i]; }
-        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+        AMREX_CUDA_HOST_DEVICE
         inline const T* data() const { return arr; };
-        AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+        AMREX_CUDA_HOST_DEVICE
         inline std::size_t size() const { return N; };
 
         T arr[N];

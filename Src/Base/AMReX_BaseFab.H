@@ -58,7 +58,7 @@ struct StridedPtr
     int jstride;
     int kstride;
     int nstride;
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     P operator() (int i, int j, int k, int n=0) const {
         return p +(i+j*jstride+k*kstride+n*nstride);
     }
@@ -118,11 +118,11 @@ public:
 
     typedef T value_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab ();
 
     //!  Make BaseFab with desired domain (box) and number of components.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
@@ -135,12 +135,12 @@ public:
      * responsible for memory management.  And it's caller's responsibility that
      * p points to a chunk of memory large enough.
      */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab (const Box& bx, int ncomp, T* p);
 
     //! The destructor deletes the array memory.
 //    virtual ~BaseFab ();
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
@@ -196,7 +196,7 @@ public:
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
      */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void clear ();
 
     //! Returns how many bytes used
@@ -211,7 +211,7 @@ public:
         { return bx.numPts() * sizeof(T) * ncomps; }
 
     //! Returns the number of components
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
@@ -224,7 +224,7 @@ public:
     long size () const { return nvar*numpts; }
 
     //! Returns the domain (box) where the array is defined
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const Box& box () const { return domain; }
 
     /**
@@ -250,7 +250,7 @@ public:
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* loVect () const { return domain.loVect(); }
 
     /**
@@ -261,7 +261,7 @@ public:
     * constant integers.  This is useful when interfacing to
     * Fortran subroutines.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const int* hiVect () const { return domain.hiVect(); }
 
     /**
@@ -288,22 +288,22 @@ public:
     * order, with the component index coming last.   In other words,
     * dataPtr returns a pointer to all the Nth components.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     T* dataPtr (int n = 0) { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
     //! Same as above except works on const FABs.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const T* dataPtr (int n = 0) const { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     T* dataPtr (const IntVect& iv, int n = 0);
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
     void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     StridedPtr<T const*> stridedPtr (int n = 0) const {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -313,7 +313,7 @@ public:
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     StridedPtr<T*> stridedPtr (int n = 0) {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -323,7 +323,7 @@ public:
         return StridedPtr<T*>{p, jstride, kstride, nstride};
     }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     StridedPtr<T const*> stridedPtr (const Box& subbox, int n = 0) const {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -338,7 +338,7 @@ public:
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     StridedPtr<T*> stridedPtr (const Box& subbox, int n = 0) {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -365,14 +365,14 @@ public:
     T& operator() (const IntVect& p, int N);
 
     //! Same as above, except returns component 0.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     T& operator() (const IntVect& p);
 
     //! Same as above except works on const FABs.
     const T& operator() (const IntVect& p, int N) const;
 
     //! Same as above, except returns component 0.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     const T& operator() (const IntVect& p) const;
 
     /**
@@ -380,13 +380,13 @@ public:
     * component N, from position pos in the domain into array data,
     * that must be allocated by the user.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void getVal (T*             data,
                  const IntVect& pos,
                  int            N,
                  int            numcomp) const;
     //! Same as above, except that starts at component 0 and copies all comps.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void getVal (T*             data,
                  const IntVect& pos) const;
     /**
@@ -395,21 +395,21 @@ public:
     * the starting component number, and the number of components
     * to be set.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void setVal (T          x,
                  const Box& bx,
                  int        nstart,
                  int        ncomp);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void setVal (T          x,
                  const Box& bx,
                  int        N = 0);
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     //! Same as above, except the sub-box defaults to the entire domain.
     void setVal (T   x,
                  int N);
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     //! Same as above, except all components are set.
     void setVal (T x);
 
@@ -442,7 +442,7 @@ public:
     * UNDEFINED if the src and dest are the same and the srcbox and
     * destbox overlap.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        srcbox,
                       int               srccomp,
@@ -457,7 +457,7 @@ public:
     * copy is made by the function performCopy() of this
     * class.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       int               srccomp,
                       int               destcomp,
@@ -469,7 +469,7 @@ public:
     * copied.  Note that the actual copy is made by the
     * function performCopy of this class.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        destbox);
 
@@ -479,17 +479,17 @@ public:
     * Note that the actual copy is made by the function
     * performCopy() of this class.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src);
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     std::size_t copyToMem (const Box& srcbox,
                            int        srccomp,
                            int        numcomp,
                            void*      dst) const;
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     //! Copy from raw memory to the dstbox of this Fab and return the number of bytes copied
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
@@ -634,20 +634,20 @@ public:
     BaseFab<T>& invert (T v);
 
     //! Negate BaseFab, most general.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& negate (const Box& subbox,
                         int        comp=0,
                         int        numcomp=1);
     //! As above, except on entire domain.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& negate (int comp,
                         int numcomp=1);
     //! As above, except on entire domain and all components.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& negate ();
 
     //! Scalar addition (a[i] <- a[i] + r), most general.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (T          r,
                       const Box& b,
                       int        comp=0,
@@ -692,7 +692,7 @@ public:
     * \brief Add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src,
                       const Box&        srcbox,
                       const Box&        destbox,
@@ -760,7 +760,7 @@ public:
     * \brief Subtract srcbox region of src FAB from destbox region
     * of this FAB. srcbox and destbox must be same size.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src,
                        const Box&        srcbox,
                        const Box&        destbox,
@@ -780,7 +780,7 @@ public:
     /**
     * \brief As above, except specify sub-box.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& mult (T          r,
                       const Box& b,
                       int        comp=0,
@@ -817,7 +817,7 @@ public:
     * \brief Multiply srcbox region of src FAB with destbox region
     * of this FAB. The srcbox and destbox must be same size.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src,
                       const Box&        srcbox,
                       const Box&        destbox,
@@ -871,7 +871,7 @@ public:
     * \brief destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src,
                         const Box&        srcbox,
                         const Box&        destbox,
@@ -929,7 +929,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            const Box&        b1,
                            int               comp1,
@@ -943,7 +943,7 @@ public:
                            int               comp,
                            int               numcomp = 1);
 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     //! Version of linInterp() in which b, b1, & b2 are the same.
     BaseFab<T>& linInterp (const BaseFab<T>& f1,
                            int               comp1,
@@ -965,7 +965,7 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& linComb (const BaseFab<T>& f1,
                          const Box&        b1,
                          int               comp1,
@@ -990,10 +990,10 @@ public:
     //! Change the Box type without change the length
     void SetBoxType (const IndexType& typ) { domain.setType(typ); }
 
-    template <class F> AMREX_CUDA_HOST AMREX_CUDA_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
+    template <class F> AMREX_CUDA_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_CUDA_HOST AMREX_CUDA_DEVICE void ForEach (const Box& b, int c, int nc, F f) const {
+    template <class F> AMREX_CUDA_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
     template <class F> void ForEachIV (const Box& b, int c, int nc, F f) {
@@ -1004,22 +1004,22 @@ public:
     }
     template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, int srccomp, F f);
-    template <class F> void AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    template <class F> void AMREX_CUDA_HOST_DEVICE
                             ForEach (const Box& dstbox, int dstcomp, int numcomp,
                                      const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
     template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
     template <class F> 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE void Transform (T* dst, const Box& b, int c, int nc, F f) const;
+    AMREX_CUDA_HOST_DEVICE void Transform (T* dst, const Box& b, int c, int nc, F f) const;
     template <class F> 
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE void Transform (const Box& b, int c, int nc, T const* src, F f);
+    AMREX_CUDA_HOST_DEVICE void Transform (const Box& b, int c, int nc, T const* src, F f);
 
 protected:
     //! Allocates memory for the BaseFab<T>.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void define ();
 
     //! The function called by BaseFab copy operations.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void performCopy (const BaseFab<T>& src,
                       const Box&        srcbox,
                       int               srccomp,
@@ -1028,7 +1028,7 @@ protected:
                       int               numcomp);
 
     //! This function is called by the BaseFab setVal operations.
-    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    AMREX_CUDA_HOST_DEVICE
     void performSetVal (T          x,
                         const Box& bx,
                         int        nstart,
@@ -1056,7 +1056,7 @@ public:
 
 
 template <class B, class F>
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
@@ -1196,7 +1196,7 @@ BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
 
 template <class T>
 template <class F>
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 void
 BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 {
@@ -1222,7 +1222,7 @@ BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 
 template <class T>
 template <class F>
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 void
 BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
 {
@@ -1872,7 +1872,7 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         numcomp,
                             const void* src);
 template <>
-AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+AMREX_CUDA_HOST_DEVICE
 void
 BaseFab<Real>::performSetVal (Real       val,
                               const Box& bx,
