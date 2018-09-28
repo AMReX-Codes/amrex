@@ -72,13 +72,18 @@ In order to clean a previously compiled version:
 Installing WarpX as a Python package
 ------------------------------------
 
-``cd`` into the directory ``warpx/Python`` (instead of ``warpx``
-in the previous section) and type
+Type
 
 ::
 
-    make -j 4
+    make -j 4 USE_PYTHON_MAIN=TRUE
+    
+or edit the GNUmakefile and set `USE_PYTHON_MAIN=TRUE`, and type    
 
+::
+
+    make -j 4 
+    
 This will compile the code, and install the Python bindings as a package (named
 ``pywarpx``) in your standard Python installation (i.e. in your
 ``site-packages`` directory). The note on compiler options from the previous
