@@ -245,8 +245,8 @@ contains
     end do
   end function amrex_fort_fab_dot_mask
 
-  subroutine amrex_fab_setval_ifnot (lo, hi, dst, dlo, dhi, ncomp, msk, mlo, mhi, val) &
-       bind(c,name='amrex_fab_setval_ifnot')
+  subroutine amrex_fort_fab_setval_ifnot (lo, hi, dst, dlo, dhi, ncomp, msk, mlo, mhi, val) &
+       bind(c,name='amrex_fort_fab_setval_ifnot')
     integer, intent(in), value :: val
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), mlo(3), mhi(3), ncomp
     real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
@@ -266,7 +266,7 @@ contains
        end do
     end do
     
-  end subroutine amrex_fab_setval_ifnot
+  end subroutine amrex_fort_fab_setval_ifnot
 
 ! ===============================================================================
 

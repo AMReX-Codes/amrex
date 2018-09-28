@@ -58,6 +58,7 @@ struct StridedPtr
     int jstride;
     int kstride;
     int nstride;
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     P operator() (int i, int j, int k, int n=0) const {
         return p +(i+j*jstride+k*kstride+n*nstride);
     }
@@ -301,6 +302,8 @@ public:
     
     void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
 
+
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     StridedPtr<T const*> stridedPtr (int n = 0) const {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -310,6 +313,7 @@ public:
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     StridedPtr<T*> stridedPtr (int n = 0) {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -319,6 +323,7 @@ public:
         return StridedPtr<T*>{p, jstride, kstride, nstride};
     }
 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     StridedPtr<T const*> stridedPtr (const Box& subbox, int n = 0) const {
         const auto& len = domain.length3d();
         int jstride = len[0];
@@ -333,6 +338,7 @@ public:
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
     StridedPtr<T*> stridedPtr (const Box& subbox, int n = 0) {
         const auto& len = domain.length3d();
         int jstride = len[0];

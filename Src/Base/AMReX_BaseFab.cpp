@@ -153,14 +153,6 @@ update_fab_stats (long n, long s, size_t szt)
     }
 }
 
-Arena*
-The_Arena ()
-{
-    BL_ASSERT(the_arena != 0);
-
-    return the_arena;
-}
-
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,
@@ -902,7 +894,5 @@ BaseFab<int>::minus (const BaseFab<int>& src,
 
     return *this;
 }
-
-#endif
 
 }
