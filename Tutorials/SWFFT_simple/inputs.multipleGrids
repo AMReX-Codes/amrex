@@ -9,4 +9,4 @@ verbose = 0
 //   prob_type = 2 - Fourier mode C
 //   prob_type = 3 - Gaussian
 ///////////////////////////////////////
-prob_type = 0
+prob_type = 3

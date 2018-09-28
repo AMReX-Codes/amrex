@@ -16,14 +16,14 @@
 using namespace amrex;
 
 void
-swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
+swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose)
 {
-    const BoxArray& ba = soln.boxArray();
+    const BoxArray& ba = phi.boxArray();
     amrex::Print() << "BA " << ba << std::endl;
-    const DistributionMapping& dm = soln.DistributionMap();
+    const DistributionMapping& dm = phi.DistributionMap();
 
-    if (rhs.nGrow() != 0 || soln.nGrow() != 0) 
-       amrex::Error("Current implementation requires that both rhs and soln have no ghost cells");
+    if (phi_spatial.nGrow() != 0 || phi.nGrow() != 0) 
+       amrex::Error("Current implementation requires that both phi_spatial and phi have no ghost cells");
 
     // Define pi and (two pi) here
     Real  pi = 4 * std::atan(1.0);
@@ -51,7 +51,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     // Vector<int> rank_mapping_trans;
     // rank_mapping_trans.resize(nboxes);
 
-    DistributionMapping dmap = rhs.DistributionMap();
+    DistributionMapping dmap = phi_spatial.DistributionMap();
 
     for (int ib = 0; ib < nboxes; ++ib)
     {
@@ -86,7 +86,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
     hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
     hacc::Dfft dfft(d);
     
-    for (MFIter mfi(rhs,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(phi_spatial,false); mfi.isValid(); ++mfi)
     {
        int gid = mfi.index();
 
@@ -110,7 +110,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
         for(size_t j=0; j<(size_t)ny; j++) {
          for(size_t i=0; i<(size_t)nx; i++) {
 
-           complex_t temp(rhs[mfi].dataPtr()[local_indx],0.);
+           complex_t temp(phi_spatial[mfi].dataPtr()[local_indx],0.);
            a[local_indx] = temp;
       	   local_indx++;
 
@@ -153,7 +153,7 @@ swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose)
 
            // Divide by 2 pi N
 	   // local_indx_p = i*ny*nz + j*ny + k;
-           soln[mfi].dataPtr()[local_indx] = fac * std::abs(b[local_indx]);
+           phi[mfi].dataPtr()[local_indx] = fac * std::abs(b[local_indx]);
        	   local_indx++;
 
          }
