@@ -24,17 +24,16 @@ In order to learn to use the code, please see the sections below:
 
 .. warning::
 
-   WarpX is currently in active development, and this release
-   is an **alpha release**.
-   The input and output formats, as well as performances, 
-   are not guaranteed to be stable at this stage.
-
+   This is an **alpha release** of WarpX.
+   The code is still in active development.
+   Stability and performance are not guaranteed at this stage.
+   The input and output formats may evolve.
 
 
 .. toctree::
    :maxdepth: 1
 
-   installation
+   building/building
    running_cpp/running_cpp
    running_python/running_python
    visualization/visualization
