@@ -101,13 +101,11 @@ SWFFT_Test::SWFFT_Test ()
         ba.maxSize(max_grid_size);
 
         // We assume a unit box (just for convenience)
-#if (AMREX_SPACEDIM == 2)
         Real x_hi = n_cell[0]*dx;
         Real y_hi = n_cell[1]*dx;
+#if (AMREX_SPACEDIM == 2)
         RealBox real_box({0.0,0.0}, {x_hi,y_hi});
 #elif (AMREX_SPACEDIM == 3)
-        Real x_hi = n_cell[0]*dx;
-        Real y_hi = n_cell[1]*dx;
         Real z_hi = n_cell[2]*dx;
         RealBox real_box({0.0,0.0,0.0}, {x_hi,y_hi,z_hi});
 #endif
@@ -193,8 +191,8 @@ SWFFT_Test::WritePlotFile (const int step, const amrex::Real time)
     // keep a counter for plotfile variables
     int cnt = 0;
 
-    varNames[cnt++] = "FFT_of_phi_dft";
-    varNames[cnt++] = "phi_dft";
+    varNames[cnt++] = "FFT_of_phi";
+    varNames[cnt++] = "phi";
 
     // reset plotfile variable counter
     cnt = 0;
