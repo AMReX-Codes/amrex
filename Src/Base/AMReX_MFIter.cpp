@@ -113,6 +113,35 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
 }
 
 
+MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info)
+    :
+    m_fa(new FabArray<FArrayBox>(ba, dm, 1, 0,
+                                 MFInfo().SetAlloc(false),
+                                 FArrayBoxFactory())),
+    fabArray(*m_fa),
+    tile_size(info.tilesize),
+    flags(info.do_tiling ? Tiling : 0),
+    dynamic(info.dynamic),
+    index_map(nullptr),
+    local_index_map(nullptr),
+    tile_array(nullptr),
+    local_tile_index_map(nullptr),
+    num_local_tiles(nullptr)
+{
+    if (dynamic) {
+#ifdef _OPENMP
+#pragma omp barrier
+#pragma omp single
+        nextDynamicIndex = omp_get_num_threads();
+        // yes omp single has an implicit barrier and we need it because nextDynamicIndex is static.
+#else
+        dynamic = false;  // dynamic doesn't make sense if OMP is not used.
+#endif
+    }
+
+    Initialize();
+}
+
 MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     :
     fabArray(fabarray_),
