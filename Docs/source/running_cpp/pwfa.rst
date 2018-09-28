@@ -1,4 +1,5 @@
-PWFA simulation
+In-depth explanation of a PWFA example
+--------------------------------------
 
 This example illustrates the simulation of a PWFA with realistic parameters in the bubble regime. The simulation is specified by 4 particle species, namely, the drive beam (driver), the witness beam (beam), the plasma electron (plasma_e), and the plasma ion (plasma_p). The species parameters are summarized in the following table.
 
