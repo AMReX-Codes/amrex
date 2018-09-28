@@ -24,12 +24,11 @@ In order to learn to use the code, please see the sections below:
 
 .. warning::
 
-   WarpX is currently in active development. This release is an
-   **alpha release**, and is meant for **developers** and **power users**.
+   WarpX is currently in active development, and this release
+   is an **alpha release**.
+   The input and output formats, as well as performances, 
+   are not guaranteed to be stable at this stage.
 
-   For general users, we recommend to wait for the **beta release**,
-   since the current input and output format of WarpX may still change
-   extensively before then.
 
 
 .. toctree::
