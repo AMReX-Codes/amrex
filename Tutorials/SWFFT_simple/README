@@ -28,3 +28,6 @@ amrvis3d plt_fft
 The DFT of the data as well as the original array can be viewed as separate 
 variables in the plotfile "plt_fft"
 
+Note: FFT scaling is as expected - e.g. DFT of a discrete "delta" function 
+      (phi=1 in (0, 0, 0), phi=0 everywhere else) results in a constant value 
+      of phi_dft=1 throughout the domain
