@@ -30,7 +30,7 @@ contains
     pi = 4.d0 * atan(1.d0)
     tpi = 2.0d0 * pi
     fpi = 4.0d0 * pi
-    fac = 3.0d0 * tpi**2 / (Lx**2 * Ly**2)
+    fac = 1.d0
 
     do j = lo(2), hi(2)
        y = (dble(j)+0.5d0)*dx(2)/Ly
@@ -50,6 +50,11 @@ contains
                   &       -fac * (sin(3.d0*tpi*x) * sin(3.d0*tpi*y))  &
                   &       -fac * (sin(4.d0*tpi*x) * sin(4.d0*tpi*y))
           CASE (3)
+             phi_spatial = 0.d0
+             if (SUM(lo-domlo) == 0) then
+                phi_spatial(lo(1),lo(2)) = 1.d0
+             endif
+          CASE (4)
              phi_spatial(i,j) = exp(-5.d2*((x/Lx-0.5d0)**2 + (y/Ly-0.5d0)**2))
           CASE DEFAULT
              phi_spatial = 0.d0
@@ -83,7 +88,8 @@ contains
     pi = 4.d0 * atan(1.d0)
     tpi = 2.0d0 * pi
     fpi = 4.0d0 * pi
-    fac = 3.0d0 * tpi**2 / (Lx**2 * Ly**2 * Lz**2)
+    ! fac = 3.0d0 * tpi**2 / (Lx**2 * Ly**2 * Lz**2)
+    fac = 1.0d0
 
     do k = lo(3), hi(3)
        z = (dble(k)+0.5d0)*dx(3)/Lz
@@ -106,6 +112,11 @@ contains
                      &       -fac * (sin(3.d0*tpi*x) * sin(3.d0*tpi*y) * sin(3.d0*tpi*z))  &
                      &       -fac * (sin(4.d0*tpi*x) * sin(4.d0*tpi*y) * sin(4.d0*tpi*z))
              CASE (3)
+                phi_spatial = 0.d0
+                if (SUM(lo-domlo) == 0) then
+                   phi_spatial(lo(1),lo(2),lo(3)) = 1.d0
+                endif
+             CASE (4)
                 phi_spatial(i,j,k) = exp(-5.d2*((x/Lx-0.5d0)**2 + (y/Ly-0.5d0)**2 + (z/Lz-0.5d0)**2))
              CASE DEFAULT
                 phi_spatial = 0.d0
