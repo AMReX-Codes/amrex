@@ -1,3 +1,5 @@
+Simple example of Langmuir oscillations in a uniform plasma.
+
 To see an example of how to use the level 0 dynamic load balancing, follow the following steps
 in this directory.
 
