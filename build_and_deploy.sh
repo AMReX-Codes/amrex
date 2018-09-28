@@ -23,8 +23,11 @@ SHA=`git rev-parse --verify HEAD`
 
 # Clone the existing gh-pages for this repo into out/
 # Create a new empty branch if gh-pages doesn't exist yet (should only happen on first deploy)
-git clone $REPO out
 cd out
+git init
+git remote add origin $REPO
+git fetch $TARGET_BRANCH
+git pull origin $TARGET_BRANCH
 git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
 cd ..
 
