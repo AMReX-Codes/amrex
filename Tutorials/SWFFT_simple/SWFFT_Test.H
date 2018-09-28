@@ -4,7 +4,7 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_MultiFab.H>
 
-// We solve Lap(phi) = phi_spatial
+// We solve Lap(phi_dft) = phi_spatial
 class SWFFT_Test
 {
 public:
@@ -23,7 +23,7 @@ private:
 
     // data
     amrex::MultiFab phi_spatial;
-    amrex::MultiFab phi;
+    amrex::MultiFab phi_dft;
     amrex::Geometry geom;
     
     void init_phi_spatial ();

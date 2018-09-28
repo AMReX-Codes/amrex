@@ -16,30 +16,39 @@
 using namespace amrex;
 
 void
-swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose)
+swfft_compute(MultiFab& phi_spatial, MultiFab& phi_dft, Geometry& geom, int verbose)
 {
-    const BoxArray& ba = phi.boxArray();
+    const BoxArray& ba = phi_dft.boxArray();
     amrex::Print() << "BA " << ba << std::endl;
-    const DistributionMapping& dm = phi.DistributionMap();
+    const DistributionMapping& dm = phi_dft.DistributionMap();
 
-    if (phi_spatial.nGrow() != 0 || phi.nGrow() != 0) 
-       amrex::Error("Current implementation requires that both phi_spatial and phi have no ghost cells");
+    if (ba.size() != ParallelDescriptor::NProcs()) {
+      amrex::Error("Need same number of MPI processes as grids");
+      exit(0);
+    }
 
-    // Define pi and (two pi) here
-    Real  pi = 4 * std::atan(1.0);
-    Real tpi = 2 * pi;
+    if (phi_spatial.nGrow() != 0 || phi_dft.nGrow() != 0) 
+       amrex::Error("Current implementation requires that both phi_spatial and phi_dft have no ghost cells");
 
     // We assume that all grids have the same size hence 
     // we have the same nx,ny,nz on all ranks
     int nx = ba[0].size()[0];
     int ny = ba[0].size()[1];
+#if (AMREX_SPACEDIM == 2)
+    int nz = 1;
+#elif (AMREX_SPACEDIM == 3)
     int nz = ba[0].size()[2];
+#endif
 
     Box domain(geom.Domain());
 
     int nbx = domain.length(0) / nx;
     int nby = domain.length(1) / ny;
+#if (AMREX_SPACEDIM == 2)
+    int nbz = 1;
+#elif (AMREX_SPACEDIM == 3)
     int nbz = domain.length(2) / nz;
+#endif
     int nboxes = nbx * nby * nbz;
     if (nboxes != ba.size()) 
        amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
@@ -48,16 +57,17 @@ swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose)
     Vector<int> rank_mapping;
     rank_mapping.resize(nboxes);
 
-    // Vector<int> rank_mapping_trans;
-    // rank_mapping_trans.resize(nboxes);
-
     DistributionMapping dmap = phi_spatial.DistributionMap();
 
     for (int ib = 0; ib < nboxes; ++ib)
     {
         int i = ba[ib].smallEnd(0) / nx;
         int j = ba[ib].smallEnd(1) / ny;
-        int k = ba[ib].smallEnd(2) / nz;
+#if (AMREX_SPACEDIM == 2)
+	int k = 0;
+#elif (AMREX_SPACEDIM == 3)
+	int k = ba[ib].smallEnd(2) / nz;
+#endif
 
         // This would be the "correct" local index if the data wasn't being transformed
         int local_index = k*nbx*nby + j*nbx + i;
@@ -67,22 +77,22 @@ swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose)
         // int local_index = i*nby*nbz + j*nbz + k;
 
         rank_mapping[local_index] = dmap[ib];
-	// rank_mapping_trans[i*nby*nbz+j*nbz+k] = dmap[ib];
 
         if (verbose)
           amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
                          << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
-
-    Real h = geom.CellSize(0);
-    Real hsq = h*h;
-
     Real start_time = amrex::second();
 
     // Assume for now that nx = ny = nz
+#if (AMREX_SPACEDIM == 2)
+    int Ndims[3] = { 1, nby, nbx};
+    int     n[3] = { 1, domain.length(1), domain.length(0)};
+#elif (AMREX_SPACEDIM == 3)
     int Ndims[3] = { nbz, nby, nbx };
-    int     n[3] = {domain.length(2), domain.length(1), domain.length(0)};
+    int     n[3] = { domain.length(2), domain.length(1), domain.length(0)};
+#endif
     hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
     hacc::Dfft dfft(d);
     
@@ -122,28 +132,17 @@ swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose)
 //  Compute the forward transform
 //  *******************************************
        dfft.forward(&a[0]);
-
-//  *******************************************
-//  Now divide the coefficients of the transform
-//  *******************************************
     
-       local_indx = 0;
-       const int *self = dfft.self_kspace();
-       const int *local_ng = dfft.local_ng_kspace();
-       const int *global_ng = dfft.global_ng();
-    
-//     *******************************************
-//     Compute the backward transform
-//     *******************************************
-       //dfft.backward(&a[0]);
+//  *******************************************
+//  Redistribute from z-pencils to blocks
+//  *******************************************
+       d.redistribute_2_to_3(&a[0],&b[0],2);
        
        size_t global_size  = dfft.global_size();
-       double fac = hsq / global_size;
-       
-       fac = 1.0; // Overwrite fac
+       double fac;
 
-       // Redistribute from z-pencils to blocks
-       d.redistribute_2_to_3(&a[0],&b[0],2);
+       // fac = sqrt(1.0 / (double)global_size);       
+       fac = 1.0; // Overwrite fac
 
        local_indx = 0;
        // int local_indx_p = 0;
@@ -152,14 +151,12 @@ swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose)
          for(size_t i=0; i<(size_t)nx; i++) {
 
            // Divide by 2 pi N
-	   // local_indx_p = i*ny*nz + j*ny + k;
-           phi[mfi].dataPtr()[local_indx] = fac * std::abs(b[local_indx]);
+           phi_dft[mfi].dataPtr()[local_indx] = fac * std::abs(b[local_indx]);
        	   local_indx++;
 
          }
         }
        }
-        
     }
 
 }
