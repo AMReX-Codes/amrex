@@ -11,6 +11,7 @@ namespace amrex {
 #define AMREX_CUDA_HOST __host__
 #define AMREX_CUDA_DEVICE __device__
 #define AMREX_CUDA_GLOBAL __global__
+#define AMREX_CUDA_HOST_DEVICE __host__ __device__
 
 #define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
     { \
@@ -32,10 +33,10 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
-#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, ...)  \
+#define AMREX_BOX_L_LAUNCH(box, ...)  \
     { \
       dim3 numBlocks, numThreads; \
-      Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
+      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
       launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
@@ -48,10 +49,10 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
-#define AMREX_BOX_L_LAUNCH(box, ...)  \
+#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, ...)  \
     { \
       dim3 numBlocks, numThreads; \
-      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
+      Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
       launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
@@ -107,8 +108,8 @@ struct Pinned {
     cudaDeviceSynchronize();
     cudaFreeHost(ptr);
   }
-
 };
+
 #else
 
 struct Managed { };
@@ -122,14 +123,17 @@ struct Pinned  { };
 
 #define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__);
 #define AMREX_BOX_LAUNCH(box, function, ...) function (__VA_ARGS__);
+#define AMREX_BOXCOMPS_LAUNCH(box, comps, function ...) function (__VA_ARGS__);
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__);
 
 #define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...) launch_global(__VA_ARGS__);
 #define AMREX_BOX_L_LAUNCH(box, ...) launch_global(__VA_ARGS__); 
-#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) launch_global(__VA_ARGS__);
+#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, function ...) launch_global (__VA_ARGS__);
+#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) launch_global (__VA_ARGS__);
 
 #define AMREX_CUDA_HOST
 #define AMREX_CUDA_DEVICE
+#define AMREX_CUDA_HOST_DEVICE
 #define AMREX_CUDA_GLOBAL
 
 struct Managed {};
