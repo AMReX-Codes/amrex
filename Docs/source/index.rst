@@ -6,8 +6,14 @@
 WarpX documentation
 ===================
 
-WarpX is an advanced electromagnetic Particle-In-Cell code. It supports many
-features including Perfectly-Matched Layers (PML) and **mesh refinement**.
+WarpX is an advanced **electromagnetic Particle-In-Cell** code.
+
+It supports many features including:
+
+    - Perfectly-Matched Layers (PML)
+    - Boosted-frame simulations
+    - Mesh refinement
+
 For details on the algorithms that WarpX implements, see the section :doc:`theory/theory`.
 
 In addition, WarpX is a highly-parallel and highly-optimized code
@@ -15,6 +21,16 @@ and features hybrid OpenMP/MPI parallelization, advanced vectorization
 techniques and load balancing capabilities.
 
 In order to learn to use the code, please see the sections below:
+
+.. warning::
+
+   WarpX is currently in active development. This release is an
+   **alpha release**, and is meant for **developers** and **power users**.
+
+   For general users, we recommend to wait for the **beta release**,
+   since the current input and output format of WarpX may still change
+   extensively before then.
+
 
 .. toctree::
    :maxdepth: 1
