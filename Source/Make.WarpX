@@ -79,8 +79,8 @@ else
 endif
 
 installwarpx: libwarpx$(DIM)d.so
-	mv libwarpx$(DIM)d.so pywarpx
-	python setup.py install --with-libwarpx $(DIM) $(PYINSTALLOPTIONS)
+	mv libwarpx$(DIM)d.so Python/pywarpx
+	cd Python; python setup.py install --with-libwarpx $(DIM) $(PYINSTALLOPTIONS)
 
 libwarpx$(DIM)d.a: $(objForExecs)
 	@echo Making static library $@ ...
