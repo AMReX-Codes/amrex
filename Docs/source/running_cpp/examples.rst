@@ -16,6 +16,8 @@ Plasma wakefield acceleration
 * :download:`With mesh refinement<../../../Example/plasma_acceleration/inputs.mr>`
 
 
+  
+
 Laser wakefield acceleration
 ----------------------------
 
