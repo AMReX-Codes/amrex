@@ -23,7 +23,6 @@ void swfft_compute(MultiFab& phi_spatial, MultiFab& phi_dft, Geometry& geom, int
 
 SWFFT_Test::SWFFT_Test ()
 {
-    // static_assert(AMREX_SPACEDIM == 3, "3D only");
 
     // runtime parameters
     {
