@@ -1,0 +1,3 @@
+ifeq ($(USE_ARKODE), TRUE)
+     f90EXE_sources += ark_analytic_fp.f90
+endif

@@ -60,6 +60,18 @@ EBFArrayBoxFactory::maxCoarseningLevel () const
     }
 }
 
+const DistributionMapping&
+EBFArrayBoxFactory::DistributionMap () const
+{
+    return m_ebdc->getVolFrac().DistributionMap();
+}
+
+const BoxArray&
+EBFArrayBoxFactory::boxArray () const
+{
+    return m_ebdc->getVolFrac().boxArray();
+}
+        
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const Geometry& a_geom,
                   const BoxArray& a_ba,

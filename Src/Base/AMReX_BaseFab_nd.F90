@@ -349,7 +349,6 @@ contains
     nelems = offset - (1-lo(1))
   end function amrex_fort_fab_copyfrommem
 
-
   AMREX_CUDA_FORT_HOST subroutine amrex_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
        bind(c,name='amrex_fort_fab_setval')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
@@ -378,7 +377,7 @@ contains
     integer :: i,j,k,n,off(3)
 
     off = sblo - lo
-
+    
     do n = 1, ncomp
        do       k = lo(3), hi(3)
           do    j = lo(2), hi(2)

@@ -467,7 +467,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
@@ -612,7 +612,7 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);
