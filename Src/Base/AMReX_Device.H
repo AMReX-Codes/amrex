@@ -203,7 +203,7 @@ amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
 
     for (int i = 0; i < num; ++i)
         *(temp_ptr + i) = *(ptr + i);
-    h_ptr.reset(temp_ptr, [](T* ptr) { gpu_freehost(ptr); });
+    h_ptr.reset(temp_ptr, [](T* p) { gpu_freehost(p); });
 
     return h_ptr;
 }
@@ -221,7 +221,7 @@ amrex::Device::create_device_pointer(int n)
 
     T* temp_ptr = (T*) device_malloc(n * sizeof(T));
 
-    d_ptr.reset(temp_ptr, [](T* ptr) { gpu_free(ptr); });
+    d_ptr.reset(temp_ptr, [](T* p) { gpu_free(p); });
 
     return d_ptr;
 
