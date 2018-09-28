@@ -9,6 +9,11 @@ extern "C"
 {
 #endif
 
+    void amrex_fort_fab_setval_ifnot (const int* lo, const int* hi,
+                                      amrex_real* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                      const int* msk, const int* mlo, const int* mhi,
+                                      const amrex_real* val);
+
     amrex_real amrex_fort_fab_norminfmask (const int* lo, const int* hi,
                                      const int* msk, const int* mlo, const int* mhi,
                                      const amrex_real* src, const int* slo, const int* shi, const int* ncomp);
@@ -139,8 +144,8 @@ extern "C"
 
     AMREX_CUDA_HOST 
     void amrex_fort_ifab_setval (const int* lo, const int* hi, 
-                           const int* dst, const int* dlo, const int* dhi, const int* ncomp,
-                           const int* val);
+                                 int* dst, const int* dlo, const int* dhi, const int* ncomp,
+                                 const int* val);
 
     AMREX_CUDA_HOST 
     void amrex_fort_ifab_plus (const int* lo, const int* hi,

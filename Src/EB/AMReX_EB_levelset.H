@@ -121,6 +121,7 @@ class LSFactory {
 
         const Geometry & get_geom()          const {return base_geom;};
         const Geometry & get_ls_geom()       const {return geom_ls;};
+        const Geometry & get_eb_geom()       const {return geom_eb;};
         const DistributionMapping & get_dm() const {return ls_dm;};
 };
 
@@ -137,8 +138,11 @@ class GShopLSFactory {
 
     public:
         GShopLSFactory( const EB2::GeometryShop<F> & gshop, const LSFactory & level_set )
-            : m_gshop(gshop), m_geom(level_set.get_ls_geom()),
-              m_ls_ba(level_set.get_ls_ba()), m_ls_dm(level_set.get_dm()), m_ls_pad(level_set.get_ls_pad())
+            : m_gshop(gshop),
+              m_geom(level_set.get_ls_geom()),
+              m_ls_ba(level_set.get_ls_ba()),
+              m_ls_dm(level_set.get_dm()),
+              m_ls_pad(level_set.get_ls_pad())
         {}
 
         std::unique_ptr<MultiFab> fill_impfunc() {

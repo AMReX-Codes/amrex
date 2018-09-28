@@ -26,6 +26,11 @@ public:
 
     void setVerbose (int v) { m_verbose = v; }
 
+    void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in)
+     { bottom_solver_type = bottom_solver_type_in;}
+
+    MLLinOp& getLinOp () { return *m_linop; }
+
 private:
 
     std::unique_ptr<MLABecLaplacian> m_abeclap;
@@ -45,6 +50,8 @@ private:
     Vector<Geometry> m_geom;
 
     int m_verbose = 0;
+
+    MLMG::BottomSolver bottom_solver_type = MLMG::BottomSolver::bicgstab;
 };
 
 }

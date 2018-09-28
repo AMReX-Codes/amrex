@@ -296,7 +296,13 @@ contains
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not suported")
                 end if
 
-                if (lym.eq.lyp .and. lzm.eq.lzp) then
+                if (lym.le.small .and. lyp.le.small .and. lzm.le.small .and. lzp.le.small) then
+                   apx(i,j,k) = zero
+                   fcx(i,j,k,:) = zero
+                   m2x(i,j,k,1) = zero
+                   m2x(i,j,k,2) = zero
+                   m2x(i,j,k,3) = zero
+                else if (lym.eq.lyp .and. lzm.eq.lzp) then
                    apx(i,j,k) = one
                    fcx(i,j,k,:) = zero
                    m2x(i,j,k,1) = twelfth
@@ -411,7 +417,13 @@ contains
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
 
-                if (lxm.eq.lxp .and. lzm.eq.lzp) then
+                if (lxm.le.small .and. lxp.le.small .and. lzm.le.small .and. lzp.le.small) then
+                   apy(i,j,k) = zero
+                   fcy(i,j,k,:) = zero
+                   m2y(i,j,k,1) = zero
+                   m2y(i,j,k,2) = zero
+                   m2y(i,j,k,3) = zero
+                else if (lxm.eq.lxp .and. lzm.eq.lzp) then
                    apy(i,j,k) = one
                    fcy(i,j,k,:) = zero
                    m2y(i,j,k,1) = twelfth
@@ -527,7 +539,13 @@ contains
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
 
-                if (lxm.eq.lxp .and. lym.eq.lyp) then
+                if (lxm.le.small .and. lxp.le.small .and. lym.le.small .and. lyp.le.small) then
+                   apz(i,j,k) = zero
+                   fcz(i,j,k,:) = zero
+                   m2z(i,j,k,1) = zero
+                   m2z(i,j,k,2) = zero
+                   m2z(i,j,k,3) = zero
+                else if (lxm.eq.lxp .and. lym.eq.lyp) then
                    apz(i,j,k) = one
                    fcz(i,j,k,:) = zero
                    m2z(i,j,k,1) = twelfth
@@ -792,7 +810,7 @@ contains
 #ifdef AMREX_DEBUG
                    print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
 #endif
-                   call amrex_error("amrex_eb2_build_cells: apnrom==0, multiple cuts not supported")
+                   call amrex_error("amrex_eb2_build_cells: apnorm==0, multiple cuts not supported")
                 end if
                 apnorminv = one/apnorm
                 nx = dapx * apnorminv

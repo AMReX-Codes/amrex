@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 
 void average_down_push(Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse, const Geometry& fine_geom, const Geometry& crse_geom, int scomp, int ncomp, const IntVect& ratio, int f, int tid);
 
