@@ -6,6 +6,13 @@
 WarpX documentation
 ===================
 
+.. warning::
+
+   This is an **alpha release** of WarpX.
+   The code is still in active development.
+   Robustness and performance may fluctuate at this stage.
+   The input and output formats may evolve.
+
 WarpX is an advanced **electromagnetic Particle-In-Cell** code.
 
 It supports many features including:
@@ -21,14 +28,6 @@ and features hybrid OpenMP/MPI parallelization, advanced vectorization
 techniques and load balancing capabilities.
 
 In order to learn to use the code, please see the sections below:
-
-.. warning::
-
-   This is an **alpha release** of WarpX.
-   The code is still in active development.
-   Stability and performance are not guaranteed at this stage.
-   The input and output formats may evolve.
-
 
 .. toctree::
    :maxdepth: 1
