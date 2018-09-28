@@ -5,6 +5,7 @@
 #include <iosfwd>
 #include <array>
 
+#include <AMReX_ArrayLim.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
@@ -140,7 +141,8 @@ public:
 #endif
     }
 
-    std::array<int,3> loVect3d () const {
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    CudaArray<int,3> loVect3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {smallend[0], 0, 0};
 #elif (AMREX_SPACEDIM == 2)
@@ -150,7 +152,8 @@ public:
 #endif
     }
 
-    std::array<int,3> hiVect3d () const {
+    AMREX_CUDA_HOST AMREX_CUDA_DEVICE
+    CudaArray<int,3> hiVect3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0], 0, 0};
 #elif (AMREX_SPACEDIM == 2)
