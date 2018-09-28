@@ -95,7 +95,7 @@ solver = picmi.ElectromagneticSolver(grid=grid, method='CKC', cfl=1.)
 
 
 ##########################
-# simulations setup
+# simulation setup
 ##########################
 
 sim = picmi.Simulation(solver = solver,
