@@ -19,6 +19,7 @@ so that Sphinx can automatically build the documentation for this package.
 ```
 make html
 ```
+You can then open the file `build/html/index.html` with a standard web browser (e.g. Firefox), in order to visualize the results on your local computer.
 
 ### Cleaning the documentation
 
