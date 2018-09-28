@@ -19,7 +19,7 @@
 
 using namespace amrex;
 
-void swfft_solver(MultiFab& rhs, MultiFab& soln, Geometry& geom, int verbose);
+void swfft_compute(MultiFab& phi_spatial, MultiFab& phi, Geometry& geom, int verbose);
 
 SWFFT_Test::SWFFT_Test ()
 {
@@ -84,66 +84,39 @@ SWFFT_Test::SWFFT_Test ()
         geom.define(domain, &real_box, CoordSys::cartesian, is_periodic.data());
     }
 
-    // Make sure we define both the soln and the rhs with the same DistributionMapping 
+    // Make sure we define both the phi and the phi_spatial with the same DistributionMapping 
     DistributionMapping dmap{ba};
 
-    // Note that we are defining rhs with NO ghost cells
-    rhs.define(ba, dmap, 1, 0);
-    init_rhs();
+    // Note that we are defining phi_spatial with NO ghost cells
+    phi_spatial.define(ba, dmap, 1, 0);
+    init_phi_spatial();
 
-    // Note that we are defining soln with NO ghost cells
-    soln.define(ba, dmap, 1, 0);
-    the_soln.define(ba, dmap, 1, 0);
+    // Note that we are defining phi with NO ghost cells
+    phi.define(ba, dmap, 1, 0);
 
-    comp_the_solution();
 }
 
 void
-SWFFT_Test::init_rhs ()
+SWFFT_Test::init_phi_spatial ()
 {
     const Real* dx = geom.CellSize();
     Box domain(geom.Domain());
 
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(phi_spatial,true); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
-        fort_init_rhs(BL_TO_FORTRAN_BOX(tbx),
-                      BL_TO_FORTRAN_ANYD(rhs[mfi]),
+        fort_init_phi_spatial(BL_TO_FORTRAN_BOX(tbx),
+                      BL_TO_FORTRAN_ANYD(phi_spatial[mfi]),
                       BL_TO_FORTRAN_BOX(domain),
                       geom.ProbLo(), geom.ProbHi(), dx, &prob_type);
     }
-
-    Real sum_rhs = rhs.sum();
-    amrex::Print() << "Sum of rhs over the domain was    " << sum_rhs << std::endl;
-
-         sum_rhs = sum_rhs / domain.numPts();
-    rhs.plus(-sum_rhs,0,1,0);
-
-         sum_rhs = rhs.sum();
-    amrex::Print() << "Sum of rhs over the domain is now " << sum_rhs << std::endl;
 }
 
 void
-SWFFT_Test::comp_the_solution ()
-{
-    const Real* dx = geom.CellSize();
-    Box domain(geom.Domain());
-
-    for (MFIter mfi(the_soln); mfi.isValid(); ++mfi)
-    {
-        const Box& tbx = mfi.tilebox();
-        fort_comp_asol(BL_TO_FORTRAN_BOX(tbx),
-                       BL_TO_FORTRAN_ANYD(the_soln[mfi]),
-                       BL_TO_FORTRAN_BOX(domain),
-                       geom.ProbLo(), geom.ProbHi(), dx);
-    }
-}
-
-void
-SWFFT_Test::solve ()
+SWFFT_Test::computeFFT ()
 {
     Real start_time = amrex::second();
-    swfft_solver(rhs, soln, geom, verbose);
+    swfft_compute(phi_spatial, phi, geom, verbose);
     Real total_time = amrex::second() - start_time;
 
     WritePlotFile();
@@ -151,29 +124,17 @@ SWFFT_Test::solve ()
 
     if (write_data)
     {
-       VisMF::Write(rhs,"RHS");
-       VisMF::Write(soln,"SOL_COMP");
-       VisMF::Write(the_soln,"SOL_EXACT");
+       VisMF::Write(phi_spatial,"PHI_SPATIAL");
+       VisMF::Write(phi,"PHI_DFT");
     }
 
     if (verbose)
     {
-       amrex::Print() << "MAX / MIN VALUE OF COMP  SOLN " <<     soln.max(0) << " " 
-                      <<     soln.min(0) << std::endl;
-       amrex::Print() << "MAX / MIN VALUE OF EXACT SOLN " << the_soln.max(0) << " " 
-                      << the_soln.min(0) << std::endl;
+       amrex::Print() << "MAX / MIN VALUE OF DFT " <<  phi.max(0) << " " 
+                      <<  phi.min(0) << std::endl;
     }
 
-    BoxArray ba = rhs.boxArray();
-    const DistributionMapping& dm = rhs.DistributionMap();
-    MultiFab diff(ba, dm, 1, 0);
-    MultiFab::Copy(diff, soln, 0, 0, 1, 0);
-    MultiFab::Subtract(diff, the_soln, 0, 0, 1, 0);
-    amrex::Print() << "\nMax-norm of the error is " << diff.norm0() << "\n";
-    amrex::Print() << "Time spent in solve: " << total_time << std::endl;
-
-    if (write_data)
-       VisMF::Write(diff,"DIFF");
+    amrex::Print() << "Time spent taking FFT: " << total_time << std::endl;
 }
 
 void
@@ -189,7 +150,7 @@ SWFFT_Test::WritePlotFile (const int step, const amrex::Real time)
     //////////////////////////////////////////////////////////////////////////////////
     const std::string plotfilename = "plt_fft";
     nPlot = 2;
-    plotfile.define(soln.boxArray(), soln.DistributionMap(), nPlot, 0);
+    plotfile.define(phi.boxArray(), phi.DistributionMap(), nPlot, 0);
     varNames.resize(nPlot);
 
     // keep a counter for plotfile variables
@@ -202,10 +163,10 @@ SWFFT_Test::WritePlotFile (const int step, const amrex::Real time)
     cnt = 0;
 
     // copy into plotfile
-    MultiFab::Copy(plotfile, soln, 0, cnt, 1, 0);
+    MultiFab::Copy(plotfile, phi, 0, cnt, 1, 0);
     cnt++;
 
-    MultiFab::Copy(plotfile, rhs,  0, cnt, 1, 0);
+    MultiFab::Copy(plotfile, phi_spatial,  0, cnt, 1, 0);
     cnt++;
 
     // write a plotfile

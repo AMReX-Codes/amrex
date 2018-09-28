@@ -8,7 +8,7 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main()");
         SWFFT_Test sw_test;
-        sw_test.solve();
+        sw_test.computeFFT();
     }
     
     amrex::Finalize();

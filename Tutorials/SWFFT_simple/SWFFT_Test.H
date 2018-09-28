@@ -4,13 +4,13 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_MultiFab.H>
 
-// We solve Lap(soln) = rhs
+// We solve Lap(phi) = phi_spatial
 class SWFFT_Test
 {
 public:
     SWFFT_Test ();
 
-    void solve ();
+    void computeFFT ();
 
 private:
 
@@ -22,13 +22,11 @@ private:
     int prob_type = 0;
 
     // data
-    amrex::MultiFab rhs;
-    amrex::MultiFab soln;
-    amrex::MultiFab the_soln;
+    amrex::MultiFab phi_spatial;
+    amrex::MultiFab phi;
     amrex::Geometry geom;
     
-    void init_rhs ();
-    void comp_the_solution ();
+    void init_phi_spatial ();
     void WritePlotFile(const int step=0, const amrex::Real time=0.0);
 };
 
