@@ -652,7 +652,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     m_vers(version),
     m_how(how),
     m_ncomp(mf.nComp()),
-    m_ngrow(mf.nGrow()),
+    m_ngrow(mf.nGrowVect()),
     m_ba(mf.boxArray()),
     m_fod(m_ba.size())
 {
