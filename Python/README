@@ -2,8 +2,8 @@ The initial python wrapped version. This has the main capability of allowing spe
 input parameters (i.e. the input file) in python, passing that into amrex and then running the time steps.
 It also includes pgroups that can be used with Warp species.
 
-To build it, run "make" in the Python directory. This will compile the code and install the wrapper in the
-Python site-packages directory.
+To build it, run "make" in the main WarpX directory setting USE_PYTHON_MAIN to TRUE in the GNUmakefile or
+on the command line. This will compile the code and install the wrapper in the Python site-packages directory.
 
-There is a python script langmuir.py in tests/Langmuir which can run it.
+There are several example python scripts in the "Examples" subdirectories.
 
