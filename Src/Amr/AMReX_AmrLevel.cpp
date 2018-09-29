@@ -3184,8 +3184,7 @@ AsyncFillPatchIterator::AsyncFillPatchIterator (AmrLevel& amrlevel,
                                                 int       scomp,
                                                 int       ncomp,
                                                 int       f,
-                                                int       iter,
-                                                int       tid)
+                                                int       iter)
   :
   MFIter(leveldata),
   m_amrlevel(amrlevel),
@@ -3222,9 +3221,6 @@ AsyncFillPatchIterator::initFillPatch(int boxGrow,
                                       int ncomp,
                                       int iter)
 {
-
-  //std::cout << this << " "<< &m_amrlevel << " lvl " << m_amrlevel.level << std::endl;
-
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(ncomp >= 1);
     BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
@@ -3263,9 +3259,6 @@ AsyncFillPatchIterator::initFillPatch(int boxGrow,
             BL_ASSERT(dcomp+ncomp <= m_fabs.nComp());
             BL_ASSERT(smf.size() == stime.size());
             BL_ASSERT(smf.size() != 0);
-
-            //std::cout << "Initializing smf.size() " << smf.size() << std::endl;
-            //std::cout << "m_range.size() " << m_range.size()<< " i " << i << " smf[0]->nComp() " << smf[0]->nComp() << " scomp "<< scomp <<" ncomp "<< ncomp << " SComp "<< SComp <<" NComp "<< NComp <<" DComp " << DComp << " myProc " << myProc << std::endl;
 
             if (smf.size() == 1)
               //if (iter == 1) 
@@ -3349,17 +3342,12 @@ AsyncFillPatchIterator::initFillPatch(int boxGrow,
                         }
                       }
 
-                      //std::cout << "smf0 size " << smf_fine[0]->size() << " mfsize "<< m_fabs.size() << " fdom " << fdomain << " fdom_g " <<fdomain_g << " ng "<< ngrow << " ratio " << crse_level.fineRatio() << " myP " << myProc << std::endl;
-
                       // dummytostopcraycompilererror
                       std::cout << "";
 
                       Box c_dom= amrex::coarsen(geom_fine->Domain(), m_amrlevel.crse_ratio);
 
                       m_fpc = &FabArrayBase::TheFPinfo(*smf_fine[0], m_fabs, fdomain_g, IntVect(ngrow), coarsener, c_dom);
-
-
-                      //std::cout <<" fpsba size " << m_fpc->ba_crse_patch.size() << " fdom "<<fdomain << " myP " << myProc << std::endl;
 
                       if (!m_fpc->ba_crse_patch.empty())
                         {
@@ -3537,8 +3525,6 @@ AsyncFillPatchIterator::initFillPatch(int boxGrow,
 }
 
 
-
-
 void
 AsyncFillPatchIterator::SendIntraLevel (RGIter& rgi,
                                         int  boxGrow,
@@ -3548,9 +3534,9 @@ AsyncFillPatchIterator::SendIntraLevel (RGIter& rgi,
                                         int  ncomp,
                                         int iteration,
                                         int f,
-                                        int tid,
                                         bool singleT)
 { 
+#if 0
   if(rgi.currentItr != rgi.totalItr)
     return;
   
@@ -3578,9 +3564,11 @@ AsyncFillPatchIterator::SendIntraLevel (RGIter& rgi,
     PushOnly(boxGrow, time, index, scomp, ncomp, f, tid, pushLevel, tf, singleT);
                 //else if(level == parent->finestLevel() && iteration == ncycle)
                 //SborderAFPI[0]->PushOnly(NUM_GROW, time+dt, State_Type, 0, NUM_STATE, f, tid, 0x02, 1);
+#endif
  
 }
 
+#if 0
 void
 AsyncFillPatchIterator::SendIntraLevel (RGIter* rgi,
                                         int  boxGrow,
@@ -3590,7 +3578,6 @@ AsyncFillPatchIterator::SendIntraLevel (RGIter* rgi,
                                         int  ncomp,
                                         int iteration,
                                         int f,
-                                        int tid,
                                         bool singleT)
 {
   if(rgi->currentItr != rgi->totalItr)
@@ -3620,8 +3607,8 @@ AsyncFillPatchIterator::SendIntraLevel (RGIter* rgi,
     PushOnly(boxGrow, time, index, scomp, ncomp, f, tid, pushLevel, tf, singleT);
                 //else if(level == parent->finestLevel() && iteration == ncycle)
                 //SborderAFPI[0]->PushOnly(NUM_GROW, time+dt, State_Type, 0, NUM_STATE, f, tid, 0x02, 1);
-
 }
+#endif
 
 
 
@@ -3634,9 +3621,9 @@ AsyncFillPatchIterator::SendInterLevel (RGIter& rgi,
                                         int  ncomp,
                                         int iteration,
                                         int f,
-                                        int tid,
                                         bool singleT)
 {
+#if 0
   if(rgi.currentItr != rgi.totalItr)
     return;
   /*
@@ -3668,7 +3655,7 @@ AsyncFillPatchIterator::SendInterLevel (RGIter& rgi,
           PushOnly(boxGrow, time+((iteration-1)*m_amrlevel.parent->dtLevel(m_amrlevel.level)), index, scomp, ncomp, f, tid, tuc, tempf, singleT);
         }
     }
-
+#endif
 }
 
 void
@@ -3680,9 +3667,9 @@ AsyncFillPatchIterator::SendInterLevel (RGIter* rgi,
                                         int  ncomp,
                                         int iteration,
                                         int f,
-                                        int tid,
                                         bool singleT)
 {
+#if 0
   if(rgi->currentItr != rgi->totalItr)
     return;
   /*
@@ -3714,7 +3701,7 @@ AsyncFillPatchIterator::SendInterLevel (RGIter* rgi,
           PushOnly(boxGrow, time+((iteration-1)*m_amrlevel.parent->dtLevel(m_amrlevel.level)), index, scomp, ncomp, f, tid, tuc, tempf, singleT);
         }
     }
-
+#endif
 }
 //end USE_PERILLA
 #endif

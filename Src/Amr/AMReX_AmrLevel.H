@@ -772,8 +772,7 @@ class AsyncFillPatchIterator
                             int       scomp,
                             int       ncomp,
                             int       f,
-                            int iter,
-                            int       tid);
+                            int iter);
 
     void initFillPatch(int boxGrow,
                        int time,
@@ -789,8 +788,7 @@ class AsyncFillPatchIterator
                              int  state_indx,
                              int  scomp,
                              int  ncomp,
-                             int  iter,
-                             int tid);
+                             int  iter);
 
     void PushOnly (int  boxGrow,
                    Real time,
@@ -811,7 +809,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void SendIntraLevel (RGIter* rgi,
@@ -822,7 +819,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void SendInterLevel (RGIter& rgi,
@@ -833,7 +829,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void SendInterLevel (RGIter* rgi,
@@ -844,7 +839,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void Receive (RGIter& rgi,
@@ -854,7 +848,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void Receive (RGIter* rgi,
@@ -864,7 +857,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void Receive (RGIter& rgi,
@@ -875,7 +867,6 @@ class AsyncFillPatchIterator
                   int  scomp,
                   int  ncomp,
                   int f,
-                  int tid,
                   bool singleT=false);
 
     void Receive (RGIter* rgi,
@@ -886,7 +877,6 @@ class AsyncFillPatchIterator
                   int  scomp,
                   int  ncomp,
                   int f,
-                  int tid,
                   bool singleT=false);
 
     void PullOnly (int  boxGrow,
@@ -895,7 +885,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void PullOnly (MultiFab& dest,
@@ -905,7 +894,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void FillFromTwoLevelsPush (Real time,

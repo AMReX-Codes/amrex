@@ -2618,6 +2618,8 @@ BaseFab<T>::plus (T          r,
                   int        comp,
                   int        numcomp)
 {
+    AMREX_ASSERT(domain.contains(b));
+
     const auto dp0 = this->stridedPtr(b,comp);
     const auto len = b.length3d();
 
