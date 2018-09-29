@@ -1,7 +1,7 @@
 How to run a new simulation
 ===========================
 
-After compiling the code (see the section :doc:`../installation`), the
+After compiling the code, the
 WarpX executable is stored in the folder ``warpx/Bin``. (Its name starts
 with `main` but depends on the compiler options.)
 
