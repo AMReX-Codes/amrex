@@ -1,4 +1,4 @@
-PySide-based visualization GUI: PICViewer
+PyQt-based visualization GUI: PICViewer
 =========================================
 
 .. figure:: sample_image.png
@@ -12,7 +12,7 @@ Main features
 -------------
 
 * 2D/3D openPMD or WarpX data visualization,
-* Multi-plot panels (up to 6 rows x 5 columns) controllable independently or synchronously
+* Multi-plot panels (up to 6 rows x 5 columns) which can be controlled independently or synchronously
 * Interactive mouse functions (panel selection, image zoom-in, local data selection, etc)
 * Animation from a single or multiple panel(s)
 * Saving your job configuration and loading it later
@@ -24,11 +24,11 @@ Required software
 
 * python 2.7 or higher: http://docs.continuum.io/anaconda/install.
 
-* PySide
+* PyQt5
 
   ::
 
-    conda install -c conda-forge pyside
+    conda install pyqt
 
 * h5py
 
