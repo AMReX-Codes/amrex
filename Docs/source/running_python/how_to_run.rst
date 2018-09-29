@@ -1,8 +1,7 @@
 How to run a new simulation
 ===========================
 
-After installing WarpX as a Python package (see the section
-:doc:`../installation`), you can use its functionalities in a Python script
+After installing WarpX as a Python package, you can use its functionalities in a Python script
 to run a simulation.
 
 In order to run a new simulation:
