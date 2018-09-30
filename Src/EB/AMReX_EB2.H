@@ -6,6 +6,7 @@
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2_Level.H>
 
+#include <cmath>
 #include <algorithm>
 #include <memory>
 #include <type_traits>
@@ -47,7 +48,8 @@ class IndexSpaceImp
 public:
 
     IndexSpaceImp (const G& gshop, const Geometry& geom,
-                   int required_coarsening_level, int max_coarsening_level);
+                   int required_coarsening_level, int max_coarsening_level,
+                   int ngrow);
 
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
@@ -68,6 +70,8 @@ private:
     Vector<GShopLevel<G> > m_gslevel;
     Vector<Geometry> m_geom;
     Vector<Box> m_domain;
+    Vector<int> m_ngrow;
+    Vector<Box> m_domain_grown;
     std::unique_ptr<F> m_impfunc;
 };
 
@@ -76,16 +80,20 @@ private:
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
-       int required_coarsening_level, int max_coarsening_level)
+       int required_coarsening_level, int max_coarsening_level,
+       int ngrow = 4)
 {
     BL_PROFILE("EB2::Initialize()");
-    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom, required_coarsening_level,
-                                          max_coarsening_level));
+    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
+                                          required_coarsening_level,
+                                          max_coarsening_level,
+                                          ngrow));
 }
 
 void Build (const Geometry& geom,
             int required_coarsening_level,
-            int max_coarsening_level);
+            int max_coarsening_level,
+            int ngrow = 4);
 
 int maxCoarseningLevel (const Geometry& geom);
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);

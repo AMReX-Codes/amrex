@@ -67,7 +67,8 @@ protected:
     void buildCellFlag ();
     void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
-    Geometry m_geom;    
+    Geometry m_geom;
+    Box m_domain_grown;
     BoxArray m_grids;
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
@@ -91,12 +92,12 @@ class GShopLevel
     : public Level
 {
 public:
-    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size);
+    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size, int ngrow);
     GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel);
 };
 
 template <typename G>
-GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size)
+GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size, int ngrow)
     : Level(is, geom)
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
