@@ -323,4 +323,28 @@ Geometry::periodicShift (const Box&      target,
     }
 }
 
+Box
+Geometry::growNonPeriodicDomain (int ngrow) const
+{
+    Box b = Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (!Geometry::isPeriodic(idim)) {
+            b.grow(idim,ngrow);
+        }
+    }
+    return b;
+}
+
+Box
+Geometry::growPeriodicDomain (int ngrow) const
+{
+    Box b = Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            b.grow(idim,ngrow);
+        }
+    }
+    return b;
+}
+
 }
