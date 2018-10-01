@@ -71,7 +71,6 @@ private:
     Vector<Geometry> m_geom;
     Vector<Box> m_domain;
     Vector<int> m_ngrow;
-    Vector<Box> m_domain_grown;
     std::unique_ptr<F> m_impfunc;
 };
 
