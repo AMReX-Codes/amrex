@@ -17,11 +17,29 @@ class ForkJoin
     };
     enum class Intent { in, out, inout };
 
-    ForkJoin (Vector<int> trn);
+    // if strategy == split, use this to specify how to split components across tasks
+    struct ComponentSet {
+        // for now, just support contiguous range of components
+        // only requires a single MultiFab::Copy() per task this way
+        // in the future, consider changing this to a true set for arbitrary components
+        int lo; // inclusive bound
+        int hi; // exclusive bound
+    };
+
+    ForkJoin (const Vector<int> &task_rank_n);
 
     ForkJoin (const Vector<double> &task_rank_pct);
 
     ForkJoin (int ntasks) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
+
+    int NTasks () const { return split_bounds.size() - 1; }
+
+    int MyTask () const { return task_me; }
+
+    int NProcsTask (int task) const {
+        AMREX_ASSERT(task + 1 < split_bounds.size());
+        return split_bounds[task + 1] - split_bounds[task];
+    }
 
     void reg_mf (MultiFab &mf, const std::string &name, int idx,
                  Strategy strategy, Intent intent, int owner = -1);
@@ -61,6 +79,9 @@ class ForkJoin
         }
     }
 
+    // modify how the multifab is split along components across the tasks
+    void modify_split (const std::string &name, int idx, Vector<ComponentSet> comp_split);
+
     // TODO: may want to de-register MFs if they change across invocations
 
     MultiFab &get_mf (const std::string &name, int idx = 0) {
@@ -79,12 +100,19 @@ class ForkJoin
         return result;
     }
 
+    static void set_task_output_file (const std::string & filename)
+    {
+        ParallelContext::set_last_frame_ofs(filename);
+    }
+
     template <class F>
     void fork_join (const F &fn)
     {
+        const int io_rank = 0; // team's sub-rank 0 does IO
         MPI_Comm task_comm = split_tasks();
-        copy_data_to_tasks(task_comm); // move data to local tasks
-        ParallelContext::push(task_comm);
+        copy_data_to_tasks(); // move data to local tasks
+        ParallelContext::push(task_comm, task_me, io_rank);
+        set_task_output_file(get_fresh_io_filename());
         fn(*this);
         ParallelContext::pop();
 #ifdef BL_USE_MPI
@@ -97,8 +125,9 @@ class ForkJoin
 
     struct MFFork
     {
-        MultiFab *orig;
+        MultiFab *orig = nullptr;
         Strategy strategy;
+        Vector<ComponentSet> comp_split; // if strategy == split, how to split components to tasks
         Intent intent;
         int owner_task; // only used if strategy == single or duplicate
         Vector<MultiFab> forked; // holds new multifab for each task in fork
@@ -111,14 +140,17 @@ class ForkJoin
         MFFork (MultiFab *omf, Strategy s = Strategy::duplicate,
                 Intent i = Intent::inout, int own = -1)
             : orig(omf), strategy(s), intent(i), owner_task(own) {}
+
+        bool empty() const { return orig == nullptr; }
     };
 
-    Vector<int> task_rank_n; // number of ranks in each forked task
     Vector<int> split_bounds; // task i has ranks over the interval [result[i], result[i+1])
-    int task_me = -1; // task the current rank belongs to
+    int task_me = -1; // which forked task the rank belongs to
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
-    const static bool flag_verbose = false; // for debugging
+    bool flag_verbose = false; // for debugging
+
+    void init(const Vector<int> &task_rank_n);
 
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
@@ -128,21 +160,17 @@ class ForkJoin
 
     // this is called before ParallelContext::split
     // the parent task is the top frame in ParallelContext's stack
-    void copy_data_to_tasks (MPI_Comm task_comm);
+    void copy_data_to_tasks ();
 
     // this is called after ParallelContext::unsplit
     // the parent task is the top frame in ParallelContext's stack
     void copy_data_from_tasks ();
 
-    int NTasks () const { return task_rank_n.size(); }
-
-    int MyTask () const { return task_me; }
-
-    // split ranks in current frame into contiguous chunks
-    // task i has ranks over the interval [result[i], result[i+1])
-    void compute_split_bounds ();
     // split top frame of stack
     MPI_Comm split_tasks ();
+
+    // unique output file for this sub-task
+    std::string get_fresh_io_filename ();
 };
 
 }

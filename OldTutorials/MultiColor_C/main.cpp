@@ -1,3 +1,4 @@
+#include <sstream>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
@@ -11,7 +12,7 @@
 using namespace amrex;
 
 namespace {
-    int ncolors = 2;
+    int ntasks = 2;
     
     int ncomp  = 8;
     Real a     = 1.e-3;
@@ -22,6 +23,9 @@ namespace {
     int  verbose = 0;
     Real tolerance_rel = 1.e-8;
     Real tolerance_abs = 0.0;
+
+    bool flag_test_modify_split = false;
+    bool flag_test_custom_output_files = true;
 }
 
 extern "C"
@@ -35,12 +39,15 @@ extern "C"
 
 void setup_rhs(MultiFab& rhs, const Geometry& geom);
 void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom);
-void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const Vector<MultiFab*>& beta,
-	   const Geometry& geom);
-void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const Vector<MultiFab*>& beta, 
-		   const Geometry& geom);
+void top_fork(MultiFab& soln, const MultiFab& rhs, 
+              const MultiFab& alpha, const Vector<MultiFab*>& beta,
+              const Geometry& geom);
+void fork_solve(MultiFab& soln, const MultiFab& rhs, 
+                const MultiFab& alpha, const Vector<MultiFab*>& beta,
+                const Geometry& geom);
+void solve_all(MultiFab& soln, const MultiFab& rhs, 
+               const MultiFab& alpha, const Vector<MultiFab*>& beta, 
+               const Geometry& geom);
 void single_component_solve(MultiFab& soln, const MultiFab& rhs, 
 			    const MultiFab& alpha, const Vector<MultiFab*>& beta, 
 			    const Geometry& geom);
@@ -54,13 +61,14 @@ int main(int argc, char* argv[])
     {
 	ParmParse pp;
 	
-        pp.query("ncolors", ncolors);
-
-	pp.query("verbose", verbose);
+        pp.query("ntasks", ntasks);
+        pp.query("verbose", verbose);
+        pp.query("ncomp", ncomp);
 
 	int n_cell, max_grid_size;
 	pp.get("n_cell", n_cell);
 	pp.get("max_grid_size", max_grid_size);
+
 
 	Box domain(IntVect(AMREX_D_DECL(       0,       0,       0)),
 		   IntVect(AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)));
@@ -94,7 +102,7 @@ int main(int argc, char* argv[])
 
     MultiFab soln(ba, dm, ncomp, 0);
 
-    solve(soln, rhs, alpha, amrex::GetVecOfPtrs(beta), geom);
+    top_fork(soln, rhs, alpha, amrex::GetVecOfPtrs(beta), geom);
 
     VisMF::Write(soln, "soln");
 
@@ -136,11 +144,38 @@ void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry
     }
 }
 
-void solve(MultiFab& soln, const MultiFab& rhs, 
-	   const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
+void top_fork(MultiFab& soln, const MultiFab& rhs, 
+              const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    // evenly split ranks among ncolors tasks
-    ForkJoin fj(ncolors);
+    // evenly split ranks among 2 tasks
+    ForkJoin fj(2);
+
+    // these multifabs go to task 0 only
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::single, ForkJoin::Intent::out, 1);
+
+    // issue top-level fork-join
+    fj.fork_join(
+        [&geom] (ForkJoin &f) {
+            if (f.MyTask() == 1) {
+                // Do some MLMG solves
+                fork_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                           f.get_mf_vec("beta"), geom);
+            } else {
+                // Do some chemistry
+                amrex::Print() << "Doing some chemistry ...\n";
+            }
+        }
+    );
+}
+
+void fork_solve(MultiFab& soln, const MultiFab& rhs, 
+	        const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
+{
+    // evenly split ranks among ntasks tasks
+    ForkJoin fj(ntasks);
 
     // register how to copy multifabs to/from tasks
     fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);
@@ -148,22 +183,56 @@ void solve(MultiFab& soln, const MultiFab& rhs,
     fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
     fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
+    if (flag_test_modify_split) {
+        auto comp_n = soln.nComp();
+        if (comp_n > ntasks) {
+            amrex::Print() << "Doing a custom split where first component is ignored\n";
+            // test custom split, skip the first component
+            Vector<ForkJoin::ComponentSet> comp_split(ntasks);
+            for (int i = 0; i < ntasks; ++i) {
+                // split components across tasks
+                comp_split[i].lo = 1 + (comp_n-1) *  i    / ntasks;
+                comp_split[i].hi = 1 + (comp_n-1) * (i+1) / ntasks;
+            }
+
+            fj.modify_split("rhs", 0, comp_split);
+            fj.modify_split("alpha", 0, comp_split);
+            for (int i = 0; i < beta.size(); ++i) {
+                fj.modify_split("beta", i, comp_split);
+            }
+            fj.modify_split("soln", 0, comp_split);
+        }
+    }
+
+    std::string custom_task_output_dir("my_output");
+    if (flag_test_custom_output_files && ParallelContext::MyProcSub() == 0) {
+        amrex::UtilCreateDirectory(custom_task_output_dir, 0755);
+    }
+
     // can reuse ForkJoin object for multiple fork-join invocations
     // creates forked multifabs only first time around, reuses them thereafter
     for (int i = 0; i < 2; ++i) {
         // issue fork-join
         fj.fork_join(
-            [&geom] (ForkJoin &f) {
-                colored_solve(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
-                              f.get_mf_vec("beta"), geom);
+            [&geom, i, &custom_task_output_dir] (ForkJoin &f) {
+                if (flag_test_custom_output_files) {
+                    std::ostringstream oss;
+                    oss << custom_task_output_dir << "/";
+                    oss << "T-" << ParallelContext::frames.back().MyID();
+                    oss << ".out";
+                    // this will cause tasks to append on the second iteration
+                    f.set_task_output_file(oss.str());
+                }
+                solve_all(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
+                          f.get_mf_vec("beta"), geom);
             }
         );
     }
 }
 
-void colored_solve(MultiFab& soln, const MultiFab& rhs, 
-		   const MultiFab& alpha, const Vector<MultiFab*>& beta, 
-		   const Geometry& geom)
+void solve_all(MultiFab& soln, const MultiFab& rhs, 
+               const MultiFab& alpha, const Vector<MultiFab*>& beta, 
+               const Geometry& geom)
 {
     const BoxArray& ba = soln.boxArray();
     const DistributionMapping& dm = soln.DistributionMap();

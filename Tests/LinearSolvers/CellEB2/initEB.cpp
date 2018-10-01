@@ -1,17 +1,6 @@
 
 #include <AMReX_EB2.H>
-#include <AMReX_EB2_IF_Union.H>
-#include <AMReX_EB2_IF_Intersection.H>
-#include <AMReX_EB2_IF_Complement.H>
-#include <AMReX_EB2_IF_Rotation.H>
-#include <AMReX_EB2_IF_Scale.H>
-#include <AMReX_EB2_IF_Translation.H>
-#include <AMReX_EB2_IF_Lathe.H>
-#include <AMReX_EB2_IF_Box.H>
-#include <AMReX_EB2_IF_Cylinder.H>
-#include <AMReX_EB2_IF_Ellipsoid.H>
-#include <AMReX_EB2_IF_Sphere.H>
-#include <AMReX_EB2_IF_Plane.H>
+#include <AMReX_EB2_IF.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -53,6 +42,24 @@ MyTest::initializeEB ()
 #endif
         EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
     }
+#if (AMREX_SPACEDIM == 3)
+    else if (geom_type == "csg")
+    {
+        EB2::SphereIF sphere(0.5, {0.5,0.5,0.5}, false);
+        EB2::BoxIF cube({0.1,0.1,0.1}, {0.9,0.9,0.9}, false);
+        auto cubesphere = EB2::makeIntersection(sphere, cube);
+        
+        EB2::CylinderIF cylinder_x(0.25, 0, {0.5,0.5,0.5}, false);
+        EB2::CylinderIF cylinder_y(0.25, 1, {0.5,0.5,0.5}, false);
+        EB2::CylinderIF cylinder_z(0.25, 2, {0.5,0.5,0.5}, false);
+        auto three_cylindres = EB2::makeUnion(cylinder_x, cylinder_y, cylinder_z);
+
+        auto csg = EB2::makeDifference(cubesphere, three_cylindres);
+
+        auto gshop = EB2::makeShop(csg);
+        EB2::Build(gshop, geom.back(), max_level, max_level+max_coarsening_level);
+    }
+#endif
     else
     {
         EB2::Build(geom.back(), max_level, max_level+max_coarsening_level);

@@ -121,6 +121,8 @@ module amrex_multifab_module
      module procedure amrex_mfiter_build_i
      module procedure amrex_mfiter_build_rs
      module procedure amrex_mfiter_build_is
+     module procedure amrex_mfiter_build_badm
+     module procedure amrex_mfiter_build_badm_s
   end interface amrex_mfiter_build
 
   ! interfaces to c++ functions
@@ -442,6 +444,23 @@ module amrex_multifab_module
        integer, intent(in) :: tilesize(*)
        integer(c_int), value :: dynamic
      end subroutine amrex_fi_new_mfiter_is
+
+     subroutine amrex_fi_new_mfiter_badm (mfi, ba, dm, tiling, dynamic) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: mfi
+       type(c_ptr), value :: ba, dm
+       integer(c_int), value :: tiling, dynamic
+     end subroutine amrex_fi_new_mfiter_badm
+
+     subroutine amrex_fi_new_mfiter_badm_s (mfi, ba, dm, tilesize, dynamic) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: mfi
+       type(c_ptr), value :: ba, dm
+       integer, intent(in) :: tilesize(*)
+       integer(c_int), value :: dynamic
+     end subroutine amrex_fi_new_mfiter_badm_s
 
      subroutine amrex_fi_delete_mfiter (p) bind(c)
        import
@@ -1105,6 +1124,56 @@ contains
     mfi%counter = 0
     call amrex_fi_new_mfiter_is(mfi%p, imf%p, tilesize, d)
   end subroutine amrex_mfiter_build_is
+
+  subroutine amrex_mfiter_build_badm (mfi, ba, dm, tiling, dynamic)
+    type(amrex_mfiter) :: mfi
+    type(amrex_boxarray), intent(in) :: ba
+    type(amrex_distromap), intent(in) :: dm
+    logical, intent(in), optional :: tiling, dynamic
+    integer(c_int) :: t, d
+
+    t = 0
+    if (present(tiling)) then
+       if (tiling) then
+          t = 1
+       else
+          t = 0
+       end if
+    end if
+
+    d = 0
+    if (present(dynamic)) then
+       if (dynamic) then
+          d = 1
+       else
+          d = 0
+       end if
+    end if
+
+    mfi%counter = 0
+    call amrex_fi_new_mfiter_badm(mfi%p, ba%p, dm%p, t, d)
+  end subroutine amrex_mfiter_build_badm
+
+  subroutine amrex_mfiter_build_badm_s (mfi, ba, dm, tilesize, dynamic)
+    type(amrex_mfiter) :: mfi
+    type(amrex_boxarray), intent(in) :: ba
+    type(amrex_distromap), intent(in) :: dm
+    integer, intent(in) :: tilesize(*)
+    logical, intent(in), optional :: dynamic
+    integer(c_int) :: d
+
+    d = 0
+    if (present(dynamic)) then
+       if (dynamic) then
+          d = 1
+       else
+          d = 0
+       end if
+    end if
+
+    mfi%counter = 0
+    call amrex_fi_new_mfiter_badm_s(mfi%p, ba%p, dm%p, tilesize, d)
+  end subroutine amrex_mfiter_build_badm_s
 
   subroutine amrex_mfiter_destroy (this)
     type(amrex_mfiter) :: this

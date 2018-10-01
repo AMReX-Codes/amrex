@@ -55,13 +55,14 @@ namespace amrex {
 namespace system
 {
     std::string exename;
-    int verbose;
+    int verbose = 1;
     int signal_handling;
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
+    ErrorHandler error_handler = nullptr;
 }
 }
 
@@ -89,6 +90,12 @@ std::string amrex::Version ()
 }
 
 int amrex::Verbose () { return amrex::system::verbose; }
+
+void amrex::SetVerbose (int v) { amrex::system::verbose = v; }
+
+void amrex::SetErrorHandler (amrex::ErrorHandler f) {
+    amrex::system::error_handler = f;
+}
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
@@ -133,7 +140,9 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-    if (system::throw_exception) {
+    if (system::error_handler) {
+        system::error_handler(msg);
+    } else if (system::throw_exception) {
         throw RuntimeError(msg);
     } else {
         write_lib_id("Error");
@@ -213,11 +222,16 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 void
 amrex::Abort (const char* msg)
 {
-   if (system::throw_exception) {
+    if (system::error_handler) {
+        system::error_handler(msg);
+    } else if (system::throw_exception) {
         throw RuntimeError(msg);
     } else {
        write_lib_id("Abort");
        write_to_stderr_without_buffering(msg);
+#ifdef _OPENMP
+#pragma omp critical (amrex_abort_omp_critical)
+#endif
        ParallelDescriptor::Abort();
    }
 }
@@ -270,7 +284,9 @@ amrex::Assert (const char* EX,
                  line);
     }
 
-   if (system::throw_exception) {
+    if (system::error_handler) {
+        system::error_handler(buf);
+    } else if (system::throw_exception) {
         throw RuntimeError(buf);
     } else {
        write_to_stderr_without_buffering(buf);
@@ -297,26 +313,30 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
-amrex::Initialize (MPI_Comm mpi_comm, std::ostream& a_osout, std::ostream& a_oserr)
+amrex::Initialize (MPI_Comm mpi_comm,
+                   std::ostream& a_osout, std::ostream& a_oserr,
+                   ErrorHandler a_errhandler)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr);
+    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
 }
 
 void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
-                   std::ostream& a_osout, std::ostream& a_oserr)
+                   std::ostream& a_osout, std::ostream& a_oserr,
+                   ErrorHandler a_errhandler)
 {
     system::exename.clear();
-    system::verbose = 0;
+//    system::verbose = 0;
     system::regtest_reduction = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
     system::throw_exception = 0;
     system::osout = &a_osout;
     system::oserr = &a_oserr;
+    system::error_handler = a_errhandler;
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
     prev_out_precision = system::osout->precision(10);
@@ -436,7 +456,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
@@ -575,7 +595,7 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);

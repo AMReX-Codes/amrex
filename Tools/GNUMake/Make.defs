@@ -147,6 +147,12 @@ else
   EBASE := main
 endif
 
+ifdef USE_GPU_PRAGMA
+  USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
+else
+  USE_GPU_PRAGMA := FALSE
+endif
+
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
@@ -196,8 +202,11 @@ else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm-flang flang))
 else ifeq ($(lowercase_comp),nag)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak
+else ifeq ($(lowercase_comp),nec)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and nag)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -318,6 +327,10 @@ else
   ifeq ($(USE_MPI3),TRUE)
     CPPFLAGS  += -DBL_USE_TEAM -DAMREX_USE_TEAM
   endif
+endif
+
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+    CPPFLAGS += -DAMREX_USE_GPU_PRAGMA
 endif
 
 ifeq ($(USE_OMP),TRUE)
@@ -502,9 +515,19 @@ ifeq ($(USE_CVODE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
 endif
 
+ifeq ($(USE_SUNDIALS3),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
+endif
+
 ifeq ($(USE_HYPRE),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
+endif
+
+ifeq ($(USE_PETSC),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc
 endif
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")

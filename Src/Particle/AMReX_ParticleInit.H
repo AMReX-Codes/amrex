@@ -9,7 +9,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
 
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
     //
     // Number of processes that read from the file.  //
     int NReaders = ParticleType::MaxReaders();
@@ -309,7 +309,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     {
         ByteSpread();
 
-        Real runtime = ParallelDescriptor::second() - strttime;
+        Real runtime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
@@ -341,7 +341,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     const int  MyProc   = ParallelDescriptor::MyProc();
     const int  NProcs   = ParallelDescriptor::NProcs();
     const int  IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
     //
     // The number of MPI processes that read from the file.
     // We limit this to a rather small number since there's a limit
@@ -722,7 +722,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     {
         ByteSpread();
 
-        Real runtime = ParallelDescriptor::second() - strttime;
+        Real runtime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
@@ -742,7 +742,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                                                        int                extradata)
 {
     BL_PROFILE("ParticleContainer<NSR, NSI, NAR, NAI>::InitFromBinaryMetaFile()");
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
 
     std::ifstream ifs(metafile.c_str(), std::ios::in);
 
@@ -764,7 +764,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
     {
         ByteSpread();
 
-        Real runtime = ParallelDescriptor::second() - strttime;
+        Real runtime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(runtime, ParallelDescriptor::IOProcessorNumber());
 
@@ -790,7 +790,7 @@ InitRandom (long                    icount,
     const int       MyProc   = ParallelDescriptor::MyProc();
     const int       NProcs   = ParallelDescriptor::NProcs();
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real      strttime = ParallelDescriptor::second();
+    const Real      strttime = amrex::second();
     const Geometry& geom     = Geom(0);
 
     Real r, x, len[AMREX_SPACEDIM] = { AMREX_D_DECL(geom.ProbLength(0),
@@ -959,7 +959,7 @@ InitRandom (long                    icount,
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
@@ -981,7 +981,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_ASSERT(m_gdb != 0);
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real      strttime = ParallelDescriptor::second();
+    const Real      strttime = amrex::second();
     const Geometry& geom     = Geom(0);
 
     ParticleLocData pld;
@@ -1056,7 +1056,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
@@ -1079,7 +1079,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
     BL_ASSERT(x_off <= 1. && y_off <= 1. && z_off <= 1.); 
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real      strttime = ParallelDescriptor::second();
+    const Real      strttime = amrex::second();
     const Geometry& geom     = Geom(0);
 
     // This assumes level 0 since geom = Geom(0)
@@ -1141,7 +1141,7 @@ InitOnePerCell (Real x_off, Real y_off, Real z_off, const ParticleInitData& pdat
     }
     
     if (m_verbose > 1) {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
         
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
 
@@ -1159,7 +1159,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
     BL_ASSERT(m_gdb != 0);
 
     const int       IOProc   = ParallelDescriptor::IOProcessorNumber();
-    const Real      strttime = ParallelDescriptor::second();
+    const Real      strttime = amrex::second();
     const Geometry& geom     = Geom(0);
 
     // This assumes level 0 since geom = Geom(0)
@@ -1229,7 +1229,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
     if (m_verbose > 1)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
         
         ParallelDescriptor::ReduceRealMax(stoptime,IOProc);
         
