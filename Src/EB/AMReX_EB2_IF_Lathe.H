@@ -20,8 +20,8 @@ public:
           
     ~LatheIF () {}
 
-    LatheIF (const LatheIF& rhs) noexcept = default;
-    LatheIF (LatheIF&& rhs) noexcept = default;
+    LatheIF (const LatheIF& rhs) = default;
+    LatheIF (LatheIF&& rhs) = default;
     LatheIF& operator= (const LatheIF& rhs) = delete;
     LatheIF& operator= (LatheIF&& rhs) = delete;
 

@@ -1,4 +1,4 @@
-module basefab_nd_module
+module amrex_basefab_nd_module
 
   use amrex_fort_module, only : amrex_real
 
@@ -87,7 +87,6 @@ contains
   end function amrex_fort_fab_copyfrommem
   
 
-
   subroutine amrex_fort_fab_setval(lo, hi, dst, dlo, dhi, ncomp, val) &
        bind(c,name='amrex_fort_fab_setval')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), ncomp
@@ -107,6 +106,29 @@ contains
     end do
   end subroutine amrex_fort_fab_setval
 
+
+  subroutine amrex_fort_fab_setval_ifnot (lo, hi, dst, dlo, dhi, ncomp, msk, mlo, mhi, val) &
+       bind(c,name='amrex_fort_fab_setval_ifnot')
+    real(amrex_real), intent(in) :: val
+    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), mlo(3), mhi(3), ncomp
+    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
+    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
+    
+    integer :: i,j,k,n
+
+    do n = 1, ncomp
+       do       k = lo(3), hi(3)
+          do    j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                if (msk(i,j,k) .eq. 0) then
+                   dst(i,j,k,n) = val
+                end if
+             end do
+          end do
+       end do
+    end do    
+  end subroutine amrex_fort_fab_setval_ifnot
+    
 
   function amrex_fort_fab_norminfmask (lo, hi, msk, mlo, mhi, src, slo, shi, ncomp) result(nrm) &
        bind(c,name='amrex_fort_fab_norminfmask')
@@ -609,27 +631,4 @@ contains
     end do
   end subroutine amrex_fort_ifab_minus
 
-  subroutine amrex_fab_setval_ifnot (lo, hi, dst, dlo, dhi, ncomp, msk, mlo, mhi, val) &
-       bind(c,name='amrex_fab_setval_ifnot')
-    integer, intent(in), value :: val
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), mlo(3), mhi(3), ncomp
-    real(amrex_real), intent(inout) :: dst(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),ncomp)
-    integer         , intent(in   ) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-    
-    integer :: i,j,k,n
-
-    do n = 1, ncomp
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                if (msk(i,j,k) .eq. 0) then
-                   dst(i,j,k,n) = val
-                end if
-             end do
-          end do
-       end do
-    end do
-    
-  end subroutine amrex_fab_setval_ifnot
-    
-end module basefab_nd_module
+end module amrex_basefab_nd_module

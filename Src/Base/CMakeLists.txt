@@ -7,6 +7,8 @@ add_sources ( AMReX.cpp AMReX_error_fi.cpp )
 add_sources ( AMReX.H AMReX_Exception.H )
 add_sources ( AMReX.cpp AMReX_error_fi.cpp )
 
+add_sources ( AMReX_RESTRICT.H )
+
 add_sources ( AMReX_IndexSequence.H )
 
 add_sources ( AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp )
@@ -30,9 +32,6 @@ add_sources ( AMReX_BLProfiler.H AMReX_BLBackTrace.H AMReX_BLFort.H )
 add_sources ( AMReX_NFiles.cpp )
 add_sources ( AMReX_NFiles.H )
    
-add_sources ( AMReX_SPMD.cpp )
-add_sources ( AMReX_SPMD.H AMReX_SPMDI.H )
-
 add_sources ( AMReX_parstream.cpp )
 add_sources ( AMReX_parstream.H )
 
@@ -135,7 +134,7 @@ add_sources ( AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 #
 add_sources ( AMReX_MemPool.cpp )
 add_sources ( AMReX_MemPool.H )
-add_sources ( AMReX_mempool_f.f90 ) # if BL_NO_FORT = FALSE
+add_sources ( AMReX_mempool_mod.F90 ) # if BL_NO_FORT = FALSE
 
 # UPCXX mode not supported in CMake yet
 # ifeq ($(USE_UPCXX),TRUE)

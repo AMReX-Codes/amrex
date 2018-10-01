@@ -72,9 +72,9 @@ namespace amrex
 
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
     {
-	BL_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	BL_ASSERT(edge.size() == AMREX_SPACEDIM);
-	BL_ASSERT(edge[0]->nComp() == 1);
+	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+	AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
+	AMREX_ASSERT(edge[0]->nComp() == 1);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -93,9 +93,25 @@ namespace amrex
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
     {
-	BL_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
-	BL_ASSERT(fc[0]->nComp() == 1);
+        average_face_to_cellcenter(cc, dcomp,
+                                   Array<MultiFab const*,AMREX_SPACEDIM>
+                                                  {AMREX_D_DECL(fc[0],fc[1],fc[2])});
+    }
+
+    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
+				     const Geometry& geom)
+    {
+        average_face_to_cellcenter(cc,
+                                   Array<MultiFab const*,AMREX_SPACEDIM>
+                                                  {AMREX_D_DECL(fc[0],fc[1],fc[2])},
+                                   geom);
+    }
+
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc)
+    {
+	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+	AMREX_ASSERT(fc[0]->nComp() == 1);
 
 	Real dx[3] = {1.0,1.0,1.0};
 	Real problo[3] = {0.,0.,0.};
@@ -118,12 +134,12 @@ namespace amrex
 	}
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
+    void average_face_to_cellcenter (MultiFab& cc,
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc,
 				     const Geometry& geom)
     {
-	BL_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
-	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
-	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
+	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
 	const Real* problo = geom.ProbLo();
@@ -149,10 +165,17 @@ namespace amrex
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
 				     const Geometry& geom)
     {
-	BL_ASSERT(cc.nComp() == 1);
-	BL_ASSERT(cc.nGrow() >= 1);
-	BL_ASSERT(fc.size() == AMREX_SPACEDIM);
-	BL_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
+        average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{AMREX_D_DECL(fc[0],fc[1],fc[2])},
+                                   cc, geom);
+    }
+
+
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
+                                    const Geometry& geom)
+    {
+	AMREX_ASSERT(cc.nComp() == 1);
+	AMREX_ASSERT(cc.nGrow() >= 1);
+	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
 	const Real* dx     = geom.CellSize();
 	const Real* problo = geom.ProbLo();
@@ -214,7 +237,7 @@ namespace amrex
 	return;
 #else
 
-        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
+        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
 
         //
         // Coarsen() the fine stuff on processors owning the fine data.
@@ -267,9 +290,9 @@ namespace amrex
                             int scomp, int ncomp, const IntVect& ratio,
                             const Geometry& cgeom, const Geometry& fgeom) 
     {
-        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT(ratio == ratio[0]);
-        BL_ASSERT(S_fine.nGrow() % ratio[0] == 0);
+        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
+        AMREX_ASSERT(ratio == ratio[0]);
+        AMREX_ASSERT(S_fine.nGrow() % ratio[0] == 0);
 
         const int nGrow = S_fine.nGrow() / ratio[0];
 
@@ -302,9 +325,9 @@ namespace amrex
     void average_down (const MultiFab& S_fine, MultiFab& S_crse, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
-        BL_ASSERT(S_crse.nComp() == S_fine.nComp());
-        BL_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
-                  (S_crse.is_nodal()         && S_fine.is_nodal()));
+        AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
+        AMREX_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
+                     (S_crse.is_nodal()         && S_fine.is_nodal()));
 
         bool is_cell_centered = S_crse.is_cell_centered();
         
@@ -375,13 +398,36 @@ namespace amrex
 
 // *************************************************************************************************************
 
+    void average_down_faces (const Vector<const MultiFab*>& fine,
+                             const Vector<MultiFab*>& crse,
+                             const IntVect& ratio, int ngcrse)
+    {
+        average_down_faces(Array<const MultiFab*,AMREX_SPACEDIM>
+                                   {AMREX_D_DECL(fine[0],fine[1],fine[2])},
+                           Array<MultiFab*,AMREX_SPACEDIM>
+                                   {AMREX_D_DECL(crse[0],crse[1],crse[2])},
+                           ratio, ngcrse);
+    }
+
+    void average_down_faces (const Vector<const MultiFab*>& fine,
+                             const Vector<MultiFab*>& crse, int ratio, int ngcrse)
+    {
+        average_down_faces(fine,crse,IntVect{ratio},ngcrse);
+    }
+
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             int ratio, int ngcrse)
+    {
+        average_down_faces(fine,crse,IntVect{ratio},ngcrse);
+    }
+
     // Average fine face-based MultiFab onto crse face-based MultiFab.
-    void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
-	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
-	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+	AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
 
@@ -406,15 +452,13 @@ namespace amrex
         else
         {
             std::array<MultiFab,AMREX_SPACEDIM> ctmp;
-            Vector<MultiFab*> vctmp(AMREX_SPACEDIM);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();
                 cba.coarsen(ratio);
                 ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-                vctmp[idim] = &ctmp[idim];
             }
-            average_down_faces(fine, vctmp, ratio, ngcrse);
+            average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
@@ -427,9 +471,9 @@ namespace amrex
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
-	BL_ASSERT(crse.size()  == AMREX_SPACEDIM);
-	BL_ASSERT(fine.size()  == AMREX_SPACEDIM);
-	BL_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+	AMREX_ASSERT(crse.size()  == AMREX_SPACEDIM);
+	AMREX_ASSERT(fine.size()  == AMREX_SPACEDIM);
+	AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
 
 	int ncomp = crse[0]->nComp();
 
@@ -454,9 +498,9 @@ namespace amrex
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
     void average_down_nodal (const MultiFab& fine, MultiFab& crse, const IntVect& ratio, int ngcrse)
     {
-        BL_ASSERT(fine.is_nodal());
-        BL_ASSERT(crse.is_nodal());
-	BL_ASSERT(crse.nComp() == fine.nComp());
+        AMREX_ASSERT(fine.is_nodal());
+        AMREX_ASSERT(crse.is_nodal());
+	AMREX_ASSERT(crse.nComp() == fine.nComp());
 
 	int ncomp = crse.nComp();
 

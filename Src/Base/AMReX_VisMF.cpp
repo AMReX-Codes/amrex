@@ -544,7 +544,7 @@ VisMF::FileOffset (std::ostream& os)
     //
     os.seekp(0, std::ios::end);
 
-    return os.tellp();
+    return static_cast<std::streamoff>(os.tellp());
 }
 
 FArrayBox*
@@ -652,7 +652,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     m_vers(version),
     m_how(how),
     m_ncomp(mf.nComp()),
-    m_ngrow(mf.nGrow()),
+    m_ngrow(mf.nGrowVect()),
     m_ba(mf.boxArray()),
     m_fod(m_ba.size())
 {
@@ -892,7 +892,7 @@ VisMF::WriteHeader (const std::string &mf_name,
 	if(checkFilePositions) {
           std::stringstream hss;
 	  hss << hdr;
-	  if(hss.tellp() != bytesWritten) {
+	  if(static_cast<std::streamoff>(hss.tellp()) != bytesWritten) {
               amrex::ErrorStream() << "**** tellp error: hss.tellp() != bytesWritten :  "
                                    << hss.tellp() << "  " << bytesWritten << std::endl;
 	  }
@@ -983,7 +983,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 	    if(oldHeader) {
 	      std::stringstream hss;
 	      fio.write_header(hss, fab, fab.nComp());
-	      bytesWritten += hss.tellp();
+	      bytesWritten += static_cast<std::streamoff>(hss.tellp());
 	    }
 	    bytesWritten += fab.box().numPts() * mf.nComp() * whichRDBytes;
 	    ++nFABs;
@@ -1010,7 +1010,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 	      if(oldHeader) {
 	        std::stringstream hss;
 	        fio.write_header(hss, fab, fab.nComp());
-	        hLength = hss.tellp();
+	        hLength = static_cast<std::streamoff>(hss.tellp());
 	        memcpy(afPtr, hss.str().c_str(), hLength);  // ---- the fab header
 	      }
 	      if(doConvert) {
@@ -1035,7 +1035,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 	      if(oldHeader) {
 	        std::stringstream hss;
 	        fio.write_header(hss, fab, fab.nComp());
-	        hLength = hss.tellp();
+	        hLength = static_cast<std::streamoff>(hss.tellp());
                 nfi.Stream().write(hss.str().c_str(), hLength);    // ---- the fab header
                 nfi.Stream().flush();
 	      }
@@ -1190,7 +1190,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
             std::stringstream hss;
 	    FArrayBox tempFab(mf.fabbox(i), nComps, false);  // ---- no alloc
             fio.write_header(hss, tempFab, tempFab.nComp());
-	    fabHeaderBytes[i] = hss.tellp();
+	    fabHeaderBytes[i] = static_cast<std::streamoff>(hss.tellp());
 	  }
 	}
 
@@ -1403,7 +1403,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     VisMF::Header hdr;
     Real hEndTime, hStartTime, faCopyTime(0.0);
-    Real startTime(ParallelDescriptor::second());
+    Real startTime(amrex::second());
     static Real totalTime(0.0);
     int myProc(ParallelDescriptor::MyProc());
     int messTotal(0);
@@ -1415,7 +1415,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     std::string FullHdrFileName(mf_name + TheMultiFabHdrFileSuffix);
 
     {
-        hStartTime = ParallelDescriptor::second();
+        hStartTime = amrex::second();
         std::string fileCharPtrString;
 	if(faHeader == nullptr) {
           Vector<char> fileCharPtr;
@@ -1428,7 +1428,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
         infs >> hdr;
 
-        hEndTime = ParallelDescriptor::second();
+        hEndTime = amrex::second();
     }
 
     if (mf.empty()) {
@@ -1622,7 +1622,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 	      } else {          // ---- cannot use one read
 	        for(int i(0); i < frc.size(); ++i) {
 	          if(myProc == frc[i].rankToRead) {
-	            if(nfi.SeekPos() != frc[i].fileOffset) {
+	            if(static_cast<std::streamoff>(nfi.SeekPos()) != frc[i].fileOffset) {
                       nfi.Stream().seekp(frc[i].fileOffset, std::ios::beg);
 	            }
 	            FArrayBox &fab = whichFA[frc[i].faIndex];
@@ -1644,9 +1644,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if( ! inFileOrder) {
-      faCopyTime = ParallelDescriptor::second();
+      faCopyTime = amrex::second();
       mf.copy(fafabFileOrder);
-      faCopyTime = ParallelDescriptor::second() - faCopyTime;
+      faCopyTime = amrex::second() - faCopyTime;
     }
 
   } else {    // ---- (noFabHeader && useSynchronousReads) == false
@@ -1824,7 +1824,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     }
 
     if(myProc == coordinatorProc && verbose) {
-      Real mfReadTime = ParallelDescriptor::second() - startTime;
+      Real mfReadTime = amrex::second() - startTime;
       totalTime += mfReadTime;
       amrex::AllPrint() << "FARead ::  nBoxes = " << hdr.m_ba.size()
                         << "  nMessages = " << messTotal << '\n'

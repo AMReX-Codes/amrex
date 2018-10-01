@@ -26,13 +26,10 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 
 StateData::StateData () 
+    : desc(nullptr),
+      new_time{INVALID_TIME,INVALID_TIME},
+      old_time{INVALID_TIME,INVALID_TIME}
 {
-   desc = 0;
-   new_data = old_data = 0;
-   new_time.start = INVALID_TIME;
-   new_time.stop  = INVALID_TIME;
-   old_time.start = INVALID_TIME;
-   old_time.stop  = INVALID_TIME;
 }
 
 StateData::StateData (const Box&             p_domain,
@@ -46,27 +43,37 @@ StateData::StateData (const Box&             p_domain,
     define(p_domain, grds, dm, *d, cur_time, dt, factory);
 }
 
+StateData::StateData (StateData&& rhs) noexcept
+    : m_factory(std::move(rhs.m_factory)),
+      desc(rhs.desc),
+      domain(rhs.domain),
+      grids(std::move(rhs.grids)),
+      dmap(std::move(rhs.dmap)),
+      new_time(rhs.new_time),
+      old_time(rhs.old_time),
+      new_data(std::move(rhs.new_data)),
+      old_data(std::move(rhs.old_data))
+{   
+}
+
 void
-StateData::Initialize (StateData& dest, const StateData& src)
+StateData::operator= (StateData const& rhs)
 {
-
-    // Define the object with the same properties as src.
-
-    dest.define(src.getDomain(), src.boxArray(), src.DistributionMap(),
-		*(src.descriptor()), src.curTime(), src.curTime() - src.prevTime(),
-                src.Factory());
-
-    // Now, for both the new data and the old data if it's there,
-    // generate a new MultiFab for the dest and remove the previous data.
-
-    if (src.hasOldData()) {
-      dest.allocOldData();
-      dest.copyOld(src);
+    m_factory.reset(rhs.m_factory->clone());
+    desc = rhs.desc;
+    domain = rhs.domain;
+    grids = rhs.grids;
+    dmap = rhs.dmap;
+    new_time = rhs.new_time;
+    old_time = rhs.old_time;
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+    MultiFab::Copy(*new_data, *rhs.new_data, 0, 0, desc->nComp(),desc->nExtra());
+    if (rhs.old_data) {
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
+        MultiFab::Copy(*old_data, *rhs.old_data, 0, 0, desc->nComp(),desc->nExtra());
+    } else {
+        old_data.reset();
     }
-
-    if (src.hasNewData())
-      dest.copyNew(src);
-
 }
 
 void
@@ -108,75 +115,40 @@ StateData::define (const Box&             p_domain,
     }
     int ncomp = desc->nComp();
 
-    new_data = new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo(), *m_factory);
-
-    old_data = 0;
+    new_data.reset(new MultiFab(grids,dmap,ncomp,desc->nExtra(), MFInfo(), *m_factory));
+    old_data.reset();
 }
 
 void
 StateData::copyOld (const StateData& state)
 {
-
-  BL_ASSERT(state.hasOldData());
-  BL_ASSERT(old_data != 0);
-
-  const MultiFab& MF = state.oldData();
-
-  int nc = MF.nComp();
-  int ng = MF.nGrow();
-
-  BL_ASSERT(nc == (*old_data).nComp());
-  BL_ASSERT(ng == (*old_data).nGrow());
-
-  MultiFab::Copy(*old_data, state.oldData(), 0, 0, nc, ng);
-
-  StateDescriptor::TimeCenter t_typ(desc->timeType());
-
-  if (t_typ == StateDescriptor::Point)
-    {
-      old_time.start = old_time.stop = state.prevTime();
-    }
-  else
-    {
-      Real dt = state.curTime() - state.prevTime();
-
-      old_time.start = state.prevTime() - dt/2.0;
-      old_time.stop  = state.prevTime() + dt/2.0;
-    }
-
+    const MultiFab& MF = state.oldData();
+    
+    int nc = MF.nComp();
+    int ng = MF.nGrow();
+    
+    BL_ASSERT(nc == (*old_data).nComp());
+    BL_ASSERT(ng == (*old_data).nGrow());
+    
+    MultiFab::Copy(*old_data, state.oldData(), 0, 0, nc, ng);
+    
+    old_time = state.old_time;
 }
 
 void
 StateData::copyNew (const StateData& state)
 {
+    const MultiFab& MF = state.newData();
 
-  BL_ASSERT(state.hasNewData());
-  BL_ASSERT(new_data != 0);
+    int nc = MF.nComp();
+    int ng = MF.nGrow();
+    
+    BL_ASSERT(nc == (*new_data).nComp());
+    BL_ASSERT(ng == (*new_data).nGrow());
+    
+    MultiFab::Copy(*new_data, state.newData(), 0, 0, nc, ng);
 
-  const MultiFab& MF = state.newData();
-
-  int nc = MF.nComp();
-  int ng = MF.nGrow();
-
-  BL_ASSERT(nc == (*new_data).nComp());
-  BL_ASSERT(ng == (*new_data).nGrow());
-
-  MultiFab::Copy(*new_data, state.newData(), 0, 0, nc, ng);
-
-  StateDescriptor::TimeCenter t_typ(desc->timeType());
-
-  if (t_typ == StateDescriptor::Point)
-    {
-      new_time.start = new_time.stop = state.curTime();
-    }
-  else
-    {
-      Real dt = state.curTime() - state.prevTime();
-
-      new_time.start = state.curTime() - dt/2.0;
-      new_time.stop  = state.curTime() + dt/2.0;
-    }
-
+    new_time = state.new_time;
 }
 
 void
@@ -234,11 +206,13 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     int nsets;
     is >> nsets;
 
-    old_data = (nsets == 2) ? new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                           MFInfo(), *m_factory)
-                              : nullptr;
-    new_data =                new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
-                                           MFInfo(), *m_factory);
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                MFInfo(), *m_factory));
+    old_data.reset();
+    if (nsets == 2) {
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(),
+                                    MFInfo(), *m_factory));
+    }
     //
     // If no data is written then we just allocate the MF instead of reading it in. 
     // This assumes that the application will do something with it.
@@ -254,9 +228,9 @@ StateData::restartDoit (std::istream& is, const std::string& chkfile)
     for(int ns(1); ns <= nsets; ++ns) {
       MultiFab *whichMF = nullptr;
       if(ns == 1) {
-	whichMF = new_data;
+	whichMF = new_data.get();
       } else if(ns == 2) {
-	whichMF = old_data;
+	whichMF = old_data.get();
       } else {
         amrex::Abort("**** Error in StateData::restart:  invalid nsets.");
       }
@@ -298,24 +272,22 @@ StateData::restart (const StateDescriptor& d,
     old_time.stop  = rhs.old_time.stop;
     new_time.start = rhs.new_time.start;
     new_time.stop  = rhs.new_time.stop;
-    old_data = 0;
-    new_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory);
+    old_data.reset();
+    new_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
     new_data->setVal(0.);
 }
 
 StateData::~StateData()
 {
-   desc = 0;
-   delete new_data;
-   delete old_data;
+    desc = nullptr;
 }
 
 void
 StateData::allocOldData ()
 {
-    if (old_data == 0)
+    if (old_data == nullptr)
     {
-        old_data = new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory);
+        old_data.reset(new MultiFab(grids,dmap,desc->nComp(),desc->nExtra(), MFInfo(), *m_factory));
     }
 }
 
@@ -407,10 +379,9 @@ StateData::swapTimeLevels (Real dt)
 }
 
 void
-StateData::replaceOldData (MultiFab* mf)
+StateData::replaceOldData (MultiFab&& mf)
 {
-    std::swap(old_data, mf);
-    delete mf;
+    old_data.reset(new MultiFab(std::move(mf)));
 }
 
 // This version does NOT delete the replaced data.
@@ -422,10 +393,9 @@ StateData::replaceOldData (StateData& s)
 }
 
 void
-StateData::replaceNewData (MultiFab* mf)
+StateData::replaceNewData (MultiFab&& mf)
 {
-    std::swap(new_data, mf);
-    delete mf;
+    new_data.reset(new MultiFab(std::move(mf)));
 }
 
 // This version does NOT delete the replaced data.
@@ -525,8 +495,8 @@ StateData::RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                          Vector<MultiFabId>&      mfid)
 {
     mfid.resize(2);
-    mfid[MFNEWDATA] = multiFabCopyDesc.RegisterFabArray(new_data);
-    mfid[MFOLDDATA] = multiFabCopyDesc.RegisterFabArray(old_data);
+    mfid[MFNEWDATA] = multiFabCopyDesc.RegisterFabArray(new_data.get());
+    mfid[MFOLDDATA] = multiFabCopyDesc.RegisterFabArray(old_data.get());
 }
 
 void
@@ -543,7 +513,7 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
 {
     if (desc->timeType() == StateDescriptor::Point)
     {
-        if (old_data == 0)
+        if (old_data == nullptr)
         {
             returnedFillBoxIds.resize(1);
             returnedFillBoxIds[0] = multiFabCopyDesc.AddBox(mfid[MFNEWDATA],
@@ -584,7 +554,7 @@ StateData::InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                                                             dest_comp,
                                                             num_comp);
         }
-        else if (old_data != 0              &&
+        else if (old_data != nullptr        &&
                  time > old_time.start-teps &&
                  time < old_time.stop+teps)
         {
@@ -617,7 +587,7 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
     BL_PROFILE("StateData::InterpFillFab()");
     if (desc->timeType() == StateDescriptor::Point)
     {
-        if (old_data == 0)
+        if (old_data == nullptr)
         {
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
         }
@@ -645,7 +615,7 @@ StateData::InterpFillFab (MultiFabCopyDescriptor&  multiFabCopyDesc,
         {
             multiFabCopyDesc.FillFab(mfid[MFNEWDATA], fillBoxIds[0], dest);
         }
-        else if (old_data != 0              &&
+        else if (old_data != nullptr        &&
                  time > old_time.start-teps &&
                  time < old_time.stop+teps)
         {
@@ -668,24 +638,24 @@ StateData::getData (Vector<MultiFab*>& data,
 
     if (desc->timeType() == StateDescriptor::Point)
     {
-	BL_ASSERT(new_data != 0);
-        if (old_data == 0)
+	BL_ASSERT(new_data != nullptr);
+        if (old_data == nullptr)
         {
-	    data.push_back(new_data);
+	    data.push_back(new_data.get());
 	    datatime.push_back(new_time.start);
         }
         else
         {
 	    const Real teps = (new_time.start - old_time.start)*1.e-3;
 	    if (time > new_time.start-teps && time < new_time.start+teps) {
-		data.push_back(new_data);
+		data.push_back(new_data.get());
 		datatime.push_back(new_time.start);
 	    } else if (time > old_time.start-teps && time < old_time.start+teps) {
-	    	    data.push_back(old_data);
+	    	    data.push_back(old_data.get());
 		    datatime.push_back(old_time.start);
 	    } else {
-		data.push_back(old_data);
-		data.push_back(new_data);
+		data.push_back(old_data.get());
+		data.push_back(new_data.get());
 		datatime.push_back(old_time.start);
 		datatime.push_back(new_time.start);
 	    }
@@ -697,14 +667,14 @@ StateData::getData (Vector<MultiFab*>& data,
 
         if (time > new_time.start-teps && time < new_time.stop+teps)
         {
-	    data.push_back(new_data);
+	    data.push_back(new_data.get());
 	    datatime.push_back(time);
         }
-        else if (old_data != 0              &&
+        else if (old_data != nullptr        &&
                  time > old_time.start-teps &&
                  time < old_time.stop+teps)
         {
-	    data.push_back(old_data);
+	    data.push_back(old_data.get());
 	    datatime.push_back(time);
         }
         else
@@ -725,7 +695,7 @@ StateData::checkPoint (const std::string& name,
     static const std::string NewSuffix("_New_MF");
     static const std::string OldSuffix("_Old_MF");
 
-    if (dump_old == true && old_data == 0)
+    if (dump_old == true && old_data == nullptr)
     {
         dump_old = false;
     }

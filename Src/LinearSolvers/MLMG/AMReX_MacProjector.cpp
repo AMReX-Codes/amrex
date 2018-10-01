@@ -23,13 +23,12 @@ MacProjector::MacProjector (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_um
         dm[ilev] = a_umac[ilev][0]->DistributionMap();
     }
 
-    bool has_eb = a_umac[0][0]->hasEBFabFactory();
-
     m_rhs.resize(nlevs);
     m_phi.resize(nlevs);
     m_fluxes.resize(nlevs);
 
 #ifdef AMREX_USE_EB
+    bool has_eb = a_umac[0][0]->hasEBFabFactory();
     if (has_eb)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_umac[0][0]->nGrow() > 0,
@@ -105,6 +104,8 @@ MacProjector::project (Real reltol)
         m_mlmg->setVerbose(m_verbose);
     }
 
+    m_mlmg->setBottomSolver(bottom_solver_type);
+
     const int nlevs = m_rhs.size();
 
     for (int ilev = 0; ilev < nlevs; ++ilev)
@@ -128,7 +129,7 @@ MacProjector::project (Real reltol)
 
     m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, 0.0);
 
-    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes));
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
     
     for (int ilev = 0; ilev < nlevs; ++ilev) {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

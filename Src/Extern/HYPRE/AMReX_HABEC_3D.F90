@@ -452,9 +452,11 @@ contains
        flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, &
        fcx, fxlo, fxhi, fcy, fylo, fyhi, fcz, fzlo, fzhi, &
+       ba, balo, bahi, bcen, bclo, bchi, beb, elo, ehi, is_eb_dirichlet, & 
        sa, sb, dx, bct, bcl, bho) &
        bind(c,name='amrex_hpeb_ijmatrix')
     use amrex_ebcellflag_module, only : is_covered_cell, is_regular_cell
+    use amrex_mlebabeclap_3d_module, only : dx_eb
     integer(hypre_int), intent(in) :: nrows, cell_id_begin;
     integer(hypre_int), dimension(0:nrows-1), intent(out) :: ncols, rows
     integer(hypre_int), dimension(0:nrows*27-1), intent(out) :: cols
@@ -462,7 +464,7 @@ contains
     integer, dimension(3), intent(in) :: lo, hi, clo, chi, dlo, dhi, &
          alo, ahi, bxlo, bxhi, bylo, byhi, &
          bzlo, bzhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, azlo, azhi, &
-         fxlo, fxhi, fylo, fyhi, fzlo, fzhi
+         fxlo, fxhi, fylo, fyhi, fzlo, fzhi, balo, bahi, bclo, bchi, elo, ehi 
     integer(hypre_int), intent(in) :: cell_id( clo(1): chi(1), clo(2): chi(2), clo(3): chi(3))
     real(rt)          , intent(inout) :: diag( dlo(1): dhi(1), dlo(2): dhi(2), dlo(3): dhi(3))
     real(rt)          , intent(in) :: a      ( alo(1): ahi(1), alo(2): ahi(2), alo(3): ahi(3))
@@ -477,14 +479,23 @@ contains
     real(rt)          , intent(in) :: fcx    (fxlo(1):fxhi(1),fxlo(2):fxhi(2),fxlo(3):fxhi(3),2)
     real(rt)          , intent(in) :: fcy    (fylo(1):fyhi(1),fylo(2):fyhi(2),fylo(3):fyhi(3),2)
     real(rt)          , intent(in) :: fcz    (fzlo(1):fzhi(1),fzlo(2):fzhi(2),fzlo(3):fzhi(3),2)
+    real(rt)          , intent(in) :: ba     (balo(1):bahi(1),balo(2):bahi(2),balo(3):bahi(3))
+    real(rt)          , intent(in) :: bcen   (bclo(1):bchi(1),bclo(2):bchi(2),bclo(3):bchi(3),3)
+    real(rt)          , intent(in) :: beb    ( elo(1): ehi(1), elo(2): ehi(2), elo(3): ehi(3))
     integer, intent(in) :: bct(0:5), bho
     real(rt), intent(in) :: sa, sb, dx(3), bcl(0:5)
+    integer, intent(in) :: is_eb_dirichlet
 
+    logical :: is_dirichlet 
     integer :: i,j,k, irow, imat, cdir, idim, ii,jj,kk, ioff, joff, koff
     real(rt) :: fac(3), mat_tmp(-1:1,-1:1,-1:1)
     real(rt) :: bf1(0:5), bf2(0:5), h, h2, h3, bflo(0:5)
-    real(rt) :: fracx, fracy, fracz, area, abc, tmp, f
+    real(rt) :: fracx, fracy, fracz, area, abc, tmp, f, anorm
+    real(rt) :: anorminv, anrmx, anrmy, anrmz, bctx, bcty, bctz, dg
+    real(rt) :: gx, gy, gz, gxy, gxz, gyz, gxyz, sx, sy, sz 
+    real(rt) :: phig1(8), feb(8) 
 
+    is_dirichlet = is_eb_dirichlet .ne. 0 
     fac = sb/dx**2
 
     do cdir = 0, 5
@@ -1085,7 +1096,54 @@ contains
                          end if
                       end if
                    end if
-                   
+                   if(is_dirichlet) then 
+                     anorm = sqrt((apx(i,j,k) - apx(i+1,j,k))**2 & 
+                              + (apy(i,j,k) - apy(i,j+1,k))**2 &
+                              + (apz(i,j,k) - apz(i,j,k+1))**2)
+                     anorminv = one/anorm
+                     anrmx = (apx(i,j,k) - apx(i+1,j,k))*anorminv
+                     anrmy = (apy(i,j,k) - apy(i,j+1,k))*anorminv
+                     anrmz = (apz(i,j,k) - apz(i,j,k+1))*anorminv
+                     sx   = sign(one,anrmx) 
+                     sy   = sign(one,anrmy)
+                     sz   = sign(one,anrmz)
+                     bctx = bcen(i,j,k,1)
+                     bcty = bcen(i,j,k,2)
+                     bctz = bcen(i,j,k,3)
+                     dg   = dx_eb / max(abs(anrmx), abs(anrmy), abs(anrmz))
+                     gx   = bctx - dg*anrmx 
+                     gy   = bcty - dg*anrmy
+                     gz   = bctz - dg*anrmz
+                     ioff = -int(sx)
+                     joff = -int(sy)
+                     koff = -int(sz) 
+                     gx   = sx*gx 
+                     gy   = sy*gy
+                     gz   = sz*gz
+                     gxy  = gx*gy
+                     gxz  = gx*gz 
+                     gyz  = gy*gz 
+                     gxyz = gx*gy*gz 
+                     phig1(1) = one + gx + gy + gz + gxy + gxz + gyz + gxyz
+                     phig1(2) =     - gx           - gxy - gxz       - gxyz
+                     phig1(3) =          - gy      - gxy       - gyz - gxyz
+                     phig1(4) =               - gz       - gxz - gyz - gxyz 
+                     phig1(5) =                    + gxy             + gxyz 
+                     phig1(6) =                          + gxz       + gxyz 
+                     phig1(7) =                                + gyz + gxyz 
+                     phig1(8) =                                      - gxyz
+
+                     feb = -phig1 * (ba(i,j,k) * beb(i,j,k) / dg)
+                     mat_tmp(0   , 0  , 0  ) = mat_tmp(0   , 0 , 0   ) - feb(1)*fac(1)
+                     mat_tmp(ioff, 0  , 0  ) = mat_tmp(ioff, 0 , 0   ) - feb(2)*fac(1)
+                     mat_tmp(0   ,joff, 0  ) = mat_tmp(0   ,joff, 0  ) - feb(3)*fac(1)
+                     mat_tmp(0   , 0  ,koff) = mat_tmp(0   , 0  ,koff) - feb(4)*fac(1)
+                     mat_tmp(ioff,joff, 0  ) = mat_tmp(ioff,joff, 0  ) - feb(5)*fac(1)
+                     mat_tmp(ioff, 0  ,koff) = mat_tmp(ioff, 0  ,koff) - feb(6)*fac(1)
+                     mat_tmp(0   ,joff,koff) = mat_tmp(0   ,joff,koff) - feb(7)*fac(1) 
+                     mat_tmp(ioff,joff,koff) = mat_tmp(ioff,joff,koff) - feb(8)*fac(1)            
+                   endif
+                  
                    mat_tmp = mat_tmp * (one/vfrc(i,j,k))
                    mat_tmp(0,0,0) = mat_tmp(0,0,0) + sa*a(i,j,k)
                 end if
@@ -1095,7 +1153,7 @@ contains
                 do koff = -1, 1
                    do joff = -1, 1
                       do ioff = -1, 1
-                         if (mat_tmp(ioff,joff,koff) .ne. zero) then
+                         if (mat_tmp(ioff,joff,koff).ne.zero .and. cell_id(i+ioff,j+joff,k+koff).ge.0) then
                             ncols(irow) = ncols(irow) + 1
                             cols(imat) = cell_id(i+ioff,j+joff,k+koff)
                             mat(imat) = mat_tmp(ioff,joff,koff)*diag(i,j,k)

@@ -1,0 +1,19 @@
+# Not using cray-tpsl version, since 18.06.1 still loads Sundials 2.7
+
+CPPFLAGS += -DAMREX_USE_SUNDIALS3
+
+include $(AMREX_HOME)/Src/Extern/SUNDIALS3/Make.package
+
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS3
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS3
+CVODE_LIB_DIR ?= ../../../../sundials/instdir/lib
+
+#CPPFLAGS += -Wl,-rpath,${CVODE_LIB_DIR}
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
+
+ifeq ($(USE_ARKODE),TRUE)
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_arkode
+endif
+
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecserial
+LIBRARIES += -Wl,-rpath,${CVODE_LIB_DIR}

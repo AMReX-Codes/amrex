@@ -112,6 +112,9 @@ contains
                 theta = atan2(x,y) + half*m_pi
                 r2 = x**2 + y**2
                 phib(i,j) = r2**2 * cos(three*theta)
+                if (prob_type .eq. 2) then
+                   bb(i,j) = one - r2
+                end if
              else
                 phib(i,j) = zero
              end if
@@ -142,6 +145,60 @@ contains
     end if
 
   end subroutine mytest_set_phi_eb
+
+  subroutine mytest_set_phi_boundary (glo, ghi, dlo, dhi, phi, phlo, phhi, dx) &
+       bind(c,name='mytest_set_phi_boundary')
+    integer, dimension(2), intent(in) :: dlo, dhi, glo, ghi, phlo, phhi
+    real(amrex_real), intent(in) :: dx(2)
+    real(amrex_real), intent(inout) :: phi(phlo(1):phhi(1),phlo(2):phhi(2))
+
+    integer :: i,j
+    real(amrex_real) :: x, y, r2, theta
+
+    if (glo(1) < dlo(1)) then
+       i = dlo(1)-1
+       x = (i+1)*dx(1) - half
+       do j = glo(2), ghi(2)
+          y = (j+half)*dx(2) - half
+          theta = atan2(x,y) + half*m_pi
+          r2 = x**2 + y**2
+          phi(i,j) = r2**2 * cos(three*theta)
+       end do
+    end if
+
+    if (ghi(1) > dhi(1)) then
+       i = dhi(1)+1
+       x = (i)*dx(1) - half
+       do j = glo(2), ghi(2)
+          y = (j+half)*dx(2) - half
+          theta = atan2(x,y) + half*m_pi
+          r2 = x**2 + y**2
+          phi(i,j) = r2**2 * cos(three*theta)
+       end do
+    end if
+
+    if (glo(2) < dlo(2)) then
+       j = dlo(2)-1
+       y = (j+1)*dx(2) - half
+       do i = glo(1), ghi(1)
+          x = (i+half)*dx(1) - half
+          theta = atan2(x,y) + half*m_pi
+          r2 = x**2 + y**2
+          phi(i,j) = r2**2 * cos(three*theta)
+       end do
+    end if
+
+    if (ghi(2) > dhi(2)) then
+       j = dhi(2)+1
+       y = (j)*dx(2) - half
+       do i = glo(1), ghi(1)
+          x = (i+half)*dx(1) - half
+          theta = atan2(x,y) + half*m_pi
+          r2 = x**2 + y**2
+          phi(i,j) = r2**2 * cos(three*theta)
+       end do
+    end if    
+  end subroutine mytest_set_phi_boundary
 
 #else
 
@@ -269,6 +326,9 @@ contains
                    theta = atan2(x,y) + half*m_pi
                    r2 = x**2 + y**2
                    phib(i,j,k) = r2**2 * cos(three*theta)
+                   if (prob_type .eq. 3) then
+                      bb(i,j,k) = one - r2
+                   end if
                 else
                    phib(i,j,k) = zero
                 end if
@@ -315,6 +375,95 @@ contains
        end do
     end if
   end subroutine mytest_set_phi_eb
+
+  subroutine mytest_set_phi_boundary (glo, ghi, dlo, dhi, phi, phlo, phhi, dx) &
+       bind(c,name='mytest_set_phi_boundary')
+    integer, dimension(3), intent(in) :: dlo, dhi, glo, ghi, phlo, phhi
+    real(amrex_real), intent(in) :: dx(3)
+    real(amrex_real), intent(inout) :: phi(phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+
+    integer :: i,j,k
+    real(amrex_real) :: x, y, r2, theta
+
+    if (glo(1) < dlo(1)) then
+       i = dlo(1)-1
+       x = (i+1)*dx(1) - half
+       do    k = glo(3), ghi(3)
+          do j = glo(2), ghi(2)
+             y = (j+half)*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             phi(i,j,k) = r2**2 * cos(three*theta)
+          end do
+       end do
+    end if
+
+    if (ghi(1) > dhi(1)) then
+       i = dhi(1)+1
+       x = (i)*dx(1) - half
+       do    k = glo(3), ghi(3)
+          do j = glo(2), ghi(2)
+             y = (j+half)*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             phi(i,j,k) = r2**2 * cos(three*theta)
+          end do
+       end do
+    end if
+
+    if (glo(2) < dlo(2)) then
+       j = dlo(2)-1
+       y = (j+1)*dx(2) - half
+       do    k = glo(3), ghi(3)
+          do i = glo(1), ghi(1)
+             x = (i+half)*dx(1) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             phi(i,j,k) = r2**2 * cos(three*theta)
+          end do
+       end do
+    end if
+
+    if (ghi(2) > dhi(2)) then
+       j = dhi(2)+1
+       y = (j)*dx(2) - half
+       do    k = glo(3), ghi(3)
+          do i = glo(1), ghi(1)
+             x = (i+half)*dx(1) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             phi(i,j,k) = r2**2 * cos(three*theta)
+          end do
+       end do
+    end if
+
+    if (glo(3) < dlo(3)) then
+       k = dlo(3)-1
+       do    j = glo(2), ghi(2)
+          do i = glo(1), ghi(1)
+             x = (i+half)*dx(1) - half
+             y = (j+half)*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             phi(i,j,k) = r2**2 * cos(three*theta)
+          end do
+       end do
+    end if
+
+    if (ghi(3) > dhi(3)) then
+       k = dhi(3)+1
+       do    j = glo(2), ghi(2)
+          do i = glo(1), ghi(1)
+             x = (i+half)*dx(1) - half
+             y = (j+half)*dx(2) - half
+             theta = atan2(x,y) + half*m_pi
+             r2 = x**2 + y**2
+             phi(i,j,k) = r2**2 * cos(three*theta)
+          end do
+       end do
+    end if
+
+  end subroutine mytest_set_phi_boundary
 
 #endif
 

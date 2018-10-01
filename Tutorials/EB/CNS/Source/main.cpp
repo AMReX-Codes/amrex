@@ -17,7 +17,7 @@ int main (int argc, char* argv[])
 
     BL_PROFILE_VAR("main()", pmain);
 
-    Real timer_tot = ParallelDescriptor::second();
+    Real timer_tot = amrex::second();
     Real timer_init = 0.;
     Real timer_advance = 0.;
 
@@ -46,7 +46,7 @@ int main (int argc, char* argv[])
     }
 
     {
-        timer_init = ParallelDescriptor::second();
+        timer_init = amrex::second();
 
 	Amr amr;
         AmrLevel::SetEBSupportLevel(EBSupport::full);
@@ -56,9 +56,9 @@ int main (int argc, char* argv[])
             
 	amr.init(strt_time,stop_time);
 
-        timer_init = ParallelDescriptor::second() - timer_init;
+        timer_init = amrex::second() - timer_init;
 
-        timer_advance = ParallelDescriptor::second();
+        timer_advance = amrex::second();
 
 	while ( amr.okToContinue() &&
   	       (amr.levelSteps(0) < max_step || max_step < 0) &&
@@ -71,7 +71,7 @@ int main (int argc, char* argv[])
 	    amr.coarseTimeStep(stop_time);
 	}
 	
-        timer_advance = ParallelDescriptor::second() - timer_advance;
+        timer_advance = amrex::second() - timer_advance;
 
 	// Write final checkpoint and plotfile
 	if (amr.stepOfLastCheckPoint() < amr.levelSteps(0)) {
@@ -83,7 +83,7 @@ int main (int argc, char* argv[])
 	}
     }
 
-    timer_tot = ParallelDescriptor::second() - timer_tot;
+    timer_tot = amrex::second() - timer_tot;
 
     ParallelDescriptor::ReduceRealMax({timer_tot, timer_init, timer_advance},
                                       ParallelDescriptor::IOProcessorNumber());

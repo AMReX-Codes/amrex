@@ -136,6 +136,16 @@ public:
 #endif
     }
 
+    std::array<int,3> hiVect3d () const {
+#if (AMREX_SPACEDIM == 1)
+        return {bigend[0], 0, 0};
+#elif (AMREX_SPACEDIM == 2)
+        return {bigend[0], bigend[1], 0};
+#elif (AMREX_SPACEDIM == 3)
+        return {bigend[0], bigend[1], bigend[2]};
+#endif
+    }
+
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
     const int* loVect () const& { return smallend.getVect(); }
     const int* loVect () && = delete;
@@ -1004,11 +1014,6 @@ void AllGatherBoxes (Vector<Box>& bxs);
         result.minBox(b2);
         return result;
     }
-
-    Vector<int> SerializeBox(const Box &b);
-    inline int SerializeBoxSize() { return (AMREX_SPACEDIM * 3); }
-    Box UnSerializeBox(const Vector<int> &serarray);
-
 
     //! Write an ASCII representation to the ostream.
     std::ostream& operator<< (std::ostream& os, const Box& bx);

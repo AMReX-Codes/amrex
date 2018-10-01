@@ -4,6 +4,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_Array.H>
+#include <AMReX_Vector.H>
 
 namespace amrex
 {
@@ -15,13 +16,27 @@ namespace amrex
 
     //! Average face-based MultiFab onto cell-centered MultiFab.
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc);
-    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc, const Geometry& geom);
+    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
+                                     const Geometry& geom);
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc);
+    void average_face_to_cellcenter (MultiFab& cc,
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc,
+                                     const Geometry& geom);
 
     //! Average cell-centered MultiFab onto face-based MultiFab.
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc, const Geometry& geom);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
+    void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, int ratio, int ngcrse=0);
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio, int ngcrse=0);
+    void average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             int ratio, int ngcrse=0);
 
     //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     //! This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.

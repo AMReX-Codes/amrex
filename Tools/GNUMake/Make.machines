@@ -76,6 +76,11 @@ ifeq ($(findstring merlin, $(host_name)), merlin)
   which_computer := merlin
 endif
 
+ifeq ($(findstring aurora, $(host_name)), aurora)
+  which_site := hs
+  which_computer := aurora
+endif
+
 ifeq ($(findstring nrel, $(host_name)), nrel)
   which_site := nrel
   which_computer := anymachine

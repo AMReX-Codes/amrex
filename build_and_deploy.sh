@@ -22,7 +22,7 @@ SSH_REPO=${REPO/https:\/\/github.com\//git@github.com:}
 SHA=`git rev-parse --verify HEAD`
 
 # Clone the existing gh-pages for this repo into out/
-# Create a new empty branch if gh-pages doesn't exist yet (should only happen on first deply)
+# Create a new empty branch if gh-pages doesn't exist yet (should only happen on first deploy)
 git clone $REPO out
 cd out
 git checkout $TARGET_BRANCH || git checkout --orphan $TARGET_BRANCH
@@ -46,9 +46,14 @@ mv Docs/Doxygen/html/* out/docs_html/doxygen/
 
 # now do sphinx
 cd Docs/sphinx_documentation
-make html
+make SPHINX_BUILD="python3.6 -msphinx" latexpdf
+mv build/latex/amrex.pdf source/
+make SPHINX_BUILD="python3.6 -msphinx" html
+
 cd ../sphinx_tutorials
-make html
+make SPHINX_BUILD="python3.6 -msphinx" latexpdf
+mv build/latex/amrex.pdf source/
+make SPHINX_BUILD="python3.6 -msphinx" html
 cd ../../
 
 mv Docs/sphinx_documentation/build/html/* out/docs_html/

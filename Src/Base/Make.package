@@ -9,6 +9,8 @@ C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Ba
 C$(AMREX_BASE)_headers += AMReX.H AMReX_Exception.H
 C$(AMREX_BASE)_sources += AMReX.cpp AMReX_error_fi.cpp
 
+C$(AMREX_BASE)_headers += AMReX_RESTRICT.H
+
 C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
 
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
@@ -36,9 +38,6 @@ C$(AMREX_BASE)_headers += AMReX_BLFort.H
 C$(AMREX_BASE)_sources += AMReX_NFiles.cpp
 C$(AMREX_BASE)_headers += AMReX_NFiles.H
 
-
-C$(AMREX_BASE)_headers += AMReX_SPMD.H AMReX_SPMDI.H 
-C$(AMREX_BASE)_sources += AMReX_SPMD.cpp
 
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
@@ -101,22 +100,26 @@ C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 # Geometry / Coordinate system routines.
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_CoordSys.cpp AMReX_Geometry.cpp AMReX_MultiFabUtil.cpp
-  C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_MultiFabUtil.H
+  C$(AMREX_BASE)_sources += AMReX_CoordSys.cpp AMReX_Geometry.cpp AMReX_MultiFabUtil.cpp AMReX_MultiFabUtil_Perilla.cpp
+  C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_MultiFabUtil.H AMReX_MultiFabUtil_Perilla.H
 endif
 
 #
 # Boundary-related 
 #
-C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
-C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
-C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_BCRec.cpp AMReX_PhysBCFunct.cpp AMReX_BCUtil.cpp
+  C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
+  C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
+endif
 
 #
 # Plotfile
 #
-C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
-C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+ifneq ($(BL_NO_FORT),TRUE)
+  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
+  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+endif
 
 #
 # Misc
@@ -170,7 +173,7 @@ endif
 C$(AMREX_BASE)_headers += AMReX_MemPool.H
 C$(AMREX_BASE)_sources += AMReX_MemPool.cpp
 ifneq ($(BL_NO_FORT),TRUE)
-  f90$(AMREX_BASE)_sources += AMReX_mempool_f.f90
+  F90$(AMREX_BASE)_sources += AMReX_mempool_mod.F90
 endif
 
 # UPCXX

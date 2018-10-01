@@ -25,7 +25,7 @@ MLALaplacian::define (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLALaplacian::define()");
 
-    MLCellLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory);
+    MLCellABecLap::define(a_geom, a_grids, a_dmap, a_info, a_factory);
 
     m_a_coeffs.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
@@ -112,7 +112,7 @@ MLALaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLALaplacian::prepareForSolve()");
 
-    MLCellLinOp::prepareForSolve();
+    MLCellABecLap::prepareForSolve();
 
     averageDownCoeffs();
 
@@ -315,7 +315,7 @@ MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs
 void
 MLALaplacian::FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
-                        const FArrayBox& sol, const int face_only) const
+                        const FArrayBox& sol, Location, const int face_only) const
 {
     BL_PROFILE("MLALaplacian::FFlux()");
 

@@ -3,8 +3,9 @@
 #include <AMReX_VisMF.H>
 
 #ifdef AMREX_USE_EB
-#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MultiCutFab.H>
+#include <AMReX_EBFabFactory.H>
 #endif
 
 #include <cmath>
@@ -191,6 +192,8 @@ HypreABecLap3::prepareSolver ()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
     auto fcent = (ebfactory) ? ebfactory->getFaceCent()
         : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
+    auto barea = (ebfactory) ? &(ebfactory->getBndryArea()) : nullptr;
+    auto bcent = (ebfactory) ? &(ebfactory->getBndryCent()) : nullptr;
 #endif
 
     HYPRE_Int ncells_proc = 0;
@@ -242,6 +245,13 @@ HypreABecLap3::prepareSolver ()
         proc_begin += ncells_allprocs[i];
     }
 
+#ifdef AMREX_DEBUG
+    HYPRE_Int ncells_total = 0;
+    for (auto n : ncells_allprocs) {
+        ncells_total += n;
+    }
+#endif
+
     LayoutData<HYPRE_Int> offset(ba,dm);
     HYPRE_Int proc_end = proc_begin;
     for (MFIter mfi(ncells_grid); mfi.isValid(); ++mfi)
@@ -250,7 +260,7 @@ HypreABecLap3::prepareSolver ()
         proc_end += ncells_grid[mfi];
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(proc_end == proc_begin+ncells_proc,
-                                     "HypreABecLap3::prepareSolver: how did this happend?");
+                                     "HypreABecLap3::prepareSolver: how did this happen?");
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -278,10 +288,14 @@ HypreABecLap3::prepareSolver ()
     HYPRE_IJVectorSetObjectType(x, HYPRE_PARCSR);
     
     // A.SetValues() & A.assemble()
+
     const Real* dx = geom.CellSize();
     const int bho = (m_maxorder > 2) ? 1 : 0;
     FArrayBox rfab;
     BaseFab<HYPRE_Int> ifab;
+    FArrayBox foo(Box::TheUnitBox());
+    const int is_eb_dirichlet = m_eb_b_coeffs != nullptr;
+
     for (MFIter mfi(acoefs); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -333,6 +347,8 @@ HypreABecLap3::prepareSolver ()
 #ifdef AMREX_USE_EB
             else
             {
+                FArrayBox const& beb = (is_eb_dirichlet) ? (*m_eb_b_coeffs)[mfi] : foo;
+
                 amrex_hpeb_ijmatrix(BL_TO_FORTRAN_BOX(bx),
                                     &nrows, ncols, rows, cols, mat,
                                     BL_TO_FORTRAN_ANYD(cell_id[mfi]),
@@ -350,10 +366,25 @@ HypreABecLap3::prepareSolver ()
                                     AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                  BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
+                                    BL_TO_FORTRAN_ANYD((*barea)[mfi]),
+                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
+                                    BL_TO_FORTRAN_ANYD(beb), &is_eb_dirichlet,
                                     &scalar_a, &scalar_b, dx,
                                     bctype.data(), bcl.data(), &bho);
             }
 #endif
+
+#ifdef AMREX_DEBUG
+            HYPRE_Int nvalues = 0;
+            for (HYPRE_Int i = 0; i < nrows; ++i) {
+                nvalues += ncols[i];
+            }
+            for (HYPRE_Int i = 0; i < nvalues; ++i) {
+                AMREX_ASSERT(cols[i] >= 0 && cols[i] < ncells_total);
+            }
+#endif
+
+
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
         }
     }

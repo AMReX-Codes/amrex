@@ -4,7 +4,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_BaseFab_f.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -978,7 +977,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 {
     BL_PROFILE("MLNodeLaplacian::restriction()");
 
-    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous);
+    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
     const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
 
@@ -1139,7 +1138,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
-    applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous);
+    applyBC(camrlev+1, 0, *frhs, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1183,7 +1182,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 }
 
 void
-MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
+MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
                           bool skip_fillboundary) const
 {
     BL_PROFILE("MLNodeLaplacian::applyBC()");
@@ -1605,10 +1604,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 }
                 u.copy(vold[mfi], b, 0, b, 0, AMREX_SPACEDIM);
 
-                amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
-                                       BL_TO_FORTRAN_FAB(u),
-                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                       0.0);
+                u.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, AMREX_SPACEDIM);
 
                 rhs.resize(bx);
                 amrex_mlndlap_divu(BL_TO_FORTRAN_BOX(bx),
@@ -1625,10 +1621,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     const Box& b2 = ccbxg1 & ccvbx;
                     rhcc_fab->copy((*rhcc)[mfi], b2, 0, b2, 0, 1);
 
-                    amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
-                                           BL_TO_FORTRAN_FAB(*rhcc_fab),
-                                           BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                           0.0);                    
+                    rhcc_fab->setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
 
                     rhs2.resize(bx);
                     amrex_mlndlap_rhcc(BL_TO_FORTRAN_BOX(bx),
@@ -1642,10 +1635,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                 sigma.setVal(0, ccbxg1, 0, 1);
                 const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
                 sigma.copy(sigma_orig[mfi], ibx, 0, ibx, 0, 1);
-                amrex_fab_setval_ifnot(BL_TO_FORTRAN_BOX(ccbxg1),
-                                       BL_TO_FORTRAN_FAB(sigma),
-                                       BL_TO_FORTRAN_ANYD(crse_cc_mask[mfi]),
-                                       0.0);
+                sigma.setValIfNot(0.0, ccbxg1, crse_cc_mask[mfi], 0, 1);
 
                 amrex_mlndlap_adotx_aa(BL_TO_FORTRAN_BOX(bx),
                                        BL_TO_FORTRAN_ANYD(sync_resid[mfi]),
@@ -1793,7 +1783,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, 2), fdm, 1, 0);
 
-    applyBC(crse_amrlev+1, 0, fine_res, BCMode::Inhomogeneous);
+    applyBC(crse_amrlev+1, 0, fine_res, BCMode::Inhomogeneous, StateMode::Solution);
 
 #ifdef _OPENMP
 #pragma omp parallel
