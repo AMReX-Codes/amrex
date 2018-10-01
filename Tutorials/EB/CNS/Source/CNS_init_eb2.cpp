@@ -63,11 +63,11 @@ initialize_EB2 (const Geometry& geom, const int required_coarsening_level,
         auto pr = EB2::translate(EB2::lathe(polys), {lenx*0.5, leny*0.5, 0.});
         
         auto gshop = EB2::makeShop(pr);
-        EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, max_coarsening_level, max_coarsening_level, 4);
     }
     else
     {
-        EB2::Build(geom, max_coarsening_level, max_coarsening_level);
+        EB2::Build(geom, max_coarsening_level, max_coarsening_level, 4);
     }
 }
 
