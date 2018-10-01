@@ -637,6 +637,8 @@ public:
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
     using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
 
     ParIter (ContainerType& pc, int level)
         : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
