@@ -1,6 +1,7 @@
 #include <cuda_device_runtime_api.h>
 #include <thrust/device_vector.h>
 
+#include <cstdio>
 #include <iostream>
 #include <AMReX.H>
 #include <AMReX_Print.H>
@@ -39,22 +40,32 @@ int main (int argc, char* argv[])
 
     int* n_cpy;
     cudaMallocManaged(&n_cpy, sizeof(int));
-    *n_cpy = 0;
+    *n_cpy = 2;
 
     amrex::Print() << "n_cpy before = " << *n_cpy << std::endl << std::endl;
 
-
-    AMREX_SIMPLE_L_LAUNCH(1,1,
-    [=] AMREX_CUDA_DEVICE ()
+    AMREX_SIMPLE_L_LAUNCH(RunOn::CPU, 1, 1, 
+    [=] AMREX_CUDA_HOST_DEVICE ()
     {
        *n_cpy = 1;
+       printf("n_cpy during CPU = %i\n", *n_cpy);
     });
 
     int n;
     Device::synchronize();
     cudaMemcpy(&n, n_cpy, sizeof(int), cudaMemcpyDeviceToHost);
-    amrex::Print() << "n after = " << n << std::endl << std::endl;
-//    amrex::Print() << "n/n_cpy after = " << n << "/" << *n_cpy << std::endl << std::endl;
+    amrex::Print() << "n after CPU = " << n << std::endl << std::endl;
+
+    AMREX_SIMPLE_L_LAUNCH(RunOn::GPU, 1, 1, 
+    [=] AMREX_CUDA_HOST_DEVICE ()
+    {
+       *n_cpy = 3;
+       printf("n_cpy during GPU = %i\n", *n_cpy);
+    });
+
+    Device::synchronize();
+    cudaMemcpy(&n, n_cpy, sizeof(int), cudaMemcpyDeviceToHost);
+    amrex::Print() << "n after GPU = " << n << std::endl << std::endl;
 
     cudaFree(n_cpy);
     amrex::Print() << std::endl << "*************************************\n";

@@ -98,7 +98,7 @@ void main_main ()
         const GeometryData& geomdata = geom.data();
         FArrayBox* phiNew = &(phi_new[mfi]);
 
-        AMREX_BOX_L_LAUNCH(vbx, 
+        AMREX_BOX_L_LAUNCH(RunOn::GPU, vbx, 
         [=] AMREX_CUDA_DEVICE ()
         {
             Box threadBox = getThreadBox(vbx);

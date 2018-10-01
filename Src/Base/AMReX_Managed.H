@@ -13,16 +13,29 @@ namespace amrex {
 #define AMREX_CUDA_GLOBAL __global__
 #define AMREX_CUDA_HOST_DEVICE __host__ __device__
 
+enum struct RunOn {CPU, GPU};
+struct SrcToDest {
+   RunOn src;
+   RunOn dest;
+};
+
 #define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
     { \
       function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
 
-#define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...)  \
+#define AMREX_SIMPLE_L_LAUNCH(runOn, numBlocks, numThreads, ...)  \
     { \
-      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
+      if (runOn == RunOn::GPU) \
+      { \
+         launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+         CudaErrorCheck(); \
+      } \
+      else \
+      { \
+         launch_host(__VA_ARGS__); \
+      } \
     }
 
 #define AMREX_BOX_LAUNCH(box, function, ...)  \
@@ -33,12 +46,19 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
-#define AMREX_BOX_L_LAUNCH(box, ...)  \
+#define AMREX_BOX_L_LAUNCH(runOn, box, ...)  \
     { \
-      dim3 numBlocks, numThreads; \
-      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
-      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
+      if (runOn == RunOn::GPU) \
+      { \
+         dim3 numBlocks, numThreads; \
+         Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
+         launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+         CudaErrorCheck(); \
+      } \
+      else \
+      { \
+         launch_host(__VA_ARGS__); \
+      } \
     }
 
 #define AMREX_BOXCOMPS_LAUNCH(box, comps, function, ...)  \
@@ -49,12 +69,19 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
-#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, ...)  \
+#define AMREX_BOXCOMPS_L_LAUNCH(runOn, box, comps, ...)  \
     { \
-      dim3 numBlocks, numThreads; \
-      Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
-      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
+      if (runOn = RunOn::GPU) \
+      { \
+         dim3 numBlocks, numThreads; \
+         Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
+         launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+         CudaErrorCheck(); \
+      } \
+      else \
+      { \
+         launch_host(__VA_ARGS__); \
+      } \
     }
 
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) \
@@ -65,12 +92,19 @@ namespace amrex {
       CudaErrorCheck(); \
     }
 
-#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) \
+#define AMREX_PARTICLES_L_LAUNCH(runon, num_particles, ...) \
     { \
-      int numThreads, numBlocks; \
-      Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
-      launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
+      if (runon = RunOn::GPU) \
+      { \
+         int numThreads, numBlocks; \
+         Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+         launch_global<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+         CudaErrorCheck(); \
+      } \
+      else \
+      { \
+         launch_host(__VA_ARGS__); \
+      } \
     }
 
 #ifndef __CUDA_ARCH__
@@ -126,10 +160,10 @@ struct Pinned  { };
 #define AMREX_BOXCOMPS_LAUNCH(box, comps, function ...) function (__VA_ARGS__);
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__);
 
-#define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...) launch_global(__VA_ARGS__);
-#define AMREX_BOX_L_LAUNCH(box, ...) launch_global(__VA_ARGS__); 
-#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, function ...) launch_global (__VA_ARGS__);
-#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) launch_global (__VA_ARGS__);
+#define AMREX_SIMPLE_L_LAUNCH(runOn, numBlocks, numThreads, ...) launch_host(__VA_ARGS__);
+#define AMREX_BOX_L_LAUNCH(runOn, box, ...) launch_host(__VA_ARGS__); 
+#define AMREX_BOXCOMPS_L_LAUNCH(runOn, box, comps, function ...) launch_host (__VA_ARGS__);
+#define AMREX_PARTICLES_L_LAUNCH(runOn, num_particles, ...) launch_host (__VA_ARGS__);
 
 #define AMREX_CUDA_HOST
 #define AMREX_CUDA_DEVICE
@@ -155,6 +189,14 @@ AMREX_CUDA_DEVICE void launch_device (L f0) { f0(); }
 
 template<class L, class... Lambdas>
 AMREX_CUDA_DEVICE void launch_device (L f0, Lambdas... fs) { f0(); launch_device(fs...); }
+
+// CPU variation
+
+template<class L>
+void launch_host (L f0) { f0(); }
+
+template<class L, class... Lambdas>
+void launch_host (L f0, Lambdas... fs) { f0(); launch_host(fs...); }
 
 // ************************************************
 
