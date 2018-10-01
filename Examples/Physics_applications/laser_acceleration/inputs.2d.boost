@@ -1,0 +1,127 @@
+#################################
+######### BOX PARAMETERS ########
+#################################
+# max_step = 2700
+stop_time = 1.9e-12
+amr.n_cell =  128 1024
+amr.max_grid_size = 64
+amr.blocking_factor = 32
+amr.max_level = 0
+amr.plot_int = 100
+geometry.coord_sys   = 0                  # 0: Cartesian
+geometry.is_periodic = 1     0            # Is periodic?
+# physical domain
+geometry.prob_lo     = -128.e-6   -40.e-6
+geometry.prob_hi     =  128.e-6     0.96e-6
+
+#################################
+############ NUMERICS ###########
+#################################
+warpx.verbose = 1
+amrex.v = 1
+algo.current_deposition = 2
+algo.charge_deposition = 0
+algo.field_gathering = 0
+algo.particle_pusher = 1
+algo.maxwell_fdtd_solver = ckc
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
+warpx.use_filter = 1
+warpx.cfl = 1.
+warpx.do_pml = 0
+# Moving window
+warpx.do_moving_window = 1
+warpx.moving_window_dir = z
+warpx.moving_window_v = 1.0 # in units of the speed of light
+warpx.serialize_ics = 1
+
+#################################
+####### BOOST PARAMETERS ########
+#################################
+warpx.gamma_boost = 10.
+warpx.boost_direction = z
+warpx.do_boosted_frame_diagnostic = 1
+warpx.num_snapshots_lab = 7
+warpx.dt_snapshots_lab = 1.6678204759907604e-12
+
+#################################
+############ PLASMA #############
+#################################
+constants.use_my_constants = 1
+constants.constant_names  = zmax    rc     rmax    n0     kp
+constants.constant_values = 30.e-2  50.e-6 110.e-6 3.5e24 353352.
+
+particles.nspecies = 3
+particles.species_names = electrons ions beam
+particles.use_fdtd_nci_corr = 1
+particles.rigid_injected_species = beam
+
+electrons.charge = -q_e
+electrons.mass = m_e
+electrons.injection_style = NUniformPerCell
+electrons.num_particles_per_cell_each_dim = 1 1
+electrons.momentum_distribution_type = "gaussian"
+electrons.xmin = -120.e-6
+electrons.xmax =  120.e-6
+electrons.zmin = 0.e-6
+electrons.zmax = .003
+electrons.profile                 = "parse_density_function"
+electrons.density_function(x,y,z) = "((x**2+y**2)<rmax**2)*n0*(1+4*(x**2+y**2)/(kp**2*rc**4))"
+
+ions.charge = q_e
+ions.mass = m_p
+ions.injection_style = NUniformPerCell
+ions.num_particles_per_cell_each_dim = 1 1
+ions.momentum_distribution_type = "gaussian"
+ions.xmin = -120.e-6
+ions.xmax =  120.e-6
+ions.zmin = 0.
+ions.zmax = .003
+ions.profile                 = "parse_density_function"
+ions.density_function(x,y,z) = "((x**2+y**2)<rmax**2)*n0*(1+4*(x**2+y**2)/(kp**2*rc**4))"
+
+beam.charge = -q_e
+beam.mass = m_e
+beam.injection_style = "gaussian_beam"
+beam.x_rms = 1.e-6
+beam.y_rms = 1.e-6
+beam.z_rms = .2e-6
+beam.x_m = 0.
+beam.y_m = 0.
+beam.z_m = -20.e-6
+beam.npart = 1000
+beam.q_tot = -1.e-14
+beam.profile = "constant"
+beam.density = 8.e23                   # number of particles per m^3
+beam.momentum_distribution_type = "gaussian"
+beam.ux_m = 0.0
+beam.uy_m = 0.0
+beam.uz_m = 200.
+beam.ux_th = 2.
+beam.uy_th = 2.
+beam.uz_th = 20.
+beam.zinject_plane = 0.1e-3
+beam.rigid_advance = true
+beam.projected = true
+beam.focused = false
+
+# Particle Injection
+warpx.do_plasma_injection = 1
+warpx.num_injected_species = 2
+warpx.injected_plasma_species = 0 1
+
+#################################
+############# LASER #############
+#################################
+warpx.use_laser = 1
+laser.profile      = Gaussian
+laser.position     = 0. 0. -0.1e-6 # This point is on the laser plane
+laser.direction    = 0. 0. 1.      # The plane normal direction
+laser.polarization = 0. 1. 0.      # The main polarization vector
+laser.e_max        = 2.e12       # Maximum amplitude of the laser field (in V/m)
+laser.profile_waist = 45.e-6       # The waist of the laser (in meters)
+laser.profile_duration = 20.e-15   # The duration of the laser (in seconds)
+laser.profile_t_peak = 40.e-15    # The time at which the laser reaches its peak (in seconds)
+laser.profile_focal_distance = 0.e-6  # Focal distance from the antenna (in meters)
+laser.wavelength = 0.81e-6         # The wavelength of the laser (in meters)
