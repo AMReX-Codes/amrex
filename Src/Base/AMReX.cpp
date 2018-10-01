@@ -18,6 +18,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 #ifdef AMREX_USE_CUDA
+#include <AMReX_Managed.H>
 #include <AMReX_Device.H>
 #endif
 
@@ -66,6 +67,8 @@ namespace system
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
+    RunOn runOn;
+    SrcToDest srcToDest;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
@@ -343,6 +346,13 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::osout = &a_osout;
     system::oserr = &a_oserr;
     system::error_handler = a_errhandler;
+
+#ifdef AMREX_USE_CUDA
+    std::string runOnD = GPU;
+#else
+    std::string runOnD = CPU;
+#endif
+
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
     prev_out_precision = system::osout->precision(10);
@@ -436,12 +446,24 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
-
         pp.query("regtest_reduction", system::regtest_reduction);
-
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
+
+        pp.query("runOn", runOnD)
+        if (runOnD == GPU) {
+            system::runOn = GPU;
+            system::srcToDest = {GPU, GPU};
+        }
+        else if (runOnD == CPU) {
+            system::runOn = CPU;
+            system::srcToDest = {CPU, CPU};
+        }
+        else {
+            amrex::Abort("Error: Valid input options for amrex.runOn are 'CPU' or 'GPU'. Value = " + run_def);
+        }
+
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
