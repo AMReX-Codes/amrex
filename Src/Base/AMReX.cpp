@@ -17,8 +17,9 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
-#ifdef AMREX_USE_CUDA
 #include <AMReX_Managed.H>
+
+#ifdef AMREX_USE_CUDA
 #include <AMReX_Device.H>
 #endif
 
@@ -67,8 +68,8 @@ namespace system
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
-    RunOn default_location;
-    SrcToDest default_copy_location;
+    RunOn default_runOn;
+    CopyFromTo default_copyFromTo;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
@@ -105,6 +106,10 @@ void amrex::SetVerbose (int v) { amrex::system::verbose = v; }
 void amrex::SetErrorHandler (amrex::ErrorHandler f) {
     amrex::system::error_handler = f;
 }
+
+amrex::RunOn amrex::WhereToRunDefault() { return amrex::system::default_runOn; }
+
+amrex::CopyFromTo amrex::HowToCopyDefault() { return amrex::system::default_copyFromTo; }
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
@@ -452,18 +457,18 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.query("call_addr2line", system::call_addr2line);
 
         pp.query("runOn", runOn);
-        runOnl = toLower(runOn);
+        std::string runOnLower = toLower(runOn);
 
-        if (runOnl == "gpu") {
-            system::default_location = RunOn::GPU;
-            system::default_copy_location = {RunOn::GPU, RunOn::GPU};
+        if (runOnLower == "gpu") {
+            system::default_runOn = RunOn::GPU;
+            system::default_copyFromTo = {RunOn::GPU, RunOn::GPU};
         }
-        else if (runOnl == "cpu") {
-            system::default_location = RunOn::CPU;
-            system::default_copy_location = {RunOn::CPU, RunOn::CPU};
+        else if (runOnLower == "cpu") {
+            system::default_runOn = RunOn::CPU;
+            system::default_copyFromTo = {RunOn::CPU, RunOn::CPU};
         }
         else {
-            amrex::Abort("Error: Valid input options for amrex.runOn are 'CPU' or 'GPU'. Value = " + runOnl);
+            amrex::Abort("Error: Valid input options for amrex.runOn are 'CPU' or 'GPU'. Value = " + runOnLower);
         }
 
         if (system::signal_handling)
