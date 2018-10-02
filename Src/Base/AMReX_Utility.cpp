@@ -123,6 +123,23 @@ amrex::Tokenize (const std::string& instr,
 }
 
 std::string
+amrex::toLower (std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return s;
+}
+
+std::string
+amrex::toUpper (std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return std::toupper(c); });
+    return s;
+}
+
+
+std::string
 amrex::Concatenate (const std::string& root,
                      int                num,
                      int                mindigits)
