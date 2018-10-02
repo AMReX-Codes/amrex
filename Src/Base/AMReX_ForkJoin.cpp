@@ -6,9 +6,6 @@ using namespace amrex;
 
 namespace {
 
-bool flag_task_output_dir_created = false;
-const std::string task_output_dir = "forkjoin_task_output";
-
 inline bool file_exists(std::string file_path) {
   std::ifstream ifs(file_path);
   return ifs.good();
@@ -42,25 +39,18 @@ get_frame_id_vec ()
     return result;
 }
 
-void
-create_task_output_dir ()
-{
-    if (!flag_task_output_dir_created) {
-        amrex::UtilCreateCleanDirectory(task_output_dir, false);
-    }
-    flag_task_output_dir_created = true;
-}
-
 }
 
 namespace amrex {
 
-ForkJoin::ForkJoin (const Vector<int> &task_rank_n)
+    ForkJoin::ForkJoin (const Vector<int> &task_rank_n,
+                        const std::string &task_output_dir_in)
 {
-    init(task_rank_n);
+    init(task_rank_n,task_output_dir_in);
 }
 
-ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
+ForkJoin::ForkJoin (const Vector<double> &task_rank_pct,
+                    const std::string    &task_output_dir_in)
 {
     auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
@@ -74,11 +64,12 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
         prev = cur;
     }
 
-    init(task_rank_n);
+    init(task_rank_n,task_output_dir_in);
 }
 
 void
-ForkJoin::init(const Vector<int> &task_rank_n)
+ForkJoin::init(const Vector<int> &task_rank_n,
+               const std::string &task_output_dir_in)
 {
     ParmParse pp("forkjoin");
     pp.query("verbose", flag_verbose);
@@ -104,7 +95,10 @@ ForkJoin::init(const Vector<int> &task_rank_n)
         split_bounds[i + 1] = split_bounds[i] + task_rank_n[i];
     }
 
-    create_task_output_dir();
+    task_output_dir = task_output_dir_in;
+    if (!amrex::FileExists(task_output_dir)) {
+        amrex::UtilCreateDirectory(task_output_dir,0755,flag_verbose);
+    }
 
     if (flag_verbose) {
         amrex::Print() << "Initialized ForkJoin:\n";

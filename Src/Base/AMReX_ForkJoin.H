@@ -28,15 +28,20 @@ class ForkJoin
         int hi; // exclusive bound
     };
 
-    ForkJoin (const Vector<int> &task_rank_n);
+    ForkJoin (const Vector<int> &task_rank_n, const std::string &task_output_dir = "");
 
-    ForkJoin (const Vector<double> &task_rank_pct);
+    ForkJoin (const Vector<double> &task_rank_pct, const std::string &task_output_dir = "");
 
-    ForkJoin (int ntasks) : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
+    ForkJoin (int ntasks, const std::string& task_output_dir = "")
+        : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks), task_output_dir ) { }
 
     int NTasks () const { return split_bounds.size() - 1; }
 
     int MyTask () const { return task_me; }
+
+    bool Verbose () const { return flag_verbose; }
+
+    void SetVerbose (bool verbose_in) { flag_verbose = verbose_in; }
 
     ComponentSet ComponentBounds(const std::string& name, int idx=0) const;
 
@@ -154,8 +159,9 @@ class ForkJoin
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
     bool flag_verbose = false; // for debugging
+    std::string task_output_dir;
 
-    void init(const Vector<int> &task_rank_n);
+    void init(const Vector<int> &task_rank_n, const std::string &task_output_dir);
 
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
