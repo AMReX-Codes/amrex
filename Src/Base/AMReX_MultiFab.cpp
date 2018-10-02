@@ -122,7 +122,7 @@ MultiFab::Add (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
             [=] AMREX_CUDA_DEVICE ()
             {
                dstFab->plus(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
@@ -165,7 +165,7 @@ MultiFab::Copy (MultiFab&       dst,
 
        if (bx.ok())
        {
-          AMREX_BOX_L_LAUNCH(bx,
+          AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
           [=] AMREX_CUDA_DEVICE ()
           {
              dstFab->copy(*srcFab, bx, srccomp, bx, dstcomp, numcomp);
@@ -235,7 +235,7 @@ MultiFab::Subtract (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
             [=] AMREX_CUDA_DEVICE ()
             {
                 dstFab->minus(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
@@ -278,7 +278,7 @@ MultiFab::Multiply (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
             [=] AMREX_CUDA_DEVICE ()
             {
                 dstFab->mult(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
@@ -321,7 +321,7 @@ MultiFab::Divide (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
             [=] AMREX_CUDA_DEVICE ()
             {
                 dstFab->divide(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
