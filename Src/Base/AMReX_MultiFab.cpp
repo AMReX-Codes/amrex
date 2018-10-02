@@ -11,13 +11,13 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_Managed.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
 
 #ifdef AMREX_USE_CUDA
-#include <AMReX_Managed.H>
 #include <AMReX_CUDA_Utility.H>
 #endif
 

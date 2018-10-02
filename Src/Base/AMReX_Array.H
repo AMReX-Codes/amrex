@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <AMReX_Managed.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_REAL.H>
@@ -22,7 +23,6 @@ namespace amrex {
 // designates needed functions as __host__ __device__
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
-#include <AMReX_Managed.H>
 namespace amrex {
     template <class T, std::size_t N>
     struct CudaArray
