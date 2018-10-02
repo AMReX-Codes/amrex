@@ -115,13 +115,13 @@ public:
     Box grownnodaltilebox (int dir, const IntVect& ng) const;
 
     //! Return the valid Box in which the current tile resides.
-    Box validbox () const { const Box& r = fabArray.box((*index_map)[currentIndex]); return r; }
+    Box validbox () const { return fabArray.box((*index_map)[currentIndex]); }
 
     //! Return the Box of the FAB at which we currently point.
-    Box fabbox () const { const Box& r = fabArray.fabbox((*index_map)[currentIndex]); return r; }
+    Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
-#ifdef _OPENMP
+#if defined(_OPENMP)
     void operator++ () {
         if (dynamic) {
 #pragma omp atomic capture
@@ -130,6 +130,8 @@ public:
             ++currentIndex;
         }
     }
+#elif !defined(AMREX_USE_CUDA)
+    void operator++ () { ++currentIndex; }
 #else
     void operator++ ();
 #endif
