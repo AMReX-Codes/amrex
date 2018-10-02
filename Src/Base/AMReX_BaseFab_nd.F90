@@ -321,7 +321,8 @@ contains
 
 
 
-  subroutine amrex_fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) bind(c, name='amrex_fort_fab_protdivide')
+  subroutine amrex_fort_fab_protdivide(lo, hi, dst, dlo, dhi, src, slo, shi, sblo, dblo, ncomp) &
+       bind(c, name='amrex_fort_fab_protdivide')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), slo(3), shi(3), sblo(3), dblo(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),ncomp)
@@ -456,7 +457,8 @@ contains
 
 
   ! dst = dst + src1*src2
-  subroutine amrex_fort_fab_addproduct(lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp) bind(c, name='amrex_fort_fab_addproduct')
+  subroutine amrex_fort_fab_addproduct(lo, hi, dst, dlo, dhi, src1, s1lo, s1hi, src2, s2lo, s2hi, ncomp) &
+       bind(c, name='amrex_fort_fab_addproduct')
     integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), s1lo(3), s1hi(3), s2lo(3), s2hi(3)
     integer, intent(in), value :: ncomp
     real(amrex_real), intent(in   ) :: src1(s1lo(1):s1hi(1),s1lo(2):s1hi(2),s1lo(3):s1hi(3),ncomp)
