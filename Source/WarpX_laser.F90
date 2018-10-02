@@ -40,9 +40,9 @@ contains
     inv_complex_waist_2 = 1./( waist**2 * diffract_factor )
     
     ! Time stretching due to STCs and phi2 complex envelope
-    ! (1 if zeta=0, beta=0, phi2=0)
-    stretch_factor = 1. + \
-        4*(zeta + beta*f)**2 * (inv_tau2*inv_complex_waist_2) + \
+    ! (1 if zeta=0, beta=0, phi2=0) 
+   stretch_factor = 1. + &
+        4*(zeta + beta*f)**2 * (inv_tau2*inv_complex_waist_2) + &
         2*j*(phi2 - beta**2*k0*f) * inv_tau2
     
     ! Amplitude and monochromatic oscillations
@@ -60,8 +60,8 @@ contains
     ! Loop through the macroparticle to calculate the proper amplitude
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
-      stc_exponent = 1./stretch_factor * inv_tau2 * \
-          (t - t_peak - beta*k0*Xp(i) - 2*j*Xp(i)*( zeta - beta*f ) * \
+      stc_exponent = 1./stretch_factor * inv_tau2 * &
+          (t - t_peak - beta*k0*Xp(i) - 2*j*Xp(i)*( zeta - beta*f ) * &
           inv_complex_waist_2)**2 
       ! stcfactor = everything but complex transverse envelope 
       stcfactor = prefactor * exp( - stc_exponent )
