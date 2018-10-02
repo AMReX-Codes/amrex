@@ -184,6 +184,11 @@ public:
                         const Box&      src, 
                         Vector<IntVect>& out) const;
 
+    // Return domain box with non-periodic directions grown by ngrow.
+    Box growNonPeriodicDomain (int ngrow) const;
+    // Return domain box with periodic directions grown by ngrow.
+    Box growPeriodicDomain (int ngrow) const;
+
 private:
     //! Helper functions.
     void read_params ();

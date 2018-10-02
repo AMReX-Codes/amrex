@@ -1,0 +1,13 @@
+n_cell = 32 32 32
+max_grid_size = 16 16 16
+verbose = 0
+
+///////////////////////////////////////
+// prob_type:
+//   prob_type = 0 - Fourier mode A
+//   prob_type = 1 - Fourier mode B
+//   prob_type = 2 - Fourier mode C
+//   prob_type = 3 - Delta
+//   prob_type = 4 - Gaussian
+///////////////////////////////////////
+prob_type = 4
