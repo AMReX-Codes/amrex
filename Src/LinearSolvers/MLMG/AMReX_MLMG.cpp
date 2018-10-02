@@ -1195,7 +1195,7 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
-    linop.getFluxes(a_flux,a_sol,a_loc);
+    linop.getFluxes(a_flux, a_sol, a_loc);
 }
 
 void
