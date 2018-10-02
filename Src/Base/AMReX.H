@@ -2,6 +2,7 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
+#include <AMReX_Managed.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 
@@ -22,10 +23,42 @@
 
 namespace amrex
 {
+
     typedef void (*PTR_TO_VOID_FUNC)(void);
     typedef void (*ErrorHandler) (const char* msg);
 
+    namespace system
+    {
+#ifndef AMREX_DEBUG
+	constexpr bool NDebug = true;
+        constexpr bool  Debug = false;
+#else
+	constexpr bool NDebug = false;
+        constexpr bool  Debug = true;
+#endif
+
+	extern std::string exename;
+        extern RunOn default_runOn;
+        extern CopyFromTo default_copyFromTo;
+	
+	extern int verbose;
+
+        extern int signal_handling;
+        extern int call_addr2line;
+        extern int throw_exception;
+
+        extern int regtest_reduction;
+
+        extern std::ostream* osout;
+        extern std::ostream* oserr;
+        
+        extern ErrorHandler error_handler;
+    }
+
     std::string Version ();
+
+    RunOn WhereToRunDefault();
+    CopyFromTo HowToCopyDefault();
 
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,
@@ -93,32 +126,6 @@ namespace amrex
 
     int Verbose ();
     void SetVerbose (int v);
-
-    namespace system
-    {
-#ifndef AMREX_DEBUG
-	constexpr bool NDebug = true;
-        constexpr bool  Debug = false;
-#else
-	constexpr bool NDebug = false;
-        constexpr bool  Debug = true;
-#endif
-
-	extern std::string exename;
-	
-	extern int verbose;
-
-        extern int signal_handling;
-        extern int call_addr2line;
-        extern int throw_exception;
-
-        extern int regtest_reduction;
-
-        extern std::ostream* osout;
-        extern std::ostream* oserr;
-        
-        extern ErrorHandler error_handler;
-    }
 
     inline void GccPlacater ()
     {

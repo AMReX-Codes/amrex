@@ -6,18 +6,18 @@ namespace amrex {
 // ************************************************
 // CUDA versions
 
+enum struct RunOn {CPU, GPU};
+struct CopyFromTo {
+   RunOn src;
+   RunOn dest;
+};
+
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
 #define AMREX_CUDA_HOST __host__
 #define AMREX_CUDA_DEVICE __device__
 #define AMREX_CUDA_GLOBAL __global__
 #define AMREX_CUDA_HOST_DEVICE __host__ __device__
-
-enum struct RunOn {CPU, GPU};
-struct SrcToDest {
-   RunOn src;
-   RunOn dest;
-};
 
 #define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...)  \
     { \
