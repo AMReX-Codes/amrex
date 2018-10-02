@@ -169,8 +169,8 @@ public:
     // Number of coefficients for the stencil of the NCI corrector.
     // The stencil is applied in the z direction only.
     static constexpr int nstencilz_fdtd_nci_corr=5;
-    std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_ex;
-    std::array<amrex::Real, nstencilz_fdtd_nci_corr> fdtd_nci_stencilz_by;
+    amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
+    amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
 
 protected:
 
