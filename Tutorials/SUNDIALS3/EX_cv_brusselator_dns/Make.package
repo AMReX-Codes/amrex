@@ -1,0 +1,1 @@
+f90EXE_sources += cv_brusselator_dns.f90

@@ -87,6 +87,8 @@ public:
 
     MFIter (const FabArrayBase& fabarray, const MFItInfo& info);
 
+    MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info);
+
     MFIter (MFIter&& rhs) = default;
 
     // dtor
