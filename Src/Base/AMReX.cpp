@@ -17,7 +17,6 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
-#include <AMReX_Managed.H>
 
 #ifdef AMREX_USE_CUDA
 #include <AMReX_Device.H>
