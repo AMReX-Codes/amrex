@@ -67,8 +67,8 @@ namespace system
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
-    RunOn runOn;
-    SrcToDest srcToDest;
+    RunOn default_location;
+    SrcToDest default_copy_location;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
@@ -348,9 +348,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::error_handler = a_errhandler;
 
 #ifdef AMREX_USE_CUDA
-    std::string runOnD = GPU;
+    std::string runOn = "GPU";
 #else
-    std::string runOnD = CPU;
+    std::string runOn = "CPU";
 #endif
 
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
@@ -451,17 +451,19 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
 
-        pp.query("runOn", runOnD)
-        if (runOnD == GPU) {
-            system::runOn = GPU;
-            system::srcToDest = {GPU, GPU};
+        pp.query("runOn", runOn);
+        runOnl = toLower(runOn);
+
+        if (runOnl == "gpu") {
+            system::default_location = RunOn::GPU;
+            system::default_copy_location = {RunOn::GPU, RunOn::GPU};
         }
-        else if (runOnD == CPU) {
-            system::runOn = CPU;
-            system::srcToDest = {CPU, CPU};
+        else if (runOnl == "cpu") {
+            system::default_location = RunOn::CPU;
+            system::default_copy_location = {RunOn::CPU, RunOn::CPU};
         }
         else {
-            amrex::Abort("Error: Valid input options for amrex.runOn are 'CPU' or 'GPU'. Value = " + run_def);
+            amrex::Abort("Error: Valid input options for amrex.runOn are 'CPU' or 'GPU'. Value = " + runOnl);
         }
 
         if (system::signal_handling)
