@@ -26,6 +26,7 @@ template <typename FAB> class FabFactory;
 class AmrTask;
 #ifdef USE_PERILLA
 class Perilla;
+class RegionGraph;
 #endif
 
 class FabArrayBase
@@ -35,6 +36,7 @@ class FabArrayBase
     friend class AmrTask;
 #ifdef USE_PERILLA
     friend class Perilla;
+    friend class RegionGraph;
 #endif
 
 public:

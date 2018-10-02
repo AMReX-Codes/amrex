@@ -1153,7 +1153,7 @@ contains
                 do koff = -1, 1
                    do joff = -1, 1
                       do ioff = -1, 1
-                         if (mat_tmp(ioff,joff,koff) .ne. zero) then
+                         if (mat_tmp(ioff,joff,koff).ne.zero .and. cell_id(i+ioff,j+joff,k+koff).ge.0) then
                             ncols(irow) = ncols(irow) + 1
                             cols(imat) = cell_id(i+ioff,j+joff,k+koff)
                             mat(imat) = mat_tmp(ioff,joff,koff)*diag(i,j,k)

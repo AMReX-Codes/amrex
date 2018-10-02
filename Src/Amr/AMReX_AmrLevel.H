@@ -653,8 +653,8 @@ public:
     void FillFromLevel0Push (Real time, int index, int scomp, int dcomp, int ncomp, int f);
     void FillFromLevel0PushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
     void FillFromLevel0Pull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
-    void FillFromTwoLevelsPush (Real time, int index, int scomp, int dcomp, int ncomp, int f);
     void FillFromTwoLevelsPushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
+    void FillFromTwoLevelsPush (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
     void FillFromTwoLevelsPull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
     void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
                                  Vector<MultiFab*>& cmf, Vector<Real>& ct,
@@ -771,9 +771,7 @@ class AsyncFillPatchIterator
                             int       state_indx,
                             int       scomp,
                             int       ncomp,
-                            int       f,
-                            int iter,
-                            int       tid);
+                            int iter);
 
     void initFillPatch(int boxGrow,
                        int time,
@@ -789,8 +787,7 @@ class AsyncFillPatchIterator
                              int  state_indx,
                              int  scomp,
                              int  ncomp,
-                             int  iter,
-                             int tid);
+                             int  iter);
 
     void PushOnly (int  boxGrow,
                    Real time,
@@ -798,7 +795,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    unsigned char pushLevel,
                    int tf,
                    bool singleT=false);
@@ -811,7 +807,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void SendIntraLevel (RGIter* rgi,
@@ -822,7 +817,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void SendInterLevel (RGIter& rgi,
@@ -833,7 +827,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void SendInterLevel (RGIter* rgi,
@@ -844,7 +837,6 @@ class AsyncFillPatchIterator
                          int  ncomp,
                          int  iter,
                          int f,
-                         int tid,
                          bool singleT=false);
 
     void Receive (RGIter& rgi,
@@ -854,7 +846,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void Receive (RGIter* rgi,
@@ -864,7 +855,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void Receive (RGIter& rgi,
@@ -875,7 +865,6 @@ class AsyncFillPatchIterator
                   int  scomp,
                   int  ncomp,
                   int f,
-                  int tid,
                   bool singleT=false);
 
     void Receive (RGIter* rgi,
@@ -886,7 +875,6 @@ class AsyncFillPatchIterator
                   int  scomp,
                   int  ncomp,
                   int f,
-                  int tid,
                   bool singleT=false);
 
     void PullOnly (int  boxGrow,
@@ -895,7 +883,6 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
 
     void PullOnly (MultiFab& dest,
@@ -905,8 +892,43 @@ class AsyncFillPatchIterator
                    int  scomp,
                    int  ncomp,
                    int f,
-                   int tid,
                    bool singleT=false);
+
+    void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 AsyncFillPatchIterator* fpIter,
+                                 MultiFab *dmf,
+                                 MultiFab *dmff,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, unsigned char pushLevel, bool singleT);
+
+    void FillPatchTwoLevelsPull (MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 AsyncFillPatchIterator* fpIter,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, bool singleT);
+
+    void FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, const Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   MultiFab *dmf,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
+    void FillPatchSingleLevelPull (MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, const Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
 
     void FillFromTwoLevelsPush (Real time,
                                 int index,
@@ -914,9 +936,7 @@ class AsyncFillPatchIterator
                                 int dcomp,
                                 int ncomp,
                                 int f,
-                                int tid,
                                 unsigned char pushLevel,
-                                int tf,
                                 bool singleT);
     void FillFromTwoLevelsPull (Real time,
                                 int index,
@@ -924,7 +944,6 @@ class AsyncFillPatchIterator
                                 int dcomp,
                                 int ncomp,
                                 int f,
-                                int tid,
                                 bool singleT);
 
     void FillFromTwoLevelsPull (MultiFab& dest,
@@ -934,7 +953,6 @@ class AsyncFillPatchIterator
                                 int dcomp,
                                 int ncomp,
                                 int f,
-                                int tid,
                                 bool singleT);
 
     ~AsyncFillPatchIterator ();
