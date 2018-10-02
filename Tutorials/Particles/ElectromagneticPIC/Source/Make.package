@@ -1,0 +1,2 @@
+CEXE_sources += main.cpp IO.cpp NodalFlags.cpp
+CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H
