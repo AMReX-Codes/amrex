@@ -1,16 +1,12 @@
 #ifndef AMREX_MANAGED_H_
 #define AMREX_MANAGED_H_
 
+#include <AMReX.H>
+
 namespace amrex {
 
 // ************************************************
 // CUDA versions
-
-enum struct RunOn {CPU, GPU};
-struct CopyFromTo {
-   RunOn src;
-   RunOn dest;
-};
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 

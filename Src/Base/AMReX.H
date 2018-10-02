@@ -2,7 +2,6 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
-#include <AMReX_Managed.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 
@@ -26,6 +25,12 @@ namespace amrex
 
     typedef void (*PTR_TO_VOID_FUNC)(void);
     typedef void (*ErrorHandler) (const char* msg);
+
+    enum struct RunOn {CPU, GPU};
+    struct CopyFromTo {
+       RunOn src;
+       RunOn dest;
+    };
 
     namespace system
     {
