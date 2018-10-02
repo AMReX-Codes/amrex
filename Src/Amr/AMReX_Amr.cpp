@@ -1168,8 +1168,8 @@ Amr::readProbinFile (int& a_init)
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   ZFILL(Geometry::ProbLo()),
-			   ZFILL(Geometry::ProbHi()));
+			   AMREX_ZFILL(Geometry::ProbLo()),
+			   AMREX_ZFILL(Geometry::ProbHi()));
 
 #else
 
@@ -1333,6 +1333,11 @@ Amr::FinalizeInit (Real              strt_time,
         gridlog << "INITIAL GRIDS \n";
         printGridInfo(gridlog,0,finest_level);
     }
+
+#ifdef AMREX_USE_DEVICE
+    Device::start_profiler();
+#endif
+
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
