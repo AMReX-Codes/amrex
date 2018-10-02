@@ -36,27 +36,27 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Vector<amrex::Real>& x,
-                      amrex::Vector<amrex::Real>& y,
-                      amrex::Vector<amrex::Real>& z) const;
-    void SetPosition (const amrex::Vector<amrex::Real>& x,
-                      const amrex::Vector<amrex::Real>& y,
-                      const amrex::Vector<amrex::Real>& z);
+    void GetPosition (RealVector& x,
+                      RealVector& y,
+                      RealVector& z) const;
+    void SetPosition (const RealVector& x,
+                      const RealVector& y,
+                      const RealVector& z);
 #endif
 
-    const std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () const { 
+    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
     }
     
-    std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () { 
+    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
         return GetStructOfArrays().GetRealData(); 
     }
 
-    const amrex::Vector<amrex::Real>& GetAttribs (int comp) const { 
+    const RealVector& GetAttribs (int comp) const { 
         return GetStructOfArrays().GetRealData(comp);
     }
     
-    amrex::Vector<amrex::Real>& GetAttribs (int comp) { 
+    RealVector& GetAttribs (int comp) { 
         return GetStructOfArrays().GetRealData(comp);
     }
 };

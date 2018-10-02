@@ -18,14 +18,14 @@ WarpXParIter::WarpXParIter (ContainerType& pc, int level)
 
 #if (AMREX_SPACEDIM == 2)
 void
-WarpXParIter::GetPosition (Vector<Real>& x, Vector<Real>& y, Vector<Real>& z) const
+WarpXParIter::GetPosition (RealVector& x, RealVector& y, RealVector& z) const
 {
     amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
     y.resize(x.size(), std::numeric_limits<Real>::quiet_NaN());
 }
 
 void
-WarpXParIter::SetPosition (const Vector<Real>& x, const Vector<Real>& y, const Vector<Real>& z)
+WarpXParIter::SetPosition (const RealVector& x, const RealVector& y, const RealVector& z)
 {
     amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
 }
@@ -250,7 +250,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #pragma omp parallel
 #endif
     {
-        Vector<Real> xp, yp, zp;
+        RealVector xp, yp, zp;
         FArrayBox local_rho;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -474,7 +474,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 #pragma omp parallel
 #endif
     {
-        Vector<Real> xp, yp, zp, giv;
+        RealVector xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {

@@ -73,7 +73,7 @@ RigidInjectedParticleContainer::RemapParticles()
                 // Note that the particles are already in the boosted frame.
                 // This value is saved to advance the particles not injected yet
 
-                Vector<Real> xp, yp, zp;
+                RealVector xp, yp, zp;
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
@@ -134,7 +134,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 #pragma omp parallel
 #endif
     {
-        Vector<Real> xp, yp, zp;
+        RealVector xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -205,8 +205,8 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               Vector<Real>& xp, Vector<Real>& yp, Vector<Real>& zp,
-                                       Vector<Real>& giv,
+	                               RealVector& xp, RealVector& yp, RealVector& zp,
+                                       RealVector& giv,
                                        Real dt)
 {
 
@@ -239,7 +239,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 #endif
 
     // Save the position and momenta, making copies
-    Vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
+    RealVector xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
 
     if (!done_injecting_lev) {
         xp_save = xp;
@@ -355,7 +355,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-        Vector<Real> xp, yp, zp, giv;
+        RealVector xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {

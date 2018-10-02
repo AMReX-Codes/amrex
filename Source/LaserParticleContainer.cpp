@@ -232,7 +232,7 @@ LaserParticleContainer::InitData (int lev)
     BoxArray plane_ba { Box {IntVect(plane_lo[0],0), IntVect(plane_hi[0],0)} };
 #endif
 
-    Vector<Real> particle_x, particle_y, particle_z, particle_w;
+    RealVector particle_x, particle_y, particle_z, particle_w;
 
     const DistributionMapping plane_dm {plane_ba, nprocs};
     const Vector<int>& procmap = plane_dm.ProcessorMap();
@@ -263,9 +263,9 @@ LaserParticleContainer::InitData (int lev)
 	}
     }
     const int np = particle_z.size();
-    Vector<Real> particle_ux(np, 0.0);
-    Vector<Real> particle_uy(np, 0.0);
-    Vector<Real> particle_uz(np, 0.0);
+    RealVector particle_ux(np, 0.0);
+    RealVector particle_uy(np, 0.0);
+    RealVector particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
     AddNParticles(lev,
@@ -311,7 +311,7 @@ LaserParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	Vector<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
+	RealVector xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)

@@ -607,7 +607,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 #pragma omp parallel
 #endif
     {
-	Vector<Real> xp, yp, zp;
+	RealVector xp, yp, zp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -722,14 +722,14 @@ PhysicalParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	Vector<Real> xp, yp, zp, giv;
+	RealVector xp, yp, zp, giv;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
         std::vector<bool> inexflag;
         Vector<long> pid;
-        Vector<Real> tmp;
-        Vector<ParticleType> particle_tmp;
+        RealVector tmp;
+        ParticleVector particle_tmp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -1187,8 +1187,8 @@ PhysicalParticleContainer::Evolve (int lev,
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-	                          Vector<Real>& xp, Vector<Real>& yp, Vector<Real>& zp,
-                                  Vector<Real>& giv,
+	                          RealVector& xp, RealVector& yp, RealVector& zp,
+                                  RealVector& giv,
                                   Real dt)
 {
 
@@ -1242,7 +1242,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-	Vector<Real> xp, yp, zp, giv;
+	RealVector xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -1363,7 +1363,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
 #pragma omp parallel
 #endif
         {
-            Vector<Real> xp_new, yp_new, zp_new;
+            RealVector xp_new, yp_new, zp_new;
 
             for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
             {
