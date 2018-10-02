@@ -13,6 +13,9 @@ endif
 
 ifeq ($(USE_PYTHON_MAIN),TRUE)
   CXXFLAGS += -fPIC
+ifeq ($(USE_OMP),TRUE)
+  LDFLAGS += -fopenmp
+endif
   CFLAGS   += -fPIC
   FFLAGS   += -fPIC
   F90FLAGS += -fPIC
@@ -76,8 +79,8 @@ else
 endif
 
 installwarpx: libwarpx$(DIM)d.so
-	mv libwarpx$(DIM)d.so pywarpx
-	python setup.py install --with-libwarpx $(DIM) $(PYINSTALLOPTIONS)
+	mv libwarpx$(DIM)d.so Python/pywarpx
+	cd Python; python setup.py install --with-libwarpx $(DIM) $(PYINSTALLOPTIONS)
 
 libwarpx$(DIM)d.a: $(objForExecs)
 	@echo Making static library $@ ...

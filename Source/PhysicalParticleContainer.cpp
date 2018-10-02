@@ -1068,13 +1068,75 @@ PhysicalParticleContainer::Evolve (int lev,
                     const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
                     const int* cixyzmin_grid = cbox.loVect();
 
-                    const FArrayBox& cexfab = (*cEx)[pti];
-                    const FArrayBox& ceyfab = (*cEy)[pti];
-                    const FArrayBox& cezfab = (*cEz)[pti];
-                    const FArrayBox& cbxfab = (*cBx)[pti];
-                    const FArrayBox& cbyfab = (*cBy)[pti];
-                    const FArrayBox& cbzfab = (*cBz)[pti];
+                    const FArrayBox* cexfab = &(*cEx)[pti];
+                    const FArrayBox* ceyfab = &(*cEy)[pti];
+                    const FArrayBox* cezfab = &(*cEz)[pti];
+                    const FArrayBox* cbxfab = &(*cBx)[pti];
+                    const FArrayBox* cbyfab = &(*cBy)[pti];
+                    const FArrayBox* cbzfab = &(*cBz)[pti];
 
+                    if (warpx_use_fdtd_nci_corr())
+                    {
+#if (AMREX_SPACEDIM == 2)
+                        const Box& tbox = amrex::grow(cbox,{static_cast<int>(WarpX::nox),
+                                    static_cast<int>(WarpX::noz)});
+#else
+                        const Box& tbox = amrex::grow(cbox,{static_cast<int>(WarpX::nox),
+                                    static_cast<int>(WarpX::noy),
+                                    static_cast<int>(WarpX::noz)});
+#endif
+
+                        // both 2d and 3d
+                        filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
+                                                BL_TO_FORTRAN_ANYD(filtered_Ex),
+                                                BL_TO_FORTRAN_ANYD((*cEx)[pti]),
+                                                mypc.fdtd_nci_stencilz_ex[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cexfab = &filtered_Ex;
+
+                        filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
+                                                BL_TO_FORTRAN_ANYD(filtered_Ez),
+                                                BL_TO_FORTRAN_ANYD((*cEz)[pti]),
+                                                mypc.fdtd_nci_stencilz_by[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cezfab = &filtered_Ez;
+                        filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
+                                                BL_TO_FORTRAN_ANYD(filtered_By),
+                                                BL_TO_FORTRAN_ANYD((*cBy)[pti]),
+                                                mypc.fdtd_nci_stencilz_by[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cbyfab = &filtered_By;
+
+#if (AMREX_SPACEDIM == 3)
+                        filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
+                                                BL_TO_FORTRAN_ANYD(filtered_Ey),
+                                                BL_TO_FORTRAN_ANYD((*cEy)[pti]),
+                                                mypc.fdtd_nci_stencilz_ex[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        ceyfab = &filtered_Ey;
+                        
+                        filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
+                                                BL_TO_FORTRAN_ANYD(filtered_Bx),
+                                                BL_TO_FORTRAN_ANYD((*cBx)[pti]),
+                                                mypc.fdtd_nci_stencilz_by[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cbxfab = &filtered_Bx;
+                        
+                        filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
+                                                BL_TO_FORTRAN_ANYD(filtered_Bz),
+                                                BL_TO_FORTRAN_ANYD((*cBz)[pti]),
+                                                mypc.fdtd_nci_stencilz_ex[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cbzfab = &filtered_Bz;
+#endif
+                    }
+                    
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse, xp.data()+nfine_gather, yp.data()+nfine_gather, zp.data()+nfine_gather,
@@ -1084,12 +1146,12 @@ PhysicalParticleContainer::Evolve (int lev,
                         &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
                         &cdx[0], &cdx[1], &cdx[2],
                         &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                        BL_TO_FORTRAN_ANYD(cexfab),
-                        BL_TO_FORTRAN_ANYD(ceyfab),
-                        BL_TO_FORTRAN_ANYD(cezfab),
-                        BL_TO_FORTRAN_ANYD(cbxfab),
-                        BL_TO_FORTRAN_ANYD(cbyfab),
-                        BL_TO_FORTRAN_ANYD(cbzfab),
+                        BL_TO_FORTRAN_ANYD(*cexfab),
+                        BL_TO_FORTRAN_ANYD(*ceyfab),
+                        BL_TO_FORTRAN_ANYD(*cezfab),
+                        BL_TO_FORTRAN_ANYD(*cbxfab),
+                        BL_TO_FORTRAN_ANYD(*cbyfab),
+                        BL_TO_FORTRAN_ANYD(*cbzfab),
                         &ll4symtry, &l_lower_order_in_v,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 }

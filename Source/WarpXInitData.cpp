@@ -142,15 +142,15 @@ WarpX::InitNCICorrector ()
             const Real* dx = gm.CellSize();
             const int l_lower_order_in_v = warpx_l_lower_order_in_v();
             amrex::Real dz, cdtodz;
-            if (AMREX_SPACEDIM == 3){ 
-                dz = dx[2]; 
-            }else{ 
-                dz = dx[1]; 
+            if (AMREX_SPACEDIM == 3){
+                dz = dx[2];
+            }else{
+                dz = dx[1];
             }
             cdtodz = PhysConst::c * dt[lev] / dz;
-            WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(), 
-                                    (mypc->fdtd_nci_stencilz_by)[lev].data(), 
-                                    mypc->nstencilz_fdtd_nci_corr, cdtodz, 
+            WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
+                                    (mypc->fdtd_nci_stencilz_by)[lev].data(),
+                                    mypc->nstencilz_fdtd_nci_corr, cdtodz,
                                     l_lower_order_in_v);
         }
     }

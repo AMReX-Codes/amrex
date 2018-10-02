@@ -1,3 +1,5 @@
+# --- Simple example of Langmuir oscillations in a uniform plasma
+
 import numpy as np
 from pywarpx import picmi
 

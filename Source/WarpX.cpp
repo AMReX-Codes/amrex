@@ -402,6 +402,10 @@ WarpX::ReadParameters ()
 	pp.query("particle_pusher", particle_pusher_algo);
 	std::string s_solver = "";
 	pp.query("maxwell_fdtd_solver", s_solver);
+    std::transform(s_solver.begin(),
+                   s_solver.end(),
+                   s_solver.begin(),
+                   ::tolower);
 	// if maxwell_fdtd_solver is specified, set the value
 	// of maxwell_fdtd_solver_id accordingly.
       // Otherwise keep the default value maxwell_fdtd_solver_id=0
