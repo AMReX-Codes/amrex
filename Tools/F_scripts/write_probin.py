@@ -338,9 +338,13 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     type = params[n].type
 
                     if type == "logical":
-                        cmd = "merge(\"   \", \"[*]\", {} .eqv. {})".format(params[n].var, params[n].value)
+                        ltest = "\n{}ltest = {} .eqv. {}\n".format(indent, params[n].var, params[n].value)
                     else:
-                        cmd = "merge(\"   \", \"[*]\", {} == {})".format(params[n].var, params[n].value)
+                        ltest = "\n{}ltest = {} == {}\n".format(indent, params[n].var, params[n].value)
+
+                    fout.write(ltest)
+
+                    cmd = "merge(\"   \", \"[*]\", ltest)"
 
                     if type == "real":
                         fout.write("{}write (unit,102) {}, &\n \"{}\", {}\n".format(

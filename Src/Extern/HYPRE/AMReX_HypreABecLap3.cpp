@@ -245,6 +245,13 @@ HypreABecLap3::prepareSolver ()
         proc_begin += ncells_allprocs[i];
     }
 
+#ifdef AMREX_DEBUG
+    HYPRE_Int ncells_total = 0;
+    for (auto n : ncells_allprocs) {
+        ncells_total += n;
+    }
+#endif
+
     LayoutData<HYPRE_Int> offset(ba,dm);
     HYPRE_Int proc_end = proc_begin;
     for (MFIter mfi(ncells_grid); mfi.isValid(); ++mfi)
@@ -366,6 +373,18 @@ HypreABecLap3::prepareSolver ()
                                     bctype.data(), bcl.data(), &bho);
             }
 #endif
+
+#ifdef AMREX_DEBUG
+            HYPRE_Int nvalues = 0;
+            for (HYPRE_Int i = 0; i < nrows; ++i) {
+                nvalues += ncols[i];
+            }
+            for (HYPRE_Int i = 0; i < nvalues; ++i) {
+                AMREX_ASSERT(cols[i] >= 0 && cols[i] < ncells_total);
+            }
+#endif
+
+
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
         }
     }

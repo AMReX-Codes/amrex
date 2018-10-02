@@ -1,3 +1,16 @@
+# 18.10
+
+  -- MacProjector class for MAC projection
+
+  -- Support for Dirichlet EB in linear solver
+
+  -- Option to use PETSc as bottom solver
+
+  -- Multi-level linear solver with EB not crossing coarse/fine
+     boundary. 
+
+  -- Sundials 3 support
+
 # 18.09
 
   -- Cell-centered linear solver with homogeneous Neumann embedded
