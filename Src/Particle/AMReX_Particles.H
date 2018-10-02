@@ -587,6 +587,15 @@ private:
         <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
 
 public:
+
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+
     ParIterBase (ContainerRef pc, int level);
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
@@ -614,9 +623,9 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
 
-    void GetPosition (AMREX_D_DECL(Vector<Real>& x,
-                                   Vector<Real>& y,
-                                   Vector<Real>& z)) const;
+    void GetPosition (AMREX_D_DECL(RealVector& x,
+                                   RealVector& y,
+                                   RealVector& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 protected:
@@ -632,6 +641,7 @@ class ParIter
     : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>
 {
 public:
+
     using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
@@ -648,9 +658,9 @@ public:
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
 
-    void SetPosition (AMREX_D_DECL(const Vector<Real>& x,
-                                   const Vector<Real>& y,
-                                   const Vector<Real>& z)) const;
+    void SetPosition (AMREX_D_DECL(const RealVector& x,
+                                   const RealVector& y,
+                                   const RealVector& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
@@ -658,11 +668,14 @@ class ParConstIter
     : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>
 {
 public:
+
     using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
     using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
 
     ParConstIter (ContainerType const& pc, int level)
         : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
