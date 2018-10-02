@@ -776,7 +776,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
                                         BL_TO_FORTRAN_ANYD(filtered_Ex),
                                         BL_TO_FORTRAN_ANYD(Ex[pti]),
-                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        mypc.fdtd_nci_stencilz_ex[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 exfab = &filtered_Ex;
 
@@ -784,7 +784,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
                                         BL_TO_FORTRAN_ANYD(filtered_Ez),
                                         BL_TO_FORTRAN_ANYD(Ez[pti]),
-                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        mypc.fdtd_nci_stencilz_by[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 ezfab = &filtered_Ez;
 
@@ -792,7 +792,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
                                         BL_TO_FORTRAN_ANYD(filtered_By),
                                         BL_TO_FORTRAN_ANYD(By[pti]),
-                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        mypc.fdtd_nci_stencilz_by[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 byfab = &filtered_By;
 
@@ -801,7 +801,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
                                         BL_TO_FORTRAN_ANYD(filtered_Ey),
                                         BL_TO_FORTRAN_ANYD(Ey[pti]),
-                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        mypc.fdtd_nci_stencilz_ex[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 eyfab = &filtered_Ey;
 
@@ -809,7 +809,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
                                         BL_TO_FORTRAN_ANYD(filtered_Bx),
                                         BL_TO_FORTRAN_ANYD(Bx[pti]),
-                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        mypc.fdtd_nci_stencilz_by[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 bxfab = &filtered_Bx;
 
@@ -817,7 +817,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
                                         BL_TO_FORTRAN_ANYD(filtered_Bz),
                                         BL_TO_FORTRAN_ANYD(Bz[pti]),
-                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        mypc.fdtd_nci_stencilz_ex[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 bzfab = &filtered_Bz;
 #endif
