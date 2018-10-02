@@ -177,6 +177,10 @@ else
   USE_GPU_PRAGMA := FALSE
 endif
 
+ifneq ($(USE_CUDA),TRUE)
+  USE_GPU_PRAGMA = FALSE
+endif
+
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
@@ -410,13 +414,15 @@ ifeq ($(USE_CUDA),TRUE)
 
     USE_DEVICE := TRUE
     DEFINES += -DAMREX_USE_DEVICE
-    
+
     ifeq ($(USE_CUDA_UM),TRUE)
         DEFINES += -DAMREX_USE_CUDA_UM
 	DEFINES += -DBL_COALESCE_FABS
     endif
 
-    DEFINES += -DAMREX_USE_GPU_PRAGMA
+    ifeq ($(USE_GPU_PRAGMA),TRUE)
+        DEFINES += -DAMREX_USE_GPU_PRAGMA
+    endif
 
     CUDASuffix := .CUDA
 
@@ -516,7 +522,6 @@ ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
 endif
 
-
 CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
@@ -536,7 +541,11 @@ objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
 
-includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+  includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+else
+  includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+endif
 fincludes	= $(includes)
 fmoddir         = $(objEXETempDir)
 

@@ -74,7 +74,7 @@ contains
 
     !$gpu
 
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     ! Get our spatial index based on the CUDA thread index
 
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
