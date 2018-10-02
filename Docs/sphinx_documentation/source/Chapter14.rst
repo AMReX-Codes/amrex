@@ -27,6 +27,7 @@ CVODE tutorials provided in AMReX use this new interface.
    :maxdepth: 1
 
    CVODE
+   SUNDIALS3
 
 
 .. [1]
