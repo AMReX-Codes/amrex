@@ -519,20 +519,6 @@ namespace amrex
             }
     }
 
-// *************************************************************************************************************
-
-    void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross)
-    {
-	amrex::fill_boundary(mf, 0, mf.nComp(), geom, cross);
-    }
-
-// *************************************************************************************************************
-
-    void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross)
-    {
-	mf.FillBoundary(scomp,ncomp,geom.periodicity(),cross);
-    }
-
 
     void print_state(const MultiFab& mf, const IntVect& cell, const int n)
     {
