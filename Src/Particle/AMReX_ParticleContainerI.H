@@ -1074,7 +1074,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   
   // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
   for (int lev = lev_min; lev <= lev_max; lev++) {
-      typename std::map<std::pair<int, int>, Vector<Vector<ParticleType> > >::iterator pmap_it;
+      typename std::map<std::pair<int, int>, Vector<ParticleVector > >::iterator pmap_it;
       
       // we need to create any missing map entries in serial here
       for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
