@@ -57,7 +57,8 @@ void
 MyTest::runTest ()
 {
     BL_ASSERT(n_tasks > 0);
-    ForkJoin fj(n_tasks);
+    ForkJoin fj(n_tasks,outdir);
+    fj.SetVerbose(fj_verbose);
 
     int ng=data_single.nGrow();
     fj.reg_mf(data_split,"data_split",ForkJoin::Strategy::split,ForkJoin::Intent::in,{ng,ng,ng});
@@ -102,6 +103,10 @@ MyTest::readParameters ()
     data_split.define(grids,dmap,n_comp_split,n_grow);
     data_single.define(grids,dmap,n_comp_single,n_grow);
     data_all.define(grids,dmap,n_comp_all,n_grow+1);
+
+    pp.query("outdir",outdir);
+    fj_verbose = false;
+    pp.query("v",fj_verbose);
 }
 
 void
