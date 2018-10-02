@@ -34,7 +34,11 @@ public:
     // For (alpha * a - beta * (del dot b grad)) phi = rhs, flux means -b grad phi
     void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                     Location a_loc = Location::FaceCenter);
+    void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                    const Vector<MultiFab*> & a_sol,
+                    Location a_loc = Location::FaceCenter);
     void getFluxes (const Vector<MultiFab*> & a_flux, Location a_loc = Location::CellCenter);
+    void getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*> & a_sol, Location a_loc = Location::CellCenter);
     void compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
     // out = L(in). Note that, if no acutal solve is needed, one could
