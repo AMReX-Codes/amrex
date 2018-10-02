@@ -1253,9 +1253,8 @@ namespace amrex {
 
 #endif
 
-	//end USE_PERILLA
-#endif
-
 
     }//end amrex namespace
 
+#endif
+	//end USE_PERILLA
