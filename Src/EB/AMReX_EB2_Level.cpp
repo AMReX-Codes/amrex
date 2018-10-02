@@ -6,9 +6,9 @@
 namespace amrex { namespace EB2 {
 
 void
-Level::prepareForCoarsening (const Level& rhs, int max_grid_size)
+Level::prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow)
 {
-    BoxArray all_grids(m_geom.Domain());
+    BoxArray all_grids(amrex::grow(m_geom.Domain(),ngrow));
     all_grids.maxSize(max_grid_size);
     FabArray<EBCellFlagFab> cflag(all_grids, DistributionMapping{all_grids}, 1, 1);
     rhs.fillEBCellFlag(cflag, m_geom);
