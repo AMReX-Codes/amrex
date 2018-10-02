@@ -442,11 +442,10 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
     return bx;
 }
 
-#ifndef _OPENMP
+#if !defined(_OPENMP) && defined(AMREX_USE_CUDA)
 void
-MFIter::operator++ () {
-
-#ifdef AMREX_USE_CUDA
+MFIter::operator++ ()
+{
     if (Device::inDeviceLaunchRegion()) {
         if (real_reduce_list.size() == currentIndex + 1) {
             Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
@@ -454,18 +453,14 @@ MFIter::operator++ () {
                                              sizeof(Real));
         }
     }
-#endif
 
     ++currentIndex;
 
-#ifdef AMREX_USE_DEVICE
     Device::set_stream_index(currentIndex);
     Device::check_for_errors();
 #ifdef DEBUG
     Device::synchronize();
 #endif
-#endif
-
 }
 #endif
 
