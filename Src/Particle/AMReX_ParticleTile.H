@@ -19,51 +19,6 @@
 
 namespace amrex {
 
-namespace detail {
-    
-    template <size_t I, typename T>
-    struct tuple_n{
-        template< typename...Args> using type = typename tuple_n<I-1, T>::template type<T, Args...>;
-    };
-    
-    template <typename T>
-    struct tuple_n<0, T> {
-        template<typename...Args> using type = std::tuple<Args...>;
-    };
-    
-    template <size_t I, typename T> using tuple_of = typename tuple_n<I,T>::template type<>;
-    
-    template<size_t N, typename T, std::size_t... Is>
-    tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr, IndexSequence<Is...>)
-    {
-        return std::make_tuple(&arr[Is]...);
-    }
-    
-    template<size_t N, typename T>
-    tuple_of<N, T*> make_pointer_tuple(std::array<T, N>& arr)
-    {
-        return make_pointer_tuple(arr, makeIndexSequence<N>());
-    }    
-    
-#ifdef AMREX_USE_CUDA
-    template<typename... Args, std::size_t... Is>
-    auto to_thrust_tuple(const std::tuple<Args...>& t, IndexSequence<Is...>)
-        -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
-    {
-        return thrust::make_tuple(thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>(std::get<Is>(t)->data())...);
-    }
-#endif // AMREX_USE_CUDA
-}; // namespace detail
-
-#ifdef AMREX_USE_CUDA
-template<typename... Args>
-auto to_thrust_tuple(const std::tuple<Args...>& t)
-    -> thrust::tuple<typename thrust::device_ptr<typename std::remove_pointer<Args>::type::value_type>...>
-{
-    return detail::to_thrust_tuple(t, makeIndexSequence<sizeof...(Args)>());
-}
-#endif // AMREX_USE_CUDA
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile
 {
@@ -76,14 +31,6 @@ struct ParticleTile
     using SoA = StructOfArrays<NArrayReal, NArrayInt>;
     using RealVector = typename SoA::RealVector;
     using IntVector = typename SoA::IntVector;
-
-#ifdef AMREX_USE_CUDA
-    using struct_tuple_t = detail::tuple_of<1, ParticleVector*>;
-    using real_tuple_t = detail::tuple_of<NArrayReal, RealVector*>;
-    using int_tuple_t  = detail::tuple_of<NArrayInt,  IntVector* >;
-    using tuple_t = decltype(std::tuple_cat(struct_tuple_t(), real_tuple_t(), int_tuple_t()));
-    using thrust_zip_iterator_t = decltype(thrust::make_zip_iterator(to_thrust_tuple(tuple_t())));
-#endif
 
     AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
     const AoS& GetArrayOfStructs () const { return m_aos_tile; }
@@ -173,28 +120,6 @@ struct ParticleTile
         auto new_size = m_soa_tile.GetIntData(comp).size() + npar;
         m_soa_tile.GetIntData(comp).resize(new_size, v);
     }
-
-#ifdef AMREX_USE_CUDA
-    tuple_t data ()
-    {
-        auto struct_tuple = std::make_tuple(&m_aos_tile());
-        auto real_tuple = detail::make_pointer_tuple(m_soa_tile.GetRealData());
-        auto int_tuple = detail::make_pointer_tuple(m_soa_tile.GetIntData());
-        return std::tuple_cat(struct_tuple, real_tuple, int_tuple);
-    }
-    
-    thrust_zip_iterator_t begin ()
-    {
-        return thrust::make_zip_iterator(to_thrust_tuple(data()));
-    }
-    
-    thrust_zip_iterator_t end ()
-    {
-        auto it = begin();
-        thrust::advance(it, size());
-        return it;
-    }
-#endif // AMREX_USE_CUDA
 
 private:
 
