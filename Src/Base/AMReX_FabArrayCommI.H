@@ -43,7 +43,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_BOX_L_LAUNCH(tag.dbox,
+            AMREX_BOX_L_LAUNCH(RunOn::GPU, tag.dbox,
             [=] AMREX_CUDA_DEVICE () mutable
             {
                dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -218,48 +218,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe())
 #endif
-
-/* Stored current, failed attempt at non-BaseFab method.
-   Return from a Fortran function to C++ fails inside a kernel.
-   Would need to rewrite fortran function to take referenced value instead. 
-        if (amrex::IsBaseFab<FAB>::value)
-        {
-            unsigned long long *n = static_cast<unsigned long long*>( Device::device_malloc(sizeof(unsigned long long)) );
-            for (int j=0; j<N_snds; ++j)
-            {
-                char* dptr = send_data[j];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *send_cctc[j];
-                    for (auto const& tag : cctc)
-                    {
-                        unsigned long long zero = 0;
-                        size_t m = zero;
-                        Device::device_htod_memcpy(n, &zero, sizeof(unsigned long long));  // Reset value. Way around?
-
-                        const Box& bx = tag.sbox;
-                        const FAB* sfab = &(get(tag.srcIndex));
-
-                        AMREX_BOX_L_LAUNCH(bx,
-                        [=] AMREX_CUDA_DEVICE ()
-                        {
-                           unsigned long long bytes; // Don't need this - save reduction example.
-                           bytes = sfab->copyToMem(bx,scomp,ncomp,dptr);
-                           atomicAdd( n, bytes );   //  NEED "IF CPU" WRAPPER.
-                        });
-
-                        Device::synchronize();
-                        Device::device_dtoh_memcpy(&m, n, sizeof(unsigned long long));
-                        dptr += m;
-                    }
-                    BL_ASSERT(dptr == send_data[j] + send_size[j]); 
-                }
-	    }
-            Device::device_free(n);
-
-        }
-*/
-
         if (amrex::IsBaseFab<FAB>::value)
         {
             for (int j=0; j<N_snds; ++j)
@@ -273,7 +231,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(get(tag.srcIndex));
 
-                        AMREX_BOX_L_LAUNCH(bx,
+                        AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
                         [=] AMREX_CUDA_DEVICE ()
                         {
                            sfab->copyToMem(bx,scomp,ncomp,dptr);
@@ -415,7 +373,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_BOX_L_LAUNCH(tag.dbox,
+            AMREX_BOX_L_LAUNCH(RunOn::GPU, tag.dbox,
             [=] AMREX_CUDA_DEVICE () mutable
             {
                dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -440,7 +398,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 const FAB* sfab = &(get(tag.srcIndex));
                       FAB* dfab = &(get(tag.dstIndex));
 
-                AMREX_BOX_L_LAUNCH(tag.dbox,
+                AMREX_BOX_L_LAUNCH(RunOn::GPU, tag.dbox,
                 [=] AMREX_CUDA_DEVICE () mutable
                 {
                    dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -534,7 +492,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int scomp = fb_scomp;
                         const int ncomp = fb_ncomp;
 
-                        AMREX_BOX_L_LAUNCH(bx,
+                        AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
                         [=] AMREX_CUDA_DEVICE () 
                         {
                            dfab->copyFromMem(bx,scomp,ncomp,dptr);
