@@ -311,11 +311,11 @@ def create_host_version(device_procedure):
     host_procedure = device_procedure.replace("_device","").replace("attributes(device)", "attributes(host)")
     assert(host_procedure.count('_device') == 0)
 
-    # Some functions will have device code that is wrapped in #ifdef AMREX_USE_CUDA or
-    # #if defined(AMREX_USE_CUDA), and host code otherwise. To deal with this, we'll undefine
-    # AMREX_USE_CUDA inside the host version of the function.
+    # Some functions will have device code that is wrapped in #ifdef AMREX_USE_GPU_PRAGMA or
+    # #if defined(AMREX_USE_GPU_PRAGMA), and host code otherwise. To deal with this, we'll undefine
+    # AMREX_USE_GPU_PRAGMA inside the host version of the function.
 
-    host_procedure = "#undef AMREX_USE_CUDA\n" + host_procedure + "\n#define AMREX_USE_CUDA\n"
+    host_procedure = "#undef AMREX_USE_GPU_PRAGMA\n" + host_procedure + "\n#define AMREX_USE_GPU_PRAGMA\n"
 
     return host_procedure
 

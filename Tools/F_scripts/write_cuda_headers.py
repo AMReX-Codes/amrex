@@ -330,7 +330,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
         hout.write("#define _cuda_" + hdrmh + "_\n\n")
 
         # Wrap the device declarations in extern "C"
-        hout.write("#ifdef AMREX_USE_CUDA\n")
+        hout.write("#ifdef AMREX_USE_GPU_PRAGMA\n")
         hout.write("extern \"C\" {\n\n")
 
         for name in list(signatures_needed):
