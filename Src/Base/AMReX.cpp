@@ -455,7 +455,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
 
-        pp.query("runOn", runOn);
+        pp.query("run_on", runOn);
         std::string runOnLower = toLower(runOn);
 
         if (runOnLower == "gpu") {
