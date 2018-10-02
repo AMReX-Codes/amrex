@@ -1469,44 +1469,28 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary (bool cross)
 {
-    BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
-	FillBoundary_finish();
-    }
+    FillBoundary(0, nComp(), n_grow, Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary (const Periodicity& period, bool cross)
 {
-    BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(0, nComp(), n_grow, period, cross);
-	FillBoundary_finish();
-    }
+    FillBoundary_nowait(0, nComp(), n_grow, period, cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, bool cross)
 {
-    BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
-	FillBoundary_finish();
-    }
+    FillBoundary_nowait(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
-    BL_PROFILE("FabArray::FillBoundary()");
-    if ( n_grow.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, n_grow, period, cross);
-	FillBoundary_finish();
-    }
+    FillBoundary_nowait(scomp, ncomp, n_grow, period, cross);
 }
 
 template <class FAB>
@@ -1546,24 +1530,31 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, bool cross)
 
 template <class FAB>
 void
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
+{
+    FillBoundary_nowait(scomp, ncomp, nGrowVect(), period, cross);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
+                                    const Periodicity& period, bool cross)
+{
+    FBEP_nowait(scomp, ncomp, nghost, period, cross);
+}
+
+template <class FAB>
+void
 FabArray<FAB>::EnforcePeriodicity (const Periodicity& period)
 {
-    BL_PROFILE("FabArray::EnforcePeriodicity");
-    if (period.isAnyPeriodic()) {
-	FBEP_nowait(0, nComp(), nGrowVect(), period, false, true);
-	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
-    }
+    EnforcePeriodicity(0, nComp(), nGrowVect(), period);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period)
 {
-    BL_PROFILE("FabArray::EnforcePeriodicity");
-    if (period.isAnyPeriodic()) {
-	FBEP_nowait(scomp, ncomp, nGrowVect(), period, false, true);
-	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
-    }
+    EnforcePeriodicity(scomp, ncomp, nGrowVect(), period);
 }
 
 template <class FAB>
@@ -1576,21 +1567,6 @@ FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
 	FBEP_nowait(scomp, ncomp, nghost, period, false, true);
 	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
-}
-
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
-{
-    FBEP_nowait(scomp, ncomp, nGrowVect(), period, cross);
-}
-
-template <class FAB>
-void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
-                                    const Periodicity& period, bool cross)
-{
-    FBEP_nowait(scomp, ncomp, nghost, period, cross);
 }
 
 template <class FAB>
