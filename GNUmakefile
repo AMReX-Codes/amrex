@@ -8,7 +8,8 @@ DEBUG	= FALSE
 #DIM     = 2
 DIM	= 3
 
-COMP = gcc
+COMP = pgi
+#COMP = gcc
 #COMP = intel
 
 TINY_PROFILE   = TRUE
@@ -18,7 +19,8 @@ TINY_PROFILE   = TRUE
 
 STORE_OLD_PARTICLE_ATTRIBS = FALSE
 
-USE_OMP   = TRUE
+USE_OMP   = FALSE
+USE_CUDA  = TRUE
 
 EBASE     = main
 
