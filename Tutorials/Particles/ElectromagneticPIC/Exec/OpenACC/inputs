@@ -1,0 +1,12 @@
+
+ncell = (128, 128, 128)
+nppc  = (4, 4, 4) #number of particles per cell
+
+max_grid_size = 64
+
+problem_type = Langmuir #has exact solution, good for checking accuracy
+#problem_type = UniformPlasma #good for performance testing; loads of work
+
+nsteps = 10
+
+write_plot = false
