@@ -204,7 +204,7 @@ public:
 
     //! for calls to fortran.  
     const int* nCompPtr() const {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
         return nvar_d;
 #else
         return &nvar;
@@ -1476,7 +1476,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
     nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
     *nvar_d = nvar;
 #endif
@@ -1635,7 +1635,7 @@ BaseFab<T>::clear ()
 	    }
 	    amrex::The_Arena()->free(dptr);
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
             amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
