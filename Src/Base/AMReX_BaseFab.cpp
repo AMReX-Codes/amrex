@@ -27,7 +27,7 @@ int BF_init::m_cnt = 0;
 namespace
 {
     Arena* the_arena = 0;
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
     Arena* the_nvar_arena = 0;
 #endif
 }
@@ -48,7 +48,7 @@ BF_init::BF_init ()
         the_arena->SetPreferred();
 #endif
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
         const std::size_t hunk_size = 64 * 1024;
         the_nvar_arena = new CArena(hunk_size);
         the_nvar_arena->SetHostAlloc();
@@ -78,7 +78,7 @@ BF_init::~BF_init ()
 {
     if (--m_cnt == 0) {
         delete the_arena;
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
         delete the_nvar_arena;
 #endif
     }
@@ -180,7 +180,7 @@ The_Arena ()
     return the_arena;
 }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
 Arena*
 The_Nvar_Arena ()
 {
