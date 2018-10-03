@@ -723,7 +723,7 @@ contains
 
              do joff = -1, 1
                 do ioff = -1, 1
-                   if (mat_tmp(ioff,joff) .ne. zero) then
+                   if (mat_tmp(ioff,joff).ne.zero .and. cell_id(i+ioff,j+joff).ge.0) then
                       ncols(irow) = ncols(irow) + 1
                       cols(imat) = cell_id(i+ioff,j+joff)
                       mat(imat) = mat_tmp(ioff,joff)*diag(i,j)

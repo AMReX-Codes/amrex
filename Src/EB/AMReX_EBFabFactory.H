@@ -62,6 +62,9 @@ public:
     EB2::IndexSpace const* getEBIndexSpace () const;
     int maxCoarseningLevel () const;
 
+    const DistributionMapping& DistributionMap () const;
+    const BoxArray& boxArray () const;
+   
 private:
 
     EBSupport m_support;

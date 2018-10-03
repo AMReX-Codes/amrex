@@ -26,6 +26,7 @@ template <typename FAB> class FabFactory;
 class AmrTask;
 #ifdef USE_PERILLA
 class Perilla;
+class RegionGraph;
 #endif
 
 class FabArrayBase
@@ -35,6 +36,7 @@ class FabArrayBase
     friend class AmrTask;
 #ifdef USE_PERILLA
     friend class Perilla;
+    friend class RegionGraph;
 #endif
 
 public:
@@ -274,6 +276,15 @@ public:
     // The maximum number of components to copy() at a time.
     //
     static int MaxComp;
+#ifdef AMREX_USE_CUDA
+    //
+    // Whether to use CUDA-aware MPI.
+    // If true, MPI buffers will be staged on the GPU and sent
+    // directly from there; if false, the MPI staging buffers
+    // will be on the host.
+    //
+    static int use_cuda_aware_mpi;
+#endif
     //
     // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     //
@@ -603,10 +614,22 @@ protected:
 			      const Vector<int>& recv_size,
 			      MPI_Datatype datatype, int tag);
 #endif
+
 };
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
 
+    class FA_init
+    {
+    public:
+        FA_init ();
+        ~FA_init ();
+    private:
+        static int m_cnt;
+    };
+
 }
+
+static amrex::FA_init file_scope_FA_init_object;
 
 #endif
