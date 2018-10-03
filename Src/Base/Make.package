@@ -167,13 +167,6 @@ ifneq ($(BL_NO_FORT),TRUE)
 
 endif
 
-  C$(AMREX_BASE)_header += AMReX_Device.H
-  C$(AMREX_BASE)_sources += AMReX_Device.cpp
-
-ifeq ($(USE_CUDA),TRUE)
-  F90$(AMREX_BASE)_sources += AMReX_CUDA.F90
-endif
-
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
@@ -185,7 +178,6 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_CUDA.F90 
-  C$(AMREX_BASE)_headers += AMReX_CudaAllocators.H
 endif
 
 ifeq ($(LAZY),TRUE)

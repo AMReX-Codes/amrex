@@ -5,7 +5,7 @@
 
 namespace amrex
 {
-    void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const BCRecVector& bc)
+    void FillDomainBoundary (MultiFab& phi, const Geometry& geom, const Vector<BCRec>& bc)
     {
         if (Geometry::isAllPeriodic()) return;
         if (phi.nGrow() == 0) return;

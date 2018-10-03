@@ -2,7 +2,6 @@
 #ifndef AMREX_BCREC_H_
 #define AMREX_BCREC_H_
 
-#include <AMReX_CudaAllocators.H>
 #include <AMReX_Box.H>
 #include <AMReX_BC_TYPES.H>
 
@@ -94,12 +93,6 @@ private:
     */
     int bc[2*AMREX_SPACEDIM];
 };
-
-#if AMREX_USE_CUDA
-   using BCRecVector = Vector<BCRec, CudaHostAllocator<BCRec>>;
-#else
-   using BCRecVector = Vector<BCRec>;
-#endif
 
     /**
     * \brief Function for setting a BC.
