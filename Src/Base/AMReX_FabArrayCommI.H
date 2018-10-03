@@ -51,8 +51,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             });
         }
 
+#ifdef AMREX_USE_CUDA
         Device::synchronize();
-
+#endif
         return;
     }
 
@@ -243,7 +244,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     BL_ASSERT(dptr == send_data[j] + send_size[j]); 
                 }
 	    }
+#ifdef AMREX_USE_CUDA
             Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
+#endif
         }
         else  // Original, accounting for non-BaseFab objects. No GPU version yet. 
         {
@@ -264,7 +267,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
            } 
         }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_CUDA
         Device::synchronize();
 #endif
 
@@ -408,13 +411,15 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 {
                    dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
                 });
-
+#ifdef AMREX_USE_CUDA
                 Device::synchronize();
+#endif
 	    }
 	}
     }
-
+#ifdef AMREX_USE_CUDA
     Device::synchronize();
+#endif
 
 #endif /*BL_USE_MPI*/
 }
@@ -508,7 +513,9 @@ FabArray<FAB>::FillBoundary_finish ()
                     BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
                 }
             }
+#ifdef AMREX_USE_CUDA
             Device::synchronize();
+#endif
         }
         else  // Original, accounting for non-BaseFab objects. No GPU version for now.
         {
@@ -530,7 +537,7 @@ FabArray<FAB>::FillBoundary_finish ()
             }
         }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_CUDA
         Device::synchronize();
 #endif
 
@@ -659,7 +666,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
         }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_CUDA
     Device::synchronize();
 #endif
 
@@ -859,7 +866,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_CUDA
             Device::synchronize();
 #endif
 
@@ -1010,7 +1017,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
 	}
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_CUDA
         Device::synchronize();
 #endif
 
@@ -1086,7 +1093,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_CUDA
             Device::synchronize();
 #endif
 
