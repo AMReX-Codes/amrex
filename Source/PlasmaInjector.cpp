@@ -286,24 +286,26 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("zmax", zmax);
 
     // parse density information
-    std::string rho_prof_s;
-    pp.get("profile", rho_prof_s);
-    std::transform(rho_prof_s.begin(),
-                   rho_prof_s.end(),
-                   rho_prof_s.begin(),
-                   ::tolower);
-    if (rho_prof_s == "constant") {
-        pp.get("density", density);
-        rho_prof.reset(new ConstantDensityProfile(density));
-    } else if (rho_prof_s == "custom") {
-        rho_prof.reset(new CustomDensityProfile(species_name));
-    } else if (rho_prof_s == "parse_density_function") {
-        // Serialize particle initialization
-        WarpX::serialize_ics = true;
-        pp.get("density_function(x,y,z)", str_density_function);
-        rho_prof.reset(new ParseDensityProfile(str_density_function));
-    } else {
-        StringParseAbortMessage("Density profile type", rho_prof_s);
+    if (part_pos_s != "gaussian_beam" ){
+        std::string rho_prof_s;
+        pp.get("profile", rho_prof_s);
+        std::transform(rho_prof_s.begin(),
+                       rho_prof_s.end(),
+                       rho_prof_s.begin(),
+                       ::tolower);
+        if (rho_prof_s == "constant") {
+            pp.get("density", density);
+            rho_prof.reset(new ConstantDensityProfile(density));
+        } else if (rho_prof_s == "custom") {
+            rho_prof.reset(new CustomDensityProfile(species_name));
+        } else if (rho_prof_s == "parse_density_function") {
+            // Serialize particle initialization
+            WarpX::serialize_ics = true;
+            pp.get("density_function(x,y,z)", str_density_function);
+            rho_prof.reset(new ParseDensityProfile(str_density_function));
+        } else {
+            StringParseAbortMessage("Density profile type", rho_prof_s);
+        }
     }
 
     // parse momentum information
