@@ -27,7 +27,6 @@ namespace
 {
     static bool basefab_initialized = false;
 
-    Arena* the_arena = 0;
 #ifdef AMREX_USE_GPU_PRAGMA
     Arena* the_nvar_arena = 0;
 #endif
@@ -42,13 +41,13 @@ BaseFab_Initialize()
       basefab_initialized = true;
 
 #ifdef AMREX_USE_CUDA
-        the_arena->SetPreferred();
+      The_Arena()->SetPreferred();
 #endif
 
 #ifdef AMREX_USE_GPU_PRAGMA
-        const std::size_t hunk_size = 64 * 1024;
-        the_nvar_arena = new CArena(hunk_size);
-        the_nvar_arena->SetHostAlloc();
+      const std::size_t hunk_size = 64 * 1024;
+      the_nvar_arena = new CArena(hunk_size);
+      the_nvar_arena->SetHostAlloc();
 #endif
 
 #ifdef _OPENMP
@@ -79,7 +78,6 @@ BaseFab_Finalize()
 {
     basefab_initialized = false;   
 
-    delete the_arena;
 #ifdef AMREX_USE_GPU_PRAGMA
     delete the_nvar_arena;
 #endif
@@ -172,14 +170,6 @@ update_fab_stats (long n, long s, size_t szt)
 	    = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
 		       amrex::private_total_cells_allocated_in_fabs);
     }
-}
-
-Arena*
-The_Arena ()
-{
-    BL_ASSERT(the_arena != 0);
-
-    return the_arena;
 }
 
 #ifdef AMREX_USE_GPU_PRAGMA

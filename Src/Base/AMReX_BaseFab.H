@@ -1835,7 +1835,7 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
     }
 }
 
-#if !defined(BL_NO_FORT)
+#ifdef AMREX_USE_GPU_PRAGMA
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.
