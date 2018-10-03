@@ -1,9 +1,3 @@
-#include "AMReX_NeighborParticles.H"
-
-#include "AMReX_Particles.H"
-#include "AMReX_Particles_F.H"
-
-using namespace amrex;
 
 template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
