@@ -8,15 +8,23 @@
 namespace amrex {
 
 class Arena;
+class BArena;
+class CArena;
 
-Arena* The_Arena ();
-
-#ifdef AMREX_USE_GPU_PRAGMA
-Arena* The_Nvar_Arena ();
+#ifdef BL_COALESCE_FABS
+CArena* The_Arena ();
+#else
+BArena* The_Arena ();
 #endif
 
-Arena* The_FA_Arena ();
+#ifdef AMREX_USE_GPU_PRAGMA
+CArena* The_Nvar_Arena ();
+#endif
+BArena* The_FA_Arena ();
 
+
+void Arena_Initialize();
+void Arena_Finalize();
 /**
 * \brief 
 * A virtual base class for objects that manage their own dynamic
