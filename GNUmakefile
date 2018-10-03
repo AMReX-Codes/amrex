@@ -9,6 +9,8 @@ DEBUG	= FALSE
 DIM	= 3
 
 COMP = pgi
+NVCC_HOST_COMP = gcc
+
 #COMP = gcc
 #COMP = intel
 
@@ -21,6 +23,7 @@ STORE_OLD_PARTICLE_ATTRIBS = FALSE
 
 USE_OMP   = FALSE
 USE_CUDA  = TRUE
+USE_ACC   = TRUE
 
 EBASE     = main
 
