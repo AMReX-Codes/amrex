@@ -6,7 +6,16 @@
 # OpenACC, then PGI is required, so we cannot do this.
 #
 
-ifneq ($(USE_ACC),TRUE)
+ifeq ($(USE_ACC),TRUE)
+  NVCC_HOST_COMP ?= COMP
+else
+  NVCC_HOST_COMP ?= gnu
+endif
+
+lowercase_nvcc_host_comp = $(shell echo $(NVCC_HOST_COMP) | tr A-Z a-z)
+
+ifeq ($(lowercase_nvcc_host_comp),$(filter $(lowercase_nvcc_host_comp),gcc gnu g++))
+  lowercase_nvcc_host_comp = gnu
   include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 endif
 
@@ -22,7 +31,11 @@ HOST_CFLAGS   := $(CFLAGS)
 HOST_CXX := $(CXX)
 HOST_CC := $(CC)
 
-CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS) --std=c++11'
+ifeq ($(lowercase_nvcc_host_comp),gnu)
+  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS) --std=c++11'
+else
+  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
+endif
 CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
