@@ -79,13 +79,12 @@ BaseFab_Finalize()
 {
     basefab_initialized = false;   
 
-    if (--m_cnt == 0) {
-        delete the_arena;
+    delete the_arena;
 #ifdef AMREX_USE_GPU_PRAGMA
-        delete the_nvar_arena;
+    delete the_nvar_arena;
 #endif
-    }
 }
+
 
 long 
 TotalBytesAllocatedInFabs()
@@ -923,5 +922,7 @@ BaseFab<int>::minus (const BaseFab<int>& src,
 
     return *this;
 }
+
+#endif
 
 }
