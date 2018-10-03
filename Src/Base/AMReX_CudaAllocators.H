@@ -78,16 +78,6 @@ namespace amrex {
     template <typename K, typename T>
     using CudaMap = std::map<K,T>;
 
-#endif // CUDA
-
-
-
-
-
-
-
-
-    
 #endif // AMREX_USE_CUDA
 
 } // namespace amrex
