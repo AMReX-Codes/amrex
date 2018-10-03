@@ -12,6 +12,21 @@
         FC  := pgfortran
         F90 := pgfortran
     endif
+    
+    ifeq ($(findstring summitdev, $(HOSTNAMEF)), summitdev)
+       libraries += -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
+       ifdef CUDA
+         CUDA_ARCH = 60
+         COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+       endif
+    else ifeq ($(findstring summit, $(HOSTNAMEF)), summit)
+       libraries += -L /sw/summitdev/gcc/5.4.0new/lib64 -latomic
+       ifdef CUDA
+         CUDA_ARCH = 70
+         COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+       endif
+    endif
+
     FFLAGS   += -module $(mdir) -I$(mdir) 
     F90FLAGS += -module $(mdir) -I$(mdir)
 
@@ -25,10 +40,10 @@
     endif
 
     ifdef ACC
-      F90FLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
-      FFLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
-      CFLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
-      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cuda$(CUDA_VERSION)
+      F90FLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
+      FFLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
+      CFLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
+      CXXFLAGS += -acc -Minfo=acc -ta=tesla:cc$(CUDA_ARCH)
     else
       F90FLAGS += -noacc
       FFLAGS += -noacc
@@ -37,10 +52,10 @@
     endif
 
     ifdef CUDA
-      F90FLAGS += -Mcuda=cuda$(CUDA_VERSION)
-      FFLAGS += -Mcuda=cuda$(CUDA_VERSION)
-      CFLAGS += -Mcuda=cuda$(CUDA_VERSION)
-      CXXFLAGS += -Mcuda=cuda$(CUDA_VERSION)
+      F90FLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
+      FFLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
+      CFLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
+      CXXFLAGS += -Mcuda=cc$(CUDA_ARCH) CUDAROOT=$(COMPILE_CUDA_PATH)
     endif
 
     ifdef NDEBUG
@@ -63,8 +78,4 @@
     ifneq ($(findstring titan, $(HOST)), titan)
         #The wrappers should pick this up on Titan, so don't add it in that case.
         LDFLAGS += -pgc++libs
-    endif
-
-    ifeq ($(findstring summitdev, $(HOST)), summitdev)
-       libraries += -L /sw/summitdev/gcc/5.4.0new/lib64/ -latomic
     endif

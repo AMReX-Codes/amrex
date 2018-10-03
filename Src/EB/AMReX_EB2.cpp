@@ -33,7 +33,8 @@ void Finalize ()
 }
 
 void
-Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_level)
+Build (const Geometry& geom, int required_coarsening_level,
+       int max_coarsening_level, int ngrow)
 {
     ParmParse pp("eb2");
     std::string geom_type;
@@ -43,7 +44,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     {
         EB2::AllRegularIF rif;
         EB2::GeometryShop<EB2::AllRegularIF> gshop(rif);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "box")
     {
@@ -59,7 +61,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::BoxIF bf(lo, hi, has_fluid_inside);
 
         EB2::GeometryShop<EB2::BoxIF> gshop(bf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "cylinder")
     {
@@ -83,7 +86,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::CylinderIF cf(radius, height, direction, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::CylinderIF> gshop(cf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "plane")
     {
@@ -96,7 +100,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::PlaneIF pf(point, normal);
 
         EB2::GeometryShop<EB2::PlaneIF> gshop(pf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "sphere")
     {
@@ -112,7 +117,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::SphereIF sf(radius, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::SphereIF> gshop(sf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else
     {

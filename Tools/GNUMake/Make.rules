@@ -23,7 +23,7 @@ endif
 #
 # Rules for building executable.
 #
-$(executable):	$(objForExecs)
+$(executable): $(objForExecs)
 	@echo Linking $@ ...
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(F90) $(F90FLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
@@ -92,8 +92,8 @@ $(amrexIncludeDir)/AMReX_Config.H: FORCE
 
 clean::
 	@echo Cleaning...
-	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
-	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(objEXETempDir)/*.o
+	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90
+	$(SILENT) $(RM) $(srcTempDir)/* $(objEXETempDir)/*.o
 	$(SILENT) $(RM) $(tmpEXETempDir)/*
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable)
@@ -137,34 +137,75 @@ FORCE:
 $(objEXETempDir)/%.o: %.cpp
 	@echo Compiling $*.cpp ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+else
 	$(SILENT) $(CCACHE) $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+endif
 
 $(objEXETempDir)/%.o: %.c
 	@echo Compiling $*.c ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $(srcTempDir)/$(<F) $(EXE_OUTPUT_OPTION)
+else
 	$(SILENT) $(CCACHE) $(CC) $(CFLAGS) -DBL_LANG_C -DAMREX_LANG_C $(CPPFLAGS) $(includes) -c $< $(EXE_OUTPUT_OPTION)
+endif
 
 $(objEXETempDir)/%.o: %.f
 	@echo Compiling $*.f ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
+else
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+endif
 
 $(objEXETempDir)/%.o: %.F
 	@echo Compiling $*.F ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(f77EXETempDir) ]; then mkdir -p $(f77EXETempDir); fi
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $(srcTempdir)/$(<F) | $(FORTPREP) > $(srcTempDir)/$*.f
+	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(srcTempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+else
 	$(SILENT) $(FORT_CPP) -DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes) $< | $(FORTPREP) > $(f77EXETempDir)/$*.f
 	$(SILENT) $(F90CACHE) $(FC) $(FFLAGS) $(fincludes) -c $(f77EXETempDir)/$*.f $(FORT_EXE_OUTPUT_OPTION)
+endif
 
 $(objEXETempDir)/%.o: %.f90
 	@echo Compiling $*.f90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
+else
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+endif
 
 $(objEXETempDir)/%.o: %.F90
 	@echo Compiling $*.F90 ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	@if [ "$(CUDA_MAXREGCOUNT_$(<F))" != "" ]; then \
+	  $(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT_$(<F)), $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
+	else \
+	  $(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
+	fi
+else
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FINAL_CPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+endif
 
 #
 # Rules for dependencies in bare object files.
@@ -204,6 +245,10 @@ $(objEXETempDir)/%.o: %.F90
 
 $(depEXETempDir)/%.d: %.cpp
 	@echo Depending $< ...
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $? $(srcTempDir)'
+endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -211,6 +256,10 @@ $(depEXETempDir)/%.d: %.cpp
 
 $(depEXETempDir)/%.d: %.c
 	@echo Depending $< ...
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $? $(srcTempDir)'
+endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
 		sed -e '\''s,^[^:]*\/,,'\'' | \
@@ -241,8 +290,24 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
             --temp_dir $(f77EXETempDir) \
             --cpp "$(FORT_CPP)" \
             --defines "-DBL_LANG_FORT -DAMREX_LANG_FORT $(CPPFLAGS) $(fincludes)" \
-            --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends 
+            --f90_preprocess "$(F90PREP)" $^ > $(depEXETempDir)/f90.depends
 
+# $(CEXE_sources)
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+$(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_cuda_done' # So that the rule always gets updated
+	$(AMREX_HOME)/Tools/F_scripts/write_cuda_headers.py \
+             --output_dir "$(srcTempDir)" \
+             --vpath "$(VPATH_LOCATIONS)" \
+             --headers "$(FEXE_headers) $(F90EXE_headers)" \
+             --cxx "$(CEXE_sources)" \
+             --cpp "gcc -E -P -std=c99" \
+             --defines "$(CPPFLAGS) $(includes)" \
+             --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
+endif
+endif
 
 #
 # <typecheck>
@@ -290,12 +355,20 @@ typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
 
 #
 # Now load/build the dependency files.
+# Also handle any necessary preprocessing.
 #
 ifneq ($(MAKECMDGOALS),realclean)
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),uninstall)
 ifneq ($(MAKECMDGOALS),distclean)
 ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
+
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
+endif
+endif
+
 ifdef CEXE_sources
 -include $(CEXE_sources:%.cpp=$(depEXETempDir)/%.d)
 endif
