@@ -43,7 +43,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_BOX_L_LAUNCH(RunOn::GPU, tag.dbox,
+            AMREX_BOX_L_LAUNCH(fb_runon, tag.dbox,
             [=] AMREX_CUDA_DEVICE () mutable
             {
                dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -231,7 +231,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(get(tag.srcIndex));
 
-                        AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
+                        AMREX_BOX_L_LAUNCH(fb_runon, bx,
                         [=] AMREX_CUDA_DEVICE ()
                         {
                            sfab->copyToMem(bx,scomp,ncomp,dptr);
@@ -373,7 +373,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_BOX_L_LAUNCH(RunOn::GPU, tag.dbox,
+            AMREX_BOX_L_LAUNCH(fb_runon, tag.dbox,
             [=] AMREX_CUDA_DEVICE () mutable
             {
                dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -398,7 +398,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 const FAB* sfab = &(get(tag.srcIndex));
                       FAB* dfab = &(get(tag.dstIndex));
 
-                AMREX_BOX_L_LAUNCH(RunOn::GPU, tag.dbox,
+                AMREX_BOX_L_LAUNCH(fb_runon, tag.dbox,
                 [=] AMREX_CUDA_DEVICE () mutable
                 {
                    dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -492,7 +492,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int scomp = fb_scomp;
                         const int ncomp = fb_ncomp;
 
-                        AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
+                        AMREX_BOX_L_LAUNCH(fb_runon, bx,
                         [=] AMREX_CUDA_DEVICE () 
                         {
                            dfab->copyFromMem(bx,scomp,ncomp,dptr);
