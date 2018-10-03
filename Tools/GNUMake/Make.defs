@@ -117,7 +117,6 @@ ifeq ($(USE_MPI3),TRUE)
   USE_MPI := TRUE
 endif
 
-
 ifdef USE_CUDA
   USE_CUDA := $(strip $(USE_CUDA))
 else
@@ -128,15 +127,19 @@ ifndef USE_CUDA_UM
   USE_CUDA_UM = TRUE
 endif
 
+ifndef NO_DEVICE_LAUNCH
+  NO_DEVICE_LAUNCH = FALSE
+endif
+
 ifeq ($(USE_CUDA),TRUE)
-  # Set the default CUDA version.
-  CUDA_VERSION ?= cuda9.0
+  # Set the default CUDA architecture version.
+  CUDA_ARCH ?= 35
 
   # Maximum number of CUDA threads per block.
-  CUDA_MAX_THREADS ?= 512
+  CUDA_MAX_THREADS ?= 256
 
   # Limit the maximum number of registers available.
-  CUDA_MAXREGCOUNT ?= 128
+  CUDA_MAXREGCOUNT ?= 255
 endif
 
 ifdef DIMENSION_AGNOSTIC
@@ -167,6 +170,10 @@ ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
 else
   USE_GPU_PRAGMA := FALSE
+endif
+
+ifneq ($(USE_CUDA),TRUE)
+  USE_GPU_PRAGMA = FALSE
 endif
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
@@ -359,6 +366,8 @@ endif
 ifeq ($(USE_ACC),TRUE)
 
   ACCSuffix := .ACC
+  DEFINES += -DAMREX_USE_ACC
+  DEFINES += -DAMREX_USE_GPU
 
 endif
 
@@ -373,27 +382,73 @@ ifeq ($(USE_CUDA),TRUE)
         $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
     endif
 
-    DEFINES += -DCUDA
+    ifneq ($(lowercase_comp),pgi)
+        ifneq ($(lowercase_comp),ibm)
+            $(error CUDA can only be used with COMP=pgi COMP=ibm)
+        endif
+    endif
+
+    ifeq ($(USE_MPI),TRUE)
+      # Make sure that the C/C++ MPI
+      # wrappers are calling nvcc to compile the code.
+      # Right now we handle OpenMPI/Spectrum MPI and MPICH.
+      # Other MPI implementations could be added later.
+
+      export OMPI_CC := $(CC)
+      export OMPI_CXX := $(CXX)
+      export OMPI_F77 := $(FC)
+      export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := $(CC)
+      export MPICH_CXX := $(CXX)
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
+
+      LINK_WITH_FORTRAN_COMPILER=TRUE
+    endif
+
     DEFINES += -DAMREX_USE_CUDA
+    DEFINES += -DAMREX_USE_GPU
 
     USE_DEVICE := TRUE
     DEFINES += -DAMREX_USE_DEVICE
-    
+
     ifeq ($(USE_CUDA_UM),TRUE)
-        DEFINES += -DCUDA_UM
         DEFINES += -DAMREX_USE_CUDA_UM
-#	DEFINES += -DBL_COALESCE_FABS
+	DEFINES += -DBL_COALESCE_FABS
+    endif
+
+    ifeq ($(USE_GPU_PRAGMA),TRUE)
+        DEFINES += -DAMREX_USE_GPU_PRAGMA
     endif
 
     CUDASuffix := .CUDA
-    DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
-    DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
-    DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
+
+    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+      DEFINES += -DAMREX_LAUNCH='attributes(global)'
+      DEFINES += -DAMREX_DEVICE='attributes(device)'
+
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
+    else
+      DEFINES += -DAMREX_LAUNCH=""
+      DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_NO_DEVICE_LAUNCH
+
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_HOST=""
+    endif
 
 else
+    DEFINES += -DAMREX_LAUNCH=""
+    DEFINES += -DAMREX_DEVICE=""
+
     DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
     DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
     DEFINES += -DAMREX_CUDA_FORT_HOST=""
+
     CUDASuffix :=
 endif
 
@@ -476,10 +531,6 @@ ifeq ($(USE_EB),TRUE)
     CPPFLAGS += -DAMREX_USE_EB
 endif
 
-includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-fincludes	= $(includes)
-fmoddir         = $(objEXETempDir)
-
 CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
@@ -493,10 +544,19 @@ optionsSuffix	= $(DIM)d.$(machineSuffix)
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 TmpBuildDir     = tmp_build_dir
+srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
 depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+  includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+else
+  includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+endif
+fincludes	= $(includes)
+fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
@@ -628,16 +688,18 @@ ifeq ($(USE_CUDA),TRUE)
 
     endif
 
-    ifeq ($(NO_CUDA_8_SUPPORT),TRUE)
-      DEFINES += -DNO_CUDA_8
-      ifeq ($(lowercase_comp),pgi)
-        F90FLAGS := $(subst cuda8.0,cuda7.5,$(F90FLAGS))
-        FFLAGS := $(subst cuda8.0,cuda7.5,$(FFLAGS))
-      endif
+    # Provide system configuration, if available.
+
+    ifdef GPUS_PER_SOCKET
+       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
+    endif
+
+    ifdef GPUS_PER_NODE
+       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
     endif
 
     # Set the CUDA threads define in case the user updated it.
 
-    DEFINES += -DCUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
+    DEFINES += -DAMREX_CUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
 
 endif

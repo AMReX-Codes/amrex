@@ -1195,17 +1195,7 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
-    const Real betainv = 1.0 / linop.getBScalar();
-
-    for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        linop.compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            linop.unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
-            if (betainv != 1.0) {
-                a_flux[alev][idim]->mult(betainv);
-            }
-        }
-    }
+    linop.getFluxes(a_flux, a_sol, a_loc);
 }
 
 void

@@ -7,19 +7,16 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_RealBox.H>
+
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
 namespace amrex {
-
-#ifdef AMREX_USE_CUDA
-static constexpr bool TrueUnlessGPU = false;
-#else
-static constexpr bool TrueUnlessGPU = true;
-#endif
 
 template<class T> class FabArray;
 
@@ -58,7 +55,11 @@ public:
         NoTeamBarrier = 0x04, 
         //! SkipInit: Used by MFGhostIter
 	SkipInit      = 0x08  
-    };  
+    };
+
+#ifdef AMREX_USE_CUDA
+    enum MFReducer { SUM = 0, MAX, MIN };
+#endif
 
     /** 
     * \brief The default constructor does not enable tiling (flags_ is set to 0 by default). 
@@ -122,7 +123,7 @@ public:
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
-#ifdef _OPENMP
+#if defined(_OPENMP)
     void operator++ () {
         if (dynamic) {
 #pragma omp atomic capture
@@ -131,14 +132,10 @@ public:
             ++currentIndex;
         }
     }
+#elif !defined(AMREX_USE_CUDA)
+    void operator++ () { ++currentIndex; }
 #else
-    void operator++ () {
-         ++currentIndex; 
-#ifdef AMREX_USE_CUDA
-         Device::set_stream_index(currentIndex);
-         Device::check_for_errors();
-#endif
-    }
+    void operator++ ();
 #endif
 
     //! Is the iterator valid i.e. is it associated with a FAB?
@@ -147,13 +144,28 @@ public:
     //! The index into the underlying BoxArray of the current FAB.
     int index () const { return (*index_map)[currentIndex]; }
 
+    //! The number of indices.
+    int length () const { return (endIndex - beginIndex); }
+
     //! The current local tile index in the current grid;
     int LocalTileIndex () const {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
   
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
-    const RealBox& registerRealBox (const RealBox& rbox) const;
+    //! Return a unique index associated with the current box and/or tile.
+    int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
+
+#ifdef AMREX_USE_CUDA
+    //! Maintain a list of values to reduce.
+    template<typename T>
+    T* add_reduce_value(T* val, MFReducer r) { return val; }
+
+    Real* add_reduce_value(Real* val, MFReducer r);
+
+    //! Reduce over the values in the list.
+    void reduce();
+#endif
 
     /**
     * \brief Return local index into the vector of fab pointers, m_fabs_v
@@ -190,17 +202,20 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
+#ifdef AMREX_USE_CUDA
+    mutable Real* real_reduce_val;
+
+    mutable MFReducer reducer;
+
+    mutable Vector<Real> real_reduce_list;
+
+    mutable Vector<Real*> real_device_reduce_list;
+#endif
+
     static int nextDynamicIndex;
   
     void Initialize ();
 };
-
-inline
-const RealBox&
-MFIter::registerRealBox(const RealBox& rbox) const
-{
-    return rbox;
-}
 
 //! Iterate over ghost cells.  Lots of MFIter functions do not work.
 class MFGhostIter
@@ -214,6 +229,23 @@ private:
     FabArrayBase::TileArray lta;
 };
 
+#ifdef AMREX_USE_CUDA
+    // \cond CODEGEN
+    class MFIter_init
+    {
+    public:
+        MFIter_init ();
+        ~MFIter_init ();
+    private:
+        static int m_cnt;
+    };
+    // \endcond
+#endif
+
 }
+
+#ifdef AMREX_USE_CUDA
+static amrex::MFIter_init file_scope_MFIter_init_object;
+#endif
 
 #endif

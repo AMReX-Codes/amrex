@@ -51,6 +51,11 @@ ifeq ($(findstring sierra, $(host_name)), sierra)
   which_computer := sierra
 endif
 
+ifeq ($(findstring butte, $(host_name)), butte)
+  which_site := llnl
+  which_computer := butte
+endif
+
 ifeq ($(findstring ray, $(host_name)), ray)
   which_site := llnl
   which_computer := ray
@@ -59,6 +64,11 @@ endif
 ifeq ($(findstring rzmanta, $(host_name)), rzmanta)
   which_site := llnl
   which_computer := rzmanta
+endif
+
+ifeq ($(findstring rzansel, $(host_name)), rzansel)
+  which_site := llnl
+  which_computer := rzansel
 endif
 
 ifeq ($(findstring mira, $(host_name)), mira)
@@ -89,4 +99,9 @@ endif
 ifeq ($(findstring nrel, $(host_name)), nrel)
   which_site := nrel
   which_computer := anymachine
+endif
+
+ifeq ($(findstring daint, $(host_name)), daint)
+  which_site := cscs
+  which_computer := daint
 endif

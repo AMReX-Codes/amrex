@@ -40,10 +40,10 @@ CFLAGS   += -std=gnu99
 
 ########################################################################
 
-GENERIC_IBM_FLAGS = -qmoddir=$(fmoddir) -I $(fmoddir)
+GENERIC_IBM_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
-  GENERIC_COMP_FLAGS += -qsmp=omp
+  GENERIC_IBM_FLAGS += -qsmp=omp
 endif
 
 CXXFLAGS += $(GENERIC_IBM_FLAGS)
@@ -90,10 +90,13 @@ F90FLAGS += -WF,-C!
 
 FFLAGS   += -qfixed=72
 
+F90FLAGS += -qmoddir=$(fmoddir) -I $(fmoddir)
+FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
+
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
-override XTRALIBS = -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
+override XTRALIBS = -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
 
 ifeq ($(USE_OMP),TRUE)
   override XTRALIBS += -lxlsmp

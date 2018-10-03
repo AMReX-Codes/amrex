@@ -2,8 +2,46 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
+#ifdef AMREX_USE_DEVICE
+#include <AMReX_Device.H>
+#endif
 
 namespace amrex {
+
+#ifdef AMREX_USE_CUDA
+int MFIter_init::m_cnt = 0;
+
+namespace
+{
+    Arena* the_mfiter_arena = 0;
+}
+
+MFIter_init::MFIter_init ()
+{
+    if (m_cnt++ == 0)
+    {
+        BL_ASSERT(the_mfiter_arena == 0);
+
+        the_mfiter_arena = new CArena;
+
+	the_mfiter_arena->SetDeviceMemory();
+    }
+}
+
+MFIter_init::~MFIter_init ()
+{
+    if (--m_cnt == 0)
+        delete the_mfiter_arena;
+}
+
+Arena*
+The_MFIter_Arena ()
+{
+    BL_ASSERT(the_mfiter_arena != 0);
+
+    return the_mfiter_arena;
+}
+#endif
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 
@@ -176,8 +214,22 @@ MFIter::~MFIter ()
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
+#ifdef AMREX_USE_DEVICE
+    Device::synchronize();
+#endif
+
 #ifdef AMREX_USE_CUDA
-//    Device::synchronize();
+    reduce();
+#endif
+
+#ifdef AMREX_USE_CUDA
+    if (Device::inDeviceLaunchRegion()) {
+        for (int i = 0; i < real_reduce_list.size(); ++i)
+            amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
+    }
+#endif
+
+#ifdef AMREX_USE_DEVICE
     Device::check_for_errors();
     Device::set_stream_index(-1);
 #endif
@@ -271,11 +323,11 @@ MFIter::Initialize ()
 
 	currentIndex = beginIndex;
 
-	typ = fabArray.boxArray().ixType();
-
-#ifdef AMREX_USE_CUDA
-        Device::set_stream_index(currentIndex);
+#ifdef AMREX_USE_DEVICE
+	Device::set_stream_index(currentIndex);
 #endif
+
+	typ = fabArray.boxArray().ixType();
     }
 }
 
@@ -419,22 +471,102 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
     return bx;
 }
 
-Box
-MFIter::grownnodaltilebox (int dir, const IntVect& ng) const
+#if !defined(_OPENMP) && defined(AMREX_USE_CUDA)
+void
+MFIter::operator++ ()
 {
-    BL_ASSERT(dir < AMREX_SPACEDIM);
-    Box bx = nodaltilebox(dir);
-    const Box& vbx = validbox();
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ng[d]);
-	}
-	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, ng[d]);
-	}
+    if (Device::inDeviceLaunchRegion()) {
+        if (real_reduce_list.size() == currentIndex + 1) {
+            Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
+                                             real_device_reduce_list[currentIndex],
+                                             sizeof(Real));
+        }
     }
-    return bx;
+
+    ++currentIndex;
+
+    Device::set_stream_index(currentIndex);
+    Device::check_for_errors();
+#ifdef DEBUG
+    Device::synchronize();
+#endif
 }
+#endif
+
+#ifdef AMREX_USE_CUDA
+Real*
+MFIter::add_reduce_value(Real* val, MFReducer r)
+{
+
+    if (Device::inDeviceLaunchRegion()) {
+
+        real_reduce_val = val;
+
+        reducer = r;
+
+        Real reduce_val = *val;
+        real_reduce_list.push_back(reduce_val);
+
+        Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
+        real_device_reduce_list.push_back(dval);
+
+        Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
+                                         &real_reduce_list[currentIndex],
+                                         sizeof(Real));
+
+        return dval;
+
+    }
+    else {
+
+        return val;
+
+    }
+
+}
+#endif
+
+#ifdef AMREX_USE_CUDA
+// Reduce over the values in the list.
+void
+MFIter::reduce()
+{
+
+    // Do nothing if we're not currently executing on the device.
+
+    if (!Device::inDeviceLaunchRegion()) return;
+
+    // Do nothing if we don't have enough values to reduce on.
+
+    if (real_reduce_list.empty()) return;
+
+    if (real_reduce_list.size() < length()) return;
+
+    Real result;
+
+    if (reducer == MFReducer::SUM) {
+        result = 0.0;
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+            result += real_reduce_list[i];
+        }
+    }
+    else if (reducer == MFReducer::MIN) {
+        result = 1.e200;
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+            result = std::min(result, real_reduce_list[i]);
+        }
+    }
+    else if (reducer == MFReducer::MAX) {
+        result = -1.e200;
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+            result = std::max(result, real_reduce_list[i]);
+        }
+    }
+
+    *real_reduce_val = result;
+
+}
+#endif
 
 MFGhostIter::MFGhostIter (const FabArrayBase& fabarray)
     :

@@ -6,7 +6,7 @@ module cuda_module
 
   public
 
-  integer, parameter :: max_cuda_streams = 100
+  integer, parameter :: max_cuda_streams = 16
   integer(kind=cuda_stream_kind) :: cuda_streams(0:max_cuda_streams) ! Note: zero will be the default stream.
 
   integer :: cuda_device_id
@@ -56,28 +56,24 @@ module cuda_module
 
 contains
 
-  subroutine initialize_cuda(id, rank, num_devices, num_ranks, ioproc, v) bind(c, name='initialize_cuda')
-
+  subroutine initialize_cuda(id) bind(c, name='initialize_cuda')
+#ifdef AMREX_USE_ACC
+    use openacc, only: acc_init, acc_set_device_num, acc_device_nvidia
+#endif
     use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
-    integer, intent(in) :: id, rank, num_devices, num_ranks, ioproc, v
+    integer, intent(in) :: id
 
     integer :: i, cudaResult, ilen
 
-    character(32) :: char_id, char_rank, device_str, nproc_str
-
-    cuda_device_id = id
-
-    cudaResult = cudaSetDevice(cuda_device_id)
-    call gpu_error_test(cudaResult)
-
-    call gpu_synchronize()
+#ifdef AMREX_USE_ACC
+    call acc_init(acc_device_nvidia)
+    call acc_set_device_num(cuda_device_id, acc_device_nvidia)
+#endif
 
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
     ! This stream is synchronous and blocking. It is our default choice, and we
@@ -99,7 +95,7 @@ contains
     have_prop = .true.
 
     if (prop%major < 3) then
-       call bl_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
+       call amrex_error("CUDA functionality unsupported on GPUs with compute capability earlier than 3.0")
     end if
 
     max_threads_dim = prop%maxThreadsDim
@@ -111,32 +107,14 @@ contains
 
     ilen = verify(prop%name, ' ', .true.)
 
-    write(char_id, '(i32)') id
-    write(char_rank, '(i32)') rank
-    write(device_str, '(i32)') num_devices
-    write(nproc_str, '(i32)') num_ranks
-
-    if (rank == ioproc) then
-       if (num_ranks == 1) then
-          write(*,'(A)') "CUDA initialized using 1 GPU out of " // trim(adjustl(device_str)) // " available"
-       else if (num_ranks > 1) then
-          write(*,'(A)') "CUDA initialized using " // trim(adjustl(nproc_str)) // " GPUs out of " // trim(adjustl(device_str)) // " available"
-       end if
-    end if
-
-    verbose = v
-
-    if (verbose > 0) then
-       print *, "Using GPU " // trim(adjustl(char_id)) // ": " // prop%name(1:ilen) // " on rank " // trim(adjustl(char_rank))
-    else
-    end if
-
   end subroutine initialize_cuda
 
 
 
   subroutine finalize_cuda() bind(c, name='finalize_cuda')
-
+#ifdef AMREX_USE_ACC
+    use openacc, only: acc_shutdown, acc_device_nvidia
+#endif
     use cudafor, only: cudaStreamDestroy, cudaDeviceReset
 
     implicit none
@@ -150,6 +128,9 @@ contains
 
     call gpu_stop_profiler()
 
+#ifdef AMREX_USE_ACC
+    call acc_shutdown(acc_device_nvidia)
+#endif
     cudaResult = cudaDeviceReset()
     call gpu_error_test(cudaResult, abort=0)
 
@@ -241,9 +222,7 @@ contains
   subroutine threads_and_blocks(lo, hi, numBlocks, numThreads)
 
     use cudafor, only: dim3
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -260,7 +239,7 @@ contains
 
     if (AMREX_SPACEDIM .eq. 1) then
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), AMREX_CUDA_MAX_THREADS))
        numThreads % y = 1
        numThreads % z = 1
 
@@ -270,8 +249,8 @@ contains
 
     else if (AMREX_SPACEDIM .eq. 2) then
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), CUDA_MAX_THREADS / numThreadsMin % y))
-       numThreads % y = max(numThreadsMin % y, min(tile_size(2), CUDA_MAX_THREADS / numThreads % x   ))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), AMREX_CUDA_MAX_THREADS / numThreadsMin % y))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), AMREX_CUDA_MAX_THREADS / numThreads % x   ))
        numThreads % z = 1
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
@@ -280,9 +259,9 @@ contains
 
     else
 
-       numThreads % x = max(numThreadsMin % x, min(tile_size(1), min(max_threads_dim(1), CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z))))
-       numThreads % y = max(numThreadsMin % y, min(tile_size(2), min(max_threads_dim(2), CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z))))
-       numThreads % z = max(numThreadsMin % z, min(tile_size(3), min(max_threads_dim(3), CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   ))))
+       numThreads % x = max(numThreadsMin % x, min(tile_size(1), min(max_threads_dim(1), AMREX_CUDA_MAX_THREADS / (numThreadsMin % y * numThreadsMin % z))))
+       numThreads % y = max(numThreadsMin % y, min(tile_size(2), min(max_threads_dim(2), AMREX_CUDA_MAX_THREADS / (numThreads % x    * numThreadsMin % z))))
+       numThreads % z = max(numThreadsMin % z, min(tile_size(3), min(max_threads_dim(3), AMREX_CUDA_MAX_THREADS / (numThreads % x    * numThreads % y   ))))
 
        numBlocks % x = (tile_size(1) + numThreads % x - 1) / numThreads % x
        numBlocks % y = (tile_size(2) + numThreads % y - 1) / numThreads % y
@@ -297,29 +276,29 @@ contains
     ! Should not exceed maximum allowable threads per block.
 
     if (numThreads % x > max_threads_dim(1)) then
-       call bl_error("Too many CUDA threads per block in x-dimension.")
+       call amrex_error("Too many CUDA threads per block in x-dimension.")
     end if
 
     if (numThreads % y > max_threads_dim(2)) then
-       call bl_error("Too many CUDA threads per block in y-dimension.")
+       call amrex_error("Too many CUDA threads per block in y-dimension.")
     end if
 
     if (numThreads % z > max_threads_dim(3)) then
-       call bl_error("Too many CUDA threads per block in z-dimension.")
+       call amrex_error("Too many CUDA threads per block in z-dimension.")
     end if
 
     if (numThreadsTotal > prop % maxThreadsPerBlock) then
-       call bl_error("Too many CUDA threads per block requested compared to device limit.")
+       call amrex_error("Too many CUDA threads per block requested compared to device limit.")
     end if
 
     ! Blocks or threads should be at least one in every dimension.
 
     if (min(numThreads % x, numThreads % y, numThreads % z) < 1) then
-       call bl_error("Number of CUDA threads per block must be positive.")
+       call amrex_error("Number of CUDA threads per block must be positive.")
     end if
 
     if (min(numBlocks % x, numBlocks % y, numBlocks % z) < 1) then
-       call bl_error("Number of CUDA threadblocks must be positive.")
+       call amrex_error("Number of CUDA threadblocks must be positive.")
     end if
 
   end subroutine threads_and_blocks
@@ -434,9 +413,7 @@ contains
 
     use cudafor, only: cudaMallocManaged, cudaMemAttachGlobal, c_devptr
     use iso_c_binding, only: c_size_t
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -452,7 +429,7 @@ contains
 
     else
 
-       call bl_error("The GPU does not support managed memory allocations")
+       call amrex_error("The GPU does not support managed memory allocations")
 
     end if
 
@@ -574,14 +551,12 @@ contains
 
     integer :: cudaResult
 
-#ifndef NO_CUDA_8
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(stream_from_index(idx)))
        call gpu_error_test(cudaResult)
 
     end if
-#endif
 
   end subroutine gpu_htod_memprefetch_async
 
@@ -600,14 +575,12 @@ contains
 
     integer :: cudaResult
 
-#ifndef NO_CUDA_8
     if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
 
        cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(stream_from_index(idx)))
        call gpu_error_test(cudaResult)
 
     end if
-#endif
 
   end subroutine gpu_dtoh_memprefetch_async
 
@@ -667,9 +640,7 @@ contains
 
   subroutine gpu_error(cudaResult, abort) bind(c, name='gpu_error')
 
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-    use bl_error_module, only: bl_error, bl_warn
-#endif
+    use amrex_error_module, only: amrex_error
 
     implicit none
 
@@ -691,13 +662,9 @@ contains
     error_string = "CUDA Error " // trim(adjustl(cudaResultStr)) // ": " // cudaGetErrorString(cudaResult)
 
     if (abort == 1) then
-       call bl_error(error_string)
+       call amrex_error(error_string)
     else
-#if defined(BL_USE_F_BASELIB) || defined(FORTRAN_BOXLIB)
-       call bl_warn(error_string)
-#else
-       call bl_warning(error_string)
-#endif
+       print *, error_string
     end if
 
   end subroutine gpu_error
