@@ -18,6 +18,12 @@
 
 namespace amrex {
 
+#ifdef AMREX_USE_CUDA
+static constexpr bool TrueUnlessGPU = false;
+#else
+static constexpr bool TrueUnlessGPU = true;
+#endif
+
 template<class T> class FabArray;
 
 struct MFItInfo
