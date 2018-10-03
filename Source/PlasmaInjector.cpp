@@ -251,10 +251,13 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         pp.get("q_tot", q_tot);
         pp.get("npart", npart);
         gaussian_beam = true;
+        parseMomentum(pp);
     }
     else if (part_pos_s == "nrandompercell") {
         pp.query("num_particles_per_cell", num_particles_per_cell);
         part_pos.reset(new RandomPosition(num_particles_per_cell));
+        parseDensity(pp);
+        parseMomentum(pp);
     } else if (part_pos_s == "nuniformpercell") {
         num_particles_per_cell_each_dim.resize(3);
         pp.getarr("num_particles_per_cell_each_dim", num_particles_per_cell_each_dim);
@@ -265,6 +268,8 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
         num_particles_per_cell = num_particles_per_cell_each_dim[0] *
                                  num_particles_per_cell_each_dim[1] *
                                  num_particles_per_cell_each_dim[2];
+        parseDensity(pp);
+        parseMomentum(pp);
     } else {
         StringParseAbortMessage("Injection style", part_pos_s);
     }
@@ -285,29 +290,32 @@ PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     pp.query("ymax", ymax);
     pp.query("zmax", zmax);
 
-    // parse density information
-    if (part_pos_s != "gaussian_beam" ){
-        std::string rho_prof_s;
-        pp.get("profile", rho_prof_s);
-        std::transform(rho_prof_s.begin(),
-                       rho_prof_s.end(),
-                       rho_prof_s.begin(),
-                       ::tolower);
-        if (rho_prof_s == "constant") {
-            pp.get("density", density);
-            rho_prof.reset(new ConstantDensityProfile(density));
-        } else if (rho_prof_s == "custom") {
-            rho_prof.reset(new CustomDensityProfile(species_name));
-        } else if (rho_prof_s == "parse_density_function") {
-            // Serialize particle initialization
-            WarpX::serialize_ics = true;
-            pp.get("density_function(x,y,z)", str_density_function);
-            rho_prof.reset(new ParseDensityProfile(str_density_function));
-        } else {
-            StringParseAbortMessage("Density profile type", rho_prof_s);
-        }
-    }
+}
 
+void PlasmaInjector::parseDensity(ParmParse pp){
+    // parse density information
+    std::string rho_prof_s;
+    pp.get("profile", rho_prof_s);
+    std::transform(rho_prof_s.begin(),
+                   rho_prof_s.end(),
+                   rho_prof_s.begin(),
+                   ::tolower);
+    if (rho_prof_s == "constant") {
+        pp.get("density", density);
+        rho_prof.reset(new ConstantDensityProfile(density));
+    } else if (rho_prof_s == "custom") {
+        rho_prof.reset(new CustomDensityProfile(species_name));
+    } else if (rho_prof_s == "parse_density_function") {
+        // Serialize particle initialization
+        WarpX::serialize_ics = true;
+        pp.get("density_function(x,y,z)", str_density_function);
+        rho_prof.reset(new ParseDensityProfile(str_density_function));
+    } else {
+        StringParseAbortMessage("Density profile type", rho_prof_s);
+    }
+}
+
+void PlasmaInjector::parseMomentum(ParmParse pp){
     // parse momentum information
     std::string mom_dist_s;
     pp.get("momentum_distribution_type", mom_dist_s);
