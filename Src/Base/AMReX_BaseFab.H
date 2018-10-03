@@ -21,6 +21,10 @@
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
 
+#ifdef AMREX_USE_DEVICE
+#include <AMReX_Device.H>
+#endif
+
 #ifdef USE_PERILLA
 #include <LocalConnection.H>
 #include <RemoteConnection.H>
@@ -175,7 +179,13 @@ public:
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
-    const int* nCompPtr() const {return &nvar;}
+    const int* nCompPtr() const {
+#ifdef AMREX_USE_GPU_PRAGMA
+        return nvar_d;
+#else
+        return &nvar;
+#endif
+    }
 
     //! Returns the number of points 
     long nPts () const { return numpts; }
@@ -428,6 +438,7 @@ public:
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
+
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -959,6 +970,10 @@ protected:
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
 
+#ifdef AMREX_USE_CUDA
+    int* nvar_d;
+#endif
+
 #ifdef USE_PERILLA
 public:
     LocalConnection l_con;
@@ -1437,6 +1452,11 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
+#ifdef AMREX_USE_GPU_PRAGMA
+    nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
+    *nvar_d = nvar;
+#endif
+
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
 }
 
@@ -1590,7 +1610,11 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 	    amrex::The_Arena()->free(dptr);
-	    
+
+#ifdef AMREX_USE_GPU_PRAGMA
+            amrex::The_Nvar_Arena()->free(nvar_d);
+#endif
+
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {
@@ -1745,8 +1769,12 @@ BaseFab<T>::setComplement (T          x,
                            int        num)
 {
     BoxList b_lst = amrex::boxDiff(domain,b);
-    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli)
+    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
+#ifdef AMREX_USE_CUDA
+        CudaAPICheck(cudaDeviceSynchronize());
+#endif
+    }
 }
 
 template <class T>
@@ -2594,6 +2622,8 @@ BaseFab<T>::plus (T          r,
                   int        comp,
                   int        numcomp)
 {
+    AMREX_ASSERT(domain.contains(b));
+
     const auto dp0 = this->stridedPtr(b,comp);
     const auto len = b.length3d();
 

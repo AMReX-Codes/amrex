@@ -26,7 +26,7 @@
 #include <AMReX_Box.H>
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
-#include <AMReX_BoxDomain.H> 
+#include <AMReX_BoxDomain.H>
 #include <AMReX_FabFactory.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
@@ -41,6 +41,10 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+
+#ifdef AMREX_USE_DEVICE
+#include <AMReX_Device.H>
+#endif
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -782,7 +786,6 @@ public:
 
 #include <AMReX_FabArrayCommI.H>
 
-
 template <class FAB>
 bool
 FabArray<FAB>::defined (int K) const
@@ -1358,6 +1361,8 @@ template <class>
 void
 FabArray<FAB>::setVal (value_type val)
 {
+    BL_PROFILE("FabArray::setVal(val)");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1398,6 +1403,8 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
 
+    BL_PROFILE("FabArray::setVal(val,comp,ncomp,nghost)");
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1431,6 +1438,8 @@ FabArray<FAB>::setVal (value_type val,
 {
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
+
+    BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
 #pragma omp parallel
