@@ -3,7 +3,7 @@ module cvode_interface
   use fsunmat_dense_mod
   use fsunlinsol_dense_mod
   contains
-  integer(c_int) function FCVDense(cvode_mem, N) 
+  integer(c_int) function FCVDense(cvode_mem, N) result(ierr)
     use, intrinsic :: iso_c_binding
     use fnvector_serial
     implicit none 
@@ -12,7 +12,6 @@ module cvode_interface
     type(c_ptr)            :: sunmat_A
     type(c_ptr)            :: sunlinsol_LS
     type(c_ptr)            :: sunvec_y
-    integer(c_int)         :: ierr
 
     sunvec_y = N_VNewEmpty_Serial(N)
     sunmat_A = FSUNDenseMatrix(N, N)
