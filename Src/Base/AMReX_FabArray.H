@@ -596,30 +596,30 @@ public:
     * FillBoundary expects that its cell-centered version of its BoxArray 
     * is non-overlapping.
     */
-    void FillBoundary (RunOn where = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (RunOn run_on = WhereToRunDefault(), bool cross = false);
 
-    void FillBoundary (const Periodicity& period, RunOn where = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
 
     //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
-    void FillBoundary (int scomp, int ncomp, RunOn where = WhereToRunDefault(), bool cross = false);
-    void FillBoundary (int scomp, int ncomp, const Periodicity& period, RunOn where = WhereToRunDefault(), bool cross = false);
-    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn where = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (int scomp, int ncomp, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
 
-    void FillBoundary_nowait (RunOn where = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (const Periodicity& period, RunOn where = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, RunOn where = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, RunOn where = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn where = WhereToRunDefault(), bool cross = false);
+    void FillBoundary_nowait (RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary_nowait (const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
     void FillBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
     * is allowed to be overlapping.
     */
-    void EnforcePeriodicity (const Periodicity& period, RunOn where = WhereToRunDefault());
-    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, RunOn where = WhereToRunDefault());
+    void EnforcePeriodicity (const Periodicity& period, RunOn run_on = WhereToRunDefault());
+    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRunDefault());
     void EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
-                             const Periodicity& period, RunOn where = WhereToRunDefault());
+                             const Periodicity& period, RunOn run_on = WhereToRunDefault());
 
     // covered   : ghost cells covered by valid cells of this FabArray
     //             (including periodically shifted valid cells)
@@ -1468,105 +1468,105 @@ FabArray<FAB>::shift (const IntVect& v)
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (RunOn where, bool cross)
+FabArray<FAB>::FillBoundary (RunOn run_on, bool cross)
 {
-    FillBoundary(0, nComp(), n_grow, Periodicity::NonPeriodic(), where, cross);
+    FillBoundary(0, nComp(), n_grow, Periodicity::NonPeriodic(), run_on, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (const Periodicity& period, RunOn where, bool cross)
+FabArray<FAB>::FillBoundary (const Periodicity& period, RunOn run_on, bool cross)
 {
-    FillBoundary(0, nComp(), n_grow, period, where, cross);
+    FillBoundary(0, nComp(), n_grow, period, run_on, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int scomp, int ncomp, RunOn where, bool cross)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, RunOn run_on, bool cross)
 {
-    FillBoundary(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), where, cross);
+    FillBoundary(scomp, ncomp, n_grow, Periodicity::NonPeriodic(), run_on, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, RunOn where, bool cross)
+FabArray<FAB>::FillBoundary (int scomp, int ncomp, const Periodicity& period, RunOn run_on, bool cross)
 {
-    FillBoundary(scomp, ncomp, n_grow, period, where, cross);
+    FillBoundary(scomp, ncomp, n_grow, period, run_on, cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary (int scomp, int ncomp, const IntVect& nghost,
-                             const Periodicity& period, RunOn where, bool cross)
+                             const Periodicity& period, RunOn run_on, bool cross)
 {
     BL_PROFILE("FabArray::FillBoundary()");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(nGrowVect()),
                               "FillBoundary: asked to fill more ghost cells than we have");
     if ( nghost.max() > 0 ) {
-	FillBoundary_nowait(scomp, ncomp, nghost, period, where, cross);
+	FillBoundary_nowait(scomp, ncomp, nghost, period, run_on, cross);
 	FillBoundary_finish();
     }
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (RunOn where, bool cross)
+FabArray<FAB>::FillBoundary_nowait (RunOn run_on, bool cross)
 {
-    FillBoundary_nowait(0, nComp(), nGrowVect(), Periodicity::NonPeriodic(), where, cross);
+    FillBoundary_nowait(0, nComp(), nGrowVect(), Periodicity::NonPeriodic(), run_on, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, RunOn where, bool cross)
+FabArray<FAB>::FillBoundary_nowait (const Periodicity& period, RunOn run_on, bool cross)
 {
-    FillBoundary_nowait(0, nComp(), nGrowVect(), period, where, cross);
+    FillBoundary_nowait(0, nComp(), nGrowVect(), period, run_on, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, RunOn where, bool cross)
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, RunOn run_on, bool cross)
 {
-    FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), where, cross);
+    FillBoundary_nowait(scomp, ncomp, nGrowVect(), Periodicity::NonPeriodic(), run_on, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, RunOn where, bool cross)
+FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, RunOn run_on, bool cross)
 {
-    FillBoundary_nowait(scomp, ncomp, nGrowVect(), period, where, cross);
+    FillBoundary_nowait(scomp, ncomp, nGrowVect(), period, run_on, cross);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
-                                    const Periodicity& period, RunOn where, bool cross)
+                                    const Periodicity& period, RunOn run_on, bool cross)
 {
-    fb_runon = where;
+    fb_runon = run_on;
     FBEP_nowait(scomp, ncomp, nghost, period, cross);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::EnforcePeriodicity (const Periodicity& period, RunOn where)
+FabArray<FAB>::EnforcePeriodicity (const Periodicity& period, RunOn run_on)
 {
-    EnforcePeriodicity(0, nComp(), nGrowVect(), period, where);
+    EnforcePeriodicity(0, nComp(), nGrowVect(), period, run_on);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, RunOn where)
+FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, RunOn run_on)
 {
-    EnforcePeriodicity(scomp, ncomp, nGrowVect(), period, where);
+    EnforcePeriodicity(scomp, ncomp, nGrowVect(), period, run_on);
 }
 
 template <class FAB>
 void
 FabArray<FAB>::EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
-                                   const Periodicity& period, RunOn where)
+                                   const Periodicity& period, RunOn run_on)
 {
     BL_PROFILE("FabArray::EnforcePeriodicity");
     if (period.isAnyPeriodic()) {
-        fb_runon = where;
+        fb_runon = run_on;
 	FBEP_nowait(scomp, ncomp, nghost, period, false, true);
 	FillBoundary_finish(); // unsafe unless isAnyPeriodic()
     }
