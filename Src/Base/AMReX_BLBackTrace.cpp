@@ -38,7 +38,7 @@ BLBackTrace::handler(int s)
 	break;
     }
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 
     std::string errfilename;
     {
@@ -81,7 +81,7 @@ BLBackTrace::handler(int s)
     ParallelDescriptor::Abort(s, false);
 }
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 void
 BLBackTrace::print_backtrace_info (const std::string& filename)
 {

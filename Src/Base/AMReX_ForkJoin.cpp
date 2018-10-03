@@ -6,9 +6,6 @@ using namespace amrex;
 
 namespace {
 
-bool flag_task_output_dir_created = false;
-const std::string task_output_dir = "forkjoin_task_output";
-
 inline bool file_exists(std::string file_path) {
   std::ifstream ifs(file_path);
   return ifs.good();
@@ -42,25 +39,18 @@ get_frame_id_vec ()
     return result;
 }
 
-void
-create_task_output_dir ()
-{
-    if (!flag_task_output_dir_created) {
-        amrex::UtilCreateCleanDirectory(task_output_dir, false);
-    }
-    flag_task_output_dir_created = true;
-}
-
 }
 
 namespace amrex {
 
-ForkJoin::ForkJoin (const Vector<int> &task_rank_n)
+    ForkJoin::ForkJoin (const Vector<int> &task_rank_n,
+                        const std::string &task_output_dir_in)
 {
-    init(task_rank_n);
+    init(task_rank_n,task_output_dir_in);
 }
 
-ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
+ForkJoin::ForkJoin (const Vector<double> &task_rank_pct,
+                    const std::string    &task_output_dir_in)
 {
     auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
@@ -74,11 +64,12 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
         prev = cur;
     }
 
-    init(task_rank_n);
+    init(task_rank_n,task_output_dir_in);
 }
 
 void
-ForkJoin::init(const Vector<int> &task_rank_n)
+ForkJoin::init(const Vector<int> &task_rank_n,
+               const std::string &task_output_dir_in)
 {
     ParmParse pp("forkjoin");
     pp.query("verbose", flag_verbose);
@@ -104,7 +95,10 @@ ForkJoin::init(const Vector<int> &task_rank_n)
         split_bounds[i + 1] = split_bounds[i] + task_rank_n[i];
     }
 
-    create_task_output_dir();
+    task_output_dir = task_output_dir_in;
+    if (!amrex::FileExists(task_output_dir)) {
+        amrex::UtilCreateDirectory(task_output_dir,0755,flag_verbose);
+    }
 
     if (flag_verbose) {
         amrex::Print() << "Initialized ForkJoin:\n";
@@ -119,14 +113,14 @@ ForkJoin::init(const Vector<int> &task_rank_n)
 
 void
 ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
-                  Strategy strategy, Intent intent, int owner)
+                  Strategy strategy, Intent intent, const IntVect ng, int owner)
 {
     if (idx >= data[name].size()) {
         data[name].resize(idx + 1);
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].empty(),
                                      "Can only register to a (name, index) pair once");
-    data[name][idx] = MFFork(&mf, strategy, intent, owner);
+    data[name][idx] = MFFork(&mf, strategy, intent, ng, owner);
 
     // compute how components are copied to tasks
     int comp_n = mf.nComp(); // number of components in original
@@ -163,9 +157,24 @@ ForkJoin::modify_split (const std::string &name, int idx, Vector<ComponentSet> c
     data[name][idx].comp_split = std::move(comp_split);
 }
 
+ForkJoin::ComponentSet
+ForkJoin::ComponentBounds(const std::string& name, int idx) const
+{
+    ComponentSet ret(-1,-1);
+    for (auto &p : data) { // for each name
+        if (p.first == name) {
+            BL_ASSERT(idx>=0 && idx<p.second.size());
+            const auto &comp_split = p.second[idx].comp_split;
+            ret = comp_split[task_me];
+        }
+    }
+    return ret;
+}
+
 void
 ForkJoin::copy_data_to_tasks ()
 {
+    BL_PROFILE("ForkJoin::copy_data_to_tasks()");
     if (flag_verbose) {
         amrex::Print() << "Copying data into fork-join tasks ...\n";
     }
@@ -192,7 +201,7 @@ ForkJoin::copy_data_to_tasks ()
                         }
                         // look up the distribution mapping for this (box array, task) pair
                         const DistributionMapping &dm = get_dm(ba, i, orig.DistributionMap());
-                        forked.emplace_back(ba, dm, task_comp_n, 0);
+                        forked.emplace_back(ba, dm, task_comp_n, mff.nGrow);
                     } else if (flag_verbose) {
                         amrex::Print() << "  Forked " << mf_name << "[" << idx << "] for task " << i
                                        << " already created" << std::endl;
@@ -206,7 +215,7 @@ ForkJoin::copy_data_to_tasks ()
                                            << comp_split[i].lo << ", " << comp_split[i].hi << ") into to task " << i << std::endl;
                         }
                         // parallel copy data into forked MF
-                        forked[i].copy(orig, comp_split[i].lo, 0, task_comp_n);
+                        forked[i].Redistribute(orig, comp_split[i].lo, 0, task_comp_n, mff.nGrow);
                     }
 
                 } else {
@@ -227,6 +236,7 @@ ForkJoin::copy_data_to_tasks ()
 void
 ForkJoin::copy_data_from_tasks ()
 {
+    BL_PROFILE("ForkJoin::copy_data_from_tasks()");
     if (flag_verbose) {
         amrex::Print() << "Copying data out of fork-join tasks ...\n";
     }
@@ -247,7 +257,7 @@ ForkJoin::copy_data_from_tasks ()
                         }
                         int task_comp_n = comp_split[i].hi - comp_split[i].lo;
                         AMREX_ASSERT(forked[i].nComp() == task_comp_n);
-                        orig.copy(forked[i], 0, comp_split[i].lo, task_comp_n);
+                        orig.Redistribute(forked[i], 0, comp_split[i].lo, task_comp_n, mff.nGrow);
                     }
                 } else { // mff.strategy == single or duplicate
                     // copy all components from owner_task
@@ -255,7 +265,7 @@ ForkJoin::copy_data_from_tasks ()
                         amrex::Print() << "Copying " << mf_name << " out from task " << mff.owner_task << " (whole)" << std::endl;
                     }
                     AMREX_ASSERT(forked[mff.owner_task].nComp() == orig.nComp());
-                    orig.copy(forked[mff.owner_task], 0, 0, orig.nComp());
+                    orig.Redistribute(forked[mff.owner_task], 0, 0, orig.nComp(), mff.nGrow);
                 }
             }
         }

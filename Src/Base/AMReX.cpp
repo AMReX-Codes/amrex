@@ -12,6 +12,9 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
+#ifdef AMREX_USE_DEVICE
+#include <AMReX_Device.H>
+#endif
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
@@ -421,6 +424,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         func_parm_parse();
     }
 
+#ifdef AMREX_USE_DEVICE
+    // Initialize after ParmParse so that we can read inputs.
+    Device::initialize_device();
+#endif
+
     {
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
@@ -456,7 +464,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
@@ -548,6 +556,10 @@ amrex::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
+#ifdef AMREX_USE_DEVICE
+    Device::finalize_device();
+#endif
+
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
@@ -595,7 +607,7 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);
