@@ -11,7 +11,7 @@ class Arena;
 
 Arena* The_Arena ();
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
 Arena* The_Nvar_Arena ();
 #endif
 
