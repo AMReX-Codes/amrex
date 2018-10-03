@@ -52,7 +52,7 @@ inline void ActualNvmlAPICheck(nvmlReturn_t err) {
 
 extern "C" {
 #ifdef AMREX_USE_CUDA
-    void initialize_cuda(const int* id, const int* rank, const int* num_devices, const int* num_ranks, const int* ioproc, const int* verbose);
+    void initialize_cuda(const int* id);
     void finalize_cuda();
     void set_stream_idx(const int idx);
     void get_stream_idx(int* idx);
@@ -172,18 +172,19 @@ private:
 
     static bool in_device_launch_region;
     static int device_id;
-    static int is_device_program_running;
 
     static int verbose;
 
-    static const int max_cuda_streams = 100;
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+    static const int max_cuda_streams = 16;
     static cudaStream_t cuda_streams[max_cuda_streams];
     static cudaStream_t cuda_stream;
 
     static dim3 numThreadsMin;
 
     static dim3 numBlocksOverride, numThreadsOverride;
+
+    static cudaDeviceProp device_prop;
 #endif
 };
 
@@ -204,14 +205,17 @@ amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
 
     int num;
 
-    if (m < 0)
+    if (m < 0) {
         num = n;
-    else
+    }
+    else {
         num = m;
+    }
 
-    for (int i = 0; i < num; ++i)
+    for (int i = 0; i < num; ++i) {
         *(temp_ptr + i) = *(ptr + i);
-    h_ptr.reset(temp_ptr, [](T* ptr) { gpu_freehost(ptr); });
+    }
+    h_ptr.reset(temp_ptr, [](T* p) { gpu_freehost(p); });
 
     return h_ptr;
 }
@@ -229,7 +233,7 @@ amrex::Device::create_device_pointer(int n)
 
     T* temp_ptr = (T*) device_malloc(n * sizeof(T));
 
-    d_ptr.reset(temp_ptr, [](T* ptr) { gpu_free(ptr); });
+    d_ptr.reset(temp_ptr, [](T* p) { gpu_free(p); });
 
     return d_ptr;
 

@@ -104,8 +104,8 @@ ifdef CUDA
   CPPFLAGS += -DCUDA
   FPPFLAGS += -DCUDA
 
-  ifndef CUDA_VERSION
-    CUDA_VERSION = cuda9.0
+  ifndef CUDA_ARCH
+    CUDA_ARCH = 35
   endif
 endif
 

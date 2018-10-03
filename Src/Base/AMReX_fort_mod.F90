@@ -75,16 +75,18 @@ contains
   end function amrex_coarsen_intvect
 
 
-
-  AMREX_CUDA_FORT_DEVICE subroutine get_loop_bounds_device(blo, bhi, lo, hi) bind(c,name='get_loop_bounds_device')
+  subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
 
     implicit none
 
     integer, intent(in   ) :: lo(3), hi(3)
     integer, intent(inout) :: blo(3), bhi(3)
 
-#ifdef USE_CUDA
+    !$gpu
+
+#if (defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_NO_DEVICE_LAUNCH))
     ! Get our spatial index based on the CUDA thread index
+
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
     blo(2) = lo(2) + (threadIdx%y - 1) + blockDim%y * (blockIdx%y - 1)
     blo(3) = lo(3) + (threadIdx%z - 1) + blockDim%z * (blockIdx%z - 1)
@@ -97,19 +99,10 @@ contains
     else
        bhi = blo
     endif
-#endif
-
-  end subroutine get_loop_bounds_device
-
-  AMREX_CUDA_FORT_HOST subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c,name='get_loop_bounds')
-
-    implicit none
-
-    integer, intent(in   ) :: lo(3), hi(3)
-    integer, intent(inout) :: blo(3), bhi(3)
-
+#else
     blo = lo
     bhi = hi
+#endif
 
   end subroutine get_loop_bounds
 
@@ -128,6 +121,29 @@ contains
 
 
 
+#ifdef AMREX_USE_CUDA
+  ! Note that the device versions of these
+  ! functions are intentionally constructed
+  ! by hand rather than scripted.
+
+  attributes(device) subroutine amrex_add_device(x, y)
+
+    implicit none
+
+    ! Add y to x atomically on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+    t = atomicAdd(x, y)
+
+  end subroutine amrex_add_device
+#endif
+
+
+
   subroutine amrex_subtract(x, y)
 
     implicit none
@@ -140,6 +156,25 @@ contains
     x = x - y
 
   end subroutine amrex_subtract
+
+
+
+#ifdef AMREX_USE_CUDA
+  attributes(device) subroutine amrex_subtract_device(x, y)
+
+    implicit none
+
+    ! Subtract y from x atomically on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+    t = atomicSub(x, y)
+
+  end subroutine amrex_subtract_device
+#endif
 
 
 
@@ -158,6 +193,25 @@ contains
 
 
 
+#ifdef AMREX_USE_CUDA
+  attributes(device) subroutine amrex_max_device(x, y)
+
+    implicit none
+
+    ! Set in x the maximum of x and y atomically on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+    t = atomicMax(x, y)
+
+  end subroutine amrex_max_device
+#endif
+
+
+
   subroutine amrex_min(x, y)
 
     implicit none
@@ -170,5 +224,24 @@ contains
     x = min(x, y)
 
   end subroutine amrex_min
+
+
+
+#ifdef AMREX_USE_CUDA
+  attributes(device) subroutine amrex_min_device(x, y)
+
+    implicit none
+
+    ! Set in x the minimum of x and y atomically on the GPU.
+
+    real(amrex_real), intent(in   ) :: y
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: t
+
+    t = atomicMin(x, y)
+
+  end subroutine amrex_min_device
+#endif
 
 end module amrex_fort_module

@@ -4,25 +4,29 @@
 #include <AMReX_Device.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Print.H>
 
-bool amrex::Device::in_device_launch_region = false;
+bool amrex::Device::in_device_launch_region = true;
 int amrex::Device::device_id = 0;
 
 int amrex::Device::verbose = 0;
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+const int amrex::Device::max_cuda_streams;
+
 cudaStream_t amrex::Device::cuda_streams[max_cuda_streams];
 cudaStream_t amrex::Device::cuda_stream;
 
-dim3 amrex::Device::numThreadsMin = dim3(1, 1, 1);
+dim3 amrex::Device::numThreadsMin      = dim3(1, 1, 1);
+dim3 amrex::Device::numThreadsOverride = dim3(0, 0, 0);
+dim3 amrex::Device::numBlocksOverride  = dim3(0, 0, 0);
 
-dim3 amrex::Device::numThreadsOverride = dim3(1, 1, 1);
-dim3 amrex::Device::numBlocksOverride = dim3(1, 1, 1);
+cudaDeviceProp amrex::Device::device_prop;
 #endif
 
-#ifdef AMREX_USE_CUDA
 void
 amrex::Device::initialize_cuda_c () {
+
     for (int i = 0; i < max_cuda_streams; ++i)
         CudaAPICheck(cudaStreamCreate(&cuda_streams[i]));
 
@@ -30,9 +34,9 @@ amrex::Device::initialize_cuda_c () {
 
     ParmParse pp("device");
 
-    int nx = 1;
-    int ny = 1;
-    int nz = 1;
+    int nx = 0;
+    int ny = 0;
+    int nz = 0;
 
     pp.query("numThreads.x", nx);
     pp.query("numThreads.y", ny);
@@ -42,9 +46,9 @@ amrex::Device::initialize_cuda_c () {
     numThreadsOverride.y = (int) ny;
     numThreadsOverride.z = (int) nz;
 
-    nx = 1;
-    ny = 1;
-    nz = 1;
+    nx = 0;
+    ny = 0;
+    nz = 0;
 
     pp.query("numBlocks.x", nx);
     pp.query("numBlocks.y", ny);
@@ -53,6 +57,9 @@ amrex::Device::initialize_cuda_c () {
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
+
+    cudaGetDeviceProperties(&device_prop, device_id);
+
 }
 
 cudaStream_t
@@ -64,7 +71,6 @@ amrex::Device::stream_from_index(int idx) {
         return cuda_streams[idx % max_cuda_streams];
 
 }
-#endif
 
 void
 amrex::Device::initialize_device() {
@@ -74,56 +80,7 @@ amrex::Device::initialize_device() {
     pp.query("v", verbose);
     pp.query("verbose", verbose);
 
-    device_id = -1;
-
 #ifdef AMREX_USE_CUDA
-
-    const int n_procs = ParallelDescriptor::NProcs();
-    const int my_rank = ParallelDescriptor::MyProc();
-    const int ioproc  = ParallelDescriptor::IOProcessorNumber();
-
-#ifdef AMREX_USE_NVML
-
-    // Temporary character buffer for CUDA/NVML APIs.
-    unsigned int char_length = 256;
-    char c[char_length];
-
-    NvmlAPICheck(nvmlInit());
-
-    // Count the number of NVML visible devices.
-
-    unsigned int nvml_device_count;
-    NvmlAPICheck(nvmlDeviceGetCount(&nvml_device_count));
-
-    if (nvml_device_count <= 0)
-        return;
-
-    // Get the PCI bus ID and UUID for each NVML visible device.
-
-    std::vector<std::string> nvml_PCI_ids;
-    std::vector<std::string> nvml_UUIDs;
-
-    for (int i = 0; i < nvml_device_count; ++i) {
-
-	nvmlDevice_t handle;
-	NvmlAPICheck(nvmlDeviceGetHandleByIndex(i, &handle));
-
-	NvmlAPICheck(nvmlDeviceGetUUID(handle, c, char_length));
-	nvml_UUIDs.push_back(std::string(c));
-
-        nvmlPciInfo_t pci_info;
-        NvmlAPICheck(nvmlDeviceGetPciInfo(handle, &pci_info));
-        nvml_PCI_ids.push_back(std::string(pci_info.busId));
-
-        // Strip out leading zeros in the PCI bus ID,
-        // to ensure compatibility in the comparison with CUDA.
-        
-        int j = 0;
-        while (nvml_PCI_ids[i][j] == '0')
-        { ++j; }
-        
-        nvml_PCI_ids[i].erase(0, j);
-    }
 
     // Count the number of CUDA visible devices.
 
@@ -133,147 +90,111 @@ amrex::Device::initialize_device() {
     if (cuda_device_count <= 0)
         return;
 
-    // Get the PCI bus ID for each CUDA visible device.
+    // Now, assign ranks to GPUs. If we only have one GPU,
+    // or only one MPI rank, this is easy. Otherwise, we
+    // need to do a little more work.
 
-    std::vector<std::string> cuda_PCI_ids;
-
-    for (int cuda_device = 0; cuda_device < cuda_device_count; ++cuda_device) {
-
-        CudaAPICheck(cudaDeviceGetPCIBusId(c, char_length, cuda_device));
-
-        // Reset the device after accessing it; this is necessary
-        // if the device is using exclusive process mode (without MPS).
-
-        CudaAPICheck(cudaDeviceReset());
-
-        cuda_PCI_ids.push_back(std::string(c));
-
-        // Strip out leading zeros in the CUDA bus ID,
-        // to ensure compatibility in the comparison with NVML.
-        int j = 0;
-
-        while (cuda_PCI_ids[cuda_device][j] == '0')
-        { ++j; }
-
-        cuda_PCI_ids[cuda_device].erase(0, j);
+    if (ParallelDescriptor::NProcs() == 1) {
+        device_id = 0;
     }
-
-    // Using the PCI bus ID as a translation factor,
-    // figure out the UUIDs of the CUDA visible devices.
-
-    std::vector<std::string> cuda_UUIDs;
-
-    for (unsigned int nvml_device = 0; nvml_device < nvml_device_count; ++nvml_device) {
-
-        for (int cuda_device = 0; cuda_device < cuda_device_count; ++cuda_device) {
-
-            if (cuda_PCI_ids[cuda_device] == nvml_PCI_ids[nvml_device])
-                cuda_UUIDs.push_back(nvml_UUIDs[nvml_device]);
-
-        }
-
+    else if (cuda_device_count == 1) {
+        device_id = 0;
     }
+    else {
 
-    // Gather the list of device UUID's from all ranks. For simplicity we'll
-    // assume that every rank sees the same number of devices and every device
-    // UUID has the same number of characters; this assumption could be lifted
-    // later in situations with unequal distributions of devices per node/rank.
-
-    int strlen = cuda_UUIDs[0].size();
-    int len = cuda_device_count * strlen;
-
-    char sendbuf[len];
-    char recvbuf[n_procs][len];
-
-    int i = 0;
-    for (std::string s : cuda_UUIDs) {
-        for (int j = 0; j < strlen; ++j) {
-            sendbuf[i * strlen + j] = s[j];
-        }
-        ++i;
-    }
+        // ifdef the following against MPI so it compiles, but note
+        // that we can only get here if using more than one processor,
+        // which requires MPI.
 
 #ifdef BL_USE_MPI
-    MPI_Allgather(sendbuf, len, MPI_CHAR, recvbuf, len, MPI_CHAR, MPI_COMM_WORLD);
-#else
-    for (int j = 0; j < len; ++j) {
-        recvbuf[0][j] = sendbuf[j];
-    }
+
+        // Create a communicator out of only the ranks sharing GPUs.
+        // The default assumption is that this is all the ranks on the
+        // same node, and to get that we'll use the MPI-3.0 split that
+        // looks for shared memory communicators (and we'll error out
+        // if that standard is unsupported).
+
+#if MPI_VERSION < 3
+        amrex::Abort("When using CUDA with MPI, if multiple devices are visible to each rank, MPI-3.0 must be supported.");
 #endif
 
-    // Count up the number of ranks that share each GPU, and record their rank number.
+        // However, it's possible that the ranks sharing GPUs will be
+        // confined to a single socket rather than a full node. Indeed,
+        // this is often the optimal configuration; for example, on Summit,
+        // a good configuration using jsrun is one resource set per
+        // socket (two per node), with three GPUs per resource set.
+        // To deal with this where we can, we'll take advantage of OpenMPI's
+        // specialized split by socket. However, we only want to do this
+        // if in fact our resource set is confined to the socket.
+        // To make this determination we need to have system information,
+        // which is provided by the build system for the systems
+        // we know about. The simple heuristic we'll use to determine
+        // this is if the number of visible devices is smaller than
+        // the known number of GPUs per socket.
 
-    std::map<std::string, std::vector<int>> uuid_to_rank;
+#if (!defined(AMREX_GPUS_PER_SOCKET) && !defined(AMREX_GPUS_PER_NODE))
+        amrex::Warning("Multiple GPUs are visible to each MPI rank, but the number of GPUs per socket or node has not been provided.\n"
+                       "This may lead to incorrect or suboptimal rank-to-GPU mapping.");
+#endif
 
-    for (std::string s : cuda_UUIDs) {
-        for (int i = 0; i < n_procs; ++i) {
-            for (int j = 0; j < cuda_device_count; ++j) {
-                std::string temp_s(&recvbuf[i][j * strlen], strlen);
-                if (s == temp_s) {
-                    uuid_to_rank[s].push_back(i);
-                }
-            }
-        }
-    }
+        MPI_Comm local_comm;
 
-    // For each rank that shares a GPU, use round-robin assignment
-    // to assign MPI ranks to GPUs. We will arbitrarily assign
-    // ranks to GPUs. It would be nice to do better here and be
-    // socket-aware, but this is complicated to get right. It is
-    // better for this to be offloaded to the job launcher. Note that
-    // the logic here will still work even if there's only one GPU
-    // visible to each rank.
+        int split_type;
 
-    int j = 0;
-    for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
-        for (int i = 0; i < it->second.size(); ++i) {
-            if (it->second[i] == my_rank && i % cuda_device_count == j) {
-
-                device_id = j;
-
-                break;
-            }
-        }
-        j += 1;
-        if (device_id != -1) break;
-    }
-    if (device_id == -1 || device_id >= cuda_device_count)
-        amrex::Abort("Could not associate MPI rank with GPU");
-
-    ParallelDescriptor::Barrier();
-
-    // Total number of GPUs seen by all ranks.
-
-    Real count = 0.0;
-    for (auto it = uuid_to_rank.begin(); it != uuid_to_rank.end(); ++it) {
-        count += 1.0 / it->second.size();
-    }
-
-    ParallelDescriptor::ReduceRealSum(count);
-
-    int total_count = (int) count;
-
+#if (defined(OPEN_MPI) && defined(AMREX_GPUS_PER_SOCKET))
+        if (cuda_device_count <= AMREX_GPUS_PER_SOCKET)
+            split_type = OMPI_COMM_TYPE_SOCKET;
+        else
+            split_type = OMPI_COMM_TYPE_NODE;
 #else
+        split_type = MPI_COMM_TYPE_SHARED;
+#endif
 
-    // If we don't have NVML, assign every processor to device 0.
-    // The user will be on their own for ensuring that their process
-    // only sees the GPU it wants in CUDA_VISIBLE_DEVICES.
+        // We have no preference on how ranks get ordered within this communicator.
+        int key = 0;
 
-    int cuda_device_count;
-    CudaAPICheck(cudaGetDeviceCount(&cuda_device_count));
+        MPI_Comm_split_type(ParallelDescriptor::Communicator(), split_type, key, MPI_INFO_NULL, &local_comm);
 
-    if (cuda_device_count <= 0)
-        return;
+        // Get rank within the local communicator, and number of ranks.
+        int n_procs;
+        MPI_Comm_size(local_comm, &n_procs);
 
-    device_id = 0;
+        int my_rank;
+        MPI_Comm_rank(local_comm, &my_rank);
 
-    int total_count = n_procs;
+        // Free the local communicator.
+        MPI_Comm_free(&local_comm);
+
+        // For each rank that shares a GPU, use round-robin assignment
+        // to assign MPI ranks to GPUs. We will arbitrarily assign
+        // ranks to GPUs, assuming that socket awareness has already
+        // been handled.
+
+        device_id = my_rank % cuda_device_count;
+
+        // If we detect more ranks than visible GPUs, warn the user
+        // that this will fail in the case where the devices are
+        // set to exclusive process mode and MPS is not enabled.
+
+        if (n_procs > cuda_device_count) {
+            amrex::Print() << "Mapping more than one rank per GPU. This will fail if the GPUs are in exclusive process mode\n"
+                           << "and MPS is not enabled. In that case you will see an error such as all CUDA-capable devices are\n"
+                           << "busy. To resolve that issue, set the GPUs to the default compute mode, or enable MPS. If you are\n"
+                           << "on a cluster, please consult the system user guide for how to launch your job in this configuration.\n";
+        }
 
 #endif
 
-    initialize_cuda(&device_id, &my_rank, &total_count, &n_procs, &ioproc, &verbose);
+    }
+
+    CudaAPICheck(cudaSetDevice(device_id));
+
+    initialize_cuda(&device_id);
 
     initialize_cuda_c();
+
+    if (amrex::Verbose())
+        amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
 
 #endif
 
@@ -304,7 +225,6 @@ amrex::Device::set_stream_index(const int idx) {
     set_stream_idx(idx);
     cuda_stream = cuda_streams[idx % max_cuda_streams + 1];
 #endif
-
 }
 
 int
@@ -375,8 +295,6 @@ amrex::Device::stream_synchronize(const int idx) {
 void*
 amrex::Device::device_malloc(const std::size_t sz) {
 
-    void* ptr = nullptr;
-
 #ifdef AMREX_USE_CUDA
     gpu_malloc(&ptr, &sz);
 #else
@@ -384,7 +302,6 @@ amrex::Device::device_malloc(const std::size_t sz) {
 #endif
 
     return ptr;
-
 }
 
 bool
@@ -482,22 +399,18 @@ void
 amrex::Device::mem_advise_set_preferred(void* p, const std::size_t sz, const int device) {
 
 #ifdef AMREX_USE_CUDA
-#ifndef NO_CUDA_8
-    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
-#endif
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+        CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, device));
 #endif
 
 }
 
 void
 amrex::Device::mem_advise_set_readonly(void* p, const std::size_t sz) {
-
-#ifdef AMReX_USE_CUDA
-#ifndef NO_CUDA_8
-    CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
+#ifdef AMREX_USE_CUDA
+    if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
+        CudaAPICheck(cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId));
 #endif
-#endif
-
 }
 
 void
@@ -577,19 +490,25 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
     }
 
-    numThreads.x = std::max(numThreadsMin.x, CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
-    numThreads.y = std::max(numThreadsMin.y, CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
-    numThreads.z = std::max(numThreadsMin.z, CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
+    numThreads.x = std::max((int) numThreadsMin.x, 16);
+    numThreads.y = std::max((int) numThreadsMin.y, 16);
+    numThreads.z = std::max((int) numThreadsMin.z, 1);
 
     // Allow the user to override these at runtime.
 
-    numBlocks.x = std::max(numBlocks.x, numBlocksOverride.x);
-    numBlocks.y = std::max(numBlocks.y, numBlocksOverride.y);
-    numBlocks.z = std::max(numBlocks.z, numBlocksOverride.z);
+    if (numBlocksOverride.x > 0)
+        numBlocks.x = numBlocksOverride.x;
+    if (numBlocksOverride.y > 0)
+        numBlocks.y = numBlocksOverride.y;
+    if (numBlocksOverride.z > 0)
+        numBlocks.z = numBlocksOverride.z;
 
-    numThreads.x = std::max(numThreads.x, numThreadsOverride.x);
-    numThreads.y = std::max(numThreads.y, numThreadsOverride.y);
-    numThreads.z = std::max(numThreads.z, numThreadsOverride.z);
+    if (numThreadsOverride.x > 0)
+        numThreads.x = numThreadsOverride.x;
+    if (numThreadsOverride.y > 0)
+        numThreads.y = numThreadsOverride.y;
+    if (numThreadsOverride.z > 0)
+        numThreads.z = numThreadsOverride.z;
 
 }
 
@@ -610,5 +529,5 @@ amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& n
     }
 
 }
-
 #endif
+

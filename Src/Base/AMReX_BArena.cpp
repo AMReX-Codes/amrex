@@ -1,37 +1,73 @@
-#include <iostream>
-#include <AMReX_Print.H>
 #include <AMReX_BArena.H>
+#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
+#endif
 
 void*
 amrex::BArena::alloc (std::size_t _sz)
 {
+    void* pt;
 
-// Using CUDA, CUDA is available, object created on the host.
-// Manage everything for now. Improve later for other applications.
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && !defined(__CUDA_ARCH__)
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
+    if (device_use_managed_memory) {
 
-     void *ptr;
-     cudaMallocManaged(&ptr, _sz);
-     cudaDeviceSynchronize();
-     CudaErrorCheck();
-     return ptr;
+	gpu_malloc_managed(&pt, &_sz);
+	if (device_set_readonly)
+	    Device::mem_advise_set_readonly(pt, _sz);
+	if (device_set_preferred) {
+	    const int device = Device::deviceId();
+	    Device::mem_advise_set_preferred(pt, _sz, device);
+	}
 
-#else  // No CUDA or on the device. 
-   return ::operator new(_sz);
+    }
+    else if (device_use_hostalloc) {
+
+	gpu_hostalloc(&pt, &_sz);
+
+    }
+    else {
+
+	gpu_malloc(&pt, &_sz);
+
+    }
+#else
+    pt = ::operator new(_sz);
 #endif
+
+    return pt;
 }
 
 void
-amrex::BArena::free (void* ptr)
+amrex::BArena::free (void* pt)
 {
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && !defined(__CUDA_ARCH__)
-
-   cudaDeviceSynchronize();
-   cudaFree(ptr); 
-   CudaErrorCheck();
-
-#else 
-   ::operator delete(ptr);
+#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
+    if (!device_use_hostalloc)
+	gpu_free(pt);
+    else
+	gpu_freehost(pt);
+#else
+    ::operator delete(pt);
 #endif
 }
+
+#ifdef AMREX_USE_DEVICE
+void*
+amrex::BArena::alloc_device (std::size_t _sz)
+{
+    void* pt = 0;
+
+#ifdef AMREX_USE_CUDA
+    gpu_malloc(&pt, &_sz);
+#endif
+
+    return pt;
+}
+
+void
+amrex::BArena::free_device (void* pt)
+{
+#ifdef AMREX_USE_CUDA
+    gpu_free(pt);
+#endif
+}
+#endif

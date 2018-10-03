@@ -80,6 +80,10 @@ public:
     */
     bool operator== (const BCRec& rhs) const;
     /**
+    * \brief Not equal test.
+    */
+    bool operator!= (const BCRec& rhs) const;
+    /**
     * \brief ASCII write to ostream.
     */
     friend std::ostream& operator << (std::ostream&, const BCRec&);

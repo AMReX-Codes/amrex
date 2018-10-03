@@ -995,11 +995,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                               BL_ASSERT(tmp_local[pld.m_lev][index].size() == num_threads);
                               tmp_local[pld.m_lev][index][thread_num].push_back(p);
                               for (int comp = 0; comp < NArrayReal; ++comp) {
-                                  Vector<Real>& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
+                                  RealVector& arr = soa_local[pld.m_lev][index][thread_num].GetRealData(comp);
                                   arr.push_back(soa.GetRealData(comp)[pindex]);
                               }
                               for (int comp = 0; comp < NArrayInt; ++comp) {
-                                  Vector<int>& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
+                                  IntVector& arr = soa_local[pld.m_lev][index][thread_num].GetIntData(comp);
                                   arr.push_back(soa.GetIntData(comp)[pindex]);
                               }
                               
@@ -1047,11 +1047,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                   aos().erase(aos().begin() + last + 1, aos().begin() + npart);
                   for (int comp = 0; comp < NArrayReal; comp++) {
                       RealVector& rdata = soa.GetRealData(comp);
-                      rdata.erase(rdata.begin() + first, rdata.begin() + npart);
+                      rdata.erase(rdata.begin() + last + 1, rdata.begin() + npart);
                   }
                   for (int comp = 0; comp < NArrayInt; comp++) {
                       IntVector& idata = soa.GetIntData(comp);
-                      idata.erase(idata.begin() + first, idata.begin() + npart);
+                      idata.erase(idata.begin() + last + 1, idata.begin() + npart);
                   }
               }
           }
@@ -1069,17 +1069,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           else {
               ++pmap_it;
           }
-        }
-    }
-    
-    //    BL_PROFILE_VAR_START(blp_second_pass);
-    // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
-    for (int lev = lev_min; lev <= lev_max; lev++) {
-        typename std::map<std::pair<int, int>, Vector<ParticleVector> >::iterator pmap_it;
-        // we need to create any missing map entries in serial here
-        for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
-            m_particles[lev][pmap_it->first];
-
+      }
+  }
+  
+  // Second pass - for each tile in parallel, collect the particles we are owed from all thread's buffers.
+  for (int lev = lev_min; lev <= lev_max; lev++) {
+      typename std::map<std::pair<int, int>, Vector<ParticleVector > >::iterator pmap_it;
+      
+      // we need to create any missing map entries in serial here
+      for (pmap_it=tmp_local[lev].begin(); pmap_it != tmp_local[lev].end(); pmap_it++)
+          m_particles[lev][pmap_it->first];
+      
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp single nowait

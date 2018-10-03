@@ -21,11 +21,22 @@ public:
     * \brief Allocates a dynamic memory arena of size sz.
     * Returns a pointer to this memory.
     */
-    void* alloc (std::size_t sz);
+    virtual void* alloc (std::size_t sz) override;
     /**
     * \brief Deletes the arena pointed to by pt.
     */
-    void free (void* pt);
+    virtual void free (void* pt) override;
+#ifdef AMREX_USE_CUDA
+    /**
+    * \brief Allocates a dynamic device memory arena of size sz.
+    * Returns a pointer to this memory.
+    */
+    virtual void* alloc_device (std::size_t sz) override;
+    /**
+    * \brief Deletes the device arena pointed to by pt.
+    */
+    virtual void free_device (void* pt) override;
+#endif
 };
 
 }

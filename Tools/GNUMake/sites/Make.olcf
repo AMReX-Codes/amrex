@@ -28,15 +28,16 @@ ifeq ($(which_computer),$(filter $(which_computer),titan))
   # If the cudatoolkit module is loaded, CRAY_CUDATOOLKIT_DIR is set as the toolkit location.
 
   SYSTEM_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
+
+  # Specify that we want to build for Kepler
+
+  CUDA_ARCH = 35
   COMPILE_CUDA_PATH=$(CRAY_CUDATOOLKIT_DIR)
 
-  # Signal no support for CUDA 8.
+  # Provide system configuration information.
 
-  NO_CUDA_8_SUPPORT = TRUE
-
-  # Specify support for the Kepler GPUs.
-
-  CUDA_VERSION=cuda7.5
+  GPUS_PER_NODE=1
+  GPUS_PER_SOCKET=1
 
 endif
 
@@ -51,30 +52,16 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
     FC  := mpifort
     F90 := mpifort
 
-    # If we're using CUDA, make sure that the C/C++ MPI
-    # wrappers are calling nvcc to compile the code.
-    # This is OpenMPI/Spectrum MPI specific.
-
-    ifeq ($(USE_CUDA),TRUE)
-      OMPI_CC := nvcc
-      OMPI_CXX := nvcc
-    endif
-
     LIBRARIES += -lmpi_ibm_mpifh
 
   endif
 
-  ifeq ($(USE_CUDA),TRUE)
-    OMPI_CC := nvcc
-    OMPI_CXX := nvcc
-
-    ifeq ($(USE_OMP),TRUE)
-      GENERIC_COMP_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_60
-    endif
-  endif
-
   ifeq ($(lowercase_comp),gnu)
     override XTRALIBS := -lgfortran
+  endif
+
+  ifeq ($(lowercase_comp),ibm)
+    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
   endif
 
   # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
@@ -85,8 +72,17 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
 
   # Specify that we want to build for Pascal
 
-  CUDA_VERSION = cc60
+  CUDA_ARCH = 60
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
+  # Provide system configuration information.
+
+  GPUS_PER_NODE=4
+  GPUS_PER_SOCKET=2
+
+ifeq ($(USE_OMP_OFFLOAD),TRUE)
+  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_60
+endif
 
 endif
 
@@ -101,30 +97,16 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
     FC  := mpif90
     F90 := mpif90
 
-    # If we're using CUDA, make sure that the C/C++ MPI
-    # wrappers are calling nvcc to compile the code.
-    # This is OpenMPI/Spectrum MPI specific.
-
-    ifeq ($(USE_CUDA),TRUE)
-      OMPI_CC := nvcc
-      OMPI_CXX := nvcc
-    endif
-
     LIBRARIES += -lmpi_ibm_mpifh
 
   endif
 
-  ifeq ($(USE_CUDA),TRUE)
-    OMPI_CC := nvcc
-    OMPI_CXX := nvcc
-
-    ifeq ($(USE_OMP),TRUE)
-      GENERIC_COMP_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
-    endif
-  endif
-
   ifeq ($(lowercase_comp),gnu)
     override XTRALIBS := -lgfortran
+  endif
+
+  ifeq ($(lowercase_comp),ibm)
+    override XTRALIBS += -L$(OLCF_XLF_ROOT)/lib -L$(OLCF_XLC_ROOT)/lib
   endif
 
   # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
@@ -135,7 +117,16 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
 
   # Specify that we want to build for Volta
 
-  CUDA_VERSION = cc70
+  CUDA_ARCH = 70
   COMPILE_CUDA_PATH = $(OLCF_CUDA_ROOT)
+
+  # Provide system configuration information.
+
+  GPUS_PER_NODE=6
+  GPUS_PER_SOCKET=3
+
+ifeq ($(USE_OMP_OFFLOAD),TRUE)
+  GENERIC_IBM_FLAGS += -qsmp=omp:noauto -qoffload -qtgtarch=sm_70
+endif
 
 endif

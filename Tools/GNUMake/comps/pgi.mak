@@ -1,4 +1,4 @@
-#
+
 # Generic setup for using PGI
 #
 
@@ -20,13 +20,9 @@ COMP_VERSION = $(pgi_version)
 CXXFLAGS =
 CFLAGS   =
 
-# 2017-06-23: PGI 17.4 causes the CUDA code to break when using -O2/-fast
+# Note that -O2 is the default optimization level for PGI
 
-PGI_OPT := -fast
-
-ifeq ($(USE_CUDA),TRUE)
-  PGI_OPT := -O
-endif
+PGI_OPT := -O2 -fast
 
 ifeq ($(DEBUG),TRUE)
 
@@ -54,7 +50,7 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -Minfo=acc -ta=nvidia -mcmodel=medium
+  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
@@ -102,11 +98,19 @@ FFLAGS   += -Mnomain
 
 ifeq ($(USE_CUDA),TRUE)
 
-  F90FLAGS += -Mcuda=$(CUDA_VERSION)
-  FFLAGS   += -Mcuda=$(CUDA_VERSION)
+  F90FLAGS += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
+  FFLAGS   += -Mcuda=cc$(CUDA_ARCH),ptxinfo,fastmath,charstring
 
-  F90FLAGS += CUDAROOT=$(COMPILE_CUDA_PATH)
-  FFLAGS   += CUDAROOT=$(COMPILE_CUDA_PATH)
+  ifeq ($(DEBUG),TRUE)
+    F90FLAGS += -Mcuda=debug
+    FFLAGSS  += -Mcuda=debug
+  else
+    F90FLAGS += -Mcuda=lineinfo
+    FFLAGS   += -Mcuda=lineinfo
+  endif
+
+  F90FLAGS += CUDA_HOME=$(COMPILE_CUDA_PATH)
+  FFLAGS   += CUDA_HOME=$(COMPILE_CUDA_PATH)
 
   ifdef CUDA_MAXREGCOUNT
     F90FLAGS += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
