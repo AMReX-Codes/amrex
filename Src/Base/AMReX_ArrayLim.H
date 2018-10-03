@@ -2,9 +2,10 @@
 #define AMREX_ARRAYLIM_H_
 
 #include <AMReX_REAL.H>
-#include <AMReX_Array.H>
 
 #ifdef __cplusplus
+
+#include <AMReX_Array.H>
 
 /*
 ** C++ stuff ...
