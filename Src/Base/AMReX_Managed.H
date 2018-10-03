@@ -153,12 +153,12 @@ struct Pinned  { };
 
 #define AMREX_SIMPLE_LAUNCH(numBlocks, numThreads, function, ...) function(__VA_ARGS__);
 #define AMREX_BOX_LAUNCH(box, function, ...) function (__VA_ARGS__);
-#define AMREX_BOXCOMPS_LAUNCH(box, comps, function ...) function (__VA_ARGS__);
+#define AMREX_BOXCOMPS_LAUNCH(box, comps, function, ...) function (__VA_ARGS__);
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__);
 
 #define AMREX_SIMPLE_L_LAUNCH(runOn, numBlocks, numThreads, ...) launch_host(__VA_ARGS__);
 #define AMREX_BOX_L_LAUNCH(runOn, box, ...) launch_host(__VA_ARGS__); 
-#define AMREX_BOXCOMPS_L_LAUNCH(runOn, box, comps, function ...) launch_host (__VA_ARGS__);
+#define AMREX_BOXCOMPS_L_LAUNCH(runOn, box, comps, function, ...) launch_host (__VA_ARGS__);
 #define AMREX_PARTICLES_L_LAUNCH(runOn, num_particles, ...) launch_host (__VA_ARGS__);
 
 #define AMREX_CUDA_HOST
