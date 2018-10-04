@@ -3337,12 +3337,13 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
 		    const BaseFab<Real>& y, const Box& ybx, int ycomp,
 		    int numcomp) const;
 
-
+#if 0
 template <>
 Real
 BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp, 
                         const BaseFab<Real>& y, const Box& ybx, int ycomp,
                         int numcomp) const;
+#endif
 
 template <>
 BaseFab<Real>&
