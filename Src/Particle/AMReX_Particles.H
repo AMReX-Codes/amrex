@@ -33,6 +33,10 @@
 #include <AMReX_VectorIO.H>
 #include <AMReX_Particles_F.H>
 #include <AMReX_ParticleMPIUtil.H>
+#include <AMReX_StructOfArrays.H>
+#include <AMReX_ArrayOfStructs.H>
+#include <AMReX_Particle.H>
+#include <AMReX_ParticleTile.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -42,17 +46,12 @@
 #include <omp.h>
 #endif
 
+#ifdef AMREX_USE_CUDA
+#include "AMReX_CudaAllocators.H"
+#endif
+
 namespace amrex {
   
-namespace
-{
-    std::string   aggregation_type   = "";
-    int           aggregation_buffer = 1;
-    constexpr int GhostParticleID    = std::numeric_limits<int>::max();
-    constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
-    constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
-}
-
 //
 // A struct used for communicating particle data accross processes
 // during multi-level operations.
@@ -85,327 +84,6 @@ struct ParticleLocData
   Box     m_grown_gridbox;
 };
 
-//
-// The struct used to store particles.
-//
-template<int NReal, int NInt=0>
-struct Particle
-{
-    //
-    // The floating point type used for the particles.
-    //
-#ifdef BL_SINGLE_PRECISION_PARTICLES
-    typedef float RealType;
-#else
-    typedef double RealType;
-#endif
-
-    //
-    // The real data. We always have SPACEDIM position coordinates,
-    // and optionally we have NReal additional real attributes.
-    //
-    union rm_t
-    {
-      RealType pos[AMREX_SPACEDIM];
-      RealType arr[AMREX_SPACEDIM+NReal];
-    };
-
-    //
-    // The integer data. We always have id and cpu, and optionally we
-    // have NInt additional integer attributes.
-    //
-    union im_t
-    {
-      struct {int id; int cpu;};
-      int arr[2+NInt];
-    };
-
-    rm_t m_rdata;
-    im_t m_idata;
-
-    static int the_next_id;
-
-    int&  id()       & {return m_idata.id;}
-    int   id() const & {return m_idata.id;}
-    int& cpu()       & {return m_idata.cpu;}
-    int  cpu() const & {return m_idata.cpu;}
-
-    RealType& pos(int index)       & {return m_rdata.pos[index];}
-    RealType  pos(int index) const & {return m_rdata.pos[index];}
-
-    RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
-    RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
-
-    int& idata(int index)       & {return m_idata.arr[2 + index];}
-    int  idata(int index) const & {return m_idata.arr[2 + index];}
-
-    static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
-
-    static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
-
-    static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
-
-    static const std::string& Version ();
-
-    static const std::string& DataPrefix ();
-
-    static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const Particle<NReal, NInt>& p, Real* grav);
-
-    static int MaxReaders ();
-
-    static long MaxParticlesPerRead ();
-
-    //
-    // Returns the next particle ID for this processor.
-    // Particle IDs start at 1 and are never reused.
-    // The pair, consisting of the ID and the CPU on which the particle is "born",
-    // is a globally unique identifier for a particle.  The maximum of this value
-    // across all processors must be checkpointed and then restored on restart
-    // so that we don't reuse particle IDs.
-    //
-    static int NextID ();
-
-    // This version can only be used inside omp critical.
-    static int UnprotectedNextID ();
-
-    //
-    // Reset on restart.
-    //
-    static void NextID (int nextid);
-
-    static void CIC_Fracs (const Real* frac, Real* fracs);
-
-    static void CIC_Cells (const IntVect& hicell, IntVect* cells);
-
-    //
-    // Old, *-based CIC for use in Interp.
-    //
-    static void CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
-                                       const Real*                  plo,
-                                       const Real*                  dx,
-                                       Real*                        fracs,
-                                       IntVect*                     cells);
-
-    //
-    // Wraps the arbitrary dx function.
-    //
-    static int CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
-                                const Real*                  plo,
-                                const Real*                  dx,
-                                Vector<Real>&                 fracs,
-                                Vector<IntVect>&              cells);
-    //
-    // Does CIC computations for arbitrary particle/grid dx's.
-    //
-    static int CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
-                                const Real*                  plo,
-                                const Real*                  dx_geom,
-                                const Real*                  dx_part,
-                                Vector<Real>&                 fracs,
-                                Vector<IntVect>&              cells);
-};
-
-template <int NReal, int NInt>
-class ArrayOfStructs {
-public:
-    using ParticleType  = Particle<NReal, NInt>;
-    using RealType      = typename ParticleType::RealType;
-    using Iterator      = typename Vector<ParticleType>::iterator;
-    using ConstIterator = typename Vector<ParticleType>::const_iterator;
-
-    static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
-
-    const Vector<ParticleType>& operator()() const { return m_data; }
-    Vector      <ParticleType>& operator()()       { return m_data; }
-
-    std::size_t size () const { return m_data.size(); }
-    int numParticles () const { return m_data.size(); }
-
-    bool empty () const { return m_data.empty(); }
-
-    const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
-    RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
-
-    std::pair<int,int> dataShape () const {
-	return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
-    }
-
-    void push_back (const ParticleType& p) { return m_data.push_back(p); }
-    void pop_back() {m_data.pop_back(); }
-    bool empty() {return m_data.empty(); }
-
-    const ParticleType& back() const {return m_data.back(); }
-    ParticleType      & back()       {return m_data.back(); }
-
-    const ParticleType& operator[] (int i) const { return m_data[i]; }
-    ParticleType      & operator[] (int i)       { return m_data[i]; }
-    
-    Iterator erase( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
-
-    template< class InputIt >
-    void insert( Iterator pos, InputIt first, InputIt last ) { m_data.insert(pos, first, last); }
-
-    typename Vector<ParticleType>::iterator begin () { return m_data.begin(); }
-    typename Vector<ParticleType>::const_iterator begin () const { return m_data.begin(); }
-    typename Vector<ParticleType>::const_iterator cbegin () const { return m_data.cbegin(); }
-        
-    typename Vector<ParticleType>::iterator end () { return m_data.end(); }
-    typename Vector<ParticleType>::const_iterator end () const { return m_data.end(); }
-    typename Vector<ParticleType>::const_iterator cend () const { return m_data.cend(); }
-
-private:
-    Vector<ParticleType> m_data;
-};
-template <int NReal, int NInt> constexpr int ArrayOfStructs<NReal, NInt>::SizeInReal;
-
-
-template <int NReal, int NInt>
-struct StructOfArrays {
-  
-    std::array<Vector<Real>, NReal>& GetRealData () { return m_rdata; }
-    std::array<Vector<int>,   NInt>& GetIntData  () { return m_idata; }
-
-    const std::array<Vector<Real>, NReal>& GetRealData () const { return m_rdata; }
-    const std::array<Vector<int>,   NInt>& GetIntData  () const { return m_idata; }
-
-    Vector<Real>& GetRealData (const int index) {
-        BL_ASSERT(index < NReal);
-        return m_rdata[index];
-    }
-    
-    const Vector<Real>& GetRealData (const int index) const {
-        BL_ASSERT(index < NReal);
-        return m_rdata[index];
-    }
-
-    Vector<int>& GetIntData (const int index) {
-        BL_ASSERT(index < NInt);
-        return m_idata[index];
-    }
-    
-    const Vector<int>& GetIntData (const int index) const {
-        BL_ASSERT(index < NInt);
-        return m_idata[index];
-    }
-
-    int numParticles () const { 
-        if (NReal > 0)
-            return m_rdata[0].size();
-        else if (NInt > 0) 
-            return m_idata[0].size();
-        else
-            return 0;
-    }
-
-private:
-
-    std::array<Vector<Real>, NReal> m_rdata;
-    std::array<Vector<int>,  NInt>  m_idata;
-};
-
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-struct ParticleTile
-{
-    using ParticleType = Particle<NStructReal, NStructInt>;
-    using AoS = ArrayOfStructs<NStructReal, NStructInt>;
-    using SoA = StructOfArrays<NArrayReal, NArrayInt>;
-
-    AoS&       GetArrayOfStructs ()       { return m_aos_tile; }
-    const AoS& GetArrayOfStructs () const { return m_aos_tile; }
-
-    SoA&       GetStructOfArrays ()       { return m_soa_tile; }
-    const SoA& GetStructOfArrays () const { return m_soa_tile; }
-
-    bool empty () const { return m_aos_tile.empty(); }
-    
-    std::size_t size () const { return m_aos_tile.size(); }
-
-    int numParticles () const { return m_aos_tile.numParticles(); }
-
-    ///
-    /// Add one particle to this tile.
-    ///
-    void push_back (const ParticleType& p) { m_aos_tile().push_back(p); }
-
-    ///
-    /// Add a Real value to the struct-of-arrays at index comp.
-    /// This sets the data for one particle.
-    ///
-    void push_back_real (int comp, Real v) { 
-        m_soa_tile.GetRealData(comp).push_back(v);
-    }
-
-    ///
-    /// Add Real values to the struct-of-arrays, for all comps at once.
-    /// This sets the data for one particle.
-    ///
-    void push_back_real (const std::array<Real, NArrayReal>& v) { 
-        for (int i = 0; i < NArrayReal; ++i) {
-            m_soa_tile.GetRealData(i).push_back(v[i]);
-        }
-    }
-
-    ///
-    /// Add a range of Real values to the struct-of-arrays for the given comp.
-    /// This sets the data for several particles at once.
-    ///
-    void push_back_real (int comp, const Real* beg, const Real* end) {
-        auto it = m_soa_tile.GetRealData(comp).end();
-        m_soa_tile.GetRealData(comp).insert(it, beg, end);
-    }
-
-    ///
-    /// Add npar copies of the Real value v to the struct-of-arrays for the given comp.
-    /// This sets the data for several particles at once.
-    ///
-    void push_back_real (int comp, std::size_t npar, Real v) {
-        auto new_size = m_soa_tile.GetRealData(comp).size() + npar;
-        m_soa_tile.GetRealData(comp).resize(new_size, v);
-    }
-
-    ///
-    /// Add an int value to the struct-of-arrays at index comp.
-    /// This sets the data for one particle.
-    ///
-    void push_back_int (int comp, int v) { 
-        m_soa_tile.GetIntData(comp).push_back(v);
-    }
-    
-    ///
-    /// Add int values to the struct-of-arrays, for all comps at once.
-    /// This sets the data for one particle.
-    ///
-    void push_back_int (const std::array<int, NArrayInt>& v) { 
-        for (int i = 0; i < NArrayInt; ++i) {
-            m_soa_tile.GetIntData(i).push_back(v[i]);
-        }
-    }
-    
-    ///
-    /// Add a range of int values to the struct-of-arrays for the given comp.
-    /// This sets the data for several particles at once.
-    ///
-    void push_back_int (int comp, const int* beg, const int* end) {
-        auto it = m_soa_tile.GetIntData(comp).end();
-        m_soa_tile.GetIntData(comp).insert(it, beg, end);
-    }
-    
-    ///
-    /// Add npar copies of the int value v to the struct-of-arrays for the given comp.
-    /// This sets the data for several particles at once.
-    ///
-    void push_back_int (int comp, std::size_t npar, int v) {
-        auto new_size = m_soa_tile.GetIntData(comp).size() + npar;
-        m_soa_tile.GetIntData(comp).resize(new_size, v);
-    }
-
-private:
-
-    AoS m_aos_tile;
-    SoA m_soa_tile;
-};
-
 ///
 /// This struct is used to pass initial data into the various Init methods
 /// of the particle container. That data should be initialized in the order
@@ -427,7 +105,8 @@ struct ParticleInitType
         std::array<int,    NArrayInt  > int_array_data;
     };
 
-template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> class ParIterBase;
+template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt> 
+class ParIterBase;
 
     /**
      * \brief A distributed container for Particles sorted onto grids and tiles.
@@ -460,6 +139,15 @@ public:
     using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
+
+    using RealVector     = typename SoA::RealVector;
+    using IntVector      = typename SoA::IntVector;
+    using ParticleVector = typename AoS::ParticleVector;
+#ifdef AMREX_USE_CUDA
+    using CharVector = Vector<char, CudaManagedAllocator<char>>;
+#else
+    using CharVector = Vector<char>;
+#endif
 
     ParticleContainer ()
       : 
@@ -899,6 +587,15 @@ private:
         <is_const, typename PCType::SoA const&, typename PCType::SoA&>::type;
 
 public:
+
+    using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleTileType = typename ContainerType::ParticleTileType;
+    using AoS              = typename ContainerType::AoS;
+    using SoA              = typename ContainerType::SoA;
+    using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
+
     ParIterBase (ContainerRef pc, int level);
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
@@ -926,9 +623,9 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
 
-    void GetPosition (AMREX_D_DECL(Vector<Real>& x,
-                                   Vector<Real>& y,
-                                   Vector<Real>& z)) const;
+    void GetPosition (AMREX_D_DECL(RealVector& x,
+                                   RealVector& y,
+                                   RealVector& z)) const;
 
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 protected:
@@ -944,11 +641,14 @@ class ParIter
     : public ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>
 {
 public:
+
     using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
     using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
 
     ParIter (ContainerType& pc, int level)
         : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
@@ -958,9 +658,9 @@ public:
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
 
-    void SetPosition (AMREX_D_DECL(const Vector<Real>& x,
-                                   const Vector<Real>& y,
-                                   const Vector<Real>& z)) const;
+    void SetPosition (AMREX_D_DECL(const RealVector& x,
+                                   const RealVector& y,
+                                   const RealVector& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
@@ -968,11 +668,14 @@ class ParConstIter
     : public ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>
 {
 public:
+
     using ContainerType    = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleTileType = typename ContainerType::ParticleTileType;
     using AoS              = typename ContainerType::AoS;
     using SoA              = typename ContainerType::SoA;
     using ParticleType     = typename ContainerType::ParticleType;
+    using RealVector       = typename SoA::RealVector;
+    using IntVector        = typename SoA::IntVector;
 
     ParConstIter (ContainerType const& pc, int level)
         : ParIterBase<true,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
@@ -984,8 +687,6 @@ public:
 
 };
 
-
-#include "AMReX_ParticleI.H"
 #include "AMReX_ParticleInit.H"
 #include "AMReX_ParticleContainerI.H"
 #include "AMReX_ParIterI.H"

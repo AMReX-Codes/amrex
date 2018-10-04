@@ -329,7 +329,9 @@ We build :cpp:`EB2::IndexSpace` with a template function
 
     template <typename G>
     void EB2::Build (const G& gshop, const Geometry& geom,
-                     int required_coarsening_level, int max_coarsening_level);
+                     int required_coarsening_level,
+                     int max_coarsening_level,
+                     int ngrow = 4);
 
 Here the template parameter is a :cpp:`EB2::GeometryShop`.
 :cpp:`Geometry` (see section :ref:`sec:basics:geom`) describes the
@@ -349,7 +351,10 @@ multi-valued cells. This occurs when the embedded boundary cuts a cell
 in such a way that there is fluid on multiple sides of the boundary within
 that cell.  Because multi-valued cells are not supported, it
 will cause a runtime error if the required coarsening level generates
-multi-valued cells.
+multi-valued cells.  The optional :cpp:`int ngrow` parameter specifies
+the number of ghost cells outside the domain on required levels.  For
+levels coarser than the required level, no EB data are generated for
+ghost cells outside the domain.
 
 The newly built :cpp:`EB2::IndexSpace` is pushed on to a stack.  Static
 function :cpp:`EB2::IndexSpace::top()` returns a :cpp:`const &` to the
