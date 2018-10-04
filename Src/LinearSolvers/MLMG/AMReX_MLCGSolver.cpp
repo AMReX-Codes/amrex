@@ -83,6 +83,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
+    const int npts = ba.numPts(); 
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
@@ -100,6 +101,12 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     MultiFab t    (ba, dm, ncomp, 0, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
+    // Need to find the mean of r
+    Real ravg = r.sum(0,0); 
+    ravg /= npts;   
+    // Subtract it from r
+    r.plus(-ravg, 0);   
+    // Then normalize
     Lp.normalize(amrlev, mglev, r);
 
     MultiFab::Copy(sorig,sol,0,0,ncomp,0);
@@ -160,6 +167,11 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(sol, sol,  alpha, ph);
         sxay(s,     r, -alpha,  v);
 
+        //Subtract mean from s 
+        ravg = s.sum(0, 0); 
+        ravg /= npts; 
+        s.plus(-ravg, 0); 
+
         rnorm = norm_inf(s);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
@@ -194,6 +206,11 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	}
         sxay(sol, sol,  omega, sh);
         sxay(r,     s, -omega,  t);
+
+        //Subtract mean from r 
+        ravg = r.sum(0, 0); 
+        ravg /= npts; 
+        r.plus(-ravg, 0); 
 
         rnorm = norm_inf(r);
 
