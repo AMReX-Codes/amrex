@@ -3492,16 +3492,6 @@ BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
 			int                numcomp);
 #endif
 
-
-class BF_init
-{
-public:
-    BF_init ();
-    ~BF_init ();
-private:
-    static int m_cnt;
-};
-
 }
 
 #endif /*BL_BASEFAB_H*/
