@@ -47,6 +47,12 @@
 #endif
 
 #ifdef AMREX_USE_CUDA
+#include <thrust/device_vector.h>
+#include <thrust/binary_search.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/device_ptr.h>
+#include <thrust/tuple.h>
+
 #include "AMReX_CudaAllocators.H"
 #endif
 
@@ -317,6 +323,7 @@ public:
     Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -478,11 +485,16 @@ public:
     void SetUseUnlink(bool tf) {
       doUnlink = tf;
     }
+
     bool GetUseUnlink() {
       return doUnlink;
     }
 
 protected:
+
+    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
+    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
     //
     // Checks a particle's location on levels lev_min and higher.
