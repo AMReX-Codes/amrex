@@ -7,8 +7,10 @@ include $(AMREX_HOME)/Src/Extern/SUNDIALS3/Make.package
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS3
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS3
 CVODE_LIB_DIR ?= ../../../../sundials/instdir/lib
+INCLUDE_LOCATIONS += $(CVODE_LIB_DIR)/../include
 
 #CPPFLAGS += -Wl,-rpath,${CVODE_LIB_DIR}
+
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
 
 ifeq ($(USE_ARKODE),TRUE)
@@ -16,4 +18,12 @@ LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_arkode
 endif
 
 LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecserial
+
+ifneq (${SUNDIALS3_LIBS}, "-lsundials_cvode")
+
+LIBRARIES += -L$(CVODE_LIB_DIR) ${SUNDIALS3_LIBS}
+
+endif
+
+
 LIBRARIES += -Wl,-rpath,${CVODE_LIB_DIR}

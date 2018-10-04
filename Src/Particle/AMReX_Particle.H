@@ -1,5 +1,143 @@
-template <int NReal, int NInt>
-int Particle<NReal, NInt>::the_next_id = 1;
+#ifndef AMREX_PARTICLE_H_
+#define AMREX_PARTICLE_H_
+
+#include <string>
+
+#include <AMReX_REAL.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_IntVect.H>
+
+namespace amrex {
+
+namespace
+{
+    std::string   aggregation_type   = "";
+    int           aggregation_buffer = 1;
+    constexpr int GhostParticleID    = std::numeric_limits<int>::max();
+    constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
+    constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
+}
+
+//
+// The struct used to store particles.
+//
+template<int NReal, int NInt=0>
+struct Particle
+{
+    //
+    // The floating point type used for the particles.
+    //
+#ifdef BL_SINGLE_PRECISION_PARTICLES
+    typedef float RealType;
+#else
+    typedef double RealType;
+#endif
+    
+    //
+    // The real data. We always have SPACEDIM position coordinates,
+    // and optionally we have NReal additional real attributes.
+    //
+    union rm_t
+    {
+      RealType pos[AMREX_SPACEDIM];
+      RealType arr[AMREX_SPACEDIM+NReal];
+    };
+
+    //
+    // The integer data. We always have id and cpu, and optionally we
+    // have NInt additional integer attributes.
+    //
+    union im_t
+    {
+      struct {int id; int cpu;};
+      int arr[2+NInt];
+    };
+
+    rm_t m_rdata;
+    im_t m_idata;
+
+    static int the_next_id;
+
+    int&  id()       & {return m_idata.id;}
+    int   id() const & {return m_idata.id;}
+    int& cpu()       & {return m_idata.cpu;}
+    int  cpu() const & {return m_idata.cpu;}
+
+    RealType& pos(int index)       & {return m_rdata.pos[index];}
+    RealType  pos(int index) const & {return m_rdata.pos[index];}
+
+    RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+    RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+
+    int& idata(int index)       & {return m_idata.arr[2 + index];}
+    int  idata(int index) const & {return m_idata.arr[2 + index];}
+
+    static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
+
+    static Real InterpDoit (const FArrayBox& fab, const IntVect& hi, const Real* frac, int comp);
+
+    static void Interp (const Particle<NReal, NInt>& prt, const Geometry& geom, const FArrayBox& fab, const int* idx, Real* val, int cnt);
+
+    static const std::string& Version ();
+
+    static const std::string& DataPrefix ();
+
+    static void GetGravity (const FArrayBox& gfab, const Geometry& geom, const Particle<NReal, NInt>& p, Real* grav);
+
+    static int MaxReaders ();
+
+    static long MaxParticlesPerRead ();
+
+    //
+    // Returns the next particle ID for this processor.
+    // Particle IDs start at 1 and are never reused.
+    // The pair, consisting of the ID and the CPU on which the particle is "born",
+    // is a globally unique identifier for a particle.  The maximum of this value
+    // across all processors must be checkpointed and then restored on restart
+    // so that we don't reuse particle IDs.
+    //
+    static int NextID ();
+
+    // This version can only be used inside omp critical.
+    static int UnprotectedNextID ();
+
+    //
+    // Reset on restart.
+    //
+    static void NextID (int nextid);
+
+    static void CIC_Fracs (const Real* frac, Real* fracs);
+
+    static void CIC_Cells (const IntVect& hicell, IntVect* cells);
+
+    //
+    // Old, *-based CIC for use in Interp.
+    //
+    static void CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
+                                       const Real*                  plo,
+                                       const Real*                  dx,
+                                       Real*                        fracs,
+                                       IntVect*                     cells);
+
+    //
+    // Wraps the arbitrary dx function.
+    //
+    static int CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
+                                const Real*                  plo,
+                                const Real*                  dx,
+                                Vector<Real>&                 fracs,
+                                Vector<IntVect>&              cells);
+    //
+    // Does CIC computations for arbitrary particle/grid dx's.
+    //
+    static int CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
+                                const Real*                  plo,
+                                const Real*                  dx_geom,
+                                const Real*                  dx_part,
+                                Vector<Real>&                 fracs,
+                                Vector<IntVect>&              cells);
+};
+template <int NReal, int NInt> int Particle<NReal, NInt>::the_next_id = 1;
 
 template<int NReal, int NInt>
 inline
@@ -483,3 +621,7 @@ operator<< (std::ostream& os, const Particle<NReal, NInt>& p)
 
     return os;
 }
+
+} // namespace amrex
+
+#endif // AMREX_PARTICLE_H_
