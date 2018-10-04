@@ -137,11 +137,11 @@ main (int argc, char* argv[])
     for (int iround = 0; iround < nrounds; ++iround) {
 	for (int c=0; c<2; ++c) {
 	    for (int lev = 0; lev < nlevels; ++lev) {
-		mfs[lev]->FillBoundary_nowait(true);
+		mfs[lev]->FillBoundary_nowait();
 		mfs[lev]->FillBoundary_finish();
 	    }
 	    for (int lev = nlevels-1; lev >= 0; --lev) {
-		mfs[lev]->FillBoundary_nowait(true);
+		mfs[lev]->FillBoundary_nowait();
 		mfs[lev]->FillBoundary_finish();
 	    }
 	}
