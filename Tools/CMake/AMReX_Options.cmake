@@ -105,6 +105,13 @@ print_option ( ENABLE_MPI )
 option ( ENABLE_OMP  "Enable OpenMP" OFF)
 print_option ( ENABLE_OMP )
 
+option( ENABLE_CUDA  "Enable CUDA" OFF)
+print_option( ENABLE_CUDA )
+
+option( ENABLE_CUDA_UM  "Enable CUDA" OFF)
+print_option( ENABLE_CUDA_UM )
+
+
 if ( USE_XSDK_DEFAULTS )
    set ( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
    if ( "${XSDK_PRECISION}" STREQUAL "DOUBLE" )
