@@ -183,6 +183,14 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                     current_buf[lev][idim] = std::move(pmf);
                 }
             }
+            if (charge_buf[lev])
+            {
+                const IntVect& ng = charge_buf[lev]->nGrowVect();
+                auto pmf = std::unique_ptr<MultiFab>(new MultiFab(charge_buf[lev]->boxArray(),
+                                                                  dm, 1, ng));
+                // pmf->ParallelCopy(*charge_buf[lev][idim], 0, 0, 1, ng, ng);
+                charge_buf[lev] = std::move(pmf);
+            }
             if (current_buffer_masks[lev])
             {
                 const IntVect& ng = current_buffer_masks[lev]->nGrowVect();
