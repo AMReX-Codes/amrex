@@ -75,6 +75,9 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
     MultiFab& cost = get_new_data(Cost_Type);
 
+    auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(S.Factory());
+    auto const& flags = fact.getMultiEBCellFlagFab();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -91,8 +94,8 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
             const Box& bx = mfi.tilebox();
 
-            const auto& sfab = dynamic_cast<EBFArrayBox const&>(S[mfi]);
-            const auto& flag = sfab.getEBCellFlagFab();
+            const auto& sfab = S[mfi];
+            const auto& flag = flags[mfi];
 
             //if (1){
             if (flag.getType(bx) == FabType::covered) {
