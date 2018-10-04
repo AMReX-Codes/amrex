@@ -554,6 +554,18 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 # debugging at this time, but could be used later
                 # for dividing the work between the host and device.
 
+                hout.write("#if defined(__CUDA_ARCH__)\n")
+
+                # For the device launch, we need to replace certain macros.
+                host_args = args
+                host_args = host_args.replace("AMREX_INT_ANYD", "AMREX_ARLIM_3D")
+                host_args = host_args.replace("AMREX_REAL_ANYD", "AMREX_ZFILL")
+                host_args = host_args.replace("BL_TO_FORTRAN_GPU", "BL_TO_FORTRAN")
+
+                hout.write("{}_device\n ({});\n".format(func_name, host_args))
+
+                hout.write("#else\n")
+
                 hout.write("if (amrex::Device::inDeviceLaunchRegion()) {\n")
                 hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
                 hout.write("    Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
@@ -574,6 +586,8 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 hout.write("} else {\n")
                 hout.write("    {}\n ({});\n".format(func_name, host_args))
                 hout.write("}\n")
+
+                hout.write("#endif\n")
 
 
             else:
