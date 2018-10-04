@@ -104,6 +104,7 @@ public:
   /**
      Sum of all components of this IntVect.
   */
+    AMREX_CUDA_HOST_DEVICE
     int sum () const
     {
         int retval = AMREX_D_TERM((*this)[0], + (*this)[1], +(*this)[2]);
@@ -167,6 +168,7 @@ public:
     int*       getVect () && = delete;
 
     //! Returns true if all components are equal to the argument val.
+    AMREX_CUDA_HOST_DEVICE
     bool operator== (int val) const
     {
         return AMREX_D_TERM(vect[0] == val, && vect[1] == val, && vect[2] == val);
@@ -192,6 +194,7 @@ public:
         return AMREX_D_TERM(vect[0] != rhs[0], || vect[1] != rhs[1], || vect[2] != rhs[2]);
     }
     //! Return ture if this is lexicographically less than rhs.
+    AMREX_CUDA_HOST_DEVICE
     bool operator< (const IntVect& rhs) const
     {
 #if (AMREX_SPACEDIM == 1)
@@ -204,16 +207,19 @@ public:
 #endif
     }
     //! Return true if this is lexicographically less than or equal to rhs.
+    AMREX_CUDA_HOST_DEVICE
     bool operator<= (const IntVect& rhs) const
     {
 	return !(rhs < *this);
     }
     //! Retrun true if this is lexicographically greater than rhs.
+    AMREX_CUDA_HOST_DEVICE
     bool operator> (const IntVect& rhs) const
     {
 	return rhs < *this;
     }
     //! Retrun true if this is lexicographically greater than or equal to rhs.
+    AMREX_CUDA_HOST_DEVICE
     bool operator>= (const IntVect& rhs) const
     {
 	return !(*this < rhs);
@@ -222,6 +228,7 @@ public:
     * \brief Returns true if this is less than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */	
+    AMREX_CUDA_HOST_DEVICE
     bool allLT (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] < rhs[0], && vect[1] < rhs[1], && vect[2] < rhs[2]);
@@ -230,6 +237,7 @@ public:
     * \brief Returns true if this is less than or equal to argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool allLE (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] <= rhs[0], && vect[1] <= rhs[1], && vect[2] <= rhs[2]);
@@ -238,6 +246,7 @@ public:
     * \brief Returns true if this is greater than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool allGT (const IntVect& rhs) const
     {
         return AMREX_D_TERM(vect[0] > rhs[0], && vect[1] > rhs[1], && vect[2] > rhs[2]);
@@ -252,8 +261,10 @@ public:
         return AMREX_D_TERM(vect[0] >= rhs[0], && vect[1] >= rhs[1], && vect[2] >= rhs[2]);
     }
     //! Unary plus -- for completeness.
+    AMREX_CUDA_HOST_DEVICE
     const IntVect operator+ () const { return *this; }
     //! Unary Minus -- negates all components.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator- () const { return IntVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2] )); }
     //! Modifies IntVect by addition of a scalar to each component.
     AMREX_CUDA_HOST_DEVICE
@@ -268,6 +279,7 @@ public:
         AMREX_D_EXPR(vect[0] += p[0], vect[1] += p[1], vect[2] += p[2]); return *this;
     }
     //! Modifies IntVect by multiplication of a scalar to each component.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator*= (int s)
     {
         AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this;
@@ -278,21 +290,25 @@ public:
         AMREX_D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
     }
     //! Modifies IntVect by division by a scalar to each component.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator/= (int s)
     {
         AMREX_D_EXPR(vect[0] /= s, vect[1] /= s, vect[2] /= s); return *this;
     }
     //! Modifies IntVect by component-wise division with argument.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator/= (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] /= p[0], vect[1] /= p[1], vect[2] /= p[2]); return *this;
     }
     //! Modifies IntVect by subtraction of a scalar to each component.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator-= (int s)
     {
         AMREX_D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s); return *this;
     }
     //! Modifies IntVect by component-wise subtraction with argument.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator-= (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]); return *this;
@@ -304,6 +320,7 @@ public:
         return IntVect(AMREX_D_DECL(vect[0] + p[0], vect[1] + p[1], vect[2] + p[2]));
     }
     //! Return an IntVect that is this IntVect + s.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator+ (int s) const
     {
         return IntVect(AMREX_D_DECL(vect[0] + s, vect[1] + s, vect[2] + s));
@@ -315,26 +332,31 @@ public:
         return IntVect(AMREX_D_DECL(vect[0] - p[0], vect[1] - p[1], vect[2] - p[2]));
     }
     //! Return an IntVect that is this IntVect - s.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator- (int s) const
     {
         return IntVect(AMREX_D_DECL(vect[0] - s, vect[1] - s, vect[2] - s));
     }
     //! Returns component-wise product of IntVect and argument.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator* (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] * p[0], vect[1] * p[1], vect[2] * p[2]));
     }
     //! Returns component-wise product of IntVect and s.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator* (int s) const
     {
         return IntVect(AMREX_D_DECL(vect[0] * s, vect[1] * s, vect[2] * s));
     }
     //! Returns component-wise division of IntVect by argument.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator/ (const IntVect& p) const
     {
         return IntVect(AMREX_D_DECL(vect[0] / p[0], vect[1] / p[1], vect[2] / p[2]));
     }
     //! Returns component-wise division of IntVect by s.
+    AMREX_CUDA_HOST_DEVICE
     IntVect operator/ (int s) const
     {
         return IntVect(AMREX_D_DECL(vect[0] / s, vect[1] / s, vect[2] / s));
@@ -358,11 +380,13 @@ public:
         return *this;
     }
     //! Modify IntVect by multiplying each coordinate by s.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& scale (int s) { AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this; }
     /**
     * \brief Modify IntVect by reflecting it in the plane defined by
     * the index ref_ix and with normal in the direction of idir.
     */
+    AMREX_CUDA_HOST_DEVICE
     IntVect& reflect (int ref_ix, int idir)
     {
         BL_ASSERT(idir >= 0 && idir < AMREX_SPACEDIM);
@@ -379,6 +403,7 @@ public:
     AMREX_CUDA_HOST_DEVICE
     IntVect& shift (const IntVect& iv) { *this += iv; return *this; }
     //! Modify IntVect by adding s to each coordinate.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& diagShift (int s)
     {
         AMREX_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
@@ -406,6 +431,7 @@ public:
     * Figuratively, it is the zero vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the zero vector.
     */
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheZeroVector () {
         return IntVect(0);
     }
@@ -415,6 +441,7 @@ public:
     * Figuratively, it is the unit vector in AMREX_SPACEDIM-dimensional space.
     * It is provided as a convenient way to specify the unit vector.
     */
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheUnitVector () {
         return IntVect(1);
     }
@@ -423,6 +450,7 @@ public:
     * object, all of whose AMREX_SPACEDIM arguments are set to zero except that
     * the d-direction is set to one. 
     */
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheDimensionVector (int d) {
         IntVect r(0);
         r[d] = 1;
@@ -433,6 +461,7 @@ public:
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::NODE.
     * It is provided as a convenience to our users when defining Boxes.
     */
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheNodeVector () {
         return IntVect(1);
     }
@@ -441,6 +470,7 @@ public:
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::CELL.
     * It is provided as a convenience to our users when defining Boxes.
     */
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheCellVector () {
         return IntVect(0);
     }
