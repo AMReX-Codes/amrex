@@ -15,7 +15,7 @@ public:
     CutFab (const Box& b, int ncomps, bool alloc=true, bool shared=false)
         : FArrayBox(b, ncomps, alloc, shared) {}
 
-    virtual ~CutFab () = default;
+    ~CutFab () = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
 

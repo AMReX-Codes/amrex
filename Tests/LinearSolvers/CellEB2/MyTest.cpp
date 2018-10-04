@@ -249,7 +249,12 @@ MyTest::addFineGrids ()
     {
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
-        grids[ilev] = eb_level.boxArray();
+        BoxList bl = eb_level.boxArray().boxList();
+        const Box& domain = geom[ilev].Domain();
+        for (Box& b : bl) {
+            b &= domain;
+        }
+        grids[ilev].define(bl);
     }
 }
 
