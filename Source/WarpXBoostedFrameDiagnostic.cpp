@@ -54,6 +54,9 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(amrex::VisMF::Header::NoFabHeader_v1);
 
+    auto & mypc = WarpX::GetInstance().GetPartContainer();
+    const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+    
     for (int i = 0; i < N_snapshots_; ++i) {
 
         int i_lab = (snapshots_[i].current_z_lab - snapshots_[i].zmin_lab) / dz_lab_;
@@ -84,11 +87,9 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             }
             
             if (WarpX::do_boosted_frame_particles) {
-                auto & mypc = WarpX::GetInstance().GetPartContainer();
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
                     std::stringstream part_ss;
-                    std::string species_name = "/particle" + std::to_string(j) + "/";
-                    part_ss << snapshots_[i].file_name + species_name;
+                    part_ss << snapshots_[i].file_name + "/" + species_names[j] + "/";
                     writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
                 }
                 particles_buffer_[i].clear();
@@ -115,6 +116,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     const Real zlo_boost = domain_z_boost.lo(boost_direction_);
     const Real zhi_boost = domain_z_boost.hi(boost_direction_);
 
+    const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+    
     for (int i = 0; i < N_snapshots_; ++i) {
         const Real old_z_boost = snapshots_[i].current_z_boost;
         snapshots_[i].updateCurrentZPositions(t_boost,
@@ -201,8 +204,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             if (WarpX::do_boosted_frame_particles) {
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
                     std::stringstream part_ss;
-                    std::string species_name = "/particle" + std::to_string(j) + "/";
-                    part_ss << snapshots_[i].file_name + species_name;
+                    part_ss << snapshots_[i].file_name + "/" + species_names[j] + "/";
                     writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
                 }            
                 particles_buffer_[i].clear();
@@ -312,7 +314,7 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
     file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
     
     if (ParallelDescriptor::IOProcessor()) {
-
+        
         if (!UtilCreateDirectory(file_name, 0755))
             CreateDirectoryFailed(file_name);
 
@@ -324,11 +326,12 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
         }
 
         auto & mypc = WarpX::GetInstance().GetPartContainer();
+        const std::vector<std::string> species_names = mypc.GetSpeciesNames();        
         int nspecies = mypc.nSpecies();
         
         const std::string particles_prefix = "particle";
         for(int i = 0; i < nspecies; ++i) {
-            const std::string fullpath = file_name + "/" + particles_prefix + std::to_string(i);
+            const std::string fullpath = file_name + "/" + species_names[i];
             if (!UtilCreateDirectory(fullpath, 0755))
                 CreateDirectoryFailed(fullpath);
         }

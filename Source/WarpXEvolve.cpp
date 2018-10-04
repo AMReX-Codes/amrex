@@ -47,6 +47,7 @@ WarpX::EvolveEM (int numsteps)
     Real walltime, walltime_start = amrex::second();
     for (int step = istep[0]; step < numsteps_max && cur_time < stop_time; ++step)
     {
+        Real walltime_beg_step = amrex::second();
 
 	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
@@ -174,9 +175,11 @@ WarpX::EvolveEM (int numsteps)
 
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
-        walltime = amrex::second() - walltime_start;
+        Real walltime_end_step = amrex::second();
+        walltime = walltime_end_step - walltime_start;
         amrex::Print()<< "Walltime = " << walltime
-             << " s; Avg. per step = " << walltime/(step+1) << " s\n";
+                      << " s; This step = " << walltime_end_step-walltime_beg_step
+                      << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
 	// sync up time
 	for (int i = 0; i <= max_level; ++i) {

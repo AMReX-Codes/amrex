@@ -468,6 +468,8 @@ WarpX::WritePlotFile () const
             + static_cast<int>(plot_proc_number)
             + static_cast<int>(plot_divb)
             + static_cast<int>(plot_dive)
+            + static_cast<int>(plot_rho)
+            + static_cast<int>(plot_F)
             + static_cast<int>(plot_finepatch)*6
             + static_cast<int>(plot_crsepatch)*6
             + static_cast<int>(costs[0] != nullptr);
@@ -618,6 +620,26 @@ WarpX::WritePlotFile () const
                 dcomp += 1;
             }
 
+            if (plot_rho)
+            {
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp, *rho_fp[lev], 0, 1);
+                if (lev == 0)
+                {
+                    varnames.push_back("rho");
+                }
+                dcomp += 1;
+            }
+
+            if (plot_F)
+            {
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp, *F_fp[lev], 0, 1);
+                if (lev == 0)
+                {
+                    varnames.push_back("F");
+                }
+                dcomp += 1;
+            }
+            
             if (plot_finepatch)
             {
                 PackPlotDataPtrs(srcmf, Efield_fp[lev]);

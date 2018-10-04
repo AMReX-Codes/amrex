@@ -1,0 +1,38 @@
+language: c++
+sudo: true
+
+env:
+  matrix:
+    - WARPX_DIM=3
+    - WARPX_DIM=2
+
+before_install:
+    - sudo apt-get update
+    - sudo apt-get install -y gcc gfortran g++ openmpi-bin libopenmpi-dev libfftw3-dev libfftw3-mpi-dev
+    # Install miniconda and python dependencies
+    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh
+    - bash Miniconda-latest-Linux-x86_64.sh -b
+    - export PATH=/home/travis/miniconda2/bin:$PATH
+    - pip install --upgrade pip && pip install numpy scipy matplotlib yt
+
+install:
+    # Move the cloned code to the home folder
+    - cd ../ ; mv WarpX /home/travis/warpx ; cd /home/travis/
+    # Clone PICSAR and AMReX
+    - git clone https://github.com/AMReX-Codes/amrex.git
+    - cd amrex ; git checkout development ; cd ..
+    - git clone https://bitbucket.org/berkeleylab/picsar.git
+    # Clone the AMReX regression test utility
+    - git clone https://github.com/RemiLehe/regression_testing.git
+    # Prepare regression tests
+    - mkdir -p rt-WarpX/WarpX-benchmarks
+    - cd warpx/Regression
+    - python prepare_file_travis.py
+    - cp travis-tests.ini ../../rt-WarpX
+    # Final setup
+    - export FFTW_HOME=/usr/
+    - export OMP_NUM_THREADS=1
+    - cd /home/travis/regression_testing
+
+script:
+    - python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=$TRAVIS_COMMIT

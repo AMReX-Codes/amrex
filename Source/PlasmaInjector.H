@@ -294,6 +294,10 @@ protected:
     std::unique_ptr<PlasmaDensityProfile> rho_prof;
     std::unique_ptr<PlasmaMomentumDistribution> mom_dist;
     std::unique_ptr<PlasmaParticlePosition> part_pos;
+    
+    void parseDensity(amrex::ParmParse pp);
+    void parseMomentum(amrex::ParmParse pp);
+    
 };
 
 #endif
