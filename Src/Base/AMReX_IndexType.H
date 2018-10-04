@@ -39,6 +39,7 @@ public:
     * each direction.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
+    AMREX_CUDA_HOST_DEVICE
     IndexType (AMREX_D_DECL(CellIndex i, CellIndex j, CellIndex k))
         : itype(AMREX_D_TERM(i, | (j<<1), | (k<<2)))
         {}
@@ -54,8 +55,10 @@ public:
     AMREX_CUDA_HOST_DEVICE
     bool test (int dir) const { return (itype & mask(dir)) != 0; }
     //! Set NODE based in all directions.
+    AMREX_CUDA_HOST_DEVICE
     void setall () { itype = (1 << AMREX_SPACEDIM) - 1; }
     //! Set CELL based in all directions.
+    AMREX_CUDA_HOST_DEVICE
     void clear () { itype = 0; }
     //! True if this IndexType is NODE based in any direction.
     AMREX_CUDA_HOST_DEVICE
@@ -64,20 +67,27 @@ public:
     AMREX_CUDA_HOST_DEVICE
     bool ok () const { return itype < (1 << AMREX_SPACEDIM); }
     //! Change from CELL to NODE or NODE to CELL in direction dir.
+    AMREX_CUDA_HOST_DEVICE
     void flip (int i) { itype ^= mask(i); }
     //! True if IndexTypes are identical.
     AMREX_CUDA_HOST_DEVICE
     bool operator== (const IndexType& t) const { return t.itype == itype; }
     //! True if IndexTypes are not identical.
+    AMREX_CUDA_HOST_DEVICE
     bool operator!= (const IndexType& t) const { return t.itype != itype; }
+    AMREX_CUDA_HOST_DEVICE
     bool operator< (const IndexType& t) const { return itype < t.itype; }
     //! True if the IndexType is CELL based in all directions.
+    AMREX_CUDA_HOST_DEVICE
     bool cellCentered () const { return itype == 0; }
     //! True if the IndexType is CELL based in dir-direction.
+    AMREX_CUDA_HOST_DEVICE
     bool cellCentered (int dir) const { return (itype & mask(dir)) == 0; }
     //! True if the IndexType is NODE based in all directions.
+    AMREX_CUDA_HOST_DEVICE
     bool nodeCentered () const { return itype == (1<<AMREX_SPACEDIM)-1; }
     //! True if the IndexType is NODE based in dir-direction.
+    AMREX_CUDA_HOST_DEVICE
     bool nodeCentered (int dir) const { return (itype & mask(dir)) != 0; }
     //! Set IndexType to CellIndex type t in direction dir.
     AMREX_CUDA_HOST_DEVICE
@@ -97,6 +107,7 @@ public:
     * when defining a Box all of whose faces should be of type
     * IndexType::CELL.
     */
+    AMREX_CUDA_HOST_DEVICE
     static IndexType TheCellType () {
         return IndexType(AMREX_D_DECL(IndexType::CELL,
                                       IndexType::CELL,
@@ -108,6 +119,7 @@ public:
     * when defining a Box all of whose faces should be of type
     * IndexType::NODE.
     */
+    AMREX_CUDA_HOST_DEVICE
     static IndexType TheNodeType () {
         return IndexType(AMREX_D_DECL(IndexType::NODE,
                                       IndexType::NODE,
