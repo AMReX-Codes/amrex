@@ -568,6 +568,10 @@ private:
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
+#ifdef AMREX_USE_CUDA
+    void RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours);
+#endif
+
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
