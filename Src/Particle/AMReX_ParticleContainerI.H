@@ -1496,7 +1496,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::RedistributeCPU (int lev_min, int lev_max, int nGrow, int local)
 {
 
-  BL_PROFILE("ParticleContainer::Redistribute()");
+  BL_PROFILE("ParticleContainer::RedistributeCPU()");
 
   const int MyProc    = ParallelDescriptor::MyProc();
   Real      strttime  = amrex::second();
