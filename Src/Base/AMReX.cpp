@@ -156,6 +156,11 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("%s\n", msg);
+#endif
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -165,6 +170,7 @@ amrex::Error (const char* msg)
         write_to_stderr_without_buffering(msg);
         ParallelDescriptor::Abort();
     }
+#endif
 }
 
 void
@@ -238,6 +244,12 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 void
 amrex::Abort (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("Abort %s\n", msg);
+    assert(0);
+#endif
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -250,6 +262,7 @@ amrex::Abort (const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 void
@@ -261,10 +274,16 @@ amrex::Abort (const std::string& msg)
 void
 amrex::Warning (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("%s\n", msg);
+#endif
+#else
     if (msg)
     {
 	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
+#endif
 }
 
 void
@@ -280,9 +299,7 @@ amrex::Assert (const char* EX,
                const char* msg)
 {
 #if defined(__CUDA_ARCH__)
-
 #if !defined(__APPLE__)
-
     if (msg) {
         printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
                EX, file, line, msg);
@@ -292,11 +309,8 @@ amrex::Assert (const char* EX,
     }
 
     assert(0);
-
 #endif
-
 #else
-
     const int N = 512;
 
     char buf[N];
@@ -326,7 +340,6 @@ amrex::Assert (const char* EX,
        write_to_stderr_without_buffering(buf);
        ParallelDescriptor::Abort();
    }
-
 #endif
 }
 
