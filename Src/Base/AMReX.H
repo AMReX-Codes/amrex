@@ -104,6 +104,9 @@ namespace amrex
     * via abort().  Intended for use by the BL_ASSERT() macro
     * in <AMReX_BLassert.H>.
     */
+#if defined(AMREX_USE_CUDA)
+    __host__ __device__
+#endif
     void Assert (const char* EX,
                  const char* file,
                  int         line,
