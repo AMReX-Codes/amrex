@@ -1,4 +1,3 @@
-$CEXE_sources += main.cu
 CEXE_sources += main.cpp
 
 FEXE_headers += myfunc_F.H
