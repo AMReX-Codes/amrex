@@ -44,6 +44,12 @@ struct ParticleTile
 
     int numParticles () const { return m_aos_tile.numParticles(); }
 
+    void resize(std::size_t count)
+    {
+        m_soa_tile.resize(count);
+        m_aos_tile.resize(count);
+    }
+
     ///
     /// Add one particle to this tile.
     ///
