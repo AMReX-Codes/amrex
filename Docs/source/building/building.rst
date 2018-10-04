@@ -32,7 +32,7 @@ Then switch to the branch ``development`` of AMReX
 Compiling WarpX as an executable
 --------------------------------
 
-``cd`` into the directory ``warpx`` and type
+``cd`` into the directory ``WarpX`` and type
 
 ::
 

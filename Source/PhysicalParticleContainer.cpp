@@ -687,7 +687,7 @@ PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                    MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                   MultiFab* rho,
+                                   MultiFab* rho, MultiFab* crho,
                                    const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                    const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                    Real t, Real dt)
@@ -776,7 +776,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
                                         BL_TO_FORTRAN_ANYD(filtered_Ex),
                                         BL_TO_FORTRAN_ANYD(Ex[pti]),
-                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        mypc.fdtd_nci_stencilz_ex[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 exfab = &filtered_Ex;
 
@@ -784,7 +784,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
                                         BL_TO_FORTRAN_ANYD(filtered_Ez),
                                         BL_TO_FORTRAN_ANYD(Ez[pti]),
-                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        mypc.fdtd_nci_stencilz_by[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 ezfab = &filtered_Ez;
 
@@ -792,7 +792,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
                                         BL_TO_FORTRAN_ANYD(filtered_By),
                                         BL_TO_FORTRAN_ANYD(By[pti]),
-                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        mypc.fdtd_nci_stencilz_by[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 byfab = &filtered_By;
 
@@ -801,7 +801,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
                                         BL_TO_FORTRAN_ANYD(filtered_Ey),
                                         BL_TO_FORTRAN_ANYD(Ey[pti]),
-                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        mypc.fdtd_nci_stencilz_ex[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 eyfab = &filtered_Ey;
 
@@ -809,7 +809,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
                                         BL_TO_FORTRAN_ANYD(filtered_Bx),
                                         BL_TO_FORTRAN_ANYD(Bx[pti]),
-                                        mypc.fdtd_nci_stencilz_by.data(),
+                                        mypc.fdtd_nci_stencilz_by[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 bxfab = &filtered_Bx;
 
@@ -817,7 +817,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
                                         BL_TO_FORTRAN_ANYD(filtered_Bz),
                                         BL_TO_FORTRAN_ANYD(Bz[pti]),
-                                        mypc.fdtd_nci_stencilz_ex.data(),
+                                        mypc.fdtd_nci_stencilz_ex[lev].data(),
                                         &nstencilz_fdtd_nci_corr);
                 bzfab = &filtered_Bz;
 #endif
@@ -923,6 +923,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_partition);
             }
 
+            const long np_current = (cjx) ? nfine_current : np;
+            
 	    //
 	    // copy data from particle container to temp arrays
 	    //
@@ -936,46 +938,94 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    long lvect = 8;
 
-            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
+            auto depositCharge = [&] (MultiFab* rhomf, MultiFab* crhomf, int icomp)
             {
                 long ngRho = rhomf->nGrow();
-
                 Real* data_ptr;
-                const int *rholen;
-                FArrayBox& rhofab = (*rhomf)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-                Box grown_box;
-                const std::array<Real, 3>& xyzmin = xyzmin_tile;
-                tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
-                local_rho = 0.0;
-                data_ptr = local_rho.dataPtr();
-                rholen = local_rho.length();
+                const int *rholen;
+                
+                if (np_current > 0)
+                {                
+                    FArrayBox& rhofab = (*rhomf)[pti];
+                    const std::array<Real, 3>& xyzmin = xyzmin_tile;
+                    tile_box.grow(ngRho);
+                    local_rho.resize(tile_box);
+                    local_rho = 0.0;
+                    data_ptr = local_rho.dataPtr();
+                    rholen = local_rho.length();
+                    
+#if (AMREX_SPACEDIM == 3)
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = rholen[1]-1-2*ngRho;
+                    const long nz = rholen[2]-1-2*ngRho;
+#else
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = 0;
+                    const long nz = rholen[1]-1-2*ngRho;
+#endif
+                    warpx_charge_deposition(data_ptr, &np_current,
+                                            xp.data(), yp.data(), zp.data(), wp.data(),
+                                            &this->charge,
+                                            &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                                            &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                            &ngRho, &ngRho, &ngRho,
+                                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                            &lvect, &WarpX::charge_deposition_algo);
+
+                    const int ncomp = 1;
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
+                }
+
+                if (np_current < np)
+                {
+                    const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
+                    const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
+                    const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
+
+                    tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
+                    tile_box.grow(ngRho);
+
+                    local_rho.resize(tile_box);
+
+                    local_rho = 0.0;
+
+                    data_ptr = local_rho.dataPtr();
+                    rholen = local_rho.length();
 
 #if (AMREX_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = rholen[1]-1-2*ngRho;
+                    const long nz = rholen[2]-1-2*ngRho;
 #else
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = 0;
+                    const long nz = rholen[1]-1-2*ngRho;
 #endif
-            	warpx_charge_deposition(data_ptr, &np,
-                                        xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge,
-                                        &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                        &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho,
-                                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                        &lvect, &WarpX::charge_deposition_algo);
+                    
+                    long ncrse = np - nfine_current;
+                    warpx_charge_deposition(data_ptr, &ncrse,
+                                            xp.data() + nfine_current,
+                                            yp.data() + nfine_current,
+                                            zp.data() + nfine_current,
+                                            wp.data() + nfine_current,
+                                            &this->charge,
+                                            &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                                            &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
+                                            &ngRho, &ngRho, &ngRho,
+                                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                            &lvect, &WarpX::charge_deposition_algo);
 
-                const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                            BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
+                    FArrayBox& crhofab = (*crhomf)[pti];
+                    
+                    const int ncomp = 1;
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                                BL_TO_FORTRAN_N_3D(crhofab,icomp), ncomp);
+                }                
             };
 
-            if (rho) depositCharge(rho,0);
+            if (rho) depositCharge(rho, crho, 0);
 
             if (! do_not_push)
             {
@@ -1014,13 +1064,75 @@ PhysicalParticleContainer::Evolve (int lev,
                     const std::array<Real,3>& cxyzmin_grid = WarpX::LowerCorner(cbox, lev-1);
                     const int* cixyzmin_grid = cbox.loVect();
 
-                    const FArrayBox& cexfab = (*cEx)[pti];
-                    const FArrayBox& ceyfab = (*cEy)[pti];
-                    const FArrayBox& cezfab = (*cEz)[pti];
-                    const FArrayBox& cbxfab = (*cBx)[pti];
-                    const FArrayBox& cbyfab = (*cBy)[pti];
-                    const FArrayBox& cbzfab = (*cBz)[pti];
+                    const FArrayBox* cexfab = &(*cEx)[pti];
+                    const FArrayBox* ceyfab = &(*cEy)[pti];
+                    const FArrayBox* cezfab = &(*cEz)[pti];
+                    const FArrayBox* cbxfab = &(*cBx)[pti];
+                    const FArrayBox* cbyfab = &(*cBy)[pti];
+                    const FArrayBox* cbzfab = &(*cBz)[pti];
 
+                    if (warpx_use_fdtd_nci_corr())
+                    {
+#if (AMREX_SPACEDIM == 2)
+                        const Box& tbox = amrex::grow(cbox,{static_cast<int>(WarpX::nox),
+                                    static_cast<int>(WarpX::noz)});
+#else
+                        const Box& tbox = amrex::grow(cbox,{static_cast<int>(WarpX::nox),
+                                    static_cast<int>(WarpX::noy),
+                                    static_cast<int>(WarpX::noz)});
+#endif
+
+                        // both 2d and 3d
+                        filtered_Ex.resize(amrex::convert(tbox,WarpX::Ex_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ex),
+                                                BL_TO_FORTRAN_ANYD(filtered_Ex),
+                                                BL_TO_FORTRAN_ANYD((*cEx)[pti]),
+                                                mypc.fdtd_nci_stencilz_ex[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cexfab = &filtered_Ex;
+
+                        filtered_Ez.resize(amrex::convert(tbox,WarpX::Ez_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ez),
+                                                BL_TO_FORTRAN_ANYD(filtered_Ez),
+                                                BL_TO_FORTRAN_ANYD((*cEz)[pti]),
+                                                mypc.fdtd_nci_stencilz_by[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cezfab = &filtered_Ez;
+                        filtered_By.resize(amrex::convert(tbox,WarpX::By_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_By),
+                                                BL_TO_FORTRAN_ANYD(filtered_By),
+                                                BL_TO_FORTRAN_ANYD((*cBy)[pti]),
+                                                mypc.fdtd_nci_stencilz_by[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cbyfab = &filtered_By;
+
+#if (AMREX_SPACEDIM == 3)
+                        filtered_Ey.resize(amrex::convert(tbox,WarpX::Ey_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Ey),
+                                                BL_TO_FORTRAN_ANYD(filtered_Ey),
+                                                BL_TO_FORTRAN_ANYD((*cEy)[pti]),
+                                                mypc.fdtd_nci_stencilz_ex[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        ceyfab = &filtered_Ey;
+                        
+                        filtered_Bx.resize(amrex::convert(tbox,WarpX::Bx_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bx),
+                                                BL_TO_FORTRAN_ANYD(filtered_Bx),
+                                                BL_TO_FORTRAN_ANYD((*cBx)[pti]),
+                                                mypc.fdtd_nci_stencilz_by[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cbxfab = &filtered_Bx;
+                        
+                        filtered_Bz.resize(amrex::convert(tbox,WarpX::Bz_nodal_flag));
+                        WRPX_PXR_GODFREY_FILTER(BL_TO_FORTRAN_BOX(filtered_Bz),
+                                                BL_TO_FORTRAN_ANYD(filtered_Bz),
+                                                BL_TO_FORTRAN_ANYD((*cBz)[pti]),
+                                                mypc.fdtd_nci_stencilz_ex[lev-1].data(),
+                                                &nstencilz_fdtd_nci_corr);
+                        cbzfab = &filtered_Bz;
+#endif
+                    }
+                    
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse, xp.data()+nfine_gather, yp.data()+nfine_gather, zp.data()+nfine_gather,
@@ -1030,12 +1142,12 @@ PhysicalParticleContainer::Evolve (int lev,
                         &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
                         &cdx[0], &cdx[1], &cdx[2],
                         &WarpX::nox, &WarpX::noy, &WarpX::noz,
-                        BL_TO_FORTRAN_ANYD(cexfab),
-                        BL_TO_FORTRAN_ANYD(ceyfab),
-                        BL_TO_FORTRAN_ANYD(cezfab),
-                        BL_TO_FORTRAN_ANYD(cbxfab),
-                        BL_TO_FORTRAN_ANYD(cbyfab),
-                        BL_TO_FORTRAN_ANYD(cbzfab),
+                        BL_TO_FORTRAN_ANYD(*cexfab),
+                        BL_TO_FORTRAN_ANYD(*ceyfab),
+                        BL_TO_FORTRAN_ANYD(*cezfab),
+                        BL_TO_FORTRAN_ANYD(*cbxfab),
+                        BL_TO_FORTRAN_ANYD(*cbyfab),
+                        BL_TO_FORTRAN_ANYD(*cbzfab),
                         &ll4symtry, &l_lower_order_in_v,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 }
@@ -1060,8 +1172,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
                 Box gtbx, gtby, gtbz;
-
-                const long np_current = (cjx) ? nfine_current : np;
 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
@@ -1174,7 +1284,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
-            if (rho) depositCharge(rho,1);
+            if (rho) depositCharge(rho, crho, 1);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();

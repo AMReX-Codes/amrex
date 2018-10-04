@@ -379,8 +379,10 @@ private:
     amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > current_buffer_masks;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > gather_buffer_masks;
-    // If current deposition buffers are used
+
+    // If charge/current deposition buffers are used
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
+    amrex::Vector<std::unique_ptr<amrex::MultiFab> > charge_buf;
 
     // div E cleaning
     int do_dive_cleaning = 0;
@@ -432,6 +434,8 @@ private:
     bool plot_proc_number   = false;
     bool plot_dive          = false;
     bool plot_divb          = true;
+    bool plot_rho           = false;
+    bool plot_F             = false;
     bool plot_finepatch     = false;
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;

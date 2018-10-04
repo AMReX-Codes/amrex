@@ -30,7 +30,7 @@ RigidInjectedParticleContainer::RigidInjectedParticleContainer (AmrCore* amr_cor
 void RigidInjectedParticleContainer::InitData()
 {
     done_injecting.resize(finestLevel()+1, 0);
-    zinject_plane_levels.resize(finestLevel()+1, zinject_plane);
+    zinject_plane_levels.resize(finestLevel()+1, zinject_plane/WarpX::gamma_boost);
 
     AddParticles(0); // Note - add on level 0
 
@@ -307,7 +307,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
                                         const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                                         MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                         MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                        MultiFab* rho,
+                                        MultiFab* rho, MultiFab* crho,
                                         const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                         const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                         Real t, Real dt)
@@ -332,7 +332,7 @@ RigidInjectedParticleContainer::Evolve (int lev,
 				       Bx, By, Bz,
 				       jx, jy, jz,
                                        cjx, cjy, cjz,
-                                       rho,
+                                       rho, crho,
                                        cEx, cEy, cEz,
                                        cBx, cBy, cBz,
                                        t, dt);
