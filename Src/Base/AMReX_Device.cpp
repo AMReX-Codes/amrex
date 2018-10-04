@@ -295,6 +295,7 @@ amrex::Device::stream_synchronize(const int idx) {
 void*
 amrex::Device::device_malloc(const std::size_t sz) {
 
+    void* ptr = nullptr;
 #ifdef AMREX_USE_CUDA
     gpu_malloc(&ptr, &sz);
 #else
