@@ -3390,13 +3390,17 @@ BaseFab<Real>::performSetVal (Real       val,
                               int        ns,
                               int        num);
 
+#if 0
 template <>
 void
 BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, int ns, int num);
+#endif
 
+#if 0
 template <>
 Real
 BaseFab<Real>::norminfmask (const Box& subbox, const BaseFab<int>& mask, int comp, int ncomp) const;
+#endif
 
 template <>
 Real

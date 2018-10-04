@@ -278,6 +278,8 @@ BaseFab<Real>::performSetVal (Real       val,
          val);
 }
 
+// comment this out because they don't have pragma gpu
+#if 0
 template <>
 void
 BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, int comp, int ncomp)
@@ -290,6 +292,7 @@ BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, i
                                 BL_TO_FORTRAN_3D(mask),
                                 &val);
 }
+#endif
 
 
 template<>
@@ -311,6 +314,7 @@ BaseFab<Real>::invert (Real       val,
     return *this;
 }
 
+#if 0
 template <>
 Real
 BaseFab<Real>::norminfmask (const Box& bx, const BaseFab<int>& mask, int comp, int ncomp) const
@@ -322,6 +326,7 @@ BaseFab<Real>::norminfmask (const Box& bx, const BaseFab<int>& mask, int comp, i
                                       BL_TO_FORTRAN_ANYD(mask),
                                       BL_TO_FORTRAN_N_3D(*this,comp), &ncomp);
 }
+#endif
 
 template<>
 Real
@@ -690,6 +695,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     return dp;
 }
 
+#if 0
 template <>
 Real
 BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp, 
@@ -709,145 +715,7 @@ BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
                                    BL_TO_FORTRAN_ANYD(mask),
                                    &numcomp);
 }
-
-template<>
-void
-BaseFab<int>::performCopy (const BaseFab<int>& src,
-                           const Box&          srcbox,
-                           int                 srccomp,
-                           const Box&          destbox,
-                           int                 destcomp,
-                           int                 numcomp)
-{
-    BL_ASSERT(destbox.ok());
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(box().contains(destbox));
-    BL_ASSERT(destbox.sameSize(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-#pragma gpu
-    amrex_fort_ifab_copy(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-                   BL_TO_FORTRAN_N_3D(*this,destcomp),
-                   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-                   &numcomp);
-}
-
-template <>
-std::size_t
-BaseFab<int>::copyToMem (const Box& srcbox,
-                         int        srccomp,
-                         int        numcomp,
-                         void*      dst) const
-{
-    BL_ASSERT(box().contains(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= nComp());
-
-    if (srcbox.ok())
-    {
-#pragma gpu
-	long nints =  amrex_fort_ifab_copytomem(AMREX_ARLIM_3D(srcbox.loVect()), AMREX_ARLIM_3D(srcbox.hiVect()),
-                                          static_cast<int*>(dst),
-                                          BL_TO_FORTRAN_N_3D(*this,srccomp),
-                                          &numcomp);
-
-        return sizeof(int) * nints;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-template <>
-std::size_t
-BaseFab<int>::copyFromMem (const Box&  dstbox,
-                           int         dstcomp,
-                           int         numcomp,
-                           const void* src)
-{
-    BL_ASSERT(box().contains(dstbox));
-    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
-
-    if (dstbox.ok()) 
-    {
-#pragma gpu
-	long nints = amrex_fort_ifab_copyfrommem(AMREX_ARLIM_3D(dstbox.loVect()), AMREX_ARLIM_3D(dstbox.hiVect()),
-                                           BL_TO_FORTRAN_N_3D(*this,dstcomp), &numcomp,
-                                           static_cast<const int*>(src));
-        return sizeof(int) * nints;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-template<>
-void
-BaseFab<int>::performSetVal (int        val,
-                             const Box& bx,
-                             int        comp,
-                             int        ncomp)
-{
-    BL_ASSERT(domain.contains(bx));
-    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
-
-#pragma gpu
-    amrex_fort_ifab_setval(AMREX_ARLIM_3D(bx.loVect()), AMREX_ARLIM_3D(bx.hiVect()),
-                     BL_TO_FORTRAN_N_3D(*this,comp), &ncomp,
-                     &val);
-}
-
-template<>
-BaseFab<int>&
-BaseFab<int>::plus (const BaseFab<int>& src,
-                    const Box&           srcbox,
-                    const Box&           destbox,
-                    int                  srccomp,
-                    int                  destcomp,
-                    int                  numcomp)
-{
-    BL_ASSERT(destbox.ok());
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(box().contains(destbox));
-    BL_ASSERT(destbox.sameSize(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-#pragma gpu
-    amrex_fort_ifab_plus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-                   BL_TO_FORTRAN_N_3D(*this,destcomp),
-                   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-                   &numcomp);
-    
-    return *this;
-}
-
-template<>
-BaseFab<int>&
-BaseFab<int>::minus (const BaseFab<int>& src,
-                     const Box&           srcbox,
-                     const Box&           destbox,
-                     int                  srccomp,
-                     int                  destcomp,
-                     int                  numcomp)
-{
-    BL_ASSERT(destbox.ok());
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(box().contains(destbox));
-    BL_ASSERT(destbox.sameSize(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-#pragma gpu
-    amrex_fort_ifab_minus(AMREX_ARLIM_3D(destbox.loVect()), AMREX_ARLIM_3D(destbox.hiVect()),
-		   BL_TO_FORTRAN_N_3D(*this,destcomp),
-		   BL_TO_FORTRAN_N_3D(src,srccomp), AMREX_ARLIM_3D(srcbox.loVect()),
-		   &numcomp);
-
-    return *this;
-}
+#endif
 
 #endif
 
