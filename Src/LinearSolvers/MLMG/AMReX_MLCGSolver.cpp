@@ -10,10 +10,18 @@
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_ParallelReduce.H>
-
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+
+#ifdef AMREX_USE_EB
+#include <AMReX_EBFArrayBox.H>
+#include <AMReX_EBFabFactory.H>
+#include <AMReX_EBMultiFabUtil.H>
+//#include <AMReX_MLEBABecLap.H>
+#endif
+ 
+
 
 namespace amrex {
 
@@ -59,6 +67,117 @@ MLCGSolver::~MLCGSolver ()
 {
 }
 
+void 
+MLCGSolver::computeVolInv (const MultiFab& rhs)
+{
+    if (Lp.isCellCentered())
+    {
+        Real temp1, temp2; 
+        volinv.resize(1);
+        volinv[0].resize(Lp.NMGLevels(0));
+
+        // We don't need to compute for every level
+
+        auto f = [&] (int amrlev, int mglev) {
+#ifdef AMREX_USE_EB
+            auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Lp.Factory(amrlev,mglev));
+            if (rhs.hasEBFabFactory())
+            {
+                const MultiFab& vfrac = factory->getVolFrac();
+                volinv[amrlev][mglev] = vfrac.sum(0,true);
+            }
+            else
+#endif
+            {
+                volinv[amrlev][mglev] = 1.0 / Lp.Geom(amrlev,mglev).Domain().d_numPts();
+            }
+        };
+
+        // amrlev = 0, mglev = 0
+        f(0,0);
+
+        int mgbottom = Lp.NMGLevels(0)-1;
+        f(0,mgbottom);
+
+#ifdef AMREX_USE_EB
+        amrex::Print() << "Does rhs have a EB fab factory? "<< rhs.hasEBFabFactory() << std::endl;
+        if (rhs.hasEBFabFactory())
+        {
+            ParallelAllReduce::Sum<Real>({volinv[0][0], volinv[0][mgbottom]},
+                                         ParallelContext::CommunicatorSub());
+            temp1 = 1./volinv[0][0]; 
+            temp2 = 1./volinv[0][mgbottom]; 
+        }
+        else 
+        {
+            temp1 = volinv[0][0]; 
+            temp2 = volinv[0][mgbottom]; 
+        }
+    volinv[0][0] = temp1; 
+    volinv[0][mgbottom] = temp2; 
+#endif
+    }
+}
+
+void
+MLCGSolver::makeSolvable (int amrlev, int mglev, MultiFab& mf)
+{
+    const int ncomp = Lp.getNComp();
+
+    if (Lp.isCellCentered())
+    {
+        Vector<Real> offset(ncomp);
+#ifdef AMREX_USE_EB
+        auto factory = dynamic_cast<EBFArrayBoxFactory const*>(Lp.Factory(amrlev,mglev));
+        if (factory)
+        {
+            const MultiFab& vfrac = factory->getVolFrac();
+            for (int c = 0; c < ncomp; ++c) {
+                offset[c] = MultiFab::Dot(mf, c, vfrac, 0, 1, 0, true) * volinv[amrlev][mglev];
+            }
+        }
+        else
+#endif
+        {
+            for (int c = 0; c < ncomp; ++c) {
+                offset[c] = mf.sum(c,true) * volinv[amrlev][mglev];
+            }
+        }
+
+        ParallelAllReduce::Sum(offset.data(), ncomp, ParallelContext::CommunicatorSub());
+
+        for (int c = 0; c < ncomp; ++c) {
+            amrex::Print() << offset[c] << " avg " << volinv[amrlev][mglev] << '\t' << amrlev << '\t' << mglev << std::endl;
+            mf.plus(-offset[c], c, 1);
+        }
+#ifdef AMREX_USE_EB
+        if (mf.hasEBFabFactory()) {
+            Vector<Real> val(ncomp, 0.0);
+            amrex::EB_set_covered(mf, 0, ncomp, val);
+        }
+#endif
+    }
+    else
+    {
+        AMREX_ASSERT_WITH_MESSAGE(ncomp==1, "ncomp > 1 not supported for singular nodal problem");
+        Real offset = getNodalSum(amrlev, mglev, mf);
+        mf.plus(-offset, 0, 1);
+    }
+}
+
+Real
+MLCGSolver::getNodalSum (int amrlev, int mglev, MultiFab& mf) const
+{
+    MultiFab one(mf.boxArray(), mf.DistributionMap(), 1, 0, MFInfo(), mf.Factory());
+    one.setVal(1.0);
+    const bool local = true;
+    Real s1 = Lp.xdoty(amrlev, mglev, mf, one, local);
+    Real s2 = Lp.xdoty(amrlev, mglev, one, one, local);
+    ParallelAllReduce::Sum<Real>({s1,s2}, Lp.Communicator(amrlev,mglev));
+    return s1/s2;
+}
+
+
 int
 MLCGSolver::solve (MultiFab&       sol,
                    const MultiFab& rhs,
@@ -101,14 +220,17 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     MultiFab t    (ba, dm, ncomp, 0, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
-    // Need to find the mean of r
-    Real ravg = r.sum(0,0); 
-    ravg /= npts;   
-    // Subtract it from r
-    r.plus(-ravg, 0);   
+
+
+    if(Lp.isSingular(0))
+    {
+       computeVolInv(rhs);
+       makeSolvable(amrlev, mglev, r);
+    }
+ 
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
-
+ 
     MultiFab::Copy(sorig,sol,0,0,ncomp,0);
     MultiFab::Copy(rh,   r,  0,0,ncomp,0);
 
@@ -168,10 +290,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(s,     r, -alpha,  v);
 
         //Subtract mean from s 
-        ravg = s.sum(0, 0); 
-        ravg /= npts; 
-        s.plus(-ravg, 0); 
-
+        if(Lp.isSingular(0))   makeSolvable(amrlev, mglev, s);
+ 
         rnorm = norm_inf(s);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
@@ -207,10 +327,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(sol, sol,  omega, sh);
         sxay(r,     s, -omega,  t);
 
-        //Subtract mean from r 
-        ravg = r.sum(0, 0); 
-        ravg /= npts; 
-        r.plus(-ravg, 0); 
+        if(Lp.isSingular(0))  makeSolvable(amrlev, mglev, r);  
 
         rnorm = norm_inf(r);
 
