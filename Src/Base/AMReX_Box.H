@@ -115,6 +115,7 @@ public:
     IntVect type () const { return btype.ixType(); }
 
     //! Returns the indexing type in the specified direction.
+    AMREX_CUDA_HOST_DEVICE
     IndexType::CellIndex type (int dir) const { return btype.ixType(dir); }
 
     //! Return the length of the Box.
@@ -122,8 +123,8 @@ public:
     IntVect size () const
     {
         return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
-                              bigend[1]-smallend[1] + 1,
-                              bigend[2]-smallend[2] + 1));
+                                    bigend[1]-smallend[1] + 1,
+                                    bigend[2]-smallend[2] + 1));
     }
 
     //! Return the length of the Box in given direction.
@@ -181,6 +182,7 @@ public:
     }
 
     //! Checks if it is an empty box.
+    AMREX_CUDA_HOST_DEVICE
     bool isEmpty () const { return !ok(); }
 
     //! Checks if it is a proper Box (including a valid type).
@@ -188,11 +190,13 @@ public:
     bool ok () const { return bigend.allGE(smallend) && btype.ok(); }
 
     //! Returns true if argument is contained within Box.
+    AMREX_CUDA_HOST_DEVICE
     bool contains (const IntVect& p) const { return p.allGE(smallend) && p.allLE(bigend); }
 
     /** \brief Returns true if argument is contained within Box.
     * It is an error if the Boxes have different types.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool contains (const Box& b) const
     { 
 	BL_ASSERT(sameType(b)); 
@@ -200,12 +204,14 @@ public:
     } 
 
     //! Returns true if argument is strictly contained within Box.
+    AMREX_CUDA_HOST_DEVICE
     bool strictly_contains (const IntVect& p) const { return p.allGT(smallend) && p.allLT(bigend); }
 
     /**
     * \brief Returns true if argument is strictly contained within Box.
     * It is an error if the Boxes have different types.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool strictly_contains (const Box& b) const 
     { 
 	BL_ASSERT(sameType(b));
@@ -222,6 +228,7 @@ public:
     * \brief Returns true is Boxes same size, ie translates of each other,.
     * It is an error if they have different types.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool sameSize (const Box& b) const {
         BL_ASSERT(sameType(b));
         return AMREX_D_TERM(length(0) == b.length(0),
@@ -230,6 +237,7 @@ public:
     }
 
     //! Returns true if Boxes have same type.
+    AMREX_CUDA_HOST_DEVICE
     bool sameType (const Box &b) const { return btype == b.btype; }
 
     //! Returns true if Boxes are identical (including type).
