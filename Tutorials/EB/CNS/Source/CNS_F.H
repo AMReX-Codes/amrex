@@ -86,11 +86,6 @@ extern "C" {
                               const int* levmsk, const int* lmlo, const int* lmhi,
                               const amrex_real* dx, const amrex_real* dt, const int* level);
 
-    void cns_eb_fixup_geom (const int* lo, const int* hi,
-                            void* flag, const int* fglo, const int* fghi,
-                            const amrex_real* volfrac, const int* vlo, const int* vhi,
-                            const int* domlo, const int* domhi);
-
     void cns_tag_denerror (const int* lo, const int* hi,
                            char* tag, const int* tlo, const int* thi,
                            amrex_real* rho, const int* rlo, const int* rhi,
