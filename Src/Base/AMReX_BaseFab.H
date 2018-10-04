@@ -132,6 +132,7 @@ public:
 		      bool       alloc = true,
 		      bool       shared = false);
 
+    AMREX_CUDA_HOST_DEVICE
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
     /**
@@ -150,8 +151,10 @@ public:
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
 
+    AMREX_CUDA_HOST_DEVICE
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
+    AMREX_CUDA_HOST_DEVICE
     BaseFab& operator= (const T&);
 
     static void Initialize();
@@ -168,6 +171,7 @@ public:
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
     */
+    AMREX_CUDA_HOST_DEVICE
     void resize (const Box& b,
                  int        N = 1);
 
@@ -179,13 +183,17 @@ public:
     void clear ();
 
     //! Returns how many bytes used
+    AMREX_CUDA_HOST_DEVICE
     std::size_t nBytes () const { return truesize*sizeof(T); }
 
+    AMREX_CUDA_HOST_DEVICE
     static bool preAllocatable () { return true; }
 
+    AMREX_CUDA_HOST_DEVICE
     static bool isCopyOMPSafe () { return true; }
 
     //! Returns bytes used in the Box for those components
+    AMREX_CUDA_HOST_DEVICE
     std::size_t nBytes (const Box& bx, int start_comp, int ncomps) const
         { return bx.numPts() * sizeof(T) * ncomps; }
 
@@ -194,6 +202,7 @@ public:
     int nComp () const { return nvar; }
 
     //! for calls to fortran.  
+    AMREX_CUDA_HOST_DEVICE
     const int* nCompPtr() const {
 #ifdef AMREX_USE_GPU_PRAGMA
         return nvar_d;
@@ -203,9 +212,11 @@ public:
     }
 
     //! Returns the number of points 
+    AMREX_CUDA_HOST_DEVICE
     long nPts () const { return numpts; }
 
     //! Returns the total number of points of all components
+    AMREX_CUDA_HOST_DEVICE
     long size () const { return nvar*numpts; }
 
     //! Returns the domain (box) where the array is defined
@@ -216,15 +227,18 @@ public:
     * \brief Returns a pointer to an array of SPACEDIM integers
     * giving the length of the domain in each direction
     */
+    AMREX_CUDA_HOST_DEVICE
     const int* length () const { return dlen.getVect(); }
 
     /**
     * \brief Returns the lower corner of the domain
     * See class Box for analogue.
     */
+    AMREX_CUDA_HOST_DEVICE
     const IntVect& smallEnd () const { return domain.smallEnd(); }
 
     //!  Returns the upper corner of the domain.  See class Box for analogue.
+    AMREX_CUDA_HOST_DEVICE
     const IntVect& bigEnd () const { return domain.bigEnd(); }
 
     /**
@@ -253,6 +267,7 @@ public:
     * \brief Returns true if the domain of fab is totally contained within
     * the domain of this BaseFab.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool contains (const BaseFab<T>& fab) const
     {
         return box().contains(fab.box()) && nvar <= fab.nvar;
@@ -262,6 +277,7 @@ public:
     * \brief Returns true if bx is totally contained
     * within the domain of this BaseFab.
     */
+    AMREX_CUDA_HOST_DEVICE
     bool contains (const Box& bx) const { return box().contains(bx); }
 
     /**
@@ -339,6 +355,7 @@ public:
     }
 
     //! Returns true if the data for the FAB has been allocated.
+    AMREX_CUDA_HOST_DEVICE
     bool isAllocated () const { return dptr != 0; }
 
     /**
@@ -347,6 +364,7 @@ public:
     * inefficient if the C++ compiler is unable to optimize the
     * C++ code.
     */
+    AMREX_CUDA_HOST_DEVICE
     T& operator() (const IntVect& p, int N);
 
     //! Same as above, except returns component 0.
@@ -354,6 +372,7 @@ public:
     T& operator() (const IntVect& p);
 
     //! Same as above except works on const FABs.
+    AMREX_CUDA_HOST_DEVICE
     const T& operator() (const IntVect& p, int N) const;
 
     //! Same as above, except returns component 0.
@@ -390,14 +409,15 @@ public:
     void setVal (T          x,
                  const Box& bx,
                  int        N = 0);
-    AMREX_CUDA_HOST_DEVICE
     //! Same as above, except the sub-box defaults to the entire domain.
+    AMREX_CUDA_HOST_DEVICE
     void setVal (T   x,
                  int N);
-    AMREX_CUDA_HOST_DEVICE
     //! Same as above, except all components are set.
+    AMREX_CUDA_HOST_DEVICE
     void setVal (T x);
 
+    AMREX_CUDA_HOST_DEVICE
     void setValIfNot (T x, const Box& bx, const BaseFab<int>& mask, int nstart, int ncomp);
 
     /**
@@ -487,12 +507,14 @@ public:
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& shift (const IntVect& v);
     /**
     * \brief Perform shifts upon the domain of the BaseFab.  They are
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& shift (int idir,
                        int n_cell);
     /**
@@ -500,6 +522,7 @@ public:
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& shiftHalf (int dir,
                            int num_halfs);
     /**
@@ -507,8 +530,10 @@ public:
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& shiftHalf (const IntVect& num_halfs);
 
+    AMREX_CUDA_HOST_DEVICE
     Real norminfmask (const Box& subbox, const BaseFab<int>& mask, int scomp=0, int ncomp=1) const;
 
     /**
@@ -517,62 +542,75 @@ public:
     *   p = 0  -> infinity norm (max norm)
     *   p = 1  -> sum of ABS(FAB)
     */
+    AMREX_CUDA_HOST_DEVICE
     Real norm (int p,
                int scomp = 0,
                int ncomp = 1) const;
     
     //! Same as above except only on given subbox.
+    AMREX_CUDA_HOST_DEVICE
     Real norm (const Box& subbox,
                int        p,
                int        scomp = 0,
                int        ncomp = 1) const;
     //!Compute absolute value for all components of this FAB.
+    AMREX_CUDA_HOST_DEVICE
     void abs ();
     //! Same as above except only for components (comp: comp+numcomp-1)
+    AMREX_CUDA_HOST_DEVICE
     void abs (int comp,
               int numcomp=1);
     /**
     * \brief Calculate abs() on subbox for given component range.
     */
+    AMREX_CUDA_HOST_DEVICE
     void abs (const Box& subbox,
               int        comp = 0,
               int        numcomp=1);
     /**
     * \return Minimum value of given component.
     */
+    AMREX_CUDA_HOST_DEVICE
     T min (int comp = 0) const;
     /**
     * \return Minimum value of given component in given subbox.
     */
+    AMREX_CUDA_HOST_DEVICE
     T min (const Box& subbox,
            int        comp = 0) const;
     /**
     * \return Maximum value of given component.
     */
+    AMREX_CUDA_HOST_DEVICE
     T max (int comp = 0) const;
     /**
     * \return Maximum value of given component in given subbox.
     */
+    AMREX_CUDA_HOST_DEVICE
     T max (const Box& subbox,
            int        comp = 0) const;
     /**
     * \return location of minimum value in given component.
     */
+    AMREX_CUDA_HOST_DEVICE
     IntVect minIndex (int comp = 0) const;
     /**
     * \return location of minimum value in given component in
     * given subbox.
     */
+    AMREX_CUDA_HOST_DEVICE
     IntVect minIndex (const Box& subbox,
                       int        comp = 0) const;
     /**
     * \return location of maximum value in given component.
     */
+    AMREX_CUDA_HOST_DEVICE
     IntVect maxIndex (int comp = 0) const;
     /**
     * \return location of maximum value in given component in given
     * subbox.
     */
+    AMREX_CUDA_HOST_DEVICE
     IntVect maxIndex (const Box& subbox,
                       int        comp = 0) const;
     /**
@@ -581,43 +619,53 @@ public:
     * mask is resized by this function.
     * The number of cells marked with 1 returned.
     */
+    AMREX_CUDA_HOST_DEVICE
     int maskLT (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
     //! Same as above except mark cells with value less than or equal to val.
+    AMREX_CUDA_HOST_DEVICE
     int maskLE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
     
     //! Same as above except mark cells with value equal to val.
+    AMREX_CUDA_HOST_DEVICE
     int maskEQ (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
     //! Same as above except mark cells with value greater than val.
+    AMREX_CUDA_HOST_DEVICE
     int maskGT (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
     //! Same as above except mark cells with value greater than or equal to val.
+    AMREX_CUDA_HOST_DEVICE
     int maskGE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
     //! Returns sum of given component of FAB state vector.
+    AMREX_CUDA_HOST_DEVICE
     T sum (int comp,
            int numcomp = 1) const;
     //! Compute sum of given component of FAB state vector in given subbox.
+    AMREX_CUDA_HOST_DEVICE
     T sum (const Box& subbox,
            int        comp,
            int        numcomp = 1) const;
     //! Most general version, specify subbox and which components.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& invert (T          v,
                         const Box& subbox,
                         int        comp=0,
                         int        numcomp=1);
     //! As above except on entire domain.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& invert (T   v,
                         int comp,
                         int numcomp=1);
     //! As above except on entire domain, all components.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& invert (T v);
 
     //! Negate BaseFab, most general.
@@ -641,19 +689,24 @@ public:
                       int        numcomp=1);
 
     //! As above, except on entire domain.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (T   r,
                       int comp,
                       int numcomp=1);
     //! As above, except on entire domain and all components.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (T r);
 
     //! Addition in place.  This will often be more efficient than  making new BaseFab for result.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator+= (T r);
 
     //! FAB addition (a[i] <- a[i] + b[i]) in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator+= (const BaseFab<T>& f);
 
     //! FAB addition (a[i] <- a[i] + b[i]). The same as += operator.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src);
 
     /**
@@ -661,6 +714,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src,
                       int               srccomp,
                       int               destcomp,
@@ -670,6 +724,7 @@ public:
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src,
                       const Box&        subbox,
                       int               srccomp,
@@ -687,6 +742,7 @@ public:
                       int               destcomp,
                       int               numcomp=1);
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
                        const Box&        srcbox,
                        const Box&        destbox,
@@ -694,9 +750,11 @@ public:
                        int               destcomp,
                        int               numcomp=1);
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x);
 
     //! FAB XPAY (y[i] <- x[i] + a * y[i])
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& xpay (T a, const BaseFab<T>& x,
 		      const Box&        srcbox,
 		      const Box&        destbox,
@@ -705,6 +763,7 @@ public:
 		      int               numcomp=1);
 
     //! y[i] <- y[i] + x1[i] * x2[i])
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& addproduct (const Box&        destbox,
 			    int               destcomp,
 			    int               numcomp,
@@ -716,12 +775,15 @@ public:
     * \brief Scalar subtraction (a[i] <- a[i] - r).
     * Note: use plus(-r) for more general operations.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator-= (T r);
 
     //! FAB subtraction (a[i] <- a[i] - b[i]), in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator-= (const BaseFab<T>& f);
 
     //! FAB subtraction (a[i] <- a[i] - b[i]). The same as -= operator.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src);
 
     /**
@@ -729,6 +791,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1) where
     * the two FABs intersect.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src,
                        int               srccomp,
                        int               destcomp,
@@ -738,6 +801,7 @@ public:
     * of subbox and src FAB.  NOTE: subbox must be contained in
     * this FAB.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src,
                        const Box&        subbox,
                        int               srccomp,
@@ -755,12 +819,15 @@ public:
                        int               destcomp,
                        int               numcomp=1);
     //! Scalar multiplication (a[i] <- a[i] * r), in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator*= (T r);
 
     //! Scalar multiplication (a[i] <- a[i] * r).  The same as *=.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& mult (T r);
 
     //! Scalar multiplication, except control which components are multiplied.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& mult (T   r,
                       int comp,
                       int numcomp=1);
@@ -774,6 +841,7 @@ public:
                       int        numcomp=1);
 
     //! FAB multiplication (a[i] <- a[i] * b[i]), in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator*= (const BaseFab<T>& f);
 
     //! As above.
@@ -784,6 +852,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1) where
     * the two FABs intersect.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src,
                       int               srccomp,
                       int               destcomp,
@@ -794,6 +863,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src,
                       const Box&        subbox,
                       int               srccomp,
@@ -812,26 +882,32 @@ public:
                       int               destcomp,
                       int               numcomp=1);
     //! Scalar division (a[i] <- a[i] / r), in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator/= (T r);
 
     //! Scalar division (a[i] <- a[i] / r), in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (T r);
 
     //! As above except specify which components.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (T   r,
                         int comp,
                         int numcomp=1);
 
     //! As above except specify sub-box.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (T          r,
                         const Box& b,
                         int        comp=0,
                         int        numcomp=1);
 
     //! FAB division, in place.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& operator/= (const BaseFab<T>& src);
 
     //! Same as above.
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src);
 
     /**
@@ -840,6 +916,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src,
                         int               srccomp,
                         int               destcomp,
@@ -849,6 +926,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src,
                         const Box&        subbox,
                         int               srccomp,
@@ -868,6 +946,7 @@ public:
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& protected_divide (const BaseFab<T>& src);
 
     /**
@@ -877,6 +956,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& protected_divide (const BaseFab<T>& src,
                                   int               srccomp,
                                   int               destcomp,
@@ -888,6 +968,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& protected_divide (const BaseFab<T>& src,
                                   const Box&        subbox,
                                   int               srccomp,
@@ -899,6 +980,7 @@ public:
     * destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
+    AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& protected_divide (const BaseFab<T>& src,
                                   const Box&        srcbox,
                                   const Box&        destbox,
@@ -966,15 +1048,18 @@ public:
                          int               numcomp = 1);
 
     //! Dot product of x (i.e.,this) and y
+    AMREX_CUDA_HOST_DEVICE
     T dot (const Box& xbx, int xcomp,
 	   const BaseFab<T>& y, const Box& ybx, int ycomp,
 	   int numcomp = 1) const;
 
+    AMREX_CUDA_HOST_DEVICE
     T dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
                const BaseFab<T>& y, const Box& ybx, int ycomp,
                int numcomp) const;
 
     //! Change the Box type without change the length
+    AMREX_CUDA_HOST_DEVICE
     void SetBoxType (const IndexType& typ) { domain.setType(typ); }
 
     template <class F> AMREX_CUDA_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
@@ -983,22 +1068,28 @@ public:
     template <class F> AMREX_CUDA_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> void ForEachIV (const Box& b, int c, int nc, F f) {
+    template <class F> AMREX_CUDA_HOST_DEVICE void ForEachIV (const Box& b, int c, int nc, F f) {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> void ForEachIV (const Box& b, int c, int nc, F f) const {
+    template <class F> AMREX_CUDA_HOST_DEVICE void ForEachIV (const Box& b, int c, int nc, F f) const {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> void ForEach (const Box& dstbox, int dstcomp, int numcomp,
-                                     const BaseFab<T>& src, int srccomp, F f);
-    template <class F> void AMREX_CUDA_HOST_DEVICE
-                            ForEach (const Box& dstbox, int dstcomp, int numcomp,
-                                     const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
-    template <typename P, class F> P Accumulate (const Box& b, int c, int nc, P init, F f) const;
-    template <class F> 
-    AMREX_CUDA_HOST_DEVICE void Transform (T* dst, const Box& b, int c, int nc, F f) const;
-    template <class F> 
-    AMREX_CUDA_HOST_DEVICE void Transform (const Box& b, int c, int nc, T const* src, F f);
+    template <class F> AMREX_CUDA_HOST_DEVICE
+    void ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                  const BaseFab<T>& src, int srccomp, F f);
+
+    template <class F> AMREX_CUDA_HOST_DEVICE
+    void ForEach (const Box& dstbox, int dstcomp, int numcomp,
+                  const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
+
+    template <typename P, class F> AMREX_CUDA_HOST_DEVICE
+    P Accumulate (const Box& b, int c, int nc, P init, F f) const;
+
+    template <class F> AMREX_CUDA_HOST_DEVICE
+    void Transform (T* dst, const Box& b, int c, int nc, F f) const;
+
+    template <class F> AMREX_CUDA_HOST_DEVICE
+    void Transform (const Box& b, int c, int nc, T const* src, F f);
 
 protected:
     //! Allocates memory for the BaseFab<T>.
@@ -1918,7 +2009,8 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
                 int const* AMREX_RESTRICT mp = mp0(0,j,k);
                 for (int i = 0; i < len[0]; ++i) {
                     if (mp[i]) {
-                        r = std::max(r, static_cast<Real>(std::abs(dp[i])));
+                        Real t = static_cast<Real>(std::abs(dp[i]));
+                        r = (r > t) ? r : t;
                     }
                 }
             }
@@ -1959,7 +2051,8 @@ BaseFab<T>::norm (const Box& subbox,
                 for     (int j = 0; j < len[1]; ++j) {
                     T const* AMREX_RESTRICT dp = dp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
-                        nrm = std::max(nrm, static_cast<Real>(std::abs(dp[i])));
+                        Real t = static_cast<Real>(std::abs(dp[i]));
+                        nrm = (nrm > t) ? nrm : t;
                     }
                 }
             }
@@ -2020,7 +2113,12 @@ BaseFab<T>::min (const Box& subbox, int comp) const
         for     (int j = 0; j < len[1]; ++j) {
             T const* AMREX_RESTRICT dp = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
+#if defined(__CUDA_ARCH__)
+                T t = dp[i];
+                r = (r < t) ? r : t;
+#else
                 r = std::min(r, dp[i]);
+#endif
             }
         }
     }
@@ -2048,7 +2146,12 @@ BaseFab<T>::max (const Box& subbox, int comp) const
         for     (int j = 0; j < len[1]; ++j) {
             T const* AMREX_RESTRICT dp = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
+#if defined(__CUDA_ARCH__)
+                T t = dp[i];
+                r = (r > t) ? r : t;
+#else
                 r = std::max(r, dp[i]);
+#endif
             }
         }
     }
