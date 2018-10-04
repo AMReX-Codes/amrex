@@ -341,6 +341,10 @@ WarpX::ReadParameters ()
         pp.query("plot_divb"         , plot_divb);
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
+	if (plot_rho || plot_F){
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
+                "plot_rho and plot_F only work if warpx.do_dive_cleaning = 1");
+	}
 
         if (maxLevel() > 0) {
             pp.query("plot_finepatch", plot_finepatch);

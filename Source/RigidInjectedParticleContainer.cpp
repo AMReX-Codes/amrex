@@ -30,7 +30,7 @@ RigidInjectedParticleContainer::RigidInjectedParticleContainer (AmrCore* amr_cor
 void RigidInjectedParticleContainer::InitData()
 {
     done_injecting.resize(finestLevel()+1, 0);
-    zinject_plane_levels.resize(finestLevel()+1, zinject_plane);
+    zinject_plane_levels.resize(finestLevel()+1, zinject_plane/WarpX::gamma_boost);
 
     AddParticles(0); // Note - add on level 0
 
