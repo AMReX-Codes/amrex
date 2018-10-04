@@ -176,6 +176,7 @@ public:
     const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
+    AMREX_CUDA_HOST_DEVICE
     int operator[] (Orientation face) const {
         const int dir = face.coordDir();
         return face.isLow() ? smallend[dir] : bigend[dir];
@@ -245,8 +246,10 @@ public:
     bool operator== (const Box& b) const { return smallend == b.smallend && bigend == b.bigend && b.btype == btype; }
 
     //! Returns true if Boxes differ (including type).
+    AMREX_CUDA_HOST_DEVICE
     bool operator!= (const Box& b) const { return !operator==(b); }
 
+    AMREX_CUDA_HOST_DEVICE
     bool operator< (const Box& rhs) const
     {
         return btype < rhs.btype ||
@@ -254,12 +257,15 @@ public:
 	         (  (smallend < rhs.smallend) ||
                    ((smallend == rhs.smallend) && (bigend < rhs.bigend)) ));
     }
+    AMREX_CUDA_HOST_DEVICE
     bool operator <= (const Box& rhs) const {
         return !(rhs < *this);
     }
+    AMREX_CUDA_HOST_DEVICE
     bool operator> (const Box& rhs) const {
         return rhs < *this;
     }
+    AMREX_CUDA_HOST_DEVICE
     bool operator>= (const Box& rhs) const {
         return !(*this < rhs);
     }
@@ -284,6 +290,7 @@ public:
     * \brief Returns the number of points contained in the Box.
     * This is intended for use only in diagnostic messages.
     */
+    AMREX_CUDA_HOST_DEVICE
     double d_numPts () const {
         BL_ASSERT(ok());
         return AMREX_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
@@ -295,6 +302,7 @@ public:
     * Box; otherwise, numPts() > volume().  Abort()s if the number
     * cannot be represented in a long.
     */
+    AMREX_CUDA_HOST_DEVICE
     long volume () const {
         return AMREX_D_TERM( static_cast<long>(length(0)-btype[0]), 
                             *static_cast<long>(length(1)-btype[1]),
@@ -305,18 +313,22 @@ public:
     * \brief Returns length of longest side.  dir is modified to give
     * direction with longest side: 0...SPACEDIM-1. Ignores type.
     */
+    AMREX_CUDA_HOST_DEVICE
     int longside (int& dir) const;
 
     //! Returns length of longest side.  Ignores type.
+    AMREX_CUDA_HOST_DEVICE
     int longside () const;
 
     /**
     * \brief Returns length of shortest side.  dir is modified to give
     *  direction with shortest side: 0...SPACEDIM-1.  Ignores type.
     */
+    AMREX_CUDA_HOST_DEVICE
     int shortside (int& dir) const;
 
     //! Returns length of shortest side.  Ignores type.
+    AMREX_CUDA_HOST_DEVICE
     int shortside () const;
 
     /**
@@ -328,9 +340,11 @@ public:
     long index (const IntVect& v) const;
 
     //! Redefine the small end of the Box.
+    AMREX_CUDA_HOST_DEVICE
     Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
 
     //! Redefine the small end of the Box.
+    AMREX_CUDA_HOST_DEVICE
     Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
 
     //! Redefine the big end of the Box.
@@ -346,6 +360,7 @@ public:
     * sm_index with length n_cells.  NOTE: This will yield an
     * illegal Box if n_cells <= 0.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& setRange (int dir,
                    int sm_index,
                    int n_cells = 1);
@@ -359,6 +374,7 @@ public:
     Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
+    AMREX_CUDA_HOST_DEVICE
     Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); return *this; }
 
     /**
@@ -370,9 +386,11 @@ public:
     * zones and hence will not change the type.
     * This is: b.shifthalf(4) == b.shift(2).
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& shiftHalf (int dir, int num_halfs);
 
     //! Equivalent to b.shiftHalf(0,iv[0]).shiftHalf(1,iv[1]) ...
+    AMREX_CUDA_HOST_DEVICE
     Box& shiftHalf (const IntVect& iv);
 
     /**
@@ -396,15 +414,19 @@ public:
     Box& convert (const IntVect& typ);
 
     //! Convert to NODE type in all directions.
+    AMREX_CUDA_HOST_DEVICE
     Box& surroundingNodes ();
 
     //! Convert to NODE type in given direction.
+    AMREX_CUDA_HOST_DEVICE
     Box& surroundingNodes (int dir);
 
     //! Convert to CELL type in all directions.
+    AMREX_CUDA_HOST_DEVICE
     Box& enclosedCells ();
 
     //! Convert to CELL type in given direction.
+    AMREX_CUDA_HOST_DEVICE
     Box& enclosedCells (int dir);
 
     /**
@@ -440,6 +462,7 @@ public:
     * the original Box and the argument.
     * Both Boxes must have identical type.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& minBox (const Box& b) {
         // BoxArray may call this with not ok boxes.  BL_ASSERT(b.ok() && ok());
         BL_ASSERT(sameType(b));
@@ -457,9 +480,11 @@ public:
     Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
 
     //! Shift Box (relative) by given IntVect.
+    AMREX_CUDA_HOST_DEVICE
     Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; return *this; }
 
     //! Shift Box (relative) by given IntVect.
+    AMREX_CUDA_HOST_DEVICE
     Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
 
     /**
@@ -474,27 +499,32 @@ public:
     * but is the only point in common.  It is also an error if the
     * chop_pnt is an end node of the Box.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box chop (int dir, int chop_pnt);
 
     /*
     * \brief Grow Box in all directions by given amount.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); return *this; }
 
     //! Grow Box in each direction by specified amount.
+    AMREX_CUDA_HOST_DEVICE
     Box& grow (const IntVect& v) { smallend -= v; bigend += v; return *this;}
 
     /**
     * \brief Grow the Box on the low and high end by n_cell cells
     * in direction idir.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); return *this; }
 
     /**
     * \brief Grow the Box on the low end by n_cell cells in direction idir.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); return *this; }
 
     /**
@@ -506,6 +536,7 @@ public:
     Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
 
     //! Grow in the direction of the given face.
+    AMREX_CUDA_HOST_DEVICE
     Box& grow (Orientation face, int n_cell = 1) {
         int idir = face.coordDir();
         if (face.isLow())
@@ -522,6 +553,7 @@ public:
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& refine (int ref_ratio) {
         return this->refine(IntVect(ref_ratio));
     }
@@ -533,6 +565,7 @@ public:
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& refine (const IntVect& ref_ratio);
 
     /**
@@ -544,6 +577,7 @@ public:
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& coarsen (int ref_ratio) {
         return this->coarsen(IntVect(ref_ratio));
     }
@@ -557,6 +591,7 @@ public:
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box& coarsen (const IntVect& ref_ratio);
 
     /**
@@ -571,16 +606,20 @@ public:
     * an object of type Box representing the unit box in
     * AMREX_SPACEDIM-dimensional space.
     */
+    AMREX_CUDA_HOST_DEVICE
     static Box TheUnitBox () {
         return Box(IntVect::TheZeroVector(),IntVect::TheZeroVector());
     }
 
+    AMREX_CUDA_HOST_DEVICE
     bool isSquare() const;
 
+    AMREX_CUDA_HOST_DEVICE
     bool coarsenable(int refrat, int min_width=1) const {
         return coarsenable(IntVect(refrat),min_width);
     }
 
+    AMREX_CUDA_HOST_DEVICE
     bool coarsenable(const IntVect& refrat, int min_width=1) const
     {
         if (!size().allGE(refrat*min_width)) {
@@ -593,6 +632,7 @@ public:
         }
     }
 
+    AMREX_CUDA_HOST_DEVICE
     void normalize ()
     {
         for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {

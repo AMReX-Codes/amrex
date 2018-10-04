@@ -138,6 +138,7 @@ public:
     }
 
     //return coordinate with largest value
+    AMREX_CUDA_HOST_DEVICE
     int maxDir(bool a_doAbsValue) const;
 
     //! Returns a reference to the i'th coordinate of the IntVect.
@@ -285,6 +286,7 @@ public:
         AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s); return *this;
     }
     //! Modifies IntVect by component-wise multiplication with argument.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& operator*= (const IntVect& p)
     {
         AMREX_D_EXPR(vect[0] *= p[0], vect[1] *= p[1], vect[2] *= p[2]); return *this;
@@ -409,8 +411,10 @@ public:
         AMREX_D_EXPR(vect[0] += s, vect[1] += s, vect[2] += s); return *this;
     }
     //! Modify IntVect by component-wise integer projection.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& coarsen (const IntVect& p);
     //! Modify IntVect by component-wise integer projection.
+    AMREX_CUDA_HOST_DEVICE
     IntVect& coarsen (int p);
 
     /// for serialization
@@ -475,11 +479,13 @@ public:
         return IntVect(0);
     }
 
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheMaxVector () {
         return IntVect(std::numeric_limits<int>::max());
     }
+    AMREX_CUDA_HOST_DEVICE
     static IntVect TheMinVector () {
-        return IntVect(std::numeric_limits<int>::min());
+        return IntVect(std::numeric_limits<int>::lowest());
     }
 
 private:
