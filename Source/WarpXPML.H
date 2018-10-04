@@ -59,7 +59,7 @@ namespace amrex {
         virtual SigmaBox* create (const Box& box, int ncomps,
                                   const FabInfo& info, int box_index) const final
             { return new SigmaBox(box, m_grids, m_dx, m_ncell, m_delta); }
-        virtual SigmaBox* destroy (SigmaBox* fab) const final {
+        virtual void destroy (SigmaBox* fab) const final {
             delete fab;
         }
         virtual FabFactory<SigmaBox>* clone () const { 
