@@ -1268,11 +1268,224 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
         else
         {
-            amrex::Abort("how did this happen? \n");
+            char* dst;
+            const size_t old_size = not_ours[dest_proc].size();
+            const size_t new_size 
+                = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
+
+            if (old_size == 0)
+            {
+                not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                cudaMemcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()), 
+                           &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                dst = thrust::raw_pointer_cast(
+                          not_ours[dest_proc].data() + old_size + sizeof(size_t));
+            } else
+            {
+                not_ours[dest_proc].resize(new_size);
+                dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
+            }
+
+            cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                       &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
+            dst += sizeof(size_t);
+
+            cudaMemcpy(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
+            dst += sizeof(int);
+
+            cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                       &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
+            dst += sizeof(int);
+
+            // pack structs
+            {
+                auto& aos = particles_to_redistribute.GetArrayOfStructs();
+                cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                           thrust::raw_pointer_cast(static_cast<ParticleType*>(&aos[0]) + start[i]),
+                           num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                dst += num_to_add*sizeof(ParticleType);
+            }
+
+            // pack real arrays
+            for (int j = 0; j < NArrayReal; ++j)
+            {
+                auto& attrib = particles_to_redistribute.GetStructOfArrays().GetRealData(j);
+                cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                           thrust::raw_pointer_cast(attrib.data() + start[i]),
+                           num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
+                dst += num_to_add*sizeof(Real);
+            }
+
+            // pack int arrays           
+            for (int j = 0; j < NArrayInt; ++j)
+            {
+                auto& attrib = particles_to_redistribute.GetStructOfArrays().GetIntData(j);
+                cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                           thrust::raw_pointer_cast(attrib.data() + start[i]),
+                           num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
+                dst += num_to_add*sizeof(int);
+            }
         }
     }   
+
+    RedistributeMPIGPU(not_ours);
+
 #endif // AMREX_USE_CUDA
 }
+
+#ifdef AMREX_USE_CUDA
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours)
+{
+    BL_PROFILE("ParticleContainer::RedistributeMPIGPU()");
+
+#if BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int lev = 0;
+
+    // We may now have particles that are rightfully owned by another CPU.
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
+
+    long NumSnds = 0;
+
+    for (const auto& kv : not_ours)
+    {
+        const int np = kv.second.size(); 
+        Snds[kv.first] = np;
+        NumSnds += np;
+    }
+    
+    ParallelDescriptor::ReduceLongMax(NumSnds);
+
+    if (NumSnds == 0) return;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+    Vector<int> RcvProc;
+    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += Rcvs[i];
+        }
+    }
+    
+    const int nrcvs = RcvProc.size();
+    Vector<MPI_Status>  stats(nrcvs);
+    Vector<MPI_Request> rreqs(nrcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    
+    // Allocate data for rcvs as one big chunk.
+    thrust::device_vector<char> recvdata(TotRcvBytes);
+    
+    // Post receives.
+    for (int i = 0; i < nrcvs; ++i) {
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = Rcvs[Who];
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        
+        rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(recvdata.data() + offset),
+                                             Cnt, Who, SeqNum).req();
+    }
+    
+    // Send.
+    for (const auto& kv : not_ours) {
+        const auto Who = kv.first;
+        const auto Cnt = kv.second.size();
+        
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        
+        ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
+                                 Cnt, Who, SeqNum);
+    }
+
+    if (nrcvs > 0) {
+        ParallelDescriptor::Waitall(rreqs, stats);
+
+        for (int i = 0; i < nrcvs; ++i) {
+            const int offset = rOffset[i];
+            char* buffer = thrust::raw_pointer_cast(recvdata.data() + offset);
+            size_t num_grids, num_particles;
+            int gid, pid;
+            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyDeviceToHost); 
+            buffer += sizeof(size_t);
+
+            for (int g = 0; g < num_grids; ++g) {
+                cudaMemcpy(&num_particles, buffer, sizeof(size_t), cudaMemcpyDeviceToHost);
+                buffer += sizeof(size_t);
+                cudaMemcpy(&gid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
+                buffer += sizeof(int);
+                cudaMemcpy(&pid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
+                buffer += sizeof(int);
+                
+                if (num_particles == 0) continue;
+
+                AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
+                {
+                    const int tid = 0;
+                    auto pair_index = std::make_pair(gid, tid);
+                    auto& ptile = m_particles[lev][pair_index];
+                    auto& aos = ptile.GetArrayOfStructs();
+                    auto& soa = ptile.GetStructOfArrays();
+                    const size_t old_size = ptile.numParticles();
+                    const size_t new_size = old_size + num_particles;        
+                    ptile.resize(new_size);
+                    
+                    //copy structs
+                    cudaMemcpy(thrust::raw_pointer_cast(aos.data()),
+                               &buffer, num_particles*sizeof(ParticleType),
+                               cudaMemcpyDeviceToDevice);
+                    buffer += num_particles*sizeof(ParticleType);
+
+                    // copy real arrays 
+                    for (int j = 0; j < NArrayReal; ++j) {
+                        auto& attrib = soa.GetRealData(j);
+                        thrust::copy(thrust::device,
+                                     buffer, buffer + num_particles*sizeof(Real),
+                                     thrust::raw_pointer_cast(&attrib[0] + old_size));
+                        buffer += num_particles*sizeof(Real);
+                    }
+
+                    // copy int arrays 
+                    for (int j = 0; j < NArrayInt; ++j) {
+                        auto& attrib = soa.GetIntData(j);
+                        thrust::copy(thrust::device,
+                                     buffer, buffer + num_particles*sizeof(int),
+                                     thrust::raw_pointer_cast(&attrib[0] + old_size));
+                        buffer += num_particles*sizeof(int);
+                    }
+                }            
+            }
+        }
+    }        
+#endif // MPI    
+}
+#endif // AMREX_USE_CUDA
 
 //
 // The CPU implementation of Redistribute
