@@ -866,8 +866,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         RedistributeCPU(lev_min, lev_max, nGrow, local);
     }
-#endif
+#else
     RedistributeCPU(lev_min, lev_max, nGrow, local);
+#endif
 }
 
 #ifdef AMREX_USE_CUDA
@@ -3643,4 +3644,5 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::moveKick (Mul
 
         amrex::Print() << "ParticleContainer::moveKick() time: " << stoptime << '\n';
     }
+
 }
