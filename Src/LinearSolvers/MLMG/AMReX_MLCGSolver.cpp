@@ -18,7 +18,6 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil.H>
-//#include <AMReX_MLEBABecLap.H>
 #endif
  
 
@@ -202,7 +201,6 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
-    const int npts = ba.numPts(); 
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
@@ -221,7 +219,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
-
+    // If singular remove mean from residual
     if(Lp.isSingular(0))
     {
        computeVolInv(rhs);
