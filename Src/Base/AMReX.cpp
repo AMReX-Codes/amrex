@@ -279,6 +279,24 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+
+#if !defined(__APPLE__)
+
+    if (msg) {
+        printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+               EX, file, line, msg);
+    } else {
+        printf("Assertion `%s' failed, file \"%s\", line %d",
+               EX, file, line);
+    }
+
+    assert(0);
+
+#endif
+
+#else
+
     const int N = 512;
 
     char buf[N];
@@ -308,6 +326,8 @@ amrex::Assert (const char* EX,
        write_to_stderr_without_buffering(buf);
        ParallelDescriptor::Abort();
    }
+
+#endif
 }
 
 namespace
