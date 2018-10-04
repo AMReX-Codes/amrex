@@ -823,7 +823,7 @@ MLMG::actualBottomSolve ()
         }
         else
         {
-            MLCGSolver cg_solver(linop);
+            MLCGSolver cg_solver(this, linop);
             if (bottom_solver == BottomSolver::bicgstab) {
                 cg_solver.setSolver(MLCGSolver::Type::BiCGStab);
             } else if (bottom_solver == BottomSolver::cg) {

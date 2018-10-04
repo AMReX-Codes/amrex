@@ -18,6 +18,8 @@ class MLMG
 {
 public:
 
+    friend class MLCGSolver;
+
     using BCMode = MLLinOp::BCMode;
     using Location = MLLinOp::Location;
 
