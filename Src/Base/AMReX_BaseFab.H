@@ -405,6 +405,7 @@ public:
     * setVal above, except that instead of setting values on the
     * Box b, values are set on the complement of b in the domain.
     */
+// TODO    AMREX_CUDA_HOST_DEVICE
     void setComplement (T          x,
                         const Box& b,
                         int        ns,
@@ -1522,9 +1523,14 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
+#ifndef __CUDA_ARCH__
+
 #ifdef AMREX_USE_GPU_PRAGMA
     nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
     *nvar_d = nvar;
+#endif
+
+    amrex::update_fab_stats(numpts, truesize, sizeof(T));
 #endif
 }
 
@@ -1685,15 +1691,17 @@ BaseFab<T>::clear ()
             ::operator delete(dptr);
 #endif
 
-#ifdef AMREX_USE_GPU_PRAGMA
+#if defined(AMREX_USE_GPU_PRAGMA) && !defined(__CUDA_ARCH__)
             amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
+#ifndef __CUDA_ARCH__
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {
 		amrex::update_fab_stats(0, -truesize, sizeof(T));
 	    }
+#endif
 	}
 
 	dptr = 0;

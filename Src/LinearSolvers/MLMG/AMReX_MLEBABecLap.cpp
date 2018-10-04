@@ -873,7 +873,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     const int ncomp = getNComp();
     if (!skip_fillboundary) {
         const int cross = false;
-        in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),cross); 
+        in.FillBoundary(0, ncomp, m_geom[amrlev][mglev].periodicity(),WhereToRunDefault(),cross); 
     }
 
     int m_is_inhomog = bc_mode == BCMode::Inhomogeneous;
