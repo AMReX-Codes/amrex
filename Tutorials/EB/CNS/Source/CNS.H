@@ -128,8 +128,6 @@ protected:
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,
                        amrex::EBFluxRegister* fr_as_crse, amrex::EBFluxRegister* fr_as_fine);
 
-    void fixUpGeometry ();
-
     void printTotal () const;
 
     const amrex::MultiFab* volfrac;

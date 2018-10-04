@@ -514,6 +514,11 @@ MLMG::interpCorrection (int alev)
     bool isEB = fine_cor.hasEBFabFactory();
     ignore_unused(isEB);
 
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine_cor.Factory()));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
     if (linop.isCellCentered())
     {
 #ifdef _OPENMP
@@ -526,7 +531,7 @@ MLMG::interpCorrection (int alev)
             bool call_lincc;
             if (isEB)
             {
-                const auto& flag = dynamic_cast<EBFArrayBox&>(fine_cor[mfi]).getEBCellFlagFab();
+                const auto& flag = (*flags)[mfi];
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
                     call_lincc = true;
                 } else {
@@ -619,6 +624,11 @@ MLMG::interpCorrection (int alev, int mglev)
     bool isEB = fine_cor.hasEBFabFactory();
     ignore_unused(isEB);
 
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine_cor.Factory()));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
     if (linop.isCellCentered())
     {
 #ifdef _OPENMP
@@ -631,7 +641,7 @@ MLMG::interpCorrection (int alev, int mglev)
             bool call_lincc;
             if (isEB)
             {
-                const auto& flag = dynamic_cast<EBFArrayBox&>(fine_cor[mfi]).getEBCellFlagFab();
+                const auto& flag = (*flags)[mfi];
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
                     call_lincc = true;
                 } else {

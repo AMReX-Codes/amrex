@@ -134,7 +134,7 @@ public:
     BaseFab (const Box& bx, int ncomp, T* p);
 
     //! The destructor deletes the array memory.
-    virtual ~BaseFab ();
+    ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
@@ -158,30 +158,6 @@ public:
     void resize (const Box& b,
                  int        N = 1);
 
-  ///for AggStencil and its minions
-  virtual long offset(const IntVect& a_iv, const int& a_ivar) const
-    {
-      AMREX_ASSERT(a_ivar >= 0);
-      AMREX_ASSERT(a_ivar < nvar);
-      AMREX_ASSERT(domain.contains(a_iv));
-
-      IntVect ivDiff = a_iv - domain.smallEnd();
-#if AMREX_SPACEDIM > 1
-      IntVect ivSize = domain.size();
-#endif
-      long retval = ivDiff[0];
-
-#if AMREX_SPACEDIM > 1
-      retval += ivDiff[1]*ivSize[0] ;
-#endif
-#if AMREX_SPACEDIM > 2
-      retval += ivDiff[2]*ivSize[0]*ivSize[1];
-#endif
-      retval += numpts * a_ivar;
-
-      return retval;
-    }
-
     /**
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
@@ -204,7 +180,7 @@ public:
 
     //! for calls to fortran.  
     const int* nCompPtr() const {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
         return nvar_d;
 #else
         return &nvar;
@@ -1476,7 +1452,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
     nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
     *nvar_d = nvar;
 #endif
@@ -1635,7 +1611,7 @@ BaseFab<T>::clear ()
 	    }
 	    amrex::The_Arena()->free(dptr);
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU_PRAGMA
             amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
