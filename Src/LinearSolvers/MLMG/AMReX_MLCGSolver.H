@@ -51,8 +51,13 @@ private:
     int    verbose   = 0;
     int    maxiter   = 100;
 
+    Vector<Vector<Real> > volinv;  // used by makeSolvable
+
     Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
     Real norm_inf (const MultiFab& res, bool local = false);
+    void makeSolvable(int amrlev, int mglev, MultiFab& mf); 
+    Real getNodalSum(int amrlev, int mglev, MultiFab& mf) const;
+    void computeVolInv(const MultiFab& rhs);  
     int solve_bicgstab (MultiFab&       solnL,
                         const MultiFab& rhsL,
                         Real            eps_rel,
