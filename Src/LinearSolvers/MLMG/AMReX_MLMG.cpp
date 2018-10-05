@@ -1062,14 +1062,6 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     if (!solve_called) {
         linop.make(res, ncomp, ng);
         linop.make(rescor, ncomp, ng);
-        for (int alev = 0; alev <= finest_amr_lev; ++alev)
-        {
-            const int nmglevs = linop.NMGLevels(alev);
-            for (int mglev = 0; mglev < nmglevs; ++mglev)
-            {
-                 res[alev][mglev].setVal(0.0);
-            }
-        }
     }
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
