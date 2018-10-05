@@ -104,7 +104,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
     // If singular remove mean from residual
-    if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
+//    if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
  
     // Then normalize
     Lp.normalize(amrlev, mglev, r);
@@ -168,7 +168,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(s,     r, -alpha,  v);
 
         //Subtract mean from s 
-        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, s);
+//        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, s);
  
         rnorm = norm_inf(s);
 
@@ -205,7 +205,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(sol, sol,  omega, sh);
         sxay(r,     s, -omega,  t);
 
-        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
+//        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
 
         rnorm = norm_inf(r);
 
