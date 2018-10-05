@@ -185,29 +185,27 @@ int main (int argc, char* argv[])
 	amrex::Print()<<"Integrating a box with "<<neq<<" cels"<<std::endl;
 
       /* Create a CUDA vector with initial values */
-      u = N_VNew_Cuda(neq);  /* Allocate u vector */
-      N_Vector ucomp = N_VNew_Cuda(neq);  /* Allocate u vector */
-      if(check_flag((void*)u, "N_VNew_Cuda", 0)) return(1);
+      u = N_VNew_Serial(neq);  /* Allocate u vector */
+      N_Vector ucomp = N_VNew_Serial(neq);  /* Allocate u vector */
+      if(check_flag((void*)u, "N_VNew_Serial", 0)) return(1);
 
       FSetIC_mfab(mf[mfi].dataPtr(),
         tbx.loVect(),
 	    tbx.hiVect());  /* Initialize u vector */
 
-      dptr=N_VGetHostArrayPointer_Cuda(u);
+      dptr=N_VGetArrayPointer_Serial(u);
       if(test_ic==true)
-      dptr_compare=N_VGetHostArrayPointer_Cuda(ucomp);
+      dptr_compare=N_VGetArrayPointer_Serial(ucomp);
       mf[mfi].copyToMem(tbx,0,1,dptr);
-      N_VCopyToDevice_Cuda(u);
 
       if(test_ic==true)      
 	{
       FSetIC(mf[mfi].dataPtr(),
         tbx.loVect(),
 	tbx.hiVect(),dptr_compare); 
-      N_VCopyToDevice_Cuda(ucomp);
 
-      N_Vector z_result=N_VNew_Cuda(neq);
-      N_Vector weight=N_VNew_Cuda(neq);
+      N_Vector z_result=N_VNew_Serial(neq);
+      N_Vector weight=N_VNew_Serial(neq);
       N_VConst(1.0,weight);
       N_VLinearSum(1,u,-1,ucomp,z_result);
       double result=N_VWrmsNorm(z_result,weight);
@@ -242,10 +240,6 @@ int main (int argc, char* argv[])
       flag = CVode(cvode_mem, tout, u, &t, CV_NORMAL);
       if(check_flag(&flag, "CVode", 1)) break;
 
- #ifndef AMREX_USE_GPU_PRAGMA
-      N_VCopyFromDevice_Cuda(u);
-#endif
-
       mf[mfi].copyFromMem(tbx,0,1,dptr);
 
       N_VDestroy(u);          /* Free the u vector */
@@ -278,17 +272,12 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-__global__ void test(int a)
-{
-  a=a+10;
-}
-
 static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
 {
   //  RhsFn(t,u,udot,user_data);
   /*  int b=5;
       test<<<1,1>>>(b);*/
-  N_VConst_Cuda(2.0*t,udot);
+  N_VConst_Serial(2.0*t,udot);
   return 0;
 }
 
