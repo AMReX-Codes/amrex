@@ -15,13 +15,14 @@ namespace {
 #endif
 }
 
+#if !defined(AMREX_FORTRAN_BOXLIB)
 void
 Arena_Initialize()
 {
 #ifdef BL_COALESCE_FABS
-  the_arena.reset(new CArena);
+    the_arena.reset(new CArena);
 #else
-  the_arena.reset(new BArena);
+    the_arena.reset(new BArena);
 #endif
 
     amrex::ExecOnFinalize(amrex::Arena_Finalize);
@@ -30,8 +31,9 @@ Arena_Initialize()
 void
 Arena_Finalize()
 {
-  the_arena.reset();
+    the_arena.reset();
 }
+#endif
 
 #ifdef BL_COALESCE_FABS
 CArena*
