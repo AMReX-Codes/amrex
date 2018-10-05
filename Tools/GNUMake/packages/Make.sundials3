@@ -5,8 +5,12 @@ CPPFLAGS += -DAMREX_USE_SUNDIALS3
 include $(AMREX_HOME)/Src/Extern/SUNDIALS3/Make.package
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS3
+
+ifeq (${USE_SUNDIALS3_INTERFACE},TRUE)
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS3
 CVODE_LIB_DIR ?= ../../../../sundials/instdir/lib
+endif
+
 INCLUDE_LOCATIONS += $(CVODE_LIB_DIR)/../include
 
 #CPPFLAGS += -Wl,-rpath,${CVODE_LIB_DIR}
