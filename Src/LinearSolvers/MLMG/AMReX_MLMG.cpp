@@ -574,7 +574,7 @@ MLMG::interpCorrection (int alev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx);
+                tmpfab.resize(tmpbx,ncomp);
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
@@ -681,7 +681,7 @@ MLMG::interpCorrection (int alev, int mglev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx);
+                tmpfab.resize(tmpbx,ncomp);
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
