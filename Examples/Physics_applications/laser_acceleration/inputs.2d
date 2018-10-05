@@ -11,8 +11,8 @@ geometry.is_periodic = 0     0      # Is periodic?
 geometry.prob_lo     = -30.e-6   -56.e-6    # physical domain
 geometry.prob_hi     =  30.e-6    12.e-6
 amr.max_level = 0 # Maximum level in hierarchy (1 might be unstable, >1 is not supported)
-warpx.fine_tag_lo = -5.e-6   -25.e-6
-warpx.fine_tag_hi =  5.e-6   -35.e-6
+warpx.fine_tag_lo = -5.e-6   -35.e-6
+warpx.fine_tag_hi =  5.e-6   -25.e-6
 
 #################################
 ############ NUMERICS ###########
