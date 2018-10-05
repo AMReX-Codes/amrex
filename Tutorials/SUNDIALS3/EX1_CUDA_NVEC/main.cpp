@@ -278,17 +278,18 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-__global__ void test(int a)
+__global__ void f_rhs_test(Real t,Real* u_ptr,Real* udot_ptr, int neq)
 {
-  a=a+10;
+  for(int i=0;i<neq;i++)
+    udot_ptr[i]=2.0*t;
 }
 
 static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
 {
-  //  RhsFn(t,u,udot,user_data);
-  /*  int b=5;
-      test<<<1,1>>>(b);*/
-  N_VConst_Cuda(2.0*t,udot);
+  Real* udot_ptr=N_VGetDeviceArrayPointer_Cuda(udot);
+  Real* u_ptr=N_VGetDeviceArrayPointer_Cuda(u);
+  int neq=N_VGetLength_Cuda(udot);
+  f_rhs_test<<<1,1>>>(t,u_ptr,udot_ptr,neq);
   return 0;
 }
 
