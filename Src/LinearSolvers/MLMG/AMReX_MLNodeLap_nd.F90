@@ -42,10 +42,10 @@ contains
 
     integer :: i,j,k,n
 
-    do          k = lo(3), hi(3)
-       do       j = lo(2), hi(2)
-          do    i = lo(1), hi(1)
-             do n = 1, nc
+    do             n =     1,    nc
+       do          k = lo(3), hi(3)
+          do       j = lo(2), hi(2)
+             do    i = lo(1), hi(1)
                 if (m(i,j,k) .eq. dirichlet) then
                    res(i,j,k,n) = 0.0
                 else
