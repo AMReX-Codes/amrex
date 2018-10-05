@@ -1,9 +1,9 @@
 
-#include <AMReX_CArena.H>
-#include <AMReX_BArena.H>
-#include <AMReX_Arena.H>
+#include <memory>
 #include <AMReX.H>
-#include <AMReX_Utility.H>
+#include <AMReX_Arena.H>
+#include <AMReX_BArena.H>
+#include <AMReX_CArena.H>
 
 namespace amrex {
 
