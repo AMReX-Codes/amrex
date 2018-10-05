@@ -499,7 +499,8 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
 
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
-
+    Vector<std::unique_ptr<MultiFab> > rho_buf_g(finest_level+1);
+    
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             const int ncomp = rhof[lev]->nComp();
@@ -521,6 +522,18 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
             applyFilter(*rho_c_g[lev], *rhoc[lev]);
             std::swap(rho_c_g[lev], rhoc[lev]);
         }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            if (charge_buf[lev]) {
+                const int ncomp = charge_buf[lev]->nComp();
+                IntVect ng = charge_buf[lev]->nGrowVect();                
+                ng += 1;
+                rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
+                                                  charge_buf[lev]->DistributionMap(),
+                                                  ncomp, ng));
+                applyFilter(*rho_buf_g[lev], *charge_buf[lev]);
+                std::swap(*rho_buf_g[lev], *charge_buf[lev]);
+            }
+        }
     }
 
     // Sum up fine patch
@@ -537,7 +550,14 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         const int ncomp = rhoc[lev+1]->nComp();
         const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
         const IntVect ngdst = IntVect::TheZeroVector();
-        rhof[lev]->copy(*rhoc[lev+1],0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
+        const MultiFab* crho = rhoc[lev+1].get();
+        if (charge_buf[lev+1])
+        {
+            MultiFab::Add(*charge_buf[lev+1], *rhoc[lev+1], 0, 0, ncomp, ngsrc);
+            crho = charge_buf[lev+1].get();
+        }
+
+        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);        
     }
 
     // Sum up coarse patch
@@ -555,6 +575,13 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 1; lev <= finest_level; ++lev) {
             std::swap(rho_c_g[lev], rhoc[lev]);
             MultiFab::Copy(*rhoc[lev], *rho_c_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev)
+        {
+            if (rho_buf_g[lev]) {
+                std::swap(rho_buf_g[lev], charge_buf[lev]);
+                MultiFab::Copy(*charge_buf[lev], *rho_buf_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+            }
         }
     }
 

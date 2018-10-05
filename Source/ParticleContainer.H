@@ -98,7 +98,7 @@ public:
 		 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 		 amrex::MultiFab& jx,  amrex::MultiFab& jy, amrex::MultiFab& jz, 
 		 amrex::MultiFab* cjx,  amrex::MultiFab* cjy, amrex::MultiFab* cjz, 
-                 amrex::MultiFab* rho, 
+                 amrex::MultiFab* rho, amrex::MultiFab* crho,
 		 const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
 		 const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
                  amrex::Real t, amrex::Real dt);
@@ -180,6 +180,8 @@ public:
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_ex;
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
 
+    std::vector<std::string> GetSpeciesNames() const { return species_names; }
+    
 protected:
 
     // Particle container types

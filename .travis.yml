@@ -31,7 +31,7 @@ install:
     - cp travis-tests.ini ../../rt-WarpX
     # Final setup
     - export FFTW_HOME=/usr/
-    - export OMP_NUM_THREADS=2
+    - export OMP_NUM_THREADS=1
     - cd /home/travis/regression_testing
 
 script:
