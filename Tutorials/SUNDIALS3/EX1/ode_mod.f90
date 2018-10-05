@@ -16,8 +16,7 @@ module rhs_mod
            result(ierr) bind(C,name='RhsFn')
 
       use, intrinsic :: iso_c_binding
-      use fnvector_serial
-      use cvode_interface
+      use fnvector_serial_mod
       use ode_params
 
       implicit none
@@ -32,9 +31,11 @@ module rhs_mod
       real(c_double), pointer :: fvec(:)
 
       ! get data arrays from SUNDIALS vectors
-      call N_VGetData_Serial(sunvec_f, neq, fvec)
+!      call FN_VGetData_Serial(sunvec_f, fvec)
+      call FN_VConst_Serial(2.0*tn, sunvec_f)
 
-      fvec(1) = 2.0*tn
+!      fvec(1) = 2.0*tn
+      ierr=0
 
     end function RhsFn
 
