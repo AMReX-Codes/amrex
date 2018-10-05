@@ -262,18 +262,6 @@ int main (int argc, char* argv[])
 #endif
 
       mf[mfi].copyFromMem(tbx,0,1,dptr);
-      /*      FSetSol(mf[mfi].dataPtr(),
-        tbx.loVect(),
-	      tbx.hiVect(),dptr);  /* Initialize u vector */
-      /*fort_fab_copyfromreal
-	  (AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
-	   AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
-	   1, BL_TO_FORTRAN_N_ANYD(mf[mfi],0),dptr);*/
-      /*
-      umax = N_VMaxNorm(u);
-      flag = CVodeGetNumSteps(cvode_mem, &nst);
-      check_flag(&flag, "CVodeGetNumSteps", 1);
-      amrex::Print()<<"Final solution found with nsteps: "<<nst<<"\nMax: "<<umax<<std::endl;*/
 
       N_VDestroy(u);          /* Free the u vector */
       CVodeFree(&cvode_mem);  /* Free the integrator memory */
@@ -305,16 +293,9 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-__global__ void test(int a)
-{
-  a=a+10;
-}
-
 static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
 {
   //  RhsFn(t,u,udot,user_data);
-  int b=5;
-  test<<<1,1>>>(b);
   N_VConst_Cuda(2.0*t,udot);
   return 0;
 }
