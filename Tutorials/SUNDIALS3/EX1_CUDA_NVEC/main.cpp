@@ -188,34 +188,18 @@ int main (int argc, char* argv[])
       N_Vector ucomp = N_VNew_Cuda(neq);  /* Allocate u vector */
       if(check_flag((void*)u, "N_VNew_Cuda", 0)) return(1);
 
-      #pragma gpu
       FSetIC_mfab(mf[mfi].dataPtr(),
         tbx.loVect(),
 	    tbx.hiVect());  /* Initialize u vector */
 
-#ifdef AMREX_USE_GPU_PRAGMA
-      dptr=N_VGetDeviceArrayPointer_Cuda(u);
-      if(test_ic==true)
-	dptr_compare=N_VGetDeviceArrayPointer_Cuda(ucomp);
-      mf[mfi].copyToMem(tbx,0,1,dptr);
-      
-#else
       dptr=N_VGetHostArrayPointer_Cuda(u);
       if(test_ic==true)
       dptr_compare=N_VGetHostArrayPointer_Cuda(ucomp);
       mf[mfi].copyToMem(tbx,0,1,dptr);
-      /*      fort_fab_copytoreal
-	  (AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
-	   AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
-	   dptr_compare,
-	   BL_TO_FORTRAN_N_ANYD(mf[mfi],0),
-	   1);*/
       N_VCopyToDevice_Cuda(u);
-#endif
 
       if(test_ic==true)      
 	{
-#pragma gpu
       FSetIC(mf[mfi].dataPtr(),
         tbx.loVect(),
 	tbx.hiVect(),dptr_compare); 
@@ -262,18 +246,6 @@ int main (int argc, char* argv[])
 #endif
 
       mf[mfi].copyFromMem(tbx,0,1,dptr);
-      /*      FSetSol(mf[mfi].dataPtr(),
-        tbx.loVect(),
-	      tbx.hiVect(),dptr);  /* Initialize u vector */
-      /*fort_fab_copyfromreal
-	  (AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
-	   AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
-	   1, BL_TO_FORTRAN_N_ANYD(mf[mfi],0),dptr);*/
-      /*
-      umax = N_VMaxNorm(u);
-      flag = CVodeGetNumSteps(cvode_mem, &nst);
-      check_flag(&flag, "CVodeGetNumSteps", 1);
-      amrex::Print()<<"Final solution found with nsteps: "<<nst<<"\nMax: "<<umax<<std::endl;*/
 
       N_VDestroy(u);          /* Free the u vector */
       CVodeFree(&cvode_mem);  /* Free the integrator memory */
@@ -313,8 +285,8 @@ __global__ void test(int a)
 static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
 {
   //  RhsFn(t,u,udot,user_data);
-  int b=5;
-  test<<<1,1>>>(b);
+  /*  int b=5;
+      test<<<1,1>>>(b);*/
   N_VConst_Cuda(2.0*t,udot);
   return 0;
 }
