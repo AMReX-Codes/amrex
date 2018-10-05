@@ -47,6 +47,7 @@ int main (int argc, char* argv[])
 
     std::cout << std::setprecision(15);
 
+    bool test_ic;
     int n_cell, max_grid_size;
     int cvode_meth, cvode_itmeth, write_plotfile;
     bool do_tiling;
@@ -58,6 +59,7 @@ int main (int argc, char* argv[])
   int iout, flag;
   long int nst;
 
+  test_ic=false;
   u = NULL;
   LS = NULL;
   cvode_mem = NULL;
@@ -170,6 +172,7 @@ int main (int argc, char* argv[])
       t=0;
       tout=2;
       Real* dptr;
+      Real* dptr_compare;
 
       const Box& tbx = mfi.tilebox();
       amrex::IntVect tile_size = tbx.size();
@@ -182,6 +185,7 @@ int main (int argc, char* argv[])
 
       /* Create a CUDA vector with initial values */
       u = N_VNew_Cuda(neq);  /* Allocate u vector */
+      N_Vector ucomp = N_VNew_Cuda(neq);  /* Allocate u vector */
       if(check_flag((void*)u, "N_VNew_Cuda", 0)) return(1);
 
       #pragma gpu
@@ -189,16 +193,41 @@ int main (int argc, char* argv[])
         tbx.loVect(),
 	    tbx.hiVect());  /* Initialize u vector */
 
-      dptr=N_VGetHostArrayPointer_Cuda(u);
-
-      /* REPLACE WITH DEVICE POINTER SETUP */
-      ////      device_ptr_wrapper(u,dptr);
-      /////dptr=N_VGetDeviceArrayPointer_Cuda(u);
-
+#ifdef AMREX_USE_GPU_PRAGMA
+      dptr=N_VGetDeviceArrayPointer_Cuda(u);
+      if(test_ic==true)
+	dptr_compare=N_VGetDeviceArrayPointer_Cuda(ucomp);
       mf[mfi].copyToMem(tbx,0,1,dptr);
- 
-      N_VCopyToDevice_Cuda(u);
       
+#else
+      dptr=N_VGetHostArrayPointer_Cuda(u);
+      if(test_ic==true)
+      dptr_compare=N_VGetHostArrayPointer_Cuda(ucomp);
+      mf[mfi].copyToMem(tbx,0,1,dptr);
+      /*      fort_fab_copytoreal
+	  (AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
+	   AMREX_INT_ANYD(tbx.loVect()), AMREX_INT_ANYD(tbx.hiVect()),
+	   dptr_compare,
+	   BL_TO_FORTRAN_N_ANYD(mf[mfi],0),
+	   1);*/
+      N_VCopyToDevice_Cuda(u);
+#endif
+
+      if(test_ic==true)      
+	{
+#pragma gpu
+      FSetIC(mf[mfi].dataPtr(),
+        tbx.loVect(),
+	tbx.hiVect(),dptr_compare); 
+      N_VCopyToDevice_Cuda(ucomp);
+
+      N_Vector z_result=N_VNew_Cuda(neq);
+      N_Vector weight=N_VNew_Cuda(neq);
+      N_VConst(1.0,weight);
+      N_VLinearSum(1,u,-1,ucomp,z_result);
+      double result=N_VWrmsNorm(z_result,weight);
+      amrex::Print()<<"Difference in initial condition is: "<<result<<std::endl;
+	}
       /* Call CVodeCreate to create the solver memory and specify the 
        * Backward Differentiation Formula and the use of a Newton iteration */
       cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
@@ -228,26 +257,18 @@ int main (int argc, char* argv[])
       flag = CVode(cvode_mem, tout, u, &t, CV_NORMAL);
       if(check_flag(&flag, "CVode", 1)) break;
 
-      /*~~~ Remove when device pointer works~~~~*/
+ #ifndef AMREX_USE_GPU_PRAGMA
       N_VCopyFromDevice_Cuda(u);
+#endif
 
-      /*FSetSol(mf[mfi].dataPtr(),
-        tbx.loVect(),
-	    tbx.hiVect(),dptr);  /* Initialize u vector */
       mf[mfi].copyFromMem(tbx,0,1,dptr);
-
-      /*
-      umax = N_VMaxNorm(u);
-      flag = CVodeGetNumSteps(cvode_mem, &nst);
-      check_flag(&flag, "CVodeGetNumSteps", 1);
-      amrex::Print()<<"Final solution found with nsteps: "<<nst<<"\nMax: "<<umax<<std::endl;*/
 
       N_VDestroy(u);          /* Free the u vector */
       CVodeFree(&cvode_mem);  /* Free the integrator memory */
     
     }
 
-    //    amrex::Print()<<mf.max(0,0,0)<<std::endl;
+    amrex::Print()<<"Maximum of repacked final solution: "<<mf.max(0,0,0)<<std::endl;
     
     if (write_plotfile)
     {
@@ -274,8 +295,9 @@ int main (int argc, char* argv[])
 
 static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
 {
-  RhsFn(t,u,udot,user_data);
-  //  N_VConst_Cuda(2*t,udot);
+  //  RhsFn(t,u,udot,user_data);
+  N_VConst_Cuda(2.0*t,udot);
+  return 0;
 }
 
 static int check_flag(void *flagvalue, const char *funcname, int opt)
