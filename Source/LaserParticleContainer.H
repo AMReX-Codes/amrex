@@ -28,7 +28,7 @@ public:
 			 const amrex::MultiFab&, const amrex::MultiFab&, const amrex::MultiFab&,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab*, amrex::MultiFab*, amrex::MultiFab*,
-                         amrex::MultiFab* rho,
+                         amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
                          const amrex::MultiFab*, const amrex::MultiFab*, const amrex::MultiFab*,
                          amrex::Real t, amrex::Real dt) final;
