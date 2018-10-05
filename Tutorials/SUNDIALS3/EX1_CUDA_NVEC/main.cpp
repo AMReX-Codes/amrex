@@ -278,10 +278,11 @@ int main (int argc, char* argv[])
     return 0;
 }
 
-__global__ void f_rhs_test(Real t,Real* u_ptr,Real* udot_ptr, int neq)
+__global__ void f_rhs_test(Real t,double* u_ptr,Real* udot_ptr, int neq)
 {
   for(int i=0;i<neq;i++)
-    udot_ptr[i]=2.0*t;
+    //    RhsFn(t,u_ptr+i,udot_ptr+i,neq);
+    RhsFn(t,u_ptr+i,udot_ptr+i,neq);
 }
 
 static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
@@ -290,6 +291,7 @@ static int f(realtype t, N_Vector u, N_Vector udot, void *user_data)
   Real* u_ptr=N_VGetDeviceArrayPointer_Cuda(u);
   int neq=N_VGetLength_Cuda(udot);
   f_rhs_test<<<1,1>>>(t,u_ptr,udot_ptr,neq);
+
   return 0;
 }
 

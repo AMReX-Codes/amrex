@@ -21,7 +21,8 @@ extern "C"
                      const int* hi,
 	             double* dptr);
 
-  void RhsFn(realtype t, N_Vector u, N_Vector udot, void *user_data);
+  /*  void RhsFn(realtype t, N_Vector u, N_Vector udot, void *user_data);*/
+  __device__ void RhsFn(double t, double* u, double* udot, int neq);
 
     void fort_fab_copytoreal(const int* lo, const int* hi,
                                   const int* bx_lo, const int* bx_hi,
