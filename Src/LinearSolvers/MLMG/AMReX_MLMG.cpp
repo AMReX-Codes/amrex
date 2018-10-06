@@ -574,7 +574,7 @@ MLMG::interpCorrection (int alev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx);
+                tmpfab.resize(tmpbx,ncomp);
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
@@ -681,7 +681,7 @@ MLMG::interpCorrection (int alev, int mglev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx);
+                tmpfab.resize(tmpbx,ncomp);
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
@@ -823,7 +823,7 @@ MLMG::actualBottomSolve ()
         }
         else
         {
-            MLCGSolver cg_solver(linop);
+            MLCGSolver cg_solver(this, linop);
             if (bottom_solver == BottomSolver::bicgstab) {
                 cg_solver.setSolver(MLCGSolver::Type::BiCGStab);
             } else if (bottom_solver == BottomSolver::cg) {
@@ -1419,7 +1419,8 @@ MLMG::computeVolInv ()
     if (solve_called) return;
 
     if (linop.isCellCentered())
-    {    
+    { 
+        Real temp1, temp2;    
         volinv.resize(namrlevs);
         for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
             volinv[amrlev].resize(linop.NMGLevels(amrlev));
@@ -1453,9 +1454,16 @@ MLMG::computeVolInv ()
         {
             ParallelAllReduce::Sum<Real>({volinv[0][0], volinv[0][mgbottom]},
                                          ParallelContext::CommunicatorSub());
-            volinv[0][0] = 1.0/volinv[0][0];
-            volinv[0][mgbottom] = 1.0/volinv[0][mgbottom];
+            temp1 = 1.0/volinv[0][0];
+            temp2 = 1.0/volinv[0][mgbottom];
         }
+        else
+        {
+            temp1 = volinv[0][0]; 
+            temp2 = volinv[0][mgbottom]; 
+        }
+        volinv[0][0] = temp1; 
+        volinv[0][mgbottom] = temp2; 
 #endif
     }
 }
