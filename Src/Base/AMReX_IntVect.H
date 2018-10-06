@@ -13,7 +13,6 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
-#include <AMReX_Managed.H>
 
 namespace amrex {
 
@@ -27,7 +26,7 @@ namespace amrex {
 * to implement scaling and translation operations.
 */
 	
-class IntVect : public Managed
+class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
 public:
