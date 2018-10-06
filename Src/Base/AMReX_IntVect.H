@@ -13,6 +13,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_CUDA_Utility.H>
 
 namespace amrex {
 
@@ -119,7 +120,8 @@ public:
 #elif (AMREX_SPACEDIM == 2)
         return (vect[0] > vect[1] ? vect[0] : vect[1]);
 #else
-        return (vect[0] > vect[1] ? (vect[0] > vect[2] ? vect[0] : vect[2]) : (vect[1] > vect[2] ? vect[1] : vect[2]));
+        int r = vect[0] > vect[1] ? vect[0] : vect[1];
+        return (r > vect[2]) ? r : vect[2];
 #endif
     }
 
@@ -132,7 +134,8 @@ public:
 #elif (AMREX_SPACEDIM == 2)
         return (vect[0] < vect[1] ? vect[0] : vect[1]);
 #else
-        return (vect[0] < vect[1] ? (vect[0] < vect[2] ? vect[0] : vect[2]) : (vect[1] < vect[2] ? vect[1] : vect[2]));
+        int r = vect[0] < vect[1] ? vect[0] : vect[1];
+        return (r < vect[2]) ? r : vect[2];
 #endif
     }
 
