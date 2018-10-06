@@ -174,7 +174,8 @@ MultiFab::Copy (MultiFab&       dst,
           AMREX_BOX_L_LAUNCH(RunOn::GPU, bx,
           [=] AMREX_CUDA_DEVICE ()
           {
-             dstFab->copy(*srcFab, bx, srccomp, bx, dstcomp, numcomp);
+             Box tbx = getThreadBox(bx);
+             dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
           });
        }
     }
