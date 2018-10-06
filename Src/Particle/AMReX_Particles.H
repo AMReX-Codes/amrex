@@ -574,6 +574,9 @@ private:
 
 #ifdef AMREX_USE_CUDA
     void RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours);
+    
+    void EnforcePeriodicGPU ();
+
 #endif
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
