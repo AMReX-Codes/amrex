@@ -5,8 +5,6 @@
 
 namespace amrex {
 
-#ifndef __CUDA_ARCH__
-
 struct Managed {
 
   void *operator new(size_t len)
@@ -41,14 +39,6 @@ struct Pinned {
     cudaFreeHost(ptr);
   }
 };
-
-#else
-
-struct Managed { };
-struct Pinned  { };
-
-#endif
-
 
 }  //namespace
 
