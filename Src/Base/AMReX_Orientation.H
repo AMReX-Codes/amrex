@@ -6,7 +6,7 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
-#include <AMReX_Managed.H>
+#include <AMReX_CUDA_Utility.H>
 
 namespace amrex {
 
