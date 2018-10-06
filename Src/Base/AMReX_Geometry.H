@@ -71,7 +71,9 @@ public:
     Geometry& operator= (Geometry&& rhs) = default;
 
     // Returns non-static copy of geometry's stored data.
-    GeometryData data();
+    GeometryData data() const {
+        return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])} };
+    }
 
     static void Finalize ();
     //! Read static values from ParmParse database.

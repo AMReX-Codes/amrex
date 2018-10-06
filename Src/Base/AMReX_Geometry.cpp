@@ -59,22 +59,6 @@ Geometry::Geometry (const Box&     dom,
     define(dom,rb,coord,is_per);
 }
 
-GeometryData Geometry::data()
-{
-    GeometryData geomData;
-
-    // Set current values of data to values in geomData before returning.
-    geomData.domain = domain;
-    geomData.prob_domain = prob_domain;
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i)
-    {
-      geomData.dx[i] = dx[i];
-    }
-
-    return geomData;
-}
-
 void
 Geometry::define (const Box&     dom,
                   const RealBox* rb,
