@@ -19,7 +19,7 @@ namespace amrex {
 * AMREX_SPACEDIM dimensions must be either CELL or NODE.
 */
 
-class IndexType : public Managed
+class IndexType
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IndexType>::type();
 

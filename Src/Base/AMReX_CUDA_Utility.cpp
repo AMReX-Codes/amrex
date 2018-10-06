@@ -1,3 +1,4 @@
+#include <AMReX_CUDA_Utility.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>
@@ -119,6 +120,9 @@ void getThreadIndex (int &index, int &size, const int num_particles)
 #endif
 }
 
+}  // namespace amrex
+
+
 extern "C" {
     void* amrex_gpu_malloc (std::size_t size)
     {
@@ -141,5 +145,3 @@ extern "C" {
 #endif
     }
 }
-
-}  // namespace amrex
