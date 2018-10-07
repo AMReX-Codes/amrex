@@ -176,6 +176,8 @@ namespace amrex {
 
 }
 
+#include <cstddef>
+
 extern "C" {
     void* amrex_gpu_malloc (std::size_t size);
     void amrex_gpu_free (void* p);
