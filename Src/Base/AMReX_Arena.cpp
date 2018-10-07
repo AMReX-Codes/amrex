@@ -8,11 +8,7 @@
 namespace amrex {
 
 namespace {
-#ifdef BL_COALESCE_FABS
-  static std::unique_ptr<CArena> the_arena;
-#else
-  static std::unique_ptr<BArena> the_arena;
-#endif
+  static std::unique_ptr<Arena> the_arena;
 }
 
 #if !defined(AMREX_FORTRAN_BOXLIB)
@@ -35,11 +31,7 @@ Arena_Finalize()
 }
 #endif
 
-#ifdef BL_COALESCE_FABS
-CArena*
-#else
-BArena*
-#endif
+Arena*
 The_Arena ()
 {
     BL_ASSERT(the_arena != 0);
