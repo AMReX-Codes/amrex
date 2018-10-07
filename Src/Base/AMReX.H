@@ -66,6 +66,9 @@ namespace amrex
     RunOn WhereToRun ();
     CopyFromTo HowToCopy ();
 
+    void SetWhereToRun (RunOn ro);
+    void SetHowToCopy (CopyFromTo cfo);
+
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,
                      std::ostream& a_oserr = std::cerr,

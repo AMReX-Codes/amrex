@@ -110,8 +110,10 @@ void amrex::SetErrorHandler (amrex::ErrorHandler f) {
 }
 
 amrex::RunOn amrex::WhereToRun() { return amrex::system::default_runOn; }
-
 amrex::CopyFromTo amrex::HowToCopy() { return amrex::system::default_copyFromTo; }
+
+void amrex::SetWhereToRun (amrex::RunOn ro) { amrex::system::default_runOn = ro; }
+void amrex::SetHowToCopy (amrex::CopyFromTo cfo) { amrex::system::default_copyFromTo = cfo; }
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
