@@ -149,6 +149,7 @@ amrex::write_to_stderr_without_buffering (const char* str)
     }
 }
 
+#if !defined(AMREX_USE_CUDA)
 static
 void
 write_lib_id(const char* msg)
@@ -162,6 +163,7 @@ write_lib_id(const char* msg)
 	fwrite("::", 2, 1, stderr);
     }
 }
+#endif
 
 void
 amrex::Error (const char* msg)

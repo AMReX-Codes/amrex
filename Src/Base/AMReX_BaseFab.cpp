@@ -340,7 +340,7 @@ BaseFab<Real>::norm (const Box& bx,
     
     Real nrm = 0.0;
     
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH) && !defined(__CUDA_ARCH__))
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* nrm_f = sptr.get();
     CudaAPICheck(cudaMemset(nrm_f, 0, sizeof(Real)));
@@ -361,7 +361,7 @@ BaseFab<Real>::norm (const Box& bx,
             amrex::Error("BaseFab<Real>::norm(): only p == 0 or p == 1 are supported");
         }
     
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH) && !defined(__CUDA_ARCH__))
     CudaAPICheck(cudaMemcpy(&nrm, nrm_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
@@ -379,7 +379,7 @@ BaseFab<Real>::sum (const Box& bx,
     
     Real sm = 0.0;
     
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH) && !defined(__CUDA_ARCH__))
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* sm_f = sptr.get();
     CudaAPICheck(cudaMemset(sm_f, 0, sizeof(Real)));
@@ -392,7 +392,7 @@ BaseFab<Real>::sum (const Box& bx,
         (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp, sm_f);
     
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH) && !defined(__CUDA_ARCH__))
     CudaAPICheck(cudaMemcpy(&sm, sm_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
@@ -672,7 +672,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
     
     Real dp = 0.0;
     
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH) && !defined(__CUDA_ARCH__))
     std::shared_ptr<Real> sptr = Device::create_device_pointer<Real>();
     Real* dp_f = sptr.get();
     CudaAPICheck(cudaMemset(dp_f, 0, sizeof(Real)));
@@ -688,7 +688,7 @@ BaseFab<Real>::dot (const Box& xbx, int xcomp,
          BL_TO_FORTRAN_N_ANYD(y,ycomp), AMREX_INT_ANYD(ybx.loVect()),
          numcomp, dp_f);
     
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH) && !defined(__CUDA_ARCH__))
     CudaAPICheck(cudaMemcpy(&dp, dp_f, sizeof(Real), cudaMemcpyDeviceToHost));
 #endif
     
