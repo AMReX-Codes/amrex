@@ -7,6 +7,8 @@ namespace amrex {
 
 struct Managed {
 
+#ifdef AMREX_USE_CUDA
+
   void *operator new(size_t len)
   {
     void *ptr;
@@ -21,9 +23,12 @@ struct Managed {
     cudaFree(ptr);
   }
 
+#endif
 };
 
 struct Pinned {
+
+#ifdef AMREX_USE_CUDA
 
   void *operator new(size_t len)
   {
@@ -38,6 +43,8 @@ struct Pinned {
     cudaDeviceSynchronize();
     cudaFreeHost(ptr);
   }
+
+#endif
 };
 
 }  //namespace
