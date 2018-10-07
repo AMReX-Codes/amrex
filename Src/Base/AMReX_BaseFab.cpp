@@ -33,44 +33,38 @@ namespace
 }
 
 void
-BaseFab_Initialize()
+BaseFab_Initialize ()
 {
-
-  if (!basefab_initialized) 
-  {
-      basefab_initialized = true;
-
-#ifdef AMREX_USE_CUDA
-      The_Arena()->SetPreferred();
-#endif
+    if (!basefab_initialized) 
+    {
+        basefab_initialized = true;
 
 #ifdef AMREX_USE_GPU_PRAGMA
-      const std::size_t hunk_size = 64 * 1024;
-      the_nvar_arena = new CArena(hunk_size);
-      the_nvar_arena->SetHostAlloc();
+        const std::size_t hunk_size = 64 * 1024;
+        the_nvar_arena = new CArena(hunk_size);
+        the_nvar_arena->SetHostAlloc();
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel
-      {
-         amrex::private_total_bytes_allocated_in_fabs     = 0;
-         amrex::private_total_bytes_allocated_in_fabs_hwm = 0;
-         amrex::private_total_cells_allocated_in_fabs     = 0;
-         amrex::private_total_cells_allocated_in_fabs_hwm = 0;
-      }
+        {
+            amrex::private_total_bytes_allocated_in_fabs     = 0;
+            amrex::private_total_bytes_allocated_in_fabs_hwm = 0;
+            amrex::private_total_cells_allocated_in_fabs     = 0;
+            amrex::private_total_cells_allocated_in_fabs_hwm = 0;
+        }
 #endif
 
 #ifdef BL_MEM_PROFILING
-      MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
-                       ([] () -> MemProfiler::MemInfo {
-                           return {amrex::TotalBytesAllocatedInFabs(),
-                                   amrex::TotalBytesAllocatedInFabsHWM()};
-                       }));
+        MemProfiler::add("Fab", std::function<MemProfiler::MemInfo()>
+                         ([] () -> MemProfiler::MemInfo {
+                             return {amrex::TotalBytesAllocatedInFabs(),
+                                     amrex::TotalBytesAllocatedInFabsHWM()};
+                         }));
 #endif
-  }
+    }
 
-  amrex::ExecOnFinalize(amrex::BaseFab_Finalize);
-
+    amrex::ExecOnFinalize(amrex::BaseFab_Finalize);
 }
 
 void

@@ -21,6 +21,10 @@ Arena_Initialize()
     the_arena.reset(new BArena);
 #endif
 
+#ifdef AMREX_USE_CUDA
+    the_arena->SetPreferred();
+#endif
+
     amrex::ExecOnFinalize(amrex::Arena_Finalize);
 }
 
