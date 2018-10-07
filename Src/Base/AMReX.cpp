@@ -109,9 +109,9 @@ void amrex::SetErrorHandler (amrex::ErrorHandler f) {
     amrex::system::error_handler = f;
 }
 
-amrex::RunOn amrex::WhereToRunDefault() { return amrex::system::default_runOn; }
+amrex::RunOn amrex::WhereToRun() { return amrex::system::default_runOn; }
 
-amrex::CopyFromTo amrex::HowToCopyDefault() { return amrex::system::default_copyFromTo; }
+amrex::CopyFromTo amrex::HowToCopy() { return amrex::system::default_copyFromTo; }
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()

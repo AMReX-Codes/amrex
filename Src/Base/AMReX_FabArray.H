@@ -600,30 +600,30 @@ public:
     * FillBoundary expects that its cell-centered version of its BoxArray 
     * is non-overlapping.
     */
-    void FillBoundary (RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (RunOn run_on = WhereToRun(), bool cross = false);
 
-    void FillBoundary (const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (const Periodicity& period, RunOn run_on = WhereToRun(), bool cross = false);
 
     //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
-    void FillBoundary (int scomp, int ncomp, RunOn run_on = WhereToRunDefault(), bool cross = false);
-    void FillBoundary (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
-    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary (int scomp, int ncomp, RunOn run_on = WhereToRun(), bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRun(), bool cross = false);
+    void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn run_on = WhereToRun(), bool cross = false);
 
-    void FillBoundary_nowait (RunOn run_on = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, RunOn run_on = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
-    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn run_on = WhereToRunDefault(), bool cross = false);
+    void FillBoundary_nowait (RunOn run_on = WhereToRun(), bool cross = false);
+    void FillBoundary_nowait (const Periodicity& period, RunOn run_on = WhereToRun(), bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, RunOn run_on = WhereToRun(), bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRun(), bool cross = false);
+    void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, RunOn run_on = WhereToRun(), bool cross = false);
     void FillBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
     * is allowed to be overlapping.
     */
-    void EnforcePeriodicity (const Periodicity& period, RunOn run_on = WhereToRunDefault());
-    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRunDefault());
+    void EnforcePeriodicity (const Periodicity& period, RunOn run_on = WhereToRun());
+    void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period, RunOn run_on = WhereToRun());
     void EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
-                             const Periodicity& period, RunOn run_on = WhereToRunDefault());
+                             const Periodicity& period, RunOn run_on = WhereToRun());
 
     // covered   : ghost cells covered by valid cells of this FabArray
     //             (including periodically shifted valid cells)
