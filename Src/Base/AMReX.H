@@ -2,7 +2,7 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
-#include <AMReX_Managed.H>
+#include <AMReX_CUDA_Utility.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 
@@ -63,8 +63,8 @@ namespace amrex
 
     std::string Version ();
 
-    RunOn WhereToRunDefault();
-    CopyFromTo HowToCopyDefault();
+    RunOn WhereToRun ();
+    CopyFromTo HowToCopy ();
 
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,
