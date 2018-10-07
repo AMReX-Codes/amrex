@@ -2143,6 +2143,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OK (int lev_m
 #endif    
 }
 
+#ifdef AMREX_USE_CUDA
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int lev_min, int lev_max, int nGrow) const
@@ -2206,6 +2207,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
 
     return (total_wrong == 0);
 }
+#endif
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
