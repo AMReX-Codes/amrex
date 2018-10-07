@@ -496,6 +496,10 @@ protected:
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
+    bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+    bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
     //
     // Checks a particle's location on levels lev_min and higher.
     // Returns false if the particle does not exist on that level.
@@ -534,9 +538,9 @@ protected:
 
     void SetParticleSize ();
     
-    void BuildRedistributeMask(int lev, int nghost=1);
-    std::unique_ptr<iMultiFab> redistribute_mask_ptr;
-    amrex::Vector<int> neighbor_procs;
+    void BuildRedistributeMask(int lev, int nghost=1) const;
+    mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
+    mutable amrex::Vector<int> neighbor_procs;
 
     //
     // The member data.
@@ -570,6 +574,9 @@ private:
 
 #ifdef AMREX_USE_CUDA
     void RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours);
+    
+    void EnforcePeriodicGPU ();
+
 #endif
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
