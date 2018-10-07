@@ -28,7 +28,7 @@ namespace
     static bool basefab_initialized = false;
 
 #ifdef AMREX_USE_GPU_PRAGMA
-    CArena* the_nvar_arena = 0;
+    Arena* the_nvar_arena = 0;
 #endif
 }
 
@@ -173,7 +173,7 @@ update_fab_stats (long n, long s, size_t szt)
 }
 
 #ifdef AMREX_USE_GPU_PRAGMA
-CArena*
+Arena*
 The_Nvar_Arena ()
 {
     BL_ASSERT(the_nvar_arena != 0);

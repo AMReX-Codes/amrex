@@ -79,7 +79,7 @@ int FA_init::m_cnt = 0;
 
 namespace
 {
-    BArena* the_FA_arena = 0;
+    Arena* the_FA_arena = 0;
 }
 
 FA_init::FA_init ()
@@ -115,7 +115,7 @@ FA_init::~FA_init ()
     }
 }
 
-BArena*
+Arena*
 The_FA_Arena ()
 {
     BL_ASSERT(the_FA_arena != 0);
