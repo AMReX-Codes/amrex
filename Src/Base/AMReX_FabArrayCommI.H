@@ -217,11 +217,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     if (N_snds > 0)
     {
+        if (amrex::IsBaseFab<FAB>::value)
+        {
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe())
 #endif
-        if (amrex::IsBaseFab<FAB>::value)
-        {
             for (int j=0; j<N_snds; ++j)
             {
                 char* dptr = send_data[j];
@@ -250,6 +250,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         }
         else  // Original, accounting for non-BaseFab objects. No GPU version yet. 
         {
+#ifdef _OPENMP
+#pragma omp parallel for if (FAB::isCopyOMPSafe())
+#endif
            for (int j=0; j<N_snds; ++j)
            {
               char* dptr = send_data[j];
@@ -483,12 +486,11 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 	}	
 
+        if (amrex::IsBaseFab<FAB>::value)
+        {
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv)
 #endif
-
-        if (amrex::IsBaseFab<FAB>::value)
-        {
             for (int k = 0; k < N_rcvs; k++) 
 	    {
 	        const char* dptr = fb_recv_data[k];
@@ -519,6 +521,9 @@ FabArray<FAB>::FillBoundary_finish ()
         }
         else  // Original, accounting for non-BaseFab objects. No GPU version for now.
         {
+#ifdef _OPENMP
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv)
+#endif
             for (int k = 0; k < N_rcvs; k++) 
             {
             const char* dptr = fb_recv_data[k];
