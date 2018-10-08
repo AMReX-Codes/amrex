@@ -47,7 +47,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             AMREX_BOX_L_LAUNCH(tag.dbox,
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
-               dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
+               Box dtbx = getThreadBox(tag.dbox);
+               Box stbx = tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+
+               dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
             });
         }
 
@@ -236,14 +239,24 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         AMREX_BOX_L_LAUNCH(bx,
                         [=] AMREX_CUDA_HOST_DEVICE ()
                         {
-                           sfab->copyToMem(bx,scomp,ncomp,dptr);
+                           Box stbx = getThreadBox(bx);
+                           if (stbx.ok())
+                           {
+                              IntVect curr = stbx.smallEnd();
+                              for (int i=0; i<stbx.numPts(); ++i)
+                              {
+                                 long buffidx = stbx.index(curr);
+                                 sfab->copyToMem(bx,scomp,ncomp,dptr);
+                                 stbx.next(curr);
+                              }
+                           }
                         });
 
                         dptr += (bx.numPts() * sizeof(value_type)); 
                     }
                     BL_ASSERT(dptr == send_data[j] + send_size[j]); 
                 }
-	    }
+            }
 #ifdef AMREX_USE_CUDA
             Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
 #endif
@@ -387,7 +400,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             AMREX_BOX_L_LAUNCH(tag.dbox,
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
-               dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
+               Box dtbx = getThreadBox(destbox);
+               Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
+
+               dfab->copy(*sfab,stbx,scomp,dbtx,scomp,ncomp);
             });
 	});
 #endif
@@ -507,7 +523,17 @@ FabArray<FAB>::FillBoundary_finish ()
                         AMREX_BOX_L_LAUNCH(bx,
                         [=] AMREX_CUDA_HOST_DEVICE () 
                         {
-                           dfab->copyFromMem(bx,scomp,ncomp,dptr);
+                            Box dtbx = getThreadBox(bx);
+                            if (dtbx.ok())
+                            {
+                                IntVect curr = dtbx.smallEnd();
+                                for (int i=0; i<dtbx.numPts(); ++i)
+                                {
+                                    long buffidx = dtbx.index(curr);
+                                    dfab->copyFromMem(bx,scomp,ncomp,dptr);
+                                    dtbx.next(curr);
+                                }
+                            }
                         });
 
                         dptr += (bx.numPts() * sizeof(value_type));
