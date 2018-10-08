@@ -520,13 +520,17 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngx,ngy,ngz_nonci);
-    IntVect ngRho = ngJ + 1;  // One extra ghost cell, so that it's safe to deposit charge density
-                              // after pushing particle.
 #elif (AMREX_SPACEDIM == 2)
     IntVect ngE(ngx,ngz);
     IntVect ngJ(ngx,ngz_nonci);
-    IntVect ngRho = ngJ + 1;
 #endif
+
+    IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
+                           // after pushing particle. 
+
+    if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
+        n_current_deposition_buffer = 1;
+    }
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
