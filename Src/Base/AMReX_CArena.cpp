@@ -5,9 +5,7 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 
-#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
-#endif
 
 namespace amrex {
 

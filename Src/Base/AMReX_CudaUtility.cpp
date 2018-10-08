@@ -1,4 +1,4 @@
-#include <AMReX_CUDA_Utility.H>
+#include <AMReX_CudaUtility.H>
 #include <AMReX.H>
 #include <AMReX_Box.H>
 #include <AMReX_IntVect.H>

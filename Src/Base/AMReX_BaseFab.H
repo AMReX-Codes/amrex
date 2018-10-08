@@ -23,9 +23,7 @@
 #include <AMReX_Managed.H>
 #include <AMReX_BArena.H>
 
-#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
-#endif
 
 #ifdef USE_PERILLA
 #include <LocalConnection.H>

@@ -100,13 +100,17 @@ public:
 
     static void prepare_for_launch(const int* lo, const int* hi);
 
-    static void beginDeviceLaunchRegion() { in_device_launch_region = true; }
+    static void beginLaunchRegion() { in_device_launch_region = true; }
 
-    static void endDeviceLaunchRegion() { in_device_launch_region = false; }
+    static void endLaunchRegion() { in_device_launch_region = false; }
 
-    static void setDeviceLaunchRegion(bool r) { in_device_launch_region = r; }
+    static bool setLaunchRegion(bool r) {
+        bool old = in_device_launch_region;
+        in_device_launch_region = r;
+        return old;
+    }
 
-    static bool inDeviceLaunchRegion() { return in_device_launch_region; }
+    static bool inLaunchRegion() { return in_device_launch_region; }
 
     static void* get_host_pointer(const void* ptr);
 
@@ -239,5 +243,7 @@ amrex::Device::create_device_pointer(int n)
 
 }
 #endif
+
+#include <AMReX_CudaUtility.H>
 
 #endif

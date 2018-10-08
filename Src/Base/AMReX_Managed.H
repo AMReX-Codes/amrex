@@ -1,7 +1,7 @@
 #ifndef AMREX_MANAGED_H_
 #define AMREX_MANAGED_H_
 
-#include <AMReX_CUDA_Utility.H>
+#include <AMReX_CudaQualifiers.H>
 
 namespace amrex {
 

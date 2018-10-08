@@ -5,11 +5,9 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 
-#ifdef AMREX_USE_CUDA
-#include <AMReX_Device.H>
-#endif
-
 #ifndef BL_LANG_FORT
+
+#include <AMReX_Device.H>
 
 #if   defined(BL_FORT_USE_UPPERCASE)
 #define __BL_FORT_NAME__(A,B) A

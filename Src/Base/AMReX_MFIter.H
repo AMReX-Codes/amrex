@@ -8,9 +8,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_RealBox.H>
 
-#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
-#endif
 
 #ifdef _OPENMP
 #include <omp.h>
