@@ -20,6 +20,10 @@ text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
 
+# Use only 1 MPI and 1 thread proc for tests
+text = re.sub( 'numprocs = \d+', 'numprocs = 1', text)
+text = re.sub( 'numthreads = \d+', 'numthreads = 1', text)
+
 # Remove Python test (does not compile)
 text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
 
