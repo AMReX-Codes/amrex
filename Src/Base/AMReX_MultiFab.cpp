@@ -113,7 +113,7 @@ MultiFab::Add (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         const FArrayBox* srcFab = &(src[mfi]);
@@ -158,7 +158,7 @@ MultiFab::Copy (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         const FArrayBox* srcFab = &(src[mfi]);
@@ -231,7 +231,7 @@ MultiFab::Subtract (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         const FArrayBox* srcFab = &(src[mfi]);
@@ -276,7 +276,7 @@ MultiFab::Multiply (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         const FArrayBox* srcFab = &(src[mfi]);
@@ -321,7 +321,7 @@ MultiFab::Divide (MultiFab&       dst,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(dst,TrueUnlessGPU); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         const FArrayBox* srcFab = &(src[mfi]);

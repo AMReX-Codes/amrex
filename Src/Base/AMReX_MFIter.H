@@ -17,9 +17,9 @@
 namespace amrex {
 
 #ifdef AMREX_USE_CUDA
-static constexpr bool TrueUnlessGPU = false;
+    inline bool TilingIfNotGPU () { return !Device::inLaunchRegion(); }
 #else
-static constexpr bool TrueUnlessGPU = true;
+    inline constexpr bool TilingIfNotGPU () { return true; }
 #endif
 
 template<class T> class FabArray;
