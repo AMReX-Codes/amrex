@@ -124,7 +124,8 @@ MultiFab::Add (MultiFab&       dst,
             AMREX_BOX_L_LAUNCH(bx,
             [=] AMREX_CUDA_DEVICE ()
             {
-               dstFab->plus(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+                Box tbx = getThreadBox(bx);
+                dstFab->plus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
         }
     }
@@ -164,15 +165,15 @@ MultiFab::Copy (MultiFab&       dst,
         const FArrayBox* srcFab = &(src[mfi]);
               FArrayBox* dstFab = &(dst[mfi]);
 
-       if (bx.ok())
-       {
-          AMREX_BOX_L_LAUNCH(bx,
-          [=] AMREX_CUDA_DEVICE ()
-          {
-             Box tbx = getThreadBox(bx);
-             dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
-          });
-       }
+        if (bx.ok())
+        {
+            AMREX_BOX_L_LAUNCH(bx,
+            [=] AMREX_CUDA_DEVICE ()
+            {
+                Box tbx = getThreadBox(bx);
+                dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -242,7 +243,8 @@ MultiFab::Subtract (MultiFab&       dst,
             AMREX_BOX_L_LAUNCH(bx,
             [=] AMREX_CUDA_DEVICE ()
             {
-                dstFab->minus(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+                Box tbx = getThreadBox(bx);
+                dstFab->minus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
         }
     }
@@ -287,7 +289,8 @@ MultiFab::Multiply (MultiFab&       dst,
             AMREX_BOX_L_LAUNCH(bx,
             [=] AMREX_CUDA_DEVICE ()
             {
-                dstFab->mult(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+                Box tbx = getThreadBox(bx);
+                dstFab->mult(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
         }
     }
@@ -332,7 +335,8 @@ MultiFab::Divide (MultiFab&       dst,
             AMREX_BOX_L_LAUNCH(bx,
             [=] AMREX_CUDA_DEVICE ()
             {
-                dstFab->divide(*srcFab, bx, bx, srccomp, dstcomp, numcomp);
+                Box tbx = getThreadBox(bx);
+                dstFab->divide(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
         }
     }
