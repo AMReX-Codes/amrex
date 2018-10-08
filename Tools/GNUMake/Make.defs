@@ -436,15 +436,25 @@ ifeq ($(USE_CUDA),TRUE)
     ifneq ($(NO_DEVICE_LAUNCH),TRUE)
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
       DEFINES += -DAMREX_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
     else
       DEFINES += -DAMREX_LAUNCH=""
       DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+      DEFINES += -DAMREX_CUDA_FORT_DEFINES=""
+      DEFINES += -DAMREX_CUDA_FORT_HOST=""
       DEFINES += -DAMREX_NO_DEVICE_LAUNCH
     endif
 
 else
     DEFINES += -DAMREX_LAUNCH=""
     DEFINES += -DAMREX_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+    DEFINES += -DAMREX_CUDA_FORT_DEFINES=""
+    DEFINES += -DAMREX_CUDA_FORT_HOST=""
+
     CUDASuffix :=
 endif
 
