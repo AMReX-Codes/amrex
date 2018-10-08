@@ -171,7 +171,7 @@ extern "C" {
     void amrex_fi_multifab_fill_boundary (MultiFab* mf, const Geometry* geom, 
 					  int c, int nc, int cross)
     {
-	mf->FillBoundary(c, nc, geom->periodicity(), WhereToRun(), cross);
+	mf->FillBoundary(c, nc, geom->periodicity(), cross);
     }
 
     void amrex_fi_build_owner_imultifab (iMultiFab*& msk, const BoxArray*& ba,

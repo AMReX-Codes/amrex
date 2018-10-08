@@ -70,7 +70,7 @@ main (int argc, char** argv)
         ParallelDescriptor::Barrier();
         double beg = ParallelDescriptor::second();
         for (int i = 0; i < N; i++)
-            mf.FillBoundary(WhereToRun(),true);
+            mf.FillBoundary(true);
         double end = (ParallelDescriptor::second() - beg);
 
         ParallelDescriptor::ReduceRealMax(end,ParallelDescriptor::IOProcessorNumber());

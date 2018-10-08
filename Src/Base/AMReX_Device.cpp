@@ -60,6 +60,7 @@ amrex::Device::initialize_cuda_c () {
 
     cudaGetDeviceProperties(&device_prop, device_id);
 
+    pp.query("in_launch_region", in_device_launch_region);
 }
 
 cudaStream_t
