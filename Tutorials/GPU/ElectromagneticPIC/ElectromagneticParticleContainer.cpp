@@ -4,7 +4,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_CUDA_Utility.H>
+#include <AMReX_CudaUtility.H>
 
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
