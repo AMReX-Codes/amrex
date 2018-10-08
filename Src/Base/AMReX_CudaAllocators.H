@@ -1,6 +1,7 @@
 #ifndef AMREX_CUDAALLOCATORS_H_
 #define AMREX_CUDAALLOCATORS_H_
 
+#include <map>
 #include <memory>
 #include <limits>
 
