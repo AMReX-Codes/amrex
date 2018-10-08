@@ -786,7 +786,7 @@ AMREX_CUDA_FORT_DEVICE subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi
      by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) & 
      bind(c,name="push_electric_field_x")
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer,          intent(in)    :: xlo(3),  xhi(3)
@@ -821,7 +821,7 @@ AMREX_CUDA_FORT_DEVICE subroutine push_electric_field_y(ylo, yhi, &
      jy, jylo, jyhi, mudt, dtsdx, dtsdz)     & 
      bind(c,name="push_electric_field_y")
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer,          intent(in)    :: ylo(3), yhi(3)
@@ -856,7 +856,7 @@ AMREX_CUDA_FORT_DEVICE subroutine push_electric_field_z(zlo, zhi, &
      jz, jzlo, jzhi, mudt, dtsdx, dtsdy)     & 
      bind(c,name="push_electric_field_z")
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer,          intent(in)    :: zlo(3), zhi(3)
@@ -890,7 +890,7 @@ AMREX_CUDA_FORT_DEVICE subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi
      ez, ezlo, ezhi, dtsdy, dtsdz)    & 
      bind(c,name='push_magnetic_field_x')
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer,          intent(in)    :: xlo(3), xhi(3)
@@ -921,7 +921,7 @@ AMREX_CUDA_FORT_DEVICE subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi
      ez, ezlo, ezhi, dtsdx, dtsdz)    & 
      bind(c,name='push_magnetic_field_y')
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer,          intent(in)    :: ylo(3), yhi(3)
@@ -952,7 +952,7 @@ AMREX_CUDA_FORT_DEVICE subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi
      ey, eylo, eyhi, dtsdx, dtsdy)    & 
      bind(c,name='push_magnetic_field_z')
   
-  use amrex_fort_module, only : amrex_real, get_loop_bounds_device
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer,          intent(in)    :: zlo(3), zhi(3)

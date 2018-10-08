@@ -3,9 +3,9 @@
 #include "Constants.H"
 #include "em_pic_F.H"
 
-#include <AMReX_Managed.H>
+#include <AMReX_CudaManaged.H>
 #include <AMReX_Device.H>
-#include <AMReX_CUDA_Utility.H>
+#include <AMReX_CudaUtility.H>
 
 using namespace amrex;
 
