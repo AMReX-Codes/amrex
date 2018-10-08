@@ -1,8 +1,6 @@
 #include <AMReX_BArena.H>
 #if !defined(AMREX_FORTRAN_BOXLIB)
-#ifdef AMREX_USE_DEVICE
 #include <AMReX_Device.H>
-#endif
 #endif
 
 void*

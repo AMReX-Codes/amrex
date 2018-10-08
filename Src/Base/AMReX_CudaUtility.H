@@ -1,22 +1,8 @@
 #ifndef AMREX_CUDA_UTILITY_H_
 #define AMREX_CUDA_UTILITY_H_
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-
-#define AMREX_CUDA_HOST __host__
-#define AMREX_CUDA_DEVICE __device__
-#define AMREX_CUDA_GLOBAL __global__
-#define AMREX_CUDA_HOST_DEVICE __host__ __device__
-
-#else
-
-#define AMREX_CUDA_HOST
-#define AMREX_CUDA_DEVICE
-#define AMREX_CUDA_HOST_DEVICE
-#define AMREX_CUDA_GLOBAL
-
-#endif
-
+#include <AMReX_CudaQualifiers.H>
+#include <cstddef>
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
@@ -128,6 +114,8 @@
 
 #endif
 
+#include <AMReX_CudaQualifiers.H>
+
 namespace amrex {
 
 // ************************************************
@@ -175,8 +163,6 @@ namespace amrex {
     void getThreadIndex (int &index, int &size, const int num_particles);
 
 }
-
-#include <cstddef>
 
 extern "C" {
     void* amrex_gpu_malloc (std::size_t size);

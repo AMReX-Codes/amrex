@@ -2,7 +2,7 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
-#include <AMReX_CUDA_Utility.H>
+#include <AMReX_CudaQualifiers.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 

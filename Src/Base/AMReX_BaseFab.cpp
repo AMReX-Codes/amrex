@@ -1,7 +1,6 @@
 #include <cstring>
 #include <cstdlib>
 
-#include <AMReX_CUDA_Utility.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>

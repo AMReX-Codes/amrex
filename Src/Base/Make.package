@@ -13,8 +13,8 @@ C$(AMREX_BASE)_headers += AMReX_RESTRICT.H
 
 C$(AMREX_BASE)_headers += AMReX_IndexSequence.H
 
-C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp AMReX_CUDA_Utility.cpp
-C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H AMReX_CUDA_Utility.H
+C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
+C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
 
 C$(AMREX_BASE)_headers += AMReX_REAL.H AMReX_CONSTANTS.H AMReX_SPACE.H
 
@@ -42,7 +42,8 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Managed.H AMReX_CudaAllocators.H
+C$(AMREX_BASE)_headers += AMReX_Managed.H AMReX_CudaAllocators.H AMReX_CudaUtility.H AMReX_CudaQualifiers.H
+C$(AMREX_BASE)_sources += AMReX_CudaUtility.cpp
 
 #
 # I/O stuff.
@@ -171,8 +172,8 @@ C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
 
+C$(AMREX_BASE)_headers += AMReX_Device.H
 ifeq ($(USE_DEVICE),TRUE)
-  C$(AMREX_BASE)_headers += AMReX_Device.H
   C$(AMREX_BASE)_sources += AMReX_Device.cpp
 endif
 

@@ -2,9 +2,6 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
-#endif
 
 namespace amrex {
 
@@ -223,7 +220,7 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_CUDA
-    if (Device::inDeviceLaunchRegion()) {
+    if (Device::inLaunchRegion()) {
         for (int i = 0; i < real_reduce_list.size(); ++i)
             amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
     }
@@ -475,7 +472,7 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
 void
 MFIter::operator++ ()
 {
-    if (Device::inDeviceLaunchRegion()) {
+    if (Device::inLaunchRegion()) {
         if (real_reduce_list.size() == currentIndex + 1) {
             Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
                                              real_device_reduce_list[currentIndex],
@@ -498,7 +495,7 @@ Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
 
-    if (Device::inDeviceLaunchRegion()) {
+    if (Device::inLaunchRegion()) {
 
         real_reduce_val = val;
 
@@ -534,7 +531,7 @@ MFIter::reduce()
 
     // Do nothing if we're not currently executing on the device.
 
-    if (!Device::inDeviceLaunchRegion()) return;
+    if (!Device::inLaunchRegion()) return;
 
     // Do nothing if we don't have enough values to reduce on.
 

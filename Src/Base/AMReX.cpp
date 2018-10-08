@@ -15,15 +15,10 @@
 #include <AMReX_Box.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
-#endif
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
-#ifdef AMREX_USE_CUDA
 #include <AMReX_Device.H>
-#endif
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -149,7 +144,6 @@ amrex::write_to_stderr_without_buffering (const char* str)
     }
 }
 
-#if !defined(AMREX_USE_CUDA)
 static
 void
 write_lib_id(const char* msg)
@@ -163,7 +157,6 @@ write_lib_id(const char* msg)
 	fwrite("::", 2, 1, stderr);
     }
 }
-#endif
 
 void
 amrex::Error (const char* msg)

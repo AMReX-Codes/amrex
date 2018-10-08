@@ -42,11 +42,8 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 
-#include <AMReX_CUDA_Utility.H>
-
-#ifdef AMREX_USE_DEVICE
+#include <AMReX_CudaUtility.H>
 #include <AMReX_Device.H>
-#endif
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
