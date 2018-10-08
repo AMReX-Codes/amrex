@@ -45,7 +45,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                   FAB* dfab = &(get(tag.dstIndex));
 
             AMREX_BOX_L_LAUNCH(tag.dbox,
-            [=] AMREX_CUDA_DEVICE () mutable
+            [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
             });
@@ -234,7 +234,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const FAB* sfab = &(get(tag.srcIndex));
 
                         AMREX_BOX_L_LAUNCH(bx,
-                        [=] AMREX_CUDA_DEVICE ()
+                        [=] AMREX_CUDA_HOST_DEVICE ()
                         {
                            sfab->copyToMem(bx,scomp,ncomp,dptr);
                         });
@@ -385,7 +385,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                   FAB* dfab = &(get(tag.dstIndex));
 
             AMREX_BOX_L_LAUNCH(tag.dbox,
-            [=] AMREX_CUDA_DEVICE () mutable
+            [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
             });
@@ -410,7 +410,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       FAB* dfab = &(get(tag.dstIndex));
 
                 AMREX_BOX_L_LAUNCH(tag.dbox,
-                [=] AMREX_CUDA_DEVICE () mutable
+                [=] AMREX_CUDA_HOST_DEVICE () mutable
                 {
                    dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
                 });
@@ -505,7 +505,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int ncomp = fb_ncomp;
 
                         AMREX_BOX_L_LAUNCH(bx,
-                        [=] AMREX_CUDA_DEVICE () 
+                        [=] AMREX_CUDA_HOST_DEVICE () 
                         {
                            dfab->copyFromMem(bx,scomp,ncomp,dptr);
                         });
