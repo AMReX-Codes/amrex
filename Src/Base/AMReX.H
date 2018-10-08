@@ -27,12 +27,6 @@ namespace amrex
     typedef void (*PTR_TO_VOID_FUNC)(void);
     typedef void (*ErrorHandler) (const char* msg);
 
-    enum struct RunOn {CPU, GPU};
-    struct CopyFromTo {
-       RunOn src;
-       RunOn dest;
-    };
-
     namespace system
     {
 #ifndef AMREX_DEBUG
@@ -44,8 +38,6 @@ namespace amrex
 #endif
 
 	extern std::string exename;
-        extern RunOn default_runOn;
-        extern CopyFromTo default_copyFromTo;
 	
 	extern int verbose;
 
@@ -62,12 +54,6 @@ namespace amrex
     }
 
     std::string Version ();
-
-    RunOn WhereToRun ();
-    CopyFromTo HowToCopy ();
-
-    RunOn SetWhereToRun (RunOn ro);
-    CopyFromTo SetHowToCopy (CopyFromTo cfo);
 
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,

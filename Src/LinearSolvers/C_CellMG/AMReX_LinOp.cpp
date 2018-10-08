@@ -203,7 +203,7 @@ LinOp::applyBC (MultiFab&      inout,
     prepareForLevel(level);
 
     const bool cross = true;
-    inout.FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),WhereToRun(),cross);
+    inout.FillBoundary(src_comp,num_comp,geomarray[level].periodicity(),cross);
 
     //
     // Fill boundary cells.

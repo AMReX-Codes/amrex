@@ -15,9 +15,9 @@
       CudaErrorCheck(); \
     }
 
-#define AMREX_SIMPLE_L_LAUNCH(runOn, numBlocks, numThreads, ...)  \
+#define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...)  \
     { \
-      if (runOn == RunOn::GPU) \
+      if (amrex::Device::inLaunchRegion()) \
       { \
          amrex::launch_global<<<numBlocks, numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
@@ -36,9 +36,9 @@
       CudaErrorCheck(); \
     }
 
-#define AMREX_BOX_L_LAUNCH(runOn, box, ...)  \
+#define AMREX_BOX_L_LAUNCH(box, ...)  \
     { \
-      if (runOn == RunOn::GPU) \
+      if (amrex::Device::inLaunchRegion()) \
       { \
          dim3 numBlocks, numThreads; \
          amrex::Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
@@ -59,9 +59,9 @@
       CudaErrorCheck(); \
     }
 
-#define AMREX_BOXCOMPS_L_LAUNCH(runOn, box, comps, ...)  \
+#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, ...)  \
     { \
-      if (runOn = RunOn::GPU) \
+      if (Device::inLaunchRegion()) \
       { \
          dim3 numBlocks, numThreads; \
          amrex::Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads); \
@@ -82,9 +82,9 @@
       CudaErrorCheck(); \
     }
 
-#define AMREX_PARTICLES_L_LAUNCH(runon, num_particles, ...) \
+#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) \
     { \
-      if (runon = RunOn::GPU) \
+      if (Device::inLaunchRegion()) \
       { \
          int numThreads, numBlocks; \
          amrex::Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
@@ -107,10 +107,10 @@
 #define AMREX_BOXCOMPS_LAUNCH(box, comps, function, ...) function (__VA_ARGS__);
 #define AMREX_PARTICLES_LAUNCH(num_particles, function, ...) function (__VA_ARGS__);
 
-#define AMREX_SIMPLE_L_LAUNCH(runOn, numBlocks, numThreads, ...) amrex::launch_host(__VA_ARGS__);
-#define AMREX_BOX_L_LAUNCH(runOn, box, ...) amrex::launch_host(__VA_ARGS__); 
-#define AMREX_BOXCOMPS_L_LAUNCH(runOn, box, comps, function, ...) amrex::launch_host (__VA_ARGS__);
-#define AMREX_PARTICLES_L_LAUNCH(runOn, num_particles, ...) amrex::launch_host (__VA_ARGS__);
+#define AMREX_SIMPLE_L_LAUNCH(numBlocks, numThreads, ...) amrex::launch_host(__VA_ARGS__);
+#define AMREX_BOX_L_LAUNCH(box, ...) amrex::launch_host(__VA_ARGS__); 
+#define AMREX_BOXCOMPS_L_LAUNCH(box, comps, function, ...) amrex::launch_host (__VA_ARGS__);
+#define AMREX_PARTICLES_L_LAUNCH(num_particles, ...) amrex::launch_host (__VA_ARGS__);
 
 #endif
 
