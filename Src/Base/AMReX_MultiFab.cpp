@@ -121,7 +121,7 @@ MultiFab::Add (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -167,7 +167,7 @@ MultiFab::Copy (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -240,7 +240,7 @@ MultiFab::Subtract (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -286,7 +286,7 @@ MultiFab::Multiply (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -332,7 +332,7 @@ MultiFab::Divide (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_BOX_L_LAUNCH(bx,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);

@@ -435,13 +435,13 @@ amrex::Device::stop_profiler() {
 
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
 void
-amrex::Device::c_comps_threads_and_blocks(const int* lo, int* hi, const int comps, dim3& numBlocks, dim3& numThreads) {
+amrex::Device::c_comps_threads_and_blocks(const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads) {
 
     // Increase size of the "box" to account for the number of components.
     // Otherwise, identical. 
-    hi[0] = ((hi[0] + 1)*comps - 1);
+    const int hitmp[] = {AMREX_D_DECL((hi[0] + 1)*comps - 1, hi[1], hi[2])};
 
-    c_threads_and_blocks(lo, hi, numBlocks, numThreads);
+    c_threads_and_blocks(lo, hitmp, numBlocks, numThreads);
 
 }
 
@@ -516,20 +516,49 @@ amrex::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads)
 
 void 
 amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
+    numThreads = 256;
+    numBlocks = (np + 256 - 1) / 256;
+}
 
-    int maxBlockSize = 256;
 
-    if (np > maxBlockSize)  // More than 1 block
+void
+amrex::Device::n_threads_and_blocks (const int N, dim3& numBlocks, dim3& numThreads)
+{
+    const int maxBlockSize = 256;
+
+    if (N > maxBlockSize)  // More than 1 block
     {
-       numThreads = maxBlockSize;
-       numBlocks = (np + maxBlockSize - 1) / maxBlockSize;
+        numThreads = maxBlockSize;
+        numBlocks = (N + maxBlockSize - 1) / maxBlockSize;
     }
     else // Less than 1 full block
     {
-       numThreads = np;
+       numThreads = N;
        numBlocks = 1;
     }
 
 }
 #endif
 
+extern "C" {
+    void* amrex_gpu_malloc (std::size_t size)
+    {
+#ifdef AMREX_USE_CUDA
+        void *ptr = nullptr;
+        cudaMalloc((void**) ptr, size); 
+        return ptr;
+#else
+        return amrex_malloc(size);
+#endif
+    }
+
+
+    void amrex_gpu_free (void* p)
+    {
+#ifdef AMREX_USE_CUDA
+        cudaFree(p); 
+#else
+        amrex_free(p);
+#endif
+    }
+}

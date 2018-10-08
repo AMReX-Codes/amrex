@@ -151,10 +151,13 @@ public:
     static void stop_profiler();
 
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
-    static void c_comps_threads_and_blocks(const int* lo, int* hi, const int comps, dim3& numBlocks, dim3& numThreads);
+    static void c_comps_threads_and_blocks(const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads);
+
+    static void n_threads_and_blocks(const int N, dim3& numBlocks, dim3& numThreads);
 
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
 
+    // atmyers: We should switch parameters int& numThreads and int& numBlocks to be consistent.
     static void particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks);
 
     static void grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numThreads);
@@ -244,6 +247,10 @@ amrex::Device::create_device_pointer(int n)
 }
 #endif
 
-#include <AMReX_CudaUtility.H>
+
+extern "C" {
+    void* amrex_gpu_malloc (std::size_t size);
+    void amrex_gpu_free (void* p);
+}
 
 #endif
