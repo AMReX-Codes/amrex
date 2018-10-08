@@ -169,6 +169,6 @@ add_sources(AMReX_CudaAllocators.H)
 #endif()
 
 # always include
-add_sources( AMREX_CudaManaged.H AMReX_CudaAllocators.H AMReX_CudaUtility.H AMReX_CudaQualifiers.H )
-add_sources( AMReX_CudaUtility.cpp )
+add_sources( AMREX_CudaManaged.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H )
+add_sources( AMReX_CudaLaunch.cpp )
 add_sources( AMReX_Device.H )

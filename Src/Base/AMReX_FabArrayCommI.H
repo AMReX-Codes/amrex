@@ -44,7 +44,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_BOX_L_LAUNCH(tag.dbox,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(tag.dbox),
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                Box dtbx = getThreadBox(tag.dbox);
@@ -236,7 +236,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(get(tag.srcIndex));
 
-                        AMREX_BOX_L_LAUNCH(bx,
+                        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
                         [=] AMREX_CUDA_HOST_DEVICE ()
                         {
                            Box stbx = getThreadBox(bx);
@@ -397,7 +397,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_BOX_L_LAUNCH(tag.dbox,
+            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(tag.dbox),
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                Box dtbx = getThreadBox(destbox);
@@ -425,7 +425,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 const FAB* sfab = &(get(tag.srcIndex));
                       FAB* dfab = &(get(tag.dstIndex));
 
-                AMREX_BOX_L_LAUNCH(tag.dbox,
+                AMREX_CUDA_LAUNCH_LAMBDA(Strategy(tag.dbox),
                 [=] AMREX_CUDA_HOST_DEVICE () mutable
                 {
                    dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
@@ -520,7 +520,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int scomp = fb_scomp;
                         const int ncomp = fb_ncomp;
 
-                        AMREX_BOX_L_LAUNCH(bx,
+                        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
                         [=] AMREX_CUDA_HOST_DEVICE () 
                         {
                             Box dtbx = getThreadBox(bx);

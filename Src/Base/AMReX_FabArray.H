@@ -42,7 +42,7 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 
-#include <AMReX_CudaUtility.H>
+#include <AMReX_CudaLaunch.H>
 #include <AMReX_Device.H>
 
 #ifdef AMREX_USE_EB
