@@ -20,7 +20,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_Managed.H>
+#include <AMReX_CudaManaged.H>
 #include <AMReX_BArena.H>
 
 #include <AMReX_Device.H>

@@ -42,7 +42,7 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Managed.H AMReX_CudaAllocators.H AMReX_CudaUtility.H AMReX_CudaQualifiers.H
+C$(AMREX_BASE)_headers += AMReX_CudaManaged.H AMReX_CudaAllocators.H AMReX_CudaUtility.H AMReX_CudaQualifiers.H
 C$(AMREX_BASE)_sources += AMReX_CudaUtility.cpp
 
 #
@@ -178,7 +178,7 @@ ifeq ($(USE_DEVICE),TRUE)
 endif
 
 ifeq ($(USE_CUDA),TRUE)
-  F90$(AMREX_BASE)_sources += AMReX_CUDA.F90 
+  F90$(AMREX_BASE)_sources += AMReX_CudaFort.F90
 endif
 
 ifeq ($(LAZY),TRUE)
