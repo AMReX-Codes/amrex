@@ -48,8 +48,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                Box dtbx = getThreadBox(tag.dbox);
-               if (dtbx.ok()) {
-                  Box stbx = tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+               Box stbx = (tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd())) & tag.sbox;
+
+               if (dtbx.ok() && stbx.ok()) {
                   dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
                }
             });
@@ -401,10 +402,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             AMREX_CUDA_LAUNCH_LAMBDA(Strategy(tag.dbox),
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
-               Box dtbx = getThreadBox(destbox);
-               if (dtbx.ok()) {
-                  Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
-                  dfab->copy(*sfab,stbx,scomp,dbtx,scomp,ncomp);
+               Box dtbx = getThreadBox(tag.dbox);
+               Box stbx = dtbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd()) & tag.sbox;
+
+               if (dtbx.ok() && stbx.ok())
+                  dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
                }
             });
 	});
@@ -431,8 +433,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 [=] AMREX_CUDA_HOST_DEVICE () mutable
                 {
                    Box dtbx = getThreadBox(tag.dbox);
-                   if (dtbx.ok()) {
-                      Box stbx = tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+                   Box stbx = (tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd())) & tag.sbox;
+
+                   if (dtbx.ok() && stbx.ok()) {
                       dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
                    }
                 });
