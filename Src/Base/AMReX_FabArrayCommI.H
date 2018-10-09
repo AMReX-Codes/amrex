@@ -48,9 +48,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                Box dtbx = getThreadBox(tag.dbox);
-               Box stbx = tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-
-               dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
+               if (dtbx.ok()) {
+                  Box stbx = tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+                  dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
+               }
             });
         }
 
@@ -401,9 +402,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             [=] AMREX_CUDA_HOST_DEVICE () mutable
             {
                Box dtbx = getThreadBox(destbox);
-               Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
-
-               dfab->copy(*sfab,stbx,scomp,dbtx,scomp,ncomp);
+               if (dtbx.ok()) {
+                  Box stbx = dtbx + (srcbox.smallEnd() - destbox.smallEnd());
+                  dfab->copy(*sfab,stbx,scomp,dbtx,scomp,ncomp);
+               }
             });
 	});
 #endif
@@ -428,7 +430,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 AMREX_CUDA_LAUNCH_LAMBDA(Strategy(tag.dbox),
                 [=] AMREX_CUDA_HOST_DEVICE () mutable
                 {
-                   dfab->copy(*sfab,tag.sbox,scomp,tag.dbox,scomp,ncomp);
+                   Box dtbx = getThreadBox(tag.dbox);
+                   if (dtbx.ok()) {
+                      Box stbx = tag.dbox + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+                      dfab->copy(*sfab,stbx,scomp,dtbx,scomp,ncomp);
+                   }
                 });
 #ifdef AMREX_USE_CUDA
                 Device::synchronize();
