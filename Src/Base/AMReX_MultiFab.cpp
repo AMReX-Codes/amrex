@@ -111,7 +111,7 @@ MultiFab::Add (MultiFab&       dst,
     BL_PROFILE("MultiFab::Add()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -157,7 +157,7 @@ MultiFab::Copy (MultiFab&       dst,
     BL_PROFILE("MultiFab::Copy()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -230,7 +230,7 @@ MultiFab::Subtract (MultiFab&       dst,
     BL_PROFILE("MultiFab::Subtract()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -276,7 +276,7 @@ MultiFab::Multiply (MultiFab&       dst,
     BL_PROFILE("MultiFab::Multiply()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -322,7 +322,7 @@ MultiFab::Divide (MultiFab&       dst,
     BL_PROFILE("MultiFab::Divide()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
