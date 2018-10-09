@@ -73,11 +73,11 @@ namespace amrex {
     AMREX_CUDA_HOST_DEVICE
     Box getThreadBox (const Box& bx);
 
-    AMREX_CUDA_HOST_DEVICE
-    Box getThreadBox (const Box& bx, const IntVect& typ);
+//    AMREX_CUDA_HOST_DEVICE
+//    Box getThreadBox (const Box& bx, const IntVect& typ);
 
     AMREX_CUDA_HOST_DEVICE
-    void getThreadComponentBox (const Box& bx, Box& tbx, int comp);
+    void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncomp);
 
     AMREX_CUDA_HOST_DEVICE
     void getThreadIndex (int &index, int &size, const int num_particles);
