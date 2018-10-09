@@ -900,6 +900,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
   
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box grow (const Box& b, int i) {
         Box result = b;
         result.grow(i);
@@ -907,6 +908,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Grow Box in each direction by specified amount.
+    AMREX_CUDA_HOST_DEVICE
     inline Box grow (const Box& b, const IntVect& v) {
         Box result = b;
         result.grow(v);
@@ -914,18 +916,21 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Grow Box in direction idir be n_cell cells
+    AMREX_CUDA_HOST_DEVICE
     inline Box grow (const Box& b, int idir, int n_cell) {
         Box result = b;
         result.grow(idir, n_cell);
         return result;
     }
 
+    AMREX_CUDA_HOST_DEVICE
     inline Box growLo (const Box& b, int idir, int n_cell) {
         Box result = b;
         result.growLo(idir, n_cell);
         return result;
     }
 
+    AMREX_CUDA_HOST_DEVICE
     inline Box growHi (const Box& b, int idir, int n_cell) {
         Box result = b;
         result.growHi(idir, n_cell);
@@ -941,6 +946,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box coarsen (const Box& b, int ref_ratio) {
         Box result = b;
         result.coarsen(IntVect(ref_ratio));
@@ -956,6 +962,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box coarsen (const Box& b, const IntVect& ref_ratio) {
         Box result = b;
         result.coarsen(ref_ratio);
@@ -969,6 +976,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box refine (const Box& b, int ref_ratio) {
         Box result = b;
         result.refine(IntVect(ref_ratio));
@@ -982,6 +990,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box refine (const Box& b, const IntVect& ref_ratio) {
         Box result = b;
         result.refine(ref_ratio);
@@ -989,6 +998,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Return a Box with indices shifted by nzones in dir direction.
+    AMREX_CUDA_HOST_DEVICE
     inline Box shift (const Box& b, int dir, int nzones) {
         Box result = b;
         result.shift(dir, nzones);
@@ -1006,6 +1016,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * that encloses Box b.  NOTE: equivalent to b.convert(dir,NODE)
     * NOTE: error if b.type(dir) == NODE.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box surroundingNodes (const Box& b, int dir) {
         Box bx(b);
         bx.surroundingNodes(dir);
@@ -1016,6 +1027,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * \brief Returns a Box with NODE based coordinates in all
     * directions that encloses Box b.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box surroundingNodes (const Box& b) {
         Box bx(b);
         bx.surroundingNodes();
@@ -1023,11 +1035,13 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Returns a Box with different type
+    AMREX_CUDA_HOST_DEVICE
     inline Box convert (const Box& b, const IntVect& typ) {
         Box bx(b);
         bx.convert(typ);
         return bx;
     }
+    AMREX_CUDA_HOST_DEVICE
     inline Box convert (const Box& b, const IndexType& typ) {
         Box bx(b);
         bx.convert(typ);
@@ -1040,6 +1054,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: equivalent to b.convert(dir,CELL)
     * NOTE: error if b.type(dir) == CELL.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box enclosedCells (const Box& b, int dir) {
         Box bx(b);
         bx.enclosedCells(dir);
@@ -1050,6 +1065,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * \brief Returns a Box with CELL based coordinates in all
     * directions that is enclosed by b.
     */
+    AMREX_CUDA_HOST_DEVICE
     inline Box enclosedCells (const Box& b) {
         Box bx(b);
         bx.enclosedCells();
@@ -1060,18 +1076,21 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * \brief Returns the edge-centered Box (in direction dir) defining
     * the low side of Box b.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box bdryLo (const Box& b, int dir, int len=1);
 
     /**
     * \brief Returns the edge-centered Box (in direction dir) defining
     * the high side of Box b.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box bdryHi (const Box& b, int dir, int len=1);
 
     /**
     * \brief Similar to bdryLo and bdryHi except that it operates on the
     * given face of  box b.
     */
+    AMREX_CUDA_HOST_DEVICE
     Box bdryNode (const Box& b, Orientation face, int len=1);
 
     /**
@@ -1086,12 +1105,15 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * retval.convert(dir,Box::CELL);
     * retval.setrange(dir,retval.smallEnd(dir)-len,len);
     */
+    AMREX_CUDA_HOST_DEVICE
     Box adjCellLo (const Box& b, int dir, int len=1);
 
     //! Similar to adjCellLo but builds an adjacent Box on the high end.
+    AMREX_CUDA_HOST_DEVICE
     Box adjCellHi (const Box& b, int dir, int len=1);
 
     //! Similar to adjCellLo and adjCellHi; operates on given face.
+    AMREX_CUDA_HOST_DEVICE
     Box adjCell (const Box& b, Orientation face, int len=1);
 
     /**
@@ -1099,7 +1121,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * the original Box and the argument.
     * Both Boxes must have identical type.
     */
-    inline Box minBox (const Box& b1, const Box& b2) {
+    inline AMREX_CUDA_HOST_DEVICE Box minBox (const Box& b1, const Box& b2) {
         Box result = b1;
         result.minBox(b2);
         return result;
