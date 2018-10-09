@@ -22,21 +22,46 @@ Box getThreadBox (const Box& bx)
 
 
 // Extension of getThreadBox that accounts for change of box type.
-// Assumes current number of threads & blocks is enough for one cell per nodal box.
-// Simply recalculate total  
+// If growing, add extra index on the big edge.
+// If shrinking, remove extra index from the big edge.
 // Any empty or broken boxes should be ignored by the GPU code threadBox.ok() check.
 AMREX_CUDA_HOST_DEVICE
 Box getThreadBox (const Box& bx, const IntVect& typ)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
-                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
-                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
-    iv += bx.smallEnd();
-    return bx.convert(typ) & Box(iv,iv,typ);
+     Box threadBox; 
+     threadBox = getThreadBox(bx);
+
+     if (threadBox.ok())
+     {
+         const IntVect& Big = bx.bigEnd();
+         for (int d=0; d<AMREX_SPACEDIM; ++d) {
+             if (bx.type()[d] < typ[d]) {        // Cell to Nodal (0 < 1)
+                 if (threadBox.bigEnd(d) == Big[d]) {
+                     threadBox.growHi(d, 1);     // Box on the big edge gets the extra work.
+                 }
+             }
+             else if (bx.type()[d] > typ[d]) {   // Nodal to Cell (1 > 0)
+                 if (threadBox.bigEnd(d) == Big[d]) {
+                     threadBox.growHi(d, -1);    // Thread on the edge looses the nodal work. 
+                 }
+             }
+         }
+     }
+/*
+     // GPU output for debugging correctness by hand.
+     if (!(threadBox.ok()))
+     { 
+        IntVect small = threadBox.smallEnd();
+        IntVect big   = threadBox.bigEnd();
+        IntVect type  = threadBox.type();
+        printf(" TBC -> (%i, %i, %i):(%i, %i %i) = (%i, %i, %i), (%i, %i, %i), (%i, %i, %i)\n", threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y, blockIdx.z, small[0], small[1], small[2], big[0], big[1], big[2], type[0], type[1], type[2] );
+     }
+*/
+     return threadBox;
 #else
-    Box threadBox(bx);
-    return threadBox.convert(typ);
+     Box threadBox(bx);
+     return threadBox.convert(typ);
 #endif
 }
 
