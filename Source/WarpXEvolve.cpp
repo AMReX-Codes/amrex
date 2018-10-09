@@ -49,7 +49,7 @@ WarpX::EvolveEM (int numsteps)
     {
         Real walltime_beg_step = amrex::second();
 
-	// Start loop on time steps
+    	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 #ifdef WARPX_USE_PY
         if (warpx_py_beforestep) warpx_py_beforestep();
@@ -66,12 +66,12 @@ WarpX::EvolveEM (int numsteps)
                 // Reset the costs to 0
                 for (int lev = 0; lev <= finest_level; ++lev) {
                     costs[lev]->setVal(0.0);
-                    }
+                }
             }
 
             for (int lev = 0; lev <= finest_level; ++lev) {
-            // Perform running average of the costs
-            // (Giving more importance to most recent costs)
+                // Perform running average of the costs
+                // (Giving more importance to most recent costs)
                 (*costs[lev].get()).mult( (1. - 2./load_balance_int) );
             }
         }
