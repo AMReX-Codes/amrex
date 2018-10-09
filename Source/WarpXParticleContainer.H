@@ -179,6 +179,8 @@ protected:
     amrex::Real charge;
     amrex::Real mass;
 
+    bool deposit_on_main_grid = false;
+
     static int do_not_push;
 };
 

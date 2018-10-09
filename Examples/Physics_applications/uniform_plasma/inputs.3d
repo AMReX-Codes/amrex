@@ -1,38 +1,31 @@
-# Maximum number of time steps
+#################################
+####### GENERAL PARAMETERS ######
+#################################
 max_step = 10
-
-# number of grid points
 amr.n_cell =  64 64 64
-
-# Maximum allowable size of each subdomain in the problem domain;
-#    this is used to decompose the domain for parallel calculations.
-amr.max_grid_size = 16
-
-# Maximum level in hierarchy (for now must be 0, i.e., one level in total)
+amr.max_grid_size = 64
+amr.blocking_factor = 32
 amr.max_level = 0
-
-# Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 1     1     1      # Is periodic?
 geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
+#################################
+############ NUMERICS ###########
+#################################
 warpx.serialize_ics = 1
-
-# Verbosity
 warpx.verbose = 1
-
-# Algorithms
 algo.current_deposition = 0
 algo.charge_deposition = 0
 algo.field_gathering = 0
 algo.particle_pusher = 0
-
-# CFL
 warpx.cfl = 1.0
-
 amr.plot_int = 10
 
+#################################
+############ PLASMA #############
+#################################
 particles.nspecies = 1
 particles.species_names = electrons
 

@@ -152,6 +152,14 @@ public:
 
     int nSpecies() const {return nspecies;}
 
+    int nSpeciesDepositOnMainGrid () const {
+        int r = 0;
+        for (int i : deposit_on_main_grid) {
+            if (i) ++r;
+        }
+        return r;
+    }
+
     int L_lower_order_in_v() {return l_lower_order_in_v;}
 
     bool Use_fdtd_nci_corr() {return use_fdtd_nci_corr;}
@@ -180,6 +188,8 @@ protected:
     enum struct PCTypes {Physical, RigidInjected};
 
     std::vector<std::string> species_names;
+
+    std::vector<int> deposit_on_main_grid;
 
     std::vector<PCTypes> species_types;
 
