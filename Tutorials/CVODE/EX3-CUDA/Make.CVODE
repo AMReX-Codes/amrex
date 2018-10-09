@@ -32,6 +32,12 @@ INCLUDE_LOCATIONS += $(CVODE_HOME)/include
 LIBRARY_LOCATIONS += $(CVODE_HOME)/lib
 LIBRARIES += -lsundials_cvode -lsundials_sunlinsolband -lsundials_sunlinsolspbcgs -lsundials_sunlinsolsptfqmr -lsundials_sunmatrixsparse -lsundials_nveccuda -lsundials_sunlinsoldense -lsundials_sunlinsolspfgmr -lsundials_sunmatrixband -lsundials_sunnonlinsolfixedpoint -lsundials_nvecserial -lsundials_sunlinsolpcg -lsundials_sunlinsolspgmr -lsundials_sunmatrixdense -lsundials_sunnonlinsolnewton
 
+LIBRARIES += -rpath=$(CVODE_HOME)/lib
+
+ifeq ($(USE_CPP_RHS), TRUE)
+  DEFINES += -DCPP_RHS
+endif
+
 #------------------------------------------------------------------------------
 # AMReX
 #------------------------------------------------------------------------------
