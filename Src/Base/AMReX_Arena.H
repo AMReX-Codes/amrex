@@ -14,11 +14,9 @@ Arena* The_Arena ();
 #ifdef AMREX_USE_GPU_PRAGMA
 Arena* The_Nvar_Arena ();
 #endif
+
 Arena* The_FA_Arena ();
 
-
-void Arena_Initialize();
-void Arena_Finalize();
 /**
 * \brief 
 * A virtual base class for objects that manage their own dynamic
