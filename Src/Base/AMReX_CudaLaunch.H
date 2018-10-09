@@ -86,9 +86,9 @@ namespace amrex {
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     struct Strategy {
-        Strategy () {
-            Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
-        }
+//        Strategy () {
+//            Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
+//        }
         Strategy (const Box& box) {
             Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads);
         }
@@ -98,6 +98,7 @@ namespace amrex {
         Strategy (int N) {
             Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
+        Strategy (dim3 nb, dim3 nt) : numBlocks(nb), numThreads(nt) {}
         
         dim3 numBlocks;
         dim3 numThreads;
