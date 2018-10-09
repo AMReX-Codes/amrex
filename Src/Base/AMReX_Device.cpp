@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <map>
+#include <algorithm>
 #include <AMReX_Device.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -442,7 +443,8 @@ amrex::Device::c_comps_threads_and_blocks(const int* lo, const int* hi, const in
 
     // Increase size of the "box" to account for the number of components.
     // Otherwise, identical. 
-    const int hitmp[] = {AMREX_D_DECL((hi[0] + 1)*comps - 1, hi[1], hi[2])};
+    const int hitmp[] = {AMREX_D_DECL((hi[0]-lo[0]+1)*comps + lo[0] - 1,
+                                      hi[1], hi[2])};
 
     c_threads_and_blocks(lo, hitmp, numBlocks, numThreads);
 
@@ -528,18 +530,8 @@ void
 amrex::Device::n_threads_and_blocks (const int N, dim3& numBlocks, dim3& numThreads)
 {
     const int maxBlockSize = 256;
-
-    if (N > maxBlockSize)  // More than 1 block
-    {
-        numThreads = maxBlockSize;
-        numBlocks = (N + maxBlockSize - 1) / maxBlockSize;
-    }
-    else // Less than 1 full block
-    {
-       numThreads = N;
-       numBlocks = 1;
-    }
-
+    numThreads = maxBlockSize;
+    numBlocks = std::min((N + maxBlockSize - 1) / maxBlockSize, 1); // in case N = 0
 }
 #endif
 

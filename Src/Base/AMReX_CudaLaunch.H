@@ -90,10 +90,12 @@ namespace amrex {
 //            Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
 //        }
         Strategy (const Box& box) {
-            Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads);
+            const Box& b = amrex::surroundingNodes(box); // to ensure one thread per cell regardless box type
+            Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
         }
         Strategy (const Box& box, int comps) {
-            Device::c_comps_threads_and_blocks(box.loVect(), box.hiVect(), comps, numBlocks, numThreads);
+            const Box& b = amrex::surroundingNodes(box);
+            Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
         Strategy (int N) {
             Device::n_threads_and_blocks(N, numBlocks, numThreads);
