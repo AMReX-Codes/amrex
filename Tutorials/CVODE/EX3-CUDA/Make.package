@@ -12,3 +12,5 @@ FEXE_headers = test_react_F.H
 CEXE_headers = test_react.H
 
 F90EXE_sources += react_utils.F90
+F90EXE_sources += react_system.F90
+
