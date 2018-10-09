@@ -27,7 +27,7 @@ int     FabArrayBase::MaxComp;
 int     FabArrayBase::use_cuda_aware_mpi;
 #endif
 
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
 
 #if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
