@@ -271,13 +271,13 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         const GeometryData& geomData = m_geom.data();
         ParticlesData&& pData = m_particles[mfi.index()].data();
 
-        AMREX_CUDA_LAUNCH_FUNCTION(Strategy(np), 
-                                   ::PushAndDeposeParticles,
-                                   Ex[mfi], Ey[mfi], Ez[mfi],
-                                   Bx[mfi], By[mfi], Bz[mfi],
-                                   jx[mfi], jy[mfi], jz[mfi],
-                                   geomData, pData,
-                                   m_charge, m_mass, dt);
+        AMREX_CUDA_LAUNCH_GLOBAL(Strategy(np), 
+                                 ::PushAndDeposeParticles,
+                                 Ex[mfi], Ey[mfi], Ez[mfi],
+                                 Bx[mfi], By[mfi], Bz[mfi],
+                                 jx[mfi], jy[mfi], jz[mfi],
+                                 geomData, pData,
+                                 m_charge, m_mass, dt);
 
     }
 
@@ -340,12 +340,12 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         const GeometryData& geomData = m_geom.data();
         ParticlesData&& pData = m_particles[mfi.index()].data(); 
 
-        AMREX_CUDA_LAUNCH_FUNCTION(Strategy(np), 
-                                   ::PushParticleMomenta,
-                                   Ex[mfi], Ey[mfi], Ez[mfi],
-                                   Bx[mfi], By[mfi], Bz[mfi],
-                                   geomData, pData,
-                                   m_charge, m_mass, dt);
+        AMREX_CUDA_LAUNCH_GLOBAL(Strategy(np), 
+                                 ::PushParticleMomenta,
+                                 Ex[mfi], Ey[mfi], Ez[mfi],
+                                 Bx[mfi], By[mfi], Bz[mfi],
+                                 geomData, pData,
+                                 m_charge, m_mass, dt);
     }
 }
 
@@ -383,9 +383,9 @@ PushParticlePositions (amrex::Real dt)
 
         ParticlesData&& pData = m_particles[mfi.index()].data();
 
-        AMREX_CUDA_LAUNCH_FUNCTION(Strategy(np), 
-                                   ::PushParticlePositions,
-                                   pData, dt);
+        AMREX_CUDA_LAUNCH_GLOBAL(Strategy(np), 
+                                 ::PushParticlePositions,
+                                 pData, dt);
 
     }
 }
@@ -420,9 +420,9 @@ EnforcePeriodicBCs()
         ParticlesData&& pData = m_particles[mfi.index()].data(); 
         const GeometryData& geomData = m_geom.data();
 
-        AMREX_CUDA_LAUNCH_FUNCTION(Strategy(np),
-                                   ::EnforcePeriodicBCs,
-                                   pData, geomData);
+        AMREX_CUDA_LAUNCH_GLOBAL(Strategy(np),
+                                 ::EnforcePeriodicBCs,
+                                 pData, geomData);
     }
 }
 
