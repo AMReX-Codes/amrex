@@ -52,7 +52,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx),
         [=] AMREX_CUDA_DEVICE ()
         {
-            Box threadBox = getThreadBox(vbx, tbx.type()); 
+            Box threadBox = getThreadBox(tbx);
 
             if (threadBox.ok())
             {
@@ -64,7 +64,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
                                       mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
             }
 
-            threadBox = getThreadBox(vbx, tby.type()); 
+            threadBox = getThreadBox(tby);
             if (threadBox.ok())
             {
                 push_electric_field_y(BL_TO_FORTRAN_BOX(threadBox),
@@ -75,7 +75,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
                                       mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
             }
 
-            threadBox = getThreadBox(vbx, tbz.type()); 
+            threadBox = getThreadBox(tbz);
             if (threadBox.ok())
             {
                 push_electric_field_z(BL_TO_FORTRAN_BOX(threadBox),
@@ -117,7 +117,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx),
         [=] AMREX_CUDA_DEVICE ()
         {
-            Box threadBox = getThreadBox(vbx, tbx.type()); 
+            Box threadBox = getThreadBox(tbx);
 
             if (threadBox.ok())
             {
@@ -128,7 +128,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                                       dtsdx[1], dtsdx[2]);
             }
 
-            threadBox = getThreadBox(vbx, tby.type()); 
+            threadBox = getThreadBox(tby);
             if (threadBox.ok())
             {
                 push_magnetic_field_y(BL_TO_FORTRAN_BOX(threadBox),
@@ -138,7 +138,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                                       dtsdx[0], dtsdx[2]);
             }
 
-            threadBox = getThreadBox(vbx, tbz.type()); 
+            threadBox = getThreadBox(tbz);
             if (threadBox.ok())
             {
                 push_magnetic_field_z(BL_TO_FORTRAN_BOX(threadBox),

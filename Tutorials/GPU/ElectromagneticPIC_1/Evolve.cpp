@@ -27,7 +27,7 @@ void evolve_electric_field(const Box bx, const Box tbx, const Box tby, const Box
                            const Real mu_c2_dt, const CudaArray<Real,3> dtsdx_c2)
 {
 
-    Box threadBox = getThreadBox(bx, tbx.type()); 
+    Box threadBox = getThreadBox(tbx);
     if (threadBox.ok())
     {
         push_electric_field_x(BL_TO_FORTRAN_BOX(threadBox),
@@ -38,7 +38,7 @@ void evolve_electric_field(const Box bx, const Box tbx, const Box tby, const Box
                               mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
     }
 
-    threadBox = getThreadBox(bx, tby.type()); 
+    threadBox = getThreadBox(tby);
     if (threadBox.ok())
     {
         push_electric_field_y(BL_TO_FORTRAN_BOX(threadBox),
@@ -49,7 +49,7 @@ void evolve_electric_field(const Box bx, const Box tbx, const Box tby, const Box
                               mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
     }
 
-    threadBox = getThreadBox(bx, tbz.type()); 
+    threadBox = getThreadBox(tbz);
     if (threadBox.ok())
     {
         push_electric_field_z(BL_TO_FORTRAN_BOX(threadBox),
@@ -101,7 +101,7 @@ void evolve_magnetic_field(const Box bx, const Box tbx, const Box tby, const Box
                            const CudaArray<Real,3> dtsdx)
 {
 
-    Box threadBox = getThreadBox(bx, tbx.type()); 
+    Box threadBox = getThreadBox(tbx);
     if (threadBox.ok())
     {
         push_magnetic_field_x(BL_TO_FORTRAN_BOX(threadBox),
@@ -111,7 +111,7 @@ void evolve_magnetic_field(const Box bx, const Box tbx, const Box tby, const Box
                               dtsdx[1], dtsdx[2]);
     }
 
-    threadBox = getThreadBox(bx, tby.type()); 
+    threadBox = getThreadBox(tby);
     if (threadBox.ok())
     {
         push_magnetic_field_y(BL_TO_FORTRAN_BOX(threadBox),
@@ -121,7 +121,7 @@ void evolve_magnetic_field(const Box bx, const Box tbx, const Box tby, const Box
                               dtsdx[0], dtsdx[2]);
     }
 
-    threadBox = getThreadBox(bx, tbz.type()); 
+    threadBox = getThreadBox(tbz);
     if (threadBox.ok())
     {
         push_magnetic_field_z(BL_TO_FORTRAN_BOX(threadBox),

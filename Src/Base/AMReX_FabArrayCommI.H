@@ -537,7 +537,7 @@ FabArray<FAB>::FillBoundary_finish ()
                             getThreadComponentBox(bx,dtbx,ic,nc);
                             if (dtbx.ok())
                             {
-                                char* p = dptr + sizeof(value_type) *
+                                const char* p = dptr + sizeof(value_type) *
                                     ((ic-scomp)*bx.numPts()+bx.index(dtbx.smallEnd()));
                                 dfab->copyFromMem(dtbx, ic, nc, p);
                             }
