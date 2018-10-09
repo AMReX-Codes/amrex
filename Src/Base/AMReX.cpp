@@ -593,10 +593,6 @@ amrex::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
-#ifdef AMREX_USE_DEVICE
-    Device::finalize_device();
-#endif
-
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
@@ -653,6 +649,10 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 #endif
     }
+#endif
+
+#ifdef AMREX_USE_DEVICE
+    Device::finalize_device();
 #endif
 
 #ifdef BL_USE_UPCXX
