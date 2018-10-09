@@ -25,18 +25,12 @@
       } \
     }
 
-#define AMREX_CUDA_LAUNCH_FUNCTION(strategy, function, ...) \
+// Cannot respect Device::inLaunchRegion because function must be __global__.
+#define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
-      if (amrex::Device::inLaunchRegion()) \
-      { \
-         auto st = strategy; \
-         function<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
-         CudaErrorCheck(); \
-      } \
-      else \
-      { \
-         function(__VA_ARGS__); \
-      } \
+        auto st = strategy;                                             \
+        function<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+        CudaErrorCheck();                                               \
     }
 
 #else
@@ -45,7 +39,7 @@
 // CPU versions
 
 #define AMREX_CUDA_LAUNCH_LAMBDA(strategy, ...) amrex::launch_host(__VA_ARGS__);
-#define AMREX_CUDA_LAUNCH_FUNCTION(strategy, function, ...) function(__VA_ARGS__);
+#define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) function(__VA_ARGS__);
 
 #endif
 
