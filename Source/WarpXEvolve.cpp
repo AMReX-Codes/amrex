@@ -49,7 +49,7 @@ WarpX::EvolveEM (int numsteps)
     {
         Real walltime_beg_step = amrex::second();
 
-    	// Start loop on time steps
+	// Start loop on time steps
         amrex::Print() << "\nSTEP " << step+1 << " starts ...\n";
 #ifdef WARPX_USE_PY
         if (warpx_py_beforestep) warpx_py_beforestep();
@@ -63,16 +63,16 @@ WarpX::EvolveEM (int numsteps)
             if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
-                // Reset the costs to 0
-                for (int lev = 0; lev <= finest_level; ++lev) {
-                    costs[lev]->setVal(0.0);
-                }
+		// Reset the costs to 0
+		for (int lev = 0; lev <= finest_level; ++lev) {
+		  costs[lev]->setVal(0.0);
+		}
             }
 
             for (int lev = 0; lev <= finest_level; ++lev) {
-                // Perform running average of the costs
-                // (Giving more importance to most recent costs)
-                (*costs[lev].get()).mult( (1. - 2./load_balance_int) );
+	      // Perform running average of the costs
+	      // (Giving more importance to most recent costs)
+	      (*costs[lev].get()).mult( (1. - 2./load_balance_int) );
             }
         }
 
@@ -89,12 +89,12 @@ WarpX::EvolveEM (int numsteps)
                             *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
-            is_synchronized = false;
+           is_synchronized = false;
         } else {
            // Beyond one step, we have E^{n} and B^{n}.
            // Particles have p^{n-1/2} and x^{n}.
            UpdateAuxilaryData();
-        }
+       }
 
         // Push particle from x^{n} to x^{n+1}
         //               from p^{n-1/2} to p^{n+1/2}
@@ -146,7 +146,7 @@ WarpX::EvolveEM (int numsteps)
                 mypc->PushP(lev, 0.5*dt[0],
                     *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                     *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
-            }
+                }
             is_synchronized = true;
         }
 #ifdef WARPX_USE_PY
@@ -157,14 +157,14 @@ WarpX::EvolveEM (int numsteps)
             ++istep[lev];
         }
 
-        cur_time += dt[0];
+	cur_time += dt[0];
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
         bool move_j = is_synchronized || to_make_plot;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
-        MoveWindow(move_j);
+	MoveWindow(move_j);
 
         if (max_level == 0) {
             mypc->RedistributeLocal();
@@ -181,10 +181,10 @@ WarpX::EvolveEM (int numsteps)
                       << " s; This step = " << walltime_end_step-walltime_beg_step
                       << " s; Avg. per step = " << walltime/(step+1) << " s\n";
 
-        // sync up time
-        for (int i = 0; i <= max_level; ++i) {
-	        t_new[i] = cur_time;
-        }
+	// sync up time
+	for (int i = 0; i <= max_level; ++i) {
+	    t_new[i] = cur_time;
+	}
 
         if (do_boosted_frame_diagnostic) {
             std::unique_ptr<MultiFab> cell_centered_data = nullptr;
@@ -194,7 +194,7 @@ WarpX::EvolveEM (int numsteps)
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
-        if (to_make_plot)
+	if (to_make_plot)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -206,24 +206,24 @@ WarpX::EvolveEM (int numsteps)
                                   *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
 
-            last_plot_file_step = step+1;
-            WritePlotFile();
-        }
+	    last_plot_file_step = step+1;
+	    WritePlotFile();
+	}
 
-	    if (check_int > 0 && (step+1) % check_int == 0) {
-	        last_check_file_step = step+1;
-	        WriteCheckPointFile();
-	    }
+	if (check_int > 0 && (step+1) % check_int == 0) {
+	    last_check_file_step = step+1;
+	    WriteCheckPointFile();
+	}
 
-	    if (cur_time >= stop_time - 1.e-3*dt[0]) {
-	        max_time_reached = true;
-	        break;
-    	}
+	if (cur_time >= stop_time - 1.e-3*dt[0]) {
+	    max_time_reached = true;
+	    break;
+	}
 
 #ifdef WARPX_USE_PY
         if (warpx_py_afterstep) warpx_py_afterstep();
 #endif
-	    // End loop on time steps
+	// End loop on time steps
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
@@ -238,11 +238,11 @@ WarpX::EvolveEM (int numsteps)
                               *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
         }
 
-	    WritePlotFile();
+	WritePlotFile();
     }
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
-        WriteCheckPointFile();
+	WriteCheckPointFile();
     }
 
     if (do_boosted_frame_diagnostic) {
@@ -699,18 +699,18 @@ WarpX::ComputeDt ()
     Real deltat = 0.;
 
     if (maxwell_fdtd_solver_id == 0) {
-        // CFL time step Yee solver
-        deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
+      // CFL time step Yee solver
+      deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
                                                     + 1./(dx[1]*dx[1]),
                                                     + 1./(dx[2]*dx[2]))) * PhysConst::c );
     } else {
-        // CFL time step CKC solver
+      // CFL time step CKC solver
 #if (BL_SPACEDIM == 3)
-        const Real delta = std::min(dx[0],std::min(dx[1],dx[2]));
+      const Real delta = std::min(dx[0],std::min(dx[1],dx[2]));
 #elif (BL_SPACEDIM == 2)
-        const Real delta = std::min(dx[0],dx[1]);
+      const Real delta = std::min(dx[0],dx[1]);
 #endif
-        deltat = cfl*delta/PhysConst::c;
+      deltat = cfl*delta/PhysConst::c;
     }
     dt.resize(0);
     dt.resize(max_level+1,deltat);
