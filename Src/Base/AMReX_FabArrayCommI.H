@@ -32,7 +32,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         //
 	int N_loc = (*TheFB.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Device::inLaunchRegion())
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -225,7 +225,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (amrex::IsBaseFab<FAB>::value)
         {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
 #endif
             for (int j=0; j<N_snds; ++j)
             {
@@ -387,7 +387,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
 #endif
 	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
@@ -415,7 +415,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Device::inLaunchRegion())
 #endif
 	for (int i=0; i<N_locs; ++i)
 	{
@@ -514,7 +514,7 @@ FabArray<FAB>::FillBoundary_finish ()
         if (amrex::IsBaseFab<FAB>::value)
         {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv)
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Device::inLaunchRegion())
 #endif
             for (int k = 0; k < N_rcvs; k++) 
 	    {

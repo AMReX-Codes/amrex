@@ -6,9 +6,12 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
+#if defined(AMREX_USE_CUDA)
 bool amrex::Device::in_device_launch_region = true;
+#else
+bool amrex::Device::in_device_launch_region = false;
+#endif
 int amrex::Device::device_id = 0;
-
 int amrex::Device::verbose = 0;
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
