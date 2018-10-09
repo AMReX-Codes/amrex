@@ -125,7 +125,9 @@ MultiFab::Add (MultiFab&       dst,
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
-                dstFab->plus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                if (tbx.ok()) {
+                    dstFab->plus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                }
             });
         }
     }
@@ -171,7 +173,9 @@ MultiFab::Copy (MultiFab&       dst,
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
-                dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
+                if (tbx.ok()) {
+                    dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
+                }
             });
         }
     }
@@ -244,7 +248,9 @@ MultiFab::Subtract (MultiFab&       dst,
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
-                dstFab->minus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                if (tbx.ok()) {
+                    dstFab->minus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                } 
             });
         }
     }
@@ -290,7 +296,9 @@ MultiFab::Multiply (MultiFab&       dst,
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
-                dstFab->mult(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                if (tbx.ok()) {
+                    dstFab->mult(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                }
             });
         }
     }
@@ -336,7 +344,9 @@ MultiFab::Divide (MultiFab&       dst,
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
-                dstFab->divide(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                if (tbx.ok()) {
+                    dstFab->divide(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
+                }
             });
         }
     }
