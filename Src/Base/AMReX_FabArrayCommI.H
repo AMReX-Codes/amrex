@@ -241,20 +241,15 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
                         [=] AMREX_CUDA_HOST_DEVICE ()
                         {
-                           Box stbx = getThreadBox(bx);
-                           if (stbx.ok())
-                           {
-                              IntVect curr = stbx.smallEnd();
-                              for (int i=0; i<stbx.numPts(); ++i)
-                              {
-                                 long buffidx = stbx.index(curr);
-                                 sfab->copyToMem(bx,scomp,ncomp,dptr);
-                                 stbx.next(curr);
-                              }
-                           }
+                            const Box& stbx = getThreadBox(bx);
+                            if (stbx.ok())
+                            {
+                                char* p = dptr + bx.index(stbx.smallEnd())*ncomp*sizeof(value_type);
+                                sfab->copyToMem(stbx, scomp, ncomp, p);
+                            }
                         });
 
-                        dptr += (bx.numPts() * sizeof(value_type)); 
+                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
                     }
                     BL_ASSERT(dptr == send_data[j] + send_size[j]); 
                 }
@@ -535,17 +530,12 @@ FabArray<FAB>::FillBoundary_finish ()
                             Box dtbx = getThreadBox(bx);
                             if (dtbx.ok())
                             {
-                                IntVect curr = dtbx.smallEnd();
-                                for (int i=0; i<dtbx.numPts(); ++i)
-                                {
-                                    long buffidx = dtbx.index(curr);
-                                    dfab->copyFromMem(bx,scomp,ncomp,dptr);
-                                    dtbx.next(curr);
-                                }
+                                char* p = dptr + bx.index(dtbx.smallEnd())*ncomp*sizeof(value_type);
+                                dfab->copyFromMem(dtbx, scomp, ncomp, p);
                             }
                         });
 
-                        dptr += (bx.numPts() * sizeof(value_type));
+                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
                     }
                     BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
                 }
