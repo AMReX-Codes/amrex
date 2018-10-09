@@ -83,13 +83,13 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tbz = mfi.tilebox(YeeGrid::Ez_nodal_flag);
         const Box& vbx = mfi.validbox();
 
-        AMREX_CUDA_LAUNCH_FUNCTION(Strategy(vbx),
-                         evolve_electric_field,
-                         vbx, tbx, tby, tbz,
-                         Ex[mfi], Ey[mfi], Ez[mfi],
-                         Bx[mfi], By[mfi], Bz[mfi],
-                         jx[mfi], jy[mfi], jz[mfi],
-                         mu_c2_dt, dtsdx_c2);
+        AMREX_CUDA_LAUNCH_GLOBAL(Strategy(vbx),
+                                 evolve_electric_field,
+                                 vbx, tbx, tby, tbz,
+                                 Ex[mfi], Ey[mfi], Ez[mfi],
+                                 Bx[mfi], By[mfi], Bz[mfi],
+                                 jx[mfi], jy[mfi], jz[mfi],
+                                 mu_c2_dt, dtsdx_c2);
     }
 }
 
@@ -151,12 +151,12 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         const Box& tbz = mfi.tilebox(YeeGrid::Bz_nodal_flag);
         const Box& vbx = mfi.validbox();
 
-        AMREX_CUDA_LAUNCH_FUNCTION(Strategy(vbx),
-                                   evolve_magnetic_field,
-                                   vbx, tbx, tby, tbz,
-                                   Ex[mfi], Ey[mfi], Ez[mfi],
-                                   Bx[mfi], By[mfi], Bz[mfi],
-                                   dtsdx);
+        AMREX_CUDA_LAUNCH_GLOBAL(Strategy(vbx),
+                                 evolve_magnetic_field,
+                                 vbx, tbx, tby, tbz,
+                                 Ex[mfi], Ey[mfi], Ez[mfi],
+                                 Bx[mfi], By[mfi], Bz[mfi],
+                                 dtsdx);
     } 
 }
 
