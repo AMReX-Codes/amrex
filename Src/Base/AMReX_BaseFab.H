@@ -3461,6 +3461,18 @@ BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
 			int                numcomp);
 #endif
 
+
+class BF_init
+{
+public:
+    BF_init ();
+    ~BF_init ();
+private:
+    static int m_cnt;
+};
+
 }
+
+static amrex::BF_init amrex_file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

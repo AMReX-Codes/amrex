@@ -22,27 +22,58 @@ long private_total_bytes_allocated_in_fabs_hwm = 0L;
 long private_total_cells_allocated_in_fabs     = 0L;
 long private_total_cells_allocated_in_fabs_hwm = 0L;
 
+int BF_init::m_cnt = 0;
+
 namespace
 {
     static bool basefab_initialized = false;
 
+    Arena* the_arena = 0;
 #ifdef AMREX_USE_GPU_PRAGMA
     Arena* the_nvar_arena = 0;
 #endif
 }
 
-void
-BaseFab_Initialize ()
+BF_init::BF_init ()
 {
-    if (!basefab_initialized) 
+    if (m_cnt++ == 0)
     {
-        basefab_initialized = true;
+        BL_ASSERT(the_arena == 0);
+
+#if defined(BL_COALESCE_FABS)
+        the_arena = new CArena;
+#else
+        the_arena = new BArena;
+#endif
+
+#ifdef AMREX_USE_CUDA
+        the_arena->SetPreferred();
+#endif
 
 #ifdef AMREX_USE_GPU_PRAGMA
         const std::size_t hunk_size = 64 * 1024;
         the_nvar_arena = new CArena(hunk_size);
         the_nvar_arena->SetHostAlloc();
 #endif
+    }
+}
+
+BF_init::~BF_init ()
+{
+    if (--m_cnt == 0) {
+        delete the_arena;
+#ifdef AMREX_USE_GPU_PRAGMA
+        delete the_nvar_arena;
+#endif
+    }
+}
+
+void
+BaseFab_Initialize ()
+{
+    if (!basefab_initialized)
+    {
+        basefab_initialized = true;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -69,11 +100,7 @@ BaseFab_Initialize ()
 void
 BaseFab_Finalize()
 {
-    basefab_initialized = false;   
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    delete the_nvar_arena;
-#endif
+    basefab_initialized = false;
 }
 
 
@@ -163,6 +190,14 @@ update_fab_stats (long n, long s, size_t szt)
 	    = std::max(amrex::private_total_cells_allocated_in_fabs_hwm,
 		       amrex::private_total_cells_allocated_in_fabs);
     }
+}
+
+Arena*
+The_Arena ()
+{
+    BL_ASSERT(the_arena != 0);
+
+    return the_arena;
 }
 
 #ifdef AMREX_USE_GPU_PRAGMA
