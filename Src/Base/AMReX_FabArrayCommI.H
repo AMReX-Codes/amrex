@@ -238,14 +238,18 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(get(tag.srcIndex));
 
-                        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+                        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx,ncomp),
                         [=] AMREX_CUDA_HOST_DEVICE ()
                         {
-                            const Box& stbx = getThreadBox(bx);
+                            int ic = scomp;
+                            int nc = ncomp;
+                            Box stbx;
+                            getThreadComponentBox(bx,stbx,ic,nc);
                             if (stbx.ok())
                             {
-                                char* p = dptr + bx.index(stbx.smallEnd())*ncomp*sizeof(value_type);
-                                sfab->copyToMem(stbx, scomp, ncomp, p);
+                                char* p = dptr + sizeof(value_type) *
+                                    ((ic-scomp)*bx.numPts()+bx.index(stbx.smallEnd()));
+                                sfab->copyToMem(stbx, ic, nc, p);
                             }
                         });
 
@@ -524,14 +528,18 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int scomp = fb_scomp;
                         const int ncomp = fb_ncomp;
 
-                        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+                        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx,ncomp),
                         [=] AMREX_CUDA_HOST_DEVICE () 
                         {
-                            Box dtbx = getThreadBox(bx);
+                            int ic = scomp;
+                            int nc = ncomp;
+                            Box dtbx;
+                            getThreadComponentBox(bx,dtbx,ic,nc);
                             if (dtbx.ok())
                             {
-                                char* p = dptr + bx.index(dtbx.smallEnd())*ncomp*sizeof(value_type);
-                                dfab->copyFromMem(dtbx, scomp, ncomp, p);
+                                char* p = dptr + sizeof(value_type) *
+                                    ((ic-scomp)*bx.numPts()+bx.index(dtbx.smallEnd()));
+                                dfab->copyFromMem(dtbx, ic, nc, p);
                             }
                         });
 

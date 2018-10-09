@@ -10,15 +10,13 @@ AMREX_CUDA_HOST_DEVICE
 Box getThreadBox (const Box& bx)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-     return (bx & Box(IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
-                                           bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                           bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
-                      IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
-                                           bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                           bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
-                      bx.type()));
+    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
+                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
+                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
+    iv += bx.smallEnd();
+    return (bx & Box(iv,iv,bx.type()));
 #else
-     return bx;
+    return bx;
 #endif
 }
 
@@ -81,21 +79,24 @@ void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncom
      // Don't use getThreadBox because these will initially be outside bx, which represents the
      // component of each thread. So, don't want to do (bx & threadBox) yet until that information
      // is extracted.
-     threadBox = Box(IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
-                                          bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                          bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
-                     IntVect(AMREX_D_DECL(bx.smallEnd()[0] + (threadIdx.x) + blockDim.x*(blockIdx.x),
-                                          bx.smallEnd()[1] + (threadIdx.y) + blockDim.y*(blockIdx.y),
-                                          bx.smallEnd()[2] + (threadIdx.z) + blockDim.z*(blockIdx.z))),
-                     bx.type());
+    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
+                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
+                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
+    threadBox = Box(iv,iv,bx.type());
 
-     int dcomp =  ( threadBox.smallEnd()[0] / bx.length(0) );
-     scomp = scomp + dcomp;
-     threadBox.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
-     ncomp = 1;  // On GPU, each thread works on one component. (Update later for very big boxes.)
+    int dcomp =  iv[0] / bx.length(0);
+    if (dcomp >= ncomp) {
+        threadBox = Box();
+    } else {
+        scomp += dcomp;
+        threadBox.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
+        threadBox += bx.smallEnd();
+        threadBox &= bx;
+    }
+    ncomp = 1;  // On GPU, each thread works on one component. (Update later for very big boxes.)
 #else
-     threadBox = bx;
-     // On CPUs, scomp and ncomp don't change.
+    threadBox = bx;
+    // On CPUs, scomp and ncomp don't change.
 #endif
 }
 
