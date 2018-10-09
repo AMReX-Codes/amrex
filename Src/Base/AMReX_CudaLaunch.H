@@ -35,7 +35,7 @@
       } \
       else \
       { \
-         amrex::launch_host(__VA_ARGS__); \
+         function(__VA_ARGS__); \
       } \
     }
 
