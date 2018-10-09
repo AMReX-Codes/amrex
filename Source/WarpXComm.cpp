@@ -245,81 +245,79 @@ WarpX::FillBoundaryE(int lev)
 void
 WarpX::FillBoundaryE (int lev, PatchType patch_type)
 {
-  if (patch_type == PatchType::fine)
+    if (patch_type == PatchType::fine)
     {
-      if (do_pml && pml[lev]->ok())
+        if (do_pml && pml[lev]->ok())
         {
-	  pml[lev]->ExchangeE(patch_type,
-			      { Efield_fp[lev][0].get(),
-                                  Efield_fp[lev][1].get(),
-                                  Efield_fp[lev][2].get() });
-	  pml[lev]->FillBoundaryE(patch_type);
+    	    pml[lev]->ExchangeE(patch_type,
+	              		      { Efield_fp[lev][0].get(),
+                                Efield_fp[lev][1].get(),
+                                Efield_fp[lev][2].get() });
+    	    pml[lev]->FillBoundaryE(patch_type);
         }
 
-      const auto& period = Geom(lev).periodicity();
-      (*Efield_fp[lev][0]).FillBoundary(period);
-      (*Efield_fp[lev][1]).FillBoundary(period);
-      (*Efield_fp[lev][2]).FillBoundary(period);
+        const auto& period = Geom(lev).periodicity();
+        (*Efield_fp[lev][0]).FillBoundary(period);
+        (*Efield_fp[lev][1]).FillBoundary(period);
+        (*Efield_fp[lev][2]).FillBoundary(period);
     }
-  else if (patch_type == PatchType::coarse)
+    else if (patch_type == PatchType::coarse)
     {
-      if (do_pml && pml[lev]->ok())
+        if (do_pml && pml[lev]->ok())
         {
-	  pml[lev]->ExchangeE(patch_type,
-			      { Efield_cp[lev][0].get(),
-                                  Efield_cp[lev][1].get(),
-                                  Efield_cp[lev][2].get() });
-	  pml[lev]->FillBoundaryE(patch_type);
+        pml[lev]->ExchangeE(patch_type,
+			                { Efield_cp[lev][0].get(),
+                              Efield_cp[lev][1].get(),
+                              Efield_cp[lev][2].get() });
+        pml[lev]->FillBoundaryE(patch_type);
         }
 
-      const auto& cperiod = Geom(lev-1).periodicity();
-      (*Efield_cp[lev][0]).FillBoundary(cperiod);
-      (*Efield_cp[lev][1]).FillBoundary(cperiod);
-      (*Efield_cp[lev][2]).FillBoundary(cperiod);
+        const auto& cperiod = Geom(lev-1).periodicity();
+        (*Efield_cp[lev][0]).FillBoundary(cperiod);
+        (*Efield_cp[lev][1]).FillBoundary(cperiod);
+        (*Efield_cp[lev][2]).FillBoundary(cperiod);
     }    
 }
 
 void
 WarpX::FillBoundaryB (int lev)
 {
-  FillBoundaryB(lev, PatchType::fine);
-  if (lev > 0) FillBoundaryB(lev, PatchType::coarse);
+    FillBoundaryB(lev, PatchType::fine);
+    if (lev > 0) FillBoundaryB(lev, PatchType::coarse);
 }
 
 void
 WarpX::FillBoundaryB (int lev, PatchType patch_type)
 {
-  if (patch_type == PatchType::fine)
+    if (patch_type == PatchType::fine)
     {
-      if (do_pml && pml[lev]->ok())
+        if (do_pml && pml[lev]->ok())
         {
-	  pml[lev]->ExchangeB(patch_type,
-			      { Bfield_fp[lev][0].get(),
-                                  Bfield_fp[lev][1].get(),
-                                  Bfield_fp[lev][2].get() });
-	  pml[lev]->FillBoundaryB(patch_type);
+	    pml[lev]->ExchangeB(patch_type,
+        			        { Bfield_fp[lev][0].get(),
+                              Bfield_fp[lev][1].get(),
+                              Bfield_fp[lev][2].get() });
+        pml[lev]->FillBoundaryB(patch_type);
         }
-
-      const auto& period = Geom(lev).periodicity();
-      (*Bfield_fp[lev][0]).FillBoundary(period);
-      (*Bfield_fp[lev][1]).FillBoundary(period);
-      (*Bfield_fp[lev][2]).FillBoundary(period);
+        const auto& period = Geom(lev).periodicity();
+        (*Bfield_fp[lev][0]).FillBoundary(period);
+        (*Bfield_fp[lev][1]).FillBoundary(period);
+        (*Bfield_fp[lev][2]).FillBoundary(period);
     }
-  else if (patch_type == PatchType::coarse)
+    else if (patch_type == PatchType::coarse)
     {
-      if (do_pml && pml[lev]->ok())
+        if (do_pml && pml[lev]->ok())
         {
-	  pml[lev]->ExchangeB(patch_type,
-			      { Bfield_cp[lev][0].get(),
-                                  Bfield_cp[lev][1].get(),
-                                  Bfield_cp[lev][2].get() });
-	  pml[lev]->FillBoundaryB(patch_type);
+        pml[lev]->ExchangeB(patch_type,
+			                { Bfield_cp[lev][0].get(),
+			                  Bfield_cp[lev][1].get(),
+			                  Bfield_cp[lev][2].get() });
+        pml[lev]->FillBoundaryB(patch_type);
         }
-
-      const auto& cperiod = Geom(lev-1).periodicity();
-      (*Bfield_cp[lev][0]).FillBoundary(cperiod);
-      (*Bfield_cp[lev][1]).FillBoundary(cperiod);
-      (*Bfield_cp[lev][2]).FillBoundary(cperiod);
+        const auto& cperiod = Geom(lev-1).periodicity();
+        (*Bfield_cp[lev][0]).FillBoundary(cperiod);
+        (*Bfield_cp[lev][1]).FillBoundary(cperiod);
+        (*Bfield_cp[lev][2]).FillBoundary(cperiod);
     }
 }
 
@@ -333,27 +331,27 @@ WarpX::FillBoundaryF (int lev)
 void
 WarpX::FillBoundaryF (int lev, PatchType patch_type)
 {
-  if (patch_type == PatchType::fine && F_fp[lev])
+    if (patch_type == PatchType::fine && F_fp[lev])
     {
-      if (do_pml && pml[lev]->ok())
+        if (do_pml && pml[lev]->ok())
         {
-	  pml[lev]->ExchangeF(patch_type, F_fp[lev].get());
-	  pml[lev]->FillBoundaryF(patch_type);
+            pml[lev]->ExchangeF(patch_type, F_fp[lev].get());
+            pml[lev]->FillBoundaryF(patch_type);
         }
 
-      const auto& period = Geom(lev).periodicity();
-      F_fp[lev]->FillBoundary(period);
+        const auto& period = Geom(lev).periodicity();
+        F_fp[lev]->FillBoundary(period);
     }
-  else if (patch_type == PatchType::coarse && F_cp[lev])
+    else if (patch_type == PatchType::coarse && F_cp[lev])
     {
-      if (do_pml && pml[lev]->ok())
+        if (do_pml && pml[lev]->ok())
         {
-	  pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
-	  pml[lev]->FillBoundaryF(patch_type);
+        pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
+        pml[lev]->FillBoundaryF(patch_type);
         }
 
-      const auto& cperiod = Geom(lev-1).periodicity();
-      F_cp[lev]->FillBoundary(cperiod);
+        const auto& cperiod = Geom(lev-1).periodicity();
+        F_cp[lev]->FillBoundary(cperiod);
     }
 }
 
