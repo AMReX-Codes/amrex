@@ -528,17 +528,17 @@ void
 PML::ExchangeB (PatchType patch_type,
                 const std::array<amrex::MultiFab*,3>& Bp)
 {
-  if (patch_type == PatchType::fine && pml_B_fp[0] && Bp[0])
+    if (patch_type == PatchType::fine && pml_B_fp[0] && Bp[0])
     {
-      Exchange(*pml_B_fp[0], *Bp[0], *m_geom);
-      Exchange(*pml_B_fp[1], *Bp[1], *m_geom);
-      Exchange(*pml_B_fp[2], *Bp[2], *m_geom);
+        Exchange(*pml_B_fp[0], *Bp[0], *m_geom);
+        Exchange(*pml_B_fp[1], *Bp[1], *m_geom);
+        Exchange(*pml_B_fp[2], *Bp[2], *m_geom);
     }
-  else if (patch_type == PatchType::coarse && pml_B_cp[0] && Bp[0])
+    else if (patch_type == PatchType::coarse && pml_B_cp[0] && Bp[0])
     {
-      Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom);
-      Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom);
-      Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom);
+        Exchange(*pml_B_cp[0], *Bp[0], *m_cgeom);
+        Exchange(*pml_B_cp[1], *Bp[1], *m_cgeom);
+        Exchange(*pml_B_cp[2], *Bp[2], *m_cgeom);
     }
 }
 
@@ -546,43 +546,43 @@ void
 PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
                 const std::array<amrex::MultiFab*,3>& E_cp)
 {
-  ExchangeB(PatchType::fine, E_fp);
-  ExchangeB(PatchType::coarse, E_cp);    
+    ExchangeB(PatchType::fine, E_fp);
+    ExchangeB(PatchType::coarse, E_cp);    
 }
 
 void
 PML::ExchangeE (PatchType patch_type,
                 const std::array<amrex::MultiFab*,3>& Ep)
 {
-  if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
+    if (patch_type == PatchType::fine && pml_E_fp[0] && Ep[0])
     {
-      Exchange(*pml_E_fp[0], *Ep[0], *m_geom);
-      Exchange(*pml_E_fp[1], *Ep[1], *m_geom);
-      Exchange(*pml_E_fp[2], *Ep[2], *m_geom);
+        Exchange(*pml_E_fp[0], *Ep[0], *m_geom);
+        Exchange(*pml_E_fp[1], *Ep[1], *m_geom);
+        Exchange(*pml_E_fp[2], *Ep[2], *m_geom);
     }
-  else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
+    else if (patch_type == PatchType::coarse && pml_E_cp[0] && Ep[0])
     {
-      Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom);
-      Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom);
-      Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom);
+        Exchange(*pml_E_cp[0], *Ep[0], *m_cgeom);
+        Exchange(*pml_E_cp[1], *Ep[1], *m_cgeom);
+        Exchange(*pml_E_cp[2], *Ep[2], *m_cgeom);
     }
 }
 
 void
 PML::ExchangeF (MultiFab* F_fp, MultiFab* F_cp)
 {
-  ExchangeF(PatchType::fine, F_fp);
-  ExchangeF(PatchType::coarse, F_cp);
+    ExchangeF(PatchType::fine, F_fp);
+    ExchangeF(PatchType::coarse, F_cp);
 }
 
 void
 PML::ExchangeF (PatchType patch_type, MultiFab* Fp)
 {
-  if (patch_type == PatchType::fine && pml_F_fp && Fp) {
-    Exchange(*pml_F_fp, *Fp, *m_geom);
-  } else if (patch_type == PatchType::coarse && pml_F_cp && Fp) {
-    Exchange(*pml_F_cp, *Fp, *m_cgeom);
-  }
+    if (patch_type == PatchType::fine && pml_F_fp && Fp) {
+        Exchange(*pml_F_fp, *Fp, *m_geom);
+    } else if (patch_type == PatchType::coarse && pml_F_cp && Fp) {
+        Exchange(*pml_F_cp, *Fp, *m_cgeom);
+    }
 }
 
 void
@@ -639,74 +639,74 @@ PML::FillBoundary ()
 void
 PML::FillBoundaryE ()
 {
-  FillBoundaryE(PatchType::fine);
-  FillBoundaryE(PatchType::coarse);
+    FillBoundaryE(PatchType::fine);
+    FillBoundaryE(PatchType::coarse);
 }
 
 void
 PML::FillBoundaryE (PatchType patch_type)
 {
-  if (patch_type == PatchType::fine && pml_E_fp[0] && pml_E_fp[0]->nGrowVect().max() > 0)
+    if (patch_type == PatchType::fine && pml_E_fp[0] && pml_E_fp[0]->nGrowVect().max() > 0)
     {
-      const auto& period = m_geom->periodicity();
-      pml_E_fp[0]->FillBoundary(period);
-      pml_E_fp[1]->FillBoundary(period);
-      pml_E_fp[2]->FillBoundary(period);
-    }    
-  else if (patch_type == PatchType::coarse && pml_E_cp[0] && pml_E_cp[0]->nGrowVect().max() > 0)
+        const auto& period = m_geom->periodicity();
+        pml_E_fp[0]->FillBoundary(period);
+        pml_E_fp[1]->FillBoundary(period);
+        pml_E_fp[2]->FillBoundary(period);
+    }
+    else if (patch_type == PatchType::coarse && pml_E_cp[0] && pml_E_cp[0]->nGrowVect().max() > 0)
     {
-      const auto& period = m_cgeom->periodicity();
-      pml_E_cp[0]->FillBoundary(period);
-      pml_E_cp[1]->FillBoundary(period);
-      pml_E_cp[2]->FillBoundary(period);
+        const auto& period = m_cgeom->periodicity();
+        pml_E_cp[0]->FillBoundary(period);
+        pml_E_cp[1]->FillBoundary(period);
+        pml_E_cp[2]->FillBoundary(period);
     }
 }
 
 void
 PML::FillBoundaryB ()
 {
-  FillBoundaryB(PatchType::fine);
-  FillBoundaryB(PatchType::coarse);
+    FillBoundaryB(PatchType::fine);
+    FillBoundaryB(PatchType::coarse);
 }
 
 void
 PML::FillBoundaryB (PatchType patch_type)
 {
-  if (patch_type == PatchType::fine && pml_B_fp[0])
+    if (patch_type == PatchType::fine && pml_B_fp[0])
     {
-      const auto& period = m_geom->periodicity();
-      pml_B_fp[0]->FillBoundary(period);
-      pml_B_fp[1]->FillBoundary(period);
-      pml_B_fp[2]->FillBoundary(period);
-    }    
-  else if (patch_type == PatchType::coarse && pml_B_cp[0])
+        const auto& period = m_geom->periodicity();
+        pml_B_fp[0]->FillBoundary(period);
+        pml_B_fp[1]->FillBoundary(period);
+        pml_B_fp[2]->FillBoundary(period);
+    }
+    else if (patch_type == PatchType::coarse && pml_B_cp[0])
     {
-      const auto& period = m_cgeom->periodicity();
-      pml_B_cp[0]->FillBoundary(period);
-      pml_B_cp[1]->FillBoundary(period);
-      pml_B_cp[2]->FillBoundary(period);
+        const auto& period = m_cgeom->periodicity();
+        pml_B_cp[0]->FillBoundary(period);
+        pml_B_cp[1]->FillBoundary(period);
+        pml_B_cp[2]->FillBoundary(period);
     }
 }
 
 void
 PML::FillBoundaryF ()
 {
-  FillBoundaryF(PatchType::fine);
-  FillBoundaryF(PatchType::coarse);
+    FillBoundaryF(PatchType::fine);
+    FillBoundaryF(PatchType::coarse);
 }
 
 void
 PML::FillBoundaryF (PatchType patch_type)
 {
-  if (patch_type == PatchType::fine && pml_F_fp && pml_F_fp->nGrowVect().max() > 0)
+    if (patch_type == PatchType::fine && pml_F_fp && pml_F_fp->nGrowVect().max() > 0)
     {
-      const auto& period = m_geom->periodicity();
-      pml_F_fp->FillBoundary(period);
-    }    
-  else if (patch_type == PatchType::coarse && pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
+        const auto& period = m_geom->periodicity();
+        pml_F_fp->FillBoundary(period);
+    }
+    else if (patch_type == PatchType::coarse && pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
     {
-      const auto& period = m_cgeom->periodicity();
-      pml_F_cp->FillBoundary(period);
+        const auto& period = m_cgeom->periodicity();
+        pml_F_cp->FillBoundary(period);
     }
 }
 
