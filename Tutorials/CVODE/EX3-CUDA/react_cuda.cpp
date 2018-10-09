@@ -12,8 +12,8 @@
 using namespace amrex;
 
 void do_react(const int* lo, const int* hi,
-              amrex::Real* state, const int* s_lo, const int* s_hi,
-              const int ncomp, const amrex::Real dt)
+	      amrex::Real* state, const int* s_lo, const int* s_hi,
+	      const int ncomp, const amrex::Real dt)
 {
   const int size_x = hi[0]-lo[0]+1;
   const int size_y = hi[1]-lo[1]+1;
@@ -98,6 +98,7 @@ void do_react(const int* lo, const int* hi,
   N_VDestroy(abstol);
   CVodeFree(&cvode_mem);
   SUNLinSolFree(Linsol);
+
 }
 
 
@@ -128,7 +129,8 @@ static int fun_rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
   UserData udata = static_cast<CVodeUserData*>(user_data);
   int numThreads = std::min(32, udata->num_cells);
   int numBlocks = static_cast<int>(ceil(((double) udata->num_cells)/((double) numThreads)));
-  fun_rhs_kernel<<<numThreads,numBlocks>>>(t, y_d, ydot_d, user_data);
+  fun_rhs_kernel<<<numBlocks, numThreads>>>(t, y_d, ydot_d,
+					    user_data);
   return 0;
 }
 
@@ -145,7 +147,9 @@ static int fun_jac_times_vec(N_Vector v, N_Vector Jv, realtype t,
   UserData udata = static_cast<CVodeUserData*>(user_data);
   int numThreads = std::min(32, udata->num_cells);
   int numBlocks = static_cast<int>(ceil(((double) udata->num_cells)/((double) numThreads)));
-  fun_jtv_kernel<<<numThreads,numBlocks>>>(v_d, Jv_d, t, y_d, fy_d, user_data, tmp_d);
+  fun_jtv_kernel<<<numBlocks, numThreads>>>(v_d, Jv_d, t,
+					    y_d, fy_d,
+					    user_data, tmp_d);
   return 0;
 }
 
@@ -154,10 +158,16 @@ __global__ static void fun_rhs_kernel(realtype t, realtype* y, realtype* ydot,
 {
   UserData udata = static_cast<CVodeUserData*>(user_data);
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  int offset = tid * udata->num_eqs_per_cell;
-  ydot[offset] = -.04e0*y[offset] + 1.e4*y[offset+1]*y[offset+2];
-  ydot[offset+2] = 3.e7*y[offset+1]*y[offset+1];
-  ydot[offset+1] = -ydot[offset]-ydot[offset+2];
+  if (tid < udata->num_cells) {
+    int offset = tid * udata->num_eqs_per_cell;
+#ifdef CPP_RHS
+    ydot[offset] = -.04e0*y[offset] + 1.e4*y[offset+1]*y[offset+2];
+    ydot[offset+2] = 3.e7*y[offset+1]*y[offset+1];
+    ydot[offset+1] = -ydot[offset]-ydot[offset+2];
+#else
+    cv_f_rhs_device(&y[offset], &ydot[offset]);
+#endif
+  }
 }
 
 
@@ -167,8 +177,14 @@ __global__ static void fun_jtv_kernel(realtype* v, realtype* Jv, realtype t,
 {
   UserData udata = static_cast<CVodeUserData*>(user_data);
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  int offset = tid * udata->num_eqs_per_cell;
-  Jv[offset] = -0.04e0*v[offset] + 1.e4*y[offset+2]*v[offset+1] + 1.e4*y[offset+1]*v[offset+2];
-  Jv[offset+2] = 6.0e7*y[offset+1]*v[offset+1];
-  Jv[offset+1] = 0.04e0*v[offset] + (-1.e4*y[offset+2]-6.0e7*y[offset+1])*v[offset+1] + (-1.e4*y[offset+1])*v[offset+2];
+  if (tid < udata->num_cells) {
+    int offset = tid * udata->num_eqs_per_cell;
+#ifdef CPP_RHS
+    Jv[offset] = -0.04e0*v[offset] + 1.e4*y[offset+2]*v[offset+1] + 1.e4*y[offset+1]*v[offset+2];
+    Jv[offset+2] = 6.0e7*y[offset+1]*v[offset+1];
+    Jv[offset+1] = 0.04e0*v[offset] + (-1.e4*y[offset+2]-6.0e7*y[offset+1])*v[offset+1] + (-1.e4*y[offset+1])*v[offset+2];
+#else
+    cv_f_jtv_device(&v[offset], &Jv[offset], &y[offset], &fy[offset]);
+#endif
+  }
 }

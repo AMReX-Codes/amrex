@@ -21,9 +21,9 @@ contains
     do k = lo(3), hi(3)
        do j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             state(i, j, k, 1) = ONE! - real(n, kind=rt)/real(npts**3, kind=rt)
-             state(i, j, k, 2) = ZERO
-             state(i, j, k, 3) = ZERO
+             state(i, j, k, 1) = ONE - real(i, kind=rt)/real(npts, kind=rt)
+             state(i, j, k, 2) = real(i, kind=rt)/real(npts, kind=rt)/2.0e0
+             state(i, j, k, 3) = real(i, kind=rt)/real(npts, kind=rt)/2.0e0
 
              n = n + 1
           enddo
