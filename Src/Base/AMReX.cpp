@@ -10,7 +10,6 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
-#include <AMReX_Arena.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_Box.H>
 #include <AMReX_BLProfiler.H>
@@ -521,7 +520,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
-    Arena_Initialize();
     BaseFab_Initialize();
     BoxArray::Initialize();
     DistributionMapping::Initialize();
