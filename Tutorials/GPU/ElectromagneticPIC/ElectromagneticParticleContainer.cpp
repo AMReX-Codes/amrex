@@ -4,7 +4,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_CudaUtility.H>
+#include <AMReX_CudaLaunch.H>
 
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
@@ -280,7 +280,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
         };
 
-        AMREX_PARTICLES_L_LAUNCH(np, depose); 
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np), depose); 
     }
 
 }
@@ -346,7 +346,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
 
         };
 
-        AMREX_PARTICLES_L_LAUNCH(np, pushMom); 
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np), pushMom); 
     }
 }
 
@@ -379,7 +379,7 @@ PushParticlePositions(amrex::Real dt)
                                 &(pData.ginv()[index]), dt);
         };
 
-        AMREX_PARTICLES_L_LAUNCH(np, pushPos);
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np), pushPos);
     }
 }
 

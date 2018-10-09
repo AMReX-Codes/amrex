@@ -4,7 +4,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_CudaUtility.H>
+#include <AMReX_CudaLaunch.H>
 
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
@@ -234,7 +234,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         Real charge = m_charge;
         Real mass = m_mass;
 
-        AMREX_PARTICLES_L_LAUNCH(np,
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np),
         [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
@@ -313,7 +313,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         Real charge = m_charge;
         Real mass = m_mass;
 
-        AMREX_PARTICLES_L_LAUNCH(np,
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np),
         [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
@@ -361,7 +361,7 @@ PushParticlePositions(amrex::Real dt)
         if (np == 0) continue;
 
         ParticlesData&& pData = m_particles[mfi.index()].data();
-        AMREX_PARTICLES_L_LAUNCH(np,
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np),
         [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
@@ -395,7 +395,7 @@ EnforcePeriodicBCs()
         ParticlesData&& pData = m_particles[mfi.index()].data(); 
         const GeometryData& geomData = m_geom.data();
 
-        AMREX_PARTICLES_L_LAUNCH(np,
+        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np),
         [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
