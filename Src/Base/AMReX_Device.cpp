@@ -28,6 +28,7 @@ dim3 amrex::Device::numBlocksOverride  = dim3(0, 0, 0);
 cudaDeviceProp amrex::Device::device_prop;
 #endif
 
+#if defined(AMREX_USE_CUDA)
 void
 amrex::Device::initialize_cuda_c () {
 
@@ -76,6 +77,7 @@ amrex::Device::stream_from_index(int idx) {
         return cuda_streams[idx % max_cuda_streams];
 
 }
+#endif
 
 void
 amrex::Device::initialize_device() {
