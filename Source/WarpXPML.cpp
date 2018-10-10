@@ -221,7 +221,7 @@ SigmaBox::SigmaBox (const Box& box, const BoxArray& grids, const Real* dx, int n
                 FillZero(idim, sigma[idim], sigma_star[idim], overlap);
             } else {
                 amrex::Abort("SigmaBox::SigmaBox(): side_faces, how did this happen?\n");
-            }    
+            }
         }
 
         for (auto gid : direct_faces)
@@ -327,7 +327,7 @@ MultiSigmaBox::ComputePMLFactorsE (const Real* dx, Real dt)
     }
 }
 
-PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm, 
+PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
           const Geometry* geom, const Geometry* cgeom,
           int ncell, int delta, int ref_ratio, int do_dive_cleaning, int do_moving_window)
     : m_geom(geom),
@@ -347,7 +347,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
     int ngb = 2;
     int ngf = (do_moving_window) ? 2 : 0;
     if (WarpX::maxwell_fdtd_solver_id == 1) ngf = std::max( ngf, 1 );
-    
+
     pml_E_fp[0].reset(new MultiFab(amrex::convert(ba,WarpX::Ex_nodal_flag), dm, 3, nge));
     pml_E_fp[1].reset(new MultiFab(amrex::convert(ba,WarpX::Ey_nodal_flag), dm, 3, nge));
     pml_E_fp[2].reset(new MultiFab(amrex::convert(ba,WarpX::Ez_nodal_flag), dm, 3, nge));
@@ -388,7 +388,7 @@ PML::PML (const BoxArray& grid_ba, const DistributionMapping& grid_dm,
         pml_B_cp[0].reset(new MultiFab(amrex::convert(cba,WarpX::Bx_nodal_flag), cdm, 2, ngb));
         pml_B_cp[1].reset(new MultiFab(amrex::convert(cba,WarpX::By_nodal_flag), cdm, 2, ngb));
         pml_B_cp[2].reset(new MultiFab(amrex::convert(cba,WarpX::Bz_nodal_flag), cdm, 2, ngb));
-        
+
         pml_E_cp[0]->setVal(0.0);
         pml_E_cp[1]->setVal(0.0);
         pml_E_cp[2]->setVal(0.0);
@@ -416,7 +416,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             domain.grow(idim, ncell);
         }
     }
-    
+
     BoxList bl;
     for (int i = 0, N = grid_ba.size(); i < N; ++i)
     {
@@ -428,7 +428,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
         Box bx = grid_bx;
         bx.grow(ncell);
         bx &= domain;
-        
+
         Vector<Box> bndryboxes;
 #if (AMREX_SPACEDIM == 3)
         int kbegin = -1, kend = 1;
@@ -445,7 +445,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
                         if (b.ok()) {
                             bndryboxes.push_back(b);
                         }
-                    } 
+                    }
                 }
             }
         }
@@ -460,7 +460,7 @@ PML::MakeBoxArray (const amrex::Geometry& geom, const amrex::BoxArray& grid_ba, 
             }
         }
     }
-    
+
     BoxArray ba(bl);
     ba.removeOverlap(false);
 
@@ -520,8 +520,8 @@ void
 PML::ExchangeB (const std::array<amrex::MultiFab*,3>& B_fp,
                 const std::array<amrex::MultiFab*,3>& B_cp)
 {
-    ExchangeB(PatchType::fine, B_fp);
-    ExchangeB(PatchType::coarse, B_cp);
+  ExchangeB(PatchType::fine, B_fp);
+  ExchangeB(PatchType::coarse, B_cp);
 }
 
 void
@@ -547,7 +547,7 @@ PML::ExchangeE (const std::array<amrex::MultiFab*,3>& E_fp,
                 const std::array<amrex::MultiFab*,3>& E_cp)
 {
     ExchangeB(PatchType::fine, E_fp);
-    ExchangeB(PatchType::coarse, E_cp);    
+    ExchangeB(PatchType::coarse, E_cp);
 }
 
 void
@@ -602,10 +602,10 @@ PML::Exchange (MultiFab& pml, MultiFab& reg, const Geometry& geom)
         if (ncp == 3) {
             MultiFab::Add(totpmlmf,pml,2,0,1,0);
         }
-        
+
         MultiFab::Copy(tmpregmf, reg, 0, 0, 1, ngr);
         tmpregmf.ParallelCopy(totpmlmf, 0, 0, 1, IntVect(0), ngr, period);
-        
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -652,7 +652,7 @@ PML::FillBoundaryE (PatchType patch_type)
         pml_E_fp[0]->FillBoundary(period);
         pml_E_fp[1]->FillBoundary(period);
         pml_E_fp[2]->FillBoundary(period);
-    }    
+    }
     else if (patch_type == PatchType::coarse && pml_E_cp[0] && pml_E_cp[0]->nGrowVect().max() > 0)
     {
         const auto& period = m_cgeom->periodicity();
@@ -678,7 +678,7 @@ PML::FillBoundaryB (PatchType patch_type)
         pml_B_fp[0]->FillBoundary(period);
         pml_B_fp[1]->FillBoundary(period);
         pml_B_fp[2]->FillBoundary(period);
-    }    
+    }
     else if (patch_type == PatchType::coarse && pml_B_cp[0])
     {
         const auto& period = m_cgeom->periodicity();
@@ -702,7 +702,7 @@ PML::FillBoundaryF (PatchType patch_type)
     {
         const auto& period = m_geom->periodicity();
         pml_F_fp->FillBoundary(period);
-    }    
+    }
     else if (patch_type == PatchType::coarse && pml_F_cp && pml_F_cp->nGrowVect().max() > 0)
     {
         const auto& period = m_cgeom->periodicity();

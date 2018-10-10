@@ -98,7 +98,7 @@ WarpX::EvolveEM (int numsteps)
             FillBoundaryB();
             UpdateAuxilaryData();
         }
-        
+
         if (do_subcycling == 0 || finest_level == 0) {
             OneStep_nosub(cur_time);
         } else if (do_subcycling == 1 && finest_level == 1) {
@@ -242,7 +242,7 @@ WarpX::OneStep_nosub (Real cur_time)
     SyncCurrent();
 
     SyncRho(rho_fp, rho_cp);
-    
+
     // Push E and B from {n} to {n+1}
     // (And update guard cells immediately afterwards)
 #ifdef WARPX_USE_PSATD
@@ -297,7 +297,7 @@ WarpX::OneStep_sub1 (Real curtime)
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
-        FillBoundaryE(fine_lev, PatchType::fine);        
+        FillBoundaryE(fine_lev, PatchType::fine);
     }
 
     FillBoundaryB(fine_lev, PatchType::fine);
@@ -349,7 +349,7 @@ WarpX::OneStep_sub1 (Real curtime)
 
     if (do_pml) {
         DampPML(fine_lev, PatchType::fine);
-        FillBoundaryE(fine_lev, PatchType::fine);        
+        FillBoundaryE(fine_lev, PatchType::fine);
     }
 
     FillBoundaryB(fine_lev, PatchType::fine);
@@ -377,7 +377,7 @@ WarpX::OneStep_sub1 (Real curtime)
 
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     FillBoundaryE(coarse_lev, PatchType::fine);
-    
+
     EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
 
@@ -402,7 +402,8 @@ WarpX::EvolveB (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveB()");
     EvolveB(lev, PatchType::fine, dt);
-    if (lev > 0) {
+    if (lev > 0)
+    {
         EvolveB(lev, PatchType::coarse, dt);
     }
 }
@@ -413,7 +414,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
     const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
-    
+
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
     if (patch_type == PatchType::fine)
     {
@@ -444,25 +445,25 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
     {
         Real wt = amrex::second();
-        
+
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-        
+
         // Call picsar routine for each tile
         warpx_push_bvec(
-            tbx.loVect(), tbx.hiVect(),
-            tby.loVect(), tby.hiVect(),
-            tbz.loVect(), tbz.hiVect(),
-            BL_TO_FORTRAN_3D((*Ex)[mfi]),
-            BL_TO_FORTRAN_3D((*Ey)[mfi]),
-            BL_TO_FORTRAN_3D((*Ez)[mfi]),
-            BL_TO_FORTRAN_3D((*Bx)[mfi]),
-            BL_TO_FORTRAN_3D((*By)[mfi]),
-            BL_TO_FORTRAN_3D((*Bz)[mfi]),
-            &dtsdx[0], &dtsdx[1], &dtsdx[2],
-            &WarpX::maxwell_fdtd_solver_id);
-        
+		      tbx.loVect(), tbx.hiVect(),
+		      tby.loVect(), tby.hiVect(),
+		      tbz.loVect(), tbz.hiVect(),
+		      BL_TO_FORTRAN_3D((*Ex)[mfi]),
+		      BL_TO_FORTRAN_3D((*Ey)[mfi]),
+		      BL_TO_FORTRAN_3D((*Ez)[mfi]),
+		      BL_TO_FORTRAN_3D((*Bx)[mfi]),
+		      BL_TO_FORTRAN_3D((*By)[mfi]),
+		      BL_TO_FORTRAN_3D((*Bz)[mfi]),
+		      &dtsdx[0], &dtsdx[1], &dtsdx[2],
+		      &WarpX::maxwell_fdtd_solver_id);
+
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
@@ -484,19 +485,19 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-            
+
             WRPX_PUSH_PML_BVEC(
-                tbx.loVect(), tbx.hiVect(),
-                tby.loVect(), tby.hiVect(),
-                tbz.loVect(), tbz.hiVect(),
-                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                &dtsdx[0], &dtsdx[1], &dtsdx[2],
-                &WarpX::maxwell_fdtd_solver_id);
+			     tbx.loVect(), tbx.hiVect(),
+			     tby.loVect(), tby.hiVect(),
+			     tbz.loVect(), tbz.hiVect(),
+			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+			     &dtsdx[0], &dtsdx[1], &dtsdx[2],
+			     &WarpX::maxwell_fdtd_solver_id);
         }
     }
 }
@@ -504,7 +505,8 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 void
 WarpX::EvolveE (Real dt)
 {
-    for (int lev = 0; lev <= finest_level; ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
         EvolveE(lev, dt);
     }
 }
@@ -514,7 +516,8 @@ WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
     EvolveE(lev, PatchType::fine, dt);
-    if (lev > 0) {
+    if (lev > 0)
+    {
         EvolveE(lev, PatchType::coarse, dt);
     }
 }
@@ -569,41 +572,42 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
     for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
     {
         Real wt = amrex::second();
-        
+
         const Box& tex  = mfi.tilebox(Ex_nodal_flag);
         const Box& tey  = mfi.tilebox(Ey_nodal_flag);
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-        
+
         // Call picsar routine for each tile
         warpx_push_evec(
-            tex.loVect(), tex.hiVect(),
-            tey.loVect(), tey.hiVect(),
-            tez.loVect(), tez.hiVect(),
-            BL_TO_FORTRAN_3D((*Ex)[mfi]),
-            BL_TO_FORTRAN_3D((*Ey)[mfi]),
-            BL_TO_FORTRAN_3D((*Ez)[mfi]),
-            BL_TO_FORTRAN_3D((*Bx)[mfi]),
-            BL_TO_FORTRAN_3D((*By)[mfi]),
-            BL_TO_FORTRAN_3D((*Bz)[mfi]),
-            BL_TO_FORTRAN_3D((*jx)[mfi]),
-            BL_TO_FORTRAN_3D((*jy)[mfi]),
-            BL_TO_FORTRAN_3D((*jz)[mfi]),
-            &mu_c2_dt,
-            &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
-        
-        if (F) {
+		      tex.loVect(), tex.hiVect(),
+		      tey.loVect(), tey.hiVect(),
+		      tez.loVect(), tez.hiVect(),
+		      BL_TO_FORTRAN_3D((*Ex)[mfi]),
+		      BL_TO_FORTRAN_3D((*Ey)[mfi]),
+		      BL_TO_FORTRAN_3D((*Ez)[mfi]),
+		      BL_TO_FORTRAN_3D((*Bx)[mfi]),
+		      BL_TO_FORTRAN_3D((*By)[mfi]),
+		      BL_TO_FORTRAN_3D((*Bz)[mfi]),
+		      BL_TO_FORTRAN_3D((*jx)[mfi]),
+		      BL_TO_FORTRAN_3D((*jy)[mfi]),
+		      BL_TO_FORTRAN_3D((*jz)[mfi]),
+		      &mu_c2_dt,
+		      &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
+
+        if (F)
+        {
             warpx_push_evec_f(
-                tex.loVect(), tex.hiVect(),
-                tey.loVect(), tey.hiVect(),
-                tez.loVect(), tez.hiVect(),
-                BL_TO_FORTRAN_3D((*Ex)[mfi]),
-                BL_TO_FORTRAN_3D((*Ey)[mfi]),
-                BL_TO_FORTRAN_3D((*Ez)[mfi]),
-                BL_TO_FORTRAN_3D((*F)[mfi]),
-                &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
-                &WarpX::maxwell_fdtd_solver_id);
+			  tex.loVect(), tex.hiVect(),
+			  tey.loVect(), tey.hiVect(),
+			  tez.loVect(), tez.hiVect(),
+			  BL_TO_FORTRAN_3D((*Ex)[mfi]),
+			  BL_TO_FORTRAN_3D((*Ey)[mfi]),
+			  BL_TO_FORTRAN_3D((*Ez)[mfi]),
+			  BL_TO_FORTRAN_3D((*F)[mfi]),
+			  &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+			  &WarpX::maxwell_fdtd_solver_id);
         }
-        
+
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
@@ -627,31 +631,31 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
             const Box& tez  = mfi.tilebox(Ez_nodal_flag);
-            
+
             WRPX_PUSH_PML_EVEC(
-                tex.loVect(), tex.hiVect(),
-                tey.loVect(), tey.hiVect(),
-                tez.loVect(), tez.hiVect(),
-                BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
-            
+			     tex.loVect(), tex.hiVect(),
+			     tey.loVect(), tey.hiVect(),
+			     tez.loVect(), tez.hiVect(),
+			     BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+			     &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
+
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(
-                    tex.loVect(), tex.hiVect(),
-                    tey.loVect(), tey.hiVect(),
-                    tez.loVect(), tez.hiVect(),
-                    BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                    BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                    BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                    BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
-                    &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
-                    &WarpX::maxwell_fdtd_solver_id);
+				   tex.loVect(), tex.hiVect(),
+				   tey.loVect(), tey.hiVect(),
+				   tez.loVect(), tez.hiVect(),
+				   BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+				   BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+				   BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+				   BL_TO_FORTRAN_3D((*pml_F   )[mfi]),
+				   &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2],
+				   &WarpX::maxwell_fdtd_solver_id);
             }
         }
     }
@@ -662,7 +666,8 @@ WarpX::EvolveF (Real dt, DtType dt_type)
 {
     if (!do_dive_cleaning) return;
 
-    for (int lev = 0; lev <= finest_level; ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
         EvolveF(lev, dt, dt_type);
     }
 }
@@ -707,14 +712,14 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
         rho = rho_cp[lev].get();
         F = F_cp[lev].get();
     }
-    
+
     const int rhocomp = (dt_type == DtType::FirstHalf) ? 0 : 1;
 
     MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
     ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
     MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
     MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
-    
+
     if (do_pml && pml[lev]->ok())
     {
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
@@ -727,11 +732,11 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
         {
             const Box& bx = mfi.tilebox();
             WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
-                            BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
-                            BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
-                            BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
-                            BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
-                            &dtsdx[0], &dtsdx[1], &dtsdx[2]);
+			  BL_TO_FORTRAN_ANYD((*pml_F   )[mfi]),
+			  BL_TO_FORTRAN_ANYD((*pml_E[0])[mfi]),
+			  BL_TO_FORTRAN_ANYD((*pml_E[1])[mfi]),
+			  BL_TO_FORTRAN_ANYD((*pml_E[2])[mfi]),
+			  &dtsdx[0], &dtsdx[1], &dtsdx[2]);
         }
     }
 }
@@ -764,7 +769,7 @@ WarpX::DampPML (int lev, PatchType patch_type)
         const auto& pml_B = (patch_type == PatchType::fine) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
         const auto& sigba = (patch_type == PatchType::fine) ? pml[lev]->GetMultiSigmaBox_fp()
-                                                            : pml[lev]->GetMultiSigmaBox_cp();
+                                                              : pml[lev]->GetMultiSigmaBox_cp();
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -777,26 +782,26 @@ WarpX::DampPML (int lev, PatchType patch_type)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-            
+
             WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
-                          tey.loVect(), tey.hiVect(),
-                          tez.loVect(), tez.hiVect(),
-                          tbx.loVect(), tbx.hiVect(),
-                          tby.loVect(), tby.hiVect(),
-                          tbz.loVect(), tbz.hiVect(),
-                          BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
-                          BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
-                          BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
-                          BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
-                          BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
-                          BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                          WRPX_PML_TO_FORTRAN(sigba[mfi]));
-            
+			    tey.loVect(), tey.hiVect(),
+			    tez.loVect(), tez.hiVect(),
+			    tbx.loVect(), tbx.hiVect(),
+    			tby.loVect(), tby.hiVect(),
+	    		tbz.loVect(), tbz.hiVect(),
+		    	BL_TO_FORTRAN_3D((*pml_E[0])[mfi]),
+			    BL_TO_FORTRAN_3D((*pml_E[1])[mfi]),
+			    BL_TO_FORTRAN_3D((*pml_E[2])[mfi]),
+			    BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
+			    BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
+			    BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
+			    WRPX_PML_TO_FORTRAN(sigba[mfi]));
+
             if (pml_F) {
                 const Box& tnd  = mfi.nodaltilebox();
                 WRPX_DAMP_PML_F(tnd.loVect(), tnd.hiVect(),
-                                BL_TO_FORTRAN_3D((*pml_F)[mfi]),
-                                WRPX_PML_TO_FORTRAN(sigba[mfi]));
+			        BL_TO_FORTRAN_3D((*pml_F)[mfi]),
+			        WRPX_PML_TO_FORTRAN(sigba[mfi]));
             }
         }
     }

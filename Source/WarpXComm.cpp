@@ -249,11 +249,11 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-            pml[lev]->ExchangeE(patch_type,
-                                { Efield_fp[lev][0].get(),
-                                  Efield_fp[lev][1].get(),
-                                  Efield_fp[lev][2].get() });
-            pml[lev]->FillBoundaryE(patch_type);
+    	    pml[lev]->ExchangeE(patch_type,
+	              		      { Efield_fp[lev][0].get(),
+                                Efield_fp[lev][1].get(),
+                                Efield_fp[lev][2].get() });
+    	    pml[lev]->FillBoundaryE(patch_type);
         }
 
         const auto& period = Geom(lev).periodicity();
@@ -265,18 +265,18 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-            pml[lev]->ExchangeE(patch_type,
-                                { Efield_cp[lev][0].get(),
-                                  Efield_cp[lev][1].get(),
-                                  Efield_cp[lev][2].get() });
-            pml[lev]->FillBoundaryE(patch_type);
+        pml[lev]->ExchangeE(patch_type,
+			                { Efield_cp[lev][0].get(),
+                              Efield_cp[lev][1].get(),
+                              Efield_cp[lev][2].get() });
+        pml[lev]->FillBoundaryE(patch_type);
         }
 
         const auto& cperiod = Geom(lev-1).periodicity();
         (*Efield_cp[lev][0]).FillBoundary(cperiod);
         (*Efield_cp[lev][1]).FillBoundary(cperiod);
         (*Efield_cp[lev][2]).FillBoundary(cperiod);
-    }    
+    }
 }
 
 void
@@ -293,13 +293,12 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-            pml[lev]->ExchangeB(patch_type,
-                                { Bfield_fp[lev][0].get(),
-                                  Bfield_fp[lev][1].get(),
-                                  Bfield_fp[lev][2].get() });
-            pml[lev]->FillBoundaryB(patch_type);
+	    pml[lev]->ExchangeB(patch_type,
+        			        { Bfield_fp[lev][0].get(),
+                              Bfield_fp[lev][1].get(),
+                              Bfield_fp[lev][2].get() });
+        pml[lev]->FillBoundaryB(patch_type);
         }
-
         const auto& period = Geom(lev).periodicity();
         (*Bfield_fp[lev][0]).FillBoundary(period);
         (*Bfield_fp[lev][1]).FillBoundary(period);
@@ -309,13 +308,12 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-            pml[lev]->ExchangeB(patch_type,
-                                { Bfield_cp[lev][0].get(),
-                                  Bfield_cp[lev][1].get(),
-                                  Bfield_cp[lev][2].get() });
-            pml[lev]->FillBoundaryB(patch_type);
+        pml[lev]->ExchangeB(patch_type,
+			                { Bfield_cp[lev][0].get(),
+			                  Bfield_cp[lev][1].get(),
+			                  Bfield_cp[lev][2].get() });
+        pml[lev]->FillBoundaryB(patch_type);
         }
-
         const auto& cperiod = Geom(lev-1).periodicity();
         (*Bfield_cp[lev][0]).FillBoundary(cperiod);
         (*Bfield_cp[lev][1]).FillBoundary(cperiod);
@@ -326,8 +324,8 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
 void
 WarpX::FillBoundaryF (int lev)
 {
-    FillBoundaryF(lev, PatchType::fine);
-    if (lev > 0) FillBoundaryF(lev, PatchType::coarse);
+  FillBoundaryF(lev, PatchType::fine);
+  if (lev > 0) FillBoundaryF(lev, PatchType::coarse);
 }
 
 void
@@ -348,8 +346,8 @@ WarpX::FillBoundaryF (int lev, PatchType patch_type)
     {
         if (do_pml && pml[lev]->ok())
         {
-            pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
-            pml[lev]->FillBoundaryF(patch_type);
+        pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
+        pml[lev]->FillBoundaryF(patch_type);
         }
 
         const auto& cperiod = Geom(lev-1).periodicity();
@@ -555,7 +553,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_buf_g(finest_level+1);
-    
+
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             const int ncomp = rhof[lev]->nComp();
@@ -580,7 +578,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 1; lev <= finest_level; ++lev) {
             if (charge_buf[lev]) {
                 const int ncomp = charge_buf[lev]->nComp();
-                IntVect ng = charge_buf[lev]->nGrowVect();                
+                IntVect ng = charge_buf[lev]->nGrowVect();
                 ng += 1;
                 rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
                                                   charge_buf[lev]->DistributionMap(),
@@ -612,7 +610,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
             crho = charge_buf[lev+1].get();
         }
 
-        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);        
+        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
@@ -687,9 +685,9 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
     current_cp[lev][0]->setVal(0.0);
     current_cp[lev][1]->setVal(0.0);
     current_cp[lev][2]->setVal(0.0);
-    
+
     const IntVect& ref_ratio = refRatio(lev-1);
-    
+
     std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
                                          current_fp[lev][1].get(),
                                          current_fp[lev][2].get() };
@@ -723,7 +721,7 @@ void
 WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
 {
     ApplyFilterandSumBoundaryJ(lev, PatchType::fine);
-  
+
     // When there are current buffers, unlike coarse patch,
     // we don't care about the final state of them.
 
@@ -791,7 +789,7 @@ void
 WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
 {
     if (rho_fp[lev]) {
-        rho_cp[lev]->setVal(0.0);      
+        rho_cp[lev]->setVal(0.0);
         const IntVect& ref_ratio = refRatio(lev-1);
         SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
     }

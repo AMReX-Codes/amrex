@@ -236,6 +236,15 @@ private:
     /// Advance the simulation by numsteps steps, electromagnetic case.
     ///
     void EvolveEM(int numsteps);
+  
+    void FillBoundaryB (int lev, PatchType patch_type);
+    void FillBoundaryE (int lev, PatchType patch_type);
+    void FillBoundaryF (int lev, PatchType patch_type);
+
+    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
+    void DampPML (int lev, PatchType patch_type);
 
     void OneStep_nosub (amrex::Real t);
     void OneStep_sub1 (amrex::Real t);
