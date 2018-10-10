@@ -71,9 +71,9 @@ TinyProfiler::start ()
 	ttstack.push(std::make_pair(t, 0.0));
 	global_depth = ttstack.size();
 
-//#ifdef AMREX_USE_CUDA
-//	nvtx_id = nvtxRangeStartA(fname.c_str());
-//#endif
+#ifdef AMREX_USE_CUDA
+	nvtx_id = nvtxRangeStartA(fname.c_str());
+#endif
 
         for (auto const& region : regionstack)
         {
@@ -124,9 +124,9 @@ TinyProfiler::stop ()
 		parent.second += dtin;
 	    }
 
-//#ifdef AMREX_USE_CUDA
-//	    nvtxRangeEnd(nvtx_id);
-//#endif
+#ifdef AMREX_USE_CUDA
+	    nvtxRangeEnd(nvtx_id);
+#endif
 	} else {
 	    improperly_nested_timers.insert(fname);
 	} 
