@@ -47,6 +47,12 @@
 #endif
 
 #ifdef AMREX_USE_CUDA
+#include <thrust/device_vector.h>
+#include <thrust/binary_search.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/device_ptr.h>
+#include <thrust/tuple.h>
+
 #include "AMReX_CudaAllocators.H"
 #endif
 
@@ -317,6 +323,7 @@ public:
     Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -478,11 +485,20 @@ public:
     void SetUseUnlink(bool tf) {
       doUnlink = tf;
     }
+
     bool GetUseUnlink() {
       return doUnlink;
     }
 
 protected:
+
+    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
+    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
+    bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+    bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     //
     // Checks a particle's location on levels lev_min and higher.
@@ -522,9 +538,9 @@ protected:
 
     void SetParticleSize ();
     
-    void BuildRedistributeMask(int lev, int nghost=1);
-    std::unique_ptr<iMultiFab> redistribute_mask_ptr;
-    amrex::Vector<int> neighbor_procs;
+    void BuildRedistributeMask(int lev, int nghost=1) const;
+    mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
+    mutable amrex::Vector<int> neighbor_procs;
 
     //
     // The member data.
@@ -555,6 +571,13 @@ private:
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+
+#ifdef AMREX_USE_CUDA
+    void RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours);
+    
+    void EnforcePeriodicGPU ();
+
+#endif
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;

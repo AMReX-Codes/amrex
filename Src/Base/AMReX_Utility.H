@@ -36,6 +36,11 @@ namespace amrex
     //! Splits "instr" into separate pieces based on "separators".
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
+
+    //! Converts all characters of the string into lower or uppercase based on std::locale 
+    std::string toLower (std::string s);
+    std::string toUpper (std::string s);
+
     //! Returns rootNNNN where NNNN == num.
     std::string Concatenate (const std::string& root,
                              int                num,

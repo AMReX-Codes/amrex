@@ -229,6 +229,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     // while computing normals, count EB-facets
     int n_facets = 0;
 
+    const auto& flags = eb_factory.getMultiEBCellFlagFab();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -237,8 +239,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
         const int * lo = tile_box.loVect();
         const int * hi = tile_box.hiVect();
 
-        const auto & sfab = dynamic_cast <EBFArrayBox const&>(dummy[mfi]);
-        const auto & flag = sfab.getEBCellFlagFab();
+        const auto & sfab = dummy[mfi];
+        const auto & flag = flags[mfi];
 
         //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued)
         if (flag.getType(tile_box) == FabType::singlevalued) {
@@ -275,8 +277,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
         const int * lo = tile_box.loVect();
         const int * hi = tile_box.hiVect();
 
-        const auto & sfab = dynamic_cast <EBFArrayBox const&>(dummy[mfi]);
-        const auto & flag = sfab.getEBCellFlagFab();
+        const auto & sfab = dummy[mfi];
+        const auto & flag = flags[mfi];
 
         // Need to count number of eb-facets (in order to allocate facet_list)
         amrex_eb_count_facets(lo, hi, flag.dataPtr(), flag.loVect(), flag.hiVect(), & n_facets);
@@ -288,8 +290,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
 
-        const auto & sfab = dynamic_cast <EBFArrayBox const&>(dummy[mfi]);
-        const auto & flag = sfab.getEBCellFlagFab();
+        const auto & sfab = dummy[mfi];
+        const auto & flag = flags[mfi];
 
         //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued) {
         if (flag.getType(tile_box) == FabType::singlevalued) {

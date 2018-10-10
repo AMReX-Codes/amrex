@@ -49,6 +49,8 @@ public:
     const ParticleType& operator[] (int i) const { return m_data[i]; }
     ParticleType      & operator[] (int i)       { return m_data[i]; }
     
+    void resize(size_t count) { m_data.resize(count); }
+
     Iterator erase( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
 
     template< class InputIt >
