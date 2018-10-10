@@ -251,6 +251,10 @@ protected:
                             Location a_loc) const {
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
+    virtual void getFluxes (const Vector<MultiFab*>& a_flux,
+                            const Vector<MultiFab*>& a_sol) const {
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+    }
 
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {

@@ -2,6 +2,7 @@
 #include "test_react.H"
 #include "test_react_F.H"
 #include <iostream>
+#include <assert.h>
 
 using namespace amrex;
 
@@ -26,9 +27,13 @@ void do_react(const int* lo, const int* hi,
   realtype abstol_values[size_flat];
   realtype state_y[size_flat];  
 
+  cuSolver_method LinearSolverMethod = QR;
+  const int jac_number_nonzero = 8;
+  int csr_row_count[neqs+1] = {1, 4, 7, 9};
+  int csr_col_index[jac_number_nonzero] = {1, 2, 3, 1, 2, 3, 2, 3};
+  
   N_Vector y = NULL, yout=NULL;
   N_Vector abstol = NULL;
-  SUNLinearSolver Linsol = NULL;
   void* cvode_mem = NULL;
   int flag;
 
@@ -62,10 +67,11 @@ void do_react(const int* lo, const int* hi,
   flag = CVodeSVtolerances(cvode_mem, reltol, abstol);
   flag = CVodeSetMaxNumSteps(cvode_mem, 150000);
 
-  // Initialize Linear Solver
-  Linsol = SUNSPGMR(y, PREC_NONE, 0);
-  flag = CVSpilsSetLinearSolver(cvode_mem, Linsol);
-  flag = CVSpilsSetJacTimes(cvode_mem, NULL, fun_jac_times_vec);
+  // Initialize cuSolver Linear Solver
+  flag = cv_cuSolver_SetLinearSolver(cvode_mem, LinearSolverMethod);
+  flag = cv_cuSolver_CSR_SetSizes(cvode_mem, neqs, jac_number_nonzero, size_state);
+  flag = cv_cuSolver_SetJacFun(cvode_mem, &fun_csr_jac);
+  flag = cv_cuSolver_SystemInitialize(cvode_mem, &csr_row_count[0], &csr_col_index[0]);
 
   // Do Integration
   time = time + static_cast<realtype>(dt);
@@ -91,7 +97,6 @@ void do_react(const int* lo, const int* hi,
   N_VDestroy(yout);
   N_VDestroy(abstol);
   CVodeFree(&cvode_mem);
-  SUNLinSolFree(Linsol);
 
 }
 
@@ -129,24 +134,6 @@ static int fun_rhs(realtype t, N_Vector y, N_Vector ydot, void *user_data)
 }
 
 
-static int fun_jac_times_vec(N_Vector v, N_Vector Jv, realtype t,
-			     N_Vector y, N_Vector fy,
-			     void *user_data, N_Vector tmp)
-{
-  realtype* v_d   = N_VGetDeviceArrayPointer_Cuda(v);
-  realtype* Jv_d  = N_VGetDeviceArrayPointer_Cuda(Jv);
-  realtype* y_d   = N_VGetDeviceArrayPointer_Cuda(y);
-  realtype* fy_d  = N_VGetDeviceArrayPointer_Cuda(fy);
-  realtype* tmp_d = N_VGetDeviceArrayPointer_Cuda(tmp);
-  UserData udata = static_cast<CVodeUserData*>(user_data);
-  int numThreads = std::min(32, udata->num_cells);
-  int numBlocks = static_cast<int>(ceil(((double) udata->num_cells)/((double) numThreads)));
-  fun_jtv_kernel<<<numBlocks, numThreads>>>(v_d, Jv_d, t,
-					    y_d, fy_d,
-					    user_data, tmp_d);
-  return 0;
-}
-
 __global__ static void fun_rhs_kernel(realtype t, realtype* y, realtype* ydot,
 				      void *user_data)
 {
@@ -165,20 +152,69 @@ __global__ static void fun_rhs_kernel(realtype t, realtype* y, realtype* ydot,
 }
 
 
-__global__ static void fun_jtv_kernel(realtype* v, realtype* Jv, realtype t,
-				      realtype* y, realtype* fy,
-				      void* user_data, realtype* tmp)
+
+int fun_csr_jac(realtype t, N_Vector y, N_Vector fy,
+		CV_cuSolver_csr_sys csr_sys, void* user_data)
 {
-  UserData udata = static_cast<CVodeUserData*>(user_data);
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid < udata->num_cells) {
-    int offset = tid * udata->num_eqs_per_cell;
-#ifdef CPP_RHS
-    Jv[offset] = -0.04e0*v[offset] + 1.e4*y[offset+2]*v[offset+1] + 1.e4*y[offset+1]*v[offset+2];
-    Jv[offset+2] = 6.0e7*y[offset+1]*v[offset+1];
-    Jv[offset+1] = 0.04e0*v[offset] + (-1.e4*y[offset+2]-6.0e7*y[offset+1])*v[offset+1] + (-1.e4*y[offset+1])*v[offset+2];
-#else
-    cv_f_jtv_device(&v[offset], &Jv[offset], &y[offset], &fy[offset]);
+  cudaError_t cuda_status = cudaSuccess;
+  cuda_status = cudaGetLastError();
+
+#ifdef DEBUG
+  std::cout << "Got CUDA Last Error of: ";
+  std::cout << cudaGetErrorString(cuda_status) << std::endl;
 #endif
-  }
+
+  assert(cuda_status == cudaSuccess);
+  realtype* y_d   = N_VGetDeviceArrayPointer_Cuda(y);
+  realtype* fy_d  = N_VGetDeviceArrayPointer_Cuda(fy);
+  UserData udata = static_cast<CVodeUserData*>(user_data);
+
+#ifdef DEBUG
+  std::cout << "num_cells = " << udata->num_cells << std::endl;
+  std::cout << "size_per_subsystem = " << csr_sys->size_per_subsystem << std::endl;
+  std::cout << "csr_number_nonzero = " << csr_sys->csr_number_nonzero << std::endl;
+  std::cout << "number_subsystems = " << csr_sys->number_subsystems << std::endl;
+#endif
+
+  int numThreads = std::min(32, udata->num_cells);
+  int numBlocks = static_cast<int>(ceil(((double) udata->num_cells)/((double) numThreads)));
+  fun_csr_jac_kernel<<<numBlocks, numThreads>>>(t, y_d, fy_d, csr_sys->d_csr_values,
+						user_data,
+						csr_sys->size_per_subsystem,
+						csr_sys->csr_number_nonzero,
+						csr_sys->number_subsystems);
+  cuda_status = cudaDeviceSynchronize();
+
+#ifdef DEBUG
+  std::cout << "Got CUDA Synchronize return message of: ";
+  std::cout << cudaGetErrorString(cuda_status) << std::endl;
+#endif
+  
+  assert(cuda_status == cudaSuccess);
+  return 0;
+}
+
+
+__global__ static void fun_csr_jac_kernel(realtype t, realtype* y, realtype* fy,
+					  realtype* csr_jac, void* user_data,
+					  const int size, const int nnz, const int nbatched)
+{
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  if (tid < nbatched) {
+    int jac_offset = tid * nnz;
+    int y_offset = tid * size;
+
+    realtype* csr_jac_cell = csr_jac + jac_offset;
+    realtype* actual_y = y + y_offset;
+
+    csr_jac_cell[0] = -0.04e0;
+    csr_jac_cell[1] = 1.e4*actual_y[2];
+    csr_jac_cell[2] = 1.e4*actual_y[1];
+    csr_jac_cell[6] = 6.0e7*actual_y[1];
+    csr_jac_cell[3] = 0.04e0;
+    csr_jac_cell[4] = -csr_jac_cell[1]-csr_jac_cell[6];
+    csr_jac_cell[5] = -csr_jac_cell[2];
+    csr_jac_cell[7] = 0.0e0;
+  }    
 }
