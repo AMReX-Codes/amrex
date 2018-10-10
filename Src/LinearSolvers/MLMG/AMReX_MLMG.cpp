@@ -514,6 +514,11 @@ MLMG::interpCorrection (int alev)
     bool isEB = fine_cor.hasEBFabFactory();
     ignore_unused(isEB);
 
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine_cor.Factory()));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
     if (linop.isCellCentered())
     {
 #ifdef _OPENMP
@@ -526,7 +531,7 @@ MLMG::interpCorrection (int alev)
             bool call_lincc;
             if (isEB)
             {
-                const auto& flag = dynamic_cast<EBFArrayBox&>(fine_cor[mfi]).getEBCellFlagFab();
+                const auto& flag = (*flags)[mfi];
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
                     call_lincc = true;
                 } else {
@@ -569,7 +574,7 @@ MLMG::interpCorrection (int alev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx);
+                tmpfab.resize(tmpbx,ncomp);
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
@@ -619,6 +624,11 @@ MLMG::interpCorrection (int alev, int mglev)
     bool isEB = fine_cor.hasEBFabFactory();
     ignore_unused(isEB);
 
+#ifdef AMREX_USE_EB
+    auto factory = dynamic_cast<EBFArrayBoxFactory const*>(&(fine_cor.Factory()));
+    const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
+#endif
+
     if (linop.isCellCentered())
     {
 #ifdef _OPENMP
@@ -631,7 +641,7 @@ MLMG::interpCorrection (int alev, int mglev)
             bool call_lincc;
             if (isEB)
             {
-                const auto& flag = dynamic_cast<EBFArrayBox&>(fine_cor[mfi]).getEBCellFlagFab();
+                const auto& flag = (*flags)[mfi];
                 if (flag.getType(amrex::grow(bx,1)) == FabType::regular) {
                     call_lincc = true;
                 } else {
@@ -671,7 +681,7 @@ MLMG::interpCorrection (int alev, int mglev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 const Box& tmpbx = amrex::refine(cbx,2);
-                tmpfab.resize(tmpbx);
+                tmpfab.resize(tmpbx,ncomp);
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
@@ -813,7 +823,7 @@ MLMG::actualBottomSolve ()
         }
         else
         {
-            MLCGSolver cg_solver(linop);
+            MLCGSolver cg_solver(this, linop);
             if (bottom_solver == BottomSolver::bicgstab) {
                 cg_solver.setSolver(MLCGSolver::Type::BiCGStab);
             } else if (bottom_solver == BottomSolver::cg) {
@@ -1185,6 +1195,9 @@ void
 MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
+    if (!linop.isCellCentered())
+       amrex::Abort("Calling wrong getFluxes for nodal solver");
+
     AMREX_ASSERT(sol.size() == a_flux.size());
     getFluxes(a_flux, sol, a_loc);
 }
@@ -1195,6 +1208,10 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
+
+    if (!linop.isCellCentered())
+       amrex::Abort("Calling wrong getFluxes for nodal solver");
+
     linop.getFluxes(a_flux, a_sol, a_loc);
 }
 
@@ -1209,25 +1226,32 @@ void
 MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location a_loc)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
-    Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
-    for (int alev = 0; alev < namrlevs; ++alev) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            const int mglev = 0;
-            const int ncomp = linop.getNComp();
-            ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
-                                                      IntVect::TheDimensionVector(idim)),
-                                       linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
-                                       *linop.m_factory[alev][mglev]);
+
+    if (linop.isCellCentered())
+    {
+        Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const int mglev = 0;
+                const int ncomp = linop.getNComp();
+                ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
+                                                          IntVect::TheDimensionVector(idim)),
+                                           linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
+                                           *linop.m_factory[alev][mglev]);
+            }
         }
-    }
-    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
-    for (int alev = 0; alev < namrlevs; ++alev) {
+        getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
+        for (int alev = 0; alev < namrlevs; ++alev) {
 #ifdef AMREX_USE_EB
-        EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
 #else
-        average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
 #endif
-    }
+        }
+
+    } else {
+        linop.getFluxes(a_flux, a_sol);
+    } 
 }
 
 void
@@ -1409,7 +1433,8 @@ MLMG::computeVolInv ()
     if (solve_called) return;
 
     if (linop.isCellCentered())
-    {    
+    { 
+        Real temp1, temp2;    
         volinv.resize(namrlevs);
         for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
             volinv[amrlev].resize(linop.NMGLevels(amrlev));
@@ -1443,9 +1468,16 @@ MLMG::computeVolInv ()
         {
             ParallelAllReduce::Sum<Real>({volinv[0][0], volinv[0][mgbottom]},
                                          ParallelContext::CommunicatorSub());
-            volinv[0][0] = 1.0/volinv[0][0];
-            volinv[0][mgbottom] = 1.0/volinv[0][mgbottom];
+            temp1 = 1.0/volinv[0][0];
+            temp2 = 1.0/volinv[0][mgbottom];
         }
+        else
+        {
+            temp1 = volinv[0][0]; 
+            temp2 = volinv[0][mgbottom]; 
+        }
+        volinv[0][0] = temp1; 
+        volinv[0][mgbottom] = temp2; 
 #endif
     }
 }

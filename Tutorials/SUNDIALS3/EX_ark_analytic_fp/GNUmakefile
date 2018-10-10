@@ -12,6 +12,7 @@ EBASE     = ark_analytic_fp
 CVODE_LIB_DIR ?= ${CVODE_LIB}
 USE_ARKODE    = TRUE
 USE_SUNDIALS3 = TRUE
+USE_SUNDIALS3_INTERFACE = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

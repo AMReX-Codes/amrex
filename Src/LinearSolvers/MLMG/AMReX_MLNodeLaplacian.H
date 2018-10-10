@@ -45,6 +45,8 @@ public :
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
+    void compDivergence (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel);
+
     void compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel,
                   const Vector<const MultiFab*>& rhnd,
                   const Vector<MultiFab*>& rhcc);
@@ -85,6 +87,9 @@ protected:
     virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final override;
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final override;
+
+    virtual void getFluxes (const Vector<MultiFab*>& a_flux,
+                            const Vector<MultiFab*>& a_sol) const final override;
 
 private:
 

@@ -44,18 +44,18 @@ protected:
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final override;
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
                            MultiFab& sol, Location loc) const final override {
-        amrex::Abort("How did we get here?");
+        amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
     }
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location loc) const final override {
-        amrex::Abort("How did we get here?");
+        amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
     }
     
     virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override {}
     virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override {}
 
     virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final override {
-        amrex::Abort("How did we get here?");
+        amrex::Abort("AMReX_MLNodeLinOp::fillSolutionBC::How did we get here?");
     }
 
     virtual void prepareForSolve () override {}

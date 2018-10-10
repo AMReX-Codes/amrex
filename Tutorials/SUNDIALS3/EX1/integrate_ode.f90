@@ -3,8 +3,12 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   use amrex_error_module
   use rhs_mod
   use ode_params
-  use fnvector_serial
-  use cvode_interface
+  use fcvode_mod            ! Fortran interface to CVODE
+  use fnvector_serial_mod   ! Fortran interface to serial N_Vector
+  use fsunmat_dense_mod     ! Fortran interface to dense SUNMatrix
+  use fsunlinsol_dense_mod  ! Fortran interface to dense SUNLinearSolver
+!  use fnvector_serial
+!  use cvode_interface
   use, intrinsic :: iso_c_binding
 
   implicit none
@@ -21,18 +25,28 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   real(c_double) :: atol, rtol
   real(c_double) :: t0, t1
   real(c_double), pointer :: yvec(:)
-  type(c_ptr) :: sunvec_y
+  type(c_ptr) :: sunvec_y      ! sundials vector
+  type(c_ptr) :: sunmat_A      ! sundials matrix
+  type(c_ptr) :: sunlinsol_LS  ! sundials linear solver
   type(c_ptr) :: CVmem
 
   allocate(yvec(neq))
 
   ! Allocate a CVODE C struct from the array of variables to be integrated. The resulting C struct points to the same memory as the
   ! Fortran pointer array.
-  sunvec_y = N_VMake_Serial(neq, yvec)
+  sunvec_y = FN_VMake_Serial(neq, yvec)
   if (.not. c_associated(sunvec_y)) call amrex_abort("integrate_ode: failed in N_VMake_Serial()")
 
   CVmem = FCVodeCreate(CV_BDF, CV_NEWTON)
   if (.not. c_associated(CVmem)) call amrex_abort("integrate_ode: failed in FCVodeCreate()")
+
+  ! create a dense matrix
+  sunmat_A = FSUNDenseMatrix(neq, neq);
+  if (.not. c_associated(sunmat_A)) print *,'ERROR: sunmat = NULL'
+
+  ! create a dense linear solver
+  sunlinsol_LS = FSUNDenseLinearSolver(sunvec_y, sunmat_A);
+  if (.not. c_associated(sunlinsol_LS)) print *,'ERROR: sunlinsol = NULL'
 
   t0 = 0.0d0 ! initial time for integration
   t1 = 2.0d0 ! final time for integration
@@ -51,9 +65,12 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   ierr = FCVodeSStolerances(CVmem, rtol, atol)
   if (ierr /= 0) call amrex_abort("integrate_ode: failed in FCVodeSStolerances()")
 
-  ! Tell CVODE to use a dense linear solver.
-  ierr = FCVDense(CVmem, neq)
-  if (ierr /= 0) call amrex_abort("integrate_ode: failed in FCVDense()")
+  ! attach linear solver
+  ierr = FCVDlsSetLinearSolver(CVmem, sunlinsol_LS, sunmat_A);
+  if (ierr /= 0) then
+     write(*,*) 'Error in FCVDlsSetLinearSolver, ierr = ', ierr, '; halting'
+     stop
+  end if
 
   do k=lo(3),hi(3)
      do j=lo(2),hi(2)
@@ -77,7 +94,7 @@ subroutine integrate_ode(mf, lo, hi, cvode_meth, cvode_itmeth) bind(C, name="int
   end do
 
   ! Free memory
-  call N_VDestroy_Serial(sunvec_y)
+  call FN_VDestroy_Serial(sunvec_y)
   call FCVodeFree(cvmem)
 
   deallocate(yvec)
