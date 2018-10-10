@@ -64,7 +64,7 @@ WarpX::EvolveEM (int numsteps)
             {
                 LoadBalance();
                 // Reset the costs to 0
-                for (int lev = 0; lev <= finest_level; ++lev)
+		        for (int lev = 0; lev <= finest_level; ++lev)
 		        {
 		            costs[lev]->setVal(0.0);
         		}
@@ -250,7 +250,7 @@ WarpX::EvolveEM (int numsteps)
     }
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
-        WriteCheckPointFile();
+	    WriteCheckPointFile();
     }
 
     if (do_boosted_frame_diagnostic) {
@@ -345,8 +345,8 @@ WarpX::EvolveB (int lev, Real dt)
             const auto& pml_B = (ipatch==0) ? pml[lev]->GetB_fp() : pml[lev]->GetB_cp();
             const auto& pml_E = (ipatch==0) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
             int patch_level = (ipatch == 0) ? lev : lev-1;
-            const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
-            const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+	        const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
+	        const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -366,8 +366,8 @@ WarpX::EvolveB (int lev, Real dt)
                     BL_TO_FORTRAN_3D((*pml_B[0])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
                     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
-                    &dtsdx[0], &dtsdx[1], &dtsdx[2],
-                    &WarpX::maxwell_fdtd_solver_id);
+		            &dtsdx[0], &dtsdx[1], &dtsdx[2],
+		            &WarpX::maxwell_fdtd_solver_id);
             }
         }
     }
