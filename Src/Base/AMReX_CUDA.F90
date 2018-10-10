@@ -72,7 +72,7 @@ contains
 
 #ifdef AMREX_USE_ACC
     call acc_init(acc_device_nvidia)
-    call acc_set_device_num(cuda_device_id, acc_device_nvidia)
+    call acc_set_device_num(id, acc_device_nvidia)
 #endif
 
     ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
