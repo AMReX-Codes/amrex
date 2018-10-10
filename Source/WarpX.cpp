@@ -263,31 +263,31 @@ WarpX::ReadParameters ()
 		const std::string msg = "Unknown moving_window_dir: "+s;
 		amrex::Abort(msg.c_str());
 	    }
-
+            
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);
-
+            
 	    pp.get("moving_window_v", moving_window_v);
 	    moving_window_v *= PhysConst::c;
 	}
-
+        
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
-	  pp.get("num_injected_species", num_injected_species);
-	  injected_plasma_species.resize(num_injected_species);
-	  pp.getarr("injected_plasma_species", injected_plasma_species,
-                    0, num_injected_species);
-          if (moving_window_v >= 0){
-              // Inject particles continuously from the right end of the box
-              current_injection_position = geom[0].ProbHi(moving_window_dir);
-          } else {
-              // Inject particles continuously from the left end of the box
-              current_injection_position = geom[0].ProbLo(moving_window_dir);
-          }
+            pp.get("num_injected_species", num_injected_species);
+            injected_plasma_species.resize(num_injected_species);
+            pp.getarr("injected_plasma_species", injected_plasma_species,
+                      0, num_injected_species);
+            if (moving_window_v >= 0){
+                // Inject particles continuously from the right end of the box
+                current_injection_position = geom[0].ProbHi(moving_window_dir);
+            } else {
+                // Inject particles continuously from the left end of the box
+                current_injection_position = geom[0].ProbLo(moving_window_dir);
+            }
 	}
-
+        
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
         if (do_boosted_frame_diagnostic) {
-
+            
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                  "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
