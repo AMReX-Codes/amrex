@@ -40,8 +40,8 @@ WarpX::MoveWindow (bool move_j)
     Real new_hi[AMREX_SPACEDIM];
     const Real* current_lo = geom[0].ProbLo();
     const Real* current_hi = geom[0].ProbHi();
-    const Real* dx = geom[0].CellSize();
-    int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
+    const Real* cdx = geom[0].CellSize();
+    int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / cdx[dir]);
 
     if (num_shift_base == 0) return;
 
@@ -51,8 +51,8 @@ WarpX::MoveWindow (bool move_j)
         new_lo[i] = current_lo[i];
         new_hi[i] = current_hi[i];
     }
-    new_lo[dir] = current_lo[dir] + num_shift_base * dx[dir];
-    new_hi[dir] = current_hi[dir] + num_shift_base * dx[dir];
+    new_lo[dir] = current_lo[dir] + num_shift_base * cdx[dir];
+    new_hi[dir] = current_hi[dir] + num_shift_base * cdx[dir];
     RealBox new_box(new_lo, new_hi);
     geom[0].ProbDomain(new_box);
 
