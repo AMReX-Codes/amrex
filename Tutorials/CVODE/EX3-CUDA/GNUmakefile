@@ -12,6 +12,8 @@ USE_OMP    = FALSE
 
 USE_CUDA  ?= FALSE
 USE_CUDA_CVODE ?= FALSE
+USE_CVODE_CUSOLVER ?= FALSE
+USE_CPP_RHS = TRUE
 
 ifeq ($(USE_CUDA), TRUE)
   USE_CUDA_CVODE := TRUE
@@ -23,6 +25,7 @@ EXTERN_SEARCH += .
 
 AMREX_HOME ?= ../../..
 CVODE_HOME ?= ../CVODE
+CUDA_HOME  ?= /usr/local/cuda-9.2
 
 Bpack   := ./Make.package
 Blocs   := .
