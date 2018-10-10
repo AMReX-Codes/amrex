@@ -46,3 +46,10 @@ Timing for a 32**3 grid of cells:
 That's a speedup of nearly 70, which is pretty decent for a grid this
 small, as the GPU can feasibly integrate many more zones than this
 simultaneously.
+
+# Using the CVODE cuSolver linear solver interface
+
+To use the CVODE cuSolver interface, make with the flag
+`USE_CVODE_CUSOLVER=TRUE` in addition to `USE_CUDA=TRUE` and define
+`CUDA_HOME` to point to the CUDA toolkit installation directory
+(containing `lib64`).
