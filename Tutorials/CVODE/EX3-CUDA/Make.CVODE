@@ -25,12 +25,33 @@ DEFINES += -DCRSEGRNDOMP
 
 ifeq ($(USE_CUDA_CVODE), TRUE)
   DEFINES += -DCUDA_CVODE
+  ifeq ($(USE_CVODE_CUSOLVER), TRUE)
+    DEFINES += -DCVODE_CUSOLVER
+  endif
 endif
 
 INCLUDE_LOCATIONS += $(CVODE_HOME)/include
 
 LIBRARY_LOCATIONS += $(CVODE_HOME)/lib
 LIBRARIES += -lsundials_cvode -lsundials_sunlinsolband -lsundials_sunlinsolspbcgs -lsundials_sunlinsolsptfqmr -lsundials_sunmatrixsparse -lsundials_nveccuda -lsundials_sunlinsoldense -lsundials_sunlinsolspfgmr -lsundials_sunmatrixband -lsundials_sunnonlinsolfixedpoint -lsundials_nvecserial -lsundials_sunlinsolpcg -lsundials_sunlinsolspgmr -lsundials_sunmatrixdense -lsundials_sunnonlinsolnewton
+
+ifeq ($(COMP), PGI)
+  LIBRARIES += -rpath=$(CVODE_HOME)/lib
+endif
+ifeq ($(COMP), GNU)
+  LIBRARIES += -Wl,-rpath=$(CVODE_HOME)/lib
+endif
+
+ifeq ($(USE_CUDA_CVODE), TRUE)
+ifeq ($(USE_CVODE_CUSOLVER), TRUE)
+  LIBRARIES += -lsundials_cusolver_sparse -lcusolver -lcusparse -lcublas
+  LIBRARIES += -rpath=$(CUDA_HOME)/lib64
+endif
+endif
+
+ifeq ($(USE_CPP_RHS), TRUE)
+  DEFINES += -DCPP_RHS
+endif
 
 #------------------------------------------------------------------------------
 # AMReX
