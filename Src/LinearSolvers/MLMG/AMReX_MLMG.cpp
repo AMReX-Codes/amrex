@@ -1195,6 +1195,9 @@ void
 MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
+    if (!linop.isCellCentered())
+       amrex::Abort("Calling wrong getFluxes for nodal solver");
+
     AMREX_ASSERT(sol.size() == a_flux.size());
     getFluxes(a_flux, sol, a_loc);
 }
@@ -1205,6 +1208,10 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
     BL_PROFILE("MLMG::getFluxes()");
+
+    if (!linop.isCellCentered())
+       amrex::Abort("Calling wrong getFluxes for nodal solver");
+
     linop.getFluxes(a_flux, a_sol, a_loc);
 }
 
@@ -1219,25 +1226,32 @@ void
 MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol, Location a_loc)
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
-    Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
-    for (int alev = 0; alev < namrlevs; ++alev) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            const int mglev = 0;
-            const int ncomp = linop.getNComp();
-            ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
-                                                      IntVect::TheDimensionVector(idim)),
-                                       linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
-                                       *linop.m_factory[alev][mglev]);
+
+    if (linop.isCellCentered())
+    {
+        Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
+        for (int alev = 0; alev < namrlevs; ++alev) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                const int mglev = 0;
+                const int ncomp = linop.getNComp();
+                ffluxes[alev][idim].define(amrex::convert(linop.m_grids[alev][mglev],
+                                                          IntVect::TheDimensionVector(idim)),
+                                           linop.m_dmap[alev][mglev], ncomp, 0, MFInfo(),
+                                           *linop.m_factory[alev][mglev]);
+            }
         }
-    }
-    getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
-    for (int alev = 0; alev < namrlevs; ++alev) {
+        getFluxes(amrex::GetVecOfArrOfPtrs(ffluxes), a_sol, Location::FaceCenter);
+        for (int alev = 0; alev < namrlevs; ++alev) {
 #ifdef AMREX_USE_EB
-        EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
 #else
-        average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
 #endif
-    }
+        }
+
+    } else {
+        linop.getFluxes(a_flux, a_sol);
+    } 
 }
 
 void
