@@ -1,10 +1,3 @@
-#include "cvode/cvode.h"                  /* prototypes for CVODE fcts., consts.      */
-#include "nvector/nvector_serial.h"         /* access to serial N_Vector                */
-#include "sunmatrix/sunmatrix_dense.h"        /* access to dense SUNMatrix                */
-#include "sunlinsol/sunlinsol_dense.h"        /* access to dense SUNLinearSolver          */
-#include "cvode/cvode_direct.h"           /* access to CVDls interface                */
-#include "sundials/sundials_types.h"         /* definition of realtype                   */
-#include "sundials/sundials_math.h"          /* contains the macros ABS, SUNSQR, and EXP */
 #include <AMReX_MultiFab.H>
 #include "test_react.H"
 #include "test_react_F.H"
