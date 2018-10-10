@@ -23,6 +23,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
         else if (species_types[i] == PCTypes::RigidInjected) {
             allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
         }
+        allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
     }
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
@@ -43,6 +44,16 @@ MultiParticleContainer::ReadParameters ()
         if (nspecies > 0) {
             pp.getarr("species_names", species_names);
             BL_ASSERT(species_names.size() == nspecies);
+
+            deposit_on_main_grid.resize(nspecies, 0);
+            std::vector<std::string> tmp;
+            pp.queryarr("deposit_on_main_grid", tmp);
+            for (auto const& name : tmp) {
+                auto it = std::find(species_names.begin(), species_names.end(), name);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != species_names.end(), "ERROR: species in particles.deposit_on_main_grid must be part of particles.species_names");
+                int i = std::distance(species_names.begin(), it);
+                deposit_on_main_grid[i] = 1;
+            }
 
             species_types.resize(nspecies, PCTypes::Physical);
 
