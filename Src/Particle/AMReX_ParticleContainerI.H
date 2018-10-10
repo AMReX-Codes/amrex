@@ -901,11 +901,13 @@ namespace {
 
     struct DeviceDomain
     {
-        Real left_edge[AMREX_SPACEDIM];
-        Real right_edge[AMREX_SPACEDIM];
-        Real inverse_dx[AMREX_SPACEDIM];
+        Real   left_edge[AMREX_SPACEDIM];
+        Real  right_edge[AMREX_SPACEDIM];
+        Real  inverse_dx[AMREX_SPACEDIM];
         Real domain_size[AMREX_SPACEDIM];
-        int is_periodic[AMREX_SPACEDIM];
+        int  is_periodic[AMREX_SPACEDIM];
+        int    small_end[AMREX_SPACEDIM];
+        int      big_end[AMREX_SPACEDIM];
 
         DeviceDomain(const Geometry& geom) {
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -914,6 +916,8 @@ namespace {
                 domain_size[i] = right_edge[i] - left_edge[i];
                 inverse_dx[i]  = geom.InvCellSize(i);
                 is_periodic[i] = geom.isPeriodic(i);
+                small_end[i]   = geom.Domain().smallEnd(i);
+                big_end[i]     = geom.Domain().bigEnd(i);
             }
         }
     };
@@ -933,7 +937,7 @@ namespace {
             
             for (int dim = 0; dim < AMREX_SPACEDIM; ++dim) {
                 if (not domain.is_periodic[dim]) continue;
-                if (p.m_rdata.pos[dim] >= domain.right_edge[dim]) { 
+                if (p.m_rdata.pos[dim] > domain.right_edge[dim]) { 
                     p.m_rdata.pos[dim] -= domain.domain_size[dim];
                 } else if (p.m_rdata.pos[dim] < domain.left_edge[dim]) {
                     p.m_rdata.pos[dim] += domain.domain_size[dim];
@@ -960,11 +964,14 @@ namespace {
         __host__ __device__
         int operator()(const Particle& p) const {
             int i = floor((p.m_rdata.pos[0] - domain.left_edge[0]) * domain.inverse_dx[0]);
+            i += domain.small_end[0];
 #if   AMREX_SPACEDIM > 1
             int j = floor((p.m_rdata.pos[1] - domain.left_edge[1]) * domain.inverse_dx[1]);
+            j += domain.small_end[1];
 #endif
 #if   AMREX_SPACEDIM > 2
             int k = floor((p.m_rdata.pos[2] - domain.left_edge[2]) * domain.inverse_dx[2]);
+            k += domain.small_end[2];
 #endif
             
             long offset = i - box.lo[0];
@@ -1255,7 +1262,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     std::map<int, size_t> grid_counts;
     for (int i = 0; i < num_grids; ++i)
     {
-        if (stop[i] - start[i] == 0) continue;
+//        if (stop[i] - start[i] == 0) continue;
         
         const int dest_proc = dmap[i];
         if (dest_proc != ParallelDescriptor::MyProc())
@@ -1274,7 +1281,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         auto pair_index = std::make_pair(i, tid);
 
         const size_t num_to_add = stop[i] - start[i];
-        if (num_to_add == 0) continue;
+//        if (num_to_add == 0) continue;
 
         const int dest_proc = dmap[i];
 
@@ -1527,7 +1534,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 buffer += sizeof(int);
                 cudaMemcpy(&pid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
                 buffer += sizeof(int);
-                
+
                 if (num_particles == 0) continue;
 
                 AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
@@ -1540,7 +1547,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     const size_t old_size = ptile.numParticles();
                     const size_t new_size = old_size + num_particles;
                     ptile.resize(new_size);
-                    
+                   
                     //copy structs
                     cudaMemcpy(static_cast<ParticleType*>(&aos[0]) + old_size,
                                buffer, num_particles*sizeof(ParticleType),
