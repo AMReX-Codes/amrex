@@ -94,10 +94,12 @@ WarpX::EvolveEM (int numsteps)
             }
             is_synchronized = false;
         } else {
-            // Beyond one step, we have E^{n} and B^{n}.
-            // Particles have p^{n-1/2} and x^{n}.
-            UpdateAuxilaryData();
-        }
+           // Beyond one step, we have E^{n} and B^{n}.
+           // Particles have p^{n-1/2} and x^{n}.
+	  FillBoundaryE();
+	  FillBoundaryB();
+	  UpdateAuxilaryData();
+       }
 
         // Push particle from x^{n} to x^{n+1}
         //               from p^{n-1/2} to p^{n+1/2}
