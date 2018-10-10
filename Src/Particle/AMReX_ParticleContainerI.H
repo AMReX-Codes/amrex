@@ -137,7 +137,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
   BL_ASSERT(m_gdb != 0);
   
   if (lev_max == -1)
-    lev_max = finestLevel();
+      lev_max = finestLevel();
   
   BL_ASSERT(lev_max <= finestLevel());
 
@@ -933,13 +933,13 @@ namespace {
             
             for (int dim = 0; dim < AMREX_SPACEDIM; ++dim) {
                 if (not domain.is_periodic[dim]) continue;
-                if (p.m_rdata.pos[dim] > domain.right_edge[dim]) {
+                if (p.m_rdata.pos[dim] >= domain.right_edge[dim]) { 
                     p.m_rdata.pos[dim] -= domain.domain_size[dim];
                 } else if (p.m_rdata.pos[dim] < domain.left_edge[dim]) {
-                    p.m_rdata.pos[dim] -= domain.domain_size[dim];
+                    p.m_rdata.pos[dim] += domain.domain_size[dim];
                 }
             }
-
+            
             return p;
         }
     };
@@ -2181,7 +2181,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
         const int tid = 0;
 
         const auto& ptile = ParticlesAt(lev, i, tid);
-        auto& aos   = ptile.GetArrayOfStructs();       
+        auto& aos   = ptile.GetArrayOfStructs();
         const int np = ptile.numParticles();
 
         total_np += np;
