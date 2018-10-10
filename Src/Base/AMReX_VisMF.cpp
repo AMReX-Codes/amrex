@@ -232,7 +232,7 @@ operator>> (std::istream&         is,
     }
 
     ar.resize(N);
-    
+
     for( ; i < N; ++i) {
         ar[i].resize(M);
 
@@ -586,7 +586,7 @@ VisMF::DirName (const std::string& filename)
 
     static const std::string TheNullString("");
 
-    const char *str = filename.c_str();    
+    const char *str = filename.c_str();
 
     if(const char *slash = strrchr(str, '/')) {
         //
@@ -897,7 +897,7 @@ VisMF::WriteHeader (const std::string &mf_name,
                                    << hss.tellp() << "  " << bytesWritten << std::endl;
 	  }
 	}
-	
+
     }
     return bytesWritten;
 }
@@ -1076,6 +1076,40 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 }
 
 
+long
+VisMF::WriteOnlyHeader (const FabArray<FArrayBox> & mf,
+                        const std::string         & mf_name,
+                        VisMF::How                  how)
+{
+    BL_PROFILE("VisMF::WriteOnlyHeader(FabArray)");
+    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
+
+
+    long bytesWritten(0);
+
+    // Construct header for empty MultiFab
+    bool calcMinMax(false);
+    VisMF::Header hdr(mf, how, currentVersion, calcMinMax);
+
+    // We are saving NO data => nComp = 0, nGrow = {0, 0, 0}
+    hdr.m_ncomp = 0;
+    hdr.m_ngrow = IntVect{AMREX_D_DECL(0, 0, 0)};
+
+    // FabOnDisk list is uninitialized => initialize it here
+    for(VisMF::FabOnDisk & fod : hdr.m_fod){
+        fod.m_name = "Not Saved";
+        fod.m_head = -1;
+    }
+
+    // Write header on the IOProcessorNumber 
+    int coordinatorProc(ParallelDescriptor::IOProcessorNumber());
+    bytesWritten += VisMF::WriteHeader(mf_name, hdr, coordinatorProc);
+
+    return bytesWritten;
+}
+
+
 void
 VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 		    const std::string &filePrefix,
@@ -1234,9 +1268,9 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
                  currentOffset[whichFileNumber] += mf.fabbox(index[i]).numPts() * nComps * whichRDBytes
 	                                           + fabHeaderBytes[index[i]];
               }
-            } 
-	  } 
-	}   
+            }
+	  }
+	}
       }
       delete whichRD;
     }
@@ -1452,7 +1486,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     // ---- Create an ordered map of which processors read which
     // ---- Fabs in each file
-    
+
     std::map<std::string, Vector<FabReadLink> > FileReadChains;        // ---- [filename, chain]
     std::map<std::string, std::set<int> > readFileRanks;              // ---- [filename, ranks]
 
@@ -1534,7 +1568,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       // ---- split the set into nstreams sets
       int ssSize(rfrSplitSet.size());
       int nStreams(std::min(ssSize, nOpensPerFile));
-      int ranksPerStream(ssSize / nStreams); // ---- plus some remainder... 
+      int ranksPerStream(ssSize / nStreams); // ---- plus some remainder...
       Vector<std::set<int> > streamSets(nStreams);
       int sIndex(0), sCount(0);
       for(setIter = rfrSplitSet.begin(); setIter != rfrSplitSet.end(); ++setIter) {
