@@ -17,7 +17,7 @@ amr.check_int = 10
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
 geometry.is_periodic = 1     1     0      # Is periodic?
-geometry.prob_lo     = -150.e-6   -150.e-6   -0.6e-3    # physical domain
+geometry.prob_lo     = -150.e-6   -150.e-6  -80.e-6    # physical domain
 geometry.prob_hi     =  150.e-6    150.e-6    0.
 
 # Verbosity
