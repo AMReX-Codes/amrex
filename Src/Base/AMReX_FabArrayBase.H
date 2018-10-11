@@ -507,6 +507,9 @@ protected:
     //
     // parallel copy or add
     //
+#ifdef AMREX_USE_CUDA
+public:
+#endif
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
@@ -550,6 +553,9 @@ protected:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
+#ifdef AMREX_USE_CUDA
+protected:
+#endif
     //
     typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
     typedef CPCache::iterator CPCacheIter;
