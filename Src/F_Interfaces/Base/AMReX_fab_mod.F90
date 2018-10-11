@@ -23,9 +23,14 @@ module amrex_fab_module
      procedure :: dataptr       => amrex_fab_dataptr
      procedure :: resize        => amrex_fab_resize
      procedure :: norminf       => amrex_fab_norminf
+     ! DO NOT use this on fab that has memory allocated!
+     ! This is here only to get around a compiler bug!
+     ! Used incorrectly, this will cause memory leak!
+     procedure :: reset_omp_private => amrex_fab_reset_omp_private
      procedure, private :: amrex_fab_assign
      procedure, private :: amrex_fab_resize
      procedure, private :: amrex_fab_norminf
+     procedure, private :: amrex_fab_reset_omp_private
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fab_destroy
 #endif
@@ -147,6 +152,18 @@ contains
        end do
     end do
   end function amrex_fab_norminf
+
+  ! DO NOT use this on fab that has memory allocated!
+  ! This is here only to get around a compiler bug!
+  ! Used incorrectly, this will cause memory leak!
+  subroutine amrex_fab_reset_omp_private (this)
+    class(amrex_fab), intent(inout) :: this
+    this%bx = amrex_box()
+    this%nc = 0
+    this%owner = .false.
+    this%cp = c_null_ptr
+    this%fp => null()
+  end subroutine amrex_fab_reset_omp_private
 
 end module amrex_fab_module
 

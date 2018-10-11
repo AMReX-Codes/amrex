@@ -175,7 +175,11 @@ contains
 
     call fillpatch(lev, time, phiborder)
 
-    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface,flux,particles)
+    !$omp parallel private(mfi,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,pf,pfab,uface,flux,particles)
+    do idim = 1, amrex_spacedim
+       call uface(idim)%reset_omp_private()
+       call flux(idim)%reset_omp_private()
+    end do
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%tilebox()
