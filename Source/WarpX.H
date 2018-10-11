@@ -236,7 +236,7 @@ private:
     /// Advance the simulation by numsteps steps, electromagnetic case.
     ///
     void EvolveEM(int numsteps);
-  
+
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
     void FillBoundaryF (int lev, PatchType patch_type);
@@ -260,15 +260,6 @@ private:
     void ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, int ncomp);
     void AddRhoFromFineLevelandSumBoundary (int lev, int icomp, int ncomp);
     void NodalSyncRho (int lev, PatchType patch_type, int icomp, int ncomp);
-
-    void FillBoundaryB (int lev, PatchType patch_type);
-    void FillBoundaryE (int lev, PatchType patch_type);
-    void FillBoundaryF (int lev, PatchType patch_type);
-
-    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
-    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
-    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
-    void DampPML (int lev, PatchType patch_type);
 
 #ifdef WARPX_DO_ELECTROSTATIC
     ///
