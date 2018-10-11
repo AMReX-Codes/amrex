@@ -3331,14 +3331,14 @@ BaseFab<Real>::invert (Real       val,
                        const Box& subbox,
                        int        comp,
                        int        numcomp);
-template <>
-void
-BaseFab<Real>::performCopy (const BaseFab<Real>& src,
-                            const Box&           srcbox,
-                            int                  srccomp,
-                            const Box&           destbox,
-                            int                  destcomp,
-                            int                  numcomp);
+// template <>
+// void
+// BaseFab<Real>::performCopy (const BaseFab<Real>& src,
+//                             const Box&           srcbox,
+//                             int                  srccomp,
+//                             const Box&           destbox,
+//                             int                  destcomp,
+//                             int                  numcomp);
 template <>
 std::size_t
 BaseFab<Real>::copyToMem (const Box& srcbox,
