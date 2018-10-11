@@ -1,22 +1,16 @@
-# Maximum number of time steps
-max_step = 100
+# Maximum number of time steps: command-line argument
+# number of grid points: command-line argument
 
-# number of grid points
-amr.n_cell =   64 64 512
-
-# Maximum allowable size of each subdomain in the problem domain;
-#    this is used to decompose the domain for parallel calculations.
-
-amr.max_grid_size = 32
+amr.max_grid_size = 64
 
 # Maximum level in hierarchy (for now must be 0, i.e., one level in total)
 amr.max_level = 0
-amr.plot_int = 10   # How often to write plotfiles.  "<= 0" means no plotfiles.
-amr.check_int = 10
+amr.plot_int = -100   # How often to write plotfiles.  "<= 0" means no plotfiles.
+amr.check_int = -100
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 1     1     0      # Is periodic?
+geometry.is_periodic = 0 0 0      # Is periodic?
 geometry.prob_lo     = -150.e-6   -150.e-6  -80.e-6    # physical domain
 geometry.prob_hi     =  150.e-6    150.e-6    0.
 
@@ -24,7 +18,7 @@ geometry.prob_hi     =  150.e-6    150.e-6    0.
 warpx.verbose = 1
 
 # Algorithms
-algo.current_deposition = 2
+algo.current_deposition = 0
 algo.charge_deposition = 0
 algo.field_gathering = 0
 algo.particle_pusher = 0

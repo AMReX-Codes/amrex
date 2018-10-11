@@ -256,9 +256,6 @@ if args.mode == 'read':
         f_log.write(log_line)
         f_log.close()
     for count, current_run in enumerate(test_list):
-
-        count += 21
-
         # Results folder
         print('read ' + str(current_run))
         run_name = current_run[0]

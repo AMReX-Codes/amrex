@@ -2,7 +2,7 @@ import os, shutil, re
 import pandas as pd
 import numpy as np
 
-def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1):
+def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
     # Clean res_dir
     if os.path.exists(res_dir):
         shutil.rmtree(res_dir)
@@ -13,7 +13,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
     # Calculate simulation time. Take 10 min + 10 min / simulation
-    job_time_min = 5. + len(test_list)*5.
+    job_time_min = 5. + len(test_list)*3.
     job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
     batch_string = ''
     batch_string += '#!/bin/bash\n'
@@ -46,11 +46,10 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
                        ' -c ' + str(cflag_value)   + \
                        ' ./'  + bin_name + \
                        ' ' + input_file + \
+                       runtime_param_list[ count ] + \
                        ' > ' + output_filename + '\n'
         batch_string += srun_string
-        batch_string += 'rm -rf plt*\n'
-        batch_string += 'rm -rf chk*\n'
-        batch_string += 'rm -rf lab_frame_data\n'
+        batch_string += 'rm -rf plotfiles ; rm -rf lab_frame_data\n'
     batch_file = 'slurm'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)

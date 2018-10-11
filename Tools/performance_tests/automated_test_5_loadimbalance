@@ -1,8 +1,5 @@
-# Maximum number of time steps
-max_step = 100
-
-# number of grid points
-amr.n_cell =  256 256 256
+# Maximum number of time steps: command-line argument
+# number of grid points: command-line argument
 
 amr.plot_int = -1   # How often to write plotfiles.
 
@@ -15,21 +12,20 @@ amr.max_level = 0
 
 # Geometry
 geometry.coord_sys   = 0                  # 0: Cartesian
-geometry.is_periodic = 1     1     1      # Is periodic?
+geometry.is_periodic = 0 0 1      # Is periodic?
 geometry.prob_lo     = -20.e-6   -20.e-6   -20.e-6    # physical domain
 geometry.prob_hi     =  20.e-6    20.e-6    20.e-6
 
-# Verbosity
 warpx.verbose = 1
-
+warpx.load_balance_int = 5
 # Algorithms
-algo.current_deposition = 2
+algo.current_deposition = 0
 algo.charge_deposition = 0
 algo.field_gathering = 0
 algo.particle_pusher = 0
-interpolation.nox = 1
-interpolation.noy = 1
-interpolation.noz = 1
+interpolation.nox = 3
+interpolation.noy = 3
+interpolation.noz = 3
 
 # CFL
 warpx.cfl = 1.0
@@ -39,42 +35,30 @@ particles.species_names = electrons ions
 
 electrons.charge = -q_e
 electrons.mass = m_e
-electrons.injection_style = "gaussian_beam"
-electrons.x_rms = 2.e-6
-electrons.y_rms = 2.e-6
-electrons.z_rms = 5.e-6
-electrons.x_m = 0.
-electrons.y_m = 0.
-electrons.z_m = 0.
-electrons.npart = 500000
-electrons.q_tot = -1.602e-9
-electrons.profile = "constant"
-electrons.density = 1.e25
+electrons.injection_style = "NUniformPerCell"
+electrons.num_particles_per_cell_each_dim = 2 2 4
+electrons.profile = constant
+electrons.density = 1.e20  # number of electrons per m^3
 electrons.momentum_distribution_type = "gaussian"
-electrons.ux_m = 0.0
-electrons.uy_m = 0.0
-electrons.uz_m = 0.0
-electrons.ux_th = 0.01
-electrons.uy_th = 0.01
-electrons.uz_th = 0.01
+electrons.zmax = 0.
+electrons.ux_th  = 0.01
+electrons.uy_th  = 0.01
+electrons.uz_th  = 0.01
+electrons.ux_m  = 0.
+electrons.uy_m  = 0.
+electrons.uz_m  = 0.
 
 ions.charge = q_e
 ions.mass = m_p
-ions.injection_style = "gaussian_beam"
-ions.x_rms = 2.e-6
-ions.y_rms = 2.e-6
-ions.z_rms = 5.e-6
-ions.x_m = 0.
-ions.y_m = 0.
-ions.z_m = 0.
-ions.npart = 500000
-ions.q_tot = -1.602e-9
-ions.profile = "constant"
-ions.density = 1.e25
+ions.injection_style = "NUniformPerCell"
+ions.num_particles_per_cell_each_dim = 2 2 4
+ions.profile = constant
+ions.density = 1.e20  # number of electrons per m^3
 ions.momentum_distribution_type = "gaussian"
-ions.ux_m = 0.0
-ions.uy_m = 0.0
-ions.uz_m = 0.0
-ions.ux_th = 0.01
-ions.uy_th = 0.01
-ions.uz_th = 0.01
+ions.zmax = 0.
+ions.ux_th  = 0.01
+ions.uy_th  = 0.01
+ions.uz_th  = 0.01
+ions.ux_m  = 0.
+ions.uy_m  = 0.
+ions.uz_m  = 0.
