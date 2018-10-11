@@ -12,17 +12,16 @@ parser.add_argument('--no-recompile' , dest='recompile'  , action='store_false',
 parser.add_argument('--commit'       , dest='commit'     , action='store_true' , default=False)
 parser.add_argument('--automated'    , dest='automated'  , action='store_true' , default=False                   , help='Use to run the automated test list')
 parser.add_argument('--n_node_list'  , dest='n_node_list',                       default=[]                      , help='list ofnumber of nodes for the runs', type=str)
-parser.add_argument('--input_file'   , dest='input_file' ,                       default='input_file.pixr'       , help='input file to run', type=str)
+parser.add_argument( '--start_date'  , dest='start_date' )
 parser.add_argument( '--compiler'    , choices=['gnu', 'intel'],                 default='intel'                 , help='which compiler to use')
 parser.add_argument( '--architecture', choices=['cpu', 'knl']  ,                 default='knl'                   , help='which architecture to cross-compile for NERSC machines')
 parser.add_argument( '--mode'        , choices=['run', 'read'] ,                 default='run'                   , help='whether to run perftests or read their perf output. run calls read')
 
 args = parser.parse_args()
 do_commit = args.commit
-run_name = args.input_file
 n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
-print(n_node_list)
+start_date = args.start_date
 
 test_list = []
 n_repeat = 2
@@ -70,6 +69,7 @@ perf_database_file = cwd + 'automated_tests_database.h5'
 # Initialize tests
 # ----------------
 if args.mode == 'run':
+    start_date = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # Set default options for compilation and execution
     config_command = ''
     config_command += 'module unload darshan;' 
@@ -109,9 +109,8 @@ if args.recompile == True:
 # when performance runs are done.
 def process_analysis():
     dependencies = ''
-    f_log = open(cwd + 'log_jobids_tmp.txt','r')
+    f_log = open(cwd + 'log_jobids_tmp_' + str(n_node) + '.txt' ,'r')
     line = f_log.readline()
-    print(line)
     dependencies += line.split()[3] + ':'
     batch_string = ''
     batch_string += '#!/bin/bash\n'
@@ -128,7 +127,8 @@ def process_analysis():
     batch_string += 'python ' + __file__ + ' --no-recompile --compiler=' + \
                     args.compiler + ' --architecture=' + args.architecture + \
                     ' --mode=read' + \
-                ' --n_node_list=' + '"' + args.n_node_list + '"'
+                ' --n_node_list=' + '"' + str(n_node) + '"' + \
+                ' --start_date=' + start_date
     if do_commit == True:
         batch_string += ' --commit'
     if args.automated == True:
@@ -151,7 +151,7 @@ for n_node in n_node_list:
         res_dir += '_'.join([run_name, args.compiler, args.architecture, str(n_node)]) + '/'
         runtime_param_list = []
         for count, current_run in enumerate( test_list ):
-            n_cell_scaling = ' '.join([str(i*int(n_node**(1./3.))) for i in ncell_dict[current_run[0]]])
+            n_cell_scaling = ' '.join([str(i*int(round(n_node**(1./3.)))) for i in ncell_dict[current_run[0]]])
             max_step = str(nstep_dict[ current_run[0] ])
             runtime_param_string  = ' amr.n_cell=' + n_cell_scaling
             runtime_param_string += ' max_step=' + max_step
@@ -162,7 +162,6 @@ for n_node in n_node_list:
                         n_node=n_node, runtime_param_list=runtime_param_list)
         os.chdir(cwd)
         process_analysis()
-
     if args.mode == 'read':
         for count, current_run in enumerate(test_list):
             print('read ' + str(current_run))
@@ -170,7 +169,6 @@ for n_node in n_node_list:
             n_mpi    = current_run[2]
             n_omp    = current_run[3]
             n_steps  = nstep_dict[ input_file ]# get_nsteps(cwd  + input_file)
-            print('n_steps = ' + str(n_steps))
             res_dir = res_dir_base
             res_dir += '_'.join([run_name, args.compiler,\
                                  args.architecture, str(n_node)]) + '/'
@@ -182,6 +180,7 @@ for n_node in n_node_list:
             df_newline = extract_dataframe(res_dir + output_filename, n_steps)
             # Add all simulation parameters to the dataframe
             df_newline['run_name'] = run_name
+            df_newline['input_file'] = input_file
             df_newline['n_node'] = n_node
             df_newline['n_mpi'] = n_mpi
             df_newline['n_omp'] = n_omp

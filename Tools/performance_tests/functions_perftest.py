@@ -24,7 +24,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     batch_string += '#SBATCH -q regular\n'
     batch_string += '#SBATCH -e error.txt\n'
     batch_string += '#SBATCH --account=m2852\n'
-
+    
     for count, test_item in enumerate(test_list):
         # test_item reads [input_file, int n_mpi, int n_omp]                                                                                                                                                       
         input_file = test_item[0];
@@ -55,7 +55,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     f_exe.write(batch_string)
     f_exe.close()
     os.system('chmod 700 ' + bin_name)
-    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
+    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp_' + str(n_node) + '.txt')
     return 0
 
 def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
