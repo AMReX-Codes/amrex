@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_MANAGED_H_
-#define AMREX_CUDA_MANAGED_H_
+#ifndef AMREX_CUDA_MEMORY_H_
+#define AMREX_CUDA_MEMORY_H_
 
 #include <AMReX_CudaQualifiers.H>
 
