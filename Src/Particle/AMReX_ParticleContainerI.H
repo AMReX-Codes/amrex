@@ -1184,204 +1184,207 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // We now have a temporary buffer that holds all the particles that need to be 
     // copied moved somewhere else. Now we sort those particles by their destination grid
     //
+    std::map<int, thrust::device_vector<char> > not_ours;
     const int num_grids = ba.size();
     const int num_to_move = grids_to_redistribute.size();
-    thrust::device_vector<int> grid_begin(num_grids);
-    thrust::device_vector<int> grid_end(num_grids);
 
-    index_sequence.resize(num_to_move);
-    thrust::sequence(index_sequence.begin(), index_sequence.end());
-    thrust::sort_by_key(grids_to_redistribute.begin(),
-                        grids_to_redistribute.end(),
-                        index_sequence.begin());
-
-    //
-    // Reorder particle data using the computed sequence
-    //
+    if (num_to_move > 0)
     {
-        // reorder structs
-        auto& aos = particles_to_redistribute.GetArrayOfStructs();
-        thrust::device_vector<ParticleType> aos_r(num_to_move);
-        thrust::copy_n(
-            thrust::make_permutation_iterator(
+        thrust::device_vector<int> grid_begin(num_grids);
+        thrust::device_vector<int> grid_end(num_grids);
+
+        index_sequence.resize(num_to_move);
+        thrust::sequence(index_sequence.begin(), index_sequence.end());
+        thrust::sort_by_key(grids_to_redistribute.begin(),
+                            grids_to_redistribute.end(),
+                            index_sequence.begin());
+
+        //
+        // Reorder particle data using the computed sequence
+        //
+        {
+            // reorder structs
+            auto& aos = particles_to_redistribute.GetArrayOfStructs();
+            thrust::device_vector<ParticleType> aos_r(num_to_move);
+            thrust::copy_n(
+                thrust::make_permutation_iterator(
                 thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&aos[0])),
                 index_sequence.begin()),
             num_to_move, aos_r.begin());
-        thrust::copy(thrust::device, aos_r.begin(), aos_r.end(),
-                     thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&aos[0])));
+            thrust::copy(thrust::device, aos_r.begin(), aos_r.end(),
+                         thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&aos[0])));
 
-        // reorder real arrays
-        auto& soa = particles_to_redistribute.GetStructOfArrays();
-        for (int j = 0; j < NArrayReal; ++j)
-        {
-            thrust::device_vector<Real> rdata_r(num_to_move);
-            auto& rdata = soa.GetRealData(j);
-            thrust::copy_n(
-                thrust::make_permutation_iterator(thrust::device_ptr<Real>(&rdata[0]),
-                                                  index_sequence.begin()), 
-                num_to_move, rdata_r.begin());
-            thrust::copy(thrust::device, rdata_r.begin(), rdata_r.end(), 
-                         thrust::device_ptr<Real>(&rdata[0]));
-        }
-
-        // reorder int arrays
-        for (int j = 0; j < NArrayInt; ++j)
-        {
-            thrust::device_vector<int> idata_r(num_to_move);
-            auto& idata = soa.GetIntData(j);
-            thrust::copy_n(
-                thrust::make_permutation_iterator(thrust::device_ptr<int>(&idata[0]),
-                                                  index_sequence.begin()), 
-                num_to_move, idata_r.begin());
-            thrust::copy(thrust::device, idata_r.begin(), idata_r.end(), 
-                         thrust::device_ptr<int>(&idata[0]));
-        }
-    }
-
-    //
-    // Now we compute the start and stop index in the sorted array for each grid
-    //
-    thrust::counting_iterator<unsigned> search_begin(0);
-    thrust::lower_bound(grids_to_redistribute.begin(),
-                        grids_to_redistribute.end(),
-                        search_begin,
-                        search_begin + num_grids,
-                        grid_begin.begin());
-    
-    thrust::upper_bound(grids_to_redistribute.begin(),
-                        grids_to_redistribute.end(),
-                        search_begin,
-                        search_begin + num_grids,
-                        grid_end.begin());
-
-    thrust::host_vector<int> start(grid_begin);
-    thrust::host_vector<int> stop(grid_end);
-
-    std::map<int, thrust::device_vector<char> > not_ours;
-
-    std::map<int, size_t> grid_counts;
-    for (int i = 0; i < num_grids; ++i)
-    {
-        const int dest_proc = dmap[i];
-        if (dest_proc != ParallelDescriptor::MyProc())
-        {
-            grid_counts[dest_proc] += 1;
-        }
-    }
-
-    //
-    // Each destination grid, copy the appropriate particle data, passing the non-local data
-    // into not_ours
-    //
-    for (int i = 0; i < num_grids; ++i)
-    {
-        const int tid = 0;
-        auto pair_index = std::make_pair(i, tid);
-
-        const size_t num_to_add = stop[i] - start[i];
-
-        const int dest_proc = dmap[i];
-        if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
-        {
-            auto& ptile = plev[pair_index];
-            const size_t old_size = ptile.numParticles();
-            const size_t new_size = old_size + num_to_add;
-            ptile.resize(new_size);
-
-            // copy structs
-            {
-                auto& src = particles_to_redistribute.GetArrayOfStructs();
-                auto& dst = ptile.GetArrayOfStructs();
-                thrust::copy(thrust::device,
-                thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&src[0]) + start[i]),
-                thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&src[0]) + stop[i]),
-                thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&dst[0]) + old_size));
-            }
-         
-            // copy arrays
+            // reorder real arrays
             auto& soa = particles_to_redistribute.GetStructOfArrays();
             for (int j = 0; j < NArrayReal; ++j)
             {
-                auto& src = soa.GetRealData(j);
-                auto& dst = ptile.GetStructOfArrays().GetRealData(j);
-                thrust::copy(thrust::device,
-                             thrust::device_ptr<Real>(&src[0] + start[i]),
-                             thrust::device_ptr<Real>(&src[0] + stop[i]),
-                             thrust::device_ptr<Real>(&dst[0] + old_size));
+                thrust::device_vector<Real> rdata_r(num_to_move);
+                auto& rdata = soa.GetRealData(j);
+                thrust::copy_n(
+                    thrust::make_permutation_iterator(thrust::device_ptr<Real>(&rdata[0]),
+                                                      index_sequence.begin()), 
+                    num_to_move, rdata_r.begin());
+                thrust::copy(thrust::device, rdata_r.begin(), rdata_r.end(), 
+                             thrust::device_ptr<Real>(&rdata[0]));
             }
+
+            // reorder int arrays
             for (int j = 0; j < NArrayInt; ++j)
             {
-                auto& src = soa.GetIntData(j);
-                auto& dst = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::copy(thrust::device,
-                             thrust::device_ptr<int>(&src[0] + start[i]),
-                             thrust::device_ptr<int>(&src[0] + stop[i]),
-                             thrust::device_ptr<int>(&dst[0] + old_size));
+                thrust::device_vector<int> idata_r(num_to_move);
+                auto& idata = soa.GetIntData(j);
+                thrust::copy_n(
+                    thrust::make_permutation_iterator(thrust::device_ptr<int>(&idata[0]),
+                                                      index_sequence.begin()), 
+                    num_to_move, idata_r.begin());
+                thrust::copy(thrust::device, idata_r.begin(), idata_r.end(), 
+                             thrust::device_ptr<int>(&idata[0]));
             }
         }
-        else // this is the non-local case
+
+        //
+        // Now we compute the start and stop index in the sorted array for each grid
+        //
+        thrust::counting_iterator<unsigned> search_begin(0);
+        thrust::lower_bound(grids_to_redistribute.begin(),
+                            grids_to_redistribute.end(),
+                            search_begin,
+                            search_begin + num_grids,
+                            grid_begin.begin());
+        
+        thrust::upper_bound(grids_to_redistribute.begin(),
+                            grids_to_redistribute.end(),
+                            search_begin,
+                            search_begin + num_grids,
+                            grid_end.begin());
+        
+        thrust::host_vector<int> start(grid_begin);
+        thrust::host_vector<int> stop(grid_end);
+        
+        std::map<int, size_t> grid_counts;
+        for (int i = 0; i < num_grids; ++i)
         {
-            char* dst;
-            const size_t old_size = not_ours[dest_proc].size();
-            const size_t new_size
-                = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
-
-            if (old_size == 0)
+            const int dest_proc = dmap[i];
+            if (dest_proc != ParallelDescriptor::MyProc())
             {
-                not_ours[dest_proc].resize(new_size + sizeof(size_t));
-                cudaMemcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()), 
-                           &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
-                dst = thrust::raw_pointer_cast(
-                          not_ours[dest_proc].data() + old_size + sizeof(size_t));
-            } else
-            {
-                not_ours[dest_proc].resize(new_size);
-                dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
-            }
-
-            cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                       &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
-            dst += sizeof(size_t);
-
-            cudaMemcpy(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
-            dst += sizeof(int);
-
-            cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                       &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
-            dst += sizeof(int);
-
-            // pack structs
-            {
-                auto& aos = particles_to_redistribute.GetArrayOfStructs();
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           thrust::raw_pointer_cast(static_cast<ParticleType*>(&aos[0]) + start[i]),
-                           num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
-                dst += num_to_add*sizeof(ParticleType);
-            }
-
-            // pack real arrays
-            for (int j = 0; j < NArrayReal; ++j)
-            {
-                if (not communicate_real_comp[j]) continue;
-                auto& attrib = particles_to_redistribute.GetStructOfArrays().GetRealData(j);
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           thrust::raw_pointer_cast(attrib.data() + start[i]),
-                           num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
-                dst += num_to_add*sizeof(Real);
-            }
-
-            // pack int arrays           
-            for (int j = 0; j < NArrayInt; ++j)
-            {
-                if (not communicate_int_comp[j]) continue;
-                auto& attrib = particles_to_redistribute.GetStructOfArrays().GetIntData(j);
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           thrust::raw_pointer_cast(attrib.data() + start[i]),
-                           num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
-                dst += num_to_add*sizeof(int);
+                grid_counts[dest_proc] += 1;
             }
         }
-    }   
+        
+        //
+        // Each destination grid, copy the appropriate particle data, passing the non-local data
+        // into not_ours
+        //
+        for (int i = 0; i < num_grids; ++i)
+        {
+            const int tid = 0;
+            auto pair_index = std::make_pair(i, tid);
+            
+            const size_t num_to_add = stop[i] - start[i];
+
+            const int dest_proc = dmap[i];
+            if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
+            {
+                auto& ptile = plev[pair_index];
+                const size_t old_size = ptile.numParticles();
+                const size_t new_size = old_size + num_to_add;
+                ptile.resize(new_size);
+                
+                // copy structs
+                {
+                    auto& src = particles_to_redistribute.GetArrayOfStructs();
+                    auto& dst = ptile.GetArrayOfStructs();
+                    thrust::copy(thrust::device,
+                                 thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&src[0]) + start[i]),
+                                 thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&src[0]) + stop[i]),
+                                 thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(&dst[0]) + old_size));
+                }
+                
+                // copy arrays
+                auto& soa = particles_to_redistribute.GetStructOfArrays();
+                for (int j = 0; j < NArrayReal; ++j)
+                {
+                    auto& src = soa.GetRealData(j);
+                    auto& dst = ptile.GetStructOfArrays().GetRealData(j);
+                    thrust::copy(thrust::device,
+                                 thrust::device_ptr<Real>(&src[0] + start[i]),
+                                 thrust::device_ptr<Real>(&src[0] + stop[i]),
+                                 thrust::device_ptr<Real>(&dst[0] + old_size));
+                }
+                for (int j = 0; j < NArrayInt; ++j)
+                {
+                    auto& src = soa.GetIntData(j);
+                    auto& dst = ptile.GetStructOfArrays().GetIntData(j);
+                    thrust::copy(thrust::device,
+                                 thrust::device_ptr<int>(&src[0] + start[i]),
+                                 thrust::device_ptr<int>(&src[0] + stop[i]),
+                                 thrust::device_ptr<int>(&dst[0] + old_size));
+                }
+            }
+            else // this is the non-local case
+            {
+                char* dst;
+                const size_t old_size = not_ours[dest_proc].size();
+                const size_t new_size
+                    = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
+
+                if (old_size == 0)
+                {
+                    not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                    cudaMemcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()), 
+                               &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                    dst = thrust::raw_pointer_cast(
+                                                   not_ours[dest_proc].data() + old_size + sizeof(size_t));
+                } else
+                {
+                    not_ours[dest_proc].resize(new_size);
+                    dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
+                }
+
+                cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                           &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
+                dst += sizeof(size_t);
+                
+                cudaMemcpy(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
+                dst += sizeof(int);
+                
+                cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                           &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
+                dst += sizeof(int);
+                
+                // pack structs
+                {
+                    auto& aos = particles_to_redistribute.GetArrayOfStructs();
+                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                               thrust::raw_pointer_cast(static_cast<ParticleType*>(&aos[0]) + start[i]),
+                               num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                    dst += num_to_add*sizeof(ParticleType);
+                }
+
+                // pack real arrays
+                for (int j = 0; j < NArrayReal; ++j)
+                {
+                    if (not communicate_real_comp[j]) continue;
+                    auto& attrib = particles_to_redistribute.GetStructOfArrays().GetRealData(j);
+                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                               thrust::raw_pointer_cast(attrib.data() + start[i]),
+                               num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
+                    dst += num_to_add*sizeof(Real);
+                }
+                
+                // pack int arrays           
+                for (int j = 0; j < NArrayInt; ++j)
+                {
+                    if (not communicate_int_comp[j]) continue;
+                    auto& attrib = particles_to_redistribute.GetStructOfArrays().GetIntData(j);
+                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
+                               thrust::raw_pointer_cast(attrib.data() + start[i]),
+                               num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
+                    dst += num_to_add*sizeof(int);
+                }
+            }
+        }
+    }
 
     RedistributeMPIGPU(not_ours);
 
