@@ -7,7 +7,7 @@
 #include <AMReX_Print.H>
 
 #include <AMReX_Utility.H>
-#include <AMReX_Managed.H>
+#include <AMReX_Memory.H>
 #include <AMReX_Device.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ArrayLim.H>
