@@ -47,13 +47,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.dbox,ncomp),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
-                int ic = scomp;
-                int nc = ncomp;
-                Box dtbx;
-                getThreadComponentBox(tag.dbox,dtbx,ic,nc);
-                if (dtbx.ok()) {
-                    Box stbx = dtbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-                    dfab->copy(*sfab,stbx,ic,dtbx,ic,nc);
+                ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
+                if (cb.box.ok()) {
+                    Box stbx = cb.box + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+                    dfab->copy(*sfab, stbx, cb.ic+scomp, cb.box, cb.ic+scomp, cb.nc);
                 }
             });
         }
@@ -243,15 +240,12 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
                         [=] AMREX_CUDA_HOST_DEVICE ()
                         {
-                            int ic = scomp;
-                            int nc = ncomp;
-                            Box stbx;
-                            getThreadComponentBox(bx,stbx,ic,nc);
-                            if (stbx.ok())
+                            ComponentBox cb = getThreadComponentBox(bx, ncomp);
+                            if (cb.box.ok())
                             {
                                 char* p = dptr + sizeof(value_type) *
-                                    ((ic-scomp)*bx.numPts()+bx.index(stbx.smallEnd()));
-                                sfab->copyToMem(stbx, ic, nc, p);
+                                    (cb.ic*bx.numPts() + bx.index(cb.box.smallEnd()));
+                                sfab->copyToMem(cb.box, cb.ic+scomp, cb.nc, p);
                             }
                         });
 
@@ -403,13 +397,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.dbox,ncomp),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
-                int ic = scomp;
-                int nc = ncomp;
-                Box dtbx;
-                getThreadComponentBox(tag.dbox,dtbx,ic,nc);
-                if (dtbx.ok()) {
-                    Box stbx = dtbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-                    dfab->copy(*sfab,stbx,ic,dtbx,ic,nc);
+                ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
+                if (cb.box.ok()) {
+                    Box stbx = cb.box + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+                    dfab->copy(*sfab, stbx, cb.ic+scomp, cb.box, cb.ic+scomp, cb.nc);
                 }
             });
 	});
@@ -435,13 +426,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.dbox,ncomp),
                 [=] AMREX_CUDA_HOST_DEVICE ()
                 {
-                    int ic = scomp;
-                    int nc = ncomp;
-                    Box dtbx;
-                    getThreadComponentBox(tag.dbox,dtbx,ic,nc);
+                    ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
                     if (dtbx.ok()) {
-                        Box stbx = dtbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-                        dfab->copy(*sfab,stbx,ic,dtbx,ic,nc);
+                        Box stbx = cb.box + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
+                        dfab->copy(*sfab, stbx, cb.ic+scomp, cb.box, cb.ic+scomp, cb.nc);
                     }
                 });
 #ifdef AMREX_USE_CUDA
@@ -537,15 +525,12 @@ FabArray<FAB>::FillBoundary_finish ()
                         AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
                         [=] AMREX_CUDA_HOST_DEVICE () 
                         {
-                            int ic = scomp;
-                            int nc = ncomp;
-                            Box dtbx;
-                            getThreadComponentBox(bx,dtbx,ic,nc);
-                            if (dtbx.ok())
+                            ComponentBox cb = getThreadComponentBox(bx, ncomp);
+                            if (cb.box.ok())
                             {
                                 const char* p = dptr + sizeof(value_type) *
-                                    ((ic-scomp)*bx.numPts()+bx.index(dtbx.smallEnd()));
-                                dfab->copyFromMem(dtbx, ic, nc, p);
+                                    (cb.ic*bx.numPts()+bx.index(cb.box.smallEnd()));
+                                dfab->copyFromMem(cb.box, cb.ic+scomp, cb.nc, p);
                             }
                         });
 
@@ -680,24 +665,18 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box tbx;
-                        getThreadComponentBox(bx,tbx,sc,nc);
-                        if (tbx.ok()) {
-                            dfab->copy(*sfab,tbx,sc,tbx,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(bx, ncomp);
+                        if (cb.box.ok()) {
+                            dfab->copy(*sfab, cb.box, cb.ic+scomp, cb.box, cb.ic+dcomp, cb.nc);
                         }
                     });
 		} else {
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box tbx;
-                        getThreadComponentBox(bx,tbx,sc,nc);
-                        if (tbx.ok()) {
-                            dfab->plus(*sfab,tbx,tbx,sc,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(bx, ncomp);
+                        if (cb.box.ok()) {
+                            dfab->plus(*sfab, cb.box, cb.box, cb.ic+scomp, cb.ic+dcomp, cb.nc);
                         }
                     });
                 }
@@ -729,26 +708,20 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box sbx;
-                        getThreadComponentBox(tag.sbox,sbx,sc,nc);
-                        if (sbx.ok()) {
-                            Box dbx = sbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->copy(*sfab,sbx,sc,dbx,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);
+                        if (cb.box.ok()) {
+                            Box dbx = cb.box + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
+                            dfab->copy(*sfab, cb.box, cb.ic+scomp, dbx, cb.ic+dcomp, cb.nc);
                         }
                     });
 		} else {
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box sbx;
-                        getThreadComponentBox(tag.sbox,sbx,sc,nc);
-                        if (sbx.ok()) {
-                            Box dbx = sbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->plus(*sfab,sbx,dbx,sc,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);
+                        if (cb.box.ok()) {
+                            Box dbx = cb.box + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
+                            dfab->plus(*sfab, cb.box, dbx, cb.ic+scomp, cb.ic+dcomp, cb.nc);
                         }
                     });
 		}
@@ -1297,24 +1270,18 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box tbx;
-                        getThreadComponentBox(bx,tbx,sc,nc);
-                        if (tbx.ok()) {
-                            dfab->copy(*sfab,tbx,sc,tbx,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(bx, ncomp);
+                        if (cb.box.ok()) {
+                            dfab->copy(*sfab, cb.box, cb.ic+scomp, cb.box, cb.ic+dcomp, cb.nc);
                         }
                     });
 		} else {
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box tbx;
-                        getThreadComponentBox(bx,tbx,sc,nc);
-                        if (tbx.ok()) {
-                            dfab->plus(*sfab,tbx,tbx,sc,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(bx, ncomp);
+                        if (cb.box.ok()) {
+                            dfab->plus(*sfab, cb.box, cb.box, cb.ic+scomp, cb.ic+dcomp, cb.nc);
                         }
                     });
 		}
@@ -1346,26 +1313,20 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box sbx;
-                        getThreadComponentBox(tag.sbox,sbx,sc,nc);
-                        if (sbx.ok()) {
-                            Box dbx = sbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->copy(*sfab,sbx,sc,dbx,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);
+                        if (cb.box.ok()) {
+                            Box dbx = cb.box + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
+                            dfab->copy(*sfab, cb.box, cb.ic+scomp, dbx, cb.ic+dcomp, cb.nc);
                         }
                     });
 		} else {
                     AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
-                        int sc = scomp;
-                        int nc = ncomp;
-                        Box sbx;
-                        getThreadComponentBox(tag.sbox,sbx,sc,nc);
-                        if (sbx.ok()) {
-                            Box dbx = sbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->plus(*sfab,sbx,dbx,sc,sc+(dcomp-scomp),nc);
+                        ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);
+                        if (cb.box.ok()) {
+                            Box dbx = cb.box + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
+                            dfab->plus(*sfab, cb.box, dbx, cb.ic+scomp, cb.ic+dcomp, cb.nc);
                         }
                     });
 		}

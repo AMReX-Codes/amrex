@@ -73,7 +73,8 @@ Box getThreadBox (const Box& bx)
 //      [    bx.length <= x < 2*bx.length(0)  ]---> scomp + 1
 //      [ 2* bx.length <= x < 3*bx.length(0)  ]---> scomp + 2
 AMREX_CUDA_HOST_DEVICE
-void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncomp)
+ComponentBox
+getThreadComponentBox (const Box& bx, int ncomp)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      // Don't use getThreadBox because these will initially be outside bx, which represents the
@@ -82,21 +83,24 @@ void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncom
     IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
                             static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
                             static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
-    threadBox = Box(iv,iv,bx.type());
+
+    // On GPU, each thread works on one component. (Update later for very big boxes.)
+    ComponentBox r{Box(iv,iv,bx.type()), 0, 1};
 
     int dcomp =  iv[0] / bx.length(0);
     if (dcomp >= ncomp) {
-        threadBox = Box();
+        r.box = Box();
     } else {
-        scomp += dcomp;
-        threadBox.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
-        threadBox += bx.smallEnd();
-        threadBox &= bx;
+        r.ic += dcomp;
+        r.box.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
+        r.box += bx.smallEnd();
+        r.box &= bx;
     }
-    ncomp = 1;  // On GPU, each thread works on one component. (Update later for very big boxes.)
+
+    return r;
 #else
-    threadBox = bx;
-    // On CPUs, scomp and ncomp don't change.
+    // On CPUs, ncomp don't change.
+    return {bx, 0, ncomp};
 #endif
 }
 
