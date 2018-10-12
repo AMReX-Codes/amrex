@@ -3320,7 +3320,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   return *this;
 }
 
-#ifdef AMREX_USE_GPU_PRAGMA
+#if defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_USE_BASEFAB_CPP)
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.
@@ -3331,14 +3331,14 @@ BaseFab<Real>::invert (Real       val,
                        const Box& subbox,
                        int        comp,
                        int        numcomp);
-// template <>
-// void
-// BaseFab<Real>::performCopy (const BaseFab<Real>& src,
-//                             const Box&           srcbox,
-//                             int                  srccomp,
-//                             const Box&           destbox,
-//                             int                  destcomp,
-//                             int                  numcomp);
+template <>
+void
+BaseFab<Real>::performCopy (const BaseFab<Real>& src,
+                            const Box&           srcbox,
+                            int                  srccomp,
+                            const Box&           destbox,
+                            int                  destcomp,
+                            int                  numcomp);
 template <>
 std::size_t
 BaseFab<Real>::copyToMem (const Box& srcbox,
@@ -3351,12 +3351,12 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         dstcomp,
                             int         numcomp,
                             const void* src);
-// template <>
-// void
-// BaseFab<Real>::performSetVal (Real       val,
-//                               const Box& bx,
-//                               int        ns,
-//                               int        num);
+template <>
+void
+BaseFab<Real>::performSetVal (Real       val,
+                              const Box& bx,
+                              int        ns,
+                              int        num);
 
 #if 0
 template <>
