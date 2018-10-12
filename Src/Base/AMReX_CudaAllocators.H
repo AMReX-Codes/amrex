@@ -32,6 +32,11 @@ namespace amrex {
                 amrex::Print() << "Allocation failed in cudaMallocManaged \n";
                 amrex::Abort();
             }
+
+            const int device = Device::deviceId();
+            CudaAPICheck(cudaMemAdvise(result, n*sizeof(T), 
+                                       cudaMemAdviseSetPreferredLocation, device));
+
             return result;
         }
     
