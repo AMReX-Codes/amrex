@@ -3351,12 +3351,12 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
                             int         dstcomp,
                             int         numcomp,
                             const void* src);
-template <>
-void
-BaseFab<Real>::performSetVal (Real       val,
-                              const Box& bx,
-                              int        ns,
-                              int        num);
+// template <>
+// void
+// BaseFab<Real>::performSetVal (Real       val,
+//                               const Box& bx,
+//                               int        ns,
+//                               int        num);
 
 #if 0
 template <>
