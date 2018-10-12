@@ -598,6 +598,7 @@ class ParIterBase
     : public MFIter
 {
 private:
+
     using PCType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ContainerRef    = typename std::conditional<is_const, PCType const&, PCType&>::type;
     using ParticleTileRef = typename std::conditional
@@ -618,6 +619,25 @@ public:
     using ParticleType     = typename ContainerType::ParticleType;
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
+    using ParticleVector   = typename ContainerType::ParticleVector;
+
+#ifdef AMREX_USE_CUDA 
+    typedef thrust::tuple<double, double, double> Double3;
+
+    struct getPosition
+    {        
+        __host__ __device__
+        getPosition() {}
+        
+        __host__ __device__
+        Double3 operator()(const ParticleType& p) const
+        {
+            return thrust::make_tuple(p.m_rdata.pos[0],
+                                      p.m_rdata.pos[1], 
+                                      p.m_rdata.pos[2]);
+        }
+    };
+#endif
 
     ParIterBase (ContainerRef pc, int level);
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
@@ -672,6 +692,26 @@ public:
     using ParticleType     = typename ContainerType::ParticleType;
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
+
+#ifdef AMREX_USE_CUDA
+    struct setPosition
+    {
+
+        __host__ __device__
+        setPosition() {}
+
+        template <typename Tuple>
+        __host__ __device__
+        ParticleType operator()(const Tuple& pos) const
+        {
+            ParticleType p;
+            p.m_rdata.pos[0] = thrust::get<0>(pos);
+            p.m_rdata.pos[1] = thrust::get<1>(pos);
+            p.m_rdata.pos[2] = thrust::get<2>(pos);
+            return p;
+        }
+    };
+#endif
 
     ParIter (ContainerType& pc, int level)
         : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
