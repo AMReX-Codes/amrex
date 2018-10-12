@@ -1365,7 +1365,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                         getThreadComponentBox(tag.sbox,sbx,sc,nc);
                         if (sbx.ok()) {
                             Box dbx = sbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->plus(*sfab,sbx,sc,dbx,sc+(dcomp-scomp),nc);
+                            dfab->plus(*sfab,sbx,dbx,sc,sc+(dcomp-scomp),nc);
                         }
                     });
 		}
