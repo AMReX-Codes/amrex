@@ -29,15 +29,15 @@ def get_file_content(filename=None):
 def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
     # Clean res_dir
     if os.path.exists(res_dir):
-        shutil.rmtree(res_dir)
+        shutil.rmtree(res_dir, ignore_errors=True)
     os.makedirs(res_dir)
     # Copy files to res_dir
     cwd = os.environ['WARPX'] + '/Tools/performance_tests/'
     bin_dir = cwd + 'Bin/'
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
-    # Calculate simulation time. Take 10 min + 10 min / simulation
-    job_time_min = 5. + len(test_list)*2.
+    # Calculate simulation time. Take 5 min + 2 min / simulation
+    job_time_min = 5. + len(test_list)*3.
     job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
     batch_string = ''
     batch_string += '#!/bin/bash\n'

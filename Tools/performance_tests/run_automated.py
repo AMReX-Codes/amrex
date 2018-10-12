@@ -1,3 +1,5 @@
+#!/usr/common/software/python/2.7-anaconda-4.4/bin/python
+
 import os, sys, shutil, datetime
 import argparse, re, time
 import pandas as pd
@@ -9,12 +11,12 @@ parser = argparse.ArgumentParser( description='Run performance tests and write r
 parser.add_argument('--recompile'   , dest='recompile'  , action='store_true' , default=False)
 parser.add_argument('--no-recompile', dest='recompile'  , action='store_false', default=False)
 parser.add_argument('--commit'      , dest='commit'     , action='store_true' , default=False)
-parser.add_argument('--automated'   , dest='automated'  , action='store_true' , default=False                   , help='Use to run the automated test list')
-parser.add_argument('--n_node_list' , dest='n_node_list',                       default=[]                      , help='list ofnumber of nodes for the runs', type=str)
+parser.add_argument('--automated'   , dest='automated'  , action='store_true' , default=False  , help='Use to run the automated test list')
+parser.add_argument('--n_node_list' , dest='n_node_list',                       default=[]     , help='list ofnumber of nodes for the runs', type=str)
 parser.add_argument('--start_date'  , dest='start_date' )
-parser.add_argument('--compiler'    , choices=['gnu', 'intel'],                 default='intel'                 , help='which compiler to use')
-parser.add_argument('--architecture', choices=['cpu', 'knl']  ,                 default='knl'                   , help='which architecture to cross-compile for NERSC machines')
-parser.add_argument('--mode'        , choices=['run', 'read'] ,                 default='run'                   , help='whether to run perftests or read their perf output. run calls read')
+parser.add_argument('--compiler'    , choices=['gnu', 'intel'],                 default='intel', help='which compiler to use')
+parser.add_argument('--architecture', choices=['cpu', 'knl']  ,                 default='knl'  , help='which architecture to cross-compile for NERSC machines')
+parser.add_argument('--mode'        , choices=['run', 'read'] ,                 default='run'  , help='whether to run perftests or read their perf output. run calls read')
 
 args = parser.parse_args()
 do_commit = args.commit
@@ -22,12 +24,17 @@ n_node_list_string   = args.n_node_list.split(',')
 n_node_list = [int(i) for i in n_node_list_string]
 start_date = args.start_date
 
-do_commit = False
-run_name = 'automated_tests'
-perf_database_file = 'automated_tests_database.h5'
-rename_archive = True
-write_csv = True
-store_full_input = False
+if args.automated == True:
+    do_commit = False
+    run_name = 'automated_tests'
+    perf_database_file = 'automated_tests_database.h5'
+    rename_archive = False
+    csv_type = 'alldata' # 'alldata' or 'splitdata'
+    write_csv = True
+    store_full_input = False
+    move_csv = False
+    commit_csv = False
+    pull_3_repos = False
 
 test_list = []
 n_repeat = 2
@@ -43,13 +50,13 @@ n_tests = len(test_list)
 ncell_dict = {'automated_test_1_uniform_rest_32ppc': [128, 128, 128],
               'automated_test_2_uniform_rest_1ppc' : [256, 256, 512],
               'automated_test_3_uniform_drift_4ppc': [128, 128, 128],
-              'automated_test_4_labdiags_2ppc'     : [ 64, 128, 256],
+              'automated_test_4_labdiags_2ppc'     : [ 64,  64, 128],
               'automated_test_5_loadimbalance'     : [128, 128, 128],
               'automated_test_6_output_2ppc'       : [128, 256, 256]}
 nstep_dict = {'automated_test_1_uniform_rest_32ppc': 10,
               'automated_test_2_uniform_rest_1ppc' : 10,
               'automated_test_3_uniform_drift_4ppc': 10,
-              'automated_test_4_labdiags_2ppc'     : 100,
+              'automated_test_4_labdiags_2ppc'     : 50,
               'automated_test_5_loadimbalance'     : 10,
               'automated_test_6_output_2ppc'       : 1}
 
@@ -122,8 +129,9 @@ def process_analysis():
     batch_string = ''
     batch_string += '#!/bin/bash\n'
     batch_string += '#SBATCH --job-name=warpx_1node_read\n'
-    batch_string += '#SBATCH --time=00:05:00\n'
-    batch_string += '#SBATCH -C haswell\n'
+    batch_string += '#SBATCH --time=00:07:00\n'
+#     batch_string += '#SBATCH -C haswell\n'
+    batch_string += '#SBATCH -C knl\n'
     batch_string += '#SBATCH -N 1\n'
     batch_string += '#SBATCH -S 4\n'
     batch_string += '#SBATCH -q regular\n'
@@ -210,31 +218,38 @@ for n_node in n_node_list:
 
         # Extract small data from data frame and write them to 
         if write_csv == True:
+            # First, generate csv files
             df = pd.read_hdf( perf_database_file )
             # One large file
-#             df.loc[:,'step_time'] = pd.Series(df['time_running']/df['n_steps'], index=df.index)
-#             df.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi', 'n_omp', 'rep', 'start_date', 'time_initialization', 'step_time'] ].to_csv( 'cori_knl.csv' )            
+            if csv_type == 'alldata':
+                df.loc[:,'step_time'] = pd.Series(df['time_running']/df['n_steps'], index=df.index)
+                df.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi_per_node', 'n_omp', 'rep', 'start_date', 'time_initialization', 'step_time'] ].to_csv( 'cori_knl.csv' )      
+            # Split full data frame into one dataframe per nnode/test, and then write to csv.
+            # Errors may occur depending on the version of pandas. I had errors with v0.21.0 solved with 0.23.0
+            if csv_type == 'splitdata':
+                # one csv file per nnode
+                for n_node in pd.unique(df['n_node']):
+                    df_small = df[ df['n_node'] == n_node ]
+                    df_small.loc[:,'step_time'] = pd.Series(df_small['time_running']/df_small['n_steps'], index=df_small.index)
+                    df_small = df_small.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi', 'rep', 'n_omp', 'start_date', 'time_initialization', 'step_time'] ]
+                    agg_df_small = df_small.groupby(['input_file', 'n_node', 'start_date']).aggregate('mean')
+                    metadata = df_small[df_small['rep']==0][['date', 'git_hashes', 'input_file', 'n_node', 'start_date']].copy()
+                    df_to_write = pd.merge(metadata, agg_df_small, how='left', on=['input_file', 'n_node', 'start_date']).drop('rep', axis=1)
+                    df_to_write.to_csv( 'cori_knl_alltests_nnode_' + str(n_node) + '.csv' )
 
-            # one csv file per nnode
-            for n_node in pd.unique(df['n_node']):
-                df_small = df[ df['n_node'] == n_node ]
-                df_small.loc[:,'step_time'] = pd.Series(df_small['time_running']/df_small['n_steps'], index=df_small.index)
-                df_small = df_small.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi', 'rep', 'n_omp', 'start_date', 'time_initialization', 'step_time'] ]
-                agg_df_small = df_small.groupby(['input_file', 'n_node', 'start_date']).aggregate('mean')
-                metadata = df_small[df_small['rep']==0][['date', 'git_hashes', 'input_file', 'n_node', 'start_date']].copy()
-                df_to_write = pd.merge(metadata, agg_df_small, how='left', on=['input_file', 'n_node', 'start_date']).drop('rep', axis=1)
-                df_to_write.to_csv( 'cori_knl_alltests_nnode_' + str(n_node) + '.csv' )
-
-            # one csv file per test
-            for test_name in pd.unique(df['input_file']):
-                df_small = df[ df['input_file'] == test_name ]
-                df_small.loc[:,'step_time'] = pd.Series(df_small['time_running']/df_small['n_steps'], index=df_small.index)
-                df_small = df_small.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi', 'rep', 'n_omp', 'start_date', 'time_initialization', 'step_time'] ]
-                agg_df_small = df_small.groupby(['input_file', 'n_node', 'start_date']).aggregate('mean')
-                metadata = df_small[df_small['rep']==0][['date', 'git_hashes', 'input_file', 'n_node', 'start_date']].copy()
-                df_to_write = pd.merge(metadata, agg_df_small, how='left', on=['input_file', 'n_node', 'start_date']).drop('rep', axis=1)
-                df_to_write.to_csv( 'cori_knl_allnnodes_' + test_name + '.csv' )
-
+                # one csv file per test
+                for test_name in pd.unique(df['input_file']):
+                    df_small = df[ df['input_file'] == test_name ]
+                    df_small.loc[:,'step_time'] = pd.Series(df_small['time_running']/df_small['n_steps'], index=df_small.index)
+                    df_small = df_small.loc[:, ['date', 'input_file', 'git_hashes', 'n_node', 'n_mpi', 'rep', 'n_omp', 'start_date', 'time_initialization', 'step_time'] ]
+                    agg_df_small = df_small.groupby(['input_file', 'n_node', 'start_date']).aggregate('mean')
+                    metadata = df_small[df_small['rep']==0][['date', 'git_hashes', 'input_file', 'n_node', 'start_date']].copy()
+                    df_to_write = pd.merge(metadata, agg_df_small, how='left', on=['input_file', 'n_node', 'start_date']).drop('rep', axis=1)
+                    df_to_write.to_csv( 'cori_knl_allnnodes_' + test_name + '.csv' )
+            # Second, move files to perf_logs repo
+            if move_csv:
+                if csv_type == 'alldata':
+                    shutil.move( 'cori_knl.csv', os.environ('PERF_LOGS_REPO') + '/logs_csv/cori_knl.csv' )
         # Rename directory with precise date for archive purpose
         if rename_archive == True:
             loc_counter = 0
