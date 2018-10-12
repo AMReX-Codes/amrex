@@ -1,6 +1,30 @@
 import os, shutil, re
 import pandas as pd
 import numpy as np
+import git
+
+def scale_ncell(ncell, n_node):
+     ncell_scaled = ncell[:]
+     index_dim = 0
+     while n_node > 1:
+         ncell_scaled[index_dim] *= 2
+         n_node /= 2
+         index_dim = (index_dim+1) % 3
+     return ncell_scaled
+
+def store_git_hash(repo_path=None, filename=None, name=None):
+    print( repo_path, filename, name )
+    repo = git.Repo(path=repo_path)
+    sha = repo.head.object.hexsha
+    file_handler = open( filename, 'a+' )
+    file_handler.write( name + ':' + sha + ' ')
+    file_handler.close()
+
+def get_file_content(filename=None):
+    file_handler = open( filename, 'r' )
+    file_content = file_handler.read()
+    file_handler.close()
+    return file_content
 
 def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
     # Clean res_dir
@@ -13,7 +37,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
     # Calculate simulation time. Take 10 min + 10 min / simulation
-    job_time_min = 5. + len(test_list)*3.
+    job_time_min = 5. + len(test_list)*2.
     job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
     batch_string = ''
     batch_string += '#!/bin/bash\n'
@@ -55,7 +79,7 @@ def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='
     f_exe.write(batch_string)
     f_exe.close()
     os.system('chmod 700 ' + bin_name)
-    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp_' + str(n_node) + '.txt')
+    os.system(config_command + 'sbatch ' + batch_file + ' >> ' + cwd + 'log_jobids_tmp.txt')
     return 0
 
 def run_batch(run_name, res_dir, bin_name, config_command, architecture='knl',\
@@ -191,7 +215,7 @@ def extract_dataframe(filename, n_steps):
     df.loc[0] = time_array
     df['time_initialization'] = total_time - time_wo_initialization
     df['time_running'] = time_wo_initialization
-    df['string_output'] = partition_limit_start + '\n' + search_area
+    # df['string_output'] = partition_limit_start + '\n' + search_area
     return df
 
 # Run a performance test in an interactive allocation                                                                                                                                                                                                                            
