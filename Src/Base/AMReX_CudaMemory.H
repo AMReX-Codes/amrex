@@ -47,6 +47,57 @@ struct Pinned {
 #endif
 };
 
+template <class T, typename std::enable_if<std::is_pod<T>::value,int>::type = 0 > 
+struct ManagedData
+{
+    ManagedData ()
+    {
+        cudaMalloc(&d_d, std::size_t(sizeof(T)));
+    }
+
+    ManagedData (T const & h_d)
+    : ManagedData()
+    {
+        *d_d = h_d;
+    }
+
+    ~ManagedData ()
+    {
+        cudaFree(d_d);
+    }
+
+    T* devicePtr() &
+    {
+        return d_d;
+    }
+
+    T const * devicePtr() const&
+    {
+        return d_d;
+    }
+
+    T hostValue () const
+    {
+        T t;
+//        cudaMemcpy(&t, d_d, sizeof(T), cudaMemDeviceToHost);
+        return t; 
+    }
+
+    void updateDevice(const T &t)
+    {
+//        cudaMemcpy(d_d, &t, sizeof(T), cudaMemHostToDevice);
+    }
+
+    T* data() && = delete; 
+    ManagedData(ManagedData const &) = delete;
+    ManagedData(ManagedData &&) = delete;
+    void operator = (ManagedData const &) = delete;
+    void operator = (ManagedData &&) = delete; 
+
+    private:
+    T* d_d = nullptr;
+};
+
 }  //namespace
 
 
