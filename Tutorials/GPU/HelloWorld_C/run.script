@@ -16,7 +16,7 @@ export OMP_NUM_THREADS=${omp}
 EXE="./main3d.pgi.CUDA.ex"
 #EXE="../main3d.pgi.CUDA.ex"
 JSRUN="jsrun -n 1 -a 1 -g 1 -c 1 --bind=packed:${omp}"
-INPUTS=inputs_geometry
+INPUTS=inputs_3d
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #mkdir $rundir

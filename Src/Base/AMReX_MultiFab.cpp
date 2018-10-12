@@ -38,21 +38,43 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 
     BL_PROFILE("MultiFab::Dot()");
 
-    Real sm = 0.0;
+    Real* sm; 
+#ifdef AMREX_USE_CUDA
+    cudaMallocManaged(&sm, sizeof(Real));
+#endif
+    *sm = 0.0;
+// memSet?
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#pragma omp parallel if ((!system::regtest_reduction) && (!Device::inDeviceRegion())) reduction(+:sm)
 #endif
-    for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        sm += x[mfi].dot(bx,xcomp,y[mfi],bx,ycomp,numcomp);
+        const FArrayBox* fx = &(x[mfi]);
+        const FArrayBox* fy = &(y[mfi]);
+
+        AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx),
+        [=] AMREX_CUDA_HOST_DEVICE 
+        {
+            const Box& tbx = getThreadBox(bx);
+            if (tbx.ok()) {
+               CudaAtomicAdd(sm, fx->dot(tbx,xcomp,*fy,tbx,ycomp,numcomp));
+            }
+        });
+
     }
 
-    if (!local)
-        ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+    Real tot = *sm;
 
-    return sm;
+#ifdef AMREX_USE_CUDA
+    cudaFree(sm);
+#endif
+
+    if (!local)
+        ParallelAllReduce::Sum(tot, ParallelContext::CommunicatorSub());
+
+    return tot;
 }
 
 Real
