@@ -70,6 +70,14 @@ namespace amrex {
 
 // ************************************************
 
+    struct ComponentBox {
+        Box box;
+        int ic;
+        int nc;
+    };
+
+// ************************************************
+
     AMREX_CUDA_HOST_DEVICE
     Box getThreadBox (const Box& bx);
 
@@ -77,7 +85,7 @@ namespace amrex {
 //    Box getThreadBox (const Box& bx, const IntVect& typ);
 
     AMREX_CUDA_HOST_DEVICE
-    void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncomp);
+    ComponentBox getThreadComponentBox (const Box& box, int ncomp);
 
     AMREX_CUDA_HOST_DEVICE
     void getThreadIndex (int &index, int &size, const int num_particles);
