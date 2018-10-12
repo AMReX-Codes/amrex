@@ -1055,6 +1055,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     thrust::device_vector<int> index_sequence;
     thrust::device_vector<int> grids_to_redistribute;
 
+    // temporaries
+    thrust::device_vector<ParticleType> aos_r;
+    thrust::device_vector<int> grids_r;
+    std::array< thrust::device_vector<Real>, NArrayReal> rdata_r;
+    std::array< thrust::device_vector<int>, NArrayReal> idata_r;
+
     //
     // First pass - figure out what grid each particle should be on, and copy
     // the ones that move into a temporary buffer
@@ -1114,7 +1120,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         //
         {
             // reorder structs
-            thrust::device_vector<ParticleType> aos_r(old_np);
+            aos_r.resize(old_np);
             thrust::copy_n(thrust::device,
                 thrust::make_permutation_iterator(
                 thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
@@ -1124,7 +1130,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                          thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())));
 
             // reorder grids
-            thrust::device_vector<int> grids_r(old_np);
+            grids_r.resize(old_np);
             thrust::copy_n(thrust::device,
                            thrust::make_permutation_iterator(grids.begin(),
                                                              index_sequence.begin()), 
@@ -1134,26 +1140,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             // reorder real arrays
             for (int j = 0; j < NArrayReal; ++j)
             {
-                thrust::device_vector<Real> rdata_r(old_np);
+                rdata_r[j].resize(old_np);
                 auto& rdata = soa.GetRealData(j);
                 thrust::copy_n(thrust::device,
                                thrust::make_permutation_iterator(thrust::device_ptr<Real>(rdata.data()),
                                                        index_sequence.begin()), 
-                     old_np, rdata_r.begin());
-                thrust::copy(thrust::device, rdata_r.begin(), rdata_r.end(), 
+                     old_np, rdata_r[j].begin());
+                thrust::copy(thrust::device, rdata_r[j].begin(), rdata_r[j].end(), 
                              thrust::device_ptr<Real>(rdata.data()));
             }
 
             // reorder int arrays
             for (int j = 0; j < NArrayInt; ++j)
             {
-                thrust::device_vector<int> idata_r(old_np);
+                idata_r[j].resize(old_np);
                 auto& idata = soa.GetIntData(j);
                 thrust::copy_n(thrust::device,
                                thrust::make_permutation_iterator(thrust::device_ptr<int>(idata.data()),
                                                                  index_sequence.begin()), 
-                    old_np, idata_r.begin());
-                thrust::copy(thrust::device, idata_r.begin(), idata_r.end(), 
+                    old_np, idata_r[j].begin());
+                thrust::copy(thrust::device, idata_r[j].begin(), idata_r[j].end(), 
                              thrust::device_ptr<int>(idata.data()));
             }
         }
@@ -1228,7 +1234,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
             // reorder structs
             auto& aos = particles_to_redistribute.GetArrayOfStructs();
-            thrust::device_vector<ParticleType> aos_r(num_to_move);
+            aos_r.resize(num_to_move);
             thrust::copy_n(thrust::device,
                 thrust::make_permutation_iterator(
                                                   thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
@@ -1241,26 +1247,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto& soa = particles_to_redistribute.GetStructOfArrays();
             for (int j = 0; j < NArrayReal; ++j)
             {
-                thrust::device_vector<Real> rdata_r(num_to_move);
+                rdata_r[j].resize(num_to_move);
                 auto& rdata = soa.GetRealData(j);
                 thrust::copy_n(thrust::device,
                                thrust::make_permutation_iterator(thrust::device_ptr<Real>(rdata.data()),
                                                                  index_sequence.begin()), 
-                    num_to_move, rdata_r.begin());
-                thrust::copy(thrust::device, rdata_r.begin(), rdata_r.end(), 
+                    num_to_move, rdata_r[j].begin());
+                thrust::copy(thrust::device, rdata_r[j].begin(), rdata_r[j].end(), 
                              thrust::device_ptr<Real>(rdata.data()));
             }
 
             // reorder int arrays
             for (int j = 0; j < NArrayInt; ++j)
             {
-                thrust::device_vector<int> idata_r(num_to_move);
+                idata_r[j].resize(num_to_move);
                 auto& idata = soa.GetIntData(j);
                 thrust::copy_n(thrust::device,
                                thrust::make_permutation_iterator(thrust::device_ptr<int>(idata.data()),
                                                                  index_sequence.begin()), 
-                    num_to_move, idata_r.begin());
-                thrust::copy(thrust::device, idata_r.begin(), idata_r.end(), 
+                    num_to_move, idata_r[j].begin());
+                thrust::copy(thrust::device, idata_r[j].begin(), idata_r[j].end(), 
                              thrust::device_ptr<int>(idata.data()));
             }
         }
