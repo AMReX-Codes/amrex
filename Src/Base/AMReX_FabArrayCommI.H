@@ -44,7 +44,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.dbox,ncomp),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.dbox,ncomp),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
@@ -237,7 +237,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(get(tag.srcIndex));
 
-                        AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
+                        AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx,ncomp),
                         [=] AMREX_CUDA_HOST_DEVICE ()
                         {
                             ComponentBox cb = getThreadComponentBox(bx, ncomp);
@@ -394,7 +394,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.dbox,ncomp),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.dbox,ncomp),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
@@ -423,7 +423,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 const FAB* sfab = &(get(tag.srcIndex));
                       FAB* dfab = &(get(tag.dstIndex));
 
-                AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.dbox,ncomp),
+                AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.dbox,ncomp),
                 [=] AMREX_CUDA_HOST_DEVICE ()
                 {
                     ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
@@ -522,7 +522,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int scomp = fb_scomp;
                         const int ncomp = fb_ncomp;
 
-                        AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
+                        AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx,ncomp),
                         [=] AMREX_CUDA_HOST_DEVICE () 
                         {
                             ComponentBox cb = getThreadComponentBox(bx, ncomp);
@@ -662,7 +662,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                       FAB* dfab = &(get(fai));
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         Box tbx = getThreadBox(bx);
@@ -671,7 +671,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         }
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         ComponentBox cb = getThreadComponentBox(bx, ncomp);
@@ -705,7 +705,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                       FAB* dfab = &(get(tag.dstIndex));
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.sbox),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         Box tbx = getThreadBox(tag.sbox);
@@ -715,7 +715,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         }
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);
@@ -1267,7 +1267,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                       FAB* dfab = &(get(fai));
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         ComponentBox cb = getThreadComponentBox(bx, ncomp);
@@ -1276,7 +1276,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                         }
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx,ncomp),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         ComponentBox cb = getThreadComponentBox(bx, ncomp);
@@ -1310,7 +1310,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                       FAB* dfab = &(get(tag.dstIndex));
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);
@@ -1320,7 +1320,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                         }
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_LAMBDA( Strategy(tag.sbox,ncomp),
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(tag.sbox,ncomp),
                     [=] AMREX_CUDA_HOST_DEVICE ()
                     {
                         ComponentBox cb = getThreadComponentBox(tag.sbox, ncomp);

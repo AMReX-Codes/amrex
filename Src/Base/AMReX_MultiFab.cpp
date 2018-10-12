@@ -121,7 +121,7 @@ MultiFab::Add (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -169,7 +169,7 @@ MultiFab::Copy (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -244,7 +244,7 @@ MultiFab::Subtract (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -292,7 +292,7 @@ MultiFab::Multiply (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -340,7 +340,7 @@ MultiFab::Divide (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_LAMBDA(Strategy(bx),
+            AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(bx),
             [=] AMREX_CUDA_HOST_DEVICE ()
             {
                 Box tbx = getThreadBox(bx);
@@ -368,14 +368,25 @@ MultiFab::Saxpy (MultiFab&       dst,
     BL_PROFILE("MultiFab::Saxpy()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok())
-            dst[mfi].saxpy(a, src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        if (bx.ok()) {
+            const FArrayBox* sfab = &(src[mfi]);
+                  FArrayBox* dfab = &(dst[mfi]);
+
+            AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx),
+            [=] AMREX_CUDA_HOST_DEVICE ()
+            {
+                Box tbx = getThreadBox(bx);
+                if (tbx.ok()) {
+                    dfab->saxpy(a, *sfab, tbx, tbx, srccomp, dstcomp, numcomp);
+                }
+            });
+        }
     }
 }
 

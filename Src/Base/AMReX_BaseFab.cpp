@@ -210,31 +210,31 @@ The_Nvar_Arena ()
 }
 #endif
 
-#ifdef AMREX_USE_GPU_PRAGMA
-// template<>
-// void
-// BaseFab<Real>::performCopy (const BaseFab<Real>& src,
-//                             const Box&           srcbox,
-//                             int                  srccomp,
-//                             const Box&           destbox,
-//                             int                  destcomp,
-//                             int                  numcomp)
-// {
-//     BL_ASSERT(destbox.ok());
-//     BL_ASSERT(src.box().contains(srcbox));
-//     BL_ASSERT(box().contains(destbox));
-//     BL_ASSERT(destbox.sameSize(srcbox));
-//     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-//     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+#if defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_USE_BASEFAB_CPP)
+template<>
+void
+BaseFab<Real>::performCopy (const BaseFab<Real>& src,
+                            const Box&           srcbox,
+                            int                  srccomp,
+                            const Box&           destbox,
+                            int                  destcomp,
+                            int                  numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-// #pragma gpu
-//     amrex_fort_fab_copy
-//         (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
-//          BL_TO_FORTRAN_N_ANYD(*this,destcomp),
-//          BL_TO_FORTRAN_N_ANYD(src,srccomp),
-//          AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
-//          numcomp);
-// }
+#pragma gpu
+    amrex_fort_fab_copy
+        (AMREX_INT_ANYD(destbox.loVect()), AMREX_INT_ANYD(destbox.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,destcomp),
+         BL_TO_FORTRAN_N_ANYD(src,srccomp),
+         AMREX_INT_ANYD(srcbox.loVect()), AMREX_INT_ANYD(destbox.loVect()),
+         numcomp);
+}
 
 template <>
 std::size_t
@@ -289,22 +289,22 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
     }
 }
 
-// template<>
-// void
-// BaseFab<Real>::performSetVal (Real       val,
-//                               const Box& bx,
-//                               int        comp,
-//                               int        ncomp)
-// {
-//     BL_ASSERT(domain.contains(bx));
-//     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+template<>
+void
+BaseFab<Real>::performSetVal (Real       val,
+                              const Box& bx,
+                              int        comp,
+                              int        ncomp)
+{
+    BL_ASSERT(domain.contains(bx));
+    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-// #pragma gpu
-//     amrex_fort_fab_setval
-//         (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
-//          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
-//          val);
-// }
+#pragma gpu
+    amrex_fort_fab_setval
+        (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
+         BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
+         val);
+}
 
 // comment this out because they don't have pragma gpu
 #if 0

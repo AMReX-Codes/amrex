@@ -11,7 +11,7 @@
 // ************************************************
 // CUDA versions
 
-#define AMREX_CUDA_LAUNCH_LAMBDA(strategy, ...) \
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
     { \
       if (amrex::Device::inLaunchRegion()) \
       { \
@@ -22,6 +22,20 @@
       else \
       { \
          amrex::launch_host(__VA_ARGS__); \
+      } \
+    }
+
+#define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) \
+    { \
+      if (amrex::Device::inLaunchRegion()) \
+      { \
+         auto st = strategy; \
+         amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         CudaErrorCheck(); \
+      } \
+      else \
+      { \
+         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE: cannot call device function from host"); \
       } \
     }
 
@@ -38,7 +52,8 @@
 // ************************************************
 // CPU versions
 
-#define AMREX_CUDA_LAUNCH_LAMBDA(strategy, ...) amrex::launch_host(__VA_ARGS__);
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
+#define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
 #define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) function(__VA_ARGS__);
 
 #endif
@@ -52,13 +67,13 @@ namespace amrex {
     AMREX_CUDA_GLOBAL void launch_global (L f0) { f0(); }
 
     template<class L, class... Lambdas>
-    AMREX_CUDA_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); launch_device(fs...); }
+    AMREX_CUDA_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
     
     template<class L>
-    AMREX_CUDA_DEVICE void launch_device (L f0) { f0(); }
+    AMREX_CUDA_DEVICE void call_device (L f0) { f0(); }
     
     template<class L, class... Lambdas>
-    AMREX_CUDA_DEVICE void launch_device (L f0, Lambdas... fs) { f0(); launch_device(fs...); }
+    AMREX_CUDA_DEVICE void call_device (L f0, Lambdas... fs) { f0(); call_device(fs...); }
     
 // CPU variation
 
