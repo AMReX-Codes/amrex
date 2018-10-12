@@ -443,13 +443,8 @@ amrex::Device::stop_profiler() {
 void
 amrex::Device::c_comps_threads_and_blocks(const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads) {
 
-    // Increase size of the "box" to account for the number of components.
-    // Otherwise, identical. 
-    const int hitmp[] = {AMREX_D_DECL((hi[0]-lo[0]+1)*comps + lo[0] - 1,
-                                      hi[1], hi[2])};
-
-    c_threads_and_blocks(lo, hitmp, numBlocks, numThreads);
-
+    c_threads_and_blocks(lo, hi, numBlocks, numThreads);
+    numBlocks.x *= static_cast<unsigned>(comps);
 }
 
 void

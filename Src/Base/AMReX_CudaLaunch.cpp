@@ -80,19 +80,21 @@ getThreadComponentBox (const Box& bx, int ncomp)
      // Don't use getThreadBox because these will initially be outside bx, which represents the
      // component of each thread. So, don't want to do (bx & threadBox) yet until that information
      // is extracted.
-    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
-                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
-                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
+    AMREX_D_TERM(long i0 = threadIdx.x + blockDim.x*(blockIdx.x);,
+                 int  i1 = threadIdx.y + blockDim.y*(blockIdx.y);,
+                 int  i2 = threadIdx.z + blockDim.z*(blockIdx.z));
 
-    // On GPU, each thread works on one component. (Update later for very big boxes.)
-    ComponentBox r{Box(iv,iv,bx.type()), 0, 1};
+    long compDim = static_cast<long>(blockDim.x*gridDim.x)/static_cast<long>(ncomp);
+    long quot = i0 / compDim;
+    long rem = i0 - quot*compDim;
+    int icomp = quot;
+    IntVect iv{AMREX_D_DECL(static_cast<int>(rem), i1, i2)};
 
-    int dcomp =  iv[0] / bx.length(0);
-    if (dcomp >= ncomp) {
+    ComponentBox r{Box(iv,iv,bx.type()), icomp, 1};
+
+    if (icomp >= ncomp) {
         r.box = Box();
     } else {
-        r.ic += dcomp;
-        r.box.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
         r.box += bx.smallEnd();
         r.box &= bx;
     }
