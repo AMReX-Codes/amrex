@@ -54,7 +54,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
         const FArrayBox* fx = &(x[mfi]);
         const FArrayBox* fy = &(y[mfi]);
 
-        AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx),
+        AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx),
         [=] AMREX_CUDA_HOST_DEVICE 
         {
             const Box& tbx = getThreadBox(bx);
