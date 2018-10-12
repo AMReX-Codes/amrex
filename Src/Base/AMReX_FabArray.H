@@ -1360,16 +1360,7 @@ template <class>
 void
 FabArray<FAB>::setVal (value_type val)
 {
-    BL_PROFILE("FabArray::setVal(val)");
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
-    {
-	const Box& bx = fai.growntilebox();
-        get(fai).setVal(val, bx, 0, n_comp);
-    }
+    setVal(val,0,n_comp,n_grow);
 }
 
 template <class FAB>
@@ -1392,7 +1383,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class>
+template <class FOO>  // FOO fools nvcc
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -1402,15 +1393,24 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    BL_PROFILE("FabArray::setVal(val,comp,ncomp,nghost)");
+    BL_PROFILE("FabArray::setVal()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
+    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
-        get(fai).setVal(val, bx, comp, ncomp);
+        FAB* fab = &(get(fai));
+
+        AMREX_CUDA_LAUNCH_LAMBDA( Strategy(bx),
+        [=] AMREX_CUDA_HOST_DEVICE ()
+        {
+            Box tbx = getThreadBox(bx);
+            if (tbx.ok()) {
+                fab->setVal(val, tbx, comp, ncomp);
+            }
+        });
     }
 }
 
@@ -1427,7 +1427,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class>
+template <class FOO> // Foo fools nvcc
 void
 FabArray<FAB>::setVal (value_type val,
                        const Box& region,
@@ -1441,14 +1441,24 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
+    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
         Box b = fai.growntilebox(nghost) & region;
 
-        if (b.ok())
-            get(fai).setVal(val, b, comp, ncomp);
+        if (b.ok()) {
+            FAB* fab = &(get(fai));
+
+            AMREX_CUDA_LAUNCH_LAMBDA( Strategy(b),
+            [=] AMREX_CUDA_HOST_DEVICE ()
+            {
+                Box tbx = getThreadBox(b);
+                if (tbx.ok()) {
+                    fab->setVal(val, tbx, comp, ncomp);
+                }
+            });
+        }
     }
 }
 

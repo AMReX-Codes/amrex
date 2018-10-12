@@ -289,22 +289,22 @@ BaseFab<Real>::copyFromMem (const Box&  dstbox,
     }
 }
 
-template<>
-void
-BaseFab<Real>::performSetVal (Real       val,
-                              const Box& bx,
-                              int        comp,
-                              int        ncomp)
-{
-    BL_ASSERT(domain.contains(bx));
-    BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
+// template<>
+// void
+// BaseFab<Real>::performSetVal (Real       val,
+//                               const Box& bx,
+//                               int        comp,
+//                               int        ncomp)
+// {
+//     BL_ASSERT(domain.contains(bx));
+//     BL_ASSERT(comp >= 0 && comp + ncomp <= nvar);
 
-#pragma gpu
-    amrex_fort_fab_setval
-        (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
-         BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
-         val);
-}
+// #pragma gpu
+//     amrex_fort_fab_setval
+//         (AMREX_INT_ANYD(bx.loVect()), AMREX_INT_ANYD(bx.hiVect()),
+//          BL_TO_FORTRAN_N_ANYD(*this,comp), ncomp,
+//          val);
+// }
 
 // comment this out because they don't have pragma gpu
 #if 0
