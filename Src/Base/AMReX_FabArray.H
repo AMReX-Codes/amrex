@@ -1446,13 +1446,9 @@ FabArray<FAB>::setVal (value_type val,
         if (b.ok()) {
             FAB* fab = &(get(fai));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(b),
-            [=] AMREX_CUDA_HOST_DEVICE ()
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {
-                Box tbx = getThreadBox(b);
-                if (tbx.ok()) {
-                    fab->setVal(val, tbx, comp, ncomp);
-                }
+                fab->setVal(val, tbx, comp, ncomp);
             });
         }
     }
