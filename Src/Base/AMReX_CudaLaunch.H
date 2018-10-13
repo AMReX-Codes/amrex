@@ -184,6 +184,31 @@ namespace amrex {
         return old;
     }
 
+    template<class T>
+    AMREX_CUDA_HOST_DEVICE
+    T CudaAtomicMin(T* m, T value) {
+
+#ifdef AMREX_USE_CUDA
+        Real old = atomicMin(m, value);
+#else
+        Real old = *m;
+        *m = (*m) < value ? (*m) : value;
+#endif
+        return old;
+    }
+
+    template<class T>
+    AMREX_CUDA_HOST_DEVICE
+    T CudaAtomicMax(T* m, T value) {
+
+#ifdef AMREX_USE_CUDA
+        Real old = atomicMax(m, value);
+#else
+        Real old = *m;
+        *m = (*m) > value ? (*m) : value;
+#endif
+        return old;
+    }
 }
 
 #endif
