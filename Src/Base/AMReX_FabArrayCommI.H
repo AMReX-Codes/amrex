@@ -506,7 +506,7 @@ FabArray<FAB>::FillBoundary_finish ()
                         const int scomp = fb_scomp;
                         const int ncomp = fb_ncomp;
 
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE(bx, tbx,
+                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                         {
                             const char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
                             std::size_t stride = sizeof(value_type)*bx.numPts();
