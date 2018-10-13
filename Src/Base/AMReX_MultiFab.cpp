@@ -41,11 +41,14 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     Real* sm; 
 #ifdef AMREX_USE_CUDA
     cudaMallocManaged(&sm, sizeof(Real));
+#else
+    sm = static_cast<Real*>(malloc(sizeof(Real)));
 #endif
     *sm = 0.0;
 // memSet?
+// reduction(+:sm) does not work with OMP
 
-#ifdef _OPENMP
+#ifdef _OPENMPxxxxx
 #pragma omp parallel if ((!system::regtest_reduction) && (!Device::inDeviceRegion())) reduction(+:sm)
 #endif
     for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -69,6 +72,8 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 
 #ifdef AMREX_USE_CUDA
     cudaFree(sm);
+#else
+    free(sm);
 #endif
 
     if (!local)

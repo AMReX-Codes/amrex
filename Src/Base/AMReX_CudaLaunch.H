@@ -11,6 +11,36 @@
 // ************************************************
 // CUDA versions
 
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
+    if (amrex::Device::inLaunchRegion()) \
+    { \
+        auto amrex_i_st = Strategy(bbb); \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        [=] AMREX_CUDA_HOST_DEVICE () { \
+            Box tbb = amrex::getThreadBox(bbb); \
+            if (tbb.ok()) block \
+        }); \
+    } \
+    else { \
+        const amrex::Box& tbb = bbb; \
+        block \
+    }
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
+    if (amrex::Device::inLaunchRegion()) \
+    { \
+        auto amrex_i_st = Strategy(bbb); \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        [=] AMREX_CUDA_DEVICE () { \
+            Box tbb = amrex::getThreadBox(bbb); \
+            if (tbb.ok()) block \
+        }); \
+    } \
+    else { \
+        const amrex::Box& tbb = bbb; \
+        block \
+    }
+
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
     { \
       if (amrex::Device::inLaunchRegion()) \
@@ -51,6 +81,18 @@
 
 // ************************************************
 // CPU versions
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
+    { \
+        const amrex::Box& tbb = bbb; \
+        block \
+    }
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
+    { \
+        const amrex::Box& tbb = bbb; \
+        block \
+    }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
 #define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
@@ -138,7 +180,7 @@ namespace amrex {
 #ifdef AMREX_USE_CUDA
         old = atomicAdd(sum, value);           
 #else
-        old = *sm;
+        old = *sum;
         *sum += value;
 #endif
         return old;
