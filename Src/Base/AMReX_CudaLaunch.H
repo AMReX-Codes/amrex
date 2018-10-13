@@ -37,8 +37,7 @@
         }); \
     } \
     else { \
-        const amrex::Box& tbb = bbb; \
-        block \
+        amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
