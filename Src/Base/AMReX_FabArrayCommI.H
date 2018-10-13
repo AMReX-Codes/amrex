@@ -1026,8 +1026,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 // avoid self copy or plus
 		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                    const FArrayBox* sfab = &(src[tag.srcIndex]);
-                          FArrayBox* dfab = &(get(tag.dstIndex));
+                    const FAB* sfab = &(src[tag.srcIndex]);
+                          FAB* dfab = &(get(tag.dstIndex));
 
 		    if (op == FabArrayBase::COPY) {
                         AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
@@ -1056,8 +1056,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 // avoid self copy or plus
 		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                    const FArrayBox* sfab = &(src[tag.srcIndex]);
-                          FArrayBox* dfab = &(get(tag.dstIndex));
+                    const FAB* sfab = &(src[tag.srcIndex]);
+                          FAB* dfab = &(get(tag.dstIndex));
 
 		    if (op == FabArrayBase::COPY) {
                         AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
@@ -1548,8 +1548,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 		
             // avoid self copy or plus
             if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                const FArrayBox* sfab = &(src[tag.srcIndex]);
-                      FArrayBox* dfab = &(get(tag.dstIndex));
+                const FAB* sfab = &(src[tag.srcIndex]);
+                      FAB* dfab = &(get(tag.dstIndex));
 
                 if (op == FabArrayBase::COPY) {
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
@@ -1579,8 +1579,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             
             // avoid self copy or plus
             if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                const FArrayBox* sfab = &(src[tag.srcIndex]);
-                      FArrayBox* dfab = &(get(tag.dstIndex));
+                const FAB* sfab = &(src[tag.srcIndex]);
+                      FAB* dfab = &(get(tag.dstIndex));
 
                 if (op == FabArrayBase::COPY) {
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
@@ -2029,8 +2029,8 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
             const Box& bx = fai.growntilebox(nghost);
-            const FArrayBox* sfab = &(src[fai]);
-                  FArrayBox* dfab = &(get(fai));
+            const FAB* sfab = &(src[fai]);
+                  FAB* dfab = &(get(fai));
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
