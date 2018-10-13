@@ -176,11 +176,10 @@ namespace amrex {
     AMREX_CUDA_HOST_DEVICE
     T CudaAtomicAdd(T* sum, T value) {
 
-        Real old;
 #ifdef AMREX_USE_CUDA
-        old = atomicAdd(sum, value);           
+        Real old = atomicAdd(sum, value);           
 #else
-        old = *sum;
+        Real old = *sum;
         *sum += value;
 #endif
         return old;
