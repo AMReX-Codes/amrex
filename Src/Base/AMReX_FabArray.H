@@ -611,6 +611,7 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FillBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
@@ -633,6 +634,7 @@ public:
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false);

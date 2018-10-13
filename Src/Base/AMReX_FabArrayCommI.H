@@ -2,6 +2,7 @@
 
 
 template <class FAB>
+template <class FOO>  // FOO fools nvcc
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
@@ -217,66 +218,33 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     if (N_snds > 0)
     {
-        if (amrex::IsBaseFab<FAB>::value)
-        {
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
 #endif
-            for (int j=0; j<N_snds; ++j)
-            {
-                char* dptr = send_data[j];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *send_cctc[j];
-                    for (auto const& tag : cctc)
-                    {
-                        const Box& bx = tag.sbox;
-                        const FAB* sfab = &(get(tag.srcIndex));
-
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                        {
-                            char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                            std::size_t stride = sizeof(value_type)*bx.numPts();
-                            for (int ic = 0; ic < ncomp; ++ic) {
-                                sfab->copyToMem(tbx, ic+scomp, 1, p);
-                                p += stride;
-                            }
-                        });
-
-                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
-                    }
-                    BL_ASSERT(dptr == send_data[j] + send_size[j]); 
-                }
-            }
-#ifdef AMREX_USE_CUDA
-            Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
-#endif
-        }
-        else  // Original, accounting for non-BaseFab objects. No GPU version yet. 
+        for (int j=0; j<N_snds; ++j)
         {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "Not supported");
-#ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe())
-#endif
-           for (int j=0; j<N_snds; ++j)
-           {
-              char* dptr = send_data[j];
-              if (dptr != nullptr)
-              {
-                 auto const& cctc = *send_cctc[j];
-                 for (auto const& tag : cctc)
-                 {
+            char* dptr = send_data[j];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *send_cctc[j];
+                for (auto const& tag : cctc)
+                {
                     const Box& bx = tag.sbox;
-                    auto n = (*this)[tag.srcIndex].copyToMem(bx,scomp,ncomp,dptr);
-                    dptr += n;
-                 }
-                 BL_ASSERT(dptr == send_data[j] + send_size[j]);
-              }
-           } 
-        }
+                    const FAB* sfab = &(get(tag.srcIndex));
 
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    {
+                        char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                        sfab->copyToMem(tbx, scomp, ncomp, p);
+                    });
+
+                    dptr += (bx.numPts() * ncomp * sizeof(value_type));
+                }
+                BL_ASSERT(dptr == send_data[j] + send_size[j]); 
+            }
+        }
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+        Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
 #endif
 
 #ifdef BL_USE_UPCXX
@@ -430,6 +398,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 }
 
 template <class FAB>
+template <class FOO>  // FOO fools nvcc
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
@@ -488,68 +457,35 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 	}	
 
-        if (amrex::IsBaseFab<FAB>::value)
-        {
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Device::inLaunchRegion())
 #endif
-            for (int k = 0; k < N_rcvs; k++) 
-	    {
-	        const char* dptr = fb_recv_data[k];
-                if (dptr != nullptr)
+        for (int k = 0; k < N_rcvs; k++) 
+        {
+            const char* dptr = fb_recv_data[k];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *recv_cctc[k];
+                for (auto const& tag : cctc)
                 {
-                    auto const& cctc = *recv_cctc[k];
-                    for (auto const& tag : cctc)
+                    const Box& bx  = tag.dbox;
+                    FAB* dfab = &(get(tag.dstIndex));
+                    const int scomp = fb_scomp;
+                    const int ncomp = fb_ncomp;
+
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
-                        const Box& bx  = tag.dbox;
-                              FAB* dfab = &(get(tag.dstIndex));
-                        const int scomp = fb_scomp;
-                        const int ncomp = fb_ncomp;
-
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                        {
-                            const char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                            std::size_t stride = sizeof(value_type)*bx.numPts();
-                            for (int ic = 0; ic < ncomp; ++ic) {
-                                dfab->copyFromMem(tbx, ic+scomp, 1, p);
-                                p += stride;
-                            }
-                        });
-
-                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
-                    }
-                    BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+                        const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                        dfab->copyFromMem(tbx, scomp, ncomp, p);
+                    });
+                    
+                    dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
+                BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
             }
+        }
 #ifdef AMREX_USE_CUDA
             Device::synchronize();
-#endif
-        }
-        else  // Original, accounting for non-BaseFab objects. No GPU version for now.
-        {
-#ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv)
-#endif
-            for (int k = 0; k < N_rcvs; k++) 
-            {
-            const char* dptr = fb_recv_data[k];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *recv_cctc[k];
-                    for (auto const& tag : cctc)
-                    {
-                        const Box& bx = tag.dbox;
-                        std::size_t n = (*this)[tag.dstIndex].copyFromMem(bx,fb_scomp,fb_ncomp,dptr);
-                        dptr += n;
-                    }
-
-                    BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
-                }
-            }
-        }
-
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
 #endif
 
         if (fb_the_recv_data)
@@ -891,12 +827,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
                         AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                         {
-                            char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                            std::size_t stride = sizeof(value_type)*bx.numPts();
-                            for (int ic = 0; ic < NC; ++ic) {
-                                sfab->copyToMem(tbx, ic+SC, 1, p);
-                                p += stride;
-                            }
+                            char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
+                            sfab->copyToMem(tbx, SC, NC, p);
                         });
 
                         dptr += (bx.numPts() * NC * sizeof(value_type));
@@ -1139,12 +1071,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                             {
                                 AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                                 {
-                                    const char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                                    std::size_t stride = sizeof(value_type)*bx.numPts();
-                                    for (int ic = 0; ic < NC; ++ic) {
-                                        dfab->copyFromMem(tbx,ic+DC,1,p);
-                                        p += stride;
-                                    }
+                                    const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
+                                    dfab->copyFromMem(tbx,DC,NC,p);
                                 });
                             }
                             else
@@ -1153,12 +1081,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
                                 AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                                 {
-                                    const char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                                    std::size_t stride = sizeof(value_type)*bx.numPts();
-                                    for (int ic = 0; ic < NC; ++ic) {
-                                        fab->copyFromMem(tbx,ic,1,p);
-                                        p += stride;
-                                    }
+                                    const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
+                                    fab->copyFromMem(tbx, 0, NC, p);
                                     dfab->plus(*fab, tbx, tbx, 0, DC, NC);
                                 });
                             }
@@ -1479,12 +1403,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
-                        char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                        std::size_t stride = sizeof(value_type)*bx.numPts();
-                        for (int ic = 0; ic < ncomp; ++ic) {
-                            sfab->copyToMem(tbx, ic+scomp, 1, p);
-                            p += stride;
-                        }
+                        char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                        sfab->copyToMem(tbx, scomp, ncomp, p);
                     });
 
                     dptr += (bx.numPts() * ncomp * sizeof(value_type));
@@ -1659,12 +1579,8 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                         {
                             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                             {
-                                const char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                                std::size_t stride = sizeof(value_type)*bx.numPts();
-                                for (int ic = 0; ic < ncomp; ++ic) {
-                                    dfab->copyFromMem(tbx,ic+dcomp,1,p);
-                                    p += stride;
-                                }
+                                const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                                dfab->copyFromMem(tbx, dcomp, ncomp, p);
                             });
                         }
                         else
@@ -1673,12 +1589,8 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 
                             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                             {
-                                const char* p = dptr + sizeof(value_type)*bx.index(tbx.smallEnd());
-                                std::size_t stride = sizeof(value_type)*bx.numPts();
-                                for (int ic = 0; ic < ncomp; ++ic) {
-                                    fab->copyFromMem(tbx,ic,1,p);
-                                    p += stride;
-                                }
+                                const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                                fab->copyFromMem(tbx, 0, ncomp, p);
                                 dfab->plus(*fab, tbx, tbx, 0, dcomp, ncomp);
                             });
                         }
