@@ -1052,7 +1052,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Device::inLaunchRegion())
 #endif
 	    {
-		FAB* fab = new FAB();
+		FAB* fab = (op == FabArrayBase::COPY) ? nullptr : new FAB();
 
 #ifdef _OPENMP
 #pragma omp for
@@ -1560,7 +1560,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 #pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Device::inLaunchRegion())
 #endif
         {
-            FAB* fab = new FAB();
+            FAB* fab = (op == FabArrayBase::COPY) ? nullptr : new FAB();
             
 #ifdef _OPENMP
 #pragma omp for
@@ -1936,7 +1936,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
     if (ParallelContext::NProcsSub() == 1)
     {
 #ifdef _OPENMP
-#pragma omp parallel if (!Deviec::inLaunchRegion())
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
