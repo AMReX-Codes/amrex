@@ -427,7 +427,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 [=] AMREX_CUDA_HOST_DEVICE ()
                 {
                     ComponentBox cb = getThreadComponentBox(tag.dbox, ncomp);
-                    if (dtbx.ok()) {
+                    if (cb.box.ok()) {
                         Box stbx = cb.box + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                         dfab->copy(*sfab, stbx, cb.ic+scomp, cb.box, cb.ic+scomp, cb.nc);
                     }

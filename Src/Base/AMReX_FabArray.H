@@ -1403,13 +1403,9 @@ FabArray<FAB>::setVal (value_type val,
 	const Box& bx = fai.growntilebox(nghost);
         FAB* fab = &(get(fai));
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE( Strategy(bx),
-        [=] AMREX_CUDA_HOST_DEVICE ()
+        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
-            Box tbx = getThreadBox(bx);
-            if (tbx.ok()) {
-                fab->setVal(val, tbx, comp, ncomp);
-            }
+            fab->setVal(val, tbx, comp, ncomp);
         });
     }
 }
