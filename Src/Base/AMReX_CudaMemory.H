@@ -102,13 +102,19 @@ template <class T, typename std::enable_if<std::is_pod<T>::value,int>::type = 0 
 struct HostDeviceScalar
 {
     HostDeviceScalar (T& h) : hp(&h) {
+#if AMREX_USE_CUDA
         cudaMalloc(&dp, sizeof(T));
         cudaMemcpy(dp, hp, sizeof(T), cudaMemcpyHostToDevice);
+#else
+        dp = hp;
+#endif
     }
     
     ~HostDeviceScalar () {
+#if AMREX_USE_CUDA
         cudaMemcpy(hp, dp, sizeof(T), cudaMemcpyDeviceToHost);
         cudaFree(dp);
+#endif
     }
 
     HostDeviceScalar (HostDeviceScalar const&) = delete;
@@ -120,11 +126,15 @@ struct HostDeviceScalar
     T const* devicePtr () const { return dp; }
 
     void DeviceToHost () {
+#if AMREX_USE_CUDA
         cudaMemcpy(hp, dp, sizeof(T), cudaMemcpyDeviceToHost);
+#endif
     }
 
     void HostToDevice () {
+#if AMREX_USE_CUDA
         cudaMemcpy(dp, hp, sizeof(T), cudaMemcpyHostToDevice);
+#endif
     }
 
 private:
