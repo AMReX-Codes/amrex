@@ -3,7 +3,7 @@
 #include "Constants.H"
 #include "em_pic_F.H"
 
-#include <AMReX_CudaManaged.H>
+#include <AMReX_CudaMemory.H>
 #include <AMReX_Device.H>
 #include <AMReX_CudaLaunch.H>
 
@@ -49,7 +49,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const FArrayBox* currDenY = &(jy[mfi]);
         const FArrayBox* currDenZ = &(jz[mfi]);
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx),
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx),
         [=] AMREX_CUDA_DEVICE ()
         {
             Box threadBox = getThreadBox(tbx);
@@ -114,7 +114,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         FArrayBox* magZ  = &(Bz[mfi]);
 
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx),
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx),
         [=] AMREX_CUDA_DEVICE ()
         {
             Box threadBox = getThreadBox(tbx);
