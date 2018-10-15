@@ -192,7 +192,9 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         //
         Real tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
+        BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_coll);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
+        BL_PROFILE_VAR_STOP(blp_coll);
 
         if ( tvals[0] )
 	{
@@ -390,12 +392,14 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 Real
 MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
 {
+    BL_PROFILE("MLCGSolver::ParallelAllReduce");
     return Lp.xdoty(amrlev, mglev, r, z, local);
 }
 
 Real
 MLCGSolver::norm_inf (const MultiFab& res, bool local)
 {
+    BL_PROFILE("MLCGSolver::ParallelAllReduce");
     int ncomp = res.nComp();
     Real result = std::numeric_limits<Real>::lowest();
     for (int n=0; n<ncomp; n++)

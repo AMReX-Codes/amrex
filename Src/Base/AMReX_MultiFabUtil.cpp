@@ -226,7 +226,7 @@ namespace amrex
 		       const Geometry& fgeom, const Geometry& cgeom, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
-  
+        BL_PROFILE("amrex::average_down_w_geom");
         if (S_fine.is_nodal() || S_crse.is_nodal())
         {
             amrex::Error("Can't use amrex::average_down for nodal MultiFab!");
@@ -325,6 +325,7 @@ namespace amrex
     void average_down (const MultiFab& S_fine, MultiFab& S_crse, 
                        int scomp, int ncomp, const IntVect& ratio)
     {
+        BL_PROFILE("amrex::average_down");
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
         AMREX_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
                      (S_crse.is_nodal()         && S_fine.is_nodal()));
