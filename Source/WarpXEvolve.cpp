@@ -263,9 +263,6 @@ WarpX::EvolveB (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveB()");
 
-    // Parameters of the solver: order and mesh spacing
-    const int norder = 2;
-
     int npatches = (lev == 0) ? 1 : 2;
 
     for (int ipatch = 0; ipatch < npatches; ++ipatch)
@@ -380,9 +377,6 @@ WarpX::EvolveE (int lev, Real dt)
 {
     BL_PROFILE("WarpX::EvolveE()");
 
-    // Parameters of the solver: order and mesh spacing
-    const int norder = 2;
-    static constexpr Real c2 = PhysConst::c*PhysConst::c;
     const Real mu_c2_dt = (PhysConst::mu0*PhysConst::c*PhysConst::c) * dt;
     const Real c2dt = (PhysConst::c*PhysConst::c) * dt;
 
@@ -546,7 +540,6 @@ WarpX::EvolveF (int lev, Real dt, DtType dt_type)
 
     BL_PROFILE("WarpX::EvolveF()");
 
-    static constexpr Real c2inv = 1.0/(PhysConst::c*PhysConst::c);
     static constexpr Real mu_c2 = PhysConst::mu0*PhysConst::c*PhysConst::c;
 
     int npatches = (lev == 0) ? 1 : 2;
