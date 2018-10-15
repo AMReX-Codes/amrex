@@ -5,8 +5,9 @@
 #include <memory>
 #include <limits>
 
-#include <AMReX_Print.H>
 #include <AMReX.H>
+#include <AMReX_Print.H>
+#include <AMReX_Device.H>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
