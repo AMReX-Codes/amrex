@@ -34,6 +34,12 @@ enum struct DtType : int
     SecondHalf
 };
 
+enum struct PatchType : int
+{
+    fine,
+    coarse
+};
+
 class WarpX
     : public amrex::AmrCore
 {
@@ -230,6 +236,15 @@ private:
     /// Advance the simulation by numsteps steps, electromagnetic case.
     ///
     void EvolveEM(int numsteps);
+  
+    void FillBoundaryB (int lev, PatchType patch_type);
+    void FillBoundaryE (int lev, PatchType patch_type);
+    void FillBoundaryF (int lev, PatchType patch_type);
+
+    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
+    void DampPML (int lev, PatchType patch_type);
 
 #ifdef WARPX_DO_ELECTROSTATIC
     ///
@@ -379,8 +394,10 @@ private:
     amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_cax;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > current_buffer_masks;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > gather_buffer_masks;
-    // If current deposition buffers are used
+
+    // If charge/current deposition buffers are used
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
+    amrex::Vector<std::unique_ptr<amrex::MultiFab> > charge_buf;
 
     // div E cleaning
     int do_dive_cleaning = 0;

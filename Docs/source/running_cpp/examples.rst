@@ -8,16 +8,25 @@ that are set in these files, see the section :doc:`parameters`.
 Beam-driven acceleration
 ------------------------
 
-* :download:`Without mesh refinement<../../../Examples/Physics_applications/plasma_acceleration/inputs>`
-* :download:`With mesh refinement<../../../Examples/Physics_applications/plasma_acceleration/inputs.mr>`
+* :download:`2D case<../../../Examples/Physics_applications/plasma_acceleration/inputs.2d>`
+* :download:`2D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.2d.boost>`
+* :download:`3D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.3d.boost>`
+
 
 Laser-driven acceleration
 -------------------------
 
-* :download:`Without mesh refinement<../../../Examples/Physics_applications/laser_acceleration/inputs>`
-* :download:`With mesh refinement<../../../Examples/Physics_applications/laser_acceleration/inputs.mr.rt>`
+* :download:`2D case<../../../Examples/Physics_applications/laser_acceleration/inputs.2d>`
+* :download:`2D case in boosted frame<../../../Examples/Physics_applications/laser_acceleration/inputs.2d.boost>`
+* :download:`3D case<../../../Examples/Physics_applications/laser_acceleration/inputs.3d>`
 
 Plasma mirror
 -------------
 
-:download:`With mesh refinement<../../../Examples/Physics_applications/plasma_mirror/inputs.mr>`
+:download:`2D case<../../../Examples/Physics_applications/plasma_mirror/inputs.2d>`
+
+Uniform plasma
+--------------
+
+:download:`2D case<../../../Examples/Physics_applications/uniform_plasma/inputs.2d>`
+:download:`3D case<../../../Examples/Physics_applications/uniform_plasma/inputs.3d>`

@@ -70,7 +70,7 @@ public:
     friend MultiParticleContainer;
 
     using DiagnosticParticleData = amrex::StructOfArrays<DiagIdx::nattribs, 0>;
-    using DiagnosticParticles = std::map<std::pair<int, int>, DiagnosticParticleData>;
+    using DiagnosticParticles = amrex::Vector<std::map<std::pair<int, int>, DiagnosticParticleData> >;
     
     WarpXParticleContainer (amrex::AmrCore* amr_core, int ispecies);
     virtual ~WarpXParticleContainer() {}
@@ -95,7 +95,7 @@ public:
 			 const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
 			 amrex::MultiFab& jx, amrex::MultiFab& jy, amrex::MultiFab& jz,
                          amrex::MultiFab* cjx, amrex::MultiFab* cjy, amrex::MultiFab* cjz,
-                         amrex::MultiFab* rho,
+                         amrex::MultiFab* rho, amrex::MultiFab* crho,
                          const amrex::MultiFab* cEx, const amrex::MultiFab* cEy, const amrex::MultiFab* cEz,
                          const amrex::MultiFab* cBx, const amrex::MultiFab* cBy, const amrex::MultiFab* cBz,
                          amrex::Real t, amrex::Real dt) = 0;
@@ -178,6 +178,8 @@ protected:
 
     amrex::Real charge;
     amrex::Real mass;
+
+    bool deposit_on_main_grid = false;
 
     static int do_not_push;
 };

@@ -161,6 +161,7 @@ WarpX::WarpX ()
     current_buffer_masks.resize(nlevs_max);
     gather_buffer_masks.resize(nlevs_max);
     current_buf.resize(nlevs_max);
+    charge_buf.resize(nlevs_max);
 
     pml.resize(nlevs_max);
 
@@ -256,33 +257,33 @@ WarpX::ReadParameters ()
 		const std::string msg = "Unknown moving_window_dir: "+s;
 		amrex::Abort(msg.c_str());
 	    }
-
+            
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);
-
+            
 	    pp.get("moving_window_v", moving_window_v);
 	    moving_window_v *= PhysConst::c;
 	}
-
+        
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
-	  pp.get("num_injected_species", num_injected_species);
-	  injected_plasma_species.resize(num_injected_species);
-	  pp.getarr("injected_plasma_species", injected_plasma_species,
-                    0, num_injected_species);
-          if (moving_window_v >= 0){
-              // Inject particles continuously from the right end of the box
-              current_injection_position = geom[0].ProbHi(moving_window_dir);
-          } else {
-              // Inject particles continuously from the left end of the box
-              current_injection_position = geom[0].ProbLo(moving_window_dir);
-          }
+            pp.get("num_injected_species", num_injected_species);
+            injected_plasma_species.resize(num_injected_species);
+            pp.getarr("injected_plasma_species", injected_plasma_species,
+                      0, num_injected_species);
+            if (moving_window_v >= 0){
+                // Inject particles continuously from the right end of the box
+                current_injection_position = geom[0].ProbHi(moving_window_dir);
+            } else {
+                // Inject particles continuously from the left end of the box
+                current_injection_position = geom[0].ProbLo(moving_window_dir);
+            }
 	}
-
+        
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
         if (do_boosted_frame_diagnostic) {
-
+            
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
-                "gamma_boost must be > 1 to use the boosted frame diagnostic.");
+                 "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
             std::string s;
     	    pp.get("boost_direction", s);
@@ -334,11 +335,10 @@ WarpX::ReadParameters ()
         pp.query("plot_divb"         , plot_divb);
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
-	if (plot_rho || plot_F){
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
-                "plot_rho and plot_F only work if warpx.do_dive_cleaning = 1");
-	}
-
+        if (plot_F){
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
+                "plot_F only works if warpx.do_dive_cleaning = 1");
+        }
         if (maxLevel() > 0) {
             pp.query("plot_finepatch", plot_finepatch);
             pp.query("plot_crsepatch", plot_crsepatch);
@@ -463,6 +463,8 @@ WarpX::ClearLevel (int lev)
         current_buf[lev][i].reset();
     }
 
+    charge_buf[lev].reset();
+    
     current_buffer_masks[lev].reset();
     gather_buffer_masks[lev].reset();
 
@@ -518,13 +520,17 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngx,ngy,ngz_nonci);
-    IntVect ngRho = ngJ + 1;  // One extra ghost cell, so that it's safe to deposit charge density
-                              // after pushing particle.
 #elif (AMREX_SPACEDIM == 2)
     IntVect ngE(ngx,ngz);
     IntVect ngJ(ngx,ngz_nonci);
-    IntVect ngRho = ngJ + 1;
 #endif
+
+    IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
+                           // after pushing particle. 
+
+    if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
+        n_current_deposition_buffer = 1;
+    }
 
     if (n_current_deposition_buffer < 0) {
         n_current_deposition_buffer = ngJ.max();
@@ -549,10 +555,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
 
+    if (do_dive_cleaning || plot_rho){
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
+    }
     if (do_dive_cleaning)
     {
         F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
     }
 #ifdef WARPX_USE_PSATD
     else
@@ -605,10 +613,12 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
 
+        if (do_dive_cleaning || plot_rho){
+            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+        }
         if (do_dive_cleaning)
         {
             F_cp[lev].reset  (new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,1, ngF));
-            rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
         }
 #ifdef WARPX_USE_PSATD
         else
@@ -644,6 +654,9 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+            if (do_dive_cleaning) {
+                charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+            }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
         }
     }
