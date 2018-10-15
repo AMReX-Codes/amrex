@@ -73,30 +73,36 @@ Box getThreadBox (const Box& bx)
 //      [    bx.length <= x < 2*bx.length(0)  ]---> scomp + 1
 //      [ 2* bx.length <= x < 3*bx.length(0)  ]---> scomp + 2
 AMREX_CUDA_HOST_DEVICE
-void getThreadComponentBox (const Box& bx, Box& threadBox, int& scomp, int& ncomp)
+ComponentBox
+getThreadComponentBox (const Box& bx, int ncomp)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      // Don't use getThreadBox because these will initially be outside bx, which represents the
      // component of each thread. So, don't want to do (bx & threadBox) yet until that information
      // is extracted.
-    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
-                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
-                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
-    threadBox = Box(iv,iv,bx.type());
+    AMREX_D_TERM(long i0 = threadIdx.x + blockDim.x*(blockIdx.x);,
+                 int  i1 = threadIdx.y + blockDim.y*(blockIdx.y);,
+                 int  i2 = threadIdx.z + blockDim.z*(blockIdx.z));
 
-    int dcomp =  iv[0] / bx.length(0);
-    if (dcomp >= ncomp) {
-        threadBox = Box();
+    long compDim = static_cast<long>(blockDim.x*gridDim.x)/static_cast<long>(ncomp);
+    long quot = i0 / compDim;
+    long rem = i0 - quot*compDim;
+    int icomp = quot;
+    IntVect iv{AMREX_D_DECL(static_cast<int>(rem), i1, i2)};
+
+    ComponentBox r{Box(iv,iv,bx.type()), icomp, 1};
+
+    if (icomp >= ncomp) {
+        r.box = Box();
     } else {
-        scomp += dcomp;
-        threadBox.shift(0, -(bx.length(0)*dcomp));  // Shift x-index back into the box.
-        threadBox += bx.smallEnd();
-        threadBox &= bx;
+        r.box += bx.smallEnd();
+        r.box &= bx;
     }
-    ncomp = 1;  // On GPU, each thread works on one component. (Update later for very big boxes.)
+
+    return r;
 #else
-    threadBox = bx;
-    // On CPUs, scomp and ncomp don't change.
+    // On CPUs, ncomp don't change.
+    return {bx, 0, ncomp};
 #endif
 }
 

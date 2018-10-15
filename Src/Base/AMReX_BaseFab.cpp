@@ -210,7 +210,7 @@ The_Nvar_Arena ()
 }
 #endif
 
-#ifdef AMREX_USE_GPU_PRAGMA
+#if defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_USE_BASEFAB_CPP)
 template<>
 void
 BaseFab<Real>::performCopy (const BaseFab<Real>& src,

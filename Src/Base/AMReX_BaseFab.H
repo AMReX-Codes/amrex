@@ -3320,7 +3320,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   return *this;
 }
 
-#ifdef AMREX_USE_GPU_PRAGMA
+#if defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_USE_BASEFAB_CPP)
 //
 // Forward declaration of template specializatons for Real.
 // Definitions are found in BaseFab.cpp.
