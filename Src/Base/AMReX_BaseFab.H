@@ -1985,7 +1985,7 @@ template <class T>
 IntVect
 BaseFab<T>::minIndex (const Box& subbox, int comp) const
 {
-    int imin, jmin, kmin;
+    AMREX_D_DECL(int imin, jmin, kmin);
     T min_val = std::numeric_limits<T>::max();
 
     const auto dp0 = this->stridedPtr(subbox,comp);
@@ -1997,7 +1997,7 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const
             for (int i = 0; i < len[0]; ++i) {
                 if (dp[i] < min_val) {
                     min_val = dp[i];
-                    imin = i;  jmin = j;  kmin = k;
+                    AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;)
                 }
             }
         }
@@ -2019,7 +2019,7 @@ IntVect
 BaseFab<T>::maxIndex (const Box& subbox,
                       int        comp) const
 {
-    int imax, jmax, kmax;
+    AMREX_D_DECL(int imax, jmax, kmax);
     T max_val = std::numeric_limits<T>::lowest();
 
     const auto dp0 = this->stridedPtr(subbox,comp);
@@ -2031,7 +2031,7 @@ BaseFab<T>::maxIndex (const Box& subbox,
             for (int i = 0; i < len[0]; ++i) {
                 if (dp[i] > max_val) {
                     max_val = dp[i];
-                    imax = i;  jmax = j;  kmax = k;
+                    AMREX_D_TERM(imax = i;, jmax = j;, kmax = k;)
                 }
             }
         }
