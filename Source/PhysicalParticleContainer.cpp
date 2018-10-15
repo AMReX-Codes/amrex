@@ -687,7 +687,7 @@ PhysicalParticleContainer::Evolve (int lev,
 				   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
 				   MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                    MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                   MultiFab* rho,
+                                   MultiFab* rho, MultiFab* crho,
                                    const MultiFab* cEx, const MultiFab* cEy, const MultiFab* cEz,
                                    const MultiFab* cBx, const MultiFab* cBy, const MultiFab* cBz,
                                    Real t, Real dt)
@@ -891,6 +891,10 @@ PhysicalParticleContainer::Evolve (int lev,
                     }
                 }
 
+                if (deposit_on_main_grid && lev > 0) {
+                    nfine_current = 0;
+                }
+
                 if (nfine_current != np || nfine_gather != np)
                 {
                     particle_tmp.resize(np);
@@ -923,6 +927,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_partition);
             }
 
+            const long np_current = (cjx) ? nfine_current : np;
+            
 	    //
 	    // copy data from particle container to temp arrays
 	    //
@@ -936,46 +942,94 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    long lvect = 8;
 
-            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
+            auto depositCharge = [&] (MultiFab* rhomf, MultiFab* crhomf, int icomp)
             {
                 long ngRho = rhomf->nGrow();
-
                 Real* data_ptr;
-                const int *rholen;
-                FArrayBox& rhofab = (*rhomf)[pti];
                 Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-                Box grown_box;
-                const std::array<Real, 3>& xyzmin = xyzmin_tile;
-                tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
-                local_rho = 0.0;
-                data_ptr = local_rho.dataPtr();
-                rholen = local_rho.length();
+                const int *rholen;
+                
+                if (np_current > 0)
+                {                
+                    FArrayBox& rhofab = (*rhomf)[pti];
+                    const std::array<Real, 3>& xyzmin = xyzmin_tile;
+                    tile_box.grow(ngRho);
+                    local_rho.resize(tile_box);
+                    local_rho = 0.0;
+                    data_ptr = local_rho.dataPtr();
+                    rholen = local_rho.length();
+                    
+#if (AMREX_SPACEDIM == 3)
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = rholen[1]-1-2*ngRho;
+                    const long nz = rholen[2]-1-2*ngRho;
+#else
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = 0;
+                    const long nz = rholen[1]-1-2*ngRho;
+#endif
+                    warpx_charge_deposition(data_ptr, &np_current,
+                                            xp.data(), yp.data(), zp.data(), wp.data(),
+                                            &this->charge,
+                                            &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                                            &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                            &ngRho, &ngRho, &ngRho,
+                                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                            &lvect, &WarpX::charge_deposition_algo);
+
+                    const int ncomp = 1;
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
+                }
+
+                if (np_current < np)
+                {
+                    const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
+                    const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
+                    const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
+
+                    tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
+                    tile_box.grow(ngRho);
+
+                    local_rho.resize(tile_box);
+
+                    local_rho = 0.0;
+
+                    data_ptr = local_rho.dataPtr();
+                    rholen = local_rho.length();
 
 #if (AMREX_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = rholen[1]-1-2*ngRho;
+                    const long nz = rholen[2]-1-2*ngRho;
 #else
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
+                    const long nx = rholen[0]-1-2*ngRho;
+                    const long ny = 0;
+                    const long nz = rholen[1]-1-2*ngRho;
 #endif
-            	warpx_charge_deposition(data_ptr, &np,
-                                        xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge,
-                                        &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                        &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho,
-                                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                        &lvect, &WarpX::charge_deposition_algo);
+                    
+                    long ncrse = np - nfine_current;
+                    warpx_charge_deposition(data_ptr, &ncrse,
+                                            xp.data() + nfine_current,
+                                            yp.data() + nfine_current,
+                                            zp.data() + nfine_current,
+                                            wp.data() + nfine_current,
+                                            &this->charge,
+                                            &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                                            &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
+                                            &ngRho, &ngRho, &ngRho,
+                                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                            &lvect, &WarpX::charge_deposition_algo);
 
-                const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                            BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
+                    FArrayBox& crhofab = (*crhomf)[pti];
+                    
+                    const int ncomp = 1;
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
+                                                BL_TO_FORTRAN_N_3D(crhofab,icomp), ncomp);
+                }                
             };
 
-            if (rho) depositCharge(rho,0);
+            if (rho) depositCharge(rho, crho, 0);
 
             if (! do_not_push)
             {
@@ -1123,55 +1177,56 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
                 Box gtbx, gtby, gtbz;
 
-                const long np_current = (cjx) ? nfine_current : np;
-
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
-                tbx.grow(ngJ);
-                tby.grow(ngJ);
-                tbz.grow(ngJ);
+                if (np_current > 0)
+                {
+                    tbx.grow(ngJ);
+                    tby.grow(ngJ);
+                    tbz.grow(ngJ);
+                    
+                    local_jx.resize(tbx);
+                    local_jy.resize(tby);
+                    local_jz.resize(tbz);
 
-                local_jx.resize(tbx);
-                local_jy.resize(tby);
-                local_jz.resize(tbz);
+                    local_jx = 0.0;
+                    local_jy = 0.0;
+                    local_jz = 0.0;
 
-                local_jx = 0.0;
-                local_jy = 0.0;
-                local_jz = 0.0;
+                    jx_ptr = local_jx.dataPtr();
+                    jy_ptr = local_jy.dataPtr();
+                    jz_ptr = local_jz.dataPtr();
 
-                jx_ptr = local_jx.dataPtr();
-                jy_ptr = local_jy.dataPtr();
-                jz_ptr = local_jz.dataPtr();
+                    jxntot = local_jx.length();
+                    jyntot = local_jy.length();
+                    jzntot = local_jz.length();
 
-                jxntot = local_jx.length();
-                jyntot = local_jy.length();
-                jzntot = local_jz.length();
+                    warpx_current_deposition(
+                        jx_ptr, &ngJ, jxntot,
+                        jy_ptr, &ngJ, jyntot,
+                        jz_ptr, &ngJ, jzntot,
+                        &np_current, xp.data(), yp.data(), zp.data(),
+                        uxp.data(), uyp.data(), uzp.data(),
+                        giv.data(), wp.data(), &this->charge,
+                        &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                        &dt, &dx[0], &dx[1], &dx[2],
+                        &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                        &lvect,&WarpX::current_deposition_algo);
 
-                warpx_current_deposition(
-                    jx_ptr, &ngJ, jxntot,
-                    jy_ptr, &ngJ, jyntot,
-                    jz_ptr, &ngJ, jzntot,
-                    &np_current, xp.data(), yp.data(), zp.data(),
-                    uxp.data(), uyp.data(), uzp.data(),
-                    giv.data(), wp.data(), &this->charge,
-                    &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                    &dt, &dx[0], &dx[1], &dx[2],
-                    &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                    &lvect,&WarpX::current_deposition_algo);
+                    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-                BL_PROFILE_VAR_STOP(blp_pxr_cd);
+                    BL_PROFILE_VAR_START(blp_accumulate);
+                    const int ncomp = 1;
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
+                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
+                    
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
+                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
 
-                BL_PROFILE_VAR_START(blp_accumulate);
-                const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                            BL_TO_FORTRAN_3D(jxfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                            BL_TO_FORTRAN_3D(jyfab), ncomp);
-
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                            BL_TO_FORTRAN_3D(jzfab), ncomp);
-                BL_PROFILE_VAR_STOP(blp_accumulate);
+                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
+                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
+                    BL_PROFILE_VAR_STOP(blp_accumulate);
+                }
 
                 if (np_current < np)
                 {
@@ -1236,7 +1291,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
-            if (rho) depositCharge(rho,1);
+            if (rho) depositCharge(rho, crho, 1);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1409,6 +1464,8 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
     slice_box.setLo(direction, z_min);
     slice_box.setHi(direction, z_max);
 
+    diagnostic_particles.resize(finestLevel()+1);
+    
     for (int lev = 0; lev < nlevs; ++lev) {
 
         const Real* dx  = Geom(lev).CellSize();
@@ -1418,7 +1475,7 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
             auto index = std::make_pair(pti.index(), pti.LocalTileIndex());
-            diagnostic_particles[index];
+            diagnostic_particles[lev][index];
         }
 
 #ifdef _OPENMP
@@ -1489,15 +1546,15 @@ void PhysicalParticleContainer::GetParticleSlice(const int direction, const Real
                     Real uyp = uyp_old[i]*weight_old + uyp_new[i]*weight_new;
                     Real uzp = uz_old_p  *weight_old + uz_new_p  *weight_new;
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::w).push_back(wp[i]);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::w).push_back(wp[i]);
+                    
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::x).push_back(xp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::y).push_back(yp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::z).push_back(zp);
 
-                    diagnostic_particles[index].GetRealData(DiagIdx::x).push_back(xp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::y).push_back(yp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::z).push_back(zp);
-
-                    diagnostic_particles[index].GetRealData(DiagIdx::ux).push_back(uxp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::uy).push_back(uyp);
-                    diagnostic_particles[index].GetRealData(DiagIdx::uz).push_back(uzp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::ux).push_back(uxp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::uy).push_back(uyp);
+                    diagnostic_particles[lev][index].GetRealData(DiagIdx::uz).push_back(uzp);
                 }
             }
         }

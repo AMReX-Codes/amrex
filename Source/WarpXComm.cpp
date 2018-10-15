@@ -238,43 +238,82 @@ WarpX::FillBoundaryF ()
 void
 WarpX::FillBoundaryE(int lev)
 {
-    const auto& period = Geom(lev).periodicity();
+    FillBoundaryE(lev, PatchType::fine);
+    if (lev > 0) FillBoundaryE(lev, PatchType::coarse);
+}
 
-    if (do_pml && pml[lev]->ok()) {
-        ExchangeWithPmlE(lev);
-        pml[lev]->FillBoundaryE();
-    }
-
-    (*Efield_fp[lev][0]).FillBoundary( period );
-    (*Efield_fp[lev][1]).FillBoundary( period );
-    (*Efield_fp[lev][2]).FillBoundary( period );
-
-    if (lev > 0)
+void
+WarpX::FillBoundaryE (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine)
     {
+        if (do_pml && pml[lev]->ok())
+        {
+    	    pml[lev]->ExchangeE(patch_type,
+	              		      { Efield_fp[lev][0].get(),
+                                Efield_fp[lev][1].get(),
+                                Efield_fp[lev][2].get() });
+    	    pml[lev]->FillBoundaryE(patch_type);
+        }
+
+        const auto& period = Geom(lev).periodicity();
+        (*Efield_fp[lev][0]).FillBoundary(period);
+        (*Efield_fp[lev][1]).FillBoundary(period);
+        (*Efield_fp[lev][2]).FillBoundary(period);
+    }
+    else if (patch_type == PatchType::coarse)
+    {
+        if (do_pml && pml[lev]->ok())
+        {
+        pml[lev]->ExchangeE(patch_type,
+			                { Efield_cp[lev][0].get(),
+                              Efield_cp[lev][1].get(),
+                              Efield_cp[lev][2].get() });
+        pml[lev]->FillBoundaryE(patch_type);
+        }
+
         const auto& cperiod = Geom(lev-1).periodicity();
         (*Efield_cp[lev][0]).FillBoundary(cperiod);
         (*Efield_cp[lev][1]).FillBoundary(cperiod);
         (*Efield_cp[lev][2]).FillBoundary(cperiod);
-    }
+    }    
 }
 
 void
-WarpX::FillBoundaryB(int lev)
+WarpX::FillBoundaryB (int lev)
 {
-    const auto& period = Geom(lev).periodicity();
+    FillBoundaryB(lev, PatchType::fine);
+    if (lev > 0) FillBoundaryB(lev, PatchType::coarse);
+}
 
-    if (do_pml && pml[lev]->ok())
+void
+WarpX::FillBoundaryB (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine)
     {
-        ExchangeWithPmlB(lev);
-        pml[lev]->FillBoundaryB();
+        if (do_pml && pml[lev]->ok())
+        {
+	    pml[lev]->ExchangeB(patch_type,
+        			        { Bfield_fp[lev][0].get(),
+                              Bfield_fp[lev][1].get(),
+                              Bfield_fp[lev][2].get() });
+        pml[lev]->FillBoundaryB(patch_type);
+        }
+        const auto& period = Geom(lev).periodicity();
+        (*Bfield_fp[lev][0]).FillBoundary(period);
+        (*Bfield_fp[lev][1]).FillBoundary(period);
+        (*Bfield_fp[lev][2]).FillBoundary(period);
     }
-
-    (*Bfield_fp[lev][0]).FillBoundary(period);
-    (*Bfield_fp[lev][1]).FillBoundary(period);
-    (*Bfield_fp[lev][2]).FillBoundary(period);
-
-    if (lev > 0)
+    else if (patch_type == PatchType::coarse)
     {
+        if (do_pml && pml[lev]->ok())
+        {
+        pml[lev]->ExchangeB(patch_type,
+			                { Bfield_cp[lev][0].get(),
+			                  Bfield_cp[lev][1].get(),
+			                  Bfield_cp[lev][2].get() });
+        pml[lev]->FillBoundaryB(patch_type);
+        }
         const auto& cperiod = Geom(lev-1).periodicity();
         (*Bfield_cp[lev][0]).FillBoundary(cperiod);
         (*Bfield_cp[lev][1]).FillBoundary(cperiod);
@@ -283,22 +322,36 @@ WarpX::FillBoundaryB(int lev)
 }
 
 void
-WarpX::FillBoundaryF(int lev)
+WarpX::FillBoundaryF (int lev)
 {
-    const auto& period = Geom(lev).periodicity();
+  FillBoundaryF(lev, PatchType::fine);
+  if (lev > 0) FillBoundaryF(lev, PatchType::coarse);
+}
 
-    if (do_pml && pml[lev]->ok())
+void
+WarpX::FillBoundaryF (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine && F_fp[lev])
     {
-        ExchangeWithPmlF(lev);
-        pml[lev]->FillBoundaryF();
+        if (do_pml && pml[lev]->ok())
+        {
+            pml[lev]->ExchangeF(patch_type, F_fp[lev].get());
+            pml[lev]->FillBoundaryF(patch_type);
+        }
+
+        const auto& period = Geom(lev).periodicity();
+        F_fp[lev]->FillBoundary(period);
     }
-    
-    if (F_fp[lev]) F_fp[lev]->FillBoundary(period);
-
-    if (lev > 0)
+    else if (patch_type == PatchType::coarse && F_cp[lev])
     {
+        if (do_pml && pml[lev]->ok())
+        {
+        pml[lev]->ExchangeF(patch_type, F_cp[lev].get());
+        pml[lev]->FillBoundaryF(patch_type);
+        }
+
         const auto& cperiod = Geom(lev-1).periodicity();
-        if (F_cp[lev]) F_cp[lev]->FillBoundary(cperiod);
+        F_cp[lev]->FillBoundary(cperiod);
     }
 }
 
@@ -499,7 +552,8 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
 
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
-
+    Vector<std::unique_ptr<MultiFab> > rho_buf_g(finest_level+1);
+    
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             const int ncomp = rhof[lev]->nComp();
@@ -521,6 +575,18 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
             applyFilter(*rho_c_g[lev], *rhoc[lev]);
             std::swap(rho_c_g[lev], rhoc[lev]);
         }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            if (charge_buf[lev]) {
+                const int ncomp = charge_buf[lev]->nComp();
+                IntVect ng = charge_buf[lev]->nGrowVect();                
+                ng += 1;
+                rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
+                                                  charge_buf[lev]->DistributionMap(),
+                                                  ncomp, ng));
+                applyFilter(*rho_buf_g[lev], *charge_buf[lev]);
+                std::swap(*rho_buf_g[lev], *charge_buf[lev]);
+            }
+        }
     }
 
     // Sum up fine patch
@@ -537,7 +603,14 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         const int ncomp = rhoc[lev+1]->nComp();
         const IntVect& ngsrc = rhoc[lev+1]->nGrowVect();
         const IntVect ngdst = IntVect::TheZeroVector();
-        rhof[lev]->copy(*rhoc[lev+1],0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
+        const MultiFab* crho = rhoc[lev+1].get();
+        if (charge_buf[lev+1])
+        {
+            MultiFab::Add(*charge_buf[lev+1], *rhoc[lev+1], 0, 0, ncomp, ngsrc);
+            crho = charge_buf[lev+1].get();
+        }
+
+        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);        
     }
 
     // Sum up coarse patch
@@ -555,6 +628,13 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 1; lev <= finest_level; ++lev) {
             std::swap(rho_c_g[lev], rhoc[lev]);
             MultiFab::Copy(*rhoc[lev], *rho_c_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+        }
+        for (int lev = 1; lev <= finest_level; ++lev)
+        {
+            if (rho_buf_g[lev]) {
+                std::swap(rho_buf_g[lev], charge_buf[lev]);
+                MultiFab::Copy(*charge_buf[lev], *rho_buf_g[lev], 0, 0, rhoc[lev]->nComp(), 0);
+            }
         }
     }
 

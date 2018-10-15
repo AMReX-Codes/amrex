@@ -280,7 +280,7 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                 MultiFab*, MultiFab*, MultiFab*,
-                                MultiFab* rho,
+                                MultiFab* rho, MultiFab*,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 Real t, Real dt)
