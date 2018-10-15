@@ -1052,8 +1052,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Device::inLaunchRegion())
 #endif
 	    {
-		FAB* fab = (op == FabArrayBase::COPY) ? nullptr : new FAB();
-
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -1077,13 +1075,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                             }
                             else
                             {
-                                fab->resize(bx,NC);
-
                                 AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                                 {
                                     const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
-                                    fab->copyFromMem(tbx, 0, NC, p);
-                                    dfab->plus(*fab, tbx, tbx, 0, DC, NC);
+                                    dfab->addFromMem(tbx, DC, NC, p);
                                 });
                             }
 
@@ -1092,7 +1087,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
 		    }
 		}
-                delete fab;
 	    }
 
 #ifdef AMREX_USE_CUDA
@@ -1560,8 +1554,6 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 #pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Device::inLaunchRegion())
 #endif
         {
-            FAB* fab = (op == FabArrayBase::COPY) ? nullptr : new FAB();
-            
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -1585,13 +1577,10 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                         }
                         else
                         {
-                            fab->resize(bx,ncomp);
-
                             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                             {
                                 const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                                fab->copyFromMem(tbx, 0, ncomp, p);
-                                dfab->plus(*fab, tbx, tbx, 0, dcomp, ncomp);
+                                dfab->addFromMem(tbx, dcomp, ncomp, p);
                             });
                         }
 
@@ -1600,8 +1589,6 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                     BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
                 }
             }
-
-            delete fab;
         }
         
         for (auto p : recv_data) {
