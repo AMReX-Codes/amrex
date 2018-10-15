@@ -825,7 +825,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(src[tag.srcIndex]);
 
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bx, tbx,
                         {
                             char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
                             sfab->copyToMem(tbx, SC, NC, p);
@@ -1069,7 +1069,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                             FAB* dfab = &(get(tag.dstIndex));
                             if (op == FabArrayBase::COPY)
                             {
-                                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bx, tbx,
                                 {
                                     const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
                                     dfab->copyFromMem(tbx,DC,NC,p);

@@ -16,7 +16,7 @@
     { \
         auto amrex_i_st = Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
-        [=] AMREX_CUDA_HOST_DEVICE () { \
+        [=] AMREX_CUDA_DEVICE () { \
             Box tbb = amrex::getThreadBox(bbb); \
             if (tbb.ok()) block \
         }); \
@@ -38,6 +38,29 @@
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
+    }
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
+    if (amrex::Device::inLaunchRegion()) \
+    { \
+        auto amrex_i_st = Strategy(); \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        [=] AMREX_CUDA_DEVICE () { \
+            const auto amrex_i_lo = bbb.loVect3d(); \
+            const auto amrex_i_hi = bbb.hiVect3d(); \
+            for (int amrex_i_k = amrex_i_lo[2] + blockIdx.z * blockDim.z + threadIdx.z; amrex_i_k <= amrex_i_hi[2]; amrex_i_k += blockDim.z * gridDim.z) { \
+            for (int amrex_i_j = amrex_i_lo[1] + blockIdx.y * blockDim.y + threadIdx.y; amrex_i_j <= amrex_i_hi[1]; amrex_i_j += blockDim.y * gridDim.y) { \
+            for (int amrex_i_i = amrex_i_lo[0] + blockIdx.x * blockDim.x + threadIdx.x; amrex_i_i <= amrex_i_hi[0]; amrex_i_i += blockDim.x * gridDim.x) { \
+                amrex::Box tbb(IntVect(AMREX_D_DECL(amrex_i_i,amrex_i_j,amrex_i_k)), \
+                               IntVect(AMREX_D_DECL(amrex_i_i,amrex_i_j,amrex_i_k)), \
+                               bbb.type()); \
+                block \
+            }}} \
+        }); \
+    } \
+    else { \
+        const amrex::Box& tbb = bbb; \
+        block \
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
@@ -150,9 +173,9 @@ namespace amrex {
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     struct Strategy {
-//        Strategy () {
-//            Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
-//        }
+        Strategy () {
+            Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
+        }
         Strategy (const Box& box) {
             const Box& b = amrex::surroundingNodes(box); // to ensure one thread per cell regardless box type
             Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
