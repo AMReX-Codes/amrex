@@ -80,6 +80,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
                             Real            eps_rel,
                             Real            eps_abs)
 {
+    BL_PROFILE("MLCGSolver::bicgstab");
     BL_PROFILE_REGION("MLCGSolver::bicgstab");
 
     const int nghost = sol.nGrow(), ncomp = sol.nComp();
@@ -262,6 +263,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
                       Real            eps_rel,
                       Real            eps_abs)
 {
+    BL_PROFILE("MLCGSolver::cg");
     BL_PROFILE_REGION("MLCGSolver::cg");
 
     const int nghost = sol.nGrow(), ncomp = sol.nComp();
