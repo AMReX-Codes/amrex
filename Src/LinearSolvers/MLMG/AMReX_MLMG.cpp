@@ -357,21 +357,40 @@ MLMG::miniCycle (int amrlev)
     mgVcycle(amrlev, mglev);
 }
 
+namespace {
+
+void make_str_helper (std::ostringstream & oss) { }
+
+template <class T, class... Ts>
+void make_str_helper (std::ostringstream & oss, T x, Ts... xs) {
+    oss << x;
+    make_str_helper(oss, xs...);
+}
+
+template <class... Ts>
+std::string make_str (Ts... xs) {
+    std::ostringstream oss;
+    make_str_helper(oss, xs...);
+    return oss.str();
+}
+
+}
+
 // in   : Residual (res) 
 // out  : Correction (cor) from bottom to this function's local top
 void
 MLMG::mgVcycle (int amrlev, int mglev_top)
 {
     BL_PROFILE("MLMG::mgVcycle()");
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_up", blp_up);
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_bottom", blp_bottom);
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_down", blp_down);
 
     const int mglev_bottom = linop.NMGLevels(amrlev) - 1;
 
-    BL_PROFILE_VAR_START(blp_down);
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
+        std::string blp_mgv_down_lev_str = make_str("MLMG::mgVcycle_down::", mglev);
+        BL_PROFILE_VAR(blp_mgv_down_lev_str, blp_mgv_down_lev);
+        BL_PROFILE_REGION_START(blp_mgv_down_lev_str);
+
         if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev].norm0();
@@ -398,10 +417,12 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
         linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
-    }
-    BL_PROFILE_VAR_STOP(blp_down);
 
-    BL_PROFILE_VAR_START(blp_bottom);
+        BL_PROFILE_REGION_STOP(blp_mgv_down_lev_str);
+    }
+
+    BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);
+    BL_PROFILE_REGION_START("MLMG::mgVcycle_bottom");
     if (amrlev == 0)
     {
         if (verbose >= 4)
@@ -422,11 +443,14 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             skip_fillboundary = false;
         }
     }
+    BL_PROFILE_REGION_STOP("MLMG::mgVcycle_bottom");
     BL_PROFILE_VAR_STOP(blp_bottom);
 
-    BL_PROFILE_VAR_START(blp_up);
     for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
+        std::string blp_mgv_up_lev_str = make_str("MLMG::mgVcycle_up::", mglev);
+        BL_PROFILE_VAR(blp_mgv_up_lev_str, blp_mgv_up_lev);
+        BL_PROFILE_REGION_START(blp_mgv_up_lev_str);
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
@@ -446,8 +470,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             amrex::Print() << "AT LEVEL "                << mglev << "\n"
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
+        BL_PROFILE_REGION_STOP(blp_mgv_up_lev_str);
     }
-    BL_PROFILE_VAR_STOP(blp_up);
 }
 
 // FMG cycle on the coarest AMR level.
@@ -698,6 +722,7 @@ void
 MLMG::addInterpCorrection (int alev, int mglev)
 {
     BL_PROFILE("MLMG::addInterpCorrection()");
+    BL_PROFILE_REGION("MLMG::addInterpCorrection()");
 
     const int ncomp = linop.getNComp();
 
@@ -733,6 +758,7 @@ void
 MLMG::computeResOfCorrection (int amrlev, int mglev)
 {
     BL_PROFILE("MLMG:computeResOfCorrection()");
+    BL_PROFILE_REGION("MLMG:computeResOfCorrection()");
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
@@ -759,6 +785,7 @@ void
 MLMG::NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs)
 {
     BL_PROFILE("MLMG::NSolve()");
+    BL_PROFILE_REGION("MLMG::NSolve()");
 
     a_sol.setVal(0.0);
 
@@ -774,6 +801,7 @@ void
 MLMG::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
+    BL_PROFILE_REGION("MLMG::actualBottomSolve()");
 
     const int ncomp = linop.getNComp();
 
@@ -1434,7 +1462,6 @@ MLMG::computeVolInv ()
 
     if (linop.isCellCentered())
     { 
-        Real temp1, temp2;    
         volinv.resize(namrlevs);
         for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
             volinv[amrlev].resize(linop.NMGLevels(amrlev));
@@ -1464,6 +1491,7 @@ MLMG::computeVolInv ()
         f(0,mgbottom);
 
 #ifdef AMREX_USE_EB
+        Real temp1, temp2;
         if (rhs[0].hasEBFabFactory())
         {
             ParallelAllReduce::Sum<Real>({volinv[0][0], volinv[0][mgbottom]},
