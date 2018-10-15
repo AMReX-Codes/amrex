@@ -3,7 +3,7 @@
 #include "Constants.H"
 #include "em_pic_F.H"
 
-#include <AMReX_CudaManaged.H>
+#include <AMReX_CudaMemory.H>
 #include <AMReX_Device.H>
 #include <AMReX_CudaLaunch.H>
 

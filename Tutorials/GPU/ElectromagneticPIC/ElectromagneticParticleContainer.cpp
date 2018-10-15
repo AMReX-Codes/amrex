@@ -280,7 +280,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
 
         };
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np), depose); 
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), depose); 
     }
 
 }
@@ -346,7 +346,7 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
 
         };
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np), pushMom); 
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), pushMom); 
     }
 }
 
@@ -379,7 +379,7 @@ PushParticlePositions(amrex::Real dt)
                                 &(pData.ginv()[index]), dt);
         };
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(np), pushPos);
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), pushPos);
     }
 }
 
@@ -408,6 +408,8 @@ EnforcePeriodicBCs()
                              &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
                              geomData.ProbLo(), geomData.ProbLo());
         };
+
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), periodic);
     }
 }
 

@@ -2,7 +2,7 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 #include <AMReX_CudaLaunch.H>
-#include <AMReX_CudaManaged.H>
+#include <AMReX_CudaMemory.H>
 #include <AMReX_Device.H>
 
 void advance (MultiFab& phi_old,
@@ -37,7 +37,7 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx),
+        AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(vbx),
 	[=] AMREX_CUDA_DEVICE ()
 	{
              Box threadBox = getThreadBox(vbx);
@@ -69,7 +69,7 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx), 
+        AMREX_CUDA_LAUNCH_HOST_DEVICE(Strategy(vbx), 
 	[=] AMREX_CUDA_DEVICE ()
 	{
             Box threadBox = getThreadBox(vbx);

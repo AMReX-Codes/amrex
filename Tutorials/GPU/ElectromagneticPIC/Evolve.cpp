@@ -3,7 +3,7 @@
 #include "Constants.H"
 #include "em_pic_F.H"
 
-#include <AMReX_CudaManaged.H>
+#include <AMReX_CudaMemory.H>
 #include <AMReX_Device.H>
 #include <AMReX_CudaLaunch.H>
 
@@ -86,7 +86,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
             }
         };
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx), electric);
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx), electric);
 
     }
 }
@@ -148,7 +148,7 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
             }
         };
 
-        AMREX_CUDA_LAUNCH_LAMBDA(Strategy(vbx), magnetic);
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx), magnetic);
     } 
 }
 
