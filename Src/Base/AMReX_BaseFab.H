@@ -500,6 +500,13 @@ public:
                              int         numcomp,
                              const void* src);
 
+    AMREX_CUDA_HOST_DEVICE
+    //! Add from raw memory to the dstbox of this Fab and return the number of bytes copied
+    std::size_t addFromMem (const Box&  dstbox,
+                             int         dstcomp,
+                             int         numcomp,
+                             const void* src);
+
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -1919,6 +1926,43 @@ BaseFab<T>::copyFromMem (const Box&  dstbox,
                     T* AMREX_RESTRICT dp = dp0(0,j,k,n);
                     for (int i = 0; i < len[0]; ++i) {
                         dp[i] = sp[offset+i];
+                    }
+                    offset += len[0];
+                }
+            }
+        }
+        return sizeof(T)*offset;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+template <class T>
+std::size_t
+BaseFab<T>::addFromMem (const Box&  dstbox,
+                        int         dstcomp,
+                        int         numcomp,
+                        const void* src)
+{
+    BL_ASSERT(box().contains(dstbox));
+    BL_ASSERT(dstcomp >= 0 && dstcomp+numcomp <= nComp());
+
+    if (dstbox.ok())
+    {
+        const auto dp0 = this->stridedPtr(dstbox,dstcomp);
+        T const* AMREX_RESTRICT sp = static_cast<T const*>(src);
+
+        const auto len = dstbox.length3d();
+
+        std::size_t offset = 0;
+        for (int n = 0; n < numcomp; ++n) {
+            for         (int k = 0; k < len[2]; ++k) {
+                for     (int j = 0; j < len[1]; ++j) {
+                    T* AMREX_RESTRICT dp = dp0(0,j,k,n);
+                    for (int i = 0; i < len[0]; ++i) {
+                        dp[i] += sp[offset+i];
                     }
                     offset += len[0];
                 }
