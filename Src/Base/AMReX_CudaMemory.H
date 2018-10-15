@@ -79,13 +79,13 @@ struct ManagedData
     T hostValue () const
     {
         T t;
-//        cudaMemcpy(&t, d_d, sizeof(T), cudaMemDeviceToHost);
+//        cudaMemcpy(&t, d_d, sizeof(T), cudaMemcpyDeviceToHost);
         return t; 
     }
 
     void updateDevice(const T &t)
     {
-//        cudaMemcpy(d_d, &t, sizeof(T), cudaMemHostToDevice);
+//        cudaMemcpy(d_d, &t, sizeof(T), cudaMemcpyHostToDevice);
     }
 
     T* data() && = delete; 
@@ -96,6 +96,50 @@ struct ManagedData
 
     private:
     T* d_d = nullptr;
+};
+
+template <class T, typename std::enable_if<std::is_pod<T>::value,int>::type = 0 >
+struct HostDeviceScalar
+{
+    HostDeviceScalar (T& h) : hp(&h) {
+#if AMREX_USE_CUDA
+        cudaMalloc(&dp, sizeof(T));
+        cudaMemcpy(dp, hp, sizeof(T), cudaMemcpyHostToDevice);
+#else
+        dp = hp;
+#endif
+    }
+    
+    ~HostDeviceScalar () {
+#if AMREX_USE_CUDA
+        cudaMemcpy(hp, dp, sizeof(T), cudaMemcpyDeviceToHost);
+        cudaFree(dp);
+#endif
+    }
+
+    HostDeviceScalar (HostDeviceScalar const&) = delete;
+    HostDeviceScalar (HostDeviceScalar &&) = delete;
+    void operator= (HostDeviceScalar const&) = delete;
+    void operator= (HostDeviceScalar &&) = delete;
+
+    T* devicePtr () { return dp; }
+    T const* devicePtr () const { return dp; }
+
+    void DeviceToHost () {
+#if AMREX_USE_CUDA
+        cudaMemcpy(hp, dp, sizeof(T), cudaMemcpyDeviceToHost);
+#endif
+    }
+
+    void HostToDevice () {
+#if AMREX_USE_CUDA
+        cudaMemcpy(dp, hp, sizeof(T), cudaMemcpyHostToDevice);
+#endif
+    }
+
+private:
+    T* hp;
+    T* dp;
 };
 
 }  //namespace

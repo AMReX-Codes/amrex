@@ -611,6 +611,7 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FillBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
@@ -633,6 +634,7 @@ public:
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false);
@@ -1360,16 +1362,7 @@ template <class>
 void
 FabArray<FAB>::setVal (value_type val)
 {
-    BL_PROFILE("FabArray::setVal(val)");
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
-    {
-	const Box& bx = fai.growntilebox();
-        get(fai).setVal(val, bx, 0, n_comp);
-    }
+    setVal(val,0,n_comp,n_grow);
 }
 
 template <class FAB>
@@ -1392,7 +1385,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class>
+template <class FOO>  // FOO fools nvcc
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -1402,15 +1395,20 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    BL_PROFILE("FabArray::setVal(val,comp,ncomp,nghost)");
+    BL_PROFILE("FabArray::setVal()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
+    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
-        get(fai).setVal(val, bx, comp, ncomp);
+        FAB* fab = &(get(fai));
+
+        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
+        {
+            fab->setVal(val, tbx, comp, ncomp);
+        });
     }
 }
 
@@ -1427,7 +1425,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class>
+template <class FOO> // Foo fools nvcc
 void
 FabArray<FAB>::setVal (value_type val,
                        const Box& region,
@@ -1441,14 +1439,20 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
+    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
         Box b = fai.growntilebox(nghost) & region;
 
-        if (b.ok())
-            get(fai).setVal(val, b, comp, ncomp);
+        if (b.ok()) {
+            FAB* fab = &(get(fai));
+
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
+            {
+                fab->setVal(val, tbx, comp, ncomp);
+            });
+        }
     }
 }
 

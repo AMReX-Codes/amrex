@@ -73,74 +73,31 @@ std::map<FabArrayBase::BDKey, int> FabArrayBase::m_BD_count;
 
 FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
-
-
-int FA_init::m_cnt = 0;
-
 namespace
 {
-    Arena* the_FA_arena = 0;
-}
-
-FA_init::FA_init ()
-{
-    if (m_cnt++ == 0)
-    {
-        BL_ASSERT(the_FA_arena == 0);
-
-        // Use BArena here because the
-        // FabArray parallel operations
-        // are not safe for coalesced memory.
-
-        the_FA_arena = new BArena;
-
-#ifdef AMREX_USE_CUDA
-        // Use device memory for the FabArray
-        // staging data because that will have
-        // better MPI performance than managed memory.
-
-        if (FabArrayBase::use_cuda_aware_mpi)
-            the_FA_arena->SetDeviceMemory();
-        else
-            the_FA_arena->SetHostAlloc();
-#endif
-
-    }
-}
-
-FA_init::~FA_init ()
-{
-    if (--m_cnt == 0) {
-        delete the_FA_arena;
-    }
+    Arena* the_FA_arena = nullptr;
+    bool initialized = false;
 }
 
 Arena*
 The_FA_Arena ()
 {
-    BL_ASSERT(the_FA_arena != 0);
+    if (the_FA_arena == nullptr) {
+        the_FA_arena = new BArena;
+#ifdef AMREX_USE_CUDA
+        // Use device memory for the FabArray
+        // staging data because that will have
+        // better MPI performance than managed memory.
+
+        if (FabArrayBase::use_cuda_aware_mpi) {
+            the_FA_arena->SetDeviceMemory();
+        } else {
+            the_FA_arena->SetHostAlloc();
+        }
+#endif
+    }
 
     return the_FA_arena;
-}
-
-
-
-namespace
-{
-    bool initialized = false;
-}
-
-
-bool
-FabArrayBase::IsInitialized () const
-{
-  return initialized;
-}
-
-void
-FabArrayBase::SetInitialized (bool binit)
-{
-  initialized = binit;
 }
 
 void
@@ -1533,6 +1490,8 @@ FabArrayBase::Finalize ()
     m_BD_count.clear();
     
     m_FA_stats = FabArrayStats();
+
+    delete the_FA_arena;
 
     initialized = false;
 }
