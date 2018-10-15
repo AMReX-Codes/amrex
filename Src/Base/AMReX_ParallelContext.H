@@ -58,6 +58,8 @@ inline int NProcsAll () { return frames[0].NProcs(); }
 inline int MyProcAll () { return frames[0].MyProc(); }
 // IO rank in world communicator
 inline int IOProcessorNumberAll () { return frames[0].IOProc(); }
+// Am IO processor for world communicator?
+inline bool IOProcessorAll () { return MyProcAll() == IOProcessorNumberAll(); }
 // Pointer to ofstream
 inline std::ofstream * OFSPtrAll () { return frames[0].get_ofs_ptr(); }
 
@@ -71,6 +73,8 @@ inline int NProcsSub () { return frames.back().NProcs(); }
 inline int MyProcSub () { return frames.back().MyProc(); }
 // IO sub-rank in current frame
 inline int IOProcessorNumberSub () { return frames.back().IOProc(); }
+// Am IO processor for current frame?
+inline bool IOProcessorSub () { return MyProcSub() == IOProcessorNumberSub(); }
 // Pointer to ofstream
 inline std::ofstream * OFSPtrSub () { return frames.back().get_ofs_ptr(); }
 
