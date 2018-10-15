@@ -298,8 +298,6 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
-    bool IsInitialized() const;
-    void SetInitialized(bool binit);
     //
     // To maximize thread efficiency we now can decompose things like
     // intersections among boxes into smaller tiles. This sets
@@ -625,17 +623,6 @@ protected:
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
 
-    class FA_init
-    {
-    public:
-        FA_init ();
-        ~FA_init ();
-    private:
-        static int m_cnt;
-    };
-
 }
-
-static amrex::FA_init file_scope_FA_init_object;
 
 #endif
