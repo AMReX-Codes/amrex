@@ -33,7 +33,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         //
 	int N_loc = (*TheFB.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -219,7 +219,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     if (N_snds > 0)
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
         for (int j=0; j<N_snds; ++j)
         {
@@ -345,7 +345,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
 	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
@@ -368,7 +368,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     else
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
 	for (int i=0; i<N_locs; ++i)
 	{
@@ -458,7 +458,7 @@ FabArray<FAB>::FillBoundary_finish ()
 	}	
 
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Cuda::inLaunchRegion())
 #endif
         for (int k = 0; k < N_rcvs; k++) 
         {
@@ -569,7 +569,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // non-cell-centered data this simplistic way.
         //
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
         for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
         {
@@ -605,7 +605,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -812,7 +812,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	if (N_snds > 0)
 	{
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
 	    for (int j=0; j<N_snds; ++j)
 	    {
@@ -951,7 +951,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	{
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
 	    ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
             {
@@ -981,7 +981,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	else 
 	{
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
 	    for (int j=0; j<N_locs; ++j)
 	    {
@@ -1049,7 +1049,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
 	    
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Cuda::inLaunchRegion())
 #endif
 	    {
 #ifdef _OPENMP
@@ -1189,7 +1189,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // non-cell-centered data this simplistic way.
         //
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
@@ -1225,7 +1225,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
 	for (int i=0; i<N_loc; ++i)
         {
@@ -1382,7 +1382,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     if (N_snds > 0)
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
         for (int j=0; j<N_snds; ++j)
         {
@@ -1454,7 +1454,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
         ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
         {
@@ -1485,7 +1485,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     else 
     {
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Device::inLaunchRegion())
+#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
         for (int j=0; j<N_locs; ++j)
         {
@@ -1551,7 +1551,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
         }
 	
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Device::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Cuda::inLaunchRegion())
 #endif
         {
 #ifdef _OPENMP
@@ -1923,7 +1923,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
     if (ParallelContext::NProcsSub() == 1)
     {
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {

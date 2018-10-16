@@ -4,6 +4,7 @@
 #include <AMReX_CudaQualifiers.H>
 #include <cstddef>
 #include <AMReX_Box.H>
+#include <AMReX_CudaControl.H>
 #include <AMReX_Device.H>
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
@@ -12,7 +13,7 @@
 // CUDA versions
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
-    if (amrex::Device::inLaunchRegion()) \
+    if (amrex::Cuda::inLaunchRegion()) \
     { \
         auto amrex_i_st = Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
@@ -27,7 +28,7 @@
     }
 
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
-    if (amrex::Device::inLaunchRegion()) \
+    if (amrex::Cuda::inLaunchRegion()) \
     { \
         auto amrex_i_st = Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
@@ -41,7 +42,7 @@
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
-    if (amrex::Device::inLaunchRegion()) \
+    if (amrex::Cuda::inLaunchRegion()) \
     { \
         auto amrex_i_st = Strategy(); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
@@ -65,7 +66,7 @@
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
     { \
-      if (amrex::Device::inLaunchRegion()) \
+      if (amrex::Cuda::inLaunchRegion()) \
       { \
          auto st = strategy; \
          amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
@@ -79,7 +80,7 @@
 
 #define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) \
     { \
-      if (amrex::Device::inLaunchRegion()) \
+      if (amrex::Cuda::inLaunchRegion()) \
       { \
          auto st = strategy; \
          amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
@@ -91,7 +92,7 @@
       } \
     }
 
-// Cannot respect Device::inLaunchRegion because function must be __global__.
+// Cannot respect Cuda::inLaunchRegion because function must be __global__.
 #define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
         auto st = strategy;                                             \

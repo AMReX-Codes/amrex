@@ -97,6 +97,7 @@ int main (int argc, char* argv[])
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
+    Cuda::setLaunchRegion(true);
 
     Real cells = 0;
     {
@@ -113,7 +114,8 @@ int main (int argc, char* argv[])
        cells = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
        Real end_time = ParallelDescriptor::second();
 
-       amrex::Print() << "Total number of cells: " << cells << " calculated in " << (end_time-strt_time) << " seconds."<< std::endl;
+       amrex::Print() << "Total number of cells: " << cells << "." << std::endl;
+       amrex::Print() << " calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
 
     {
@@ -130,10 +132,29 @@ int main (int argc, char* argv[])
        Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
        Real end_time = ParallelDescriptor::second();
  
-       amrex::Print() << x_val << " dot " << y_val << " = " << dot_result << std::endl;
+       amrex::Print() << "GPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
+       amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
+    }
+
+    Cuda::setLaunchRegion(false);
+    {
+       MultiFab x(ba, dm, Ncomp, Nghost);
+       MultiFab y(ba, dm, Ncomp, Nghost);
+
+       Real x_val = 2.0;
+       Real y_val = 4.0;
+
+       x.setVal(x_val);
+       y.setVal(y_val);
+
+       Real strt_time = ParallelDescriptor::second();
+       Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
+       Real end_time = ParallelDescriptor::second();
+ 
+       amrex::Print() << "CPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
        amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
        amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl;
-
     }
 
     amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
