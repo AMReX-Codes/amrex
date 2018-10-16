@@ -17,7 +17,7 @@
 namespace amrex {
 
 #ifdef AMREX_USE_CUDA
-    inline bool TilingIfNotGPU () { return !Device::inLaunchRegion(); }
+    inline bool TilingIfNotGPU () { return !Cuda::inLaunchRegion(); }
 #else
     inline constexpr bool TilingIfNotGPU () { return true; }
 #endif

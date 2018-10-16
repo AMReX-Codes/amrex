@@ -7,11 +7,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
-#if defined(AMREX_USE_CUDA)
-bool amrex::Device::in_device_launch_region = true;
-#else
-bool amrex::Device::in_device_launch_region = false;
-#endif
 int amrex::Device::device_id = 0;
 int amrex::Device::verbose = 0;
 
@@ -64,8 +59,6 @@ amrex::Device::initialize_cuda_c () {
     numBlocksOverride.z = (int) nz;
 
     cudaGetDeviceProperties(&device_prop, device_id);
-
-    pp.query("in_launch_region", in_device_launch_region);
 }
 
 cudaStream_t

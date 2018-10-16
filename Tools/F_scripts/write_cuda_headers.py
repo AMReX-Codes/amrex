@@ -566,7 +566,7 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
 
                 hout.write("#else\n")
 
-                hout.write("if (amrex::Device::inLaunchRegion()) {\n")
+                hout.write("if (amrex::Cuda::inLaunchRegion()) {\n")
                 hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
                 hout.write("    amrex::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
                 hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \

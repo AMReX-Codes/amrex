@@ -6,6 +6,7 @@
 #include <memory>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#include <AMReX_CudaControl.H>
 
 #ifdef AMREX_USE_CUDA
 #ifdef AMREX_USE_NVML
@@ -99,18 +100,6 @@ public:
     static int  get_stream_index();
 
     static void prepare_for_launch(const int* lo, const int* hi);
-
-    static void beginLaunchRegion() { in_device_launch_region = true; }
-
-    static void endLaunchRegion() { in_device_launch_region = false; }
-
-    static bool setLaunchRegion(bool r) {
-        bool old = in_device_launch_region;
-        in_device_launch_region = r;
-        return old;
-    }
-
-    static bool inLaunchRegion() { return in_device_launch_region; }
 
     static void* get_host_pointer(const void* ptr);
 
