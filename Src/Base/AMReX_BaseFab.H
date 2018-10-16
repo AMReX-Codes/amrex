@@ -2486,8 +2486,8 @@ BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& x)
 {
     Box ovlp(domain);
-    ovlp &= src.domain;
-    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,0,0,nvar) : *this;
+    ovlp &= x.domain;
+    return ovlp.ok() ? this->atomicAdd(x,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
@@ -3046,7 +3046,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
                     dp[i] += sp[i];
 #endif
 #else
-                    // do cuda atomic
+                    amrex::CudaAtomic::Add(&dp + i, sp[i]);
 #endif
                 }
             }
