@@ -215,7 +215,11 @@ int main (int argc, char* argv[])
 	}
       /* Call CVodeCreate to create the solver memory and specify the 
        * Backward Differentiation Formula and the use of a Newton iteration */
+      #ifndef CV_NEWTON
+      cvode_mem = CVodeCreate(CV_BDF);
+      #else
       cvode_mem = CVodeCreate(CV_BDF, CV_NEWTON);
+      #endif
       if(check_flag((void *)cvode_mem, "CVodeCreate", 0)) return(1);
 
       /* Call CVodeInit to initialize the integrator memory and specify the
