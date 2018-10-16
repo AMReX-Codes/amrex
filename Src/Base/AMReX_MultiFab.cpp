@@ -1600,6 +1600,8 @@ MultiFab::SumBoundary (const Periodicity& period)
 std::unique_ptr<MultiFab>
 MultiFab::OverlapMask (const Periodicity& period) const
 {
+    BL_PROFILE("MultiFab::OverlapMask()");
+
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
@@ -1635,6 +1637,8 @@ MultiFab::OverlapMask (const Periodicity& period) const
 std::unique_ptr<iMultiFab>
 MultiFab::OwnerMask (const Periodicity& period) const
 {
+    BL_PROFILE("MultiFab::OwnerMask()");
+
     const BoxArray& ba = boxArray();
     const DistributionMapping& dm = DistributionMap();
 
@@ -1679,6 +1683,8 @@ MultiFab::OwnerMask (const Periodicity& period) const
 void
 MultiFab::AverageSync (const Periodicity& period)
 {
+    BL_PROFILE("MultiFab::AverageSync()");
+
     if (ixType().cellCentered()) return;
     auto wgt = this->OverlapMask(period);
     wgt->invert(1.0, 0, 1);
@@ -1688,6 +1694,8 @@ MultiFab::AverageSync (const Periodicity& period)
 void
 MultiFab::WeightedSync (const MultiFab& wgt, const Periodicity& period)
 {
+    BL_PROFILE("MultiFab::WeightedSync()");
+
     if (ixType().cellCentered()) return;
     
     const int ncomp = nComp();
@@ -1714,6 +1722,8 @@ MultiFab::OverrideSync (const Periodicity& period)
 void
 MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 {
+    BL_PROFILE("MultiFab::OverrideSync()");
+
     if (ixType().cellCentered()) return;
     
     const int ncomp = nComp();
