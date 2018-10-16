@@ -308,9 +308,9 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             
 #ifdef _OPENMP
             const Box& fabbox = rhofab.box();
+            
             const int ncomp = 1;
-            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                        BL_TO_FORTRAN_3D(rhofab), ncomp);
+            AtomicAccumulateFAB(rhofab, local_rho);
 #endif
         }
         

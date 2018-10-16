@@ -978,8 +978,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                             &lvect, &WarpX::charge_deposition_algo);
 
                     const int ncomp = 1;
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                                BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
+                    AtomicAccumulateFAB(rhofab, local_rho, 0, icomp, ncomp);
                 }
 
                 if (np_current < np)
@@ -1024,8 +1023,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& crhofab = (*crhomf)[pti];
                     
                     const int ncomp = 1;
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                                BL_TO_FORTRAN_N_3D(crhofab,icomp), ncomp);
+                    AtomicAccumulateFAB(crhofab, local_rho, 0, icomp, ncomp);
                 }                
             };
 
@@ -1216,15 +1214,11 @@ PhysicalParticleContainer::Evolve (int lev,
                     BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
                     BL_PROFILE_VAR_START(blp_accumulate);
-                    const int ncomp = 1;
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                                BL_TO_FORTRAN_3D(jxfab), ncomp);
-                    
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                                BL_TO_FORTRAN_3D(jyfab), ncomp);
 
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                                BL_TO_FORTRAN_3D(jzfab), ncomp);
+                    AtomicAccumulateFAB(jxfab, local_jx);
+                    AtomicAccumulateFAB(jyfab, local_jy);
+                    AtomicAccumulateFAB(jzfab, local_jz);
+
                     BL_PROFILE_VAR_STOP(blp_accumulate);
                 }
 
@@ -1274,13 +1268,13 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& cjyfab = (*cjy)[pti];
                     FArrayBox& cjzfab = (*cjz)[pti];
 
-                    const int ncomp = 1;
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                                BL_TO_FORTRAN_3D(cjxfab), ncomp);
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                                BL_TO_FORTRAN_3D(cjyfab), ncomp);
-                    amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                                BL_TO_FORTRAN_3D(cjzfab), ncomp);
+                    BL_PROFILE_VAR_START(blp_accumulate);
+                    
+                    AtomicAccumulateFAB(cjxfab, local_jx);
+                    AtomicAccumulateFAB(cjyfab, local_jy);
+                    AtomicAccumulateFAB(cjzfab, local_jz);
+                    
+                    BL_PROFILE_VAR_STOP(blp_accumulate);
                 }
 
                 //
