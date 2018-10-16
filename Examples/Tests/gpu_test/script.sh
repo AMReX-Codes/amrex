@@ -13,8 +13,8 @@ set -x
 
 omp=1
 export OMP_NUM_THREADS=${omp}
-EXE="../main3d.pgi.DEBUG.TPROF.MPI.ACC.CUDA.ex"
-#EXE="../main3d.pgi.TPROF.MPI.ACC.CUDA.ex"
+# EXE="../main3d.pgi.DEBUG.TPROF.MPI.ACC.CUDA.ex"
+EXE="../main3d.pgi.TPROF.MPI.ACC.CUDA.ex"
 JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
@@ -24,10 +24,10 @@ cp inputs $rundir
 cd $rundir
 
 # 1. Run normally
-#${JSRUN} --smpiargs="-gpu" ${EXE} inputs
+${JSRUN} --smpiargs="-gpu" ${EXE} inputs
 
 # 2. Run under cuda-memcheck
-${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs &> memcheck.txt
+# ${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs &> memcheck.txt
 
 # 3. Run under nvprof and direct all stdout and stderr to nvprof.txt
 #${JSRUN} --smpiargs="-gpu" nvprof --profile-child-processes ${EXE} inputs &> nvprof.txt
