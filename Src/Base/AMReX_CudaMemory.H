@@ -3,6 +3,8 @@
 
 #include <AMReX_CudaQualifiers.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_CudaControl.H>
+#include <cstdlib>
 
 namespace amrex {
 
@@ -111,18 +113,32 @@ struct DeviceScalar
 #if AMREX_USE_CUDA
 
     DeviceScalar (T init_val) {
-        cudaMalloc(&dp, sizeof(T));
-        cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
+        if (Cuda::inLaunchRegion()) {
+            cudaMalloc(&dp, sizeof(T));
+            cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
+        } else {
+            dp = (T*)(std::malloc(sizeof(T)));
+        }
     }
 
-    ~DeviceScalar () { cudaFree(dp); }
+    ~DeviceScalar () {
+        if (Cuda::inLaunchRegion()) {
+            cudaFree(dp);
+        } else {
+            std::free(dp);
+        }
+    }
 
     T* dataPtr () { return dp; }
     T const* dataPtr () const { return dp; }
     T dataValue () const {
-        T r;
-        cudaMemcpy(&r, dp, sizeof(T), cudaMemcpyDeviceToHost);
-        return r;
+        if (Cuda::inLaunchRegion()) {
+            T r;
+            cudaMemcpy(&r, dp, sizeof(T), cudaMemcpyDeviceToHost);
+            return r;
+        } else {
+            return *dp;
+        }
     }
 
 private:
