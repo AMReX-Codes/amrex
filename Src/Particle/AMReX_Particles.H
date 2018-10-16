@@ -463,28 +463,6 @@ public:
         return MFIter(*m_dummy_mf[lev], tile ? tile_size : IntVect::TheZeroVector());
     }
 
-    //
-    // Used by deposition operations with OpenMP
-    //
-    template <class T>
-    void AtomicAccumulateFAB(BaseFab<T>& global_fab, const BaseFab<T>& local_fab) const
-    {
-        AMREX_ASSERT(global_fab.nComp() == local_fab.nComp());
-        AtomicAccumulateFAB(global_fab, local_fab, 0, 0, global_fab.nComp());
-    }
-
-    template <class T>
-    void AtomicAccumulateFAB(BaseFab<T>& global_fab, const BaseFab<T>& local_fab,
-                             int srccomp, int destcomp, int numcomp=1) const
-    {
-#ifdef _OPENMP
-        amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_fab, srccomp),
-                                    BL_TO_FORTRAN_N_3D(global_fab, destcomp), numcomp);
-#else        
-        global_fab.plus(local_fab, srccomp, destcomp, numcomp);
-#endif
-    }
-
     // struct-of-array stuff
     std::vector<bool> communicate_real_comp;
     std::vector<bool> communicate_int_comp;
