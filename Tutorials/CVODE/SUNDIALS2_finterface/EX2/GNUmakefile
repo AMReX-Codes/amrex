@@ -11,6 +11,7 @@ PRECISION = DOUBLE
 EBASE     = main
 
 USE_CVODE = TRUE
+CVODE_LIB_DIR ?= ${CVODE_LIB}
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
