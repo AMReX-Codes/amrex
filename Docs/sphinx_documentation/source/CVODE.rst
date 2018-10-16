@@ -6,7 +6,7 @@
 
 
 Compiling AMReX with CVODE (Cray or Sundials version 2.7)
-=========================================
+=========================================================
 
 The following steps describe how to compile an AMReX application with
 CVODE support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
