@@ -485,7 +485,7 @@ FabArray<FAB>::FillBoundary_finish ()
             }
         }
 #ifdef AMREX_USE_CUDA
-            Device::synchronize();
+        Device::synchronize();
 #endif
 
         if (fb_the_recv_data)
@@ -1406,7 +1406,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 BL_ASSERT(dptr == send_data[j] + send_size[j]);
             }
         }
-        
+
+#ifdef AMREX_USE_CUDA
+        Device::synchronize();
+#endif
+
         int send_counter = 0;
         while (send_counter < N_snds)
         {
@@ -1513,6 +1517,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         }
     }
 
+#ifdef AMREX_USE_CUDA
+    Device::synchronize();
+#endif
+
     return return_handle;
 
 #endif /*BL_USE_MPI*/
@@ -1590,7 +1598,11 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                 }
             }
         }
-        
+
+#ifdef AMREX_USE_CUDA
+        Device::synchronize();
+#endif
+
         for (auto p : recv_data) {
             amrex::The_FA_Arena()->free(p);
         }
