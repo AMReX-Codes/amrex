@@ -34,6 +34,7 @@ module amrex_box_module
   end type amrex_box
 
   public :: amrex_print
+  public :: amrex_intersection
 
   interface amrex_box
      module procedure amrex_box_build
@@ -43,12 +44,33 @@ module amrex_box_module
      module procedure amrex_box_print
   end interface amrex_print
 
+  interface amrex_intersection
+     module procedure amrex_box_intersection
+  end interface amrex_intersection
+
   interface
      subroutine amrex_fi_print_box(lo,hi,nodal) bind(c)
        import
        implicit none
        integer(c_int), intent(in) :: lo(*), hi(*), nodal(*)
      end subroutine amrex_fi_print_box
+  end interface
+
+  interface
+     subroutine amrex_fi_get_box_intersection(lo1, hi1, nodal1, &
+                                              lo2, hi2, nodal2, & 
+                                              rlo, rhi) bind(c)
+       import
+       implicit none
+       integer, intent(in)    :: lo1(3) 
+       integer, intent(in)    :: hi1(3)
+       logical, intent(in)    :: nodal1(3)
+       integer, intent(in)    :: lo2(3)
+       integer, intent(in)    :: hi2(3)
+       logical, intent(in)    :: nodal2(3)
+       integer, intent(inout) :: rlo(3)
+       integer, intent(inout) :: rhi(3)
+     end subroutine amrex_fi_get_box_intersection
   end interface
 
 contains
@@ -200,6 +222,22 @@ contains
     logical :: r
     r = all(this%lo(1:ndims) .le. pt) .and. all(this%hi(1:ndims) .ge. pt)
   end function amrex_box_contains_pt
+
+  function amrex_box_intersection(box1, box2) result(r)
+    type(amrex_box), intent(in) :: box1
+    type(amrex_box), intent(in) :: box2
+    type(amrex_box) :: r
+
+    integer :: lo(3), hi(3)
+
+    ! C++ code confirms that nodal is the same for both boxes
+    call amrex_fi_get_box_intersection(box1%lo, box1%hi, box1%nodal, &
+                                       box2%lo, box2%hi, box2%nodal, &
+                                       lo, hi)
+    r%nodal = box1%nodal
+    r%lo(1:ndims) = lo(1:ndims)
+    r%hi(1:ndims) = hi(1:ndims)
+  end function amrex_box_intersection
 
 end module amrex_box_module
 
