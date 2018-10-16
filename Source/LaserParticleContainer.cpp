@@ -289,6 +289,7 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
 
@@ -510,12 +511,16 @@ LaserParticleContainer::Evolve (int lev,
                 &dt, &dx[0], &dx[1], &dx[2],
                 &WarpX::nox,&WarpX::noy,&WarpX::noz,
                 &lvect,&WarpX::current_deposition_algo);
+
+	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
+            
+            BL_PROFILE_VAR_START(blp_accumulate);
             
             jxfab.atomicAdd(local_jx);
             jyfab.atomicAdd(local_jy);
             jzfab.atomicAdd(local_jz);
-
-	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
+            
+            BL_PROFILE_VAR_STOP(blp_accumulate);
 
             if (rho) depositCharge(rho,1);
 
