@@ -2,6 +2,7 @@
 #define AMREX_CUDA_MEMORY_H_
 
 #include <AMReX_CudaQualifiers.H>
+#include <AMReX_TypeTraits.H>
 
 namespace amrex {
 
@@ -140,6 +141,49 @@ struct HostDeviceScalar
 private:
     T* hp;
     T* dp;
+};
+
+template <class T, typename = amrex::EnableIf_t<std::is_pod<T>::value> >
+struct DeviceScalar
+{
+    DeviceScalar (DeviceScalar const&) = delete;
+    DeviceScalar (DeviceScalar &&) = delete;
+    void operator= (DeviceScalar const&) = delete;
+    void operator= (DeviceScalar &&) = delete;
+
+#if AMREX_USE_CUDA
+
+    DeviceScalar (T init_val) {
+        cudaMalloc(&dp, sizeof(T));
+        cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
+    }
+
+    ~DeviceScalar () { cudaFree(dp); }
+
+    T* dataPtr () { return dp; }
+    T const* dataPtr () const { return dp; }
+    T dataValue () const {
+        T r;
+        cudaMemcpy(&r, dp, sizeof(T), cudaMemcpyDeviceToHost);
+        return r;
+    }
+
+private:
+    T* dp;
+
+#else
+
+    DeviceScalar (T init_val) : d(init_val) {}
+    ~DeviceScalar () {}
+
+    T* dataPtr () { return &d; }
+    T const* dataPtr () const { return &d; }
+    T dataValue () const { return d; }
+
+private:
+    T d;
+
+#endif
 };
 
 }  //namespace

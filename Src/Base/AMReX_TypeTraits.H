@@ -24,6 +24,9 @@ namespace amrex
                              std::is_base_of<FabArray<typename D::FABType::value_type>,
                                              D>::value>::type>
         : std::true_type {};
+
+    template <bool B, class T = void>
+    using EnableIf_t = typename std::enable_if<B,T>::type;
 }
 
 #endif

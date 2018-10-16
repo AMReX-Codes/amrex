@@ -20,9 +20,10 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_CudaMemory.H>
 #include <AMReX_BArena.H>
 
+#include <AMReX_CudaMemory.H>
+#include <AMReX_CudaUtility.H>
 #include <AMReX_Device.H>
 
 #ifdef USE_PERILLA

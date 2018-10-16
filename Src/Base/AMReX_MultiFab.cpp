@@ -40,11 +40,12 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 
     Real sm = 0.0;
 
-#ifdef AMREX_USE_CUDA
-    if (Device::inLaunchRegion())
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction && !Device::inLaunchRegion()) reduction(+:sm)
+#endif
     {
-        HostDeviceScalar<Real> cs(sm);
-        Real* p = cs.devicePtr();
+        amrex::DeviceScalar<Real> local_sm(0.0);
+        Real* p = local_sm.dataPtr();
         for (MFIter mfi(x); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
@@ -53,21 +54,10 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dot(tbx, xcomp, *yfab, tbx, ycomp, numcomp);
-                CudaAtomicAdd(p, t); 
+                amrex::CudaAtomic::Add(p, t);
             });
         }
-    }
-    else
-#endif
-    {
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
-#endif
-        for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
-        {
-            const Box& bx = mfi.growntilebox(nghost);
-            sm += x[mfi].dot(bx,xcomp,y[mfi],bx,ycomp,numcomp);
-        }
+        sm += local_sm.dataValue();
     }
 
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
