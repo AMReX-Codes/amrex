@@ -1,0 +1,5 @@
+<sensei>
+  <analysis type="VTKAmrWriter" mode="paraview" output_dir="./" enabled="1">
+  </analysis> 
+</sensei>
+

@@ -1,0 +1,26 @@
+
+SENSEI_INSITU=EXE
+
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+
+  # base classes and utils
+  C$(SENSEI_INSITU)_headers += AMReX_InSituBridge.H AMReX_InSituUtils.H
+  C$(SENSEI_INSITU)_sources += AMReX_InSituBridge.cpp AMReX_InSituUtils.cpp
+
+  # AmrCore adaptor and bridge
+  C$(SENSEI_INSITU)_headers += AMReX_AmrMeshDataAdaptor.H \
+                              AMReX_AmrMeshInSituBridge.H
+
+  C$(SENSEI_INSITU)_sources += AMReX_AmrMeshDataAdaptor.cpp \
+                              AMReX_AmrMeshInSituBridge.cpp
+
+  # Amr adaptor and bridge
+  C$(SENSEI_INSITU)_headers += AMReX_AmrDataAdaptor.H \
+                              AMReX_AmrInSituBridge.H
+
+  C$(SENSEI_INSITU)_sources += AMReX_AmrDataAdaptor.cpp \
+                              AMReX_AmrInSituBridge.cpp
+endif
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SENSEI
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SENSEI
