@@ -1856,12 +1856,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-      for (int pmap_it = 0; pmap_it < static_cast<int>(pvec_ptrs.size()); ++pmap_it)
+      for (int pit = 0; pit < static_cast<int>(pvec_ptrs.size()); ++pit)
       {
-          auto index = grid_tile_ids[pmap_it];
+          auto index = grid_tile_ids[pit];
           auto& aos = m_particles[lev][index].GetArrayOfStructs();
           auto& soa = m_particles[lev][index].GetStructOfArrays();
-          auto& aos_tmp = *(pvec_ptrs[pmap_it]);
+          auto& aos_tmp = *(pvec_ptrs[pit]);
           auto& soa_tmp = soa_local[lev][index];
           for (int i = 0; i < num_threads; ++i) {
               aos.insert(aos.end(), aos_tmp[i].begin(), aos_tmp[i].end());
