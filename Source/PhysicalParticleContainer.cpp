@@ -1183,7 +1183,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
                 Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
                 Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
-                Box gtbx, gtby, gtbz;
 
                 const std::array<Real, 3>& xyzmin = xyzmin_tile;
 
