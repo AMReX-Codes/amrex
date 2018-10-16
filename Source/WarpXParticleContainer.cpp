@@ -307,10 +307,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
                                     &lvect, &WarpX::charge_deposition_algo);
             
 #ifdef _OPENMP
-            const Box& fabbox = rhofab.box();
-            
-            const int ncomp = 1;
-            AtomicAccumulateFAB(rhofab, local_rho);
+            rhofab.atomicAdd(local_rho);
 #endif
         }
         

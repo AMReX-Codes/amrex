@@ -403,7 +403,7 @@ LaserParticleContainer::Evolve (int lev,
                                         &lvect, &WarpX::charge_deposition_algo);
 
                 const int ncomp = 1;
-                AtomicAccumulateFAB(rhofab, local_rho, 0, icomp, ncomp);
+                rhofab.atomicAdd(local_rho, 0, icomp, ncomp);
             };
 
             if (rho) depositCharge(rho,0);
@@ -511,9 +511,9 @@ LaserParticleContainer::Evolve (int lev,
                 &WarpX::nox,&WarpX::noy,&WarpX::noz,
                 &lvect,&WarpX::current_deposition_algo);
             
-            AtomicAccumulateFAB(jxfab, local_jx);
-            AtomicAccumulateFAB(jyfab, local_jy);
-            AtomicAccumulateFAB(jzfab, local_jz);
+            jxfab.atomicAdd(local_jx);
+            jyfab.atomicAdd(local_jy);
+            jzfab.atomicAdd(local_jz);
 
 	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
 

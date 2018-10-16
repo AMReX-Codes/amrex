@@ -978,7 +978,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                             &lvect, &WarpX::charge_deposition_algo);
 
                     const int ncomp = 1;
-                    AtomicAccumulateFAB(rhofab, local_rho, 0, icomp, ncomp);
+                    rhofab.atomicAdd(local_rho, 0, icomp, ncomp);
                 }
 
                 if (np_current < np)
@@ -1023,7 +1023,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& crhofab = (*crhomf)[pti];
                     
                     const int ncomp = 1;
-                    AtomicAccumulateFAB(crhofab, local_rho, 0, icomp, ncomp);
+                    crhofab.atomicAdd(local_rho, 0, icomp, ncomp);
                 }                
             };
 
@@ -1215,9 +1215,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    AtomicAccumulateFAB(jxfab, local_jx);
-                    AtomicAccumulateFAB(jyfab, local_jy);
-                    AtomicAccumulateFAB(jzfab, local_jz);
+                    jxfab.atomicAdd(local_jx);
+                    jyfab.atomicAdd(local_jy);
+                    jzfab.atomicAdd(local_jz);
 
                     BL_PROFILE_VAR_STOP(blp_accumulate);
                 }
@@ -1270,10 +1270,10 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
                     
-                    AtomicAccumulateFAB(cjxfab, local_jx);
-                    AtomicAccumulateFAB(cjyfab, local_jy);
-                    AtomicAccumulateFAB(cjzfab, local_jz);
-                    
+                    cjxfab.atomicAdd(local_jx);
+                    cjyfab.atomicAdd(local_jy);
+                    cjzfab.atomicAdd(local_jz);
+
                     BL_PROFILE_VAR_STOP(blp_accumulate);
                 }
 
