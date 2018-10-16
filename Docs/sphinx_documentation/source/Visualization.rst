@@ -1,3 +1,6 @@
+.. role:: cpp(code)
+   :language: c++
+
 .. _sec:amrvis:
 
 Amrvis
@@ -639,3 +642,227 @@ particularly useful:
    magic command ``%matplotlib inline`` in order to render matplotlib
    figures in the same browser window as the notebook, as opposed to displaying it
    as a new window.
+
+SENSEI
+======
+SENSEI is a light weight framework for in situ data analysis. SENSEI's data
+model and API provide uniform access to and run time selection of a diverse set
+of visualization and analysis back ends including VisIt Libsim, ParaView
+Catalyst, VTK-m, Ascent, ADIOS, Yt, and Python.
+
+System Architecture
+-------------------
+
+.. _sensei_arch:
+.. figure:: ./Visualization/sensei_amrex_arch_sm_824.png
+
+   SENSEI's in situ architecture enables use of a diverse of back ends which
+   can be selected at run time via an XML configuration file
+
+The three major architectural components in SENSEI are *data adaptors* which
+present simulation data in SENSEI's data model, *analysis adaptors* which
+present the back end data consumers to the simulation, and *bridge code* from
+which the simulation manages adaptors and periodically pushes data through the
+system. SENSEI comes equipped with a number of analysis adaptors enabling use
+of popular analysis and visualization libraries such as VisIt Libsim, ParaView
+Catalyst, Python, and ADIOS to name a few. AMReX contains SENSEI data adaptors
+and bridge code making it easy to use in AMReX based simulation codes.
+
+SENSEI provides a *configurable analysis adaptor* which uses an XML file to
+select and configure one or more back ends at run time. Run time selection of
+the back end via XML means one user can access Catalyst, another Libsim, yet
+another Python with no changes to the code.  This is depicted in figure
+:numref:`sensei_arch`. On the left side of the figure AMReX produces data, the
+bridge code pushes the data through the configurable analysis adaptor to the
+back end that was selected at run time.
+
+AMReX Integration
+------------------
+AMReX codes based on :cpp:`amrex::Amr` can use SENSEI simply by enabling it in
+the build and run via ParmParse parameters.  AMReX codes based on
+:cpp:`amrex::AmrMesh` need to additionally invoke the bridge code in
+:cpp:`amrex::AmrMeshInSituBridge`.
+
+Compiling with GNU Make
+-----------------------
+For codes making use of AMReX's build system add the following variable to the
+code's main :code:`GNUmakefile`.
+
+.. code-block:: bash
+
+   USE_SENSEI_INSITU = TRUE
+
+When set, AMReX's make files will query environment variables for the lists of
+compiler and linker flags, include directories, and link libraries. These lists
+can be quite elaborate when using more sophisticated back ends, and are best
+set automatically using the :code:`sensei_config` command line tool that should
+be installed with SENSEI. Prior to invoking make use the following command to
+set these variables:
+
+.. code-block:: bash
+
+   source sensei_config
+
+Typically, the :code:`sensei_config` tool is in the users PATH after loading
+the desired SENSEI module. After configuring the build environment with
+:code:`sensei_config`, proceed as usual.
+
+.. code-block:: bash
+
+   make -j4 -f GNUmakefile
+
+Compiling with CMake
+--------------------
+For codes making use of AMReX's CMake based build, one needs to enable SENSEI
+and point to the CMake configuration installed with SENSEI.
+
+.. code-block:: bash
+
+   cmake -DENABLE_SENSEI=ON -DSENSEI_DIR=<path to install>/lib/cmake ..
+
+When CMake generates the make files proceed as usual.
+
+.. code-block:: bash
+
+   make -j4 -f GNUmakefile
+
+ParmParse Configuration
+-----------------------
+Once an AMReX code has been compiled with SENSEI features enabled, it will need
+to be enabled and configured at runtime. This is done using ParmParse input file.
+The following 3 ParmParse parameters are used:
+
+.. code-block:: python
+
+   sensei.enabled = 1
+   sensei.config = render_iso_catalyst_2d.xml
+   sensei.frequency = 2
+
+:code:`sensei.enabled` turns SENSEI on or off.  :code:`sensei.config` points to
+the SENSEI XML file which selects and configures the desired back end.
+:code:`sensei.frequency` controls the number of level 0 time steps in between
+SENSEI processing.
+
+
+Back-end Selection and Configuration
+------------------------------------
+The back end is selected and configured at run time using the SENSEI XML file.
+The XML sets parameters specific to SENSEI and to the chosen back end. Many of
+the back ends have sophisticated configuration mechanisms which SENSEI makes
+use of.  For example the following XML configuration was used on NERSC's Cori
+with IAMR to render 10 iso surfaces, shown in figure :numref:`rt_visit`, using
+VisIt Libsim.
+
+.. code-block:: xml
+
+    <sensei>
+      <analysis type="libsim" frequency="1" mode="batch"
+        visitdir="/usr/common/software/sensei/visit"
+        session="rt_sensei_configs/visit_rt_contour_alpha_10.session"
+        image-filename="rt_contour_%ts" image-width="1555" image-height="815"
+        image-format="png" enabled="1"/>
+    </sensei>
+
+The *session* attribute names a session file that contains VisIt specific
+runtime configuration. The session file is generated using VisIt GUI on a
+representative dataset. Usually this data set is generated in a low resolution
+run of the desired simulation.
+
+.. _rt_visit:
+.. figure:: ./Visualization/rt_2048_visit_000500.png
+
+   SENSEI-Libsim in situ visualization of a Raleigh-Taylor instability computed
+   by IAMR on NERSC Cori using 2048 cores.
+
+The same run and visualization was repeated using ParaView Catalyst, shown in
+figure :numref:`rt_pv`, by providing the following XML configuration.
+
+.. code-block:: xml
+
+    <sensei>
+      <analysis type="catalyst" pipeline="pythonscript"
+        filename="rt_sensei_configs/rt_contour.py" enabled="1" />
+    </sensei>
+
+Here the *filename* attribute is used to pass Catalyst a Catalyst specific
+configuration that was generated using the ParaView GUI on a representative
+dataset.
+
+.. _rt_pv:
+.. figure:: ./Visualization/rt_2048_paraview_000500.png
+
+   SENSEI-Catalyst in situ visualization of a Raleigh-Taylor instability
+   computed by IAMR on NERSC Cori using 2048 cores.
+
+
+Obtaining SENSEI
+-----------------
+SENSEI is hosted on Kitware's Gitlab site at https://gitlab.kitware.com/sensei/sensei
+It's best to checkout the latest release rather than working on the master branch.
+
+To ease the burden of wrangling back end installs SENSEI provides two platforms
+with all dependencies pre-installed, a VirtualBox VM, and a NERSC Cori
+deployment. New users are encouraged to experiment with one of these.
+
+
+SENSEI VM
+~~~~~~~~~
+The SENSEI VM comes with all of SENSEI's dependencies and the major back ends
+such as VisIt and ParaView installed. The VM is the easiest way to test things
+out. It also can be used to see how installs were done and the environment
+configured.
+
+NERSC Cori
+~~~~~~~~~~
+SENSEI is deployed at NERSC on Cori. The NERSC deployment includes the major
+back ends such as ParaView Catalyst, VisIt Libsim, and Python.
+
+
+AmrLevel Tutorial with Catalyst
++++++++++++++++++++++++++++++++
+The following steps show how to run the tutorial with ParaView Catalyst. The
+simulation will periodically write images during the run.
+
+.. code-block:: bash
+
+   ssh cori.nersc.gov
+   cd $SCRATCH
+   git clone https://github.com/AMReX-Codes/amrex.git
+   cd amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex
+   module use /usr/common/software/sensei/modulefiles
+   module load sensei/2.1.0-catalyst-shared
+   source sensei_config
+   vim GNUmakefile
+   # USE_SENSEI_INSITU=TRUE
+   make -j4 -f GNUmakefile
+   vim inputs
+   # sensei.enabled=1
+   # sensei.config=sensei/render_iso_catalyst_2d.xml
+   salloc -C haswell -N 1 -t 00:30:00 -q debug
+   cd $SCRATCH/amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex
+   ./main2d.gnu.haswell.MPI.ex inputs
+
+
+AmrLevel Tutorial with Libsim
++++++++++++++++++++++++++++++
+The following steps show how to run the tutorial with VisIt Libsim. The
+simulation will periodically write images during the run.
+
+.. code-block:: bash
+
+   ssh cori.nersc.gov
+   cd $SCRATCH
+   git clone https://github.com/AMReX-Codes/amrex.git
+   cd amrex/Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex
+   module use /usr/common/software/sensei/modulefiles
+   module load sensei/2.1.0-libsim-shared
+   source sensei_config
+   vim GNUmakefile
+   # USE_SENSEI_INSITU=TRUE
+   make -j4 -f GNUmakefile
+   vim inputs
+   # sensei.enabled=1
+   # sensei.config=sensei/render_iso_libsim_2d.xml
+   salloc -C haswell -N 1 -t 00:30:00 -q debug
+   ./main2d.gnu.haswell.MPI.ex inputs
+
