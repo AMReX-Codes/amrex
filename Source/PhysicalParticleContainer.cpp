@@ -978,7 +978,12 @@ PhysicalParticleContainer::Evolve (int lev,
                                             &lvect, &WarpX::charge_deposition_algo);
 
                     const int ncomp = 1;
-                    rhofab.atomicAdd(local_rho, 0, icomp, ncomp);
+                    FArrayBox const* local_fab = &local_rho;
+                    FArrayBox*       global_fab = &rhofab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                    {
+                        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
+                    });
                 }
 
                 if (np_current < np)
@@ -1023,7 +1028,12 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& crhofab = (*crhomf)[pti];
                     
                     const int ncomp = 1;
-                    crhofab.atomicAdd(local_rho, 0, icomp, ncomp);
+                    FArrayBox const* local_fab = &local_rho;
+                    FArrayBox*       global_fab = &crhofab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                    {
+                        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
+                    });
                 }                
             };
 
@@ -1215,9 +1225,26 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    jxfab.atomicAdd(local_jx);
-                    jyfab.atomicAdd(local_jy);
-                    jzfab.atomicAdd(local_jz);
+                    FArrayBox const* local_jx_ptr = &local_jx;
+                    FArrayBox* global_jx_ptr = &jxfab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+                    {
+                        global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
+                    });                    
+
+                    FArrayBox const* local_jy_ptr = &local_jy;
+                    FArrayBox* global_jy_ptr = &jyfab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+                    {
+                        global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
+                    });                  
+
+                    FArrayBox const* local_jz_ptr = &local_jz;
+                    FArrayBox* global_jz_ptr = &jzfab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+                    {
+                        global_jz_ptr->atomicAdd(*local_jz_ptr, thread_bx, thread_bx, 0, 0, 1);
+                    });                    
 
                     BL_PROFILE_VAR_STOP(blp_accumulate);
                 }
@@ -1269,10 +1296,27 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& cjzfab = (*cjz)[pti];
 
                     BL_PROFILE_VAR_START(blp_accumulate);
-                    
-                    cjxfab.atomicAdd(local_jx);
-                    cjyfab.atomicAdd(local_jy);
-                    cjzfab.atomicAdd(local_jz);
+
+                    FArrayBox const* local_jx_ptr = &local_jx;
+                    FArrayBox* global_jx_ptr = &cjxfab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+                    {
+                        global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
+                    });                    
+
+                    FArrayBox const* local_jy_ptr = &local_jy;
+                    FArrayBox* global_jy_ptr = &cjyfab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+                    {
+                        global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
+                    });                    
+
+                    FArrayBox const* local_jz_ptr = &local_jz;
+                    FArrayBox* global_jz_ptr = &cjzfab;
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+                    {
+                        global_jz_ptr->atomicAdd(*local_jz_ptr, thread_bx, thread_bx, 0, 0, 1);
+                    });                  
 
                     BL_PROFILE_VAR_STOP(blp_accumulate);
                 }
