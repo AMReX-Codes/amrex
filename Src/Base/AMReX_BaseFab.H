@@ -3043,10 +3043,10 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
 #ifndef __CUDA_ARCH__
 #ifdef _OPENMP
 #pragma omp atomic update
-                    dp[i] += sp[i];
 #endif
+                    dp[i] += sp[i];
 #else
-                    amrex::CudaAtomic::Add(&dp + i, sp[i]);
+                    amrex::CudaAtomic::Add(dp + i, sp[i]);
 #endif
                 }
             }
