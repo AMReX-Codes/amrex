@@ -399,6 +399,13 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > charge_buf;
 
+    amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_fp_owner_masks;
+    amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_cp_owner_masks;
+    
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_fp_owner_masks;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_cp_owner_masks;
+
+
     // div E cleaning
     int do_dive_cleaning = 0;
 
