@@ -32,7 +32,7 @@ iMultiFab::Add (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -62,7 +62,7 @@ iMultiFab::Copy (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -92,7 +92,7 @@ iMultiFab::Subtract (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -122,7 +122,7 @@ iMultiFab::Multiply (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -152,7 +152,7 @@ iMultiFab::Divide (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -714,7 +714,7 @@ iMultiFab::plus (int val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -739,7 +739,7 @@ iMultiFab::plus (int       val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -768,7 +768,7 @@ iMultiFab::plus (const iMultiFab& mf,
     BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -793,7 +793,7 @@ iMultiFab::mult (int val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -818,7 +818,7 @@ iMultiFab::mult (int       val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -843,7 +843,7 @@ iMultiFab::negate (int comp,
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -866,7 +866,7 @@ iMultiFab::negate (const Box& region,
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {

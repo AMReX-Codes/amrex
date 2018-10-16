@@ -1398,7 +1398,7 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
@@ -1439,7 +1439,7 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
