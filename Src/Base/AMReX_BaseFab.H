@@ -747,6 +747,44 @@ public:
                       int               srccomp,
                       int               destcomp,
                       int               numcomp=1);
+
+    //! Atomic FAB addition (a[i] <- a[i] + b[i]). 
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src);
+
+    /**
+    * \brief Atomically add src components (srccomp:srccomp+numcomp-1) to
+    * this FABs components (destcomp:destcomp+numcomp-1)
+    * where the two FABs intersect.
+    */
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1);
+    /**
+    * \brief Same as above except addition is restricted to intersection
+    * of subbox and src FAB. NOTE: subbox must be contained in this
+    * FAB.
+    */
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           const Box&        subbox,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1);
+    /**
+    * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
+    * The srcbox and destbox must be same size.
+    */
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           const Box&        srcbox,
+                           const Box&        destbox,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1);
+
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
@@ -2399,9 +2437,9 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
 
 template <class T>
 int
-BaseFab<T>::maskGE(BaseFab<int>& mask,
-                   T             val,
-                   int           comp) const
+BaseFab<T>::maskGE (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const
 {
     mask.resize(domain,1);
     mask.setVal(0);
@@ -2441,6 +2479,15 @@ BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& x)
 {
     return operator+=(x);
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& x)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
@@ -2892,6 +2939,18 @@ BaseFab<T>::plus (const BaseFab<T>& src,
 
 template <class T>
 BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+}
+
+template <class T>
+BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src,
                   const Box&        subbox,
                   int               srccomp,
@@ -2902,6 +2961,20 @@ BaseFab<T>::plus (const BaseFab<T>& src,
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->plus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       const Box&        subbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
@@ -2932,6 +3005,49 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                 T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] += sp[i];
+                }
+            }
+        }
+    }
+
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len[2]; ++k) {
+            for     (int j = 0; j < len[1]; ++j) {
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
+                for (int i = 0; i < len[0]; ++i) {
+#ifndef __CUDA_ARCH__
+#ifdef _OPENMP
+#pragma omp atomic update
+                    dp[i] += sp[i];
+#endif
+#else
+                    // do cuda atomic
+#endif
                 }
             }
         }
