@@ -1719,14 +1719,17 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     const int ncomp = nComp();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Device::inLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox& fab = (*this)[mfi];
-        const IArrayBox& ifab = msk[mfi];
         const Box& bx = mfi.tilebox();
-        fab.setValIfNot(0.0, bx, ifab, 0, ncomp);
+        FArrayBox* fab = &(*this)[mfi];
+        IArrayBox const* ifab = &(msk[mfi]);
+        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        {
+            fab->setValIfNot(0.0, tbx, *ifab, 0, ncomp);
+        });
     }
     
     MultiFab tmpmf(boxArray(), DistributionMap(), ncomp, 0, MFInfo(), Factory());
