@@ -25,7 +25,8 @@ rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 #cd $rundir
 
 # 1. Run normally
-${JSRUN} cuda-memcheck ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+#${JSRUN} cuda-memcheck ${EXE} ${INPUTS} >& out.${LSB_JOBID}
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
 #${JSRUN} nvprof ${EXE} ${INPUTS} &> nvprof.txt
