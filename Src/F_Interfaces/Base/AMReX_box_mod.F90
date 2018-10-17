@@ -3,6 +3,7 @@ module amrex_box_module
 
   use iso_c_binding
   use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real, amrex_coarsen_intvect
+  use amrex_error_module, only : amrex_error
 
   implicit none
 
@@ -54,23 +55,6 @@ module amrex_box_module
        implicit none
        integer(c_int), intent(in) :: lo(*), hi(*), nodal(*)
      end subroutine amrex_fi_print_box
-  end interface
-
-  interface
-     subroutine amrex_fi_get_box_intersection(lo1, hi1, nodal1, &
-                                              lo2, hi2, nodal2, & 
-                                              rlo, rhi) bind(c)
-       import
-       implicit none
-       integer, intent(in)    :: lo1(3) 
-       integer, intent(in)    :: hi1(3)
-       logical, intent(in)    :: nodal1(3)
-       integer, intent(in)    :: lo2(3)
-       integer, intent(in)    :: hi2(3)
-       logical, intent(in)    :: nodal2(3)
-       integer, intent(inout) :: rlo(3)
-       integer, intent(inout) :: rhi(3)
-     end subroutine amrex_fi_get_box_intersection
   end interface
 
 contains
@@ -228,15 +212,13 @@ contains
     type(amrex_box), intent(in) :: box2
     type(amrex_box) :: r
 
-    integer :: lo(3), hi(3)
+    if ( any(box1%nodal .neqv. box2%nodal) ) then
+       call amrex_error("amrex_intersection: Boxes must be from same index space")
+    end if
 
-    ! C++ code confirms that nodal is the same for both boxes
-    call amrex_fi_get_box_intersection(box1%lo, box1%hi, box1%nodal, &
-                                       box2%lo, box2%hi, box2%nodal, &
-                                       lo, hi)
     r%nodal = box1%nodal
-    r%lo(1:ndims) = lo(1:ndims)
-    r%hi(1:ndims) = hi(1:ndims)
+    r%lo(1:ndims) = max(box1%lo(1:ndims), box2%lo(1:ndims))
+    r%hi(1:ndims) = min(box1%hi(1:ndims), box2%hi(1:ndims))
   end function amrex_box_intersection
 
 end module amrex_box_module
