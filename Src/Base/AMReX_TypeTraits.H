@@ -3,6 +3,13 @@
 
 #include <type_traits>
 
+// workaround missing "is_trivially_copyable" in g++ < 5.0
+#if __GNUG__ && __GNUC__ < 5
+#define AMREX_IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
+#else
+#define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
+#endif
+
 namespace amrex
 {
     template <class T> class BaseFab;
@@ -27,18 +34,6 @@ namespace amrex
 
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
-
-    // workaround for the fact that GCC < 5 doesn't have std::is_trivially_copyable
-    template <class A, class Enable = void> struct IsTriviallyCopyable : std::false_type {};
-    //
-    template <class D>
-    struct IsTriviallyCopyable<D, typename std::enable_if<
-#if __GNUG__ && __GNUC__ < 5    
-                           std::true_type > >
-#else
-                               std::is_trivially_copyable<D>::value>::type >
-#endif
-        : std::true_type {};    
 }
 
 #endif
