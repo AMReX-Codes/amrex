@@ -5,7 +5,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = gcc
+COMP    = intel
 
 PRECISION = DOUBLE
 
