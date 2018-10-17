@@ -37,6 +37,7 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_TypeTraits.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
