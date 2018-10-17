@@ -28,18 +28,17 @@ namespace amrex
     template <bool B, class T = void>
     using EnableIf_t = typename std::enable_if<B,T>::type;
 
-    template <class A, class Enable = void> struct IsTriviallyCopyable : std::false_type {};
-
     // workaround for the fact that GCC < 5 doesn't have std::is_trivially_copyable
+    template <class A, class Enable = void> struct IsTriviallyCopyable : std::false_type {};
+    //
     template <class D>
     struct IsTriviallyCopyable<D, typename std::enable_if<
 #if __GNUG__ && __GNUC__ < 5    
-                           __has_trivial_copy(D) > >
+                           std::true_type > >
 #else
-                           std::is_trivially_copyable<D>::value> >
+                               std::is_trivially_copyable<D>::value>::type >
 #endif
-        : std::true_type {};
-
+        : std::true_type {};    
 }
 
 #endif
