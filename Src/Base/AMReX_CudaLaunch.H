@@ -174,7 +174,7 @@ namespace amrex {
     ComponentBox getThreadComponentBox (const Box& box, int ncomp);
 
     AMREX_CUDA_HOST_DEVICE
-    void getThreadIndex (int &index, int &size, const int num_particles);
+    void getThreadIndex (long &index, long &size, const long num_particles);
 
 // ************************************************
 
@@ -193,7 +193,7 @@ namespace amrex {
             const Box& b = amrex::surroundingNodes(box);
             Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
-        Strategy (int N) {
+        Strategy (long N) {
             Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
         Strategy (dim3 nb, dim3 nt) : numBlocks(nb), numThreads(nt) {}

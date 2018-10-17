@@ -118,7 +118,7 @@ getThreadComponentBox (const Box& bx, int ncomp)
 // If index is over N, return size of 0 to skip loop.
 // If not on CUDA, return values to run entire loop. (1 to N) 
 AMREX_CUDA_HOST_DEVICE
-void getThreadIndex (int &index, int &size, const int num_particles)
+void getThreadIndex (long &index, long &size, const long num_particles)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      index = blockDim.x*blockIdx.x + threadIdx.x;
