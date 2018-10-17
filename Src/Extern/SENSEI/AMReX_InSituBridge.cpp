@@ -1,0 +1,116 @@
+#include <AMReX_InSituBridge.H>
+
+#include <AMReX_ParmParse.H>
+
+#ifdef BL_USE_SENSEI_INSITU
+#include <chrono>
+#include <DataAdaptor.h>
+#include <AnalysisAdaptor.h>
+#include <ConfigurableAnalysis.h>
+#include <timer/Timer.h>
+#include <AMReX_AmrDataAdaptor.H>
+#include <AMReX_AmrMeshDataAdaptor.H>
+#endif
+
+namespace amrex {
+
+InSituBridge::InSituBridge() :
+#if defined(BL_USE_MPI)
+    comm(MPI_COMM_NULL),
+#endif
+#if defined(BL_USE_SENSEI_INSITU)
+    analysis_adaptor(nullptr),
+#endif
+     frequency(-1), counter(0)
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    timer::Initialize();
+#endif
+}
+
+InSituBridge::~InSituBridge()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    if (analysis_adaptor)
+        analysis_adaptor->Delete();
+    timer::Finalize();
+#endif
+}
+
+int
+InSituBridge::initialize()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    timer::MarkEvent event("InSituBridge::initialize");
+
+    ParmParse pp("sensei");
+
+    int enabled = 0;
+    pp.query("enabled", enabled);
+
+    if (!enabled)
+        return 0;
+
+    amrex::Print() << "SENSEI Begin initialize..." << std::endl;
+
+    if (config.empty())
+        pp.get("config", config);
+
+    if (frequency < 0)
+        pp.query("frequency", frequency);
+
+    sensei::ConfigurableAnalysis *aa = sensei::ConfigurableAnalysis::New();
+
+#if defined(BL_USE_MPI)
+    if (comm != MPI_COMM_NULL)
+        aa->SetCommunicator(comm);
+#endif
+
+    if (aa->Initialize(config))
+    {
+        aa->Delete();
+        aa = nullptr;
+        return -1;
+    }
+
+    analysis_adaptor = aa;
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto dt = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0);
+    amrex::Print() << "SENSEI initialize complete (" << dt.count() << " sec)" << std::endl;
+#endif
+    return 0;
+}
+
+bool
+InSituBridge::doUpdate()
+{
+    bool ret = analysis_adaptor && (frequency > 0) && ((counter % frequency) == 0);
+    counter += 1;
+    return ret;
+}
+
+int
+InSituBridge::finalize()
+{
+    int ret = 0;
+#if defined(BL_USE_SENSEI_INSITU)
+    if (!analysis_adaptor)
+        return ret;
+
+    amrex::Print() << "SENSEI Begin finalize..." << std::endl;
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    timer::MarkEvent event("InSituBridge::finalize");
+    ret = analysis_adaptor->Finalize();
+
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto dt = std::chrono::duration_cast<std::chrono::duration<double>>(t1 - t0);
+    amrex::Print() << "SENSEI finalize complete (" << dt.count() << " sec)" << std::endl;
+#endif
+    return ret;
+}
+
+}

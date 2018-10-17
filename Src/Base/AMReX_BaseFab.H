@@ -24,6 +24,7 @@
 
 #include <AMReX_CudaMemory.H>
 #include <AMReX_CudaUtility.H>
+#include <AMReX_CudaLaunch.H>
 #include <AMReX_Device.H>
 
 #ifdef USE_PERILLA
