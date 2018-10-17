@@ -142,7 +142,7 @@ public:
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
     static void c_comps_threads_and_blocks(const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads);
 
-    static void n_threads_and_blocks(const int N, dim3& numBlocks, dim3& numThreads);
+    static void n_threads_and_blocks(const long N, dim3& numBlocks, dim3& numThreads);
 
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
 
