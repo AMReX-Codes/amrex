@@ -221,10 +221,10 @@ public:
                 for (int i = 0; i < static_cast<int>(rr.size()); ++i)
                 {
 #if AMREX_SPACEDIM > 1
-                    AMREX_ASSERT(r[i][0] == r[i][1]);
+                    AMREX_ASSERT(rr[i][0] == rr[i][1]);
 #endif
 #if AMREX_SPACEDIM > 2
-                    AMREX_ASSERT(r[i][0] == r[i][2]);
+                    AMREX_ASSERT(rr[i][0] == rr[i][2]);
 #endif
                     ref_ratio.push_back(rr[i][0]);
                 }
