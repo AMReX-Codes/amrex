@@ -11,10 +11,17 @@ Box getThreadBox (const Box& bx)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
     IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
-                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
-                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
+        AMREX_CUDA_Y_STRIDE*static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
+        AMREX_CUDA_Z_STRIDE*static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
     iv += bx.smallEnd();
-    return (bx & Box(iv,iv,bx.type()));
+    IntVect iv2 = iv;
+#if (AMREX_SPACEDIM >= 2)
+    iv2[1] += (AMREX_CUDA_Y_STRIDE-1);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    iv2[2] += (AMREX_CUDA_Z_STRIDE-1);
+#endif
+    return (bx & Box(iv,iv2,bx.type()));
 #else
     return bx;
 #endif

@@ -37,7 +37,7 @@ int main (int argc, char* argv[])
     // ===================================
 
     // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+    Real strt_time = amrex::second();
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
@@ -110,9 +110,9 @@ int main (int argc, char* argv[])
        x.setVal(x_val);
        y.setVal(y_val);
 
-       Real strt_time = ParallelDescriptor::second();
+       Real strt_time = amrex::second();
        cells = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = ParallelDescriptor::second();
+       Real end_time = amrex::second();
 
        amrex::Print() << "Total number of cells: " << cells << "." << std::endl;
        amrex::Print() << " calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
@@ -128,9 +128,9 @@ int main (int argc, char* argv[])
        x.setVal(x_val);
        y.setVal(y_val);
 
-       Real strt_time = ParallelDescriptor::second();
+       Real strt_time = amrex::second();
        Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = ParallelDescriptor::second();
+       Real end_time = amrex::second();
  
        amrex::Print() << "GPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
        amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
@@ -148,9 +148,9 @@ int main (int argc, char* argv[])
        x.setVal(x_val);
        y.setVal(y_val);
 
-       Real strt_time = ParallelDescriptor::second();
+       Real strt_time = amrex::second();
        Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = ParallelDescriptor::second();
+       Real end_time = amrex::second();
  
        amrex::Print() << "CPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
        amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
