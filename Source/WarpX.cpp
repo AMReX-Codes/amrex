@@ -522,7 +522,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
     // but different number of ghost cells in z-direction if NCI filter is used.
     // The number of cells should be even, in order to easily perform the
-    // interpolation from fine grid to coarse grid.
+    // interpolation from coarse grid to fine grid.
     int ngx = (ngx_tmp % 2) ? ngx_tmp+1 : ngx_tmp;  // Always even number
     int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
@@ -534,6 +534,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         ngz = ngz_nonci;
     }
 
+    // J is only interpolated from fine to coarse (not coarse to fine)
+    // and therefore does not need to be even.
     int ngJx = ngx_tmp;
     int ngJy = ngy_tmp;
     int ngJz = ngz_tmp;
@@ -687,6 +689,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
 
             gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            // Gather buffer masks have 1 ghost cell, because of the fact
+            // that particles may move by more than one cell when using subcycling.
         }
 
         if (n_current_deposition_buffer > 0) {
@@ -697,6 +701,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            // Current buffer masks have 1 ghost cell, because of the fact
+            // that particles may move by more than one cell when using subcycling.
         }
     }
 

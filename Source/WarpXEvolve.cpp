@@ -222,6 +222,10 @@ WarpX::EvolveEM (int numsteps)
     }
 }
 
+/* /brief Perform one PIC iteration, without subcycling
+*  i.e. all levels/patches use the same timestep (that of the finest level)
+*  for the field advance and particle pusher.
+*/
 void
 WarpX::OneStep_nosub (Real cur_time)
 {
@@ -266,6 +270,21 @@ WarpX::OneStep_nosub (Real cur_time)
 #endif
 }
 
+/* /brief Perform one PIC iteration, with subcycling
+*  i.e. The fine patch uses a smaller timestep (and steps more often)
+*  than the coarse patch, for the field advance and particle pusher.
+*
+* This version of subcycling only works for 2 levels and with a refinement
+* ratio of 2.
+* The particles and fields of the fine patch are pushed twice
+* (with dt[coarse]/2) in this routine.
+* The particles of the coarse patch and mother grid are pushed only once
+* (with dt[coarse]). The fields on the coarse patch and mother grid
+* are pushed in a way which is equivalent to pushing once only, with
+* a current which is the average of the coarse + fine current at the 2
+* steps of the fine grid.
+*
+*/
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
@@ -275,7 +294,7 @@ WarpX::OneStep_sub1 (Real curtime)
     const int fine_lev = 1;
     const int coarse_lev = 0;
 
-    // i)
+    // i) Push particles and fields on the fine patch (first fine step)
     PushParticlesandDepose(fine_lev, curtime);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     RestrictRhoFromFineToCoarsePatch(fine_lev);
@@ -302,7 +321,9 @@ WarpX::OneStep_sub1 (Real curtime)
 
     FillBoundaryB(fine_lev, PatchType::fine);
 
-    // ii)
+    // ii) Push particles on the coarse patch and mother grid.
+    // Push the fields on the coarse patch and mother grid
+    // by only half a coarse step (first half)
     PushParticlesandDepose(coarse_lev, curtime);
     StoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
@@ -324,10 +345,10 @@ WarpX::OneStep_sub1 (Real curtime)
     EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
     FillBoundaryE(coarse_lev, PatchType::fine);
 
-    // iii)
+    // iii) Get auxiliary fields on the fine grid, at dt[fine_lev]
     UpdateAuxilaryData();
 
-    // iv)
+    // iv) Push particles and fields on the fine patch (second fine step)
     PushParticlesandDepose(fine_lev, curtime+dt[fine_lev]);
     RestrictCurrentFromFineToCoarsePatch(fine_lev);
     RestrictRhoFromFineToCoarsePatch(fine_lev);
@@ -355,7 +376,8 @@ WarpX::OneStep_sub1 (Real curtime)
     FillBoundaryB(fine_lev, PatchType::fine);
     FillBoundaryF(fine_lev, PatchType::fine);
 
-    // v)
+    // v) Push the fields on the coarse patch and mother grid
+    // by only half a coarse step (second half)
     RestoreCurrent(coarse_lev);
     AddCurrentFromFineLevelandSumBoundary(coarse_lev);
     AddRhoFromFineLevelandSumBoundary(coarse_lev, 1, 1);
