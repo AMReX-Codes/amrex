@@ -7,8 +7,8 @@
 #include <AMReX_CudaControl.H>
 #include <AMReX_Device.H>
 
-#define AMREX_CUDA_Y_STRIDE 1
-#define AMREX_CUDA_Z_STRIDE 1
+#define AMREX_CUDA_Y_STRIDE 2
+#define AMREX_CUDA_Z_STRIDE 8
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
@@ -182,6 +182,7 @@ namespace amrex {
         }
         Strategy (const Box& box) {
             Box b = amrex::surroundingNodes(box);
+            b -= box.smallEnd();
             b.coarsen(IntVect(AMREX_D_DECL(1,AMREX_CUDA_Y_STRIDE,AMREX_CUDA_Z_STRIDE)));
             Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
         }
