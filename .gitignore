@@ -25,3 +25,15 @@ Docs/AMReXUsersGuide/Visualization/*.pdf
 Docs/sphinx/build
 
 .nfs*
+
+# vi
+*.sw[a-z]
+
+# catalyst/libsim
+Tutorials/Amr/Advection_AmrLevel/Exec/SingleVortex/*.png
+Tutorials/Amr/Advection_AmrCore/Exec/SingleVortex/*.png
+*.vth
+*.vti
+*.pvd
+*.visit
+*.pvsm

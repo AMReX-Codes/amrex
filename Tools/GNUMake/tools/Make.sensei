@@ -1,0 +1,27 @@
+# enable the SENSEI bridge and data adaptor in AMReX
+DEFINES += -DBL_USE_SENSEI_INSITU
+
+# in the GNU Make build system linking error ensue when
+# only using AmrCore because of the externs referenced from
+# Amr. User is expected to provide those functions when using
+# Amr. They will not be found when the user is using AmrCore.
+# tell the linker to treat these missing functions as a warning
+# rather than an error
+CXXFLAGS += -Wl,--warn-unresolved-symbols
+
+# the following environment variables which tell AMReX how
+# to compile and link with SENSEI can be set by running
+#   source sensei_config
+# where sensei_config is in the SENSEI install bin dir
+
+ifndef SENSEI_INCLUDES
+    $(error SENSEI_INCLUDES is not defined. run "source sensei_config")
+endif
+
+INCLUDE_LOCATIONS += $(SENSEI_INCLUDES)
+
+ifndef SENSEI_LIBRARIES
+    $(error SENSEI_LIBRARIES is not defined. run "source sensei_config")
+endif
+
+LIBRARIES += $(SENSEI_LIBRARIES)

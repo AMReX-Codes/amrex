@@ -61,6 +61,10 @@
 #endif
 #endif
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrInSituBridge.H>
+#endif
+
 namespace amrex {
 
 //
@@ -72,8 +76,11 @@ std::list<std::string> Amr::derive_plot_vars;
 std::list<std::string> Amr::derive_small_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
-Vector<BoxArray>        Amr::initial_ba;
-Vector<BoxArray>        Amr::regrid_ba;
+Vector<BoxArray>       Amr::initial_ba;
+Vector<BoxArray>       Amr::regrid_ba;
+#ifdef BL_USE_SENSEI_INSITU
+AmrInSituBridge*       Amr::insitu_bridge;
+#endif
 
 namespace
 {
@@ -96,6 +103,7 @@ namespace
     int  regrid_on_restart;
     int  use_efficient_regrid;
     int  plotfile_on_restart;
+    int  insitu_on_restart;
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
     int  compute_new_dt_on_regrid;
@@ -104,6 +112,8 @@ namespace
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
 //}
+
+
 
 bool
 Amr::UsingPrecreateDirectories()
@@ -128,6 +138,7 @@ Amr::Initialize ()
     regrid_on_restart        = 0;
     use_efficient_regrid     = 0;
     plotfile_on_restart      = 0;
+    insitu_on_restart        = 0;
     checkpoint_on_restart    = 0;
     checkpoint_files_output  = true;
     compute_new_dt_on_regrid = 0;
@@ -135,7 +146,9 @@ Amr::Initialize ()
     prereadFAHeaders         = true;
     plot_headerversion       = VisMF::Header::Version_v1;
     checkpoint_headerversion = VisMF::Header::Version_v1;
-
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge            = nullptr;
+#endif
     amrex::ExecOnFinalize(Amr::Finalize);
 
     initialized = true;
@@ -149,6 +162,7 @@ Amr::Finalize ()
     Amr::derive_small_plot_vars.clear();
     Amr::regrid_ba.clear();
     Amr::initial_ba.clear();
+    Amr::finalizeInSitu();
 
     initialized = false;
 }
@@ -249,7 +263,10 @@ Amr::InitAmr ()
     record_run_info_terse  = false;
     bUserStopRequest       = false;
     message_int            = 10;
-    
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge          = nullptr;
+#endif
+
     for (int i = 0; i < AMREX_SPACEDIM; i++)
         isPeriodic[i] = false;
 
@@ -260,6 +277,7 @@ Amr::InitAmr ()
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("use_efficient_regrid",use_efficient_regrid);
     pp.query("plotfile_on_restart",plotfile_on_restart);
+    pp.query("insitu_on_restart",insitu_on_restart);
     pp.query("checkpoint_on_restart",checkpoint_on_restart);
 
     pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
@@ -352,6 +370,11 @@ Amr::InitAmr ()
     //
     initPltAndChk();
     
+    //
+    // Setup insitu controls
+    //
+    initInSitu();
+
     //
     // Setup subcycling controls.
     //
@@ -484,6 +507,49 @@ Amr::InitAmr ()
 
     loadbalance_max_fac = 1.5;
     pp.query("loadbalance_max_fac", loadbalance_max_fac);
+}
+
+int
+Amr::initInSitu()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    insitu_bridge = new AmrInSituBridge;
+    if (insitu_bridge->initialize())
+    {
+        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << std::endl;
+        amrex::Abort();
+    }
+#endif
+    return 0;
+}
+
+int
+Amr::updateInSitu()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    if (insitu_bridge && insitu_bridge->update(this))
+    {
+        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << std::endl;
+        amrex::Abort();
+    }
+#endif
+    return 0;
+}
+
+int
+Amr::finalizeInSitu()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    if (insitu_bridge)
+    {
+        if (insitu_bridge->finalize())
+            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << std::endl;
+
+        delete insitu_bridge;
+        insitu_bridge = nullptr;
+    }
+#endif
+    return 0;
 }
 
 bool
@@ -1112,11 +1178,15 @@ Amr::init (Real strt_time,
     {
         initialInit(strt_time,stop_time);
         checkPoint();
+
         if(plot_int > 0 || plot_per > 0) {
             writePlotFile();
-	}
-	if (small_plot_int > 0 || small_plot_per > 0)
-	    writeSmallPlotFile();
+        }
+
+        if (small_plot_int > 0 || small_plot_per > 0)
+	        writeSmallPlotFile();
+
+        updateInSitu();
     }
 
 #ifdef BL_COMM_PROFILING
@@ -1837,6 +1907,8 @@ Amr::RegridOnly (Real time)
     if (checkpoint_on_restart)
        checkPoint();
 
+    if (insitu_on_restart)
+        updateInSitu();
 }
 
 void
@@ -2325,6 +2397,8 @@ Amr::coarseTimeStep (Real stop_time)
     {
         writeSmallPlotFile();
     }
+
+    updateInSitu();
 
     bUserStopRequest = to_stop;
     if (to_stop)

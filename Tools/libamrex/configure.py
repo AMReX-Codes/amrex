@@ -63,6 +63,10 @@ def configure(argv):
                         help="Allow an application to use a different compiler than the one used to build libamrex [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--with-sensei-insitu",
+                        help="Use SENSEI in situ [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     f = open("GNUmakefile","w")
@@ -109,7 +113,10 @@ def configure(argv):
         f.write("ALLOW_DIFFERENT_COMP = FALSE\n")
     else:
         f.write("ALLOW_DIFFERENT_COMP = TRUE\n")
-
+    if args.with_sensei_insitu == "no":
+        f.write("USE_SENSEI_INSITU = FALSE\n")
+    else:
+        f.write("USE_SENSEI_INSITU = TRUE\n")
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")
