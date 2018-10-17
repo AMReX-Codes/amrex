@@ -16,6 +16,8 @@ USE_PARTICLES = TRUE
 USE_MPI    = TRUE
 USE_OMP    = FALSE
 
+USE_SENSEI_INSITU = FALSE
+
 Bpack   := ./Make.package 
 Blocs   := . 
 

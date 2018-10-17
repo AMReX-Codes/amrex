@@ -8,12 +8,16 @@
 #include <vector>
 #include <map>
 
+#ifdef BL_HDF5
 #include <hdf5.h>
+#endif
 
 using namespace amrex;
 
-namespace {
+#ifdef BL_HDF5
 
+namespace {
+    
     template <class T>
     void VWriteData(T &vData, hid_t vLevelGroup, long H5Ttype, const std::string &vName)
     {
@@ -693,3 +697,5 @@ void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
     }    
 
 }
+
+#endif
