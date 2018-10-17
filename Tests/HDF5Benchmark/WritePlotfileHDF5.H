@@ -8,6 +8,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 
+#ifdef BL_HDF5
 void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
                                   int nlevels,
                                   const amrex::Vector<const amrex::MultiFab*> &mf,
@@ -16,5 +17,6 @@ void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
                                   amrex::Real time,
                                   amrex::Real dt,
 				  const amrex::Vector<amrex::IntVect> &ref_ratio);
+#endif
 
 #endif
