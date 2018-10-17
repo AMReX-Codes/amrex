@@ -212,7 +212,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (PeriodicShift(p_prime)) {
         std::vector< std::pair<int,Box> > isects;
         for (int lev = lev_max; lev >= lev_min; lev--) {
-            
+
 	    int grid;
             IntVect iv;
             const BoxArray& ba = ParticleBoxArray(lev);
@@ -274,8 +274,15 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            while (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);                        
-            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));            
+            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i); 
+
+            // This is necessary when the arithmetic (esp. single precision) is such that the particle 
+            //    starts only slightly outside the low boundary (eg slightly negative)
+            //    ends up exactly on the high boundary 
+            //    needs to get shifted back to the low boundary or it will be deemed out of bounds
+            if (p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i]  = geom.ProbLo(i);
+
+            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
             shifted = true;
         }
     }
@@ -361,7 +368,6 @@ void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::locateParticle (ParticleType& p, ParticleLocData& pld, 
                                                                                    int lev_min, int lev_max, int nGrow, int local_grid) const
 {
-
     bool outside = AMREX_D_TERM(   p.m_rdata.pos[0] <  Geometry::ProbLo(0)
                           || p.m_rdata.pos[0] >= Geometry::ProbHi(0),
                           || p.m_rdata.pos[1] <  Geometry::ProbLo(1)

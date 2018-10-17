@@ -23,7 +23,7 @@ main (int   argc,
     Real stop_time;
 
     {
-        ParmParse pp; 
+        ParmParse pp;
 
         max_step  = -1;
         strt_time =  0.0;
@@ -35,7 +35,7 @@ main (int   argc,
     }
 
     if (strt_time < 0.0) {
-        amrex::Abort("MUST SPECIFY a non-negative strt_time"); 
+        amrex::Abort("MUST SPECIFY a non-negative strt_time");
     }
 
     if (max_step < 0 && stop_time < 0.0) {
@@ -46,26 +46,27 @@ main (int   argc,
 	Amr amr;
 
 	amr.init(strt_time,stop_time);
-	
+
 	while ( amr.okToContinue() &&
   	       (amr.levelSteps(0) < max_step || max_step < 0) &&
 	       (amr.cumTime() < stop_time || stop_time < 0.0) )
-	    
+
 	{
 	    //
 	    // Do a coarse timestep.  Recursively calls timeStep()
 	    //
 	    amr.coarseTimeStep(stop_time);
 	}
-	
+
 	// Write final checkpoint and plotfile
 	if (amr.stepOfLastCheckPoint() < amr.levelSteps(0)) {
 	    amr.checkPoint();
 	}
-	
+
 	if (amr.stepOfLastPlotFile() < amr.levelSteps(0)) {
 	    amr.writePlotFile();
 	}
+
     }
 
     Real dRunTime2 = amrex::second() - dRunTime1;

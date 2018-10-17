@@ -1,8 +1,11 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_Particles.H>
 
+#ifdef BL_HDF5
 #include <WritePlotfileHDF5.H>
+#endif
 
 using namespace amrex;
 
@@ -11,14 +14,15 @@ int main(int argc, char* argv[])
     amrex::Initialize(argc,argv);
     
     const int nghost = 0;
-    int ncells, max_grid_size, ncomp, nlevs;
+    int ncells, max_grid_size, ncomp, nlevs, nppc;
 
     ParmParse pp;
     pp.get("ncells", ncells);
     pp.get("max_grid_size", max_grid_size);
     pp.get("ncomp", ncomp);
     pp.get("nlevs", nlevs);
-
+    pp.get("nppc", nppc);
+    
     AMREX_ALWAYS_ASSERT(nlevs < 2); // relax this later
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
@@ -77,6 +81,26 @@ int main(int argc, char* argv[])
         mf[lev]->setVal(lev);
     }
 
+    // Add some particles
+    constexpr int NStructReal = 4;
+    constexpr int NStructInt  = 1;
+    constexpr int NArrayReal  = 8;
+    constexpr int NArrayInt   = 3;
+
+    typedef ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> MyPC;
+    MyPC myPC(geom, dmap, ba, ref_ratio);
+    myPC.SetVerbose(false);
+
+    int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
+    bool serialize = true;
+    int iseed = 451;
+    Real mass = 10.0;
+    MyPC::ParticleInitData pdata = {1.0, 2.0, 3.0, 4.0, 5, 6.0,
+                                    7.0, 8.0, 9.0, 10.0, 11.0,
+                                    12.0, 13.0, 14, 15, 16};
+    
+    myPC.InitRandom(num_particles, iseed, pdata, serialize);
+    
     // these don't really matter, make something up
     const Real time = 0.0;
     const Real dt = 0.0;
@@ -87,13 +111,22 @@ int main(int argc, char* argv[])
         varnames.push_back("component_" + std::to_string(i));
     }
 
+#ifdef BL_HDF5    
     WriteMultiLevelPlotfileHDF5("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf), 
                                 varnames, geom, time, dt, ref_ratio);
-
+#endif
 
     Vector<int> level_steps(nlevs, 0);
     WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
                             varnames, geom, time, level_steps, ref_ratio);
+
+    Vector<std::string> particle_varnames;
+    for (int i = 0; i < NStructReal + NStructInt + NArrayReal + NArrayInt; ++i)
+    {
+        particle_varnames.push_back("particle_component_" + std::to_string(i));
+    }
+    
+    myPC.Checkpoint("plt00000", "particle0", false, particle_varnames);
     
     amrex::Finalize();
 }
