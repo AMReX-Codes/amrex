@@ -7,8 +7,8 @@
 #include <AMReX_CudaControl.H>
 #include <AMReX_Device.H>
 
-#define AMREX_CUDA_Y_STRIDE 2
-#define AMREX_CUDA_Z_STRIDE 8
+#define AMREX_CUDA_Y_STRIDE 1
+#define AMREX_CUDA_Z_STRIDE 1
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
