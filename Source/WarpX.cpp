@@ -263,13 +263,13 @@ WarpX::ReadParameters ()
 		const std::string msg = "Unknown moving_window_dir: "+s;
 		amrex::Abort(msg.c_str());
 	    }
-            
+
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);
-            
+
 	    pp.get("moving_window_v", moving_window_v);
 	    moving_window_v *= PhysConst::c;
 	}
-        
+
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
             pp.get("num_injected_species", num_injected_species);
@@ -284,10 +284,10 @@ WarpX::ReadParameters ()
                 current_injection_position = geom[0].ProbLo(moving_window_dir);
             }
 	}
-        
+
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
         if (do_boosted_frame_diagnostic) {
-            
+
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                  "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
@@ -510,6 +510,9 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
+    // When using subcycling, the particles on the fine level perform two pushes
+    // before being redistributed ; therefore, we need one extra guard cell
+    // (the particles may move by 2*c*dt)
     const int ngx_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::nox+1 : WarpX::nox;
     const int ngy_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noy+1 : WarpX::noy;
     const int ngz_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noz+1 : WarpX::noz;
@@ -518,6 +521,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     // jx, jy, jz and rho have the same number of ghost cells.
     // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
     // but different number of ghost cells in z-direction if NCI filter is used.
+    // The number of cells should be even, in order to easily perform the
+    // interpolation from fine grid to coarse grid.
     int ngx = (ngx_tmp % 2) ? ngx_tmp+1 : ngx_tmp;  // Always even number
     int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
@@ -533,6 +538,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngJy = ngy_tmp;
     int ngJz = ngz_tmp;
 
+    // When calling the moving window (with one level of refinement),  we shift
+    // the fine grid by 2 cells ; therefore, we need at least 2 guard cells
     if (do_moving_window) {
         ngx = std::max(ngx,2);
         ngy = std::max(ngy,2);
