@@ -46,7 +46,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     {
         amrex::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
-        for (MFIter mfi(x); mfi.isValid(); ++mfi)
+        for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* xfab = &(x[mfi]);
