@@ -24,6 +24,7 @@
             Box tbb = amrex::getThreadBox(bbb); \
             if (tbb.ok()) block \
         }); \
+        CudaErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -39,6 +40,7 @@
             Box tbb = amrex::getThreadBox(bbb); \
             if (tbb.ok()) block \
         }); \
+        CudaErrorCheck(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
@@ -61,6 +63,7 @@
                 block \
             }}} \
         }); \
+        CudaErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
