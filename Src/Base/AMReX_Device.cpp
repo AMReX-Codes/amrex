@@ -517,11 +517,11 @@ amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& n
 
 
 void
-amrex::Device::n_threads_and_blocks (const int N, dim3& numBlocks, dim3& numThreads)
+amrex::Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 {
-    const int maxBlockSize = 256;
+    const long maxBlockSize = 256;
     numThreads = maxBlockSize;
-    numBlocks = std::min((N + maxBlockSize - 1) / maxBlockSize, 1); // in case N = 0
+    numBlocks = std::min((N + maxBlockSize - 1) / maxBlockSize, 1L); // in case N = 0
 }
 #endif
 
