@@ -76,6 +76,17 @@ namespace amrex
                                   const std::string &mfPrefix = "Cell",
                                   const Vector<std::string>& extra_dirs = Vector<std::string>());
 
+    // write a plotfile to disk given:
+    // -plotfile name
+    // -vector of MultiFabs
+    // -vector of Geometrys
+    // variable names are written as "Var0", "Var1", etc.    
+    // refinement ratio is computed from the Geometry vector
+    // "time" and "level_steps" are set to zero
+    void WriteMLMF (const std::string &plotfilename,
+                    const Vector<MultiFab>& mf,
+                    const Vector<Geometry> &geom);
+
     void WriteMultiLevelPlotfileHeaders (const std::string& plotfilename, int nlevels,
                                          const Vector<const MultiFab*>& mf,
                                          const Vector<std::string>& varnames,

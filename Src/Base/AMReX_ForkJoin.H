@@ -51,28 +51,28 @@ class ForkJoin
     }
 
     void reg_mf (MultiFab &mf, const std::string &name, int idx,
-                 Strategy strategy, Intent intent, const IntVect ng = {D_DECL(0,0,0)}, int owner = -1);
+                 Strategy strategy, Intent intent, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int owner = -1);
 
     void reg_mf (MultiFab &mf, const std::string &name,
-                 Strategy strategy, Intent intent, const IntVect ng = {D_DECL(0,0,0)}, int owner = -1) {
+                 Strategy strategy, Intent intent, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int owner = -1) {
         reg_mf(mf, name, 0, strategy, intent, ng, owner);
     }
 
     // these overloads are for in case the MultiFab argument is const
     // intent must be in
     void reg_mf (const MultiFab &mf, const std::string &name, int idx,
-                 Strategy strategy, Intent intent, const IntVect ng = {D_DECL(0,0,0)}, int owner = -1) {
+                 Strategy strategy, Intent intent, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int owner = -1) {
         AMREX_ASSERT_WITH_MESSAGE(intent == Intent::in,
                                   "const MultiFab must be registered read-only");
         reg_mf(const_cast<MultiFab&>(mf), name, idx, strategy, intent, ng, owner);
     }
     void reg_mf (const MultiFab &mf, const std::string &name,
-                 Strategy strategy, Intent intent, const IntVect ng = {D_DECL(0,0,0)}, int owner = -1) {
+                 Strategy strategy, Intent intent, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int owner = -1) {
         reg_mf(mf, name, 0, strategy, intent, ng, owner);
     }
 
     void reg_mf_vec (const Vector<MultiFab *> &mfs, const std::string &name,
-                     Strategy strategy, Intent intent, const IntVect ng = {D_DECL(0,0,0)}, int owner = -1) {
+                     Strategy strategy, Intent intent, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int owner = -1) {
         data[name].reserve(mfs.size());
         for (int i = 0; i < mfs.size(); ++i) {
             reg_mf(*mfs[i], name, i, strategy, intent, ng, owner);
@@ -81,7 +81,7 @@ class ForkJoin
 
     // overload in case of vector of pointer to const MultiFab
     void reg_mf_vec (const Vector<MultiFab const *> &mfs, const std::string &name,
-                     Strategy strategy, Intent intent, const IntVect ng = {D_DECL(0,0,0)}, int owner = -1) {
+                     Strategy strategy, Intent intent, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int owner = -1) {
         data[name].reserve(mfs.size());
         for (int i = 0; i < mfs.size(); ++i) {
             reg_mf(*mfs[i], name, i, strategy, intent, ng, owner);
@@ -148,7 +148,7 @@ class ForkJoin
         MFFork (MFFork&&) = default;
         MFFork& operator= (MFFork&&) = default;
         MFFork (MultiFab *omf, Strategy s = Strategy::duplicate,
-                Intent i = Intent::inout, const IntVect ng = {D_DECL(0,0,0)}, int own = -1)
+                Intent i = Intent::inout, const IntVect ng = {AMREX_D_DECL(0,0,0)}, int own = -1)
             : orig(omf), strategy(s), intent(i), nGrow(ng), owner_task(own) {}
 
         bool empty() const { return orig == nullptr; }

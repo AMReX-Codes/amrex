@@ -5,7 +5,7 @@
    :language: fortran
 
 
-Compiling AMReX with Sundials version 3.X
+Compiling AMReX with Sundials version 3.X or later
 ==================================================
 
 The following steps describe how to compile an AMReX application with
@@ -67,23 +67,32 @@ In order to use the Sundials 3.X version:
    compiling the examples via the ``"-DEXAMPLES_ENABLE=OFF"`` flag.
 
 #. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
-   interface to CVODE or ARKODE, add ``USE_SUNDIALS3 = TRUE``, which will compile the Fortran 2003
+   interface to CVODE or ARKODE, add ``SUNDIALS_3x4x = TRUE``, which will compile the Fortran 2003
    interfaces and link the  libraries.  Note that one must define the
    ``CVODE_LIB_DIR`` environment variable to point to the location where the
    libraries are installed.
 
 #. In the ``GNUmakefile`` for the  application which uses the Fortran 2003
-   interface to ARKODE, also add ``USE_ARKODE = TRUE``. It is assumed that the
+   interface to ARKODE, also add ``USE_ARKODE_LIBS = TRUE``. It is assumed that the
    ``CVODE_LIB_DIR`` environment variable points to the location where the ARKODE
    libraries are installed as well.
+
+#. Fortran 2003 interfaces for the pgi compilers and for developmental versions of SUNDIALS
+   are currently not supported.
 
 SUNDIALS 3.X Tutorials
 ======================
 
-AMReX provides six tutorials in the ``amrex/Tutorials/SUNDIALS3`` directory.
+AMReX provides six tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_finterface`` directory.
 ``EX1`` is modeled after the CVODE Tutorial ``EX1`` showing use with AMReX.
-The four ``EX_ch_*`` tutorials are based on examples provided with the interface, which
+The four ``EX_cv_*`` tutorials are based on examples provided with the interface, which
 are more closely modeled after CVODE examples. The ``EX_ark_analytic_fp`` tutorial is based
 on the ``EX_cv_analytic_fp`` tutorial, but uses ARKODE instead of CVODE.
+
+AMReX provides three tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_cppversion`` directory.
+These are versions of ``EX1`` which operate on a packed version of the data. ``EX1_SERIAL_NVEC``
+packs a box worth of equations into a serial NVector, uses CVODE to solve, and then unpacks
+the solution back into the box it came from. ``EX1_CUDA_NVEC`` uses the cuda NVector implementation instead.
+``EX1_GPU_PRAGMA`` uses the cuda NVector, and the gpu pragma functionality.
 
 .. _SUNDIALS3:
