@@ -19,7 +19,7 @@ namespace CudaAtomic {
     }
 
 AMREX_CUDA_DEVICE
-float atomicMax(float* address, float val)
+inline float atomicMax(float* address, float val)
 {
     int* address_as_i = (int*) address;
     int old = *address_as_i, assumed;
@@ -32,7 +32,7 @@ float atomicMax(float* address, float val)
 }
 
 AMREX_CUDA_DEVICE
-double atomicMax(double* address, double val)
+inline double atomicMax(double* address, double val)
 {
     unsigned long long int* address_as_ull = 
                   (unsigned long long int*) address;
@@ -47,7 +47,7 @@ double atomicMax(double* address, double val)
 
 
 AMREX_CUDA_DEVICE
-float atomicMin(float* address, float val)
+inline float atomicMin(float* address, float val)
 {
     int* address_as_i = (int*) address;
     int old = *address_as_i, assumed;
@@ -60,7 +60,7 @@ float atomicMin(float* address, float val)
 }
 
 AMREX_CUDA_DEVICE
-double atomicMin(double* address, double val)
+inline double atomicMin(double* address, double val)
 {
     unsigned long long int* address_as_ull = 
                   (unsigned long long int*) address;
