@@ -832,12 +832,21 @@ PhysicalParticleContainer::Evolve (int lev,
 	    FArrayBox& jyfab = jy[pti];
 	    FArrayBox& jzfab = jz[pti];
 
+#ifdef AMREX_USE_CUDA
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Exp.data()), thrust::device_ptr<Real>(Exp.data() + np), 0.0);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Eyp.data()), thrust::device_ptr<Real>(Eyp.data() + np), 0.0);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Ezp.data()), thrust::device_ptr<Real>(Ezp.data() + np), 0.0);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Bxp.data()), thrust::device_ptr<Real>(Bxp.data() + np), WarpX::B_external[0]);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Byp.data()), thrust::device_ptr<Real>(Byp.data() + np), WarpX::B_external[1]);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Bzp.data()), thrust::device_ptr<Real>(Bzp.data() + np), WarpX::B_external[2]);
+#else
 	    Exp.assign(np,0.0);
 	    Eyp.assign(np,0.0);
 	    Ezp.assign(np,0.0);
 	    Bxp.assign(np,WarpX::B_external[0]);
 	    Byp.assign(np,WarpX::B_external[1]);
 	    Bzp.assign(np,WarpX::B_external[2]);
+#endif
 
 	    giv.resize(np);
 
