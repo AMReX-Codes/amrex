@@ -1719,7 +1719,7 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     const int ncomp = nComp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Device::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
