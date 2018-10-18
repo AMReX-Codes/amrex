@@ -36,11 +36,11 @@ double atomicMax(double* address, double val)
 {
     unsigned long long int* address_as_ull = 
                   (unsigned long long int*) address;
-    unsigned long long int int old = *address_as_i, assumed;
+    unsigned long long int old = *address_as_ull, assumed;
     do {
         assumed = old;
         old = atomicCAS(address_as_ull, assumed,
-            __double_as_long_long(fmax(val, __long_long_as_double(assumed))));
+            __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
     } while (assumed != old);
     return __longlong_as_double(old);
 }
@@ -64,11 +64,11 @@ double atomicMin(double* address, double val)
 {
     unsigned long long int* address_as_ull = 
                   (unsigned long long int*) address;
-    unsigned long long int int old = *address_as_i, assumed;
+    unsigned long long int old = *address_as_ull, assumed;
     do {
         assumed = old;
         old = atomicCAS(address_as_ull, assumed,
-            __double_as_long_long(fmin(val, __long_long_as_double(assumed))));
+            __double_as_longlong(fmin(val, __longlong_as_double(assumed))));
     } while (assumed != old);
     return __longlong_as_double(old);
 }
