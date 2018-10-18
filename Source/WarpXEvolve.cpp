@@ -60,6 +60,7 @@ WarpX::EvolveEM (int numsteps)
 #ifdef WARPX_USE_PSATD
             amrex::Abort("LoadBalance for PSATD: TODO");
 #endif
+
             if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
@@ -85,58 +86,27 @@ WarpX::EvolveEM (int numsteps)
             UpdateAuxilaryData();
             // on first step, push p by -0.5*dt
             for (int lev = 0; lev <= finest_level; ++lev) {
-                mypc->PushP(lev, -0.5*dt[0],
+                mypc->PushP(lev, -0.5*dt[lev],
                             *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                             *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
             }
-           is_synchronized = false;
+            is_synchronized = false;
         } else {
            // Beyond one step, we have E^{n} and B^{n}.
            // Particles have p^{n-1/2} and x^{n}.
-	  FillBoundaryE();
-	  FillBoundaryB();
-	  UpdateAuxilaryData();
-       }
-
-        // Push particle from x^{n} to x^{n+1}
-        //               from p^{n-1/2} to p^{n+1/2}
-        // Deposit current j^{n+1/2}
-        // Deposit charge density rho^{n}
-#ifdef WARPX_USE_PY
-        if (warpx_py_particleinjection) warpx_py_particleinjection();
-        if (warpx_py_particlescraper) warpx_py_particlescraper();
-        if (warpx_py_beforedeposition) warpx_py_beforedeposition();
-#endif
-        PushParticlesandDepose(cur_time);
-#ifdef WARPX_USE_PY
-        if (warpx_py_afterdeposition) warpx_py_afterdeposition();
-#endif
-
-        SyncCurrent();
-
-        SyncRho(rho_fp, rho_cp);
-
-        // Push E and B from {n} to {n+1}
-        // (And update guard cells immediately afterwards)
-#ifdef WARPX_USE_PSATD
-        PushPSATD(dt[0]);
-        FillBoundaryE();
-        FillBoundaryB();
-#else
-        EvolveF(0.5*dt[0], DtType::FirstHalf);
-        FillBoundaryF();
-        EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
-        FillBoundaryB();
-        EvolveE(dt[0]); // We now have E^{n+1}
-        FillBoundaryE();
-        EvolveF(0.5*dt[0], DtType::SecondHalf);
-        EvolveB(0.5*dt[0]); // We now have B^{n+1}
-        if (do_pml) {
-            DampPML();
             FillBoundaryE();
+            FillBoundaryB();
+            UpdateAuxilaryData();
         }
-        FillBoundaryB();
-#endif
+
+        if (do_subcycling == 0 || finest_level == 0) {
+            OneStep_nosub(cur_time);
+        } else if (do_subcycling == 1 && finest_level == 1) {
+            OneStep_sub1(cur_time);
+        } else {
+            amrex::Print() << "Error: do_subcycling = " << do_subcycling << std::endl;
+            amrex::Abort("Unsupported do_subcycling type");
+        }
 
 #ifdef WARPX_USE_PY
         if (warpx_py_beforeEsolve) warpx_py_beforeEsolve();
@@ -145,10 +115,10 @@ WarpX::EvolveEM (int numsteps)
             // At the end of last step, push p by 0.5*dt to synchronize
             UpdateAuxilaryData();
             for (int lev = 0; lev <= finest_level; ++lev) {
-                mypc->PushP(lev, 0.5*dt[0],
+                mypc->PushP(lev, 0.5*dt[lev],
                     *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
                     *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
-                }
+            }
             is_synchronized = true;
         }
 #ifdef WARPX_USE_PY
@@ -252,6 +222,195 @@ WarpX::EvolveEM (int numsteps)
     }
 }
 
+/* /brief Perform one PIC iteration, without subcycling
+*  i.e. all levels/patches use the same timestep (that of the finest level)
+*  for the field advance and particle pusher.
+*/
+void
+WarpX::OneStep_nosub (Real cur_time)
+{
+    // Push particle from x^{n} to x^{n+1}
+    //               from p^{n-1/2} to p^{n+1/2}
+    // Deposit current j^{n+1/2}
+    // Deposit charge density rho^{n}
+#ifdef WARPX_USE_PY
+    if (warpx_py_particleinjection) warpx_py_particleinjection();
+    if (warpx_py_particlescraper) warpx_py_particlescraper();
+    if (warpx_py_beforedeposition) warpx_py_beforedeposition();
+#endif
+    PushParticlesandDepose(cur_time);
+#ifdef WARPX_USE_PY
+    if (warpx_py_afterdeposition) warpx_py_afterdeposition();
+#endif
+
+    SyncCurrent();
+
+    SyncRho(rho_fp, rho_cp);
+
+    // Push E and B from {n} to {n+1}
+    // (And update guard cells immediately afterwards)
+#ifdef WARPX_USE_PSATD
+    PushPSATD(dt[0]);
+    FillBoundaryE();
+    FillBoundaryB();
+#else
+    EvolveF(0.5*dt[0], DtType::FirstHalf);
+    FillBoundaryF();
+    EvolveB(0.5*dt[0]); // We now have B^{n+1/2}
+    FillBoundaryB();
+    EvolveE(dt[0]); // We now have E^{n+1}
+    FillBoundaryE();
+    EvolveF(0.5*dt[0], DtType::SecondHalf);
+    EvolveB(0.5*dt[0]); // We now have B^{n+1}
+    if (do_pml) {
+        DampPML();
+        FillBoundaryE();
+    }
+    FillBoundaryB();
+#endif
+}
+
+/* /brief Perform one PIC iteration, with subcycling
+*  i.e. The fine patch uses a smaller timestep (and steps more often)
+*  than the coarse patch, for the field advance and particle pusher.
+*
+* This version of subcycling only works for 2 levels and with a refinement
+* ratio of 2.
+* The particles and fields of the fine patch are pushed twice
+* (with dt[coarse]/2) in this routine.
+* The particles of the coarse patch and mother grid are pushed only once
+* (with dt[coarse]). The fields on the coarse patch and mother grid
+* are pushed in a way which is equivalent to pushing once only, with
+* a current which is the average of the coarse + fine current at the 2
+* steps of the fine grid.
+*
+*/
+void
+WarpX::OneStep_sub1 (Real curtime)
+{
+    // TODO: we could save some charge depositions
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
+    const int fine_lev = 1;
+    const int coarse_lev = 0;
+
+    // i) Push particles and fields on the fine patch (first fine step)
+    PushParticlesandDepose(fine_lev, curtime);
+    RestrictCurrentFromFineToCoarsePatch(fine_lev);
+    RestrictRhoFromFineToCoarsePatch(fine_lev);
+    ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
+    NodalSyncJ(fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2);
+    NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
+    FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryF(fine_lev, PatchType::fine);
+
+    EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::fine);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
+
+    if (do_pml) {
+        DampPML(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine);
+    }
+
+    FillBoundaryB(fine_lev, PatchType::fine);
+
+    // ii) Push particles on the coarse patch and mother grid.
+    // Push the fields on the coarse patch and mother grid
+    // by only half a coarse step (first half)
+    PushParticlesandDepose(coarse_lev, curtime);
+    StoreCurrent(coarse_lev);
+    AddCurrentFromFineLevelandSumBoundary(coarse_lev);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 0, 1);
+
+    EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::FirstHalf);
+    FillBoundaryB(fine_lev, PatchType::coarse);
+    FillBoundaryF(fine_lev, PatchType::coarse);
+
+    EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::coarse);
+
+    EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::FirstHalf);
+    FillBoundaryB(coarse_lev, PatchType::fine);
+    FillBoundaryF(coarse_lev, PatchType::fine);
+
+    EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    FillBoundaryE(coarse_lev, PatchType::fine);
+
+    // iii) Get auxiliary fields on the fine grid, at dt[fine_lev]
+    UpdateAuxilaryData();
+
+    // iv) Push particles and fields on the fine patch (second fine step)
+    PushParticlesandDepose(fine_lev, curtime+dt[fine_lev]);
+    RestrictCurrentFromFineToCoarsePatch(fine_lev);
+    RestrictRhoFromFineToCoarsePatch(fine_lev);
+    ApplyFilterandSumBoundaryJ(fine_lev, PatchType::fine);
+    NodalSyncJ(fine_lev, PatchType::fine);
+    ApplyFilterandSumBoundaryRho(fine_lev, PatchType::fine, 0, 2);
+    NodalSyncRho(fine_lev, PatchType::fine, 0, 2);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::FirstHalf);
+    FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryF(fine_lev, PatchType::fine);
+
+    EvolveE(fine_lev, PatchType::fine, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::fine);
+
+    EvolveB(fine_lev, PatchType::fine, 0.5*dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::fine, 0.5*dt[fine_lev], DtType::SecondHalf);
+
+    if (do_pml) {
+        DampPML(fine_lev, PatchType::fine);
+        FillBoundaryE(fine_lev, PatchType::fine);
+    }
+
+    FillBoundaryB(fine_lev, PatchType::fine);
+    FillBoundaryF(fine_lev, PatchType::fine);
+
+    // v) Push the fields on the coarse patch and mother grid
+    // by only half a coarse step (second half)
+    RestoreCurrent(coarse_lev);
+    AddCurrentFromFineLevelandSumBoundary(coarse_lev);
+    AddRhoFromFineLevelandSumBoundary(coarse_lev, 1, 1);
+
+    EvolveE(fine_lev, PatchType::coarse, dt[fine_lev]);
+    FillBoundaryE(fine_lev, PatchType::coarse);
+
+    EvolveB(fine_lev, PatchType::coarse, dt[fine_lev]);
+    EvolveF(fine_lev, PatchType::coarse, dt[fine_lev], DtType::SecondHalf);
+
+    if (do_pml) {
+        DampPML(fine_lev, PatchType::coarse); // do it twice
+        DampPML(fine_lev, PatchType::coarse);
+        FillBoundaryE(fine_lev, PatchType::coarse);
+    }
+
+    FillBoundaryB(fine_lev, PatchType::coarse);
+    FillBoundaryF(fine_lev, PatchType::coarse);
+
+    EvolveE(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    FillBoundaryE(coarse_lev, PatchType::fine);
+
+    EvolveB(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev]);
+    EvolveF(coarse_lev, PatchType::fine, 0.5*dt[coarse_lev], DtType::SecondHalf);
+
+    if (do_pml) {
+        DampPML(coarse_lev, PatchType::fine);
+        FillBoundaryE(coarse_lev, PatchType::fine);
+    }
+
+    FillBoundaryB(coarse_lev, PatchType::fine);
+}
+
 void
 WarpX::EvolveB (Real dt)
 {
@@ -277,7 +436,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     const int patch_level = (patch_type == PatchType::fine) ? lev : lev-1;
     const std::array<Real,3>& dx = WarpX::CellSize(patch_level);
     const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
-    
+
     MultiFab *Ex, *Ey, *Ez, *Bx, *By, *Bz;
     if (patch_type == PatchType::fine)
     {
@@ -308,11 +467,11 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
     for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
     {
         Real wt = amrex::second();
-        
+
         const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
         const Box& tby  = mfi.tilebox(By_nodal_flag);
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-        
+
         // Call picsar routine for each tile
         warpx_push_bvec(
 		      tbx.loVect(), tbx.hiVect(),
@@ -326,7 +485,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 		      BL_TO_FORTRAN_3D((*Bz)[mfi]),
 		      &dtsdx[0], &dtsdx[1], &dtsdx[2],
 		      &WarpX::maxwell_fdtd_solver_id);
-        
+
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
@@ -504,7 +663,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
 			     BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			     BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
 			     &dtsdx_c2[0], &dtsdx_c2[1], &dtsdx_c2[2]);
-            
+
             if (pml_F)
             {
                 WRPX_PUSH_PML_EVEC_F(
@@ -572,14 +731,14 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
         rho = rho_cp[lev].get();
         F = F_cp[lev].get();
     }
-    
+
     const int rhocomp = (dt_type == DtType::FirstHalf) ? 0 : 1;
 
     MultiFab src(rho->boxArray(), rho->DistributionMap(), 1, 0);
     ComputeDivE(src, 0, {Ex,Ey,Ez}, dx);
     MultiFab::Saxpy(src, -mu_c2, *rho, rhocomp, 0, 1, 0);
     MultiFab::Saxpy(*F, dt, src, 0, 0, 1, 0);
-    
+
     if (do_pml && pml[lev]->ok())
     {
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
@@ -642,7 +801,7 @@ WarpX::DampPML (int lev, PatchType patch_type)
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
             const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
-            
+
             WRPX_DAMP_PML(tex.loVect(), tex.hiVect(),
 			    tey.loVect(), tey.hiVect(),
 			    tez.loVect(), tez.hiVect(),
@@ -656,7 +815,7 @@ WarpX::DampPML (int lev, PatchType patch_type)
 			    BL_TO_FORTRAN_3D((*pml_B[1])[mfi]),
 			    BL_TO_FORTRAN_3D((*pml_B[2])[mfi]),
 			    WRPX_PML_TO_FORTRAN(sigba[mfi]));
-            
+
             if (pml_F) {
                 const Box& tnd  = mfi.nodaltilebox();
                 WRPX_DAMP_PML_F(tnd.loVect(), tnd.hiVect(),
@@ -700,8 +859,8 @@ WarpX::ComputeDt ()
     if (maxwell_fdtd_solver_id == 0) {
       // CFL time step Yee solver
       deltat  = cfl * 1./( std::sqrt(AMREX_D_TERM(  1./(dx[0]*dx[0]),
-                                                    + 1./(dx[1]*dx[1]),
-                                                    + 1./(dx[2]*dx[2]))) * PhysConst::c );
+                                                  + 1./(dx[1]*dx[1]),
+                                                  + 1./(dx[2]*dx[2]))) * PhysConst::c );
     } else {
       // CFL time step CKC solver
 #if (BL_SPACEDIM == 3)
@@ -713,6 +872,12 @@ WarpX::ComputeDt ()
     }
     dt.resize(0);
     dt.resize(max_level+1,deltat);
+
+    if (do_subcycling) {
+        for (int lev = max_level-1; lev >= 0; --lev) {
+            dt[lev] = dt[lev+1] * refRatio(lev)[0];
+        }
+    }
 
     if (do_electrostatic) {
         dt[0] = const_dt;

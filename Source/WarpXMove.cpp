@@ -54,13 +54,13 @@ WarpX::MoveWindow (bool move_j)
     new_lo[dir] = current_lo[dir] + num_shift_base * dx[dir];
     new_hi[dir] = current_hi[dir] + num_shift_base * dx[dir];
     RealBox new_box(new_lo, new_hi);
-    geom[0].ProbDomain(new_box);
+    Geometry::ProbDomain(new_box);
 
     int num_shift      = num_shift_base;
     int num_shift_crse = num_shift;
 
     // Shift the mesh fields
-    for (int lev = 0; lev <= max_level; ++lev) {
+    for (int lev = 0; lev <= finest_level; ++lev) {
 
         if (lev > 0) {
             num_shift_crse = num_shift;

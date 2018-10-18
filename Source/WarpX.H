@@ -236,7 +236,7 @@ private:
     /// Advance the simulation by numsteps steps, electromagnetic case.
     ///
     void EvolveEM(int numsteps);
-  
+
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
     void FillBoundaryF (int lev, PatchType patch_type);
@@ -245,6 +245,21 @@ private:
     void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
     void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
     void DampPML (int lev, PatchType patch_type);
+
+    void OneStep_nosub (amrex::Real t);
+    void OneStep_sub1 (amrex::Real t);
+
+    void RestrictCurrentFromFineToCoarsePatch (int lev);
+    void AddCurrentFromFineLevelandSumBoundary (int lev);
+    void StoreCurrent (int lev);
+    void RestoreCurrent (int lev);
+    void ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type);
+    void NodalSyncJ (int lev, PatchType patch_type);
+
+    void RestrictRhoFromFineToCoarsePatch (int lev);
+    void ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, int ncomp);
+    void AddRhoFromFineLevelandSumBoundary (int lev, int icomp, int ncomp);
+    void NodalSyncRho (int lev, PatchType patch_type, int icomp, int ncomp);
 
 #ifdef WARPX_DO_ELECTROSTATIC
     ///
@@ -344,7 +359,8 @@ private:
 
     void LoadBalance ();
 
-    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf);
+    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf,
+                             int scomp = 0, int dcomp = 0, int ncomp = 10000);
 
     void BuildBufferMasks ();
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
@@ -381,6 +397,9 @@ private:
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_fp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Efield_fp;
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > Bfield_fp;
+
+    // store fine patch
+    amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_store;
 
     // Coarse patch
     amrex::Vector<            std::unique_ptr<amrex::MultiFab>      > F_cp;
@@ -428,6 +447,8 @@ private:
 
     // Other runtime parameters
     int verbose = 1;
+
+    int do_subcycling = 0;
 
     int max_step   = std::numeric_limits<int>::max();
     amrex::Real stop_time = std::numeric_limits<amrex::Real>::max();
