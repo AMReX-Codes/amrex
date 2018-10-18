@@ -71,7 +71,7 @@ MultiFab::Dot (const iMultiFab& mask,
 	       const MultiFab& y, int ycomp,
 	       int numcomp, int nghost, bool local)
 {
-    // TODO GPU
+    // TODO GPU - CHECK 
 
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.boxArray() == mask.boxArray());
@@ -83,12 +83,24 @@ MultiFab::Dot (const iMultiFab& mask,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
 #endif
-    for (MFIter mfi(x,true); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.growntilebox(nghost);
-        sm += x[mfi].dotmask(mask[mfi],bx,xcomp,y[mfi],bx,ycomp,numcomp);
+        amrex::DeviceScalar<Real> local_sm(0.0);
+        Real* p = local_sm.dataPtr();
+        for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            FArrayBox const* xfab = &(x[mfi]);
+            FArrayBox const* yfab = &(y[mfi]);
+            IArrayBox const* mskfab = &(mask[mfi]);
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            {
+                Real t = xfab->dotmask(*mskfab, tbx, xcomp, *yfab, tbx, ycomp, numcomp);
+                amrex::CudaAtomic::Add(p, t);
+            });
+        }
+        sm += local_sm.dataValue();
     }
 
     if (!local)
@@ -677,11 +689,11 @@ MultiFab::define (const BoxArray&            bxs,
 void
 MultiFab::initVal ()
 {
-    // TODO GPU
+    // TODO GPU - Done in FabArray. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	(*this)[mfi].initVal();
     }
@@ -1314,16 +1326,27 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 Real
 MultiFab::sum (int comp, bool local) const
 {
-    // TODO GPU
+    // TODO GPU - CHECK
 
     Real sm = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        sm += get(mfi).sum(mfi.tilebox(), comp, 1);
+        amrex::DeviceScalar<Real> local_sm(0.0);
+        Real* p = local_sm.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            FArrayBox const* fab = &(get(mfi));
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->sum(bx, comp, 1);
+                amrex::CudaAtomic::Add(p, t);
+            });
+        }
+        sm += local_sm.dataValue();
     }
 
     if (!local)
