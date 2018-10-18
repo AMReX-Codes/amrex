@@ -803,7 +803,7 @@ MultiFab::min (int comp,
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if !Cuda::inLaunchRegion() reduction(min:mn) 
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(min:mn) 
 #endif
     {
         amrex::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
@@ -834,27 +834,37 @@ MultiFab::min (const Box& region,
                int        nghost,
 	       bool       local) const
 {
-    // TODO GPU
+    // TODO GPU - Check
 
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(min:mn)
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(min:mn) 
 #endif
-    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	const Box& b = mfi.growntilebox(nghost) & region;
-	
-	if (b.ok())
-	    mn = std::min(mn, get(mfi).min(b,comp));
+        amrex::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
+        Real* p = local_mn.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost) & region;
+            FArrayBox const* fab = &(get(mfi));
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->min(tbx, comp);
+                amrex::CudaAtomic::Min(p, t);
+            });
+
+            mn = std::min(mn, local_mn.dataValue());
+        }
     }
 
     if (!local)
 	ParallelAllReduce::Min(mn, ParallelContext::CommunicatorSub());
 
     return mn;
+
 }
 
 Real
@@ -862,19 +872,30 @@ MultiFab::max (int comp,
                int nghost,
 	       bool local) const
 {
-    // TODO GPU
+    // TODO GPU -- Check
 
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(max:mx)
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mn) 
 #endif
-    for ( MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.growntilebox(nghost);
-	mx = std::max(mx, get(mfi).max(bx,comp));
+        amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        Real* p = local_mx.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            FArrayBox const* fab = &(get(mfi));
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->max(tbx, comp);
+                amrex::CudaAtomic::Max(p, t);
+            });
+
+            mx = std::max(mx, local_mx.dataValue());
+        }
     }
 
     if (!local)
@@ -889,23 +910,32 @@ MultiFab::max (const Box& region,
                int        nghost,
 	       bool       local) const
 {
-    // TODO GPU
+    // TODO GPU -- Check
 
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(max:mx)
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mn) 
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	const Box& b = mfi.growntilebox(nghost) & region;
+        amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        Real* p = local_mx.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost) & region;
+            FArrayBox const* fab = &(get(mfi));
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->max(tbx, comp);
+                amrex::CudaAtomic::Max(p, t);
+            });
 
-	if (b.ok())
-	    mx = std::max(mx, get(mfi).max(b,comp));
+            mx = std::max(mx, local_mx.dataValue());
+        }
     }
-	
+
     if (!local)
 	ParallelAllReduce::Max(mx, ParallelContext::CommunicatorSub());
 

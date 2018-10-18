@@ -154,8 +154,61 @@ int main (int argc, char* argv[])
  
        amrex::Print() << "CPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
        amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
-       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
+
+    Cuda::setLaunchRegion(true);
+    {
+       MultiFab x(ba, dm, Ncomp, Nghost);
+       x.setVal(0.0);
+
+       for (int k = 0; k < 10; k++)
+           for (int j = 0; j < 10; j++)
+               for (int i = 0; i < 10; i++)
+               {
+                   IntVect iv(i,j,k);
+                   x[0](iv) = 0.01*(i-5) + 0.1*(j-5) + (k-5);
+               }
+
+       Real min_val = 0.01*(-5) + 0.1*(-5) + -5;
+       Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
+
+       Real strt_time = amrex::second();
+       Real min = x.min(Ncomp, Nghost); 
+       Real max = x.max(Ncomp, Nghost); 
+       Real end_time = amrex::second();
+ 
+       amrex::Print() << "GPU, expected min/max: " << min_val << "/" << max_val << std::endl;
+       amrex::Print() << "Calculatd min/max: " << min << "/" << max << std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
+    }
+
+    Cuda::setLaunchRegion(false);
+    {
+       MultiFab x(ba, dm, Ncomp, Nghost);
+       x.setVal(0.0);
+
+       for (int k = 0; k < 10; k++)
+           for (int j = 0; j < 10; j++)
+               for (int i = 0; i < 10; i++)
+               {
+                   IntVect iv(i,j,k);
+                   x[0](iv) = 0.01*(i-5) + 0.1*(j-5) + (k-5);
+               }
+
+       Real min_val = 0.01*(-5) + 0.1*(-5) + -5;
+       Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
+
+       Real strt_time = amrex::second();
+       Real min = x.min(Ncomp, Nghost); 
+       Real max = x.max(Ncomp, Nghost); 
+       Real end_time = amrex::second();
+ 
+       amrex::Print() << "CPU, expected min/max: " << min_val << "/" << max_val << std::endl;
+       amrex::Print() << "Calculatd min/max: " << min << "/" << max << std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
+    }
+
 
     amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
     }
