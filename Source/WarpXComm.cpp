@@ -276,7 +276,7 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         (*Efield_cp[lev][0]).FillBoundary(cperiod);
         (*Efield_cp[lev][1]).FillBoundary(cperiod);
         (*Efield_cp[lev][2]).FillBoundary(cperiod);
-    }    
+    }
 }
 
 void
@@ -504,13 +504,16 @@ WarpX::SyncCurrent ()
     }
 }
 
+/** \brief Fills the values of the current on the coarse patch by
+ *  averaging the values of the current of the fine patch (on the same level).
+ */
 void
 WarpX::SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                     const std::array<      amrex::MultiFab*,3>& crse,
                     int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = fine[0]->nGrowVect()/ref_ratio;
+    const IntVect& ng = (fine[0]->nGrowVect() + 1) /ref_ratio;
 
 #ifdef _OPEMP
 #pragma omp parallel
@@ -553,7 +556,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     Vector<std::unique_ptr<MultiFab> > rho_f_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_c_g(finest_level+1);
     Vector<std::unique_ptr<MultiFab> > rho_buf_g(finest_level+1);
-    
+
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             const int ncomp = rhof[lev]->nComp();
@@ -578,7 +581,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 1; lev <= finest_level; ++lev) {
             if (charge_buf[lev]) {
                 const int ncomp = charge_buf[lev]->nComp();
-                IntVect ng = charge_buf[lev]->nGrowVect();                
+                IntVect ng = charge_buf[lev]->nGrowVect();
                 ng += 1;
                 rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
                                                   charge_buf[lev]->DistributionMap(),
@@ -610,7 +613,7 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
             crho = charge_buf[lev+1].get();
         }
 
-        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);        
+        rhof[lev]->copy(*crho,0,0,ncomp,ngsrc,ngdst,period,FabArrayBase::ADD);
     }
 
     // Sum up coarse patch
@@ -651,11 +654,14 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     }
 }
 
+/** \brief Fills the values of the charge density on the coarse patch by
+ *  averaging the values of the charge density of the fine patch (on the same level).
+ */
 void
 WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
 {
     BL_ASSERT(ref_ratio == 2);
-    const IntVect& ng = fine.nGrowVect()/ref_ratio;
+    const IntVect& ng = (fine.nGrowVect()+1)/ref_ratio;
     const int nc = fine.nComp();
 
 #ifdef _OPEMP
@@ -676,5 +682,270 @@ WarpX::SyncRho (const MultiFab& fine, MultiFab& crse, int ref_ratio)
                           BL_TO_FORTRAN_ANYD(ffab),
                           &nc);
         }
+    }
+}
+
+/** \brief Fills the values of the current on the coarse patch by
+ *  averaging the values of the current of the fine patch (on the same level).
+ */
+void
+WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
+{
+    current_cp[lev][0]->setVal(0.0);
+    current_cp[lev][1]->setVal(0.0);
+    current_cp[lev][2]->setVal(0.0);
+
+    const IntVect& ref_ratio = refRatio(lev-1);
+
+    std::array<const MultiFab*,3> fine { current_fp[lev][0].get(),
+                                         current_fp[lev][1].get(),
+                                         current_fp[lev][2].get() };
+    std::array<      MultiFab*,3> crse { current_cp[lev][0].get(),
+                                         current_cp[lev][1].get(),
+                                         current_cp[lev][2].get() };
+    SyncCurrent(fine, crse, ref_ratio[0]);
+}
+
+void
+WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
+{
+    const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
+    const auto& period = Geom(glev).periodicity();
+    auto& j = (patch_type == PatchType::fine) ? current_fp[lev] : current_cp[lev];
+    for (int idim = 0; idim < 3; ++idim) {
+        if (use_filter) {
+            IntVect ng = j[idim]->nGrowVect();
+            ng += 1;
+            MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), 1, ng);
+            applyFilter(jf, *j[idim]);
+            jf.SumBoundary(period);
+            MultiFab::Copy(*j[idim], jf, 0, 0, 1, 0);
+        } else {
+            j[idim]->SumBoundary(period);
+        }
+    }
+}
+
+/* /brief Update the currents of `lev` by adding the currents from particles
+*         that are in the mesh refinement patches at `lev+1`
+*
+* More precisely, apply filter and sum boundaries for the current of:
+* - the fine patch of `lev`
+* - the coarse patch of `lev+1` (same resolution)
+* - the buffer regions of the coarse patch of `lev+1` (i.e. for particules
+* that are within the mesh refinement patch, but do not deposit on the
+* mesh refinement patch because they are too close to the boundary)
+*
+* Then update the fine patch of `lev` by adding the currents for the coarse
+* patch (and buffer region) of `lev+1`
+*/
+void
+WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
+{
+    ApplyFilterandSumBoundaryJ(lev, PatchType::fine);
+
+    // When there are current buffers, unlike coarse patch,
+    // we don't care about the final state of them.
+
+    const auto& period = Geom(lev).periodicity();
+    for (int idim = 0; idim < 3; ++idim) {
+        MultiFab mf(current_fp[lev][idim]->boxArray(),
+                    current_fp[lev][idim]->DistributionMap(), 1, 0);
+        mf.setVal(0.0);
+        if (use_filter && current_buf[lev+1][idim])
+        {
+            // coarse patch of fine level
+            IntVect ng = current_cp[lev+1][idim]->nGrowVect();
+            ng += 1;
+            MultiFab jfc(current_cp[lev+1][idim]->boxArray(),
+                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+            applyFilter(jfc, *current_cp[lev+1][idim]);
+
+            // buffer patch of fine level
+            MultiFab jfb(current_buf[lev+1][idim]->boxArray(),
+                         current_buf[lev+1][idim]->DistributionMap(), 1, ng);
+            applyFilter(jfb, *current_buf[lev+1][idim]);
+
+            MultiFab::Add(jfb, jfc, 0, 0, 1, ng);
+            mf.ParallelAdd(jfb, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+
+            jfc.SumBoundary(period);
+            MultiFab::Copy(*current_cp[lev+1][idim], jfc, 0, 0, 1, 0);
+        }
+        else if (use_filter) // but no buffer
+        {
+            // coarse patch of fine level
+            IntVect ng = current_cp[lev+1][idim]->nGrowVect();
+            ng += 1;
+            MultiFab jf(current_cp[lev+1][idim]->boxArray(),
+                        current_cp[lev+1][idim]->DistributionMap(), 1, ng);
+            applyFilter(jf, *current_cp[lev+1][idim]);
+            mf.ParallelAdd(jf, 0, 0, 1, ng, IntVect::TheZeroVector(), period);
+            jf.SumBoundary(period);
+            MultiFab::Copy(*current_cp[lev+1][idim], jf, 0, 0, 1, 0);
+        }
+        else if (current_buf[lev+1][idim]) // but no filter
+        {
+            MultiFab::Copy(*current_buf[lev+1][idim],
+                           *current_cp [lev+1][idim], 0, 0, 1,
+                           current_cp[lev+1][idim]->nGrow());
+            mf.ParallelAdd(*current_buf[lev+1][idim], 0, 0, 1,
+                           current_buf[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+            current_cp[lev+1][idim]->SumBoundary(period);
+        }
+        else // no filter, no buffer
+        {
+            mf.ParallelAdd(*current_cp[lev+1][idim], 0, 0, 1,
+                           current_cp[lev+1][idim]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+            current_cp[lev+1][idim]->SumBoundary(period);
+        }
+        MultiFab::Add(*current_fp[lev][idim], mf, 0, 0, 1, 0);
+    }
+    NodalSyncJ(lev, PatchType::fine);
+    NodalSyncJ(lev+1, PatchType::coarse);
+}
+
+void
+WarpX::RestrictRhoFromFineToCoarsePatch (int lev)
+{
+    if (rho_fp[lev]) {
+        rho_cp[lev]->setVal(0.0);
+        const IntVect& ref_ratio = refRatio(lev-1);
+        SyncRho(*rho_fp[lev], *rho_cp[lev], ref_ratio[0]);
+    }
+}
+
+void
+WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, int ncomp)
+{
+    const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
+    const auto& period = Geom(glev).periodicity();
+    auto& r = (patch_type == PatchType::fine) ? rho_fp[lev] : rho_cp[lev];
+    if (r == nullptr) return;
+    if (use_filter) {
+        IntVect ng = r->nGrowVect();
+        ng += 1;
+        MultiFab rf(r->boxArray(), r->DistributionMap(), ncomp, ng);
+        applyFilter(rf, *r, icomp, 0, ncomp);
+        rf.SumBoundary(period);
+        MultiFab::Copy(*r, rf, 0, icomp, ncomp, 0);
+    } else {
+        r->SumBoundary(icomp, ncomp, period);
+    }
+}
+
+/* /brief Update the charge density of `lev` by adding the charge density from particles
+*         that are in the mesh refinement patches at `lev+1`
+*
+* More precisely, apply filter and sum boundaries for the charge density of:
+* - the fine patch of `lev`
+* - the coarse patch of `lev+1` (same resolution)
+* - the buffer regions of the coarse patch of `lev+1` (i.e. for particules
+* that are within the mesh refinement patch, but do not deposit on the
+* mesh refinement patch because they are too close to the boundary)
+*
+* Then update the fine patch of `lev` by adding the charge density for the coarse
+* patch (and buffer region) of `lev+1`
+*/
+void
+WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
+{
+    if (rho_fp[lev]) {
+        const auto& period = Geom(lev).periodicity();
+        MultiFab mf(rho_fp[lev]->boxArray(),
+                    rho_fp[lev]->DistributionMap(),
+                    ncomp, 0);
+        mf.setVal(0.0);
+        if (use_filter && charge_buf[lev+1])
+        {
+            // coarse patch of fine level
+            IntVect ng = rho_cp[lev+1]->nGrowVect();
+            ng += 1;
+            MultiFab rhofc(rho_cp[lev+1]->boxArray(),
+                         rho_cp[lev+1]->DistributionMap(), ncomp, ng);
+            applyFilter(rhofc, *rho_cp[lev+1], icomp, 0, ncomp);
+
+            // buffer patch of fine level
+            MultiFab rhofb(charge_buf[lev+1]->boxArray(),
+                           charge_buf[lev+1]->DistributionMap(), ncomp, ng);
+            applyFilter(rhofb, *charge_buf[lev+1], icomp, 0, ncomp);
+
+            MultiFab::Add(rhofb, rhofc, 0, 0, ncomp, ng);
+            mf.ParallelAdd(rhofb, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
+
+            rhofc.SumBoundary(period);
+            MultiFab::Copy(*rho_cp[lev+1], rhofc, 0, 0, ncomp, 0);
+        }
+        else if (use_filter) // but no buffer
+        {
+            IntVect ng = rho_cp[lev+1]->nGrowVect();
+            ng += 1;
+            MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
+            applyFilter(rf, *rho_cp[lev+1], icomp, 0, ncomp);
+            mf.ParallelAdd(rf, 0, 0, ncomp, ng, IntVect::TheZeroVector(), period);
+            rf.SumBoundary(0, ncomp, period);
+            MultiFab::Copy(*rho_cp[lev+1], rf, 0, icomp, ncomp, 0);
+        }
+        else if (charge_buf[lev+1]) // but no filter
+        {
+            MultiFab::Copy(*charge_buf[lev+1],
+                           *rho_cp[lev+1], icomp, icomp, ncomp,
+                           rho_cp[lev+1]->nGrow());
+            mf.ParallelAdd(*charge_buf[lev+1], icomp, 0,
+                           ncomp,
+                           charge_buf[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
+        }
+        else // no filter, no buffer
+        {
+            mf.ParallelAdd(*rho_cp[lev+1], icomp, 0, ncomp,
+                           rho_cp[lev+1]->nGrowVect(), IntVect::TheZeroVector(),
+                           period);
+            rho_cp[lev+1]->SumBoundary(icomp, ncomp, period);
+        }
+        ApplyFilterandSumBoundaryRho(lev, PatchType::fine, icomp, ncomp);
+        MultiFab::Add(*rho_fp[lev], mf, 0, icomp, ncomp, 0);
+
+        NodalSyncRho(lev, PatchType::fine, icomp, ncomp);
+        NodalSyncRho(lev+1, PatchType::coarse, icomp, ncomp);
+    }
+}
+
+void
+WarpX::NodalSyncJ (int lev, PatchType patch_type)
+{
+    if (patch_type == PatchType::fine)
+    {
+        const auto& period = Geom(lev).periodicity();
+        current_fp[lev][0]->OverrideSync(period);
+        current_fp[lev][1]->OverrideSync(period);
+        current_fp[lev][2]->OverrideSync(period);
+    }
+    else if (patch_type == PatchType::coarse)
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        current_cp[lev][0]->OverrideSync(cperiod);
+        current_cp[lev][1]->OverrideSync(cperiod);
+        current_cp[lev][2]->OverrideSync(cperiod);
+    }
+}
+
+void
+WarpX::NodalSyncRho (int lev, PatchType patch_type, int icomp, int ncomp)
+{
+    if (patch_type == PatchType::fine && rho_fp[lev])
+    {
+        const auto& period = Geom(lev).periodicity();
+        MultiFab rhof(*rho_fp[lev], amrex::make_alias, icomp, ncomp);
+        rhof.OverrideSync(period);
+    }
+    else if (patch_type == PatchType::coarse && rho_cp[lev])
+    {
+        const auto& cperiod = Geom(lev-1).periodicity();
+        MultiFab rhoc(*rho_cp[lev], amrex::make_alias, icomp, ncomp);
+        rhoc.OverrideSync(cperiod);
     }
 }

@@ -64,6 +64,14 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 current_fp[lev][idim] = std::move(pmf);
                 current_fp_owner_masks[lev][idim] = std::move(current_fp[lev][idim]->OwnerMask(period));
             }
+            if (current_store[lev][idim])
+            {
+                const IntVect& ng = current_store[lev][idim]->nGrowVect();
+                auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_store[lev][idim]->boxArray(),
+                                                                  dm, 1, ng));
+                // no need to redistribute
+                current_store[lev][idim] = std::move(pmf);
+            }
         }
 
         if (F_fp[lev] != nullptr) {
