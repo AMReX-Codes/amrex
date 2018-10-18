@@ -18,6 +18,8 @@ namespace CudaAtomic {
 #endif
     }
 
+#ifdef AMREX_USE_CUDA
+
 AMREX_CUDA_DEVICE
 inline float atomicMax(float* address, float val)
 {
@@ -72,6 +74,8 @@ inline double atomicMin(double* address, double val)
     } while (assumed != old);
     return __longlong_as_double(old);
 }
+
+#endif
 
     template<class T>
     AMREX_CUDA_HOST_DEVICE
