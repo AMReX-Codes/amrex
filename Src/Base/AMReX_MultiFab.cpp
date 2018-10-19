@@ -691,7 +691,7 @@ MultiFab::initVal ()
 {
     // TODO GPU - Done in FabArray. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
-#pragma omp parallel (!Cuda::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
