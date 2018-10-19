@@ -2,7 +2,7 @@
 #define AMREX_ARRAYOFSTRUCTS_H_
 
 #include <AMReX_Particle.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_CudaContainers.H>
 #include <AMReX_Vector.H>
 
 namespace amrex {
@@ -12,12 +12,8 @@ class ArrayOfStructs {
 public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
-    
-#ifdef AMREX_USE_CUDA
-    using ParticleVector = Vector<ParticleType, CudaManagedAllocator<ParticleType> >;
-#else
-    using ParticleVector = Vector<ParticleType>;
-#endif
+
+    using ParticleVector = Cuda::ManagedVector<ParticleType>;
     
     using Iterator      = typename ParticleVector::iterator;
     using ConstIterator = typename ParticleVector::const_iterator;
