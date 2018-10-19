@@ -694,15 +694,10 @@ public:
 
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-
-
-    void GetPosition (AMREX_D_DECL(DeviceVector<Real>& x,
-                                   DeviceVector<Real>& y,
-                                   DeviceVector<Real>& z)) const;
-
-    void GetPosition (AMREX_D_DECL(RealVector& x,
-                                   RealVector& y,
-                                   RealVector& z)) const;
+    template <typename Container>
+    void GetPosition (AMREX_D_DECL(Container& x,
+                                   Container& y,
+                                   Container& z)) const;
     
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 protected:
@@ -755,13 +750,10 @@ public:
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
 
-    void SetPosition (AMREX_D_DECL(const DeviceVector<Real>& x,
-                                   const DeviceVector<Real>& y,
-                                   const DeviceVector<Real>& z)) const;
-
-    void SetPosition (AMREX_D_DECL(const RealVector& x,
-                                   const RealVector& y,
-                                   const RealVector& z)) const;
+    template <typename Container>
+    void SetPosition (AMREX_D_DECL(const Container& x,
+                                   const Container& y,
+                                   const Container& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
