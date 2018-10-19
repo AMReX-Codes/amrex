@@ -34,6 +34,9 @@ public:
     
     const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
     RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
+
+    const RealType* dataPtr () const { return data(); }
+    RealType*       dataPtr ()       { return data(); }
     
     std::pair<int,int> dataShape () const {
 	return std::make_pair(SizeInReal, static_cast<int>(m_data.size()));
