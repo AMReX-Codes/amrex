@@ -117,10 +117,6 @@ public:
 
     static void device_free(void* ptr);
 
-    static bool checkManaged(const void* ptr);
-
-    static bool checkDevicePtr(const void* ptr);
-
     static int isProgramRunning();
 
 #ifdef AMREX_USE_CUDA
