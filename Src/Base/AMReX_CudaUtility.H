@@ -2,6 +2,7 @@
 #define AMREX_CUDA_UTILITY_H_
 
 #include <AMReX_CudaQualifiers.H>
+#include <iostream>
 
 namespace amrex {
 
@@ -147,6 +148,10 @@ namespace Cuda {
 #endif
     }
 }
+
+#if AMREX_USE_CUDA
+std::ostream& operator<< (std::ostream& os, const dim3& d);
+#endif
 
 }
 
