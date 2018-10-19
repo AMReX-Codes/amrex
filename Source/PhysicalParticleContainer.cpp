@@ -425,10 +425,10 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
             const FArrayBox& ezfab = (*E[lev][2])[pti];
 #endif
 
-            WRPX_INTERPOLATE_CIC(particles.data(), nstride, np,
-                                 Exp.data(), Eyp.data(),
+            WRPX_INTERPOLATE_CIC(particles.dataPtr(), nstride, np,
+                                 Exp.dataPtr(), Eyp.dataPtr(),
 #if AMREX_SPACEDIM == 3
-                                 Ezp.data(),
+                                 Ezp.dataPtr(),
 #endif
                                  exfab.dataPtr(), eyfab.dataPtr(),
 #if AMREX_SPACEDIM == 3
@@ -495,10 +495,10 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
 #endif
 
             if (lev == 0) {
-                WRPX_INTERPOLATE_CIC(particles.data(), nstride, np,
-                                     Exp.data(), Eyp.data(),
+                WRPX_INTERPOLATE_CIC(particles.dataPtr(), nstride, np,
+                                     Exp.dataPtr(), Eyp.dataPtr(),
 #if AMREX_SPACEDIM == 3
-                Ezp.data(),
+                Ezp.dataPtr(),
 #endif
                                 exfab.dataPtr(), eyfab.dataPtr(),
 #if AMREX_SPACEDIM == 3
@@ -515,10 +515,10 @@ FieldGatherES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 
                 const Box& coarse_box = coarsened_fine_BA[pti];
                 const Real* coarse_dx = Geom(0).CellSize();
 
-                WRPX_INTERPOLATE_CIC_TWO_LEVELS(particles.data(), nstride, np,
-                                                Exp.data(), Eyp.data(),
+                WRPX_INTERPOLATE_CIC_TWO_LEVELS(particles.dataPtr(), nstride, np,
+                                                Exp.dataPtr(), Eyp.dataPtr(),
 #if AMREX_SPACEDIM == 3
-                                                Ezp.data(),
+                                                Ezp.dataPtr(),
 #endif
                                                 exfab.dataPtr(), eyfab.dataPtr(),
 #if AMREX_SPACEDIM == 3
@@ -573,14 +573,14 @@ PhysicalParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<Mul
             //
             // Particle Push
             //
-            WRPX_PUSH_LEAPFROG(particles.data(), nstride, np,
-                               uxp.data(), uyp.data(),
+            WRPX_PUSH_LEAPFROG(particles.dataPtr(), nstride, np,
+                               uxp.dataPtr(), uyp.dataPtr(),
 #if AMREX_SPACEDIM == 3
-                               uzp.data(),
+                               uzp.dataPtr(),
 #endif
-                               Exp.data(), Eyp.data(),
+                               Exp.dataPtr(), Eyp.dataPtr(),
 #if AMREX_SPACEDIM == 3
-                               Ezp.data(),
+                               Ezp.dataPtr(),
 #endif
                                &this->charge, &this->mass, &dt,
                                prob_domain.lo(), prob_domain.hi());
@@ -660,8 +660,8 @@ PhysicalParticleContainer::FieldGather (int lev,
                xp.dataPtr(),
                yp.dataPtr(),
                zp.dataPtr(),
-	       Exp.data(),Eyp.data(),Ezp.data(),
-	       Bxp.data(),Byp.data(),Bzp.data(),
+	       Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
+	       Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                ixyzmin,
                &xyzmin[0], &xyzmin[1], &xyzmin[2],
                &dx[0], &dx[1], &dx[2],
@@ -836,12 +836,12 @@ PhysicalParticleContainer::Evolve (int lev,
 	    FArrayBox& jzfab = jz[pti];
 
 #ifdef AMREX_USE_CUDA
-            thrust::fill(thrust::device, thrust::device_ptr<Real>(Exp.data()), thrust::device_ptr<Real>(Exp.data() + np), 0.0);
-            thrust::fill(thrust::device, thrust::device_ptr<Real>(Eyp.data()), thrust::device_ptr<Real>(Eyp.data() + np), 0.0);
-            thrust::fill(thrust::device, thrust::device_ptr<Real>(Ezp.data()), thrust::device_ptr<Real>(Ezp.data() + np), 0.0);
-            thrust::fill(thrust::device, thrust::device_ptr<Real>(Bxp.data()), thrust::device_ptr<Real>(Bxp.data() + np), WarpX::B_external[0]);
-            thrust::fill(thrust::device, thrust::device_ptr<Real>(Byp.data()), thrust::device_ptr<Real>(Byp.data() + np), WarpX::B_external[1]);
-            thrust::fill(thrust::device, thrust::device_ptr<Real>(Bzp.data()), thrust::device_ptr<Real>(Bzp.data() + np), WarpX::B_external[2]);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Exp.dataPtr()), thrust::device_ptr<Real>(Exp.dataPtr() + np), 0.0);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Eyp.dataPtr()), thrust::device_ptr<Real>(Eyp.dataPtr() + np), 0.0);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Ezp.dataPtr()), thrust::device_ptr<Real>(Ezp.dataPtr() + np), 0.0);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Bxp.dataPtr()), thrust::device_ptr<Real>(Bxp.dataPtr() + np), WarpX::B_external[0]);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Byp.dataPtr()), thrust::device_ptr<Real>(Byp.dataPtr() + np), WarpX::B_external[1]);
+            thrust::fill(thrust::device, thrust::device_ptr<Real>(Bzp.dataPtr()), thrust::device_ptr<Real>(Bzp.dataPtr() + np), WarpX::B_external[2]);
 #else
 	    Exp.assign(np,0.0);
 	    Eyp.assign(np,0.0);
@@ -989,7 +989,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                             xp.dataPtr(),
                                             yp.dataPtr(),
                                             zp.dataPtr(),
-                                            wp.data(),
+                                            wp.dataPtr(),
                                             &this->charge,
                                             &xyzmin[0], &xyzmin[1], &xyzmin[2],
                                             &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
@@ -1037,7 +1037,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                             xp.dataPtr() + nfine_current,
                                             yp.dataPtr() + nfine_current,
                                             zp.dataPtr() + nfine_current,
-                                            wp.data() + nfine_current,
+                                            wp.dataPtr() + nfine_current,
                                             &this->charge,
                                             &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
                                             &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
@@ -1077,8 +1077,8 @@ PhysicalParticleContainer::Evolve (int lev,
                     xp.dataPtr(),
                     yp.dataPtr(),
                     zp.dataPtr(),
-                    Exp.data(),Eyp.data(),Ezp.data(),
-                    Bxp.data(),Byp.data(),Bzp.data(),
+                    Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
+                    Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                     ixyzmin_grid,
                     &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                     &dx[0], &dx[1], &dx[2],
@@ -1174,8 +1174,8 @@ PhysicalParticleContainer::Evolve (int lev,
                         xp.dataPtr()+nfine_gather,
                         yp.dataPtr()+nfine_gather,
                         zp.dataPtr()+nfine_gather,
-                        Exp.data()+nfine_gather, Eyp.data()+nfine_gather, Ezp.data()+nfine_gather,
-                        Bxp.data()+nfine_gather, Byp.data()+nfine_gather, Bzp.data()+nfine_gather,
+                        Exp.dataPtr()+nfine_gather, Eyp.dataPtr()+nfine_gather, Ezp.dataPtr()+nfine_gather,
+                        Bxp.dataPtr()+nfine_gather, Byp.dataPtr()+nfine_gather, Bzp.dataPtr()+nfine_gather,
                         cixyzmin_grid,
                         &cxyzmin_grid[0], &cxyzmin_grid[1], &cxyzmin_grid[2],
                         &cdx[0], &cdx[1], &cdx[2],
@@ -1256,9 +1256,9 @@ PhysicalParticleContainer::Evolve (int lev,
                         xp.dataPtr(),
                         yp.dataPtr(),
                         zp.dataPtr(),
-                        uxp.data(), uyp.data(), uzp.data(),
+                        uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                         giv.dataPtr(),
-                        wp.data(), &this->charge,
+                        wp.dataPtr(), &this->charge,
                         &xyzmin[0], &xyzmin[1], &xyzmin[2],
                         &dt, &dx[0], &dx[1], &dx[2],
                         &WarpX::nox,&WarpX::noy,&WarpX::noz,
@@ -1334,7 +1334,7 @@ PhysicalParticleContainer::Evolve (int lev,
                         uyp.dataPtr()+nfine_current,
                         uzp.dataPtr()+nfine_current,
                         giv.dataPtr()+nfine_current,
-                        wp.data()+nfine_current, &this->charge,
+                        wp.dataPtr()+nfine_current, &this->charge,
                         &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
                         &dt, &cdx[0], &cdx[1], &cdx[2],
                         &WarpX::nox,&WarpX::noy,&WarpX::noz,
@@ -1419,10 +1419,10 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
     auto& uypold = attribs[PIdx::uyold];
     auto& uzpold = attribs[PIdx::uzold];
 
-    warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
-                       uxp.data(), uyp.data(), uzp.data(),
-                       xpold.data(), ypold.data(), zpold.data(),
-                       uxpold.data(), uypold.data(), uzpold.data());
+    warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                       uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                       xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
+                       uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
 
 #endif
 
@@ -1430,7 +1430,7 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
                           xp.dataPtr(),
                           yp.dataPtr(),
                           zp.dataPtr(),
-                          uxp.data(), uyp.data(), uzp.data(),
+                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                           giv.dataPtr(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
@@ -1505,8 +1505,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 xp.dataPtr(),
                 yp.dataPtr(),
                 zp.dataPtr(),
-                Exp.data(),Eyp.data(),Ezp.data(),
-                Bxp.data(),Byp.data(),Bzp.data(),
+                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
+                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                 ixyzmin_grid,
                 &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                 &dx[0], &dx[1], &dx[2],
@@ -1524,7 +1524,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                                           xp.dataPtr(),
                                           yp.dataPtr(),
                                           zp.dataPtr(),
-                                          uxp.data(), uyp.data(), uzp.data(),
+                                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                                           giv.dataPtr(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
@@ -1715,7 +1715,7 @@ int PhysicalParticleContainer::GetRefineFac(const Real x, const Real y, const Re
             stretched_boxes.push_back(bx);
         }
 
-        BoxArray stretched_ba(stretched_boxes.data(), stretched_boxes.size());
+        BoxArray stretched_ba(stretched_boxes.dataPtr(), stretched_boxes.size());
 
         const int num_ghost = 0;
         if ( stretched_ba.intersects(Box(iv, iv), num_ghost) )

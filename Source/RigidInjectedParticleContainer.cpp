@@ -233,10 +233,10 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& uypold = attribs[PIdx::uyold];
     auto& uzpold = attribs[PIdx::uzold];
 
-    warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
-                       uxp.data(), uyp.data(), uzp.data(),
-                       xpold.data(), ypold.data(), zpold.data(),
-                       uxpold.data(), uypold.data(), uzpold.data());
+    warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                       uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                       xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
+                       uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
 
 #endif
 
@@ -271,7 +271,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
                           xp.dataPtr(),
                           yp.dataPtr(),
                           zp.dataPtr(),
-                          uxp.data(), uyp.data(), uzp.data(),
+                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                           giv.dataPtr(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
@@ -414,8 +414,8 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                 xp.dataPtr(),
                 yp.dataPtr(),
                 zp.dataPtr(),
-                Exp.data(),Eyp.data(),Ezp.data(),
-                Bxp.data(),Byp.data(),Bzp.data(),
+                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
+                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                 ixyzmin_grid,
                 &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                 &dx[0], &dx[1], &dx[2],

@@ -245,7 +245,7 @@ LaserParticleContainer::InitData (int lev)
 	    {
 		const Vector<Real>& pos = Transform(cell[0], cell[1]);
 #if (AMREX_SPACEDIM == 3)
-		const Real* x = pos.data();
+		const Real* x = pos.dataPtr();
 #else
 		const Real x[2] = {pos[0], pos[2]};
 #endif
@@ -269,9 +269,9 @@ LaserParticleContainer::InitData (int lev)
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
     AddNParticles(lev,
-                  np, particle_x.data(), particle_y.data(), particle_z.data(),
-		  particle_ux.data(), particle_uy.data(), particle_uz.data(),
-		  1, particle_w.data(), 1);
+                  np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
+		  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
+		  1, particle_w.dataPtr(), 1);
 }
 
 void
@@ -399,7 +399,7 @@ LaserParticleContainer::Evolve (int lev,
 					xp.dataPtr(),
                                         yp.dataPtr(),
                                         zp.dataPtr(),
-                                        wp.data(),
+                                        wp.dataPtr(),
                                         &this->charge,
 					&xyzmin[0], &xyzmin[1], &xyzmin[2],
                                         &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
@@ -420,21 +420,21 @@ LaserParticleContainer::Evolve (int lev,
 	    // Calculate the laser amplitude to be emitted,
 	    // at the position of the emission plane
 	    if (profile == laser_t::Gaussian) {
-		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
+		warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
 				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.data(),
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
 				      &zeta, &beta, &phi2 );
 	    }
 
             if (profile == laser_t::Harris) {
-		warpx_harris_laser( &np, plane_Xp.data(), plane_Yp.data(),
+		warpx_harris_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                                     &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-                                    &profile_focal_distance, amplitude_E.data() );
+                                    &profile_focal_distance, amplitude_E.dataPtr() );
 	    }
 
             if (profile == laser_t::parse_field_function) {
-		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t,
-				      amplitude_E.data(), parser_instance_number );
+		parse_function_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(), &t,
+				      amplitude_E.dataPtr(), parser_instance_number );
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
@@ -512,9 +512,9 @@ LaserParticleContainer::Evolve (int lev,
                 xp.dataPtr(),
                 yp.dataPtr(),
                 zp.dataPtr(),
-                uxp.data(), uyp.data(), uzp.data(),
+                uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                 giv.dataPtr(),
-                wp.data(), &this->charge,
+                wp.dataPtr(), &this->charge,
                 &xyzmin[0], &xyzmin[1], &xyzmin[2],
                 &dt, &dx[0], &dx[1], &dx[2],
                 &WarpX::nox,&WarpX::noy,&WarpX::noz,

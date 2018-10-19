@@ -195,8 +195,8 @@ WarpXParticleContainer::DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, 
             
             FArrayBox& rhofab = (*rho[lev])[pti];
             
-            WRPX_DEPOSIT_CIC(particles.data(), nstride, np,
-                             wp.data(), &this->charge,
+            WRPX_DEPOSIT_CIC(particles.dataPtr(), nstride, np,
+                             wp.dataPtr(), &this->charge,
                              rhofab.dataPtr(), box.loVect(), box.hiVect(), 
                              plo, dx, &ng);
         }
@@ -303,7 +303,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
                                     &np,
                                     xp.dataPtr(),
                                     yp.dataPtr(),
-                                    zp.dataPtr(), wp.data(),
+                                    zp.dataPtr(), wp.dataPtr(),
                                     &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
                                     &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
                                     &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
@@ -440,10 +440,10 @@ WarpXParticleContainer::PushXES (Real dt)
             auto& uyp = attribs[PIdx::uy];
             auto& uzp = attribs[PIdx::uz];
             
-            WRPX_PUSH_LEAPFROG_POSITIONS(particles.data(), nstride, np,
-                                         uxp.data(), uyp.data(),
+            WRPX_PUSH_LEAPFROG_POSITIONS(particles.dataPtr(), nstride, np,
+                                         uxp.dataPtr(), uyp.dataPtr(),
 #if AMREX_SPACEDIM == 3
-                                         uzp.data(),
+                                         uzp.dataPtr(),
 #endif
                                          &dt,
                                          prob_domain.lo(), prob_domain.hi());
@@ -505,7 +505,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
                                             xp.dataPtr(),
                                             yp.dataPtr(),
                                             zp.dataPtr(),
-                                            uxp.data(), uyp.data(), uzp.data(),
+                                            uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
                                             giv.dataPtr(), &dt);
             BL_PROFILE_VAR_STOP(blp_pxr_pp);
             
