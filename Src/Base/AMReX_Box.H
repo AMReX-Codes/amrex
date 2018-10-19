@@ -133,7 +133,7 @@ public:
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
     AMREX_CUDA_HOST_DEVICE
-    std::array<int,3> length3d () const {
+    CudaArray<int,3> length3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0]-smallend[0]+1, 1, 1};
 #elif (AMREX_SPACEDIM == 2)

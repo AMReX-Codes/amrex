@@ -10,6 +10,22 @@ AMREX_CUDA_HOST_DEVICE
 Box getThreadBox (const Box& bx)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
+    long begin, n;
+    getThreadIndex(begin, n, bx.numPts());
+    auto len = bx.length3d();
+    long k = begin / (len[0]*len[1]);
+    long j = (begin - k*(len[0]*len[1])) / len[0];
+    long i = (begin - k*(len[0]*len[1])) - j*len[0];
+    IntVect iv{AMREX_D_DECL(i,j,k)};
+    iv += bx.smallEnd();
+    return (bx & Box(iv,iv,bx.type()));
+#else
+    return bx;
+#endif
+    
+
+#if 0
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
     IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
         AMREX_CUDA_Y_STRIDE*static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
         AMREX_CUDA_Z_STRIDE*static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
@@ -24,6 +40,7 @@ Box getThreadBox (const Box& bx)
     return (bx & Box(iv,iv2,bx.type()));
 #else
     return bx;
+#endif
 #endif
 }
 
