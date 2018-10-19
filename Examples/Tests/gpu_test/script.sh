@@ -1,21 +1,23 @@
 #!/bin/bash
-#BSUB -P CSC308
-#BSUB -W 2:00
+#BSUB -P GEN109
+#BSUB -W 0:10
 #BSUB -nnodes 1
 #BSUB -J WarpX
 #BSUB -o WarpXo.%J
 #BSUB -e WarpXe.%J
 
 module load pgi
-module load cuda
+module load cuda/9.1.85
 module list
 set -x
 
 omp=1
 export OMP_NUM_THREADS=${omp}
-# EXE="../main3d.pgi.DEBUG.TPROF.MPI.ACC.CUDA.ex"
+#EXE="../main3d.pgi.DEBUG.TPROF.MPI.ACC.CUDA.ex"
 EXE="../main3d.pgi.TPROF.MPI.ACC.CUDA.ex"
-JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
+#JSRUN="jsrun -n 4 -a 1 -g 1 -c 1 --bind=packed:${omp} "
+#JSRUN="jsrun -n 1 -a 4 -g 4 -c 4 --bind=packed:${omp} "
+JSRUN="jsrun -n 1 -a 1 -g 1 -c 1 --bind=packed:${omp} "
 
 rundir="${LSB_JOBNAME}-${LSB_JOBID}"
 mkdir $rundir
