@@ -73,7 +73,7 @@ RigidInjectedParticleContainer::RemapParticles()
                 // Note that the particles are already in the boosted frame.
                 // This value is saved to advance the particles not injected yet
 
-                DeviceVector<Real> xp, yp, zp;
+                Cuda::DeviceVector<Real> xp, yp, zp;
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
@@ -134,7 +134,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 #pragma omp parallel
 #endif
     {
-        DeviceVector<Real> xp, yp, zp;
+        Cuda::DeviceVector<Real> xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -205,10 +205,10 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               DeviceVector<Real>& xp,
-                                       DeviceVector<Real>& yp,
-                                       DeviceVector<Real>& zp,
-                                       DeviceVector<Real>& giv,
+	                               Cuda::DeviceVector<Real>& xp,
+                                       Cuda::DeviceVector<Real>& yp,
+                                       Cuda::DeviceVector<Real>& zp,
+                                       Cuda::DeviceVector<Real>& giv,
                                        Real dt)
 {
 
@@ -241,7 +241,8 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 #endif
 
     // Save the position and momenta, making copies
-    DeviceVector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
+    Cuda::DeviceVector<Real> xp_save, yp_save, zp_save;
+    RealVector uxp_save, uyp_save, uzp_save;
 
     if (!done_injecting_lev) {
         xp_save = xp;
@@ -361,7 +362,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-        DeviceVector<Real> xp, yp, zp, giv;
+        Cuda::DeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {

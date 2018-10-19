@@ -607,7 +607,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 #pragma omp parallel
 #endif
     {
-        DeviceVector<Real> xp, yp, zp;
+        Cuda::DeviceVector<Real> xp, yp, zp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -725,7 +725,7 @@ PhysicalParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-        DeviceVector<Real> xp, yp, zp, giv;
+        Cuda::DeviceVector<Real> xp, yp, zp, giv;
 
         std::unique_ptr<FArrayBox> local_rho(new FArrayBox());
         std::unique_ptr<FArrayBox> local_jx(new FArrayBox());
@@ -1391,10 +1391,10 @@ PhysicalParticleContainer::Evolve (int lev,
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-	                          DeviceVector<Real>& xp,
-                                  DeviceVector<Real>& yp,
-                                  DeviceVector<Real>& zp,
-                                  DeviceVector<Real>& giv,
+	                          Cuda::DeviceVector<Real>& xp,
+                                  Cuda::DeviceVector<Real>& yp,
+                                  Cuda::DeviceVector<Real>& zp,
+                                  Cuda::DeviceVector<Real>& giv,
                                   Real dt)
 {
 
@@ -1452,7 +1452,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-	DeviceVector<Real> xp, yp, zp, giv;
+	Cuda::DeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{

@@ -36,12 +36,12 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::DeviceVector<amrex::Real>& x,
-                      amrex::DeviceVector<amrex::Real>& y,
-                      amrex::DeviceVector<amrex::Real>& z) const;
-    void SetPosition (const amrex::DeviceVector<amrex::Real>& x,
-                      const amrex::DeviceVector<amrex::Real>& y,
-                      const amrex::DeviceVector<amrex::Real>& z);
+    void GetPosition (amrex::Cuda::DeviceVector<amrex::Real>& x,
+                      amrex::Cuda::DeviceVector<amrex::Real>& y,
+                      amrex::Cuda::DeviceVector<amrex::Real>& z) const;
+    void SetPosition (const amrex::Cuda::DeviceVector<amrex::Real>& x,
+                      const amrex::Cuda::DeviceVector<amrex::Real>& y,
+                      const amrex::Cuda::DeviceVector<amrex::Real>& z);
 #endif
 
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 

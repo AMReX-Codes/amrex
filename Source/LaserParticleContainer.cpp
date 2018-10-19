@@ -312,7 +312,7 @@ LaserParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	DeviceVector<Real> xp, yp, zp, giv;
+	Cuda::DeviceVector<Real> xp, yp, zp, giv;
         RealVector plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
 

@@ -43,10 +43,10 @@ public:
                          amrex::Real dt) override;
 
     virtual void PushPX(WarpXParIter& pti,
-	                amrex::DeviceVector<amrex::Real>& xp,
-                        amrex::DeviceVector<amrex::Real>& yp,
-                        amrex::DeviceVector<amrex::Real>& zp,
-                        amrex::DeviceVector<amrex::Real>& giv,
+	                amrex::Cuda::DeviceVector<amrex::Real>& xp,
+                        amrex::Cuda::DeviceVector<amrex::Real>& yp,
+                        amrex::Cuda::DeviceVector<amrex::Real>& zp,
+                        amrex::Cuda::DeviceVector<amrex::Real>& giv,
                         amrex::Real dt) override;
 
     virtual void PushP (int lev, amrex::Real dt,

@@ -250,7 +250,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #pragma omp parallel
 #endif
     {
-        DeviceVector<Real> xp, yp, zp;
+        Cuda::DeviceVector<Real> xp, yp, zp;
         FArrayBox local_rho;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -474,7 +474,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 #pragma omp parallel
 #endif
     {
-        DeviceVector<Real> xp, yp, zp, giv;
+        Cuda::DeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
