@@ -38,6 +38,7 @@
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
+#include "AMReX_CudaContainers.H"
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -53,8 +54,6 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/tuple.h>
-
-#include "AMReX_CudaAllocators.H"
 #endif
 
 namespace amrex {
@@ -150,11 +149,7 @@ public:
     using RealVector     = typename SoA::RealVector;
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
-#ifdef AMREX_USE_CUDA
-    using CharVector = Vector<char, CudaManagedAllocator<char>>;
-#else
-    using CharVector = Vector<char>;
-#endif
+    using CharVector     = Cuda::ManagedVector<char>;
 
     ParticleContainer ()
       : 

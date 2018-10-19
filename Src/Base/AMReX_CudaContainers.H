@@ -2,7 +2,7 @@
 #define AMREX_CUDA_CONTAINERS_H_
 
 #include <AMReX_Vector.H>
-#include <AMReX_CudaAllocator.H>
+#include <AMReX_CudaAllocators.H>
 
 namespace amrex {
 
@@ -17,6 +17,8 @@ class DeviceVector
 {
 public:
 
+    using thrust::device_vector<T>::device_vector;
+    
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
     //! get access to the underlying data pointer
@@ -35,6 +37,8 @@ class HostVector
 {
 public:
 
+    using thrust::host_vector<T>::host_vector;
+    
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
     //! get access to the underlying data pointer
@@ -53,9 +57,13 @@ class ManagedVector
 {
 public:
 
+    using Vector<T, CudaManagedAllocator<T> >::Vector;
+    
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        thrust::fill(thrust::device, dataPtr(), dataPtr() + count, value);
+        thrust::fill(thrust::device,
+                     thrust::raw_pointer_cast(this->data()),
+                     thrust::raw_pointer_cast(this->data() + count), value);
     }
 };
         
