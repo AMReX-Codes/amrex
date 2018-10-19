@@ -30,8 +30,10 @@ int main (int argc, char* argv[])
     // ===================================
     // Simple cuda action to make sure all tests have cuda.
     // Allows nvprof to return data.
-    int devices;
+    int devices = 0;
+#ifdef AMREX_USE_CUDA
     cudaGetDeviceCount(&devices);
+#endif
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
     // ===================================
@@ -174,8 +176,8 @@ int main (int argc, char* argv[])
        Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
 
        Real strt_time = amrex::second();
-       Real min = x.min(Ncomp, Nghost); 
-       Real max = x.max(Ncomp, Nghost); 
+       Real min = x.min(0, Nghost); 
+       Real max = x.max(0, Nghost); 
        Real end_time = amrex::second();
  
        amrex::Print() << "GPU, expected min/max: " << min_val << "/" << max_val << std::endl;
@@ -200,8 +202,8 @@ int main (int argc, char* argv[])
        Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
 
        Real strt_time = amrex::second();
-       Real min = x.min(Ncomp, Nghost); 
-       Real max = x.max(Ncomp, Nghost); 
+       Real min = x.min(0, Nghost); 
+       Real max = x.max(0, Nghost); 
        Real end_time = amrex::second();
  
        amrex::Print() << "CPU, expected min/max: " << min_val << "/" << max_val << std::endl;
