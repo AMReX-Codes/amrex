@@ -87,7 +87,7 @@ template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NA
 void
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition
 #ifdef AMREX_USE_CUDA
-(AMREX_D_DECL(thrust::device_vector<Real>& x, thrust::device_vector<Real>& y, thrust::device_vector<Real>& z)) const
+(AMREX_D_DECL(DeviceVector<Real>& x, DeviceVector<Real>& y, DeviceVector<Real>& z)) const
 #else
 (AMREX_D_DECL(RealVector& x, RealVector& y, RealVector& z)) const    
 #endif
@@ -118,7 +118,7 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
 #ifdef AMREX_USE_CUDA
-(AMREX_D_DECL(const thrust::device_vector<Real>& x, const thrust::device_vector<Real>& y, const thrust::device_vector<Real>& z)) const
+(AMREX_D_DECL(const DeviceVector<Real>& x, const DeviceVector<Real>& y, const DeviceVector<Real>& z)) const
 #else
 (AMREX_D_DECL(const RealVector& x, const RealVector& y, const RealVector& z)) const    
 #endif

@@ -696,9 +696,9 @@ public:
 
 
 #ifdef AMREX_USE_CUDA
-    void GetPosition (AMREX_D_DECL(thrust::device_vector<Real>& x,
-                                   thrust::device_vector<Real>& y,
-                                   thrust::device_vector<Real>& z)) const;
+    void GetPosition (AMREX_D_DECL(DeviceVector<Real>& x,
+                                   DeviceVector<Real>& y,
+                                   DeviceVector<Real>& z)) const;
 #else
     void GetPosition (AMREX_D_DECL(RealVector& x,
                                    RealVector& y,
@@ -757,9 +757,9 @@ public:
         {}
 
 #ifdef AMREX_USE_CUDA
-    void SetPosition (AMREX_D_DECL(const thrust::device_vector<Real>& x,
-                                   const thrust::device_vector<Real>& y,
-                                   const thrust::device_vector<Real>& z)) const;
+    void SetPosition (AMREX_D_DECL(const DeviceVector<Real>& x,
+                                   const DeviceVector<Real>& y,
+                                   const DeviceVector<Real>& z)) const;
 #else
     void SetPosition (AMREX_D_DECL(const RealVector& x,
                                    const RealVector& y,
