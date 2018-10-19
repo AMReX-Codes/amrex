@@ -178,7 +178,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
         amrMesh->SetSpacing(i, spacing);
 
         // refinement ratio
-        int cRefRatio = this->Internals->Mesh->refRatio(i)[0];
+        int cRefRatio = nLevels > 1 ? this->Internals->Mesh->refRatio(i)[0] : 1;
         amrMesh->SetRefinementRatio(i, cRefRatio);
 
         // loop over boxes
