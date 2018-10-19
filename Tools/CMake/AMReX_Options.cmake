@@ -173,6 +173,9 @@ if ( ENABLE_PARTICLES )
    endif ()
 endif ()
 
+option ( ENABLE_SENSEI_INSITU "Enable SENSEI in situ infrastructure" OFF )
+print_option ( ENABLE_SENSEI_INSITU )
+
 #
 # Compilation options
 #  

@@ -562,6 +562,10 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                            "#endif\n".format(func_name))
                 hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
 
+                # Catch errors in the launch configuration.
+
+                hout.write("    CudaAPICheck(cudaGetLastError());\n")
+
                 if 'AMREX_DEBUG' in defines:
                     hout.write("CudaAPICheck(cudaDeviceSynchronize());\n")
 

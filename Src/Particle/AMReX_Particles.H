@@ -208,6 +208,34 @@ public:
         resizeData();
     }
 
+    ParticleContainer (const Vector<Geometry>            & geom, 
+		       const Vector<DistributionMapping> & dmap,
+		       const Vector<BoxArray>            & ba,
+		       const Vector<IntVect>             & rr)
+	:
+        communicate_real_comp(NArrayReal, true),
+        communicate_int_comp(NArrayInt, true),
+        m_verbose(0), 
+	m_gdb_object(geom,dmap,ba, [&]() -> Vector<int> {
+                Vector<int> ref_ratio;
+                for (int i = 0; i < static_cast<int>(rr.size()); ++i)
+                {
+#if AMREX_SPACEDIM > 1
+                    AMREX_ASSERT(rr[i][0] == rr[i][1]);
+#endif
+#if AMREX_SPACEDIM > 2
+                    AMREX_ASSERT(rr[i][0] == rr[i][2]);
+#endif
+                    ref_ratio.push_back(rr[i][0]);
+                }
+                return ref_ratio;  }() )
+    {
+        Initialize ();
+        m_gdb = & m_gdb_object;
+        reserveData();
+        resizeData();
+    }
+    
     virtual ~ParticleContainer () {}
 
     void Define (ParGDBBase* gdb)
