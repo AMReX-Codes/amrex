@@ -1222,14 +1222,28 @@ PhysicalParticleContainer::Evolve (int lev,
                     local_jy->resize(tby);
                     local_jz->resize(tbz);
 
-                    local_jx->setVal(0.0);
-                    local_jy->setVal(0.0);
-                    local_jz->setVal(0.0);
-
                     jx_ptr = local_jx->dataPtr();
                     jy_ptr = local_jy->dataPtr();
                     jz_ptr = local_jz->dataPtr();
 
+                    FArrayBox* local_jx_ptr = local_jx.get();
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                    {
+                        local_jx_ptr->setVal(0.0, b, 0, 1);
+                    });
+
+                    FArrayBox* local_jy_ptr = local_jy.get();
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
+                    {
+                        local_jy_ptr->setVal(0.0, b, 0, 1);
+                    });
+
+                    FArrayBox* local_jz_ptr = local_jz.get();
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
+                    {
+                        local_jz_ptr->setVal(0.0, b, 0, 1);
+                    });                    
+                    
                     jxntot = local_jx->length();
                     jyntot = local_jy->length();
                     jzntot = local_jz->length();
@@ -1254,25 +1268,25 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    FArrayBox const* local_jx_ptr = local_jx.get();
+                    FArrayBox const* local_jx_const_ptr = local_jx.get();
                     FArrayBox* global_jx_ptr = &jxfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
-                        global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
+                        global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jy_ptr = local_jy.get();
+                    FArrayBox const* local_jy_const_ptr = local_jy.get();
                     FArrayBox* global_jy_ptr = &jyfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
-                        global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
+                        global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                  
 
-                    FArrayBox const* local_jz_ptr = local_jz.get();
+                    FArrayBox const* local_jz_const_ptr = local_jz.get();
                     FArrayBox* global_jz_ptr = &jzfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
-                        global_jz_ptr->atomicAdd(*local_jz_ptr, thread_bx, thread_bx, 0, 0, 1);
+                        global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
                     BL_PROFILE_VAR_STOP(blp_accumulate);
