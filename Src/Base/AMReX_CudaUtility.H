@@ -100,6 +100,54 @@ inline double atomicMin(double* address, double val)
     }
 }
 
+
+namespace Cuda {
+
+    inline bool isManaged (void const* p) {
+#ifdef AMREX_USE_CUDA
+        cudaPointerAttributes ptr_attr;
+        cudaPointerGetAttributes(&ptr_attr, p);
+        cudaError_t err = cudaGetLastError();
+        return (err != cudaErrorInvalidValue) && ptr_attr.isManaged;
+#else
+        return false;
+#endif
+    }
+
+    inline bool isDevicePtr (void const* p) {
+#ifdef AMREX_USE_CUDA
+        cudaPointerAttributes ptr_attr;
+        cudaPointerGetAttributes(&ptr_attr, p);
+        cudaError_t err = cudaGetLastError();
+        return (err != cudaErrorInvalidValue) && (ptr_attr.memoryType == cudaMemoryTypeDevice);
+#else
+        return false;
+#endif
+    }
+
+    inline bool isHostPtr (void const* p) {
+#ifdef AMREX_USE_CUDA
+        cudaPointerAttributes ptr_attr;
+        cudaPointerGetAttributes(&ptr_attr, p);
+        cudaError_t err = cudaGetLastError();
+        return (err != cudaErrorInvalidValue) && (ptr_attr.memoryType == cudaMemoryTypeHost);
+#else
+        return false;
+#endif
+    }
+
+    inline bool isCudaPtr (void const* p) {
+#ifdef AMREX_USE_CUDA
+        cudaPointerAttributes ptr_attr;
+        cudaPointerGetAttributes(&ptr_attr, p);
+        cudaError_t err = cudaGetLastError();
+        return (err != cudaErrorInvalidValue);
+#else
+        return false;
+#endif
+    }
+}
+
 }
 
 #endif
