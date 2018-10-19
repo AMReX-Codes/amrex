@@ -6,6 +6,9 @@
 # 2) Uniform Velocity
 #
 
+
+
+
 set (SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 
 #
@@ -43,15 +46,16 @@ set_target_properties ( ${EXENAME} PROPERTIES
 target_link_libraries (${EXENAME} amrex)
 
 #
-# Find input files 
+# Find input files
 #
-file ( GLOB_RECURSE inputs LIST_DIRECTORIES false 
+file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
    ${EXE_DIR}/input* ${EXE_DIR}/probin)
 
 #
 # Copy input files to corresponding build dir
 #
-file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex ) 
+file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
+file ( COPY ${EXE_DIR}/sensei DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
 
 add_tutorial (${EXENAME})   
 
@@ -85,14 +89,14 @@ set_target_properties ( ${EXENAME} PROPERTIES
 target_link_libraries (${EXENAME} amrex)
 
 #
-# Find input files 
+# Find input files
 #
-file ( GLOB_RECURSE inputs LIST_DIRECTORIES false 
+file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
    ${EXE_DIR}/input* ${EXE_DIR}/probin)
 
 #
 # Copy input files to corresponding build dir
 #
-file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity ) 
+file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/UniformVelocity )
 
 add_tutorial (${EXENAME})

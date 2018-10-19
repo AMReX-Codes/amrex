@@ -165,6 +165,12 @@ else
   USE_EB := FALSE
 endif
 
+ifdef USE_SENSEI_INSITU
+  USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+else
+  USE_SENSEI_INSITU := FALSE
+endif
+
 ifdef EBASE
   EBASE := $(strip $(EBASE))
 else
@@ -614,14 +620,14 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
+ifeq ($(USE_SUNDIALS_3x4x),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
+endif
+
 ifeq ($(USE_CVODE),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
-endif
-
-ifeq ($(USE_SUNDIALS3),TRUE)
-  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
-  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
 endif
 
 ifeq ($(USE_HYPRE),TRUE)
@@ -629,9 +635,15 @@ ifeq ($(USE_HYPRE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
 endif
 
+
 ifeq ($(USE_PETSC),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc
+endif
+
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
 endif
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")

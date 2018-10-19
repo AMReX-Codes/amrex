@@ -224,6 +224,62 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 //    VisMF::SetNOutFiles(saveNFiles);
 }
 
+// write a plotfile to disk given:
+// -plotfile name
+// -vector of MultiFabs
+// -vector of Geometrys
+// variable names are written as "Var0", "Var1", etc.    
+// refinement ratio is computed from the Geometry vector
+// "time" and "level_steps" are set to zero
+void WriteMLMF (const std::string &plotfilename,
+                const Vector<MultiFab>& mf,
+                const Vector<Geometry> &geom)
+{
+    int nlevs = mf.size();
+    
+    int nComp = mf[0].nComp();
+
+    // variables names are "Var0", "Var1", etc.
+    Vector<std::string> varnames;
+    varnames.resize(nComp);
+    for (int i=0; i<nComp; ++i) {
+        varnames[i] = "Var" + std::to_string(i);
+    }
+
+    // temporary MultiFab to hold plotfile data
+    Vector<MultiFab*> plot_mf_data(nlevs);
+    for (int i = 0; i < nlevs; ++i) {
+        plot_mf_data[i] = new MultiFab((mf[i]).boxArray(),(mf[i]).DistributionMap(),nComp,0);
+        plot_mf_data[i]->copy((mf[i]),0,0,nComp);
+    }
+
+    // this is what gets passed into WriteMultiLevelPlotfile
+    Vector<const MultiFab*> plot_mf;
+    for (int i = 0; i < nlevs; ++i) {
+        plot_mf.push_back(plot_mf_data[i]);
+    }
+
+    // compute refinement ratio by looking at hi coordinates of domain at each level from
+    // the geometry object
+    Vector<IntVect> ref_ratio(nlevs-1);
+    for (int i = 0; i < nlevs-1; ++i) {
+        for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+            int rr = (geom[i+1].Domain()).bigEnd(d)/(geom[i].Domain()).bigEnd(d);
+            ref_ratio[i][d] = rr;
+        }
+    }
+
+    // set step_array to zero
+    Vector<int> step_array;
+    step_array.resize(nlevs,0);
+
+    // set time to zero
+    Real time = 0.;
+    
+    WriteMultiLevelPlotfile(plotfilename, nlevs, plot_mf, varnames,
+                            geom, time, step_array, ref_ratio);   
+    
+}    
 
 
 void

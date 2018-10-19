@@ -11,3 +11,5 @@ nlevs = 1
 # Number of components in the multifabs
 ncomp = 6
 
+# Number of particles per cell
+nppc = 2
