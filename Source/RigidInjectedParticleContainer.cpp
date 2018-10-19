@@ -73,7 +73,7 @@ RigidInjectedParticleContainer::RemapParticles()
                 // Note that the particles are already in the boosted frame.
                 // This value is saved to advance the particles not injected yet
 
-                thrust::device_vector<Real> xp, yp, zp;
+                DeviceVector<Real> xp, yp, zp;
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
@@ -134,7 +134,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 #pragma omp parallel
 #endif
     {
-        thrust::device_vector<Real> xp, yp, zp;
+        DeviceVector<Real> xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -205,10 +205,10 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               thrust::device_vector<Real>& xp,
-                                       thrust::device_vector<Real>& yp,
-                                       thrust::device_vector<Real>& zp,
-                                       thrust::device_vector<Real>& giv,
+	                               DeviceVector<Real>& xp,
+                                       DeviceVector<Real>& yp,
+                                       DeviceVector<Real>& zp,
+                                       DeviceVector<Real>& giv,
                                        Real dt)
 {
 
@@ -241,7 +241,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 #endif
 
     // Save the position and momenta, making copies
-    thrust::device_vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
+    DeviceVector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
 
     if (!done_injecting_lev) {
         xp_save = xp;
@@ -268,11 +268,11 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     }
 
     warpx_particle_pusher(&np,
-                          thrust::raw_pointer_cast(xp.data()),
-                          thrust::raw_pointer_cast(yp.data()),
-                          thrust::raw_pointer_cast(zp.data()),
+                          xp.dataPtr(),
+                          yp.dataPtr(),
+                          zp.dataPtr(),
                           uxp.data(), uyp.data(), uzp.data(),
-                          thrust::raw_pointer_cast(giv.data()),
+                          giv.dataPtr(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                           &this->charge, &this->mass, &dt,
@@ -361,7 +361,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-        thrust::device_vector<Real> xp, yp, zp, giv;
+        DeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -411,9 +411,9 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
-                thrust::raw_pointer_cast(xp.data()),
-                thrust::raw_pointer_cast(yp.data()),
-                thrust::raw_pointer_cast(zp.data()),
+                xp.dataPtr(),
+                yp.dataPtr(),
+                zp.dataPtr(),
                 Exp.data(),Eyp.data(),Ezp.data(),
                 Bxp.data(),Byp.data(),Bzp.data(),
                 ixyzmin_grid,
@@ -435,11 +435,11 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             auto uzp_save = uzp;
 
             warpx_particle_pusher_momenta(&np,
-                                          thrust::raw_pointer_cast(xp.data()),
-                                          thrust::raw_pointer_cast(yp.data()),
-                                          thrust::raw_pointer_cast(zp.data()),
-                                          uxp.data(), uyp.data(), uzp.data(),
-                                          thrust::raw_pointer_cast(giv.data()),
+                                          xp.dataPtr(),
+                                          yp.dataPtr(),
+                                          zp.dataPtr(),
+                                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                                          giv.dataPtr(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                           &this->charge, &this->mass, &dt,

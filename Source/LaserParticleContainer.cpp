@@ -312,7 +312,7 @@ LaserParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	thrust::device_vector<Real> xp, yp, zp, giv;
+	DeviceVector<Real> xp, yp, zp, giv;
         RealVector plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
 
@@ -396,9 +396,9 @@ LaserParticleContainer::Evolve (int lev,
                 const long nz = rholen[1]-1-2*ngRho;
 #endif
             	warpx_charge_deposition(data_ptr, &np,
-					thrust::raw_pointer_cast(xp.data()),
-                                        thrust::raw_pointer_cast(yp.data()),
-                                        thrust::raw_pointer_cast(zp.data()),
+					xp.dataPtr(),
+                                        yp.dataPtr(),
+                                        zp.dataPtr(),
                                         wp.data(),
                                         &this->charge,
 					&xyzmin[0], &xyzmin[1], &xyzmin[2],
@@ -509,11 +509,11 @@ LaserParticleContainer::Evolve (int lev,
                 jy_ptr, &ngJ, jyntot,
                 jz_ptr, &ngJ, jzntot,
                 &np,
-                thrust::raw_pointer_cast(xp.data()),
-                thrust::raw_pointer_cast(yp.data()),
-                thrust::raw_pointer_cast(zp.data()),
+                xp.dataPtr(),
+                yp.dataPtr(),
+                zp.dataPtr(),
                 uxp.data(), uyp.data(), uzp.data(),
-                thrust::raw_pointer_cast(giv.data()),
+                giv.dataPtr(),
                 wp.data(), &this->charge,
                 &xyzmin[0], &xyzmin[1], &xyzmin[2],
                 &dt, &dx[0], &dx[1], &dx[2],

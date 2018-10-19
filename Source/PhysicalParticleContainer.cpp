@@ -607,7 +607,7 @@ PhysicalParticleContainer::FieldGather (int lev,
 #pragma omp parallel
 #endif
     {
-	thrust::device_vector<Real> xp, yp, zp;
+        DeviceVector<Real> xp, yp, zp;
 
 	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -657,9 +657,9 @@ PhysicalParticleContainer::FieldGather (int lev,
             long lvect_fieldgathe = 64;
 	    warpx_geteb_energy_conserving(
 	       &np,
-               thrust::raw_pointer_cast(xp.data()),
-               thrust::raw_pointer_cast(yp.data()),
-               thrust::raw_pointer_cast(zp.data()),
+               xp.dataPtr(),
+               yp.dataPtr(),
+               zp.dataPtr(),
 	       Exp.data(),Eyp.data(),Ezp.data(),
 	       Bxp.data(),Byp.data(),Bzp.data(),
                ixyzmin,
@@ -725,7 +725,7 @@ PhysicalParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-        thrust::device_vector<Real> xp, yp, zp, giv;
+        DeviceVector<Real> xp, yp, zp, giv;
 
         std::unique_ptr<FArrayBox> local_rho(new FArrayBox());
         std::unique_ptr<FArrayBox> local_jx(new FArrayBox());
@@ -986,9 +986,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     const long nz = rholen[1]-1-2*ngRho;
 #endif
                     warpx_charge_deposition(data_ptr, &np_current,
-                                            thrust::raw_pointer_cast(xp.data()),
-                                            thrust::raw_pointer_cast(yp.data()),
-                                            thrust::raw_pointer_cast(zp.data()),
+                                            xp.dataPtr(),
+                                            yp.dataPtr(),
+                                            zp.dataPtr(),
                                             wp.data(),
                                             &this->charge,
                                             &xyzmin[0], &xyzmin[1], &xyzmin[2],
@@ -1034,9 +1034,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     
                     long ncrse = np - nfine_current;
                     warpx_charge_deposition(data_ptr, &ncrse,
-                                            thrust::raw_pointer_cast(xp.data() + nfine_current),
-                                            thrust::raw_pointer_cast(yp.data() + nfine_current),
-                                            thrust::raw_pointer_cast(zp.data() + nfine_current),
+                                            xp.dataPtr() + nfine_current,
+                                            yp.dataPtr() + nfine_current,
+                                            zp.dataPtr() + nfine_current,
                                             wp.data() + nfine_current,
                                             &this->charge,
                                             &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
@@ -1074,9 +1074,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 warpx_geteb_energy_conserving(
                     &np_gather,
-                    thrust::raw_pointer_cast(xp.data()),
-                    thrust::raw_pointer_cast(yp.data()),
-                    thrust::raw_pointer_cast(zp.data()),
+                    xp.dataPtr(),
+                    yp.dataPtr(),
+                    zp.dataPtr(),
                     Exp.data(),Eyp.data(),Ezp.data(),
                     Bxp.data(),Byp.data(),Bzp.data(),
                     ixyzmin_grid,
@@ -1171,9 +1171,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse,
-                        thrust::raw_pointer_cast(xp.data()+nfine_gather),
-                        thrust::raw_pointer_cast(yp.data()+nfine_gather),
-                        thrust::raw_pointer_cast(zp.data()+nfine_gather),
+                        xp.dataPtr()+nfine_gather,
+                        yp.dataPtr()+nfine_gather,
+                        zp.dataPtr()+nfine_gather,
                         Exp.data()+nfine_gather, Eyp.data()+nfine_gather, Ezp.data()+nfine_gather,
                         Bxp.data()+nfine_gather, Byp.data()+nfine_gather, Bzp.data()+nfine_gather,
                         cixyzmin_grid,
@@ -1253,11 +1253,11 @@ PhysicalParticleContainer::Evolve (int lev,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
                         &np_current,
-                        thrust::raw_pointer_cast(xp.data()),
-                        thrust::raw_pointer_cast(yp.data()),
-                        thrust::raw_pointer_cast(zp.data()),
+                        xp.dataPtr(),
+                        yp.dataPtr(),
+                        zp.dataPtr(),
                         uxp.data(), uyp.data(), uzp.data(),
-                        thrust::raw_pointer_cast(giv.data()),
+                        giv.dataPtr(),
                         wp.data(), &this->charge,
                         &xyzmin[0], &xyzmin[1], &xyzmin[2],
                         &dt, &dx[0], &dx[1], &dx[2],
@@ -1327,13 +1327,13 @@ PhysicalParticleContainer::Evolve (int lev,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
                         &ncrse,
-                        thrust::raw_pointer_cast(xp.data()+nfine_current),
-                        thrust::raw_pointer_cast(yp.data()+nfine_current),
-                        thrust::raw_pointer_cast(zp.data()+nfine_current),
-                        uxp.data()+nfine_current,
-                        uyp.data()+nfine_current,
-                        uzp.data()+nfine_current,
-                        thrust::raw_pointer_cast(giv.data()+nfine_current),
+                        xp.dataPtr() +nfine_current,
+                        yp.dataPtr() +nfine_current,
+                        zp.dataPtr() +nfine_current,
+                        uxp.dataPtr()+nfine_current,
+                        uyp.dataPtr()+nfine_current,
+                        uzp.dataPtr()+nfine_current,
+                        giv.dataPtr()+nfine_current,
                         wp.data()+nfine_current, &this->charge,
                         &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
                         &dt, &cdx[0], &cdx[1], &cdx[2],
@@ -1391,10 +1391,10 @@ PhysicalParticleContainer::Evolve (int lev,
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
-	                          thrust::device_vector<Real>& xp,
-                                  thrust::device_vector<Real>& yp,
-                                  thrust::device_vector<Real>& zp,
-                                  thrust::device_vector<Real>& giv,
+	                          DeviceVector<Real>& xp,
+                                  DeviceVector<Real>& yp,
+                                  DeviceVector<Real>& zp,
+                                  DeviceVector<Real>& giv,
                                   Real dt)
 {
 
@@ -1427,11 +1427,11 @@ PhysicalParticleContainer::PushPX(WarpXParIter& pti,
 #endif
 
     warpx_particle_pusher(&np,
-                          thrust::raw_pointer_cast(xp.data()),
-                          thrust::raw_pointer_cast(yp.data()),
-                          thrust::raw_pointer_cast(zp.data()),
+                          xp.dataPtr(),
+                          yp.dataPtr(),
+                          zp.dataPtr(),
                           uxp.data(), uyp.data(), uzp.data(),
-                          thrust::raw_pointer_cast(giv.data()),
+                          giv.dataPtr(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                           &this->charge, &this->mass, &dt,
@@ -1452,7 +1452,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-	thrust::device_vector<Real> xp, yp, zp, giv;
+	DeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -1502,9 +1502,9 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
-                thrust::raw_pointer_cast(xp.data()),
-                thrust::raw_pointer_cast(yp.data()),
-                thrust::raw_pointer_cast(zp.data()),
+                xp.dataPtr(),
+                yp.dataPtr(),
+                zp.dataPtr(),
                 Exp.data(),Eyp.data(),Ezp.data(),
                 Bxp.data(),Byp.data(),Bzp.data(),
                 ixyzmin_grid,
@@ -1521,11 +1521,11 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             warpx_particle_pusher_momenta(&np,
-                                          thrust::raw_pointer_cast(xp.data()),
-                                          thrust::raw_pointer_cast(yp.data()),
-                                          thrust::raw_pointer_cast(zp.data()),
+                                          xp.dataPtr(),
+                                          yp.dataPtr(),
+                                          zp.dataPtr(),
                                           uxp.data(), uyp.data(), uzp.data(),
-                                          thrust::raw_pointer_cast(giv.data()),
+                                          giv.dataPtr(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                           &this->charge, &this->mass, &dt,
