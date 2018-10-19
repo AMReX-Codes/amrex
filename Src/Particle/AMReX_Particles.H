@@ -695,15 +695,14 @@ public:
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
 
-#ifdef AMREX_USE_CUDA
+
     void GetPosition (AMREX_D_DECL(DeviceVector<Real>& x,
                                    DeviceVector<Real>& y,
                                    DeviceVector<Real>& z)) const;
-#else
+
     void GetPosition (AMREX_D_DECL(RealVector& x,
                                    RealVector& y,
                                    RealVector& z)) const;
-#endif
     
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 protected:
@@ -756,15 +755,13 @@ public:
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
 
-#ifdef AMREX_USE_CUDA
     void SetPosition (AMREX_D_DECL(const DeviceVector<Real>& x,
                                    const DeviceVector<Real>& y,
                                    const DeviceVector<Real>& z)) const;
-#else
+
     void SetPosition (AMREX_D_DECL(const RealVector& x,
                                    const RealVector& y,
                                    const RealVector& z)) const;
-#endif
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
