@@ -184,10 +184,13 @@ namespace amrex {
             Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         Strategy (const Box& box) {
+            Device::n_threads_and_blocks(box.numPts(), numBlocks, numThreads);
+#if 0
             Box b = amrex::surroundingNodes(box);
             b -= box.smallEnd();
             b.coarsen(IntVect(AMREX_D_DECL(1,AMREX_CUDA_Y_STRIDE,AMREX_CUDA_Z_STRIDE)));
             Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
+#endif
         }
         Strategy (const Box& box, int comps) {
             const Box& b = amrex::surroundingNodes(box);
