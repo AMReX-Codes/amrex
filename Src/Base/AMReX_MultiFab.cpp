@@ -873,7 +873,7 @@ MultiFab::max (int comp,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mn) 
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
 #endif
     {
         amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
