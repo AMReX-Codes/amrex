@@ -70,6 +70,10 @@ public:
     //! get access to the underlying data pointer
     const T* dataPtr () const { return thrust::raw_pointer_cast(this->data()); }
 
+    void assign(typename thrust::device_vector<T>::size_type count, const T& value )
+    {
+        thrust::fill(thrust::device, dataPtr(), dataPtr() + count, value);
+    }        
 };
 
 #else
