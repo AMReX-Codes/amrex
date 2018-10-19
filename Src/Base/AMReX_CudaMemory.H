@@ -118,6 +118,7 @@ struct DeviceScalar
             cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
         } else {
             dp = (T*)(std::malloc(sizeof(T)));
+            *dp = init_val;
         }
     }
 

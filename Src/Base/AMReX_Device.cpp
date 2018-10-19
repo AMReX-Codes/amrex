@@ -521,7 +521,7 @@ amrex::Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThr
 {
     const long maxBlockSize = 256;
     numThreads = maxBlockSize;
-    numBlocks = std::min((N + maxBlockSize - 1) / maxBlockSize, 1L); // in case N = 0
+    numBlocks = std::max((N + maxBlockSize - 1) / maxBlockSize, 1L); // in case N = 0
 }
 #endif
 
