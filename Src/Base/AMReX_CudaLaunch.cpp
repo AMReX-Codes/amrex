@@ -10,8 +10,8 @@ AMREX_CUDA_HOST_DEVICE
 Box getThreadBox (const Box& bx)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-    long begin, n;
-    getThreadIndex(begin, n, bx.numPts());
+    long begin, junk;
+    getThreadIndex(begin, junk, bx.numPts());
     auto len = bx.length3d();
     long k = begin / (len[0]*len[1]);
     long j = (begin - k*(len[0]*len[1])) / len[0];
@@ -44,6 +44,26 @@ Box getThreadBox (const Box& bx)
 #endif
 }
 
+AMREX_CUDA_HOST_DEVICE
+Box getThreadBox (const Box& bx, int n)
+{
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
+    long tid = blockDim.x*blockIdx.x + threadIdx.x;
+    auto len = bx.length3d();
+
+    tid += n; 
+
+    long k = tid / (len[0]*len[1]);
+    long j = (tid - k*(len[0]*len[1])) / len[0];
+    long i = (tid - k*(len[0]*len[1])) - j*len[0];
+    IntVect iv{AMREX_D_DECL(i,j,k)};
+    iv += bx.smallEnd();
+
+    return (bx & Box(iv,iv,bx.type()));
+#else
+    return bx;
+#endif
+}
 
 // // Extension of getThreadBox that accounts for change of box type.
 // // If growing, add extra index on the big edge.

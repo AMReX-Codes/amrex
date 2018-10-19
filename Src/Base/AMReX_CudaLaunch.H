@@ -7,6 +7,7 @@
 #include <AMReX_CudaControl.H>
 #include <AMReX_Device.H>
 
+#define AMREX_CUDA_STRIDE 1
 #define AMREX_CUDA_Y_STRIDE 1
 #define AMREX_CUDA_Z_STRIDE 1
 
@@ -21,8 +22,13 @@
         auto amrex_i_st = Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
-            Box tbb = amrex::getThreadBox(bbb); \
-            if (tbb.ok()) block \
+            long amrex_i_numpts = bbb.numPts(); \
+            long amrex_i_inc = (amrex_i_numpts+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE; \
+            for (int amrex_i_i = 0; i<amrex_i_numpts; i+=amrex_i_inc) \
+            { \
+                Box tbb = amrex::getThreadBox(bbb); \
+                if (tbb.ok()) block \
+            } \
         }); \
         CudaErrorCheck(); \
     } \
@@ -37,8 +43,13 @@
         auto amrex_i_st = Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
-            Box tbb = amrex::getThreadBox(bbb); \
-            if (tbb.ok()) block \
+            long amrex_i_numpts = bbb.numPts(); \
+            long amrex_i_inc = (amrex_i_numpts+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE; \
+            for (int amrex_i_i = 0; i<amrex_i_numpts; i+=amrex_i_inc) \
+            { \
+                Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
+                if (tbb.ok()) block \
+            } \
         }); \
         CudaErrorCheck(); \
     } \
@@ -167,6 +178,9 @@ namespace amrex {
     AMREX_CUDA_HOST_DEVICE
     Box getThreadBox (const Box& bx);
 
+    AMREX_CUDA_HOST_DEVICE
+    Box getThreadBox (const Box& bx, int n);
+
 //    AMREX_CUDA_HOST_DEVICE
 //    Box getThreadBox (const Box& bx, const IntVect& typ);
 
@@ -184,7 +198,7 @@ namespace amrex {
             Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         Strategy (const Box& box) {
-            Device::n_threads_and_blocks(box.numPts(), numBlocks, numThreads);
+            Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
             b -= box.smallEnd();
