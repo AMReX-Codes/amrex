@@ -305,50 +305,6 @@ amrex::Device::device_malloc(const std::size_t sz) {
     return ptr;
 }
 
-bool
-amrex::Device::checkManaged(const void* ptr) {
-
-#ifdef AMREX_USE_CUDA
-     cudaPointerAttributes ptr_attr;
-     cudaPointerGetAttributes(&ptr_attr, ptr);
-     cudaError_t err = cudaGetLastError(); 
-     if (err == cudaErrorInvalidValue)
-     {
-        std::cout << " cudaErrorInvalidValue ";
-        return false;
-     }
-     return ptr_attr.isManaged;
-#else
-     return false;
-#endif
-
-}
-
-bool
-amrex::Device::checkDevicePtr (const void* ptr) {
-
-#ifdef AMREX_USE_CUDA
-     cudaPointerAttributes ptr_attr;
-     cudaPointerGetAttributes(&ptr_attr, ptr);
-     cudaError_t err = cudaGetLastError(); 
-     if (err == cudaErrorInvalidValue)
-     {
-        std::cout << " cudaErrorInvalidValue ";
-        return false;
-     }
-     else if (ptr_attr.memoryType == cudaMemoryTypeHost)
-     {
-        std::cout << " cudaMemoryTypeHost ";
-        return false;
-     }
-
-     return true;
-#else
-     return false;
-#endif
-
-}
-
 void
 amrex::Device::device_free(void* ptr) {
 
