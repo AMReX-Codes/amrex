@@ -7,5 +7,6 @@
 #include <AMReX_CudaLaunch.H>
 #include <AMReX_CudaUtility.H>
 #include <AMReX_CudaAllocators.H>
+#include <AMReX_CudaContainers.H>
 
 #endif

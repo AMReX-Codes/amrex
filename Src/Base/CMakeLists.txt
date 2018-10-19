@@ -170,7 +170,7 @@ add_sources(AMReX_CudaAllocators.H)
 
 # always include
 add_sources( AMReX_Cuda.H )
-add_sources( AMReX_CudaControl.H AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H )
+add_sources( AMReX_CudaControl.H AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H)
 add_sources( AMReX_CudaControl.cpp AMReX_CudaLaunch.cpp )
 add_sources( AMReX_Device.H )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
