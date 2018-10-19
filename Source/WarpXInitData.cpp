@@ -7,6 +7,10 @@
 #include <WarpX_f.H>
 #include <WarpXWrappers.h>
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrMeshInSituBridge.H>
+#endif
+
 using namespace amrex;
 
 void
@@ -43,14 +47,31 @@ WarpX::InitData ()
         printGridSummary(std::cout, 0, finestLevel());
     }
 
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge = new amrex::AmrMeshInSituBridge;
+    insitu_bridge->setEnabled(insitu_int > 0 ? 1 : 0);
+    insitu_bridge->setConfig(insitu_config);
+    if (insitu_bridge->initialize())
+    {
+        amrex::ErrorStream()
+            << "WarpX::InitData : Failed to initialize the in situ bridge."
+            << std::endl;
+
+        amrex::Abort();
+    }
+    insitu_bridge->setFrequency(1);
+#endif
+
     if (restart_chkfile.empty())
     {
-	if (plot_int > 0) {
+        if (plot_int > 0)
             WritePlotFile();
-	}
-	if (check_int > 0) {
-	    WriteCheckPointFile();
-	}
+
+        if (check_int > 0)
+            WriteCheckPointFile();
+
+        if ((insitu_int > 0) && (insitu_start == 0))
+            UpdateInSitu();
     }
 }
 
