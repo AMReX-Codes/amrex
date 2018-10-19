@@ -250,7 +250,7 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 #pragma omp parallel
 #endif
     {
-        RealVector xp, yp, zp;
+        thrust::device_vector<Real> xp, yp, zp;
         FArrayBox local_rho;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -300,7 +300,10 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             long lvect = 8;
             
             warpx_charge_deposition(data_ptr,
-                                    &np, xp.data(), yp.data(), zp.data(), wp.data(),
+                                    &np,
+                                    thrust::raw_pointer_cast(xp.data()),
+                                    thrust::raw_pointer_cast(yp.data()),
+                                    thrust::raw_pointer_cast(zp.data()), wp.data(),
                                     &this->charge, &xyzmin[0], &xyzmin[1], &xyzmin[2], 
                                     &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
                                     &nxg, &nyg, &nzg, &WarpX::nox,&WarpX::noy,&WarpX::noz,
@@ -471,7 +474,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 #pragma omp parallel
 #endif
     {
-        RealVector xp, yp, zp, giv;
+        thrust::device_vector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -498,8 +501,12 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             // Particle Push
             //
             BL_PROFILE_VAR_START(blp_pxr_pp);
-            warpx_particle_pusher_positions(&np, xp.data(), yp.data(), zp.data(),
-                                            uxp.data(), uyp.data(), uzp.data(), giv.data(), &dt);
+            warpx_particle_pusher_positions(&np,
+                                            thrust::raw_pointer_cast(xp.data()),
+                                            thrust::raw_pointer_cast(yp.data()),
+                                            thrust::raw_pointer_cast(zp.data()),
+                                            uxp.data(), uyp.data(), uzp.data(),
+                                            thrust::raw_pointer_cast(giv.data()), &dt);
             BL_PROFILE_VAR_STOP(blp_pxr_pp);
             
             //
