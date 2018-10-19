@@ -10,6 +10,14 @@
 #include <AMReX_TypeTraits.H>
 #endif
 
+#ifdef AMREX_USE_CUDA
+#include <thrust/device_vector.h>
+#include <thrust/binary_search.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/device_ptr.h>
+#include <thrust/tuple.h>
+#endif
+
 namespace amrex {
 /**
 * \brief This class is a thin wrapper around std::vector.  Unlike vector,
@@ -47,6 +55,28 @@ public:
 
 };
 
+#ifdef AMREX_USE_CUDA
+template <class T>
+class DeviceVector
+    :
+        public thrust::device_vector<T>
+{
+public:
+
+    using thrust::device_vector<T>::device_vector;
+
+    //! get access to the underlying data pointer
+    T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
+    //! get access to the underlying data pointer
+    const T* dataPtr () const { return thrust::raw_pointer_cast(this->data()); }
+
+};
+
+#else
+    template <class T>
+    using DeviceVector = Vector<T>;
+#endif
+    
 }
 
 namespace amrex
