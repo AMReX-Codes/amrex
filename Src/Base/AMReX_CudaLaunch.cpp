@@ -124,7 +124,7 @@ void getThreadIndex (long &index, long &size, const long num_particles)
      index = blockDim.x*blockIdx.x + threadIdx.x;
      size  = (index > num_particles) ? 0 : 1;
 #else
-     index = 1;
+     index = 0;
      size = num_particles;
 #endif
 }
