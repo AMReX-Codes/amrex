@@ -42,9 +42,10 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H
-C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaControl.cpp
-C$(AMREX_BASE)_headers += AMReX_CudaUtility.H AMReX_CudaControl.H
+C$(AMREX_BASE)_headers += AMReX_Cuda.H
+C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H
+C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaControl.cpp AMReX_CudaUtility.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaLaunch.H   AMReX_CudaControl.H   AMReX_CudaUtility.H
 
 #
 # I/O stuff.
