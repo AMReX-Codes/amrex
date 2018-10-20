@@ -114,7 +114,7 @@ struct StridedPtr
 */
 
 template <class T>
-class BaseFab : public Managed
+class BaseFab : public Cuda::Managed
 {
 public:
 
@@ -3047,7 +3047,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
 #endif
                     dp[i] += sp[i];
 #else
-                    amrex::CudaAtomic::Add(dp + i, sp[i]);
+                    amrex::Cuda::Atomic::Add(dp + i, sp[i]);
 #endif
                 }
             }

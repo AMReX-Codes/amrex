@@ -7,6 +7,7 @@
 #include <cstdlib>
 
 namespace amrex {
+namespace Cuda {
 
 struct Managed {
 
@@ -160,7 +161,7 @@ private:
 #endif
 };
 
-}  //namespace
+}}  //namespace
 
 
 #endif
