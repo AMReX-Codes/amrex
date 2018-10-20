@@ -66,24 +66,12 @@ namespace amrex {
         return !(x == y);
     }
 
-    template <typename T>
-    using CudaVector = std::vector<T, CudaManagedAllocator<T>>;
-
-    template <typename K, typename T>
-    using CudaMap = std::map<K, T, std::less<K>, CudaManagedAllocator<std::pair<K,T>> >;
-
 // When not using CUDA, replace with standard allocator.
 // Prevents need to wrap applications in lots of ifdefs.
 #else
 
     template <typename T>
     using CudaManagedAllocator = std::allocator<T>;
-
-    template <typename T>
-    using CudaVector = std::vector<T>;
-
-    template <typename K, typename T>
-    using CudaMap = std::map<K,T>;
 
 #endif // AMREX_USE_CUDA
 

@@ -84,13 +84,10 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
 }
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename Container>
 void
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition
-#ifdef AMREX_USE_CUDA
-(AMREX_D_DECL(thrust::device_vector<Real>& x, thrust::device_vector<Real>& y, thrust::device_vector<Real>& z)) const
-#else
-(AMREX_D_DECL(RealVector& x, RealVector& y, RealVector& z)) const    
-#endif
+(AMREX_D_DECL(Container& x, Container& y, Container& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     AMREX_D_TERM(x.resize(aos.size());,
@@ -115,13 +112,10 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename Container>
 void
 ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
-#ifdef AMREX_USE_CUDA
-(AMREX_D_DECL(const thrust::device_vector<Real>& x, const thrust::device_vector<Real>& y, const thrust::device_vector<Real>& z)) const
-#else
-(AMREX_D_DECL(const RealVector& x, const RealVector& y, const RealVector& z)) const    
-#endif
+(AMREX_D_DECL(const Container& x, const Container& y, const Container& z)) const
 {
     auto& aos = this->GetArrayOfStructs();
     BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
@@ -145,4 +139,3 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
                                 AMREX_D_DECL(x.data(), y.data(), z.data()));
 #endif
 }
-
