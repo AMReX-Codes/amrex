@@ -45,18 +45,16 @@ Box getThreadBox (const Box& bx)
 }
 
 AMREX_CUDA_HOST_DEVICE
-Box getThreadBox (const Box& bx, int n)
+Box getThreadBox (const Box& bx, int tid)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-    long tid = blockDim.x*blockIdx.x + threadIdx.x;
     auto len = bx.length3d();
-
-    tid += n; 
 
     long k = tid / (len[0]*len[1]);
     long j = (tid - k*(len[0]*len[1])) / len[0];
     long i = (tid - k*(len[0]*len[1])) - j*len[0];
     IntVect iv{AMREX_D_DECL(i,j,k)};
+
     iv += bx.smallEnd();
 
     return (bx & Box(iv,iv,bx.type()));

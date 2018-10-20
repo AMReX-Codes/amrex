@@ -24,7 +24,8 @@
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_inc = (amrex_i_numpts+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE; \
-            for (long amrex_i_i = 0; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
+            for (long amrex_i_i = amrex_i_tid; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
             { \
                 Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
                 if (tbb.ok()) block \
@@ -45,7 +46,8 @@
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_inc = (amrex_i_numpts+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE; \
-            for (long amrex_i_i = 0; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
+            for (long amrex_i_i = amrex_i_tid; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
             { \
                 Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
                 if (tbb.ok()) block \
