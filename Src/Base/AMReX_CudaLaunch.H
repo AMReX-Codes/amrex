@@ -87,8 +87,8 @@
     { \
       if (amrex::Cuda::inLaunchRegion()) \
       { \
-         auto st = strategy; \
-         amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         auto amrex_i_st = strategy;                                           \
+         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -101,8 +101,8 @@
     { \
       if (amrex::Cuda::inLaunchRegion()) \
       { \
-         auto st = strategy; \
-         amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         auto amrex_i_st = strategy; \
+         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -114,8 +114,8 @@
 // Cannot respect Cuda::inLaunchRegion because function must be __global__.
 #define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
-        auto st = strategy;                                             \
-        function<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+        auto amrex_i_st = strategy;                                             \
+        function<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
         CudaErrorCheck();                                               \
     }
 
