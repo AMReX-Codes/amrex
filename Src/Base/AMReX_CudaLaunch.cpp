@@ -16,7 +16,9 @@ Box getThreadBox (const Box& bx)
     long k = begin / (len[0]*len[1]);
     long j = (begin - k*(len[0]*len[1])) / len[0];
     long i = (begin - k*(len[0]*len[1])) - j*len[0];
-    IntVect iv{AMREX_D_DECL(i,j,k)};
+    IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                            static_cast<int>(j),
+                            static_cast<int>(k))};
     iv += bx.smallEnd();
     return (bx & Box(iv,iv,bx.type()));
 #else
@@ -41,25 +43,6 @@ Box getThreadBox (const Box& bx)
 #else
     return bx;
 #endif
-#endif
-}
-
-AMREX_CUDA_HOST_DEVICE
-Box getThreadBox (const Box& bx, int tid)
-{
-#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-    auto len = bx.length3d();
-
-    long k = tid / (len[0]*len[1]);
-    long j = (tid - k*(len[0]*len[1])) / len[0];
-    long i = (tid - k*(len[0]*len[1])) - j*len[0];
-    IntVect iv{AMREX_D_DECL(i,j,k)};
-
-    iv += bx.smallEnd();
-
-    return (bx & Box(iv,iv,bx.type()));
-#else
-    return bx;
 #endif
 }
 
