@@ -15,7 +15,7 @@ namespace amrex {
 
 //!A Box with real dimensions.  A RealBox is OK iff volume >= 0.
 
-class RealBox : public Managed
+class RealBox // : public Cuda::Managed
 {
 public:
     //! The default constructor.  Builds invalid RealBox.

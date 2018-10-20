@@ -44,7 +44,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
 #pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
 #endif
     {
-        amrex::DeviceScalar<Real> local_sm(0.0);
+        amrex::Cuda::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
         for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -54,7 +54,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dot(tbx, xcomp, *yfab, tbx, ycomp, numcomp);
-                amrex::CudaAtomic::Add(p, t);
+                amrex::Cuda::Atomic::Add(p, t);
             });
         }
         sm += local_sm.dataValue();
@@ -86,7 +86,7 @@ MultiFab::Dot (const iMultiFab& mask,
 #pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
 #endif
     {
-        amrex::DeviceScalar<Real> local_sm(0.0);
+        amrex::Cuda::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
         for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -97,7 +97,7 @@ MultiFab::Dot (const iMultiFab& mask,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dotmask(*mskfab, tbx, xcomp, *yfab, tbx, ycomp, numcomp);
-                amrex::CudaAtomic::Add(p, t);
+                amrex::Cuda::Atomic::Add(p, t);
             });
         }
         sm += local_sm.dataValue();
@@ -804,7 +804,7 @@ MultiFab::min (int comp,
 #pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(min:mn) 
 #endif
     {
-        amrex::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
+        amrex::Cuda::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
         Real* p = local_mn.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -813,7 +813,7 @@ MultiFab::min (int comp,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->min(tbx, comp);
-                amrex::CudaAtomic::Min(p, t);
+                amrex::Cuda::Atomic::Min(p, t);
             });
 
             mn = std::min(mn, local_mn.dataValue());
@@ -840,7 +840,7 @@ MultiFab::min (const Box& region,
 #pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(min:mn) 
 #endif
     {
-        amrex::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
+        amrex::Cuda::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
         Real* p = local_mn.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -849,7 +849,7 @@ MultiFab::min (const Box& region,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->min(tbx, comp);
-                amrex::CudaAtomic::Min(p, t);
+                amrex::Cuda::Atomic::Min(p, t);
             });
 
             mn = std::min(mn, local_mn.dataValue());
@@ -876,7 +876,7 @@ MultiFab::max (int comp,
 #pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
 #endif
     {
-        amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -885,7 +885,7 @@ MultiFab::max (int comp,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->max(tbx, comp);
-                amrex::CudaAtomic::Max(p, t);
+                amrex::Cuda::Atomic::Max(p, t);
             });
 
             mx = std::max(mx, local_mx.dataValue());
@@ -912,7 +912,7 @@ MultiFab::max (const Box& region,
 #pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
 #endif
     {
-        amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -921,7 +921,7 @@ MultiFab::max (const Box& region,
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->max(tbx, comp);
-                amrex::CudaAtomic::Max(p, t);
+                amrex::Cuda::Atomic::Max(p, t);
             });
 
             mx = std::max(mx, local_mx.dataValue());
@@ -1081,7 +1081,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 #pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:nm0) 
 #endif
     {
-        amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -1091,7 +1091,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norminfmask(tbx, *mask_fab, comp, 1);
-                amrex::CudaAtomic::Max(p, t);
+                amrex::Cuda::Atomic::Max(p, t);
             });
 
             nm0 = std::max(nm0, local_mx.dataValue());
@@ -1152,7 +1152,7 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
 #pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:nm0) 
 #endif
     {
-        amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -1161,7 +1161,7 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norm(tbx, 0, comp, 1);
-                amrex::CudaAtomic::Max(p, t);
+                amrex::Cuda::Atomic::Max(p, t);
             });
 
             nm0 = std::max(nm0, local_mx.dataValue());
@@ -1401,7 +1401,7 @@ MultiFab::sum (int comp, bool local) const
 #pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
 #endif
     {
-        amrex::DeviceScalar<Real> local_sm(0.0);
+        amrex::Cuda::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -1410,7 +1410,7 @@ MultiFab::sum (int comp, bool local) const
             AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->sum(tbx, comp, 1);
-                amrex::CudaAtomic::Add(p, t);
+                amrex::Cuda::Atomic::Add(p, t);
             });
         }
         sm += local_sm.dataValue();

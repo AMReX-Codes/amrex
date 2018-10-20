@@ -30,7 +30,7 @@ class BoxCommHelper;
 * Box is a dimension dependent class, so SPACEDIM must be 
 * defined as either 1, 2, or 3 when compiling.
 */
-class Box : public Managed
+class Box // : public Cuda::Managed
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
     friend class BoxCommHelper;
