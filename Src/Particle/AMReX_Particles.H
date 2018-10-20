@@ -647,6 +647,7 @@ public:
 
 #ifdef AMREX_USE_CUDA 
     typedef thrust::tuple<double, double, double> Double3;
+    typedef thrust::tuple<double, double> Double2;
 
     struct getPosition
     {        
@@ -654,11 +655,15 @@ public:
         getPosition() {}
         
         __host__ __device__
+#if AMREX_SPACEDIM == 2
+        Double2 operator()(const ParticleType& p) const
+#elif AMREX_SPACEDIM == 3
         Double3 operator()(const ParticleType& p) const
+#endif            
         {
-            return thrust::make_tuple(p.m_rdata.pos[0],
-                                      p.m_rdata.pos[1], 
-                                      p.m_rdata.pos[2]);
+            return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
+                                                   p.m_rdata.pos[1], 
+                                                   p.m_rdata.pos[2]));
         }
     };
 #endif
@@ -730,8 +735,12 @@ public:
         {
             ParticleType p;
             p.m_rdata.pos[0] = thrust::get<0>(pos);
+#if AMREX_SPACEDIM > 1
             p.m_rdata.pos[1] = thrust::get<1>(pos);
+#endif
+#if AMREX_SPACEDIM > 2
             p.m_rdata.pos[2] = thrust::get<2>(pos);
+#endif
             return p;
         }
     };
