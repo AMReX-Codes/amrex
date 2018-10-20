@@ -2,6 +2,8 @@
 
 namespace amrex {
 
+namespace Cuda {
+
 // Return intersection of the cell for this thread and the entire domain.
 // If more threads are assigned than mesh cells in the domain, intersection will return an empty box.
 // If box is empty, skip the work in the MFIter loop for that thread.
@@ -147,4 +149,5 @@ void getThreadIndex (long &index, long &size, const long num_particles)
 #endif
 }
 
+}  // namespace Cuda
 }  // namespace amrex

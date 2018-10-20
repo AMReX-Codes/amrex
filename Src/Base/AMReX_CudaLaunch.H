@@ -19,7 +19,7 @@
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
     if (amrex::Cuda::inLaunchRegion()) \
     { \
-        auto amrex_i_st = Strategy(bbb); \
+        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
@@ -27,7 +27,7 @@
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             for (long amrex_i_i = amrex_i_tid; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
             { \
-                Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_i); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -41,7 +41,7 @@
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
     if (amrex::Cuda::inLaunchRegion()) \
     { \
-        auto amrex_i_st = Strategy(bbb); \
+        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
@@ -49,7 +49,7 @@
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             for (long amrex_i_i = amrex_i_tid; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
             { \
-                Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_i); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -62,7 +62,7 @@
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
     if (amrex::Cuda::inLaunchRegion()) \
     { \
-        auto amrex_i_st = Strategy(); \
+        auto amrex_i_st = amrex::Cuda::Strategy(); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             const auto amrex_i_lo = bbb.loVect3d(); \
@@ -167,6 +167,9 @@ namespace amrex {
     template<class L, class... Lambdas>
     void launch_host (L f0, Lambdas... fs) { f0(); launch_host(fs...); }
 
+
+namespace Cuda {
+
 // ************************************************
 
     struct ComponentBox {
@@ -237,6 +240,8 @@ namespace amrex {
         dim3 numThreads;
     };
 #endif
+
+}
 
 }
 
