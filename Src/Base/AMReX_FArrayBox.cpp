@@ -190,7 +190,7 @@ FArrayBox::initVal ()
 #if defined(AMREX_USE_CUDA)
 
         double * p = dataPtr();
-        AMREX_CUDA_LAUNCH_HOST_DEVICE ( Strategy(truesize),
+        AMREX_CUDA_LAUNCH_HOST_DEVICE ( Cuda::Strategy(truesize),
         [=] AMREX_CUDA_HOST_DEVICE ()
         {
 #ifdef UINT64_MAX
@@ -200,7 +200,7 @@ FArrayBox::initVal ()
             static const long long snan = 0x7ff0000080000001LL;
 #endif
             long begin, n;
-            getThreadIndex(begin,n,truesize);
+            Cuda::getThreadIndex(begin,n,truesize);
             for (long i = 0; i < n; ++i) {
                 double* pi = p + (i+begin);
                 std::memcpy(pi, &snan, sizeof(double));
