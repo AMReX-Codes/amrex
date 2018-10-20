@@ -61,9 +61,16 @@ public:
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
-        thrust::fill(thrust::device,
-                     thrust::raw_pointer_cast(this->data()),
-                     thrust::raw_pointer_cast(this->data() + count), value);
+        if (Cuda::inLaunchRegion())
+        {
+            thrust::fill(thrust::device,
+                         thrust::raw_pointer_cast(this->data()),
+                         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+            this->Vector<T, CudaManagedAllocator<T> >::assign(count, value);
+        }
     }
 };
         
