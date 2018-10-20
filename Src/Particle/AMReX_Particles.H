@@ -38,6 +38,7 @@
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
+#include "AMReX_CudaContainers.H"
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -53,8 +54,6 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/tuple.h>
-
-#include "AMReX_CudaAllocators.H"
 #endif
 
 namespace amrex {
@@ -150,11 +149,7 @@ public:
     using RealVector     = typename SoA::RealVector;
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
-#ifdef AMREX_USE_CUDA
-    using CharVector = Vector<char, CudaManagedAllocator<char>>;
-#else
-    using CharVector = Vector<char>;
-#endif
+    using CharVector     = Cuda::ManagedVector<char>;
 
     ParticleContainer ()
       : 
@@ -651,7 +646,6 @@ public:
     using ParticleVector   = typename ContainerType::ParticleVector;
 
 #ifdef AMREX_USE_CUDA 
-    typedef thrust::tuple<double, double, double> Double3;
 
     struct getPosition
     {        
@@ -659,11 +653,11 @@ public:
         getPosition() {}
         
         __host__ __device__
-        Double3 operator()(const ParticleType& p) const
+        thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const ParticleType& p) const
         {
-            return thrust::make_tuple(p.m_rdata.pos[0],
-                                      p.m_rdata.pos[1], 
-                                      p.m_rdata.pos[2]);
+            return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
+                                                   p.m_rdata.pos[1], 
+                                                   p.m_rdata.pos[2]));
         }
     };
 #endif
@@ -694,16 +688,10 @@ public:
 
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-
-#ifdef AMREX_USE_CUDA
-    void GetPosition (AMREX_D_DECL(thrust::device_vector<Real>& x,
-                                   thrust::device_vector<Real>& y,
-                                   thrust::device_vector<Real>& z)) const;
-#else
-    void GetPosition (AMREX_D_DECL(RealVector& x,
-                                   RealVector& y,
-                                   RealVector& z)) const;
-#endif
+    template <typename Container>
+    void GetPosition (AMREX_D_DECL(Container& x,
+                                   Container& y,
+                                   Container& z)) const;
     
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 protected:
@@ -741,8 +729,12 @@ public:
         {
             ParticleType p;
             p.m_rdata.pos[0] = thrust::get<0>(pos);
+#if AMREX_SPACEDIM > 1
             p.m_rdata.pos[1] = thrust::get<1>(pos);
+#endif
+#if AMREX_SPACEDIM > 2
             p.m_rdata.pos[2] = thrust::get<2>(pos);
+#endif
             return p;
         }
     };
@@ -756,15 +748,10 @@ public:
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
 
-#ifdef AMREX_USE_CUDA
-    void SetPosition (AMREX_D_DECL(const thrust::device_vector<Real>& x,
-                                   const thrust::device_vector<Real>& y,
-                                   const thrust::device_vector<Real>& z)) const;
-#else
-    void SetPosition (AMREX_D_DECL(const RealVector& x,
-                                   const RealVector& y,
-                                   const RealVector& z)) const;
-#endif
+    template <typename Container>
+    void SetPosition (AMREX_D_DECL(const Container& x,
+                                   const Container& y,
+                                   const Container& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
