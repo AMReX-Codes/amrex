@@ -691,7 +691,7 @@ MultiFab::initVal ()
 {
     // TODO GPU - Done in FabArray. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
-#pragma omp parallel (!Cuda::inLaunchRegion())
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -873,7 +873,7 @@ MultiFab::max (int comp,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mn) 
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
 #endif
     {
         amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
@@ -909,7 +909,7 @@ MultiFab::max (const Box& region,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mn) 
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
 #endif
     {
         amrex::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
