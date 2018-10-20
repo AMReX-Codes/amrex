@@ -18,14 +18,14 @@ WarpXParIter::WarpXParIter (ContainerType& pc, int level)
 
 #if (AMREX_SPACEDIM == 2)
 void
-WarpXParIter::GetPosition (RealVector& x, RealVector& y, RealVector& z) const
+WarpXParIter::GetPosition (Cuda::DeviceVector<Real>& x, Cuda::DeviceVector<Real>& y, Cuda::DeviceVector<Real>& z) const
 {
     amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
     y.resize(x.size(), std::numeric_limits<Real>::quiet_NaN());
 }
 
 void
-WarpXParIter::SetPosition (const RealVector& x, const RealVector& y, const RealVector& z)
+WarpXParIter::SetPosition (const Cuda::DeviceVector<Real>& x, const Cuda::DeviceVector<Real>& y, const Cuda::DeviceVector<Real>& z)
 {
     amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
 }
