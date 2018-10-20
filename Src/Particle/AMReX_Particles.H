@@ -646,8 +646,6 @@ public:
     using ParticleVector   = typename ContainerType::ParticleVector;
 
 #ifdef AMREX_USE_CUDA 
-    typedef thrust::tuple<double, double, double> Double3;
-    typedef thrust::tuple<double, double> Double2;
 
     struct getPosition
     {        
@@ -655,11 +653,7 @@ public:
         getPosition() {}
         
         __host__ __device__
-#if AMREX_SPACEDIM == 2
-        Double2 operator()(const ParticleType& p) const
-#elif AMREX_SPACEDIM == 3
-        Double3 operator()(const ParticleType& p) const
-#endif            
+        thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const ParticleType& p) const
         {
             return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
                                                    p.m_rdata.pos[1], 
