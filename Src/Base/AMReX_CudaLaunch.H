@@ -7,7 +7,8 @@
 #include <AMReX_CudaControl.H>
 #include <AMReX_Device.H>
 
-#define AMREX_CUDA_STRIDE 1
+#define AMREX_CUDA_NCELLS_PER_THREAD 2
+#define AMREX_CUDA_WARP_SIZE 32
 #define AMREX_CUDA_Y_STRIDE 1
 #define AMREX_CUDA_Z_STRIDE 1
 
@@ -23,11 +24,13 @@
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
-            long amrex_i_inc = (amrex_i_numpts+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE; \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
-            for (long amrex_i_i = amrex_i_tid; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
+            long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
+                Box tbb = amrex::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -45,11 +48,13 @@
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
-            long amrex_i_inc = (amrex_i_numpts+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE; \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
-            for (long amrex_i_i = amrex_i_tid; amrex_i_i<amrex_i_numpts; amrex_i_i+=amrex_i_inc) \
+            long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::getThreadBox(bbb, amrex_i_i); \
+                Box tbb = amrex::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -216,7 +221,7 @@ namespace amrex {
             Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         Strategy (const Box& box) {
-            Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_STRIDE-1)/AMREX_CUDA_STRIDE), numBlocks, numThreads );
+            Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
             b -= box.smallEnd();
