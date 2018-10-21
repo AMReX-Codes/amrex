@@ -71,8 +71,6 @@ MultiFab::Dot (const iMultiFab& mask,
 	       const MultiFab& y, int ycomp,
 	       int numcomp, int nghost, bool local)
 {
-    // TODO GPU - CHECK 
-
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.boxArray() == mask.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
@@ -689,7 +687,7 @@ MultiFab::define (const BoxArray&            bxs,
 void
 MultiFab::initVal ()
 {
-    // TODO GPU - Done in FabArray. Just Cuda wrapping and Tiling check here.
+    // Done in FabArray. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
 #pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
@@ -1097,15 +1095,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
             nm0 = std::max(nm0, local_mx.dataValue());
         }
     }
-/*
-#ifdef _OPENMP
-#pragma omp parallel reduction(max:nm0)
-#endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-    {
-	nm0 = std::max(nm0, get(mfi).norminfmask(mfi.growntilebox(nghost), mask[mfi], comp, 1));
-    }
-*/
+
     if (!local)	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
 
     return nm0;
@@ -1119,7 +1109,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(max:nm0)
+#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:nm0)
 #endif
     {
 	std::vector< std::pair<int,Box> > isects;
@@ -1127,7 +1117,13 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    ba.intersections(amrex::grow(mfi.validbox(),nghost),isects);
-
+/*            CudaArray<Box, N> bxl;
+            for (int i = 0, N = isects.size(); i < N; i++)
+            {
+                bxl[i] = isects[i].second; 
+            }
+*/
+// Launch here, specifying pointer to bxl data for capture.
 	    for (int i = 0, N = isects.size(); i < N; i++)
 	    {
 		nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
