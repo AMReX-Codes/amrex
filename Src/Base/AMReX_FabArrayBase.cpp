@@ -1751,28 +1751,6 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
 #endif /*BL_USE_MPI*/
 }
 
-#ifdef BL_USE_UPCXX
-void
-FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
-                                      Vector<char*>&       send_data,
-                                      upcxx::event*       send_event,
-                                      volatile int*       send_counter)
-{
-    BL_ASSERT(N_snds > 0);
-    BL_ASSERT(send_data.size() == N_snds);
-    int N_null = std::count(send_data.begin(), send_data.begin()+N_snds, nullptr);
-    // Need to make sure all sends have been started
-    while ((*send_counter) < N_snds-N_null) {
-        upcxx::advance();
-    }
-    send_event->wait(); // wait for the sends
-    for (int i = 0; i < N_snds; i++) {
-        if (send_data[i]) {
-            BLPgas::free(send_data[i]);
-        }
-    }
-}
-#endif
 
 #ifdef BL_USE_MPI
 bool
