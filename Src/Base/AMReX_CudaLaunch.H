@@ -30,7 +30,7 @@
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_i); \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -54,7 +54,7 @@
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_i); \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
