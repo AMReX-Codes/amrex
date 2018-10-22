@@ -29,10 +29,19 @@ public:
 #if defined(BL_USE_MPI)
     void setCommuniator(MPI_Comm acomm) { comm = acomm; }
 #endif
-    // control parameters, can be set here or by parm parse
-    // variables of the same name prefixed with sensei.
-    void setConfig(const std::string &aconfig) { config = aconfig; }
+
+    // Runtime control parameters.
+    //
+    // These may set explicitly or via ParmParse. ParmParse values
+    // take precedence over set calls.
+    //
+    //   sensei.enabled  -- integer 0 or 1, when 0 the bridge is disabled
+    //   sensei.frequency -- integer >= 1, how often the analysis executes
+    //   sensei.config -- file path, path to the SENSEI XML config
+    //
+    void setEnabled(int aenabled) { enabled = aenabled; }
     void setFrequency(int freq) { frequency = freq; }
+    void setConfig(const std::string &aconfig) { config = aconfig; }
 
     // initialize the adaptors
     // will make use of parm parse for any unset
@@ -53,6 +62,7 @@ protected:
     sensei::AnalysisAdaptor *analysis_adaptor;
 #endif
     std::string config;
+    int enabled;
     int frequency;
     int counter;
 };

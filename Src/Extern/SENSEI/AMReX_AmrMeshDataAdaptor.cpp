@@ -77,6 +77,7 @@ struct AmrMeshDataAdaptor::InternalsType
     amrex::AmrMesh *Mesh;
     std::vector<amrex::Vector<amrex::MultiFab> *> States;
     amrex::InSituUtils::MeshStateMap StateMetadata;
+    std::vector<vtkDataObject*> ManagedObjects;
 };
 
 //-----------------------------------------------------------------------------
@@ -148,6 +149,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
     // initialize new vtk datasets
     vtkOverlappingAMR *amrMesh = vtkOverlappingAMR::New();
+    Internals->ManagedObjects.push_back(amrMesh);
     mesh = amrMesh;
 
     // num levels and blocks per level
@@ -216,6 +218,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
             // new vtk uniform amrMesh, node centered
             vtkUniformGrid *ug = vtkUniformGrid::New();
+            ug->SetOrigin(origin);
             ug->SetSpacing(spacing);
             ug->SetExtent(nboxLo[0], nboxHi[0],
                 nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]);
@@ -385,11 +388,14 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             ga->Delete();
 
             // for debug can visualize the ghost cells
-            /*ga = vtkUnsignedCharArray::New();
+            // FIXME -- a bug in Catalyst ignores internal ghost zones
+            // when using the VTK writrer. Until that bug gets fixed, one
+            // can manually inject this copy using a PV Python filter
+            ga = vtkUnsignedCharArray::New();
             ga->SetName("GhostType");
             ga->SetArray(mask[j], nCells, 1);
             blockMesh->GetCellData()->AddArray(ga);
-            ga->Delete();*/
+            ga->Delete();
         }
     }
 
@@ -620,6 +626,13 @@ int AmrMeshDataAdaptor::ReleaseData()
     this->Internals->Mesh = nullptr;
     this->Internals->States.clear();
     this->Internals->StateMetadata.Clear();
+
+    // free up mesh objects we allocated
+    size_t n = this->Internals->ManagedObjects.size();
+    for (size_t i = 0; i < n; ++i)
+        this->Internals->ManagedObjects[i]->Delete();
+    this->Internals->ManagedObjects.clear();
+
     return 0;
 }
 
