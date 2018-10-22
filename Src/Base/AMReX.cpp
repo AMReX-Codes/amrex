@@ -404,11 +404,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::exename += argv[0];
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::init(&argc, &argv);
-    if (upcxx::myrank() != ParallelDescriptor::MyProc())
-	amrex::Abort("UPC++ rank != MPI rank");
-#elif defined PERILLA_USE_UPCXX
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::init();
 #endif
 
@@ -653,7 +649,7 @@ amrex::Finalize (bool finalize_parallel)
     Device::finalize_device();
 #endif
 
-#ifdef BL_USE_UPCXX
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::finalize();
 #endif
 
