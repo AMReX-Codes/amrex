@@ -813,9 +813,8 @@ MultiFab::min (int comp,
                 Real t = fab->min(tbx, comp);
                 amrex::Cuda::Atomic::Min(p, t);
             });
-
-            mn = std::min(mn, local_mn.dataValue());
         }
+        mn = std::min(mn, local_mn.dataValue());
     }
 
     if (!local)
@@ -849,9 +848,8 @@ MultiFab::min (const Box& region,
                 Real t = fab->min(tbx, comp);
                 amrex::Cuda::Atomic::Min(p, t);
             });
-
-            mn = std::min(mn, local_mn.dataValue());
         }
+        mn = std::min(mn, local_mn.dataValue());
     }
 
     if (!local)
@@ -885,9 +883,8 @@ MultiFab::max (int comp,
                 Real t = fab->max(tbx, comp);
                 amrex::Cuda::Atomic::Max(p, t);
             });
-
-            mx = std::max(mx, local_mx.dataValue());
         }
+        mx = std::max(mx, local_mx.dataValue());
     }
 
     if (!local)
@@ -921,9 +918,8 @@ MultiFab::max (const Box& region,
                 Real t = fab->max(tbx, comp);
                 amrex::Cuda::Atomic::Max(p, t);
             });
-
-            mx = std::max(mx, local_mx.dataValue());
         }
+        mx = std::max(mx, local_mx.dataValue());
     }
 
     if (!local)
@@ -1091,9 +1087,8 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
                 Real t = fab->norminfmask(tbx, *mask_fab, comp, 1);
                 amrex::Cuda::Atomic::Max(p, t);
             });
-
-            nm0 = std::max(nm0, local_mx.dataValue());
         }
+        nm0 = std::max(nm0, local_mx.dataValue());
     }
 
     if (!local)	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
@@ -1159,9 +1154,8 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
                 Real t = fab->norm(tbx, 0, comp, 1);
                 amrex::Cuda::Atomic::Max(p, t);
             });
-
-            nm0 = std::max(nm0, local_mx.dataValue());
         }
+        nm0 = std::max(nm0, local_mx.dataValue());
     }
 
     if (!local)
