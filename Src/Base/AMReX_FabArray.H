@@ -782,7 +782,6 @@ public:
     Vector<char*>       fb_send_data;
     Vector<MPI_Request> fb_send_reqs;
     int                 fb_tag;
-    int                 fb_stream_id;
 };
 
 
