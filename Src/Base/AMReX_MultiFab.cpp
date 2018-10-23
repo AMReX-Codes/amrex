@@ -1317,11 +1317,22 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     Real nm1 = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:nm1)
+#pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:nm1)
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        nm1 += get(mfi).norm(mfi.growntilebox(ngrow), 1, comp, 1);
+        amrex::Cuda::DeviceScalar<Real> local_nm1(0.0);
+        Real* p = local_nm1.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(ngrow);
+            FArrayBox const* fab = &(get(mfi));
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->norm(tbx, 1, comp, 1);
+                amrex::Cuda::Atomic::Add(p, t);
+            });
+        }
+        nm1 += local_nm1.dataValue();
     }
 
     if (!local)
