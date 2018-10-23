@@ -193,12 +193,6 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_mempool_mod.F90
 endif
 
-# UPCXX
-ifeq ($(USE_UPCXX),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_BLPgas.cpp
-  C$(AMREX_BASE)_headers += AMReX_BLPgas.H
-endif
-
 # Memory Profiler
 ifeq ($(MEM_PROFILE),TRUE)
   C$(AMREX_BASE)_sources += AMReX_MemProfiler.cpp

@@ -62,11 +62,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
 #ifdef BL_USE_MPI
 
-#if defined(BL_USE_UPCXX)
-    ParallelDescriptor::Mode.set_upcxx_mode();
-    ParallelDescriptor::Mode.incr_upcxx();
-#endif
-
 #if defined(BL_USE_MPI3)
     BL_ASSERT(FAB::preAllocatable());
 #else
@@ -104,7 +99,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
     fb_tag = SeqNum;
 
-#if defined BL_USE_UPCXX || defined BL_USE_MPI3 
+#if defined (BL_USE_MPI3)
     int actual_n_snds = 0;
 #endif
     if (N_snds > 0)
@@ -147,12 +142,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             char* data = nullptr;
             if (nbytes > 0)
             {
-                data = static_cast<char*>
-#ifdef BL_USE_UPCXX
-                    (BLPgas::alloc(nbytes));
-#else
-                    (amrex::The_FA_Arena()->alloc(nbytes));
-#endif
+                data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
             }
 
             send_data.push_back(data);
@@ -163,7 +153,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             indv_send_size.push_back(std::move(iss));
         }
 
-#if defined BL_USE_UPCXX || defined BL_USE_MPI3         
+#if defined(BL_USE_MPI3)
         actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
 #endif
     }
@@ -194,11 +184,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fb_the_recv_data = nullptr;
 
     if (N_rcvs > 0) {
-#ifdef BL_USE_UPCXX
-	PostRcvs_PGAS(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
-                      fb_recv_size, fb_recv_from,
-                      scomp, ncomp, SeqNum, &BLPgas::fb_recv_event);
-#else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	    PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
@@ -212,7 +197,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                      fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
                      scomp, ncomp, SeqNum, preSeqNum);
 	}
-#endif
     }
 
     //
@@ -250,25 +234,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef AMREX_USE_CUDA
 //        Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
 #endif
-
-#ifdef BL_USE_UPCXX
-
-	BLPgas::fb_send_counter = 0;
-
-	for (int i=0; i<N_snds; ++i) {
-            if (send_size[i] > 0) {
-                BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-                             send_rank[i], send_size[i], SeqNum,
-                             &BLPgas::fb_send_event, &BLPgas::fb_send_counter);
-            }
-        }
-
-	// Need to make sure at least half of the sends have been started
-	while (BLPgas::fb_send_counter < actual_n_snds) {
-	    upcxx::advance();
-        }
-
-#else  // MPI
 
 	if (ParallelDescriptor::MPIOneSided())
 	{
@@ -331,7 +296,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 ++send_counter;
             }
 	}
-#endif // #ifdef BL_USE_UPCXX #else 
     }
 
     if (ParallelDescriptor::MPIOneSided()) {
@@ -414,11 +378,6 @@ FabArray<FAB>::FillBoundary_finish ()
 
 #ifdef BL_USE_MPI
 
-#if defined(BL_USE_UPCXX)
-    ParallelDescriptor::Mode.set_upcxx_mode();
-    ParallelDescriptor::Mode.decr_upcxx();
-#endif
-
 #if !defined(BL_USE_MPI3)
     BL_ASSERT(!ParallelDescriptor::MPIOneSided());
 #endif
@@ -430,9 +389,6 @@ FabArray<FAB>::FillBoundary_finish ()
 
     int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
 
-#ifdef BL_USE_UPCXX
-    if (actual_n_rcvs > 0) BLPgas::fb_recv_event.wait();
-#else 
     if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fb_win);
@@ -448,7 +404,6 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 	}
     }
-#endif
 
     if (N_rcvs > 0)
     {
@@ -498,16 +453,12 @@ FabArray<FAB>::FillBoundary_finish ()
 
         if (fb_the_recv_data)
         {
-#ifdef BL_USE_UPCXX
-            BLPgas::free(fb_the_recv_data);
-#else
             if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
                 MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
 #endif
             }
 	    amrex::The_FA_Arena()->free(fb_the_recv_data);
-#endif
 	}
         else
         {
@@ -518,11 +469,6 @@ FabArray<FAB>::FillBoundary_finish ()
     }
 
     if (N_snds > 0) {
-#ifdef BL_USE_UPCXX
-        FabArrayBase::WaitForAsyncSends_PGAS(N_snds,fb_send_data,
-					     &BLPgas::fb_send_event,
-					     &BLPgas::fb_send_counter);
-#else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	    for (int i = 0; i < N_snds; ++i) {
@@ -533,7 +479,6 @@ FabArray<FAB>::FillBoundary_finish ()
             Vector<MPI_Status> stats;
             FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
         }
-#endif
     }
 
 #ifdef BL_USE_TEAM
@@ -649,10 +594,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
-#if defined(BL_USE_UPCXX)
-    ParallelDescriptor::Mode.set_upcxx_mode();
-#endif
-
 #if defined(BL_USE_MPI3)
     BL_ASSERT(FAB::preAllocatable());
 #else
@@ -707,7 +648,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         Vector<Vector<int> >                 indv_send_size;
         Vector<MPI_Request>                 pre_reqs;
 
-#if defined BL_USE_UPCXX || defined BL_USE_MPI3 
+#if defined(BL_USE_MPI3)
         int actual_n_snds = 0;
 #endif
 	if (N_snds > 0)
@@ -747,12 +688,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 char* data = nullptr;
                 if (nbytes > 0)
                 {
-                    data = static_cast<char*>
-#ifdef BL_USE_UPCXX
-                        (BLPgas::alloc(nbytes));
-#else
-                        (amrex::The_FA_Arena()->alloc(nbytes));
-#endif
+                    data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
                 }
                     
 		send_data.push_back(data);
@@ -763,7 +699,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 indv_send_size.push_back(std::move(iss));
 	    }
 
-#if defined BL_USE_UPCXX || defined BL_USE_MPI3
+#if defined(BL_USE_MPI3)
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
 #endif
         }
@@ -795,11 +731,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
         int actual_n_rcvs = 0;
 	if (N_rcvs > 0) {
-#ifdef BL_USE_UPCXX
-	    PostRcvs_PGAS(*thecpc.m_RcvVols, the_recv_data, recv_data,
-                          recv_size, recv_from, 
-                          SC, NC, SeqNum, &BLPgas::cp_recv_event);
-#else
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
                 PostRcvs_MPI_Onesided(*thecpc.m_RcvVols, the_recv_data, recv_data, 
@@ -812,7 +743,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
                          recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
 	    }
-#endif
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
 	}
 
@@ -853,25 +783,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 //            Device::synchronize();
 #endif
 
-#ifdef BL_USE_UPCXX
-	    
-	    BLPgas::cp_send_counter = 0;
-
-	    for (int i=0; i<N_snds; ++i) {
-                if (send_size[i] > 0) {
-                    BLPgas::Send(upcxx::global_ptr<void>((void *)send_data[i], upcxx::myrank()),
-                                 send_rank[i], send_size[i], SeqNum,
-                                 &BLPgas::cp_send_event, &BLPgas::cp_send_counter);
-                }
-	    }
-	    
-	    // Need to make sure at least half of the sends have been started
-	    while (BLPgas::cp_send_counter < actual_n_snds) {
-		upcxx::advance();
-            }
-
-#else
-	    
 	    if (ParallelDescriptor::MPIOneSided())
 	    {
 #if defined(BL_USE_MPI3)
@@ -946,7 +857,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     ++send_counter;
 		}
 	    }
-#endif
 	}
 
 #ifdef BL_USE_MPI3
@@ -1029,9 +939,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	//
 	//  wait and unpack
 	//
-#ifdef BL_USE_UPCXX
-        if (actual_n_rcvs > 0) BLPgas::cp_recv_event.wait();
-#else
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 	    if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::cp_win);
@@ -1047,7 +954,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 }
 	    }
 	}
-#endif	
 
 	if (N_rcvs > 0)
 	{
@@ -1111,16 +1017,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
             if (the_recv_data)
             {
-#ifdef BL_USE_UPCXX
-                BLPgas::free(the_recv_data);
-#else
                 if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
                     MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
 #endif
                 }
                 amrex::The_FA_Arena()->free(the_recv_data);
-#endif
             }
             else
             {
@@ -1131,11 +1033,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	}
 	
         if (N_snds > 0) {
-#ifdef  BL_USE_UPCXX
-	    FabArrayBase::WaitForAsyncSends_PGAS(N_snds,send_data,
-					         &BLPgas::cp_send_event,
-					         &BLPgas::cp_send_counter);
-#else
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
 		for (int i = 0; i < N_snds; ++i) {
@@ -1148,7 +1045,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		    FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 		}
 	    }
-#endif
         }
 
         ipass     += NC;
@@ -1875,73 +1771,6 @@ FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVol
 }
 #endif   // BL_USE_MPI3
 
-
-#ifdef BL_USE_UPCXX
-template <class FAB>
-void
-FabArray<FAB>::PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
-                              char*&                            the_recv_data,
-                              Vector<char*>&                     recv_data,
-                              Vector<int>&                       recv_size,
-                              Vector<int>&                       recv_from,
-                              int                               icomp,
-                              int                               ncomp,
-                              int                               SeqNum,
-                              upcxx::event*                     recv_event)
-{
-    recv_data.clear();
-    recv_size.clear();
-    recv_from.clear();
-
-    std::size_t TotalRcvsVolume = 0;
-    for (const auto& kv : m_RcvVols) // loop over senders
-    {
-        std::size_t nbytes = 0;
-        for (const auto& cct : kv.second)
-        {
-            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
-        }
-
-        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
-
-        TotalRcvsVolume += nbytes;
-
-        recv_data.push_back(nullptr);
-        recv_size.push_back(static_cast<int>(nbytes));
-        recv_from.push_back(kv.first);
-    }
-
-    if (TotalRcvsVolume == 0)
-    {
-        the_recv_data = nullptr;
-    }
-    else
-    {
-        the_recv_data = static_cast<char*>(BLPgas::alloc(TotalRcvsVolume));
-
-        int nrecv = recv_from.size();
-
-        std::size_t offset = 0;
-        for (int i = 0; i < nrecv; ++i)
-        {
-            if (recv_size[i] > 0)
-            {
-                recv_data[i] = the_recv_data + offset;
-
-                /// Send an AM to the sender with the recv pointer
-                upcxx::global_ptr<void> dst_ptr =
-                    upcxx::global_ptr<void>(recv_data[i], upcxx::myrank());
-                // Increment the event reference before launching the remote task
-                recv_event->incref();
-                // Launch a remote task on the sender to send me data
-                BLPgas::Request(recv_from[i], dst_ptr, recv_size[i], SeqNum, recv_event);
-                upcxx::advance(); // poll the UPC++ progress engine and the network
-                offset += recv_size[i];
-            }
-        }
-    }
-}
-#endif /* BL_USE_UPCXX */
 
 template <class FAB>
 void
