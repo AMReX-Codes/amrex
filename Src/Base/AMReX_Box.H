@@ -128,6 +128,15 @@ public:
                                     bigend[2]-smallend[2] + 1));
     }
 
+    //! Return the length of the Box.
+    AMREX_CUDA_HOST_DEVICE
+    IntVect length () const
+    {
+        return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
+                                    bigend[1]-smallend[1] + 1,
+                                    bigend[2]-smallend[2] + 1));
+    }
+
     //! Return the length of the Box in given direction.
     AMREX_CUDA_HOST_DEVICE
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
