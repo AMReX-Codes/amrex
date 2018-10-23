@@ -1,5 +1,5 @@
-#ifndef _GEOMETRY_H_
-#define _GEOMETRY_H_
+#ifndef AMREX_GEOMETRY_H_
+#define AMREX_GEOMETRY_H_
 
 #include <iosfwd>
 #include <map>
@@ -160,14 +160,6 @@ public:
                         const Box&      src, 
                         Vector<IntVect>& out) const;
 
-#ifdef BL_USE_MPI
-    //! Send Geometry to sidecar procs.
-    static void SendGeometryToSidecar (Geometry *geom, int whichSidecar);
-    //
-    static void BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm);
-    static void BroadcastGeometry (Geometry &geom, int fromProc, MPI_Comm comm, bool bcastSource);
-#endif
-
 private:
     //! Helper functions.
     void read_params ();
@@ -175,7 +167,7 @@ private:
     // Static data.
     //
     static int     spherical_origin_fix;
-    static bool    is_periodic[BL_SPACEDIM]; // 0 means not periodic
+    static bool    is_periodic[AMREX_SPACEDIM]; // 0 means not periodic
     static RealBox prob_domain;
     // Non-static data.
     //

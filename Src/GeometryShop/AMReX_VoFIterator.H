@@ -1,16 +1,5 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _VOFITERATOR_H_
-#define _VOFITERATOR_H_
+#ifndef AMREX_VOFITERATOR_H_
+#define AMREX_VOFITERATOR_H_
 
 #include "AMReX_IntVect.H"
 #include "AMReX_VolIndex.H"

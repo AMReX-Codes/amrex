@@ -77,6 +77,13 @@ main (int   argc,
     amrex::Abort("This code not applicable to 1D");
 #endif
 
+    auto fileNumberMAX = fileNum[0];
+    for (int i=1; i<nFiles; ++i)
+    {
+      fileNumberMAX = std::max(fileNumberMAX,fileNum[i]);
+    }
+    int nDigits = std::log10(fileNumberMAX) + 1;
+
     int nNodesRedundant = 0;
     for (int i=0; i<nFiles; ++i)
     {
@@ -85,7 +92,6 @@ main (int   argc,
         FullDataPath += '/';
       FullDataPath += "Data";
 
-      auto nDigits = std::log10(fileNum[i]) + 1;
       FullDataPath += Concatenate("_",fileNum[i],nDigits);
 
       std::ifstream ifsd(FullDataPath.c_str(), std::ios::binary);

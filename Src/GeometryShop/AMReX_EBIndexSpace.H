@@ -1,18 +1,5 @@
-
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-
-#ifndef _EBINDEXSPACE_H_
-#define _EBINDEXSPACE_H_
+#ifndef AMREX_EBINDEXSPACE_H_
+#define AMREX_EBINDEXSPACE_H_
 
 #include "AMReX_REAL.H"
 #include "AMReX_IntVect.H"
@@ -82,6 +69,13 @@ namespace amrex
     int getLevel(const Box& a_domain) const;
 
 
+    ///
+    /**
+       Return the finest level number and domain that contains a non-zero number of multivalued cells.
+       Returns an invalid box and -1 if no level has multivalued cells
+    */
+    void getFinestLevelWithMultivaluedCells(Box& a_domain, int& a_levelNumber) const;
+
     int getNCellMax() const
       {
         return m_nCellMax;
@@ -132,7 +126,11 @@ namespace amrex
       }
 
     const EBISLevel& getEBISLevel (int lev) const { return *m_ebisLevel[lev]; }
-    
+
+    ///fills 0th component with value from implit function
+    void fillNodeFarrayBoxFromImplicitFunction(FArrayBox& a_fab,
+            Real refinement = 1, RealVect a_origin = RealVect::Zero) const;
+
   private:
 
     //only AMReX_EBIS can make one
@@ -142,6 +140,8 @@ namespace amrex
     bool m_isDefined;
 
     Vector<std::unique_ptr<EBISLevel> > m_ebisLevel;
+    //only defined if the incoming geometryservice has one.
+    std::shared_ptr<const BaseIF> m_implicitFunction;
     Vector<Box> m_domainLevel;
 
     int m_nlevels;

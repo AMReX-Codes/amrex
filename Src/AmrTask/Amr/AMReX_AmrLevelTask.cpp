@@ -941,8 +941,8 @@ FillPatchIterator::Initialize (int  boxGrow,
 						  SComp,
 						  NComp,
 						  desc.interp(SComp));
-		
-#ifdef CRSEGRNDOMP
+
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1527,7 +1527,7 @@ AmrLevel::derive (const std::string& name,
 
         mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1565,7 +1565,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1603,7 +1603,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&grid_no);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1663,7 +1663,7 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-#ifdef CRSEGRNDOMP
+#if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1701,7 +1701,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -1739,7 +1739,7 @@ AmrLevel::derive (const std::string& name,
 				 ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
 				 ZFILL(dx),ZFILL(xlo),
 				 &time,&dt,
-				 BCREC_3D(bcr),
+				 AMREX_BCREC_3D(bcr),
 				 &level,&idx);
 	    } else {
 		amrex::Error("AmeLevel::derive: no function available");
@@ -2036,74 +2036,6 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
     const MultiFab& mf_fillpatched = fpi.get_mf();
     MultiFab::Copy(leveldata, mf_fillpatched, 0, dcomp, ncomp, boxGrow);
 }
-
-
-
-void
-AmrLevel::AddProcsToComp(Amr *aptr, int nSidecarProcs, int prevSidecarProcs,
-                         int ioProcNumSCS, int ioProcNumAll, int scsMyId,
-			 MPI_Comm scsComm)
-{
-#if BL_USE_MPI
-      if(scsMyId != ioProcNumSCS) {
-        parent = aptr;
-      }
-
-      // ---- ints
-      ParallelDescriptor::Bcast(&level, 1, ioProcNumAll, scsComm);
-
-      // ---- IntVects
-      Vector<int> allIntVects;
-      if(scsMyId == ioProcNumSCS) {
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(crse_ratio[i]); }
-        for(int i(0); i < BL_SPACEDIM; ++i)    { allIntVects.push_back(fine_ratio[i]); }
-      }
-      amrex::BroadcastArray(allIntVects, scsMyId, ioProcNumSCS, scsComm);
-
-      if(scsMyId != ioProcNumSCS) {
-        int count(0);
-        for(int i(0); i < BL_SPACEDIM; ++i)    { crse_ratio[i] = allIntVects[count++]; }
-        for(int i(0); i < BL_SPACEDIM; ++i)    { fine_ratio[i] = allIntVects[count++]; }
-      }
-
-
-      // ---- Boxes
-      amrex::BroadcastBox(m_AreaToTag, scsMyId, ioProcNumSCS, scsComm);
-      
-      // ---- Geometry
-      Geometry::BroadcastGeometry(geom, ioProcNumSCS, scsComm);
-      
-      // ---- BoxArrays
-      amrex::BroadcastBoxArray(grids, scsMyId, ioProcNumSCS, scsComm);
-      amrex::BroadcastBoxArray(m_AreaNotToTag, scsMyId, ioProcNumSCS, scsComm);
-
-      // ---- state
-      int stateSize(state.size());
-      ParallelDescriptor::Bcast(&stateSize, 1, ioProcNumSCS, scsComm);
-      if(scsMyId != ioProcNumSCS) {
-        state.resize(stateSize);
-      }
-      for(int i(0); i < state.size(); ++i) {
-        state[i].AddProcsToComp(desc_lst[i], ioProcNumSCS, ioProcNumAll, scsMyId, scsComm);
-      }
-
-      // ---- bools
-      int ldc(levelDirectoryCreated);
-      ParallelDescriptor::Bcast(&ldc, 1, ioProcNumAll, scsComm);
-      levelDirectoryCreated = ldc;
-#endif
-}
-
-
-
-void
-AmrLevel::Check() const
-{
-    for(int i(0); i < state.size(); ++i) {
-      state[i].Check();
-    }
-}
-
 
 void
 AmrLevel::LevelDirectoryNames(const std::string &dir,

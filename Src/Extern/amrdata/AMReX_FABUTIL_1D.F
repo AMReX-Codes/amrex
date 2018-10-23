@@ -3,6 +3,8 @@ c ::: SCCS stuff "@(#)FABUTIL_2D.F	3.1\t6/25/93"
 #define   FORT_CINTERP       cinterp1d
 #define   FORT_PCINTERP      pcinterp1d
 
+#undef AMREX_XSDK
+
 #include "AMReX_REAL.H"
 #include "AMReX_CONSTANTS.H"
 

@@ -781,7 +781,7 @@ main (int   argc,
             ivt[1] += amrex::BASISV(0);
             ivt[2] = ivt[1] + amrex::BASISV(1);
             ivt[3] += amrex::BASISV(1);
-#if BLSPACEDIM==3
+#if BL_SPACEDIM==3
             for (int n=0; n<4; ++n) {
                 ivt[4+n] = iv[n] + amrex::BASISV(2);
             }

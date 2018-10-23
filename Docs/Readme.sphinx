@@ -42,9 +42,12 @@ You should now be able to successfully "make html" in amrex/Docs/sphinx.
 If you would like to make a pdf document from the *rst files, first 
 
 sudo apt-get install latexmk
+(if you are using macOS, latexmk is installed via the TexLive Utility)
 
 Then in the amrex/Docs/sphinx directory, type 
 
 make latexpdf
+(if you have the slimmed-down latex install, then you need to also install the following packages via TexLive Utility: tabulary, varwidth, framed, wrapfig, capt-of, needspace, courier)
+
 
 This will create amrex/Docs/sphinx/build/latex/amrex.pdf

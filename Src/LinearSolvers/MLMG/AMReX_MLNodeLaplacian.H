@@ -13,11 +13,21 @@ class MLNodeLaplacian
 {
 public :
 
+    enum struct CoarseningStrategy { Sigma, RAP };
+
     MLNodeLaplacian () {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
-                     const LPInfo& a_info = LPInfo());
+                     const LPInfo& a_info = LPInfo(),
+                     const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
+#ifdef AMREX_USE_EB
+    MLNodeLaplacian (const Vector<Geometry>& a_geom,
+                     const Vector<BoxArray>& a_grids,
+                     const Vector<DistributionMapping>& a_dmap,
+                     const LPInfo& a_info,
+                     const Vector<EBFArrayBoxFactory const*>& a_factory);
+#endif
     virtual ~MLNodeLaplacian ();
 
     MLNodeLaplacian (const MLNodeLaplacian&) = delete;
@@ -28,7 +38,8 @@ public :
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info = LPInfo(),
+                 const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
     void setRZCorrection (bool rz) { m_is_rz = rz; }
 
@@ -49,6 +60,9 @@ public :
 
     void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
     void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
+    void setSimpleInterpolation (bool flag) { m_use_simple_interp = flag; } // for P in RAP
+
+    void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
 
 protected:
 
@@ -62,13 +76,22 @@ protected:
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
 
     virtual void prepareForSolve () final;
-    virtual bool isSingular (int amrlev) const final { return false; }
+    virtual bool isSingular (int amrlev) const final
+        { return (amrlev == 0) ? m_is_bottom_singular : false; }
     virtual bool isBottomSingular () const final { return m_is_bottom_singular; }
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode,
                           bool skip_fillboundary=false) const final;
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
-    virtual Real getBScalar () const final { return 1.0; }
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const final;
+
+    virtual Real getAScalar () const final { return  0.0; }
+    virtual Real getBScalar () const final { return -1.0; }
+    virtual MultiFab const* getACoeffs (int amrlev, int mglev) const final { return nullptr; }
+    virtual std::array<MultiFab const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
+        { return {AMREX_D_DECL(m_sigma[amrlev][mglev][0].get(),
+                               m_sigma[amrlev][mglev][2].get(),
+                               m_sigma[amrlev][mglev][3].get())}; }
 
     virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
@@ -76,9 +99,25 @@ private:
 
     int m_is_rz = 0;
 
+#ifdef AMREX_USE_EB
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::RAP;
+#else
+    CoarseningStrategy m_coarsening_strategy = CoarseningStrategy::Sigma;
+#endif
+
     Vector<Vector<std::array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> > > m_sigma;
+    Vector<Vector<std::unique_ptr<MultiFab> > > m_stencil;
+
+#ifdef AMREX_USE_EB
+    // they could be MultiCutFab
+    Vector<std::unique_ptr<MultiFab> > m_connection;
+    Vector<std::unique_ptr<MultiFab> > m_integral;
+    bool m_connection_built = false;
+#endif
+
     bool m_use_gauss_seidel = true;
     bool m_use_harmonic_average = false;
+    bool m_use_simple_interp = false;
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
@@ -89,9 +128,17 @@ private:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
     void averageDownCoeffsSameAmrLevel (int amrlev);
 
+    void restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& frhs) const;
+
     void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
 
     void buildMasks ();
+
+    void buildStencil ();
+
+#ifdef AMREX_USE_EB
+    void buildConnection ();
+#endif
 };
 
 }

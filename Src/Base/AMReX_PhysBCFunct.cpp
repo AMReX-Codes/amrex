@@ -38,10 +38,10 @@ BndryFunctBase::operator () (Real* data,const int* lo,const int* hi,
     BL_ASSERT(m_func != 0 || m_func3D != 0);
 
     if (m_func != 0) {
-	m_func(data,ARLIM(lo),ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
+	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
     } else {
-	m_func3D(data,ARLIM_3D(lo),ARLIM_3D(hi),ARLIM_3D(dom_lo),ARLIM_3D(dom_hi),
-		 ZFILL(dx),ZFILL(grd_lo),time,bc);
+	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+		 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
     }
 }
 
@@ -63,8 +63,6 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
 {
     BL_PROFILE("PhysBCFunct::FillBoundary");
 
-    if (mf.nGrow() == 0) return;
-    
     if (m_geom.isAllPeriodic()) return;
 
     const Box&     domain      = m_geom.Domain();
@@ -76,7 +74,7 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
 
     // create a grown domain box containing valid + periodic cells
     Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	if (m_geom.isPeriodic(i)) {
 	    gdomain.grow(i, mf.nGrow());
 	}
@@ -97,8 +95,8 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
 	    const int* fablo = bx.loVect();
 	    const int* fabhi = bx.hiVect();
 
-	    Real xlo[BL_SPACEDIM];
-	    for (int i = 0; i < BL_SPACEDIM; i++)
+	    Real xlo[AMREX_SPACEDIM];
+	    for (int i = 0; i < AMREX_SPACEDIM; i++)
 	    {
 		xlo[i] = problo[i] + dx[i]*(fablo[i]-dlo[i]);
 	    }

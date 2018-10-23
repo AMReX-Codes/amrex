@@ -21,7 +21,7 @@ namespace amrex {
 *  IArrayBox adds additional useful capabilities which make sense
 *  for int types, such as L**p norms.
 
-*  The C pre-processor macro BL_SPACEDIM must be defined to use
+*  The C pre-processor macro AMREX_SPACEDIM must be defined to use
 *  this class.  The internal precision of FARRAYBOX objects is
 *  set by defining either BL_USE_FLOAT or BL_USE_DOUBLE
 

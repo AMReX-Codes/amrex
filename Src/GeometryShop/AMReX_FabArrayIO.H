@@ -1,16 +1,5 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _FabArrayIO__H_
-#define _FabArrayIO__H_
+#ifndef AMREX_FabArrayIO_H_
+#define AMREX_FabArrayIO_H_
 
 
 #include <cmath>
@@ -128,7 +117,7 @@ namespace amrex
           int boxid   = mfi.index();
           //writes one file per proc
           //anything more flexible requires a bunch of communication
-          int filenum = procID();
+          int filenum = ParallelDescriptor::MyProc();
           long numBytesThisBox = a_data[mfi].nBytesFull();
           localElements[ielem] = FAIOElement(filenum, offset, boxid, numBytesThisBox);
           ielem++;
@@ -138,7 +127,7 @@ namespace amrex
         Vector<FAIOElementVec> allVecs;
         gather(allVecs, localVec, 0);
         FAIOElementVec globalVec;
-        if(procID() == 0)
+        if(ParallelDescriptor::MyProc() == 0)
         {
           m_vecElem.resize(0);
           for(int ivec = 0; ivec < allVecs.size();  ivec++)
@@ -231,7 +220,7 @@ namespace amrex
         BL_PROFILE("FabArrayIO::write");
         BL_ASSERT(a_directory_name[a_directory_name.length() - 1] != '/');
 
-        UtilCreateDirectoryDestructive(a_directory_name, true);
+        UtilCreateCleanDirectory(a_directory_name, true);
 
         //first make and write the header.  This is the only blocking bit of this
         FAIOHeader<T> header(a_data);
@@ -254,7 +243,7 @@ namespace amrex
           totallength += boxlen;
         }
         char* outbuf = new char[totallength];
-        string datafilename = a_directory_name + string("/") + FAIOElement::getFilename(procID());
+        string datafilename = a_directory_name + string("/") + FAIOElement::getFilename(ParallelDescriptor::MyProc());
 
         //now do the actual write.  Again, since every proc as its own file,
         //I can do a simple open and close of the file
@@ -307,7 +296,7 @@ namespace amrex
         }
 
         a_data.define(header.m_ba, dm,  header.m_nComp, 0, MFInfo(), DefaultFabFactory<T>());
-
+        int ibox = 0;
         for(MFIter mfi(a_data); mfi.isValid(); ++mfi) 
         {
           int baindex = mfi.index();
@@ -329,6 +318,7 @@ namespace amrex
           fileStream.flush();
           fileStream.close();
           delete[] inbuf;
+          ibox++;
         }
                       
       }

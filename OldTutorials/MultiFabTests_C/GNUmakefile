@@ -14,8 +14,6 @@ COMP      = gnu
 DIM       = 3
 PRECISION = DOUBLE
 EBASE     = mfreadwrite
-EBASE     = gridmovetest
-#EBASE     = moveallfabstest
 
 include ./Make.package
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

@@ -1,29 +1,29 @@
 # to compile mt19937ar.f90, we need -fno-range-check, since that
 # routine relies on overflows when doing initializations
 
-  FCOMP_VERSION := $(shell $(COMP) -v 2>&1 | grep 'version')
+  FCOMP_VERSION = $(shell $(COMP) -v 2>&1 | grep 'version')
 
-  FC  := $(COMP)
-  F90 := $(COMP)
+  FC  = $(COMP)
+  F90 = $(COMP)
   ifdef CCOMP
-    CC  := $(CCOMP)
-    CXX := $(CCOMP)
+    CC  = $(CCOMP)
+    CXX = $(CCOMP)
   else
-    CC  := gcc
-    CXX := g++
+    CC  = gcc
+    CXX = g++
   endif
 
   # Enforce gcc minimum version of 4.8.
 
-  gcc_version       := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
-  gcc_major_version := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-  gcc_minor_version := $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+  gcc_version       = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
+  gcc_major_version = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+  gcc_minor_version = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
-  gcc_major_le_4 := $(shell expr $(gcc_major_version) \<= 4)
-  gcc_minor_lt_8 := $(shell expr $(gcc_minor_version) \< 8)
+  gcc_major_le_4 = $(shell expr $(gcc_major_version) \<= 4)
+  gcc_minor_lt_8 = $(shell expr $(gcc_minor_version) \< 8)
   ifeq ($(gcc_major_le_4),1)
     ifeq ($(gcc_minor_lt_8),1)
-        $(error GCC >= 4.8 required! Your version is $(gcc_version))
+      $(warning Your default GCC is version $(gcc_version). This might break during build. We therefore recommend that you specify a GCC >= 4.8 in your Make.local. The the docs on building AMReX for an example.)
     endif
   endif
 
@@ -75,8 +75,8 @@
     FFLAGS   += -fsanitize=address -fsanitize=undefined
     CFLAGS   += -fsanitize=address -fsanitize=undefined
     CXXFLAGS += -fsanitize=address -fsanitize=undefined
-  endif 
- 
+  endif
+
   ifdef THREAD_SANITIZER
     F90FLAGS += -fsanitize=thread
     FFLAGS   += -fsanitize=thread

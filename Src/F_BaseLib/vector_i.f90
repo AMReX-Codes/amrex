@@ -1,6 +1,6 @@
 module vector_i_module
 
-  use mempool_module, only : bl_allocate, bl_deallocate
+  use amrex_mempool_module, only : bl_allocate, bl_deallocate
   
   implicit none
 

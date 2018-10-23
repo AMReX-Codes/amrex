@@ -1,19 +1,63 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EBArith.H"
-
 
 namespace amrex
 {
+/******/
+void 
+EBArith::
+convertToITM(IndexTM<Real, SpaceDim>& a_diffrv,  const RealVect& a_rv)
+{
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      a_diffrv[idir] = a_rv[idir];
+    }
+}
+void 
+EBArith::
+convertToITM(IndexTM<int, SpaceDim>& a_diffrv,  const IntVect& a_rv)
+{
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      a_diffrv[idir] = a_rv[idir];
+    }
+}
+/******/
+void 
+EBArith::
+convertToITM(IndexTM<Real, SpaceDim-1>& a_diffrv,  const RealVect& a_rv, const int& a_ignoreIndex)
+{
+  BL_ASSERT(a_ignoreIndex >= 0);
+  BL_ASSERT(a_ignoreIndex < SpaceDim);
+
+  int index = 0;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      if(idir != a_ignoreIndex)
+        {
+          a_diffrv[index] = a_rv[idir];
+          index++;
+        }
+    }
+}
+/******/
+void 
+EBArith::
+convertToITM(IndexTM<int, SpaceDim-1>& a_diffrv,  const IntVect& a_rv, const int& a_ignoreIndex)
+{
+  BL_ASSERT(a_ignoreIndex >= 0);
+  BL_ASSERT(a_ignoreIndex < SpaceDim);
+
+  int index = 0;
+  for(int idir = 0; idir < SpaceDim; idir++)
+    {
+      if(idir != a_ignoreIndex)
+        {
+          a_diffrv[index] = a_rv[idir];
+          index++;
+        }
+    }
+}
+
   //-----
   ///returns true if coarsenable (either by agglomeration or otherwise)
    bool
@@ -151,13 +195,13 @@ namespace amrex
   getMultiColors(Vector<IntVect>& a_colors)
   {
 
-#if BL_SPACEDIM==2
+#if AMREX_SPACEDIM==2
     a_colors.resize(4);
     a_colors[0] = IntVect::Zero;//(0,0)
     a_colors[1] = IntVect::Unit;//(1,1)
     a_colors[2] = IntVect::Zero + BASISV(1);//(0,1)
     a_colors[3] = IntVect::Zero + BASISV(0);//(1,0)
-#elif BL_SPACEDIM==3
+#elif AMREX_SPACEDIM==3
     a_colors.resize(8);
     a_colors[0] = IntVect::Zero;//(0,0,0)
     a_colors[1] = IntVect::Zero + BASISV(0) + BASISV(1);//(1,1,0)
@@ -217,10 +261,10 @@ namespace amrex
     BL_PROFILE("EBArith::getInterpStencil");
 
     FaceStencil sten;
-#if BL_SPACEDIM==2
+#if AMREX_SPACEDIM==2
     getInterpStencil2D(sten, a_face, a_cfivs, a_ebisBox, a_domainBox);
 
-#elif BL_SPACEDIM==3
+#elif AMREX_SPACEDIM==3
     getInterpStencil3D(sten, a_face, a_cfivs, a_ebisBox, a_domainBox);
 #else
     bogus_bl_spacedim_macro();
@@ -1283,7 +1327,7 @@ namespace amrex
           a_weight += curWeight;
         }
       }
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
       // now try flipping a second direction
       int jdir = (idir+1)%SpaceDim;
       curQuadrant[jdir] *= -1;
@@ -1369,7 +1413,7 @@ namespace amrex
     }
 
     Real det;
-#if   BL_SPACEDIM == 2
+#if   AMREX_SPACEDIM == 2
     det = aTransA[0][0] * aTransA[1][1] - aTransA[0][1] * aTransA[1][0];
     if (det < 1.e-15 && det > -1.e-15)
     {
@@ -1382,7 +1426,7 @@ namespace amrex
       invATransA[1][0] = -aTransA[1][0] / det;
       invATransA[1][1] =  aTransA[0][0] / det;
     }
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
     det = aTransA[0][0] * ( aTransA[1][1] * aTransA[2][2]
                             - aTransA[1][2] * aTransA[2][1])
       + aTransA[0][1] * ( aTransA[1][2] * aTransA[2][0]
@@ -1613,12 +1657,12 @@ namespace amrex
     BL_PROFILE("EBArith::getLeastSquaresGradSten");
     IntVect iv0 = a_vof.gridIndex();
 
-#if   BL_SPACEDIM == 2
+#if   AMREX_SPACEDIM == 2
     int stenSize = 3;
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
     int stenSize = 7;
 #else
-    THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_BL_SPACEDIM_IS_2_OR_3;
+    THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_AMREX_SPACEDIM_IS_2_OR_3;
 #endif
     //Box domainBox = a_domain;
     Vector<IntVect> ivSten(stenSize);
@@ -1626,7 +1670,7 @@ namespace amrex
     ivSten[0] = iv0 + a_quadrant[0]*BASISV(0)                                                    ;
     ivSten[1] = iv0                           + a_quadrant[1]*BASISV(1)                          ;
     ivSten[2] = iv0 + a_quadrant[0]*BASISV(0) + a_quadrant[1]*BASISV(1)                          ;
-#if BL_SPACEDIM == 3
+#if AMREX_SPACEDIM == 3
     ivSten[3] = iv0                                                     + a_quadrant[2]*BASISV(2);
     ivSten[4] = iv0 + a_quadrant[0]*BASISV(0)                           + a_quadrant[2]*BASISV(2);
     ivSten[5] = iv0                           + a_quadrant[1]*BASISV(1) + a_quadrant[2]*BASISV(2);
@@ -1761,7 +1805,7 @@ namespace amrex
         // how do I get diagDir? by looking at my 3D visualization box
         // by setting minDiag, we control, in the case of mainDir missing, how many corner neighbors must exist to make this dimension "valid". To always require the side neighbor, set this > 3 in 3D and > 1 in 2D
 
-#if   BL_SPACEDIM == 2
+#if   AMREX_SPACEDIM == 2
         int diagDir[2][1] =
           {
             {
@@ -1773,7 +1817,7 @@ namespace amrex
           };
         mainDir   = IntVect(0,1);
         minDiag= 2; //minDiag = 2 this will always require the face neighbor
-#elif BL_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
         mainDir   = IntVect(0,1,3);
         int diagDir[3][3] =
           {
@@ -1788,7 +1832,7 @@ namespace amrex
           };
         minDiag= 2;
 #else
-        THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_BL_SPACEDIM_IS_2_OR_3;
+        THIS_IS_AN_ERROR_MESSAGE__THIS_WILL_ONLY_COMPILE_WHEN_AMREX_SPACEDIM_IS_2_OR_3;
 #endif
         for (int iDir = 0; iDir < SpaceDim; iDir++)
         {
@@ -2043,7 +2087,7 @@ namespace amrex
           secondDSten *= (0.5*a_dist[idir]*a_dist[idir]);
           a_stencil += secondDSten;
 
-#if BL_SPACEDIM==3
+#if AMREX_SPACEDIM==3
           int dir1, dir2;
           if(idir == 0)
           {
@@ -2076,7 +2120,7 @@ namespace amrex
       }
     }
 
-#if BL_SPACEDIM==2
+#if AMREX_SPACEDIM==2
     if (a_orderOfPolynomial > 1)
     {
       int dir1 = 0;

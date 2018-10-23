@@ -6,9 +6,12 @@
 #include <AMReX_EBDataCollection.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_EBSupport.H>
+#include <AMReX_Array.H>
 
 namespace amrex
 {
+
+namespace EB2 { class Level; }
 
 class EBFArrayBoxFactory
     : public FabFactory<FArrayBox>
@@ -17,6 +20,9 @@ public:
 
     EBFArrayBoxFactory (const Geometry& a_geom, const BoxArray& a_ba, const DistributionMapping& a_dm,
                         const Vector<int>& a_ngrow, EBSupport a_support);
+    EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
+                        const BoxArray& a_ba, const DistributionMapping& a_dm,
+                        const Vector<int>& a_ngrow, EBSupport a_support);    
     virtual ~EBFArrayBoxFactory () = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
@@ -32,12 +38,20 @@ public:
 
     virtual Box getDomain () const override { return m_geom.Domain(); }
 
+    const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const
+        { return m_ebdc->getMultiEBCellFlagFab(); }
+
     const MultiFab& getVolFrac () const { return m_ebdc->getVolFrac(); }
+
+    const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
+
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
-    std::array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
+
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const {
         return m_ebdc->getAreaFrac();
     }
-    std::array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
+
+    Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const {
         return m_ebdc->getFaceCent();
     }
 
@@ -48,6 +62,12 @@ private:
     std::shared_ptr<EBDataCollection> m_ebdc;
 
 };
+
+std::unique_ptr<EBFArrayBoxFactory>
+makeEBFabFactory (const Geometry& a_geom, const BoxArray& a_ba,
+                  const DistributionMapping& a_dm,
+                  const Vector<int>& a_ngrow, EBSupport a_support);
+    
 
 }
 

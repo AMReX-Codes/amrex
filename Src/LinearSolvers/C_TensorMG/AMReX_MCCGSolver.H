@@ -1,6 +1,6 @@
 
-#ifndef _MCCGSOLVER_H_
-#define _MCCGSOLVER_H_
+#ifndef AMREX_MCCGSOLVER_H_
+#define AMREX_MCCGSOLVER_H_
 
 #include <cmath>
 

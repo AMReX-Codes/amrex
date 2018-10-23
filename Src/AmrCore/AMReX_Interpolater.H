@@ -1,5 +1,5 @@
-#ifndef _INTERPOLATER_H_
-#define _INTERPOLATER_H_ 
+#ifndef AMREX_INTERPOLATER_H_
+#define AMREX_INTERPOLATER_H_
 
 #include <AMReX_Box.H>
 #include <AMReX_BCRec.H>

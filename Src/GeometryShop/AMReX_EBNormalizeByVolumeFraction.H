@@ -1,16 +1,5 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
-#ifndef _EBNORMALIZEBYVOLUMEFRACTION_H___
-#define _EBNORMALIZEBYVOLUMEFRACTION_H___
+#ifndef AMREX_EBNORMALIZEBYVOLUMEFRACTION_H_
+#define AMREX_EBNORMALIZEBYVOLUMEFRACTION_H_
 
 #include "AMReX_EBCellFAB.H"
 #include "AMReX_EBLevelGrid.H"

@@ -1,6 +1,6 @@
 #include "AMReX_LoadBalanceKD.H"
 
-using namespace amrex;
+namespace amrex {
 
 int KDTree::min_box_size = 4;
 
@@ -64,7 +64,7 @@ bool KDTree::partitionNode(KDNode* node, const FArrayBox& cost) {
     Real cost_left, cost_right;
     Box left, right;
     int dir = getLongestDir(box);
-    for (int i = 0; i < BL_SPACEDIM; ++i) {
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
         amrex_compute_best_partition(cost.dataPtr(), cost.loVect(), cost.hiVect(),
                                      box.loVect(), box.hiVect(), node->cost, dir,
                                      &cost_left, &cost_right, &split);    
@@ -83,7 +83,7 @@ bool KDTree::partitionNode(KDNode* node, const FArrayBox& cost) {
 
         // if this happens try a new direction
         if (cost_left < 1e-12 or cost_right < 1e-12) {
-            dir = (dir + 1) % BL_SPACEDIM;
+            dir = (dir + 1) % AMREX_SPACEDIM;
         } else {
             break;
         }
@@ -99,7 +99,7 @@ int KDTree::getLongestDir(const Box& box) {
     IntVect size = box.size();
     int argmax = 0;
     int max = size[0];
-    for (int i = 1; i < BL_SPACEDIM; ++i) {
+    for (int i = 1; i < AMREX_SPACEDIM; ++i) {
         if (size[i] > max) {
             max = size[i];
             argmax = i;
@@ -132,4 +132,6 @@ bool KDTree::splitBox(int split, int dir,
     right.setSmall(dir, split+1);
 
     return true;
+}
+
 }

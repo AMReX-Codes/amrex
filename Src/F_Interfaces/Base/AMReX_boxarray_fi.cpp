@@ -41,7 +41,7 @@ extern "C" {
 
     void amrex_fi_boxarray_maxsize (BoxArray* ba, int sz[])
     {
-        IntVect iv(D_DECL(sz[0],sz[1],sz[2]));
+        IntVect iv(AMREX_D_DECL(sz[0],sz[1],sz[2]));
         ba->maxSize(iv);
     }
 
