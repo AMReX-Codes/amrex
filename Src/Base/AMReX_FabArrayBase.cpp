@@ -80,25 +80,7 @@ namespace
 }
 
 Arena*
-The_FA_Arena ()
-{
-    if (the_FA_arena == nullptr) {
-        the_FA_arena = new BArena;
-#ifdef AMREX_USE_CUDA
-        // Use device memory for the FabArray
-        // staging data because that will have
-        // better MPI performance than managed memory.
-
-        if (FabArrayBase::use_cuda_aware_mpi) {
-            the_FA_arena->SetDeviceMemory();
-        } else {
-            the_FA_arena->SetHostAlloc();
-        }
-#endif
-    }
-
-    return the_FA_arena;
-}
+The_FA_Arena () { return The_Arena();}
 
 void
 FabArrayBase::Initialize ()
