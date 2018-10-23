@@ -15,6 +15,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fb_ncomp = ncomp;
     fb_nghost = nghost;
     fb_period = period;
+    fb_stream_id = 0;
 
     bool work_to_do;
     if (enforce_periodicity_only) {
@@ -45,7 +46,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(tag.dbox, tbx, fb_stream_id,
             {
                 Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                 dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
@@ -232,7 +233,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     const Box& bx = tag.sbox;
                     const FAB* sfab = &(get(tag.srcIndex));
 
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bx, tbx, fb_stream_id,
                     {
                         char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
                         sfab->copyToMem(tbx, scomp, ncomp, p);
@@ -357,7 +358,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(tag.dbox, tbx, fb_stream_id,
             {
                 Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                 dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
@@ -382,7 +383,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 const FAB* sfab = &(get(tag.srcIndex));
                       FAB* dfab = &(get(tag.dstIndex));
 
-                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(tag.dbox, tbx, fb_stream_id,
                 {
                     Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                     dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
@@ -473,7 +474,7 @@ FabArray<FAB>::FillBoundary_finish ()
                     const int scomp = fb_scomp;
                     const int ncomp = fb_ncomp;
 
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bx, tbx, fb_stream_id,
                     {
                         const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
                         dfab->copyFromMem(tbx, scomp, ncomp, p);
