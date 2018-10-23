@@ -587,6 +587,22 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
+    // buffers for communication in RedistributeGPU
+    #ifdef AMREX_USE_CUDA
+    mutable thrust::device_vector<ParticleType> m_aos_to_redistribute;
+    mutable std::array< thrust::device_vector<Real>, NArrayReal> m_real_arrays_to_redistribute;
+    mutable std::array< thrust::device_vector<int>,  NArrayInt >  m_int_arrays_to_redistribute;
+    mutable thrust::device_vector<int> m_grids_to_redistribute;
+
+    mutable thrust::device_vector<ParticleType> m_aos_r;
+    mutable thrust::device_vector<int> m_grids_r;
+    mutable thrust::device_vector<Real> m_rdata_r;
+    mutable thrust::device_vector<int> m_idata_r;
+
+    mutable thrust::device_vector<int> m_grids_tmp;
+    mutable thrust::device_vector<int> m_index_sequence_tmp;
+
+    #endif
     
 private:
 
