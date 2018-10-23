@@ -466,6 +466,7 @@ public:
         int N_snds;
         int N_rcvs;
         int actual_n_rcvs;
+        char*               the_recv_data = nullptr;
         Vector<MPI_Request> send_reqs;
         Vector<char*>       send_data;
         Vector<int>         recv_from;
@@ -708,10 +709,11 @@ private:
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
                    const MapOfCopyComTagContainers&       m_RcvTags,
-                   Vector<char*>&                          recv_data,
-                   Vector<int>&                            recv_size,
-                   Vector<int>&                            recv_from,
-                   Vector<MPI_Request>&                    recv_reqs,
+                   char*&                                 the_recv_data,
+                   Vector<char*>&                         recv_data,
+                   Vector<int>&                           recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum,
@@ -721,11 +723,11 @@ private:
 #ifdef BL_USE_MPI3
     void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                 char*&                            the_recv_data,
-                                Vector<char*>&                     recv_data,
-                                Vector<int>&                       recv_size,
-                                Vector<int>&                       recv_from,
-                                Vector<MPI_Request>&               recv_reqs,
-                                Vector<MPI_Aint>          &        recv_disp,
+                                Vector<char*>&                    recv_data,
+                                Vector<int>&                      recv_size,
+                                Vector<int>&                      recv_from,
+                                Vector<MPI_Request>&              recv_reqs,
+                                Vector<MPI_Aint>         &        recv_disp,
                                 int                               icomp,
                                 int                               ncomp,
                                 int                               SeqNum,
@@ -740,7 +742,7 @@ public:
     Periodicity fb_period;
 
     //
-    char*               fb_the_recv_data;
+    char*               fb_the_recv_data = nullptr;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
