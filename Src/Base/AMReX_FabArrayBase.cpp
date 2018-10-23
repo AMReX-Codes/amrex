@@ -1739,15 +1739,7 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_reqs.size() == N_snds);
     BL_ASSERT(send_data.size() == N_snds);
 
-    Vector<int> indx;
-
     ParallelDescriptor::Waitall(send_reqs, stats);
-
-    for (int i = 0; i < N_snds; i++) {
-        if (send_data[i]) {
-            amrex::The_FA_Arena()->free(send_data[i]);
-        }
-    }
 #endif /*BL_USE_MPI*/
 }
 

@@ -467,6 +467,7 @@ public:
         int N_rcvs;
         int actual_n_rcvs;
         char*               the_recv_data = nullptr;
+        char*               the_send_data = nullptr;
         Vector<MPI_Request> send_reqs;
         Vector<char*>       send_data;
         Vector<int>         recv_from;
@@ -743,6 +744,7 @@ public:
 
     //
     char*               fb_the_recv_data = nullptr;
+    char*               fb_the_send_data = nullptr;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
