@@ -154,15 +154,11 @@ main (int argc, char* argv[])
     Real wt1 = ParallelDescriptor::second();
 
     if (ParallelDescriptor::IOProcessor()) {
-#ifdef BL_USE_UPCXX
-        std::cout << "Using UPCXX" << std::endl;
-#else
 	if (ParallelDescriptor::MPIOneSided()) {
 	    std::cout << "Using MPI Onesided" << std::endl;
 	} else {
 	    std::cout << "Using MPI" << std::endl;
 	}
-#endif
 	std::cout << "----------------------------------------------" << std::endl;
 	std::cout << "Fill Boundary Time: " << wt1-wt0 << std::endl;
 	std::cout << "----------------------------------------------" << std::endl;

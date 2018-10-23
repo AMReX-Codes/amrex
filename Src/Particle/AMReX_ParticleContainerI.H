@@ -422,26 +422,28 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 Vector<long>
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
-    auto ngrids = ParticleBoxArray(lev).size();
-    Vector<long> nparticles(ngrids, 0);
+  auto ngrids = ParticleBoxArray(lev).size();
+  Vector<long> nparticles(ngrids, 0);
 
-    if (lev >= 0 && lev < int(m_particles.size())) {
-        for (const auto& kv : GetParticles(lev)) {
-            int gid = kv.first.first;
-            const auto& ptile = kv.second;
-	
-            if (only_valid) {
-                for (const auto& p : ptile.GetArrayOfStructs()) {
-                    if (p.m_idata.id > 0) ++nparticles[gid];
-                }
-            } else {
-                nparticles[gid] += ptile.numParticles();
-            }
-        }
+  if (lev >= 0 && lev < int(m_particles.size())) {
+    for (const auto& kv : GetParticles(lev)) {
+      int gid = kv.first.first;
+      const auto& ptile = kv.second;
       
-        if (!only_local) ParallelDescriptor::ReduceLongSum(&nparticles[0],ngrids);
+      if (only_valid) {
+	for (int k = 0; k < ptile.GetArrayOfStructs().size(); ++k) {
+	  const ParticleType& p = ptile.GetArrayOfStructs()[k];
+	  if (p.m_idata.id > 0) ++nparticles[gid];
+	}
+      } else {
+	nparticles[gid] += ptile.numParticles();
+      }
     }
-    return nparticles;
+    
+    if (!only_local) ParallelDescriptor::ReduceLongSum(&nparticles[0],ngrids);
+  }
+
+  return nparticles;
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -450,20 +452,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 {
     long nparticles = 0;
 
-    if (lev >= 0 && lev < int(m_particles.size())) {
-        for (const auto& kv : GetParticles(lev)) {
-            const auto& ptile = kv.second;	
-            if (only_valid) {
-                for (const auto& p : ptile.GetArrayOfStructs()) {
-                    if (p.m_idata.id > 0) ++nparticles;
-                }
-            } else {
-                nparticles += ptile.numParticles();
-            }
-        }
-    }
+    // if (lev >= 0 && lev < int(m_particles.size())) {
+    //     for (const auto& kv : GetParticles(lev)) {
+    //         const auto& ptile = kv.second;	
+    //         if (only_valid) {
+    //             for (const auto& p : ptile.GetArrayOfStructs()) {
+    //                 if (p.m_idata.id > 0) ++nparticles;
+    //             }
+    //         } else {
+    //             nparticles += ptile.numParticles();
+    //         }
+    //     }
+    // }
 
-    if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
+    // if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
     
     return nparticles;
 }
@@ -605,7 +607,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IncrementWith
       int gid = kv.first.first;
       const auto& pbox = kv.second.GetArrayOfStructs();
       FArrayBox&  fab  = (*mf_pointer)[gid];
-      for (const auto& p : pbox) {
+      for (int k = 0; k < pbox.size(); ++ k) {
+	const ParticleType& p = pbox[k];
           if (p.m_idata.id > 0) {
               Where(p, pld);
               BL_ASSERT(pld.m_grid == gid);
@@ -1618,7 +1621,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                    cudaMemcpyDeviceToDevice);
                         buffer += num_particles*sizeof(int);
                     }
-                }            
+                }       
             }
         }
     }        
@@ -1802,7 +1805,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                       }
                       for (int comp = 0; comp < NArrayInt; comp++) {
                           if (communicate_int_comp[comp]) {
-                              std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
+			      std::memcpy(dst, &soa.GetIntData(comp)[pindex], sizeof(int));
                               dst += sizeof(int);
                           }
                       }
@@ -2460,9 +2463,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-            for (const auto& p : aos) {
-                // Only count (and checkpoint) valid particles.
-                if (p.m_idata.id > 0) nparticles++;
+            for (int k = 0; k < aos.size(); ++k) 
+	    {
+	          // Only count (and checkpoint) valid particles.
+     	          const ParticleType& p = aos[k];
+         	  if (p.m_idata.id > 0) nparticles++;
             }
         }
       }
@@ -2901,10 +2906,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 
         // Only write out valid particles.
         int cnt = 0;	
-        for (const auto& p : kv.second.GetArrayOfStructs()) {
-            if (p.m_idata.id > 0) {
+	for (int k = 0; k < kv.second.GetArrayOfStructs().size(); ++k)
+	{
+	    const ParticleType& p = kv.second.GetArrayOfStructs()[k];
+  	    if (p.m_idata.id > 0) {
                 cnt++;
-	    }
+	    }	    
 	}
 
         count[grid] += cnt;
@@ -2935,7 +2942,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
             int pindex = 0;
-            for (const auto& p : pbox.GetArrayOfStructs()) {
+            for (int k = 0; k < pbox.size(); ++k) {
+	        const ParticleType& p = pbox.GetArrayOfStructs()[k];
                 if (p.m_idata.id > 0) {
                     for (int j = 0; j < 2 + NStructInt; j++) {
                         iptr[j] = p.m_idata.arr[j];
@@ -2963,7 +2971,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
           const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
           int pindex = 0;
-          for (const auto& p : pbox.GetArrayOfStructs()) {
+	  for (int k = 0; k < pbox.GetArrayOfStructs().size(); ++k) {
+	      const ParticleType& p = pbox.GetArrayOfStructs()[k];
               if (p.m_idata.id > 0) {
                   for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
                       rptr[j] = p.m_rdata.arr[j];

@@ -46,7 +46,7 @@ namespace amrex {
         {
             cudaError_t error = cudaFree(p);
             if(error != cudaSuccess) {
-                amrex::Print() << "Deallocation failed in cudaFree \n";
+	        amrex::Print() << "Deallocation failed in cudaFree \n";
                 amrex::Abort();
             }
         }    
@@ -65,6 +65,38 @@ namespace amrex {
     {
         return !(x == y);
     }
+
+  template<class T>
+  class thrust_managed_allocator : public thrust::device_malloc_allocator<T>
+  {
+  public:
+    using value_type = T;
+    
+    typedef thrust::device_ptr<T>  pointer;
+    inline pointer allocate(size_t n)
+    {
+      value_type* result = nullptr;
+  
+      cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+  
+      if(error != cudaSuccess)
+	{
+	  throw thrust::system_error(error, thrust::cuda_category(), "managed_allocator::allocate(): cudaMallocManaged");
+	}
+  
+      return thrust::device_pointer_cast(result);
+    }
+  
+    inline void deallocate(pointer ptr, size_t)
+    {
+      cudaError_t error = cudaFree(thrust::raw_pointer_cast(ptr));
+  
+      if(error != cudaSuccess)
+	{
+	  throw thrust::system_error(error, thrust::cuda_category(), "managed_allocator::deallocate(): cudaFree");
+	}
+    }
+  };
 
 // When not using CUDA, replace with standard allocator.
 // Prevents need to wrap applications in lots of ifdefs.
