@@ -174,7 +174,7 @@ PhysicalParticleContainer::AddParticles (int lev)
  * but its boundaries need not be aligned with the actual cells of the simulation)
  */
 void
-PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
+PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 {
     BL_PROFILE("PhysicalParticleContainer::AddPlasma");
 
@@ -266,6 +266,11 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
             const int grid_id = mfi.index();
             const int tile_id = mfi.LocalTileIndex();
 
+#ifdef AMREX_USE_CUDA
+	    Cuda::HostVector<ParticleType> host_particles;
+	    std::array<Cuda::HostVector<Real>, PIdx::nattribs> host_attribs;
+#endif
+	    
             // Loop through the cells of overlap_box and inject
             // the corresponding particles
             const auto& overlap_corner = overlap_realbox.lo();
@@ -365,15 +370,48 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
                     attribs[PIdx::uzold] = u[2];
 #endif
 
-                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+		    ParticleType p;
+		    p.id()  = ParticleType::NextID();
+		    p.cpu() = ParallelDescriptor::MyProc();
+#if (AMREX_SPACEDIM == 3)
+		    p.pos(0) = x;
+		    p.pos(1) = y;
+		    p.pos(2) = z;
+#elif (AMREX_SPACEDIM == 2)
+		    p.pos(0) = x;
+		    p.pos(1) = z;
+#endif
+
+#ifdef AMREX_USE_CUDA			
+		    host_particles.push_back(p);
+		    for (int kk = 0; kk < PIdx::nattribs; ++kk)
+		      host_attribs[kk].push_back(attribs[kk]);
+#else		    
+		    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+#endif
                 }
             }
 
+#ifdef AMREX_USE_CUDA
+	    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+	    particle_tile.resize(host_particles.size());
+
+	    thrust::copy(host_particles.begin(),
+			 host_particles.end(),
+			 particle_tile.GetArrayOfStructs().begin());
+
+	    for (int kk = 0; kk < PIdx::nattribs; ++kk) {
+	      thrust::copy(host_attribs[kk].begin(),
+			   host_attribs[kk].end(),
+			   particle_tile.GetStructOfArrays().GetRealData(kk).begin());
+	    }
+#endif
+	    			 
             if (cost) {
-                wt = (amrex::second() - wt) / tile_box.d_numPts();
-                (*cost)[mfi].plus(wt, tile_box);
+	        wt = (amrex::second() - wt) / tile_box.d_numPts();
+		(*cost)[mfi].plus(wt, tile_box);
             }
-        }
+        }		
     }
 }
 
