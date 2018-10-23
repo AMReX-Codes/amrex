@@ -105,7 +105,7 @@ add_sources( AMReX_PlotFileUtil.H )
 # In GNUMake system, this is included only if BL_NO_FORT=FALSE
 #
 add_sources( AMReX_COORDSYS_${DIM}D.cpp )
-add_sources( AMReX_COORDSYS_F.H AMReX_filcc_f.H )
+add_sources( AMReX_COORDSYS_C.H AMReX_filcc_f.H )
 
 add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
    AMReX_BLProfiler_F.F90)
