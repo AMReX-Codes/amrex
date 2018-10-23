@@ -16,10 +16,6 @@
 #include <omp.h>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <AMReX_BLPgas.H>
-#endif
-
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -36,7 +32,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
-#include <iostream>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
@@ -471,6 +466,8 @@ public:
         int N_snds;
         int N_rcvs;
         int actual_n_rcvs;
+        char*               the_recv_data = nullptr;
+        char*               the_send_data = nullptr;
         Vector<MPI_Request> send_reqs;
         Vector<char*>       send_data;
         Vector<int>         recv_from;
@@ -653,16 +650,12 @@ protected:
     // for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
-#ifdef BL_USE_UPCXX
-		 , p(nullptr)
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 		 , win(MPI_WIN_NULL)
 #endif
 	    { }
 	~ShMem () {
-#ifdef BL_USE_UPCXX
-	    if (p) BLPgas::free(p);
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	    if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
 #ifdef BL_USE_TEAM
@@ -673,16 +666,12 @@ protected:
 	}
 	ShMem (ShMem&& rhs) noexcept
                  : alloc(rhs.alloc), n_values(rhs.n_values), n_points(rhs.n_points)
-#ifdef BL_USE_UPCXX
-		 , p(rhs.p)
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 		 , win(rhs.win)
 #endif
 	{
 	    rhs.alloc = false;
-#ifdef BL_USE_UPCXX
-	    rhs.p = nullptr;
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	    rhs.win = MPI_WIN_NULL;
 #endif
 	}
@@ -692,10 +681,7 @@ protected:
                 n_values = rhs.n_values;
                 n_points = rhs.n_points;
                 rhs.alloc = false;
-#ifdef BL_USE_UPCXX
-                p = rhs.p;
-                rhs.p = nullptr;
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
                 win = rhs.win;
                 rhs.win = MPI_WIN_NULL;
 #endif                
@@ -707,9 +693,7 @@ protected:
 	bool  alloc;
 	long  n_values;
 	long  n_points;
-#ifdef BL_USE_UPCXX
-	void *p;
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	MPI_Win win;
 #endif
     };
@@ -726,10 +710,11 @@ private:
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
                    const MapOfCopyComTagContainers&       m_RcvTags,
-                   Vector<char*>&                          recv_data,
-                   Vector<int>&                            recv_size,
-                   Vector<int>&                            recv_from,
-                   Vector<MPI_Request>&                    recv_reqs,
+                   char*&                                 the_recv_data,
+                   Vector<char*>&                         recv_data,
+                   Vector<int>&                           recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum,
@@ -739,29 +724,17 @@ private:
 #ifdef BL_USE_MPI3
     void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                 char*&                            the_recv_data,
-                                Vector<char*>&                     recv_data,
-                                Vector<int>&                       recv_size,
-                                Vector<int>&                       recv_from,
-                                Vector<MPI_Request>&               recv_reqs,
-                                Vector<MPI_Aint>          &        recv_disp,
+                                Vector<char*>&                    recv_data,
+                                Vector<int>&                      recv_size,
+                                Vector<int>&                      recv_from,
+                                Vector<MPI_Request>&              recv_reqs,
+                                Vector<MPI_Aint>         &        recv_disp,
                                 int                               icomp,
                                 int                               ncomp,
                                 int                               SeqNum,
                                 MPI_Win &                         win);
 #endif
   
-#ifdef BL_USE_UPCXX
-    void PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
-                        char*&                            the_recv_data,
-                        Vector<char*>&                     recv_data,
-                        Vector<int>&                       recv_size,
-                        Vector<int>&                       recv_from,
-                        int                               icomp,
-                        int                               ncomp,
-                        int                               SeqNum,
-                        upcxx::event*                     recv_event);
-#endif
-
 public:
     // Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
@@ -770,7 +743,8 @@ public:
     Periodicity fb_period;
 
     //
-    char*               fb_the_recv_data;
+    char*               fb_the_recv_data = nullptr;
+    char*               fb_the_send_data = nullptr;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
@@ -1154,23 +1128,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 	value_type *mfp;
 	Vector<value_type*> dps;
 
-#if defined (BL_USE_UPCXX)
-
-	shmem.p = BLPgas::alloc(bytes);
-
-	upcxx::global_ptr<void> psrc = upcxx::global_ptr<void>(shmem.p);
-	std::vector<upcxx::global_ptr<void> > pdst(nworkers);
-	const auto& team = ParallelDescriptor::MyTeam().get();
-	team.allgather(&psrc, &pdst[0], sizeof(upcxx::global_ptr<void>));
-
-	mfp = static_cast<value_type*>(shmem.p);
-
-	for (int w = 0; w < nworkers; ++w) {
-	    void* p = (void*) pdst[w];
-	    dps.push_back((value_type*)p);
-	}
-
-#elif defined (BL_USE_MPI3)
+#if defined (BL_USE_MPI3)
 
 	static MPI_Info info = MPI_INFO_NULL;
 	if (info == MPI_INFO_NULL) {
@@ -1194,7 +1152,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
 #else
 
-	amrex::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
+	amrex::Abort("BaseFab::define: to allocate shared memory, USE_MPI3 must be true");
 
 #endif
 

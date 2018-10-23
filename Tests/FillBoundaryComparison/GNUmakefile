@@ -7,7 +7,6 @@ DEBUG        = FALSE
 
 USE_MPI      = TRUE
 USE_OMP      = FALSE
-USE_UPCXX    = TRUE
 
 AMREX_HOME = ../..
 
