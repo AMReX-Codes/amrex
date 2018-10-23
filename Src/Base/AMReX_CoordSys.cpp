@@ -75,7 +75,7 @@ CoordSys::CoordSys ()
 void
 CoordSys::define (const Real* cell_dx)
 {
-    BL_ASSERT(c_sys != undef);
+    AMREX_ASSERT(c_sys != undef);
     ok = true;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -93,8 +93,8 @@ void
 CoordSys::CellCenter (const IntVect& point,
                       Real*          loc) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(loc != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(loc != 0);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(0.5+ (Real)point[k]);
@@ -105,7 +105,7 @@ void
 CoordSys::CellCenter (const IntVect& point,
                       Vector<Real>&   loc) const
 {
-    BL_ASSERT(ok);
+    AMREX_ASSERT(ok);
     loc.resize(AMREX_SPACEDIM);
     CellCenter(point, loc.dataPtr());
 }
@@ -115,8 +115,8 @@ CoordSys::LoFace (const IntVect& point,
                   int            dir,
                   Real*          loc) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(loc != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(loc != 0);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 0.0 : 0.5;
@@ -138,8 +138,8 @@ CoordSys::HiFace (const IntVect& point,
                   int            dir,
                   Real*          loc) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(loc != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(loc != 0);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         Real off = (k == dir) ? 1.0 : 0.5;
@@ -160,8 +160,8 @@ void
 CoordSys::LoNode (const IntVect& point,
                   Real*          loc) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(loc != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(loc != 0);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*point[k];
@@ -180,8 +180,8 @@ void
 CoordSys::HiNode (const IntVect& point,
                   Real*          loc) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(loc != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(loc != 0);
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         loc[k] = offset[k] + dx[k]*(point[k] + 1);
@@ -199,8 +199,8 @@ CoordSys::HiNode (const IntVect& point,
 IntVect
 CoordSys::CellIndex (const Real* point) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(point != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(point != 0);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -212,8 +212,8 @@ CoordSys::CellIndex (const Real* point) const
 IntVect
 CoordSys::LowerIndex (const Real* point) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(point != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(point != 0);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -225,8 +225,8 @@ CoordSys::LowerIndex (const Real* point) const
 IntVect
 CoordSys::UpperIndex(const Real* point) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(point != 0);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(point != 0);
     IntVect ix;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
@@ -247,27 +247,27 @@ void
 CoordSys::GetVolume (FArrayBox& vol,
                      const Box& region) const 
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
     vol.resize(region,1);
-    DEF_LIMITS(vol,vol_dat,vlo,vhi);
-    int coord = (int) c_sys;
-    const int* rlo = region.loVect();
-    const int* rhi = region.hiVect();
-    amrex_setvol(AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),vol_dat,AMREX_ARLIM(vlo),AMREX_ARLIM(vhi),offset,dx,&coord);
+    SetVolume(vol,region);
 }
 
 void
 CoordSys::SetVolume (FArrayBox& vol,
                      const Box& region) const 
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
-    DEF_LIMITS(vol,vol_dat,vlo,vhi);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(region.cellCentered());
+
+    FArrayBox* volfab = &vol;
+    CudaArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    CudaArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
     int coord = (int) c_sys;
-    const int* rlo = region.loVect();
-    const int* rhi = region.hiVect();
-    amrex_setvol(AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),vol_dat,AMREX_ARLIM(vlo),AMREX_ARLIM(vhi),offset,dx,&coord);
+    AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
+
+    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    {
+        amrex_setvol(tbx, *volfab, a_offset, a_dx, coord);
+    });
 }
 
 void
@@ -275,12 +275,8 @@ CoordSys::GetDLogA (FArrayBox& dloga,
                     const Box& region,
                     int        dir) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
     dloga.resize(region,1);
-    DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
-    int coord = (int) c_sys;
-    amrex_setdloga(dloga_dat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),offset,dx,&dir,&coord);
+    SetDLogA(dloga,region,dir);
 }
 
 FArrayBox*
@@ -297,11 +293,19 @@ CoordSys::SetDLogA (FArrayBox& dloga,
                     const Box& region,
                     int        dir) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
-    DEF_LIMITS(dloga,dloga_dat,dlo,dhi);
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(region.cellCentered());
+
+    FArrayBox* dlogafab = &dloga;
+    CudaArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    CudaArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
     int coord = (int) c_sys;
-    amrex_setdloga(dloga_dat,AMREX_ARLIM(dlo),AMREX_ARLIM(dhi),offset,dx,&dir,&coord);
+    AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
+
+    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    {
+        amrex_setdloga(tbx, *dlogafab, a_offset, a_dx, dir, coord);
+    });
 }
 
 FArrayBox*
@@ -318,16 +322,10 @@ CoordSys::GetFaceArea (FArrayBox& area,
                        const Box& region,
                        int        dir) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
     Box reg(region);
     reg.surroundingNodes(dir);
     area.resize(reg,1);
-    DEF_LIMITS(area,area_dat,lo,hi)
-    int coord = (int) c_sys;
-    const int* rlo = reg.loVect();
-    const int* rhi = reg.hiVect();
-    amrex_setarea(AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),area_dat,AMREX_ARLIM(lo),AMREX_ARLIM(hi),offset,dx,&dir,&coord);
+    SetFaceArea(area,reg,dir);
 }
 
 void
@@ -335,12 +333,18 @@ CoordSys::SetFaceArea (FArrayBox& area,
                        const Box& region,
                        int        dir) const
 {
-    BL_ASSERT(ok);
-    DEF_LIMITS(area,area_dat,lo,hi)
+    AMREX_ASSERT(ok);
+
+    FArrayBox* areafab = &area;
+    CudaArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    CudaArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
     int coord = (int) c_sys;
-    const int* rlo = region.loVect();
-    const int* rhi = region.hiVect();
-    amrex_setarea(AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),area_dat,AMREX_ARLIM(lo),AMREX_ARLIM(hi),offset,dx,&dir,&coord);
+    AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
+
+    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    {
+        amrex_setarea(tbx, *areafab, a_offset, a_dx, dir, coord);
+    });
 }
 
 void
@@ -348,8 +352,8 @@ CoordSys::GetEdgeLoc (Vector<Real>& loc,
                       const Box&   region,
                       int          dir) const 
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(region.cellCentered());
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
     int len       = hi[dir] - lo[dir] + 2;
@@ -366,8 +370,8 @@ CoordSys::GetCellLoc (Vector<Real>& loc,
                       const Box&   region,
                       int          dir) const
 {
-    BL_ASSERT(ok);
-    BL_ASSERT(region.cellCentered());
+    AMREX_ASSERT(ok);
+    AMREX_ASSERT(region.cellCentered());
     const int* lo = region.loVect();
     const int* hi = region.hiVect();
     int len       = hi[dir] - lo[dir] + 1;
@@ -522,7 +526,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
         return (0.5*RZFACTOR)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
 #endif
     default:
-        BL_ASSERT(0);
+        AMREX_ASSERT(0);
     }
     return 0;
 }                      
@@ -549,7 +553,7 @@ CoordSys::AreaLo (const IntVect& point,
         case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*(0.5*RZFACTOR);
         }
     default:
-        BL_ASSERT(0);
+        AMREX_ASSERT(0);
     }
 #endif
 #if (AMREX_SPACEDIM==3)
@@ -585,7 +589,7 @@ CoordSys::AreaHi (const IntVect& point,
         case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*(RZFACTOR*0.5);
         }
     default:
-        BL_ASSERT(0);
+        AMREX_ASSERT(0);
     }
 #endif
 #if (AMREX_SPACEDIM==3)
@@ -598,40 +602,5 @@ CoordSys::AreaHi (const IntVect& point,
 #endif
     return 0;
 }
-
-
-#ifdef BL_USE_MPI
-
-void
-CoordSys::BroadcastCoordSys (CoordSys &cSys, int fromProc, MPI_Comm comm)
-{
-  bool bcastSource(ParallelDescriptor::MyProc() == fromProc);
-  CoordSys::BroadcastCoordSys(cSys, fromProc, comm, bcastSource);
-}
-
-
-
-void
-CoordSys::BroadcastCoordSys (CoordSys &cSys, int fromProc, MPI_Comm comm, bool bcastSource)
-{
-  int coord, iOK;
-
-  if(bcastSource) {  // ---- initialize the source data
-    coord = cSys.CoordInt();
-    iOK = cSys.ok;
-  }
-
-  ParallelDescriptor::Bcast(&coord, 1, fromProc, comm);
-  ParallelDescriptor::Bcast(cSys.offset, AMREX_SPACEDIM, fromProc, comm);
-  ParallelDescriptor::Bcast(cSys.dx, AMREX_SPACEDIM, fromProc, comm);
-  ParallelDescriptor::Bcast(cSys.inv_dx, AMREX_SPACEDIM, fromProc, comm);
-  ParallelDescriptor::Bcast(&iOK, 1, fromProc, comm);
-
-  if( ! bcastSource) {
-    cSys.c_sys = (CoordSys::CoordType) coord;
-    cSys.ok = iOK;
-  }
-}
-#endif
 
 }

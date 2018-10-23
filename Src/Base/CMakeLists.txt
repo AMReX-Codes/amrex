@@ -104,7 +104,7 @@ add_sources( AMReX_PlotFileUtil.H )
 # Fortran interface routines.
 # In GNUMake system, this is included only if BL_NO_FORT=FALSE
 #
-add_sources( AMReX_COORDSYS_${DIM}D.F90 )
+add_sources( AMReX_COORDSYS_${DIM}D.cpp )
 add_sources( AMReX_COORDSYS_F.H AMReX_filcc_f.H )
 
 add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
