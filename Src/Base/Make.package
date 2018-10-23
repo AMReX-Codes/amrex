@@ -105,7 +105,7 @@ C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 # Geometry / Coordinate system routines.
 #
 C$(AMREX_BASE)_sources += AMReX_CoordSys.cpp AMReX_Geometry.cpp AMReX_COORDSYS_$(DIM)D.cpp
-C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_COORDSYS_F_.H
+C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_COORDSYS_C.H
 
 ifneq ($(BL_NO_FORT),TRUE)
   C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp AMReX_MultiFabUtil_Perilla.cpp
