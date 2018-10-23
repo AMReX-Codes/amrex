@@ -67,6 +67,16 @@ ifeq ($(USE_GPROF),TRUE)
 
 endif
 
+
+ifeq ($(USE_COMPILE_PIC),TRUE)
+
+  CXXFLAGS = -fPIC
+  CFLAGS = -fPIC
+  FFLAGS = -fPIC
+  F90FLAGS = -fPIC
+
+endif
+
 ########################################################################
 
 ifeq ($(gcc_major_version),4)
