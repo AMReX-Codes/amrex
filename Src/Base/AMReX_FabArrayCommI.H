@@ -193,7 +193,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #endif
 	} else {
-	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags,
+	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags, fb_the_recv_data,
                      fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
                      scomp, ncomp, SeqNum, preSeqNum);
 	}
@@ -459,13 +459,8 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
             }
 	    amrex::The_FA_Arena()->free(fb_the_recv_data);
+            fb_the_recv_data = nullptr;
 	}
-        else
-        {
-            for (auto p : fb_recv_data) {
-                amrex::The_FA_Arena()->free(p);
-            }
-        }        
     }
 
     if (N_snds > 0) {
@@ -740,7 +735,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
 #endif
 	    } else {
-                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags, the_recv_data,
                          recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
 	    }
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
@@ -1023,12 +1018,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
                 }
                 amrex::The_FA_Arena()->free(the_recv_data);
-            }
-            else
-            {
-                for (auto p : recv_data) {
-                    amrex::The_FA_Arena()->free(p);
-                }
+                the_recv_data = nullptr;
             }
 	}
 	
@@ -1208,6 +1198,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     Vector<Vector<int> >                indv_send_size;
     Vector<MPI_Request>                 pre_reqs;
 
+    char*&           the_recv_data = handle.the_recv_data;
     Vector<MPI_Request>& send_reqs = handle.send_reqs;
     Vector<char*>      & send_data = handle.send_data;
     Vector<int>        & recv_from = handle.recv_from;
@@ -1285,7 +1276,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     //
     handle.actual_n_rcvs = 0;
     if (N_rcvs > 0) {
-        PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+        PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags, the_recv_data,
                  recv_data, recv_size, recv_from, recv_reqs, scomp, ncomp, SeqNum, preSeqNum);
         handle.actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
     }
@@ -1521,8 +1512,10 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 //        Device::synchronize();
 #endif
 
-        for (auto p : recv_data) {
-            amrex::The_FA_Arena()->free(p);
+        if (the_recv_data)
+        {
+            amrex::The_FA_Arena()->free(the_recv_data);
+            the_recv_data = nullptr;
         }
     }
 	
@@ -1615,10 +1608,11 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
                          const MapOfCopyComTagContainers&  m_RcvTags,
-                         Vector<char*>&                     recv_data,
-                         Vector<int>&                       recv_size,
-                         Vector<int>&                       recv_from,
-                         Vector<MPI_Request>&               recv_reqs,
+                         char*&                            the_recv_data,
+                         Vector<char*>&                    recv_data,
+                         Vector<int>&                      recv_size,
+                         Vector<int>&                      recv_from,
+                         Vector<MPI_Request>&              recv_reqs,
                          int                               icomp,
                          int                               ncomp,
                          int                               SeqNum,
@@ -1629,6 +1623,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
     recv_from.clear();
     recv_reqs.clear();
 
+    std::size_t TotalRcvsVolume = 0;
     for (const auto& kv : m_RcvVols) // loop over senders
     {
         std::size_t nbytes = 0;
@@ -1641,6 +1636,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         }
 
         BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+
+        TotalRcvsVolume += nbytes;
 
         recv_data.push_back(nullptr);
         recv_size.push_back(static_cast<int>(nbytes));
@@ -1669,7 +1666,17 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         }
     }
 
+    if (TotalRcvsVolume == 0)
+    {
+        the_recv_data = nullptr;
+    }
+    else
+    {
+        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
+    }
+
     int recv_counter = 0;
+    char* p = the_recv_data;
     while (recv_counter < nrecv)
     {
         int i;
@@ -1691,7 +1698,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
 
         if (recv_size[i] > 0)
         {
-            recv_data[i] = static_cast<char*>(amrex::The_FA_Arena()->alloc(recv_size[i]));
+            recv_data[i] = p;
+            p += recv_size[i];
             recv_reqs[i] = ParallelDescriptor::Arecv(recv_data[i], recv_size[i],
                                                      ParallelContext::global_to_local_rank(recv_from[i]),
                                                      SeqNum, comm).req();
@@ -1708,11 +1716,11 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                       char*&                            the_recv_data,
-                                      Vector<char*>&                     recv_data,
-                                      Vector<int>&                       recv_size,
-                                      Vector<int>&                       recv_from,
-                                      Vector<MPI_Request>&               recv_reqs,
-                                      Vector<MPI_Aint> &                 recv_disp,
+                                      Vector<char*>&                    recv_data,
+                                      Vector<int>&                      recv_size,
+                                      Vector<int>&                      recv_from,
+                                      Vector<MPI_Request>&              recv_reqs,
+                                      Vector<MPI_Aint> &                recv_disp,
                                       int                               icomp,
                                       int                               ncomp,
                                       int                               SeqNum,
