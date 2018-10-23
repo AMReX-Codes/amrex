@@ -29,6 +29,8 @@ public:
     void setVerbose(int _verbose);
     void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
                int max_iter, LinOpBCType bc_type, Real bc_value);
+    void solve(MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol, 
+               int max_iter, const BndryData& _bndry);
 
 private :
 

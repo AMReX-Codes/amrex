@@ -1,4 +1,4 @@
-! print out the extrema of each variable in the plotfiles 
+! print out the extrema of each variable in the plotfiles
 
 
 program fextrema
@@ -16,7 +16,7 @@ program fextrema
 
   type(plotfile) :: pf
   integer narg
-  character(len=256) ::  fname, varname
+  character(len=256) ::  fname, varnames, temp
 
   integer :: ntime, numvars
   integer :: max_level
@@ -25,7 +25,11 @@ program fextrema
 
   logical :: single
 
-  integer :: ivar
+  integer :: ivar, i, idx
+  integer, allocatable :: var_indices(:)
+
+  real(kind=dp_t) :: vmin, vmax
+  real(kind=dp_t), allocatable :: vvmin(:), vvmax(:)
 
   single = .FALSE.
 
@@ -34,10 +38,10 @@ program fextrema
 
   narg = command_argument_count()
 
- 
+
   farg = 1
 
-  varname = ''
+  varnames = ''
 
   do while (farg <= narg)
 
@@ -50,7 +54,7 @@ program fextrema
 
      case ('-v','--variable')
         farg = farg + 1
-        call get_command_argument(farg, value = varname)
+        call get_command_argument(farg, value = varnames)
 
      case default
         exit
@@ -58,7 +62,7 @@ program fextrema
      end select
 
      farg = farg + 1
-     
+
   enddo
 
   if ( farg > narg ) then
@@ -90,8 +94,26 @@ program fextrema
      call build(pf, fname, unit)
 
      ! if we are outputting only a single variable, make sure it exists
-     ivar = -1
-     if (varname /= '') ivar = plotfile_var_index(pf, trim(varname))
+     if (f == 1) then
+        ivar = -1
+        if (varnames /= '') then
+
+           ! flag that indicates we have variable
+           ivar = 0
+           allocate(var_indices(pf%nvars))
+           var_indices(:) = 0
+
+           do while (.not. trim(varnames) == "")
+              ivar = ivar + 1
+
+              idx = index(varnames, " ")
+              temp = varnames(:idx)
+              varnames = trim(adjustl(varnames(idx+1:)))
+
+              var_indices(ivar) = plotfile_var_index(pf, trim(temp))
+           enddo
+        endif
+     endif
 
      max_level = pf%flevel
 
@@ -103,24 +125,55 @@ program fextrema
         write (*,*) 'time = ', pf%tm
         write (*,200) "variable", "minimum value", "maximum value"
         do n = 1, numvars
-           write (*,201) pf%names(n), plotfile_minval(pf,n,max_level), plotfile_maxval(pf,n,max_level)
+           vmin = 1.e30
+           vmax = -1.e30
+           do i = 1, max_level
+              vmin = min(vmin, plotfile_minval(pf,n,i))
+              vmax = max(vmax, plotfile_maxval(pf,n,i))
+           enddo
+
+           write (*,201) pf%names(n), vmin, vmax
         enddo
         write (*,*) " "
      else
         if (ivar == -1) then
            if (f == 1) then
+              allocate(vvmin(numvars))
+              allocate(vvmax(numvars))
               write (*,100) "time", (pf%names(n), n =1,numvars)
               write (*,101) (minname(n), maxname(n), n=1,numvars)
            endif
 
-           write (*,102) pf%tm, (plotfile_minval(pf,n,max_level), plotfile_maxval(pf,n,max_level), n=1,numvars)
+           do n = 1, numvars
+              vvmin(n) = 1.e30
+              vvmax(n) = -1.e30
+
+              do i = 1, max_level
+                 vvmin(n) = min(vvmin(n), plotfile_minval(pf,n,i))
+                 vvmax(n) = max(vvmax(n), plotfile_maxval(pf,n,i))
+              enddo
+           enddo
+
+           write (*,102) pf%tm, (vvmin(n), vvmax(n), n=1,numvars)
         else
            if (f == 1) then
-              write (*,100) "time", pf%names(ivar)
-              write (*,101) minname(ivar), maxname(ivar)
+              allocate(vvmin(numvars))
+              allocate(vvmax(numvars))
+              write (*,100) "time", (pf%names(var_indices(n)), n=1, ivar)
+              write (*,101) (minname(var_indices(n)), maxname(var_indices(n)), n=1, ivar)
            endif
-           
-           write (*,102) pf%tm, plotfile_minval(pf,ivar,max_level), plotfile_maxval(pf,ivar,max_level)
+
+           do n = 1, ivar
+              vvmin(n) = 1.e30
+              vvmax(n) = -1.e30
+
+              do i = 1, max_level
+                 vvmin(n) = min(vvmin(n), plotfile_minval(pf,var_indices(n),i))
+                 vvmax(n) = max(vvmax(n), plotfile_maxval(pf,var_indices(n),i))
+              enddo
+           enddo
+
+           write (*,102) pf%tm, (vvmin(n), vvmax(n), n=1,ivar)
         endif
 
      endif

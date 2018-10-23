@@ -35,28 +35,30 @@ contains
     character(len=1024) :: cmd
     type(amrex_string) :: cmd_string
     type(c_funptr) :: cfp
+
     call amrex_parallel_init(comm)
+
     call get_command(cmd, len_cmd, status_cmd)
-    if (status_cmd .ne. 0) then
-       stop "amrex_init: get_command failed"
-    else
-       call amrex_string_build(cmd_string, cmd)
-       l_arg_parmparse = 1
-       if (present(arg_parmparse)) then
-          if (arg_parmparse) then
-             l_arg_parmparse = 1
-          else
-             l_arg_parmparse = 0
-          end if
-       end if
-       if (present(proc_parmparse)) then
-          cfp = c_funloc(proc_parmparse)
+
+    call amrex_string_build(cmd_string, cmd)
+
+    l_arg_parmparse = 1
+    if (present(arg_parmparse)) then
+       if (arg_parmparse) then
+          l_arg_parmparse = 1
        else
-          cfp = c_null_funptr
+          l_arg_parmparse = 0
        end if
-       call amrex_fi_init(cmd_string%data, amrex_parallel_communicator(), l_arg_parmparse, cfp)
-       initialized = .true.
     end if
+
+    if (present(proc_parmparse)) then
+       cfp = c_funloc(proc_parmparse)
+    else
+       cfp = c_null_funptr
+    end if
+
+    call amrex_fi_init(cmd_string%data, amrex_parallel_communicator(), l_arg_parmparse, cfp)
+    initialized = .true.
   end subroutine amrex_init
   
   subroutine amrex_finalize ()

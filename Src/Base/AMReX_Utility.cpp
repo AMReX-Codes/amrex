@@ -24,6 +24,7 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_Print.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -214,10 +215,10 @@ amrex::UtilCreateDirectory (const std::string& path,
 
     if(retVal == false  || verbose == true) {
       for(int i(0); i < pathError.size(); ++i) {
-        std::cout << "amrex::UtilCreateDirectory:: path errno:  " 
-                  << pathError[i].first << " :: "
-                  << strerror(pathError[i].second)
-                  << std::endl;
+          amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  " 
+                           << pathError[i].first << " :: "
+                           << strerror(pathError[i].second)
+                           << std::endl;
       }
     }
 
@@ -268,8 +269,10 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      std::cout << "amrex::UtilCreateCleanDirectory():  " << path
-                << " exists.  Renaming to:  " << newoldname << std::endl;
+      if (amrex::system::verbose) {
+          amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
+                         << " exists.  Renaming to:  " << newoldname << std::endl;
+      }
       std::rename(path.c_str(), newoldname.c_str());
     }
     if( ! amrex::UtilCreateDirectory(path, 0755)) {
@@ -290,8 +293,10 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
   {
     if(amrex::FileExists(path)) 
     {
-      std::cout << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
-                << " exists.  I am destroying it.  " << std::endl;
+      if (amrex::Verbose()) {
+          amrex::Print() << "amrex::UtilCreateCleanDirectoryDestructive():  " << path
+                         << " exists.  I am destroying it.  " << std::endl;
+      }
       char command[2000];
       sprintf(command, "\\rm -rf %s", path.c_str());;
       int retVal = std::system(command);
@@ -317,8 +322,10 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
   if(ParallelDescriptor::IOProcessor()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
-      std::cout << "amrex::UtilRenameDirectoryToOld():  " << path
-                << " exists.  Renaming to:  " << newoldname << std::endl;
+      if (amrex::Verbose()) {
+          amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
+                         << " exists.  Renaming to:  " << newoldname << std::endl;
+      }
       std::rename(path.c_str(), newoldname.c_str());
     }
   }
@@ -342,16 +349,9 @@ namespace
 }
 
 void
-amrex::InitRandom (unsigned long seed)
-{
-    for (int i =0; i < nthreads; i++) {
-        generators[i].seed(seed);
-    }
-}
-
-void
 amrex::InitRandom (unsigned long seed, int nprocs)
 {
+
 #ifdef _OPENMP
     nthreads = omp_get_max_threads();
 #else
@@ -459,7 +459,7 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
-      std::cout << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+        amrex::AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
     }
   }
 }
@@ -473,9 +473,9 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
   bool verbose(false);
   int countForAll(totalItems / binCounts.size());
   int remainder(totalItems % binCounts.size());
-  if(ParallelDescriptor::IOProcessor() && verbose) {
-    std::cout << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
-              << "  " << remainder << std::endl;
+  if(verbose) {
+      amrex::Print() << "amrex::NItemsPerBin:  countForAll remainder = " << countForAll
+                     << "  " << remainder << std::endl;
   }
   for(int i(0); i < binCounts.size(); ++i) {
     binCounts[i] = countForAll;
@@ -484,8 +484,8 @@ amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
     ++binCounts[i];
   }
   for(int i(0); i < binCounts.size(); ++i) {
-    if(ParallelDescriptor::IOProcessor() && verbose) {
-      std::cout << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
+    if(verbose) {
+        amrex::Print() << "amrex::NItemsPerBin::  binCounts[" << i << "] = " << binCounts[i] << std::endl;
     }
   }
 }
@@ -542,7 +542,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
 
   // Create hash by summing smallEnd, bigEnd and type
   //   over a looped hash array of given size.
-  // For any empty boxes, skip BL_SPACEDIM inputs.
+  // For any empty boxes, skip AMREX_SPACEDIM inputs.
   // For an empty box array, hash=0, regardless of size.
   if (!ba.empty())
   {
@@ -550,7 +550,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
     {
       if (!ba[i].isEmpty())
       {
-        for (int j=0; j<BL_SPACEDIM; j++)
+        for (int j=0; j<AMREX_SPACEDIM; j++)
         {
            hashSum = ba[i].smallEnd(j) + ba[i].bigEnd(j) + ba[i].ixType()[j];
            hash[(hashCount%hashSize)] += hashSum;
@@ -559,7 +559,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
       }
       else
       {
-        hashCount+=BL_SPACEDIM;
+        hashCount+=AMREX_SPACEDIM;
       }
     }
   }
@@ -581,6 +581,7 @@ int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
 // Fortran entry points for amrex::Random().
 //
 
+#ifndef AMREX_XSDK
 BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
 {
     unsigned long seed = *sd;
@@ -597,6 +598,7 @@ BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(amrex::Real* rn)
 {
     *rn = amrex::Random();
 }
+#endif
 
 //
 // Lower tail quantile for standard normal distribution function.
@@ -700,6 +702,7 @@ amrex::InvNormDist (double p)
     return x;
 }
 
+#ifndef AMREX_XSDK
 BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 {
     //
@@ -712,6 +715,8 @@ BL_FORT_PROC_DECL(BLINVNORMDIST,blinvnormdist)(amrex::Real* result)
 
     *result = amrex::InvNormDist(val);
 }
+#endif
+
 
 //
 //****************************************************************************80
@@ -866,6 +871,7 @@ amrex::InvNormDistBest (double p)
   return value;
 }
 
+#ifndef AMREX_XSDK
 BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 {
     //
@@ -878,8 +884,8 @@ BL_FORT_PROC_DECL(BLINVNORMDISTBEST,blinvnormdistbest)(amrex::Real* result)
 
     *result = amrex::InvNormDistBest(val);
 }
+#endif
 
-
 //
 // Sugar for parsing IO
 //
@@ -949,7 +955,7 @@ amrex::StreamRetry::StreamRetry(const std::string &filename,
     : tries(0), maxTries(maxtries),
       abortOnRetryFailure(abortonretryfailure),
       fileName(filename),
-      sros(std::cerr)    // unused here, just to make the compiler happy
+      sros(amrex::ErrorStream())    // unused here, just to make the compiler happy
 {
   nStreamErrors = 0;
 }
@@ -964,30 +970,38 @@ bool amrex::StreamRetry::TryOutput()
       ++nStreamErrors;
       int myProc(ParallelDescriptor::MyProc());
       if(tries <= maxTries) {
-        std::cout << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
-                  << tries << " :: gbfe:  "
-                  << sros.good() << sros.bad() << sros.fail() << sros.eof()
-                  << " :: sec = " << ParallelDescriptor::second()
-                  << " :: os.tellp() = " << sros.tellp()
-                  << " :: rewind spos = " << spos
-                  << std::endl;
+          if (amrex::Verbose()) {
+              amrex::AllPrint() << "PROC: " << myProc << " :: STREAMRETRY_" << suffix << " # "
+                                << tries << " :: gbfe:  "
+                                << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                                << " :: sec = " << ParallelDescriptor::second()
+                                << " :: os.tellp() = " << sros.tellp()
+                                << " :: rewind spos = " << spos
+                                << std::endl;
+          }
         sros.clear();  // clear the bad bits
-        std::cout << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
-	          << sros.fail() << sros.eof() << std::endl;
+        if (amrex::Verbose()) {
+            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
+                              << sros.fail() << sros.eof() << std::endl;
+        }
         sros.seekp(spos, std::ios::beg);  // reset stream position
         ++tries;
         return true;
       } else {
-        std::cout << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
-                  << tries << " :: File may be corrupt.  :: gbfe:  "
-                  << sros.good() << sros.bad() << sros.fail() << sros.eof()
-                  << " :: sec = " << ParallelDescriptor::second()
-                  << " :: os.tellp() = " << sros.tellp()
-                  << " :: rewind spos = " << spos
-                  << std::endl;
+        if (amrex::Verbose()) {
+            amrex::AllPrint() << "PROC: " << myProc << " :: STREAMFAILED_" << suffix << " # "
+                              << tries << " :: File may be corrupt.  :: gbfe:  "
+                              << sros.good() << sros.bad() << sros.fail() << sros.eof()
+                              << " :: sec = " << ParallelDescriptor::second()
+                              << " :: os.tellp() = " << sros.tellp()
+                              << " :: rewind spos = " << spos
+                              << std::endl;
+        }
         sros.clear();  // clear the bad bits
-        std::cout << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
-	          << sros.fail() << sros.eof() << std::endl;
+        if (amrex::Verbose()) {
+            amrex::AllPrint() << "After os.clear() : gbfe:  " << sros.good() << sros.bad()
+                              << sros.fail() << sros.eof() << std::endl;
+        }
         return false;
       }
     } else {
@@ -1014,8 +1028,10 @@ bool amrex::StreamRetry::TryFileOutput()
         if(ParallelDescriptor::IOProcessor()) {
           const std::string& badFileName = amrex::Concatenate(fileName + ".bad",
                                                                tries - 1, 2);
-          std::cout << nWriteErrors << " STREAMERRORS : Renaming file from "
-                    << fileName << "  to  " << badFileName << std::endl;
+          if (amrex::Verbose()) {
+              amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
+                             << fileName << "  to  " << badFileName << std::endl;
+          }
           std::rename(fileName.c_str(), badFileName.c_str());
         }
         ParallelDescriptor::Barrier("StreamRetry::TryFileOutput");  // wait for file rename
@@ -1273,70 +1289,6 @@ void amrex::BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int ro
   }
 }
 
-void amrex::BroadcastBox(Box &bB, int myLocalId, int rootId, const MPI_Comm &localComm)
-{
-  Vector<int> baseBoxAI;
-  if(myLocalId == rootId) {
-    baseBoxAI = amrex::SerializeBox(bB);
-  }
-  amrex::BroadcastArray(baseBoxAI, myLocalId, rootId, localComm);
-  if(myLocalId != rootId) {
-    bB = amrex::UnSerializeBox(baseBoxAI);
-  }
-}
-
-
-void amrex::BroadcastBoxArray(BoxArray &bBA, int myLocalId, int rootId, const MPI_Comm &localComm)
-{
-  Vector<int> sbaG;
-  if(myLocalId == rootId) {
-    sbaG = amrex::SerializeBoxArray(bBA);
-  }
-  amrex::BroadcastArray(sbaG, myLocalId, rootId, localComm);
-  if(myLocalId != rootId) {
-    if(sbaG.size() > 0) {
-      bBA = amrex::UnSerializeBoxArray(sbaG);
-    }
-  }
-}
-
-void amrex::BroadcastDistributionMapping(DistributionMapping &dM,
-                                          int myLocalId, int rootId, const MPI_Comm &localComm)
-{
-  // ---- Strategy
-  int dmStrategy(dM.strategy());
-  ParallelDescriptor::Bcast(&dmStrategy, 1, rootId, localComm);
-  if(myLocalId != rootId) {
-    dM.strategy(static_cast<DistributionMapping::Strategy>(dmStrategy));
-  }
-
-  // ---- Color & dmap
-  Vector<int> dmapA;
-  int colorInt;
-  if(myLocalId == rootId) {
-    dmapA = dM.ProcessorMap();
-    colorInt = dM.color().to_int();
-  }
-  amrex::BroadcastArray(dmapA, myLocalId, rootId, localComm);
-  ParallelDescriptor::Bcast(&colorInt, 1, rootId, localComm);
-  if(dmapA.size() > 0) {
-    if(myLocalId != rootId) {
-      ParallelDescriptor::Color colorA(colorInt); 
-      dM.define(dmapA, colorA);
-    }
-  }
-
-  // ---- dmID and nDistMaps
-  int dmID(dM.DistMapID()), nDM(DistributionMapping::NDistMaps());
-  ParallelDescriptor::Bcast(&dmID, 1, rootId, localComm);
-  ParallelDescriptor::Bcast(&nDM, 1, rootId, localComm);
-  if(myLocalId != rootId) {
-    dM.SetDistMapID(dmID);
-    DistributionMapping::SetNDistMaps(nDM);
-  }
-}
-
-
 void amrex::USleep(double sleepsec) {
   constexpr unsigned int msps = 1000000;
   usleep(sleepsec * msps);
@@ -1351,4 +1303,28 @@ double amrex::second ()
 {
     return std::chrono::duration_cast<std::chrono::duration<double> >
         (amrex::MaxResSteadyClock::now() - clock_time_begin).count();
+}
+
+
+extern "C" {
+    void* amrex_malloc (std::size_t size)
+    {
+        return malloc(size);
+    }
+
+
+    void amrex_free (void* p)
+    {
+        std::free(p);
+    }
+
+    double amrex_random ()
+    {
+        return amrex::Random();
+    }
+
+    long amrex_random_int (long n)  // This is for Fortran, which doesn't have unsigned long.
+    {
+        return static_cast<long>(amrex::Random_int(static_cast<unsigned long>(n)));
+    }
 }

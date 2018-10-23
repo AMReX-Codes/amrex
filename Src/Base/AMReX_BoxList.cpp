@@ -1,8 +1,9 @@
 
-
 #include <algorithm>
 #include <iostream>
+#include <cmath>
 
+#include <AMReX_Print.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BLProfiler.H>
@@ -12,6 +13,52 @@
 #endif
 
 namespace amrex {
+
+namespace {
+
+static void chop_boxes (Box* bxv, const Box& bx, int nboxes)
+{
+    if (nboxes == 1)
+    {
+        *bxv = bx;
+    }
+    else
+    {
+        int longdir;
+        int longlen = bx.longside(longdir);
+        int chop_pnt = bx.smallEnd(longdir) + longlen/2;
+        Box bxleft = bx;
+        Box bxright = bxleft.chop(longdir, chop_pnt);
+
+        int nleft = nboxes / 2;
+        chop_boxes(bxv, bxleft, nleft);
+
+        int nright = nboxes - nleft;
+        chop_boxes(bxv+nleft, bxright, nright);
+    }
+}
+
+static void chop_boxes_dir (Box* bxv, const Box& bx, int nboxes, int idir)
+{
+    if (nboxes == 1)
+    {
+        *bxv = bx;
+    }
+    else
+    {
+        int chop_pnt = bx.smallEnd(idir) + bx.length(idir)/2;
+        Box bxleft = bx;
+        Box bxright = bxleft.chop(idir, chop_pnt);
+
+        int nleft = nboxes / 2;
+        chop_boxes_dir(bxv, bxleft, nleft, idir);
+
+        int nright = nboxes - nleft;
+        chop_boxes_dir(bxv+nleft, bxright, nright, idir);
+    }
+}
+
+}
 
 void
 BoxList::clear ()
@@ -23,7 +70,6 @@ void
 BoxList::join (const BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
-    m_lbox.reserve(m_lbox.size() + blist.size());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
 }
 
@@ -31,7 +77,6 @@ void
 BoxList::join (const Vector<Box>& barr)
 {
     BL_ASSERT(barr.size() == 0 || ixType() == barr[0].ixType());
-    m_lbox.reserve(m_lbox.size() + barr.size());
     m_lbox.insert(std::end(m_lbox), std::begin(barr), std::end(barr));
 }
 
@@ -39,7 +84,6 @@ void
 BoxList::catenate (BoxList& blist)
 {
     BL_ASSERT(ixType() == blist.ixType());
-    m_lbox.reserve(m_lbox.size() + blist.size());
     m_lbox.insert(std::end(m_lbox), std::begin(blist), std::end(blist));
     blist.m_lbox.clear();
 }
@@ -144,7 +188,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 {
     int ntiles = 1;
     IntVect nt;
-    for (int d=0; d<BL_SPACEDIM; d++) {
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
 	nt[d] = (bx.length(d)+tilesize[d]-1)/tilesize[d];
 	ntiles *= nt[d];
     }
@@ -152,7 +196,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
     IntVect small, big, ijk;  // note that the initial values are all zero.
     ijk[0] = -1;
     for (int t=0; t<ntiles; ++t) {
-	for (int d=0; d<BL_SPACEDIM; d++) {
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
 	    if (ijk[d]<nt[d]-1) {
 		ijk[d]++;
 		break;
@@ -161,7 +205,7 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 	    }
 	}
 
-	for (int d=0; d<BL_SPACEDIM; d++) {
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
 	    small[d] = ijk[d]*tilesize[d];
 	    big[d] = std::min(small[d]+tilesize[d]-1, bx.length(d)-1);
 	}
@@ -170,6 +214,28 @@ BoxList::BoxList(const Box& bx, const IntVect& tilesize)
 	tbx.shift(bx.smallEnd());
 	push_back(tbx);
     }
+}
+
+BoxList::BoxList (const Box& bx, int nboxes)
+    : btype(bx.ixType())
+{
+    AMREX_ASSERT(nboxes > 0);
+    AMREX_ASSERT(bx.numPts() >= nboxes);
+
+    m_lbox.resize(nboxes);
+    chop_boxes(m_lbox.data(), bx, nboxes);
+}
+
+BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
+    : btype(bx.ixType())
+{
+    int idir = static_cast<int>(dir);
+
+    AMREX_ASSERT(nboxes > 0);
+    AMREX_ASSERT(bx.length(idir) >= nboxes);
+
+    m_lbox.resize(nboxes);
+    chop_boxes_dir(m_lbox.data(), bx, nboxes, idir);
 }
 
 bool
@@ -278,35 +344,63 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-	Box mbox = ba.minimalBox();
-	*this = amrex::boxDiff(b, mbox);
+        int npts_avgbox;
+	Box mbox = ba.minimalBox(npts_avgbox);
+        *this = amrex::boxDiff(b, mbox);
+        auto mytyp = ixType();
 
-	BoxList bl(mbox);
-#if (AMREX_SPACEDIM == 3)
-	bl.maxSize(64);
-#else
-	bl.maxSize(128);
+	BoxList bl_mesh(mbox & b);
+
+#if (AMREX_SPACEDIM == 1)
+        Real s_avgbox = npts_avgbox;
+#elif (AMREX_SPACEDIM == 2)
+        Real s_avgbox = std::sqrt(npts_avgbox);
+#elif (AMREX_SPACEDIM == 3)
+        Real s_avgbox = std::cbrt(npts_avgbox);
 #endif
-	const int N = bl.size();
-	
-	Vector<BoxList> vbl(N);
-	
-	int newsize = 0;
-	
+
+        const int block_size = 4 * (static_cast<int>(std::ceil(s_avgbox/4.))*4);
+	bl_mesh.maxSize(block_size);
+	const int N = bl_mesh.size();
+
 #ifdef _OPENMP
-	bool start_omp_parallel = !omp_in_parallel();
-#pragma omp parallel for schedule(dynamic) if(start_omp_parallel) reduction(+:newsize)
+        bool start_omp_parallel = !omp_in_parallel();
+        const int nthreads = omp_get_max_threads();
+#else
+        bool start_omp_parallel = false;
 #endif
-	for (int i = 0; i < N; ++i)
-	{
-	    ba.complementIn(vbl[i], bl.m_lbox[i]);
-	    newsize += vbl[i].size();
-	}
-	
-	m_lbox.reserve(size()+newsize);
-	for (int i = 0; i < N; ++i) {
-	    m_lbox.insert(std::end(m_lbox), std::begin(vbl[i]), std::end(vbl[i]));
-	}
+
+        if (start_omp_parallel)
+        {
+#ifdef _OPENMP
+            Vector<BoxList> bl_priv(nthreads, BoxList(mytyp));
+#pragma omp parallel
+            {
+                BoxList bl_tmp(mytyp);
+                auto& vbox = bl_priv[omp_get_thread_num()].m_lbox;
+#pragma omp for
+                for (int i = 0; i < N; ++i)
+                {
+                    ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
+                    vbox.insert(std::end(vbox), std::begin(bl_tmp), std::end(bl_tmp));
+                }
+            }
+            for (auto& bl : bl_priv) {
+                m_lbox.insert(std::end(m_lbox), std::begin(bl), std::end(bl));
+            }
+#else
+            amrex::Abort("BoxList::complementIn: how did this happen");
+#endif
+        }
+        else
+        {
+            BoxList bl_tmp(mytyp);
+            for (int i = 0; i < N; ++i)
+            {
+                ba.complementIn(bl_tmp, bl_mesh.m_lbox[i]);
+                m_lbox.insert(std::end(m_lbox), std::begin(bl_tmp), std::end(bl_tmp));
+            }
+        }
     }
 
     return *this;
@@ -412,23 +506,33 @@ BoxList
 boxDiff (const Box& b1in,
          const Box& b2)
 {
-   BL_ASSERT(b1in.sameType(b2));
-  
-   BoxList b_list(b1in.ixType());
+   BL_ASSERT(b1in.sameType(b2));  
+   BoxList bl_diff(b1in.ixType());
+   boxDiff(bl_diff,b1in,b2);
+   return bl_diff;
+}
+
+void
+boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2)
+{
+   AMREX_ASSERT(b1in.sameType(b2));
+
+   bl_diff.clear();
+   bl_diff.set(b2.ixType());
 
    if ( !b2.contains(b1in) )
    {
        Box b1(b1in);
        if ( !b1.intersects(b2) )
        {
-           b_list.push_back(b1);
+           bl_diff.push_back(b1);
        }
        else
        {
            const int* b2lo = b2.loVect();
            const int* b2hi = b2.hiVect();
 
-           for (int i = BL_SPACEDIM-1; i >= 0; i--)
+           for (int i = AMREX_SPACEDIM-1; i >= 0; i--)
            {
                const int* b1lo = b1.loVect();
                const int* b1hi = b1.hiVect();
@@ -438,7 +542,7 @@ boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b1lo[i]);
                    bn.setBig(i,b2lo[i]-1);
-                   b_list.push_back(bn);
+                   bl_diff.push_back(bn);
                    b1.setSmall(i,b2lo[i]);
                }
                if ((b1lo[i] <= b2hi[i]) && (b2hi[i] < b1hi[i]))
@@ -446,13 +550,12 @@ boxDiff (const Box& b1in,
                    Box bn(b1);
                    bn.setSmall(i,b2hi[i]+1);
                    bn.setBig(i,b1hi[i]);
-                   b_list.push_back(bn);
+                   bl_diff.push_back(bn);
                    b1.setBig(i,b2hi[i]);
                }
            }
        }
    }
-   return b_list;
 }
 
 int
@@ -470,7 +573,7 @@ BoxList::simplify_doit (bool best)
     //
     // Try to merge adjacent boxes.
     //
-    int count = 0, lo[BL_SPACEDIM], hi[BL_SPACEDIM];
+    int count = 0, lo[AMREX_SPACEDIM], hi[AMREX_SPACEDIM];
 
     for (iterator bla = begin(), End = end(); bla != End; ++bla)
     {
@@ -496,7 +599,7 @@ BoxList::simplify_doit (bool best)
             //
             bool canjoin = true;
             int  joincnt = 0;
-            for (int i = 0; i < BL_SPACEDIM; i++)
+            for (int i = 0; i < AMREX_SPACEDIM; i++)
             {
                 if (alo[i]==blo[i] && ahi[i]==bhi[i])
                 {
@@ -561,7 +664,7 @@ BoxList::maxSize (const IntVect& chunk)
 {
     Vector<Box> new_boxes;
 
-    for (int i = 0; i < BL_SPACEDIM; ++i)
+    for (int i = 0; i < AMREX_SPACEDIM; ++i)
     {
         new_boxes.clear();
         for (auto& bx : m_lbox)

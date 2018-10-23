@@ -61,7 +61,7 @@ public:
     virtual ~iMultiFab () override = default;
     
     iMultiFab (iMultiFab&& rhs) noexcept = default;
-    iMultiFab& operator= (iMultiFab&& rhs) noexcept = delete;
+    iMultiFab& operator= (iMultiFab&& rhs) noexcept = default;
 
     iMultiFab (const iMultiFab& rhs) = delete;
     iMultiFab& operator= (const iMultiFab& rhs) = delete;
@@ -337,6 +337,18 @@ public:
 			int             dstcomp,
 			int             numcomp,
 			int             nghost);
+
+    virtual void define (const BoxArray&            bxs,
+			 const DistributionMapping& dm,
+			 int                        nvar,
+			 const IntVect&             ngrow,
+#ifdef AMREX_STRICT_MODE
+			 const MFInfo&              info,
+                         const FabFactory<IArrayBox>& factory) override;
+#else
+			 const MFInfo&              info = MFInfo(),
+                         const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>()) override;
+#endif
 
     virtual void define (const BoxArray&            bxs,
 			 const DistributionMapping& dm,

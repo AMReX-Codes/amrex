@@ -8,7 +8,7 @@
 namespace amrex {
 
 class NeighborListParticleContainer
-    : public NeighborParticleContainer<2*BL_SPACEDIM, 0, 2*BL_SPACEDIM+1>
+    : public NeighborParticleContainer<2*BL_SPACEDIM, 0>
 {
 public:
 
@@ -50,15 +50,19 @@ public:
     void writeParticles(int n);
 
 private:
-    
-    inline virtual bool check_pair(const ParticleType& p1, const ParticleType& p2) final {
-        return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
-                             + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                             + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) ) <= cutoff*cutoff;
-    }
+
+    struct {
+        bool operator()(const ParticleType& p1, const ParticleType& p2) const
+        {
+            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
+                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                <= cutoff*cutoff;
+            }
+    } CheckPair;
     
     static constexpr Real cutoff = 1.e-2;
-    static constexpr Real min_r  = 1.e-4;    
+    static constexpr Real min_r  = 1.e-4;
 };
     
 }

@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
     for(int i(0); i < procMap.size(); ++i) {
       newMap[i] = (procMap[i] + 1) % ParallelDescriptor::NProcs();
     }
-    DistributionMapping newDMap(newMap);
+    DistributionMapping newDMap(std::move(newMap));
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "newDMap = " << newDMap << std::endl;
     }

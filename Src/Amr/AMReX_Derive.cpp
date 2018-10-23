@@ -253,7 +253,7 @@ DeriveRec::buildBC (const DescriptorList& d_list)
 {
     BL_ASSERT(nsr > 0);
     delete [] bcr;
-    bcr = new int[2*BL_SPACEDIM*n_state];
+    bcr = new int[2*AMREX_SPACEDIM*n_state];
     int* bci = bcr;
     for (DeriveRec::StateRange* r = rng; r != 0; r = r->next)
     {
@@ -263,11 +263,11 @@ DeriveRec::buildBC (const DescriptorList& d_list)
         {
             const int* bc = d.getBC(r->sc + k).vect();
 
-            for (int j = 0; j < 2*BL_SPACEDIM; j++)
+            for (int j = 0; j < 2*AMREX_SPACEDIM; j++)
             {
                 bci[j] = bc[j];
             }
-            bci += 2*BL_SPACEDIM;
+            bci += 2*AMREX_SPACEDIM;
         }
     }
 }

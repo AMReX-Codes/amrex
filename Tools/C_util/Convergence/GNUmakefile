@@ -9,6 +9,7 @@ DEBUG	      = TRUE
 DEBUG	      = FALSE
 #DIM	      = 3
 DIM	      = 2
+DIM           = 1
 COMP          = g++
 #USE_MPI       = TRUE 
 USE_MPI       = FALSE
@@ -18,7 +19,7 @@ USE_MPI       = FALSE
 #EBASE = Add
 ### this has no main EBASE = ComputeAmrDataNorms
 #EBASE = DiffFab
-#EBASE = DiffSameDomainRefined
+EBASE = DiffSameDomainRefined
 #EBASE = DiffSameDomainRefinedComposite
 #EBASE = DiffSameDomainRefinedStag
 #EBASE = DiffSameGrid2
@@ -28,7 +29,7 @@ USE_MPI       = FALSE
 #EBASE = PltFileNormB
 #EBASE = PltFileNorm
 #EBASE = PltFileScalConvRate
-EBASE  = RichardsonConvergenceTest
+#EBASE  = RichardsonConvergenceTest
 
 CEXE_sources += $(EBASE).cpp
 

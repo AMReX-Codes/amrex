@@ -53,7 +53,7 @@ function ( find_include_paths dirlist )
    file ( GLOB_RECURSE includes LIST_DIRECTORIES true 
       ${ARG_ROOT}/*.h ${ARG_ROOT}/*.H )
    
-  
+   
    foreach (item ${includes})
 
       get_filename_component ( path ${item} PATH )
@@ -82,7 +82,7 @@ function ( find_include_paths dirlist )
    
    
    set ( ${dirlist} ${tmp} PARENT_SCOPE )
-  
+   
 endfunction ()
 
 
@@ -170,31 +170,6 @@ function (prepend list prefix)
 endfunction ()
 
 
-#
-# Find Git Version
-#
-
-#
-# Find Git Version
-#
-function (find_git_version version)
-
-   set (output "")
-   
-   # Check whether .git is present and git installed
-   if (EXISTS ${CMAKE_SOURCE_DIR}/.git AND ${GIT_FOUND})
-      execute_process ( COMMAND git describe --abbrev=12 --dirty --always --tags
-	 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-	 OUTPUT_VARIABLE output )
-      string (STRIP ${output} output)
-   endif ()
-
-   set ( ${version} ${output} PARENT_SCOPE )
-
-endfunction ()
-
-
-
 
 #
 #  USE AT YOUR OWN RISK
@@ -223,3 +198,211 @@ function (scan_for_sources f90src f77src cxxsrc allheaders)
    set (f90src)
 
 endfunction ()
+
+
+#
+# Find all source files ( Fortran, C++, Headers )
+# in CMAKE_CURRENT_LIST_DIR.
+#
+# Arguments:
+#
+#  source_list  = the list of sources (prefixed with their absolute path)
+#  ROOT         = directory to search.
+#                 If not given, default is CMAKE_CURRENT_LIST_DIR
+#  RECURSE      = if given, enables search for subdirectories
+#
+# This macro returns a list of files with their absolute paths
+#
+# WARNING: it is dangerous and definetely discouraged to use
+#          GLOBBING to find sources. Use at your own risk.
+# 
+macro ( find_all_sources sources_list include_paths )
+
+   cmake_parse_arguments ( ARG "RECURSE" "ROOT" ""  ${ARGN} )
+
+   if ( NOT (ARG_ROOT) )
+      set (ARG_ROOT ${CMAKE_CURRENT_LIST_DIR})
+   endif ()
+
+   if (ARG_RECURSE)
+      set ( search_type GLOB_RECURSE )
+   else ()
+      set ( search_type GLOB )
+   endif ()
+   
+   file ( ${search_type} ${sources_list}
+      "${ARG_ROOT}/*.f90"
+      "${ARG_ROOT}/*.F90"
+      "${ARG_ROOT}/*.F"
+      "${ARG_ROOT}/*.cpp"
+      "${ARG_ROOT}/*.H"
+      "${ARG_ROOT}/*.h"
+      )
+   
+   unset (search_type)
+
+   # Find include paths
+   if ( ${sources_list} )
+   
+      set ( include_paths )
+      
+      foreach ( file IN LISTS ${sources_list} )
+
+	 get_filename_component ( ext ${file} EXT )
+
+	 if ( ("${ext}" STREQUAL ".h") OR ("${ext}" STREQUAL ".H") )
+
+	    get_filename_component (path ${file} DIRECTORY)
+	    list ( APPEND ${include_paths} ${path} ) 
+
+	 endif()
+      
+      endforeach ()
+
+      unset (path)
+
+      if ( ${include_paths} )
+	 list ( REMOVE_DUPLICATES ${include_paths} )
+      endif ()
+      
+   endif ()
+
+endmacro ()
+
+
+
+#
+# This sets CMake_<LANG>_FLAGS_<CONFIG> to default values
+# if the variable is empty
+#
+macro ( set_default_config_flags )
+   
+   if ( NOT CMAKE_Fortran_FLAGS_DEBUG )
+      set (CMAKE_Fortran_FLAGS_DEBUG "-g")
+   endif ()
+
+   if ( NOT CMAKE_Fortran_FLAGS_RELEASE )
+      set (CMAKE_Fortran_FLAGS_RELEASE "-O2")
+   endif ()
+
+   if ( NOT CMAKE_CXX_FLAGS_DEBUG )
+      set (CMAKE_CXX_FLAGS_DEBUG "-g")
+   endif ()
+   
+   if ( NOT CMAKE_CXX_FLAGS_RELEASE )
+      set (CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+   endif ()
+   
+endmacro ()
+
+
+
+
+
+#
+#  Helper macro to replace genex from list 
+# 
+macro (replace_genex input_list output_list )
+
+   cmake_parse_arguments ( ARG "" "LANGUAGE" "" ${ARGN} )
+
+   set (tmp_list ${${input_list}})
+   
+   # Replace all ; with a place holder (*)
+   string ( REPLACE ";" "*" tmp_list "${tmp_list}" )
+
+   # Add tmp_list delimiter only where it suits us
+   string ( REPLACE ">*" ">;" tmp_list "${tmp_list}" )
+   string ( REPLACE "*$" ";$" tmp_list "${tmp_list}" )
+   string ( REPLACE "*/" ";/" tmp_list "${tmp_list}" )
+   string ( REPLACE "*" " "   tmp_list "${tmp_list}" )
+   
+   #
+   # First remove entries related to:
+   # 1) a compiler other than the one currently in use
+   # 2) a build type other than the current one
+   # 
+   foreach ( item IN ITEMS ${tmp_list} )
+      string (REPLACE "$<" "" item ${item} )
+      string (REPLACE ">" "" item ${item} )
+      string (REPLACE ":" "" item ${item} )
+
+      # Accept build interface generator expressions 
+      string (REPLACE "BUILD_INTERFACE" "" item ${item})
+
+      # Skip genex for compilers other than the one in use
+      string ( FIND ${item} "C_COMPILER_ID" idx1 )      
+      if ( ${idx1} GREATER -1 )
+   	 string ( FIND ${item} "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" idx2 )
+   	 if ( ${idx2} GREATER -1 )
+   	    string (REPLACE "C_COMPILER_ID${CMAKE_C_COMPILER_ID}" "" item ${item} )
+   	 else ()
+   	    continue ()
+   	 endif ()
+      endif ()
+
+      string ( FIND ${item} "CXX_COMPILER_ID" idx1 )
+      if ( ${idx1} GREATER -1 )
+	 string ( FIND ${item} "CXX_COMPILER_ID${CMAKE_CXX_COMPILER_ID}" idx2 )
+	 if ( ${idx2} GREATER -1 )
+	    string (REPLACE "CXX_COMPILER_ID${CMAKE_CXX_COMPILER_ID}" "" item ${item} )
+	 else ()
+	    continue ()
+	 endif ()
+      endif ()
+
+
+      
+      string (FIND ${item} "CONFIG" idx3 )
+      if ( ${idx3} GREATER -1 )
+   	 string (FIND ${item} "${CMAKE_BUILD_TYPE}" idx4)
+   	 if ( ${idx4} GREATER -1 )
+   	    string (REPLACE "CONFIG${CMAKE_BUILD_TYPE}" "" item ${item} )
+   	 else ()
+   	    continue ()
+   	 endif () 
+      endif ()
+
+      # Extract by Language part
+      if ( ARG_LANGUAGE )
+	 string ( FIND ${item} "COMPILE_LANGUAGE" idx1 )
+	 if (${idx1} GREATER -1)
+	    if (${ARG_LANGUAGE} STREQUAL Fortran )
+	       string ( FIND ${item} "Fortran" idx2 )
+	       if ( ${idx2} GREATER -1)
+		  string (REPLACE "COMPILE_LANGUAGEFortran" "" item ${item} )
+	       else()
+		  continue ()
+	       endif ()
+	    elseif (${ARG_LANGUAGE} STREQUAL CXX)
+	       string ( FIND ${item} "CXX" idx2 )
+	       if ( ${idx2} GREATER -1)
+		  string (REPLACE "COMPILE_LANGUAGECXX" "" item ${item} )
+	       else()
+		  continue ()
+	       endif ()
+	    endif ()
+	 endif ()	    
+      endif ()
+            
+      # Now item should be ok to be added to final list
+      list ( APPEND ${output_list} ${item})
+      
+   endforeach ()
+
+   if (${output_list})
+      list (REMOVE_DUPLICATES ${output_list} )
+   endif ()
+   
+endmacro ()
+
+
+#
+# Strip string from trailing and leading whitespace
+# after veryfing it is not empty
+#
+macro (strip var)
+   if (${var})
+      string ( STRIP ${${var}} ${var} )
+   endif ()  
+endmacro ()

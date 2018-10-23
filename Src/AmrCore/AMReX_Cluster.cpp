@@ -5,7 +5,9 @@
 
 namespace amrex {
 
+namespace {
 enum CutStatus { HoleCut=0, SteepCut, BisectCut, InvalidCut };
+}
 
 Cluster::Cluster ()
     :
@@ -21,6 +23,7 @@ Cluster::Cluster (IntVect* a, long len)
 
 Cluster::~Cluster () {}
 
+namespace {
 //
 // Predicate in call to std::partition() in Cluster::Cluster(Cluster,Box).
 //
@@ -36,6 +39,7 @@ public:
 private:
     Box m_box;
 };
+}
 
 Cluster::Cluster (Cluster&   c,
                   const Box& b) 
@@ -231,6 +235,7 @@ FindCut (const int* hist,
     return lo + cutpoint;
 }
 
+namespace {
 //
 // Predicate in call to std::partition() in Cluster::chop().
 //
@@ -247,6 +252,7 @@ private:
     IntVect m_cut;
     int     m_dir;
 };
+}
 
 Cluster*
 Cluster::chop ()
@@ -261,8 +267,8 @@ Cluster::chop ()
     //
     // Compute histogram.
     //
-    int* hist[BL_SPACEDIM];
-    for (int n = 0; n < BL_SPACEDIM; n++)
+    int* hist[AMREX_SPACEDIM];
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
         hist[n] = new int[len[n]];
         for (int i = 0; i < len[n]; i++)
@@ -279,9 +285,9 @@ Cluster::chop ()
     // Find cutpoint and cutstatus in each index direction.
     //
     CutStatus mincut = InvalidCut;
-    CutStatus status[BL_SPACEDIM];
+    CutStatus status[AMREX_SPACEDIM];
     IntVect cut;
-    for (int n = 0; n < BL_SPACEDIM; n++)
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
     {
         cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
         if (status[n] < mincut)
@@ -294,7 +300,7 @@ Cluster::chop ()
     // Select best cutpoint and direction.
     //
     int dir = -1;
-    for (int n = 0, minlen = -1; n < BL_SPACEDIM; n++)
+    for (int n = 0, minlen = -1; n < AMREX_SPACEDIM; n++)
     {
         if (status[n] == mincut)
         {
@@ -306,7 +312,7 @@ Cluster::chop ()
             }
         }
     }
-    BL_ASSERT(dir >= 0 && dir < BL_SPACEDIM);
+    BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
 
     int nlo = 0;
     for (int i = lo[dir]; i < cut[dir]; i++)
@@ -316,7 +322,7 @@ Cluster::chop ()
 
     int nhi = m_len - nlo;
 
-    for (int i = 0; i < BL_SPACEDIM; i++)
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
         delete [] hist[i];
 
     IntVect* prt_it = std::partition(m_ar, m_ar+m_len, Cut(cut,dir));

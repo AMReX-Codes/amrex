@@ -16,7 +16,6 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX.H>
-#include <AMReX_Looping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MemPool.H>
 
@@ -24,7 +23,7 @@ namespace amrex {
 
 bool FArrayBox::initialized = false;
 
-#if defined(DEBUG) || defined(BL_TESTING)
+#if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
 bool FArrayBox::do_initval = true;
 bool FArrayBox::init_snan  = true;
 #else
@@ -383,7 +382,7 @@ FArrayBox::setFormat (FABio::Format fmt)
         fio = new FABio_binary(FPC::Native32RealDescriptor().clone());
         break;
     default:
-        std::cerr << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
+        amrex::ErrorStream() << "FArrayBox::setFormat(): Bad FABio::Format = " << fmt;
         amrex::Abort();
     }
 
@@ -500,7 +499,7 @@ FArrayBox::Initialize ()
         }
         else
         {
-            std::cerr << "FArrayBox::init(): Bad FABio::Format = " << fmt;
+            amrex::ErrorStream() << "FArrayBox::init(): Bad FABio::Format = " << fmt;
             amrex::Abort();
         }
 
@@ -531,7 +530,7 @@ FArrayBox::Initialize ()
             FArrayBox::setOrdering(FABio::FAB_REVERSE_ORDER_2);
         else
         {
-            std::cerr << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
+            amrex::ErrorStream() << "FArrayBox::init(): Bad FABio::Ordering = " << ord;
             amrex::Abort();
         }
     }
@@ -552,6 +551,7 @@ FArrayBox::Finalize ()
 {
     delete fabio;
     fabio = 0;
+    initialized = false;
 }
 
 //
@@ -801,7 +801,7 @@ FABio_ascii::read (std::istream& is,
     for(p = sm; p <= bg; bx.next(p)) {
         is >> q;
         if(p != q) {
-          std::cerr << "Error: read IntVect "
+          amrex::ErrorStream() << "Error: read IntVect "
                     << q
                     << "  should be "
                     << p

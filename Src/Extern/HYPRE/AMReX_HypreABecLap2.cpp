@@ -118,9 +118,6 @@ HypreABecLap2::HypreABecLap2 (const BoxArray& grids,
 
     HYPRE_SStructVectorInitialize(b);
     HYPRE_SStructVectorInitialize(x);
-
-    HYPRE_SStructVectorAssemble(b);
-    HYPRE_SStructVectorAssemble(x);
 }
 
 HypreABecLap2::~HypreABecLap2 ()
@@ -168,6 +165,24 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real a
                       int max_iter_, LinOpBCType bc_type, Real bc_value)
 {
     loadBndryData(bc_type, bc_value);
+
+    loadMatrix();
+    finalizeMatrix();
+
+    loadVectors(soln, rhs);
+    finalizeVectors();
+
+    setupSolver(rel_tol_, abs_tol_, max_iter_);
+    solveDoIt();
+    getSolution(soln);
+    clearSolver();
+}
+
+void
+HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol_, Real abs_tol_, 
+                      int max_iter_, const BndryData& _bndry)
+{
+    bd = _bndry;
 
     loadMatrix();
     finalizeMatrix();
@@ -264,15 +279,15 @@ HypreABecLap2::loadMatrix ()
 
         // build matrix interior
 
-        hmac(mat,
-             BL_TO_FORTRAN(acoefs[mfi]),
-             ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_a);
+        amrex_hmac(mat,
+                   BL_TO_FORTRAN(acoefs[mfi]),
+                   ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_a);
         
         for (int idim = 0; idim < BL_SPACEDIM; idim++) {
-            hmbc(mat, 
-                 BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                 ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
-                 geom.CellSize(), idim);
+            amrex_hmbc(mat, 
+                       BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                       ARLIM(reg.loVect()), ARLIM(reg.hiVect()), scalar_b,
+                       geom.CellSize(), idim);
         }
 
         // add b.c.'s to matrix diagonal, and
@@ -293,18 +308,18 @@ HypreABecLap2::loadMatrix ()
             // for the linear solver:
             
             if (reg[oitr()] == domain[oitr()]) {
-                hmmat3(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                       cdir, bctype, bho, bcl,
-                       BL_TO_FORTRAN(msk),
-                       BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                       scalar_b, dx);
+                amrex_hmmat3(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                             cdir, bctype, bho, bcl,
+                             BL_TO_FORTRAN(msk),
+                             BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                             scalar_b, dx);
             }
             else {
-                hmmat(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                      cdir, bctype, bho, bcl,
-                      BL_TO_FORTRAN(msk),
-                      BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                      scalar_b, dx);
+                amrex_hmmat(mat, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                            cdir, bctype, bho, bcl,
+                            BL_TO_FORTRAN(msk),
+                            BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                            scalar_b, dx);
             }
             
         }
@@ -372,6 +387,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
             int idim = oitr().coordDir();
             const int bctype = bcs_i[cdir][0];
             const Real &bcl  = bcl_i[cdir];
+
             const Mask &msk  = bd.bndryMasks(oitr())[mfi];
             const FArrayBox &fs = bd.bndryValues(oitr())[mfi];
 
@@ -379,20 +395,20 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
             // for the linear solver:
             
             if (reg[oitr()] == domain[oitr()]) {
-                hbvec3(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                       cdir, bctype, bho, bcl,
-                       BL_TO_FORTRAN(fs),
-                       BL_TO_FORTRAN(msk),
-                       BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                       scalar_b, dx);
+                amrex_hbvec3(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                             cdir, bctype, bho, bcl,
+                             BL_TO_FORTRAN(fs),
+                             BL_TO_FORTRAN(msk),
+                             BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                             scalar_b, dx);
             }
             else {
-                hbvec(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
-                      cdir, bctype, bho, bcl,
-                      BL_TO_FORTRAN(fs),
-                      BL_TO_FORTRAN(msk),
-                      BL_TO_FORTRAN(bcoefs[idim][mfi]),
-                      scalar_b, dx);
+                amrex_hbvec(vec, ARLIM(reg.loVect()), ARLIM(reg.hiVect()),
+                            cdir, bctype, bho, bcl,
+                            BL_TO_FORTRAN(fs),
+                            BL_TO_FORTRAN(msk),
+                            BL_TO_FORTRAN(bcoefs[idim][mfi]),
+                            scalar_b, dx);
             }
         }
 

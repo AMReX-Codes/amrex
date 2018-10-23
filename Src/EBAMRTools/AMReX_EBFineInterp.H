@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #ifndef _EBPWLFINEINTERP_H___
 #define _EBPWLFINEINTERP_H___
 
@@ -18,7 +7,6 @@
 #include "AMReX_EBArith.H"
 #include "AMReX_LayoutData.H"
 #include "AMReX_AggStencil.H"
-
 
 namespace amrex
 {

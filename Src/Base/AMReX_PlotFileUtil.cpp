@@ -97,14 +97,14 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
         for (int ivar = 0; ivar < varnames.size(); ++ivar) {
 	    HeaderFile << varnames[ivar] << "\n";
         }
-        HeaderFile << BL_SPACEDIM << '\n';
+        HeaderFile << AMREX_SPACEDIM << '\n';
         HeaderFile << time << '\n';
         HeaderFile << finest_level << '\n';
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbLo(i) << ' ';
 	}
         HeaderFile << '\n';
-        for (int i = 0; i < BL_SPACEDIM; ++i) {
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             HeaderFile << Geometry::ProbHi(i) << ' ';
 	}
         HeaderFile << '\n';
@@ -121,7 +121,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 	}
         HeaderFile << '\n';
         for (int i = 0; i <= finest_level; ++i) {
-            for (int k = 0; k < BL_SPACEDIM; ++k) {
+            for (int k = 0; k < AMREX_SPACEDIM; ++k) {
                 HeaderFile << geom[i].CellSize()[k] << ' ';
 	    }
             HeaderFile << '\n';
@@ -137,7 +137,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
 	    {
 		const Box &b(bArray[level][i]);
 		RealBox loc = RealBox(b, geom[level].CellSize(), geom[level].ProbLo());
-		for (int n = 0; n < BL_SPACEDIM; ++n) {
+		for (int n = 0; n < AMREX_SPACEDIM; ++n) {
 		    HeaderFile << loc.lo(n) << ' ' << loc.hi(n) << '\n';
 		}
 	    }

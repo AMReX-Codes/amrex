@@ -1,18 +1,42 @@
 #
 # This test requires a 2D build
 # 
-if ( NOT (${DIM} EQUAL 2) )
+if ( NOT (${DIM} EQUAL 2) OR (NOT ENABLE_F_INTERFACES) )
    return ()
 endif ()
 
-set ( EXENAME  "Advection_octree_F.exe")
+set ( EXENAME  "Advection_octreeF_SingleVortex.exe" )
+set ( EXE_DIR ${CMAKE_CURRENT_LIST_DIR}/Exec/SingleVortex)
+set ( SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/Source )
 
 
+add_executable ( ${EXENAME} EXCLUDE_FROM_ALL "" )
+
 #
-#  We use this very bad method to find sources
-#  automagically
+# Find sources and include paths
 #
-scan_for_sources (F90SRC F77SRC CXXSRC ALLHEADERS)
+find_all_sources ( SRC1 INC1 ROOT ${SRC_DIR} )
+find_all_sources ( SRC2 INC2 ROOT ${SRC_DIR}/Src_${DIM}d )
+
+#
+# Add sources to target
+# 
+target_sources ( ${EXENAME}
+   PRIVATE
+   ${EXE_DIR}/Prob.f90 ${EXE_DIR}/face_velocity_${DIM}d.F90
+   ${SRC1} ${SRC2} ${SRC3} )
+
+if ("${INC1} ${INC2} ${INC3}")
+   target_include_directories ( ${EXENAME} PRIVATE ${INC1} ${INC2} ${INC3} )
+endif ()
+
+set_target_properties ( ${EXENAME} PROPERTIES      
+   Fortran_MODULE_DIRECTORY
+   ${CMAKE_CURRENT_BINARY_DIR}/mod_files
+   RUNTIME_OUTPUT_DIRECTORY
+   ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
+
+target_link_libraries (${EXENAME} amrex)
 
 #
 # Find input files 
@@ -23,26 +47,8 @@ file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
 #
 # Copy input files to corresponding build dir
 #
-file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR} ) 
+file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex ) 
 
-#
-# Create executable 
-#
-add_executable ( ${EXENAME} EXCLUDE_FROM_ALL
-   ${F90SRC} ${F77SRC} ${CXXSRC} ${ALLHEADERS} )
-
-target_link_libraries ( ${EXENAME} amrex ${AMREX_EXTRA_Fortran_LINK_LINE} )
-
-
-# Fortran modules for the target will not be added to the amrex mod_files folder 
-set ( MOD_DIR ${CMAKE_CURRENT_BINARY_DIR}/mod_files )
-
-# Always put MOD_DIR before AMReX includes paths to avoid conflicts
-# between amrex fortran modules names and tutorial fortran modules names.  
-set_target_properties ( ${EXENAME} PROPERTIES
-   INCLUDE_DIRECTORIES "${MOD_DIR};${AMREX_INCLUDE_PATHS}"
-   Fortran_MODULE_DIRECTORY ${MOD_DIR}
-   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR} )
 
 add_tutorial (${EXENAME})   
 

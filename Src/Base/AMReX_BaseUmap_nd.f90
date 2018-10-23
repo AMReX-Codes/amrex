@@ -7,8 +7,8 @@ use amrex_fort_module, only : amrex_real
 contains
 
 
-  function fort_umap_norm (lo, hi, src, src_sz, kt, ktlo, kthi, max_mv,ncomp, p) result(nrm) &
-       bind(c,name='fort_umap_norm')
+  function amrex_fort_umap_norm (lo, hi, src, src_sz, kt, ktlo, kthi, max_mv,ncomp, p) result(nrm) &
+       bind(c,name='amrex_fort_umap_norm')
     integer, intent(in) :: lo(3), hi(3), ktlo(3), kthi(3), p, max_mv, ncomp, src_sz
     ! This dangerous - key_table_type is currently int, but could be changed to long
     ! mabye that should be an amrex_size_t?
@@ -36,11 +36,11 @@ contains
            end do
        enddo
     end if
-  end function fort_umap_norm
+  end function amrex_fort_umap_norm
 
 
-  function fort_umap_norm_direct (lo, hi, src, src_sz, kt, ktlo, kthi, max_mv,ncomp, p) result(nrm) &
-       bind(c,name='fort_umap_norm_direct')
+  function amrex_fort_umap_norm_direct (lo, hi, src, src_sz, kt, ktlo, kthi, max_mv,ncomp, p) result(nrm) &
+       bind(c,name='amrex_fort_umap_norm_direct')
     integer, intent(in) :: lo(3), hi(3), ktlo(3), kthi(3), p, max_mv, ncomp, src_sz
     ! This dangerous - key_table_type is currently int, but could be changed to long
     ! mabye that should be an amrex_size_t?
@@ -58,5 +58,5 @@ contains
             nrm = max(nrm, abs(src(m)))
         enddo
     end if
-  end function fort_umap_norm_direct
+  end function amrex_fort_umap_norm_direct
 end module

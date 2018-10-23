@@ -1,3 +1,4 @@
+#if 0
 ! ::
 ! :: ----------------------------------------------------------
 ! :: Sum the fine grid mass into the coarse grid.
@@ -261,3 +262,4 @@ C     Assemble information needed by BCUINT()
 
       END
 
+#endif

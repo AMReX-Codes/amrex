@@ -1,14 +1,3 @@
-/*
- *       {_       {__       {__{_______              {__      {__
- *      {_ __     {_ {__   {___{__    {__             {__   {__  
- *     {_  {__    {__ {__ { {__{__    {__     {__      {__ {__   
- *    {__   {__   {__  {__  {__{_ {__       {_   {__     {__     
- *   {______ {__  {__   {_  {__{__  {__    {_____ {__  {__ {__   
- *  {__       {__ {__       {__{__    {__  {_         {__   {__  
- * {__         {__{__       {__{__      {__  {____   {__      {__
- *
- */
-
 #include "AMReX_EBLevelGrid.H"
 #include "AMReX_parstream.H" 
 namespace amrex
@@ -83,6 +72,7 @@ namespace amrex
          const Box                 & a_domain)
   {
     BL_PROFILE("EBLevelGrid::define()");
+    //pout() << "entering eblg define 0" << endl;
     m_isDefined = true;
     m_grids = a_dbl;
     m_dm    = a_dm;
@@ -92,6 +82,8 @@ namespace amrex
           
     m_cfivs = std::shared_ptr<LayoutData<IntVectSet> >(new LayoutData<IntVectSet>());
     defineCFIVS(*m_cfivs, m_grids, m_dm, m_domain);
+    //pout() << "leaving  eblg define 0" << endl;
+
   }
           
   /****/
@@ -102,7 +94,8 @@ namespace amrex
          const Box                 & a_domain,
          const int                 & a_numGhostEBISL)
   {
-    //pout() << "in eblevelgrid::define with nghost = " << a_numGhostEBISL << endl;
+    //pout() << "entering eblg define 1" << endl;
+
     m_isDefined = true;
     m_grids  = a_dbl;
     m_dm     = a_dm;
@@ -110,15 +103,15 @@ namespace amrex
     m_nghost = a_numGhostEBISL;
     const EBIndexSpace* ebisPtr = AMReX_EBIS::instance();
 
-    //pout() << "about to fillebislayout" << endl;
-
+    //pout() << "before fillebisl" << endl;
     ebisPtr->fillEBISLayout(m_ebisl, a_dbl, m_dm, m_domain, m_nghost);
+    //pout() << "after fillebisl" << endl;
     m_cfivs = std::shared_ptr<LayoutData<IntVectSet> >(new LayoutData<IntVectSet>());
 
-    ////pout() << "about to define cfivs" << endl;
 
     defineCFIVS(*m_cfivs, m_grids, m_dm, m_domain);
-    //pout() << "leaving eblevelgrid::define  " << endl;
+    //pout() << "leaving  eblg define 1" << endl;
+
   }
           
   EBLevelGrid::

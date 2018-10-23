@@ -1,0 +1,125 @@
+SWFFT (HACC)
+Adrian Pope (et al)
+apope@anl.gov
+2017-10-25
+
+========
+IMPORTANT
+========
+
+This code is available under BSD license from https://xgitlab.cels.anl.gov/hacc/SWFFT
+
+========
+Overview
+========
+
+This directory contains the source code to be called by the code in 
+amrex/Tutorials/SWFFT in order to run SWFFT, a 3D distributed 
+memory discrete fast Fourier transform.
+There is also a utility that checks grid sizes and 
+MPI rank layouts (CheckDecomposition).
+
+This code assumes that global grid will originally be distributed between
+MPI ranks using a 3D Cartesian communicator. That data needs to be
+re-distributed to three 2D pencil distributions in turn in order to compute
+the DFFTs along each dimension.
+
+Functionally, a Distribution object is instantiated based on a parent
+MPI_Comm, and that Distribution instance will create and track the Cartesian
+communicators for the initial 3D distribution and the three 2D pencil
+distributions. A Dfft object is then instantiated based on the Distribution
+object in order to coordinate the operations to actually execute the
+3D distributed memory DFFT. The Dfft instance also has convenience methods
+to access the communicators and geometric information for the MPI distribution
+in "real space" (initial 3D distribution) and "k space" (2D pencils in z).
+
+This code does not work for arbitrary grid sizes and number of MPI ranks.
+The specific constraints are difficult to enumerate in a compact way, but a
+rule of thumb is that it generally works when the number of vertexes along
+one side of the global 3D grid ("ng")can be factored into small primes, and
+when the number of MPI ranks can also be factored into small primes.
+I believe that all of the unique prime factors of the number of MPI ranks
+must be present in the set of prime factors of the grid, eg. if you have
+20 MPI ranks then ng must be a multiple of 5 and 2. The "CheckDecomposition"
+utility is provided to check (on one rank) whether a proposed grid size and
+number of MPI ranks will work, which can be done before submitting a large
+test with TestDfft/TestFDfft.
+
+========
+Building
+========
+
+-------------------
+System Requirements
+-------------------
+
+MPI (known to work for 2.2 and newer, may work with some older versions)
+FFTW3 (double precision, OpenMP optional, does not use FFTW3's MPI interface)
+
+============================
+CheckDecomposition (Utility)
+============================
+
+-----
+Usage
+-----
+
+Though CheckDecomposition is built with MPI it is intended to run serially
+with the proposed number of MPI ranks as a command line argument, eg.
+
+$ ./CheckDecomposition <ngx> <ngy> <ngz> <Nproc> [nx ny nz]
+
+where <ngx>, <ngy>, and <ngz> are the number of vertexes along each side
+of the global grid and <Nproc> is the number of MPI ranks. The user may
+optionally additionally supply the number of MPI ranks in each dimension
+for the 3D communicator as [nx ny nz], and though this option is not currently
+available in this version of TestDfft and the underlying Distribution code,
+it would be fairly easy to re-activate that functionality.
+
+--------------
+Example Output
+--------------
+
+Check whether a 10240^3 grid will work on 32768 MPI ranks:
+
+$ ./CheckDecomposition 10240 10240 10240 32768
+distribution 1D: [32768:1:1]
+distribution 3D: [32:32:32]
+  2d_z: 256, 128, 1.
+distribution 2z: [256:128:1]
+  2d_x: 1, 256, 128.
+distribution 2x: [1:256:128]
+  2d_y: 256, 1, 128.
+distribution 2y: [256:1:128]
+
+================
+Additional Notes
+================
+
+-------------
+Integer Types
+-------------
+
+The signature of many MPI functions requires 32-bit integers, so we use those
+where required. The underlying distribution.h/.c code also uses 32-bit
+integers to keep track of the number of grid vertexes along the sides of
+the global grid, which likely does not present a practical limit on the
+size of 3D grids in the near future. I believe we always use 64-bit integers
+for iteration through the grids values themselves, so the total number of
+grid vertexes locally and globally should not be limited by 32-bit integer
+size. This distribution code has been tested up to 16384^3 global grid and
+on >~10^6 MPI-ranks.
+
+-------------------------------
+Fortran Multidimensional Arrays
+-------------------------------
+
+The linear storage in memory of multidimensional arrays differs between
+that of C (row-major) and Fortran (column-major). The Fortran interface
+provided here implicitly assumes that the one-dimensional memory storage
+of the arrays to be transformed conforms with the C convention. The 
+returned transformed data is also arranged in row-major format. Hence, care
+must be taken to ensure that data is arranged in this way when interfacing
+with the Fortran wrappers. In general, this involves a transpose of data when 
+using a multidimensional Fortran array to store the 3D data in memory. 
+
