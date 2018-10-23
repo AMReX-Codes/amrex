@@ -3,7 +3,7 @@
 #include <limits>
 
 #include <AMReX_CoordSys.H>
-#include <AMReX_COORDSYS_F.H>
+#include <AMReX_COORDSYS_C.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
 
