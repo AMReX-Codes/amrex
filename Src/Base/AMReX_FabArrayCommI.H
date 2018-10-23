@@ -36,8 +36,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
-	for (int i=0; i<N_loc; ++i)
+//	for (int i=0; i<N_loc; ++i)
+        for (Cuda::StreamIter sit(N_loc); sit.isValid(); ++sit)
         {
+            const int i = sit();
             const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
             BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
@@ -54,7 +56,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         }
 
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();
 #endif
         return;
     }
@@ -222,8 +224,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
-        for (int j=0; j<N_snds; ++j)
+//        for (int j=0; j<N_snds; ++j)
+        for (Cuda::StreamIter sit(N_snds); sit.isValid(); ++sit)
         {
+            const int j = sit();
             char* dptr = send_data[j];
             if (dptr != nullptr)
             {
@@ -245,7 +249,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             }
         }
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
+//        Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
 #endif
 
 #ifdef BL_USE_UPCXX
@@ -371,8 +375,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
-	for (int i=0; i<N_locs; ++i)
+//	for (int i=0; i<N_locs; ++i)
+        for (Cuda::StreamIter sit(N_locs); sit.isValid(); ++sit)
 	{
+            const int i = sit();
 	    const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
@@ -392,7 +398,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	}
     }
 #ifdef AMREX_USE_CUDA
-    Device::synchronize();
+//    Device::synchronize();
 #endif
 
 #endif /*BL_USE_MPI*/
@@ -461,8 +467,10 @@ FabArray<FAB>::FillBoundary_finish ()
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Cuda::inLaunchRegion())
 #endif
-        for (int k = 0; k < N_rcvs; k++) 
+        for (Cuda::StreamIter sit(N_rcvs); sit.isValid(); ++sit)
+//        for (int k = 0; k < N_rcvs; k++) 
         {
+            const int k = sit();
             const char* dptr = fb_recv_data[k];
             if (dptr != nullptr)
             {
@@ -486,7 +494,7 @@ FabArray<FAB>::FillBoundary_finish ()
             }
         }
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();
 #endif
 
         if (fb_the_recv_data)
@@ -608,8 +616,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
-	for (int i=0; i<N_loc; ++i)
+        for (Cuda::StreamIter sit(N_loc); sit.isValid(); ++sit)
+//	for (int i=0; i<N_loc; ++i)
         {
+            const int i = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
 	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                 const FAB* sfab = &(src[tag.srcIndex]);
@@ -632,7 +642,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         }
 
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();
 #endif
 
         return;
@@ -815,8 +825,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
-	    for (int j=0; j<N_snds; ++j)
+            for (Cuda::StreamIter sit(N_snds); sit.isValid(); ++sit)
+//	    for (int j=0; j<N_snds; ++j)
 	    {
+                const int j = sit();
 		char* dptr = send_data[j];
                 if (dptr != nullptr)
                 {
@@ -839,7 +851,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
 
 #ifdef AMREX_USE_CUDA
-            Device::synchronize();
+//            Device::synchronize();
 #endif
 
 #ifdef BL_USE_UPCXX
@@ -984,8 +996,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
-	    for (int j=0; j<N_locs; ++j)
+            for (Cuda::StreamIter sit(N_locs); sit.isValid(); ++sit)
+//	    for (int j=0; j<N_locs; ++j)
 	    {
+                const int j = sit();
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 // avoid self copy or plus
 		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
@@ -1010,7 +1024,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	}
 
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();  // move to team_for block
 #endif
 
 	//
@@ -1056,8 +1070,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp for
 #endif
-                for (int k = 0; k < N_rcvs; ++k)
+                for (Cuda::StreamIter sit(N_rcvs); sit.isValid(); ++sit)
+//                for (int k = 0; k < N_rcvs; ++k)
 		{
+                    const int k = sit();
 		    const char* dptr = recv_data[k];
                     if (dptr != nullptr)
                     {
@@ -1091,7 +1107,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    }
 
 #ifdef AMREX_USE_CUDA
-            Device::synchronize();
+//            Device::synchronize();
 #endif
 
             if (the_recv_data)
@@ -1228,8 +1244,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
-	for (int i=0; i<N_loc; ++i)
+        for (Cuda::StreamIter sit(N_loc); sit.isValid(); ++sit)
+//	for (int i=0; i<N_loc; ++i)
         {
+            const int i = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
             // avoid self copy or plus
 	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
@@ -1252,7 +1270,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         }
 
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();
 #endif
 
         return CopierHandle();
@@ -1385,8 +1403,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
 #endif
-        for (int j=0; j<N_snds; ++j)
+        for (Cuda::StreamIter sit(N_snds); sit.isValid(); ++sit)
+//        for (int j=0; j<N_snds; ++j)
         {
+            const int j = sit();
             char* dptr = send_data[j];
             if (dptr != nullptr)
             {
@@ -1409,7 +1429,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         }
 
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();
 #endif
 
         int send_counter = 0;
@@ -1492,8 +1512,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef _OPENMP
 #pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
 #endif
-        for (int j=0; j<N_locs; ++j)
+        for (Cuda::StreamIter sit(N_locs); sit.isValid(); ++sit)
+//        for (int j=0; j<N_locs; ++j)
         {
+            const int j = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[j];
             
             // avoid self copy or plus
@@ -1519,7 +1541,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     }
 
 #ifdef AMREX_USE_CUDA
-    Device::synchronize();
+//    Device::synchronize();
 #endif
 
     return return_handle;
@@ -1601,7 +1623,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
         }
 
 #ifdef AMREX_USE_CUDA
-        Device::synchronize();
+//        Device::synchronize();
 #endif
 
         for (auto p : recv_data) {
