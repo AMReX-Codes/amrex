@@ -725,12 +725,10 @@ PhysicalParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp, giv;
-
-        std::unique_ptr<FArrayBox> local_rho(new FArrayBox());
-        std::unique_ptr<FArrayBox> local_jx(new FArrayBox());
-        std::unique_ptr<FArrayBox> local_jy(new FArrayBox());
-        std::unique_ptr<FArrayBox> local_jz(new FArrayBox());
+	if (local_rho == nullptr) local_rho.reset(new amrex::FArrayBox());
+	if (local_jx == nullptr) local_jx.reset(  new amrex::FArrayBox());
+	if (local_jy == nullptr) local_jy.reset(  new amrex::FArrayBox());
+	if (local_jz == nullptr) local_jz.reset(  new amrex::FArrayBox());
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;

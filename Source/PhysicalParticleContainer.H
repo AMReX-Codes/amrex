@@ -107,7 +107,13 @@ protected:
 
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
-    
+
+    std::unique_ptr<amrex::FArrayBox> local_rho = nullptr;
+    std::unique_ptr<amrex::FArrayBox> local_jx  = nullptr;
+    std::unique_ptr<amrex::FArrayBox> local_jy  = nullptr;
+    std::unique_ptr<amrex::FArrayBox> local_jz  = nullptr;
+
+    amrex::Cuda::DeviceVector<amrex::Real> xp, yp, zp, giv;
 };
 
 #endif
