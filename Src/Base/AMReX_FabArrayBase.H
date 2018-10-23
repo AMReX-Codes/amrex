@@ -5,10 +5,6 @@
 #include <omp.h>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <AMReX_BLPgas.H>
-#endif
-
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -404,14 +400,6 @@ public:
                                    Vector<MPI_Request>& send_reqs,
                                    Vector<char*>&       send_data,
                                    Vector<MPI_Status>&  stats);
-
-#ifdef BL_USE_UPCXX
-    //! Block until all send requests complete
-    static void WaitForAsyncSends_PGAS (int                 N_snds,
-                                        Vector<char*>&       send_data,
-                                        upcxx::event*       send_event,
-                                        volatile int*       send_counter);
-#endif
 
 protected:
 
