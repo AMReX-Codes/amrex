@@ -89,6 +89,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
     //
+    char*&                          the_send_data = fb_the_send_data;
     Vector<char*> &                     send_data = fb_send_data;
     Vector<int>                         send_size;
     Vector<int>                         send_rank;
@@ -114,6 +115,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	send_cctc.reserve(N_snds);
         indv_send_size.reserve(N_snds);
 
+        std::size_t total_volume = 0;
         for (auto const& kv : *TheFB.m_SndVols)
         {
             Vector<int> iss;                
@@ -139,18 +141,26 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             
             BL_ASSERT(nbytes < std::numeric_limits<int>::max());
             
-            char* data = nullptr;
-            if (nbytes > 0)
-            {
-                data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
-            }
+            total_volume += nbytes;
 
-            send_data.push_back(data);
+            send_data.push_back(nullptr);
             send_size.push_back(static_cast<int>(nbytes));
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
             send_cctc.push_back(&cctc);
             indv_send_size.push_back(std::move(iss));
+        }
+
+        if (total_volume > 0)
+        {
+            the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+            char* p = the_send_data;
+            for (int i = 0, N = send_size.size(); i < N; ++i) {
+                if (send_size[i] > 0) {
+                    send_data[i] = p;
+                    p += send_size[i];
+                }
+            }
         }
 
 #if defined(BL_USE_MPI3)
@@ -464,16 +474,12 @@ FabArray<FAB>::FillBoundary_finish ()
     }
 
     if (N_snds > 0) {
-	if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-	    for (int i = 0; i < N_snds; ++i) {
-		if (fb_send_data[i]) amrex::The_FA_Arena()->free(fb_send_data[i]);
-            }
-#endif
-        } else {
+	if (!ParallelDescriptor::MPIOneSided()) {
             Vector<MPI_Status> stats;
             FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
         }
+        amrex::The_FA_Arena()->free(fb_the_send_data);
+        fb_the_send_data = nullptr;
     }
 
 #ifdef BL_USE_TEAM
@@ -634,13 +640,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
         // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
         //
-
+        char*                               the_send_data;
 	Vector<char*>                       send_data;
 	Vector<int>                         send_size;
 	Vector<int>                         send_rank;
 	Vector<MPI_Request>                 send_reqs;
 	Vector<const CopyComTagsContainer*> send_cctc;
-        Vector<Vector<int> >                 indv_send_size;
+        Vector<Vector<int> >                indv_send_size;
         Vector<MPI_Request>                 pre_reqs;
 
 #if defined(BL_USE_MPI3)
@@ -655,6 +661,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    send_cctc.reserve(N_snds);
             indv_send_size.reserve(N_snds);
 
+            std::size_t total_volume = 0;
             for (auto const& kv : *thecpc.m_SndVols)
 	    {
                 Vector<int> iss;                
@@ -680,19 +687,27 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		
 		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
 
-                char* data = nullptr;
-                if (nbytes > 0)
-                {
-                    data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
-                }
-                    
-		send_data.push_back(data);
+                total_volume += nbytes;
+
+		send_data.push_back(nullptr);
                 send_size.push_back(static_cast<int>(nbytes));
                 send_rank.push_back(kv.first);
                 send_reqs.push_back(MPI_REQUEST_NULL);
                 send_cctc.push_back(&cctc);
                 indv_send_size.push_back(std::move(iss));
 	    }
+
+            if (total_volume > 0)
+            {
+                the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+                char* p = the_send_data;
+                for (int i = 0, N = send_size.size(); i < N; ++i) {
+                    if (send_size[i] > 0) {
+                        send_data[i] = p;
+                        p += send_size[i];
+                    }
+                }
+            }
 
 #if defined(BL_USE_MPI3)
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
@@ -845,7 +860,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                                  ParallelContext::global_to_local_rank(send_rank[j]),
                                  SeqNum,
                                  ParallelContext::CommunicatorSub());
-                            amrex::The_FA_Arena()->free(send_data[j]);
                         }
                     }
 
@@ -1023,18 +1037,14 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	}
 	
         if (N_snds > 0) {
-	    if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-		for (int i = 0; i < N_snds; ++i) {
-		    if (send_data[i]) amrex::The_FA_Arena()->free(send_data[i]);
-                }
-#endif
-	    } else {
+	    if (!ParallelDescriptor::MPIOneSided()) {
 		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
 		    Vector<MPI_Status> stats;
 		    FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 		}
 	    }
+            amrex::The_FA_Arena()->free(the_send_data);
+            the_send_data = nullptr;
         }
 
         ipass     += NC;
@@ -1199,6 +1209,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     Vector<MPI_Request>                 pre_reqs;
 
     char*&           the_recv_data = handle.the_recv_data;
+    char*&           the_send_data = handle.the_send_data;
     Vector<MPI_Request>& send_reqs = handle.send_reqs;
     Vector<char*>      & send_data = handle.send_data;
     Vector<int>        & recv_from = handle.recv_from;
@@ -1218,6 +1229,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         send_cctc.reserve(N_snds);
         indv_send_size.reserve(N_snds);
         
+        std::size_t total_volume = 0;
         for (auto const& kv : *thecpc.m_SndVols)
         {
             Vector<int> iss;                
@@ -1243,18 +1255,26 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 		
             BL_ASSERT(nbytes < std::numeric_limits<int>::max());
 
-            char* data = nullptr;
-            if (nbytes > 0)
-            {
-                data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
-            }
+            total_volume += nbytes;
                     
-            send_data.push_back(data);
+            send_data.push_back(nullptr);
             send_size.push_back(static_cast<int>(nbytes));
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
             send_cctc.push_back(&cctc);
             indv_send_size.push_back(std::move(iss));
+        }
+
+        if (total_volume > 0)
+        {
+            the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+            char* p = the_send_data;
+            for (int i = 0, N = send_size.size(); i < N; ++i) {
+                if (send_size[i] > 0) {
+                    send_data[i] = p;
+                    p += send_size[i];
+                }
+            }
         }
     }
 
@@ -1350,7 +1370,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                          ParallelContext::global_to_local_rank(send_rank[j]),
                          SeqNum,
                          ParallelContext::CommunicatorSub());
-                    amrex::The_FA_Arena()->free(send_data[j]);
                 }
             }
             
@@ -1524,6 +1543,8 @@ FabArray<FAB>::CopierHandleImpl::finish ()
             Vector<MPI_Status> stats;
             FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
         }
+        amrex::The_FA_Arena()->free(the_send_data);
+        the_send_data = nullptr;
     }
 
 #ifdef BL_USE_TEAM
