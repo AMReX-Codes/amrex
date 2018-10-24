@@ -51,7 +51,7 @@ public:
 };
 
 template <class T>
-class ManagedVector
+class ManagedDeviceVector
     :
     public thrust::device_vector<T, ThrustManagedAllocator<T> >
 {
@@ -113,7 +113,7 @@ public:
     using HostVector = Vector<T>;
 
     template <class T>
-    using ManagedVector = Vector<T>;        
+    using ManagedDeviceVector = Vector<T>;        
 #endif
     
 }

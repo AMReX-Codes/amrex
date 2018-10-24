@@ -13,7 +13,7 @@ public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
 
-    using ParticleVector = Cuda::ManagedVector<ParticleType>;
+    using ParticleVector = Cuda::ManagedDeviceVector<ParticleType>;
     
     using Iterator      = typename ParticleVector::iterator;
     using ConstIterator = typename ParticleVector::const_iterator;

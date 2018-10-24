@@ -150,7 +150,7 @@ public:
     using RealVector     = typename SoA::RealVector;
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
-    using CharVector     = Cuda::ManagedVector<char>;
+    using CharVector     = Cuda::ManagedDeviceVector<char>;
 
     ParticleContainer ()
       : 
