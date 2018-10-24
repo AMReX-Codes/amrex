@@ -1,0 +1,6 @@
+
+CEXE_headers += AMReX_SDCstruct.H
+CEXE_sources += AMReX_SDCstruct.cpp
+
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/SDC
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/SDC
