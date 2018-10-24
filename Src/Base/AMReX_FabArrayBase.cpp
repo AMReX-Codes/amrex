@@ -75,11 +75,25 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
+    Arena* the_cuda_arena = nullptr;
     bool initialized = false;
 }
 
 Arena*
-The_FA_Arena () { return The_Arena();}
+The_Cuda_Arena () {
+    if (the_cuda_arena == nullptr) {
+#if AMREX_USE_CUDA
+        the_cuda_arena = new CArena;
+        the_cuda_arena->SetDeviceMemory();
+#else
+        the_cuda_arena = new BArena;
+#endif
+    }
+    return the_cuda_arena;
+}
+
+Arena*
+The_FA_Arena () { return The_Cuda_Arena(); }
 
 void
 FabArrayBase::Initialize ()
@@ -1480,6 +1494,8 @@ FabArrayBase::Finalize ()
     m_BD_count.clear();
     
     m_FA_stats = FabArrayStats();
+
+    delete the_cuda_arena;
 
     initialized = false;
 }
