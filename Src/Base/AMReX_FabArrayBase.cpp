@@ -75,7 +75,6 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
-    Arena* the_FA_arena = nullptr;
     bool initialized = false;
 }
 
@@ -1472,8 +1471,6 @@ FabArrayBase::Finalize ()
     m_BD_count.clear();
     
     m_FA_stats = FabArrayStats();
-
-    delete the_FA_arena;
 
     initialized = false;
 }
