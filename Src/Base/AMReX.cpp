@@ -459,7 +459,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
 #ifdef AMREX_USE_DEVICE
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
     // Wrap cuda init to identify it appropriately in nvvp.
     // Note: first substantial cuda call may cause a lengthy
     // cuda API and cuda driver API initialization that will
@@ -473,7 +473,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     // Initialize after ParmParse so that we can read inputs.
     Device::initialize_device();
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
     nvtxRangeEnd(nvtx_init);
 #endif
 
