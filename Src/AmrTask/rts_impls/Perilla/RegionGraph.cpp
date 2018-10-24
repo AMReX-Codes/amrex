@@ -31,8 +31,8 @@ void RegionGraph::Initialize()
     for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++)
     {
 	worker[tg] = new Worker();
-	worker[tg]->barr = new Barrier(perilla::NUM_THREADS_PER_TEAM-1);
-	worker[tg]->l_barr = new Barrier(perilla::NUM_THREADS_PER_TEAM-2);
+	worker[tg]->barr = new Barrier(perilla::NUM_THREADS_PER_TEAM - perilla::NUM_COMM_THREADS);
+	worker[tg]->l_barr = new Barrier(perilla::NUM_THREADS_PER_TEAM - perilla::NUM_COMM_THREADS -1);
 	if(numfabs <= perilla::TASK_QUEUE_DEFAULT_SIZE)
 	{
 	    worker[tg]->fireableRegionQueue = new RegionQueue();
@@ -53,13 +53,13 @@ void RegionGraph::Initialize()
 	{
 	    if(WorkerThread::isMyRegion(tg, f))
 	    {
-	        task[f] = new Task();
-	        worker[tg]->unfireableRegionQueue->addRegion(f);
-	        worker[tg]->totalTasks++;
-	        for(int i=0; i<16; i++)
-	     	    task[f]->state[i] = 0;
-	        task[f]->init = true;
-            }
+		task[f] = new Task();
+		worker[tg]->unfireableRegionQueue->addRegion(f);
+		worker[tg]->totalTasks++;
+		for(int i=0; i<16; i++)
+		    task[f]->state[i] = 0;
+		task[f]->init = true;
+	    }
 	}
 	worker[tg]->init = true;
 	okToReset[tg] = false;	      
@@ -100,11 +100,11 @@ void RegionGraph::Reset()
 bool RegionGraph::isGraphEmpty()
 {
     int tg= perilla::wid();
-    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); 
+    //worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); 
+    perilla::syncWorkerThreads();
     if(worker[tg]->completedRegionQueue->queueSize(true)== worker[tg]->totalTasks)
 	return true;
-    else
-	return false;	       
+    return false;	       
 }
 
 bool RegionGraph::isGraphEmptyV2()
@@ -113,9 +113,7 @@ bool RegionGraph::isGraphEmptyV2()
 
     if(worker[tg]->completedRegionQueue->queueSize(true) == worker[tg]->totalTasks || worker[tg]->computedTasks == worker[tg]->totalTasks)
 	return true;
-    else
-	return false;	       
-
+    return false;	       
 }
 
 void RegionGraph::finalizeGraph()
@@ -191,13 +189,11 @@ void RegionGraph::regionGraphMinReset(void)
 
 void RegionGraph::enableAllRegions()
 {
-    int nt;
-    int tg;
     int numfabs = numTasks;
     int r;
-    tg = WorkerThread::perilla_wid();
-    nt = WorkerThread::perilla_wtid();
-    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    int tg = WorkerThread::perilla_wid();
+    perilla::syncWorkerThreads();
+    //worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
     if(perilla::isMasterWorkerThread())
 	for(int f=0; f<numfabs; f++)
 	    if(WorkerThread::isMyRegion(tg, f))
@@ -205,11 +201,13 @@ void RegionGraph::enableAllRegions()
 		r = worker[tg]->unfireableRegionQueue->removeRegion(true);
 		worker[tg]->fireableRegionQueue->addRegion(r,true);
 	    }    
-    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads        
+    //worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads        
+    perilla::syncWorkerThreads();
 }
 
-void RegionGraph::disableRegion(int r, int tg)
+void RegionGraph::disableRegion(int r)
 {
+    int tg = WorkerThread::perilla_wid();
     if(perilla::isMasterWorkerThread())
 	if(WorkerThread::isMyRegion(tg, r))
 	{
@@ -221,7 +219,7 @@ void RegionGraph::disableRegion(int r, int tg)
 void RegionGraph::regionComputed(int r)
 {
     int tg= perilla::wid();
-    worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
+    worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1);
     if(perilla::isMasterWorkerThread())
 	if(WorkerThread::isMyRegion(tg, r))
 	{
@@ -234,14 +232,15 @@ void RegionGraph::regionComputed(int r)
 	    worker[tg]->computedRegionQueue->addRegion(rr);
 	    worker[tg]->computedTasks++;
 	}
-    worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
+    worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1);
 }
 
 void RegionGraph::finalizeRegion(int r)
 {
     int tg= perilla::wid();
     int ntid=perilla::wtid();
-    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    //worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+    perilla::syncWorkerThreads();
     if(perilla::isMasterWorkerThread())
 	if(WorkerThread::isMyRegion(tg, r))
 	{
@@ -253,7 +252,8 @@ void RegionGraph::finalizeRegion(int r)
 	    }
 	    worker[tg]->completedRegionQueue->addRegion(rr,true);
 	}
-    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    perilla::syncWorkerThreads();
+    //worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
 }
 
 void RegionGraph::finalizeRegionGraph()
@@ -274,26 +274,26 @@ bool RegionGraph::isFireableRegion(int r)
 	{
 	    return false;
 	}
-	while(cpDst != 0)
+    while(cpDst != 0)
+    {
+	if(cpDst->l_con.firingRuleCnt != cpDst->l_con.ndcpy)
 	{
-	    if(cpDst->l_con.firingRuleCnt != cpDst->l_con.ndcpy)
-	    {
-		return false;
-	    }
-	    cpDst = cpDst->next;
+	    return false;
 	}
+	cpDst = cpDst->next;
+    }
 
-	if(srcLinkGraph != 0)
+    if(srcLinkGraph != 0)
+    {
+	if(!task[r]->depTasksCompleted)
 	{
-	    if(!task[r]->depTasksCompleted)
-	    {
-		for(int i=0; i<task[r]->depTaskIDs.size(); i++){
-		    if(!srcLinkGraph->isFireableRegion(task[r]->depTaskIDs[i]))
-			return false;
-		}
-		task[r]->depTasksCompleted = true;
+	    for(int i=0; i<task[r]->depTaskIDs.size(); i++){
+		if(!srcLinkGraph->isFireableRegion(task[r]->depTaskIDs[i]))
+		    return false;
 	    }
+	    task[r]->depTasksCompleted = true;
 	}
+    }
 
     if(ParallelDescriptor::NProcs() == 1) return true;
 
@@ -303,15 +303,15 @@ bool RegionGraph::isFireableRegion(int r)
 	    return false;
 	}
 
-	cpDst = task[r]->cpAsc_dstHead;
-	while(cpDst != 0)
+    cpDst = task[r]->cpAsc_dstHead;
+    while(cpDst != 0)
+    {
+	if(cpDst->r_con.firingRuleCnt != cpDst->r_con.nrcv)
 	{
-	    if(cpDst->r_con.firingRuleCnt != cpDst->r_con.nrcv)
-	    {
-		return false;
-	    }
-	    cpDst = cpDst->next;
+	    return false;
 	}
+	cpDst = cpDst->next;
+    }
     return true;
 }
 
@@ -417,7 +417,8 @@ int RegionGraph::getAnyFireableRegion()
     int myProc = ParallelDescriptor::MyProc();
     int tg = perilla::wid();
     int nt = perilla::wtid();
-    perilla::syncWorkerThreads();
+    //perilla::syncWorkerThreads();
+    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
     if(nt == 0 && worker[tg]->fireableRegionQueue->queueSize()==0)      
     {
 	bool fireable = false;
@@ -434,9 +435,45 @@ int RegionGraph::getAnyFireableRegion()
 		worker[tg]->fireableRegionQueue->addRegion(r,true);
 	}
     }
-    perilla::syncWorkerThreads();
+    //perilla::syncWorkerThreads();
+    worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
     return worker[tg]->fireableRegionQueue->getFrontRegion(true);
 }
+
+int RegionGraph::getAnyFireableRegion(RegionGraph& depGraph)
+{
+    int nt;
+    int tg;
+    int r;
+    bool fireable;
+
+    int myProc = amrex::ParallelDescriptor::MyProc();
+
+    tg = perilla::wid();
+    nt = perilla::wtid();
+    if(nt == perilla::NUM_COMM_THREADS && worker[tg]->fireableRegionQueue->queueSize()==0) 
+    {
+	fireable = false;
+	r = worker[tg]->unfireableRegionQueue->removeRegion(true);
+	while(!fireable)
+	{
+	    fireable = isFireableRegion(r);
+	    fireable &= depGraph.isFireableRegion(r);
+	    if(!fireable)
+	    {
+		worker[tg]->unfireableRegionQueue->addRegion(r,true);
+		r = worker[tg]->unfireableRegionQueue->removeRegion(true);
+	    }
+	    else
+		worker[tg]->fireableRegionQueue->addRegion(r,true);
+	}
+    }
+    worker[tg]->barr->sync();
+    //worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+    r = worker[tg]->fireableRegionQueue->getFrontRegion(true);
+    return r;
+}
+
 
 
 int RegionGraph::getPulledFireableRegion()
@@ -449,7 +486,7 @@ int RegionGraph::getPulledFireableRegion()
     {
 	while(worker[tg]->fireableRegionQueue->queueSize()==0);
     }
-    worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-2);
+    worker[tg]->l_barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1);
     return worker[tg]->fireableRegionQueue->getFrontRegion(true);
 }
 
@@ -771,6 +808,12 @@ RegionGraph::~RegionGraph()
     lMap.clear();
     sMap.clear();
     rMap.clear();
+
+#if 0
+    for(int i=0; i<task.size(); i++) delete task[i];
+    for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++) delete worker[tg];
+#endif
+
     //fabTiles.clear();
     //if(sCopyMapHead != 0)
     //  delete sCopyMapHead;

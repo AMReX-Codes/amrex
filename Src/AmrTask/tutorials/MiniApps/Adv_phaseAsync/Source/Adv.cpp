@@ -224,7 +224,6 @@ Adv::avgDown (int iteration)
     void
 Adv::avgDown (int state_indx, int iteration)
 {
-#if 1
     int tid = perilla::tid();
     int tg = perilla::wid();
     int nt = perilla::wtid();
@@ -311,7 +310,6 @@ Adv::avgDown (int state_indx, int iteration)
 	if(perilla::isMasterWorkerThread())
 	    crse_lev.RG_S_fine->finalizeGraph();
     }
-#endif
 }
 
     void
