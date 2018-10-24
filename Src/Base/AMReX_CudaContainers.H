@@ -51,6 +51,30 @@ public:
 };
 
 template <class T>
+class ManagedVector
+    :
+    public Vector<T, CudaManagedAllocator<T> >
+    {
+    public:
+
+    using Vector<T, CudaManagedAllocator<T> >::Vector;
+
+    void assign(typename thrust::host_vector<T>::size_type count, const T& value )
+    {
+        if (Cuda::inLaunchRegion())
+        {
+	    thrust::fill(thrust::device,
+	  	         thrust::raw_pointer_cast(this->data()),
+		         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+	    this->Vector<T, CudaManagedAllocator<T> >::assign(count, value);
+        }
+    }
+};
+
+template <class T>
 class ManagedDeviceVector
     :
     public thrust::device_vector<T, ThrustManagedAllocator<T> >
@@ -111,6 +135,9 @@ public:
 
     template <class T>
     using HostVector = Vector<T>;
+
+    template <class T>
+    using ManagedVector = Vector<T>;        
 
     template <class T>
     using ManagedDeviceVector = Vector<T>;        
