@@ -44,7 +44,7 @@ C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
 C$(AMREX_BASE)_headers += AMReX_Cuda.H
 C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H
-C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaControl.cpp AMReX_CudaUtility.cpp
+C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaControl.cpp AMReX_CudaUtility.cpp AMReX_CudaAllocators.cpp
 C$(AMREX_BASE)_headers += AMReX_CudaLaunch.H   AMReX_CudaControl.H   AMReX_CudaUtility.H
 
 #

@@ -48,6 +48,8 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
 
+#include <AMReX_CudaAllocators.H>
+
 #if defined(BL_USE_FORTRAN_MPI)
 extern "C" {
     void bl_fortran_mpi_comm_init (int fcomm);
@@ -573,6 +575,10 @@ amrex::Finalize (bool finalize_parallel)
 
 #ifdef BL_LAZY
     Lazy::Finalize();
+#endif
+
+#ifdef AMREX_USE_CUDA
+    Cuda::The_ThrustCachedAllocator().Finalize();
 #endif
 
     while (!The_Finalize_Function_Stack.empty())

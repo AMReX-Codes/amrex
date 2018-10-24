@@ -197,6 +197,11 @@ namespace amrex {
         allocated_blocks_type allocated_blocks; 
     };
 
+    namespace Cuda
+    {
+        ThrustCachedAllocator& The_ThrustCachedAllocator ();
+    }
+
 // When not using CUDA, replace with standard allocator.
 // Prevents need to wrap applications in lots of ifdefs.
 #else
