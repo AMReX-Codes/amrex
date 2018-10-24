@@ -1,20 +1,18 @@
 #include <AMReX_CudaAllocators.H>
 
+#ifdef AMREX_USE_CUDA
 namespace amrex
 {
 
 namespace
 {
-#ifdef AMREX_USE_CUDA
-ThrustCachedAllocator g_allocator;
-#endif
+    ThrustCachedAllocator g_allocator;
 }
 
-#ifdef AMREX_USE_CUDA
 namespace Cuda
 {
     ThrustCachedAllocator& The_ThrustCachedAllocator () { return g_allocator; };
 }
-#endif
 
 }
+#endif
