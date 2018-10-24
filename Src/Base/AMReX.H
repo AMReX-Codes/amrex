@@ -11,7 +11,7 @@
 #include <string>
 #include <cstdio>
 
-#ifdef AMREX_USE_CUDA
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)))
 #include "nvToolsExt.h"
 #endif
 
