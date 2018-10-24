@@ -52,6 +52,7 @@
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/iterator/retag.h>
 #include <thrust/device_ptr.h>
 #include <thrust/tuple.h>
 #endif
@@ -601,7 +602,7 @@ protected:
 
     mutable thrust::device_vector<int> m_grids_tmp;
     mutable thrust::device_vector<int> m_index_sequence_tmp;
-
+    mutable std::map<int, thrust::device_vector<char> > m_not_ours;
     #endif
     
 private:
@@ -613,7 +614,7 @@ private:
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
 #ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours);
+    void RedistributeMPIGPU ();
     
     void EnforcePeriodicGPU ();
 

@@ -1116,10 +1116,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         // Partition the particle data so that particles that stay come first,
         // those that move go to the end.
         //
-        auto mid   = thrust::partition(thrust::device,
+        auto mid   = thrust::partition(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                        m_index_sequence_tmp.begin(),
-                                       m_index_sequence_tmp.end(), 
-                                       m_grids_tmp.begin(), grid_is(src_grid));
+				       m_index_sequence_tmp.end(), 
+				       m_grids_tmp.begin(), 
+				       grid_is(src_grid));
         BL_PROFILE_VAR_STOP(blp_compute_partition);
 
         const size_t num_moved = thrust::distance(mid, m_index_sequence_tmp.end());
@@ -1231,7 +1232,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // We now have a temporary buffer that holds all the particles that need to be 
     // copied moved somewhere else. Now we sort those particles by their destination grid
     //
-    std::map<int, thrust::device_vector<char> > not_ours;
+    for (auto& kv : m_not_ours) kv.second.resize(0);
     const int num_grids = ba.size();
     const int num_to_move = m_grids_to_redistribute.size();
 
@@ -1325,7 +1326,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         
         //
         // Each destination grid, copy the appropriate particle data, passing the non-local data
-        // into not_ours
+        // into m_not_ours
         //
         for (int i = 0; i < num_grids; ++i)
         {
@@ -1375,21 +1376,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             else // this is the non-local case
             {
                 char* dst;
-                const size_t old_size = not_ours[dest_proc].size();
+                const size_t old_size = m_not_ours[dest_proc].size();
                 const size_t new_size
                     = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
 
                 if (old_size == 0)
                 {
-                    not_ours[dest_proc].resize(new_size + sizeof(size_t));
-                    cudaMemcpy(thrust::raw_pointer_cast(not_ours[dest_proc].data()), 
+                    m_not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                    cudaMemcpy(thrust::raw_pointer_cast(m_not_ours[dest_proc].data()), 
                                &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
                     dst = thrust::raw_pointer_cast(
-                                                   not_ours[dest_proc].data() + old_size + sizeof(size_t));
+                                                   m_not_ours[dest_proc].data() + old_size + sizeof(size_t));
                 } else
                 {
-                    not_ours[dest_proc].resize(new_size);
-                    dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
+                    m_not_ours[dest_proc].resize(new_size);
+                    dst = thrust::raw_pointer_cast(m_not_ours[dest_proc].data() + old_size);
                 }
 
                 cudaMemcpy(thrust::raw_pointer_cast(dst), 
@@ -1438,7 +1439,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BL_PROFILE_VAR_STOP(blp_copy);
     }
 
-    RedistributeMPIGPU(not_ours);
+    RedistributeMPIGPU();
 
     EnforcePeriodicGPU();
 
@@ -1479,7 +1480,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours)
+::RedistributeMPIGPU ()
 {
     BL_PROFILE("ParticleContainer::RedistributeMPIGPU()");
 
@@ -1492,7 +1493,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     long NumSnds = 0;
 
-    for (const auto& kv : not_ours)
+    for (const auto& kv : m_not_ours)
     {
         const int np = kv.second.size(); 
         Snds[kv.first] = np;
@@ -1554,7 +1555,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     
     // Send.
-    for (const auto& kv : not_ours) {
+    for (const auto& kv : m_not_ours) {
         const auto Who = kv.first;
         const auto Cnt = kv.second.size();
         
