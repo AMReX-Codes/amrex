@@ -2,7 +2,6 @@
 #define AMREX_CUDA_UTILITY_H_
 
 #include <AMReX_CudaQualifiers.H>
-#include <AMReX_Device.H>
 #include <iostream>
 
 namespace amrex {
@@ -152,21 +151,8 @@ namespace Cuda {
     class StreamIter
     {
     public:
-        StreamIter (const int n)
-            : m_n(n), m_i(0)
-        {
-#ifdef AMREX_USE_CUDA
-            Device::set_stream_index(m_i);
-#endif
-        }
-
-        ~StreamIter () {
-#ifdef AMREX_USE_CUDA
-            Device::synchronize();
-            Device::check_for_errors();
-            Device::set_stream_index(-1);
-#endif
-        }
+        StreamIter (const int n);
+        ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
         StreamIter (StreamIter &&) = delete;
@@ -177,13 +163,11 @@ namespace Cuda {
 
         bool isValid () const { return m_i < m_n; }
 
-        void operator++ () {
-            ++m_i;
-#ifdef AMREX_USE_CUDA
-            Device::set_stream_index(m_i);
-            Device::check_for_errors();
+#if !defined(AMREX_USE_CUDA)
+        void operator++ () { ++m_i; }
+#else
+        void operator++ ();
 #endif
-        }
 
     private:
         int m_n;
