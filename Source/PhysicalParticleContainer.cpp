@@ -23,6 +23,31 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
     pp.query("do_backward_propagation", do_backward_propagation);
+
+    int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+    num_threads = omp_get_num_threads();
+#endif
+    
+    local_rho.resize(num_threads);
+    local_jx.resize(num_threads);
+    local_jy.resize(num_threads);
+    local_jz.resize(num_threads);
+
+    m_xp.resize(num_threads);
+    m_yp.resize(num_threads);
+    m_zp.resize(num_threads);    
+    m_giv.resize(num_threads);
+
+    for (int i = 0; i < num_threads; ++i)
+    {
+        local_rho[i].reset(nullptr);
+        local_jx[i].reset(nullptr);
+        local_jy[i].reset(nullptr);
+        local_jz[i].reset(nullptr);
+    }
 }
 
 void PhysicalParticleContainer::InitData()
@@ -760,13 +785,19 @@ PhysicalParticleContainer::Evolve (int lev,
     bool has_buffer = cEx || cjx;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel 
 #endif
     {
-	if (local_rho == nullptr) local_rho.reset(new amrex::FArrayBox());
-	if (local_jx == nullptr) local_jx.reset(  new amrex::FArrayBox());
-	if (local_jy == nullptr) local_jy.reset(  new amrex::FArrayBox());
-	if (local_jz == nullptr) local_jz.reset(  new amrex::FArrayBox());
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
+
+	if (local_rho[thread_num] == nullptr) local_rho[thread_num].reset( new amrex::FArrayBox());
+	if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset(  new amrex::FArrayBox());
+	if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
+	if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
@@ -878,7 +909,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    Byp.assign(np,WarpX::B_external[1]);
 	    Bzp.assign(np,WarpX::B_external[2]);
 
-	    giv.resize(np);
+	    m_giv[thread_num].resize(np);
 
             long nfine_current = np;
             long nfine_gather = np;
@@ -977,7 +1008,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
@@ -998,10 +1029,10 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& rhofab = (*rhomf)[pti];
                     const std::array<Real, 3>& xyzmin = xyzmin_tile;
                     tile_box.grow(ngRho);
-                    local_rho->resize(tile_box);
-                    local_rho->setVal(0.0);
-                    data_ptr = local_rho->dataPtr();
-                    rholen = local_rho->length();
+                    local_rho[thread_num]->resize(tile_box);
+                    local_rho[thread_num]->setVal(0.0);
+                    data_ptr = local_rho[thread_num]->dataPtr();
+                    rholen = local_rho[thread_num]->length();
                     
 #if (AMREX_SPACEDIM == 3)
                     const long nx = rholen[0]-1-2*ngRho;
@@ -1013,9 +1044,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     const long nz = rholen[1]-1-2*ngRho;
 #endif
                     warpx_charge_deposition(data_ptr, &np_current,
-                                            xp.dataPtr(),
-                                            yp.dataPtr(),
-                                            zp.dataPtr(),
+                                            m_xp[thread_num].dataPtr(),
+                                            m_yp[thread_num].dataPtr(),
+                                            m_zp[thread_num].dataPtr(),
                                             wp.dataPtr(),
                                             &this->charge,
                                             &xyzmin[0], &xyzmin[1], &xyzmin[2],
@@ -1025,7 +1056,7 @@ PhysicalParticleContainer::Evolve (int lev,
                                             &lvect, &WarpX::charge_deposition_algo);
 
                     const int ncomp = 1;
-                    FArrayBox const* local_fab = local_rho.get();
+                    FArrayBox const* local_fab = local_rho[thread_num].get();
                     FArrayBox*       global_fab = &rhofab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
                     {
@@ -1042,12 +1073,12 @@ PhysicalParticleContainer::Evolve (int lev,
                     tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
                     tile_box.grow(ngRho);
 
-                    local_rho->resize(tile_box);
+                    local_rho[thread_num]->resize(tile_box);
 
-                    local_rho->setVal(0.0);
+                    local_rho[thread_num]->setVal(0.0);
 
-                    data_ptr = local_rho->dataPtr();
-                    rholen = local_rho->length();
+                    data_ptr = local_rho[thread_num]->dataPtr();
+                    rholen = local_rho[thread_num]->length();
 
 #if (AMREX_SPACEDIM == 3)
                     const long nx = rholen[0]-1-2*ngRho;
@@ -1061,9 +1092,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     
                     long ncrse = np - nfine_current;
                     warpx_charge_deposition(data_ptr, &ncrse,
-                                            xp.dataPtr() + nfine_current,
-                                            yp.dataPtr() + nfine_current,
-                                            zp.dataPtr() + nfine_current,
+                                            m_xp[thread_num].dataPtr() + nfine_current,
+                                            m_yp[thread_num].dataPtr() + nfine_current,
+                                            m_zp[thread_num].dataPtr() + nfine_current,
                                             wp.dataPtr() + nfine_current,
                                             &this->charge,
                                             &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
@@ -1075,7 +1106,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& crhofab = (*crhomf)[pti];
                     
                     const int ncomp = 1;
-                    FArrayBox const* local_fab = local_rho.get();
+                    FArrayBox const* local_fab = local_rho[thread_num].get();
                     FArrayBox*       global_fab = &crhofab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
                     {
@@ -1101,9 +1132,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 warpx_geteb_energy_conserving(
                     &np_gather,
-                    xp.dataPtr(),
-                    yp.dataPtr(),
-                    zp.dataPtr(),
+                    m_xp[thread_num].dataPtr(),
+                    m_yp[thread_num].dataPtr(),
+                    m_zp[thread_num].dataPtr(),
                     Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
                     Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                     ixyzmin_grid,
@@ -1198,9 +1229,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse,
-                        xp.dataPtr()+nfine_gather,
-                        yp.dataPtr()+nfine_gather,
-                        zp.dataPtr()+nfine_gather,
+                        m_xp[thread_num].dataPtr()+nfine_gather,
+                        m_yp[thread_num].dataPtr()+nfine_gather,
+                        m_zp[thread_num].dataPtr()+nfine_gather,
                         Exp.dataPtr()+nfine_gather, Eyp.dataPtr()+nfine_gather, Ezp.dataPtr()+nfine_gather,
                         Bxp.dataPtr()+nfine_gather, Byp.dataPtr()+nfine_gather, Bzp.dataPtr()+nfine_gather,
                         cixyzmin_grid,
@@ -1223,7 +1254,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Particle Push
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
-                PushPX(pti, xp, yp, zp, giv, dt);
+                PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], 
+		       m_giv[thread_num], dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
                 //
@@ -1245,46 +1277,46 @@ PhysicalParticleContainer::Evolve (int lev,
                     tby.grow(ngJ);
                     tbz.grow(ngJ);
                     
-                    local_jx->resize(tbx);
-                    local_jy->resize(tby);
-                    local_jz->resize(tbz);
+                    local_jx[thread_num]->resize(tbx);
+                    local_jy[thread_num]->resize(tby);
+                    local_jz[thread_num]->resize(tbz);
 
-                    jx_ptr = local_jx->dataPtr();
-                    jy_ptr = local_jy->dataPtr();
-                    jz_ptr = local_jz->dataPtr();
+                    jx_ptr = local_jx[thread_num]->dataPtr();
+                    jy_ptr = local_jy[thread_num]->dataPtr();
+                    jz_ptr = local_jz[thread_num]->dataPtr();
 
-                    FArrayBox* local_jx_ptr = local_jx.get();
+                    FArrayBox* local_jx_ptr = local_jx[thread_num].get();
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
                     {
                         local_jx_ptr->setVal(0.0, b, 0, 1);
                     });
 
-                    FArrayBox* local_jy_ptr = local_jy.get();
+                    FArrayBox* local_jy_ptr = local_jy[thread_num].get();
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
                     {
                         local_jy_ptr->setVal(0.0, b, 0, 1);
                     });
 
-                    FArrayBox* local_jz_ptr = local_jz.get();
+                    FArrayBox* local_jz_ptr = local_jz[thread_num].get();
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
                     {
                         local_jz_ptr->setVal(0.0, b, 0, 1);
                     });                    
                     
-                    jxntot = local_jx->length();
-                    jyntot = local_jy->length();
-                    jzntot = local_jz->length();
+                    jxntot = local_jx[thread_num]->length();
+                    jyntot = local_jy[thread_num]->length();
+                    jzntot = local_jz[thread_num]->length();
 
                     warpx_current_deposition(
                         jx_ptr, &ngJ, jxntot,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
                         &np_current,
-                        xp.dataPtr(),
-                        yp.dataPtr(),
-                        zp.dataPtr(),
+                        m_xp[thread_num].dataPtr(),
+                        m_yp[thread_num].dataPtr(),
+                        m_zp[thread_num].dataPtr(),
                         uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                        giv.dataPtr(),
+                        m_giv[thread_num].dataPtr(),
                         wp.dataPtr(), &this->charge,
                         &xyzmin[0], &xyzmin[1], &xyzmin[2],
                         &dt, &dx[0], &dx[1], &dx[2],
@@ -1295,21 +1327,21 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    FArrayBox const* local_jx_const_ptr = local_jx.get();
+                    FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
                     FArrayBox* global_jx_ptr = &jxfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
                         global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jy_const_ptr = local_jy.get();
+                    FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
                     FArrayBox* global_jy_ptr = &jyfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
                         global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                  
 
-                    FArrayBox const* local_jz_const_ptr = local_jz.get();
+                    FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
                     FArrayBox* global_jz_ptr = &jzfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
@@ -1332,21 +1364,21 @@ PhysicalParticleContainer::Evolve (int lev,
                     tby.grow(ngJ);
                     tbz.grow(ngJ);
 
-                    local_jx->resize(tbx);
-                    local_jy->resize(tby);
-                    local_jz->resize(tbz);
+                    local_jx[thread_num]->resize(tbx);
+                    local_jy[thread_num]->resize(tby);
+                    local_jz[thread_num]->resize(tbz);
 
-                    local_jx->setVal(0.0);
-                    local_jy->setVal(0.0);
-                    local_jz->setVal(0.0);
+                    local_jx[thread_num]->setVal(0.0);
+                    local_jy[thread_num]->setVal(0.0);
+                    local_jz[thread_num]->setVal(0.0);
 
-                    jx_ptr = local_jx->dataPtr();
-                    jy_ptr = local_jy->dataPtr();
-                    jz_ptr = local_jz->dataPtr();
+                    jx_ptr = local_jx[thread_num]->dataPtr();
+                    jy_ptr = local_jy[thread_num]->dataPtr();
+                    jz_ptr = local_jz[thread_num]->dataPtr();
 
-                    jxntot = local_jx->length();
-                    jyntot = local_jy->length();
-                    jzntot = local_jz->length();
+                    jxntot = local_jx[thread_num]->length();
+                    jyntot = local_jy[thread_num]->length();
+                    jzntot = local_jz[thread_num]->length();
 
                     long ncrse = np - nfine_current;
                     warpx_current_deposition(
@@ -1354,13 +1386,13 @@ PhysicalParticleContainer::Evolve (int lev,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
                         &ncrse,
-                        xp.dataPtr() +nfine_current,
-                        yp.dataPtr() +nfine_current,
-                        zp.dataPtr() +nfine_current,
+                        m_xp[thread_num].dataPtr() +nfine_current,
+                        m_yp[thread_num].dataPtr() +nfine_current,
+                        m_zp[thread_num].dataPtr() +nfine_current,
                         uxp.dataPtr()+nfine_current,
                         uyp.dataPtr()+nfine_current,
                         uzp.dataPtr()+nfine_current,
-                        giv.dataPtr()+nfine_current,
+                        m_giv[thread_num].dataPtr()+nfine_current,
                         wp.dataPtr()+nfine_current, &this->charge,
                         &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
                         &dt, &cdx[0], &cdx[1], &cdx[2],
@@ -1373,21 +1405,21 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    FArrayBox const* local_jx_ptr = local_jx.get();
+                    FArrayBox const* local_jx_ptr = local_jx[thread_num].get();
                     FArrayBox* global_jx_ptr = &cjxfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
                         global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jy_ptr = local_jy.get();
+                    FArrayBox const* local_jy_ptr = local_jy[thread_num].get();
                     FArrayBox* global_jy_ptr = &cjyfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
                         global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jz_ptr = local_jz.get();
+                    FArrayBox const* local_jz_ptr = local_jz[thread_num].get();
                     FArrayBox* global_jz_ptr = &cjzfab;
                     AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
@@ -1401,7 +1433,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 // copy particle data back
                 //
                 BL_PROFILE_VAR_START(blp_copy);
-                pti.SetPosition(xp, yp, zp);
+                pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
