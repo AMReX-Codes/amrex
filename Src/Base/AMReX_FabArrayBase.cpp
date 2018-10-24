@@ -23,9 +23,7 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
-#ifdef AMREX_USE_CUDA
 int     FabArrayBase::use_cuda_aware_mpi;
-#endif
 
 #if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
 
@@ -75,6 +73,7 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
+    Arena* the_fa_arena = nullptr;
     bool initialized = false;
 }
 
@@ -115,6 +114,18 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1)
         MaxComp = 1;
 
+#ifdef AMREX_USE_CUDA
+    FabArrayBase::use_cuda_aware_mpi = 1;
+    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
+#else
+    FabArrayBase::use_cuda_aware_mpi = 0;
+#endif
+    if (FabArrayBase::use_cuda_aware_mpi) {
+        the_fa_arena = The_Cuda_Arena();
+    } else {
+        the_fa_arena = new BArena;
+    }
+
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
 #ifdef BL_MEM_PROFILING
@@ -139,11 +150,12 @@ FabArrayBase::Initialize ()
 			 return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
 		     }));
 #endif
+}
 
-#ifdef AMREX_USE_CUDA
-    FabArrayBase::use_cuda_aware_mpi = 1;
-    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
-#endif
+Arena*
+The_FA_Arena ()
+{
+    return the_fa_arena;
 }
 
 FabArrayBase::FabArrayBase ()
@@ -1477,6 +1489,11 @@ FabArrayBase::Finalize ()
     m_BD_count.clear();
     
     m_FA_stats = FabArrayStats();
+
+    if (!FabArrayBase::use_cuda_aware_mpi) {
+        delete the_fa_arena;
+    }
+    the_fa_arena = nullptr;
 
     initialized = false;
 }
