@@ -5,7 +5,6 @@
 #include <memory>
 #include <limits>
 
-#include <AMReX.H>
 #include <AMReX_Print.H>
 #include <AMReX_Device.H>
 
