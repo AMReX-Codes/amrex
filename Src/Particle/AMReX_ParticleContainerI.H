@@ -1539,7 +1539,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const int SeqNum = ParallelDescriptor::SeqNum();
     
     // Allocate data for rcvs as one big chunk.
-    thrust::device_vector<char> recvdata(TotRcvBytes);
+    m_recvdata.resize(TotRcvBytes);
     
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
@@ -1550,7 +1550,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(recvdata.data() + offset),
+        rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(m_recvdata.data() + offset),
                                              Cnt, Who, SeqNum).req();
     }
     
@@ -1572,7 +1572,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
-            char* buffer = thrust::raw_pointer_cast(recvdata.data() + offset);
+            char* buffer = thrust::raw_pointer_cast(m_recvdata.data() + offset);
             size_t num_grids, num_particles;
             int gid, pid;
             cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyDeviceToHost); 
