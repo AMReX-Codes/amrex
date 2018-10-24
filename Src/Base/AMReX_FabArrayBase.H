@@ -11,6 +11,7 @@
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
 
 namespace amrex {
 
@@ -610,6 +611,8 @@ protected:
 };
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
+
+inline Arena* The_FA_Arena () { return The_Cuda_Arena(); }
 
 }
 

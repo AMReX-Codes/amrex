@@ -16,6 +16,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
 
 #include <AMReX_Device.H>
 
@@ -532,6 +533,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::StartTeams();
 
+    Arena::Initialize();
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
