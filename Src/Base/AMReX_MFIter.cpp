@@ -5,41 +5,6 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
-int MFIter_init::m_cnt = 0;
-
-namespace
-{
-    Arena* the_mfiter_arena = 0;
-}
-
-MFIter_init::MFIter_init ()
-{
-    if (m_cnt++ == 0)
-    {
-        BL_ASSERT(the_mfiter_arena == 0);
-
-        the_mfiter_arena = new CArena;
-
-	the_mfiter_arena->SetDeviceMemory();
-    }
-}
-
-MFIter_init::~MFIter_init ()
-{
-    if (--m_cnt == 0)
-        delete the_mfiter_arena;
-}
-
-Arena*
-The_MFIter_Arena ()
-{
-    BL_ASSERT(the_mfiter_arena != 0);
-
-    return the_mfiter_arena;
-}
-#endif
-
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 
 MFIter::MFIter (const FabArrayBase& fabarray_, 
