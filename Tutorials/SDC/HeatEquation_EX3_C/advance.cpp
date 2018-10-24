@@ -13,13 +13,14 @@ void sweep(MultiFab& phi_old,
 	   std::array<MultiFab, AMREX_SPACEDIM>& flux,
 	   Vector<MultiFab>& phi_sdc,
 	   Vector<MultiFab>& res_sdc,
-	   Vector<Vector<MultiFab> >& f_sdc,
+	   //	   Vector<Vector<MultiFab> >& f_sdc,
+	   Vector<MultiFab>& f_sdc,	   
 	   Real dt,
 	   const Geometry& geom,
 	   const BoxArray& grids, 
 	   const DistributionMapping& dmap, 
 	   const Vector<BCRec>& bc,
-           SDCstruct sdcmats)
+           SDCstruct &sdcmats)
 {
   /*  We use an MLABecLaplacian operator:
 
@@ -57,13 +58,16 @@ void sweep(MultiFab& phi_old,
 #if (AMREX_SPACEDIM == 3)   
 		       BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif		       
-		       BL_TO_FORTRAN_ANYD(f_sdc[1][sdc_m][mfi]),
+		       //		       BL_TO_FORTRAN_ANYD(f_sdc[1][sdc_m][mfi]),
+		       BL_TO_FORTRAN_ANYD(f_sdc[sdc_m][mfi]),		       
 		       dx);
 	} 
 
   // Copy first function value to all nodes
   for (int sdc_n = 1; sdc_n < SDC_NNODES; sdc_n++)
-    MultiFab::Copy(f_sdc[1][sdc_n],f_sdc[1][0], 0, 0, 1, 0);
+    MultiFab::Copy(f_sdc[sdc_n],f_sdc[0], 0, 0, 1, 0);
+    //    MultiFab::Copy(f_sdc[1][sdc_n],f_sdc[1][0], 0, 0, 1, 0);
+
   
 
   // assorment of solver and parallization options and parameters
@@ -163,7 +167,7 @@ void sweep(MultiFab& phi_old,
   const Real tol_rel = 1.e-10;
   const Real tol_abs = 0.0;
   
-  for (int k=1; k <= sdcmats.nsweeps; ++k)
+  for (int k=1; k <= sdcmats.Nsweeps; ++k)
     {
       amrex::Print() << "sweep " << k << "\n";
       // Compute the quadrature term
@@ -175,7 +179,8 @@ void sweep(MultiFab& phi_old,
 	      for (int sdc_n = 0; sdc_n < SDC_NNODES; sdc_n++)
 		{
 		  qij = dt*(sdcmats.qmats[0][sdc_m][sdc_n]-sdcmats.qmats[2][sdc_m][sdc_n]);
-		  res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
+		  //		  res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
+		  res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[sdc_n][mfi]);		  
 		}
 	    }
 	}
@@ -195,7 +200,8 @@ void sweep(MultiFab& phi_old,
 	      for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 		{
 		  qij = dt*sdcmats.qmats[2][sdc_m][sdc_n];
-		  phi_new[mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
+		  //		  phi_new[mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
+		  phi_new[mfi].saxpy(qij,f_sdc[sdc_n][mfi]);		  
 		}
 	    }
 	  
@@ -224,7 +230,8 @@ void sweep(MultiFab& phi_old,
 	    {
 	      const Box& bx = mfi.validbox();
 	      qij = dt*sdcmats.qmats[2][sdc_m][sdc_m+1];
-	      phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[1][sdc_m+1][mfi]);
+	      //	      phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[1][sdc_m+1][mfi]);
+	      phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[sdc_m+1][mfi]);	      
 	    }
 
 	  // Solve linear system
@@ -244,7 +251,8 @@ void sweep(MultiFab& phi_old,
 #if (AMREX_SPACEDIM == 3)   
 			   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
 #endif		       
-			   BL_TO_FORTRAN_ANYD(f_sdc[1][sdc_m+1][mfi]),
+			   BL_TO_FORTRAN_ANYD(f_sdc[sdc_m+1][mfi]),
+			   //			   BL_TO_FORTRAN_ANYD(f_sdc[1][sdc_m+1][mfi]),
 			   dx);
 	    }
 	  
