@@ -53,24 +53,24 @@ public:
 template <class T>
 class ManagedVector
     :
-    public thrust::device_vector<T, thrust_managed_allocator<T> >
+    public thrust::device_vector<T, ThrustManagedAllocator<T> >
 {
 public:
 
-    using thrust::device_vector<T, thrust_managed_allocator<T> >::device_vector;
+    using thrust::device_vector<T, ThrustManagedAllocator<T> >::device_vector;
 
     //! get access to the underlying data pointer
     T* data ()
     { 
       return thrust::raw_pointer_cast(
-       this->thrust::device_vector<T, thrust_managed_allocator<T>>::data());
+       this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
     }
 
     //! get access to the underlying data pointer
     const T* data () const
     { 
       return thrust::raw_pointer_cast(
-       this->thrust::device_vector<T, thrust_managed_allocator<T>>::data());
+       this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
     }
 
     //! get access to the underlying data pointer
@@ -81,13 +81,13 @@ public:
     T& operator[] (std::size_t i)
     {
       return *thrust::raw_pointer_cast(
-      &(this->thrust::device_vector<T, thrust_managed_allocator<T>>::operator[](i)));
+      &(this->thrust::device_vector<T, ThrustManagedAllocator<T>>::operator[](i)));
     }
 
     const T& operator[] (std::size_t i) const
     {
       return *thrust::raw_pointer_cast(
-      &(this->thrust::device_vector<T, thrust_managed_allocator<T>>::operator[](i)));
+      &(this->thrust::device_vector<T, ThrustManagedAllocator<T>>::operator[](i)));
     }
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
@@ -100,7 +100,7 @@ public:
         }
         else
         {
-	    this->thrust::device_vector<T, thrust_managed_allocator<T> >::assign(count, value);
+	    this->thrust::device_vector<T, ThrustManagedAllocator<T> >::assign(count, value);
         }
     }
 };
