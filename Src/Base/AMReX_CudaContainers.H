@@ -10,6 +10,11 @@ namespace Cuda {
 
 #ifdef AMREX_USE_CUDA
 
+/**
+
+   This is a thin wrapper around thrust::device_vector.
+
+ **/
 template <class T>
 class DeviceVector
   :
@@ -30,6 +35,11 @@ public:
     }        
 };
 
+/**
+
+   This is a thin wrapper around thrust::host_vector.
+
+ **/
 template <class T>
 class HostVector
   :
@@ -50,6 +60,11 @@ public:
     }
 };
 
+/**
+
+   This is an amrex::Vector allocated using managed memory.
+
+ **/
 template <class T>
 class ManagedVector
     :
@@ -74,6 +89,11 @@ class ManagedVector
     }
 };
 
+/**
+
+   This is thrust::device_vector allocated using managed memory.
+
+ **/
 template <class T>
 class ManagedDeviceVector
     :
@@ -130,6 +150,7 @@ public:
 };
         
 #else
+    // When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
     using DeviceVector = Vector<T>;
 
