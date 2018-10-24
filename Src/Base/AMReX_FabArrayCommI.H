@@ -32,10 +32,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         // There can only be local work to do.
         //
 	int N_loc = (*TheFB.m_LocTags).size();
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_loc); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
         {
             const int i = sit();
             const CopyComTag& tag = (*TheFB.m_LocTags)[i];
@@ -210,10 +211,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     if (N_snds > 0)
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_snds); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
         {
             const int j = sit();
             char* dptr = send_data[j];
@@ -340,10 +342,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     }
     else
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_locs); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
 	{
             const int i = sit();
 	    const CopyComTag& tag = (*TheFB.m_LocTags)[i];
@@ -419,10 +422,11 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 	}	
 
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_rcvs); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
         {
             const int k = sit();
             const char* dptr = fb_recv_data[k];
@@ -545,10 +549,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // There can only be local work to do.
         //
 	int N_loc = (*thecpc.m_LocTags).size();
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_loc); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
         {
             const int i = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
@@ -743,10 +748,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	// 
 	if (N_snds > 0)
 	{
+            bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-            for (Cuda::StreamIter sit(N_snds); sit.isValid(); ++sit)
+            for (Cuda::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
 	    {
                 const int j = sit();
 		char* dptr = send_data[j];
@@ -891,10 +897,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	}
 	else 
 	{
+            bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-            for (Cuda::StreamIter sit(N_locs); sit.isValid(); ++sit)
+            for (Cuda::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
 	    {
                 const int j = sit();
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
@@ -951,11 +958,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     recv_cctc[k] = &cctc;
                 }
 	    }
-	    
+
+            bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-            for (Cuda::StreamIter sit(N_rcvs); sit.isValid(); ++sit)
+            for (Cuda::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
             {
                 const int k = sit();
                 const char* dptr = recv_data[k];
@@ -1101,10 +1109,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // There can only be local work to do.
         //
 	int N_loc = (*thecpc.m_LocTags).size();
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_loc); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
         {
             const int i = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
@@ -1266,10 +1275,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     // 
     if (N_snds > 0)
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_snds); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
         {
             const int j = sit();
             char* dptr = send_data[j];
@@ -1372,10 +1382,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     }
     else 
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
 #endif
-        for (Cuda::StreamIter sit(N_locs); sit.isValid(); ++sit)
+        for (Cuda::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
         {
             const int j = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[j];
@@ -1438,45 +1449,42 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                 recv_cctc[k] = &cctc;
             }
         }
-	
-#ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Cuda::inLaunchRegion())
-#endif
-        {
-#ifdef _OPENMP
-#pragma omp for
-#endif
-            for (int k = 0; k < N_rcvs; ++k)
-            {
-                const char* dptr = recv_data[k];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *recv_cctc[k];
-                    for (auto const& tag : cctc)
-                    {
-                        const Box& bx  = tag.dbox;
-                        FAB* dfab = &(dstfa[tag.dstIndex]);
-                        if (op == FabArrayBase::COPY)
-                        {
-                            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                            {
-                                const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                                dfab->copyFromMem(tbx, dcomp, ncomp, p);
-                            });
-                        }
-                        else
-                        {
-                            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                            {
-                                const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                                dfab->addFromMem(tbx, dcomp, ncomp, p);
-                            });
-                        }
 
-                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
+#ifdef _OPENMP
+#pragma omp parallel if (is_thread_safe && !Cuda::inLaunchRegion())
+#endif
+        for (Cuda::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
+        {
+            const int k = sit();
+            const char* dptr = recv_data[k];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *recv_cctc[k];
+                for (auto const& tag : cctc)
+                {
+                    const Box& bx  = tag.dbox;
+                    FAB* dfab = &(dstfa[tag.dstIndex]);
+                    if (op == FabArrayBase::COPY)
+                    {
+                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        {
+                            const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                            dfab->copyFromMem(tbx, dcomp, ncomp, p);
+                        });
                     }
-                    BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                    else
+                    {
+                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        {
+                            const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                            dfab->addFromMem(tbx, dcomp, ncomp, p);
+                        });
+                    }
+
+                    dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
+                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
             }
         }
 

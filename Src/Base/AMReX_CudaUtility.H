@@ -151,7 +151,7 @@ namespace Cuda {
     class StreamIter
     {
     public:
-        StreamIter (const int n);
+        StreamIter (const int n, bool is_thread_safe);
         ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
@@ -172,6 +172,7 @@ namespace Cuda {
     private:
         int m_n;
         int m_i;
+        bool m_threadsafe;
     };
 
 } // namespace Cuda

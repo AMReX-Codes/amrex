@@ -21,8 +21,8 @@ operator<< (std::ostream& os, const dim3& d)
 
 namespace Cuda {
 
-StreamIter::StreamIter (const int n)
-    : m_n(n), m_i(0)
+StreamIter::StreamIter (const int n, bool is_thread_safe)
+    : m_n(n), m_i(0), m_threadsafe(is_thread_safe)
 {
 #if defined(AMREX_USE_CUDA)
     Device::set_stream_index(m_i);
@@ -56,8 +56,10 @@ void
 StreamIter::operator++ ()
 {
     ++m_i;
-    Device::set_stream_index(m_i);
-    Device::check_for_errors();
+    if (m_threadsafe) {
+        Device::set_stream_index(m_i);
+        Device::check_for_errors();
+    }
 }
 #endif
 
