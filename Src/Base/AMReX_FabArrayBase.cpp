@@ -75,7 +75,6 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
-    Arena* the_FA_arena = nullptr;
     bool initialized = false;
 }
 
@@ -378,11 +377,14 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	BaseFab<int> localtouch, remotetouch;
 	bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
 	}
+#elif defined(AMREX_USE_CUDA)
+        check_local = true;
+        check_remote = true;
 #endif    
 	
 	if (ParallelDescriptor::TeamSize() > 1) {
@@ -721,11 +723,14 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
     }
+#elif defined(AMREX_USE_CUDA)
+    check_local = true;
+    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
@@ -943,11 +948,14 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
     }
+#elif defined(AMREX_USE_CUDA)
+    check_local = true;
+    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
@@ -1472,8 +1480,6 @@ FabArrayBase::Finalize ()
     m_BD_count.clear();
     
     m_FA_stats = FabArrayStats();
-
-    delete the_FA_arena;
 
     initialized = false;
 }

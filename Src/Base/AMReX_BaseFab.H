@@ -186,10 +186,8 @@ public:
     AMREX_CUDA_HOST_DEVICE
     std::size_t nBytes () const { return truesize*sizeof(T); }
 
-    AMREX_CUDA_HOST_DEVICE
     static bool preAllocatable () { return true; }
 
-    AMREX_CUDA_HOST_DEVICE
     static bool isCopyOMPSafe () { return true; }
 
     //! Returns bytes used in the Box for those components

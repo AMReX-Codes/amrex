@@ -11,6 +11,10 @@
 #include <string>
 #include <cstdio>
 
+#ifdef AMREX_USE_CUDA
+#include "nvToolsExt.h"
+#endif
+
 //
 // Initialize, Finalize, Error Reporting, and Version String Functions
 
