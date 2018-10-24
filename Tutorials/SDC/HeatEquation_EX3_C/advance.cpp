@@ -2,12 +2,11 @@
 #include "myfunc.H"
 #include "myfunc_F.H"
 
+
 #include <AMReX_BCUtil.H>
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
-
-
 
 void sweep(MultiFab& phi_old,
 	   MultiFab& phi_new,
@@ -20,7 +19,7 @@ void sweep(MultiFab& phi_old,
 	   const BoxArray& grids, 
 	   const DistributionMapping& dmap, 
 	   const Vector<BCRec>& bc,
-           SDCstuff sdcmats)
+           SDCstruct sdcmats)
 {
   /*  We use an MLABecLaplacian operator:
 
