@@ -2309,8 +2309,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKCPU (int le
 
             const BoxArray& ba = ParticleBoxArray(lev);
             BL_ASSERT(ba.ixType().cellCentered());
-            for (const auto& p : aos)
-            {
+	    for (int k = 0; k < aos.size(); ++k)
+	    {
+	        const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0)
                 {
                     if (grid < 0 || grid >= ba.size()) return false;
