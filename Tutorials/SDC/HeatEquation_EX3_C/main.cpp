@@ -4,7 +4,7 @@
 
 #include "myfunc.H"
 #include "myfunc_F.H"  // includes advance.cpp
-#include "SDCstruct.H"
+#include "AMReX_SDCstruct.H"
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
@@ -25,7 +25,6 @@ void main_main ()
     Vector<int> bc_lo(AMREX_SPACEDIM,0);
     Vector<int> bc_hi(AMREX_SPACEDIM,0);
 
-    SDCstruct SDCmats;
     // inputs parameters
     {
         // ParmParse is way of reading inputs from the inputs file
@@ -155,21 +154,11 @@ void main_main ()
         flux[dir].define(edge_ba, dm, 1, 0);
     }
 
-    //  allocate an array of multifabs at SDC nodes
-    Vector<MultiFab> phi_sdc(SDC_NNODES);
-    Vector<MultiFab> res_sdc(SDC_NNODES);
-    Vector<Vector<MultiFab> > f_sdc(SDC_NPIECES); // access by [npieces][node]
-    for (auto& v : f_sdc) v.resize(SDC_NNODES);
-    for (int sdc_m = 0; sdc_m < SDC_NNODES; sdc_m++)
-      {
-	phi_sdc[sdc_m].define(ba, dm, Ncomp, Nghost);
-	res_sdc[sdc_m].define(ba, dm, Ncomp, Nghost);
-    	for (int i = 0; i < SDC_NPIECES; i++)
-    	  {
-    	    f_sdc[i][sdc_m].define(ba, dm, Ncomp, Nghost);
-    	  }
-      }
-    
+    // Make an SDC structure
+    int Nnodes=5;
+    int Npieces=1;
+    SDCstruct SDCmats(Nnodes,Npieces,phi_old);
+
     // Compute the time step
     // Implicit time step is imFactor*(explicit time step)
     const Real* dx = geom.CellSize();
@@ -185,13 +174,12 @@ void main_main ()
     //    }
 
     MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
-    SDCmats.nsweeps =8;
+    SDCmats.Nsweeps =8;
     for (int n = 1; n <= nsteps; ++n)
     {
 
-
         // Do sdc sweeps
-        sweep(phi_old, phi_new,flux, phi_sdc,res_sdc,f_sdc, dt, geom,ba, dm, bc,SDCmats); 
+        sweep(phi_old, phi_new,flux, SDCmats.phi_sdc,SDCmats.res_sdc,SDCmats.f_sdc, dt, geom,ba, dm, bc,SDCmats); 
         time = time + dt;
 	MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);    
 
