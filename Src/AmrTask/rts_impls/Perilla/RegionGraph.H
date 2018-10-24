@@ -90,6 +90,17 @@ namespace amrex{
 	    RegionQueue* computedRegionQueue;
 	    RegionQueue* completedRegionQueue;
 	    Worker():init(false), barr(0), l_barr(0), totalTasks(0){}
+
+            ~Worker(){
+#if 0
+	        delete barr;
+        	delete l_barr;
+        	delete fireableRegionQueue;
+        	delete unfireableRegionQueue;
+        	delete computedRegionQueue;
+        	delete completedRegionQueue;
+#endif
+	    }
     };
 
     //template <class FAB>
@@ -162,12 +173,13 @@ namespace amrex{
 	    void regionGraphReset(int numfabs);
 	    void regionGraphMinReset(void);
 	    void enableAllRegions();
-	    void disableRegion(int r, int tg);
+	    void disableRegion(int r);
 	    void finalizeRegion(int r);
 	    void finalizeRegionGraph();
 	    void regionComputed(int r);
 	    bool isFireableRegion(int r);
 	    int  getAnyFireableRegion();
+            int  getAnyFireableRegion(RegionGraph& depGraph);
 	    int  getPulledFireableRegion();
 	    int  getFireableRegion(bool isSingleThread=false);
 	    void setFireableRegion(int r);
@@ -264,12 +276,11 @@ namespace amrex{
 
 	    void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
 	    {
-
 		int myProc = amrex::ParallelDescriptor::MyProc();
 		const int n = mf.indexArray.size();
 		fabTiles.resize(n);
 
-		typ = mf.boxArray().ixType();
+		//typ = mf.boxArray().ixType();
 
 		for (int i = 0; i < n; ++i)
 		{
