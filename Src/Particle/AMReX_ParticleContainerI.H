@@ -995,6 +995,31 @@ namespace {
             return mask_ptr[offset];
         }
     };
+
+    struct particleCell
+    {        
+        DeviceDomain domain;
+        
+        __host__ __device__
+        particleCell(const DeviceDomain& a_domain)
+            : domain(a_domain) {}
+        
+        template <typename Particle>
+        __host__ __device__
+        IntVect operator()(const Particle& p) const {
+            int i = floor((p.m_rdata.pos[0] - domain.left_edge[0]) * domain.inverse_dx[0]);
+            i += domain.small_end[0];
+#if   AMREX_SPACEDIM > 1
+            int j = floor((p.m_rdata.pos[1] - domain.left_edge[1]) * domain.inverse_dx[1]);
+            j += domain.small_end[1];
+#endif
+#if   AMREX_SPACEDIM > 2
+            int k = floor((p.m_rdata.pos[2] - domain.left_edge[2]) * domain.inverse_dx[2]);
+            k += domain.small_end[2];
+#endif   
+	    return IntVect(i, j, k);
+        }
+    };
     
     struct grid_is
     {
@@ -1026,6 +1051,109 @@ namespace {
 }
 
 #endif // AMREX_USE_CUDA
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
+{
+#ifdef AMREX_USE_CUDA
+
+    BL_PROFILE("ParticleContainer::SortParticlesByCell()");
+
+    BuildRedistributeMask(0, 1);
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const BoxArray& ba   = ParticleBoxArray(lev);
+    const DistributionMapping& dmap = ParticleDistributionMap(lev);
+    auto& plev  = m_particles[lev];
+
+    // temporaries
+    m_cells_tmp.resize(0);
+    m_index_sequence_tmp.resize(0);
+    m_aos_r.resize(0);
+    m_grids_r.resize(0);
+    m_rdata_r.resize(0);
+    m_idata_r.resize(0);
+
+    for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
+    {
+        int src_grid = mfi.index();
+        const int tid = 0;        
+        auto& ptile = plev[std::make_pair(src_grid, tid)];
+        auto& aos   = ptile.GetArrayOfStructs();
+        auto& soa   = ptile.GetStructOfArrays();
+        const size_t np = aos.numParticles();
+
+        m_cells_tmp.resize(np);
+        m_index_sequence_tmp.resize(np);
+
+        thrust::sequence(thrust::device, 
+			 m_index_sequence_tmp.begin(), 
+			 m_index_sequence_tmp.end());        
+
+        thrust::transform(thrust::device, 
+                          thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
+                          thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
+                          m_cells_tmp.begin(),
+                          particleCell(DeviceDomain(geom)));
+
+        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                            m_cells_tmp.begin(),
+                            m_cells_tmp.end(),
+                            m_index_sequence_tmp.begin());
+
+        //
+        // Reorder the particle data 
+        //
+        {
+	    // reorder structs
+	    m_aos_r.resize(np);
+            thrust::copy_n(thrust::device,
+                thrust::make_permutation_iterator(
+                thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
+                                                 m_index_sequence_tmp.begin()), 
+                np, m_aos_r.begin());
+            thrust::copy(thrust::device, m_aos_r.begin(), m_aos_r.end(), 
+                         thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())));
+
+            // reorder grids
+            m_grids_r.resize(np);
+            thrust::copy_n(thrust::device,
+                           thrust::make_permutation_iterator(m_grids_tmp.begin(),
+                                                             m_index_sequence_tmp.begin()), 
+                           np, m_grids_r.begin());
+            thrust::copy(thrust::device, m_grids_r.begin(), m_grids_r.end(), m_grids_tmp.begin());
+
+            // reorder real arrays
+	    m_rdata_r.resize(np);
+            for (int j = 0; j < NArrayReal; ++j)
+            {
+                auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
+                thrust::copy_n(thrust::device,
+                               thrust::make_permutation_iterator(thrust::device_ptr<Real>(rdata.data()),
+                                                       m_index_sequence_tmp.begin()), 
+                     np, m_rdata_r.begin());
+                thrust::copy(thrust::device, m_rdata_r.begin(), m_rdata_r.end(), 
+                             thrust::device_ptr<Real>(rdata.data()));
+            }
+
+            // reorder int arrays
+	    m_idata_r.resize(np);
+            for (int j = 0; j < NArrayInt; ++j)
+            {
+                auto& idata = ptile.GetStructOfArrays().GetIntData(j);
+                thrust::copy_n(thrust::device,
+                               thrust::make_permutation_iterator(thrust::device_ptr<int>(idata.data()),
+                                                                 m_index_sequence_tmp.begin()), 
+                    np, m_idata_r.begin());
+                thrust::copy(thrust::device, m_idata_r.begin(), m_idata_r.end(), 
+                             thrust::device_ptr<int>(idata.data()));
+            }
+        }
+    }
+#endif
+}
 
 //
 // The GPU implementation of Redistribute

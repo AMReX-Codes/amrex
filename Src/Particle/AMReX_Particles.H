@@ -349,6 +349,8 @@ public:
 
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
+    void SortParticlesByCell();
+
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -600,6 +602,7 @@ protected:
     mutable thrust::device_vector<Real> m_rdata_r;
     mutable thrust::device_vector<int> m_idata_r;
 
+    mutable thrust::device_vector<amrex::IntVect> m_cells_tmp;
     mutable thrust::device_vector<int> m_grids_tmp;
     mutable thrust::device_vector<int> m_index_sequence_tmp;
     mutable std::map<int, thrust::device_vector<char> > m_not_ours;
