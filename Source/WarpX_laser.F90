@@ -1,3 +1,10 @@
+#if AMREX_USE_GPU && __PGIC__ <= 18 && __PGIC_MINOR__ <= 7
+#define USE_ACC_LASER_SUBROUTINE
+! Define a separate subroutine that contains the openacc pragmas
+! This is because fortran subroutines containing openacc pramas
+! ignore the `bind(C,` statement, and so cannot directly be called from C++
+! (at least until pgi version 18.7)
+#endif
 
 module warpx_laser_module
 
@@ -27,6 +34,31 @@ contains
                         stc_exponent, stcfactor
     complex*16, parameter :: j=cmplx(0., 1.)
 
+#ifdef USE_ACC_LASER_SUBROUTINE
+    call warpx_gaussian_laser_acc( np, Xp, Yp, t, &
+      wavelength, e_max, waist, duration, t_peak, f, amplitude, &
+      zeta, beta, phi2 )
+
+  end subroutine warpx_gaussian_laser
+    
+  subroutine warpx_gaussian_laser_acc( np, Xp, Yp, t, &
+      wavelength, e_max, waist, duration, t_peak, f, amplitude, &
+      zeta, beta, phi2 )
+
+    integer(c_long), intent(in) :: np
+    real(amrex_real), intent(in)    :: Xp(np),Yp(np)
+    real(amrex_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
+    real(amrex_real), intent(in)    :: zeta, beta, phi2
+    real(amrex_real), intent(inout) :: amplitude(np)
+
+    integer(c_long)  :: i
+    real(amrex_real) :: k0, oscillation_phase, inv_tau2
+    complex*16       :: diffract_factor, exp_argument, prefactor, &
+                        inv_complex_waist_2, stretch_factor, &
+                        stc_exponent, stcfactor
+    complex*16, parameter :: j=cmplx(0., 1.)
+#endif
+    
     ! This function uses the complex expression of a Gaussian laser
     ! (Including Gouy phase and laser oscillations)
 
@@ -75,8 +107,12 @@ contains
    !$acc end loop
    !$acc end parallel
 
+#ifdef USE_ACC_LASER_SUBROUTINE
+  end subroutine warpx_gaussian_laser_acc
+#else
   end subroutine warpx_gaussian_laser
-
+#endif
+  
   ! Harris function for the laser temporal profile
   subroutine warpx_harris_laser( np, Xp, Yp, t, &
       wavelength, e_max, waist, duration, f, amplitude ) &
@@ -90,6 +126,25 @@ contains
        integer(c_long)  :: i
        real(amrex_real) :: space_envelope, time_envelope, arg_osc, arg_env
        real(amrex_real) :: omega0, zR, wz, inv_Rz, oscillations, inv_wz_2
+
+#ifdef USE_ACC_LASER_SUBROUTINE
+       call warpx_harris_laser_acc( np, Xp, Yp, t, &
+            wavelength, e_max, waist, duration, f, amplitude )
+
+  end subroutine warpx_harris_laser
+       
+  subroutine warpx_harris_laser_acc( np, Xp, Yp, t, &
+          wavelength, e_max, waist, duration, f, amplitude )
+
+       integer(c_long), intent(in) :: np
+       real(amrex_real), intent(in)    :: Xp(np),Yp(np)
+       real(amrex_real), intent(in)    :: e_max, t, wavelength, duration, f, waist
+       real(amrex_real), intent(inout) :: amplitude(np)
+
+       integer(c_long)  :: i
+       real(amrex_real) :: space_envelope, time_envelope, arg_osc, arg_env
+       real(amrex_real) :: omega0, zR, wz, inv_Rz, oscillations, inv_wz_2
+#endif
 
     ! This function uses the Harris function as the temporal profile of the pulse
     omega0 = 2*pi*clight/wavelength
@@ -123,9 +178,13 @@ contains
     enddo
     !$acc end loop
     !$acc end parallel
-    
-  end subroutine warpx_harris_laser
 
+#ifdef USE_ACC_LASER_SUBROUTINE
+  end subroutine warpx_harris_laser_acc
+#else
+  end subroutine warpx_harris_laser
+#endif
+  
   ! Parse function from the input script for the laser temporal profile
   subroutine parse_function_laser( np, Xp, Yp, t, amplitude, parser_instance_number ) bind(C, name="parse_function_laser")
        integer(c_long), intent(in) :: np
