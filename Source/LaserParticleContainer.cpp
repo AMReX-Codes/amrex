@@ -313,7 +313,7 @@ LaserParticleContainer::Evolve (int lev,
 #endif
     {
 	Cuda::DeviceVector<Real> xp, yp, zp, giv;
-        RealVector plane_Xp, plane_Yp, amplitude_E;
+        Cuda::DeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -348,6 +348,8 @@ LaserParticleContainer::Evolve (int lev,
             pti.GetPosition(xp, yp, zp);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
+#pragma acc parallel deviceptr(plane_Xp,plane_Yp,xp,yp,zp)
+#pragma acc loop
 	    for (int i = 0; i < np; ++i)
             {
                 // Find the coordinates of the particles in the emission plane
@@ -364,6 +366,7 @@ LaserParticleContainer::Evolve (int lev,
                 plane_Yp[i] = 0;
 #endif
             }
+
 
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
@@ -438,6 +441,8 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
+#pragma acc parallel deviceptr(amplitude_E,wp,uxp,uyp,uzp,xp,yp,zp,giv)
+#pragma acc loop
             for (int i = 0; i < np; ++i)
             {
                 // Calculate the velocity according to the amplitude of E
