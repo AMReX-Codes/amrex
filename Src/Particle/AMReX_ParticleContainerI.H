@@ -1247,7 +1247,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         thrust::sequence(thrust::device, 
 			 m_index_sequence_tmp.begin(),
 			 m_index_sequence_tmp.end());
-        thrust::sort_by_key(thrust::device,
+        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             m_grids_to_redistribute.begin(),
                             m_grids_to_redistribute.end(),
                             m_index_sequence_tmp.begin());
