@@ -145,6 +145,12 @@ WarpX::EvolveEM (int numsteps)
             mypc->Redistribute();
         }
 
+	bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
+	if (to_sort) {
+	    amrex::Print() << "re-sorting particles \n";
+	    mypc->SortParticlesByCell();
+	}
+
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
         Real walltime_end_step = amrex::second();
