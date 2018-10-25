@@ -1503,6 +1503,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                                   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
+    BL_PROFILE("PhysicalParticleContainer::PushP");
+
     if (do_not_push) return;
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -1511,8 +1513,11 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-	Cuda::DeviceVector<Real> xp, yp, zp, giv;
-
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif      
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
@@ -1546,12 +1551,12 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 	    Byp.assign(np,WarpX::B_external[1]);
 	    Bzp.assign(np,WarpX::B_external[2]);
 
-	    giv.resize(np);
+	    m_giv[thread_num].resize(np);
 
 	    //
 	    // copy data from particle container to temp arrays
 	    //
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
             const int* ixyzmin_grid = box.loVect();
@@ -1561,9 +1566,9 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
+                m_xp[thread_num].dataPtr(),
+                m_yp[thread_num].dataPtr(),
+                m_zp[thread_num].dataPtr(),
                 Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
                 Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                 ixyzmin_grid,
@@ -1580,11 +1585,11 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             warpx_particle_pusher_momenta(&np,
-                                          xp.dataPtr(),
-                                          yp.dataPtr(),
-                                          zp.dataPtr(),
+                                          m_xp[thread_num].dataPtr(),
+                                          m_yp[thread_num].dataPtr(),
+                                          m_zp[thread_num].dataPtr(),
                                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                          giv.dataPtr(),
+                                          m_giv[thread_num].dataPtr(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                           &this->charge, &this->mass, &dt,
