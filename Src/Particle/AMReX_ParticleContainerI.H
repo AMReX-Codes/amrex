@@ -1113,17 +1113,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                 thrust::make_permutation_iterator(
                 thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                                                  m_index_sequence_tmp.begin()), 
-                np, m_aos_r.begin());
+			   np, m_aos_r.begin());
             thrust::copy(thrust::device, m_aos_r.begin(), m_aos_r.end(), 
                          thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())));
-
-            // reorder grids
-            m_grids_r.resize(np);
-            thrust::copy_n(thrust::device,
-                           thrust::make_permutation_iterator(m_grids_tmp.begin(),
-                                                             m_index_sequence_tmp.begin()), 
-                           np, m_grids_r.begin());
-            thrust::copy(thrust::device, m_grids_r.begin(), m_grids_r.end(), m_grids_tmp.begin());
 
             // reorder real arrays
 	    m_rdata_r.resize(np);
