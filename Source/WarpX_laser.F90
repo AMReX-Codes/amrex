@@ -58,6 +58,8 @@ contains
 #endif
 
     ! Loop through the macroparticle to calculate the proper amplitude
+    !$acc parallel deviceptr(amplitude, Xp, Yp)
+    !$acc loop gang vector
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
       stc_exponent = 1./stretch_factor * inv_tau2 * &
@@ -69,7 +71,9 @@ contains
       exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
       ! stcfactor + transverse envelope
       amplitude(i) = DREAL( stcfactor * exp( exp_argument ) )
-    enddo
+   enddo
+   !$acc end loop
+   !$acc end parallel
 
   end subroutine warpx_gaussian_laser
 
@@ -109,13 +113,17 @@ contains
     end if
 
     ! Loop through the macroparticle to calculate the proper amplitude
+    !$acc parallel deviceptr(amplitude, Xp, Yp)
+    !$acc loop gang vector
     do i = 1, np
       space_envelope = exp(- ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_wz_2)
       arg_osc = omega0*t - omega0/clight*(Xp(i)*Xp(i) + Yp(i)*Yp(i)) * inv_Rz / 2
       oscillations = cos(arg_osc)
       amplitude(i) = e_max * time_envelope * space_envelope * oscillations
     enddo
-
+    !$acc end loop
+    !$acc end parallel
+    
   end subroutine warpx_harris_laser
 
   ! Parse function from the input script for the laser temporal profile
