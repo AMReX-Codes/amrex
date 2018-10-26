@@ -22,7 +22,7 @@
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
-        [=] AMREX_CUDA_DEVICE () { \
+        [=] AMREX_GPU_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
@@ -46,7 +46,7 @@
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
-        [=] AMREX_CUDA_DEVICE () { \
+        [=] AMREX_GPU_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
@@ -73,7 +73,7 @@
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
-        [=] AMREX_CUDA_DEVICE () { \
+        [=] AMREX_GPU_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
@@ -97,7 +97,7 @@
         long max_pts = std::max(bbx.numPts(), std::max(bby.numPts(), bbz.numPts())); \
         auto amrex_i_st = Cuda::Strategy(max_pts); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
-        [=] AMREX_CUDA_DEVICE () { \
+        [=] AMREX_GPU_DEVICE () { \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
             long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
@@ -138,7 +138,7 @@
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
-        [=] AMREX_CUDA_DEVICE () { \
+        [=] AMREX_GPU_DEVICE () { \
             const auto amrex_i_lo = bbb.loVect3d(); \
             const auto amrex_i_hi = bbb.hiVect3d(); \
             for (int amrex_i_k = amrex_i_lo[2] + blockIdx.z * blockDim.z + threadIdx.z; amrex_i_k <= amrex_i_hi[2]; amrex_i_k += blockDim.z * gridDim.z) { \
@@ -238,16 +238,16 @@ namespace amrex {
 //  Variadic lambda function wrappers for C++ CUDA Kernel calls.
 
     template<class L>
-    AMREX_CUDA_GLOBAL void launch_global (L f0) { f0(); }
+    AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
 
     template<class L, class... Lambdas>
-    AMREX_CUDA_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
+    AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
     
     template<class L>
-    AMREX_CUDA_DEVICE void call_device (L f0) { f0(); }
+    AMREX_GPU_DEVICE void call_device (L f0) { f0(); }
     
     template<class L, class... Lambdas>
-    AMREX_CUDA_DEVICE void call_device (L f0, Lambdas... fs) { f0(); call_device(fs...); }
+    AMREX_GPU_DEVICE void call_device (L f0, Lambdas... fs) { f0(); call_device(fs...); }
     
 // CPU variation
 

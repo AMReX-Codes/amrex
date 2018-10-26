@@ -2,7 +2,7 @@
 #define AMREX_GPU_CONTROL_H_
 
 namespace amrex {
-namespace Gpu {
+namespace Cuda {
 
     extern bool in_launch_region;
 
