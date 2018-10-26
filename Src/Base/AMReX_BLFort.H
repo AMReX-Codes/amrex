@@ -48,7 +48,7 @@
 
 #if defined(AMREX_USE_GPU) && defined(__CUDACC__)
 
-#include <AMReX_CudaDevice.H>
+#include <AMReX_Gpu.H>
 
 #define AMREX_FORT_LAUNCH(box, function, ...)  \
     { \
