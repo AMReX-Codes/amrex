@@ -294,7 +294,9 @@ contains
     
     real(amrex_real)     :: vx, vy, vz, v_over_c, sign_charge, gamma
     integer  :: ip
-    
+
+    !$acc parallel deviceptr(amplitude_E, wp, xp, yp, zp, uxp, uyp, uzp, giv)
+    !$acc loop
     do ip = 1, np
        ! Calculate the velocity according to the amplitude of E       
        sign_charge = SIGN( 1.0, wp(ip) )
@@ -322,7 +324,8 @@ contains
 #endif
        zp(ip) = zp(ip) + vz * dt
     enddo
-
+    !$acc end loop
+    !$acc end parallel
 
 #ifdef USE_ACC_LASER_SUBROUTINE
   end subroutine update_laser_particle_acc
