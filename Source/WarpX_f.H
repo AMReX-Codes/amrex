@@ -180,6 +180,13 @@ extern "C"
 
         void parse_function_laser( const long* np, amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* amplitude, const int parser_instance_number );
 
+  void calculate_laser_plane_coordinates( const long* np,
+       amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
+       amrex::Real* plane_Xp, amrex::Real* plane_Yp,
+       amrex::Real* u_Xx, amrex::Real* u_Xy, amrex::Real* u_Xz,
+       amrex::Real* u_Yx, amrex::Real* u_Yy, amrex::Real* u_Yz,                                           
+       amrex::Real* positionx, amrex::Real* positiony, amrex::Real* positionz );  
+  
     // Maxwell solver
 
         void warpx_push_evec(

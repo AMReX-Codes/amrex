@@ -91,7 +91,7 @@ contains
 
     ! Loop through the macroparticle to calculate the proper amplitude
     !$acc parallel deviceptr(amplitude, Xp, Yp)
-    !$acc loop gang vector
+    !$acc loop
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
       stc_exponent = 1./stretch_factor * inv_tau2 * &
@@ -169,7 +169,7 @@ contains
 
     ! Loop through the macroparticle to calculate the proper amplitude
     !$acc parallel deviceptr(amplitude, Xp, Yp)
-    !$acc loop gang vector
+    !$acc loop
     do i = 1, np
       space_envelope = exp(- ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_wz_2)
       arg_osc = omega0*t - omega0/clight*(Xp(i)*Xp(i) + Yp(i)*Yp(i)) * inv_Rz / 2
@@ -202,4 +202,61 @@ contains
     enddo
   end subroutine parse_function_laser
 
+
+  subroutine calculate_laser_plane_coordinates(np, xp, yp, zp, &
+       plane_Xp, plane_Yp, u_Xx, u_Xy, u_Xz, u_Yx, u_Yy, u_Yz, &
+       positionx, positiony, positionz ) &
+       bind(C, name="calculate_laser_plane_coordinates")
+    integer(c_long), intent(in) :: np
+    real(amrex_real), intent(in) :: xp(np), yp(np), zp(np)
+    real(amrex_real), intent(in) :: u_Xx, u_Xy, u_Xz
+    real(amrex_real), intent(in) :: u_Yx, u_Yy, u_Yz
+    real(amrex_real), intent(in) :: positionx, positiony, positionz    
+    real(amrex_real), intent(out) :: plane_Xp(np), plane_Yp(np)
+    integer :: ip
+
+#ifdef USE_ACC_LASER_SUBROUTINE
+    call calculate_laser_plane_coordinates_acc(np, xp, yp, zp, &
+       plane_Xp, plane_Yp, u_Xx, u_Xy, u_Xz, u_Yx, u_Yy, u_Yz, &
+       positionx, positiony, positionz )
+
+  end subroutine calculate_laser_plane_coordinates
+
+   subroutine calculate_laser_plane_coordinates_acc(np, xp, yp, zp, &
+       plane_Xp, plane_Yp, u_Xx, u_Xy, u_Xz, u_Yx, u_Yy, u_Yz, &
+       positionx, positiony, positionz )
+    integer(c_long), intent(in) :: np
+    real(amrex_real), intent(in) :: xp(np), yp(np), zp(np)
+    real(amrex_real), intent(in) :: u_Xx, u_Xy, u_Xz
+    real(amrex_real), intent(in) :: u_Yx, u_Yy, u_Yz
+    real(amrex_real), intent(in) :: positionx, positiony, positionz    
+    real(amrex_real), intent(out) :: plane_Xp(np), plane_Yp(np)
+    integer :: ip
+#endif
+
+    !$acc parallel deviceptr(xp, yp, zp, plane_Xp, plane_Yp)
+    !$acc loop
+    do ip = 1, np
+#if (BL_SPACEDIM == 3)
+       plane_Xp(ip) = u_Xx*(xp(ip) - positionx) &
+                   + u_Xy*(yp(ip) - positiony) &
+                   + u_Xz*(zp(ip) - positionz)
+       plane_Yp(ip) = u_Yx*(xp(ip) - positionx) &
+                   + u_Yy*(yp(ip) - positiony) &
+                   + u_Yz*(zp(ip) - positionz)
+   #elif (AMREX_SPACEDIM == 2)
+       plane_Xp(ip) = u_Xx*(xp(ip) - positionx) &
+                   + u_Xz*(zp(ip) - positionz)
+       plane_Yp(ip) = 0
+#endif
+    enddo
+    !$acc end loop
+    !$acc end parallel
+
+#ifdef USE_ACC_LASER_SUBROUTINE
+  end subroutine calculate_laser_plane_coordinates_acc
+#else
+  end subroutine calculate_laser_plane_coordinates
+#endif
+ 
 end module warpx_laser_module

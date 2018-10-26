@@ -348,26 +348,6 @@ LaserParticleContainer::Evolve (int lev,
             pti.GetPosition(xp, yp, zp);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-#pragma acc parallel deviceptr(plane_Xp,plane_Yp,xp,yp,zp)
-#pragma acc loop
-	    for (int i = 0; i < np; ++i)
-            {
-                // Find the coordinates of the particles in the emission plane
-#if (AMREX_SPACEDIM == 3)
-                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                            + u_X[1]*(yp[i] - position[1])
-                            + u_X[2]*(zp[i] - position[2]);
-                plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                            + u_Y[1]*(yp[i] - position[1])
-                            + u_Y[2]*(zp[i] - position[2]);
-#elif (AMREX_SPACEDIM == 2)
-                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                            + u_X[2]*(zp[i] - position[2]);
-                plane_Yp[i] = 0;
-#endif
-            }
-
-
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
 
@@ -420,6 +400,14 @@ LaserParticleContainer::Evolve (int lev,
 	    // Particle Push
 	    //
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
+
+            // Find the coordinates of the particles in the emission plane
+            calculate_laser_plane_coordinates( &np,
+                xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
+                &position[0], &position[1], &position[2] );
+            
 	    // Calculate the laser amplitude to be emitted,
 	    // at the position of the emission plane
 	    if (profile == laser_t::Gaussian) {
@@ -441,8 +429,6 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
-#pragma acc parallel deviceptr(amplitude_E,wp,uxp,uyp,uzp,xp,yp,zp,giv)
-#pragma acc loop
             for (int i = 0; i < np; ++i)
             {
                 // Calculate the velocity according to the amplitude of E

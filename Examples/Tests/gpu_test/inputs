@@ -1,5 +1,5 @@
 # Maximum number of time steps
-max_step = 20
+max_step = 10
 
 # number of grid points
 amr.n_cell =  64 64 64
@@ -54,3 +54,16 @@ electrons.ux_th  = 0.01 # uth the std of the (unitless) momentum
 electrons.uy_th  = 0.01 # uth the std of the (unitless) momentum
 electrons.uz_th  = 0.01 # uth the std of the (unitless) momentum
 electrons.uz_m   = 10.  # Mean momentum along z (unitless)
+
+# Laser
+warpx.use_laser    = 0
+laser.profile      = Gaussian
+laser.position     = 0. 0. 0.e-6 # This point is on the laser plane
+laser.direction    = 0. 0. 1.     # The plane normal direction
+laser.polarization = 1. 0. 0.    # The main polarization vector
+laser.e_max        = 16.e12        # Maximum amplitude of the laser field (in V/m)
+laser.profile_waist = 3.e-6      # The waist of the laser (in meters)
+laser.profile_duration = 15.e-15  # The duration of the laser (in seconds)
+laser.profile_t_peak = 30.e-15    # The time at which the laser reaches its peak (in seconds)
+laser.profile_focal_distance = 100.e-6  # Focal distance from the antenna (in meters)
+laser.wavelength = 0.8e-6         # The wavelength of the laser (in meters)
