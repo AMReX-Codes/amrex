@@ -30,14 +30,16 @@ int main (int argc, char* argv[])
     // ===================================
     // Simple cuda action to make sure all tests have cuda.
     // Allows nvprof to return data.
-    int devices;
+    int devices = 0;
+#ifdef AMREX_USE_CUDA
     cudaGetDeviceCount(&devices);
+#endif
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
     // ===================================
 
     // What time is it now?  We'll use this to compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+    Real strt_time = amrex::second();
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, nsteps, plot_int;
@@ -97,6 +99,7 @@ int main (int argc, char* argv[])
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
+    Cuda::setLaunchRegion(true);
 
     Real cells = 0;
     {
@@ -109,11 +112,12 @@ int main (int argc, char* argv[])
        x.setVal(x_val);
        y.setVal(y_val);
 
-       Real strt_time = ParallelDescriptor::second();
+       Real strt_time = amrex::second();
        cells = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = ParallelDescriptor::second();
+       Real end_time = amrex::second();
 
-       amrex::Print() << "Total number of cells: " << cells << " calculated in " << (end_time-strt_time) << " seconds."<< std::endl;
+       amrex::Print() << "Total number of cells: " << cells << "." << std::endl;
+       amrex::Print() << " calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
 
     {
@@ -126,15 +130,87 @@ int main (int argc, char* argv[])
        x.setVal(x_val);
        y.setVal(y_val);
 
-       Real strt_time = ParallelDescriptor::second();
+       Real strt_time = amrex::second();
        Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
-       Real end_time = ParallelDescriptor::second();
+       Real end_time = amrex::second();
  
-       amrex::Print() << x_val << " dot " << y_val << " = " << dot_result << std::endl;
+       amrex::Print() << "GPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
        amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
-       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl;
-
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
+
+    Cuda::setLaunchRegion(false);
+    {
+       MultiFab x(ba, dm, Ncomp, Nghost);
+       MultiFab y(ba, dm, Ncomp, Nghost);
+
+       Real x_val = 2.0;
+       Real y_val = 4.0;
+
+       x.setVal(x_val);
+       y.setVal(y_val);
+
+       Real strt_time = amrex::second();
+       Real dot_result = MultiFab::Dot(x, 0, y, 0, Ncomp, Nghost); 
+       Real end_time = amrex::second();
+ 
+       amrex::Print() << "CPU: " << x_val << " dot " << y_val << " = " << dot_result << std::endl;
+       amrex::Print() << "Expected value: " << (x_val * y_val * cells) << std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
+    }
+
+    Cuda::setLaunchRegion(true);
+    {
+       MultiFab x(ba, dm, Ncomp, Nghost);
+       x.setVal(0.0);
+
+       for (int k = 0; k < 10; k++)
+           for (int j = 0; j < 10; j++)
+               for (int i = 0; i < 10; i++)
+               {
+                   IntVect iv(i,j,k);
+                   x[0](iv) = 0.01*(i-5) + 0.1*(j-5) + (k-5);
+               }
+
+       Real min_val = 0.01*(-5) + 0.1*(-5) + -5;
+       Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
+
+       Real strt_time = amrex::second();
+       Real min = x.min(0, Nghost); 
+       Real max = x.max(0, Nghost); 
+       Real end_time = amrex::second();
+ 
+       amrex::Print() << "GPU, expected min/max: " << min_val << "/" << max_val << std::endl;
+       amrex::Print() << "Calculatd min/max: " << min << "/" << max << std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
+    }
+
+    Cuda::setLaunchRegion(false);
+    {
+       MultiFab x(ba, dm, Ncomp, Nghost);
+       x.setVal(0.0);
+
+       for (int k = 0; k < 10; k++)
+           for (int j = 0; j < 10; j++)
+               for (int i = 0; i < 10; i++)
+               {
+                   IntVect iv(i,j,k);
+                   x[0](iv) = 0.01*(i-5) + 0.1*(j-5) + (k-5);
+               }
+
+       Real min_val = 0.01*(-5) + 0.1*(-5) + -5;
+       Real max_val = 0.01*(4)  + 0.1*(4)  + 4;
+
+       Real strt_time = amrex::second();
+       Real min = x.min(0, Nghost); 
+       Real max = x.max(0, Nghost); 
+       Real end_time = amrex::second();
+ 
+       amrex::Print() << "CPU, expected min/max: " << min_val << "/" << max_val << std::endl;
+       amrex::Print() << "Calculatd min/max: " << min << "/" << max << std::endl;
+       amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
+    }
+
 
     amrex::Print() << std::endl << "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE" << std::endl << std::endl;
     }

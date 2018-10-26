@@ -16,6 +16,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
 
 #include <AMReX_Device.H>
 
@@ -47,6 +48,8 @@
 
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
+
+#include <AMReX_CudaAllocators.H>
 
 #if defined(BL_USE_FORTRAN_MPI)
 extern "C" {
@@ -404,11 +407,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::exename += argv[0];
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::init(&argc, &argv);
-    if (upcxx::myrank() != ParallelDescriptor::MyProc())
-	amrex::Abort("UPC++ rank != MPI rank");
-#elif defined PERILLA_USE_UPCXX
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::init();
 #endif
 
@@ -460,8 +459,25 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 
 #ifdef AMREX_USE_DEVICE
+
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
+    // Wrap cuda init to identify it appropriately in nvvp.
+    // Note: first substantial cuda call may cause a lengthy
+    // cuda API and cuda driver API initialization that will
+    // be captured by the profiler. It a necessary, system
+    // dependent step that is unavoidable.
+    nvtxRangeId_t nvtx_init;
+    const char* pname = "initialize_device";
+    nvtx_init = nvtxRangeStartA(pname);
+#endif
+
     // Initialize after ParmParse so that we can read inputs.
     Device::initialize_device();
+
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
+    nvtxRangeEnd(nvtx_init);
+#endif
+
 #endif
 
     {
@@ -517,6 +533,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::StartTeams();
 
+    Arena::Initialize();
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
@@ -577,6 +594,10 @@ amrex::Finalize (bool finalize_parallel)
 
 #ifdef BL_LAZY
     Lazy::Finalize();
+#endif
+
+#ifdef AMREX_USE_CUDA
+    Cuda::The_ThrustCachedAllocator().Finalize();
 #endif
 
     while (!The_Finalize_Function_Stack.empty())
@@ -653,7 +674,7 @@ amrex::Finalize (bool finalize_parallel)
     Device::finalize_device();
 #endif
 
-#ifdef BL_USE_UPCXX
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::finalize();
 #endif
 

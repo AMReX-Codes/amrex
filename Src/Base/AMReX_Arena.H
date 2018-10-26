@@ -10,12 +10,9 @@ namespace amrex {
 class Arena;
 
 Arena* The_Arena ();
-
-#ifdef AMREX_USE_GPU_PRAGMA
-Arena* The_Nvar_Arena ();
-#endif
-
-Arena* The_FA_Arena ();
+Arena* The_Cuda_Arena ();
+Arena* The_Managed_Arena ();
+Arena* The_Pinned_Arena ();
 
 /**
 * \brief 
@@ -62,6 +59,9 @@ public:
     void SetPreferred() { BL_ASSERT(device_use_managed_memory); device_set_preferred = true; return; }
     void SetHostAlloc() { device_use_hostalloc = true; device_use_managed_memory = false; return; }
 #endif
+
+    static void Initialize ();
+    static void Finalize ();
 
 protected:
 

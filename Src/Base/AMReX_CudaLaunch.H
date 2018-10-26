@@ -4,7 +4,13 @@
 #include <AMReX_CudaQualifiers.H>
 #include <cstddef>
 #include <AMReX_Box.H>
+#include <AMReX_CudaControl.H>
 #include <AMReX_Device.H>
+
+#define AMREX_CUDA_NCELLS_PER_THREAD 2
+#define AMREX_CUDA_WARP_SIZE 32
+#define AMREX_CUDA_Y_STRIDE 1
+#define AMREX_CUDA_Z_STRIDE 1
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
 
@@ -12,38 +18,125 @@
 // CUDA versions
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
-    if (amrex::Device::inLaunchRegion()) \
+    if (amrex::Cuda::inLaunchRegion()) \
     { \
-        auto amrex_i_st = Strategy(bbb); \
+        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
-            Box tbb = amrex::getThreadBox(bbb); \
-            if (tbb.ok()) block \
+            long amrex_i_numpts = bbb.numPts(); \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
+            long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
+            { \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
+                if (tbb.ok()) block \
+            } \
         }); \
+        CudaErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
         block \
     }
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
-    if (amrex::Device::inLaunchRegion()) \
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_var,block) \
+    if (amrex::Cuda::inLaunchRegion()) \
     { \
-        auto amrex_i_st = Strategy(bbb); \
+        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
-            Box tbb = amrex::getThreadBox(bbb); \
-            if (tbb.ok()) block \
+            long amrex_i_numpts = bbb.numPts(); \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
+            long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
+            { \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
+                if (tbb.ok()) block \
+            } \
         }); \
+        ++sync_var; \
+        Device::set_stream_index(sync_var); \
+        Device::check_for_errors(); \
+        CudaErrorCheck(); \
+    } \
+    else { \
+        const amrex::Box& tbb = bbb; \
+        block \
+    }  
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
+    if (amrex::Cuda::inLaunchRegion()) \
+    { \
+        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        [=] AMREX_CUDA_DEVICE () { \
+            long amrex_i_numpts = bbb.numPts(); \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
+            long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
+            { \
+                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
+                if (tbb.ok()) block \
+            } \
+        }); \
+        CudaErrorCheck(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
     }
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
-    if (amrex::Device::inLaunchRegion()) \
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
+    if (amrex::Cuda::inLaunchRegion()) \
     { \
-        auto amrex_i_st = Strategy(); \
+        long max_pts = std::max(bbx.numPts(), std::max(bby.numPts(), bbz.numPts())); \
+        auto amrex_i_st = Cuda::Strategy(max_pts); \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        [=] AMREX_CUDA_DEVICE () { \
+            long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
+            long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_lid = amrex_i_tid - amrex_i_wid*AMREX_CUDA_WARP_SIZE; \
+            const long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
+            long amrex_i_loc_offset = amrex_i_offset; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_loc_offset += AMREX_CUDA_WARP_SIZE) \
+                { \
+                    Box tbx = amrex::Cuda::getThreadBox(bbx, amrex_i_loc_offset); \
+                    if (tbx.ok()) blockx \
+                } \
+            amrex_i_loc_offset = amrex_i_offset; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_loc_offset += AMREX_CUDA_WARP_SIZE) \
+                { \
+                    Box tby = amrex::Cuda::getThreadBox(bby, amrex_i_loc_offset); \
+                    if (tby.ok()) blocky \
+                } \
+            amrex_i_loc_offset = amrex_i_offset; \
+            for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_loc_offset += AMREX_CUDA_WARP_SIZE) \
+                { \
+                    Box tbz = amrex::Cuda::getThreadBox(bbz, amrex_i_loc_offset); \
+                    if (tbz.ok()) blockz \
+                } \
+         }); \
+    } \
+    else \
+    { \
+        const amrex::Box& tbx = bbx; \
+        blockx \
+        const amrex::Box& tby = bby; \
+        blocky \
+        const amrex::Box& tbz = bbz; \
+        blockz \
+    }
+ 
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
+    if (amrex::Cuda::inLaunchRegion()) \
+    { \
+        auto amrex_i_st = amrex::Cuda::Strategy(); \
         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             const auto amrex_i_lo = bbb.loVect3d(); \
@@ -57,6 +150,7 @@
                 block \
             }}} \
         }); \
+        CudaErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -65,10 +159,10 @@
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
     { \
-      if (amrex::Device::inLaunchRegion()) \
+      if (amrex::Cuda::inLaunchRegion()) \
       { \
-         auto st = strategy; \
-         amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         auto amrex_i_st = strategy;                                           \
+         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -79,10 +173,10 @@
 
 #define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) \
     { \
-      if (amrex::Device::inLaunchRegion()) \
+      if (amrex::Cuda::inLaunchRegion()) \
       { \
-         auto st = strategy; \
-         amrex::launch_global<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         auto amrex_i_st = strategy; \
+         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -91,11 +185,11 @@
       } \
     }
 
-// Cannot respect Device::inLaunchRegion because function must be __global__.
+// Cannot respect Cuda::inLaunchRegion because function must be __global__.
 #define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
-        auto st = strategy;                                             \
-        function<<<st.numBlocks, st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+        auto amrex_i_st = strategy;                                             \
+        function<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
         CudaErrorCheck();                                               \
     }
 
@@ -108,6 +202,22 @@
     { \
         const amrex::Box& tbb = bbb; \
         block \
+    }
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_id,block) \
+    { \
+        const amrex::Box& tbb = bbb; \
+        block \
+    }
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
+    { \
+        const amrex::Box& tbx = bbx; \
+        blockx \
+        const amrex::Box& tby = bby; \
+        blocky \
+        const amrex::Box& tbz = bbz; \
+        blockz \
     }
 
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
@@ -147,6 +257,9 @@ namespace amrex {
     template<class L, class... Lambdas>
     void launch_host (L f0, Lambdas... fs) { f0(); launch_host(fs...); }
 
+
+namespace Cuda {
+
 // ************************************************
 
     struct ComponentBox {
@@ -160,6 +273,25 @@ namespace amrex {
     AMREX_CUDA_HOST_DEVICE
     Box getThreadBox (const Box& bx);
 
+    inline
+    AMREX_CUDA_HOST_DEVICE
+    Box getThreadBox (const Box& bx, long offset)
+    {
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
+        auto len = bx.length3d();
+        long k = offset / (len[0]*len[1]);
+        long j = (offset - k*(len[0]*len[1])) / len[0];
+        long i = (offset - k*(len[0]*len[1])) - j*len[0];
+        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                                static_cast<int>(j),
+                                static_cast<int>(k))};
+        iv += bx.smallEnd();
+        return (bx & Box(iv,iv,bx.type()));
+#else
+        return bx;
+#endif
+    }
+
 //    AMREX_CUDA_HOST_DEVICE
 //    Box getThreadBox (const Box& bx, const IntVect& typ);
 
@@ -167,7 +299,7 @@ namespace amrex {
     ComponentBox getThreadComponentBox (const Box& box, int ncomp);
 
     AMREX_CUDA_HOST_DEVICE
-    void getThreadIndex (int &index, int &size, const int num_particles);
+    void getThreadIndex (long &index, long &size, const long num_particles);
 
 // ************************************************
 
@@ -177,14 +309,19 @@ namespace amrex {
             Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         Strategy (const Box& box) {
-            const Box& b = amrex::surroundingNodes(box); // to ensure one thread per cell regardless box type
+            Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
+#if 0
+            Box b = amrex::surroundingNodes(box);
+            b -= box.smallEnd();
+            b.coarsen(IntVect(AMREX_D_DECL(1,AMREX_CUDA_Y_STRIDE,AMREX_CUDA_Z_STRIDE)));
             Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
+#endif
         }
         Strategy (const Box& box, int comps) {
             const Box& b = amrex::surroundingNodes(box);
             Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
-        Strategy (int N) {
+        Strategy (long N) {
             Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
         Strategy (dim3 nb, dim3 nt) : numBlocks(nb), numThreads(nt) {}
@@ -194,44 +331,8 @@ namespace amrex {
     };
 #endif
 
-    template<class T>
-    AMREX_CUDA_HOST_DEVICE
-    T CudaAtomicAdd(T* sum, T value) {
+}
 
-#ifdef AMREX_USE_CUDA
-        Real old = atomicAdd(sum, value);           
-#else
-        Real old = *sum;
-        *sum += value;
-#endif
-        return old;
-    }
-
-    template<class T>
-    AMREX_CUDA_HOST_DEVICE
-    T CudaAtomicMin(T* m, T value) {
-
-#ifdef AMREX_USE_CUDA
-        Real old = atomicMin(m, value);
-#else
-        Real old = *m;
-        *m = (*m) < value ? (*m) : value;
-#endif
-        return old;
-    }
-
-    template<class T>
-    AMREX_CUDA_HOST_DEVICE
-    T CudaAtomicMax(T* m, T value) {
-
-#ifdef AMREX_USE_CUDA
-        Real old = atomicMax(m, value);
-#else
-        Real old = *m;
-        *m = (*m) > value ? (*m) : value;
-#endif
-        return old;
-    }
 }
 
 #endif

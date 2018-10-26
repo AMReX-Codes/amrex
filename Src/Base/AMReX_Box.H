@@ -30,7 +30,7 @@ class BoxCommHelper;
 * Box is a dimension dependent class, so SPACEDIM must be 
 * defined as either 1, 2, or 3 when compiling.
 */
-class Box : public Managed
+class Box // : public Cuda::Managed
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
     friend class BoxCommHelper;
@@ -133,7 +133,7 @@ public:
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
     AMREX_CUDA_HOST_DEVICE
-    std::array<int,3> length3d () const {
+    CudaArray<int,3> length3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0]-smallend[0]+1, 1, 1};
 #elif (AMREX_SPACEDIM == 2)

@@ -23,9 +23,7 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
-#ifdef AMREX_USE_CUDA
 int     FabArrayBase::use_cuda_aware_mpi;
-#endif
 
 #if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
 
@@ -75,29 +73,8 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
-    Arena* the_FA_arena = nullptr;
+    Arena* the_fa_arena = nullptr;
     bool initialized = false;
-}
-
-Arena*
-The_FA_Arena ()
-{
-    if (the_FA_arena == nullptr) {
-        the_FA_arena = new BArena;
-#ifdef AMREX_USE_CUDA
-        // Use device memory for the FabArray
-        // staging data because that will have
-        // better MPI performance than managed memory.
-
-        if (FabArrayBase::use_cuda_aware_mpi) {
-            the_FA_arena->SetDeviceMemory();
-        } else {
-            the_FA_arena->SetHostAlloc();
-        }
-#endif
-    }
-
-    return the_FA_arena;
 }
 
 void
@@ -137,6 +114,18 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1)
         MaxComp = 1;
 
+#ifdef AMREX_USE_CUDA
+    FabArrayBase::use_cuda_aware_mpi = 1;
+    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
+#else
+    FabArrayBase::use_cuda_aware_mpi = 0;
+#endif
+    if (FabArrayBase::use_cuda_aware_mpi) {
+        the_fa_arena = The_Cuda_Arena();
+    } else {
+        the_fa_arena = new BArena;
+    }
+
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
 #ifdef BL_MEM_PROFILING
@@ -161,11 +150,12 @@ FabArrayBase::Initialize ()
 			 return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
 		     }));
 #endif
+}
 
-#ifdef AMREX_USE_CUDA
-    FabArrayBase::use_cuda_aware_mpi = 1;
-    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
-#endif
+Arena*
+The_FA_Arena ()
+{
+    return the_fa_arena;
 }
 
 FabArrayBase::FabArrayBase ()
@@ -396,11 +386,14 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	BaseFab<int> localtouch, remotetouch;
 	bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
 	}
+#elif defined(AMREX_USE_CUDA)
+        check_local = true;
+        check_remote = true;
 #endif    
 	
 	if (ParallelDescriptor::TeamSize() > 1) {
@@ -739,11 +732,14 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
     }
+#elif defined(AMREX_USE_CUDA)
+    check_local = true;
+    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
@@ -961,11 +957,14 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
     }
+#elif defined(AMREX_USE_CUDA)
+    check_local = true;
+    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
@@ -1491,7 +1490,10 @@ FabArrayBase::Finalize ()
     
     m_FA_stats = FabArrayStats();
 
-    delete the_FA_arena;
+    if (!FabArrayBase::use_cuda_aware_mpi) {
+        delete the_fa_arena;
+    }
+    the_fa_arena = nullptr;
 
     initialized = false;
 }
@@ -1739,40 +1741,10 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_reqs.size() == N_snds);
     BL_ASSERT(send_data.size() == N_snds);
 
-    Vector<int> indx;
-
     ParallelDescriptor::Waitall(send_reqs, stats);
-
-    for (int i = 0; i < N_snds; i++) {
-        if (send_data[i]) {
-            amrex::The_FA_Arena()->free(send_data[i]);
-        }
-    }
 #endif /*BL_USE_MPI*/
 }
 
-#ifdef BL_USE_UPCXX
-void
-FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
-                                      Vector<char*>&       send_data,
-                                      upcxx::event*       send_event,
-                                      volatile int*       send_counter)
-{
-    BL_ASSERT(N_snds > 0);
-    BL_ASSERT(send_data.size() == N_snds);
-    int N_null = std::count(send_data.begin(), send_data.begin()+N_snds, nullptr);
-    // Need to make sure all sends have been started
-    while ((*send_counter) < N_snds-N_null) {
-        upcxx::advance();
-    }
-    send_event->wait(); // wait for the sends
-    for (int i = 0; i < N_snds; i++) {
-        if (send_data[i]) {
-            BLPgas::free(send_data[i]);
-        }
-    }
-}
-#endif
 
 #ifdef BL_USE_MPI
 bool

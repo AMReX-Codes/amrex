@@ -6,6 +6,7 @@
 #include <memory>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
+#include <AMReX_CudaControl.H>
 
 #ifdef AMREX_USE_CUDA
 #ifdef AMREX_USE_NVML
@@ -100,18 +101,6 @@ public:
 
     static void prepare_for_launch(const int* lo, const int* hi);
 
-    static void beginLaunchRegion() { in_device_launch_region = true; }
-
-    static void endLaunchRegion() { in_device_launch_region = false; }
-
-    static bool setLaunchRegion(bool r) {
-        bool old = in_device_launch_region;
-        in_device_launch_region = r;
-        return old;
-    }
-
-    static bool inLaunchRegion() { return in_device_launch_region; }
-
     static void* get_host_pointer(const void* ptr);
 
     static int deviceId();
@@ -127,10 +116,6 @@ public:
     static void* device_malloc(const std::size_t sz);
 
     static void device_free(void* ptr);
-
-    static bool checkManaged(const void* ptr);
-
-    static bool checkDevicePtr(const void* ptr);
 
     static int isProgramRunning();
 
@@ -153,7 +138,7 @@ public:
 #if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
     static void c_comps_threads_and_blocks(const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads);
 
-    static void n_threads_and_blocks(const int N, dim3& numBlocks, dim3& numThreads);
+    static void n_threads_and_blocks(const long N, dim3& numBlocks, dim3& numThreads);
 
     static void c_threads_and_blocks(const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
 

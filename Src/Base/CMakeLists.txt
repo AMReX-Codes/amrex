@@ -136,12 +136,6 @@ add_sources( AMReX_MemPool.cpp )
 add_sources( AMReX_MemPool.H )
 add_sources( AMReX_mempool_mod.F90 ) # if BL_NO_FORT = FALSE
 
-# UPCXX mode not supported in CMake yet
-# ifeq ($(USE_UPCXX),TRUE)
-#   C$(AMREX_BASE)_sources += AMReX_BLPgas.cpp
-#  C$(AMREX_BASE)_headers += AMReX_BLPgas.H
-# endif
-
 #
 # Memory Profiler
 #
@@ -169,6 +163,8 @@ add_sources(AMReX_CudaAllocators.H)
 #endif()
 
 # always include
-add_sources( AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H )
-add_sources( AMReX_CudaLaunch.cpp )
+add_sources( AMReX_Cuda.H )
+add_sources( AMReX_CudaControl.H AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H)
+add_sources( AMReX_CudaControl.cpp AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
 add_sources( AMReX_Device.H )
+add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )

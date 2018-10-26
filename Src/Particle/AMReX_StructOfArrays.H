@@ -5,21 +5,16 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_CudaContainers.H>
 
 namespace amrex {
 
 template <int NReal, int NInt>
 struct StructOfArrays {
-  
-#ifdef AMREX_USE_CUDA
-    using RealVector = Vector<Real, CudaManagedAllocator<Real>>;
-    using  IntVector = Vector<int , CudaManagedAllocator<int >>;
-#else
-    using RealVector = Vector<Real>;
-    using  IntVector = Vector<int >;
-#endif
 
+    using RealVector = Cuda::ManagedDeviceVector<Real>;
+    using IntVector = Cuda::ManagedDeviceVector<int>;    
+    
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }
 

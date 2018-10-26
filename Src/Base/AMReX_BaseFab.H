@@ -15,14 +15,16 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
+#include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_CudaMemory.H>
-#include <AMReX_BArena.H>
 
+#include <AMReX_CudaMemory.H>
+#include <AMReX_CudaUtility.H>
+#include <AMReX_CudaLaunch.H>
 #include <AMReX_Device.H>
 
 #ifdef USE_PERILLA
@@ -112,7 +114,7 @@ struct StridedPtr
 */
 
 template <class T>
-class BaseFab : public Managed
+class BaseFab : public Cuda::Managed
 {
 public:
 
@@ -184,10 +186,8 @@ public:
     AMREX_CUDA_HOST_DEVICE
     std::size_t nBytes () const { return truesize*sizeof(T); }
 
-    AMREX_CUDA_HOST_DEVICE
     static bool preAllocatable () { return true; }
 
-    AMREX_CUDA_HOST_DEVICE
     static bool isCopyOMPSafe () { return true; }
 
     //! Returns bytes used in the Box for those components
@@ -202,11 +202,7 @@ public:
     //! for calls to fortran.  
     AMREX_CUDA_HOST_DEVICE
     const int* nCompPtr() const {
-#ifdef AMREX_USE_GPU_PRAGMA
-        return nvar_d;
-#else
         return &nvar;
-#endif
     }
 
     //! Returns the number of points 
@@ -746,6 +742,44 @@ public:
                       int               srccomp,
                       int               destcomp,
                       int               numcomp=1);
+
+    //! Atomic FAB addition (a[i] <- a[i] + b[i]). 
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src);
+
+    /**
+    * \brief Atomically add src components (srccomp:srccomp+numcomp-1) to
+    * this FABs components (destcomp:destcomp+numcomp-1)
+    * where the two FABs intersect.
+    */
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1);
+    /**
+    * \brief Same as above except addition is restricted to intersection
+    * of subbox and src FAB. NOTE: subbox must be contained in this
+    * FAB.
+    */
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           const Box&        subbox,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1);
+    /**
+    * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
+    * The srcbox and destbox must be same size.
+    */
+    AMREX_CUDA_HOST_DEVICE
+    BaseFab<T>& atomicAdd (const BaseFab<T>& src,
+                           const Box&        srcbox,
+                           const Box&        destbox,
+                           int               srccomp,
+                           int               destcomp,
+                           int               numcomp=1);
+
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
     AMREX_CUDA_HOST_DEVICE
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x,
@@ -1128,7 +1162,7 @@ protected:
     bool    shared_memory;  // Is the memory allocated in shared memory?
 
 #ifdef AMREX_USE_CUDA
-    int* nvar_d;
+//    int* nvar_d;
 #endif
 
 #ifdef USE_PERILLA
@@ -1620,12 +1654,6 @@ BaseFab<T>::define ()
     }
 
 #ifndef __CUDA_ARCH__
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
-    *nvar_d = nvar;
-#endif
-
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
 #endif
 }
@@ -1785,10 +1813,6 @@ BaseFab<T>::clear ()
 	    amrex::The_Arena()->free(dptr);
 #else
             ::operator delete(dptr);
-#endif
-
-#if defined(AMREX_USE_GPU_PRAGMA) && !defined(__CUDA_ARCH__)
-            amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
 #ifndef __CUDA_ARCH__
@@ -2398,9 +2422,9 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
 
 template <class T>
 int
-BaseFab<T>::maskGE(BaseFab<int>& mask,
-                   T             val,
-                   int           comp) const
+BaseFab<T>::maskGE (BaseFab<int>& mask,
+                    T             val,
+                    int           comp) const
 {
     mask.resize(domain,1);
     mask.setVal(0);
@@ -2440,6 +2464,15 @@ BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& x)
 {
     return operator+=(x);
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& x)
+{
+    Box ovlp(domain);
+    ovlp &= x.domain;
+    return ovlp.ok() ? this->atomicAdd(x,ovlp,ovlp,0,0,nvar) : *this;
 }
 
 template <class T>
@@ -2891,6 +2924,18 @@ BaseFab<T>::plus (const BaseFab<T>& src,
 
 template <class T>
 BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+}
+
+template <class T>
+BaseFab<T>&
 BaseFab<T>::plus (const BaseFab<T>& src,
                   const Box&        subbox,
                   int               srccomp,
@@ -2901,6 +2946,20 @@ BaseFab<T>::plus (const BaseFab<T>& src,
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->plus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       const Box&        subbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp)
+{
+    Box ovlp(domain);
+    ovlp &= src.domain;
+    ovlp &= subbox;
+    return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
 
 template <class T>
@@ -2931,6 +2990,49 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                 T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
                 for (int i = 0; i < len[0]; ++i) {
                     dp[i] += sp[i];
+                }
+            }
+        }
+    }
+
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::atomicAdd (const BaseFab<T>& src,
+                       const Box&        srcbox,
+                       const Box&        destbox,
+                       int               srccomp,
+                       int               destcomp,
+                       int               numcomp)
+{
+    BL_ASSERT(destbox.ok());
+    BL_ASSERT(src.box().contains(srcbox));
+    BL_ASSERT(box().contains(destbox));
+    BL_ASSERT(destbox.sameSize(srcbox));
+    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+    const auto dp0 = this->stridedPtr(destbox,destcomp);
+    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
+
+    const auto len = destbox.length3d();
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len[2]; ++k) {
+            for     (int j = 0; j < len[1]; ++j) {
+                T      * AMREX_RESTRICT dp = dp0(0,j,k,n);
+                T const* AMREX_RESTRICT sp = sp0(0,j,k,n);
+                for (int i = 0; i < len[0]; ++i) {
+#ifndef __CUDA_ARCH__
+#ifdef _OPENMP
+#pragma omp atomic update
+#endif
+                    dp[i] += sp[i];
+#else
+                    amrex::Cuda::Atomic::Add(dp + i, sp[i]);
+#endif
                 }
             }
         }
@@ -3363,148 +3465,6 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   }
   return *this;
 }
-
-#if defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_USE_BASEFAB_CPP)
-//
-// Forward declaration of template specializatons for Real.
-// Definitions are found in BaseFab.cpp.
-//
-template <>
-BaseFab<Real>&
-BaseFab<Real>::invert (Real       val,
-                       const Box& subbox,
-                       int        comp,
-                       int        numcomp);
-template <>
-void
-BaseFab<Real>::performCopy (const BaseFab<Real>& src,
-                            const Box&           srcbox,
-                            int                  srccomp,
-                            const Box&           destbox,
-                            int                  destcomp,
-                            int                  numcomp);
-template <>
-std::size_t
-BaseFab<Real>::copyToMem (const Box& srcbox,
-                          int        srccomp,
-                          int        numcomp,
-                          void*      dst) const;
-template <>
-std::size_t
-BaseFab<Real>::copyFromMem (const Box&  dstbox,
-                            int         dstcomp,
-                            int         numcomp,
-                            const void* src);
-template <>
-void
-BaseFab<Real>::performSetVal (Real       val,
-                              const Box& bx,
-                              int        ns,
-                              int        num);
-
-#if 0
-template <>
-void
-BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, int ns, int num);
-#endif
-
-#if 0
-template <>
-Real
-BaseFab<Real>::norminfmask (const Box& subbox, const BaseFab<int>& mask, int comp, int ncomp) const;
-#endif
-
-template <>
-Real
-BaseFab<Real>::norm (const Box& subbox,
-                     int        p,
-                     int        comp,
-                     int        ncomp) const;
-
-template <>
-Real
-BaseFab<Real>::sum (const Box& subbox,
-                    int        comp,
-                    int        ncomp) const;
-template <>
-BaseFab<Real>&
-BaseFab<Real>::plus (const BaseFab<Real>& src,
-                     const Box&           srcbox,
-                     const Box&           destbox,
-                     int                  srccomp,
-                     int                  destcomp,
-                     int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::mult (const BaseFab<Real>& src,
-                     const Box&           srcbox,
-                     const Box&           destbox,
-                     int                  srccomp,
-                     int                  destcomp,
-                     int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
-                      const Box&        srcbox,
-                      const Box&        destbox,
-                      int               srccomp,
-                      int               destcomp,
-                      int               numcomp);
-
-template <>
-BaseFab<Real>&
-BaseFab<Real>::minus (const BaseFab<Real>& src,
-                      const Box&           srcbox,
-                      const Box&           destbox,
-                      int                  srccomp,
-                      int                  destcomp,
-                      int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::divide (const BaseFab<Real>& src,
-                       const Box&           srcbox,
-                       const Box&           destbox,
-                       int                  srccomp,
-                       int                  destcomp,
-                       int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
-                                 const Box&           srcbox,
-                                 const Box&           destbox,
-                                 int                  srccomp,
-                                 int                  destcomp,
-                                 int                  numcomp);
-
-template <>
-Real
-BaseFab<Real>::dot (const Box& xbx, int xcomp, 
-		    const BaseFab<Real>& y, const Box& ybx, int ycomp,
-		    int numcomp) const;
-
-#if 0
-template <>
-Real
-BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp, 
-                        const BaseFab<Real>& y, const Box& ybx, int ycomp,
-                        int numcomp) const;
-#endif
-
-template <>
-BaseFab<Real>&
-BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
-			const Box&         b1,
-			int                comp1,
-			const BaseFab<Real>&  f2,
-			const Box&         b2,
-			int                comp2,
-			Real               alpha,
-			Real               beta,
-			const Box&         b,
-			int                comp,
-			int                numcomp);
-#endif
-
 
 class BF_init
 {
