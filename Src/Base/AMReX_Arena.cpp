@@ -43,7 +43,7 @@ Arena::Finalize ()
 {
 #ifndef AMREX_FORTRAN_BOXLIB
     initialized = false;
-    if (amrex::Verbose() > -1) {
+    if (amrex::Verbose() > 0) {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         if (The_Arena()) {
             CArena* p = dynamic_cast<CArena*>(The_Arena());
@@ -52,7 +52,7 @@ Arena::Finalize ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
-                amrex::Print() << "[The Arena] space (kilobyte) used spread across MPI: ["
+                amrex::Print() << "[The         Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
             }
         }
@@ -63,7 +63,7 @@ Arena::Finalize ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
-                amrex::Print() << "[The CUDA Arena] space (kilobyte) used spread across MPI: ["
+                amrex::Print() << "[The    CUDA Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
             }
         }
@@ -85,7 +85,7 @@ Arena::Finalize ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
-                amrex::Print() << "[The Pinned Arena] space (kilobyte) used spread across MPI: ["
+                amrex::Print() << "[The  Pinned Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
             }
         }
