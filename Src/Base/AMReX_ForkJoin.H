@@ -28,12 +28,12 @@ class ForkJoin
         int hi; // exclusive bound
     };
 
-    ForkJoin (const Vector<int> &task_rank_n, const std::string &task_output_dir = "");
+    ForkJoin (const Vector<int> &task_rank_n, const std::string &a_task_output_dir = "");
 
-    ForkJoin (const Vector<double> &task_rank_pct, const std::string &task_output_dir = "");
+    ForkJoin (const Vector<double> &task_rank_pct, const std::string &a_task_output_dir = "");
 
-    ForkJoin (int ntasks, const std::string& task_output_dir = "")
-        : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks), task_output_dir ) { }
+    ForkJoin (int ntasks, const std::string& a_task_output_dir = "")
+        : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks), a_task_output_dir ) { }
 
     int NTasks () const { return split_bounds.size() - 1; }
 

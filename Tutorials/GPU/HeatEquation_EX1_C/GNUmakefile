@@ -5,7 +5,9 @@ AMREX_HOME ?= ../../../
 DEBUG     = FALSE
 USE_MPI   = FALSE
 USE_OMP   = FALSE
-COMP      = gnu
+USE_CUDA  = TRUE
+USE_GPU_PRAGMA = TRUE
+COMP      = pgi 
 DIM       = 3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

@@ -5,8 +5,8 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
+#if !defined(AMREX_FORTRAN_BOXLIB)
+#include <AMReX_Gpu.H>
 #endif
 
 namespace amrex {
@@ -26,7 +26,7 @@ CArena::CArena (std::size_t hunk_size)
 CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 	if (device_use_hostalloc)
 	    gpu_freehost(m_alloc[i]);
 	else
@@ -55,7 +55,7 @@ CArena::alloc (std::size_t nbytes)
     {
         const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
-#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
+#if defined(AMREX_USE_GPU)
         if (device_use_hostalloc) {
 
 	    gpu_hostalloc(&vp, &N);
@@ -65,10 +65,10 @@ CArena::alloc (std::size_t nbytes)
 
 	    gpu_malloc_managed(&vp, &N);
 	    if (device_set_readonly)
-		Device::mem_advise_set_readonly(vp, N);
+		Gpu::Device::mem_advise_set_readonly(vp, N);
 	    if (device_set_preferred) {
-		const int device = Device::deviceId();
-		Device::mem_advise_set_preferred(vp, N, device);
+		const int device = Gpu::Device::deviceId();
+		Gpu::Device::mem_advise_set_preferred(vp, N, device);
 	    }
 
 	}
@@ -208,7 +208,7 @@ CArena::free (void* vp)
     }
 }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
 // Device allocators are not currently implemented in CArena.
 
 void*

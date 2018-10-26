@@ -23,15 +23,18 @@ public:
     CutFab& operator= (const CutFab&) = delete;
     CutFab& operator= (CutFab&&) = delete;
 
+    AMREX_GPU_HOST_DEVICE
     std::size_t copyFromMem (const void* src) {
         return copyFromMem (box(), 0, nComp(), src);
     }
 
+    AMREX_GPU_HOST_DEVICE
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
                              const void* src);
 
+    AMREX_GPU_HOST_DEVICE
     CutFab& copy (const CutFab & src,
                   const Box&     srcbox,
                   int            srccomp,

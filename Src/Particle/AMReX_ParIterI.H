@@ -84,9 +84,10 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::ParIterBa
 }
 
 template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename Container>
 void
 ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPosition
-  (AMREX_D_DECL(RealVector& x, RealVector& y, RealVector& z)) const
+(AMREX_D_DECL(Container& x, Container& y, Container& z)) const
 {
     const auto& aos = GetArrayOfStructs();
     AMREX_D_TERM(x.resize(aos.size());,
@@ -101,7 +102,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
         thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(thrust::device_ptr<Real>(x.data()), 
                                                                   thrust::device_ptr<Real>(y.data()), 
                                                                   thrust::device_ptr<Real>(z.data())))),
-        getPosition() );
+        functors::getPosition() );
 #else
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();
@@ -111,9 +112,10 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename Container>
 void
 ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
-  (AMREX_D_DECL(const RealVector& x, const RealVector& y, const RealVector& z)) const
+(AMREX_D_DECL(const Container& x, const Container& y, const Container& z)) const
 {
     auto& aos = this->GetArrayOfStructs();
     BL_ASSERT(AMREX_D_TERM(x.size() == aos.size(), && x.size() == y.size(), && x.size() == z.size()));
@@ -129,7 +131,7 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
                                                                   thrust::device_ptr<const Real>(y.data() + N), 
                                                                   thrust::device_ptr<const Real>(z.data() + N)))),
         thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
-        setPosition() );
+        functors::setPosition<ParticleType>() );
 #else
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();
@@ -137,4 +139,3 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
                                 AMREX_D_DECL(x.data(), y.data(), z.data()));
 #endif
 }
-
