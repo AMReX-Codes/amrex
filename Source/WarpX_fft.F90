@@ -198,7 +198,7 @@ contains
     call c_f_pointer(fft_data(21), rhof, shp)
     fft_data(22) = fftw_alloc_complex(sz)
     call c_f_pointer(fft_data(22), rhooldf, shp)
-
+!$acc enter data create (exf,eyf,ezf,bxf,byf,bzf,jxf,jyf,jzf,rhof,rhooldf)
     if (ndata < 22) then
        call amrex_abort("size of fft_data is too small")
     end if

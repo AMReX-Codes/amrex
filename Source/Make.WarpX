@@ -50,8 +50,13 @@ ifeq ($(USE_PSATD),TRUE)
   endif
   USERSuffix += .PSATD
   DEFINES += -DWARPX_USE_PSATD
-  DEFINES += -DFFTW   # PICSAR uses it
-  LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_omp
+  ifeq ($(USE_CUDA),TRUE)
+    DEFINES += -DFFTW -DCUDA_FFT=1 # PICSAR uses it
+    LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads -lcufft
+  else
+    DEFINES += -DFFTW # PICSAR uses it
+    LIBRARIES += -lfftw3_mpi -lfftw3 -lfftw3_threads
+  endif
 endif
 
 ifeq ($(STORE_OLD_PARTICLE_ATTRIBS),TRUE)
