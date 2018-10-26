@@ -937,12 +937,12 @@ namespace {
     {
         DeviceDomain domain;
 
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         applyPeriodicBCs(const DeviceDomain& a_domain)
             : domain(a_domain) {}
 
         template <typename Particle>
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         Particle operator()(const Particle& in) const {
             Particle p = in;
             
@@ -965,14 +965,14 @@ namespace {
         DeviceBox box;
         const int* mask_ptr;
         
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         assignParticle(const DeviceDomain& a_domain,
                        const DeviceBox&    a_box,
                        const int*          a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Particle>
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         int operator()(const Particle& p) const {
             int i = floor((p.m_rdata.pos[0] - domain.left_edge[0]) * domain.inverse_dx[0]);
             i += domain.small_end[0];
@@ -1000,12 +1000,12 @@ namespace {
     {        
         DeviceDomain domain;
         
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         particleCell(const DeviceDomain& a_domain)
             : domain(a_domain) {}
         
         template <typename Particle>
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         IntVect operator()(const Particle& p) const {
             int i = floor((p.m_rdata.pos[0] - domain.left_edge[0]) * domain.inverse_dx[0]);
             i += domain.small_end[0];
@@ -1025,10 +1025,10 @@ namespace {
     {
         int grid_id;
         
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         grid_is(int a_grid_id) : grid_id(a_grid_id) {}
         
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         bool operator()(int grid) const
         {
             return grid_id == grid;
@@ -1039,10 +1039,10 @@ namespace {
     {
         int grid_id;
         
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         grid_is_not(int a_grid_id) : grid_id(a_grid_id) {}
     
-        __host__ __device__
+        AMREX_CUDA_HOST_DEVICE
         bool operator()(int grid) const
         {
             return grid_id != grid;
