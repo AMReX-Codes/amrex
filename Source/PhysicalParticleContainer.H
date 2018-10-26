@@ -111,7 +111,7 @@ protected:
 			    const amrex::RealBox& particle_real_box);
   
     void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
 #endif
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
