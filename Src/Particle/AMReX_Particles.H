@@ -38,7 +38,8 @@
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
 #include <AMReX_TypeTraits.H>
-#include "AMReX_CudaContainers.H"
+#include <AMReX_CudaContainers.H>
+#include <AMReX_Functors.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -666,23 +667,6 @@ public:
     using IntVector        = typename SoA::IntVector;
     using ParticleVector   = typename ContainerType::ParticleVector;
 
-#ifdef AMREX_USE_CUDA 
-
-    struct getPosition
-    {        
-        __host__ __device__
-        getPosition() {}
-        
-        __host__ __device__
-        thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const ParticleType& p) const
-        {
-            return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
-                                                   p.m_rdata.pos[1], 
-                                                   p.m_rdata.pos[2]));
-        }
-    };
-#endif
-
     ParIterBase (ContainerRef pc, int level);
     ParIterBase (ContainerRef pc, int level, MFItInfo& info);
 
@@ -736,30 +720,6 @@ public:
     using ParticleType     = typename ContainerType::ParticleType;
     using RealVector       = typename SoA::RealVector;
     using IntVector        = typename SoA::IntVector;
-
-#ifdef AMREX_USE_CUDA
-    struct setPosition
-    {
-
-        __host__ __device__
-        setPosition() {}
-
-        template <typename Tuple>
-        __host__ __device__
-        ParticleType operator()(const Tuple& pos) const
-        {
-            ParticleType p;
-            p.m_rdata.pos[0] = thrust::get<0>(pos);
-#if AMREX_SPACEDIM > 1
-            p.m_rdata.pos[1] = thrust::get<1>(pos);
-#endif
-#if AMREX_SPACEDIM > 2
-            p.m_rdata.pos[2] = thrust::get<2>(pos);
-#endif
-            return p;
-        }
-    };
-#endif
 
     ParIter (ContainerType& pc, int level)
         : ParIterBase<false,NStructReal,NStructInt, NArrayReal, NArrayInt>(pc,level)
