@@ -16,10 +16,6 @@
 #include <omp.h>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <AMReX_BLPgas.H>
-#endif
-
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -36,15 +32,12 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
-#include <iostream>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
-#endif
+#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -472,6 +465,8 @@ public:
         int N_snds;
         int N_rcvs;
         int actual_n_rcvs;
+        char*               the_recv_data = nullptr;
+        char*               the_send_data = nullptr;
         Vector<MPI_Request> send_reqs;
         Vector<char*>       send_data;
         Vector<int>         recv_from;
@@ -612,6 +607,7 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross = false);
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FillBoundary_finish ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
@@ -634,6 +630,11 @@ public:
 		    value_type covered, value_type notcovered, 
 		    value_type physbnd, value_type interior);
 
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
+                      const Periodicity& period, bool cross,
+                      bool enforce_periodicity_only = false);
+
 protected:
 
     std::unique_ptr<FabFactory<FAB> > m_factory;
@@ -648,16 +649,12 @@ protected:
     // for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
-#ifdef BL_USE_UPCXX
-		 , p(nullptr)
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 		 , win(MPI_WIN_NULL)
 #endif
 	    { }
 	~ShMem () {
-#ifdef BL_USE_UPCXX
-	    if (p) BLPgas::free(p);
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	    if (win != MPI_WIN_NULL) MPI_Win_free(&win);
 #endif
 #ifdef BL_USE_TEAM
@@ -668,16 +665,12 @@ protected:
 	}
 	ShMem (ShMem&& rhs) noexcept
                  : alloc(rhs.alloc), n_values(rhs.n_values), n_points(rhs.n_points)
-#ifdef BL_USE_UPCXX
-		 , p(rhs.p)
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 		 , win(rhs.win)
 #endif
 	{
 	    rhs.alloc = false;
-#ifdef BL_USE_UPCXX
-	    rhs.p = nullptr;
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	    rhs.win = MPI_WIN_NULL;
 #endif
 	}
@@ -687,10 +680,7 @@ protected:
                 n_values = rhs.n_values;
                 n_points = rhs.n_points;
                 rhs.alloc = false;
-#ifdef BL_USE_UPCXX
-                p = rhs.p;
-                rhs.p = nullptr;
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
                 win = rhs.win;
                 rhs.win = MPI_WIN_NULL;
 #endif                
@@ -702,9 +692,7 @@ protected:
 	bool  alloc;
 	long  n_values;
 	long  n_points;
-#ifdef BL_USE_UPCXX
-	void *p;
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	MPI_Win win;
 #endif
     };
@@ -717,18 +705,15 @@ private:
 
     void AllocFabs (const FabFactory<FAB>& factory);
 
-    void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
-                      const Periodicity& period, bool cross,
-		      bool enforce_periodicity_only = false);
-
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
                    const MapOfCopyComTagContainers&       m_RcvTags,
-                   Vector<char*>&                          recv_data,
-                   Vector<int>&                            recv_size,
-                   Vector<int>&                            recv_from,
-                   Vector<MPI_Request>&                    recv_reqs,
+                   char*&                                 the_recv_data,
+                   Vector<char*>&                         recv_data,
+                   Vector<int>&                           recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum,
@@ -738,29 +723,17 @@ private:
 #ifdef BL_USE_MPI3
     void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                 char*&                            the_recv_data,
-                                Vector<char*>&                     recv_data,
-                                Vector<int>&                       recv_size,
-                                Vector<int>&                       recv_from,
-                                Vector<MPI_Request>&               recv_reqs,
-                                Vector<MPI_Aint>          &        recv_disp,
+                                Vector<char*>&                    recv_data,
+                                Vector<int>&                      recv_size,
+                                Vector<int>&                      recv_from,
+                                Vector<MPI_Request>&              recv_reqs,
+                                Vector<MPI_Aint>         &        recv_disp,
                                 int                               icomp,
                                 int                               ncomp,
                                 int                               SeqNum,
                                 MPI_Win &                         win);
 #endif
   
-#ifdef BL_USE_UPCXX
-    void PostRcvs_PGAS (const MapOfCopyComTagContainers&  m_RcvVols,
-                        char*&                            the_recv_data,
-                        Vector<char*>&                     recv_data,
-                        Vector<int>&                       recv_size,
-                        Vector<int>&                       recv_from,
-                        int                               icomp,
-                        int                               ncomp,
-                        int                               SeqNum,
-                        upcxx::event*                     recv_event);
-#endif
-
 public:
     // Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
@@ -769,7 +742,8 @@ public:
     Periodicity fb_period;
 
     //
-    char*               fb_the_recv_data;
+    char*               fb_the_recv_data = nullptr;
+    char*               fb_the_send_data = nullptr;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
@@ -1153,23 +1127,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 	value_type *mfp;
 	Vector<value_type*> dps;
 
-#if defined (BL_USE_UPCXX)
-
-	shmem.p = BLPgas::alloc(bytes);
-
-	upcxx::global_ptr<void> psrc = upcxx::global_ptr<void>(shmem.p);
-	std::vector<upcxx::global_ptr<void> > pdst(nworkers);
-	const auto& team = ParallelDescriptor::MyTeam().get();
-	team.allgather(&psrc, &pdst[0], sizeof(upcxx::global_ptr<void>));
-
-	mfp = static_cast<value_type*>(shmem.p);
-
-	for (int w = 0; w < nworkers; ++w) {
-	    void* p = (void*) pdst[w];
-	    dps.push_back((value_type*)p);
-	}
-
-#elif defined (BL_USE_MPI3)
+#if defined (BL_USE_MPI3)
 
 	static MPI_Info info = MPI_INFO_NULL;
 	if (info == MPI_INFO_NULL) {
@@ -1193,7 +1151,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
 #else
 
-	amrex::Abort("BaseFab::define: to allocate shared memory, either USE_UPCXX or USE_MPI3 must be true");
+	amrex::Abort("BaseFab::define: to allocate shared memory, USE_MPI3 must be true");
 
 #endif
 
@@ -1361,16 +1319,7 @@ template <class>
 void
 FabArray<FAB>::setVal (value_type val)
 {
-    BL_PROFILE("FabArray::setVal(val)");
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
-    {
-	const Box& bx = fai.growntilebox();
-        get(fai).setVal(val, bx, 0, n_comp);
-    }
+    setVal(val,0,n_comp,n_grow);
 }
 
 template <class FAB>
@@ -1393,7 +1342,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class>
+template <class FOO>  // FOO fools nvcc
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -1403,15 +1352,20 @@ FabArray<FAB>::setVal (value_type val,
     BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
     BL_ASSERT(comp+ncomp <= n_comp);
 
-    BL_PROFILE("FabArray::setVal(val,comp,ncomp,nghost)");
+    BL_PROFILE("FabArray::setVal()");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
+    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
-        get(fai).setVal(val, bx, comp, ncomp);
+        FAB* fab = &(get(fai));
+
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
+        {
+            fab->setVal(val, tbx, comp, ncomp);
+        });
     }
 }
 
@@ -1428,7 +1382,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class>
+template <class FOO> // Foo fools nvcc
 void
 FabArray<FAB>::setVal (value_type val,
                        const Box& region,
@@ -1442,14 +1396,20 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter fai(*this,true); fai.isValid(); ++fai)
+    for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
         Box b = fai.growntilebox(nghost) & region;
 
-        if (b.ok())
-            get(fai).setVal(val, b, comp, ncomp);
+        if (b.ok()) {
+            FAB* fab = &(get(fai));
+
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
+            {
+                fab->setVal(val, tbx, comp, ncomp);
+            });
+        }
     }
 }
 

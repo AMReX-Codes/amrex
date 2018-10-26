@@ -124,7 +124,7 @@ void main_main ()
     // Start profiling now. This is useful for when you have opted to disable
     // profiling from the beginning of the application, and only want to start
     // it once the advances start.
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
     Device::start_profiler();
 #endif
 

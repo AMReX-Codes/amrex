@@ -2,46 +2,8 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
-#endif
 
 namespace amrex {
-
-#ifdef AMREX_USE_CUDA
-int MFIter_init::m_cnt = 0;
-
-namespace
-{
-    Arena* the_mfiter_arena = 0;
-}
-
-MFIter_init::MFIter_init ()
-{
-    if (m_cnt++ == 0)
-    {
-        BL_ASSERT(the_mfiter_arena == 0);
-
-        the_mfiter_arena = new CArena;
-
-	the_mfiter_arena->SetDeviceMemory();
-    }
-}
-
-MFIter_init::~MFIter_init ()
-{
-    if (--m_cnt == 0)
-        delete the_mfiter_arena;
-}
-
-Arena*
-The_MFIter_Arena ()
-{
-    BL_ASSERT(the_mfiter_arena != 0);
-
-    return the_mfiter_arena;
-}
-#endif
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 
@@ -214,24 +176,24 @@ MFIter::~MFIter ()
 	ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
-#ifdef AMREX_USE_DEVICE
-    Device::synchronize();
+#ifdef AMREX_USE_GPU
+    Gpu::Device::synchronize();
 #endif
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     reduce();
 #endif
 
-#ifdef AMREX_USE_CUDA
-    if (Device::inDeviceLaunchRegion()) {
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion()) {
         for (int i = 0; i < real_reduce_list.size(); ++i)
             amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
     }
 #endif
 
-#ifdef AMREX_USE_DEVICE
-    Device::check_for_errors();
-    Device::set_stream_index(-1);
+#ifdef AMREX_USE_GPU
+    Gpu::Device::check_for_errors();
+    Gpu::Device::set_stream_index(-1);
 #endif
 }
 
@@ -323,8 +285,8 @@ MFIter::Initialize ()
 
 	currentIndex = beginIndex;
 
-#ifdef AMREX_USE_DEVICE
-	Device::set_stream_index(currentIndex);
+#ifdef AMREX_USE_GPU
+	Gpu::Device::set_stream_index(currentIndex);
 #endif
 
 	typ = fabArray.boxArray().ixType();
@@ -471,13 +433,13 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
     return bx;
 }
 
-#if !defined(_OPENMP) && defined(AMREX_USE_CUDA)
+#if !defined(_OPENMP) && defined(AMREX_USE_GPU)
 void
 MFIter::operator++ ()
 {
-    if (Device::inDeviceLaunchRegion()) {
+    if (Gpu::inLaunchRegion()) {
         if (real_reduce_list.size() == currentIndex + 1) {
-            Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
+            Gpu::Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
                                              real_device_reduce_list[currentIndex],
                                              sizeof(Real));
         }
@@ -485,20 +447,20 @@ MFIter::operator++ ()
 
     ++currentIndex;
 
-    Device::set_stream_index(currentIndex);
-    Device::check_for_errors();
+    Gpu::Device::set_stream_index(currentIndex);
+    Gpu::Device::check_for_errors();
 #ifdef DEBUG
-    Device::synchronize();
+    Gpu::Device::synchronize();
 #endif
 }
 #endif
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
 
-    if (Device::inDeviceLaunchRegion()) {
+    if (Gpu::inLaunchRegion()) {
 
         real_reduce_val = val;
 
@@ -510,7 +472,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
         Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
         real_device_reduce_list.push_back(dval);
 
-        Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
+        Gpu::Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
                                          &real_reduce_list[currentIndex],
                                          sizeof(Real));
 
@@ -526,7 +488,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 }
 #endif
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 // Reduce over the values in the list.
 void
 MFIter::reduce()
@@ -534,7 +496,7 @@ MFIter::reduce()
 
     // Do nothing if we're not currently executing on the device.
 
-    if (!Device::inDeviceLaunchRegion()) return;
+    if (Gpu::notInLaunchRegion()) return;
 
     // Do nothing if we don't have enough values to reduce on.
 

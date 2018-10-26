@@ -8,10 +8,6 @@
 #include <omp.h>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <AMReX_BLPgas.H>
-#endif
-
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_RealBox.H>
@@ -29,6 +25,31 @@ namespace amrex {
 class MultiFab;
 class DistributionMapping;
 class BoxArray;
+
+struct GeometryData
+{
+ //! Returns the cellsize for each coordinate direction.
+    AMREX_GPU_HOST_DEVICE
+    const Real* CellSize () const { return dx; }
+ //! Returns the lo end of the problem domain in each dimension.
+    AMREX_GPU_HOST_DEVICE
+    const Real* ProbLo () const { return prob_domain.lo(); }
+ //! Returns the hi end of the problem domain in each dimension.
+    AMREX_GPU_HOST_DEVICE
+    const Real* ProbHi () const { return prob_domain.hi(); }
+ //! Returns our rectangular domain.
+    AMREX_GPU_HOST_DEVICE
+    const Box& Domain () const { return domain; }
+ //! Returns whether the domain is periodic in the given direction.
+    AMREX_GPU_HOST_DEVICE
+    int isPeriodic (const int i) const { return is_periodic[i]; }
+
+public:
+    RealBox prob_domain;
+    Box domain;
+    Real dx[AMREX_SPACEDIM];
+    int is_periodic[AMREX_SPACEDIM];
+};
 
 class Geometry
     :
@@ -48,6 +69,12 @@ public:
     Geometry (Geometry&& rhs) noexcept = default;
     Geometry& operator= (const Geometry& rhs) = default;
     Geometry& operator= (Geometry&& rhs) = default;
+
+    // Returns non-static copy of geometry's stored data.
+    GeometryData data() const {
+      return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
+	  {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])}};
+    }
 
     static void Finalize ();
     //! Read static values from ParmParse database.

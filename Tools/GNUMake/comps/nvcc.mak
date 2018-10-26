@@ -70,3 +70,10 @@ nvcc_major_lt_8 = $(shell expr $(nvcc_major_version) \< 8)
 ifeq ($(nvcc_major_lt_8),1)
   $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 8.0 or newer.)
 endif
+
+#ifeq ($(nvcc_version),9.2)
+#  $(warning --expt-relaxed-constexpr --expt-extended-lambda CUDA flags turned off. Incompatible with CUDA version 9.2.)
+#else
+CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+#endif
+

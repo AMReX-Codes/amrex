@@ -5,10 +5,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 
-#ifdef AMREX_USE_CUDA
-#include <AMReX_Device.H>
-#endif
-
 #ifndef BL_LANG_FORT
 
 #if   defined(BL_FORT_USE_UPPERCASE)
@@ -50,13 +46,15 @@
 // are the actual function arguments, as defined in the Fortran subroutine.
 // box is the current Box for this MFIter iteration.
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+#if defined(AMREX_USE_GPU) && defined(__CUDACC__)
+
+#include <AMReX_Gpu.H>
 
 #define AMREX_FORT_LAUNCH(box, function, ...)  \
     { \
       dim3 numBlocks, numThreads; \
-      Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
-      function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+      amrex::Gpu::Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
+      function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::cudaStream()>>>(__VA_ARGS__); \
       CudaErrorCheck(); \
     }
 
@@ -65,17 +63,17 @@
 #define AMREX_FORT_LAUNCH_PARTICLES(num_particles, function, ...) \
     { \
         int numThreads; int numBlocks; \
-        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
-        function<<<numBlocks, numThreads, 0, Device::cudaStream()>>>(__VA_ARGS__); \
+        amrex::Gpu::Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::cudaStream()>>>(__VA_ARGS__); \
         CudaErrorCheck(); \
     }
 
 #define AMREX_FORT_LAUNCH_PARTICLES_STREAM(num_particles, stream, function, ...)      \
     { \
         int numThreads; int numBlocks; \
-        Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
-        amrex::Print() << Device::stream_from_index(stream) << std::endl; \
-        function<<<numBlocks, numThreads, 0, Device::stream_from_index(stream)>>>(__VA_ARGS__); \
+        amrex::Gpu::Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
+        amrex::Print() << amrex::Gpu::Device::stream_from_index(stream) << std::endl; \
+        function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::stream_from_index(stream)>>>(__VA_ARGS__); \
         CudaErrorCheck(); \
     }
 
@@ -93,7 +91,7 @@
 // This macro "deletes" a function when we're using CUDA,
 // so that a script can replace it.
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 #define AMREX_DEVICE_LAUNCHABLE(func) null##func
 #define AMREX_DEVICE_LAUNCHABLE_STRIDED(func) null##func
 #else
@@ -103,22 +101,22 @@
 
 // Decorate the calls to the GPU.
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+#if defined(AMREX_USE_GPU) && defined(__CUDACC__)
 
 #if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))
 
 #define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function##numBlocks, function##numThreads; \
-      Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
+      amrex::Gpu::Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
       CudaAPICheck(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
-      cuda_##function<<<function##numBlocks, function##numThreads, 0, Device::cudaStream()>>> \
+      cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::Device::cudaStream()>>> \
 
 #else
 
 #define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function##numBlocks, function##numThreads; \
-      Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
-      cuda_##function<<<function##numBlocks, function##numThreads, 0, Device::cudaStream()>>> \
+      amrex::Gpu::Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
+      cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::Device::cudaStream()>>> \
 
 #endif
 
@@ -130,10 +128,10 @@
 
 // Define macros for doing reductions.
 
-#if (defined(AMREX_USE_CUDA) && !defined(AMREX_NO_DEVICE_LAUNCH))
-#define AMREX_MFITER_REDUCE_SUM(var) mfi.add_reduce_value(var, MFIter::SUM)
-#define AMREX_MFITER_REDUCE_MIN(var) mfi.add_reduce_value(var, MFIter::MIN)
-#define AMREX_MFITER_REDUCE_MAX(var) mfi.add_reduce_value(var, MFIter::MAX)
+#if (defined(AMREX_USE_GPU) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#define AMREX_MFITER_REDUCE_SUM(var) mfi.add_reduce_value(var, amrex::MFIter::SUM)
+#define AMREX_MFITER_REDUCE_MIN(var) mfi.add_reduce_value(var, amrex::MFIter::MIN)
+#define AMREX_MFITER_REDUCE_MAX(var) mfi.add_reduce_value(var, amrex::MFIter::MAX)
 #else
 #define AMREX_MFITER_REDUCE_SUM(var) var
 #define AMREX_MFITER_REDUCE_MIN(var) var

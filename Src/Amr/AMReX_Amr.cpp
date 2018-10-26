@@ -1404,8 +1404,8 @@ Amr::FinalizeInit (Real              strt_time,
         printGridInfo(gridlog,0,finest_level);
     }
 
-#ifdef AMREX_USE_DEVICE
-    Device::start_profiler();
+#ifdef AMREX_USE_GPU
+    Gpu::Device::start_profiler();
 #endif
 
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");

@@ -40,7 +40,7 @@ public:
     */
     virtual void free (void* ap) override;
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
     virtual void* alloc_device (std::size_t nbytes) override;
     virtual void free_device (void* ap) override;
 #endif

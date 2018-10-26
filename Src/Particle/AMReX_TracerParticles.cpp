@@ -263,7 +263,9 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
             const auto& pmap = GetParticles(lev);
 	    for (auto& kv : pmap) {
               const auto& pbox = kv.second.GetArrayOfStructs();
-	      for (const auto& p : pbox) {
+	      for (int k = 0; k < pbox.size(); ++k) 
+	      {
+		const ParticleType& p = pbox[k];
 		if (p.m_idata.id > 0) {
 		  gotwork = true;
 		  break;
@@ -304,8 +306,10 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 		  const Box&       bx   = ba[grid];
 		  const FArrayBox& fab  = mf[grid];
 
-		  for (const auto& p : pbox)
-                    {
+		  for (int k = 0; k < pbox.size(); ++k)
+		    {
+		      const ParticleType& p = pbox[k];
+
 		      if (p.m_idata.id <= 0) continue;
 		      
 		      const IntVect& iv = Index(p,lev);
