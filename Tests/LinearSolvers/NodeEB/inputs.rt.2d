@@ -1,0 +1,9 @@
+
+n_cell = 128
+
+# eb2.geom_type = all_regular
+
+eb2.geom_type = sphere
+eb2.sphere_center = 0.7006 0.5521 0.0
+eb2.sphere_radius = 0.125
+eb2.sphere_has_fluid_inside = 0
