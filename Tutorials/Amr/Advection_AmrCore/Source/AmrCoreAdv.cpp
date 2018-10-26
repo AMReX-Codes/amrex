@@ -9,7 +9,6 @@
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
-#include <AMReX_AmrMeshDataAdaptor.H>
 #endif
 
 #ifdef BL_MEM_PROFILING
@@ -138,9 +137,6 @@ AmrCoreAdv::Evolve ()
         }
 
 #ifdef BL_USE_SENSEI_INSITU
-        std::vector<amrex::Vector<amrex::MultiFab>*> states(1, &phi_new);
-        std::vector<std::vector<std::string>> names(1, {"phi"});
-
         insitu_bridge->update(step, cur_time,
             static_cast<amrex::AmrMesh*>(this), {&phi_new}, {{"phi"}});
 #endif

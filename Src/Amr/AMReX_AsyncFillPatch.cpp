@@ -17,9 +17,7 @@
 #include <WorkerThread.H>
 
 namespace amrex {
-#ifdef USE_PERILLA
     using namespace perilla;
-#endif
 
     AsyncFillPatchIterator::AsyncFillPatchIterator (AmrLevel& amrlevel,
 	    MultiFab& leveldata,
@@ -518,6 +516,20 @@ namespace amrex {
 	}
     }
 
+    void AsyncFillPatchIterator::SendInterLevel (RGIter& rgi,
+            int  boxGrow,
+            Real time,
+            int  index,
+            int  scomp,
+            int  ncomp,
+            int iteration,
+            int f,
+            bool singleT)
+    {
+	SendInterLevel(&rgi, boxGrow, time, index, scomp, ncomp, iteration, f, singleT);
+    }
+
+
     void AsyncFillPatchIterator::PushOnly (int  boxGrow,
 	    Real time,
 	    int  index,
@@ -625,6 +637,68 @@ namespace amrex {
 	    DComp += NComp;
 	}
     }
+
+
+void
+AsyncFillPatchIterator::PullOnly (MultiFab& dest,
+                                  int  boxGrow,
+                                  Real time,
+                                  int  index,
+                                  int  scomp,
+                                  int  ncomp,
+                                  int f,
+                                  bool singleT)
+{
+    BL_PROFILE("FillPatchIterator::InitializePull");
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(0 <= index && index < AmrLevel::desc_lst.size());
+
+    int myProc = amrex::ParallelDescriptor::MyProc();
+
+    //const IndexType& boxType = m_leveldata.boxArray().ixType();
+    const int level = m_amrlevel.level;
+
+    for (int i = 0, DComp = 0; i < m_range.size(); i++)
+      {
+        if(i>0)
+          amrex::Abort("**** Error in FillPatchIterator::Initialize:  non contigeous components not implemented");
+
+        const int SComp = m_range[i].first;
+        const int NComp = m_range[i].second;
+
+        if (level == 0)
+          {
+
+            //double start_time_wtime = omp_get_wtime();            
+            try{
+              //MemOpt
+              FillPatchSingleLevelPull (dest, time, smf, stime, destGraph, fsrcGraph, f, SComp, DComp, NComp, *geom, *physbcf, singleT);
+              //amrex::FillPatchSingleLevelPull (m_fabs, time, smf, stime, destGraph, fsrcGraph, f, tid, SComp, DComp, NComp, *geom, *physbcf, singleT);
+            }
+            catch(std::exception& e){
+              std::cout<< "AFPI_Receive_FPSLPull: Proc " <<myProc << " tid " << tid <<" exception: " << e.what() <<std::endl;
+            }
+          }
+        else
+          {
+            if (level == 1 || isProperlyNested)
+              {
+                try{
+                  //MemOpt
+                  FillFromTwoLevelsPull(dest, time, index, SComp, DComp, NComp, f,singleT);
+                  //FillFromTwoLevelsPull(time, index, SComp, DComp, NComp, f, tid, singleT);
+                }
+                catch(std::exception& e){
+                  std::cout<< "AFPI_Receive_FPTLPull: Proc " <<myProc << " tid " << tid <<" exception: " << e.what() <<std::endl;
+                }
+
+              } else {
+              amrex::Abort("**** Error in FillPatchIterator::Initialize:  !ProperlyNested not implemented");
+            }
+          }
+    }
+}
 
 
     void AsyncFillPatchIterator::FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
@@ -1254,7 +1328,106 @@ namespace amrex {
 #endif
 
 
+
+	void AsyncFillPatchIterator::initialSend(Vector<amrex::AsyncFillPatchIterator*> afpi,
+		Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
+		int  boxGrow,
+		Real time,
+		int  state_indx,
+		int  scomp,
+		int  ncomp,
+		int  iteration)
+	{
+	    int myProc = amrex::ParallelDescriptor::MyProc();
+	    int level = afpi[iteration-1]->m_amrlevel.level;
+	    if(level == 0 && iteration == 1)
+	    {
+		int tg = perilla::wtid();
+		for(int f=0; f < afpi[iteration-1]->m_fabs.IndexArray().size(); f++)
+		{
+		    if(WorkerThread::isMyRegion(tg, f))
+		    {
+			for(int i=0; i < afpi[iteration-1]->m_amrlevel.parent->nCycle(level); i++){
+			    //fill neighbor fabs of the same AMR level
+			    afpi[i]->PushOnly( boxGrow, time+(i*afpi[iteration-1]->m_amrlevel.parent->dtLevel(level)), state_indx, scomp, ncomp, f, 0xFF, false);
+			}
+		    }
+		}
+	    }
+
+	    if(level < afpi[iteration-1]->m_amrlevel.parent->finestLevel())
+	    {
+		int i = 0;
+		unsigned char tuc = 0x04;
+		//init Fill Patch at the next finer AMR level
+		upper_afpi[i]->PushOnly(boxGrow, time+(i*afpi[iteration-1]->m_amrlevel.parent->dtLevel(level+1)), state_indx, scomp, ncomp, -1/* all FABs*/, tuc, false);
+	    }
+	}
+
+	void AsyncFillPatchIterator::Receive (RGIter& rgi,
+		    int  boxGrow,
+		    Real time,
+		    int  index,
+		    int  scomp,
+		    int  ncomp,
+		    int f,
+		    bool singleT)
+	    {
+		if(rgi.currentItr != 1)
+		    return;
+
+		PullOnly(boxGrow, time, index, scomp, ncomp, f, singleT);
+	    }
+
+	void AsyncFillPatchIterator::Receive (RGIter* rgi,
+		    int  boxGrow,
+		    Real time,
+		    int  index,
+		    int  scomp,
+		    int  ncomp,
+		    int f,
+		    bool singleT)
+	    {
+		if(rgi->currentItr != 1)
+		    return;
+
+		PullOnly(boxGrow, time, index, scomp, ncomp, f, singleT);
+	    }
+
+
+	void AsyncFillPatchIterator::Receive (RGIter& rgi,
+		    MultiFab& dest,
+		    int  boxGrow,
+		    Real time,
+		    int  index,
+		    int  scomp,
+		    int  ncomp,
+		    int f,
+		    bool singleT)
+	    {
+		if(rgi.currentItr != 1)
+		    return;
+
+		PullOnly(dest, boxGrow, time, index, scomp, ncomp, f, singleT);
+	    }
+
+
+	void AsyncFillPatchIterator::Receive (RGIter* rgi,
+		    MultiFab& dest,
+		    int  boxGrow,
+		    Real time,
+		    int  index,
+		    int  scomp,
+		    int  ncomp,
+		    int f,
+		    bool singleT)
+	    {
+		if(rgi->currentItr != 1)
+		    return;
+
+		PullOnly(dest, boxGrow, time, index, scomp, ncomp, f, singleT);
+	    }
     }//end amrex namespace
 
 #endif
-	//end USE_PERILLA
+    //end USE_PERILLA

@@ -8,6 +8,7 @@
 #include <RegionGraph.H>
 #include <WorkerThread.H>
 #include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 
 namespace amrex
 {
