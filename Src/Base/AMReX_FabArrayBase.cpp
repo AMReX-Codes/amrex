@@ -25,7 +25,7 @@ bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 int     FabArrayBase::use_cuda_aware_mpi;
 
-#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
+#if defined(AMREX_USE_GPU) && defined(AMREX_USE_GPU_PRAGMA)
 
 #if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
@@ -47,7 +47,7 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 
 #endif
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
 #else
@@ -121,7 +121,7 @@ FabArrayBase::Initialize ()
     FabArrayBase::use_cuda_aware_mpi = 0;
 #endif
     if (FabArrayBase::use_cuda_aware_mpi) {
-        the_fa_arena = The_Cuda_Arena();
+        the_fa_arena = The_Device_Arena();
     } else {
         the_fa_arena = new BArena;
     }
@@ -391,7 +391,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    check_local = true;
 	    check_remote = true;
 	}
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_GPU)
         check_local = true;
         check_remote = true;
 #endif    
@@ -737,7 +737,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	check_local = true;
 	check_remote = true;
     }
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_GPU)
     check_local = true;
     check_remote = true;
 #endif
@@ -962,7 +962,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	check_local = true;
 	check_remote = true;
     }
-#elif defined(AMREX_USE_CUDA)
+#elif defined(AMREX_USE_GPU)
     check_local = true;
     check_remote = true;
 #endif

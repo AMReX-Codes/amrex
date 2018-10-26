@@ -56,14 +56,14 @@ Arena::Finalize ()
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
             }
         }
-        if (The_Cuda_Arena()) {
-            CArena* p = dynamic_cast<CArena*>(The_Cuda_Arena());
+        if (The_Device_Arena()) {
+            CArena* p = dynamic_cast<CArena*>(The_Device_Arena());
             if (p) {
                 long min_kilobytes = p->heap_space_used() / 1024;
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
-                amrex::Print() << "[The    CUDA Arena] space (kilobyte) used spread across MPI: ["
+                amrex::Print() << "[The  Device Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
             }
         }

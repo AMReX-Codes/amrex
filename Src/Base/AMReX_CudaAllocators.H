@@ -6,8 +6,8 @@
 #include <limits>
 
 #include <AMReX_Print.H>
-#include <AMReX_Device.H>
 #include <AMReX_Arena.H>
+#include <AMReX_CudaDevice.H>
 
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
@@ -42,7 +42,7 @@ namespace amrex {
                 amrex::Abort();
             }
 
-            const int device = Device::deviceId();
+            const int device = Cuda::Device::deviceId();
             CudaAPICheck(cudaMemAdvise(result, n*sizeof(T), 
                                        cudaMemAdviseSetPreferredLocation, device));
 
@@ -130,18 +130,14 @@ namespace amrex {
 
         char *allocate(std::ptrdiff_t num_bytes)
         {
-	  return (char*) The_Cuda_Arena()->alloc(num_bytes);
+	  return (char*) The_Device_Arena()->alloc(num_bytes);
 	}
 
         void deallocate(char *ptr, size_t n)
         {
-	    The_Cuda_Arena()->free(ptr);
+	    The_Device_Arena()->free(ptr);
 	}
       
-        void Finalize()
-        {
-	}
-
     private:
         typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
         typedef std::map<char *, std::ptrdiff_t>     allocated_blocks_type;

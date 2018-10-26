@@ -2,7 +2,7 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
-#include <AMReX_CudaQualifiers.H>
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 
@@ -82,17 +82,17 @@ namespace amrex
     void ExecOnInitialize (PTR_TO_VOID_FUNC);
 
     //! Print out message to cerr and exit via amrex::Abort().
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void Error (const char * msg = 0);
     void Error (const std::string& msg);
 
     //! Print out warning message to cerr.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void Warning (const char * msg);
     void Warning (const std::string& msg);
 
     //! Print out message to cerr and exit via abort().
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void Abort (const char * msg = 0);
     void Abort (const std::string& msg);
 
@@ -101,7 +101,7 @@ namespace amrex
     * via abort().  Intended for use by the BL_ASSERT() macro
     * in <AMReX_BLassert.H>.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void Assert (const char* EX,
                  const char* file,
                  int         line,

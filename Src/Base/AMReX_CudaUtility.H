@@ -1,7 +1,8 @@
 #ifndef AMREX_CUDA_UTILITY_H_
 #define AMREX_CUDA_UTILITY_H_
 
-#include <AMReX_CudaQualifiers.H>
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_CudaDevice.H>
 #include <iostream>
 
 namespace amrex {
@@ -113,7 +114,7 @@ namespace Cuda {
 #endif  // AMREX_USE_CUDA
 
         template<class T>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         void Add (T* sum, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -124,7 +125,7 @@ namespace Cuda {
         }
         
         template<class T>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         void Min (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -135,7 +136,7 @@ namespace Cuda {
         }
         
         template<class T>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         void Max (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)

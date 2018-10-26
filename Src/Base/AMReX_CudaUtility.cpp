@@ -1,6 +1,5 @@
 
 #include <AMReX_CudaUtility.H>
-#include <AMReX_Device.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -25,7 +24,7 @@ StreamIter::StreamIter (const int n, bool is_thread_safe)
     : m_n(n), m_i(0), m_threadsafe(is_thread_safe)
 {
 #if defined(AMREX_USE_CUDA)
-    Device::set_stream_index(m_i);
+    Cuda::Device::set_stream_index(m_i);
 #elif defined(_OPENMP)
     int nthreads = omp_get_num_threads();
     if (nthreads > 1) {
@@ -45,9 +44,9 @@ StreamIter::StreamIter (const int n, bool is_thread_safe)
 
 StreamIter::~StreamIter () {
 #ifdef AMREX_USE_CUDA
-    Device::synchronize();
-    Device::check_for_errors();
-    Device::set_stream_index(-1);
+    Cuda::Device::synchronize();
+    Cuda::Device::check_for_errors();
+    Cuda::Device::set_stream_index(-1);
 #endif
 }
 
@@ -57,8 +56,8 @@ StreamIter::operator++ ()
 {
     ++m_i;
     if (m_threadsafe) {
-        Device::set_stream_index(m_i);
-        Device::check_for_errors();
+        Cuda::Device::set_stream_index(m_i);
+        Cuda::Device::check_for_errors();
     }
 }
 #endif

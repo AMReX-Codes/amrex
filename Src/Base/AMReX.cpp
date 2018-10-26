@@ -18,7 +18,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 
-#include <AMReX_Device.H>
+#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -48,8 +48,6 @@
 
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
-
-#include <AMReX_CudaAllocators.H>
 
 #if defined(BL_USE_FORTRAN_MPI)
 extern "C" {
@@ -458,7 +456,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         func_parm_parse();
     }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
 
 #if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
     // Wrap cuda init to identify it appropriately in nvvp.
@@ -472,7 +470,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
     // Initialize after ParmParse so that we can read inputs.
-    Device::initialize_device();
+    Gpu::Device::initialize_device();
 
 #if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
     nvtxRangeEnd(nvtx_init);
@@ -596,10 +594,6 @@ amrex::Finalize (bool finalize_parallel)
     Lazy::Finalize();
 #endif
 
-#ifdef AMREX_USE_CUDA
-    Cuda::The_ThrustCachedAllocator().Finalize();
-#endif
-
     while (!The_Finalize_Function_Stack.empty())
     {
         //
@@ -670,8 +664,8 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-#ifdef AMREX_USE_DEVICE
-    Device::finalize_device();
+#ifdef AMREX_USE_GPU
+    Gpu::Device::finalize_device();
 #endif
 
 #if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)

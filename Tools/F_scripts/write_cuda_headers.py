@@ -566,13 +566,13 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
 
                 hout.write("#else\n")
 
-                hout.write("if (amrex::Cuda::inLaunchRegion()) {\n")
+                hout.write("if (amrex::Gpu::inLaunchRegion()) {\n")
                 hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
-                hout.write("    amrex::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
+                hout.write("    amrex::Cuda::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
                 hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
                            "    CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
                            "#endif\n".format(func_name))
-                hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, amrex::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
+                hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, amrex::Cuda::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
 
                 # Catch errors in the launch configuration.
 

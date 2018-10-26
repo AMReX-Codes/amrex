@@ -1,9 +1,9 @@
 #ifndef AMREX_CUDA_MEMORY_H_
 #define AMREX_CUDA_MEMORY_H_
 
-#include <AMReX_CudaQualifiers.H>
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_CudaControl.H>
 #include <AMReX_Arena.H>
 #include <cstdlib>
 
@@ -107,8 +107,8 @@ struct DeviceScalar
 #if AMREX_USE_CUDA
 
     DeviceScalar (T init_val) {
-        if (Cuda::inLaunchRegion()) {
-            dp = (T*)(The_Cuda_Arena()->alloc(sizeof(T)));
+        if (Gpu::inLaunchRegion()) {
+            dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
             cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
         } else {
             dp = (T*)(std::malloc(sizeof(T)));
@@ -117,8 +117,8 @@ struct DeviceScalar
     }
 
     ~DeviceScalar () {
-        if (Cuda::inLaunchRegion()) {
-            The_Cuda_Arena()->free(dp);
+        if (Gpu::inLaunchRegion()) {
+            The_Device_Arena()->free(dp);
         } else {
             std::free(dp);
         }
@@ -127,7 +127,7 @@ struct DeviceScalar
     T* dataPtr () { return dp; }
     T const* dataPtr () const { return dp; }
     T dataValue () const {
-        if (Cuda::inLaunchRegion()) {
+        if (Gpu::inLaunchRegion()) {
             T r;
             cudaMemcpy(&r, dp, sizeof(T), cudaMemcpyDeviceToHost);
             return r;

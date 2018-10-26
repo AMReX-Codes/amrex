@@ -10,7 +10,7 @@ namespace amrex {
 class Arena;
 
 Arena* The_Arena ();
-Arena* The_Cuda_Arena ();
+Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
 
@@ -35,7 +35,7 @@ public:
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
     virtual void free (void* pt) = 0;
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
     /**
     * Allocate a dynamic device memory arena
     * \param sz size of the memory request
@@ -53,7 +53,7 @@ public:
     */
     static std::size_t align (std::size_t sz);
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     void SetDeviceMemory() { device_use_managed_memory = false; device_use_hostalloc = false; return; }
     void SetReadOnly() { BL_ASSERT(device_use_managed_memory); device_set_readonly = true; return; }
     void SetPreferred() { BL_ASSERT(device_use_managed_memory); device_set_preferred = true; return; }
@@ -78,7 +78,7 @@ protected:
 
     static const unsigned int align_size = 16;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     bool device_use_managed_memory = true;
     bool device_set_readonly = false;
     bool device_set_preferred = false;

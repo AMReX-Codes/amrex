@@ -98,10 +98,10 @@ void main_main ()
         const GeometryData& geomdata = geom.data();
         FArrayBox* phiNew = &(phi_new[mfi]);
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE(Cuda::Strategy(vbx), 
+        AMREX_CUDA_LAUNCH_HOST_DEVICE(Gpu::Strategy(vbx), 
         [=] AMREX_CUDA_DEVICE ()
         {
-            Box threadBox = Cuda::getThreadBox(vbx);
+            Box threadBox = Gpu::getThreadBox(vbx);
             if (threadBox.ok())
             {
                 init_phi(BL_TO_FORTRAN_BOX(threadBox),
