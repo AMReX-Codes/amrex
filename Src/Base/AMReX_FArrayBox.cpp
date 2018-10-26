@@ -1,4 +1,5 @@
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -186,7 +187,29 @@ FArrayBox::initVal ()
 {
     if (init_snan) {
 #ifdef BL_USE_DOUBLE
+#if defined(AMREX_USE_CUDA)
+
+        double * p = dataPtr();
+        AMREX_CUDA_LAUNCH_HOST_DEVICE ( Cuda::Strategy(truesize),
+        [=] AMREX_CUDA_HOST_DEVICE ()
+        {
+#ifdef UINT64_MAX
+            static const uint64_t snan = UINT64_C(0x7ff0000080000001);
+#else
+            static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
+            static const long long snan = 0x7ff0000080000001LL;
+#endif
+            long begin, n;
+            Cuda::getThreadIndex(begin,n,truesize);
+            for (long i = 0; i < n; ++i) {
+                double* pi = p + (i+begin);
+                std::memcpy(pi, &snan, sizeof(double));
+            }
+        });
+
+#else
 	amrex_array_init_snan(dataPtr(), truesize);
+#endif
 #endif
     } else if (do_initval) {
 	setVal(initval);

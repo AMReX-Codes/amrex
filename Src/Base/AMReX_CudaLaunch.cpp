@@ -2,6 +2,8 @@
 
 namespace amrex {
 
+namespace Cuda {
+
 // Return intersection of the cell for this thread and the entire domain.
 // If more threads are assigned than mesh cells in the domain, intersection will return an empty box.
 // If box is empty, skip the work in the MFIter loop for that thread.
@@ -10,16 +12,41 @@ AMREX_CUDA_HOST_DEVICE
 Box getThreadBox (const Box& bx)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
-    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
-                            static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
-                            static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
+    long begin, junk;
+    getThreadIndex(begin, junk, bx.numPts());
+    auto len = bx.length3d();
+    long k = begin / (len[0]*len[1]);
+    long j = (begin - k*(len[0]*len[1])) / len[0];
+    long i = (begin - k*(len[0]*len[1])) - j*len[0];
+    IntVect iv{AMREX_D_DECL(static_cast<int>(i),
+                            static_cast<int>(j),
+                            static_cast<int>(k))};
     iv += bx.smallEnd();
     return (bx & Box(iv,iv,bx.type()));
 #else
     return bx;
 #endif
-}
+    
 
+#if 0
+#if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
+    IntVect iv{AMREX_D_DECL(static_cast<int>(threadIdx.x + blockDim.x*(blockIdx.x)),
+        AMREX_CUDA_Y_STRIDE*static_cast<int>(threadIdx.y + blockDim.y*(blockIdx.y)),
+        AMREX_CUDA_Z_STRIDE*static_cast<int>(threadIdx.z + blockDim.z*(blockIdx.z)))};
+    iv += bx.smallEnd();
+    IntVect iv2 = iv;
+#if (AMREX_SPACEDIM >= 2)
+    iv2[1] += (AMREX_CUDA_Y_STRIDE-1);
+#endif
+#if (AMREX_SPACEDIM == 3)
+    iv2[2] += (AMREX_CUDA_Z_STRIDE-1);
+#endif
+    return (bx & Box(iv,iv2,bx.type()));
+#else
+    return bx;
+#endif
+#endif
+}
 
 // // Extension of getThreadBox that accounts for change of box type.
 // // If growing, add extra index on the big edge.
@@ -111,15 +138,16 @@ getThreadComponentBox (const Box& bx, int ncomp)
 // If index is over N, return size of 0 to skip loop.
 // If not on CUDA, return values to run entire loop. (1 to N) 
 AMREX_CUDA_HOST_DEVICE
-void getThreadIndex (int &index, int &size, const int num_particles)
+void getThreadIndex (long &index, long &size, const long num_particles)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
      index = blockDim.x*blockIdx.x + threadIdx.x;
      size  = (index > num_particles) ? 0 : 1;
 #else
-     index = 1;
+     index = 0;
      size = num_particles;
 #endif
 }
 
+}  // namespace Cuda
 }  // namespace amrex

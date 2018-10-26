@@ -11,6 +11,10 @@
 #include <string>
 #include <cstdio>
 
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)))
+#include "nvToolsExt.h"
+#endif
+
 //
 // Initialize, Finalize, Error Reporting, and Version String Functions
 

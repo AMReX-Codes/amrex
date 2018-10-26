@@ -7,11 +7,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
-#if defined(AMREX_USE_CUDA)
-bool amrex::Device::in_device_launch_region = true;
-#else
-bool amrex::Device::in_device_launch_region = false;
-#endif
 int amrex::Device::device_id = 0;
 int amrex::Device::verbose = 0;
 
@@ -64,8 +59,6 @@ amrex::Device::initialize_cuda_c () {
     numBlocksOverride.z = (int) nz;
 
     cudaGetDeviceProperties(&device_prop, device_id);
-
-    pp.query("in_launch_region", in_device_launch_region);
 }
 
 cudaStream_t
@@ -312,50 +305,6 @@ amrex::Device::device_malloc(const std::size_t sz) {
     return ptr;
 }
 
-bool
-amrex::Device::checkManaged(const void* ptr) {
-
-#ifdef AMREX_USE_CUDA
-     cudaPointerAttributes ptr_attr;
-     cudaPointerGetAttributes(&ptr_attr, ptr);
-     cudaError_t err = cudaGetLastError(); 
-     if (err == cudaErrorInvalidValue)
-     {
-        std::cout << " cudaErrorInvalidValue ";
-        return false;
-     }
-     return ptr_attr.isManaged;
-#else
-     return false;
-#endif
-
-}
-
-bool
-amrex::Device::checkDevicePtr (const void* ptr) {
-
-#ifdef AMREX_USE_CUDA
-     cudaPointerAttributes ptr_attr;
-     cudaPointerGetAttributes(&ptr_attr, ptr);
-     cudaError_t err = cudaGetLastError(); 
-     if (err == cudaErrorInvalidValue)
-     {
-        std::cout << " cudaErrorInvalidValue ";
-        return false;
-     }
-     else if (ptr_attr.memoryType == cudaMemoryTypeHost)
-     {
-        std::cout << " cudaMemoryTypeHost ";
-        return false;
-     }
-
-     return true;
-#else
-     return false;
-#endif
-
-}
-
 void
 amrex::Device::device_free(void* ptr) {
 
@@ -524,11 +473,11 @@ amrex::Device::particle_threads_and_blocks(const int np, int& numThreads, int& n
 
 
 void
-amrex::Device::n_threads_and_blocks (const int N, dim3& numBlocks, dim3& numThreads)
+amrex::Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 {
-    const int maxBlockSize = 256;
+    const long maxBlockSize = 256;
     numThreads = maxBlockSize;
-    numBlocks = std::min((N + maxBlockSize - 1) / maxBlockSize, 1); // in case N = 0
+    numBlocks = std::max((N + maxBlockSize - 1) / maxBlockSize, 1L); // in case N = 0
 }
 #endif
 

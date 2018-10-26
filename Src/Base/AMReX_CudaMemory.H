@@ -2,48 +2,45 @@
 #define AMREX_CUDA_MEMORY_H_
 
 #include <AMReX_CudaQualifiers.H>
+#include <AMReX_TypeTraits.H>
+#include <AMReX_CudaControl.H>
+#include <AMReX_Arena.H>
+#include <cstdlib>
 
 namespace amrex {
+namespace Cuda {
 
 struct Managed {
 
 #ifdef AMREX_USE_CUDA
 
-  void *operator new(size_t len)
-  {
-    void *ptr;
-    cudaMallocManaged(&ptr, len);
-    cudaDeviceSynchronize();
-    return ptr;
-  }
-
-  void operator delete(void *ptr)
-  {
-    cudaDeviceSynchronize();
-    cudaFree(ptr);
-  }
+    void *operator new(size_t len)
+    {
+        return The_Managed_Arena()->alloc(len);
+    }
+    
+    void operator delete(void *ptr)
+    {
+        The_Managed_Arena()->free(ptr);
+    }
 
 #endif
 };
 
 struct Pinned {
-
+    
 #ifdef AMREX_USE_CUDA
 
-  void *operator new(size_t len)
-  {
-    void *ptr;
-    cudaMallocHost(&ptr, len);
-    cudaDeviceSynchronize();
-    return ptr;
-  }
-
-  void operator delete(void *ptr)
-  {
-    cudaDeviceSynchronize();
-    cudaFreeHost(ptr);
-  }
-
+    void *operator new(size_t len)
+    {
+        return The_Pinned_Arena()->alloc(len);
+    }
+    
+    void operator delete(void *ptr)
+    {
+        The_Pinned_Arena()->free(ptr);
+    }
+    
 #endif
 };
 
@@ -98,51 +95,66 @@ struct ManagedData
     T* d_d = nullptr;
 };
 
-template <class T, typename std::enable_if<std::is_pod<T>::value,int>::type = 0 >
-struct HostDeviceScalar
+
+template <class T, typename = amrex::EnableIf_t<std::is_pod<T>::value> >
+struct DeviceScalar
 {
-    HostDeviceScalar (T& h) : hp(&h) {
-#if AMREX_USE_CUDA
-        cudaMalloc(&dp, sizeof(T));
-        cudaMemcpy(dp, hp, sizeof(T), cudaMemcpyHostToDevice);
-#else
-        dp = hp;
-#endif
-    }
-    
-    ~HostDeviceScalar () {
-#if AMREX_USE_CUDA
-        cudaMemcpy(hp, dp, sizeof(T), cudaMemcpyDeviceToHost);
-        cudaFree(dp);
-#endif
-    }
+    DeviceScalar (DeviceScalar const&) = delete;
+    DeviceScalar (DeviceScalar &&) = delete;
+    void operator= (DeviceScalar const&) = delete;
+    void operator= (DeviceScalar &&) = delete;
 
-    HostDeviceScalar (HostDeviceScalar const&) = delete;
-    HostDeviceScalar (HostDeviceScalar &&) = delete;
-    void operator= (HostDeviceScalar const&) = delete;
-    void operator= (HostDeviceScalar &&) = delete;
-
-    T* devicePtr () { return dp; }
-    T const* devicePtr () const { return dp; }
-
-    void DeviceToHost () {
 #if AMREX_USE_CUDA
-        cudaMemcpy(hp, dp, sizeof(T), cudaMemcpyDeviceToHost);
-#endif
+
+    DeviceScalar (T init_val) {
+        if (Cuda::inLaunchRegion()) {
+            dp = (T*)(The_Cuda_Arena()->alloc(sizeof(T)));
+            cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
+        } else {
+            dp = (T*)(std::malloc(sizeof(T)));
+            *dp = init_val;
+        }
     }
 
-    void HostToDevice () {
-#if AMREX_USE_CUDA
-        cudaMemcpy(dp, hp, sizeof(T), cudaMemcpyHostToDevice);
-#endif
+    ~DeviceScalar () {
+        if (Cuda::inLaunchRegion()) {
+            The_Cuda_Arena()->free(dp);
+        } else {
+            std::free(dp);
+        }
+    }
+
+    T* dataPtr () { return dp; }
+    T const* dataPtr () const { return dp; }
+    T dataValue () const {
+        if (Cuda::inLaunchRegion()) {
+            T r;
+            cudaMemcpy(&r, dp, sizeof(T), cudaMemcpyDeviceToHost);
+            return r;
+        } else {
+            return *dp;
+        }
     }
 
 private:
-    T* hp;
     T* dp;
+
+#else
+
+    DeviceScalar (T init_val) : d(init_val) {}
+    ~DeviceScalar () {}
+
+    T* dataPtr () { return &d; }
+    T const* dataPtr () const { return &d; }
+    T dataValue () const { return d; }
+
+private:
+    T d;
+
+#endif
 };
 
-}  //namespace
+}}  //namespace
 
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include <AMReX_Arena.H>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_FArrayBox.H>
@@ -17,7 +18,7 @@
 namespace amrex {
 
 #ifdef AMREX_USE_CUDA
-    inline bool TilingIfNotGPU () { return !Device::inLaunchRegion(); }
+    inline bool TilingIfNotGPU () { return !Cuda::inLaunchRegion(); }
 #else
     inline constexpr bool TilingIfNotGPU () { return true; }
 #endif
@@ -233,23 +234,8 @@ private:
     FabArrayBase::TileArray lta;
 };
 
-#ifdef AMREX_USE_CUDA
-    // \cond CODEGEN
-    class MFIter_init
-    {
-    public:
-        MFIter_init ();
-        ~MFIter_init ();
-    private:
-        static int m_cnt;
-    };
-    // \endcond
-#endif
+inline Arena* The_MFIter_Arena () { return The_Cuda_Arena(); }
 
 }
-
-#ifdef AMREX_USE_CUDA
-static amrex::MFIter_init file_scope_MFIter_init_object;
-#endif
 
 #endif

@@ -13,10 +13,6 @@
 #include <AMReX_Box.H>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <upcxx.h>
-#endif
-
 #ifdef BL_USE_MPI3
 #include <atomic>
 #endif
@@ -47,25 +43,6 @@ namespace amrex {
 //! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication 
 namespace ParallelDescriptor
 {
-#ifdef BL_USE_UPCXX
-    struct UPCXX_MPI_Mode {
-	unsigned short upcxx_cnt;
-	bool mpi_ready;
-	UPCXX_MPI_Mode () : upcxx_cnt(0), mpi_ready(true) { }
-	void incr_upcxx () { ++upcxx_cnt; }
-	void decr_upcxx () { --upcxx_cnt; }
-	void set_upcxx_mode () { mpi_ready = false; }
-	void set_mpi_mode (bool barrier_called=false) {
-	    BL_ASSERT(upcxx_cnt == 0);
-	    if (!mpi_ready) {
-		if (!barrier_called) upcxx::barrier();
-		mpi_ready = true;
-	    }    
-	}
-    };
-    extern UPCXX_MPI_Mode Mode;
-#endif    
-
 #ifdef BL_USE_MPI3
     extern MPI_Win cp_win;
     extern MPI_Win fb_win;
@@ -151,18 +128,12 @@ namespace ParallelDescriptor
     //! Provide functionalities needed to construct a team of processes to perform a particular job
     struct ProcessTeam
     {
-#ifdef BL_USE_UPCXX
-	typedef upcxx::team team_t;
-#else
 	typedef MPI_Comm team_t;
-#endif
 
         //! synchronize processes within the team
 	void Barrier () const { 
 	    if (m_size > 1) {
-#ifdef BL_USE_UPCXX
-		m_upcxx_team.barrier();
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 		MPI_Barrier(m_team_comm);
 #endif
 	    }
@@ -178,9 +149,7 @@ namespace ParallelDescriptor
                 #pragma omp master
 #endif
 		{
-#ifdef BL_USE_UPCXX
-                    m_upcxx_team.barrier();
-#elif defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 		    std::atomic_thread_fence(std::memory_order_release);
 		    MPI_Barrier(m_team_comm);
 		    std::atomic_thread_fence(std::memory_order_acquire);
@@ -191,7 +160,7 @@ namespace ParallelDescriptor
 
         //! free a communicator
 	void clear () {
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
 	    if (m_size > 1) {
 		MPI_Comm_free(&m_team_comm);
 		if (m_rankInTeam==0) MPI_Comm_free(&m_lead_comm);
@@ -200,19 +169,12 @@ namespace ParallelDescriptor
 	}
 	
 	const team_t& get() const {
-#ifdef BL_USE_UPCXX
-	    return m_upcxx_team; 
-#else
 	    return m_team_comm;
-#endif
 	}
         //! return the communicator
 	const MPI_Comm& get_team_comm() const { return m_team_comm; }
 	const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
-#ifdef BL_USE_UPCXX
-	team_t m_upcxx_team;
-#endif
 	int    m_numTeams;
 	int    m_size;
 	int    m_color;

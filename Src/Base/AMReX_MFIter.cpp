@@ -5,41 +5,6 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
-int MFIter_init::m_cnt = 0;
-
-namespace
-{
-    Arena* the_mfiter_arena = 0;
-}
-
-MFIter_init::MFIter_init ()
-{
-    if (m_cnt++ == 0)
-    {
-        BL_ASSERT(the_mfiter_arena == 0);
-
-        the_mfiter_arena = new CArena;
-
-	the_mfiter_arena->SetDeviceMemory();
-    }
-}
-
-MFIter_init::~MFIter_init ()
-{
-    if (--m_cnt == 0)
-        delete the_mfiter_arena;
-}
-
-Arena*
-The_MFIter_Arena ()
-{
-    BL_ASSERT(the_mfiter_arena != 0);
-
-    return the_mfiter_arena;
-}
-#endif
-
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 
 MFIter::MFIter (const FabArrayBase& fabarray_, 
@@ -220,7 +185,7 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_CUDA
-    if (Device::inLaunchRegion()) {
+    if (Cuda::inLaunchRegion()) {
         for (int i = 0; i < real_reduce_list.size(); ++i)
             amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
     }
@@ -472,7 +437,7 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
 void
 MFIter::operator++ ()
 {
-    if (Device::inLaunchRegion()) {
+    if (Cuda::inLaunchRegion()) {
         if (real_reduce_list.size() == currentIndex + 1) {
             Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
                                              real_device_reduce_list[currentIndex],
@@ -495,7 +460,7 @@ Real*
 MFIter::add_reduce_value(Real* val, MFReducer r)
 {
 
-    if (Device::inLaunchRegion()) {
+    if (Cuda::inLaunchRegion()) {
 
         real_reduce_val = val;
 
@@ -531,7 +496,7 @@ MFIter::reduce()
 
     // Do nothing if we're not currently executing on the device.
 
-    if (!Device::inLaunchRegion()) return;
+    if (!Cuda::inLaunchRegion()) return;
 
     // Do nothing if we don't have enough values to reduce on.
 

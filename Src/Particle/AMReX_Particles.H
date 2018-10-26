@@ -37,6 +37,8 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_TypeTraits.H>
+#include "AMReX_CudaContainers.H"
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -50,10 +52,9 @@
 #include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/iterator/retag.h>
 #include <thrust/device_ptr.h>
 #include <thrust/tuple.h>
-
-#include "AMReX_CudaAllocators.H"
 #endif
 
 namespace amrex {
@@ -149,11 +150,7 @@ public:
     using RealVector     = typename SoA::RealVector;
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
-#ifdef AMREX_USE_CUDA
-    using CharVector = Vector<char, CudaManagedAllocator<char>>;
-#else
-    using CharVector = Vector<char>;
-#endif
+    using CharVector     = Cuda::ManagedDeviceVector<char>;
 
     ParticleContainer ()
       : 
@@ -351,6 +348,8 @@ public:
     Real sumParticleMass (int rho_index, int level, bool local = false) const;
 
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
+
+    void SortParticlesByCell();
 
     //
     // OK checks that all particles are in the right places (for some value of right)
@@ -591,6 +590,24 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
+    // buffers for communication in RedistributeGPU
+    #ifdef AMREX_USE_CUDA
+    mutable thrust::device_vector<ParticleType> m_aos_to_redistribute;
+    mutable std::array< thrust::device_vector<Real>, NArrayReal> m_real_arrays_to_redistribute;
+    mutable std::array< thrust::device_vector<int>,  NArrayInt >  m_int_arrays_to_redistribute;
+    mutable thrust::device_vector<int> m_grids_to_redistribute;
+
+    mutable thrust::device_vector<ParticleType> m_aos_r;
+    mutable thrust::device_vector<int> m_grids_r;
+    mutable thrust::device_vector<Real> m_rdata_r;
+    mutable thrust::device_vector<int> m_idata_r;
+
+    mutable thrust::device_vector<amrex::IntVect> m_cells_tmp;
+    mutable thrust::device_vector<int> m_grids_tmp;
+    mutable thrust::device_vector<int> m_index_sequence_tmp;
+    mutable std::map<int, thrust::device_vector<char> > m_not_ours;
+    mutable thrust::device_vector<char> m_recvdata;
+    #endif
     
 private:
 
@@ -601,7 +618,7 @@ private:
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
 #ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU (std::map<int, thrust::device_vector<char> >& not_ours);
+    void RedistributeMPIGPU ();
     
     void EnforcePeriodicGPU ();
 
@@ -650,7 +667,6 @@ public:
     using ParticleVector   = typename ContainerType::ParticleVector;
 
 #ifdef AMREX_USE_CUDA 
-    typedef thrust::tuple<double, double, double> Double3;
 
     struct getPosition
     {        
@@ -658,11 +674,11 @@ public:
         getPosition() {}
         
         __host__ __device__
-        Double3 operator()(const ParticleType& p) const
+        thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const ParticleType& p) const
         {
-            return thrust::make_tuple(p.m_rdata.pos[0],
-                                      p.m_rdata.pos[1], 
-                                      p.m_rdata.pos[2]);
+            return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
+                                                   p.m_rdata.pos[1], 
+                                                   p.m_rdata.pos[2]));
         }
     };
 #endif
@@ -693,11 +709,11 @@ public:
 
     SoARef GetStructOfArrays () const { return GetParticleTile().GetStructOfArrays(); }
 
-
-    void GetPosition (AMREX_D_DECL(RealVector& x,
-                                   RealVector& y,
-                                   RealVector& z)) const;
-
+    template <typename Container>
+    void GetPosition (AMREX_D_DECL(Container& x,
+                                   Container& y,
+                                   Container& z)) const;
+    
     int numParticles () const { return GetArrayOfStructs().numParticles(); }    
 protected:
     int m_level;
@@ -734,8 +750,12 @@ public:
         {
             ParticleType p;
             p.m_rdata.pos[0] = thrust::get<0>(pos);
+#if AMREX_SPACEDIM > 1
             p.m_rdata.pos[1] = thrust::get<1>(pos);
+#endif
+#if AMREX_SPACEDIM > 2
             p.m_rdata.pos[2] = thrust::get<2>(pos);
+#endif
             return p;
         }
     };
@@ -749,9 +769,10 @@ public:
         : ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>(pc,level,info)
         {}
 
-    void SetPosition (AMREX_D_DECL(const RealVector& x,
-                                   const RealVector& y,
-                                   const RealVector& z)) const;
+    template <typename Container>
+    void SetPosition (AMREX_D_DECL(const Container& x,
+                                   const Container& y,
+                                   const Container& z)) const;
 };
 
 template <int NStructReal, int NStructInt=0, int NArrayReal=0, int NArrayInt=0>
