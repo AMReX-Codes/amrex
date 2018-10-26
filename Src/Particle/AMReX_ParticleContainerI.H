@@ -452,20 +452,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 {
     long nparticles = 0;
 
-    // if (lev >= 0 && lev < int(m_particles.size())) {
-    //     for (const auto& kv : GetParticles(lev)) {
-    //         const auto& ptile = kv.second;	
-    //         if (only_valid) {
-    //             for (const auto& p : ptile.GetArrayOfStructs()) {
-    //                 if (p.m_idata.id > 0) ++nparticles;
-    //             }
-    //         } else {
-    //             nparticles += ptile.numParticles();
-    //         }
-    //     }
-    // }
+    if (lev >= 0 && lev < int(m_particles.size())) {
+        for (const auto& kv : GetParticles(lev)) {
+            const auto& ptile = kv.second;	
+            if (only_valid) {
+                for (int k = 0; k < ptile.GetArrayOfStructs().size(); ++k) {
+                    const ParticleType& p = ptile.GetArrayOfStructs()[k];
+                    if (p.m_idata.id > 0) ++nparticles;
+                }
+            } else {
+                nparticles += ptile.numParticles();
+            }
+        }
+    }
 
-    // if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
+    if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
     
     return nparticles;
 }
@@ -882,176 +883,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif
 }
 
-#ifdef AMREX_USE_CUDA
-
-namespace {
-    
-    struct DeviceBox
-    {
-        int lo[AMREX_SPACEDIM];
-        int hi[AMREX_SPACEDIM];
-        
-        DeviceBox() 
-        {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) 
-            {
-                lo[i] = 0;
-                hi[i] = 0;
-            }
-        }
-        
-        DeviceBox(const Box& a_box)
-        {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i)
-            {
-                lo[i] = a_box.smallEnd(i);
-                hi[i] = a_box.bigEnd(i);
-            }
-        }
-    };
-
-    struct DeviceDomain
-    {
-        Real   left_edge[AMREX_SPACEDIM];
-        Real  right_edge[AMREX_SPACEDIM];
-        Real  inverse_dx[AMREX_SPACEDIM];
-        Real domain_size[AMREX_SPACEDIM];
-        int  is_periodic[AMREX_SPACEDIM];
-        int    small_end[AMREX_SPACEDIM];
-        int      big_end[AMREX_SPACEDIM];
-
-        DeviceDomain(const Geometry& geom) {
-            for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-                left_edge[i]   = geom.ProbLo(i);
-                right_edge[i]  = geom.ProbHi(i);
-                domain_size[i] = right_edge[i] - left_edge[i];
-                inverse_dx[i]  = geom.InvCellSize(i);
-                is_periodic[i] = geom.isPeriodic(i);
-                small_end[i]   = geom.Domain().smallEnd(i);
-                big_end[i]     = geom.Domain().bigEnd(i);
-            }
-        }
-    };
-
-    struct applyPeriodicBCs
-    {
-        DeviceDomain domain;
-
-        __host__ __device__
-        applyPeriodicBCs(const DeviceDomain& a_domain)
-            : domain(a_domain) {}
-
-        template <typename Particle>
-        __host__ __device__
-        Particle operator()(const Particle& in) const {
-            Particle p = in;
-            
-            for (int dim = 0; dim < AMREX_SPACEDIM; ++dim) {
-                if (not domain.is_periodic[dim]) continue;
-                if (p.m_rdata.pos[dim] > domain.right_edge[dim]) { 
-                    p.m_rdata.pos[dim] -= domain.domain_size[dim];
-                } else if (p.m_rdata.pos[dim] < domain.left_edge[dim]) {
-                    p.m_rdata.pos[dim] += domain.domain_size[dim];
-                }
-            }
-            
-            return p;
-        }
-    };
-
-    struct assignParticle
-    {        
-        DeviceDomain domain;
-        DeviceBox box;
-        const int* mask_ptr;
-        
-        __host__ __device__
-        assignParticle(const DeviceDomain& a_domain,
-                       const DeviceBox&    a_box,
-                       const int*          a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
-        
-        template <typename Particle>
-        __host__ __device__
-        int operator()(const Particle& p) const {
-            int i = floor((p.m_rdata.pos[0] - domain.left_edge[0]) * domain.inverse_dx[0]);
-            i += domain.small_end[0];
-#if   AMREX_SPACEDIM > 1
-            int j = floor((p.m_rdata.pos[1] - domain.left_edge[1]) * domain.inverse_dx[1]);
-            j += domain.small_end[1];
-#endif
-#if   AMREX_SPACEDIM > 2
-            int k = floor((p.m_rdata.pos[2] - domain.left_edge[2]) * domain.inverse_dx[2]);
-            k += domain.small_end[2];
-#endif
-            
-            long offset = i - box.lo[0];
-#if   AMREX_SPACEDIM==2
-            offset += (box.hi[0] - box.lo[0] + 1) * (j - box.lo[1]);
-#elif AMREX_SPACEDIM==3
-            offset += (box.hi[0] - box.lo[0] + 1) * (j - box.lo[1]
-                                                     + (k - box.lo[2]) * (box.hi[1] - box.lo[1] + 1));
-#endif
-            return mask_ptr[offset];
-        }
-    };
-
-    struct particleCell
-    {        
-        DeviceDomain domain;
-        
-        __host__ __device__
-        particleCell(const DeviceDomain& a_domain)
-            : domain(a_domain) {}
-        
-        template <typename Particle>
-        __host__ __device__
-        IntVect operator()(const Particle& p) const {
-            int i = floor((p.m_rdata.pos[0] - domain.left_edge[0]) * domain.inverse_dx[0]);
-            i += domain.small_end[0];
-#if   AMREX_SPACEDIM > 1
-            int j = floor((p.m_rdata.pos[1] - domain.left_edge[1]) * domain.inverse_dx[1]);
-            j += domain.small_end[1];
-#endif
-#if   AMREX_SPACEDIM > 2
-            int k = floor((p.m_rdata.pos[2] - domain.left_edge[2]) * domain.inverse_dx[2]);
-            k += domain.small_end[2];
-#endif   
-	    return IntVect(i, j, k);
-        }
-    };
-    
-    struct grid_is
-    {
-        int grid_id;
-        
-        __host__ __device__
-        grid_is(int a_grid_id) : grid_id(a_grid_id) {}
-        
-        __host__ __device__
-        bool operator()(int grid) const
-        {
-            return grid_id == grid;
-        }
-    };
-    
-    struct grid_is_not
-    {
-        int grid_id;
-        
-        __host__ __device__
-        grid_is_not(int a_grid_id) : grid_id(a_grid_id) {}
-    
-        __host__ __device__
-        bool operator()(int grid) const
-        {
-            return grid_id != grid;
-        }
-    };
-}
-
-#endif // AMREX_USE_CUDA
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
@@ -1078,9 +909,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        int src_grid = mfi.index();
-        const int tid = 0;        
-        auto& ptile = plev[std::make_pair(src_grid, tid)];
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();        
+        auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
         auto& soa   = ptile.GetStructOfArrays();
         const size_t np = aos.numParticles();
@@ -1096,7 +927,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           m_cells_tmp.begin(),
-                          particleCell(DeviceDomain(geom)));
+                          functors::assignParticleCell(geom.data()));
 
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             m_cells_tmp.begin(),
@@ -1203,9 +1034,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        int src_grid = mfi.index();
-        const int tid = 0;        
-        auto& ptile = plev[std::make_pair(src_grid, tid)];
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();        
+        auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
         auto& soa   = ptile.GetStructOfArrays();
         const size_t old_np = aos.numParticles();
@@ -1222,12 +1053,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         // Compute the grid each particle belongs to
         //
         thrust::transform(thrust::device, 
-                          thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
+			  thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           m_grids_tmp.begin(),
-                          assignParticle(DeviceDomain(geom),
-                                         DeviceBox((*redistribute_mask_ptr)[src_grid].box()),
-                                         (*redistribute_mask_ptr)[src_grid].dataPtr()));        
+                          functors::assignParticleGrid(geom.data(),
+                                         (*redistribute_mask_ptr)[gid].box(),
+                                       &((*redistribute_mask_ptr)[gid])));        
 
         BL_PROFILE_VAR_STOP(blp_transform);
 
@@ -1240,7 +1071,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                        m_index_sequence_tmp.begin(),
 				       m_index_sequence_tmp.end(), 
 				       m_grids_tmp.begin(), 
-				       grid_is(src_grid));
+				       functors::grid_is(gid));
         BL_PROFILE_VAR_STOP(blp_compute_partition);
 
         const size_t num_moved = thrust::distance(mid, m_index_sequence_tmp.end());
@@ -1591,7 +1422,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
-                          applyPeriodicBCs(geom));
+                          functors::applyParticlePeriodicBCs(geom.data()));
     }
 }
 #endif //AMREX_USE_CUDA
@@ -2377,13 +2208,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
                           thrust::device_ptr<const ParticleType>(static_cast<const ParticleType*>(aos().data()) 
                                                    + aos.size()),
                           grid_indices.begin(),
-                          assignParticle(DeviceDomain(geom),
-                                         DeviceBox((*redistribute_mask_ptr)[i].box()),
-                                         (*redistribute_mask_ptr)[i].dataPtr()));
+                          functors::assignParticleGrid(geom.data(),
+                                         (*redistribute_mask_ptr)[i].box(),
+				       &((*redistribute_mask_ptr)[i])));
 
         int count = thrust::count_if(grid_indices.begin(),
                                      grid_indices.end(),
-                                     grid_is_not(i));
+                                     functors::grid_is_not(i));
 
         total_wrong += count;
     }
@@ -3063,9 +2894,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 
 	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-            int pindex = 0;
-            for (int k = 0; k < pbox.size(); ++k) {
-	        const ParticleType& p = pbox.GetArrayOfStructs()[k];
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+	        const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
                 if (p.m_idata.id > 0) {
                     for (int j = 0; j < 2 + NStructInt; j++) {
                         iptr[j] = p.m_idata.arr[j];
@@ -3092,9 +2922,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
           const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-          int pindex = 0;
-	  for (int k = 0; k < pbox.GetArrayOfStructs().size(); ++k) {
-	      const ParticleType& p = pbox.GetArrayOfStructs()[k];
+	  for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+	      const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
               if (p.m_idata.id > 0) {
                   for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
                       rptr[j] = p.m_rdata.arr[j];
