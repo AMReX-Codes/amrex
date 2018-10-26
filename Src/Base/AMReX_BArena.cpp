@@ -40,7 +40,7 @@ amrex::BArena::alloc (std::size_t _sz)
 void
 amrex::BArena::free (void* pt)
 {
-#if (defined(AMREX_USE_GPU)
+#if defined(AMREX_USE_GPU)
     if (!device_use_hostalloc)
 	gpu_free(pt);
     else
