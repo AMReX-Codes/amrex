@@ -20,12 +20,12 @@ namespace functors
     {
         GeometryData domain;
 
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         applyParticlePeriodicBCs(const GeometryData& a_domain)
             : domain(a_domain) {}
 
         template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         Particle operator()(const Particle& in) const {
             Particle p = in;
             
@@ -48,14 +48,14 @@ namespace functors
         Box box;
         BaseFab<int>* mask_ptr;
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         assignParticleGrid(const GeometryData& a_domain,
                        const Box&          a_box,
                        BaseFab<int>*       a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         int operator()(const Particle& p) const {
 	    IntVect iv = IntVect(
 	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
@@ -75,14 +75,14 @@ namespace functors
         Box box;
         BaseFab<int>* mask_ptr;
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         assignParticleTile(const GeometryData& a_domain,
 			   const Box&          a_box,
 			   BaseFab<int>*       a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         int operator()(const Particle& p) const {
 	    IntVect iv = IntVect(
 	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
@@ -102,14 +102,14 @@ namespace functors
         Box box;
         BaseFab<int>* mask_ptr;
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         assignParticleGridAndTile(const GeometryData& a_domain,
 				  const Box&          a_box,
 				  BaseFab<int>*       a_mask_ptr) 
             : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
         
         template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         thrust::tuple<int, int> operator()(const Particle& p) const {
 	    IntVect iv = IntVect(
 	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
@@ -127,12 +127,12 @@ namespace functors
     {        
         GeometryData domain;
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         assignParticleCell(const GeometryData& a_domain)
             : domain(a_domain) {}
         
         template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         IntVect operator()(const Particle& p) const {
 	    IntVect iv = IntVect(
 	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
@@ -150,10 +150,10 @@ namespace functors
     {
         int grid_id;
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         grid_is(int a_grid_id) : grid_id(a_grid_id) {}
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         bool operator()(int grid) const
         {
             return grid_id == grid;
@@ -164,10 +164,10 @@ namespace functors
     {
         int grid_id;
         
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         grid_is_not(int a_grid_id) : grid_id(a_grid_id) {}
     
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         bool operator()(int grid) const
         {
             return grid_id != grid;
@@ -176,11 +176,11 @@ namespace functors
 
     struct getPosition
     {        
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         getPosition() {}
         
         template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         thrust::tuple<AMREX_D_DECL(Real, Real, Real)> operator()(const Particle& p) const
         {
             return thrust::make_tuple(AMREX_D_DECL(p.m_rdata.pos[0],
@@ -192,11 +192,11 @@ namespace functors
     template <typename Particle>
     struct setPosition
     {
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         setPosition() {}
 
         template <typename Tuple>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         Particle operator()(const Tuple& pos) const
         {
             Particle p;
