@@ -320,7 +320,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
         hout.write("\n")
         hout.write("#include <AMReX_ArrayLim.H>\n")
         hout.write("#include <AMReX_BLFort.H>\n")
-        hout.write("#include <AMReX_Device.H>\n")
+        hout.write("#include <AMReX_CudaDevice.H>\n")
         hout.write("\n")
 
         hdrmh = os.path.basename(h.name).strip(".H")
