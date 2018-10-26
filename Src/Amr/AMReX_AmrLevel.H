@@ -796,7 +796,6 @@ class AsyncFillPatchIterator
                    int  ncomp,
                    int f,
                    unsigned char pushLevel,
-                   int tf,
                    bool singleT=false);
 
     void SendIntraLevel (RGIter& rgi,
@@ -870,7 +869,7 @@ class AsyncFillPatchIterator
     void Receive (RGIter* rgi,
                   MultiFab& dest,
                   int  boxGrow,
-                  Real time,
+                  const Real time,
                   int  state_indx,
                   int  scomp,
                   int  ncomp,
@@ -1013,7 +1012,7 @@ public:
     MultiFab*                         dmff;
 
 
-    void completeRegionGraphs(int tg)
+    void completeRegionGraphs()
     { 
       //std::cout << "Completing RGs ";
       

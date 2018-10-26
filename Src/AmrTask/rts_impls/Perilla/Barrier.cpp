@@ -49,12 +49,14 @@ void Barrier::sync() //sync all threads associated with this barrier
       globalSense = localSense;
       pthread_cond_broadcast(&condition);
   } else {
-      while(globalSense != localSense){pthread_cond_wait(&condition, &condition_mutex);} //keep sleeping until signaled
+      //while(globalSense != localSense){pthread_cond_wait(&condition, &condition_mutex);} //keep sleeping until signaled
+      pthread_cond_wait(&condition, &condition_mutex);
   }
   pthread_mutex_unlock(&condition_mutex);
 }
 
-void Barrier::sync(int numthreads) //sync a subset of threads
+//sync a subset of threads (note: each thread cannot belong to more than 1 synchronization subset)
+void Barrier::sync(int numthreads) 
 {
   assert(numthreads<=maxThreads);
   bool localSense;
@@ -70,7 +72,8 @@ void Barrier::sync(int numthreads) //sync a subset of threads
       globalSense = localSense;
       pthread_cond_broadcast(&condition);
   } else {
-      while(globalSense != localSense){ pthread_cond_wait(&condition, &condition_mutex);} //keep sleeping until signaled
+      //while(globalSense != localSense){pthread_cond_wait(&condition, &condition_mutex);} //keep sleeping until signaled
+      pthread_cond_wait(&condition, &condition_mutex);
   }
   pthread_mutex_unlock(&condition_mutex);
 }

@@ -427,6 +427,41 @@ int RegionGraph::getAnyFireableRegion()
 }
 
 
+int RegionGraph::getAnyFireableRegion(RegionGraph& depGraph)
+{
+    int nt;
+    int tg;
+    int r;
+    bool fireable;
+
+    int myProc = amrex::ParallelDescriptor::MyProc();
+
+    tg = perilla::wid();
+    nt = perilla::wtid();
+    if(nt == perilla::NUM_COMM_THREADS && worker[tg]->fireableRegionQueue->queueSize()==0)
+    {
+        fireable = false;
+        r = worker[tg]->unfireableRegionQueue->removeRegion(true);
+        while(!fireable)
+        {
+            fireable = isFireableRegion(r);
+            fireable &= depGraph.isFireableRegion(r);
+            if(!fireable)
+            {
+                worker[tg]->unfireableRegionQueue->addRegion(r,true);
+                r = worker[tg]->unfireableRegionQueue->removeRegion(true);
+            }
+            else
+                worker[tg]->fireableRegionQueue->addRegion(r,true);
+        }
+    }
+    worker[tg]->barr->sync(); // Barrier to synchronize team threads
+    r = worker[tg]->fireableRegionQueue->getFrontRegion(true);
+    return r;
+}
+
+
+
 int RegionGraph::getPulledFireableRegion()
 {
     bool fireable;
