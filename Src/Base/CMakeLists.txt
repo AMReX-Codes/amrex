@@ -153,18 +153,19 @@ if (ENABLE_TINY_PROFILE)
 endif ()
 
 
+add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H )
+add_sources( AMReX_GpuControl.cpp )
+
 #
 # This is temporaty CUDA stuff
 # For now we include the following files, but they should really just
 # be included when ENABLE_CUDA is set to yes 
 #
 #if (ENABLE_CUDA)
-add_sources(AMReX_CudaAllocators.H)
+add_sources( AMReX_CudaAllocators.H )
+add_sources( AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaContainers.H)
+add_sources( AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
+add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
+add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 #endif()
 
-# always include
-add_sources( AMReX_Cuda.H )
-add_sources( AMReX_CudaControl.H AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H)
-add_sources( AMReX_CudaControl.cpp AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
-add_sources( AMReX_Device.H )
-add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )

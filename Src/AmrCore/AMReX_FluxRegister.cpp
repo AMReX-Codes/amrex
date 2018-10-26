@@ -148,14 +148,6 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         const FArrayBox& mflxFAB = mflx[mfi];
         mf[mfi].copy(mflxFAB,bx,srccomp,bx,0,numcomp);
 
-#ifdef AMREX_USE_CUDA
-        // Synchronize at this point because the following mult
-        // will occur on the host, and we want to avoid a race
-        // condition. In the future, we should get BaseFab::mult
-        // and other ForEach statements on the device.
-        CudaAPICheck(cudaStreamSynchronize(Device::cudaStream()));
-#endif
-
         mf[mfi].mult(mult,bx,0,numcomp);
 
         for (int i = 0; i < numcomp; i++)

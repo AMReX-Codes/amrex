@@ -25,7 +25,7 @@ namespace
     static bool basefab_initialized = false;
 
     Arena* the_arena = nullptr;
-    Arena* the_cuda_arena = nullptr;
+    Arena* the_device_arena = nullptr;
     Arena* the_managed_arena = nullptr;
     Arena* the_pinned_arena = nullptr;
 }
@@ -35,7 +35,7 @@ BF_init::BF_init ()
     if (m_cnt++ == 0)
     {
         BL_ASSERT(the_arena == nullptr);
-        BL_ASSERT(the_cuda_arena == nullptr);
+        BL_ASSERT(the_device_arena == nullptr);
         BL_ASSERT(the_managed_arena == nullptr);
         BL_ASSERT(the_pinned_arena == nullptr);
 
@@ -45,24 +45,24 @@ BF_init::BF_init ()
         the_arena = new BArena;
 #endif
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
         the_arena->SetPreferred();
 #endif
 
-#if AMREX_USE_CUDA
-        the_cuda_arena = new CArena;
-        the_cuda_arena->SetDeviceMemory();
+#if AMREX_USE_GPU
+        the_device_arena = new CArena;
+        the_device_arena->SetDeviceMemory();
 #else
-        the_cuda_arena = new BArena;
+        the_device_arena = new BArena;
 #endif
 
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_GPU)
         the_managed_arena = new CArena;
 #else
         the_managed_arena = new BArena;
 #endif
 
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_GPU)
         const std::size_t hunk_size = 64 * 1024;
         the_pinned_arena = new CArena(hunk_size);
         the_pinned_arena->SetHostAlloc();
@@ -78,8 +78,8 @@ BF_init::~BF_init ()
         delete the_arena;
         the_arena = nullptr;
 
-        delete the_cuda_arena;
-        the_cuda_arena = nullptr;
+        delete the_device_arena;
+        the_device_arena = nullptr;
 
         delete the_managed_arena;
         the_managed_arena = nullptr;
@@ -97,10 +97,10 @@ The_Arena ()
 }
 
 Arena*
-The_Cuda_Arena ()
+The_Device_Arena ()
 {
-    BL_ASSERT(the_cuda_arena != nullptr);
-    return the_cuda_arena;
+    BL_ASSERT(the_device_arena != nullptr);
+    return the_device_arena;
 }
 
 Arena*

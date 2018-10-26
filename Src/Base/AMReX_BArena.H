@@ -26,7 +26,7 @@ public:
     * \brief Deletes the arena pointed to by pt.
     */
     virtual void free (void* pt) override;
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     /**
     * \brief Allocates a dynamic device memory arena of size sz.
     * Returns a pointer to this memory.

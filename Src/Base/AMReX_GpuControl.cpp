@@ -1,10 +1,10 @@
 
-#include <AMReX_CudaControl.H>
+#include <AMReX_GpuControl.H>
 
 namespace amrex {
-namespace Cuda {
+namespace Gpu {
 
-#if defined(AMREX_USE_CUDA)
+#if defined(AMREX_USE_GPU)
     bool in_launch_region = true;
 #else
     bool in_launch_region = false;

@@ -25,7 +25,7 @@ template<int NReal, int NInt=0>
 struct Particle
 {
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Particle() {};
 
     //

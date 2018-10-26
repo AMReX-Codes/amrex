@@ -29,16 +29,16 @@ class BoxArray;
 struct GeometryData
 {
  //! Returns the cellsize for each coordinate direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const Real* CellSize () const { return dx; }
  //! Returns the lo end of the problem domain in each dimension.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const Real* ProbLo () const { return prob_domain.lo(); }
  //! Returns the hi end of the problem domain in each dimension.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const Real* ProbHi () const { return prob_domain.hi(); }
  //! Returns our rectangular domain.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const Box& Domain () const { return domain; }
 
 public:

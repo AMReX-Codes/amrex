@@ -37,8 +37,7 @@
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 
-#include <AMReX_CudaLaunch.H>
-#include <AMReX_Device.H>
+#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -1356,14 +1355,14 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
         FAB* fab = &(get(fai));
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
+        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
             fab->setVal(val, tbx, comp, ncomp);
         });
@@ -1397,7 +1396,7 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
@@ -1406,7 +1405,7 @@ FabArray<FAB>::setVal (value_type val,
         if (b.ok()) {
             FAB* fab = &(get(fai));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
+            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {
                 fab->setVal(val, tbx, comp, ncomp);
             });

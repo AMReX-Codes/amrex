@@ -1,11 +1,11 @@
 #ifndef AMREX_CUDA_LAUNCH_H_
 #define AMREX_CUDA_LAUNCH_H_
 
-#include <AMReX_CudaQualifiers.H>
-#include <cstddef>
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
+#include <AMReX_CudaDevice.H>
 #include <AMReX_Box.H>
-#include <AMReX_CudaControl.H>
-#include <AMReX_Device.H>
+#include <cstddef>
 
 #define AMREX_CUDA_NCELLS_PER_THREAD 2
 #define AMREX_CUDA_WARP_SIZE 32
@@ -18,10 +18,10 @@
 // CUDA versions
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
-    if (amrex::Cuda::inLaunchRegion()) \
+    if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
@@ -42,10 +42,10 @@
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_var,block) \
-    if (amrex::Cuda::inLaunchRegion()) \
+    if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
@@ -59,8 +59,8 @@
             } \
         }); \
         ++sync_var; \
-        Device::set_stream_index(sync_var); \
-        Device::check_for_errors(); \
+        Cuda::Device::set_stream_index(sync_var); \
+        Cuda::Device::check_for_errors(); \
         CudaErrorCheck(); \
     } \
     else { \
@@ -69,10 +69,10 @@
     }  
 
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
-    if (amrex::Cuda::inLaunchRegion()) \
+    if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
@@ -92,11 +92,11 @@
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_XYZ(bbx,bby,bbz,tbx,tby,tbz,blockx,blocky,blockz) \
-    if (amrex::Cuda::inLaunchRegion()) \
+    if (amrex::Gpu::inLaunchRegion()) \
     { \
         long max_pts = std::max(bbx.numPts(), std::max(bby.numPts(), bbz.numPts())); \
         auto amrex_i_st = Cuda::Strategy(max_pts); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
@@ -134,10 +134,10 @@
  
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
-    if (amrex::Cuda::inLaunchRegion()) \
+    if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_st = amrex::Cuda::Strategy(); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>( \
+        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_CUDA_DEVICE () { \
             const auto amrex_i_lo = bbb.loVect3d(); \
             const auto amrex_i_hi = bbb.hiVect3d(); \
@@ -159,10 +159,10 @@
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) \
     { \
-      if (amrex::Cuda::inLaunchRegion()) \
+      if (amrex::Gpu::inLaunchRegion()) \
       { \
          auto amrex_i_st = strategy;                                           \
-         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -173,10 +173,10 @@
 
 #define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) \
     { \
-      if (amrex::Cuda::inLaunchRegion()) \
+      if (amrex::Gpu::inLaunchRegion()) \
       { \
          auto amrex_i_st = strategy; \
-         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -185,11 +185,11 @@
       } \
     }
 
-// Cannot respect Cuda::inLaunchRegion because function must be __global__.
+// Cannot respect Gpu::inLaunchRegion because function must be __global__.
 #define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
         auto amrex_i_st = strategy;                                             \
-        function<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Device::cudaStream()>>>(__VA_ARGS__); \
+        function<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
         CudaErrorCheck();                                               \
     }
 
@@ -270,11 +270,11 @@ namespace Cuda {
 
 // ************************************************
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box getThreadBox (const Box& bx);
 
     inline
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box getThreadBox (const Box& bx, long offset)
     {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
@@ -292,13 +292,13 @@ namespace Cuda {
 #endif
     }
 
-//    AMREX_CUDA_HOST_DEVICE
+//    AMREX_GPU_HOST_DEVICE
 //    Box getThreadBox (const Box& bx, const IntVect& typ);
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     ComponentBox getThreadComponentBox (const Box& box, int ncomp);
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void getThreadIndex (long &index, long &size, const long num_particles);
 
 // ************************************************
@@ -306,23 +306,23 @@ namespace Cuda {
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     struct Strategy {
         Strategy () {
-            Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
+            Cuda::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         Strategy (const Box& box) {
-            Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
+            Cuda::Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
             b -= box.smallEnd();
             b.coarsen(IntVect(AMREX_D_DECL(1,AMREX_CUDA_Y_STRIDE,AMREX_CUDA_Z_STRIDE)));
-            Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
+            Cuda::Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
 #endif
         }
         Strategy (const Box& box, int comps) {
             const Box& b = amrex::surroundingNodes(box);
-            Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
+            Cuda::Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
         Strategy (long N) {
-            Device::n_threads_and_blocks(N, numBlocks, numThreads);
+            Cuda::Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
         Strategy (dim3 nb, dim3 nt) : numBlocks(nb), numThreads(nt) {}
         

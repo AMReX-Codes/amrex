@@ -12,8 +12,8 @@ namespace amrex {
 template <int NReal, int NInt>
 struct StructOfArrays {
 
-    using RealVector = Cuda::ManagedDeviceVector<Real>;
-    using IntVector = Cuda::ManagedDeviceVector<int>;    
+    using RealVector = Gpu::ManagedDeviceVector<Real>;
+    using IntVector = Gpu::ManagedDeviceVector<int>;    
     
     std::array<RealVector, NReal>& GetRealData () { return m_rdata; }
     std::array< IntVector,  NInt>& GetIntData  () { return m_idata; }

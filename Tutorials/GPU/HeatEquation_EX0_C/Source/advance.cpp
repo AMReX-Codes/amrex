@@ -37,10 +37,10 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE(Cuda::Strategy(vbx),
+        AMREX_CUDA_LAUNCH_HOST_DEVICE(Gpu::Strategy(vbx),
 	[=] AMREX_CUDA_DEVICE ()
 	{
-             Box threadBox = Cuda::getThreadBox(vbx);
+             Box threadBox = Gpu::getThreadBox(vbx);
              if (threadBox.ok())
              {
                 compute_flux(BL_TO_FORTRAN_BOX(threadBox),
@@ -69,10 +69,10 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE(Cuda::Strategy(vbx), 
+        AMREX_CUDA_LAUNCH_HOST_DEVICE(Gpu::Strategy(vbx), 
 	[=] AMREX_CUDA_DEVICE ()
 	{
-            Box threadBox = Cuda::getThreadBox(vbx);
+            Box threadBox = Gpu::getThreadBox(vbx);
 
             if (threadBox.ok())
             {

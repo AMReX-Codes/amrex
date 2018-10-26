@@ -45,7 +45,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "n_cpy before = " << *n_cpy << std::endl << std::endl;
 
     AMREX_SIMPLE_L_LAUNCH(RunOn::CPU, 1, 1, 
-    [=] AMREX_CUDA_HOST_DEVICE ()
+    [=] AMREX_GPU_HOST_DEVICE ()
     {
        *n_cpy = 1;
        printf("n_cpy during CPU = %i\n", *n_cpy);
@@ -57,7 +57,7 @@ int main (int argc, char* argv[])
     amrex::Print() << "n after CPU = " << n << std::endl << std::endl;
 
     AMREX_SIMPLE_L_LAUNCH(RunOn::GPU, 1, 1, 
-    [=] AMREX_CUDA_HOST_DEVICE ()
+    [=] AMREX_GPU_HOST_DEVICE ()
     {
        *n_cpy = 3;
        printf("n_cpy during GPU = %i\n", *n_cpy);

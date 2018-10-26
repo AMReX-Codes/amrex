@@ -9,7 +9,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_RealBox.H>
 
-#include <AMReX_Device.H>
+#include <AMReX_Gpu.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -17,8 +17,8 @@
 
 namespace amrex {
 
-#ifdef AMREX_USE_CUDA
-    inline bool TilingIfNotGPU () { return !Cuda::inLaunchRegion(); }
+#ifdef AMREX_USE_GPU
+    inline bool TilingIfNotGPU () { return Gpu::notInLaunchRegion(); }
 #else
     inline constexpr bool TilingIfNotGPU () { return true; }
 #endif
@@ -62,7 +62,7 @@ public:
 	SkipInit      = 0x08  
     };
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     enum MFReducer { SUM = 0, MAX, MIN };
 #endif
 
@@ -137,7 +137,7 @@ public:
             ++currentIndex;
         }
     }
-#elif !defined(AMREX_USE_CUDA)
+#elif !defined(AMREX_USE_GPU)
     void operator++ () { ++currentIndex; }
 #else
     void operator++ ();
@@ -161,7 +161,7 @@ public:
     //! Return a unique index associated with the current box and/or tile.
     int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     //! Maintain a list of values to reduce.
     template<typename T>
     T* add_reduce_value(T* val, MFReducer r) { return val; }
@@ -207,7 +207,7 @@ protected:
     const Vector<int>* local_tile_index_map;
     const Vector<int>* num_local_tiles;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     mutable Real* real_reduce_val;
 
     mutable MFReducer reducer;
@@ -234,7 +234,7 @@ private:
     FabArrayBase::TileArray lta;
 };
 
-inline Arena* The_MFIter_Arena () { return The_Cuda_Arena(); }
+inline Arena* The_MFIter_Arena () { return The_Device_Arena(); }
 
 }
 
