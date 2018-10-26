@@ -41,7 +41,7 @@ struct GeometryData
     AMREX_GPU_HOST_DEVICE
     const Box& Domain () const { return domain; }
  //! Returns whether the domain is periodic in the given direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int isPeriodic (const int i) const { return is_periodic[i]; }
 
 public:
