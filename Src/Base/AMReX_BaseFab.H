@@ -15,12 +15,12 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
+#include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_BArena.H>
 
 #include <AMReX_CudaMemory.H>
 #include <AMReX_CudaUtility.H>
@@ -202,11 +202,7 @@ public:
     //! for calls to fortran.  
     AMREX_CUDA_HOST_DEVICE
     const int* nCompPtr() const {
-#ifdef AMREX_USE_GPU_PRAGMA
-        return nvar_d;
-#else
         return &nvar;
-#endif
     }
 
     //! Returns the number of points 
@@ -1166,7 +1162,7 @@ protected:
     bool    shared_memory;  // Is the memory allocated in shared memory?
 
 #ifdef AMREX_USE_CUDA
-    int* nvar_d;
+//    int* nvar_d;
 #endif
 
 #ifdef USE_PERILLA
@@ -1658,12 +1654,6 @@ BaseFab<T>::define ()
     }
 
 #ifndef __CUDA_ARCH__
-
-#ifdef AMREX_USE_GPU_PRAGMA
-    nvar_d = static_cast<int*>(amrex::The_Nvar_Arena()->alloc(sizeof(int)));
-    *nvar_d = nvar;
-#endif
-
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
 #endif
 }
@@ -1823,10 +1813,6 @@ BaseFab<T>::clear ()
 	    amrex::The_Arena()->free(dptr);
 #else
             ::operator delete(dptr);
-#endif
-
-#if defined(AMREX_USE_GPU_PRAGMA) && !defined(__CUDA_ARCH__)
-            amrex::The_Nvar_Arena()->free(nvar_d);
 #endif
 
 #ifndef __CUDA_ARCH__
@@ -3479,148 +3465,6 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   }
   return *this;
 }
-
-#if defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_USE_BASEFAB_CPP)
-//
-// Forward declaration of template specializatons for Real.
-// Definitions are found in BaseFab.cpp.
-//
-template <>
-BaseFab<Real>&
-BaseFab<Real>::invert (Real       val,
-                       const Box& subbox,
-                       int        comp,
-                       int        numcomp);
-template <>
-void
-BaseFab<Real>::performCopy (const BaseFab<Real>& src,
-                            const Box&           srcbox,
-                            int                  srccomp,
-                            const Box&           destbox,
-                            int                  destcomp,
-                            int                  numcomp);
-template <>
-std::size_t
-BaseFab<Real>::copyToMem (const Box& srcbox,
-                          int        srccomp,
-                          int        numcomp,
-                          void*      dst) const;
-template <>
-std::size_t
-BaseFab<Real>::copyFromMem (const Box&  dstbox,
-                            int         dstcomp,
-                            int         numcomp,
-                            const void* src);
-template <>
-void
-BaseFab<Real>::performSetVal (Real       val,
-                              const Box& bx,
-                              int        ns,
-                              int        num);
-
-#if 0
-template <>
-void
-BaseFab<Real>::setValIfNot (Real val, const Box& bx, const BaseFab<int>& mask, int ns, int num);
-#endif
-
-#if 0
-template <>
-Real
-BaseFab<Real>::norminfmask (const Box& subbox, const BaseFab<int>& mask, int comp, int ncomp) const;
-#endif
-
-template <>
-Real
-BaseFab<Real>::norm (const Box& subbox,
-                     int        p,
-                     int        comp,
-                     int        ncomp) const;
-
-template <>
-Real
-BaseFab<Real>::sum (const Box& subbox,
-                    int        comp,
-                    int        ncomp) const;
-template <>
-BaseFab<Real>&
-BaseFab<Real>::plus (const BaseFab<Real>& src,
-                     const Box&           srcbox,
-                     const Box&           destbox,
-                     int                  srccomp,
-                     int                  destcomp,
-                     int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::mult (const BaseFab<Real>& src,
-                     const Box&           srcbox,
-                     const Box&           destbox,
-                     int                  srccomp,
-                     int                  destcomp,
-                     int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::saxpy (Real a, const BaseFab<Real>& x,
-                      const Box&        srcbox,
-                      const Box&        destbox,
-                      int               srccomp,
-                      int               destcomp,
-                      int               numcomp);
-
-template <>
-BaseFab<Real>&
-BaseFab<Real>::minus (const BaseFab<Real>& src,
-                      const Box&           srcbox,
-                      const Box&           destbox,
-                      int                  srccomp,
-                      int                  destcomp,
-                      int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::divide (const BaseFab<Real>& src,
-                       const Box&           srcbox,
-                       const Box&           destbox,
-                       int                  srccomp,
-                       int                  destcomp,
-                       int                  numcomp);
-template <>
-BaseFab<Real>&
-BaseFab<Real>::protected_divide (const BaseFab<Real>& src,
-                                 const Box&           srcbox,
-                                 const Box&           destbox,
-                                 int                  srccomp,
-                                 int                  destcomp,
-                                 int                  numcomp);
-
-template <>
-Real
-BaseFab<Real>::dot (const Box& xbx, int xcomp, 
-		    const BaseFab<Real>& y, const Box& ybx, int ycomp,
-		    int numcomp) const;
-
-#if 0
-template <>
-Real
-BaseFab<Real>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp, 
-                        const BaseFab<Real>& y, const Box& ybx, int ycomp,
-                        int numcomp) const;
-#endif
-
-template <>
-BaseFab<Real>&
-BaseFab<Real>::linComb (const BaseFab<Real>&  f1,
-			const Box&         b1,
-			int                comp1,
-			const BaseFab<Real>&  f2,
-			const Box&         b2,
-			int                comp2,
-			Real               alpha,
-			Real               beta,
-			const Box&         b,
-			int                comp,
-			int                numcomp);
-#endif
-
 
 class BF_init
 {
