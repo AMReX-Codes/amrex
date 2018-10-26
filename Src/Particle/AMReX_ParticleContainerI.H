@@ -452,20 +452,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::NumberOfParti
 {
     long nparticles = 0;
 
-    // if (lev >= 0 && lev < int(m_particles.size())) {
-    //     for (const auto& kv : GetParticles(lev)) {
-    //         const auto& ptile = kv.second;	
-    //         if (only_valid) {
-    //             for (const auto& p : ptile.GetArrayOfStructs()) {
-    //                 if (p.m_idata.id > 0) ++nparticles;
-    //             }
-    //         } else {
-    //             nparticles += ptile.numParticles();
-    //         }
-    //     }
-    // }
+    if (lev >= 0 && lev < int(m_particles.size())) {
+        for (const auto& kv : GetParticles(lev)) {
+            const auto& ptile = kv.second;	
+            if (only_valid) {
+                for (int k = 0; k < ptile.GetArrayOfStructs().size(); ++k) {
+                    const ParticleType& p = ptile.GetArrayOfStructs()[k];
+                    if (p.m_idata.id > 0) ++nparticles;
+                }
+            } else {
+                nparticles += ptile.numParticles();
+            }
+        }
+    }
 
-    // if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
+    if (!only_local) ParallelDescriptor::ReduceLongSum(nparticles);
     
     return nparticles;
 }
