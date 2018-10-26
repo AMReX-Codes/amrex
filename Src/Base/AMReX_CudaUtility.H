@@ -57,7 +57,7 @@ namespace Cuda {
 #ifdef AMREX_USE_CUDA
         namespace detail {
 
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline float atomicMax(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -70,7 +70,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
             
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline double atomicMax(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -84,7 +84,7 @@ namespace Cuda {
                 return __longlong_as_double(old);
             }
 
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline float atomicMin(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -97,7 +97,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
 
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline double atomicMin(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
