@@ -908,9 +908,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        int src_grid = mfi.index();
-        const int tid = 0;        
-        auto& ptile = plev[std::make_pair(src_grid, tid)];
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();        
+        auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
         auto& soa   = ptile.GetStructOfArrays();
         const size_t np = aos.numParticles();
@@ -1033,9 +1033,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     //
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
-        int src_grid = mfi.index();
-        const int tid = 0;        
-        auto& ptile = plev[std::make_pair(src_grid, tid)];
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();        
+        auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
         auto& soa   = ptile.GetStructOfArrays();
         const size_t old_np = aos.numParticles();
@@ -1056,8 +1056,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           m_grids_tmp.begin(),
                           functors::assignParticleGrid(geom.data(),
-                                         (*redistribute_mask_ptr)[src_grid].box(),
-                                       &((*redistribute_mask_ptr)[src_grid])));        
+                                         (*redistribute_mask_ptr)[gid].box(),
+                                       &((*redistribute_mask_ptr)[gid])));        
 
         BL_PROFILE_VAR_STOP(blp_transform);
 
@@ -1070,7 +1070,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                        m_index_sequence_tmp.begin(),
 				       m_index_sequence_tmp.end(), 
 				       m_grids_tmp.begin(), 
-				       functors::grid_is(src_grid));
+				       functors::grid_is(gid));
         BL_PROFILE_VAR_STOP(blp_compute_partition);
 
         const size_t num_moved = thrust::distance(mid, m_index_sequence_tmp.end());
