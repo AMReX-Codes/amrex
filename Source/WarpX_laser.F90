@@ -258,5 +258,76 @@ contains
 #else
   end subroutine calculate_laser_plane_coordinates
 #endif
- 
+
+  subroutine update_laser_particle( np, &
+    xp, yp, zp, uxp, uyp, uzp, giv, wp, amplitude_E, p_Xx, p_Xy, p_Xz, &
+    nvecx, nvecy, nvecz, mobility, dt, c, beta_boost, gamma_boost ) &
+    bind(C, name="update_laser_particle")
+
+    integer(c_long), intent(in) :: np
+    real(amrex_real), intent(in) :: amplitude_E(np), wp(np)
+    real(amrex_real), intent(inout) :: xp(np), yp(np), zp(np)
+    real(amrex_real), intent(out) :: uxp(np), uyp(np), uzp(np), giv(np)
+    real(amrex_real), intent(in) :: p_Xx, p_Xy, p_Xz
+    real(amrex_real), intent(in) :: nvecx, nvecy, nvecz
+    real(amrex_real), intent(in) :: c, beta_boost, gamma_boost, mobility, dt
+
+#ifdef USE_ACC_LASER_SUBROUTINE
+    call update_laser_particle_acc( np, &
+    xp, yp, zp, uxp, uyp, uzp, giv, wp, amplitude_E, p_Xx, p_Xy, p_Xz, &
+    nvecx, nvecy, nvecz, mobility, dt, c, beta_boost, gamma_boost )
+
+  end subroutine update_laser_particle
+
+  subroutine update_laser_particle_acc( np, &
+    xp, yp, zp, uxp, uyp, uzp, giv, wp, amplitude_E, p_Xx, p_Xy, p_Xz, &
+    nvecx, nvecy, nvecz, mobility, dt, c, beta_boost, gamma_boost )
+
+    integer(c_long), intent(in) :: np
+    real(amrex_real), intent(in) :: amplitude_E(np), wp(np)
+    real(amrex_real), intent(inout) :: xp(np), yp(np), zp(np)
+    real(amrex_real), intent(out) :: uxp(np), uyp(np), uzp(np), giv(np)    
+    real(amrex_real), intent(in) :: p_Xx, p_Xy, p_Xz
+    real(amrex_real), intent(in) :: nvecx, nvecy, nvecz
+    real(amrex_real), intent(in) :: c, beta_boost, gamma_boost, mobility, dt
+#endif
+    
+    real(amrex_real)     :: vx, vy, vz, v_over_c, sign_charge, gamma
+    integer  :: ip
+    
+    do ip = 1, np
+       ! Calculate the velocity according to the amplitude of E       
+       sign_charge = SIGN( 1.0, wp(ip) )
+       v_over_c = sign_charge * mobility * amplitude_E(ip)
+       ! The velocity is along the laser polarization p_X
+       vx = c * v_over_c * p_Xx
+       vy = c * v_over_c * p_Xy
+       vz = c * v_over_c * p_Xz
+       ! When running in the boosted-frame, their is additional velocity along nvec
+       if (gamma_boost > 1.) then
+          vx = vx - c * beta_boost * nvecx
+          vy = vy - c * beta_boost * nvecy
+          vz = vz - c * beta_boost * nvecz
+       endif
+       ! Get the corresponding momenta
+       gamma = gamma_boost/sqrt(1 - v_over_c*v_over_c)
+       giv(ip) = 1./gamma
+       uxp(ip) = gamma * vx
+       uyp(ip) = gamma * vy
+       uzp(ip) = gamma * vz
+       ! Push the the particle positions
+       xp(ip) = xp(ip) + vx * dt
+#if (BL_SPACEDIM == 3)
+       yp(ip) = yp(ip) + vy * dt
+#endif
+       zp(ip) = zp(ip) + vz * dt
+    enddo
+
+
+#ifdef USE_ACC_LASER_SUBROUTINE
+  end subroutine update_laser_particle_acc
+#else
+  end subroutine update_laser_particle
+#endif
+  
 end module warpx_laser_module

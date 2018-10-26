@@ -184,8 +184,17 @@ extern "C"
        amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
        amrex::Real* plane_Xp, amrex::Real* plane_Yp,
        amrex::Real* u_Xx, amrex::Real* u_Xy, amrex::Real* u_Xz,
-       amrex::Real* u_Yx, amrex::Real* u_Yy, amrex::Real* u_Yz,                                           
-       amrex::Real* positionx, amrex::Real* positiony, amrex::Real* positionz );  
+       amrex::Real* u_Yx, amrex::Real* u_Yy, amrex::Real* u_Yz,
+       amrex::Real* positionx, amrex::Real* positiony, amrex::Real* positionz );
+  
+  void update_laser_particle( const long* np,
+       amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
+       amrex::Real* uxp, amrex::Real* uyp, amrex::Real* uzp,
+       amrex::Real* giv, amrex::Real* wp, amrex::Real* amplitude_E,
+       amrex::Real* p_Xx, amrex::Real* p_Xy, amrex::Real* p_Xz,
+       amrex::Real* nvecx, amrex::Real* nvecy, amrex::Real* nvecz,
+       amrex::Real* mobility, amrex::Real* dt,  const amrex::Real* c,
+       const amrex::Real* beta_boost, const amrex::Real* gamma_boost );
   
     // Maxwell solver
 

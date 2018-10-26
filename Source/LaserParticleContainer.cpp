@@ -429,38 +429,12 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
-            for (int i = 0; i < np; ++i)
-            {
-                // Calculate the velocity according to the amplitude of E
-                Real sign_charge = std::copysign( 1.0, wp[i] );
-                Real v_over_c = sign_charge * mobility * amplitude_E[i];
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( v_over_c < 1,
-                    "The laser particles have to move unphysically in order to emit the laser.");
-                // The velocity is along the laser polarization p_X
-                Real vx = PhysConst::c * v_over_c * p_X[0];
-                Real vy = PhysConst::c * v_over_c * p_X[1];
-                Real vz = PhysConst::c * v_over_c * p_X[2];
-                // When running in the boosted-frame, their is additional
-                // velocity along nvec
-                if (WarpX::gamma_boost > 1.) {
-                    vx -= PhysConst::c * WarpX::beta_boost * nvec[0];
-                    vy -= PhysConst::c * WarpX::beta_boost * nvec[1];
-                    vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
-                }
-                // Get the corresponding momenta
-                giv[i] = std::sqrt(1 - std::pow(v_over_c,2))/WarpX::gamma_boost;
-                Real gamma = 1./giv[i];
-                uxp[i] = gamma * vx;
-                uyp[i] = gamma * vy;
-                uzp[i] = gamma * vz;
-                // Push the the particle positions
-                xp[i] += vx * dt;
-#if (AMREX_SPACEDIM == 3)
-                yp[i] += vy * dt;
-#endif
-                zp[i] += vz * dt;
-            }
-
+            update_laser_particle(
+               &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv.dataPtr(),
+               wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
+               &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
+               &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //

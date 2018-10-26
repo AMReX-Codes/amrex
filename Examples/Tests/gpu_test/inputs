@@ -56,7 +56,7 @@ electrons.uz_th  = 0.01 # uth the std of the (unitless) momentum
 electrons.uz_m   = 10.  # Mean momentum along z (unitless)
 
 # Laser
-warpx.use_laser    = 0
+warpx.use_laser    = 1
 laser.profile      = Gaussian
 laser.position     = 0. 0. 0.e-6 # This point is on the laser plane
 laser.direction    = 0. 0. 1.     # The plane normal direction
