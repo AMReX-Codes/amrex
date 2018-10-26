@@ -882,117 +882,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 #endif
 }
 
-#ifdef AMREX_USE_CUDA
-
-namespace {
-    
-    struct applyParticlePeriodicBCs
-    {
-        GeometryData domain;
-
-        AMREX_CUDA_HOST_DEVICE
-        applyParticlePeriodicBCs(const GeometryData& a_domain)
-            : domain(a_domain) {}
-
-        template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
-        Particle operator()(const Particle& in) const {
-            Particle p = in;
-            
-            for (int dim = 0; dim < AMREX_SPACEDIM; ++dim) {
-	      if (not domain.isPeriodic(dim)) continue;
-	      if (p.m_rdata.pos[dim] > domain.ProbHi()[dim]) { 
-		p.m_rdata.pos[dim] -= (domain.ProbHi()[dim]-domain.ProbLo()[dim]); 
-	      } else if (p.m_rdata.pos[dim] < domain.ProbLo()[dim]) {
-		p.m_rdata.pos[dim] += (domain.ProbHi()[dim]-domain.ProbLo()[dim]);
-	      }
-            }
-            
-            return p;
-        }
-    };
-
-    struct assignParticleGrid
-    {        
-        GeometryData domain;
-        Box box;
-        BaseFab<int>* mask_ptr;
-        
-        AMREX_CUDA_HOST_DEVICE
-        assignParticleGrid(const GeometryData& a_domain,
-                       const Box&          a_box,
-                       BaseFab<int>*       a_mask_ptr) 
-            : domain(a_domain), box(a_box), mask_ptr(a_mask_ptr) {}
-        
-        template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
-        int operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
-
-	    iv += domain.Domain().smallEnd();
-
-	    return (*mask_ptr)(iv);
-        }
-    };
-
-    struct assignParticleCell
-    {        
-        GeometryData domain;
-        
-        AMREX_CUDA_HOST_DEVICE
-        assignParticleCell(const GeometryData& a_domain)
-            : domain(a_domain) {}
-        
-        template <typename Particle>
-        AMREX_CUDA_HOST_DEVICE
-        IntVect operator()(const Particle& p) const {
-	    IntVect iv = IntVect(
-	AMREX_D_DECL(floor((p.m_rdata.pos[0]-domain.ProbLo()[0])/domain.CellSize()[0]),
-		     floor((p.m_rdata.pos[1]-domain.ProbLo()[1])/domain.CellSize()[1]),
-		     floor((p.m_rdata.pos[2]-domain.ProbLo()[2])/domain.CellSize()[2]))
-				 );
-
-	    iv += domain.Domain().smallEnd();
-
-	    return iv;
-        }
-    };
-    
-    struct grid_is
-    {
-        int grid_id;
-        
-        AMREX_CUDA_HOST_DEVICE
-        grid_is(int a_grid_id) : grid_id(a_grid_id) {}
-        
-        AMREX_CUDA_HOST_DEVICE
-        bool operator()(int grid) const
-        {
-            return grid_id == grid;
-        }
-    };
-    
-    struct grid_is_not
-    {
-        int grid_id;
-        
-        AMREX_CUDA_HOST_DEVICE
-        grid_is_not(int a_grid_id) : grid_id(a_grid_id) {}
-    
-        AMREX_CUDA_HOST_DEVICE
-        bool operator()(int grid) const
-        {
-            return grid_id != grid;
-        }
-    };
-}
-
-#endif // AMREX_USE_CUDA
-
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticlesByCell ()
@@ -1037,7 +926,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           m_cells_tmp.begin(),
-                          assignParticleCell(geom.data()));
+                          functors::assignParticleCell(geom.data()));
 
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             m_cells_tmp.begin(),
@@ -1166,7 +1055,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 			  thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           m_grids_tmp.begin(),
-                          assignParticleGrid(geom.data(),
+                          functors::assignParticleGrid(geom.data(),
                                          (*redistribute_mask_ptr)[src_grid].box(),
                                        &((*redistribute_mask_ptr)[src_grid])));        
 
@@ -1181,7 +1070,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                        m_index_sequence_tmp.begin(),
 				       m_index_sequence_tmp.end(), 
 				       m_grids_tmp.begin(), 
-				       grid_is(src_grid));
+				       functors::grid_is(src_grid));
         BL_PROFILE_VAR_STOP(blp_compute_partition);
 
         const size_t num_moved = thrust::distance(mid, m_index_sequence_tmp.end());
@@ -1532,7 +1421,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data()) + aos.size()),
                           thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
-                          applyParticlePeriodicBCs(geom.data()));
+                          functors::applyParticlePeriodicBCs(geom.data()));
     }
 }
 #endif //AMREX_USE_CUDA
@@ -2318,13 +2207,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
                           thrust::device_ptr<const ParticleType>(static_cast<const ParticleType*>(aos().data()) 
                                                    + aos.size()),
                           grid_indices.begin(),
-                          assignParticleGrid(geom.data(),
+                          functors::assignParticleGrid(geom.data(),
                                          (*redistribute_mask_ptr)[i].box(),
 				       &((*redistribute_mask_ptr)[i])));
 
         int count = thrust::count_if(grid_indices.begin(),
                                      grid_indices.end(),
-                                     grid_is_not(i));
+                                     functors::grid_is_not(i));
 
         total_wrong += count;
     }
@@ -3004,9 +2893,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
 
 	for (unsigned i = 0; i < tile_map[grid].size(); i++) {
             const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-            int pindex = 0;
-            for (int k = 0; k < pbox.size(); ++k) {
-	        const ParticleType& p = pbox.GetArrayOfStructs()[k];
+            for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+	        const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
                 if (p.m_idata.id > 0) {
                     for (int j = 0; j < 2 + NStructInt; j++) {
                         iptr[j] = p.m_idata.arr[j];
@@ -3033,9 +2921,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
       
       for (unsigned i = 0; i < tile_map[grid].size(); i++) {
           const auto& pbox = m_particles[lev].at(std::make_pair(grid, tile_map[grid][i]));
-          int pindex = 0;
-	  for (int k = 0; k < pbox.GetArrayOfStructs().size(); ++k) {
-	      const ParticleType& p = pbox.GetArrayOfStructs()[k];
+	  for (int pindex = 0; pindex < pbox.GetArrayOfStructs().size(); ++pindex) {
+	      const ParticleType& p = pbox.GetArrayOfStructs()[pindex];
               if (p.m_idata.id > 0) {
                   for (int j = 0; j < AMREX_SPACEDIM + NStructReal; j++) {
                       rptr[j] = p.m_rdata.arr[j];
