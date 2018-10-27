@@ -190,7 +190,7 @@ FArrayBox::initVal ()
 #if defined(AMREX_USE_GPU)
 
         double * p = dataPtr();
-        AMREX_GPU_LAUNCH_HOST_DEVICE ( Gpu::Strategy(truesize),
+        AMREX_LAUNCH_HOST_DEVICE ( Gpu::ExecutionConfig(truesize),
         [=] AMREX_GPU_HOST_DEVICE ()
         {
 #ifdef UINT64_MAX
