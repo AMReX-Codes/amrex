@@ -51,7 +51,7 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* xfab = &(x[mfi]);
             FArrayBox const* yfab = &(y[mfi]);
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dot(tbx, xcomp, *yfab, tbx, ycomp, numcomp);
                 amrex::Gpu::Atomic::Add(p, t);
@@ -92,7 +92,7 @@ MultiFab::Dot (const iMultiFab& mask,
             FArrayBox const* xfab = &(x[mfi]);
             FArrayBox const* yfab = &(y[mfi]);
             IArrayBox const* mskfab = &(mask[mfi]);
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dotmask(*mskfab, tbx, xcomp, *yfab, tbx, ycomp, numcomp);
                 amrex::Gpu::Atomic::Add(p, t);
@@ -143,7 +143,7 @@ MultiFab::Add (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->plus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -187,7 +187,7 @@ MultiFab::Copy (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
             });
@@ -258,7 +258,7 @@ MultiFab::Subtract (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->minus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -302,7 +302,7 @@ MultiFab::Multiply (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->mult(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -346,7 +346,7 @@ MultiFab::Divide (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->divide(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -380,7 +380,7 @@ MultiFab::Saxpy (MultiFab&       dst,
             FArrayBox const* sfab = &(src[mfi]);
             FArrayBox      * dfab = &(dst[mfi]);
 
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->saxpy(a, *sfab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -414,7 +414,7 @@ MultiFab::Xpay (MultiFab&       dst,
             FArrayBox const* sfab = &(src[mfi]);
             FArrayBox      * dfab = &(dst[mfi]);
 
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->xpay(a, *sfab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -453,7 +453,7 @@ MultiFab::LinComb (MultiFab&       dst,
             FArrayBox const* xfab = &(x  [mfi]);
             FArrayBox const* yfab = &(y  [mfi]);
             FArrayBox      * dfab = &(dst[mfi]);
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->linComb(*xfab,tbx,xcomp,*yfab,tbx,ycomp,a,b,tbx,dstcomp,numcomp);
             });
@@ -491,7 +491,7 @@ MultiFab::AddProduct (MultiFab&       dst,
             FArrayBox const* s2fab = &(src2[mfi]);
             FArrayBox      *  dfab = &(dst [mfi]);
 
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->addproduct(tbx, dstcomp, numcomp, *s1fab, comp1, *s2fab, comp2);
             });
@@ -808,7 +808,7 @@ MultiFab::min (int comp,
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->min(tbx, comp);
                 amrex::Gpu::Atomic::Min(p, t);
@@ -843,7 +843,7 @@ MultiFab::min (const Box& region,
         {
             const Box& bx = mfi.growntilebox(nghost) & region;
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->min(tbx, comp);
                 amrex::Gpu::Atomic::Min(p, t);
@@ -878,7 +878,7 @@ MultiFab::max (int comp,
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->max(tbx, comp);
                 amrex::Gpu::Atomic::Max(p, t);
@@ -913,7 +913,7 @@ MultiFab::max (const Box& region,
         {
             const Box& bx = mfi.growntilebox(nghost) & region;
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->max(tbx, comp);
                 amrex::Gpu::Atomic::Max(p, t);
@@ -1082,7 +1082,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
             IArrayBox const* mask_fab = &(mask[mfi]);
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norminfmask(tbx, *mask_fab, comp, 1);
                 amrex::Gpu::Atomic::Max(p, t);
@@ -1149,7 +1149,7 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norm(tbx, 0, comp, 1);
                 amrex::Gpu::Atomic::Max(p, t);
@@ -1326,7 +1326,7 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
         {
             const Box& bx = mfi.growntilebox(ngrow);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norm(tbx, 1, comp, 1);
                 amrex::Gpu::Atomic::Add(p, t);
@@ -1408,7 +1408,7 @@ MultiFab::sum (int comp, bool local) const
         {
             const Box& bx = mfi.tilebox();
             FArrayBox const* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->sum(tbx, comp, 1);
                 amrex::Gpu::Atomic::Add(p, t);
@@ -1459,7 +1459,7 @@ MultiFab::plus (Real val,
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->plus(val, tbx, comp, num_comp);
         });
@@ -1485,7 +1485,7 @@ MultiFab::plus (Real       val,
         const Box& b = mfi.growntilebox(nghost) & region;
         FArrayBox* fab = &(get(mfi));
         if (b.ok()) {
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->plus(val, tbx, comp, num_comp);
             });
@@ -1519,7 +1519,7 @@ MultiFab::mult (Real val,
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->mult(val, tbx, comp, num_comp);
         });
@@ -1546,7 +1546,7 @@ MultiFab::mult (Real       val,
 
         if (b.ok()) {
             FArrayBox* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->mult(val, tbx, comp, num_comp);
             });
@@ -1571,7 +1571,7 @@ MultiFab::invert (Real numerator,
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->invert(numerator, tbx, comp, num_comp);
         });
@@ -1598,7 +1598,7 @@ MultiFab::invert (Real       numerator,
 
         if (b.ok()) {
             FArrayBox* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->invert(numerator, tbx, comp, num_comp);
             });
@@ -1621,7 +1621,7 @@ MultiFab::negate (int comp,
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->negate(tbx, comp, num_comp);
         });
@@ -1646,7 +1646,7 @@ MultiFab::negate (const Box& region,
 
         if (b.ok()) {
             FArrayBox* fab = &(get(mfi));
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->negate(tbx, comp, num_comp);
             });
@@ -1820,7 +1820,7 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
         const Box& bx = mfi.tilebox();
         FArrayBox* fab = &(*this)[mfi];
         IArrayBox const* ifab = &(msk[mfi]);
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->setValIfNot(0.0, tbx, *ifab, 0, ncomp);
         });

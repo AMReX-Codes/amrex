@@ -20,8 +20,8 @@
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
-        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(bbb); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_GPU_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
@@ -44,8 +44,8 @@
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_var,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
-        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(bbb); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_GPU_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
@@ -71,8 +71,8 @@
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
-        auto amrex_i_st = amrex::Cuda::Strategy(bbb); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(bbb); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_GPU_DEVICE () { \
             long amrex_i_numpts = bbb.numPts(); \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
@@ -95,8 +95,8 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         long max_pts = std::max(bbx.numPts(), std::max(bby.numPts(), bbz.numPts())); \
-        auto amrex_i_st = Cuda::Strategy(max_pts); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        auto amrex_i_ec = Cuda::ExecutionConfig(max_pts); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_GPU_DEVICE () { \
             long amrex_i_tid = blockDim.x*blockIdx.x + threadIdx.x; \
             long amrex_i_wid = amrex_i_tid / AMREX_CUDA_WARP_SIZE; \
@@ -136,8 +136,8 @@
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_NOBOX(bbb,tbb,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
-        auto amrex_i_st = amrex::Cuda::Strategy(); \
-        amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
         [=] AMREX_GPU_DEVICE () { \
             const auto amrex_i_lo = bbb.loVect3d(); \
             const auto amrex_i_hi = bbb.hiVect3d(); \
@@ -161,8 +161,8 @@
     { \
       if (amrex::Gpu::inLaunchRegion()) \
       { \
-         auto amrex_i_st = strategy;                                           \
-         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
+         auto amrex_i_ec = strategy;                                           \
+         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -175,8 +175,8 @@
     { \
       if (amrex::Gpu::inLaunchRegion()) \
       { \
-         auto amrex_i_st = strategy; \
-         amrex::launch_global<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
+         auto amrex_i_ec = strategy; \
+         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
          CudaErrorCheck(); \
       } \
       else \
@@ -188,8 +188,8 @@
 // Cannot respect Gpu::inLaunchRegion because function must be __global__.
 #define AMREX_CUDA_LAUNCH_GLOBAL(strategy, function, ...) \
     { \
-        auto amrex_i_st = strategy;                                             \
-        function<<<amrex_i_st.numBlocks, amrex_i_st.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
+        auto amrex_i_ec = strategy;                                             \
+        function<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
         CudaErrorCheck();                                               \
     }
 
@@ -304,11 +304,11 @@ namespace Cuda {
 // ************************************************
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-    struct Strategy {
-        Strategy () {
+    struct ExecutionConfig {
+        ExecutionConfig () {
             Cuda::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
-        Strategy (const Box& box) {
+        ExecutionConfig (const Box& box) {
             Cuda::Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
@@ -317,17 +317,18 @@ namespace Cuda {
             Cuda::Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
 #endif
         }
-        Strategy (const Box& box, int comps) {
+        ExecutionConfig (const Box& box, int comps) {
             const Box& b = amrex::surroundingNodes(box);
             Cuda::Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
-        Strategy (long N) {
+        ExecutionConfig (long N) {
             Cuda::Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
-        Strategy (dim3 nb, dim3 nt) : numBlocks(nb), numThreads(nt) {}
+        ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm) : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
         
         dim3 numBlocks;
         dim3 numThreads;
+        std::size_t sharedMem = 0;
     };
 #endif
 
