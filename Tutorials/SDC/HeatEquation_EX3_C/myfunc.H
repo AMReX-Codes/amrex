@@ -5,24 +5,36 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_BCRec.H>
 #include "AMReX_SDCstruct.H"
+#include <AMReX_MLMG.H>
+#include <AMReX_MLABecLaplacian.H>
+
 // #include <AMReX_LO_BCTYPES.H>
 
 using namespace amrex;
 
 void main_main ();
 
-void sweep (MultiFab& phi_old,
+void SDC_advance (MultiFab& phi_old,
 	    MultiFab& phi_new,
 	    std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	    Vector<MultiFab>& phi_sdc,
-	    Vector<MultiFab>& res_sdc,
-	    //	    Vector<Vector<MultiFab> >& f_sdc,
-	    Vector<MultiFab>& f_sdc,	    
 	    Real dt,
 	    const Geometry& geom, 
-	    const BoxArray& grids,
-	    const DistributionMapping& dmap, 
 	    const Vector<BCRec>& bc,
+        	  MLMG&  mlmg,
+		 MLABecLaplacian& mlabec,
             SDCstruct &sdcmats);
+void SDC_feval (std::array<MultiFab, AMREX_SPACEDIM>& flux,
+	    const Geometry& geom, 
+	    const Vector<BCRec>& bc,
+		SDCstruct &sdcmats,
+		int sdc_m,int npiece);
+void SDC_comp(MultiFab& rhs,
+	    const Geometry& geom, 
+	    const Vector<BCRec>& bc,
+		SDCstruct &sdcmats,
+		MLMG &mlmg,
+		MLABecLaplacian& mlabec,
+		Real dt,
+		int sdc_m,int npiece);
 
 #endif

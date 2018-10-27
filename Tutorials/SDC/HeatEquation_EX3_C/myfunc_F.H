@@ -17,7 +17,7 @@ extern "C"
 	       const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi,
 	       amrex_real* time);
 
-    void compute_flux(const int* lo, const int* hi,
+  void compute_flux(const int* lo, const int* hi,
                       const int* domlo, const int* domhi,
                       amrex_real* phi, const int* philo, const int* phihi,
                       amrex_real* fluxx, const int* fxlo, const int* fxhi,
@@ -26,7 +26,7 @@ extern "C"
                       amrex_real* fluxz, const int* fzlo, const int* fzhi,
 #endif
                       amrex_real* f, const int* flo, const int* fhi,
-                      const amrex_real* dx);
+		    const amrex_real* dx, int *n);
     
 #ifdef __cplusplus
 }
