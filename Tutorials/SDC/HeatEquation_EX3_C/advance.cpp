@@ -1,27 +1,20 @@
 
 #include "myfunc.H"
 #include "myfunc_F.H"
-
-
 #include <AMReX_BCUtil.H>
-#include <AMReX_MLMG.H>
-#include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
 
-void sweep(MultiFab& phi_old,
-	   MultiFab& phi_new,
-	   std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	   Vector<MultiFab>& phi_sdc,
-	   Vector<MultiFab>& res_sdc,
-	   //	   Vector<Vector<MultiFab> >& f_sdc,
-	   Vector<MultiFab>& f_sdc,	   
-	   Real dt,
-	   const Geometry& geom,
-	   const BoxArray& grids, 
-	   const DistributionMapping& dmap, 
-	   const Vector<BCRec>& bc,
-           SDCstruct &sdcmats)
+void SDC_advance(MultiFab& phi_old,
+		 MultiFab& phi_new,
+		 std::array<MultiFab, AMREX_SPACEDIM>& flux,
+		 Real dt,
+		 const Geometry& geom,
+		 const Vector<BCRec>& bc,
+		 MLMG&  mlmg,
+		 MLABecLaplacian& mlabec,
+		 SDCstruct &SDC)
 {
+
   /*  We use an MLABecLaplacian operator:
 
       (ascalar*acoef - bscalar div bcoef grad) phi = RHS
@@ -32,235 +25,202 @@ void sweep(MultiFab& phi_old,
   */
   Real dt_m;
   Real qij;
+  int nf=1;
+
+  const BoxArray &ba=phi_old.boxArray();
+  const DistributionMapping &dm=phi_old.DistributionMap();
 
   const Box& domain_bx = geom.Domain();
   const Real* dx = geom.CellSize();
-  
-  MultiFab::Copy(phi_sdc[0],phi_old, 0, 0, 1, 0);
-  // Fill the ghost cells of each grid from the other grids
-  // includes periodic domain boundaries
-  phi_sdc[0].FillBoundary(geom.periodicity());
-  
-  // Fill non-periodic physical boundaries
-  FillDomainBoundary(phi_sdc[0], geom, bc);
-  
-  //  Compute the first function value
-  int sdc_m=0;
-  for ( MFIter mfi(phi_sdc[sdc_m]); mfi.isValid(); ++mfi )
-	{
-	  const Box& bx = mfi.validbox();
-	  
-	  compute_flux(BL_TO_FORTRAN_BOX(bx),
-		       BL_TO_FORTRAN_BOX(domain_bx),
-		       BL_TO_FORTRAN_ANYD(phi_sdc[sdc_m][mfi]),
-		       BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-		       BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (AMREX_SPACEDIM == 3)   
-		       BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif		       
-		       //		       BL_TO_FORTRAN_ANYD(f_sdc[1][sdc_m][mfi]),
-		       BL_TO_FORTRAN_ANYD(f_sdc[sdc_m][mfi]),		       
-		       dx);
-	} 
-
-  // Copy first function value to all nodes
-  for (int sdc_n = 1; sdc_n < SDC_NNODES; sdc_n++)
-    MultiFab::Copy(f_sdc[sdc_n],f_sdc[0], 0, 0, 1, 0);
-    //    MultiFab::Copy(f_sdc[1][sdc_n],f_sdc[1][0], 0, 0, 1, 0);
-
-  
-
-  // assorment of solver and parallization options and parameters
-  // see AMReX_MLLinOp.H for the defaults, accessors, and mutators
-  LPInfo info;
-  
-  // Implicit solve using MLABecLaplacian class
-  MLABecLaplacian mlabec({geom}, {grids}, {dmap}, info);
-  
-  // order of stencil
-  int linop_maxorder = 2;
-  mlabec.setMaxOrder(linop_maxorder);
-  
-  // build array of boundary conditions needed by MLABecLaplacian
-  // see Src/Boundary/AMReX_LO_BCTYPES.H for supported types
-  std::array<LinOpBCType,AMREX_SPACEDIM> bc_lo;
-  std::array<LinOpBCType,AMREX_SPACEDIM> bc_hi;
-  
-  for (int n = 0; n < phi_sdc[0].nComp(); ++n) 
-    {
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	{
-	  // lo-side BCs
-	  if (bc[n].lo(idim) == BCType::int_dir) {
-	    bc_lo[idim] = LinOpBCType::Periodic;
-	  }
-	  else if (bc[n].lo(idim) == BCType::foextrap) {
-	    bc_lo[idim] = LinOpBCType::Neumann;
-	  }
-	  else if (bc[n].lo(idim) == BCType::ext_dir) {
-	    bc_lo[idim] = LinOpBCType::Dirichlet;
-	  }
-	    else {
-	      amrex::Abort("Invalid bc_lo");
-	    }
-	  
-	  // hi-side BCs
-	  if (bc[n].hi(idim) == BCType::int_dir) {
-	    bc_hi[idim] = LinOpBCType::Periodic;
-	  }
-	  else if (bc[n].hi(idim) == BCType::foextrap) {
-	    bc_hi[idim] = LinOpBCType::Neumann;
-	  }
-	  else if (bc[n].hi(idim) == BCType::ext_dir) {
-	    bc_hi[idim] = LinOpBCType::Dirichlet;
-	  }
-	  else {
-	    amrex::Abort("Invalid bc_hi");
-	  }
-	}
-    }
-  
-  // tell the solver what the domain boundary conditions are
-  mlabec.setDomainBC(bc_lo, bc_hi);
-  
   // set the boundary conditions
-  mlabec.setLevelBC(0, &phi_sdc[0]);
-  
-  // scaling factors
-  Real ascalar = 1.0;
-  Real bscalar = 1.0;
-  mlabec.setScalars(ascalar, bscalar);
-  
-  // Set up coefficient matrices
-  MultiFab acoef(grids, dmap, 1, 0);
-  
-  // fill in the acoef MultiFab and load this into the solver
-  acoef.setVal(1.0);
-  mlabec.setACoeffs(0, acoef);
-  
-  // bcoef lives on faces so we make an array of face-centered MultiFabs
-  // then we will in face_bcoef MultiFabs and load them into the solver.
-  std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-      const BoxArray& ba = amrex::convert(acoef.boxArray(),
-					  IntVect::TheDimensionVector(idim));
-      face_bcoef[idim].define(ba, acoef.DistributionMap(), 1, 0);
-      face_bcoef[idim].setVal(dt);
-    }
-  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
-  
-  // build an MLMG solver
-  MLMG mlmg(mlabec);
-  
-  // set solver parameters
-  int max_iter = 100;
-  mlmg.setMaxIter(max_iter);
-  int max_fmg_iter = 0;
-  mlmg.setMaxFmgIter(max_fmg_iter);
-  int verbose = 2;
-  mlmg.setVerbose(verbose);
-  int cg_verbose = 0;
-  mlmg.setCGVerbose(cg_verbose);
+
   
   // relative and absolute tolerances for linear solve
   const Real tol_rel = 1.e-10;
   const Real tol_abs = 0.0;
+  // Set up coefficient matrices
+  MultiFab acoef(ba, dm, 1, 0);
   
-  for (int k=1; k <= sdcmats.Nsweeps; ++k)
+  // fill in the acoef MultiFab and load this into the solver
+  acoef.setVal(1.0);
+  mlabec.setACoeffs(0, acoef);
+
+  std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+      const BoxArray& bamg = amrex::convert(acoef.boxArray(),
+					  IntVect::TheDimensionVector(idim));
+      face_bcoef[idim].define(bamg, acoef.DistributionMap(), 1, 0);
+    }
+  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+
+  // Copy old phi into first SDC node
+  MultiFab::Copy(SDC.sol[0],phi_old, 0, 0, 1, 0);
+
+  // Fill the ghost cells of each grid from the other grids
+  // includes periodic domain boundaries
+  SDC.sol[0].FillBoundary(geom.periodicity());
+  
+  // Fill non-periodic physical boundaries
+  FillDomainBoundary(SDC.sol[0], geom, bc);
+  
+  //  Compute the first function value
+  int sdc_m=0;
+  SDC_feval(flux,geom,bc,SDC,sdc_m,-1);
+
+  // Copy first function value to all nodes
+  for (int sdc_n = 1; sdc_n < SDC_NNODES; sdc_n++)
+    {
+      MultiFab::Copy(SDC.f[0][sdc_n],SDC.f[0][0], 0, 0, 1, 0);
+      MultiFab::Copy(SDC.f[1][sdc_n],SDC.f[1][0], 0, 0, 1, 0);
+    }
+
+  
+
+  //  Now do the actual sweeps
+  for (int k=1; k <= SDC.Nsweeps; ++k)
     {
       amrex::Print() << "sweep " << k << "\n";
-      // Compute the quadrature term
-      for (int sdc_m = 0; sdc_m < SDC_NNODES-1; sdc_m++)
-	{
-	  for ( MFIter mfi(res_sdc[sdc_m]); mfi.isValid(); ++mfi )
-	    {
-	      res_sdc[sdc_m].setVal(0.0);
-	      for (int sdc_n = 0; sdc_n < SDC_NNODES; sdc_n++)
-		{
-		  qij = dt*(sdcmats.qmats[0][sdc_m][sdc_n]-sdcmats.qmats[2][sdc_m][sdc_n]);
-		  //		  res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
-		  res_sdc[sdc_m][mfi].saxpy(qij,f_sdc[sdc_n][mfi]);		  
-		}
-	    }
-	}
-      
+
+      //  Compute RHS integrals
+      SDC.SDC_rhs_integrals(dt);
       
       //  Substep over SDC nodes
-      for (int sdc_m = 0; sdc_m < SDC_NNODES-1; sdc_m++)
+      for (int sdc_m = 0; sdc_m < SDC.Nnodes-1; sdc_m++)
 	{
-	  dt_m = dt*(sdcmats.qnodes[sdc_m+1]-sdcmats.qnodes[sdc_m]);
+	  dt_m = dt*(SDC.qnodes[sdc_m+1]-SDC.qnodes[sdc_m]);
 	  
-	  // use phi_new as rhs
-	  MultiFab::Copy(phi_new,phi_sdc[0], 0, 0, 1, 0);
-	  for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+	  // use phi_new as rhs and fill it with terms at this iteration
+	  SDC.SDC_rhs_k_plus_one(phi_new,dt,sdc_m);
+	  
+	  // get the best initial guess for implicit solve
+	  MultiFab::Copy(SDC.sol[sdc_m+1],phi_new, 0, 0, 1, 0);
+	  for ( MFIter mfi(SDC.sol[sdc_m+1]); mfi.isValid(); ++mfi )
 	    {
 	      const Box& bx = mfi.validbox();
-	      phi_new[mfi].saxpy(1.0,res_sdc[sdc_m][mfi]);
-	      for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
-		{
-		  qij = dt*sdcmats.qmats[2][sdc_m][sdc_n];
-		  //		  phi_new[mfi].saxpy(qij,f_sdc[1][sdc_n][mfi]);
-		  phi_new[mfi].saxpy(qij,f_sdc[sdc_n][mfi]);		  
-		}
-	    }
-	  
-	  // Fill the ghost cells of each grid from the other grids
-	  // includes periodic domain boundaries
-	  phi_new.FillBoundary(geom.periodicity());
-	  
-	  // Fill non-periodic physical boundaries
-	  FillDomainBoundary(phi_new, geom, bc);
-	  
-	  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	    {
-	      //		const BoxArray& ba = amrex::convert(acoef.boxArray(),
-	      //					    IntVect::TheDimensionVector(idim));
-	      //		face_bcoef[idim].define(ba, acoef.DistributionMap(), 1, 0);
-	      face_bcoef[idim].setVal(dt_m);
-	    }
-	  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
-	  
-	  // set the boundary conditions
-	  mlabec.setLevelBC(0, &phi_new);
-	  
-	  // get the best initial guess
-	  MultiFab::Copy(phi_sdc[sdc_m+1],phi_new, 0, 0, 1, 0);
-	  for ( MFIter mfi(phi_sdc[sdc_m+1]); mfi.isValid(); ++mfi )
-	    {
-	      const Box& bx = mfi.validbox();
-	      qij = dt*sdcmats.qmats[2][sdc_m][sdc_m+1];
-	      //	      phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[1][sdc_m+1][mfi]);
-	      phi_sdc[sdc_m+1][mfi].saxpy(qij,f_sdc[sdc_m+1][mfi]);	      
+	      qij = dt*SDC.qmats[2][sdc_m][sdc_m+1];
+	      SDC.sol[sdc_m+1][mfi].saxpy(qij,SDC.f[1][sdc_m+1][mfi]);
 	    }
 
-	  // Solve linear system
-	  mlmg.solve({&phi_sdc[sdc_m+1]}, {&phi_new}, tol_rel, tol_abs);
+	  // Solve for the implicit part
+	  SDC_comp(phi_new, geom, bc, SDC, mlmg, mlabec,dt,sdc_m+1,1);
 
-	  // Compute the fluxes at node sdc_m+1
-	  phi_sdc[sdc_m+1].FillBoundary(geom.periodicity());
-	  for ( MFIter mfi(phi_sdc[sdc_m+1]); mfi.isValid(); ++mfi )
-	    {
-	      const Box& bx = mfi.validbox();
-	      
-	      compute_flux(BL_TO_FORTRAN_BOX(bx),
-			   BL_TO_FORTRAN_BOX(domain_bx),
-			   BL_TO_FORTRAN_ANYD(phi_sdc[sdc_m+1][mfi]),
-			   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
-			   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
-#if (AMREX_SPACEDIM == 3)   
-			   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
-#endif		       
-			   BL_TO_FORTRAN_ANYD(f_sdc[sdc_m+1][mfi]),
-			   //			   BL_TO_FORTRAN_ANYD(f_sdc[1][sdc_m+1][mfi]),
-			   dx);
-	    }
-	  
+	  // Compute the function values at node sdc_m+1
+	  SDC.sol[sdc_m+1].FillBoundary(geom.periodicity());
+	  SDC_feval(flux,geom,bc,SDC,sdc_m+1,-1);	  
+
 	} // end SDC substep loop
     }  // end sweeps loop
     
   // Return the last node in phi_new
-  MultiFab::Copy(phi_new, phi_sdc[SDC_NNODES-1], 0, 0, 1, 0);
+  MultiFab::Copy(phi_new, SDC.sol[SDC_NNODES-1], 0, 0, 1, 0);
+
+}
+
+void SDC_feval(std::array<MultiFab, AMREX_SPACEDIM>& flux,
+	       const Geometry& geom,
+	       const Vector<BCRec>& bc,
+	       SDCstruct &SDC,
+	       int sdc_m,int npiece)
+{
+  /*  Evaluate explicitly the rhs terms of the equation at the SDC node "sdc_m".
+      The input parameter "npiece" describes which term to do.  
+      If npiece = -1, do all the pieces */
+  const BoxArray &ba=SDC.sol[0].boxArray();
+  const DistributionMapping &dm=SDC.sol[0].DistributionMap();
+
+  const Box& domain_bx = geom.Domain();
+  const Real* dx = geom.CellSize();
+  
+  int nlo,nhi;
+  if (npiece < 0)
+    {
+      nlo=0;
+      nhi=SDC.Npieces;
+    }
+  else
+    {
+      nlo=npiece;
+      nhi=npiece+1;
+    }
+
+  SDC.sol[sdc_m].FillBoundary(geom.periodicity());
+  for (int n = nlo; n < nhi; n++)    
+    for ( MFIter mfi(SDC.sol[sdc_m]); mfi.isValid(); ++mfi )
+      {
+      const Box& bx = mfi.validbox();
+      compute_flux(BL_TO_FORTRAN_BOX(bx),
+		   BL_TO_FORTRAN_BOX(domain_bx),
+		   BL_TO_FORTRAN_ANYD(SDC.sol[sdc_m][mfi]),
+		   BL_TO_FORTRAN_ANYD(flux[0][mfi]),
+		   BL_TO_FORTRAN_ANYD(flux[1][mfi]),
+#if (AMREX_SPACEDIM == 3)   
+		   BL_TO_FORTRAN_ANYD(flux[2][mfi]),
+#endif		       
+		   BL_TO_FORTRAN_ANYD(SDC.f[n][sdc_m][mfi]),
+		   dx,&n);
+      }
+  
+
+}
+void SDC_comp(MultiFab& rhs,
+	       const Geometry& geom,
+	       const Vector<BCRec>& bc,
+	       SDCstruct &SDC,
+	       MLMG &mlmg,
+		 MLABecLaplacian& mlabec,	      
+	      Real dt,
+	       int sdc_m,int npiece)
+{
+  /*  Solve implicitly for the implicit terms of the equation at the SDC node "sdc_m".
+      The input parameter "npiece" describes which term to do.  */
+
+  const BoxArray &ba=SDC.sol[0].boxArray();
+  const DistributionMapping &dm=SDC.sol[0].DistributionMap();
+
+  const Box& domain_bx = geom.Domain();
+  const Real* dx = geom.CellSize();
+  Real qij;
+
+    // relative and absolute tolerances for linear solve
+  const Real tol_rel = 1.e-10;
+  const Real tol_abs = 0.0;
+  // Set up coefficient matrices
+  MultiFab acoef(ba, dm, 1, 0);
+  
+  // fill in the acoef MultiFab and load this into the solver
+  acoef.setVal(1.0);
+  mlabec.setACoeffs(0, acoef);
+
+  std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+      const BoxArray& bamg = amrex::convert(acoef.boxArray(),
+					  IntVect::TheDimensionVector(idim));
+      face_bcoef[idim].define(bamg, acoef.DistributionMap(), 1, 0);
+    }
+  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+
+
+  // Fill the ghost cells of each grid from the other grids
+  // includes periodic domain boundaries
+  rhs.FillBoundary(geom.periodicity());
+	  
+  // Fill non-periodic physical boundaries
+  FillDomainBoundary(rhs, geom, bc);
+	  
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+    {
+      qij = dt*SDC.qmats[2][sdc_m][sdc_m+1];	      
+      face_bcoef[idim].setVal(0.1*qij);	      
+    }
+  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+	  
+  // set the boundary conditions
+  mlabec.setLevelBC(0, &rhs);
+
+  mlmg.solve({&SDC.sol[sdc_m]}, {&rhs}, tol_rel, tol_abs);  
+
 
 }
 

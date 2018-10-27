@@ -1,23 +1,6 @@
-!
-! Copyright (C) 2012, 2013 Matthew Emmett and Michael Minion.
-!
-! This file is part of LIBPFASST.
-!
-! LIBPFASST is free software: you can redistribute it and/or modify it
-! under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! LIBPFASST is distributed in the hope that it will be useful, but
-! WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-! General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with LIBPFASST.  If not, see <http://www.gnu.org/licenses/>.
-!
-!> Module to create quadrature matrices and accompanying routines
-module pf_mod_quadrature
+
+!> Module to create quadrature matrices and accompanying routines for SDC
+module SDCquadrature_mod
   use iso_c_binding
   implicit none
 
@@ -45,7 +28,7 @@ module pf_mod_quadrature
 contains
 
   !>  Subroutine to create quadrature matrices
- subroutine pf_quadrature(qtype_in,nnodes, nnodes0, nodes, nflags, qmats) bind(C, name="pf_quadrature")
+  subroutine SDC_quadrature(qtype_in,nnodes, nnodes0, nodes, nflags, qmats) bind(C, name="SDC_quadrature")
 
    integer,    intent(in)  :: qtype_in, nnodes, nnodes0
     real(amrex_real), intent(inout) :: nodes(nnodes)
@@ -162,7 +145,8 @@ contains
     end do
 
     
-  end subroutine pf_quadrature
+  end subroutine SDC_quadrature
+
 
   !>  Function to decide if the restriction of the nodes is pointwise, e.g. coarse nodes are every other fine node
   logical function not_proper(flags, node)
@@ -548,7 +532,8 @@ contains
     end do
   end subroutine qsort_partition
 
-end module pf_mod_quadrature
+
+end module SDCquadrature_mod
 
 
 
