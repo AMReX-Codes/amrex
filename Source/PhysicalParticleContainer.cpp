@@ -1334,7 +1334,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     const int ncomp = 1;
                     FArrayBox const* local_fab = local_rho[thread_num].get();
                     FArrayBox*       global_fab = &rhofab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
                     {
                         global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
                     });
@@ -1384,7 +1384,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     const int ncomp = 1;
                     FArrayBox const* local_fab = local_rho[thread_num].get();
                     FArrayBox*       global_fab = &crhofab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
                     {
                         global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
                     });
@@ -1562,19 +1562,19 @@ PhysicalParticleContainer::Evolve (int lev,
                     jz_ptr = local_jz[thread_num]->dataPtr();
 
                     FArrayBox* local_jx_ptr = local_jx[thread_num].get();
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
                     {
                         local_jx_ptr->setVal(0.0, b, 0, 1);
                     });
 
                     FArrayBox* local_jy_ptr = local_jy[thread_num].get();
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
                     {
                         local_jy_ptr->setVal(0.0, b, 0, 1);
                     });
 
                     FArrayBox* local_jz_ptr = local_jz[thread_num].get();
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
                     {
                         local_jz_ptr->setVal(0.0, b, 0, 1);
                     });                    
@@ -1605,21 +1605,21 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
                     FArrayBox* global_jx_ptr = &jxfab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
                         global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
                     FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
                     FArrayBox* global_jy_ptr = &jyfab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
                         global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                  
 
                     FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
                     FArrayBox* global_jz_ptr = &jzfab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
                         global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
@@ -1683,21 +1683,21 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     FArrayBox const* local_jx_ptr = local_jx[thread_num].get();
                     FArrayBox* global_jx_ptr = &cjxfab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
                         global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
                     FArrayBox const* local_jy_ptr = local_jy[thread_num].get();
                     FArrayBox* global_jy_ptr = &cjyfab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
                         global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
                     FArrayBox const* local_jz_ptr = local_jz[thread_num].get();
                     FArrayBox* global_jz_ptr = &cjzfab;
-                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
                         global_jz_ptr->atomicAdd(*local_jz_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                  
