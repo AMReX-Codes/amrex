@@ -13,7 +13,6 @@ def scale_n_cell(ncell, n_node):
      return ncell_scaled
 
 def store_git_hash(repo_path=None, filename=None, name=None):
-    print( repo_path, filename, name )
     repo = git.Repo(path=repo_path)
     sha = repo.head.object.hexsha
     file_handler = open( filename, 'a+' )

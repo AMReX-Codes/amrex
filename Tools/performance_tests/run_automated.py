@@ -59,6 +59,7 @@ if args.mode == 'browse_output_files':
 if args.mode == 'read':
     write_csv = True
     browse_output_files = True
+recompile = args.recompile
 perf_database_file = 'my_tests_database.h5'
 if args.automated == True:
     run_name = 'automated_tests'
@@ -68,6 +69,7 @@ if args.automated == True:
     update_perf_log_repo = True
     push_on_perf_log_repo = False
     pull_3_repos = True
+    recompile = True
 
 # Each instance of this class contains information for a single test.
 class test_element():
@@ -181,27 +183,27 @@ if args.mode == 'run':
     if not os.path.exists(res_dir_base):
         os.mkdir(res_dir_base)    
 
-# Recompile if requested
-# ----------------------
-if args.recompile == True:
-    if pull_3_repos == True:
-        git_repo = git.cmd.Git( picsar_dir )
-        git_repo.pull()
-        git_repo = git.cmd.Git( amrex_dir  )
-        git_repo.pull()
-        git_repo = git.cmd.Git( warpx_dir  )
-        git_repo.pull()
-    with open(cwd + 'GNUmakefile_perftest') as makefile_handler:
-        makefile_text = makefile_handler.read()
-    makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
-    with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
-        makefile_handler.write( makefile_text )
-    os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
-    if os.path.exists( cwd + 'store_git_hashes.txt' ):
-        os.remove( cwd + 'store_git_hashes.txt' )
-    store_git_hash(repo_path=picsar_dir, filename=cwd + 'store_git_hashes.txt', name='picsar')
-    store_git_hash(repo_path=amrex_dir , filename=cwd + 'store_git_hashes.txt', name='amrex' )
-    store_git_hash(repo_path=warpx_dir , filename=cwd + 'store_git_hashes.txt', name='warpx' )
+    # Recompile if requested
+    # ----------------------
+    if recompile == True:
+        if pull_3_repos == True:
+            git_repo = git.cmd.Git( picsar_dir )
+            git_repo.pull()
+            git_repo = git.cmd.Git( amrex_dir  )
+            git_repo.pull()
+            git_repo = git.cmd.Git( warpx_dir  )
+            git_repo.pull()
+        with open(cwd + 'GNUmakefile_perftest') as makefile_handler:
+            makefile_text = makefile_handler.read()
+        makefile_text = re.sub('\nCOMP.*', '\nCOMP=%s' %compiler_name[args.compiler], makefile_text)
+        with open(cwd + 'GNUmakefile_perftest', 'w') as makefile_handler:
+            makefile_handler.write( makefile_text )
+        os.system(config_command + " make -f GNUmakefile_perftest realclean ; " + " rm -r tmp_build_dir *.mod; make -j 8 -f GNUmakefile_perftest")
+        if os.path.exists( cwd + 'store_git_hashes.txt' ):
+            os.remove( cwd + 'store_git_hashes.txt' )
+        store_git_hash(repo_path=picsar_dir, filename=cwd + 'store_git_hashes.txt', name='picsar')
+        store_git_hash(repo_path=amrex_dir , filename=cwd + 'store_git_hashes.txt', name='amrex' )
+        store_git_hash(repo_path=warpx_dir , filename=cwd + 'store_git_hashes.txt', name='warpx' )
 
 # This function runs a batch script with 
 # dependencies to perform the analysis 
@@ -257,10 +259,7 @@ if args.mode == 'run':
         test_list_n_node = copy.deepcopy(test_list)
         # Loop on tests
         for current_run in test_list_n_node:
-            print(current_run.input_file)
-            print(current_run.n_cell)
             current_run.scale_n_cell(n_node)
-            print(current_run.n_cell)
             runtime_param_string  = ' amr.n_cell=' + ' '.join(str(i) for i in current_run.n_cell)
             runtime_param_string += ' max_step=' + str( current_run.n_step )
             runtime_param_list.append( runtime_param_string )
@@ -279,7 +278,6 @@ for n_node in n_node_list:
     print(n_node)
     if browse_output_files:
         for count, current_run in enumerate(test_list):
-            print('read ' + str(current_run))
             res_dir = res_dir_base
             res_dir += '_'.join([run_name, args.compiler,\
                                  args.architecture, str(n_node)]) + '/'
