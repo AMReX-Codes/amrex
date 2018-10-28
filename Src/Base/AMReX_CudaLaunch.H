@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_CudaRange.H>
 #include <AMReX_CudaDevice.H>
 #include <AMReX_Box.H>
 #include <cstddef>
@@ -17,7 +18,25 @@
 // ************************************************
 // CUDA versions
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(TN); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            for (auto const TI : amrex::Cuda::Range(TN)) { \
+                block \
+            } \
+        }); \
+        CudaErrorCheck(); \
+    } \
+    else { \
+        for (auto const TI : amrex::Cuda::Range(TN)) { \
+            block \
+        } \
+    }
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_ec = amrex::Cuda::ExecutionConfig(bbb); \
@@ -30,7 +49,7 @@
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
+                amrex::Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -54,13 +73,13 @@
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
+                amrex::Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
         ++sync_var; \
-        Cuda::Device::set_stream_index(sync_var); \
-        Cuda::Device::check_for_errors(); \
+        amrex::Cuda::Device::set_stream_index(sync_var);       \
+        amrex::Cuda::Device::check_for_errors();                      \
         CudaErrorCheck(); \
     } \
     else { \
@@ -68,7 +87,7 @@
         block \
     }  
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         auto amrex_i_ec = amrex::Cuda::ExecutionConfig(bbb); \
@@ -81,7 +100,7 @@
             long amrex_i_offset = amrex_i_lid + amrex_i_wid*AMREX_CUDA_NCELLS_PER_THREAD*AMREX_CUDA_WARP_SIZE; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_offset += AMREX_CUDA_WARP_SIZE) \
             { \
-                Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
+                amrex::Box tbb = amrex::Cuda::getThreadBox(bbb, amrex_i_offset); \
                 if (tbb.ok()) block \
             } \
         }); \
@@ -105,19 +124,19 @@
             long amrex_i_loc_offset = amrex_i_offset; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_loc_offset += AMREX_CUDA_WARP_SIZE) \
                 { \
-                    Box tbx = amrex::Cuda::getThreadBox(bbx, amrex_i_loc_offset); \
+                    amrex::Box tbx = amrex::Cuda::getThreadBox(bbx, amrex_i_loc_offset); \
                     if (tbx.ok()) blockx \
                 } \
             amrex_i_loc_offset = amrex_i_offset; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_loc_offset += AMREX_CUDA_WARP_SIZE) \
                 { \
-                    Box tby = amrex::Cuda::getThreadBox(bby, amrex_i_loc_offset); \
+                    amrex::Box tby = amrex::Cuda::getThreadBox(bby, amrex_i_loc_offset); \
                     if (tby.ok()) blocky \
                 } \
             amrex_i_loc_offset = amrex_i_offset; \
             for (long amrex_i_i = 0; amrex_i_i < AMREX_CUDA_NCELLS_PER_THREAD; ++amrex_i_i, amrex_i_loc_offset += AMREX_CUDA_WARP_SIZE) \
                 { \
-                    Box tbz = amrex::Cuda::getThreadBox(bbz, amrex_i_loc_offset); \
+                    amrex::Box tbz = amrex::Cuda::getThreadBox(bbz, amrex_i_loc_offset); \
                     if (tbz.ok()) blockz \
                 } \
          }); \
@@ -198,7 +217,7 @@
 // ************************************************
 // CPU versions
 
-#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bbb,tbb,block) \
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \
         const amrex::Box& tbb = bbb; \
         block \
@@ -220,7 +239,7 @@
         blockz \
     }
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA(bbb,tbb,block) \
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \
         const amrex::Box& tbb = bbb; \
         block \
@@ -324,7 +343,7 @@ namespace Cuda {
         ExecutionConfig (long N) {
             Cuda::Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
-        ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm) : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
+        ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm=0) : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
         
         dim3 numBlocks;
         dim3 numThreads;
