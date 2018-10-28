@@ -152,7 +152,6 @@ if (ENABLE_TINY_PROFILE)
    add_sources( AMReX_TinyProfiler.H )
 endif ()
 
-
 add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H )
 add_sources( AMReX_GpuControl.cpp )
 
@@ -162,7 +161,7 @@ add_sources( AMReX_GpuControl.cpp )
 # be included when ENABLE_CUDA is set to yes 
 #
 #if (ENABLE_CUDA)
-add_sources( AMReX_CudaAllocators.H )
+add_sources( AMReX_CudaAllocators.H AMReX_CudaRange.H )
 add_sources( AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaContainers.H)
 add_sources( AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
 add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
