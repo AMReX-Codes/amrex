@@ -1362,7 +1362,7 @@ FabArray<FAB>::setVal (value_type val,
 	const Box& bx = fai.growntilebox(nghost);
         FAB* fab = &(get(fai));
 
-        AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
             fab->setVal(val, tbx, comp, ncomp);
         });
@@ -1405,7 +1405,7 @@ FabArray<FAB>::setVal (value_type val,
         if (b.ok()) {
             FAB* fab = &(get(fai));
 
-            AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {
                 fab->setVal(val, tbx, comp, ncomp);
             });
