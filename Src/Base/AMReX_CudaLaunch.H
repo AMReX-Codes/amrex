@@ -36,6 +36,22 @@
         } \
     }
 
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(TN); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            for (auto const TI : amrex::Cuda::Range(TN)) { \
+                block \
+            } \
+        }); \
+        CudaErrorCheck(); \
+    } \
+    else { \
+        amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE: cannot call device function from host"); \
+    }
+
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
@@ -216,6 +232,20 @@
 
 // ************************************************
 // CPU versions
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+    { \
+        for (auto const TI : amrex::Cuda::Range(TN)) { \
+            block \
+        } \
+    }
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block) \
+    { \
+        for (auto const TI : amrex::Cuda::Range(TN)) { \
+            block \
+        } \
+    }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \
