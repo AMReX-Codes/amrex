@@ -27,6 +27,14 @@ def configure(argv):
                         help="Use OpenMP [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--with-cuda",
+                        help="Use CUDA [default=no]",
+                        choices=["yes","no"],
+                        default="no")
+    parser.add_argument("--with-acc",
+                        help="Use OpenACC [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
                         choices=["gnu","intel","cray","pgi","llvm","nag"],
@@ -78,6 +86,14 @@ def configure(argv):
         f.write("USE_MPI = TRUE\n")
     if args.with_omp == "no":
         f.write("USE_OMP = FALSE\n")
+    else:
+        f.write("USE_OMP = TRUE\n")
+    if args.with_cuda == "no":
+        f.write("USE_CUDA = FALSE\n")
+    else:
+        f.write("USE_CUDA = TRUE\n")
+    if args.with_acc == "no":
+        f.write("USE_ACC = FALSE\n")
     else:
         f.write("USE_OMP = TRUE\n")
     f.write("COMP = " + args.comp.strip() + "\n")
