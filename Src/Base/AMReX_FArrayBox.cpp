@@ -190,21 +190,16 @@ FArrayBox::initVal ()
 #if defined(AMREX_USE_GPU)
 
         double * p = dataPtr();
-        AMREX_LAUNCH_HOST_DEVICE ( Gpu::ExecutionConfig(truesize),
-        [=] AMREX_GPU_HOST_DEVICE ()
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (truesize, i,
         {
 #ifdef UINT64_MAX
-            static const uint64_t snan = UINT64_C(0x7ff0000080000001);
+            const uint64_t snan = UINT64_C(0x7ff0000080000001);
 #else
             static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
-            static const long long snan = 0x7ff0000080000001LL;
+            const long long snan = 0x7ff0000080000001LL;
 #endif
-            long begin, n;
-            Gpu::getThreadIndex(begin,n,truesize);
-            for (long i = 0; i < n; ++i) {
-                double* pi = p + (i+begin);
-                std::memcpy(pi, &snan, sizeof(double));
-            }
+            double* pi = p + i;
+            std::memcpy(pi, &snan, sizeof(double));
         });
 
 #else
