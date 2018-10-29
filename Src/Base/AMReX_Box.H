@@ -129,7 +129,7 @@ public:
     }
 
     //! Return the length of the Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     IntVect length () const
     {
         return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,

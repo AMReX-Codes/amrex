@@ -1,12 +1,12 @@
 
-#include <AMReX_COORDSYS_F.H>
+#include <AMReX_COORDSYS_C.H>
 
 namespace amrex {
 
-AMREX_CUDA_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 void amrex_setvol (Box const& bx, FArrayBox& vol,
-                   CudaArray<Real,3> const& /*offset*/,
-                   CudaArray<Real,3> const& dx, const int /*coord*/)
+                   GpuArray<Real,3> const& /*offset*/,
+                   GpuArray<Real,3> const& dx, const int /*coord*/)
 {
     Real dv = dx[0]*dx[1]*dx[2];
     const auto dp0 = vol.stridedPtr(bx);
@@ -21,10 +21,10 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
     }
 }
 
-AMREX_CUDA_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 void amrex_setarea (Box const& bx, FArrayBox& area,
-                    CudaArray<Real,3> const& offset,
-                    CudaArray<Real,3> const& dx, const int dir, const int /*coord*/)
+                    GpuArray<Real,3> const& offset,
+                    GpuArray<Real,3> const& dx, const int dir, const int /*coord*/)
 {
     Real a = (dir == 0) ? dx[1]*dx[2] : ((dir == 1) ? dx[0]*dx[2] : dx[0]*dx[1]);
     const auto dp0 = area.stridedPtr(bx);
@@ -39,10 +39,10 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
     }
 }
 
-AMREX_CUDA_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 void amrex_setdloga (Box const& bx, FArrayBox& dloga,
-                     CudaArray<Real,3> const& /*offset*/,
-                     CudaArray<Real,3> const& /*dx*/, const int /*dir*/, const int /*coord*/)
+                     GpuArray<Real,3> const& /*offset*/,
+                     GpuArray<Real,3> const& /*dx*/, const int /*dir*/, const int /*coord*/)
 {
     const auto dp0 = dloga.stridedPtr(bx);
     const IntVect len = bx.length();
