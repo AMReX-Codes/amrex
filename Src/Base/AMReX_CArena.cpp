@@ -5,13 +5,13 @@
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
 
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
+#if !defined(AMREX_FORTRAN_BOXLIB)
+#include <AMReX_Gpu.H>
 #endif
 
 namespace amrex {
 
-CArena::CArena (size_t hunk_size)
+CArena::CArena (std::size_t hunk_size)
 {
     //
     // Force alignment of hunksize.
@@ -26,7 +26,7 @@ CArena::CArena (size_t hunk_size)
 CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
 	if (device_use_hostalloc)
 	    gpu_freehost(m_alloc[i]);
 	else
@@ -37,7 +37,7 @@ CArena::~CArena ()
 }
 
 void*
-CArena::alloc (size_t nbytes)
+CArena::alloc (std::size_t nbytes)
 {
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
@@ -53,9 +53,9 @@ CArena::alloc (size_t nbytes)
 
     if (free_it == m_freelist.end())
     {
-        const size_t N = nbytes < m_hunk ? m_hunk : nbytes;
+        const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
-#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
+#if defined(AMREX_USE_GPU)
         if (device_use_hostalloc) {
 
 	    gpu_hostalloc(&vp, &N);
@@ -65,10 +65,10 @@ CArena::alloc (size_t nbytes)
 
 	    gpu_malloc_managed(&vp, &N);
 	    if (device_set_readonly)
-		Device::mem_advise_set_readonly(vp, N);
+		Gpu::Device::mem_advise_set_readonly(vp, N);
 	    if (device_set_preferred) {
-		const int device = Device::deviceId();
-		Device::mem_advise_set_preferred(vp, N, device);
+		const int device = Gpu::Device::deviceId();
+		Gpu::Device::mem_advise_set_preferred(vp, N, device);
 	    }
 
 	}
@@ -94,8 +94,10 @@ CArena::alloc (size_t nbytes)
             //
             void* block = static_cast<char*>(vp) + nbytes;
 
-            m_freelist.insert(m_freelist.end(), Node(block, m_hunk-nbytes));
+            m_freelist.insert(m_freelist.end(), Node(block, vp, m_hunk-nbytes));
         }
+
+        m_busylist.insert(Node(vp, vp, nbytes));
     }
     else
     {
@@ -103,6 +105,7 @@ CArena::alloc (size_t nbytes)
         BL_ASSERT(m_busylist.find(*free_it) == m_busylist.end());
 
         vp = (*free_it).block();
+        m_busylist.insert(Node(vp, free_it->owner(), nbytes));
 
         if ((*free_it).size() > nbytes)
         {
@@ -123,8 +126,6 @@ CArena::alloc (size_t nbytes)
         m_freelist.erase(free_it);
     }
 
-    m_busylist.insert(Node(vp, nbytes));
-
     BL_ASSERT(!(vp == 0));
 
     return vp;
@@ -141,7 +142,7 @@ CArena::free (void* vp)
     //
     // `vp' had better be in the busy list.
     //
-    NL::iterator busy_it = m_busylist.find(Node(vp,0));
+    NL::iterator busy_it = m_busylist.find(Node(vp,0,0));
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
@@ -170,7 +171,7 @@ CArena::free (void* vp)
 
         void* addr = static_cast<char*>((*lo_it).block()) + (*lo_it).size();
 
-        if (addr == (*free_it).block())
+        if (addr == (*free_it).block() && lo_it->coalescable(*free_it))
         {
             //
             // This cast is needed as iterators to set return const values;
@@ -195,7 +196,7 @@ CArena::free (void* vp)
 
     void* addr = static_cast<char*>((*free_it).block()) + (*free_it).size();
 
-    if (++hi_it != m_freelist.end() && addr == (*hi_it).block())
+    if (++hi_it != m_freelist.end() && addr == (*hi_it).block() && hi_it->coalescable(*free_it))
     {
         //
         // Ditto the above comment.
@@ -207,11 +208,11 @@ CArena::free (void* vp)
     }
 }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
 // Device allocators are not currently implemented in CArena.
 
 void*
-CArena::alloc_device (size_t nbytes)
+CArena::alloc_device (std::size_t nbytes)
 {
     void* pt = 0;
     return pt;
@@ -223,7 +224,7 @@ CArena::free_device (void* pt)
 }
 #endif
 
-size_t
+std::size_t
 CArena::heap_space_used () const
 {
     return m_used;

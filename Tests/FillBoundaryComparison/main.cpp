@@ -137,11 +137,11 @@ main (int argc, char* argv[])
     for (int iround = 0; iround < nrounds; ++iround) {
 	for (int c=0; c<2; ++c) {
 	    for (int lev = 0; lev < nlevels; ++lev) {
-		mfs[lev]->FillBoundary_nowait(true);
+		mfs[lev]->FillBoundary_nowait();
 		mfs[lev]->FillBoundary_finish();
 	    }
 	    for (int lev = nlevels-1; lev >= 0; --lev) {
-		mfs[lev]->FillBoundary_nowait(true);
+		mfs[lev]->FillBoundary_nowait();
 		mfs[lev]->FillBoundary_finish();
 	    }
 	}
@@ -154,15 +154,11 @@ main (int argc, char* argv[])
     Real wt1 = ParallelDescriptor::second();
 
     if (ParallelDescriptor::IOProcessor()) {
-#ifdef BL_USE_UPCXX
-        std::cout << "Using UPCXX" << std::endl;
-#else
 	if (ParallelDescriptor::MPIOneSided()) {
 	    std::cout << "Using MPI Onesided" << std::endl;
 	} else {
 	    std::cout << "Using MPI" << std::endl;
 	}
-#endif
 	std::cout << "----------------------------------------------" << std::endl;
 	std::cout << "Fill Boundary Time: " << wt1-wt0 << std::endl;
 	std::cout << "----------------------------------------------" << std::endl;

@@ -67,9 +67,7 @@ namespace amrex{
 	static void multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* dmf, MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
 	static void multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* dmf, MultiFab* smf, int f, bool singleT);
 
-#if 0
 	//static void multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* dmf, MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT, bool mTeams=true);
-
 
         //static void multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT, bool mTeams=true);
 
@@ -77,12 +75,11 @@ namespace amrex{
 	//static void multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* dmf, MultiFab* smf, int f, bool singleT, bool mTeams=true);
 
 
-        static void multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
-        static void fillBoundaryPush_1Team(RegionGraph *graph, amrex::MultiFab& mf, int f, bool mOneThread=false);
+       static void multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
+       //static void fillBoundaryPush_1Team(RegionGraph *graph, amrex::MultiFab& mf, int f, bool mOneThread=false);
 
-        static void multifabCopyPull_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
-        static void fillBoundaryPull_1Team(RegionGraph *graph, amrex::MultiFab& mf, int f);
-#endif
+       //static void multifabCopyPull_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
+       static void fillBoundaryPull_1Team(RegionGraph *graph, amrex::MultiFab& mf, int f);
     }; // class Perilla
 }
 #endif

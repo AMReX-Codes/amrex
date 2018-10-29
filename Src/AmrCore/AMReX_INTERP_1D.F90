@@ -160,7 +160,7 @@ contains
             do lx = 0, lratio-1
               do ic = cb_l1, cb_h1-1
                 i = ic*lratio + lx
-                x = denom*(two*lratio + one)
+                x = denom*(two*lx + one)
                 strip(i) = crse(ic,n) + x*sl(ic,SLX) 
 	      enddo
 	    enddo

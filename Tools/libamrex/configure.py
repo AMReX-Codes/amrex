@@ -27,6 +27,14 @@ def configure(argv):
                         help="Use OpenMP [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--with-cuda",
+                        help="Use CUDA [default=no]",
+                        choices=["yes","no"],
+                        default="no")
+    parser.add_argument("--with-acc",
+                        help="Use OpenACC [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
                         choices=["gnu","intel","cray","pgi","llvm","nag"],
@@ -63,6 +71,10 @@ def configure(argv):
                         help="Allow an application to use a different compiler than the one used to build libamrex [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--with-sensei-insitu",
+                        help="Use SENSEI in situ [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     f = open("GNUmakefile","w")
@@ -74,6 +86,14 @@ def configure(argv):
         f.write("USE_MPI = TRUE\n")
     if args.with_omp == "no":
         f.write("USE_OMP = FALSE\n")
+    else:
+        f.write("USE_OMP = TRUE\n")
+    if args.with_cuda == "no":
+        f.write("USE_CUDA = FALSE\n")
+    else:
+        f.write("USE_CUDA = TRUE\n")
+    if args.with_acc == "no":
+        f.write("USE_ACC = FALSE\n")
     else:
         f.write("USE_OMP = TRUE\n")
     f.write("COMP = " + args.comp.strip() + "\n")
@@ -109,7 +129,10 @@ def configure(argv):
         f.write("ALLOW_DIFFERENT_COMP = FALSE\n")
     else:
         f.write("ALLOW_DIFFERENT_COMP = TRUE\n")
-
+    if args.with_sensei_insitu == "no":
+        f.write("USE_SENSEI_INSITU = FALSE\n")
+    else:
+        f.write("USE_SENSEI_INSITU = TRUE\n")
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")

@@ -169,6 +169,7 @@ namespace amrex{
 	    void regionComputed(int r);
 	    bool isFireableRegion(int r);
 	    int  getAnyFireableRegion();
+            int  getAnyFireableRegion(RegionGraph& depGraph);
 	    int  getPulledFireableRegion();
 	    int  getFireableRegion(bool isSingleThread=false);
 	    void setFireableRegion(int r);

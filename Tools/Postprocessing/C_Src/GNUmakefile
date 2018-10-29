@@ -16,6 +16,7 @@ USE_OMP   = FALSE
 ###################################################
 
 EBASE     = particle_compare
+#EBASE     = fcompare
 #EBASE     = PlotfileToMatLab
 #EBASE     = MultiFabToMatLab
 #EBASE     = PtwisePltTransform
