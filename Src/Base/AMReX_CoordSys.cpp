@@ -13,14 +13,6 @@ namespace {
 }
 #endif
 
-//
-// A handy macro.
-//
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-Real* fabdat = (fab).dataPtr();
-
 namespace amrex {
 
 //
@@ -259,12 +251,12 @@ CoordSys::SetVolume (FArrayBox& vol,
     AMREX_ASSERT(region.cellCentered());
 
     FArrayBox* volfab = &vol;
-    CudaArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
-    CudaArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
     int coord = (int) c_sys;
     AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
-    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setvol(tbx, *volfab, a_offset, a_dx, coord);
     });
@@ -297,12 +289,12 @@ CoordSys::SetDLogA (FArrayBox& dloga,
     AMREX_ASSERT(region.cellCentered());
 
     FArrayBox* dlogafab = &dloga;
-    CudaArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
-    CudaArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
     int coord = (int) c_sys;
     AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
-    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setdloga(tbx, *dlogafab, a_offset, a_dx, dir, coord);
     });
@@ -336,12 +328,12 @@ CoordSys::SetFaceArea (FArrayBox& area,
     AMREX_ASSERT(ok);
 
     FArrayBox* areafab = &area;
-    CudaArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
-    CudaArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
     int coord = (int) c_sys;
     AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
-    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setarea(tbx, *areafab, a_offset, a_dx, dir, coord);
     });
