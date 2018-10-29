@@ -1,0 +1,3 @@
+CEXE_sources += main.cpp
+CEXE_sources += MyTest.cpp initEB.cpp
+CEXE_headers += MyTest.H

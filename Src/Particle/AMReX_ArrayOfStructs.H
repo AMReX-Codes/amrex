@@ -13,7 +13,7 @@ public:
     using ParticleType  = Particle<NReal, NInt>;
     using RealType      = typename ParticleType::RealType;
 
-    using ParticleVector = Cuda::ManagedVector<ParticleType>;
+    using ParticleVector = Gpu::ManagedDeviceVector<ParticleType>;
     
     using Iterator      = typename ParticleVector::iterator;
     using ConstIterator = typename ParticleVector::const_iterator;
@@ -29,7 +29,7 @@ public:
     bool empty () const { return m_data.empty(); }
     
     const RealType* data () const { return &(m_data[0].m_rdata.arr[0]); }
-    RealType*       data ()       { return &(m_data[0].m_rdata.arr[0]); }
+    RealType* data () { return &(m_data[0].m_rdata.arr[0]); }
 
     const RealType* dataPtr () const { return data(); }
     RealType*       dataPtr ()       { return data(); }

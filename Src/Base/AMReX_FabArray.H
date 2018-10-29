@@ -32,14 +32,12 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
-#include <iostream>
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 
-#include <AMReX_CudaLaunch.H>
-#include <AMReX_Device.H>
+#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
@@ -467,6 +465,8 @@ public:
         int N_snds;
         int N_rcvs;
         int actual_n_rcvs;
+        char*               the_recv_data = nullptr;
+        char*               the_send_data = nullptr;
         Vector<MPI_Request> send_reqs;
         Vector<char*>       send_data;
         Vector<int>         recv_from;
@@ -709,10 +709,11 @@ private:
     //! Prepost nonblocking receives
     void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
                    const MapOfCopyComTagContainers&       m_RcvTags,
-                   Vector<char*>&                          recv_data,
-                   Vector<int>&                            recv_size,
-                   Vector<int>&                            recv_from,
-                   Vector<MPI_Request>&                    recv_reqs,
+                   char*&                                 the_recv_data,
+                   Vector<char*>&                         recv_data,
+                   Vector<int>&                           recv_size,
+                   Vector<int>&                           recv_from,
+                   Vector<MPI_Request>&                   recv_reqs,
                    int                                    icomp,
                    int                                    ncomp,
                    int                                    SeqNum,
@@ -722,11 +723,11 @@ private:
 #ifdef BL_USE_MPI3
     void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                 char*&                            the_recv_data,
-                                Vector<char*>&                     recv_data,
-                                Vector<int>&                       recv_size,
-                                Vector<int>&                       recv_from,
-                                Vector<MPI_Request>&               recv_reqs,
-                                Vector<MPI_Aint>          &        recv_disp,
+                                Vector<char*>&                    recv_data,
+                                Vector<int>&                      recv_size,
+                                Vector<int>&                      recv_from,
+                                Vector<MPI_Request>&              recv_reqs,
+                                Vector<MPI_Aint>         &        recv_disp,
                                 int                               icomp,
                                 int                               ncomp,
                                 int                               SeqNum,
@@ -741,7 +742,8 @@ public:
     Periodicity fb_period;
 
     //
-    char*               fb_the_recv_data;
+    char*               fb_the_recv_data = nullptr;
+    char*               fb_the_send_data = nullptr;
     Vector<int>         fb_recv_from;
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
@@ -1353,14 +1355,14 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
         FAB* fab = &(get(fai));
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
             fab->setVal(val, tbx, comp, ncomp);
         });
@@ -1394,7 +1396,7 @@ FabArray<FAB>::setVal (value_type val,
     BL_PROFILE("FabArray::setVal(val,region,comp,ncomp,nghost)");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
@@ -1403,7 +1405,7 @@ FabArray<FAB>::setVal (value_type val,
         if (b.ok()) {
             FAB* fab = &(get(fai));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {
                 fab->setVal(val, tbx, comp, ncomp);
             });

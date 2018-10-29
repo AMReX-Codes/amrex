@@ -237,6 +237,7 @@ int AmrDataAdaptor::GetMesh(const std::string &meshName,
 
             // new vtk uniform amrMesh, node centered
             vtkUniformGrid *ug = vtkUniformGrid::New();
+            ug->SetOrigin(origin);
             ug->SetSpacing(spacing);
             ug->SetExtent(nboxLo[0], nboxHi[0],
                 nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]);

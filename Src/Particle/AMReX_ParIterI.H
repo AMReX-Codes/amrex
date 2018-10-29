@@ -102,7 +102,7 @@ ParIterBase<is_const, NStructReal, NStructInt, NArrayReal, NArrayInt>::GetPositi
         thrust::make_zip_iterator(thrust::make_tuple(AMREX_D_DECL(thrust::device_ptr<Real>(x.data()), 
                                                                   thrust::device_ptr<Real>(y.data()), 
                                                                   thrust::device_ptr<Real>(z.data())))),
-        getPosition() );
+        functors::getPosition() );
 #else
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();
@@ -131,7 +131,7 @@ ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>::SetPosition
                                                                   thrust::device_ptr<const Real>(y.data() + N), 
                                                                   thrust::device_ptr<const Real>(z.data() + N)))),
         thrust::device_ptr<ParticleType>(static_cast<ParticleType*>(aos().data())),
-        setPosition() );
+        functors::setPosition<ParticleType>() );
 #else
     const auto  p     = aos.data();
     const auto& shape = aos.dataShape();

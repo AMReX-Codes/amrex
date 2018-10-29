@@ -1,6 +1,8 @@
+#ifndef _PERILLA_RTS_
+#define _PERILLA_RTS_
+
 #include <AMReX_Amr.H>
 #include <PerillaConfig.H>
-
 
 namespace perilla{
 
@@ -43,3 +45,4 @@ class PerillaRTS
 };
 
 }
+#endif

@@ -1,9 +1,10 @@
 #ifndef AMREX_CUDA_MEMORY_H_
 #define AMREX_CUDA_MEMORY_H_
 
-#include <AMReX_CudaQualifiers.H>
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuControl.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_CudaControl.H>
+#include <AMReX_Arena.H>
 #include <cstdlib>
 
 namespace amrex {
@@ -13,41 +14,33 @@ struct Managed {
 
 #ifdef AMREX_USE_CUDA
 
-  void *operator new(size_t len)
-  {
-    void *ptr;
-    cudaMallocManaged(&ptr, len);
-    cudaDeviceSynchronize();
-    return ptr;
-  }
-
-  void operator delete(void *ptr)
-  {
-    cudaDeviceSynchronize();
-    cudaFree(ptr);
-  }
+    void *operator new(size_t len)
+    {
+        return The_Managed_Arena()->alloc(len);
+    }
+    
+    void operator delete(void *ptr)
+    {
+        The_Managed_Arena()->free(ptr);
+    }
 
 #endif
 };
 
 struct Pinned {
-
+    
 #ifdef AMREX_USE_CUDA
 
-  void *operator new(size_t len)
-  {
-    void *ptr;
-    cudaMallocHost(&ptr, len);
-    cudaDeviceSynchronize();
-    return ptr;
-  }
-
-  void operator delete(void *ptr)
-  {
-    cudaDeviceSynchronize();
-    cudaFreeHost(ptr);
-  }
-
+    void *operator new(size_t len)
+    {
+        return The_Pinned_Arena()->alloc(len);
+    }
+    
+    void operator delete(void *ptr)
+    {
+        The_Pinned_Arena()->free(ptr);
+    }
+    
 #endif
 };
 
@@ -115,7 +108,7 @@ struct DeviceScalar
 
     DeviceScalar (T init_val) {
         if (Cuda::inLaunchRegion()) {
-            cudaMalloc(&dp, sizeof(T));
+            dp = (T*)(The_Device_Arena()->alloc(sizeof(T)));
             cudaMemcpy(dp, &init_val, sizeof(T), cudaMemcpyHostToDevice);
         } else {
             dp = (T*)(std::malloc(sizeof(T)));
@@ -125,7 +118,7 @@ struct DeviceScalar
 
     ~DeviceScalar () {
         if (Cuda::inLaunchRegion()) {
-            cudaFree(dp);
+            The_Device_Arena()->free(dp);
         } else {
             std::free(dp);
         }

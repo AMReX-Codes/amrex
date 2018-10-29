@@ -99,7 +99,7 @@ int main (int argc, char* argv[])
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
-    Cuda::setLaunchRegion(true);
+    Gpu::setLaunchRegion(true);
 
     Real cells = 0;
     {
@@ -139,7 +139,7 @@ int main (int argc, char* argv[])
        amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
 
-    Cuda::setLaunchRegion(false);
+    Gpu::setLaunchRegion(false);
     {
        MultiFab x(ba, dm, Ncomp, Nghost);
        MultiFab y(ba, dm, Ncomp, Nghost);
@@ -159,7 +159,7 @@ int main (int argc, char* argv[])
        amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
 
-    Cuda::setLaunchRegion(true);
+    Gpu::setLaunchRegion(true);
     {
        MultiFab x(ba, dm, Ncomp, Nghost);
        x.setVal(0.0);
@@ -185,7 +185,7 @@ int main (int argc, char* argv[])
        amrex::Print() << "Calculated in " << (end_time-strt_time) << " seconds."<< std::endl << std::endl;
     }
 
-    Cuda::setLaunchRegion(false);
+    Gpu::setLaunchRegion(false);
     {
        MultiFab x(ba, dm, Ncomp, Nghost);
        x.setVal(0.0);

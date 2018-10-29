@@ -42,10 +42,15 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Cuda.H
-C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H
-C$(AMREX_BASE)_sources += AMReX_CudaLaunch.cpp AMReX_CudaControl.cpp AMReX_CudaUtility.cpp
-C$(AMREX_BASE)_headers += AMReX_CudaLaunch.H   AMReX_CudaControl.H   AMReX_CudaUtility.H
+C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H
+
+C$(AMREX_BASE)_headers += AMReX_GpuControl.H
+C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
+
+C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaRange.H AMReX_CudaContainers.H
+
+C$(AMREX_BASE)_sources += AMReX_CudaDevice.cpp AMReX_CudaLaunch.cpp AMReX_CudaUtility.cpp AMReX_CudaAllocators.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaDevice.H   AMReX_CudaLaunch.H   AMReX_CudaUtility.H   AMReX_CudaAllocators.H
 
 #
 # I/O stuff.
@@ -145,9 +150,6 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
 
-  F90$(AMREX_BASE)_sources += AMReX_BaseFab_nd.F90
-  F90$(AMREX_BASE)_headers += AMReX_BaseFab_f.H
-
   f90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)d.f90
 
   f90$(AMREX_BASE)_sources +=  AMReX_constants_mod.f90
@@ -174,9 +176,6 @@ endif
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
-
-C$(AMREX_BASE)_headers += AMReX_Device.H
-C$(AMREX_BASE)_sources += AMReX_Device.cpp
 
 ifeq ($(USE_CUDA),TRUE)
   F90$(AMREX_BASE)_sources += AMReX_CudaFort.F90

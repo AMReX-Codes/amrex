@@ -136,12 +136,6 @@ else
   USE_CUDA = FALSE
 endif
 
-ifdef USE_CUDA_UM
-  USE_CUDA_UM := $(strip $(USE_CUDA_UM))
-else
-  USE_CUDA_UM = TRUE
-endif
-
 ifndef NO_DEVICE_LAUNCH
   NO_DEVICE_LAUNCH = FALSE
 endif
@@ -367,10 +361,6 @@ else
   endif
 endif
 
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-    CPPFLAGS += -DAMREX_USE_GPU_PRAGMA
-endif
-
 ifeq ($(USE_OMP),TRUE)
     OMPSuffix	:= .OMP
     CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
@@ -378,17 +368,19 @@ else
     OMPSuffix	:=
 endif
 
+USE_GPU := FALSE
+
 ifeq ($(USE_ACC),TRUE)
 
+  USE_GPU := TRUE
   ACCSuffix := .ACC
   DEFINES += -DAMREX_USE_ACC
-  DEFINES += -DAMREX_USE_GPU
 
 endif
 
-USE_DEVICE := FALSE
-
 ifeq ($(USE_CUDA),TRUE)
+
+    USE_GPU := TRUE
 
     # The CUDA implementation is not currently threadsafe.
     # Throw an error if the user tries to build with OpenMP and CUDA.
@@ -423,15 +415,6 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     DEFINES += -DAMREX_USE_CUDA
-    DEFINES += -DAMREX_USE_GPU
-
-    USE_DEVICE := TRUE
-    DEFINES += -DAMREX_USE_DEVICE
-
-    ifeq ($(USE_CUDA_UM),TRUE)
-        DEFINES += -DAMREX_USE_CUDA_UM
-	DEFINES += -DBL_COALESCE_FABS
-    endif
 
     ifeq ($(USE_GPU_PRAGMA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
@@ -462,6 +445,10 @@ else
     DEFINES += -DAMREX_CUDA_FORT_HOST=""
 
     CUDASuffix :=
+endif
+
+ifeq ($(USE_GPU),TRUE)
+    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)

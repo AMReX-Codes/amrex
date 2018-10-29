@@ -110,8 +110,8 @@ add_sources( AMReX_COORDSYS_C.H AMReX_filcc_f.H )
 add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
    AMReX_BLProfiler_F.F90)
 
-add_sources( AMReX_BaseFab_nd.F90 AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
-add_sources( AMReX_BaseFab_f.H AMReX_MultiFabUtil_F.H )
+add_sources( AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
+add_sources( AMReX_MultiFabUtil_F.H )
 
 add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
 add_sources( AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
@@ -152,6 +152,8 @@ if (ENABLE_TINY_PROFILE)
    add_sources( AMReX_TinyProfiler.H )
 endif ()
 
+add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H )
+add_sources( AMReX_GpuControl.cpp )
 
 #
 # This is temporaty CUDA stuff
@@ -159,12 +161,10 @@ endif ()
 # be included when ENABLE_CUDA is set to yes 
 #
 #if (ENABLE_CUDA)
-add_sources(AMReX_CudaAllocators.H)
+add_sources( AMReX_CudaAllocators.H AMReX_CudaRange.H )
+add_sources( AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaContainers.H)
+add_sources( AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
+add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
+add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 #endif()
 
-# always include
-add_sources( AMReX_Cuda.H )
-add_sources( AMReX_CudaControl.H AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaQualifiers.H AMReX_CudaContainers.H)
-add_sources( AMReX_CudaControl.cpp AMReX_CudaLaunch.cpp )
-add_sources( AMReX_Device.H )
-add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )

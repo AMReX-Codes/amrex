@@ -41,20 +41,20 @@ MultiFab::Dot (const MultiFab& x, int xcomp,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction && Gpu::notInLaunchRegion()) reduction(+:sm)
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_sm(0.0);
+        amrex::Gpu::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
         for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* xfab = &(x[mfi]);
             FArrayBox const* yfab = &(y[mfi]);
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dot(tbx, xcomp, *yfab, tbx, ycomp, numcomp);
-                amrex::Cuda::Atomic::Add(p, t);
+                amrex::Gpu::Atomic::Add(p, t);
             });
         }
         sm += local_sm.dataValue();
@@ -81,10 +81,10 @@ MultiFab::Dot (const iMultiFab& mask,
     Real sm = 0.0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction && Gpu::notInLaunchRegion()) reduction(+:sm)
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_sm(0.0);
+        amrex::Gpu::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
         for (MFIter mfi(x,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -92,10 +92,10 @@ MultiFab::Dot (const iMultiFab& mask,
             FArrayBox const* xfab = &(x[mfi]);
             FArrayBox const* yfab = &(y[mfi]);
             IArrayBox const* mskfab = &(mask[mfi]);
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 Real t = xfab->dotmask(*mskfab, tbx, xcomp, *yfab, tbx, ycomp, numcomp);
-                amrex::Cuda::Atomic::Add(p, t);
+                amrex::Gpu::Atomic::Add(p, t);
             });
         }
         sm += local_sm.dataValue();
@@ -133,7 +133,7 @@ MultiFab::Add (MultiFab&       dst,
     BL_PROFILE("MultiFab::Add()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -143,7 +143,7 @@ MultiFab::Add (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->plus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -177,7 +177,7 @@ MultiFab::Copy (MultiFab&       dst,
     BL_PROFILE("MultiFab::Copy()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -187,7 +187,7 @@ MultiFab::Copy (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
             });
@@ -248,7 +248,7 @@ MultiFab::Subtract (MultiFab&       dst,
     BL_PROFILE("MultiFab::Subtract()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -258,7 +258,7 @@ MultiFab::Subtract (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->minus(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -292,7 +292,7 @@ MultiFab::Multiply (MultiFab&       dst,
     BL_PROFILE("MultiFab::Multiply()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -302,7 +302,7 @@ MultiFab::Multiply (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->mult(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -336,7 +336,7 @@ MultiFab::Divide (MultiFab&       dst,
     BL_PROFILE("MultiFab::Divide()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -346,7 +346,7 @@ MultiFab::Divide (MultiFab&       dst,
 
         if (bx.ok())
         {
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dstFab->divide(*srcFab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -370,7 +370,7 @@ MultiFab::Saxpy (MultiFab&       dst,
     BL_PROFILE("MultiFab::Saxpy()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -380,7 +380,7 @@ MultiFab::Saxpy (MultiFab&       dst,
             FArrayBox const* sfab = &(src[mfi]);
             FArrayBox      * dfab = &(dst[mfi]);
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->saxpy(a, *sfab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -404,7 +404,7 @@ MultiFab::Xpay (MultiFab&       dst,
     BL_PROFILE("MultiFab::Xpay()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -414,7 +414,7 @@ MultiFab::Xpay (MultiFab&       dst,
             FArrayBox const* sfab = &(src[mfi]);
             FArrayBox      * dfab = &(dst[mfi]);
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->xpay(a, *sfab, tbx, tbx, srccomp, dstcomp, numcomp);
             });
@@ -443,7 +443,7 @@ MultiFab::LinComb (MultiFab&       dst,
     BL_PROFILE("MultiFab::LinComb()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -453,7 +453,7 @@ MultiFab::LinComb (MultiFab&       dst,
             FArrayBox const* xfab = &(x  [mfi]);
             FArrayBox const* yfab = &(y  [mfi]);
             FArrayBox      * dfab = &(dst[mfi]);
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->linComb(*xfab,tbx,xcomp,*yfab,tbx,ycomp,a,b,tbx,dstcomp,numcomp);
             });
@@ -480,7 +480,7 @@ MultiFab::AddProduct (MultiFab&       dst,
     BL_PROFILE("MultiFab::AddProduct()");
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -491,7 +491,7 @@ MultiFab::AddProduct (MultiFab&       dst,
             FArrayBox const* s2fab = &(src2[mfi]);
             FArrayBox      *  dfab = &(dst [mfi]);
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->addproduct(tbx, dstcomp, numcomp, *s1fab, comp1, *s2fab, comp2);
             });
@@ -689,7 +689,7 @@ MultiFab::initVal ()
 {
     // Done in FabArray. Just Cuda wrapping and Tiling check here.
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -799,19 +799,19 @@ MultiFab::min (int comp,
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(min:mn) 
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(min:mn) 
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
+        amrex::Gpu::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
         Real* p = local_mn.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->min(tbx, comp);
-                amrex::Cuda::Atomic::Min(p, t);
+                amrex::Gpu::Atomic::Min(p, t);
             });
         }
         mn = std::min(mn, local_mn.dataValue());
@@ -834,19 +834,19 @@ MultiFab::min (const Box& region,
     Real mn = std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(min:mn) 
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(min:mn) 
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
+        amrex::Gpu::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
         Real* p = local_mn.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost) & region;
             FArrayBox const* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->min(tbx, comp);
-                amrex::Cuda::Atomic::Min(p, t);
+                amrex::Gpu::Atomic::Min(p, t);
             });
         }
         mn = std::min(mn, local_mn.dataValue());
@@ -869,19 +869,19 @@ MultiFab::max (int comp,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:mx) 
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Gpu::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->max(tbx, comp);
-                amrex::Cuda::Atomic::Max(p, t);
+                amrex::Gpu::Atomic::Max(p, t);
             });
         }
         mx = std::max(mx, local_mx.dataValue());
@@ -904,19 +904,19 @@ MultiFab::max (const Box& region,
     Real mx = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:mx) 
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:mx) 
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Gpu::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost) & region;
             FArrayBox const* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->max(tbx, comp);
-                amrex::Cuda::Atomic::Max(p, t);
+                amrex::Gpu::Atomic::Max(p, t);
             });
         }
         mx = std::max(mx, local_mx.dataValue());
@@ -1072,20 +1072,20 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:nm0) 
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:nm0) 
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Gpu::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
             IArrayBox const* mask_fab = &(mask[mfi]);
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norminfmask(tbx, *mask_fab, comp, 1);
-                amrex::Cuda::Atomic::Max(p, t);
+                amrex::Gpu::Atomic::Max(p, t);
             });
         }
         nm0 = std::max(nm0, local_mx.dataValue());
@@ -1104,7 +1104,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:nm0)
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:nm0)
 #endif
     {
 	std::vector< std::pair<int,Box> > isects;
@@ -1112,7 +1112,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    ba.intersections(amrex::grow(mfi.validbox(),nghost),isects);
-/*            CudaArray<Box, N> bxl;
+/*            GpuArray<Box, N> bxl;
             for (int i = 0, N = isects.size(); i < N; i++)
             {
                 bxl[i] = isects[i].second; 
@@ -1140,19 +1140,19 @@ MultiFab::norm0 (int comp, int nghost, bool local) const
     Real nm0 = -std::numeric_limits<Real>::max();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion()) reduction(max:nm0) 
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:nm0) 
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
+        amrex::Gpu::DeviceScalar<Real> local_mx(-std::numeric_limits<Real>::max());
         Real* p = local_mx.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
             FArrayBox const* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->norm(tbx, 0, comp, 1);
-                amrex::Cuda::Atomic::Max(p, t);
+                amrex::Gpu::Atomic::Max(p, t);
             });
         }
         nm0 = std::max(nm0, local_mx.dataValue());
@@ -1317,11 +1317,22 @@ MultiFab::norm1 (int comp, int ngrow, bool local) const
     Real nm1 = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction) reduction(+:nm1)
+#pragma omp parallel if (!system::regtest_reduction && Gpu::notInLaunchRegion()) reduction(+:nm1)
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-        nm1 += get(mfi).norm(mfi.growntilebox(ngrow), 1, comp, 1);
+        amrex::Gpu::DeviceScalar<Real> local_nm1(0.0);
+        Real* p = local_nm1.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(ngrow);
+            FArrayBox const* fab = &(get(mfi));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->norm(tbx, 1, comp, 1);
+                amrex::Gpu::Atomic::Add(p, t);
+            });
+        }
+        nm1 += local_nm1.dataValue();
     }
 
     if (!local)
@@ -1388,19 +1399,19 @@ MultiFab::sum (int comp, bool local) const
     Real sm = 0.e0;
 
 #ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction && !Cuda::inLaunchRegion()) reduction(+:sm)
+#pragma omp parallel if (!system::regtest_reduction && Gpu::notInLaunchRegion()) reduction(+:sm)
 #endif
     {
-        amrex::Cuda::DeviceScalar<Real> local_sm(0.0);
+        amrex::Gpu::DeviceScalar<Real> local_sm(0.0);
         Real* p = local_sm.dataPtr();
         for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             FArrayBox const* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 Real t = fab->sum(tbx, comp, 1);
-                amrex::Cuda::Atomic::Add(p, t);
+                amrex::Gpu::Atomic::Add(p, t);
             });
         }
         sm += local_sm.dataValue();
@@ -1442,13 +1453,13 @@ MultiFab::plus (Real val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->plus(val, tbx, comp, num_comp);
         });
@@ -1467,14 +1478,14 @@ MultiFab::plus (Real       val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& b = mfi.growntilebox(nghost) & region;
         FArrayBox* fab = &(get(mfi));
         if (b.ok()) {
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->plus(val, tbx, comp, num_comp);
             });
@@ -1502,13 +1513,13 @@ MultiFab::mult (Real val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->mult(val, tbx, comp, num_comp);
         });
@@ -1527,7 +1538,7 @@ MultiFab::mult (Real       val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -1535,7 +1546,7 @@ MultiFab::mult (Real       val,
 
         if (b.ok()) {
             FArrayBox* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->mult(val, tbx, comp, num_comp);
             });
@@ -1554,13 +1565,13 @@ MultiFab::invert (Real numerator,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->invert(numerator, tbx, comp, num_comp);
         });
@@ -1579,7 +1590,7 @@ MultiFab::invert (Real       numerator,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -1587,7 +1598,7 @@ MultiFab::invert (Real       numerator,
 
         if (b.ok()) {
             FArrayBox* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->invert(numerator, tbx, comp, num_comp);
             });
@@ -1604,13 +1615,13 @@ MultiFab::negate (int comp,
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
         FArrayBox* fab = &(get(mfi));
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->negate(tbx, comp, num_comp);
         });
@@ -1627,7 +1638,7 @@ MultiFab::negate (const Box& region,
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -1635,7 +1646,7 @@ MultiFab::negate (const Box& region,
 
         if (b.ok()) {
             FArrayBox* fab = &(get(mfi));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->negate(tbx, comp, num_comp);
             });
@@ -1802,14 +1813,14 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     const int ncomp = nComp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
         FArrayBox* fab = &(*this)[mfi];
         IArrayBox const* ifab = &(msk[mfi]);
-        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->setValIfNot(0.0, tbx, *ifab, 0, ncomp);
         });

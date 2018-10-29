@@ -1,12 +1,10 @@
-
-#ifndef BL_DEVICE_H
-#define BL_DEVICE_H
+#ifndef AMREX_CUDA_DEVICE_H_
+#define AMREX_CUDA_DEVICE_H_
 
 #include <cstdlib>
 #include <memory>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
-#include <AMReX_CudaControl.H>
 
 #ifdef AMREX_USE_CUDA
 #ifdef AMREX_USE_NVML
@@ -85,6 +83,7 @@ extern "C" {
 }
 
 namespace amrex {
+namespace Cuda {
 
 class Device
 {
@@ -162,7 +161,6 @@ public:
 
 private:
 
-    static bool in_device_launch_region;
     static int device_id;
 
     static int verbose;
@@ -180,12 +178,12 @@ private:
 #endif
 };
 
-}
+}}
 
 #ifdef AMREX_USE_CUDA
 template<typename T>
 std::shared_ptr<T>
-amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
+amrex::Cuda::Device::create_host_pointer(const T* ptr, const int n, const int m)
 {
     std::shared_ptr<T> h_ptr;
 
@@ -218,7 +216,7 @@ amrex::Device::create_host_pointer(const T* ptr, const int n, const int m)
 #ifdef AMREX_USE_CUDA
 template<typename T>
 std::shared_ptr<T>
-amrex::Device::create_device_pointer(int n)
+amrex::Cuda::Device::create_device_pointer(int n)
 {
 
     std::shared_ptr<T> d_ptr;
