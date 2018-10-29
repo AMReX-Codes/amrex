@@ -139,6 +139,8 @@ public:
 
     void WriteHeader (std::ostream& os) const;
 
+    void SortParticlesByCell ();
+
     void Redistribute ();
 
     void RedistributeLocal ();

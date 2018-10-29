@@ -145,6 +145,12 @@ WarpX::EvolveEM (int numsteps)
             mypc->Redistribute();
         }
 
+	bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
+	if (to_sort) {
+	    amrex::Print() << "re-sorting particles \n";
+	    mypc->SortParticlesByCell();
+	}
+
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
         Real walltime_end_step = amrex::second();
@@ -462,7 +468,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for ( MFIter mfi(*Bx, TilingIfNotGPU()); mfi.isValid(); ++mfi )
     {
@@ -500,7 +506,7 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for ( MFIter mfi(*pml_B[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
@@ -587,7 +593,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for ( MFIter mfi(*Ex, TilingIfNotGPU()); mfi.isValid(); ++mfi )
     {
@@ -644,7 +650,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for ( MFIter mfi(*pml_E[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
@@ -745,7 +751,7 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for ( MFIter mfi(*pml_F, TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {
@@ -791,7 +797,7 @@ WarpX::DampPML (int lev, PatchType patch_type)
                                                               : pml[lev]->GetMultiSigmaBox_cp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for ( MFIter mfi(*pml_E[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
         {

@@ -10,6 +10,62 @@
 
 using namespace amrex;
 
+long PhysicalParticleContainer::
+NumParticlesToAdd(const Box& overlap_box, const RealBox& overlap_realbox,
+		  const RealBox& tile_realbox, const RealBox& particle_real_box)
+{
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    int num_ppc = plasma_injector->num_particles_per_cell;
+    const Real* dx = geom.CellSize();
+
+    long np = 0;
+    const auto& overlap_corner = overlap_realbox.lo();
+    for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
+    {
+        int fac;
+	if (injected) {
+#if ( AMREX_SPACEDIM == 3 )
+	    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
+	    Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
+	    Real z = overlap_corner[2] + (iv[2] + 0.5)*dx[2];
+#elif ( AMREX_SPACEDIM == 2 )
+	    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
+	    Real y = 0;
+	    Real z = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
+#endif
+	    fac = GetRefineFac(x, y, z);
+	} else {
+	    fac = 1.0;
+	}
+	
+	int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
+	for (int i_part=0; i_part<ref_num_ppc;i_part++) {
+	    std::array<Real, 3> r;
+	    plasma_injector->getPositionUnitBox(r, i_part, fac);
+#if ( AMREX_SPACEDIM == 3 )
+	    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
+	    Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+	    Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
+#elif ( AMREX_SPACEDIM == 2 )
+	    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
+	    Real y = 0;
+	    Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+#endif
+	    // If the new particle is not inside the tile box,
+	    // go to the next generated particle.
+#if ( AMREX_SPACEDIM == 3 )
+	    if(!tile_realbox.contains( RealVect{x, y, z} )) continue;
+#elif ( AMREX_SPACEDIM == 2 )
+	    if(!tile_realbox.contains( RealVect{x, z} )) continue;
+#endif
+	    ++np;
+	}
+    }
+    
+    return np;
+}
+
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int ispecies,
                                                       const std::string& name)
     : WarpXParticleContainer(amr_core, ispecies),
@@ -23,6 +79,31 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
     pp.query("do_backward_propagation", do_backward_propagation);
+
+    int num_threads = 1;
+#ifdef _OPENMP
+#pragma omp parallel
+#pragma omp single
+    num_threads = omp_get_num_threads();
+#endif
+    
+    local_rho.resize(num_threads);
+    local_jx.resize(num_threads);
+    local_jy.resize(num_threads);
+    local_jz.resize(num_threads);
+
+    m_xp.resize(num_threads);
+    m_yp.resize(num_threads);
+    m_zp.resize(num_threads);    
+    m_giv.resize(num_threads);
+
+    for (int i = 0; i < num_threads; ++i)
+    {
+        local_rho[i].reset(nullptr);
+        local_jx[i].reset(nullptr);
+        local_jy[i].reset(nullptr);
+        local_jz[i].reset(nullptr);
+    }
 }
 
 void PhysicalParticleContainer::InitData()
@@ -174,9 +255,19 @@ PhysicalParticleContainer::AddParticles (int lev)
  * but its boundaries need not be aligned with the actual cells of the simulation)
  */
 void
-PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
+PhysicalParticleContainer::AddPlasma (int lev, RealBox part_realbox)
 {
-    BL_PROFILE("PhysicalParticleContainer::AddPlasma");
+#ifdef AMREX_USE_GPU
+  AddPlasmaGPU(lev, part_realbox);
+#else
+  AddPlasmaCPU(lev, part_realbox);
+#endif
+}
+
+void
+PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
+{
+    BL_PROFILE("PhysicalParticleContainer::AddPlasmaCPU");
 
     // If no part_realbox is provided, initialize particles in the whole domain
     const Geometry& geom = Geom(lev);
@@ -365,17 +456,265 @@ PhysicalParticleContainer::AddPlasma(int lev, RealBox part_realbox)
                     attribs[PIdx::uzold] = u[2];
 #endif
 
-                    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
+		    ParticleType p;
+		    p.id()  = ParticleType::NextID();
+		    p.cpu() = ParallelDescriptor::MyProc();
+#if (AMREX_SPACEDIM == 3)
+		    p.pos(0) = x;
+		    p.pos(1) = y;
+		    p.pos(2) = z;
+#elif (AMREX_SPACEDIM == 2)
+		    p.pos(0) = x;
+		    p.pos(1) = z;
+#endif
+
+		    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
             }
 
             if (cost) {
-                wt = (amrex::second() - wt) / tile_box.d_numPts();
-                (*cost)[mfi].plus(wt, tile_box);
+	        wt = (amrex::second() - wt) / tile_box.d_numPts();
+		(*cost)[mfi].plus(wt, tile_box);
             }
         }
     }
 }
+
+#ifdef AMREX_USE_GPU
+void
+PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
+{
+    BL_PROFILE("PhysicalParticleContainer::AddPlasmaGPU");
+
+    // If no part_realbox is provided, initialize particles in the whole domain
+    const Geometry& geom = Geom(lev);
+    if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
+
+    int num_ppc = plasma_injector->num_particles_per_cell;
+
+    const Real* dx = geom.CellSize();
+
+    Real scale_fac;
+#if AMREX_SPACEDIM==3
+    scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
+#elif AMREX_SPACEDIM==2
+    scale_fac = dx[0]*dx[1]/num_ppc;
+#endif
+
+#ifdef _OPENMP
+    // First touch all tiles in the map in serial
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) {
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        GetParticles(lev)[std::make_pair(grid_id, tile_id)];
+    }
+#endif
+
+    MultiFab* cost = WarpX::getCosts(lev);
+
+    if ( (not m_refined_injection_mask) and WarpX::do_moving_window)
+    {
+        Box mask_box = geom.Domain();
+        mask_box.setSmall(WarpX::moving_window_dir, 0);
+        mask_box.setBig(WarpX::moving_window_dir, 0);
+        m_refined_injection_mask.reset( new IArrayBox(mask_box));
+        m_refined_injection_mask->setVal(-1);
+    }
+
+    MFItInfo info;
+    if (do_tiling) {
+        info.EnableTiling(tile_size);
+    }
+    info.SetDynamic(true);
+
+#ifdef _OPENMP
+#pragma omp parallel if (not WarpX::serialize_ics)
+#endif
+    {
+        std::array<Real,PIdx::nattribs> attribs;
+        attribs.fill(0.0);
+
+        // Loop through the tiles
+        for (MFIter mfi = MakeMFIter(lev, info); mfi.isValid(); ++mfi) {
+
+            Real wt = amrex::second();
+
+            const Box& tile_box = mfi.tilebox();
+            const RealBox tile_realbox = WarpX::getRealBox(tile_box, lev);
+
+            // Find the cells of part_box that overlap with tile_realbox
+            // If there is no overlap, just go to the next tile in the loop
+            RealBox overlap_realbox;
+            Box overlap_box;
+            Real ncells_adjust;
+            bool no_overlap = 0;
+
+            for (int dir=0; dir<AMREX_SPACEDIM; dir++) {
+                if ( tile_realbox.lo(dir) <= part_realbox.hi(dir) ) {
+                    ncells_adjust = std::floor( (tile_realbox.lo(dir) - part_realbox.lo(dir))/dx[dir] );
+                    overlap_realbox.setLo( dir, part_realbox.lo(dir) + std::max(ncells_adjust, 0.) * dx[dir]);
+                } else {
+                    no_overlap = 1; break;
+                }
+                if ( tile_realbox.hi(dir) >= part_realbox.lo(dir) ) {
+                    ncells_adjust = std::floor( (part_realbox.hi(dir) - tile_realbox.hi(dir))/dx[dir] );
+                    overlap_realbox.setHi( dir, part_realbox.hi(dir) - std::max(ncells_adjust, 0.) * dx[dir]);
+                } else {
+                    no_overlap = 1; break;
+                }
+                // Count the number of cells in this direction in overlap_realbox
+                overlap_box.setSmall( dir, 0 );
+                overlap_box.setBig( dir,
+				    int( round((overlap_realbox.hi(dir)-overlap_realbox.lo(dir))/dx[dir] )) - 1);
+            }
+            if (no_overlap == 1) {
+                continue; // Go to the next tile
+            }
+
+            const int grid_id = mfi.index();
+            const int tile_id = mfi.LocalTileIndex();
+
+	    Cuda::HostVector<ParticleType> host_particles;
+	    std::array<Cuda::HostVector<Real>, PIdx::nattribs> host_attribs;
+	    
+            // Loop through the cells of overlap_box and inject
+            // the corresponding particles
+            const auto& overlap_corner = overlap_realbox.lo();
+            for (IntVect iv = overlap_box.smallEnd(); iv <= overlap_box.bigEnd(); overlap_box.next(iv))
+            {
+                int fac;
+                if (injected) {
+#if ( AMREX_SPACEDIM == 3 )
+                    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
+                    Real y = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
+                    Real z = overlap_corner[2] + (iv[2] + 0.5)*dx[2];
+#elif ( AMREX_SPACEDIM == 2 )
+                    Real x = overlap_corner[0] + (iv[0] + 0.5)*dx[0];
+                    Real y = 0;
+                    Real z = overlap_corner[1] + (iv[1] + 0.5)*dx[1];
+#endif
+                    fac = GetRefineFac(x, y, z);
+                } else {
+                    fac = 1.0;
+                }
+
+                int ref_num_ppc = num_ppc * AMREX_D_TERM(fac, *fac, *fac);
+                for (int i_part=0; i_part<ref_num_ppc;i_part++) {
+                    std::array<Real, 3> r;
+                    plasma_injector->getPositionUnitBox(r, i_part, fac);
+#if ( AMREX_SPACEDIM == 3 )
+                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
+                    Real y = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+                    Real z = overlap_corner[2] + (iv[2] + r[2])*dx[2];
+#elif ( AMREX_SPACEDIM == 2 )
+                    Real x = overlap_corner[0] + (iv[0] + r[0])*dx[0];
+                    Real y = 0;
+                    Real z = overlap_corner[1] + (iv[1] + r[1])*dx[1];
+#endif
+                    // If the new particle is not inside the tile box,
+                    // go to the next generated particle.
+#if ( AMREX_SPACEDIM == 3 )
+                    if(!tile_realbox.contains( RealVect{x, y, z} )) continue;
+#elif ( AMREX_SPACEDIM == 2 )
+                    if(!tile_realbox.contains( RealVect{x, z} )) continue;
+#endif
+
+                    Real dens;
+                    std::array<Real, 3> u;
+                    if (WarpX::gamma_boost == 1.){
+                      // Lab-frame simulation
+                      // If the particle is not within the species's
+                      // xmin, xmax, ymin, ymax, zmin, zmax, go to
+                      // the next generated particle.
+                      if (!plasma_injector->insideBounds(x, y, z)) continue;
+                      plasma_injector->getMomentum(u, x, y, z);
+                      dens = plasma_injector->getDensity(x, y, z);
+                    } else {
+                      // Boosted-frame simulation
+                      Real c = PhysConst::c;
+                      Real gamma_boost = WarpX::gamma_boost;
+                      Real beta_boost = WarpX::beta_boost;
+                      // Since the user provides the density distribution
+                      // at t_lab=0 and in the lab-frame coordinates,
+                      // we need to find the lab-frame position of this
+                      // particle at t_lab=0, from its boosted-frame coordinates
+                      // Assuming ballistic motion, this is given by:
+                      // z0_lab = gamma*( z_boost*(1-beta*betaz_lab) - ct_boost*(betaz_lab-beta) )
+                      // where betaz_lab is the speed of the particle in the lab frame
+                      //
+                      // In order for this equation to be solvable, betaz_lab
+                      // is explicitly assumed to have no dependency on z0_lab
+                      plasma_injector->getMomentum(u, x, y, 0.); // No z0_lab dependency
+                      // At this point u is the lab-frame momentum
+                      // => Apply the above formula for z0_lab
+                      Real gamma_lab = std::sqrt( 1 + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])/(c*c) );
+                      Real betaz_lab = u[2]/gamma_lab/c;
+                      Real t = WarpX::GetInstance().gett_new(lev);
+                      Real z0_lab = gamma_boost * ( z*(1-beta_boost*betaz_lab) - c*t*(betaz_lab-beta_boost) );
+                      // If the particle is not within the lab-frame zmin, zmax, etc.
+                      // go to the next generated particle.
+                      if (!plasma_injector->insideBounds(x, y, z0_lab)) continue;
+                      // call `getDensity` with lab-frame parameters
+                      dens = plasma_injector->getDensity(x, y, z0_lab);
+                      // At this point u and dens are the lab-frame quantities
+                      // => Perform Lorentz transform
+                      dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
+                      u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
+                    }
+                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    attribs[PIdx::ux] = u[0];
+                    attribs[PIdx::uy] = u[1];
+                    attribs[PIdx::uz] = u[2];
+
+#ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
+                    attribs[PIdx::xold] = x;
+                    attribs[PIdx::yold] = y;
+                    attribs[PIdx::zold] = z;
+
+                    attribs[PIdx::uxold] = u[0];
+                    attribs[PIdx::uyold] = u[1];
+                    attribs[PIdx::uzold] = u[2];
+#endif
+
+		    ParticleType p;
+		    p.id()  = ParticleType::NextID();
+		    p.cpu() = ParallelDescriptor::MyProc();
+#if (AMREX_SPACEDIM == 3)
+		    p.pos(0) = x;
+		    p.pos(1) = y;
+		    p.pos(2) = z;
+#elif (AMREX_SPACEDIM == 2)
+		    p.pos(0) = x;
+		    p.pos(1) = z;
+#endif
+
+		    host_particles.push_back(p);
+		    for (int kk = 0; kk < PIdx::nattribs; ++kk)
+		      host_attribs[kk].push_back(attribs[kk]);
+                }
+            }
+
+	    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+	    particle_tile.resize(host_particles.size());
+
+	    thrust::copy(host_particles.begin(),
+			 host_particles.end(),
+			 particle_tile.GetArrayOfStructs().begin());
+
+	    for (int kk = 0; kk < PIdx::nattribs; ++kk) {
+	      thrust::copy(host_attribs[kk].begin(),
+			   host_attribs[kk].end(),
+			   particle_tile.GetStructOfArrays().GetRealData(kk).begin());
+	    }
+	    			 
+            if (cost) {
+	        wt = (amrex::second() - wt) / tile_box.d_numPts();
+		(*cost)[mfi].plus(wt, tile_box);
+            }
+        }		
+    }
+}
+#endif
 
 #ifdef WARPX_DO_ELECTROSTATIC
 void
@@ -722,15 +1061,19 @@ PhysicalParticleContainer::Evolve (int lev,
     bool has_buffer = cEx || cjx;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel 
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp, giv;
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif
 
-        std::unique_ptr<FArrayBox> local_rho(new FArrayBox());
-        std::unique_ptr<FArrayBox> local_jx(new FArrayBox());
-        std::unique_ptr<FArrayBox> local_jy(new FArrayBox());
-        std::unique_ptr<FArrayBox> local_jz(new FArrayBox());
+	if (local_rho[thread_num] == nullptr) local_rho[thread_num].reset( new amrex::FArrayBox());
+	if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset(  new amrex::FArrayBox());
+	if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
+	if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
 
         FArrayBox filtered_Ex, filtered_Ey, filtered_Ez;
         FArrayBox filtered_Bx, filtered_By, filtered_Bz;
@@ -842,7 +1185,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    Byp.assign(np,WarpX::B_external[1]);
 	    Bzp.assign(np,WarpX::B_external[2]);
 
-	    giv.resize(np);
+	    m_giv[thread_num].resize(np);
 
             long nfine_current = np;
             long nfine_gather = np;
@@ -941,7 +1284,7 @@ PhysicalParticleContainer::Evolve (int lev,
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
@@ -962,10 +1305,10 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& rhofab = (*rhomf)[pti];
                     const std::array<Real, 3>& xyzmin = xyzmin_tile;
                     tile_box.grow(ngRho);
-                    local_rho->resize(tile_box);
-                    local_rho->setVal(0.0);
-                    data_ptr = local_rho->dataPtr();
-                    rholen = local_rho->length();
+                    local_rho[thread_num]->resize(tile_box);
+                    local_rho[thread_num]->setVal(0.0);
+                    data_ptr = local_rho[thread_num]->dataPtr();
+                    rholen = local_rho[thread_num]->length();
                     
 #if (AMREX_SPACEDIM == 3)
                     const long nx = rholen[0]-1-2*ngRho;
@@ -977,9 +1320,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     const long nz = rholen[1]-1-2*ngRho;
 #endif
                     warpx_charge_deposition(data_ptr, &np_current,
-                                            xp.dataPtr(),
-                                            yp.dataPtr(),
-                                            zp.dataPtr(),
+                                            m_xp[thread_num].dataPtr(),
+                                            m_yp[thread_num].dataPtr(),
+                                            m_zp[thread_num].dataPtr(),
                                             wp.dataPtr(),
                                             &this->charge,
                                             &xyzmin[0], &xyzmin[1], &xyzmin[2],
@@ -989,9 +1332,9 @@ PhysicalParticleContainer::Evolve (int lev,
                                             &lvect, &WarpX::charge_deposition_algo);
 
                     const int ncomp = 1;
-                    FArrayBox const* local_fab = local_rho.get();
+                    FArrayBox const* local_fab = local_rho[thread_num].get();
                     FArrayBox*       global_fab = &rhofab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
                     {
                         global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
                     });
@@ -1006,12 +1349,12 @@ PhysicalParticleContainer::Evolve (int lev,
                     tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
                     tile_box.grow(ngRho);
 
-                    local_rho->resize(tile_box);
+                    local_rho[thread_num]->resize(tile_box);
 
-                    local_rho->setVal(0.0);
+                    local_rho[thread_num]->setVal(0.0);
 
-                    data_ptr = local_rho->dataPtr();
-                    rholen = local_rho->length();
+                    data_ptr = local_rho[thread_num]->dataPtr();
+                    rholen = local_rho[thread_num]->length();
 
 #if (AMREX_SPACEDIM == 3)
                     const long nx = rholen[0]-1-2*ngRho;
@@ -1025,9 +1368,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     
                     long ncrse = np - nfine_current;
                     warpx_charge_deposition(data_ptr, &ncrse,
-                                            xp.dataPtr() + nfine_current,
-                                            yp.dataPtr() + nfine_current,
-                                            zp.dataPtr() + nfine_current,
+                                            m_xp[thread_num].dataPtr() + nfine_current,
+                                            m_yp[thread_num].dataPtr() + nfine_current,
+                                            m_zp[thread_num].dataPtr() + nfine_current,
                                             wp.dataPtr() + nfine_current,
                                             &this->charge,
                                             &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
@@ -1039,9 +1382,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     FArrayBox& crhofab = (*crhomf)[pti];
                     
                     const int ncomp = 1;
-                    FArrayBox const* local_fab = local_rho.get();
+                    FArrayBox const* local_fab = local_rho[thread_num].get();
                     FArrayBox*       global_fab = &crhofab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
                     {
                         global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
                     });
@@ -1065,9 +1408,9 @@ PhysicalParticleContainer::Evolve (int lev,
 
                 warpx_geteb_energy_conserving(
                     &np_gather,
-                    xp.dataPtr(),
-                    yp.dataPtr(),
-                    zp.dataPtr(),
+                    m_xp[thread_num].dataPtr(),
+                    m_yp[thread_num].dataPtr(),
+                    m_zp[thread_num].dataPtr(),
                     Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
                     Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                     ixyzmin_grid,
@@ -1162,9 +1505,9 @@ PhysicalParticleContainer::Evolve (int lev,
                     long ncrse = np - nfine_gather;
                     warpx_geteb_energy_conserving(
                         &ncrse,
-                        xp.dataPtr()+nfine_gather,
-                        yp.dataPtr()+nfine_gather,
-                        zp.dataPtr()+nfine_gather,
+                        m_xp[thread_num].dataPtr()+nfine_gather,
+                        m_yp[thread_num].dataPtr()+nfine_gather,
+                        m_zp[thread_num].dataPtr()+nfine_gather,
                         Exp.dataPtr()+nfine_gather, Eyp.dataPtr()+nfine_gather, Ezp.dataPtr()+nfine_gather,
                         Bxp.dataPtr()+nfine_gather, Byp.dataPtr()+nfine_gather, Bzp.dataPtr()+nfine_gather,
                         cixyzmin_grid,
@@ -1187,7 +1530,8 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Particle Push
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
-                PushPX(pti, xp, yp, zp, giv, dt);
+                PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], 
+		       m_giv[thread_num], dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
                 //
@@ -1209,46 +1553,46 @@ PhysicalParticleContainer::Evolve (int lev,
                     tby.grow(ngJ);
                     tbz.grow(ngJ);
                     
-                    local_jx->resize(tbx);
-                    local_jy->resize(tby);
-                    local_jz->resize(tbz);
+                    local_jx[thread_num]->resize(tbx);
+                    local_jy[thread_num]->resize(tby);
+                    local_jz[thread_num]->resize(tbz);
 
-                    jx_ptr = local_jx->dataPtr();
-                    jy_ptr = local_jy->dataPtr();
-                    jz_ptr = local_jz->dataPtr();
+                    jx_ptr = local_jx[thread_num]->dataPtr();
+                    jy_ptr = local_jy[thread_num]->dataPtr();
+                    jz_ptr = local_jz[thread_num]->dataPtr();
 
-                    FArrayBox* local_jx_ptr = local_jx.get();
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+                    FArrayBox* local_jx_ptr = local_jx[thread_num].get();
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
                     {
                         local_jx_ptr->setVal(0.0, b, 0, 1);
                     });
 
-                    FArrayBox* local_jy_ptr = local_jy.get();
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
+                    FArrayBox* local_jy_ptr = local_jy[thread_num].get();
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
                     {
                         local_jy_ptr->setVal(0.0, b, 0, 1);
                     });
 
-                    FArrayBox* local_jz_ptr = local_jz.get();
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
+                    FArrayBox* local_jz_ptr = local_jz[thread_num].get();
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
                     {
                         local_jz_ptr->setVal(0.0, b, 0, 1);
                     });                    
                     
-                    jxntot = local_jx->length();
-                    jyntot = local_jy->length();
-                    jzntot = local_jz->length();
+                    jxntot = local_jx[thread_num]->length();
+                    jyntot = local_jy[thread_num]->length();
+                    jzntot = local_jz[thread_num]->length();
 
                     warpx_current_deposition(
                         jx_ptr, &ngJ, jxntot,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
                         &np_current,
-                        xp.dataPtr(),
-                        yp.dataPtr(),
-                        zp.dataPtr(),
+                        m_xp[thread_num].dataPtr(),
+                        m_yp[thread_num].dataPtr(),
+                        m_zp[thread_num].dataPtr(),
                         uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                        giv.dataPtr(),
+                        m_giv[thread_num].dataPtr(),
                         wp.dataPtr(), &this->charge,
                         &xyzmin[0], &xyzmin[1], &xyzmin[2],
                         &dt, &dx[0], &dx[1], &dx[2],
@@ -1259,23 +1603,23 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    FArrayBox const* local_jx_const_ptr = local_jx.get();
+                    FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
                     FArrayBox* global_jx_ptr = &jxfab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
                         global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jy_const_ptr = local_jy.get();
+                    FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
                     FArrayBox* global_jy_ptr = &jyfab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
                         global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                  
 
-                    FArrayBox const* local_jz_const_ptr = local_jz.get();
+                    FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
                     FArrayBox* global_jz_ptr = &jzfab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
                         global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
@@ -1296,21 +1640,21 @@ PhysicalParticleContainer::Evolve (int lev,
                     tby.grow(ngJ);
                     tbz.grow(ngJ);
 
-                    local_jx->resize(tbx);
-                    local_jy->resize(tby);
-                    local_jz->resize(tbz);
+                    local_jx[thread_num]->resize(tbx);
+                    local_jy[thread_num]->resize(tby);
+                    local_jz[thread_num]->resize(tbz);
 
-                    local_jx->setVal(0.0);
-                    local_jy->setVal(0.0);
-                    local_jz->setVal(0.0);
+                    local_jx[thread_num]->setVal(0.0);
+                    local_jy[thread_num]->setVal(0.0);
+                    local_jz[thread_num]->setVal(0.0);
 
-                    jx_ptr = local_jx->dataPtr();
-                    jy_ptr = local_jy->dataPtr();
-                    jz_ptr = local_jz->dataPtr();
+                    jx_ptr = local_jx[thread_num]->dataPtr();
+                    jy_ptr = local_jy[thread_num]->dataPtr();
+                    jz_ptr = local_jz[thread_num]->dataPtr();
 
-                    jxntot = local_jx->length();
-                    jyntot = local_jy->length();
-                    jzntot = local_jz->length();
+                    jxntot = local_jx[thread_num]->length();
+                    jyntot = local_jy[thread_num]->length();
+                    jzntot = local_jz[thread_num]->length();
 
                     long ncrse = np - nfine_current;
                     warpx_current_deposition(
@@ -1318,13 +1662,13 @@ PhysicalParticleContainer::Evolve (int lev,
                         jy_ptr, &ngJ, jyntot,
                         jz_ptr, &ngJ, jzntot,
                         &ncrse,
-                        xp.dataPtr() +nfine_current,
-                        yp.dataPtr() +nfine_current,
-                        zp.dataPtr() +nfine_current,
+                        m_xp[thread_num].dataPtr() +nfine_current,
+                        m_yp[thread_num].dataPtr() +nfine_current,
+                        m_zp[thread_num].dataPtr() +nfine_current,
                         uxp.dataPtr()+nfine_current,
                         uyp.dataPtr()+nfine_current,
                         uzp.dataPtr()+nfine_current,
-                        giv.dataPtr()+nfine_current,
+                        m_giv[thread_num].dataPtr()+nfine_current,
                         wp.dataPtr()+nfine_current, &this->charge,
                         &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
                         &dt, &cdx[0], &cdx[1], &cdx[2],
@@ -1337,23 +1681,23 @@ PhysicalParticleContainer::Evolve (int lev,
 
                     BL_PROFILE_VAR_START(blp_accumulate);
 
-                    FArrayBox const* local_jx_ptr = local_jx.get();
+                    FArrayBox const* local_jx_ptr = local_jx[thread_num].get();
                     FArrayBox* global_jx_ptr = &cjxfab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
                     {
                         global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jy_ptr = local_jy.get();
+                    FArrayBox const* local_jy_ptr = local_jy[thread_num].get();
                     FArrayBox* global_jy_ptr = &cjyfab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
                     {
                         global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                    
 
-                    FArrayBox const* local_jz_ptr = local_jz.get();
+                    FArrayBox const* local_jz_ptr = local_jz[thread_num].get();
                     FArrayBox* global_jz_ptr = &cjzfab;
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
                     {
                         global_jz_ptr->atomicAdd(*local_jz_ptr, thread_bx, thread_bx, 0, 0, 1);
                     });                  
@@ -1365,7 +1709,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 // copy particle data back
                 //
                 BL_PROFILE_VAR_START(blp_copy);
-                pti.SetPosition(xp, yp, zp);
+                pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
@@ -1435,6 +1779,8 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                                   const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                                   const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz)
 {
+    BL_PROFILE("PhysicalParticleContainer::PushP");
+
     if (do_not_push) return;
 
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -1443,8 +1789,11 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-	Cuda::DeviceVector<Real> xp, yp, zp, giv;
-
+#ifdef _OPENMP
+        int thread_num = omp_get_thread_num();
+#else
+        int thread_num = 0;
+#endif      
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
 	    const Box& box = pti.validbox();
@@ -1478,12 +1827,12 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
 	    Byp.assign(np,WarpX::B_external[1]);
 	    Bzp.assign(np,WarpX::B_external[2]);
 
-	    giv.resize(np);
+	    m_giv[thread_num].resize(np);
 
 	    //
 	    // copy data from particle container to temp arrays
 	    //
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
             const int* ixyzmin_grid = box.loVect();
@@ -1493,9 +1842,9 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
+                m_xp[thread_num].dataPtr(),
+                m_yp[thread_num].dataPtr(),
+                m_zp[thread_num].dataPtr(),
                 Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
                 Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
                 ixyzmin_grid,
@@ -1512,11 +1861,11 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             warpx_particle_pusher_momenta(&np,
-                                          xp.dataPtr(),
-                                          yp.dataPtr(),
-                                          zp.dataPtr(),
+                                          m_xp[thread_num].dataPtr(),
+                                          m_yp[thread_num].dataPtr(),
+                                          m_zp[thread_num].dataPtr(),
                                           uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                          giv.dataPtr(),
+                                          m_giv[thread_num].dataPtr(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                           &this->charge, &this->mass, &dt,
