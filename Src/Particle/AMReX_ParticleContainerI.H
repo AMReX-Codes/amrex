@@ -2907,7 +2907,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                     }
                     iptr += NArrayInt;
                 }
-                ++pindex;
             }
 	}
         
@@ -2935,7 +2934,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                   }
                   rptr += NArrayReal;
               }
-              ++pindex;
           }
       }
       WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
