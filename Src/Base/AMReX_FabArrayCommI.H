@@ -32,11 +32,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         // There can only be local work to do.
         //
 	int N_loc = (*TheFB.m_LocTags).size();
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	for (int i=0; i<N_loc; ++i)
+        for (Gpu::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int i = sit();
             const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
             BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
@@ -45,16 +47,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
             {
                 Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                 dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
             });
         }
 
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
         return;
     }
 
@@ -87,6 +86,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
     //
+    char*&                          the_send_data = fb_the_send_data;
     Vector<char*> &                     send_data = fb_send_data;
     Vector<int>                         send_size;
     Vector<int>                         send_rank;
@@ -112,6 +112,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	send_cctc.reserve(N_snds);
         indv_send_size.reserve(N_snds);
 
+        std::size_t total_volume = 0;
         for (auto const& kv : *TheFB.m_SndVols)
         {
             Vector<int> iss;                
@@ -137,18 +138,26 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             
             BL_ASSERT(nbytes < std::numeric_limits<int>::max());
             
-            char* data = nullptr;
-            if (nbytes > 0)
-            {
-                data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
-            }
+            total_volume += nbytes;
 
-            send_data.push_back(data);
+            send_data.push_back(nullptr);
             send_size.push_back(static_cast<int>(nbytes));
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
             send_cctc.push_back(&cctc);
             indv_send_size.push_back(std::move(iss));
+        }
+
+        if (total_volume > 0)
+        {
+            the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+            char* p = the_send_data;
+            for (int i = 0, N = send_size.size(); i < N; ++i) {
+                if (send_size[i] > 0) {
+                    send_data[i] = p;
+                    p += send_size[i];
+                }
+            }
         }
 
 #if defined(BL_USE_MPI3)
@@ -191,7 +200,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #endif
 	} else {
-	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags,
+	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags, fb_the_recv_data,
                      fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
                      scomp, ncomp, SeqNum, preSeqNum);
 	}
@@ -202,11 +211,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     if (N_snds > 0)
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-        for (int j=0; j<N_snds; ++j)
+        for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int j = sit();
             char* dptr = send_data[j];
             if (dptr != nullptr)
             {
@@ -216,7 +227,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     const Box& bx = tag.sbox;
                     const FAB* sfab = &(get(tag.srcIndex));
 
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
                         sfab->copyToMem(tbx, scomp, ncomp, p);
@@ -227,9 +238,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 BL_ASSERT(dptr == send_data[j] + send_size[j]); 
             }
         }
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();  // Synch further on? e.g. Just before post_recvs?
-#endif
 
 	if (ParallelDescriptor::MPIOneSided())
 	{
@@ -309,7 +317,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
 #endif
 	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
         {
@@ -321,21 +329,26 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             const FAB* sfab = &(get(tag.srcIndex));
                   FAB* dfab = &(get(tag.dstIndex));
 
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
             {
                 Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                 dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
             });
 	});
+#ifdef AMREX_USE_GPU
+        Gpu::Device::synchronize();
+#endif
 #endif
     }
     else
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	for (int i=0; i<N_locs; ++i)
+        for (Gpu::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
 	{
+            const int i = sit();
 	    const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
@@ -346,7 +359,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 const FAB* sfab = &(get(tag.srcIndex));
                       FAB* dfab = &(get(tag.dstIndex));
 
-                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
                 {
                     Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
                     dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
@@ -354,9 +367,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    }
 	}
     }
-#ifdef AMREX_USE_CUDA
-    Device::synchronize();
-#endif
 
 #endif /*BL_USE_MPI*/
 }
@@ -412,11 +422,13 @@ FabArray<FAB>::FillBoundary_finish ()
             }
 	}	
 
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-        for (int k = 0; k < N_rcvs; k++) 
+        for (Gpu::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int k = sit();
             const char* dptr = fb_recv_data[k];
             if (dptr != nullptr)
             {
@@ -428,7 +440,7 @@ FabArray<FAB>::FillBoundary_finish ()
                     const int scomp = fb_scomp;
                     const int ncomp = fb_ncomp;
 
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
                         dfab->copyFromMem(tbx, scomp, ncomp, p);
@@ -439,9 +451,6 @@ FabArray<FAB>::FillBoundary_finish ()
                 BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
             }
         }
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
 
         if (fb_the_recv_data)
         {
@@ -451,26 +460,17 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
             }
 	    amrex::The_FA_Arena()->free(fb_the_recv_data);
+            fb_the_recv_data = nullptr;
 	}
-        else
-        {
-            for (auto p : fb_recv_data) {
-                amrex::The_FA_Arena()->free(p);
-            }
-        }        
     }
 
     if (N_snds > 0) {
-	if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-	    for (int i = 0; i < N_snds; ++i) {
-		if (fb_send_data[i]) amrex::The_FA_Arena()->free(fb_send_data[i]);
-            }
-#endif
-        } else {
+	if (!ParallelDescriptor::MPIOneSided()) {
             Vector<MPI_Status> stats;
             FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
         }
+        amrex::The_FA_Arena()->free(fb_the_send_data);
+        fb_the_send_data = nullptr;
     }
 
 #ifdef BL_USE_TEAM
@@ -514,7 +514,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // non-cell-centered data this simplistic way.
         //
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
         {
@@ -525,12 +525,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                       FAB* dfab = &(get(fai));
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         dfab->plus(*sfab, tbx, tbx, scomp, dcomp, ncomp);
                     });
@@ -549,24 +549,26 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         // There can only be local work to do.
         //
 	int N_loc = (*thecpc.m_LocTags).size();
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	for (int i=0; i<N_loc; ++i)
+        for (Gpu::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int i = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
 	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                 const FAB* sfab = &(src[tag.srcIndex]);
                       FAB* dfab = &(get(tag.dstIndex));
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
@@ -574,10 +576,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
         }
-
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
 
         return;
     }
@@ -629,13 +627,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
         // Before we post recv, let's preprocess sends in case FAB is not preAllocatable
         //
-
+        char*                               the_send_data;
 	Vector<char*>                       send_data;
 	Vector<int>                         send_size;
 	Vector<int>                         send_rank;
 	Vector<MPI_Request>                 send_reqs;
 	Vector<const CopyComTagsContainer*> send_cctc;
-        Vector<Vector<int> >                 indv_send_size;
+        Vector<Vector<int> >                indv_send_size;
         Vector<MPI_Request>                 pre_reqs;
 
 #if defined(BL_USE_MPI3)
@@ -650,6 +648,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	    send_cctc.reserve(N_snds);
             indv_send_size.reserve(N_snds);
 
+            std::size_t total_volume = 0;
             for (auto const& kv : *thecpc.m_SndVols)
 	    {
                 Vector<int> iss;                
@@ -675,19 +674,27 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		
 		BL_ASSERT(nbytes < std::numeric_limits<int>::max());
 
-                char* data = nullptr;
-                if (nbytes > 0)
-                {
-                    data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
-                }
-                    
-		send_data.push_back(data);
+                total_volume += nbytes;
+
+		send_data.push_back(nullptr);
                 send_size.push_back(static_cast<int>(nbytes));
                 send_rank.push_back(kv.first);
                 send_reqs.push_back(MPI_REQUEST_NULL);
                 send_cctc.push_back(&cctc);
                 indv_send_size.push_back(std::move(iss));
 	    }
+
+            if (total_volume > 0)
+            {
+                the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+                char* p = the_send_data;
+                for (int i = 0, N = send_size.size(); i < N; ++i) {
+                    if (send_size[i] > 0) {
+                        send_data[i] = p;
+                        p += send_size[i];
+                    }
+                }
+            }
 
 #if defined(BL_USE_MPI3)
             actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
@@ -730,7 +737,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
 #endif
 	    } else {
-                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags, the_recv_data,
                          recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
 	    }
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
@@ -741,11 +748,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	// 
 	if (N_snds > 0)
 	{
+            bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	    for (int j=0; j<N_snds; ++j)
+            for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
 	    {
+                const int j = sit();
 		char* dptr = send_data[j];
                 if (dptr != nullptr)
                 {
@@ -755,7 +764,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         const Box& bx = tag.sbox;
                         const FAB* sfab = &(src[tag.srcIndex]);
 
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                         {
                             char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
                             sfab->copyToMem(tbx, SC, NC, p);
@@ -766,10 +775,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     BL_ASSERT(dptr == send_data[j] + send_size[j]);
 		}
 	    }
-
-#ifdef AMREX_USE_CUDA
-            Device::synchronize();
-#endif
 
 	    if (ParallelDescriptor::MPIOneSided())
 	    {
@@ -838,7 +843,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                                  ParallelContext::global_to_local_rank(send_rank[j]),
                                  SeqNum,
                                  ParallelContext::CommunicatorSub());
-                            amrex::The_FA_Arena()->free(send_data[j]);
                         }
                     }
 
@@ -861,7 +865,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	{
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
 #endif
 	    ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
             {
@@ -872,13 +876,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                           FAB* dfab = &(get(tag.dstIndex));
 
 		    if (op == FabArrayBase::COPY) {
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                         {
                             Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                             dfab->copy(*sfab, tbx, SC, dbx, DC, NC);
                         });
 		    } else {
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                         {
                             Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                             dfab->plus(*sfab, tbx, dbx, SC, DC, NC);
@@ -886,15 +890,20 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		    }
 		}
 	    });
+#ifdef AMREX_USE_GPU
+            Gpu::Device::synchronize();
+#endif
 #endif	    
 	}
 	else 
 	{
+            bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	    for (int j=0; j<N_locs; ++j)
+            for (Gpu::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
 	    {
+                const int j = sit();
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 // avoid self copy or plus
 		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
@@ -902,13 +911,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                           FAB* dfab = &(get(tag.dstIndex));
 
 		    if (op == FabArrayBase::COPY) {
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                         {
                             Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                             dfab->copy(*sfab, tbx, SC, dbx, DC, NC);
                         });
 		    } else {
-                        AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                         {
                             Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                             dfab->plus(*sfab, tbx, dbx, SC, DC, NC);
@@ -917,10 +926,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 	}
-
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
 
 	//
 	//  wait and unpack
@@ -953,51 +958,44 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     recv_cctc[k] = &cctc;
                 }
 	    }
-	    
+
+            bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	    {
-#ifdef _OPENMP
-#pragma omp for
-#endif
-                for (int k = 0; k < N_rcvs; ++k)
-		{
-		    const char* dptr = recv_data[k];
-                    if (dptr != nullptr)
+            for (Gpu::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
+            {
+                const int k = sit();
+                const char* dptr = recv_data[k];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
                     {
-                        auto const& cctc = *recv_cctc[k];
-                        for (auto const& tag : cctc)
+                        const Box& bx  = tag.dbox;
+                        FAB* dfab = &(get(tag.dstIndex));
+                        if (op == FabArrayBase::COPY)
                         {
-                            const Box& bx  = tag.dbox;
-                            FAB* dfab = &(get(tag.dstIndex));
-                            if (op == FabArrayBase::COPY)
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                             {
-                                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                                {
-                                    const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
-                                    dfab->copyFromMem(tbx,DC,NC,p);
-                                });
-                            }
-                            else
-                            {
-                                AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                                {
-                                    const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
-                                    dfab->addFromMem(tbx, DC, NC, p);
-                                });
-                            }
-
-                            dptr += (bx.numPts() * NC * sizeof(value_type));
+                                const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
+                                dfab->copyFromMem(tbx,DC,NC,p);
+                            });
                         }
-                        BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
-		    }
-		}
-	    }
-
-#ifdef AMREX_USE_CUDA
-            Device::synchronize();
-#endif
+                        else
+                        {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                            {
+                                const char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
+                                dfab->addFromMem(tbx, DC, NC, p);
+                            });
+                        }
+                        
+                        dptr += (bx.numPts() * NC * sizeof(value_type));
+                    }
+                    BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                }
+            }
 
             if (the_recv_data)
             {
@@ -1007,28 +1005,19 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #endif
                 }
                 amrex::The_FA_Arena()->free(the_recv_data);
-            }
-            else
-            {
-                for (auto p : recv_data) {
-                    amrex::The_FA_Arena()->free(p);
-                }
+                the_recv_data = nullptr;
             }
 	}
 	
         if (N_snds > 0) {
-	    if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-		for (int i = 0; i < N_snds; ++i) {
-		    if (send_data[i]) amrex::The_FA_Arena()->free(send_data[i]);
-                }
-#endif
-	    } else {
+	    if (!ParallelDescriptor::MPIOneSided()) {
 		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
 		    Vector<MPI_Status> stats;
 		    FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 		}
 	    }
+            amrex::The_FA_Arena()->free(the_send_data);
+            the_send_data = nullptr;
         }
 
         ipass     += NC;
@@ -1085,7 +1074,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // non-cell-centered data this simplistic way.
         //
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
@@ -1096,12 +1085,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 const FAB* sfab = &(src[fai]);
                       FAB* dfab = &(get(fai));
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         dfab->plus(*sfab, tbx, tbx, scomp, dcomp, ncomp);
                     });
@@ -1120,24 +1109,26 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         // There can only be local work to do.
         //
 	int N_loc = (*thecpc.m_LocTags).size();
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-	for (int i=0; i<N_loc; ++i)
+        for (Gpu::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int i = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[i];
             // avoid self copy or plus
 	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                 const FAB* sfab = &(src[tag.srcIndex]);
                       FAB* dfab = &(get(tag.dstIndex));
 		if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
                     });
 		} else {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
@@ -1145,10 +1136,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 		}
 	    }
         }
-
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
 
         return CopierHandle();
     }
@@ -1190,6 +1177,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     Vector<Vector<int> >                indv_send_size;
     Vector<MPI_Request>                 pre_reqs;
 
+    char*&           the_recv_data = handle.the_recv_data;
+    char*&           the_send_data = handle.the_send_data;
     Vector<MPI_Request>& send_reqs = handle.send_reqs;
     Vector<char*>      & send_data = handle.send_data;
     Vector<int>        & recv_from = handle.recv_from;
@@ -1209,6 +1198,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         send_cctc.reserve(N_snds);
         indv_send_size.reserve(N_snds);
         
+        std::size_t total_volume = 0;
         for (auto const& kv : *thecpc.m_SndVols)
         {
             Vector<int> iss;                
@@ -1234,18 +1224,26 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 		
             BL_ASSERT(nbytes < std::numeric_limits<int>::max());
 
-            char* data = nullptr;
-            if (nbytes > 0)
-            {
-                data = static_cast<char*>(amrex::The_FA_Arena()->alloc(nbytes));
-            }
+            total_volume += nbytes;
                     
-            send_data.push_back(data);
+            send_data.push_back(nullptr);
             send_size.push_back(static_cast<int>(nbytes));
             send_rank.push_back(kv.first);
             send_reqs.push_back(MPI_REQUEST_NULL);
             send_cctc.push_back(&cctc);
             indv_send_size.push_back(std::move(iss));
+        }
+
+        if (total_volume > 0)
+        {
+            the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+            char* p = the_send_data;
+            for (int i = 0, N = send_size.size(); i < N; ++i) {
+                if (send_size[i] > 0) {
+                    send_data[i] = p;
+                    p += send_size[i];
+                }
+            }
         }
     }
 
@@ -1267,7 +1265,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     //
     handle.actual_n_rcvs = 0;
     if (N_rcvs > 0) {
-        PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags,
+        PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags, the_recv_data,
                  recv_data, recv_size, recv_from, recv_reqs, scomp, ncomp, SeqNum, preSeqNum);
         handle.actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
     }
@@ -1277,11 +1275,13 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     // 
     if (N_snds > 0)
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe();
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-        for (int j=0; j<N_snds; ++j)
+        for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int j = sit();
             char* dptr = send_data[j];
             if (dptr != nullptr)
             {
@@ -1291,7 +1291,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                     const Box& bx = tag.sbox;
                     const FAB* sfab = &(src[tag.srcIndex]);
 
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
                         char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
                         sfab->copyToMem(tbx, scomp, ncomp, p);
@@ -1302,10 +1302,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 BL_ASSERT(dptr == send_data[j] + send_size[j]);
             }
         }
-
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
 
         int send_counter = 0;
         while (send_counter < N_snds)
@@ -1339,7 +1335,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                          ParallelContext::global_to_local_rank(send_rank[j]),
                          SeqNum,
                          ParallelContext::CommunicatorSub());
-                    amrex::The_FA_Arena()->free(send_data[j]);
                 }
             }
             
@@ -1354,7 +1349,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     {
 #ifdef BL_USE_TEAM
 #ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && !Cuda::inLaunchRegion())
+#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
 #endif
         ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
         {
@@ -1366,13 +1361,13 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                       FAB* dfab = &(get(tag.dstIndex));
 
                 if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
                     });
                 } else {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
@@ -1380,15 +1375,20 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 }
             }
         });
+#ifdef AMREX_USE_GPU
+        Gpu::Device::synchronize();
+#endif
 #endif	    
     }
     else 
     {
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
 #ifdef _OPENMP
-#pragma omp parallel for if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc && !Cuda::inLaunchRegion())
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
-        for (int j=0; j<N_locs; ++j)
+        for (Gpu::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
         {
+            const int j = sit();
             const CopyComTag& tag = (*thecpc.m_LocTags)[j];
             
             // avoid self copy or plus
@@ -1397,13 +1397,13 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                       FAB* dfab = &(get(tag.dstIndex));
 
                 if (op == FabArrayBase::COPY) {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
                     });
                 } else {
-                    AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
                     {
                         Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
                         dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
@@ -1412,10 +1412,6 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             }
         }
     }
-
-#ifdef AMREX_USE_CUDA
-    Device::synchronize();
-#endif
 
     return return_handle;
 
@@ -1453,54 +1449,49 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                 recv_cctc[k] = &cctc;
             }
         }
-	
-#ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv && !Cuda::inLaunchRegion())
-#endif
-        {
-#ifdef _OPENMP
-#pragma omp for
-#endif
-            for (int k = 0; k < N_rcvs; ++k)
-            {
-                const char* dptr = recv_data[k];
-                if (dptr != nullptr)
-                {
-                    auto const& cctc = *recv_cctc[k];
-                    for (auto const& tag : cctc)
-                    {
-                        const Box& bx  = tag.dbox;
-                        FAB* dfab = &(dstfa[tag.dstIndex]);
-                        if (op == FabArrayBase::COPY)
-                        {
-                            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                            {
-                                const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                                dfab->copyFromMem(tbx, dcomp, ncomp, p);
-                            });
-                        }
-                        else
-                        {
-                            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                            {
-                                const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                                dfab->addFromMem(tbx, dcomp, ncomp, p);
-                            });
-                        }
 
-                        dptr += (bx.numPts() * ncomp * sizeof(value_type));
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
+#ifdef _OPENMP
+#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
+#endif
+        for (Gpu::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
+        {
+            const int k = sit();
+            const char* dptr = recv_data[k];
+            if (dptr != nullptr)
+            {
+                auto const& cctc = *recv_cctc[k];
+                for (auto const& tag : cctc)
+                {
+                    const Box& bx  = tag.dbox;
+                    FAB* dfab = &(dstfa[tag.dstIndex]);
+                    if (op == FabArrayBase::COPY)
+                    {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        {
+                            const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                            dfab->copyFromMem(tbx, dcomp, ncomp, p);
+                        });
                     }
-                    BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                    else
+                    {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        {
+                            const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
+                            dfab->addFromMem(tbx, dcomp, ncomp, p);
+                        });
+                    }
+
+                    dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
+                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
             }
         }
 
-#ifdef AMREX_USE_CUDA
-        Device::synchronize();
-#endif
-
-        for (auto p : recv_data) {
-            amrex::The_FA_Arena()->free(p);
+        if (the_recv_data)
+        {
+            amrex::The_FA_Arena()->free(the_recv_data);
+            the_recv_data = nullptr;
         }
     }
 	
@@ -1509,6 +1500,8 @@ FabArray<FAB>::CopierHandleImpl::finish ()
             Vector<MPI_Status> stats;
             FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
         }
+        amrex::The_FA_Arena()->free(the_send_data);
+        the_send_data = nullptr;
     }
 
 #ifdef BL_USE_TEAM
@@ -1593,10 +1586,11 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
                          const MapOfCopyComTagContainers&  m_RcvTags,
-                         Vector<char*>&                     recv_data,
-                         Vector<int>&                       recv_size,
-                         Vector<int>&                       recv_from,
-                         Vector<MPI_Request>&               recv_reqs,
+                         char*&                            the_recv_data,
+                         Vector<char*>&                    recv_data,
+                         Vector<int>&                      recv_size,
+                         Vector<int>&                      recv_from,
+                         Vector<MPI_Request>&              recv_reqs,
                          int                               icomp,
                          int                               ncomp,
                          int                               SeqNum,
@@ -1607,6 +1601,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
     recv_from.clear();
     recv_reqs.clear();
 
+    std::size_t TotalRcvsVolume = 0;
     for (const auto& kv : m_RcvVols) // loop over senders
     {
         std::size_t nbytes = 0;
@@ -1619,6 +1614,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         }
 
         BL_ASSERT(nbytes < std::numeric_limits<int>::max());
+
+        TotalRcvsVolume += nbytes;
 
         recv_data.push_back(nullptr);
         recv_size.push_back(static_cast<int>(nbytes));
@@ -1647,7 +1644,17 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
         }
     }
 
+    if (TotalRcvsVolume == 0)
+    {
+        the_recv_data = nullptr;
+    }
+    else
+    {
+        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
+    }
+
     int recv_counter = 0;
+    char* p = the_recv_data;
     while (recv_counter < nrecv)
     {
         int i;
@@ -1669,7 +1676,8 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
 
         if (recv_size[i] > 0)
         {
-            recv_data[i] = static_cast<char*>(amrex::The_FA_Arena()->alloc(recv_size[i]));
+            recv_data[i] = p;
+            p += recv_size[i];
             recv_reqs[i] = ParallelDescriptor::Arecv(recv_data[i], recv_size[i],
                                                      ParallelContext::global_to_local_rank(recv_from[i]),
                                                      SeqNum, comm).req();
@@ -1686,11 +1694,11 @@ template <class FAB>
 void
 FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                       char*&                            the_recv_data,
-                                      Vector<char*>&                     recv_data,
-                                      Vector<int>&                       recv_size,
-                                      Vector<int>&                       recv_from,
-                                      Vector<MPI_Request>&               recv_reqs,
-                                      Vector<MPI_Aint> &                 recv_disp,
+                                      Vector<char*>&                    recv_data,
+                                      Vector<int>&                      recv_size,
+                                      Vector<int>&                      recv_from,
+                                      Vector<MPI_Request>&              recv_reqs,
+                                      Vector<MPI_Aint> &                recv_disp,
                                       int                               icomp,
                                       int                               ncomp,
                                       int                               SeqNum,
@@ -1764,14 +1772,14 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
     if (ParallelContext::NProcsSub() == 1)
     {
 #ifdef _OPENMP
-#pragma omp parallel if (!Cuda::inLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
             const Box& bx = fai.growntilebox(nghost);
             const FAB* sfab = &(src[fai]);
                   FAB* dfab = &(get(fai));
-            AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
             });

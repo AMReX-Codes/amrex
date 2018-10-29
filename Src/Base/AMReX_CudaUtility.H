@@ -1,7 +1,8 @@
 #ifndef AMREX_CUDA_UTILITY_H_
 #define AMREX_CUDA_UTILITY_H_
 
-#include <AMReX_CudaQualifiers.H>
+#include <AMReX_GpuQualifiers.H>
+#include <AMReX_CudaDevice.H>
 #include <iostream>
 
 namespace amrex {
@@ -56,7 +57,7 @@ namespace Cuda {
 #ifdef AMREX_USE_CUDA
         namespace detail {
 
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline float atomicMax(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -69,7 +70,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
             
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline double atomicMax(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -83,7 +84,7 @@ namespace Cuda {
                 return __longlong_as_double(old);
             }
 
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline float atomicMin(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -96,7 +97,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
 
-            AMREX_CUDA_DEVICE
+            AMREX_GPU_DEVICE
             inline double atomicMin(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -113,7 +114,7 @@ namespace Cuda {
 #endif  // AMREX_USE_CUDA
 
         template<class T>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         void Add (T* sum, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -124,7 +125,7 @@ namespace Cuda {
         }
         
         template<class T>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         void Min (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -135,7 +136,7 @@ namespace Cuda {
         }
         
         template<class T>
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         void Max (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -146,6 +147,34 @@ namespace Cuda {
         }
 
     } // namespace Atomic
+
+
+    class StreamIter
+    {
+    public:
+        StreamIter (const int n, bool is_thread_safe);
+        ~StreamIter ();
+
+        StreamIter (StreamIter const&) = delete;
+        StreamIter (StreamIter &&) = delete;
+        void operator= (StreamIter const&) = delete;
+        void operator= (StreamIter &&) = delete;
+
+        int operator() () const { return m_i; }
+
+        bool isValid () const { return m_i < m_n; }
+
+#if !defined(AMREX_USE_CUDA)
+        void operator++ () { ++m_i; }
+#else
+        void operator++ ();
+#endif
+
+    private:
+        int m_n;
+        int m_i;
+        bool m_threadsafe;
+    };
 
 } // namespace Cuda
 

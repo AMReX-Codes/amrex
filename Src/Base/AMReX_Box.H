@@ -30,7 +30,7 @@ class BoxCommHelper;
 * Box is a dimension dependent class, so SPACEDIM must be 
 * defined as either 1, 2, or 3 when compiling.
 */
-class Box // : public Cuda::Managed
+class Box // : public Gpu::Managed
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<Box>::type();
     friend class BoxCommHelper;
@@ -41,7 +41,7 @@ public:
     * invalid and may be tested for validity with ok(). 
     * DO NOT CHANGE THIS BEHAVIOR!
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box ()
         : smallend(1),
           bigend(0),
@@ -49,14 +49,14 @@ public:
         {}
 
     //! Construct cell-centered type Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big)
         : smallend(small),
           bigend(big)
         {}
 
     //! Construct box with specified lengths.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box (const IntVect& small, const int* vec_len)
         : smallend(small),
           bigend(AMREX_D_DECL(small[0]+vec_len[0]-1,
@@ -68,7 +68,7 @@ public:
     * \brief Construct Box with given type.  small and big are expected
     * to be consistent with given type.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big, const IntVect& typ)
         : smallend(small),
           bigend(big),
@@ -80,7 +80,7 @@ public:
     //
     // Construct dimension specific Boxes.
     //
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big, IndexType t)
         : smallend(small),
           bigend(big),
@@ -90,37 +90,37 @@ public:
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     //! Get the smallend of the box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const IntVect& smallEnd () const& { return smallend; }
     const IntVect& smallEnd () && = delete;
 
     //! Returns the coordinate of the low end in the given direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int smallEnd (int dir) const& { return smallend[dir]; }
 
     //! Get the bigend.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const IntVect& bigEnd () const& { return bigend; }
     const IntVect& bigEnd () && = delete;
 
     //! Returns the coordinate of the high end in the given direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int bigEnd (int dir) const { return bigend[dir]; }
 
     //! Returns the indexing type.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     IndexType ixType () const { return btype; }
 
     //! Returns the indexing type.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     IntVect type () const { return btype.ixType(); }
 
     //! Returns the indexing type in the specified direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     IndexType::CellIndex type (int dir) const { return btype.ixType(dir); }
 
     //! Return the length of the Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     IntVect size () const
     {
         return IntVect(AMREX_D_DECL(bigend[0]-smallend[0] + 1,
@@ -138,11 +138,11 @@ public:
     }
 
     //! Return the length of the Box in given direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int length (int dir) const { return bigend[dir] - smallend[dir] + 1; }
 
-    AMREX_CUDA_HOST_DEVICE
-    CudaArray<int,3> length3d () const {
+    AMREX_GPU_HOST_DEVICE
+    GpuArray<int,3> length3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0]-smallend[0]+1, 1, 1};
 #elif (AMREX_SPACEDIM == 2)
@@ -152,8 +152,8 @@ public:
 #endif
     }
 
-    AMREX_CUDA_HOST_DEVICE
-    CudaArray<int,3> loVect3d () const {
+    AMREX_GPU_HOST_DEVICE
+    GpuArray<int,3> loVect3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {smallend[0], 0, 0};
 #elif (AMREX_SPACEDIM == 2)
@@ -163,8 +163,8 @@ public:
 #endif
     }
 
-    AMREX_CUDA_HOST_DEVICE
-    CudaArray<int,3> hiVect3d () const {
+    AMREX_GPU_HOST_DEVICE
+    GpuArray<int,3> hiVect3d () const {
 #if (AMREX_SPACEDIM == 1)
         return {bigend[0], 0, 0};
 #elif (AMREX_SPACEDIM == 2)
@@ -175,39 +175,39 @@ public:
     }
 
     //! Returns a constant pointer the array of low end coordinates. Useful for calls to FORTRAN.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const int* loVect () const& { return smallend.getVect(); }
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const int* loVect () && = delete;
     //! Returns a constant pointer the array of high end coordinates. Useful for calls to FORTRAN.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const int* hiVect () const& { return bigend.getVect(); }
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     const int* hiVect () && = delete;
 
     //! Returns the coordinate normal to given face.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int operator[] (Orientation face) const {
         const int dir = face.coordDir();
         return face.isLow() ? smallend[dir] : bigend[dir];
     }
 
     //! Checks if it is an empty box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool isEmpty () const { return !ok(); }
 
     //! Checks if it is a proper Box (including a valid type).
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool ok () const { return bigend.allGE(smallend) && btype.ok(); }
 
     //! Returns true if argument is contained within Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool contains (const IntVect& p) const { return p.allGE(smallend) && p.allLE(bigend); }
 
     /** \brief Returns true if argument is contained within Box.
     * It is an error if the Boxes have different types.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool contains (const Box& b) const
     { 
 	BL_ASSERT(sameType(b)); 
@@ -215,14 +215,14 @@ public:
     } 
 
     //! Returns true if argument is strictly contained within Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool strictly_contains (const IntVect& p) const { return p.allGT(smallend) && p.allLT(bigend); }
 
     /**
     * \brief Returns true if argument is strictly contained within Box.
     * It is an error if the Boxes have different types.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool strictly_contains (const Box& b) const 
     { 
 	BL_ASSERT(sameType(b));
@@ -232,14 +232,14 @@ public:
     * \brief Returns true if Boxes have non-null intersections.
     * It is an error if the Boxes have different types.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool intersects (const Box& b) const { Box isect(*this); isect &= b; return isect.ok(); }
 
     /**
     * \brief Returns true is Boxes same size, ie translates of each other,.
     * It is an error if they have different types.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool sameSize (const Box& b) const {
         BL_ASSERT(sameType(b));
         return AMREX_D_TERM(length(0) == b.length(0),
@@ -248,18 +248,18 @@ public:
     }
 
     //! Returns true if Boxes have same type.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool sameType (const Box &b) const { return btype == b.btype; }
 
     //! Returns true if Boxes are identical (including type).
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool operator== (const Box& b) const { return smallend == b.smallend && bigend == b.bigend && b.btype == btype; }
 
     //! Returns true if Boxes differ (including type).
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool operator!= (const Box& b) const { return !operator==(b); }
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool operator< (const Box& rhs) const
     {
         return btype < rhs.btype ||
@@ -267,28 +267,28 @@ public:
 	         (  (smallend < rhs.smallend) ||
                    ((smallend == rhs.smallend) && (bigend < rhs.bigend)) ));
     }
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool operator <= (const Box& rhs) const {
         return !(rhs < *this);
     }
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool operator> (const Box& rhs) const {
         return rhs < *this;
     }
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool operator>= (const Box& rhs) const {
         return !(*this < rhs);
     }
 
     //! Returns true if Box is cell-centered in all indexing directions.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool cellCentered () const { return !btype.any(); }
 
     /**
     * \brief Returns the number of points contained in the Box, else
     * abort()s if the number cannot be represented in a long.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     long numPts () const {
         auto r = AMREX_D_TERM( static_cast<unsigned long>(length(0)),
                               *static_cast<unsigned long>(length(1)),
@@ -300,7 +300,7 @@ public:
     * \brief Returns the number of points contained in the Box.
     * This is intended for use only in diagnostic messages.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     double d_numPts () const {
         BL_ASSERT(ok());
         return AMREX_D_TERM(double(length(0)), *double(length(1)), *double(length(2)));
@@ -312,7 +312,7 @@ public:
     * Box; otherwise, numPts() > volume().  Abort()s if the number
     * cannot be represented in a long.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     long volume () const {
         return AMREX_D_TERM( static_cast<long>(length(0)-btype[0]), 
                             *static_cast<long>(length(1)-btype[1]),
@@ -323,22 +323,22 @@ public:
     * \brief Returns length of longest side.  dir is modified to give
     * direction with longest side: 0...SPACEDIM-1. Ignores type.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int longside (int& dir) const;
 
     //! Returns length of longest side.  Ignores type.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int longside () const;
 
     /**
     * \brief Returns length of shortest side.  dir is modified to give
     *  direction with shortest side: 0...SPACEDIM-1.  Ignores type.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int shortside (int& dir) const;
 
     //! Returns length of shortest side.  Ignores type.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     int shortside () const;
 
     /**
@@ -346,23 +346,23 @@ public:
     * index(smallend) -> 0, bigend would return numPts()-1.
     * Is used in accessing FArrayBox.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     long index (const IntVect& v) const;
 
     //! Redefine the small end of the Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
 
     //! Redefine the small end of the Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& setSmall (int dir, int sm_index)  { smallend.setVal(dir,sm_index); return *this; }
 
     //! Redefine the big end of the Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& setBig (const IntVect& bg) { bigend = bg; return *this; }
 
     //! Redefine the big end of the Box.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& setBig (int dir, int bg_index) { bigend.setVal(dir,bg_index); return *this; }
 
     /**
@@ -370,21 +370,21 @@ public:
     * sm_index with length n_cells.  NOTE: This will yield an
     * illegal Box if n_cells <= 0.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& setRange (int dir,
                    int sm_index,
                    int n_cells = 1);
 
     //! Set indexing type
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& setType (const IndexType& t) { btype = t; return *this; }
 
     //! Shift this Box nzones indexing positions in coordinate direction dir.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& shift (int dir, int nzones) { smallend.shift(dir,nzones); bigend.shift(dir,nzones); return *this; }
 
     //! Equivalent to b.shift(0,iv[0]).shift(1,iv[1]) ....
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& shift (const IntVect& iv) { smallend.shift(iv); bigend.shift(iv); return *this; }
 
     /**
@@ -396,11 +396,11 @@ public:
     * zones and hence will not change the type.
     * This is: b.shifthalf(4) == b.shift(2).
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& shiftHalf (int dir, int num_halfs);
 
     //! Equivalent to b.shiftHalf(0,iv[0]).shiftHalf(1,iv[1]) ...
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& shiftHalf (const IntVect& iv);
 
     /**
@@ -410,7 +410,7 @@ public:
     * type NODE -> CELL : reduce coordinate by one on high end
     * other type mappings make no change.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& convert (IndexType typ);
 
     /**
@@ -420,34 +420,34 @@ public:
     * type NODE -> CELL : reduce coordinate by one on high end
     * other type mappings make no change.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& convert (const IntVect& typ);
 
     //! Convert to NODE type in all directions.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& surroundingNodes ();
 
     //! Convert to NODE type in given direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& surroundingNodes (int dir);
 
     //! Convert to CELL type in all directions.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& enclosedCells ();
 
     //! Convert to CELL type in given direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& enclosedCells (int dir);
 
     /**
     * \brief Return Box that is intersection of this Box
     * and argument.  The Boxes MUST be of same type.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box operator& (const Box& rhs) const { Box lhs(*this); lhs &= rhs; return lhs; }
 
     //! Intersect this Box with its argument. The Boxes MUST be of the same type.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& operator&= (const Box& rhs)
     {
         BL_ASSERT(sameType(rhs));
@@ -472,7 +472,7 @@ public:
     * the original Box and the argument.
     * Both Boxes must have identical type.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& minBox (const Box& b) {
         // BoxArray may call this with not ok boxes.  BL_ASSERT(b.ok() && ok());
         BL_ASSERT(sameType(b));
@@ -482,19 +482,19 @@ public:
     }
 
     //! Shift Box (relative) by given IntVect.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& operator+= (const IntVect& v) { smallend += v; bigend   += v; return *this; }
 
     //! Shift Box (relative) by given IntVect.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box operator+ (const IntVect& v) const { Box r(*this); r += v; return r; }
 
     //! Shift Box (relative) by given IntVect.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& operator-= (const IntVect& v) { smallend -= v; bigend -= v; return *this; }
 
     //! Shift Box (relative) by given IntVect.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box operator- (const IntVect& v) const { Box r(*this); r -= v; return r; }
 
     /**
@@ -509,32 +509,32 @@ public:
     * but is the only point in common.  It is also an error if the
     * chop_pnt is an end node of the Box.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box chop (int dir, int chop_pnt);
 
     /*
     * \brief Grow Box in all directions by given amount.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& grow (int i) { smallend.diagShift(-i); bigend.diagShift(i); return *this; }
 
     //! Grow Box in each direction by specified amount.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& grow (const IntVect& v) { smallend -= v; bigend += v; return *this;}
 
     /**
     * \brief Grow the Box on the low and high end by n_cell cells
     * in direction idir.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& grow (int idir, int n_cell) { smallend.shift(idir, -n_cell); bigend.shift(idir, n_cell); return *this; }
 
     /**
     * \brief Grow the Box on the low end by n_cell cells in direction idir.
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& growLo (int idir, int n_cell = 1) { smallend.shift(idir, -n_cell); return *this; }
 
     /**
@@ -542,11 +542,11 @@ public:
     * direction idir.  NOTE: n_cell negative shrinks the Box by that
     * number of cells.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& growHi (int idir, int n_cell = 1) { bigend.shift(idir,n_cell); return *this; }
 
     //! Grow in the direction of the given face.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& grow (Orientation face, int n_cell = 1) {
         int idir = face.coordDir();
         if (face.isLow())
@@ -563,7 +563,7 @@ public:
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& refine (int ref_ratio) {
         return this->refine(IntVect(ref_ratio));
     }
@@ -575,7 +575,7 @@ public:
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& refine (const IntVect& ref_ratio);
 
     /**
@@ -587,7 +587,7 @@ public:
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& coarsen (int ref_ratio) {
         return this->coarsen(IntVect(ref_ratio));
     }
@@ -601,14 +601,14 @@ public:
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box& coarsen (const IntVect& ref_ratio);
 
     /**
     * \brief Step through the rectangle.  It is a runtime error to give
     * a point not inside rectangle.  Iteration may not be efficient.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void next (IntVect &) const;
 
     /**
@@ -616,20 +616,20 @@ public:
     * an object of type Box representing the unit box in
     * AMREX_SPACEDIM-dimensional space.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     static Box TheUnitBox () {
         return Box(IntVect::TheZeroVector(),IntVect::TheZeroVector());
     }
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool isSquare() const;
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool coarsenable(int refrat, int min_width=1) const {
         return coarsenable(IntVect(refrat),min_width);
     }
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     bool coarsenable(const IntVect& refrat, int min_width=1) const
     {
         if (!size().allGE(refrat*min_width)) {
@@ -642,7 +642,7 @@ public:
         }
     }
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     void normalize ()
     {
         for (int idim=0; idim < AMREX_SPACEDIM; ++idim) {
@@ -703,7 +703,7 @@ Box::coarsen (const IntVect& ref_ratio)
 }
 
 inline
-AMREX_CUDA_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 Box&
 Box::convert (const IntVect& typ)
 {
@@ -715,7 +715,7 @@ Box::convert (const IntVect& typ)
 }
 
 inline
-AMREX_CUDA_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 Box&
 Box::convert (IndexType t)
 {
@@ -909,7 +909,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
   
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box grow (const Box& b, int i) {
         Box result = b;
         result.grow(i);
@@ -917,7 +917,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Grow Box in each direction by specified amount.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box grow (const Box& b, const IntVect& v) {
         Box result = b;
         result.grow(v);
@@ -925,21 +925,21 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Grow Box in direction idir be n_cell cells
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box grow (const Box& b, int idir, int n_cell) {
         Box result = b;
         result.grow(idir, n_cell);
         return result;
     }
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box growLo (const Box& b, int idir, int n_cell) {
         Box result = b;
         result.growLo(idir, n_cell);
         return result;
     }
 
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box growHi (const Box& b, int idir, int n_cell) {
         Box result = b;
         result.growHi(idir, n_cell);
@@ -955,7 +955,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box coarsen (const Box& b, int ref_ratio) {
         Box result = b;
         result.coarsen(IntVect(ref_ratio));
@@ -971,7 +971,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * That is, refinement of coarsened Box must contain
     * the original Box.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box coarsen (const Box& b, const IntVect& ref_ratio) {
         Box result = b;
         result.coarsen(ref_ratio);
@@ -985,7 +985,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box refine (const Box& b, int ref_ratio) {
         Box result = b;
         result.refine(IntVect(ref_ratio));
@@ -999,7 +999,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: if type(dir) = NODE centered: lo <- lo*ratio and
     * hi <- hi*ratio.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box refine (const Box& b, const IntVect& ref_ratio) {
         Box result = b;
         result.refine(ref_ratio);
@@ -1007,7 +1007,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Return a Box with indices shifted by nzones in dir direction.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box shift (const Box& b, int dir, int nzones) {
         Box result = b;
         result.shift(dir, nzones);
@@ -1025,7 +1025,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * that encloses Box b.  NOTE: equivalent to b.convert(dir,NODE)
     * NOTE: error if b.type(dir) == NODE.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box surroundingNodes (const Box& b, int dir) {
         Box bx(b);
         bx.surroundingNodes(dir);
@@ -1036,7 +1036,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * \brief Returns a Box with NODE based coordinates in all
     * directions that encloses Box b.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box surroundingNodes (const Box& b) {
         Box bx(b);
         bx.surroundingNodes();
@@ -1044,13 +1044,13 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     //! Returns a Box with different type
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box convert (const Box& b, const IntVect& typ) {
         Box bx(b);
         bx.convert(typ);
         return bx;
     }
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box convert (const Box& b, const IndexType& typ) {
         Box bx(b);
         bx.convert(typ);
@@ -1063,7 +1063,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * NOTE: equivalent to b.convert(dir,CELL)
     * NOTE: error if b.type(dir) == CELL.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box enclosedCells (const Box& b, int dir) {
         Box bx(b);
         bx.enclosedCells(dir);
@@ -1074,7 +1074,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * \brief Returns a Box with CELL based coordinates in all
     * directions that is enclosed by b.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     inline Box enclosedCells (const Box& b) {
         Box bx(b);
         bx.enclosedCells();
@@ -1085,21 +1085,21 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * \brief Returns the edge-centered Box (in direction dir) defining
     * the low side of Box b.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box bdryLo (const Box& b, int dir, int len=1);
 
     /**
     * \brief Returns the edge-centered Box (in direction dir) defining
     * the high side of Box b.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box bdryHi (const Box& b, int dir, int len=1);
 
     /**
     * \brief Similar to bdryLo and bdryHi except that it operates on the
     * given face of  box b.
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box bdryNode (const Box& b, Orientation face, int len=1);
 
     /**
@@ -1114,15 +1114,15 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * retval.convert(dir,Box::CELL);
     * retval.setrange(dir,retval.smallEnd(dir)-len,len);
     */
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box adjCellLo (const Box& b, int dir, int len=1);
 
     //! Similar to adjCellLo but builds an adjacent Box on the high end.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box adjCellHi (const Box& b, int dir, int len=1);
 
     //! Similar to adjCellLo and adjCellHi; operates on given face.
-    AMREX_CUDA_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE
     Box adjCell (const Box& b, Orientation face, int len=1);
 
     /**
@@ -1130,7 +1130,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     * the original Box and the argument.
     * Both Boxes must have identical type.
     */
-    inline AMREX_CUDA_HOST_DEVICE Box minBox (const Box& b1, const Box& b2) {
+    inline AMREX_GPU_HOST_DEVICE Box minBox (const Box& b1, const Box& b2) {
         Box result = b1;
         result.minBox(b2);
         return result;

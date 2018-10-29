@@ -21,7 +21,7 @@ InSituBridge::InSituBridge() :
 #if defined(BL_USE_SENSEI_INSITU)
     analysis_adaptor(nullptr),
 #endif
-     frequency(-1), counter(0)
+    enabled(0), frequency(1), counter(0)
 {
 #if defined(BL_USE_SENSEI_INSITU)
     timer::Initialize();
@@ -42,25 +42,35 @@ InSituBridge::initialize()
 {
 #if defined(BL_USE_SENSEI_INSITU)
     auto t0 = std::chrono::high_resolution_clock::now();
-
     timer::MarkEvent event("InSituBridge::initialize");
 
+    // read config from ParmParse
     ParmParse pp("sensei");
 
-    int enabled = 0;
     pp.query("enabled", enabled);
 
     if (!enabled)
         return 0;
 
+    pp.query("config", config);
+    pp.query("frequency", frequency);
+
     amrex::Print() << "SENSEI Begin initialize..." << std::endl;
 
+    // Check for invalid values
     if (config.empty())
-        pp.get("config", config);
+    {
+        amrex::ErrorStream() << "Error: Missing SENSEI XML configuration." << std::endl;
+        return -1;
+    }
 
-    if (frequency < 0)
-        pp.query("frequency", frequency);
+    if (frequency < 1)
+    {
+        amrex::ErrorStream() << "Error: Frequency must be greater or equal to 1." << std::endl;
+        return -1;
+    }
 
+    // create and initialize the analysis adaptor
     sensei::ConfigurableAnalysis *aa = sensei::ConfigurableAnalysis::New();
 
 #if defined(BL_USE_MPI)

@@ -1,6 +1,6 @@
 #include <AMReX_BArena.H>
 #if !defined(AMREX_FORTRAN_BOXLIB)
-#include <AMReX_Device.H>
+#include <AMReX_Gpu.H>
 #endif
 
 void*
@@ -8,15 +8,15 @@ amrex::BArena::alloc (std::size_t _sz)
 {
     void* pt;
 
-#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
+#if defined(AMREX_USE_GPU)
     if (device_use_managed_memory) {
 
 	gpu_malloc_managed(&pt, &_sz);
 	if (device_set_readonly)
-	    Device::mem_advise_set_readonly(pt, _sz);
+	    Gpu::Device::mem_advise_set_readonly(pt, _sz);
 	if (device_set_preferred) {
-	    const int device = Device::deviceId();
-	    Device::mem_advise_set_preferred(pt, _sz, device);
+	    const int device = Gpu::Device::deviceId();
+	    Gpu::Device::mem_advise_set_preferred(pt, _sz, device);
 	}
 
     }
@@ -40,7 +40,7 @@ amrex::BArena::alloc (std::size_t _sz)
 void
 amrex::BArena::free (void* pt)
 {
-#if (defined(AMREX_USE_CUDA) && defined(AMREX_USE_CUDA_UM))
+#if defined(AMREX_USE_GPU)
     if (!device_use_hostalloc)
 	gpu_free(pt);
     else
@@ -50,13 +50,13 @@ amrex::BArena::free (void* pt)
 #endif
 }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
 void*
 amrex::BArena::alloc_device (std::size_t _sz)
 {
     void* pt = 0;
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     gpu_malloc(&pt, &_sz);
 #endif
 
@@ -66,7 +66,7 @@ amrex::BArena::alloc_device (std::size_t _sz)
 void
 amrex::BArena::free_device (void* pt)
 {
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_GPU
     gpu_free(pt);
 #endif
 }

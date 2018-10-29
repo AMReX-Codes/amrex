@@ -10,10 +10,15 @@ namespace Cuda {
 
 #ifdef AMREX_USE_CUDA
 
+/**
+
+   This is a thin wrapper around thrust::device_vector.
+
+ **/
 template <class T>
 class DeviceVector
-    :
-        public thrust::device_vector<T>
+  :
+    public thrust::device_vector<T>
 {
 public:
 
@@ -30,10 +35,15 @@ public:
     }        
 };
 
+/**
+
+   This is a thin wrapper around thrust::host_vector.
+
+ **/
 template <class T>
 class HostVector
-    :
-        public thrust::host_vector<T>
+  :
+    public thrust::host_vector<T>
 {
 public:
 
@@ -50,14 +60,79 @@ public:
     }
 };
 
+/**
+
+   This is an amrex::Vector allocated using managed memory.
+
+ **/
 template <class T>
 class ManagedVector
     :
-        public Vector<T, CudaManagedAllocator<T> >
+    public Vector<T, CudaManagedAllocator<T> >
+    {
+    public:
+
+    using Vector<T, CudaManagedAllocator<T> >::Vector;
+
+    void assign(typename thrust::host_vector<T>::size_type count, const T& value )
+    {
+        if (Cuda::inLaunchRegion())
+        {
+	    thrust::fill(thrust::device,
+	  	         thrust::raw_pointer_cast(this->data()),
+		         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+	    this->Vector<T, CudaManagedAllocator<T> >::assign(count, value);
+        }
+    }
+};
+
+/**
+
+   This is thrust::device_vector allocated using managed memory.
+
+ **/
+template <class T>
+class ManagedDeviceVector
+    :
+    public thrust::device_vector<T, ThrustManagedAllocator<T> >
 {
 public:
 
-    using Vector<T, CudaManagedAllocator<T> >::Vector;
+    using thrust::device_vector<T, ThrustManagedAllocator<T> >::device_vector;
+
+    //! get access to the underlying data pointer
+    T* data ()
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    const T* data () const
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    T* dataPtr () { return this->data(); }
+    //! get access to the underlying data pointer
+    const T* dataPtr () const { return this->data(); }
+
+    T& operator[] (std::size_t i)
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustManagedAllocator<T>>::operator[](i)));
+    }
+
+    const T& operator[] (std::size_t i) const
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustManagedAllocator<T>>::operator[](i)));
+    }
     
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
@@ -69,12 +144,13 @@ public:
         }
         else
         {
-            this->Vector<T, CudaManagedAllocator<T> >::assign(count, value);
+	    this->thrust::device_vector<T, ThrustManagedAllocator<T> >::assign(count, value);
         }
     }
 };
         
 #else
+    // When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
     using DeviceVector = Vector<T>;
 
@@ -83,6 +159,9 @@ public:
 
     template <class T>
     using ManagedVector = Vector<T>;        
+
+    template <class T>
+    using ManagedDeviceVector = Vector<T>;        
 #endif
     
 }

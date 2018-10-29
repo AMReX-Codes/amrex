@@ -5,7 +5,7 @@
 #include <array>
 #include <memory>
 #include <utility>
-#include <AMReX_CudaQualifiers.H>
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_REAL.H>
@@ -25,13 +25,13 @@ namespace amrex {
 
 namespace amrex {
     template <class T, std::size_t N>
-    struct CudaArray
+    struct GpuArray
     {
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         inline const T& operator [] (int i) const { return arr[i]; }
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         inline const T* data() const { return arr; };
-        AMREX_CUDA_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE
         inline std::size_t size() const { return N; };
 
         T arr[N];
@@ -42,7 +42,7 @@ namespace amrex {
 
 namespace amrex {
     template <class T, std::size_t N>
-    using CudaArray = std::array<T,N>;
+    using GpuArray = std::array<T,N>;
 }
 
 #endif
