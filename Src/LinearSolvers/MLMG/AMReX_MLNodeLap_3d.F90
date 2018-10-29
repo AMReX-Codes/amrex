@@ -2791,10 +2791,12 @@ contains
                   + abs(sten(i-1,j-1,k-1,ist_ppp)) + abs(sten(i,j-1,k-1,ist_ppp)) &
                   + abs(sten(i-1,j,k-1,ist_ppp)) + abs(sten(i,j,k-1,ist_ppp)) &
                   + abs(sten(i-1,j-1,k,ist_ppp)) + abs(sten(i,j-1,k,ist_ppp)) &
-                  + abs(sten(i-1,j,k,ist_ppp)) + abs(sten(i,j,k,ist_ppp)))
+                  + abs(sten(i-1,j,k,ist_ppp)) + abs(sten(i,j,k,ist_ppp)) + eps)
+
           end do
        end do
     end do
+
   end subroutine amrex_mlndlap_set_stencil_s0
 
 
@@ -2853,7 +2855,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_adotx_sten
-
 
   subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, &
        sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_normalize_sten')
@@ -2927,6 +2928,7 @@ contains
                         + sol(i+1,j-1,k+1) * sten(i  ,j-1,k  ,ist_ppp) &
                         + sol(i-1,j+1,k+1) * sten(i-1,j  ,k  ,ist_ppp) &
                         + sol(i+1,j+1,k+1) * sten(i  ,j  ,k  ,ist_ppp)
+
                    sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / sten(i,j,k,ist_000)
                 end if
              else
@@ -3780,7 +3782,9 @@ contains
     real(amrex_real), intent(in   ) :: az  (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+
     call amrex_mlndlap_set_integral(lo, hi, intg, glo, ghi)
+
   end subroutine amrex_mlndlap_set_integral_eb
 
 
@@ -3799,6 +3803,7 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
+
              if (is_covered_cell(flag(i,j,k))) then
                 conn(i,j,k,:) = 0.d0
              else if (is_regular_cell(flag(i,j,k)) .or. vol(i,j,k).ge.almostone) then
@@ -3943,6 +3948,7 @@ contains
           end do
        end do
     end do
+
   end subroutine amrex_mlndlap_set_connection
 
   subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sig, glo, ghi, &
@@ -4022,7 +4028,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_set_stencil_eb
-
 
   subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
        intg, glo, ghi, msk, mlo, mhi, dxinv) &
@@ -4171,9 +4176,9 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
           if (vfrac(i,j,k) .eq. 0.d0) then
-             u(i,j,1,k) = 0.d0
-             u(i,j,2,k) = 0.d0
-             u(i,j,3,k) = 0.d0
+             u(i,j,k,1) = 0.d0
+             u(i,j,k,2) = 0.d0
+             u(i,j,k,3) = 0.d0
           else
              dpdx = 0.25d0*(-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  ) &
                             -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1))
