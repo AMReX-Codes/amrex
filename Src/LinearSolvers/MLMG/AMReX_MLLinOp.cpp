@@ -24,6 +24,71 @@ namespace {
     bool initialized = false;
     int consolidation_ratio = 2;
     int consolidation_strategy = 3;
+
+    int flag_verbose_linop = 0;
+
+    // hash combiner borrowed from Boost
+    template<typename T>
+    void hash_combine (size_t& seed, const T& val)
+    {
+        seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    }
+
+    template<typename T>
+    size_t hash_vector (const Vector<T> & vec)
+    {
+        size_t result = 0xDEADBEEFDEADBEEF;
+        for (const auto & x: vec) {
+            hash_combine(result, x);
+        }
+        return result;
+    }
+
+#ifdef BL_USE_MPI
+
+    class CommCache
+    {
+      public:
+        CommCache ();
+        ~CommCache () = default;
+        CommCache (const CommCache&) = delete;
+        CommCache (CommCache&&) = delete;
+        void operator= (const CommCache&) = delete;
+        void operator= (CommCache&&) = delete;
+
+        void free_all () {
+            for (auto & p : cache) {
+                if (p.second != MPI_COMM_NULL) {
+                    MPI_Comm_free(&p.second);
+                }
+            }
+        }
+        void add (size_t key, MPI_Comm comm) {
+            AMREX_ASSERT(cache.count(key) == 0);
+            cache[key] = comm;
+        }
+        bool get (size_t key, MPI_Comm &comm) {
+            bool result = cache.count(key) > 0;
+            if (result) {
+                comm = cache.at(key);
+            }
+            return result;
+        }
+
+      private:
+        std::unordered_map<size_t, MPI_Comm> cache;
+    };
+
+    CommCache comm_cache;
+
+    void finalize_comm_cache() {
+        comm_cache.free_all();
+    }
+
+    CommCache::CommCache () {
+        amrex::ExecOnFinalize(finalize_comm_cache);
+    }
+#endif
 }
 
 MLLinOp::MLLinOp () {}
@@ -43,6 +108,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 	ParmParse pp("mg");
 	pp.query("consolidation_ratio", consolidation_ratio);
 	pp.query("consolidation_strategy", consolidation_strategy);
+	pp.query("verbose_linop", flag_verbose_linop);
 	initialized = true;
     }
 
@@ -158,6 +224,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     bool agged = false;
     bool coned = false;
+    int agg_lev, con_lev;
 
     if (info.do_agglomeration && aggable)
     {
@@ -237,6 +304,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
                 m_dmap[0].push_back(DistributionMapping());
                 agged = true;
+                agg_lev = last_coarsenableto_lev;
             }
 
             m_num_mg_levels[0] = m_grids[0].size();
@@ -266,6 +334,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                 if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
                 {
                     coned = true;
+                    con_lev = m_dmap[0].size();
                     m_dmap[0].push_back(DistributionMapping());
                 }
                 else
@@ -303,6 +372,19 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     m_do_agglomeration = agged;
     m_do_consolidation = coned;
+
+    if (flag_verbose_linop) {
+        if (agged) {
+            Print() << "MLLinOp::defineGrids(): agglomerated AMR level 0 starting at MG level "
+                    << agg_lev << " of " << m_num_mg_levels[0] << std::endl;
+        } else if (coned) {
+            Print() << "MLLinOp::defineGrids(): consolidated AMR level 0 starting at MG level "
+                    << con_lev << " of " << m_num_mg_levels[0]
+                    << " (ratio = " << consolidation_ratio << ")" << std::endl;
+        } else {
+            Print() << "MLLinOp::defineGrids(): no agglomeration or consolidation of AMR level 0" << std::endl;
+        }
+    }
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -377,30 +459,52 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     BL_PROFILE("MLLinOp::makeSubCommunicator()");
 
 #ifdef BL_USE_MPI
-    MPI_Comm newcomm;
-    MPI_Group defgrp, newgrp;
-
-    MPI_Comm_group(m_default_comm, &defgrp);
 
     Vector<int> newgrp_ranks = dm.ProcessorMap();
     std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
     
-    if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
-        MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
-    } else {
-        Vector<int> local_newgrp_ranks(newgrp_ranks.size());
-        ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
-                                              newgrp_ranks.data(), newgrp_ranks.size());
-        MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+    if (flag_verbose_linop) {
+        Print() << "MLLinOp::makeSubCommunicator() called for " << newgrp_ranks.size() << " ranks" << std::endl;
     }
 
-    MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
-    m_raii_comm.reset(new CommContainer(newcomm));
+    auto key = hash_vector(newgrp_ranks);
+    MPI_Comm newcomm;
+    bool cache_hit = comm_cache.get(key, newcomm);
+    if (cache_hit) {
+        if (flag_verbose_linop) {
+            Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;
+        }
+    } else {
+        MPI_Group defgrp, newgrp;
+        MPI_Comm_group(m_default_comm, &defgrp);
+        if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+            MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+        } else {
+            Vector<int> local_newgrp_ranks(newgrp_ranks.size());
+            ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
+                                                  newgrp_ranks.data(), newgrp_ranks.size());
+            MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+        }
 
-    MPI_Group_free(&defgrp);
-    MPI_Group_free(&newgrp);
+        if (flag_verbose_linop) {
+            Print() << "MLLinOp::makeSubCommunicator(): MPI_Comm_create: (";
+            for (auto rank : newgrp_ranks) {
+                Print() << rank << ",";
+            }
+            Print() << "\b)" << std::endl;
+        }
+
+        {
+            BL_PROFILE("MLLinOp::makeSubCommunicator()::MPI_Comm_create");
+            MPI_Comm_create(m_default_comm, newgrp, &newcomm);
+        }
+        comm_cache.add(key, newcomm);
+
+        MPI_Group_free(&defgrp);
+        MPI_Group_free(&newgrp);
+    }
 
     return newcomm;
 #else

@@ -141,20 +141,6 @@ protected:
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
     MPI_Comm m_bottom_comm = MPI_COMM_NULL;
-    struct CommContainer {
-        MPI_Comm comm;
-        CommContainer (MPI_Comm m) : comm(m) {}
-        CommContainer (const CommContainer&) = delete;
-        CommContainer (CommContainer&&) = delete;
-        void operator= (const CommContainer&) = delete;
-        void operator= (CommContainer&&) = delete;
-        ~CommContainer () {
-#ifdef BL_USE_MPI
-            if (comm != MPI_COMM_NULL) MPI_Comm_free(&comm);
-#endif
-        }
-    };
-    std::unique_ptr<CommContainer> m_raii_comm;
 
     // BC
     Array<BCType, AMREX_SPACEDIM> m_lobc {{AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}};

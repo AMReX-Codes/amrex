@@ -53,12 +53,7 @@ Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_rel, Real a_tol_abs)
 {
-    BL_PROFILE_REGION("MLMG::solve()");
     BL_PROFILE("MLMG::solve()");
-
-    Print() << "MLMG::solve(): (agged, coned) = ("
-            << linop.doAgglomeration() << ", "
-            << linop.doConsolidation() << ")" << std::endl;
 
     if (bottom_solver == BottomSolver::hypre) {
         int mo = linop.getMaxOrder();
@@ -393,7 +388,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     {
         std::string blp_mgv_down_lev_str = make_str("MLMG::mgVcycle_down::", mglev);
         BL_PROFILE_VAR(blp_mgv_down_lev_str, blp_mgv_down_lev);
-        BL_PROFILE_REGION_START(blp_mgv_down_lev_str);
 
         if (verbose >= 4)
         {
@@ -421,12 +415,9 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
         linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
-
-        BL_PROFILE_REGION_STOP(blp_mgv_down_lev_str);
     }
 
     BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);
-    BL_PROFILE_REGION_START("MLMG::mgVcycle_bottom");
     if (amrlev == 0)
     {
         if (verbose >= 4)
@@ -447,14 +438,12 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             skip_fillboundary = false;
         }
     }
-    BL_PROFILE_REGION_STOP("MLMG::mgVcycle_bottom");
     BL_PROFILE_VAR_STOP(blp_bottom);
 
     for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
         std::string blp_mgv_up_lev_str = make_str("MLMG::mgVcycle_up::", mglev);
         BL_PROFILE_VAR(blp_mgv_up_lev_str, blp_mgv_up_lev);
-        BL_PROFILE_REGION_START(blp_mgv_up_lev_str);
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
@@ -474,7 +463,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
             amrex::Print() << "AT LEVEL "                << mglev << "\n"
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
-        BL_PROFILE_REGION_STOP(blp_mgv_up_lev_str);
     }
 }
 
@@ -726,7 +714,6 @@ void
 MLMG::addInterpCorrection (int alev, int mglev)
 {
     BL_PROFILE("MLMG::addInterpCorrection()");
-    BL_PROFILE_REGION("MLMG::addInterpCorrection()");
 
     const int ncomp = linop.getNComp();
 
@@ -762,7 +749,6 @@ void
 MLMG::computeResOfCorrection (int amrlev, int mglev)
 {
     BL_PROFILE("MLMG:computeResOfCorrection()");
-    BL_PROFILE_REGION("MLMG:computeResOfCorrection()");
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
@@ -789,7 +775,6 @@ void
 MLMG::NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs)
 {
     BL_PROFILE("MLMG::NSolve()");
-    BL_PROFILE_REGION("MLMG::NSolve()");
 
     a_sol.setVal(0.0);
 
@@ -805,7 +790,6 @@ void
 MLMG::actualBottomSolve ()
 {
     BL_PROFILE("MLMG::actualBottomSolve()");
-    BL_PROFILE_REGION("MLMG::actualBottomSolve()");
 
     const int ncomp = linop.getNComp();
 
