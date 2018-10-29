@@ -73,7 +73,7 @@ function ( set_amrex_defines )
 
    # CUDA
    add_amrex_define( AMREX_USE_CUDA    IF ENABLE_CUDA )
-   add_amrex_define( AMREX_USE_CUDA_UM IF ENABLE_CUDA_UM )
+   add_amrex_define( AMREX_USE_GPU     IF ENABLE_CUDA )
    
    # Precision
    if (NOT ENABLE_DP)
@@ -149,6 +149,9 @@ function ( set_amrex_defines )
    endif ()
 
    add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
+
+   # SENSEI Insitu
+   add_amrex_define ( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
    
 endfunction ()
 

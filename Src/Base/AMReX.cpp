@@ -8,15 +8,17 @@
 #include <stack>
 #include <limits>
 
-#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX.H>
+#include <AMReX_BaseFab.H>
+#include <AMReX_Box.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
-#ifdef AMREX_USE_DEVICE
-#include <AMReX_Device.H>
-#endif
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
+
+#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -143,6 +145,11 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("%s\n", msg);
+#endif
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -152,6 +159,7 @@ amrex::Error (const char* msg)
         write_to_stderr_without_buffering(msg);
         ParallelDescriptor::Abort();
     }
+#endif
 }
 
 void
@@ -225,6 +233,12 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 void
 amrex::Abort (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("Abort %s\n", msg);
+    assert(0);
+#endif
+#else
     if (system::error_handler) {
         system::error_handler(msg);
     } else if (system::throw_exception) {
@@ -237,6 +251,7 @@ amrex::Abort (const char* msg)
 #endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 void
@@ -248,10 +263,16 @@ amrex::Abort (const std::string& msg)
 void
 amrex::Warning (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("%s\n", msg);
+#endif
+#else
     if (msg)
     {
 	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
+#endif
 }
 
 void
@@ -266,6 +287,19 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) {
+        printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+               EX, file, line, msg);
+    } else {
+        printf("Assertion `%s' failed, file \"%s\", line %d",
+               EX, file, line);
+    }
+
+    assert(0);
+#endif
+#else
     const int N = 512;
 
     char buf[N];
@@ -295,6 +329,7 @@ amrex::Assert (const char* EX,
        write_to_stderr_without_buffering(buf);
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 namespace
@@ -340,6 +375,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     system::osout = &a_osout;
     system::oserr = &a_oserr;
     system::error_handler = a_errhandler;
+
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
     prev_out_precision = system::osout->precision(10);
@@ -369,11 +405,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::exename += argv[0];
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::init(&argc, &argv);
-    if (upcxx::myrank() != ParallelDescriptor::MyProc())
-	amrex::Abort("UPC++ rank != MPI rank");
-#elif defined PERILLA_USE_UPCXX
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::init();
 #endif
 
@@ -424,21 +456,37 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         func_parm_parse();
     }
 
-#ifdef AMREX_USE_DEVICE
+#ifdef AMREX_USE_GPU
+
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
+    // Wrap cuda init to identify it appropriately in nvvp.
+    // Note: first substantial cuda call may cause a lengthy
+    // cuda API and cuda driver API initialization that will
+    // be captured by the profiler. It a necessary, system
+    // dependent step that is unavoidable.
+    nvtxRangeId_t nvtx_init;
+    const char* pname = "initialize_device";
+    nvtx_init = nvtxRangeStartA(pname);
+#endif
+
     // Initialize after ParmParse so that we can read inputs.
-    Device::initialize_device();
+    Gpu::Device::initialize_device();
+
+#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
+    nvtxRangeEnd(nvtx_init);
+#endif
+
 #endif
 
     {
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
-
         pp.query("regtest_reduction", system::regtest_reduction);
-
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
+
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
@@ -483,9 +531,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::StartTeams();
 
+    Arena::Initialize();
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
+    BaseFab_Initialize();
     BoxArray::Initialize();
     DistributionMapping::Initialize();
     FArrayBox::Initialize();
@@ -556,10 +606,6 @@ amrex::Finalize (bool finalize_parallel)
         The_Finalize_Function_Stack.pop();
     }
 
-#ifdef AMREX_USE_DEVICE
-    Device::finalize_device();
-#endif
-
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
     // it can be used in Fortran BoxLib.
 #ifndef BL_AMRPROF
@@ -618,7 +664,11 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-#ifdef BL_USE_UPCXX
+#ifdef AMREX_USE_GPU
+    Gpu::Device::finalize_device();
+#endif
+
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::finalize();
 #endif
 

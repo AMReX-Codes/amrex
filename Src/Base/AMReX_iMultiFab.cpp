@@ -32,14 +32,20 @@ iMultiFab::Add (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok())
-            dst[mfi].plus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        if (bx.ok()) {
+            IArrayBox const* sfab = &(src[mfi]);
+            IArrayBox      * dfab = &(dst[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            {
+                dfab->plus(*sfab, tbx, tbx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -56,14 +62,20 @@ iMultiFab::Copy (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok())
-            dst[mfi].copy(src[mfi], bx, srccomp, bx, dstcomp, numcomp);
+        if (bx.ok()) {
+            IArrayBox const* sfab = &(src[mfi]);
+            IArrayBox      * dfab = &(dst[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            {            
+                dfab->copy(*sfab, tbx, srccomp, tbx, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -80,14 +92,20 @@ iMultiFab::Subtract (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok())
-            dst[mfi].minus(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        if (bx.ok()) {
+            IArrayBox const* sfab = &(src[mfi]);
+            IArrayBox      * dfab = &(dst[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            {            
+                dfab->minus(*sfab, tbx, tbx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -104,14 +122,20 @@ iMultiFab::Multiply (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok())
-            dst[mfi].mult(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        if (bx.ok()) {
+            IArrayBox const* sfab = &(src[mfi]);
+            IArrayBox      * dfab = &(dst[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            {            
+                dfab->mult(*sfab, tbx, tbx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -128,14 +152,20 @@ iMultiFab::Divide (iMultiFab&       dst,
     BL_ASSERT(dst.nGrow() >= nghost && src.nGrow() >= nghost);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(dst,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
 
-        if (bx.ok())
-            dst[mfi].divide(src[mfi], bx, bx, srccomp, dstcomp, numcomp);
+        if (bx.ok()) {
+            IArrayBox const* sfab = &(src[mfi]);
+            IArrayBox      * dfab = &(dst[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            {            
+                dfab->divide(*sfab, tbx, tbx, srccomp, dstcomp, numcomp);
+            });
+        }
     }
 }
 
@@ -280,6 +310,8 @@ iMultiFab::min (int comp,
 		int nghost,
 		bool local) const
 {
+    // TODO GPU
+
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = std::numeric_limits<int>::max();
@@ -305,6 +337,8 @@ iMultiFab::min (const Box& region,
                 int        nghost,
 		bool       local) const
 {
+    // TODO GPU
+
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mn = std::numeric_limits<int>::max();
@@ -331,6 +365,8 @@ iMultiFab::max (int comp,
 		int nghost,
 		bool local) const
 {
+    // TODO GPU
+
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = -std::numeric_limits<int>::max();
@@ -355,6 +391,8 @@ iMultiFab::max (const Box& region,
 		int        nghost,
 		bool       local) const
 {
+    // TODO GPU
+
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     int mx = -std::numeric_limits<int>::max();
@@ -380,6 +418,8 @@ IntVect
 iMultiFab::minIndex (int comp,
                     int nghost) const
 {
+    // TODO GPU
+
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
@@ -465,6 +505,8 @@ IntVect
 iMultiFab::maxIndex (int comp,
                     int nghost) const
 {
+    // TODO
+
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     IntVect loc;
@@ -549,6 +591,8 @@ iMultiFab::maxIndex (int comp,
 int
 iMultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 {
+    // TODO GPU
+
     int nm0 = -std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
@@ -577,6 +621,8 @@ iMultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 int
 iMultiFab::norm0 (int comp, int nghost, bool local) const
 {
+    // TODO
+
     int nm0 = -std::numeric_limits<int>::max();
 
 #ifdef _OPENMP
@@ -596,6 +642,8 @@ iMultiFab::norm0 (int comp, int nghost, bool local) const
 int
 iMultiFab::norm2 (int comp) const
 {
+    // TODO GPU
+
     int nm2 = 0;
 
 #ifdef _OPENMP
@@ -618,6 +666,8 @@ iMultiFab::norm2 (int comp) const
 int
 iMultiFab::norm1 (int comp, int ngrow, bool local) const
 {
+    // TODO GPU
+
     int nm1 = 0.e0;
 
 #ifdef _OPENMP
@@ -641,21 +691,7 @@ iMultiFab::minus (const iMultiFab& mf,
                  int             num_comp,
                  int             nghost)
 {
-    BL_ASSERT(boxarray == mf.boxarray);
-    BL_ASSERT(strt_comp >= 0);
-    BL_ASSERT(num_comp > 0);
-    BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-
-        get(mfi).minus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
-    }
+    iMultiFab::Subtract(*this, mf, strt_comp, strt_comp, num_comp, nghost);
 }
 
 void
@@ -664,21 +700,7 @@ iMultiFab::divide (const iMultiFab& mf,
 		  int             num_comp,
 		  int             nghost)
 {
-    BL_ASSERT(boxarray == mf.boxarray);
-    BL_ASSERT(strt_comp >= 0);
-    BL_ASSERT(num_comp > 0);
-    BL_ASSERT(strt_comp + num_comp - 1 < n_comp && strt_comp + num_comp - 1 < mf.n_comp);
-    BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.growntilebox(nghost);
-
-        get(mfi).divide(mf[mfi], bx, strt_comp, strt_comp, num_comp);
-    }
+    iMultiFab::Divide(*this, mf, strt_comp, strt_comp, num_comp, nghost);
 }
 
 void
@@ -692,11 +714,16 @@ iMultiFab::plus (int val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        get(mfi).plus(val, mfi.growntilebox(nghost),comp,num_comp);
+        const Box& bx = mfi.growntilebox(nghost);
+        IArrayBox* fab = &(get(mfi));
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        {
+            fab->plus(val, tbx, comp, num_comp);
+        });
     }
 }
 
@@ -712,14 +739,19 @@ iMultiFab::plus (int       val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& b = mfi.growntilebox(nghost) & region;
 
-        if (b.ok())
-            get(mfi).plus(val,b,comp,num_comp);
+        if (b.ok()) {
+            IArrayBox* fab = &(get(mfi));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            {
+                fab->plus(val, tbx, comp, num_comp);
+            });
+        }
     }
 }
 
@@ -736,13 +768,17 @@ iMultiFab::plus (const iMultiFab& mf,
     BL_ASSERT(nghost <= n_grow.min() && nghost <= mf.n_grow.min());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-
-        get(mfi).plus(mf[mfi], bx, strt_comp, strt_comp, num_comp);
+        IArrayBox const* sfab = &(mf[mfi]);
+        IArrayBox      * dfab = &(get(mfi));
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        {
+            dfab->plus(*sfab, tbx, strt_comp, strt_comp, num_comp);
+        });
     }
 }
 
@@ -757,11 +793,16 @@ iMultiFab::mult (int val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        get(mfi).mult(val, mfi.growntilebox(nghost),comp,num_comp);
+        const Box& bx = mfi.growntilebox(nghost);
+        IArrayBox* fab = &(get(mfi));
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        {
+            fab->mult(val, tbx, comp,num_comp);
+        });
     }
 }
 
@@ -777,14 +818,19 @@ iMultiFab::mult (int       val,
     BL_ASSERT(num_comp > 0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& b = mfi.growntilebox(nghost) & region;
 
-        if (b.ok())
-            get(mfi).mult(val, b, comp, num_comp);
+        if (b.ok()) {
+            IArrayBox* fab = &(get(mfi));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            {
+                fab->mult(val, tbx, comp, num_comp);
+            });
+        }
     }
 }
 
@@ -797,11 +843,16 @@ iMultiFab::negate (int comp,
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        get(mfi).negate(mfi.growntilebox(nghost),comp,num_comp);
+        const Box& bx = mfi.growntilebox(nghost);
+        IArrayBox* fab = &(get(mfi));
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+        {
+            fab->negate(tbx, comp, num_comp);
+        });
     }
 }
 
@@ -815,14 +866,19 @@ iMultiFab::negate (const Box& region,
     BL_ASSERT(comp+num_comp <= n_comp);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& b = mfi.growntilebox(nghost) & region;
 
-        if (b.ok())
-            get(mfi).negate(b,comp,num_comp);
+        if (b.ok()) {
+            IArrayBox* fab = &(get(mfi));
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
+            {
+                fab->negate(tbx, comp, num_comp);
+            });
+        }
     }
 }
 

@@ -320,7 +320,7 @@ def convert_headers(outdir, targets, macro_list, header_files, cpp):
         hout.write("\n")
         hout.write("#include <AMReX_ArrayLim.H>\n")
         hout.write("#include <AMReX_BLFort.H>\n")
-        hout.write("#include <AMReX_Device.H>\n")
+        hout.write("#include <AMReX_CudaDevice.H>\n")
         hout.write("\n")
 
         hdrmh = os.path.basename(h.name).strip(".H")
@@ -554,13 +554,25 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 # debugging at this time, but could be used later
                 # for dividing the work between the host and device.
 
-                hout.write("if (amrex::Device::inDeviceLaunchRegion()) {\n")
+                hout.write("#if defined(__CUDA_ARCH__)\n")
+
+                # For the device launch, we need to replace certain macros.
+                host_args = args
+                host_args = host_args.replace("AMREX_INT_ANYD", "AMREX_ARLIM_3D")
+                host_args = host_args.replace("AMREX_REAL_ANYD", "AMREX_ZFILL")
+                host_args = host_args.replace("BL_TO_FORTRAN_GPU", "BL_TO_FORTRAN")
+
+                hout.write("{}_device\n ({});\n".format(func_name, host_args))
+
+                hout.write("#else\n")
+
+                hout.write("if (amrex::Gpu::inLaunchRegion()) {\n")
                 hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
-                hout.write("    Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
+                hout.write("    amrex::Cuda::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
                 hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
                            "    CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
                            "#endif\n".format(func_name))
-                hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
+                hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, amrex::Cuda::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
 
                 # Catch errors in the launch configuration.
 
@@ -578,6 +590,8 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 hout.write("} else {\n")
                 hout.write("    {}\n ({});\n".format(func_name, host_args))
                 hout.write("}\n")
+
+                hout.write("#endif\n")
 
 
             else:

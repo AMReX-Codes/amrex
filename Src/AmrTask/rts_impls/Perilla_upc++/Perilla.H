@@ -7,6 +7,8 @@
 #include <RegionGraph.H>
 #include <pthread.h>
 
+#include <RGIter.H>
+
 //#define USE_PERILLA_PTHREADS
 
 using namespace std;
@@ -50,6 +52,20 @@ namespace amrex{
 	static void serviceLocalGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int tg);
 	static void serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraph, int tg);
 	static void resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraph, int tg);
+
+
+
+        static void multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
+        static void multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, bool singleT);
+       
+       static void multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
+       static void fillBoundaryPull_1Team(RegionGraph *graph, amrex::MultiFab& mf, int f);
+
+        static void fillBoundaryPush(amrex::RGIter& rgi, amrex::MultiFab& mf);
+        static void fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf);
+        static void fillBoundaryPush(amrex::RGIter& rgi, RegionGraph *graph, amrex::MultiFab& mf);
+        static void fillBoundaryPull(amrex::RGIter& rgi, RegionGraph *graph, amrex::MultiFab& mf);
+
     }; // class Perilla
 }
 #endif

@@ -93,8 +93,10 @@ endif
 
 # Note that we do not have a Fortran main
 
-F90FLAGS += -Mnomain
-FFLAGS   += -Mnomain
+ifneq ($(USE_F_INTERFACES),TRUE)
+  F90FLAGS += -Mnomain
+  FFLAGS   += -Mnomain
+endif
 
 ifeq ($(USE_CUDA),TRUE)
 

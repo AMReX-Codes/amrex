@@ -130,12 +130,10 @@ ifeq ($(USE_MPI3),TRUE)
 endif
 
 
-ifndef USE_CUDA
+ifdef USE_CUDA
+  USE_CUDA := $(strip $(USE_CUDA))
+else
   USE_CUDA = FALSE
-endif
-
-ifndef USE_CUDA_UM
-  USE_CUDA_UM = TRUE
 endif
 
 ifndef NO_DEVICE_LAUNCH
@@ -163,6 +161,12 @@ ifdef USE_EB
   USE_EB := $(strip $(USE_EB))
 else
   USE_EB := FALSE
+endif
+
+ifdef USE_SENSEI_INSITU
+  USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+else
+  USE_SENSEI_INSITU := FALSE
 endif
 
 ifdef EBASE
@@ -357,10 +361,6 @@ else
   endif
 endif
 
-ifeq ($(USE_GPU_PRAGMA),TRUE)
-    CPPFLAGS += -DAMREX_USE_GPU_PRAGMA
-endif
-
 ifeq ($(USE_OMP),TRUE)
     OMPSuffix	:= .OMP
     CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
@@ -368,17 +368,19 @@ else
     OMPSuffix	:=
 endif
 
+USE_GPU := FALSE
+
 ifeq ($(USE_ACC),TRUE)
 
+  USE_GPU := TRUE
   ACCSuffix := .ACC
   DEFINES += -DAMREX_USE_ACC
-  DEFINES += -DAMREX_USE_GPU
 
 endif
 
-USE_DEVICE := FALSE
-
 ifeq ($(USE_CUDA),TRUE)
+
+    USE_GPU := TRUE
 
     # The CUDA implementation is not currently threadsafe.
     # Throw an error if the user tries to build with OpenMP and CUDA.
@@ -413,15 +415,6 @@ ifeq ($(USE_CUDA),TRUE)
     endif
 
     DEFINES += -DAMREX_USE_CUDA
-    DEFINES += -DAMREX_USE_GPU
-
-    USE_DEVICE := TRUE
-    DEFINES += -DAMREX_USE_DEVICE
-
-    ifeq ($(USE_CUDA_UM),TRUE)
-        DEFINES += -DAMREX_USE_CUDA_UM
-	DEFINES += -DBL_COALESCE_FABS
-    endif
 
     ifeq ($(USE_GPU_PRAGMA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
@@ -432,16 +425,30 @@ ifeq ($(USE_CUDA),TRUE)
     ifneq ($(NO_DEVICE_LAUNCH),TRUE)
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
       DEFINES += -DAMREX_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
     else
       DEFINES += -DAMREX_LAUNCH=""
       DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_HOST=""
       DEFINES += -DAMREX_NO_DEVICE_LAUNCH
     endif
 
 else
     DEFINES += -DAMREX_LAUNCH=""
     DEFINES += -DAMREX_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_HOST=""
+
     CUDASuffix :=
+endif
+
+ifeq ($(USE_GPU),TRUE)
+    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
@@ -629,9 +636,15 @@ ifeq ($(USE_HYPRE),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.hypre
 endif
 
+
 ifeq ($(USE_PETSC),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc
+endif
+
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
 endif
 
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")

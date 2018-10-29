@@ -108,9 +108,6 @@ print_option ( ENABLE_OMP )
 option( ENABLE_CUDA  "Enable CUDA" OFF)
 print_option( ENABLE_CUDA )
 
-option( ENABLE_CUDA_UM  "Enable CUDA" OFF)
-print_option( ENABLE_CUDA_UM )
-
 
 if ( USE_XSDK_DEFAULTS )
    set ( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
@@ -172,6 +169,9 @@ if ( ENABLE_PARTICLES )
       print_option ( ENABLE_DP_PARTICLES )
    endif ()
 endif ()
+
+option ( ENABLE_SENSEI_INSITU "Enable SENSEI in situ infrastructure" OFF )
+print_option ( ENABLE_SENSEI_INSITU )
 
 #
 # Compilation options

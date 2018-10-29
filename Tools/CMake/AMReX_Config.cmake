@@ -128,7 +128,14 @@ function (configure_amrex)
    # Setup third-party profilers
    # 
    set_amrex_profilers ()
-   
+
+   #
+   # Setup SENSEI
+   #
+   if (ENABLE_SENSEI_INSITU)
+      find_package(SENSEI REQUIRED)
+   endif()
+
    #
    # Print out summary
    # 
