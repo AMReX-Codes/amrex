@@ -65,6 +65,26 @@ struct StridedPtr
     }
 };
 
+template <typename T>
+struct BaseFabData : public Gpu::Managed
+{
+    BaseFabData (Box const& a_domain, IntVect const& a_dlen,
+                 int a_nvar, long a_numpts, long a_truesize,
+                 T* a_dptr, bool a_ptr_owner, bool a_shared_memory)
+        : domain(a_domain), dlen(a_dlen),
+          nvar(a_nvar), numpts(a_numpts), truesize(a_truesize),
+          dptr(a_dptr), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
+        {}
+    Box     domain;   // My index space.
+    IntVect dlen;     // Length of domain in each direction.
+    int     nvar;     // Number components.
+    long    numpts;   // Cached number of points in FAB.
+    long    truesize; // nvar*numpts that was allocated on heap.
+    T*      dptr;     // The data pointer.
+    bool    ptr_owner;// Owner of T*?
+    bool    shared_memory;  // Is the memory allocated in shared memory?
+};
+
 /**
 *  \brief A Fortran Array-like Object
 *  BaseFab emulates the Fortran array concept.  
@@ -111,7 +131,7 @@ struct StridedPtr
 */
 
 template <class T>
-class BaseFab : public Gpu::Managed
+class BaseFab : public BaseFabData<T>
 {
 public:
 
@@ -181,7 +201,7 @@ public:
 
     //! Returns how many bytes used
     AMREX_GPU_HOST_DEVICE
-    std::size_t nBytes () const { return truesize*sizeof(T); }
+    std::size_t nBytes () const { return this->truesize*sizeof(T); }
 
     static bool preAllocatable () { return true; }
 
@@ -194,43 +214,43 @@ public:
 
     //! Returns the number of components
     AMREX_GPU_HOST_DEVICE
-    int nComp () const { return nvar; }
+    int nComp () const { return this->nvar; }
 
     //! for calls to fortran.  
     AMREX_GPU_HOST_DEVICE
     const int* nCompPtr() const {
-        return &nvar;
+        return &(this->nvar);
     }
 
     //! Returns the number of points 
     AMREX_GPU_HOST_DEVICE
-    long nPts () const { return numpts; }
+    long nPts () const { return this->numpts; }
 
     //! Returns the total number of points of all components
     AMREX_GPU_HOST_DEVICE
-    long size () const { return nvar*numpts; }
+    long size () const { return this->nvar*this->numpts; }
 
     //! Returns the domain (box) where the array is defined
     AMREX_GPU_HOST_DEVICE
-    const Box& box () const { return domain; }
+    const Box& box () const { return this->domain; }
 
     /**
     * \brief Returns a pointer to an array of SPACEDIM integers
     * giving the length of the domain in each direction
     */
     AMREX_GPU_HOST_DEVICE
-    const int* length () const { return dlen.getVect(); }
+    const int* length () const { return this->dlen.getVect(); }
 
     /**
     * \brief Returns the lower corner of the domain
     * See class Box for analogue.
     */
     AMREX_GPU_HOST_DEVICE
-    const IntVect& smallEnd () const { return domain.smallEnd(); }
+    const IntVect& smallEnd () const { return this->domain.smallEnd(); }
 
     //!  Returns the upper corner of the domain.  See class Box for analogue.
     AMREX_GPU_HOST_DEVICE
-    const IntVect& bigEnd () const { return domain.bigEnd(); }
+    const IntVect& bigEnd () const { return this->domain.bigEnd(); }
 
     /**
     * \brief Returns the lower corner of the domain.  
@@ -241,7 +261,7 @@ public:
     * Fortran subroutines.
     */
     AMREX_GPU_HOST_DEVICE
-    const int* loVect () const { return domain.loVect(); }
+    const int* loVect () const { return this->domain.loVect(); }
 
     /**
     * \brief Returns the upper corner of the domain.  
@@ -252,7 +272,7 @@ public:
     * Fortran subroutines.
     */
     AMREX_GPU_HOST_DEVICE
-    const int* hiVect () const { return domain.hiVect(); }
+    const int* hiVect () const { return this->domain.hiVect(); }
 
     /**
     * \brief Returns true if the domain of fab is totally contained within
@@ -261,7 +281,7 @@ public:
     AMREX_GPU_HOST_DEVICE
     bool contains (const BaseFab<T>& fab) const
     {
-        return box().contains(fab.box()) && nvar <= fab.nvar;
+        return box().contains(fab.box()) && this->nvar <= fab.nvar;
     }
 
     /**
@@ -281,73 +301,73 @@ public:
     * dataPtr returns a pointer to all the Nth components.
     */
     AMREX_GPU_HOST_DEVICE
-    T* dataPtr (int n = 0) { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    T* dataPtr (int n = 0) { AMREX_ASSERT(!(this->dptr == 0)); return &(this->dptr[n*this->numpts]); }
 
     //! Same as above except works on const FABs.
     AMREX_GPU_HOST_DEVICE
-    const T* dataPtr (int n = 0) const { AMREX_ASSERT(!(dptr == 0)); return &dptr[n*numpts]; }
+    const T* dataPtr (int n = 0) const { AMREX_ASSERT(!(this->dptr == 0)); return &(this->dptr[n*this->numpts]); }
 
     AMREX_GPU_HOST_DEVICE
     T* dataPtr (const IntVect& iv, int n = 0);
     AMREX_GPU_HOST_DEVICE
     const T* dataPtr (const IntVect& iv, int n = 0) const;
     
-    void setPtr (T* p, long sz) { AMREX_ASSERT(dptr == 0 && truesize == 0); dptr = p; truesize = sz; }
+    void setPtr (T* p, long sz) { AMREX_ASSERT(this->dptr == 0 && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
 
     AMREX_GPU_HOST_DEVICE
     StridedPtr<T const*> stridedPtr (int n = 0) const {
-        const auto& len = domain.length3d();
+        const auto& len = this->domain.length3d();
         int jstride = len[0];
         int kstride = jstride*len[1];
         int nstride = kstride*len[2];
-        T const* p = dptr + n*nstride;
+        T const* p = this->dptr + n*nstride;
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
     AMREX_GPU_HOST_DEVICE
     StridedPtr<T*> stridedPtr (int n = 0) {
-        const auto& len = domain.length3d();
+        const auto& len = this->domain.length3d();
         int jstride = len[0];
         int kstride = jstride*len[1];
         int nstride = kstride*len[2];
-        T* p = dptr + n*nstride;
+        T* p = this->dptr + n*nstride;
         return StridedPtr<T*>{p, jstride, kstride, nstride};
     }
 
     AMREX_GPU_HOST_DEVICE
     StridedPtr<T const*> stridedPtr (const Box& subbox, int n = 0) const {
-        const auto& len = domain.length3d();
+        const auto& len = this->domain.length3d();
         int jstride = len[0];
         int kstride = jstride*len[1];
         int nstride = kstride*len[2];
-        const auto& dlo = domain.loVect3d();
+        const auto& dlo = this->domain.loVect3d();
         const auto& slo = subbox.loVect3d();
-        T const* p = dptr + (  (slo[0]-dlo[0])
-                             + (slo[1]-dlo[1])*jstride
-                             + (slo[2]-dlo[2])*kstride
-                             +               n*nstride);
+        T const* p = this->dptr + ((slo[0]-dlo[0])
+                                +  (slo[1]-dlo[1])*jstride
+                                +  (slo[2]-dlo[2])*kstride
+                                +                n*nstride);
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
     AMREX_GPU_HOST_DEVICE
     StridedPtr<T*> stridedPtr (const Box& subbox, int n = 0) {
-        const auto& len = domain.length3d();
+        const auto& len = this->domain.length3d();
         int jstride = len[0];
         int kstride = jstride*len[1];
         int nstride = kstride*len[2];
-        const auto& dlo = domain.loVect3d();
+        const auto& dlo = this->domain.loVect3d();
         const auto& slo = subbox.loVect3d();
-        T* p = dptr + (  (slo[0]-dlo[0])
-                       + (slo[1]-dlo[1])*jstride
-                       + (slo[2]-dlo[2])*kstride
-                       +               n*nstride);
+        T* p = this->dptr + ((slo[0]-dlo[0])
+                          +  (slo[1]-dlo[1])*jstride
+                          +  (slo[2]-dlo[2])*kstride
+                          +                n*nstride);
         return StridedPtr<T*>{p, jstride, kstride, nstride};
     }
 
     //! Returns true if the data for the FAB has been allocated.
     AMREX_GPU_HOST_DEVICE
-    bool isAllocated () const { return dptr != 0; }
+    bool isAllocated () const { return this->dptr != 0; }
 
     /**
     * \brief Returns a reference to the Nth component value
@@ -1096,7 +1116,7 @@ public:
 
     //! Change the Box type without change the length
     AMREX_GPU_HOST_DEVICE
-    void SetBoxType (const IndexType& typ) { domain.setType(typ); }
+    void SetBoxType (const IndexType& typ) { this->domain.setType(typ); }
 
     template <class F> AMREX_GPU_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
@@ -1147,16 +1167,6 @@ protected:
                         const Box& bx,
                         int        nstart,
                         int        numcomp);
-protected:
-
-    Box     domain;   // My index space.
-    IntVect dlen;     // Length of domain in each direction.
-    int     nvar;     // Number components.
-    long    numpts;   // Cached number of points in FAB.
-    long    truesize; // nvar*numpts that was allocated on heap.
-    T*      dptr;     // The data pointer.
-    bool    ptr_owner;// Owner of T*?
-    bool    shared_memory;  // Is the memory allocated in shared memory?
 
 #ifdef USE_PERILLA
 public:
@@ -1366,11 +1376,11 @@ T*
 BaseFab<T>::dataPtr (const IntVect& p, int n)
 {
     AMREX_ASSERT(n >= 0);
-    AMREX_ASSERT(n < nvar);
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n < this->nvar);
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(this->domain.contains(p));
 
-    return dptr + (domain.index(p)+n*numpts);
+    return this->dptr + (this->domain.index(p)+n*this->numpts);
 }
 
 template <class T>
@@ -1379,11 +1389,11 @@ const T*
 BaseFab<T>::dataPtr (const IntVect& p, int n) const
 {
     AMREX_ASSERT(n >= 0);
-    AMREX_ASSERT(n < nvar);
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n < this->nvar);
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(this->domain.contains(p));
 
-    return dptr + (domain.index(p)+n*numpts);
+    return this->dptr + (this->domain.index(p)+n*this->numpts);
 }
 
 template <class T>
@@ -1393,11 +1403,11 @@ BaseFab<T>::operator() (const IntVect& p,
                         int            n)
 {
     AMREX_ASSERT(n >= 0);
-    AMREX_ASSERT(n < nvar);
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n < this->nvar);
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(this->domain.contains(p));
 
-    return dptr[domain.index(p)+n*numpts];
+    return this->dptr[this->domain.index(p)+n*this->numpts];
 }
 
 template <class T>
@@ -1405,10 +1415,10 @@ inline
 T&
 BaseFab<T>::operator() (const IntVect& p)
 {
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(domain.contains(p));
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(this->domain.contains(p));
 
-    return dptr[domain.index(p)];
+    return this->dptr[this->domain.index(p)];
 }
 
 template <class T>
@@ -1418,11 +1428,11 @@ BaseFab<T>::operator() (const IntVect& p,
                         int            n) const
 {
     AMREX_ASSERT(n >= 0);
-    AMREX_ASSERT(n < nvar);
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(domain.contains(p));
+    AMREX_ASSERT(n < this->nvar);
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(this->domain.contains(p));
 
-    return dptr[domain.index(p)+n*numpts];
+    return this->dptr[this->domain.index(p)+n*this->numpts];
 }
 
 template <class T>
@@ -1430,10 +1440,10 @@ inline
 const T&
 BaseFab<T>::operator() (const IntVect& p) const
 {
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(domain.contains(p));
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(this->domain.contains(p));
 
-    return dptr[domain.index(p)];
+    return this->dptr[this->domain.index(p)];
 }
 
 template <class T>
@@ -1443,14 +1453,14 @@ BaseFab<T>::getVal  (T*             data,
                      int            n,
                      int            numcomp) const
 {
-    const int loc      = domain.index(pos);
-    const long sz    = domain.numPts();
+    const int loc      = this->domain.index(pos);
+    const long sz    = this->domain.numPts();
 
-    AMREX_ASSERT(!(dptr == 0));
-    AMREX_ASSERT(n >= 0 && n + numcomp <= nvar);
+    AMREX_ASSERT(!(this->dptr == 0));
+    AMREX_ASSERT(n >= 0 && n + numcomp <= this->nvar);
 
     for (int k = 0; k < numcomp; k++)
-        data[k] = dptr[loc+(n+k)*sz];
+        data[k] = this->dptr[loc+(n+k)*sz];
 }
 
 template <class T>
@@ -1458,14 +1468,14 @@ void
 BaseFab<T>::getVal (T*             data,
                     const IntVect& pos) const
 {
-    getVal(data,pos,0,nvar);
+    getVal(data,pos,0,this->nvar);
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::shift (const IntVect& v)
 {
-    domain += v;
+    this->domain += v;
     return *this;
 }
 
@@ -1474,7 +1484,7 @@ BaseFab<T>&
 BaseFab<T>::shift (int idir,
                    int n_cell)
 {
-    domain.shift(idir,n_cell);
+    this->domain.shift(idir,n_cell);
     return *this;
 }
 
@@ -1482,7 +1492,7 @@ template <class T>
 BaseFab<T> &
 BaseFab<T>::shiftHalf (const IntVect& v)
 {
-    domain.shiftHalf(v);
+    this->domain.shiftHalf(v);
     return *this;
 }
 
@@ -1491,7 +1501,7 @@ BaseFab<T> &
 BaseFab<T>::shiftHalf (int idir,
                        int n_cell)
 {
-    domain.shiftHalf(idir,n_cell);
+    this->domain.shiftHalf(idir,n_cell);
     return *this;
 }
 
@@ -1499,7 +1509,7 @@ template <class T>
 void
 BaseFab<T>::setVal (T val)
 {
-    performSetVal(val,box(), 0, nvar);
+    performSetVal(val,box(), 0, this->nvar);
 }
 
 template <class T>
@@ -1516,7 +1526,7 @@ void
 BaseFab<T>::setVal (T   x,
                     int n)
 {
-    performSetVal(x,domain,n,1);
+    performSetVal(x,this->domain,n,1);
 }
 
 template <class T>
@@ -1533,8 +1543,8 @@ template <class T>
 void
 BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num)
 {
-    AMREX_ASSERT(domain.contains(bx));
-    AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
+    AMREX_ASSERT(this->domain.contains(bx));
+    AMREX_ASSERT(ns >= 0 && ns + num <= this->nvar);
 
     const auto dp0 = this->stridedPtr(bx,ns);
     const auto mp0 =  mask.stridedPtr(bx);
@@ -1566,9 +1576,9 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     AMREX_ASSERT(destbox.ok());
     AMREX_ASSERT(srcbox.sameSize(destbox));
     AMREX_ASSERT(src.box().contains(srcbox));
-    AMREX_ASSERT(domain.contains(destbox));
+    AMREX_ASSERT(this->domain.contains(destbox));
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= nvar);
+    AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= this->nvar);
     performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
     return *this;
 }
@@ -1577,12 +1587,12 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src)
 {
-    AMREX_ASSERT(nvar <= src.nvar);
-    AMREX_ASSERT(domain.sameType(src.domain));
-    Box overlap(domain);
+    AMREX_ASSERT(this->nvar <= src.nvar);
+    AMREX_ASSERT(this->domain.sameType(src.domain));
+    Box overlap(this->domain);
     overlap &= src.domain;
     if (overlap.ok())
-        performCopy(src,overlap,0,overlap,0,nvar);
+        performCopy(src,overlap,0,overlap,0,this->nvar);
     return *this;
 }
 
@@ -1591,12 +1601,12 @@ BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src,
                   const Box&        destbox)
 {
-    AMREX_ASSERT(nvar <= src.nvar);
-    AMREX_ASSERT(domain.contains(destbox));
+    AMREX_ASSERT(this->nvar <= src.nvar);
+    AMREX_ASSERT(this->domain.contains(destbox));
     Box overlap(destbox);
     overlap &= src.domain;
     if (overlap.ok())
-        performCopy(src,overlap,0,overlap,0,nvar);
+        performCopy(src,overlap,0,overlap,0,this->nvar);
     return *this;
 }
 
@@ -1608,8 +1618,8 @@ BaseFab<T>::copy (const BaseFab<T>& src,
                   int               numcomp)
 {
     AMREX_ASSERT(srccomp >= 0 && srccomp + numcomp <= src.nvar);
-    AMREX_ASSERT(destcomp >= 0 && destcomp + numcomp <= nvar);
-    Box overlap(domain);
+    AMREX_ASSERT(destcomp >= 0 && destcomp + numcomp <= this->nvar);
+    Box overlap(this->domain);
     overlap &= src.domain;
     if (overlap.ok())
         performCopy(src,overlap,srccomp,overlap,destcomp,numcomp);
@@ -1620,47 +1630,47 @@ template <class T>
 void
 BaseFab<T>::define ()
 {
-    AMREX_ASSERT(nvar > 0);
-    AMREX_ASSERT(dptr == 0);
-    AMREX_ASSERT(numpts > 0);
-    AMREX_ASSERT(std::numeric_limits<long>::max()/nvar > numpts);
+    AMREX_ASSERT(this->nvar > 0);
+    AMREX_ASSERT(this->dptr == 0);
+    AMREX_ASSERT(this->numpts > 0);
+    AMREX_ASSERT(std::numeric_limits<long>::max()/this->nvar > this->numpts);
 
-    truesize  = nvar*numpts;
-    ptr_owner = true;
+    this->truesize  = this->nvar*this->numpts;
+    this->ptr_owner = true;
 // amrex::Arena is a virtual base class, not supported on GPUs.
 // So for now, need to manually add allocation for objects built on GPU. 
 #ifndef __CUDA_ARCH__
-    dptr      = static_cast<T*>(amrex::The_Arena()->alloc(truesize*sizeof(T)));
+    this->dptr = static_cast<T*>(amrex::The_Arena()->alloc(this->truesize*sizeof(T)));
 #else
-    dptr      = static_cast<T*>(::operator new(truesize*sizeof(T)));
+    this->dptr = static_cast<T*>(::operator new(this->truesize*sizeof(T)));
 #endif
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
-    T* ptr = dptr;
+    T* ptr = this->dptr;
     //
     // Note this must be long not int for very large (e.g.,1024^3) boxes.
     //
-    for (long i = 0; i < truesize; i++, ptr++)
+    for (long i = 0; i < this->truesize; i++, ptr++)
     {
         new (ptr) T;
     }
 
 #ifndef __CUDA_ARCH__
-    amrex::update_fab_stats(numpts, truesize, sizeof(T));
+    amrex::update_fab_stats(this->numpts, this->truesize, sizeof(T));
 #endif
 }
 
 template <class T>
 BaseFab<T>::BaseFab ()
-    :
-    domain(Box()),
-    nvar(0),
-    numpts(0),
-    truesize(0),
-    dptr(0),
-    ptr_owner(false),
-    shared_memory(false)
+    : BaseFabData<T>{Box(),
+                     IntVect(0),
+                     0,
+                     0L,
+                     0L,
+                     nullptr,
+                     false,
+                     false}
 {}
 
 template <class T>
@@ -1668,37 +1678,35 @@ BaseFab<T>::BaseFab (const Box& bx,
                      int        n,
 		     bool       alloc,
 		     bool       shared)
-    :
-    domain(bx),
-    dlen(bx.size()),
-    nvar(n),
-    numpts(bx.numPts()),
-    truesize(0),
-    dptr(0),
-    ptr_owner(false),
-    shared_memory(shared)
+    : BaseFabData<T>{bx,
+                     bx.size(),
+                     n,
+                     bx.numPts(),
+                     0L,
+                     nullptr,
+                     false,
+                     shared}
 {
-    if (!shared_memory && alloc) define();
+    if (!this->shared_memory && alloc) define();
 }
 
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
-    :
-    domain(rhs.domain),
-    dlen(rhs.dlen),
-    nvar(ncomp),
-    numpts(rhs.numpts),
-    truesize(ncomp*rhs.numpts),
-    dptr(const_cast<T*>(rhs.dataPtr(scomp))),
-    ptr_owner(false),
-    shared_memory(false)
+    : BaseFabData<T>{rhs.domain,
+                     rhs.dlen,
+                     ncomp,
+                     rhs.numpts,
+                     ncomp*rhs.numpts,
+                     const_cast<T*>(rhs.dataPtr(scomp)),
+                     false,
+                     false}
 {
     AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
     if (make_type == amrex::make_deep_copy)
     {
-        dptr = nullptr;
+        this->dptr = nullptr;
         define();
-        this->copy(rhs, domain, scomp, domain, 0, ncomp);
+        this->copy(rhs, this->domain, scomp, this->domain, 0, ncomp);
     } else if (make_type == amrex::make_alias) {
         ; // nothing to do
     } else {
@@ -1708,15 +1716,14 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
 
 template<class T>
 BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
-    :
-    domain(bx),
-    dlen(bx.size()),
-    nvar(ncomp),
-    numpts(bx.numPts()),
-    truesize(bx.numPts()*ncomp),
-    dptr(p),
-    ptr_owner(false),
-    shared_memory(false)
+    : BaseFabData<T>{bx,
+                     bx.size(),
+                     ncomp,
+                     bx.numPts(),
+                     bx.numPts()*ncomp,
+                     p,
+                     false,
+                     false}
 {
 }
 
@@ -1728,15 +1735,14 @@ BaseFab<T>::~BaseFab ()
 
 template <class T>
 BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
-    :
-    domain(rhs.domain),
-    dlen(rhs.dlen),
-    nvar(rhs.nvar),
-    numpts(rhs.numpts),
-    truesize(rhs.truesize),
-    dptr(rhs.dptr),
-    ptr_owner(rhs.ptr_owner),
-    shared_memory(rhs.shared_memory)
+    : BaseFabData<T>{rhs.domain,
+                     rhs.dlen,
+                     rhs.nvar,
+                     rhs.numpts,
+                     rhs.truesize,
+                     rhs.dptr,
+                     rhs.ptr_owner,
+                     rhs.shared_memory}
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
@@ -1755,21 +1761,21 @@ void
 BaseFab<T>::resize (const Box& b,
                     int        n)
 {
-    nvar   = n;
-    domain = b;
-    dlen   = b.size();
-    numpts = domain.numPts();
+    this->nvar   = n;
+    this->domain = b;
+    this->dlen   = b.size();
+    this->numpts = this->domain.numPts();
 
-    if (dptr == 0)
+    if (this->dptr == 0)
     {
-	if (shared_memory)
+	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         define();
     }
-    else if (nvar*numpts > truesize)
+    else if (this->nvar*this->numpts > this->truesize)
     {
-	if (shared_memory)
+	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
         clear();
@@ -1782,43 +1788,43 @@ template <class T>
 void
 BaseFab<T>::clear ()
 {
-    if (dptr)
+    if (this->dptr)
     {
         //
         // Call T::~T() on the to-be-destroyed memory.
         //
-	if (ptr_owner)
+	if (this->ptr_owner)
 	{
 #ifndef __CUDA_ARCH__
-	    if (shared_memory)
+	    if (this->shared_memory)
 	    {
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
 #endif
-	    T* ptr = dptr;
+	    T* ptr = this->dptr;
 
-	    for (long i = 0; i < truesize; i++, ptr++)
+	    for (long i = 0; i < this->truesize; i++, ptr++)
 	    {
 		ptr->~T();
 	    }
 
 #ifndef __CUDA_ARCH__
-	    amrex::The_Arena()->free(dptr);
+	    amrex::The_Arena()->free(this->dptr);
 #else
-            ::operator delete(dptr);
+            ::operator delete(this->dptr);
 #endif
 
 #ifndef __CUDA_ARCH__
-	    if (nvar > 1) {
-		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
+	    if (this->nvar > 1) {
+		amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
 	    } else {
-		amrex::update_fab_stats(0, -truesize, sizeof(T));
+		amrex::update_fab_stats(0, -this->truesize, sizeof(T));
 	    }
 #endif
 	}
 
-	dptr = 0;
-	truesize = 0;
+	this->dptr = 0;
+	this->truesize = 0;
     }
 }
 
@@ -1863,8 +1869,8 @@ BaseFab<T>::performSetVal (T          val,
                            int        ns,
                            int        num)
 {
-    AMREX_ASSERT(domain.contains(bx));
-    AMREX_ASSERT(ns >= 0 && ns + num <= nvar);
+    AMREX_ASSERT(this->domain.contains(bx));
+    AMREX_ASSERT(ns >= 0 && ns + num <= this->nvar);
 
     const auto dp0 = this->stridedPtr(bx,ns);
 
@@ -2000,7 +2006,7 @@ BaseFab<T>::setComplement (T          x,
                            int        ns,
                            int        num)
 {
-    BoxList b_lst = amrex::boxDiff(domain,b);
+    BoxList b_lst = amrex::boxDiff(this->domain,b);
     for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
 #ifdef AMREX_USE_GPU
@@ -2013,7 +2019,7 @@ template <class T>
 void
 BaseFab<T>::abs ()
 {
-    this->abs(domain,0,nvar);
+    this->abs(this->domain,0,this->nvar);
 }
 
 template <class T>
@@ -2021,7 +2027,7 @@ void
 BaseFab<T>::abs (int comp,
                  int numcomp)
 {
-    this->abs(domain,comp,numcomp);
+    this->abs(this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -2051,8 +2057,8 @@ Real
 BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
                          int scomp, int ncomp) const
 {
-    BL_ASSERT(domain.contains(subbox));
-    BL_ASSERT(scomp >= 0 && scomp + ncomp <= nvar);
+    BL_ASSERT(this->domain.contains(subbox));
+    BL_ASSERT(scomp >= 0 && scomp + ncomp <= this->nvar);
 
     Real r = 0.0;
 
@@ -2085,7 +2091,7 @@ BaseFab<T>::norm (int p,
                   int comp,
                   int numcomp) const
 {
-    return norm(domain,p,comp,numcomp);
+    return norm(this->domain,p,comp,numcomp);
 }
 
 template <class T>
@@ -2095,8 +2101,8 @@ BaseFab<T>::norm (const Box& subbox,
                   int        comp,
                   int        numcomp) const
 {
-    BL_ASSERT(domain.contains(subbox));
-    BL_ASSERT(comp >= 0 && comp + numcomp <= nvar);
+    BL_ASSERT(this->domain.contains(subbox));
+    BL_ASSERT(comp >= 0 && comp + numcomp <= this->nvar);
 
     Real nrm = 0.;
 
@@ -2156,7 +2162,7 @@ template <class T>
 T
 BaseFab<T>::min (int comp) const
 {
-    return this->min(domain,comp);
+    return this->min(this->domain,comp);
 }
 
 template <class T>
@@ -2189,7 +2195,7 @@ template <class T>
 T
 BaseFab<T>::max (int comp) const
 {
-    return this->max(domain,comp);
+    return this->max(this->domain,comp);
 }
 
 template <class T>
@@ -2222,7 +2228,7 @@ template <class T>
 IntVect
 BaseFab<T>::minIndex (int comp) const
 {
-    return this->minIndex(domain,comp);
+    return this->minIndex(this->domain,comp);
 }
 
 template <class T>
@@ -2255,7 +2261,7 @@ template <class T>
 IntVect
 BaseFab<T>::maxIndex (int comp) const
 {
-    return this->maxIndex(domain,comp);
+    return this->maxIndex(this->domain,comp);
 }
 
 template <class T>
@@ -2291,7 +2297,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
-    mask.resize(domain,1);
+    mask.resize(this->domain,1);
     mask.setVal(0);
 
     int cnt = 0;
@@ -2299,7 +2305,7 @@ BaseFab<T>::maskLT (BaseFab<int>& mask,
     const auto sp0 = this->stridedPtr(comp);
     const auto mp0 =  mask.stridedPtr();
 
-    const auto len = domain.length3d();
+    const auto len = this->domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
@@ -2323,7 +2329,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
-    mask.resize(domain,1);
+    mask.resize(this->domain,1);
     mask.setVal(0);
 
     int cnt = 0;
@@ -2331,7 +2337,7 @@ BaseFab<T>::maskLE (BaseFab<int>& mask,
     const auto sp0 = this->stridedPtr(comp);
     const auto mp0 =  mask.stridedPtr();
 
-    const auto len = domain.length3d();
+    const auto len = this->domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
@@ -2355,7 +2361,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
-    mask.resize(domain,1);
+    mask.resize(this->domain,1);
     mask.setVal(0);
 
     int cnt = 0;
@@ -2363,7 +2369,7 @@ BaseFab<T>::maskEQ (BaseFab<int>& mask,
     const auto sp0 = this->stridedPtr(comp);
     const auto mp0 =  mask.stridedPtr();
 
-    const auto len = domain.length3d();
+    const auto len = this->domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
@@ -2387,7 +2393,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
-    mask.resize(domain,1);
+    mask.resize(this->domain,1);
     mask.setVal(0);
 
     int cnt = 0;
@@ -2395,7 +2401,7 @@ BaseFab<T>::maskGT (BaseFab<int>& mask,
     const auto sp0 = this->stridedPtr(comp);
     const auto mp0 =  mask.stridedPtr();
 
-    const auto len = domain.length3d();
+    const auto len = this->domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
@@ -2419,7 +2425,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask,
                     T             val,
                     int           comp) const
 {
-    mask.resize(domain,1);
+    mask.resize(this->domain,1);
     mask.setVal(0);
 
     int cnt = 0;
@@ -2427,7 +2433,7 @@ BaseFab<T>::maskGE (BaseFab<int>& mask,
     const auto sp0 = this->stridedPtr(comp);
     const auto mp0 =  mask.stridedPtr();
 
-    const auto len = domain.length3d();
+    const auto len = this->domain.length3d();
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
@@ -2463,9 +2469,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::atomicAdd (const BaseFab<T>& x)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= x.domain;
-    return ovlp.ok() ? this->atomicAdd(x,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? this->atomicAdd(x,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -2506,9 +2512,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::saxpy (T a, const BaseFab<T>& x)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= x.domain;
-    return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? saxpy(a,x,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -2740,7 +2746,7 @@ T
 BaseFab<T>::sum (int comp,
                  int numcomp) const
 {
-    return this->sum(domain,comp,numcomp);
+    return this->sum(this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -2749,8 +2755,8 @@ BaseFab<T>::sum (const Box& subbox,
                  int        comp,
                  int        numcomp) const
 {
-    BL_ASSERT(domain.contains(subbox));
-    BL_ASSERT(comp >= 0 && comp + numcomp <= nvar);
+    BL_ASSERT(this->domain.contains(subbox));
+    BL_ASSERT(comp >= 0 && comp + numcomp <= this->nvar);
 
     T r = 0;
 
@@ -2775,7 +2781,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::negate ()
 {
-    return this->negate(domain,0,nvar);
+    return this->negate(this->domain,0,this->nvar);
 }
 
 template <class T>
@@ -2783,7 +2789,7 @@ BaseFab<T>&
 BaseFab<T>::negate (int comp,
                     int numcomp)
 {
-    return this->negate(domain,comp,numcomp);
+    return this->negate(this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -2813,7 +2819,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::invert (T r)
 {
-    return this->invert(r,domain,0,nvar);
+    return this->invert(r,this->domain,0,this->nvar);
 }
 
 template <class T>
@@ -2822,7 +2828,7 @@ BaseFab<T>::invert (T   r,
                     int comp,
                     int numcomp)
 {
-    return this->invert(r,domain,comp,numcomp);
+    return this->invert(r,this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -2832,8 +2838,8 @@ BaseFab<T>::invert (T          r,
                     int        comp,
                     int        numcomp)
 {
-    BL_ASSERT(domain.contains(b));
-    BL_ASSERT(comp >= 0 && comp + numcomp <= nvar);
+    BL_ASSERT(this->domain.contains(b));
+    BL_ASSERT(comp >= 0 && comp + numcomp <= this->nvar);
 
     const auto dp0 = this->stridedPtr(b,comp);
     const auto len = b.length3d();
@@ -2856,7 +2862,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator+= (T r)
 {
-    return this->plus(r,domain,0,nvar);
+    return this->plus(r,this->domain,0,this->nvar);
 }
 
 template <class T>
@@ -2865,7 +2871,7 @@ BaseFab<T>::plus (T   r,
                   int comp,
                   int numcomp)
 {
-    return this->plus(r,domain,comp,numcomp);
+    return this->plus(r,this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -2875,7 +2881,7 @@ BaseFab<T>::plus (T          r,
                   int        comp,
                   int        numcomp)
 {
-    AMREX_ASSERT(domain.contains(b));
+    AMREX_ASSERT(this->domain.contains(b));
 
     const auto dp0 = this->stridedPtr(b,comp);
     const auto len = b.length3d();
@@ -2898,9 +2904,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator+= (const BaseFab<T>& src)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->plus(src,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? this->plus(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -2910,7 +2916,7 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->plus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
@@ -2922,7 +2928,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
                        int               destcomp,
                        int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
@@ -2935,7 +2941,7 @@ BaseFab<T>::plus (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->plus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
@@ -2949,7 +2955,7 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
                        int               destcomp,
                        int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->atomicAdd(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
@@ -3038,9 +3044,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator-= (const BaseFab<T>& src)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->minus(src,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? this->minus(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -3050,7 +3056,7 @@ BaseFab<T>::minus (const BaseFab<T>& src,
                    int               destcomp,
                    int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->minus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
@@ -3063,7 +3069,7 @@ BaseFab<T>::minus (const BaseFab<T>& src,
                    int               destcomp,
                    int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->minus(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
@@ -3109,7 +3115,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator*= (T r)
 {
-    return this->mult(r,domain,0,nvar);
+    return this->mult(r,this->domain,0,this->nvar);
 }
 
 template <class T>
@@ -3118,7 +3124,7 @@ BaseFab<T>::mult (T   r,
                   int comp,
                   int numcomp)
 {
-    return this->mult(r,domain,comp,numcomp);
+    return this->mult(r,this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -3149,9 +3155,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator*= (const BaseFab<T>& src)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->mult(src,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? this->mult(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -3161,7 +3167,7 @@ BaseFab<T>::mult (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->mult(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
@@ -3174,7 +3180,7 @@ BaseFab<T>::mult (const BaseFab<T>& src,
                   int               destcomp,
                   int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->mult(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
@@ -3220,7 +3226,7 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator/= (T r)
 {
-    return this->divide(r,domain,0,nvar);
+    return this->divide(r,this->domain,0,this->nvar);
 }
 
 template <class T>
@@ -3229,7 +3235,7 @@ BaseFab<T>::divide (T   r,
                     int comp,
                     int numcomp)
 {
-    return this->divide(r,domain,comp,numcomp);
+    return this->divide(r,this->domain,comp,numcomp);
 }
 
 template <class T>
@@ -3260,9 +3266,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::operator/= (const BaseFab<T>& src)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->divide(src,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? this->divide(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -3272,7 +3278,7 @@ BaseFab<T>::divide (const BaseFab<T>& src,
                     int               destcomp,
                     int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
@@ -3285,7 +3291,7 @@ BaseFab<T>::divide (const BaseFab<T>& src,
                     int               destcomp,
                     int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
@@ -3331,9 +3337,9 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::protected_divide (const BaseFab<T>& src)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
-    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,0,0,nvar) : *this;
+    return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,0,0,this->nvar) : *this;
 }
 
 template <class T>
@@ -3343,7 +3349,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
                               int               destcomp,
                               int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
 }
@@ -3356,7 +3362,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
                               int               destcomp,
                               int               numcomp)
 {
-    Box ovlp(domain);
+    Box ovlp(this->domain);
     ovlp &= src.domain;
     ovlp &= subbox;
     return ovlp.ok() ? this->protected_divide(src,ovlp,ovlp,srccomp,destcomp,numcomp) : *this;
