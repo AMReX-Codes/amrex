@@ -26,6 +26,7 @@
 
 namespace {
 int flag_verbose_mapper;
+int flag_old_version;
 }
 
 namespace amrex {
@@ -116,6 +117,7 @@ DistributionMapping::Initialize ()
     max_efficiency   = 0.9;
     node_size        = 0;
     flag_verbose_mapper = 0;
+    flag_old_version    = 0;
 
     ParmParse pp("DistributionMapping");
 
@@ -125,6 +127,7 @@ DistributionMapping::Initialize ()
     pp.query("sfc_threshold",    sfc_threshold);
     pp.query("node_size",        node_size);
     pp.query("verbose_mapper",   flag_verbose_mapper);
+    pp.query("old_version",      flag_old_version);
 
     std::string theStrategy;
 
@@ -1515,9 +1518,13 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     for (int i = 0; i < N; ++i)
     {
 	const Box& bx = ba[i];
-        const auto & bx_vol = bx.volume();
-        tokens.push_back(SFCToken(i,bx.smallEnd(),bx_vol));
-        vol_sum += bx_vol;
+        if (flag_old_version) {
+            tokens.push_back(SFCToken(i,bx.smallEnd(),1.0));
+        } else {
+            const auto & bx_vol = bx.volume();
+            tokens.push_back(SFCToken(i,bx.smallEnd(),bx_vol));
+            vol_sum += bx_vol;
+        }
 
         const SFCToken& token = tokens.back();
 
@@ -1539,7 +1546,12 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
 
     const int nprocs = ParallelContext::NProcsSub();
-    Real volper = vol_sum / nprocs;
+    Real volper;
+    if (flag_old_version) {
+        volper = static_cast<Real>(N)/static_cast<Real>(nprocs);
+    } else {
+        volper = vol_sum / nprocs;
+    }
 
     std::vector< std::vector<int> > r(nprocs);
     Distribute(tokens, nprocs, volper, r);
