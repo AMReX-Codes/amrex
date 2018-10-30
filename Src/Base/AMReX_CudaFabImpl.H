@@ -13,6 +13,7 @@ public:
 
     DeviceFabImpl ();
     DeviceFabImpl (Box const& bx, int ncomp);
+    DeviceFabImpl (FArrayBox& a_fab);
     ~DeviceFabImpl ();
     DeviceFabImpl (DeviceFabImpl const&) = delete;
     void operator= (DeviceFabImpl const&) = delete;
@@ -28,7 +29,12 @@ private:
 #ifdef AMREX_USE_CUDA
     std::unique_ptr<FArrayBox> m_gpu_fab;
     BaseFabData<Real>          m_cpu_fab_data;
+#else
+    FArrayBox*                 m_cpu_fab_alias = nullptr;
+#endif
 
+
+#ifdef AMREX_USE_CUDA
     void copy_htod ();
 #endif
 };
