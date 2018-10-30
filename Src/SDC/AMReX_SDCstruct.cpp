@@ -8,13 +8,28 @@ SDCstruct::SDCstruct(int Nnodes_in,int Npieces_in, MultiFab& sol_in)
   Npieces=Npieces_in;       
   
   qnodes= new Real[Nnodes];
+  Qall= new Real[4*(Nnodes-1)*Nnodes];  
   Nflags= new int[Nnodes];
-  //  qmats = new Real[4][Nnodes-1][Nnodes];    
 
+  Qgauss.resize(Nnodes, Vector<Real>(Nnodes-1));
+  Qexp.resize(Nnodes, Vector<Real>(Nnodes-1));
+  Qimp.resize(Nnodes, Vector<Real>(Nnodes-1));
+  QLU.resize(Nnodes, Vector<Real>(Nnodes-1));  
 
   //  Make the quadrature tables
-  SDC_quadrature(&qtype, &Nnodes, &Nnodes,qnodes,Nflags, &qmats[0][0][0]);
-  
+  SDC_quadrature(&qtype, &Nnodes, &Nnodes,qnodes,Nflags, &Qall[0]);  
+
+  //  Load the quadrature nodes into their spots
+  for ( int j = 0; j < Nnodes-1; ++j)
+    for ( int k = 0; k < Nnodes; ++k)
+      {
+	Qgauss[j][k]=  Qall[0*(Nnodes-1)*(Nnodes) +j*(Nnodes) + k ];
+	Qexp[j][k]=    Qall[1*(Nnodes-1)*(Nnodes) +j*(Nnodes) + k ];
+	Qimp[j][k]=    Qall[2*(Nnodes-1)*(Nnodes) +j*(Nnodes) + k ];
+	QLU[j][k]=     Qall[3*(Nnodes-1)*(Nnodes) +j*(Nnodes) + k ];			
+      }
+
+  //  Resize the storage
   sol.resize(Nnodes);
   res.resize(Nnodes);
   f.resize(Npieces);
@@ -57,19 +72,20 @@ void SDCstruct::SDC_rhs_integrals(Real dt)
 	    Ithree[sdc_m][mfi].setVal(0.0);
 	  for (int sdc_n = 0; sdc_n < Nnodes; sdc_n++)
 	    {
-	      qij = dt*(qmats[0][sdc_m][sdc_n]-qmats[1][sdc_m][sdc_n]);
-	      res[sdc_m][mfi].saxpy(qij,f[0][sdc_n][mfi]);
-	      qij = dt*(qmats[0][sdc_m][sdc_n]-qmats[2][sdc_m][sdc_n]);
-	      res[sdc_m][mfi].saxpy(qij,f[1][sdc_n][mfi]);
+	      qij = dt*(Qgauss[sdc_m][sdc_n]-Qexp[sdc_m][sdc_n]);	      
+	      res[sdc_m][mfi].saxpy(qij,f[0][sdc_n][mfi]);  // Explicit part
+
+	      qij = dt*(Qgauss[sdc_m][sdc_n]-Qimp[sdc_m][sdc_n]);	      
+	      res[sdc_m][mfi].saxpy(qij,f[1][sdc_n][mfi]);  // Implicit part
 	    }
 	  if (Npieces == 3)
 	    {
 	      for (int sdc_n = 0; sdc_n < Nnodes; sdc_n++)
 		{ //  // MISDC pieces
-		  qij = dt*(qmats[0][sdc_m][sdc_n]);  // leave off -dt*Qtil and add it later
+		  qij = dt*(Qgauss[sdc_m][sdc_n]);  // leave off -dt*Qtil and add it later		  
 		  res[sdc_m][mfi].saxpy(qij,f[2][sdc_n][mfi]);
 		  // Compute seperate integral for f_3 piece		  
-		  qij = -dt*(qmats[2][sdc_m][sdc_n]);  
+		  qij = -dt*(Qimp[sdc_m][sdc_n]);  
 		  Ithree[sdc_m][mfi].saxpy(qij,f[2][sdc_n][mfi]);
 		}
 	    }
@@ -89,12 +105,12 @@ void SDCstruct::SDC_rhs_k_plus_one(MultiFab& sol_new, Real dt,int sdc_m)
       sol_new[mfi].saxpy(1.0,res[sdc_m][mfi]);
       for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 	{
-	  qij = dt*qmats[1][sdc_m][sdc_n];
+	  qij = dt*Qexp[sdc_m][sdc_n];
 	  sol_new[mfi].saxpy(qij,f[0][sdc_n][mfi]);
 	}
       for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 	{
-	  qij = dt*qmats[2][sdc_m][sdc_n];
+	  qij = dt*Qimp[sdc_m][sdc_n];
 	  sol_new[mfi].saxpy(qij,f[1][sdc_n][mfi]);
 	}
     }
@@ -110,7 +126,7 @@ void SDCstruct::SDC_rhs_misdc(MultiFab& sol_new, Real dt,int sdc_m)
       sol_new[mfi].saxpy(1.0,Ithree[sdc_m][mfi]);
       for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 	{
-	  qij = dt*qmats[2][sdc_m][sdc_n];
+	  qij = dt*Qimp[sdc_m][sdc_n];
 	  sol_new[mfi].saxpy(qij,f[2][sdc_n][mfi]);
 	}
     }
