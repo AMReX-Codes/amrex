@@ -1,7 +1,7 @@
+#include <AMReX_CudaFabImpl.H>
 
 #ifdef AMREX_USE_CUDA
 
-#include <AMReX_CudaFabImpl.H>
 #include <AMReX_CudaDevice.H>
 #include <AMReX_Vector.H>
 #include <cstring>
