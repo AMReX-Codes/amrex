@@ -1038,7 +1038,6 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PPC::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
-    BL_PROFILE_VAR_NS("PICSAR::ChargeDeposition", blp_pxr_chd);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
     
     const std::array<Real,3>& dx = WarpX::CellSize(lev);
@@ -1047,7 +1046,7 @@ PhysicalParticleContainer::Evolve (int lev,
     const auto& mypc = WarpX::GetInstance().GetPartContainer();
     const int nstencilz_fdtd_nci_corr = mypc.nstencilz_fdtd_nci_corr;
 
-    BL_ASSERT(OnSameGrids(lev,Ex));
+    BL_ASSERT(OnSameGrids(lev,jx));
 
     MultiFab* cost = WarpX::getCosts(lev);
 
@@ -1279,13 +1278,7 @@ PhysicalParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-            const int* ixyzmin_grid = box.loVect();
-
-            BL_PROFILE_VAR_START(blp_pxr_chd);
             if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
-            BL_PROFILE_VAR_STOP(blp_pxr_chd);
             
             if (! do_not_push)
             {
@@ -1296,6 +1289,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
 
+                const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
+                const int* ixyzmin_grid = box.loVect();
+                
                 const long np_gather = (cEx) ? nfine_gather : np;
 
                 BL_PROFILE_VAR_START(blp_pxr_fg);
@@ -1442,9 +1438,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
             
-            BL_PROFILE_VAR_START(blp_pxr_chd);
             if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
-            BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
