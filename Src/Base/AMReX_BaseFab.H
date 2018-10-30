@@ -68,6 +68,7 @@ struct StridedPtr
 template <typename T>
 struct BaseFabData : public Gpu::Managed
 {
+    AMREX_GPU_HOST_DEVICE
     BaseFabData (Box const& a_domain, IntVect const& a_dlen,
                  int a_nvar, long a_numpts, long a_truesize,
                  T* a_dptr, bool a_ptr_owner, bool a_shared_memory)
@@ -75,6 +76,7 @@ struct BaseFabData : public Gpu::Managed
           nvar(a_nvar), numpts(a_numpts), truesize(a_truesize),
           dptr(a_dptr), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
         {}
+    BaseFabData () = default;
     Box     domain;   // My index space.
     IntVect dlen;     // Length of domain in each direction.
     int     nvar;     // Number components.
@@ -83,6 +85,7 @@ struct BaseFabData : public Gpu::Managed
     T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
+    void setOwner (bool b) { ptr_owner = b; }
 };
 
 /**

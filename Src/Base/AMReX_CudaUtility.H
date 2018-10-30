@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_CudaDevice.H>
+#include <AMReX_REAL.H>
 #include <iostream>
 
 namespace amrex {
