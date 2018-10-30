@@ -52,9 +52,9 @@ void SDCstruct::SDC_rhs_integrals(Real dt)
     {
       for ( MFIter mfi(res[sdc_m]); mfi.isValid(); ++mfi )
 	{
-	  res[sdc_m].setVal(0.0);
+	  res[sdc_m][mfi].setVal(0.0);
 	  if (Npieces == 3)
-	    Ithree[sdc_m].setVal(0.0);
+	    Ithree[sdc_m][mfi].setVal(0.0);
 	  for (int sdc_n = 0; sdc_n < Nnodes; sdc_n++)
 	    {
 	      qij = dt*(qmats[0][sdc_m][sdc_n]-qmats[1][sdc_m][sdc_n]);
@@ -86,7 +86,6 @@ void SDCstruct::SDC_rhs_k_plus_one(MultiFab& sol_new, Real dt,int sdc_m)
   MultiFab::Copy(sol_new,sol[0], 0, 0, 1, 0);
   for ( MFIter mfi(sol_new); mfi.isValid(); ++mfi )
     {
-      const Box& bx = mfi.validbox();
       sol_new[mfi].saxpy(1.0,res[sdc_m][mfi]);
       for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 	{
@@ -108,7 +107,6 @@ void SDCstruct::SDC_rhs_misdc(MultiFab& sol_new, Real dt,int sdc_m)
   
   for ( MFIter mfi(sol_new); mfi.isValid(); ++mfi )
     {
-      const Box& bx = mfi.validbox();
       sol_new[mfi].saxpy(1.0,Ithree[sdc_m][mfi]);
       for (int sdc_n = 0; sdc_n < sdc_m+1; sdc_n++)
 	{
