@@ -1,6 +1,0 @@
-nsteps = 10000
-plot_int = 1000
-n_cell = 256
-max_grid_size = 64
-
-is_periodic = 1 0
