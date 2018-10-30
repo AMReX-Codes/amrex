@@ -18,6 +18,7 @@ public:
 
     DeviceFab ();
     DeviceFab (Box const& bx, int ncomp);
+    DeviceFab (FArrayBox& a_fab);
     ~DeviceFab ();
     DeviceFab (DeviceFab const&) = delete;
     void operator= (DeviceFab const&) = delete;

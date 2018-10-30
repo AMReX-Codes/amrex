@@ -39,6 +39,11 @@ DeviceFab::DeviceFab (Box const& bx, int ncomp)
     m_impl.reset(new DeviceFabImpl(bx,ncomp));
 }
 
+DeviceFab::DeviceFab (FArrayBox& a_fab)
+{
+    m_impl.reset(new DeviceFabImpl(a_fab));
+}
+
 void
 DeviceFab::resize (Box const& bx, int ncomp)
 {

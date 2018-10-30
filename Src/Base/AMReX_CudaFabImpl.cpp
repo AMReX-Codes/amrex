@@ -1,5 +1,4 @@
 #include <AMReX_CudaFabImpl.H>
-
 #include <AMReX_TinyProfiler.H>
 
 #ifdef AMREX_USE_CUDA
@@ -72,7 +71,23 @@ DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
     BL_PROFILE("DeviceFabImpl(bx,ncomp)");
     auto& fabstack = get_stack();
     if (fabstack.empty()) {
-        m_gpu_fab.reset(new FArrayBox());
+        m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
+    } else {
+        m_gpu_fab = std::move(fabstack.back());
+        fabstack.pop_back();
+    }
+    copy_htod();
+}
+
+DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab)
+{
+    BL_PROFILE("DeviceFabImpl(fab)");
+    if (a_fab.isAllocated()) {
+        m_cpu_fab.resize(a_fab.box(), a_fab.nComp());
+    }
+    auto& fabstack = get_stack();
+    if (fabstack.empty()) {
+        m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
     } else {
         m_gpu_fab = std::move(fabstack.back());
         fabstack.pop_back();
@@ -135,13 +150,16 @@ void DeviceFabImpl::Finalize () {}
 
 DeviceFabImpl::DeviceFabImpl () {}
 
-DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp) : m_cpu_fab(bx,ncomp) {}
+DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
+    : m_cpu_fab(bx,ncomp), m_cpu_fab_alias(&m_cpu_fab) {}
+
+DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab) : m_cpu_fab_alias (&a_fab) {}
 
 DeviceFabImpl::~DeviceFabImpl () {}
 
-void DeviceFabImpl::resize (Box const& bx, int ncomp) { m_cpu_fab.resize(bx,ncomp); }
+void DeviceFabImpl::resize (Box const& bx, int ncomp) { m_cpu_fab_alias->resize(bx,ncomp); }
 
-FArrayBox* DeviceFabImpl::fabPtr () { return &m_cpu_fab; }
+FArrayBox* DeviceFabImpl::fabPtr () { return m_cpu_fab_alias; }
 
 }}
 
