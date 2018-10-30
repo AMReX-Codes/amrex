@@ -26,6 +26,7 @@ namespace {
     int consolidation_strategy = 3;
 
     int flag_verbose_linop = 0;
+    int flag_old_version = 0;
 
     // hash combiner borrowed from Boost
     template<typename T>
@@ -109,6 +110,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 	pp.query("consolidation_ratio", consolidation_ratio);
 	pp.query("consolidation_strategy", consolidation_strategy);
 	pp.query("verbose_linop", flag_verbose_linop);
+	pp.query("old_version", flag_old_version);
 	initialized = true;
     }
 
@@ -134,6 +136,13 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
                       const Vector<FabFactory<FArrayBox> const*>& a_factory)
 {
     BL_PROFILE("MLLinOp::defineGrids()");
+
+    static bool printed_node_list = false;
+    if (!printed_node_list) {
+        char *node_list_str = std::getenv("SLURM_NODELIST");
+        Print() << "SLURM_NODELIST = " << node_list_str << std::endl;
+        printed_node_list = true;
+    }
 
     m_num_amr_levels = a_geom.size();
 
@@ -472,7 +481,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     auto key = hash_vector(newgrp_ranks);
     MPI_Comm newcomm;
     bool cache_hit = comm_cache.get(key, newcomm);
-    if (cache_hit) {
+    if (!flag_old_version && cache_hit) {
         if (flag_verbose_linop) {
             Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;
         }
@@ -500,7 +509,12 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
             BL_PROFILE("MLLinOp::makeSubCommunicator()::MPI_Comm_create");
             MPI_Comm_create(m_default_comm, newgrp, &newcomm);
         }
-        comm_cache.add(key, newcomm);
+
+        if (flag_old_version) {
+            m_raii_comm.reset(new CommContainer(newcomm));
+        } else {
+            comm_cache.add(key, newcomm);
+        }
 
         MPI_Group_free(&defgrp);
         MPI_Group_free(&newgrp);
