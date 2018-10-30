@@ -26,11 +26,8 @@ cp $0 $rundir
 cp inputs $rundir
 cd $rundir
 
-# 0. Just run it
-${JSRUN} --smpiargs="-gpu" ${EXE} inputs
-
 # 1. Run normally
-#${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs
+${JSRUN} --smpiargs="-gpu" ${EXE} inputs
 #${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} inputs > memcheck${LSB_JOBID}.txt 
 
 # 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
