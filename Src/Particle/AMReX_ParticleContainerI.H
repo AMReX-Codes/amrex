@@ -2344,7 +2344,7 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
         }
     }
     Redistribute(level, level, nGrow);
-    particles.clear();
+    particles.resize(0);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
