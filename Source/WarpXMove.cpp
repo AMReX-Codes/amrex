@@ -224,7 +224,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
       FArrayBox* srcfab = &(tmpmf[mfi]);
       Box outbox = mfi.fabbox();
       outbox &= adjBox;
-      AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(outbox, toutbox,
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(outbox, toutbox,
       {
 	srcfab->setVal(0.0, toutbox, 0, nc);
       });
@@ -234,7 +234,7 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
       } else {
 	dstBox.growLo(dir,  num_shift);
       }
-      AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA(dstBox, tdstBox,
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(dstBox, tdstBox,
       {
         dstfab->setVal(0.0, tdstBox, 0, nc);
         dstfab->copy(*srcfab, amrex::shift(tdstBox,dir,num_shift), 0, tdstBox, 0, nc);

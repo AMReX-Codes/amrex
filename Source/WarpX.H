@@ -99,6 +99,8 @@ public:
     static bool do_dynamic_scheduling;
     static bool refine_plasma;
 
+    static int sort_int;
+
     // buffers
     static int n_field_gather_buffer;
     static int n_current_deposition_buffer;

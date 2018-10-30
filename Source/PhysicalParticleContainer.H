@@ -105,6 +105,15 @@ protected:
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
 
+    long NumParticlesToAdd (const amrex::Box& overlap_box,
+			    const amrex::RealBox& overlap_realbox,
+			    const amrex::RealBox& tile_real_box,
+			    const amrex::RealBox& particle_real_box);
+  
+    void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
+#ifdef AMREX_USE_GPU
+    void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
+#endif
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
 
