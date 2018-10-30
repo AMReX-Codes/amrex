@@ -244,7 +244,7 @@ contains
        plane_Yp(ip) = u_Yx*(xp(ip) - positionx) &
                    + u_Yy*(yp(ip) - positiony) &
                    + u_Yz*(zp(ip) - positionz)
-   #elif (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 2)
        plane_Xp(ip) = u_Xx*(xp(ip) - positionx) &
                    + u_Xz*(zp(ip) - positionz)
        plane_Yp(ip) = 0
@@ -299,7 +299,7 @@ contains
     !$acc loop
     do ip = 1, np
        ! Calculate the velocity according to the amplitude of E       
-       sign_charge = SIGN( 1.0, wp(ip) )
+       sign_charge = SIGN( 1.0_amrex_real, wp(ip) )
        v_over_c = sign_charge * mobility * amplitude_E(ip)
        ! The velocity is along the laser polarization p_X
        vx = c * v_over_c * p_Xx
