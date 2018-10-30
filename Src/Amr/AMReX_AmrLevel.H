@@ -954,7 +954,7 @@ class AsyncFillPatchIterator
                                 int f,
                                 bool singleT);
 
-    ~AsyncFillPatchIterator ();
+    ~AsyncFillPatchIterator (){};
 
     FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
 
