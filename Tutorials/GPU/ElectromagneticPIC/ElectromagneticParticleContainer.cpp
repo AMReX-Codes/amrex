@@ -234,7 +234,8 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
         Real charge = m_charge;
         Real mass = m_mass;
 
-        auto depose = [=] AMREX_CUDA_DEVICE () mutable
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np),
+        [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
@@ -278,9 +279,7 @@ PushAndDeposeParticles(const amrex::MultiFab& Ex,
                             &(pData.ginv()[index]), &(pData.w()[index]),
                             charge, geomData.ProbLo(), dt, geomData.CellSize());
 
-        };
-
-        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), depose); 
+        });
     }
 
 }
@@ -314,7 +313,8 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
         Real charge = m_charge;
         Real mass = m_mass;
 
-        auto pushMom = [=] AMREX_CUDA_DEVICE () mutable
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np),
+        [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
@@ -344,9 +344,8 @@ PushParticleMomenta(const amrex::MultiFab& Ex,
                                 &(pData.bx()[index]), &(pData.by()[index]), &(pData.bz()[index]),
                                 charge, mass, dt);
 
-        };
+        });
 
-        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), pushMom); 
     }
 }
 
@@ -362,7 +361,9 @@ PushParticlePositions(amrex::Real dt)
         if (np == 0) continue;
 
         ParticlesData&& pData = m_particles[mfi.index()].data();
-        auto pushPos = [=] AMREX_CUDA_DEVICE () mutable
+
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np),
+        [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
@@ -377,9 +378,7 @@ PushParticlePositions(amrex::Real dt)
                                 &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
                                 &(pData.ux()[index]), &(pData.uy()[index]), &(pData.uz()[index]),
                                 &(pData.ginv()[index]), dt);
-        };
-
-        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), pushPos);
+        });
     }
 }
 
@@ -397,7 +396,8 @@ EnforcePeriodicBCs()
         ParticlesData&& pData = m_particles[mfi.index()].data(); 
         const GeometryData& geomData = m_geom.data();
 
-        auto periodic = [=] AMREX_CUDA_DEVICE () mutable
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np),
+        [=] AMREX_CUDA_DEVICE () mutable
         {
             int index, threadSize;
             getThreadIndex(index, threadSize, np);
@@ -407,9 +407,7 @@ EnforcePeriodicBCs()
             enforce_periodic(threadSize,
                              &(pData.x()[index]), &(pData.y()[index]), &(pData.z()[index]),
                              geomData.ProbLo(), geomData.ProbLo());
-        };
-
-        AMREX_CUDA_LAUNCH_DEVICE(Strategy(np), periodic);
+        });
     }
 }
 
