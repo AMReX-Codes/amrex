@@ -26,7 +26,6 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
     {
         const Box& bx = mfi.tilebox();
 
-        const auto& sfab = state[mfi];
         const auto& flag = flags[mfi];
 
         const FabType typ = flag.getType(bx);
