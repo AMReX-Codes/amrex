@@ -53,7 +53,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     // NReaders will read particles into a AoS.
     // Later they'll each put their chunk into m_particles and call Redistribute().
     //
-    AoS nparticles;
+    Gpu::HostVector<ParticleType> nparticles;
 
     if (MyProc < NReaders)
     {
@@ -232,12 +232,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
             {
                 while (!nparticles.empty())
                 {
-                    ParticleType& p = nparticles().back();
+                    ParticleType& p = nparticles.back();
 		    Where(p, pld);
 
                     m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
     
-                    nparticles().pop_back();
+                    nparticles.pop_back();
                 }
             }
         }
@@ -260,14 +260,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromAscii
     {
         if (which == MyProc)
         {
-            while (!nparticles().empty())
+	    while (!nparticles.empty())
             {
-                ParticleType& p = nparticles().back();
+                ParticleType& p = nparticles.back();
 		Where(p, pld);
 
                 m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
 
-                nparticles().pop_back();
+                nparticles.pop_back();
             }
         }
         //
@@ -694,7 +694,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::InitFromBinar
                 auto& tmp_aos = tmp_pmap[kv.first].GetArrayOfStructs()();
 
                 tmp_aos.insert(tmp_aos.end(), aos.begin(), aos.end());
-                Vector<ParticleType>().swap(aos);
+                ParticleVector().swap(aos);
             }
 
             ParticleLevel().swap(pmap);
