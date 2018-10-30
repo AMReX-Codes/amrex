@@ -49,7 +49,8 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const FArrayBox* currDenY = &(jy[mfi]);
         const FArrayBox* currDenZ = &(jz[mfi]);
 
-        auto electric = [=] AMREX_CUDA_DEVICE ()
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx),
+        [=] AMREX_CUDA_DEVICE ()
         {
             Box threadBox = getThreadBox(tbx);
 
@@ -84,9 +85,7 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
                                       BL_TO_FORTRAN_3D(*currDenZ),
                                       mu_c2_dt, dtsdx_c2[0], dtsdx_c2[1]);
             }
-        };
-
-        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx), electric);
+        } );
 
     }
 }
@@ -114,7 +113,9 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         FArrayBox* magY  = &(By[mfi]);
         FArrayBox* magZ  = &(Bz[mfi]);
 
-        auto magnetic = [=] AMREX_CUDA_DEVICE ()
+
+        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx),
+        [=] AMREX_CUDA_DEVICE ()
         {
             Box threadBox = getThreadBox(tbx);
 
@@ -146,9 +147,8 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
                                       BL_TO_FORTRAN_3D(*elecY),
                                       dtsdx[0], dtsdx[1]);
             }
-        };
+        });
 
-        AMREX_CUDA_LAUNCH_DEVICE(Strategy(vbx), magnetic);
     } 
 }
 

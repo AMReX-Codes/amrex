@@ -646,10 +646,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::sumParticleMa
   const auto& pmap = m_particles[lev];
   for (const auto& kv : pmap) {
       const auto& pbox = kv.second.GetArrayOfStructs();
-      for (const auto& p : pbox) {
-          if (p.m_idata.id > 0) {
-              msum += p.m_rdata.arr[AMREX_SPACEDIM+rho_index];
-          }
+      for (int k = 0; k < pbox.size(); ++k) {
+	  const ParticleType& p = pbox[k];
+	  if (p.m_idata.id > 0) {
+	      msum += p.m_rdata.arr[AMREX_SPACEDIM+rho_index];
+	  }
       }
   }
   
@@ -734,8 +735,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const auto& pbox = kv.second.GetArrayOfStructs();
             for (auto it = pbox.cbegin(); it != pbox.cend(); ++it)
             {
-                virts.push_back(*it);
-                virts.back().m_idata.id = VirtualParticleID;
+	        ParticleType p = *it;
+	        p.m_idata.id = VirtualParticleID;
+                virts.push_back(p);
             }
         }
         return;
@@ -763,8 +765,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     // It's in the no-aggregation buffer.
                     // Set its id to indicate that it's a virt.
-                    virts.push_back(*it);
-                    virts.back().m_idata.id = VirtualParticleID;
+		    ParticleType p = *it;
+                    p.m_idata.id = VirtualParticleID;
+                    virts.push_back(p);
                 }
                 else
                 {
@@ -2330,8 +2333,8 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
 
     ParticleLocData pld;
 
-    while (!particles.empty()) {
-        ParticleType& p = particles.back();
+    for (int i = 0; i < particles.size(); ++i) {
+        ParticleType& p = particles[i];
 
         if (p.id() > 0)
         {
@@ -2339,10 +2342,9 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::AddParticlesAtL
                 amrex::Abort("ParticleContainerAddParticlesAtLevel(): Can't add outside of domain\n");
             m_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
         }
-
-        particles.pop_back();
     }
     Redistribute(level, level, nGrow);
+    particles.resize(0);
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -2706,7 +2708,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-            for (const auto& p : aos) {
+	    for (int k = 0; k < aos.size(); ++k) {
+	        const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0) {
                     //
                     // Only count (and checkpoint) valid particles.
@@ -2907,7 +2910,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                     }
                     iptr += NArrayInt;
                 }
-                ++pindex;
             }
 	}
         
@@ -2935,7 +2937,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteParticle
                   }
                   rptr += NArrayReal;
               }
-              ++pindex;
           }
       }
       WriteParticleRealData(rstuff.dataPtr(), rstuff.size(), ofs, ParticleRealDescriptor);
@@ -3289,7 +3290,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-            for (const auto& p : aos) {
+	    for (int k = 0; k < aos.size(); ++k) {
+	        const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
@@ -3360,8 +3362,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
                 const auto& aos = kv.second.GetArrayOfStructs();
                 const auto& soa = kv.second.GetStructOfArrays();
 
-		int index = 0;
-		for (auto it = aos.cbegin(); it != aos.cend(); ++it) {
+		for (int index = 0; index < aos.size(); ++index) {
+		    const ParticleType* it = &aos[index];
 		    if (it->m_idata.id > 0) {
 
                         // write out the particle struct first... 
@@ -3385,9 +3387,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::WriteAsciiFil
                         for (int i = 0; i < NArrayInt; i++)
                             File << soa.GetIntData(i)[index] << ' ';
 
-                        File << '\n';                            
-                        
-                        index++;		      
+                        File << '\n';                                                    
                     }
                 }
               }
@@ -3433,7 +3433,8 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
-            for (const auto& p : aos) {
+            for (int k = 0; k < aos.size(); ++k) {
+	        const ParticleType& p = aos[k];
                 if (p.m_idata.id > 0)
                     //
                     // Only count (and checkpoint) valid particles.
@@ -3502,7 +3503,8 @@ ParticleContainer<NStructReal,NStructInt,NArrayReal, NArrayInt>::WriteCoarsenedA
                   
                   int index = 0;
                   ParticleLocData pld;
-                  for (auto it = aos.begin(); it != aos.end(); ++it) {
+                  for (int k = 0; k < aos.size(); ++k) {
+		      ParticleType* it = &aos[k];
                       locateParticle(*it, pld, 0, finestLevel(), 0);
                       // Only keep particles in even cells
                       if (it->id() > 0 &&

@@ -1945,6 +1945,7 @@ Amr::timeStep (int  level,
     {
         int lev_top = std::min(finest_level, max_level-1);
 
+	bool metadataChanged=false;
         for (int i(level); i <= lev_top; ++i)
         {
             const int old_finest = finest_level;
@@ -1984,11 +1985,22 @@ Amr::timeStep (int  level,
                         dt_level[k]    = dt_level[k-1]/n_cycle[k];
                     }
                 }
+#ifdef USE_PERILLA
+                getLevel(i).finalizePerilla(cumtime);
+		metadataChanged=true;
+#endif
             }
             if (old_finest > finest_level) {
                 lev_top = std::min(finest_level, max_level - 1);
 	    }
         }
+#ifdef USE_PERILLA
+	if(metadataChanged){
+            for(int i=0; i<= finest_level; i++)
+                getLevel(i).initPerilla(cumtime);
+ 	    Perilla::updatedMetadata=1;
+	}
+#endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
         {
@@ -2060,6 +2072,10 @@ Amr::timeStep (int  level,
 		dt_level[k] = dt_level[k-1] / n_cycle[k];
 	    }
 	}
+#ifdef USE_PERILLA
+        getLevel(level).finalizePerilla(cumtime);
+        getLevel(level).initPerilla(cumtime);
+#endif
     }
 
 #ifdef USE_PERILLA
@@ -2168,18 +2184,28 @@ Amr::coarseTimeStep (Real stop_time)
 #ifdef USE_PERILLA_PTHREADS
     if(perilla::isMasterThread()){
         Perilla::numTeamsFinished = 0;
+        Perilla::updatedMetadata = 0;
         RegionGraph::graphCnt = 0;
         if(levelSteps(0)==0){
+	    graphArray.resize(finest_level+1);
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
-                    Perilla::communicateTags(graphArray);
+            Perilla::communicateTags();
         }
     }
     perilla::syncAllThreads();
 
     if(perilla::isCommunicationThread())
     {
-        Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+	if(!okToRegrid(0)){
+            Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+        }
+	else{
+	    while(!Perilla::updatedMetadata){
+		
+	    }
+	    Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+	}
     }else{
         timeStep(0,cumtime,1,1,stop_time);
         if(perilla::isMasterWorkerThread()){
@@ -2188,13 +2214,15 @@ Amr::coarseTimeStep (Real stop_time)
             pthread_mutex_unlock(&teamFinishLock);
         }
     }
+//cout<<"Thread "<<perilla::tid()<<"completed"<<endl;
 #else
     Perilla::numTeamsFinished = 0;
     RegionGraph::graphCnt = 0;
     if(levelSteps(0)==0){
+	graphArray.resize(finest_level+1);
         for(int i=0; i<= finest_level; i++)
             getLevel(i).initPerilla(cumtime);
-        Perilla::communicateTags(graphArray);
+        Perilla::communicateTags();
     }
 
 #pragma omp parallel
@@ -2213,15 +2241,17 @@ Amr::coarseTimeStep (Real stop_time)
     }
 #endif
 
-#ifdef USE_PERILLA_PTHREADS
+#ifdef USE_PERILLA
     perilla::syncAllThreads();
-#endif
     if(perilla::isMasterThread()){
         if(level_steps[0] == Perilla::max_step){
-            for(int i=0; i<= finest_level; i++)
+            for(int i=0; i<= finest_level; i++){
+            cout<<"Delete metadata at level"<<i<<endl;
                 getLevel(i).finalizePerilla(cumtime);
+}
         }
     }
+#endif
 
 #else
     //synchronous
@@ -2415,6 +2445,8 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
+
+
 #ifdef USE_PERILLA_PTHREADS
     }
 #endif

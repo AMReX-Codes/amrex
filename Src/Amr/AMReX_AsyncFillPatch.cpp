@@ -247,8 +247,8 @@ namespace amrex {
 		    destGraph = new RegionGraph(m_fabs.IndexArray().size());
 		    fsrcGraph = new RegionGraph(smf[0]->IndexArray().size());
 		    Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *smf[0], ncomp, m_fabs.nGrow(), 0, geom->periodicity());
-		    m_amrlevel.parent->graphArray.push_back(destGraph);
-		    m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+		    m_amrlevel.parent->graphArray[level].push_back(destGraph);
+		    m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
 		}
 		else if (smf.size() == 2)
 		{
@@ -258,7 +258,7 @@ namespace amrex {
 			dmf = &m_fabs;
 			destGraph = new RegionGraph(m_fabs.IndexArray().size());
 			Perilla::multifabBuildFabCon(destGraph, m_fabs, geom->periodicity());
-			m_amrlevel.parent->graphArray.push_back(destGraph);
+			m_amrlevel.parent->graphArray[level].push_back(destGraph);
 		    }
 		    else
 		    {
@@ -267,8 +267,8 @@ namespace amrex {
 			fsrcGraph = new RegionGraph(dmf->IndexArray().size());
 			fsrcGraph->buildTileArray(*dmf);
 			Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *dmf, ncomp, m_fabs.nGrow(), 0, geom->periodicity());
-			m_amrlevel.parent->graphArray.push_back(destGraph);
-			m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+			m_amrlevel.parent->graphArray[level].push_back(destGraph);
+			m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
 		    }
 		}
 		else
@@ -340,8 +340,8 @@ namespace amrex {
 				m_rg_crse_patch->buildTileArray(temp_4_tile);
 #endif
 				///m_rg_crse_patch->buildTileArray(*m_mf_crse_patch);
-				m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
-				m_amrlevel.parent->graphArray.push_back(csrcGraph);
+				m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
+				m_amrlevel.parent->graphArray[level].push_back(csrcGraph);
 			    }
 
 			    else if (iter > 1)
@@ -354,7 +354,7 @@ namespace amrex {
 				    //std::cout<< " level " << level  << " rg_crs_ptch ID " << m_rg_crse_patch->graphID << std::endl;
 
 				    Perilla::multifabBuildFabCon(m_rg_crse_patch, *m_mf_crse_patch,geom_crse->periodicity());
-				    m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
+				    m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
 				}
 				else
 				{
@@ -370,8 +370,8 @@ namespace amrex {
 #endif
 
 				    Perilla::multifabExtractCopyAssoc( m_rg_crse_patch, csrcGraph, *m_mf_crse_patch, *dmf, ncomp, m_mf_crse_patch->nGrow(), 0, geom_crse->periodicity());
-				    m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
-				    m_amrlevel.parent->graphArray.push_back(csrcGraph);
+				    m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
+				    m_amrlevel.parent->graphArray[level].push_back(csrcGraph);
 				}
 			    }
 			    else
@@ -420,8 +420,8 @@ namespace amrex {
 			//std::cout<< "Sending In "<<destGraph<<" "<< fsrcGraph << " myP " << ParallelDescriptor::MyProc()<<std::endl;                                      
 			Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *smf_fine[0], ncomp, m_fabs.nGrow(), 0, geom_fine->periodicity());
 
-			m_amrlevel.parent->graphArray.push_back(destGraph);
-			m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+			m_amrlevel.parent->graphArray[level].push_back(destGraph);
+			m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
 		    }
 		    else if (smf_fine.size() == 2)
 			//else if (iter > 1) 
@@ -437,7 +437,7 @@ namespace amrex {
 			    destGraph = new RegionGraph(m_fabs.IndexArray().size());
 
 			    Perilla::multifabBuildFabCon(destGraph, m_fabs, geom_fine->periodicity());
-			    m_amrlevel.parent->graphArray.push_back(destGraph);
+			    m_amrlevel.parent->graphArray[level].push_back(destGraph);
 			}
 			else
 			{
@@ -449,8 +449,8 @@ namespace amrex {
 			    fsrcGraph->buildTileArray(*dmff);
 
 			    Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *dmff, ncomp, m_fabs.nGrow(), 0, geom_fine->periodicity());
-			    m_amrlevel.parent->graphArray.push_back(destGraph);
-			    m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+			    m_amrlevel.parent->graphArray[level].push_back(destGraph);
+			    m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
 			}
 		    }
 		    else
@@ -468,11 +468,10 @@ namespace amrex {
 	    DComp += NComp;
 	}
 
-
 	destGraph->buildTileArray(m_fabs);
 	destGraph->buildTileArray_gtbx(m_leveldata,boxGrow);
 	//MemOpt 
-	m_fabs.clear();
+	//m_fabs.clear();
     }
 
     void AsyncFillPatchIterator::SendIntraLevel (RGIter& rgi,
@@ -763,7 +762,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 		int fid = dmf->IndexArray()[f];
 
 		for(int t=0; t<srcGraph->fabTiles[f]->numTiles; t++)
-		    if( singleT || t % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == nt-perilla::NUM_COMM_THREADS)
+		    if( singleT || t % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == nt)
 		    {
 			const Box& bx = *(srcGraph->fabTiles[f]->tileBx[t]);
 			if(bx.ok())
@@ -1058,7 +1057,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 				{
 
 				    for(int j=0; j < fpIter->m_rg_crse_patch->fabTiles[li]->numTiles; j++)
-					if(j % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == nt-perilla::NUM_COMM_THREADS)
+					if(j % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == nt)
 					{
 					    const Box& dbx = *(fpIter->m_rg_crse_patch->fabTiles[li]->tileBx[j]);
 					    if(dbx.ok())
@@ -1342,7 +1341,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 	    int level = afpi[iteration-1]->m_amrlevel.level;
 	    if(level == 0 && iteration == 1)
 	    {
-		int tg = perilla::wtid();
+		int tg = perilla::wid();
 		for(int f=0; f < afpi[iteration-1]->m_fabs.IndexArray().size(); f++)
 		{
 		    if(WorkerThread::isMyRegion(tg, f))
