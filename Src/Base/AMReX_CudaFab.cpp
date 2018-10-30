@@ -3,6 +3,7 @@
 #include <AMReX_CudaFab.H>
 #include <AMReX_CudaFabImpl.H>
 #include <AMReX_CudaDevice.H>
+#include <AMReX_TinyProfiler.H>
 
 #ifdef AMREX_USE_CUDA
 extern "C" {
@@ -53,6 +54,7 @@ DeviceFab::fabPtr ()
 DeviceFab::~DeviceFab ()
 {
 #ifdef AMREX_USE_CUDA
+    BL_PROFILE("DeviceFab::~DeviceFab()");
     if (inLaunchRegion())
     {
         DeviceFabImpl* p = m_impl.release();
