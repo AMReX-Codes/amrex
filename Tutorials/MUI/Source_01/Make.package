@@ -1,0 +1,6 @@
+CEXE_sources += main_01.cpp
+
+CEXE_headers += myfunc.H
+FEXE_headers += myfunc_F.H
+
+f90EXE_sources += init_phi_3d.f90 
