@@ -1057,7 +1057,7 @@ MLNodeLaplacian::buildStencil ()
     if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
 
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
-    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 12;
+    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Geometry::IsRZ(),

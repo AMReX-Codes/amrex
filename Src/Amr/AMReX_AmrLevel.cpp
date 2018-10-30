@@ -2832,8 +2832,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                if(perilla::isMasterThread())
 #endif
                 {
-                    m_amrlevel.parent->graphArray.push_back(destGraph);
-                    m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                    m_amrlevel.parent->graphArray[level].push_back(destGraph);
+                    m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
                 }
 #ifdef USE_PERILLA_PTHREADS
 //              perilla::syncAllThreads();
@@ -2861,7 +2861,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                    if(perilla::isMasterThread())
 #endif
                     {
-                        m_amrlevel.parent->graphArray.push_back(destGraph);
+                        m_amrlevel.parent->graphArray[level].push_back(destGraph);
                     }
                 }
                 else
@@ -2887,8 +2887,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                    if(perilla::isMasterThread())
 #endif
                     {
-                        m_amrlevel.parent->graphArray.push_back(destGraph);
-                        m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                        m_amrlevel.parent->graphArray[level].push_back(destGraph);
+                        m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
                     }
 #ifdef USE_PERILLA_PTHREADS
 //                    perilla::syncAllThreads();
@@ -3005,8 +3005,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                            if(perilla::isMasterThread())
 #endif
                               {
-                                  m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
-                                  m_amrlevel.parent->graphArray.push_back(csrcGraph);
+                                  m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
+                                  m_amrlevel.parent->graphArray[level].push_back(csrcGraph);
                               }
                           }
                           else if (iter > 1)
@@ -3024,7 +3024,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                                   //std::cout<< " level " << level  << " rg_crs_ptch ID " << m_rg_crse_patch->graphID << std::endl;
 
                                   Perilla::multifabBuildFabCon(m_rg_crse_patch, *m_mf_crse_patch, geom->periodicity());
-                                  m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
+                                  m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
                                 }
                               else
                               {
@@ -3052,8 +3052,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                                if(perilla::isMasterThread())
 #endif
                                   {
-                                      m_amrlevel.parent->graphArray.push_back(m_rg_crse_patch);
-                                      m_amrlevel.parent->graphArray.push_back(csrcGraph);
+                                      m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
+                                      m_amrlevel.parent->graphArray[level].push_back(csrcGraph);
                                   }
                               }
 #endif
@@ -3114,8 +3114,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                    if(perilla::isMasterThread())
 #endif
                       {
-                          m_amrlevel.parent->graphArray.push_back(destGraph);
-                          m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                          m_amrlevel.parent->graphArray[level].push_back(destGraph);
+                          m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
                       }
                   }
                   else if (smf_fine.size() == 2)
@@ -3125,7 +3125,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                           //dmf = &m_fabs;
                           destGraph = new RegionGraph(m_fabs.IndexArray().size());
                           Perilla::multifabBuildFabCon(destGraph, m_fabs, geom->periodicity());
-                          m_amrlevel.parent->graphArray.push_back(destGraph);
+                          m_amrlevel.parent->graphArray[level].push_back(destGraph);
                       }
                       else
                       {
@@ -3151,8 +3151,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 //                        if(perilla::isMasterThread())
 #endif
                           {
-                              m_amrlevel.parent->graphArray.push_back(destGraph);
-                              m_amrlevel.parent->graphArray.push_back(fsrcGraph);
+                              m_amrlevel.parent->graphArray[level].push_back(destGraph);
+                              m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
                           }
                        }
                   }

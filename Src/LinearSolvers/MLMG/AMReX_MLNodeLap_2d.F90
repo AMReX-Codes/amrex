@@ -1545,13 +1545,14 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          sten(i,j,1) = -(sten(i-1,j,2) + sten(i,j,2) + sten(i,j-1,3) + sten(i,j,3) &
-               + sten(i-1,j-1,4) + sten(i,j-1,4) + sten(i-1,j,4) + sten(i,j,4))
-          sten(i,j,5) = 1.d0 / (abs(sten(i-1,j,2)) + abs(sten(i,j,2)) + abs(sten(i,j-1,3)) &
-               + abs(sten(i,j,3)) + abs(sten(i-1,j-1,4)) + abs(sten(i,j-1,4)) &
-               + abs(sten(i-1,j,4)) + abs(sten(i,j,4)) + eps)
+          sten(i,j,1) = -(sten(i-1,j  ,2) + sten(i,j  ,2) + sten(i,j-1,3) + sten(i,j,3) &
+                        + sten(i-1,j-1,4) + sten(i,j-1,4) + sten(i-1,j,4) + sten(i,j,4))
+          sten(i,j,5) = 1.d0 / (abs(sten(i-1,j,2)) + abs(sten(i  ,j  ,2)) + abs(sten(i,j-1,3)) &
+                              + abs(sten(i  ,j,3)) + abs(sten(i-1,j-1,4)) + abs(sten(i,j-1,4)) &
+                              + abs(sten(i-1,j,4)) + abs(sten(i  ,j  ,4)) + eps)
        end do
     end do
+
   end subroutine amrex_mlndlap_set_stencil_s0
 
 

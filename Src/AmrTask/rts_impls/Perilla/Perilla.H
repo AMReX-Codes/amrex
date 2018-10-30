@@ -26,10 +26,11 @@ namespace amrex{
 	static std::map<int,std::map<int,int>> pTagCnt;
 	static std::map<int,std::map<int,std::map<int,std::map<int,std::map<int,int>>>>> tagMap;
 	static std::map<int,std::map<int,std::map<int,std::map<int,int>>>> myTagMap;
-	static void communicateTags(std::vector<RegionGraph*> ga);
+	static void communicateTags();
         static void registerId(int tid);
 	static int tid();
 	static volatile int numTeamsFinished;
+	static volatile int updatedMetadata;
 	static Barrier * globalBarrier;
 	static void multifabBuildFabCon(RegionGraph* graph, const MultiFab& mf, const Periodicity& period);
 	static void serviceLocalRequests(RegionGraph *graph, int tg);
@@ -37,7 +38,7 @@ namespace amrex{
 	static void serviceRemoteRequests(RegionGraph *graph);  
 	static void serviceSingleGraphComm(RegionGraph* graph, int tid);
 	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bool cpyAcross, int tid);
-	static void serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid);
+	static void serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGraph*> >graphArray, bool cpyAcross, int tid);
 	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, int tid);
 	static void fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f);
 	static void fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f);

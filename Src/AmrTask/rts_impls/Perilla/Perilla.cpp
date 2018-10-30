@@ -17,6 +17,7 @@ using namespace perilla;
 
 
 volatile int Perilla::numTeamsFinished = 0;
+volatile int Perilla::updatedMetadata = 0;
 int Perilla::max_step=1;
 std::map<int,std::map<int,int>> Perilla::pTagCnt;
 int Perilla::uTags=0;
@@ -36,7 +37,7 @@ int Perilla::tid(){//this function can be called after all threads already regis
     return tidTable[pthread_self()];
 }
 
-void Perilla::communicateTags(std::vector<RegionGraph*> ga)
+void Perilla::communicateTags()
 {
     int myProc = ParallelDescriptor::MyProc();
     int nPs = ParallelDescriptor::NProcs();
@@ -1689,7 +1690,7 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	}
 } // serviceMultipleGraphComm
 
-void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid)
+void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
     int np = ParallelDescriptor::NProcs();    
@@ -1707,6 +1708,8 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 
     while(true)
     {	
+      for(int l=0; l<graphArrayHierarchy.size(); l++){
+	std::vector<RegionGraph*> graphArray = graphArrayHierarchy[l];
 	//lstime = omp_get_wtime();
 	for(int g=0; g<graphArray.size(); g++)
 	{
@@ -1769,7 +1772,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 	if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
 	{
 	    if(doublechecked) // double check if there are still something to send
-		break;
+		return;
 	    else
 		doublechecked = true;
 	}
@@ -1785,6 +1788,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 	//minltime = ltime;
 	//if(ltime > maxltime)
 	//maxltime = ltime;
+      }
 
     } // while(true)
 
@@ -1793,15 +1797,15 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 
     //std::cout<< std::endl << "COMM HANDLER " << tg << " FINISHED EXECUTION" << " myProc " << myProc << " nTF " << Perilla::numTeamsFinished << " nTT " << perilla::NUM_THREAD_TEAMS<<std::endl;
 
-    nGraphs = graphArray.size();
+    //nGraphs = graphArray.size();
     //if(tg==0)
-    for(int g=0; g<nGraphs; g++)
-    {
+    //for(int g=0; g<nGraphs; g++)
+    //{
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-1");
 	//graphArray[g]->graphTeardown(tg);
 	//graphArray[g]->workerTeardown(tg);
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-2");
-    }
+    //}
 
 } // serviceMultipleGraphCommDynamic
 
@@ -2834,6 +2838,7 @@ void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, am
       multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,tid,dstcomp,srccomp,nc,ng,ngsrc,singleT);
 */
 
+    multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,dstcomp,srccomp,nc,ng,ngsrc,singleT);
     if(!singleT)
       srcGraph->worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 
@@ -2886,7 +2891,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
 
   void Perilla::multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
   {
-    int ntid = perilla::wtid() - perilla::NUM_COMM_THREADS;
+    int ntid = perilla::wtid();// - perilla::NUM_COMM_THREADS;
     int tg = perilla::wid();
     int myProc = amrex::ParallelDescriptor::MyProc();
 
@@ -3022,7 +3027,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
 
     int nComp = mf.nComp();
     int tg= perilla::wid();
-    int ntid = perilla::wtid()-perilla::NUM_COMM_THREADS;
+    int ntid = perilla::wtid();//-perilla::NUM_COMM_THREADS;
 
     if(ntid==0)
       pthread_mutex_lock(&(graph->lMap[f]->l_con.dLock));
