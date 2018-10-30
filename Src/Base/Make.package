@@ -55,6 +55,9 @@ C$(AMREX_BASE)_headers += AMReX_CudaDevice.H   AMReX_CudaLaunch.H   AMReX_CudaUt
 C$(AMREX_BASE)_headers += AMReX_CudaFab.H
 C$(AMREX_BASE)_sources += AMReX_CudaFab.cpp
 
+C$(AMREX_BASE)_headers += AMReX_CudaFabImpl.H
+C$(AMREX_BASE)_sources += AMReX_CudaFabImpl.cpp
+
 
 #
 # I/O stuff.
