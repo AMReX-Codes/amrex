@@ -1039,6 +1039,7 @@ PhysicalParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::FieldGather", blp_pxr_fg);
     BL_PROFILE_VAR_NS("PICSAR::ParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::CurrentDeposition", blp_pxr_cd);
+    BL_PROFILE_VAR_NS("PICSAR::ChargeDeposition", blp_pxr_chd);
     BL_PROFILE_VAR_NS("PPC::Evolve::Accumulate", blp_accumulate);
     BL_PROFILE_VAR_NS("PPC::Evolve::partition", blp_partition);
 
@@ -1293,106 +1294,10 @@ PhysicalParticleContainer::Evolve (int lev,
 
 	    long lvect = 8;
 
-            auto depositCharge = [&] (MultiFab* rhomf, MultiFab* crhomf, int icomp)
-            {
-                long ngRho = rhomf->nGrow();
-                Real* data_ptr;
-                Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-                const int *rholen;
-                
-                if (np_current > 0)
-                {                
-                    FArrayBox& rhofab = (*rhomf)[pti];
-                    const std::array<Real, 3>& xyzmin = xyzmin_tile;
-                    tile_box.grow(ngRho);
-                    local_rho[thread_num]->resize(tile_box);
-                    local_rho[thread_num]->setVal(0.0);
-                    data_ptr = local_rho[thread_num]->dataPtr();
-                    rholen = local_rho[thread_num]->length();
-                    
-#if (AMREX_SPACEDIM == 3)
-                    const long nx = rholen[0]-1-2*ngRho;
-                    const long ny = rholen[1]-1-2*ngRho;
-                    const long nz = rholen[2]-1-2*ngRho;
-#else
-                    const long nx = rholen[0]-1-2*ngRho;
-                    const long ny = 0;
-                    const long nz = rholen[1]-1-2*ngRho;
-#endif
-                    warpx_charge_deposition(data_ptr, &np_current,
-                                            m_xp[thread_num].dataPtr(),
-                                            m_yp[thread_num].dataPtr(),
-                                            m_zp[thread_num].dataPtr(),
-                                            wp.dataPtr(),
-                                            &this->charge,
-                                            &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                            &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                            &ngRho, &ngRho, &ngRho,
-                                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                            &lvect, &WarpX::charge_deposition_algo);
-
-                    const int ncomp = 1;
-                    FArrayBox const* local_fab = local_rho[thread_num].get();
-                    FArrayBox*       global_fab = &rhofab;
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
-                    {
-                        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
-                    });
-                }
-
-                if (np_current < np)
-                {
-                    const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
-                    const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
-                    const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
-
-                    tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
-                    tile_box.grow(ngRho);
-
-                    local_rho[thread_num]->resize(tile_box);
-
-                    local_rho[thread_num]->setVal(0.0);
-
-                    data_ptr = local_rho[thread_num]->dataPtr();
-                    rholen = local_rho[thread_num]->length();
-
-#if (AMREX_SPACEDIM == 3)
-                    const long nx = rholen[0]-1-2*ngRho;
-                    const long ny = rholen[1]-1-2*ngRho;
-                    const long nz = rholen[2]-1-2*ngRho;
-#else
-                    const long nx = rholen[0]-1-2*ngRho;
-                    const long ny = 0;
-                    const long nz = rholen[1]-1-2*ngRho;
-#endif
-                    
-                    long ncrse = np - nfine_current;
-                    warpx_charge_deposition(data_ptr, &ncrse,
-                                            m_xp[thread_num].dataPtr() + nfine_current,
-                                            m_yp[thread_num].dataPtr() + nfine_current,
-                                            m_zp[thread_num].dataPtr() + nfine_current,
-                                            wp.dataPtr() + nfine_current,
-                                            &this->charge,
-                                            &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
-                                            &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
-                                            &ngRho, &ngRho, &ngRho,
-                                            &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                            &lvect, &WarpX::charge_deposition_algo);
-
-                    FArrayBox& crhofab = (*crhomf)[pti];
-                    
-                    const int ncomp = 1;
-                    FArrayBox const* local_fab = local_rho[thread_num].get();
-                    FArrayBox*       global_fab = &crhofab;
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
-                    {
-                        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
-                    });
-                }                
-            };
-
-            if (rho) depositCharge(rho, crho, 0);
-
+            BL_PROFILE_VAR_START(blp_pxr_chd);
+            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
+            BL_PROFILE_VAR_STOP(blp_pxr_chd);
+            
             if (! do_not_push)
             {
                 //
@@ -1537,7 +1442,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 // Current Deposition onto fine patch
                 //
-
                 BL_PROFILE_VAR_START(blp_pxr_cd);
                 Real *jx_ptr, *jy_ptr, *jz_ptr;
                 const int  *jxntot, *jyntot, *jzntot;
@@ -1713,7 +1617,9 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_copy);
             }
 
-            if (rho) depositCharge(rho, crho, 1);
+            BL_PROFILE_VAR_START(blp_pxr_chd);
+            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
+            BL_PROFILE_VAR_STOP(blp_pxr_chd);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();
@@ -1723,6 +1629,118 @@ PhysicalParticleContainer::Evolve (int lev,
         }
     }
 }
+
+void
+PhysicalParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
+                                  MultiFab* rhomf, MultiFab* crhomf, int icomp,
+                                 const long np_current,
+                                 const long np, int thread_num, int lev )
+{
+
+
+  const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
+  const long lvect = 8;
+  
+  long ngRho = rhomf->nGrow();
+  Real* data_ptr;
+  Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
+  const int *rholen;
+
+  const std::array<Real,3>& dx = WarpX::CellSize(lev);
+  const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
+
+  // Deposit charge for particles that are not in the current buffers
+  if (np_current > 0)
+    {                
+      FArrayBox& rhofab = (*rhomf)[pti];
+      const std::array<Real, 3>& xyzmin = xyzmin_tile;
+      tile_box.grow(ngRho);
+      local_rho[thread_num]->resize(tile_box);
+      local_rho[thread_num]->setVal(0.0);
+      data_ptr = local_rho[thread_num]->dataPtr();
+      rholen = local_rho[thread_num]->length();
+                    
+#if (AMREX_SPACEDIM == 3)
+      const long nx = rholen[0]-1-2*ngRho;
+      const long ny = rholen[1]-1-2*ngRho;
+      const long nz = rholen[2]-1-2*ngRho;
+#else
+      const long nx = rholen[0]-1-2*ngRho;
+      const long ny = 0;
+      const long nz = rholen[1]-1-2*ngRho;
+#endif
+      warpx_charge_deposition(data_ptr, &np_current,
+                              m_xp[thread_num].dataPtr(),
+                              m_yp[thread_num].dataPtr(),
+                              m_zp[thread_num].dataPtr(),
+                              wp.dataPtr(),
+                              &this->charge,
+                              &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                              &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                              &ngRho, &ngRho, &ngRho,
+                              &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                              &lvect, &WarpX::charge_deposition_algo);
+      
+      const int ncomp = 1;
+      FArrayBox const* local_fab = local_rho[thread_num].get();
+      FArrayBox*       global_fab = &rhofab;
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                                      {
+                                        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
+                                      });
+    }
+
+  // Deposit charge for particles that are in the current buffers
+  if (np_current < np)
+    {
+      const IntVect& ref_ratio = WarpX::RefRatio(lev-1);
+      const Box& ctilebox = amrex::coarsen(pti.tilebox(), ref_ratio);
+      const std::array<Real,3>& cxyzmin_tile = WarpX::LowerCorner(ctilebox, lev-1);
+      
+      tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
+      tile_box.grow(ngRho);
+      
+      local_rho[thread_num]->resize(tile_box);
+      
+      local_rho[thread_num]->setVal(0.0);
+      
+      data_ptr = local_rho[thread_num]->dataPtr();
+      rholen = local_rho[thread_num]->length();
+      
+#if (AMREX_SPACEDIM == 3)
+      const long nx = rholen[0]-1-2*ngRho;
+      const long ny = rholen[1]-1-2*ngRho;
+      const long nz = rholen[2]-1-2*ngRho;
+#else
+      const long nx = rholen[0]-1-2*ngRho;
+      const long ny = 0;
+      const long nz = rholen[1]-1-2*ngRho;
+#endif
+
+      long ncrse = np - np_current;
+      warpx_charge_deposition(data_ptr, &ncrse,
+                              m_xp[thread_num].dataPtr() + np_current,
+                              m_yp[thread_num].dataPtr() + np_current,
+                              m_zp[thread_num].dataPtr() + np_current,
+                              wp.dataPtr() + np_current,
+                              &this->charge,
+                              &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                              &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
+                              &ngRho, &ngRho, &ngRho,
+                              &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                              &lvect, &WarpX::charge_deposition_algo);
+      
+      FArrayBox& crhofab = (*crhomf)[pti];
+      
+      const int ncomp = 1;
+      FArrayBox const* local_fab = local_rho[thread_num].get();
+      FArrayBox*       global_fab = &crhofab;
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
+                                      {
+                                        global_fab->atomicAdd(*local_fab, tbx, tbx, 0, icomp, ncomp);
+                                      });
+    }                
+};
 
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,

@@ -60,6 +60,16 @@ public:
                          amrex::Real t,
                          amrex::Real dt) override;
 
+    virtual void DepositCharge(WarpXParIter& pti,
+                               RealVector& wp,
+                               amrex::MultiFab* rhomf,
+                               amrex::MultiFab* crhomf,
+                               int icomp,
+                               const long np_current,
+                               const long np,
+                               int thread_num,
+                               int lev );
+  
     virtual void PushPX(WarpXParIter& pti,
 	                amrex::Cuda::DeviceVector<amrex::Real>& xp,
                         amrex::Cuda::DeviceVector<amrex::Real>& yp,
