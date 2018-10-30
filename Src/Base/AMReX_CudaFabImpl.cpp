@@ -1,5 +1,7 @@
 #include <AMReX_CudaFabImpl.H>
 
+#include <AMReX_TinyProfiler.H>
+
 #ifdef AMREX_USE_CUDA
 
 #include <AMReX_CudaDevice.H>
@@ -51,6 +53,7 @@ DeviceFabImpl::Finalize ()
 
 DeviceFabImpl::DeviceFabImpl ()
 {
+    BL_PROFILE("DeviceFabImpl()");
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(BaseFabData<Real>),
                   "BaseFabData must be trivially copyable");
     auto& fabstack = get_stack();
@@ -66,6 +69,7 @@ DeviceFabImpl::DeviceFabImpl ()
 DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
     : m_cpu_fab(bx,ncomp)
 {
+    BL_PROFILE("DeviceFabImpl(bx,ncomp)");
     auto& fabstack = get_stack();
     if (fabstack.empty()) {
         m_gpu_fab.reset(new FArrayBox());
@@ -78,6 +82,7 @@ DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
 
 DeviceFabImpl::~DeviceFabImpl ()
 {
+    BL_PROFILE("~DeviceFabImpl()");
     auto& fabstack = get_stack();
     fabstack.push_back(std::move(m_gpu_fab));
 }
