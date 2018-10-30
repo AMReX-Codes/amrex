@@ -164,7 +164,8 @@ or create a profiling variable without starting, then start/stop:
 Instrumenting Fortran90 Code
 ============================
 
-Fortran90 functions can also be instrumented with the following calls:
+When using the full profiler, Fortran90 functions can also be instrumented
+with the following calls:
 
 .. highlight:: fortran
 
@@ -195,6 +196,10 @@ unless you rename it with ``BL_PROFILE_CHANGE_FORT_INT_NAME(fname, int)``
 where ``fname`` is a std::string and ``int`` is the integer ``n``
 in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
 ``BL_PROFILE_CHANGE_FORT_INT_NAME`` should be called in ``main()``.
+
+Be aware: Fortran functions cannot be profiled when using the Tiny Profiler.
+You will need to turn on the full profiler to recieve the results from
+fortran instrumentation.
 
 .. _sec:sample:tiny:
 
