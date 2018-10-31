@@ -1,8 +1,5 @@
-#include <AMReX_CudaAllocators.H>
-#include <AMReX_Device.H>
-#include <AMReX_CudaMemory.H>
+#include <AMReX_Gpu.H>
 #include <AMReX_Utility.H>
-#include <AMReX_CudaLaunch.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
@@ -98,20 +95,15 @@ void main_main ()
         const GeometryData& geomdata = geom.data();
         FArrayBox* phiNew = &(phi_new[mfi]);
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE(Gpu::Strategy(vbx), 
-        [=] AMREX_CUDA_DEVICE ()
+        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
         {
-            Box threadBox = Gpu::getThreadBox(vbx);
-            if (threadBox.ok())
-            {
-                init_phi(BL_TO_FORTRAN_BOX(threadBox),
-                         BL_TO_FORTRAN_ANYD(*phiNew),
-                         geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
-            }
+            init_phi(BL_TO_FORTRAN_BOX(tbx),
+                     BL_TO_FORTRAN_ANYD(*phiNew),
+                     geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
         });
 
     }
-    Device::synchronize(); 
+    Gpu::Device::synchronize(); 
 
     // ========================================
 
