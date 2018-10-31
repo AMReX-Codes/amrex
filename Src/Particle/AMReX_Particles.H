@@ -568,6 +568,7 @@ protected:
     
     void BuildRedistributeMask(int lev, int nghost=1) const;
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
+    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
     mutable amrex::Vector<int> neighbor_procs;
 
     //
