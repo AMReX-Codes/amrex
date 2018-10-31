@@ -224,10 +224,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 grid = isects.empty() ? -1 : isects[0].first;
 	    } else {
                 iv = Index(p, lev);
-                const Box& testbox = (*redistribute_mask_ptr)[local_grid].box();
-                if (not testbox.contains(iv) ) {
-                    amrex::Print() << "oh shitz! << " << iv << " " << testbox << "\n";
-                }
                 grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
                 iv = Index(p_prime, lev);
 	    }
