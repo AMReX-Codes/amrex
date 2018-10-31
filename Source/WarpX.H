@@ -130,7 +130,7 @@ public:
     }
 
     void ComputeDt ();
-    void MoveWindow (bool move_j);
+    int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
     void EvolveE (         amrex::Real dt);
