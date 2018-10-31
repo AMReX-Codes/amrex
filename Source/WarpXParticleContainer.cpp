@@ -314,14 +314,27 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       local_jy[thread_num]->resize(tby);
       local_jz[thread_num]->resize(tbz);
       
-      local_jx[thread_num]->setVal(0.0);
-      local_jy[thread_num]->setVal(0.0);
-      local_jz[thread_num]->setVal(0.0);
-      
       jx_ptr = local_jx[thread_num]->dataPtr();
       jy_ptr = local_jy[thread_num]->dataPtr();
       jz_ptr = local_jz[thread_num]->dataPtr();
+
+      FArrayBox* local_jx_ptr = local_jx[thread_num].get();
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, b,
+      {
+        local_jx_ptr->setVal(0.0, b, 0, 1);
+      });
       
+      FArrayBox* local_jy_ptr = local_jy[thread_num].get();
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, b,
+      {
+        local_jy_ptr->setVal(0.0, b, 0, 1);
+      });
+      
+      FArrayBox* local_jz_ptr = local_jz[thread_num].get();
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, b,
+      {
+        local_jz_ptr->setVal(0.0, b, 0, 1);
+      });     
       jxntot = local_jx[thread_num]->length();
       jyntot = local_jy[thread_num]->length();
       jzntot = local_jz[thread_num]->length();
@@ -352,22 +365,22 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       FArrayBox& cjzfab = (*cjz)[pti];
       
       BL_PROFILE_VAR_START(blp_accumulate);
-      
-      FArrayBox const* local_jx_ptr = local_jx[thread_num].get();
+
+      FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
       FArrayBox* global_jx_ptr = &cjxfab;
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
       {
         global_jx_ptr->atomicAdd(*local_jx_ptr, thread_bx, thread_bx, 0, 0, 1);
       });                    
-      
-      FArrayBox const* local_jy_ptr = local_jy[thread_num].get();
+
+      FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
       FArrayBox* global_jy_ptr = &cjyfab;
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
       {
         global_jy_ptr->atomicAdd(*local_jy_ptr, thread_bx, thread_bx, 0, 0, 1);
       });                    
-      
-      FArrayBox const* local_jz_ptr = local_jz[thread_num].get();
+
+      FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
       FArrayBox* global_jz_ptr = &cjzfab;
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
       {
@@ -407,10 +420,14 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
       tile_box.grow(ngRho);
       local_rho[thread_num]->resize(tile_box);
-      local_rho[thread_num]->setVal(0.0);
+      FArrayBox* local_rho_ptr = local_rho[thread_num].get();
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, b,
+      {
+        local_rho_ptr->setVal(0.0, b, 0, 1);
+      });
+      
       data_ptr = local_rho[thread_num]->dataPtr();
-      rholen = local_rho[thread_num]->length();
-                    
+      rholen = local_rho[thread_num]->length();              
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -454,14 +471,15 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       
       tile_box = amrex::convert(ctilebox, IntVect::TheUnitVector());
       tile_box.grow(ngRho);
-      
       local_rho[thread_num]->resize(tile_box);
-      
-      local_rho[thread_num]->setVal(0.0);
+      FArrayBox* local_rho_ptr = local_rho[thread_num].get();
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, b,
+      {
+        local_rho_ptr->setVal(0.0, b, 0, 1);
+      });
       
       data_ptr = local_rho[thread_num]->dataPtr();
       rholen = local_rho[thread_num]->length();
-      
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
