@@ -17,6 +17,7 @@ using namespace perilla;
 using namespace upcxx;
 
 volatile int Perilla::numTeamsFinished = 0;
+volatile int Perilla::updatedMetadata = 0;
 int Perilla::max_step=1;
 std::map<int,std::map<int,int>> Perilla::pTagCnt;
 int Perilla::uTags=0;
@@ -90,7 +91,7 @@ int Perilla::tid(){//this function can be called after all threads already regis
     return tidTable[pthread_self()];
 }
 
-void Perilla::communicateTags(std::vector<RegionGraph*> ga)
+void Perilla::communicateTags()
 {
     int myProc = ParallelDescriptor::MyProc();
     int nPs = ParallelDescriptor::NProcs();
@@ -1761,6 +1762,7 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	}
 } // serviceMultipleGraphComm
 
+#if 0
 void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
@@ -1815,7 +1817,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-2");
     }
 } // serviceMultipleGraphCommDynamic
-
+#endif
 
 void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, int tid)
 {

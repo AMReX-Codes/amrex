@@ -202,3 +202,4 @@ Package* PackageQueue::getFront(bool lockIgnore)
     if(!lockIgnore) pthread_mutex_unlock(&queueLock);
     return package;
 }
+

@@ -1,4 +1,3 @@
-#if 0
 #ifndef MYLOCK
 #define MYLOCK
 
@@ -25,5 +24,4 @@ class MyLock
 	    pthread_mutex_unlock(&_lock);
 	}
 };
-#endif
 #endif

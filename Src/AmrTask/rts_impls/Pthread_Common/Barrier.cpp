@@ -1,5 +1,4 @@
-#if 0
-#include <Barrier.H>
+#include "Barrier.H"
 #include <stdio.h>
 #include <limits.h>
 #include<assert.h>
@@ -78,5 +77,3 @@ void Barrier::sync(int numthreads)
   }
   pthread_mutex_unlock(&condition_mutex);
 }
-
-#endif
