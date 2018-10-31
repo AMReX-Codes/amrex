@@ -188,7 +188,7 @@ WarpXParticleContainer::AddNParticles (int lev,
 
 
 void
-PhysicalParticleContainer::DepositCurrent(WarpXParIter& pti,
+WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                           RealVector& wp, RealVector& uxp,
                                           RealVector& uyp, RealVector& uzp,
                                           MultiFab& jx, MultiFab& jy, MultiFab& jz,
@@ -379,7 +379,7 @@ PhysicalParticleContainer::DepositCurrent(WarpXParIter& pti,
 
 
 void
-PhysicalParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
+WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                                   MultiFab* rhomf, MultiFab* crhomf, int icomp,
                                  const long np_current,
                                  const long np, int thread_num, int lev )

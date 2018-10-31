@@ -280,7 +280,7 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
                                 MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
-                                MultiFab* rho, MultiFab*,
+                                MultiFab* rho, MultiFab* crho,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 Real t, Real dt)
@@ -350,7 +350,7 @@ LaserParticleContainer::Evolve (int lev,
             pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-            if (rho) depositCharge(rho,0);
+            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
 
 	    //
 	    // Particle Push
@@ -358,7 +358,9 @@ LaserParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
             // Find the coordinates of the particles in the emission plane
             calculate_laser_plane_coordinates( &np,
-                xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                m_xp[thread_num].dataPtr(),
+                m_yp[thread_num].dataPtr(),
+                m_zp[thread_num].dataPtr(),
                 plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                 &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
                 &position[0], &position[1], &position[2] );
@@ -383,8 +385,12 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 	    // Calculate the corresponding momentum and position for the particles
             update_laser_particle(
-               &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv.dataPtr(),
+               &np,
+               m_xp[thread_num].dataPtr(),
+               m_yp[thread_num].dataPtr(),
+               m_zp[thread_num].dataPtr(),
+               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+               m_giv[thread_num].dataPtr(),
                wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
                &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
                &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
