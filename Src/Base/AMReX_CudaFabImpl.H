@@ -14,6 +14,7 @@ public:
     DeviceFabImpl ();
     DeviceFabImpl (Box const& bx, int ncomp);
     DeviceFabImpl (FArrayBox& a_fab);
+    DeviceFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp);
     ~DeviceFabImpl ();
     DeviceFabImpl (DeviceFabImpl const&) = delete;
     void operator= (DeviceFabImpl const&) = delete;

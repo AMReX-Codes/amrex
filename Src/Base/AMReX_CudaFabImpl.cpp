@@ -95,6 +95,10 @@ DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab)
     copy_htod();
 }
 
+DeviceFabImpl::DeviceFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
+    : DeviceFabImpl(bx,ncomp)
+{}
+
 DeviceFabImpl::~DeviceFabImpl ()
 {
     BL_PROFILE("~DeviceFabImpl()");
@@ -154,6 +158,12 @@ DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
     : m_cpu_fab(bx,ncomp), m_cpu_fab_alias(&m_cpu_fab) {}
 
 DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab) : m_cpu_fab_alias (&a_fab) {}
+
+DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp)
+    : m_cpu_fab_alias(&a_fab)
+{
+    resize(bx,ncomp);
+}
 
 DeviceFabImpl::~DeviceFabImpl () {}
 

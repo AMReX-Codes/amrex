@@ -904,6 +904,7 @@ public:
     BaseFab<T>& operator*= (const BaseFab<T>& f);
 
     //! As above.
+    AMREX_GPU_HOST_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src);
 
     /**
