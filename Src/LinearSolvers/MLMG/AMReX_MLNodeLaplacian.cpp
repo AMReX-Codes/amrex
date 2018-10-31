@@ -4,6 +4,12 @@
 #include <AMReX_MLNodeLap_F.H>
 #include <AMReX_MultiFabUtil.H>
 
+#ifdef AMREX_USE_EB
+#ifdef USE_ALGOIM
+#include <Algoim_integrals.H>
+#endif
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -78,8 +84,15 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     m_integral.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
+#ifdef AMREX_USE_EB
+        m_integral[amrlev].reset
+            (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1,
+                          MFInfo(), *m_factory[amrlev][0]));
+
+#else
         m_integral[amrlev].reset
             (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1));
+#endif
     }
 #endif
 
@@ -1057,7 +1070,7 @@ MLNodeLaplacian::buildStencil ()
     if (m_coarsening_strategy != CoarseningStrategy::RAP) return;
 
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
-    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 12;
+    const int ncomp_c = (AMREX_SPACEDIM == 2) ? 6 : 27;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!Geometry::IsRZ(),
@@ -2169,7 +2182,6 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 }
 
 #ifdef AMREX_USE_EB
-
 void
 MLNodeLaplacian::buildIntegral ()
 {
@@ -2179,6 +2191,7 @@ MLNodeLaplacian::buildIntegral ()
 
     m_integral_built = true;
 
+#if (AMREX_SPACEDIM == 2)
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         MultiFab* intg = m_integral[amrlev].get();
@@ -2219,6 +2232,17 @@ MLNodeLaplacian::buildIntegral ()
             }
         }
     }
+#else
+#ifdef USE_ALGOIM
+    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    {
+        MultiFab* intg = m_integral[amrlev].get();
+        amrex::compute_integrals(intg);
+    }
+#else
+    amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
+#endif
+#endif
 }
 
 #endif

@@ -1,3 +1,4 @@
+#if 0
 #ifndef P_WORKERTHREAD_H
 #define P_WORKERTHREAD_H
 #include <PerillaConfig.H>
@@ -70,4 +71,5 @@ namespace perilla{
     }
 }//end namespace
 
+#endif
 #endif

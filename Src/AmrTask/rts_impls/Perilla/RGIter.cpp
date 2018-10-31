@@ -1,3 +1,4 @@
+#if 0
 #include <AMReX_Box.H>
 #include <RGIter.H>
 #include <WorkerThread.H>
@@ -118,6 +119,7 @@ namespace amrex{
 		if(f != -1)
 		{
 		    m_level_afpi[iteration-1]->Receive(this,dest,boxGrow,time,index,scomp,ncomp,f,true);
+cout<<"GGGGGGGGGGG task "<<f<<" is fireable"<<endl;
 		    m_level_afpi[iteration-1]->destGraph->setFireableRegion(f);
 		    if(m_level_afpi[iteration-1]->destGraph->worker[tg]->unfireableRegionQueue->queueSize(true) !=0 && 
 			    m_level_afpi[iteration-1]->destGraph->worker[tg]->fireableRegionQueue->queueSize(true) < 2)
@@ -181,7 +183,7 @@ namespace amrex{
 		currentTile = 0;
 		if(tiling)
 		    for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid-perilla::NUM_COMM_THREADS)
+			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid/*-perilla::NUM_COMM_THREADS*/)
 			    break;
 	    }
 	    else
@@ -207,7 +209,7 @@ namespace amrex{
 		currentTile = 0;
 		if(tiling)
 		    for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid-perilla::NUM_COMM_THREADS)
+			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid/*-perilla::NUM_COMM_THREADS*/)
 			    break;
 	    }
 	    else
@@ -227,12 +229,12 @@ namespace amrex{
 	    {
 		if(implicit)
 		{
-		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid-perilla::NUM_COMM_THREADS)
+		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid/*-perilla::NUM_COMM_THREADS*/)
 			break;
 		}
 		else
 		{
-		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid-perilla::NUM_COMM_THREADS)
+		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid/*-perilla::NUM_COMM_THREADS*/)
 			break;
 		}
 	    }
@@ -271,7 +273,7 @@ namespace amrex{
 		    currentTile = 0;
 		    if(tiling)
 			for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid-perilla::NUM_COMM_THREADS)
+			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid/*-perilla::NUM_COMM_THREADS*/)
 				break;
 		}
 		else
@@ -305,7 +307,7 @@ namespace amrex{
 		    currentTile = 0;
 		    if(tiling)
 			for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid-perilla::NUM_COMM_THREADS)
+			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid/*-perilla::NUM_COMM_THREADS*/)
 				break;	      
 		}
 	    }
@@ -509,3 +511,4 @@ namespace amrex{
 
     }
 }
+#endif

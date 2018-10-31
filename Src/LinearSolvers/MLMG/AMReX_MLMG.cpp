@@ -213,7 +213,7 @@ void MLMG::oneIter (int iter)
         }
     }
 
-    // coarest amr level
+    // coarsest amr level
     {
         // enforce solvability if appropriate
         if (linop.isSingular(0))
@@ -450,7 +450,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     BL_PROFILE_VAR_STOP(blp_up);
 }
 
-// FMG cycle on the coarest AMR level.
+// FMG cycle on the coarsest AMR level.
 // in:  Residual on the top MG level (i.e., 0)
 // out: Correction (cor) on all MG levels
 void

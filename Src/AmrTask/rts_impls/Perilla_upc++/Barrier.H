@@ -1,3 +1,4 @@
+#if 0
 #ifndef P_BARRIER_H
 #define P_BARRIER_H
 #include <pthread.h>
@@ -17,4 +18,5 @@ public:
   void sync();
   void sync(int numthreads);
 };
+#endif
 #endif

@@ -239,7 +239,6 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
         const int * lo = tile_box.loVect();
         const int * hi = tile_box.hiVect();
 
-        const auto & sfab = dummy[mfi];
         const auto & flag = flags[mfi];
 
         //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued)
@@ -277,7 +276,6 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
         const int * lo = tile_box.loVect();
         const int * hi = tile_box.hiVect();
 
-        const auto & sfab = dummy[mfi];
         const auto & flag = flags[mfi];
 
         // Need to count number of eb-facets (in order to allocate facet_list)
@@ -290,7 +288,6 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
 
-        const auto & sfab = dummy[mfi];
         const auto & flag = flags[mfi];
 
         //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued) {
