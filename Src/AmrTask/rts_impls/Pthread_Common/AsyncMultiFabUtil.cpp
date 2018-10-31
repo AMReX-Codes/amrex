@@ -1,5 +1,3 @@
-#if 0
-
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
 #include <AsyncMultiFabUtil.H>
@@ -115,5 +113,3 @@ void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine
     assert(S_crse.nComp() == S_fine.nComp());
     Perilla::multifabCopyPull(RG_crse, RG_fine, &S_crse, &S_fine, f, scomp, 0, ncomp, 0, 0, false);
 }
-
-#endif

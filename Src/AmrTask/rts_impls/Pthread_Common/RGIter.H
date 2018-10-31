@@ -1,4 +1,3 @@
-#if 0
 #ifndef RGITER_H_
 #define RGITER_H_
 
@@ -59,5 +58,4 @@ namespace amrex{
 	    amrex::Box nodaltilebox(int dir);
     };
 }
-#endif
 #endif
