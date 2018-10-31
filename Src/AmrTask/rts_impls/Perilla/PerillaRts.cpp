@@ -5,7 +5,7 @@
 #include <sched.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include "mylock.h"
+#include <mylock.h>
 #include <pthread.h>
 #include "PerillaRts.H"
 
@@ -59,8 +59,7 @@ namespace perilla{
     };
 
     void PerillaRTS::runAMR(Amr* amr, int tid, int nThreads, int max_step, Real stop_time){
-	int cnt=0;
-        while (cnt++<10 && amr->okToContinue() &&
+        while (amr->okToContinue() &&
               (amr->levelSteps(0) < max_step || max_step < 0) &&
               (amr->cumTime() < stop_time || stop_time < 0.0) )
             

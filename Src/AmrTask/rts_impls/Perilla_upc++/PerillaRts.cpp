@@ -5,7 +5,7 @@
 #include <sched.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include "mylock.h"
+#include <mylock.h>
 #include <pthread.h>
 #include "PerillaRts.H"
 

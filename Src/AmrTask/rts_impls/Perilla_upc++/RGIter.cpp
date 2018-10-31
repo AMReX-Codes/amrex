@@ -1,3 +1,4 @@
+#if 0
 #include <AMReX_Box.H>
 #include <RGIter.H>
 #include <WorkerThread.H>
@@ -181,7 +182,7 @@ namespace amrex{
 		currentTile = 0;
 		if(tiling)
 		    for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid-perilla::NUM_COMM_THREADS)
+			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid)
 			    break;
 	    }
 	    else
@@ -207,7 +208,7 @@ namespace amrex{
 		currentTile = 0;
 		if(tiling)
 		    for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid-perilla::NUM_COMM_THREADS)
+			if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid)
 			    break;
 	    }
 	    else
@@ -227,12 +228,12 @@ namespace amrex{
 	    {
 		if(implicit)
 		{
-		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid-perilla::NUM_COMM_THREADS)
+		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid)
 			break;
 		}
 		else
 		{
-		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid-perilla::NUM_COMM_THREADS)
+		    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid)
 			break;
 		}
 	    }
@@ -271,7 +272,7 @@ namespace amrex{
 		    currentTile = 0;
 		    if(tiling)
 			for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid-perilla::NUM_COMM_THREADS)
+			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS-1) == ntid)
 				break;
 		}
 		else
@@ -305,7 +306,7 @@ namespace amrex{
 		    currentTile = 0;
 		    if(tiling)
 			for(currentTile = 0; currentTile < itrGraph->fabTiles[currentRegion]->numTiles; currentTile++)
-			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid-perilla::NUM_COMM_THREADS)
+			    if(currentTile % (perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS) == ntid)
 				break;	      
 		}
 	    }
@@ -509,3 +510,4 @@ namespace amrex{
 
     }
 }
+#endif

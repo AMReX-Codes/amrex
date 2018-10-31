@@ -264,6 +264,29 @@ namespace amrex{
 		}
 	    }
 
+            void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
+            {
+                int myProc = amrex::ParallelDescriptor::MyProc();
+                const int n = mf.indexArray.size();
+                fabTiles.resize(n);
+
+                //typ = mf.boxArray().ixType();
+
+                for (int i = 0; i < n; ++i)
+                {
+                    fabTiles[i] = new pTileArray();
+                }
+                for (amrex::MFIter mfi(mf, tilesize); mfi.isValid(); ++mfi)
+                {
+                    if( fabTiles[mfi.LocalIndex()]->numTiles == 0 )
+                        fabTiles[mfi.LocalIndex()]->validBx = new amrex::Box(mfi.validbox());
+                    fabTiles[mfi.LocalIndex()]->numTiles++;
+                    fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
+                }
+            }
+
+
+
 	    ~RegionGraph();
     };
 }//end namespace
