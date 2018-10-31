@@ -97,7 +97,7 @@ void SDC_advance(MultiFab& phi_old,
 	  for ( MFIter mfi(SDC.sol[sdc_m+1]); mfi.isValid(); ++mfi )
 	    {
 	      //	      const Box& bx = mfi.validbox();
-	      qij = dt*SDC.qmats[2][sdc_m][sdc_m+1];
+	      qij = dt*SDC.Qimp[sdc_m][sdc_m+1];
 	      SDC.sol[sdc_m+1][mfi].saxpy(qij,SDC.f[1][sdc_m+1][mfi]);
 	    }
 
@@ -222,7 +222,7 @@ void SDC_fcomp(MultiFab& rhs,
       // Fill non-periodic physical boundaries
       FillDomainBoundary(rhs, geom, bc);
 
-      qij = d*dt*SDC.qmats[2][sdc_m-1][sdc_m];	      
+      qij = d*dt*SDC.Qimp[sdc_m-1][sdc_m];	      
       for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
 	face_bcoef[idim].setVal(qij);	      
 
@@ -241,7 +241,7 @@ void SDC_fcomp(MultiFab& rhs,
       //  make a flag to change how the reaction is done
       int nflag=1;  // Lazy approximation
 
-      qij = r*dt*SDC.qmats[2][sdc_m-1][sdc_m];	            
+      qij = r*dt*SDC.Qimp[sdc_m-1][sdc_m];	            
       for ( MFIter mfi(SDC.sol[sdc_m]); mfi.isValid(); ++mfi )
 	{
 	  const Box& bx = mfi.validbox();
