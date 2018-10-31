@@ -114,8 +114,6 @@ void compute_integrals(MultiFab* intg)
     {
        const Box& bx = mfi.validbox();
 
-       std::cout << "BX " << bx << std::endl;
-
        const int* lo = bx.loVect();
        const int* hi = bx.hiVect();
 
@@ -229,7 +227,7 @@ void compute_integrals(MultiFab* intg)
                     std::cout << "BC_X FROM FACTORY " << iv << " " << (*bcent)[mfi](iv,0) << " " 
                                                                    << (*bcent)[mfi](iv,1) << " " 
                                                                    << (*bcent)[mfi](iv,2) << std::endl;
-                    std::cout << "BC_X FROM ALGORIM " << iv << " " << val_S_x << " " << val_S_y << " " << val_S_z << std::endl;
+                    std::cout << "BC_X FROM ALGOIM  " << iv << " " << val_S_x << " " << val_S_y << " " << val_S_z << std::endl;
                     // std::cout << "BN_X FROM FACTORY " << iv << " " << (*bnorm)[mfi](iv,0) << " " 
                     //                                                << (*bnorm)[mfi](iv,1) << " " 
                     //                                                << (*bnorm)[mfi](iv,2) << std::endl;
