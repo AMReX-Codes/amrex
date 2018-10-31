@@ -279,7 +279,7 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab*, MultiFab*, MultiFab*,
+                                MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
                                 MultiFab* rho, MultiFab*,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
@@ -290,11 +290,6 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
     BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
-
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
-    // WarpX assumes the same number of guard cells for Jx, Jy, Jz
-    long ngJ  = jx.nGrow();
 
     Real t_lab = t;
     if (WarpX::gamma_boost > 1) {
@@ -312,9 +307,18 @@ LaserParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	Cuda::DeviceVector<Real> xp, yp, zp, giv;
+#ifdef _OPENMP
+      int thread_num = omp_get_thread_num();
+#else
+      int thread_num = 0;
+#endif
+
+      if (local_rho[thread_num] == nullptr) local_rho[thread_num].reset( new amrex::FArrayBox());
+      if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset( new amrex::FArrayBox());
+      if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
+      if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
+      
         Cuda::DeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
-        FArrayBox local_rho, local_jx, local_jy, local_jz;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -330,13 +334,11 @@ LaserParticleContainer::Evolve (int lev,
             auto& uzp = attribs[PIdx::uz];
 
 	    const long np  = pti.numParticles();
+            // For now, laser particles do not take the current buffers into account
+            const long np_current = np;
 
-	    // Data on the grid
-	    FArrayBox& jxfab = jx[pti];
-	    FArrayBox& jyfab = jy[pti];
-	    FArrayBox& jzfab = jz[pti];
+            m_giv[thread_num].resize(np);
 
-	            giv.resize(np);
                plane_Xp.resize(np);
                plane_Yp.resize(np);
             amplitude_E.resize(np);
@@ -345,54 +347,8 @@ LaserParticleContainer::Evolve (int lev,
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
-
-            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-
-            long lvect = 8;
-
-            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
-            {
-                long ngRho = rhomf->nGrow();
-
-                Real* data_ptr;
-                const int *rholen;
-                FArrayBox& rhofab = (*rhomf)[pti];
-                Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-                Box grown_box;
-                const std::array<Real, 3>& xyzmin = xyzmin_tile;
-                tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
-                local_rho = 0.0;
-                data_ptr = local_rho.dataPtr();
-                rholen = local_rho.length();
-
-#if (AMREX_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
-#else
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
-#endif
-            	warpx_charge_deposition(data_ptr, &np,
-					xp.dataPtr(),
-                                        yp.dataPtr(),
-                                        zp.dataPtr(),
-                                        wp.dataPtr(),
-                                        &this->charge,
-					&xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                        &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho,
-					&WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                        &lvect, &WarpX::charge_deposition_algo);
-
-                const int ncomp = 1;
-                rhofab.atomicAdd(local_rho, 0, icomp, ncomp);
-            };
 
             if (rho) depositCharge(rho,0);
 
@@ -400,14 +356,12 @@ LaserParticleContainer::Evolve (int lev,
 	    // Particle Push
 	    //
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
-
             // Find the coordinates of the particles in the emission plane
             calculate_laser_plane_coordinates( &np,
                 xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
                 plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                 &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
                 &position[0], &position[1], &position[2] );
-            
 	    // Calculate the laser amplitude to be emitted,
 	    // at the position of the emission plane
 	    if (profile == laser_t::Gaussian) {
@@ -427,7 +381,6 @@ LaserParticleContainer::Evolve (int lev,
 		parse_function_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(), &t,
 				      amplitude_E.dataPtr(), parser_instance_number );
 	    }
-
 	    // Calculate the corresponding momentum and position for the particles
             update_laser_particle(
                &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
@@ -440,70 +393,18 @@ LaserParticleContainer::Evolve (int lev,
 	    //
 	    // Current Deposition
 	    //
-            BL_PROFILE_VAR_START(blp_pxr_cd);
-            Real *jx_ptr, *jy_ptr, *jz_ptr;
-            const int  *jxntot, *jyntot, *jzntot;
-            Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
-            Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
-            Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
-
-            const std::array<Real, 3>& xyzmin = xyzmin_tile;
-
-            tbx.grow(ngJ);
-            tby.grow(ngJ);
-            tbz.grow(ngJ);
-
-            local_jx.resize(tbx);
-            local_jy.resize(tby);
-            local_jz.resize(tbz);
-
-            local_jx = 0.0;
-            local_jy = 0.0;
-            local_jz = 0.0;
-
-            jx_ptr = local_jx.dataPtr();
-            jy_ptr = local_jy.dataPtr();
-            jz_ptr = local_jz.dataPtr();
-
-            jxntot = local_jx.length();
-            jyntot = local_jy.length();
-            jzntot = local_jz.length();
-
-            warpx_current_deposition(
-                jx_ptr, &ngJ, jxntot,
-                jy_ptr, &ngJ, jyntot,
-                jz_ptr, &ngJ, jzntot,
-                &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
-                uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                giv.dataPtr(),
-                wp.dataPtr(), &this->charge,
-                &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                &dt, &dx[0], &dx[1], &dx[2],
-                &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                &lvect,&WarpX::current_deposition_algo);
-
-	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-            
-            BL_PROFILE_VAR_START(blp_accumulate);
-            
-            jxfab.atomicAdd(local_jx);
-            jyfab.atomicAdd(local_jy);
-            jzfab.atomicAdd(local_jz);
-            
-            BL_PROFILE_VAR_STOP(blp_accumulate);
-
-            if (rho) depositCharge(rho,1);
+            DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
+                           cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
 
 	    //
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            pti.SetPosition(xp, yp, zp);
+            pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
 
+            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
+            
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();

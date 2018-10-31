@@ -40,6 +40,29 @@ WarpXParticleContainer::WarpXParticleContainer (AmrCore* amr_core, int ispecies)
     }
     SetParticleSize();
     ReadParameters();
+
+    // Initialize temporary local arrays for charge/current deposition
+    int num_threads = 1;
+    #ifdef _OPENMP
+    #pragma omp parallel
+    #pragma omp single
+    num_threads = omp_get_num_threads();
+    #endif
+    local_rho.resize(num_threads);
+    local_jx.resize(num_threads);
+    local_jy.resize(num_threads);
+    local_jz.resize(num_threads);
+    m_xp.resize(num_threads);
+    m_yp.resize(num_threads);
+    m_zp.resize(num_threads);
+    for (int i = 0; i < num_threads; ++i)
+      {
+        local_rho[i].reset(nullptr);
+        local_jx[i].reset(nullptr);
+        local_jy[i].reset(nullptr);
+        local_jz[i].reset(nullptr);
+      }
+    
 }
 
 void

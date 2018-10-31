@@ -141,6 +141,33 @@ public:
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
+   virtual void DepositCharge(WarpXParIter& pti,
+                             RealVector& wp,
+                             amrex::MultiFab* rhomf,
+                             amrex::MultiFab* crhomf,
+                             int icomp,
+                             const long np_current,
+                             const long np,
+                             int thread_num,
+                             int lev );
+  
+  virtual void DepositCurrent(WarpXParIter& pti,
+                              RealVector& wp,
+                              RealVector& uxp,
+                              RealVector& uyp,
+                              RealVector& uzp,
+                              amrex::MultiFab& jx,
+                              amrex::MultiFab& jy,
+                              amrex::MultiFab& jz,
+                              amrex::MultiFab* cjx,
+                              amrex::MultiFab* cjy,
+                              amrex::MultiFab* cjz,
+                              const long np_current,
+                              const long np,
+                              int thread_num,
+                              int lev,
+                              amrex::Real dt );
+  
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
@@ -182,6 +209,14 @@ protected:
     bool deposit_on_main_grid = false;
 
     static int do_not_push;
+
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_rho;
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jx;
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jy;
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jz;
+
+  amrex::Vector<amrex::Cuda::DeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
+  
 };
 
 #endif

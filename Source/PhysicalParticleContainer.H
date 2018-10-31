@@ -60,33 +60,6 @@ public:
                          amrex::Real t,
                          amrex::Real dt) override;
 
-    virtual void DepositCharge(WarpXParIter& pti,
-                               RealVector& wp,
-                               amrex::MultiFab* rhomf,
-                               amrex::MultiFab* crhomf,
-                               int icomp,
-                               const long np_current,
-                               const long np,
-                               int thread_num,
-                               int lev );
-  
-    virtual void DepositCurrent(WarpXParIter& pti,
-                                RealVector& wp,
-                                RealVector& uxp,
-                                RealVector& uyp,
-                                RealVector& uzp,
-                                amrex::MultiFab& jx,
-                                amrex::MultiFab& jy,
-                                amrex::MultiFab& jz,
-                                amrex::MultiFab* cjx,
-                                amrex::MultiFab* cjy,
-                                amrex::MultiFab* cjz,
-                                const long np_current,
-                                const long np,
-                                int thread_num,
-                                int lev,
-                                amrex::Real dt );
-  
     virtual void PushPX(WarpXParIter& pti,
 	                amrex::Cuda::DeviceVector<amrex::Real>& xp,
                         amrex::Cuda::DeviceVector<amrex::Real>& yp,
@@ -144,12 +117,6 @@ protected:
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
 
-    amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_rho;
-    amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jx;
-    amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jy;
-    amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jz;
-
-    amrex::Vector<amrex::Cuda::DeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
 };
 
 #endif
