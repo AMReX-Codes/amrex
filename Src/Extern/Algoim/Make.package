@@ -1,0 +1,2 @@
+CEXE_sources += Algoim_integrals.cpp
+CEXE_headers += Algoim_integrals.H
