@@ -313,7 +313,7 @@ LaserParticleContainer::Evolve (int lev,
 #endif
     {
 	Cuda::DeviceVector<Real> xp, yp, zp, giv;
-        RealVector plane_Xp, plane_Yp, amplitude_E;
+        Cuda::DeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
         FArrayBox local_rho, local_jx, local_jy, local_jz;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -347,23 +347,6 @@ LaserParticleContainer::Evolve (int lev,
 	    BL_PROFILE_VAR_START(blp_copy);
             pti.GetPosition(xp, yp, zp);
 	    BL_PROFILE_VAR_STOP(blp_copy);
-
-	    for (int i = 0; i < np; ++i)
-            {
-                // Find the coordinates of the particles in the emission plane
-#if (AMREX_SPACEDIM == 3)
-                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                            + u_X[1]*(yp[i] - position[1])
-                            + u_X[2]*(zp[i] - position[2]);
-                plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                            + u_Y[1]*(yp[i] - position[1])
-                            + u_Y[2]*(zp[i] - position[2]);
-#elif (AMREX_SPACEDIM == 2)
-                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                            + u_X[2]*(zp[i] - position[2]);
-                plane_Yp[i] = 0;
-#endif
-            }
 
             const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
             const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
@@ -417,6 +400,14 @@ LaserParticleContainer::Evolve (int lev,
 	    // Particle Push
 	    //
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
+
+            // Find the coordinates of the particles in the emission plane
+            calculate_laser_plane_coordinates( &np,
+                xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+                plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
+                &position[0], &position[1], &position[2] );
+            
 	    // Calculate the laser amplitude to be emitted,
 	    // at the position of the emission plane
 	    if (profile == laser_t::Gaussian) {
@@ -438,38 +429,12 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
 	    // Calculate the corresponding momentum and position for the particles
-            for (int i = 0; i < np; ++i)
-            {
-                // Calculate the velocity according to the amplitude of E
-                Real sign_charge = std::copysign( 1.0, wp[i] );
-                Real v_over_c = sign_charge * mobility * amplitude_E[i];
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( v_over_c < 1,
-                    "The laser particles have to move unphysically in order to emit the laser.");
-                // The velocity is along the laser polarization p_X
-                Real vx = PhysConst::c * v_over_c * p_X[0];
-                Real vy = PhysConst::c * v_over_c * p_X[1];
-                Real vz = PhysConst::c * v_over_c * p_X[2];
-                // When running in the boosted-frame, their is additional
-                // velocity along nvec
-                if (WarpX::gamma_boost > 1.) {
-                    vx -= PhysConst::c * WarpX::beta_boost * nvec[0];
-                    vy -= PhysConst::c * WarpX::beta_boost * nvec[1];
-                    vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
-                }
-                // Get the corresponding momenta
-                giv[i] = std::sqrt(1 - std::pow(v_over_c,2))/WarpX::gamma_boost;
-                Real gamma = 1./giv[i];
-                uxp[i] = gamma * vx;
-                uyp[i] = gamma * vy;
-                uzp[i] = gamma * vz;
-                // Push the the particle positions
-                xp[i] += vx * dt;
-#if (AMREX_SPACEDIM == 3)
-                yp[i] += vy * dt;
-#endif
-                zp[i] += vz * dt;
-            }
-
+            update_laser_particle(
+               &np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
+               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), giv.dataPtr(),
+               wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
+               &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
+               &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
