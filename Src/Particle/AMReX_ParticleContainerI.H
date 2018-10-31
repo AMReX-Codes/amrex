@@ -224,6 +224,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 grid = isects.empty() ? -1 : isects[0].first;
 	    } else {
                 iv = Index(p, lev);
+                const Box& testbox = (*redistribute_mask_ptr)[local_grid].box();
+                if (not testbox.contains(iv) ) {
+                    amrex::Print() << "oh shitz! << " << iv << " " << testbox << "\n";
+                }
                 grid = (*redistribute_mask_ptr)[local_grid](iv, 0);
                 iv = Index(p_prime, lev);
 	    }
@@ -1936,13 +1940,15 @@ BuildRedistributeMask (int lev, int nghost) const {
     BL_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
+        redistribute_mask_nghost < nghost ||
         ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
         ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
         {
             const Geometry& geom = this->Geom(lev);
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-            
+
+            redistribute_mask_nghost = nghost;
             redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
             redistribute_mask_ptr->setVal(-1, nghost);
             
