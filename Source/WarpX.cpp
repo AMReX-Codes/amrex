@@ -18,6 +18,10 @@
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrMeshInSituBridge.H>
+#endif
+
 using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
@@ -150,6 +154,8 @@ WarpX::WarpX ()
     Efield_fp.resize(nlevs_max);
     Bfield_fp.resize(nlevs_max);
 
+    current_store.resize(nlevs_max);
+
     F_cp.resize(nlevs_max);
     rho_cp.resize(nlevs_max);
     current_cp.resize(nlevs_max);
@@ -195,6 +201,10 @@ WarpX::WarpX ()
     comm_fft.resize(nlevs_max,MPI_COMM_NULL);
     color_fft.resize(nlevs_max,-1);
 #endif
+
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge = nullptr;
+#endif
 }
 
 WarpX::~WarpX ()
@@ -203,6 +213,10 @@ WarpX::~WarpX ()
     for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
+
+#ifdef BL_USE_SENSEI_INSITU
+    delete insitu_bridge;
+#endif
 }
 
 void
@@ -232,6 +246,10 @@ WarpX::ReadParameters ()
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
+        pp.query("do_subcycling", do_subcycling);
+
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
+                                         "Subcycling method 1 only works for 2 levels.");
 
         ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
 
@@ -257,13 +275,13 @@ WarpX::ReadParameters ()
 		const std::string msg = "Unknown moving_window_dir: "+s;
 		amrex::Abort(msg.c_str());
 	    }
-            
+
 	    moving_window_x = geom[0].ProbLo(moving_window_dir);
-            
+
 	    pp.get("moving_window_v", moving_window_v);
 	    moving_window_v *= PhysConst::c;
 	}
-        
+
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
             pp.get("num_injected_species", num_injected_species);
@@ -278,10 +296,10 @@ WarpX::ReadParameters ()
                 current_injection_position = geom[0].ProbLo(moving_window_dir);
             }
 	}
-        
+
         pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
         if (do_boosted_frame_diagnostic) {
-            
+
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
                  "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
@@ -427,6 +445,17 @@ WarpX::ReadParameters ()
         pp.query("noz", noz_fft);
     }
 #endif
+
+    {
+        insitu_start = 0;
+        insitu_int = 0;
+        insitu_config = "";
+
+        ParmParse pp("insitu");
+        pp.query("int", insitu_int);
+        pp.query("start", insitu_start);
+        pp.query("config", insitu_config);
+    }
 }
 
 // This is a virtual function.
@@ -454,6 +483,8 @@ WarpX::ClearLevel (int lev)
 	Efield_fp [lev][i].reset();
 	Bfield_fp [lev][i].reset();
 
+        current_store[lev][i].reset();
+
 	current_cp[lev][i].reset();
 	Efield_cp [lev][i].reset();
 	Bfield_cp [lev][i].reset();
@@ -464,7 +495,7 @@ WarpX::ClearLevel (int lev)
     }
 
     charge_buf[lev].reset();
-    
+
     current_buffer_masks[lev].reset();
     gather_buffer_masks[lev].reset();
 
@@ -502,31 +533,58 @@ WarpX::ClearLevel (int lev)
 void
 WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& dm)
 {
+    // When using subcycling, the particles on the fine level perform two pushes
+    // before being redistributed ; therefore, we need one extra guard cell
+    // (the particles may move by 2*c*dt)
+    const int ngx_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::nox+1 : WarpX::nox;
+    const int ngy_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noy+1 : WarpX::noy;
+    const int ngz_tmp = (maxLevel() > 0 && do_subcycling == 1) ? WarpX::noz+1 : WarpX::noz;
+
     // Ex, Ey, Ez, Bx, By, and Bz have the same number of ghost cells.
     // jx, jy, jz and rho have the same number of ghost cells.
     // E and B have the same number of ghost cells as j and rho if NCI filter is not used,
     // but different number of ghost cells in z-direction if NCI filter is used.
-    int ngx = (WarpX::nox % 2) ? WarpX::nox+1 : WarpX::nox;  // Always even number
-    int ngy = (WarpX::noy % 2) ? WarpX::noy+1 : WarpX::noy;  // Always even number
-    int ngz_nonci = (WarpX::noz % 2) ? WarpX::noz+1 : WarpX::noz;  // Always even number
+    // The number of cells should be even, in order to easily perform the
+    // interpolation from coarse grid to fine grid.
+    int ngx = (ngx_tmp % 2) ? ngx_tmp+1 : ngx_tmp;  // Always even number
+    int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
+    int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
     if (warpx_use_fdtd_nci_corr()) {
-        int ng = WarpX::noz + (mypc->nstencilz_fdtd_nci_corr-1);
+        int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
         ngz = ngz_nonci;
     }
 
+    // J is only interpolated from fine to coarse (not coarse to fine)
+    // and therefore does not need to be even.
+    int ngJx = ngx_tmp;
+    int ngJy = ngy_tmp;
+    int ngJz = ngz_tmp;
+
+    // When calling the moving window (with one level of refinement),  we shift
+    // the fine grid by 2 cells ; therefore, we need at least 2 guard cells
+    // on level 1. This may not be necessary for level 0.
+    if (do_moving_window) {
+        ngx = std::max(ngx,2);
+        ngy = std::max(ngy,2);
+        ngz = std::max(ngz,2);
+        ngJx = std::max(ngJx,2);
+        ngJy = std::max(ngJy,2);
+        ngJz = std::max(ngJz,2);
+    }
+
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
-    IntVect ngJ(ngx,ngy,ngz_nonci);
+    IntVect ngJ(ngJx,ngJy,ngJz);
 #elif (AMREX_SPACEDIM == 2)
     IntVect ngE(ngx,ngz);
-    IntVect ngJ(ngx,ngz_nonci);
+    IntVect ngJ(ngJx,ngJz);
 #endif
 
     IntVect ngRho = ngJ+1; //One extra ghost cell, so that it's safe to deposit charge density
-                           // after pushing particle. 
+                           // after pushing particle.
 
     if (mypc->nSpeciesDepositOnMainGrid() && n_current_deposition_buffer == 0) {
         n_current_deposition_buffer = 1;
@@ -555,9 +613,16 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
 
-    if (do_dive_cleaning || plot_rho){
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
+    if (do_subcycling == 1 && lev == 0) {
+        current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
+        current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
+        current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
     }
+
+    if (do_dive_cleaning || plot_rho){
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
+    }
+
     if (do_dive_cleaning)
     {
         F_fp[lev].reset  (new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,1, ngF));
@@ -647,7 +712,9 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
             Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
 
-            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
+            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            // Gather buffer masks have 1 ghost cell, because of the fact
+            // that particles may move by more than one cell when using subcycling.
         }
 
         if (n_current_deposition_buffer > 0) {
@@ -657,7 +724,9 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
             if (do_dive_cleaning) {
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             }
-            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 0) );
+            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            // Current buffer masks have 1 ghost cell, because of the fact
+            // that particles may move by more than one cell when using subcycling.
         }
     }
 
@@ -759,9 +828,9 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 }
 
 void
-WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf)
+WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
-    const int ncomp = srcmf.nComp();
+    ncomp = std::min(ncomp, srcmf.nComp());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -776,10 +845,10 @@ WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf)
             tmpfab.resize(gbx,ncomp);
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
-            tmpfab.copy(srcfab, ibx, 0, ibx, 0, ncomp);
+            tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
             WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
                         BL_TO_FORTRAN_ANYD(tmpfab),
-                        BL_TO_FORTRAN_ANYD(dstfab),
+                        BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
                         ncomp);
         }
     }
@@ -797,7 +866,8 @@ WarpX::BuildBufferMasks ()
             iMultiFab* bmasks = (ipass == 0) ? current_buffer_masks[lev].get() : gather_buffer_masks[lev].get();
             if (bmasks)
             {
-                iMultiFab tmp(bmasks->boxArray(), bmasks->DistributionMap(), 1, ngbuffer);
+                const int ngtmp = ngbuffer + bmasks->nGrow();
+                iMultiFab tmp(bmasks->boxArray(), bmasks->DistributionMap(), 1, ngtmp);
                 const int covered = 1;
                 const int notcovered = 0;
                 const int physbnd = 1;
@@ -810,7 +880,7 @@ WarpX::BuildBufferMasks ()
 #endif
                 for (MFIter mfi(*bmasks, true); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.tilebox();
+                    const Box& tbx = mfi.growntilebox();
                     warpx_build_buffer_masks (BL_TO_FORTRAN_BOX(tbx),
                                               BL_TO_FORTRAN_ANYD((*bmasks)[mfi]),
                                               BL_TO_FORTRAN_ANYD(tmp[mfi]),
@@ -831,4 +901,25 @@ const iMultiFab*
 WarpX::GatherBufferMasks (int lev)
 {
     return GetInstance().getGatherBufferMasks(lev);
+}
+
+void
+WarpX::StoreCurrent (int lev)
+{
+    for (int idim = 0; idim < 3; ++idim) {
+        if (current_store[lev][idim]) {
+            MultiFab::Copy(*current_store[lev][idim], *current_fp[lev][idim],
+                           0, 0, 1, current_store[lev][idim]->nGrowVect());
+        }
+    }
+}
+
+void
+WarpX::RestoreCurrent (int lev)
+{
+    for (int idim = 0; idim < 3; ++idim) {
+        if (current_store[lev][idim]) {
+            std::swap(current_fp[lev][idim], current_store[lev][idim]);
+        }
+    }
 }

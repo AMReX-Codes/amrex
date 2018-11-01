@@ -7,6 +7,10 @@
 
 #include "AMReX_buildInfo.H"
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrMeshInSituBridge.H>
+#endif
+
 using namespace amrex;
 
 namespace
@@ -451,6 +455,277 @@ WarpX::GetCellCenteredData() {
     }
     
     return std::move(cc[0]);
+}
+
+void
+WarpX::UpdateInSitu () const
+{
+#ifdef BL_USE_SENSEI_INSITU
+    BL_PROFILE("WarpX::UpdateInSitu()");
+
+    int numLevels = finest_level + 1;
+    Vector<std::string> varnames;
+    Vector<MultiFab> mf;
+
+    const int ncomp = 3*3
+        + static_cast<int>(plot_part_per_cell)
+        + static_cast<int>(plot_part_per_grid)
+        + static_cast<int>(plot_part_per_proc)
+        + static_cast<int>(plot_proc_number)
+        + static_cast<int>(plot_divb)
+        + static_cast<int>(plot_dive)
+        + static_cast<int>(plot_finepatch)*6
+        + static_cast<int>(plot_crsepatch)*6
+        + static_cast<int>(costs[0] != nullptr);
+
+    for (int lev = 0; lev <= finest_level; ++lev)
+    {
+        const int ngrow = 1;
+        mf.push_back(MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
+
+        Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
+        PackPlotDataPtrs(srcmf, current_fp[lev]);
+        int dcomp = 0;
+        amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
+#endif
+        if (lev == 0)
+        {
+            varnames.push_back("jx");
+            varnames.push_back("jy");
+            varnames.push_back("jz");
+        }
+        dcomp += 3;
+
+        PackPlotDataPtrs(srcmf, Efield_aux[lev]);
+        amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
+#endif
+        if (lev == 0)
+        {
+            varnames.push_back("Ex");
+            varnames.push_back("Ey");
+            varnames.push_back("Ez");
+        }
+        dcomp += 3;
+
+        PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+        amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+            MultiFab::Copy(mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+        if (lev == 0)
+        {
+            varnames.push_back("Bx");
+            varnames.push_back("By");
+            varnames.push_back("Bz");
+        }
+        dcomp += 3;
+
+        if (plot_part_per_cell)
+        {
+            MultiFab temp_dat(grids[lev],mf[lev].DistributionMap(),1,0);
+            temp_dat.setVal(0);
+
+            // MultiFab containing number of particles in each cell
+            mypc->Increment(temp_dat, lev);
+            MultiFab::Copy(mf[lev], temp_dat, 0, dcomp, 1, 0);
+            if (lev == 0)
+            {
+                varnames.push_back("part_per_cell");
+            }
+            dcomp += 1;
+        }
+
+        if (plot_part_per_grid || plot_part_per_proc)
+        {
+            const Vector<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
+
+            if (plot_part_per_grid)
+            {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+               for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi) {
+                   (mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
+               }
+               if (lev == 0)
+               {
+                   varnames.push_back("part_per_grid");
+               }
+               dcomp += 1;
+           }
+
+           if (plot_part_per_proc)
+           {
+               long n_per_proc = 0;
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:n_per_proc)
+#endif
+                for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi) {
+                    n_per_proc += npart_in_grid[mfi.index()];
+                }
+                mf[lev].setVal(static_cast<Real>(n_per_proc), dcomp,1);
+                if (lev == 0)
+                {
+                    varnames.push_back("part_per_proc");
+                }
+                dcomp += 1;
+            }
+        }
+
+        if (plot_proc_number)
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi) {
+                (mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
+            }
+            if (lev == 0)
+            {
+                varnames.push_back("proc_number");
+            }
+            dcomp += 1;
+        }
+
+        if (plot_divb)
+        {
+            ComputeDivB(mf[lev], dcomp,
+                        {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()},
+                        WarpX::CellSize(lev));
+            if (lev == 0)
+            {
+                varnames.push_back("divB");
+            }
+            dcomp += 1;
+        }
+
+        if (plot_dive)
+        {
+            const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
+            MultiFab dive(ba,DistributionMap(lev),1,0);
+            ComputeDivE(dive, 0,
+                        {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
+                        WarpX::CellSize(lev));
+            amrex::average_node_to_cellcenter(mf[lev], dcomp, dive, 0, 1);
+            if (lev == 0)
+            {
+                varnames.push_back("divE");
+            }
+            dcomp += 1;
+        }
+
+        if (plot_finepatch)
+        {
+            PackPlotDataPtrs(srcmf, Efield_fp[lev]);
+            amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+            MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+#endif
+            if (lev == 0)
+            {
+                varnames.push_back("Ex_fp");
+                varnames.push_back("Ey_fp");
+                varnames.push_back("Ez_fp");
+            }
+            dcomp += 3;
+
+            PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
+            amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+            MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+            MultiFab::Copy(mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+            if (lev == 0)
+            {
+                varnames.push_back("Bx_fp");
+                varnames.push_back("By_fp");
+                varnames.push_back("Bz_fp");
+            }
+            dcomp += 3;
+        }
+
+        if (plot_crsepatch)
+        {
+            // First the electric field
+            if (lev == 0)
+            {
+                mf[lev].setVal(0.0, dcomp, 3, ngrow);
+            }
+            else
+            {
+                std::array<std::unique_ptr<MultiFab>, 3> E = getInterpolatedE(lev);
+                PackPlotDataPtrs(srcmf, E);
+                amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+                MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *E[1], 0, 1);
+#endif
+            }
+            if (lev == 0)
+            {
+                varnames.push_back("Ex_cp");
+                varnames.push_back("Ey_cp");
+                varnames.push_back("Ez_cp");
+            }
+            dcomp += 3;
+
+            // now the magnetic field
+            if (lev == 0)
+            {
+                mf[lev].setVal(0.0, dcomp, 3, ngrow);
+            }
+            else
+            {
+                std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
+                PackPlotDataPtrs(srcmf, B);
+                amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+                MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                MultiFab::Copy(mf[lev], *B[1], 0, dcomp+1, 1, ngrow);
+#endif
+            }
+            if (lev == 0)
+            {
+                varnames.push_back("Bx_cp");
+                varnames.push_back("By_cp");
+                varnames.push_back("Bz_cp");
+            }
+            dcomp += 3;
+        }
+
+        if (costs[0] != nullptr)
+        {
+            MultiFab::Copy(mf[lev], *costs[lev], 0, dcomp, 1, ngrow);
+            if (lev == 0)
+            {
+                varnames.push_back("costs");
+            }
+            dcomp += 1;
+        }
+
+        BL_ASSERT(dcomp == ncomp);
+    }
+
+    if (insitu_bridge->update(istep[0], t_new[0],
+        dynamic_cast<amrex::AmrMesh*>(const_cast<WarpX*>(this)),
+        {&mf}, {varnames}))
+    {
+        amrex::ErrorStream()
+            << "WarpXIO::UpdateInSitu : Failed to update the in situ bridge."
+            << std::endl;
+
+        amrex::Abort();
+    }
+#endif
 }
 
 void
