@@ -3,26 +3,32 @@
 #include <AMReX_CudaFab.H>
 #include <AMReX_CudaFabImpl.H>
 #include <AMReX_CudaDevice.H>
+#include <mutex>
 
 namespace {
-    struct PBN {
-        amrex::Cuda::DeviceFabImpl* p;
-        amrex::Box b;
-        int n;
-    };
+    std::mutex callback_mutex;
 }
+
+// namespace {
+//     struct PBN {
+//         amrex::Cuda::DeviceFabImpl* p;
+//         amrex::Box b;
+//         int n;
+//     };
+// }
 
 #ifdef AMREX_USE_CUDA
 extern "C" {
     void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p) {
+        std::lock_guard<std::mutex> guard(callback_mutex);
         delete (amrex::Cuda::DeviceFabImpl*)p;
     }
 
-    void CUDART_CB amrex_devicefab_resize (cudaStream_t stream, cudaError_t error, void* p) {
-        PBN* pbn = (PBN*)p; 
-        pbn->p->resize(pbn->p,pbn->n);
-        delete pbn;
-    }
+    // void CUDART_CB amrex_devicefab_resize (cudaStream_t stream, cudaError_t error, void* p) {
+    //     PBN* pbn = (PBN*)p; 
+    //     pbn->p->resize(pbn->b,pbn->n);
+    //     delete pbn;
+    // }
 }
 #endif
 
@@ -62,28 +68,28 @@ DeviceFab::DeviceFab (FArrayBox& a_fab, Box const& bx, int ncomp)
     m_impl.reset(new DeviceFabImpl(a_fab, bx, ncomp));
 }
 
-void
-DeviceFab::resize (Box const& bx, int ncomp)
-{
-#ifdef AMREX_USE_CUDA
-    if (inLaunchRegion())
-    {
-        if (m_impl == nullptr)
-        {
-            m_impl->resize(bx, ncomp);
-        }
-        else
-        {
-            PBN* pbn = new PBN{m_impl.get(), bx, ncomp};
-            CudaAPICheck(cudaStreamAddCallback(Device::cudaStream(), amrex_devicefab_resize, pbn, 0));
-        }
-    }
-    else
-#endif
-    {
-        m_impl->resize(bx, ncomp);
-    }
-}
+// void
+// DeviceFab::resize (Box const& bx, int ncomp)
+// {
+// #ifdef AMREX_USE_CUDA
+//     if (inLaunchRegion())
+//     {
+//         if (m_impl == nullptr)
+//         {
+//             m_impl->resize(bx, ncomp);
+//         }
+//         else
+//         {
+//             PBN* pbn = new PBN{m_impl.get(), bx, ncomp};
+//             CudaAPICheck(cudaStreamAddCallback(Device::cudaStream(), amrex_devicefab_resize, pbn, 0));
+//         }
+//     }
+//     else
+// #endif
+//     {
+//         m_impl->resize(bx, ncomp);
+//     }
+// }
 
 void
 DeviceFab::clear ()
