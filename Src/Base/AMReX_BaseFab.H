@@ -60,7 +60,7 @@ struct StridedPtr
     int kstride;
     int nstride;
     AMREX_GPU_HOST_DEVICE
-    P operator() (int i, int j, int k, int n=0) const {
+    inline P operator() (int i, int j, int k, int n=0) const {
         return p +(i+j*jstride+k*kstride+n*nstride);
     }
 };

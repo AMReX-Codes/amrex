@@ -24,11 +24,8 @@ cns_initdata (Box const& bx, FArrayBox& state, GeometryData const& geomdata)
     const Real* prob_lo = geomdata.ProbLo();
     const Real* dx      = geomdata.CellSize();
 
-#define IDX(i,n) i+dp0.nstride*n
-
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
-            Real* AMREX_RESTRICT u = dp0(0,j,k);
             for (int i = 0; i < len[0]; ++i) {
                 Real x = prob_lo[0] + (i+lo[0]+0.5)*dx[0];
                 Real Pt, rhot, uxt;
@@ -42,17 +39,23 @@ cns_initdata (Box const& bx, FArrayBox& state, GeometryData const& geomdata)
                     rhot = 0.125;
                     uxt = 0.0;
                 }
-                u[IDX(i,URHO) ] = rhot;
-                u[IDX(i,UMX)  ] = rhot*uxt;
-                u[IDX(i,UMY)  ] = 0.0;
-                u[IDX(i,UMZ)  ] = 0.0;
-                u[IDX(i,UEINT)] = Pt/(gamma-1.0);
-                u[IDX(i,UEDEN)] = u[IDX(i,UEINT)] + 0.5*rhot*uxt*uxt;
-                u[IDX(i,UTEMP)] = 0.0;
+                Real* AMREX_RESTRICT rho = dp0(i,j,k,URHO);
+                Real* AMREX_RESTRICT mx  = dp0(i,j,k,UMX);
+                Real* AMREX_RESTRICT my  = dp0(i,j,k,UMY);
+                Real* AMREX_RESTRICT mz  = dp0(i,j,k,UMY);
+                Real* AMREX_RESTRICT ei  = dp0(i,j,k,UEINT);
+                Real* AMREX_RESTRICT ed  = dp0(i,j,k,UEDEN);
+                Real* AMREX_RESTRICT T   = dp0(i,j,k,UTEMP);
+
+                *rho = rhot;
+                *mx  = rhot*uxt;
+                *my  = 0.0;
+                *mz  = 0.0;
+                *ei  = Pt/(gamma-1.0);
+                *ed  = (*ei) + 0.5*rhot*uxt*uxt;
+                *T   = 0.0;
             }
         }
     }
-
-#undef IDX
 }
 
