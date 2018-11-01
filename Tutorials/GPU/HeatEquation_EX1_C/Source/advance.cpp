@@ -1,9 +1,7 @@
 
 #include "myfunc.H"
 #include "myfunc_F.H"
-#include <AMReX_CudaLaunch.H>
-#include <AMReX_CudaMemory.H>
-#include <AMReX_Device.H>
+#include <AMReX_Gpu.H>
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
@@ -37,26 +35,21 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE(Gpu::Strategy(vbx),
-	[=] AMREX_CUDA_DEVICE ()
+        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
 	{
-             Box threadBox = Gpu::getThreadBox(vbx);
-             if (threadBox.ok())
-             {
-                compute_flux(BL_TO_FORTRAN_BOX(threadBox),
-                             BL_TO_FORTRAN_BOX(geomdata.Domain()),
-                             BL_TO_FORTRAN_ANYD(*phiOld),
-                             BL_TO_FORTRAN_ANYD(*fluxX),
-                             BL_TO_FORTRAN_ANYD(*fluxY),
+            compute_flux(BL_TO_FORTRAN_BOX(tbx),
+                         BL_TO_FORTRAN_BOX(geomdata.Domain()),
+                         BL_TO_FORTRAN_ANYD(*phiOld),
+                         BL_TO_FORTRAN_ANYD(*fluxX),
+                         BL_TO_FORTRAN_ANYD(*fluxY),
 #if (AMREX_SPACEDIM == 3)   
-                             BL_TO_FORTRAN_ANYD(*fluxZ),
+                         BL_TO_FORTRAN_ANYD(*fluxZ),
 #endif
-                             geomdata.CellSize());
-             }
+                         geomdata.CellSize());
 	});
 
     }
-    Device::synchronize();
+    Gpu::Device::synchronize();
 
     // Advance the solution one grid at a time
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
@@ -69,26 +62,20 @@ void advance (MultiFab& phi_old,
 	FArrayBox* fluxY = &(flux[1][mfi]);
 	FArrayBox* fluxZ = &(flux[2][mfi]);
 
-        AMREX_CUDA_LAUNCH_HOST_DEVICE(Gpu::Strategy(vbx), 
-	[=] AMREX_CUDA_DEVICE ()
+        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx, 
 	{
-            Box threadBox = Gpu::getThreadBox(vbx);
-
-            if (threadBox.ok())
-            {
-                update_phi(BL_TO_FORTRAN_BOX(threadBox),
-                           BL_TO_FORTRAN_ANYD(*phiOld),
-                           BL_TO_FORTRAN_ANYD(*phiNew),
-                           BL_TO_FORTRAN_ANYD(*fluxX),
-                           BL_TO_FORTRAN_ANYD(*fluxY),
+            update_phi(BL_TO_FORTRAN_BOX(tbx),
+                       BL_TO_FORTRAN_ANYD(*phiOld),
+                       BL_TO_FORTRAN_ANYD(*phiNew),
+                       BL_TO_FORTRAN_ANYD(*fluxX),
+                       BL_TO_FORTRAN_ANYD(*fluxY),
 #if (AMREX_SPACEDIM == 3)   
-                           BL_TO_FORTRAN_ANYD(*fluxZ),
+                       BL_TO_FORTRAN_ANYD(*fluxZ),
 #endif
-                           geomdata.CellSize(), dt);
-            }
+                       geomdata.CellSize(), dt);
 	});
 
     }
-    Device::synchronize();
+    Gpu::Device::synchronize();
 
 }

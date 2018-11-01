@@ -1936,13 +1936,15 @@ BuildRedistributeMask (int lev, int nghost) const {
     BL_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
+        redistribute_mask_nghost < nghost ||
         ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
         ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
         {
             const Geometry& geom = this->Geom(lev);
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-            
+
+            redistribute_mask_nghost = nghost;
             redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
             redistribute_mask_ptr->setVal(-1, nghost);
             

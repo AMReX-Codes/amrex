@@ -1705,11 +1705,15 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGrap
     double numloops=0;
     double ltime,lstime,letime;
 
+    int gCnt=0;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
+    std::vector<RegionGraph*> graphArray;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) 
+        for(int g=0; g<graphArrayHierarchy[l].size(); g++) 
+	    graphArray.push_back(graphArrayHierarchy[l][g]);
 
     while(true)
     {	
-      for(int l=0; l<graphArrayHierarchy.size(); l++){
-	std::vector<RegionGraph*> graphArray = graphArrayHierarchy[l];
 	//lstime = omp_get_wtime();
 	for(int g=0; g<graphArray.size(); g++)
 	{
@@ -1788,14 +1792,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGrap
 	//minltime = ltime;
 	//if(ltime > maxltime)
 	//maxltime = ltime;
-      }
-
     } // while(true)
-
-    //if(myProc==0)
-    //std::cout<< std::endl << "COMM HANDLER TIMES tg" << tg << " avg " << avgltime/numloops << " min " << minltime << " max " << maxltime <<std::endl;
-
-    //std::cout<< std::endl << "COMM HANDLER " << tg << " FINISHED EXECUTION" << " myProc " << myProc << " nTF " << Perilla::numTeamsFinished << " nTT " << perilla::NUM_THREAD_TEAMS<<std::endl;
 
     //nGraphs = graphArray.size();
     //if(tg==0)

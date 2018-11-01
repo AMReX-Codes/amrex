@@ -1,3 +1,4 @@
+#if 0
 #include <WorkerThread.H>
 #include <PerillaConfig.H>
 #include <Perilla.H>
@@ -119,3 +120,4 @@ namespace perilla
 	return team_shared_memory[tg];
     }
 }//end namepsace
+#endif
