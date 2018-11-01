@@ -3,15 +3,6 @@
 namespace amrex
 {
 
-namespace utility 
-{
-    IntVect IndexConverter::To3DIndex(const int in)
-    {
-        IntVect out;
-	return out;
-    }
-}
-
 AMREX_GPU_HOST_DEVICE
 int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
 		  const IntVect& a_tile_size, Box& tbx)
