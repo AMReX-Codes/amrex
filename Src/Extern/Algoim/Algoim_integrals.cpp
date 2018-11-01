@@ -79,8 +79,6 @@ void compute_integrals(MultiFab* intg)
     const MultiCutFab* bnorm = &(my_factory.getBndryNormal());
     const auto&        flags =   my_factory.getMultiEBCellFlagFab();
 
-    VisMF::Write(*vfrac,"vfrac");
-
     int i_S_x     =  1-1;
     int i_S_y     =  2-1;
     int i_S_z     =  3-1;
