@@ -949,16 +949,16 @@ MultiFab::minIndex (int comp,
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-//	    const Real lmn = get(mfi).min(bx,comp);
+	    const Real lmn = get(mfi).min(bx,comp);
 
-            get(mfi).minIndex(bx, priv_mn, priv_loc, comp);
-/*
+//            get(mfi).minIndex(bx, priv_mn, priv_loc, comp);
+
 	    if (lmn < priv_mn)
 	    {
 		priv_mn  = lmn;
 		priv_loc = get(mfi).minIndex(bx,comp);
 	    }
-*/
+
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_minindex)
