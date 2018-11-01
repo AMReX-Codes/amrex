@@ -21,18 +21,7 @@ namespace amrex
     const T& max(const T& a, const T& b)
     {
       return (a < b) ? b : a;
-    }    
-
-    class IndexConverter
-    {
-    public:
-      Box domain;
-      
-      IndexConverter(const Box& a_domain) : domain(a_domain) {};
-
-      IntVect To3DIndex(const int in);
-      int To1DIndex(const IntVect& in) { return domain.index(in); };
-    };
+    }
   }
 
   AMREX_GPU_HOST_DEVICE
