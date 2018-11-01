@@ -55,4 +55,5 @@ prob.u_l   = 0.0
 prob.u_r   = 0.0
 
 max_step = 3
+amr.plot_files_output = 1
 amr.plot_int = 1
