@@ -4214,7 +4214,7 @@ contains
              u(i,j,k,2) = u(i,j,k,2) - sig(i,j,k)*dxinv(2)*(dpdy + .5d0*intg(i,j,k,i_S_x  )*dpp_xy + &
                                                                    .5d0*intg(i,j,k,i_S_z  )*dpp_yz + &
                                                                         intg(i,j,k,i_S_x_z)*dpp_xyz )
-             u(i,j,k,3) = u(i,j,k,2) - sig(i,j,k)*dxinv(3)*(dpdz + .5d0*intg(i,j,k,i_S_x  )*dpp_xz + &
+             u(i,j,k,3) = u(i,j,k,3) - sig(i,j,k)*dxinv(3)*(dpdz + .5d0*intg(i,j,k,i_S_x  )*dpp_xz + &
                                                                    .5d0*intg(i,j,k,i_S_y  )*dpp_yz + & 
                                                                         intg(i,j,k,i_S_x_y)*dpp_xyz )
 
