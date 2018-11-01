@@ -1,5 +1,6 @@
 
 #include <CNS.H>
+#include <CNS_K.H>
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
@@ -7,11 +8,6 @@
 #include <climits>
 
 using namespace amrex;
-
-constexpr int CNS::level_mask_interior;
-constexpr int CNS::level_mask_covered;
-constexpr int CNS::level_mask_notcovered;
-constexpr int CNS::level_mask_physbnd;
 
 constexpr int CNS::NUM_GROW;
 
@@ -81,23 +77,21 @@ CNS::initData ()
 {
     BL_PROFILE("CNS::initData()");
 
-    const Real* dx  = geom.CellSize();
-    const Real* prob_lo = geom.ProbLo();
+    const auto geomdata = geom.data();
     MultiFab& S_new = get_new_data(State_Type);
-    Real cur_time   = state[State_Type].curTime();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::NotInLaunchRegion())
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
-#if 0
-        cns_initdata(&level, &cur_time,
-                     BL_TO_FORTRAN_BOX(box),
-                     BL_TO_FORTRAN_ANYD(S_new[mfi]),
-                     dx, prob_lo);
-#endif
+        FArrayBox* sfab = &(S_new[mfi]);
+
+        AMREX_LAUNCH_DEVICE_LAMBDA ( box, tbox,
+        {
+            cns_initdata(tbox, *sfab, geomdata);
+        });
     }
 }
 
@@ -339,21 +333,11 @@ CNS::avgDown ()
 void
 CNS::buildMetrics ()
 {
-    BL_PROFILE("CNS::buildMetrics()");
-
     // make sure dx == dy == dz
     const Real* dx = geom.CellSize();
     if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
-
-    level_mask.clear();
-    level_mask.define(grids,dmap,1,1);
-    level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
-                         level_mask_covered,
-                         level_mask_notcovered,
-                         level_mask_physbnd,
-                         level_mask_interior);
 }
 
 Real

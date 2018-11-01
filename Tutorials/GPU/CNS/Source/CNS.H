@@ -128,14 +128,7 @@ protected:
 
     void printTotal () const;
 
-    amrex::iMultiFab level_mask;
-
     amrex::YAFluxRegister flux_reg;
-
-    static constexpr int level_mask_interior   = 0; // valid cells
-    static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
-    static constexpr int level_mask_notcovered = 2; // ghost cells not covered
-    static constexpr int level_mask_physbnd    = 3; // outside domain
 
     static constexpr int NUM_GROW = 2;
     enum StateVariable {
@@ -144,8 +137,9 @@ protected:
     };
 
     enum StateDataType {
-        State_Type = 0 //,
+        State_Type = 0,
 //        Cost_Type
+        NUM_STATE_DATA_TYPE
     };
     static int num_state_data_types;
 
