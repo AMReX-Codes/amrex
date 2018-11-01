@@ -97,6 +97,15 @@ public:
     static Real ProbLo (int dir) { return prob_domain.lo(dir); }
     //! Returns the hi end of the problem domain in specified direction.
     static Real ProbHi (int dir) { return prob_domain.hi(dir); }
+
+    static GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () {
+        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+    }
+
+    static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () {
+        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+    }
+
     //! Returns the overall size of the domain by multiplying the ProbLength's together
     static Real ProbSize ()
     {

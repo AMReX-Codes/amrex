@@ -24,12 +24,13 @@ cns_initdata (Box const& bx, FArrayBox& state, GeometryData const& geomdata)
     const Real* prob_lo = geomdata.ProbLo();
     const Real* dx      = geomdata.CellSize();
 
+    const Real gamma = 1.4;
+
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
             for (int i = 0; i < len[0]; ++i) {
                 Real x = prob_lo[0] + (i+lo[0]+0.5)*dx[0];
                 Real Pt, rhot, uxt;
-                Real gamma = 1.4;
                 if (x < 0.5) {
                     Pt = 1.0;  // xxxxx parameterize them later
                     rhot = 1.0;

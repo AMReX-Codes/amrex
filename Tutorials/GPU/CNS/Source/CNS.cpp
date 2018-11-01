@@ -81,7 +81,7 @@ CNS::initData ()
     MultiFab& S_new = get_new_data(State_Type);
 
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::NotInLaunchRegion())
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
@@ -347,37 +347,31 @@ CNS::estTimeStep ()
 
     Real estdt = std::numeric_limits<Real>::max();
 
-#if 0
-    const Real* dx = geom.CellSize();
+    const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
 
-    auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(S.Factory());
-    auto const& flags = fact.getMultiEBCellFlagFab();
-
 #ifdef _OPENMP
-#pragma omp parallel reduction(min:estdt)
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(min:estdt)
 #endif
     {
-        Real dt = std::numeric_limits<Real>::max();
-        for (MFIter mfi(S,true); mfi.isValid(); ++mfi)
+        Gpu::DeviceScalar<Real> dt(std::numeric_limits<Real>::max());
+        Real* p_dt = dt.dataPtr();
+        for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& box = mfi.tilebox();
-
-            const auto& sfab = S[mfi];
-            const auto& flag = flags[mfi];
-
-            if (flag.getType(box) != FabType::covered) {
-                cns_estdt(BL_TO_FORTRAN_BOX(box),
-                          BL_TO_FORTRAN_ANYD(S[mfi]),
-                          dx, &dt);
-            }
+            const FArrayBox* sfab = &(S[mfi]);
+            AMREX_LAUNCH_DEVICE_LAMBDA ( box, tbox,
+            {
+                Real local_tmin = cns_estdt(tbox, *sfab, dx);
+                Gpu::Atomic::Min(p_dt, local_tmin);
+            });
         }
-        estdt = std::min(estdt,dt);
+        estdt = std::min(estdt,dt.dataValue());
     }
 
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
-#endif
+
     return estdt;
 }
 

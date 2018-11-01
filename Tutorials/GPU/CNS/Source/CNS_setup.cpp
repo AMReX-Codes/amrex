@@ -3,6 +3,12 @@
 
 using namespace amrex;
 
+inline void cns_null(Real* data, const int*, const int*,
+                     const int* dom_lo, const int* dom_hi,
+                     const Real* dx, const Real* grd_lo,
+                     const Real* time, const int* bc)
+{}
+
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
 
 static Box the_same_box (const Box& b) { return b; }
@@ -129,13 +135,11 @@ CNS::variableSetUp ()
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_e";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Temp";
 
-#if 0
     desc_lst.setComponent(State_Type,
 			  Density,
 			  name,
 			  bcs,
-			  BndryFunc(cns_denfill,cns_hypfill));
-#endif
+			  BndryFunc(cns_null,cns_null)); // xxxxx
 
     num_state_data_types = desc_lst.size();
 
