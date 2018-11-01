@@ -353,8 +353,10 @@ public:
 
     void SortParticlesByCell();
 
-    void SortParticlesByBin(const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti,
-			    int ng, const IntVect& bin_size);
+    void SortParticlesByBin(const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
+			    Cuda::DeviceVector<int>& bin_start,
+			    Cuda::DeviceVector<int>& bin_stop,
+			    const IntVect& bin_size);
 
     //
     // OK checks that all particles are in the right places (for some value of right)
