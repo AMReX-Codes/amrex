@@ -1,5 +1,4 @@
 #include <AMReX_CudaFabImpl.H>
-#include <AMReX_TinyProfiler.H>
 
 #ifdef AMREX_USE_CUDA
 
@@ -52,7 +51,6 @@ DeviceFabImpl::Finalize ()
 
 DeviceFabImpl::DeviceFabImpl ()
 {
-    BL_PROFILE("DeviceFabImpl()");
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(BaseFabData<Real>),
                   "BaseFabData must be trivially copyable");
     auto& fabstack = get_stack();
@@ -68,7 +66,6 @@ DeviceFabImpl::DeviceFabImpl ()
 DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
     : m_cpu_fab(bx,ncomp)
 {
-    BL_PROFILE("DeviceFabImpl(bx,ncomp)");
     auto& fabstack = get_stack();
     if (fabstack.empty()) {
         m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
@@ -81,7 +78,6 @@ DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
 
 DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab)
 {
-    BL_PROFILE("DeviceFabImpl(fab)");
     if (a_fab.isAllocated()) {
         m_cpu_fab.resize(a_fab.box(), a_fab.nComp());
     }
@@ -101,7 +97,6 @@ DeviceFabImpl::DeviceFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
 
 DeviceFabImpl::~DeviceFabImpl ()
 {
-    BL_PROFILE("~DeviceFabImpl()");
     auto& fabstack = get_stack();
     fabstack.push_back(std::move(m_gpu_fab));
 }
