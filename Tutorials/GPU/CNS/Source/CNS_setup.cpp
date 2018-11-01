@@ -3,7 +3,7 @@
 
 using namespace amrex;
 
-int CNS::num_state_data_types = 0;
+int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
 
 static Box the_same_box (const Box& b) { return b; }
 //static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
@@ -99,20 +99,23 @@ set_z_vel_bc(BCRec& bc, const BCRec& phys_bc)
 void
 CNS::variableSetUp ()
 {
-#if 0
     read_params();
 
+    // xxxxx
+
+#if 0
     cns_init_fort(phys_bc.lo(), phys_bc.hi(),
                   PhysBCType::interior, PhysBCType::inflow, PhysBCType::outflow,
                   PhysBCType::symmetry, PhysBCType::slipwall, PhysBCType::noslipwall,
                   ParallelDescriptor::MyProc(),
                   Geometry::ProbLo(), Geometry::ProbHi());
+#endif
 
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
 			   StateDescriptor::Point,NUM_GROW,NUM_STATE,
-			   &eb_cell_cons_interp,state_data_extrap,store_in_checkpoint);
+			   &cell_cons_interp,state_data_extrap,store_in_checkpoint);
 
     Vector<BCRec>       bcs(NUM_STATE);
     Vector<std::string> name(NUM_STATE);
@@ -126,22 +129,21 @@ CNS::variableSetUp ()
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_e";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Temp";
 
+#if 0
     desc_lst.setComponent(State_Type,
 			  Density,
 			  name,
 			  bcs,
 			  BndryFunc(cns_denfill,cns_hypfill));
-
-    desc_lst.addDescriptor(Cost_Type, IndexType::TheCellType(), StateDescriptor::Point,
-                           0,1, &pc_interp);
-    desc_lst.setComponent(Cost_Type, 0, "Cost", bc, BndryFunc(cns_nullfill,cns_nullfill));
+#endif
 
     num_state_data_types = desc_lst.size();
 
-    StateDescriptor::setBndryFuncThreadSafety(true);
+    StateDescriptor::setBndryFuncThreadSafety(true); // xxxxx
 
     // DEFINE DERIVED QUANTITIES
 
+#if 0
     // Pressure
     derive_lst.add("pressure",IndexType::TheCellType(),1,
                    cns_derpres,the_same_box);
