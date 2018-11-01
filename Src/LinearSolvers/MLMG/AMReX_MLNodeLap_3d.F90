@@ -3768,7 +3768,6 @@ contains
     end do
   end subroutine amrex_mlndlap_set_integral
 
-
   subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, az, azlo, azhi, bcen, blo, bhi) &
        bind(c,name='amrex_mlndlap_set_integral_eb')
@@ -3810,134 +3809,159 @@ contains
                 conn(i,j,k,:) = 1.d0
              else
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xmym) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
                      + 9.d0*(intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y) &
                      &      -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xmyb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
                      + 18.d0*( intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xmyp) =  0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
                      + 9.d0*(-intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y) &
                      &       -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xbym) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
                      + 18.d0*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 36
                 conn(i,j,k,i_c_xbyb) = 2.25d0*vol(i,j,k) &
                      + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
                      + 36.d0*intg(i,j,k,i_S_x2_y2)
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xbyp) =  1.125d0*vol(i,j,k) &
-                     + 4.5d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
-                     + 18.d0*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
+                     + 4.5d0*( intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xpym) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
                      + 9.d0*(-intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y) &
                      &       +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xpyb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*( intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
                      + 18.d0*(-intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xpyp) =  0.5625d0*vol(i,j,k) &
                      + 2.25d0*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
                      + 9.d0*( intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y) &
                      &       +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
 
-
-
+                ! Scaled by 9
                 conn(i,j,k,i_c_xmzm) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(intg(i,j,k,i_S_x_z) - intg(i,j,k,i_S_x2_z) &
                      &      -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xmzb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2)) &
                      + 18.d0*(intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xmzp) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_x  ) + intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(-intg(i,j,k,i_S_x_z  ) + intg(i,j,k,i_S_x2_z) &
                      &       -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xbzm) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 18.d0*(intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xbzb) = 2.25d0*vol(i,j,k) &
                      + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2)) &
                      + 36.d0*intg(i,j,k,i_S_x2_z2)
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xbzp) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 18.d0*(-intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xpzm) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(-intg(i,j,k,i_S_x_z ) - intg(i,j,k,i_S_x2_z) &
                      &       +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_xpzb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*( intg(i,j,k,i_S_x   ) + intg(i,j,k,i_S_x2   ) - intg(i,j,k,i_S_z2)) &
                      + 18.d0*(-intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_xpzp) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*( intg(i,j,k,i_S_x_z ) + intg(i,j,k,i_S_x2_z) &
                      &       +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_ymzm) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(intg(i,j,k,i_S_y_z) - intg(i,j,k,i_S_y2_z) &
                      &      -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_ymzb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_y) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
                      + 18.d0*(intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_ymzp) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(-intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z) &
                      &       -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_ybzm) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
                      + 18.d0*(intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 36
                 conn(i,j,k,i_c_ybzb) = 2.25d0*vol(i,j,k) &
                      + 9.d0*(-intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
                      + 36.d0*intg(i,j,k,i_S_y2_z2)
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_ybzp) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
                      + 18.d0*(-intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_ypzm) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*( intg(i,j,k,i_S_y ) - intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(-intg(i,j,k,i_S_y_z ) - intg(i,j,k,i_S_y2_z) &
                      &       +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 18
                 conn(i,j,k,i_c_ypzb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*( intg(i,j,k,i_S_y   ) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
                      + 18.d0*(-intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2))
 
+                ! Scaled by 9
                 conn(i,j,k,i_c_ypzp) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*( intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
@@ -3960,69 +3984,54 @@ contains
     real(amrex_real), intent(in) :: dxinv(3)
 
     integer :: i,j,k
-    real(amrex_real) :: facx, facy, facz, fxyz, fmx2y2z, f2xmy2z, f2x2ymz
-    real(amrex_real) :: f4xm2ym2z, fm2x4ym2z, fm2xm2y4z
+    real(amrex_real) :: facx, facy, facz
     
     facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
     facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
     facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
-    fxyz = facx + facy + facz
-    fmx2y2z = -facx + 2.d0*facy + 2.d0*facz
-    f2xmy2z = 2.d0*facx - facy + 2.d0*facz
-    f2x2ymz = 2.d0*facx + 2.d0*facy - facz
-    f4xm2ym2z = 4.d0*facx - 2.d0*facy - 2.d0*facz
-    fm2x4ym2z = -2.d0*facx + 4.d0*facy - 2.d0*facz
-    fm2xm2y4z = -2.d0*facx - 2.d0*facy + 4.d0*facz
 
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
 
              ! i+1,j,k
-             ! sten(i,j,k,ist_p00) = f4xm2ym2z * (sig(i,j-1,k-1)+sig(i,j,k-1)+sig(i,j-1,k)+sig(i,j,k))
-             sten(i,j,k,ist_p00) = f4xm2ym2z * ( &
-                  sig(i,j  ,k  )*(conn(i,j  ,k  ,i_c_ymzm) - conn(i,j  ,k  ,i_c_xbzm) - conn(i,j  ,k  ,i_c_xbym) ) + &
-                  sig(i,j-1,k  )*(conn(i,j-1,k  ,i_c_ypzm) - conn(i,j-1,k  ,i_c_xbzm) - conn(i,j-1,k  ,i_c_xbyp) ) + &
-                  sig(i,j  ,k-1)*(conn(i,j  ,k-1,i_c_ymzp) - conn(i,j  ,k-1,i_c_xbzp) - conn(i,j  ,k-1,i_c_xbym) ) + &
-                  sig(i,j-1,k-1)*(conn(i,j-1,k-1,i_c_ypzp) - conn(i,j-1,k-1,i_c_xbzp) - conn(i,j-1,k-1,i_c_xbyp) ) )
+             sten(i,j,k,ist_p00) = ( &
+                  sig(i,j  ,k  )*(4.d0*facx*conn(i,j  ,k  ,i_c_ymzm) - 2.d0*facy*conn(i,j  ,k  ,i_c_xbzm) - 2.d0*facz*conn(i,j  ,k  ,i_c_xbym) ) + &
+                  sig(i,j-1,k  )*(4.d0*facx*conn(i,j-1,k  ,i_c_ypzm) - 2.d0*facy*conn(i,j-1,k  ,i_c_xbzm) - 2.d0*facz*conn(i,j-1,k  ,i_c_xbyp) ) + &
+                  sig(i,j  ,k-1)*(4.d0*facx*conn(i,j  ,k-1,i_c_ymzp) - 2.d0*facy*conn(i,j  ,k-1,i_c_xbzp) - 2.d0*facz*conn(i,j  ,k-1,i_c_xbym) ) + &
+                  sig(i,j-1,k-1)*(4.d0*facx*conn(i,j-1,k-1,i_c_ypzp) - 2.d0*facy*conn(i,j-1,k-1,i_c_xbzp) - 2.d0*facz*conn(i,j-1,k-1,i_c_xbyp) ) )
 
              ! i,j+1,k
-             ! sten(i,j,k,ist_0p0) = fm2x4ym2z * (sig(i-1,j,k-1)+sig(i,j,k-1)+sig(i-1,j,k)+sig(i,j,k))
-             sten(i,j,k,ist_0p0) = fm2x4ym2z * ( &
-                  sig(i  ,j,k  )*(-conn(i  ,j,k  ,i_c_ybzm) + conn(i  ,j,k  ,i_c_xmzm) - conn(i  ,j,k  ,i_c_xmyb) ) + &
-                  sig(i-1,j,k  )*(-conn(i-1,j,k  ,i_c_ybzm) + conn(i-1,j,k  ,i_c_xpzm) - conn(i-1,j,k  ,i_c_xpyb) ) + &
-                  sig(i  ,j,k-1)*(-conn(i  ,j,k-1,i_c_ybzp) + conn(i  ,j,k-1,i_c_xmzp) - conn(i  ,j,k-1,i_c_xmyb) ) + &
-                  sig(i-1,j,k-1)*(-conn(i-1,j,k-1,i_c_ybzp) + conn(i-1,j,k-1,i_c_xpzp) - conn(i-1,j,k-1,i_c_xpyb) ) )
+             sten(i,j,k,ist_0p0) = ( &
+                  sig(i  ,j,k  )*(-2.d0*facx*conn(i  ,j,k  ,i_c_ybzm) + 4.d0*facy*conn(i  ,j,k  ,i_c_xmzm) - 2.d0*facz*conn(i  ,j,k  ,i_c_xmyb) ) + &
+                  sig(i-1,j,k  )*(-2.d0*facx*conn(i-1,j,k  ,i_c_ybzm) + 4.d0*facy*conn(i-1,j,k  ,i_c_xpzm) - 2.d0*facz*conn(i-1,j,k  ,i_c_xpyb) ) + &
+                  sig(i  ,j,k-1)*(-2.d0*facx*conn(i  ,j,k-1,i_c_ybzp) + 4.d0*facy*conn(i  ,j,k-1,i_c_xmzp) - 2.d0*facz*conn(i  ,j,k-1,i_c_xmyb) ) + &
+                  sig(i-1,j,k-1)*(-2.d0*facx*conn(i-1,j,k-1,i_c_ybzp) + 4.d0*facy*conn(i-1,j,k-1,i_c_xpzp) - 2.d0*facz*conn(i-1,j,k-1,i_c_xpyb) ) )
 
              ! i,j,k+1
-             ! sten(i,j,k,ist_00p) = fm2xm2y4z * (sig(i-1,j-1,k)+sig(i,j-1,k)+sig(i-1,j,k)+sig(i,j,k))
-             sten(i,j,k,ist_00p) = fm2xm2y4z * ( &
-                  sig(i  ,j  ,k)*(-conn(i  ,j  ,k,i_c_ymzb) - conn(i  ,j  ,k,i_c_xmzb) + conn(i  ,j  ,k,i_c_xmym) ) + &
-                  sig(i-1,j  ,k)*(-conn(i-1,j  ,k,i_c_ymzb) - conn(i-1,j  ,k,i_c_xpzb) + conn(i-1,j  ,k,i_c_xpym) ) + &
-                  sig(i  ,j-1,k)*(-conn(i  ,j-1,k,i_c_ypzb) - conn(i  ,j-1,k,i_c_xmzb) + conn(i  ,j-1,k,i_c_xmyp) ) + &
-                  sig(i-1,j-1,k)*(-conn(i-1,j-1,k,i_c_ypzb) - conn(i-1,j-1,k,i_c_xpzb) + conn(i-1,j-1,k,i_c_xpyp) ) )
+             sten(i,j,k,ist_00p) = ( &
+                  sig(i  ,j  ,k)*(-2.d0*facx*conn(i  ,j  ,k,i_c_ymzb) - 2.d0*facy*conn(i  ,j  ,k,i_c_xmzb) + 4.d0*facz*conn(i  ,j  ,k,i_c_xmym) ) + &
+                  sig(i-1,j  ,k)*(-2.d0*facx*conn(i-1,j  ,k,i_c_ymzb) - 2.d0*facy*conn(i-1,j  ,k,i_c_xpzb) + 4.d0*facz*conn(i-1,j  ,k,i_c_xpym) ) + &
+                  sig(i  ,j-1,k)*(-2.d0*facx*conn(i  ,j-1,k,i_c_ypzb) - 2.d0*facy*conn(i  ,j-1,k,i_c_xmzb) + 4.d0*facz*conn(i  ,j-1,k,i_c_xmyp) ) + &
+                  sig(i-1,j-1,k)*(-2.d0*facx*conn(i-1,j-1,k,i_c_ypzb) - 2.d0*facy*conn(i-1,j-1,k,i_c_xpzb) + 4.d0*facz*conn(i-1,j-1,k,i_c_xpyp) ) )
 
              ! i+1,j+1,k
-             ! sten(i,j,k,ist_pp0) = f2x2ymz * (sig(i,j,k-1)+sig(i,j,k))
-             sten(i,j,k,ist_pp0) = f2x2ymz * ( &
-                  sig(i,j,k  )*(conn(i,j,k  ,i_c_ybzm) + conn(i,j,k  ,i_c_xbzm) - conn(i,j,k  ,i_c_xbyb) ) + &
-                  sig(i,j,k-1)*(conn(i,j,k-1,i_c_ybzp) + conn(i,j,k-1,i_c_xbzp) - conn(i,j,k-1,i_c_xbyb) ) )
+             sten(i,j,k,ist_pp0) = ( &
+                  sig(i,j,k  )*(2.d0*facx*conn(i,j,k  ,i_c_ybzm) + 2.d0*facy*conn(i,j,k  ,i_c_xbzm) - facz*conn(i,j,k  ,i_c_xbyb) ) + &
+                  sig(i,j,k-1)*(2.d0*facx*conn(i,j,k-1,i_c_ybzp) + 2.d0*facy*conn(i,j,k-1,i_c_xbzp) - facz*conn(i,j,k-1,i_c_xbyb) ) )
              
              ! i+1,j,k+1
-             ! sten(i,j,k,ist_p0p) = f2xmy2z * (sig(i,j-1,k)+sig(i,j,k))
-             sten(i,j,k,ist_p0p) = f2xmy2z * ( &
-                  sig(i,j,k  )*(conn(i,j,k  ,i_c_ymzb) - conn(i,j,k  ,i_c_xbzb) + conn(i,j,k  ,i_c_xbym) ) + &
-                  sig(i,j-1,k)*(conn(i,j-1,k,i_c_ypzb) - conn(i,j-1,k,i_c_xbzb) + conn(i,j-1,k,i_c_xbyp) ) )
+             sten(i,j,k,ist_p0p) = ( &
+                  sig(i,j,k  )*(2.d0*facx*conn(i,j,k  ,i_c_ymzb) - facy*conn(i,j,k  ,i_c_xbzb) + 2.d0*facz*conn(i,j,k  ,i_c_xbym) ) + &
+                  sig(i,j-1,k)*(2.d0*facx*conn(i,j-1,k,i_c_ypzb) - facy*conn(i,j-1,k,i_c_xbzb) + 2.d0*facz*conn(i,j-1,k,i_c_xbyp) ) )
 
              ! i,j+1,k+1
-             ! sten(i,j,k,ist_0pp) = fmx2y2z * (sig(i-1,j,k)+sig(i,j,k))
-             sten(i,j,k,ist_0pp) = fmx2y2z * ( &
-                  sig(i  ,j,k)*(-conn(i  ,j,k,i_c_ybzb) + conn(i  ,j,k,i_c_xmzb) + conn(i  ,j,k,i_c_xmyb) ) + &
-                  sig(i-1,j,k)*(-conn(i-1,j,k,i_c_ybzb) + conn(i-1,j,k,i_c_xpzb) + conn(i-1,j,k,i_c_xpym) ) )
+             sten(i,j,k,ist_0pp) = ( &
+                  sig(i  ,j,k)*(-facx*conn(i  ,j,k,i_c_ybzb) + 2.d0*facy*conn(i  ,j,k,i_c_xmzb) + 2.d0*facz*conn(i  ,j,k,i_c_xmyb) ) + &
+                  sig(i-1,j,k)*(-facx*conn(i-1,j,k,i_c_ybzb) + 2.d0*facy*conn(i-1,j,k,i_c_xpzb) + 2.d0*facz*conn(i-1,j,k,i_c_xpyb) ) )
 
              ! i+1,j+1,k+1
-             ! sten(i,j,k,ist_ppp) = fxyz * sig(i,j,k)
-             sten(i,j,k,ist_ppp) = fxyz * sig(i,j,k) * (conn(i,j,k,i_c_ybzb) + conn(i,j,k,i_c_xbzb) + conn(i,j,k,i_c_xbyb) ) 
+             sten(i,j,k,ist_ppp) = sig(i,j,k) * (facx*conn(i,j,k,i_c_ybzb) + facy*conn(i,j,k,i_c_xbzb) + facz*conn(i,j,k,i_c_xbyb) ) 
           end do
        end do
     end do
@@ -4200,18 +4209,20 @@ contains
                        -p(i+1,j+1,k  ) + p(i,j+1,k  ) + p(i+1,j,k  ) - p(i,j,k  ) ) / vfrac(i,j,k)
 
              u(i,j,k,1) = u(i,j,k,1) - sig(i,j,k)*dxinv(1)*(dpdx + .5d0*intg(i,j,k,i_S_y  )*dpp_xy + &
-                                                                   .5d0*intg(i,j,k,i_S_z  )*dpp_xz + & 
+                                                                   .5d0*intg(i,j,k,i_S_z  )*dpp_xz + &
                                                                         intg(i,j,k,i_S_y_z)*dpp_xyz )
              u(i,j,k,2) = u(i,j,k,2) - sig(i,j,k)*dxinv(2)*(dpdy + .5d0*intg(i,j,k,i_S_x  )*dpp_xy + &
-                                                                   .5d0*intg(i,j,k,i_S_z  )*dpp_yz + & 
+                                                                   .5d0*intg(i,j,k,i_S_z  )*dpp_yz + &
                                                                         intg(i,j,k,i_S_x_z)*dpp_xyz )
              u(i,j,k,3) = u(i,j,k,2) - sig(i,j,k)*dxinv(3)*(dpdz + .5d0*intg(i,j,k,i_S_x  )*dpp_xz + &
                                                                    .5d0*intg(i,j,k,i_S_y  )*dpp_yz + & 
                                                                         intg(i,j,k,i_S_x_y)*dpp_xyz )
+
           end if
        end do
     end do
     end do
+
   end subroutine amrex_mlndlap_mknewu_eb
 
 #endif
