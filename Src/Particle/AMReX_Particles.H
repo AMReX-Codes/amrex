@@ -500,7 +500,6 @@ public:
     // struct-of-array stuff
     std::vector<bool> communicate_real_comp;
     std::vector<bool> communicate_int_comp;
-    int num_real_soa_comps, num_int_soa_comps;
 
     static bool do_tiling;
     static IntVect tile_size;

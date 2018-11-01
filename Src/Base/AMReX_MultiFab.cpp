@@ -951,11 +951,14 @@ MultiFab::minIndex (int comp,
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
 	    const Real lmn = get(mfi).min(bx,comp);
 
+//            get(mfi).minIndex(bx, priv_mn, priv_loc, comp);
+
 	    if (lmn < priv_mn)
 	    {
 		priv_mn  = lmn;
 		priv_loc = get(mfi).minIndex(bx,comp);
 	    }
+
 	}
 #ifdef _OPENMP
 #pragma omp critical (multifab_minindex)
@@ -1067,7 +1070,7 @@ MultiFab::maxIndex (int comp,
 Real
 MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 {
-    // TODO GPU -- Check
+    // TODO GPU -- CHECK 
 
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -1099,7 +1102,7 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 Real
 MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 {
-    // TODO GPU
+    // TODO GPU -- CHECK
 
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -1108,22 +1111,26 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 #endif
     {
 	std::vector< std::pair<int,Box> > isects;
+        amrex::Gpu::DeviceScalar<Real> local_nm0(-std::numeric_limits<Real>::max());
+        Real* p = local_nm0.dataPtr();
 
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    ba.intersections(amrex::grow(mfi.validbox(),nghost),isects);
-/*            GpuArray<Box, N> bxl;
-            for (int i = 0, N = isects.size(); i < N; i++)
-            {
-                bxl[i] = isects[i].second; 
-            }
-*/
-// Launch here, specifying pointer to bxl data for capture.
-	    for (int i = 0, N = isects.size(); i < N; i++)
+            FArrayBox const* fab = &(get(mfi));
+
+	    for (int i = 0; i<isects.size(); ++i)
 	    {
-		nm0 = std::max(nm0, get(mfi).norm(isects[i].second, 0, comp, 1));
+                const Box& bx = isects[i].second;
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                {
+                    Real t = fab->norm(tbx, 0, comp, 1);
+                    amrex::Gpu::Atomic::Max(p, t);
+                });
+
 	    }
 	}
+        nm0 = std::max(nm0, local_nm0.dataValue());
     }
  
     if (!local)
@@ -1135,7 +1142,7 @@ MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
 Real
 MultiFab::norm0 (int comp, int nghost, bool local) const
 {
-    // TODO GPU -- check
+    // TODO GPU -- CHECK 
 
     Real nm0 = -std::numeric_limits<Real>::max();
 
@@ -1189,13 +1196,18 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
 #else
 	int tid = 0;
 #endif
+
 	for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
 	{
+            FArrayBox const* fab = &(get(mfi));
+            const Box& bx = mfi.growntilebox(nghost);
+ 
             for (int i=0; i<n; i++) {
-	        priv_nm0[tid][i] = std::max(priv_nm0[tid][i], 
-					    get(mfi).norm(mfi.growntilebox(nghost), 0, comps[i], 1));
+                priv_nm0[tid][i] = std::max(priv_nm0[tid][i], 
+                                            fab->norm(bx, 0, comps[i], 1));
             }
         }
+
 #ifdef _OPENMP
 #pragma omp barrier
 #pragma omp for
@@ -1299,7 +1311,6 @@ MultiFab::norm2 (const Vector<int>& comps) const
 Real
 MultiFab::norm1 (int comp, const Periodicity& period) const
 {
-    // TODO GPU??
     MultiFab tmpmf(boxArray(), DistributionMap(), 1, 0, MFInfo(), Factory());
     MultiFab::Copy(tmpmf, *this, comp, 0, 1, 0);
 
@@ -1312,7 +1323,7 @@ MultiFab::norm1 (int comp, const Periodicity& period) const
 Real
 MultiFab::norm1 (int comp, int ngrow, bool local) const
 {
-    // TODO GPU
+    // TODO GPU -- CHECK
     
     Real nm1 = 0.e0;
 
@@ -1394,7 +1405,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 Real
 MultiFab::sum (int comp, bool local) const
 {
-    // TODO GPU - CHECK
+    // TODO GPU -- CHECK
 
     Real sm = 0.e0;
 
