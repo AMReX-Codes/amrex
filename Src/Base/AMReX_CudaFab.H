@@ -24,7 +24,7 @@ public:
     DeviceFab (DeviceFab const&) = delete;
     void operator= (DeviceFab const&) = delete;
 
-    void resize (Box const& bx, int ncomp);
+// Not allowed because it contains cuda api calls   void resize (Box const& bx, int ncomp);
     void clear ();
     FArrayBox* fabPtr ();
 
