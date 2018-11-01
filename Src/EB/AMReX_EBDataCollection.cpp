@@ -38,15 +38,22 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     if (m_support == EBSupport::full)
     {
         const int ng = m_ngrow[2];
+
         m_bndrycent = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
         a_level.fillBndryCent(*m_bndrycent, m_geom);
+
         m_bndryarea = new MultiCutFab(a_ba, a_dm, 1, ng, *m_cellflags);
         a_level.fillBndryArea(*m_bndryarea, m_geom);
+
+        m_bndrynorm = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
+        a_level.fillBndryNorm(*m_bndrynorm, m_geom);
+
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
             m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
             m_facecent[idim] = new MultiCutFab(faceba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
         }
+
         a_level.fillAreaFrac(m_areafrac, m_geom);
         a_level.fillFaceCent(m_facecent, m_geom);
     }
@@ -58,6 +65,7 @@ EBDataCollection::~EBDataCollection ()
     delete m_volfrac;
     delete m_centroid;
     delete m_bndrycent;
+    delete m_bndrynorm;
     delete m_bndryarea;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         delete m_areafrac[idim];
@@ -114,5 +122,11 @@ EBDataCollection::getFaceCent () const
     return {AMREX_D_DECL(m_facecent[0], m_facecent[1], m_facecent[2])};
 }
 
+const MultiCutFab&
+EBDataCollection::getBndryNormal () const
+{
+    AMREX_ASSERT(m_bndrynorm != nullptr);
+    return *m_bndrynorm;
 }
 
+}

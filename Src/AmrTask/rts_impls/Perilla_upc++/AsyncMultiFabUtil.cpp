@@ -1,3 +1,4 @@
+#if 0
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
 #include <AsyncMultiFabUtil.H>
@@ -143,4 +144,5 @@ void average_down_faces (PArray<MultiFab>& fine, PArray<MultiFab>& crse, IntVect
 	}
     }
 }
+#endif
 #endif
