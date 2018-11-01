@@ -40,6 +40,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Functors.H>
+#include <AMReX_ParticleUtil.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -628,10 +629,6 @@ private:
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
-
-    AMREX_GPU_HOST_DEVICE
-    static int getTileIndex(const IntVect& iv, const Box& box, const bool a_do_tiling,
-			    const IntVect& a_tile_size, Box& tbx);
 
     void Initialize ();
 
