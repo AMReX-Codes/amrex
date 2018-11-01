@@ -2238,13 +2238,14 @@ MLNodeLaplacian::buildIntegral ()
     {
         MultiFab* intg = m_integral[amrlev].get();
         amrex::compute_integrals(intg);
+        const Geometry& geom = m_geom[amrlev][0];
+        intg->FillBoundary(geom.periodicity());
     }
 #else
     amrex::Abort("Need to set USE_ALGOIM = TRUE in order to build 3D EB integrals");
 #endif
 #endif
 }
-
 #endif
 
 }
