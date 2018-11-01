@@ -1,3 +1,5 @@
+#if (AMREX_SPACEDIM == 3)
+
 #include <limits>
 
 #include <AMReX.H>
@@ -18,12 +20,8 @@
 #include <fstream>
 #include "algoim_quad.hpp"
 
-namespace amrex {
-
 struct EBshape
 {
-    EBshape() { }
-
     template<typename T>
     T operator() (const blitz::TinyVector<T,3>& x) const
     {
@@ -33,26 +31,29 @@ struct EBshape
     template<typename T>
     blitz::TinyVector<T,3> grad(const blitz::TinyVector<T,3>& x) const
     {
-        blitz::TinyVector<double,3>(norm[0],norm[1],norm[2]);
+        return blitz::TinyVector<double,3>(norm[0],norm[1],norm[2]);
     }
 
-    void setCent(Real centx_in, Real centy_in, Real centz_in)
+    void setCent(double centx_in, double centy_in, double centz_in)
     {
         cent[0] = centx_in;
         cent[1] = centy_in;
         cent[2] = centz_in;
     }
 
-    void setNormal(Real normx_in, Real normy_in, Real normz_in)
+    void setNormal(double normx_in, double normy_in, double normz_in)
     {
         norm[0] = normx_in;
         norm[1] = normy_in;
         norm[2] = normz_in;
     }
 
-    Real cent[3];
-    Real norm[3];
+    double cent[3];
+    double norm[3];
 };
+
+namespace amrex 
+{
 
 void compute_integrals(MultiFab* intg)
 {
@@ -72,13 +73,11 @@ void compute_integrals(MultiFab* intg)
 
     const auto& my_factory = dynamic_cast<EBFArrayBoxFactory const&>(intg->Factory());
 
-    const MultiFab* vfrac = &(my_factory.getVolFrac());
+    const MultiFab*    vfrac = &(my_factory.getVolFrac());
     const MultiCutFab* bcent = &(my_factory.getBndryCent());
+    const MultiCutFab* ccent = &(my_factory.getCentroid());
     const MultiCutFab* bnorm = &(my_factory.getBndryNormal());
-    const auto& flags = my_factory.getMultiEBCellFlagFab();
-
-    blitz::TinyVector<double,3> xmin = {-0.5,-0.5,-0.5};
-    blitz::TinyVector<double,3> xmax = { 0.5, 0.5, 0.5};
+    const auto&        flags =   my_factory.getMultiEBCellFlagFab();
 
     int i_S_x     =  1-1;
     int i_S_y     =  2-1;
@@ -100,19 +99,19 @@ void compute_integrals(MultiFab* intg)
     int i_S_y2_z2 = 18-1;
 
     // Initialize to the values they would have in a regular cell
-    // setVal (val, comp, ncomp)
+    // setVal (val, comp, ncomp, nghost)
     Real twelfth = 1./12.;
     Real   offth = 1./144.;
-    intg->setVal(0.     ,i_S_x    ,3); // setting S_x, S_y, S_z = 0
-    intg->setVal(twelfth,i_S_x2   ,3); // setting S_x^2, S_y^2, S_z^2 = 1/12
-    intg->setVal(0.     ,i_S_x_y  ,9); // setting S_x_y, S_x_z, S_y_z, S_x2_y, S_x2_z, S_x_y2, S_y2_z, S_x_z2, S_y_z2 = 0
-    intg->setVal(offth  ,i_S_x2_y2,3); // setting S_x2_y2, S_x2_z2, S_y2_z2 = 1/144
+    intg->setVal(0.     ,i_S_x    ,3,1); // setting S_x, S_y, S_z = 0
+    intg->setVal(twelfth,i_S_x2   ,3,1); // setting S_x^2, S_y^2, S_z^2 = 1/12
+    intg->setVal(0.     ,i_S_x_y  ,9,1); // setting S_x_y, S_x_z, S_y_z, S_x2_y, S_x2_z, S_x_y2, S_y2_z, S_x_z2, S_y_z2 = 0
+    intg->setVal(offth  ,i_S_x2_y2,3,1); // setting S_x2_y2, S_x2_z2, S_y2_z2 = 1/144
 
     int ncomp = intg->nComp();
 
-    for (MFIter mfi(*intg,false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(*intg,true); mfi.isValid(); ++mfi)
     {
-       const Box& bx = mfi.validbox();
+       const Box& bx = mfi.growntilebox();
 
        const int* lo = bx.loVect();
        const int* hi = bx.hiVect();
@@ -123,6 +122,9 @@ void compute_integrals(MultiFab* intg)
        auto typ = flag.getType(bx);
 
        int n_count = 0;
+
+       blitz::TinyVector<double,3> xmin = {-0.5,-0.5,-0.5};
+       blitz::TinyVector<double,3> xmax = { 0.5, 0.5, 0.5};
 
        if (typ == FabType::covered) {
            gfab.setVal(0.,bx,0,ncomp);
@@ -148,49 +150,46 @@ void compute_integrals(MultiFab* intg)
                  const Real normy = (*bnorm)[mfi](iv,1);
                  const Real normz = (*bnorm)[mfi](iv,2);
 
-                 std::cout << "SETTING CENTROID " << centx << " " << centy << " " << centz << std::endl;
-                 std::cout << "SETTING NORMAL   " << normx << " " << normy << " " << normz << std::endl;
-   
                  eb_phi.setCent(centx,centy,centz);
                  eb_phi.setNormal(normx,normy,normz);
-    
+
+                 // std::cout << "Using centroid: " << centx << " " << centy << " " << centz << std::endl;
+                 // std::cout << "Using normal  : " << normx << " " << normy << " " << normz << std::endl;
+
                  auto q = Algoim::quadGen<3>(eb_phi, Algoim::BoundingBox<double,3>(xmin, xmax), dim, side, qo);
        
-                 double volume = q([](const auto& x) { return 1.0; });
-
-                 std::cout << "IV " << iv << std::endl;
+                 Real volume   = q([](const auto& x) { return 1.0; });
 
                  if (std::abs(volume - volfrac) > 1.e-12)
                  { 
                     std::cout << "Volume fractions don't match!" << std::endl;
                     std::cout << "VF " << iv << " " << volfrac << " " << volume << std::endl;
-                    // exit(0);
+                    exit(0);
                  } 
  
-                 double val_S_x   = q([](const auto& x) { return x(0); });
-                 double val_S_y   = q([](const auto& x) { return x(1); });
-                 double val_S_z   = q([](const auto& x) { return x(2); });
+                 Real val_S_x   = q([](const auto& x) { return x(0); });
+                 Real val_S_y   = q([](const auto& x) { return x(1); });
+                 Real val_S_z   = q([](const auto& x) { return x(2); });
+                 Real val_S_x2  = q([](const auto& x) { return x(0)*x(0); });
+                 Real val_S_y2  = q([](const auto& x) { return x(1)*x(1); });
+                 Real val_S_z2  = q([](const auto& x) { return x(2)*x(2); });
+ 
+                 Real val_S_x_y = q([](const auto& x) { return x(0)*x(1); });
+                 Real val_S_x_z = q([](const auto& x) { return x(0)*x(2); });
+                 Real val_S_y_z = q([](const auto& x) { return x(1)*x(2); });
+ 
+                 Real val_S_x2_y = q([](const auto& x) { return x(0)*x(0)*x(1); });
+                 Real val_S_x2_z = q([](const auto& x) { return x(0)*x(0)*x(2); });
 
-                 double val_S_x2  = q([](const auto& x) { return x(0)*x(0); });
-                 double val_S_y2  = q([](const auto& x) { return x(1)*x(1); });
-                 double val_S_z2  = q([](const auto& x) { return x(2)*x(2); });
+                 Real val_S_x_y2 = q([](const auto& x) { return x(0)*x(1)*x(1); });
+                 Real val_S_y2_z = q([](const auto& x) { return x(1)*x(1)*x(2); });
  
-                 double val_S_x_y = q([](const auto& x) { return x(0)*x(1); });
-                 double val_S_x_z = q([](const auto& x) { return x(0)*x(2); });
-                 double val_S_y_z = q([](const auto& x) { return x(1)*x(2); });
+                 Real val_S_x_z2 = q([](const auto& x) { return x(0)*x(2)*x(2); });
+                 Real val_S_y_z2 = q([](const auto& x) { return x(1)*x(2)*x(2); });
  
-                 double val_S_x2_y = q([](const auto& x) { return x(0)*x(0)*x(1); });
-                 double val_S_x2_z = q([](const auto& x) { return x(0)*x(0)*x(2); });
-
-                 double val_S_x_y2 = q([](const auto& x) { return x(0)*x(1)*x(1); });
-                 double val_S_y2_z = q([](const auto& x) { return x(1)*x(1)*x(2); });
- 
-                 double val_S_x_z2 = q([](const auto& x) { return x(0)*x(2)*x(2); });
-                 double val_S_y_z2 = q([](const auto& x) { return x(1)*x(2)*x(2); });
- 
-                 double val_S_x2_y2 = q([](const auto& x) { return x(0)*x(0)*x(1)*x(1); });
-                 double val_S_x2_z2 = q([](const auto& x) { return x(0)*x(0)*x(2)*x(2); });
-                 double val_S_y2_z2 = q([](const auto& x) { return x(1)*x(1)*x(2)*x(2); });
+                 Real val_S_x2_y2 = q([](const auto& x) { return x(0)*x(0)*x(1)*x(1); });
+                 Real val_S_x2_z2 = q([](const auto& x) { return x(0)*x(0)*x(2)*x(2); });
+                 Real val_S_y2_z2 = q([](const auto& x) { return x(1)*x(1)*x(2)*x(2); });
 
                  gfab(iv,i_S_x) = val_S_x;
                  gfab(iv,i_S_y) = val_S_y;
@@ -202,7 +201,7 @@ void compute_integrals(MultiFab* intg)
 
                  gfab(iv,i_S_x_y) = val_S_x_y;
                  gfab(iv,i_S_y_z) = val_S_y_z;
-                 gfab(iv,i_S_x_y) = val_S_x_y;
+                 gfab(iv,i_S_x_z) = val_S_x_z;
 
                  gfab(iv,i_S_x2_y) = val_S_x2_y;
                  gfab(iv,i_S_x2_z) = val_S_x2_z;
@@ -219,18 +218,22 @@ void compute_integrals(MultiFab* intg)
 
                  n_count++;
 
-                 if (std::abs(val_S_x - (*bcent)[mfi](iv,0)) > 1.e-12 || 
-                     std::abs(val_S_y - (*bcent)[mfi](iv,1)) > 1.e-12 || 
-                     std::abs(val_S_z - (*bcent)[mfi](iv,2)) > 1.e-12 )
+                 if (std::abs(val_S_x/volume - (*ccent)[mfi](iv,0)) > 1.e-12 || 
+                     std::abs(val_S_y/volume - (*ccent)[mfi](iv,1)) > 1.e-12 || 
+                     std::abs(val_S_z/volume - (*ccent)[mfi](iv,2)) > 1.e-12 )
                  { 
                     std::cout << "Bndry Centroid doesn't match!" << std::endl;
-                    std::cout << "BC_X FROM FACTORY " << iv << " " << (*bcent)[mfi](iv,0) << " " 
-                                                                   << (*bcent)[mfi](iv,1) << " " 
-                                                                   << (*bcent)[mfi](iv,2) << std::endl;
-                    std::cout << "BC_X FROM ALGOIM  " << iv << " " << val_S_x << " " << val_S_y << " " << val_S_z << std::endl;
-                    // std::cout << "BN_X FROM FACTORY " << iv << " " << (*bnorm)[mfi](iv,0) << " " 
-                    //                                                << (*bnorm)[mfi](iv,1) << " " 
-                    //                                                << (*bnorm)[mfi](iv,2) << std::endl;
+                    std::cout << "IV                " << iv     << std::endl;
+                    std::cout << "VF                " << volume << std::endl;
+                    std::cout << "BC_X FROM FACTORY " << (*ccent)[mfi](iv,0) << " " 
+                                                      << (*ccent)[mfi](iv,1) << " " 
+                                                      << (*ccent)[mfi](iv,2) << std::endl;
+
+                    std::cout << "BC_X FROM ALGOIM  " << val_S_x/volume << " " << val_S_y/volume << " " << val_S_z/volume << std::endl;
+
+                    std::cout << "BN_X FROM FACTORY " << (*bnorm)[mfi](iv,0) << " " 
+                                                      << (*bnorm)[mfi](iv,1) << " " 
+                                                      << (*bnorm)[mfi](iv,2) << "\n" << std::endl;
                     exit(0);
                  }
              }
@@ -238,6 +241,6 @@ void compute_integrals(MultiFab* intg)
        }
        std::cout << "Integrated over " << n_count << " cells " << std::endl;
     }
-    exit(0);
 }
 }
+#endif
