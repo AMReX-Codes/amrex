@@ -353,6 +353,9 @@ public:
 
     void SortParticlesByCell();
 
+    void SortParticlesByBin(const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti,
+			    int ng, const IntVect& bin_size);
+
     //
     // OK checks that all particles are in the right places (for some value of right)
     //

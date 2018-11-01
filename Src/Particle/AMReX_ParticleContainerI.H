@@ -933,6 +933,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
 #endif
 }
 
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti,
+		    int ng, const IntVect& bin_size)
+{
+#ifdef AMREX_USE_CUDA
+  
+    BL_PROFILE("ParticleContainer::SortParticlesByBin()");
+  
+#endif
+}
+
 //
 // The GPU implementation of Redistribute
 //
