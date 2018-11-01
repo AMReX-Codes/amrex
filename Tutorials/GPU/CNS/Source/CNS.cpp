@@ -245,16 +245,10 @@ void
 CNS::printTotal () const
 {
     const MultiFab& S_new = get_new_data(State_Type);
-    MultiFab mf(grids, dmap, 1, 0);
     std::array<Real,5> tot;
-#if 0
-    // xxxxx
     for (int comp = 0; comp < 5; ++comp) {
-        MultiFab::Copy(mf, S_new, comp, 0, 1, 0);
-        MultiFab::Multiply(mf, *volfrac, 0, 0, 1, 0);
-        tot[comp] = mf.sum(0,true) * geom.ProbSize();
+        tot[comp] = S_new.sum(comp,true) * geom.ProbSize();
     }
-#endif
 #ifdef BL_LAZY
     Lazy::QueueReduction( [=] () mutable {
 #endif
