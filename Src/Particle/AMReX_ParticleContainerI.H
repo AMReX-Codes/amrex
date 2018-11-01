@@ -78,10 +78,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+AMREX_GPU_HOST_DEVICE
 int
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx)
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
+	      const IntVect& a_tile_size, Box& tbx)
 {
-    if (do_tiling == false) {
+    if (a_do_tiling == false) {
         tbx = box;
         return 0;
     } else {
@@ -112,12 +115,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::getTileIndex(
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
         AMREX_D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
-               int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
-               int iv2 = std::min(std::max(iv[2], small[2]), big[2]););
+		     int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
+		     int iv2 = std::min(std::max(iv[2], small[2]), big[2]););
 
-        AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-               tiling_1d(iv1, small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-               tiling_1d(iv2, small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
+        AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
+		     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
+		     tiling_1d(iv2, small[2], big[2], a_tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
 
         tbx = Box(tilelo, tilehi);
 
@@ -155,7 +158,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
               if (pld.m_grown_gridbox.contains(iv)) {
                   pld.m_cell = iv;
                   if (!pld.m_tilebox.contains(iv)) {
-                      pld.m_tile = getTileIndex(iv, pld.m_gridbox, pld.m_tilebox);
+		    pld.m_tile = getTileIndex(iv, pld.m_gridbox, do_tiling, tile_size, pld.m_tilebox);
                   }
                   return true;
               }
@@ -177,7 +180,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           const Box& bx = ba.getCellCenteredBox(grid);
 	  pld.m_lev  = lev;
 	  pld.m_grid = grid;
-	  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+	  pld.m_tile = getTileIndex(iv, bx, do_tiling, tile_size, pld.m_tilebox);
 	  pld.m_cell = iv;
 	  pld.m_gridbox = bx;
           pld.m_grown_gridbox = amrex::grow(bx, nGrow);
@@ -237,7 +240,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 
                 pld.m_lev  = lev;
                 pld.m_grid = grid;
-		pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+		pld.m_tile = getTileIndex(iv, bx, do_tiling, tile_size, pld.m_tilebox);
                 pld.m_cell = iv;
                 pld.m_gridbox = bx;
                 pld.m_grown_gridbox = bx;
@@ -2282,7 +2285,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKCPU (int le
                         return false;
                     }
                     Box tbx;
-                    if (getTileIndex(iv, gridbox, tbx) != tile)
+                    if (getTileIndex(iv, gridbox, do_tiling, tile_size, tbx) != tile)
                     {
                         return false;
                     }
