@@ -25,6 +25,7 @@ public:
     void operator= (DeviceFab const&) = delete;
 
     void resize (Box const& bx, int ncomp);
+    void clear ();
     FArrayBox* fabPtr ();
 
     static void Initialize ();
