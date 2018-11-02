@@ -1,6 +1,7 @@
 CEXE_sources += Barrier.cpp
 CEXE_sources += PackageQueue.cpp
 CEXE_sources += Perilla.cpp
+CEXE_sources += RGIter.cpp
 CEXE_sources += RegionGraph.cpp
 CEXE_sources += RegionQueue.cpp
 CEXE_sources += WorkerThread.cpp

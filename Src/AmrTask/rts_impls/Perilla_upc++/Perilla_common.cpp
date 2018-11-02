@@ -16,6 +16,99 @@ using namespace amrex;
 using namespace perilla;
 
 
+void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, bool cpyAcross, int tid)
+{
+    int tg = WorkerThread::perilla_wid();
+    int np = ParallelDescriptor::NProcs();
+    int myProc = ParallelDescriptor::MyProc();
+    int graphFinishCnt = 0;
+    int nGraphs;
+    bool doublechecked = false;
+
+    double maxltime=0;
+    double minltime=10;
+    double avgltime=0;
+    double numloops=0;
+    double ltime,lstime,letime;
+
+    int gCnt=0;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
+    std::vector<RegionGraph*> graphArray;
+    for(int l=0; l<graphArrayHierarchy.size(); l++)
+        for(int g=0; g<graphArrayHierarchy[l].size(); g++)
+            graphArray.push_back(graphArrayHierarchy[l][g]);
+
+    while(true)
+    {   
+        //lstime = omp_get_wtime();
+        for(int g=0; g<graphArray.size(); g++)
+        {   
+            nGraphs = graphArray.size();
+            //if(graphArray[g]->totalFinishes < perilla::NUM_THREAD_TEAMS)
+            {   
+                /*try{
+                  if(graphArray[g]->assocMF == 0)
+                  std::cout<<"Processing Graph with NULL MF "<<g<<" ";
+                  }catch (const std::exception& e) {
+                  std::cout<<"Processing Graph with NULL MF "<<g<<" ";
+                  }*/
+                //if(graphArray[g]->graphID==1)
+                //std::cout<<"Processing Local Req Graph "<<g+1 << " tg " <<tg <<std::endl;
+                serviceLocalRequests(graphArray[g], tg);
+                if(cpyAcross)
+                {   
+                    //if(graphArray[g]->graphID==13)
+                    //std::cout<<"Processing Local GridCopy Req Graph "<< g+1 << " tg " << tg <<std::endl;
+                    serviceLocalGridCopyRequests(graphArray,g,tg);
+                }
+                if(np > 1)//if(tg==0)
+                {   
+                    serviceRemoteRequests(graphArray[g],g,nGraphs);
+                    if(cpyAcross)
+                    {   
+                        //resetRemoteGridCopyRequests(graphArray,g,nGraphs,tg);
+                        if(tg==0)
+                            serviceRemoteGridCopyRequests(graphArray,g,nGraphs,tg);
+                    }
+                }
+            }
+        }
+        
+        
+        if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+        {   
+            if(doublechecked) // double check if there are still something to send
+                return;
+            else
+                doublechecked = true;
+        }
+
+        //std::cout<<"Teams Completed "<< Perilla::numTeamsFinished << " tid "<< tid << " myProc " << myProc <<std::endl;
+
+        //letime = omp_get_wtime();
+        numloops++;
+        //ltime = letime - lstime;
+
+        avgltime += ltime;
+        //if(ltime < minltime)
+        //minltime = ltime;
+        //if(ltime > maxltime)
+        //maxltime = ltime;
+    } // while(true)
+
+    //nGraphs = graphArray.size();
+    //if(tg==0)
+    //for(int g=0; g<nGraphs; g++)
+    //{
+        //ParallelDescriptor::Barrier("serviceMultipleGraph-1");
+        //graphArray[g]->graphTeardown(tg);
+        //graphArray[g]->workerTeardown(tg);
+        //ParallelDescriptor::Barrier("serviceMultipleGraph-2");
+    //}
+
+} // serviceMultipleGraphCommDynamic
+
+
 void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
 {
 
@@ -56,7 +149,7 @@ void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, am
 
   void Perilla::multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
   {
-    int ntid = perilla::wtid() - perilla::NUM_COMM_THREADS;
+    int ntid = perilla::wtid();
     int tg = perilla::wid();
     int myProc = amrex::ParallelDescriptor::MyProc();
 
@@ -192,7 +285,7 @@ void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, am
 
     int nComp = mf.nComp();
     int tg= perilla::wid();
-    int ntid = perilla::wtid()-perilla::NUM_COMM_THREADS;
+    int ntid = perilla::wtid();
 
     if(ntid==0)
       pthread_mutex_lock(&(graph->lMap[f]->l_con.dLock));
@@ -1152,5 +1245,25 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
     fillBoundaryPush(rg, &mf, f);
   }
 
+
+
+
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf)
+  {
+    if(rgi.currentItr != 1)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPull(rg, &mf, f);
+  }
+
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf)
+  {
+    if(rgi.currentItr != 1)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPull(rgi.itrGraph, &mf, f);
+  }
 
 

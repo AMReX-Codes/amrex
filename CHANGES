@@ -1,3 +1,11 @@
+# 18.11
+
+  -- GPU support in Base and Particle
+
+  -- BaseFab is no longer polymorphic
+
+  -- EB now supports ghost cells outside physical domain
+
 # 18.10
 
   -- MacProjector class for MAC projection

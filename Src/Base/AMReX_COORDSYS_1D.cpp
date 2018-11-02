@@ -11,6 +11,7 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
 {
     const auto dp0 = vol.stridedPtr(bx);
     const IntVect len = bx.length();
+    const int lo = bx.smallEnd(0);
     if (coord == 0) // Cartesian
     {
         Real dv = dx[0];
@@ -24,7 +25,7 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
         const Real pi = 3.1415926535897932;
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
         for (int i = 0; i < len[0]; ++i) {
-            Real ri = offset[0] + dx[0]*i;
+            Real ri = offset[0] + dx[0]*(i+lo);
             Real ro = ri + dx[0];
             Real v = pi*(ro-ri)*(ro + ri);
             dp[i] = std::abs(v);
@@ -35,7 +36,7 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
         const Real pi = 3.1415926535897932;
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
         for (int i = 0; i < len[0]; ++i) {
-            Real ri = offset[0] + dx[0]*i;
+            Real ri = offset[0] + dx[0]*(i+lo);
             Real ro = ri + dx[0];
             Real v = ((4./3.)*pi)*(ro-ri)*(ro*ro+ro*ri+ri*ri);
             dp[i] = std::abs(v);
@@ -50,6 +51,7 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
 {
     const auto dp0 = area.stridedPtr(bx);
     const IntVect len = bx.length();
+    const int lo = bx.smallEnd(0);
     if (coord == 0)
     {
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
@@ -62,7 +64,7 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
         const Real pi = 3.1415926535897932;
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
         for (int i = 0; i < len[0]; ++i) {
-            Real ri = offset[0] + dx[0]*i;
+            Real ri = offset[0] + dx[0]*(i+lo);
             Real a = (2.*pi)*ri;
             dp[i] = std::abs(a);
         }
@@ -72,7 +74,7 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
         const Real pi = 3.1415926535897932;
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
         for (int i = 0; i < len[0]; ++i) {
-            Real ri = offset[0] + dx[0]*i;
+            Real ri = offset[0] + dx[0]*(i+lo);
             Real a = (4.0*pi)*ri*ri;
             dp[i] = std::abs(a);
         }
@@ -86,6 +88,7 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
 {
     const auto dp0 = dloga.stridedPtr(bx);
     const IntVect len = bx.length();
+    const int lo = bx.smallEnd(0);
     if (coord == 0)
     {
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
@@ -97,7 +100,7 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
     {
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
         for (int i = 0; i < len[0]; ++i) {
-            Real rc = offset[0] + dx[0]*(i+0.5);
+            Real rc = offset[0] + dx[0]*(i+lo+0.5);
             dp[i] = 1.0/rc;
         }
     }
@@ -105,7 +108,7 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
     {
         Real* AMREX_RESTRICT dp = dp0(0,0,0);
         for (int i = 0; i < len[0]; ++i) {
-            Real ri = offset[0] + dx[0]*(i+0.5);
+            Real ri = offset[0] + dx[0]*(i+lo+0.5);
             dp[i] = 2.0/ri;
         }
     }
