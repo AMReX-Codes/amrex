@@ -2134,7 +2134,7 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
-    Real      run_stop;
+    Real run_stop;
     Real run_strt;
 #ifdef USE_PERILLA_PTHREADS
     perilla::syncAllThreads();
@@ -2246,9 +2246,9 @@ Amr::coarseTimeStep (Real stop_time)
     if(perilla::isMasterThread()){
         if(level_steps[0] == Perilla::max_step){
             for(int i=0; i<= finest_level; i++){
-            cout<<"Delete metadata at level"<<i<<endl;
+                cout<<"Delete metadata at level"<<i<<endl;
                 getLevel(i).finalizePerilla(cumtime);
-}
+            }
         }
     }
 #endif

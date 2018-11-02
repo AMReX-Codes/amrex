@@ -2,7 +2,7 @@
 #define CNS_H_
 
 #include <AMReX_AmrLevel.H>
-#include <AMReX_YAFluxRegister.H>
+#include <AMReX_FluxRegister.H>
 
 using namespace amrex;
 class CNS
@@ -124,11 +124,11 @@ protected:
     void computeTemp (amrex::MultiFab& State, int ng);
 
     void compute_dSdt (const amrex::MultiFab& S, amrex::MultiFab& dSdt, amrex::Real dt,
-                       amrex::YAFluxRegister* fr_as_crse, amrex::YAFluxRegister* fr_as_fine);
+                       amrex::FluxRegister* fr_as_crse, amrex::FluxRegister* fr_as_fine);
 
     void printTotal () const;
 
-    amrex::YAFluxRegister flux_reg;
+    std::unique_ptr<amrex::FluxRegister> flux_reg;
 
     static constexpr int NUM_GROW = 2;
     enum StateVariable {
