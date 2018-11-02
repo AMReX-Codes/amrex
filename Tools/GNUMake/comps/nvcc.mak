@@ -41,6 +41,8 @@ CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 CFLAGS = $(CFLAGS_FROM_HOST) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 
+CXXFLAGS += --ptxas-options=-v
+
 ifeq ($(DEBUG),TRUE)
   CXXFLAGS += -g -G
   CFLAGS += -g -G
