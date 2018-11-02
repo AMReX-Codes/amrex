@@ -623,6 +623,16 @@ public:
     IntVect minIndex (const Box& subbox,
                       int        comp = 0) const;
     /**
+    * \return return mininum value and location to allow
+    * efficient looping over multiple boxes.
+    */
+    AMREX_GPU_HOST_DEVICE
+    void  minIndex (const Box&     subbox,
+                          Real&    min_val,
+                          IntVect& min_idx,
+                          int      comp = 0) const;
+
+    /**
     * \return location of maximum value in given component.
     */
     AMREX_GPU_HOST_DEVICE
@@ -634,6 +644,17 @@ public:
     AMREX_GPU_HOST_DEVICE
     IntVect maxIndex (const Box& subbox,
                       int        comp = 0) const;
+    /**
+    * \return return maximum value and location to allow
+    * efficient looping over multiple boxes.
+    */
+    AMREX_GPU_HOST_DEVICE
+    void  maxIndex (const Box&     subbox,
+                          Real&    max_value,
+                          IntVect& max_index,
+                          int      comp = 0) const;
+
+
     /**
     * \brief Compute mask array with value of 1 in cells where
     * BaseFab has value less than val, 0 otherwise.
@@ -2262,6 +2283,30 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const
 }
 
 template <class T>
+void
+BaseFab<T>::minIndex (const Box& subbox, 
+                      Real& min_val,
+                      IntVect& min_idx,
+                      int comp) const
+{
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
+    const auto& lo = subbox.loVect();
+
+    for         (int k = 0; k < len[2]; ++k) {
+        for     (int j = 0; j < len[1]; ++j) {
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
+            for (int i = 0; i < len[0]; ++i) {
+                if (dp[i] < min_val) {
+                    min_val = dp[i];
+                    min_idx = IntVect(AMREX_D_DECL(i+lo[0],j+lo[1],k+lo[2])); 
+                }
+            }
+        }
+    }
+}
+
+template <class T>
 IntVect
 BaseFab<T>::maxIndex (int comp) const
 {
@@ -2293,6 +2338,30 @@ BaseFab<T>::maxIndex (const Box& subbox,
 
     const auto& lo = subbox.loVect();
     return IntVect(AMREX_D_DECL(imax+lo[0],jmax+lo[1],kmax+lo[2]));
+}
+
+template <class T>
+void
+BaseFab<T>::maxIndex (const Box& subbox, 
+                      Real& max_val,
+                      IntVect& max_idx,
+                      int comp) const
+{
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
+    const auto& lo = subbox.loVect();
+
+    for         (int k = 0; k < len[2]; ++k) {
+        for     (int j = 0; j < len[1]; ++j) {
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
+            for (int i = 0; i < len[0]; ++i) {
+                if (dp[i] > max_val) {
+                    max_val = dp[i];
+                    max_idx = IntVect(AMREX_D_DECL(i+lo[0],j+lo[1],k+lo[2])); 
+                }
+            }
+        }
+    }
 }
 
 template <class T>

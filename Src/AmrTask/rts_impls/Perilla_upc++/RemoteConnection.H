@@ -1,3 +1,4 @@
+#if 0
 #ifndef P_REMOTECONNECTION_H
 #define P_REMOTECONNECTION_H
 
@@ -71,4 +72,5 @@ public:
 };
 
 
+#endif
 #endif

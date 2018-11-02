@@ -40,6 +40,7 @@
 #include <AMReX_TypeTraits.H>
 #include <AMReX_CudaContainers.H>
 #include <AMReX_Functors.H>
+#include <AMReX_ParticleUtil.H>
 
 #ifdef BL_LAZY
 #include <AMReX_Lazy.H>
@@ -352,6 +353,11 @@ public:
 
     void SortParticlesByCell();
 
+    void SortParticlesByBin(const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
+			    Cuda::DeviceVector<int>& bin_start,
+			    Cuda::DeviceVector<int>& bin_stop,
+			    const IntVect& bin_size);
+
     //
     // OK checks that all particles are in the right places (for some value of right)
     //
@@ -494,7 +500,6 @@ public:
     // struct-of-array stuff
     std::vector<bool> communicate_real_comp;
     std::vector<bool> communicate_int_comp;
-    int num_real_soa_comps, num_int_soa_comps;
 
     static bool do_tiling;
     static IntVect tile_size;
@@ -568,6 +573,7 @@ protected:
     
     void BuildRedistributeMask(int lev, int nghost=1) const;
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
+    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
     mutable amrex::Vector<int> neighbor_procs;
 
     //
@@ -627,8 +633,6 @@ private:
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
-
-    static int getTileIndex(const IntVect& iv, const Box& box, Box& tbx);
 
     void Initialize ();
 

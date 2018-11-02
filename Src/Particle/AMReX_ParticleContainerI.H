@@ -78,54 +78,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::Index (const 
 }
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-int
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::getTileIndex(const IntVect& iv, const Box& box, Box& tbx)
-{
-    if (do_tiling == false) {
-        tbx = box;
-        return 0;
-    } else {
-        //
-        // This function must be consistent with FabArrayBase::buildTileArray function!!!
-        //
-        auto tiling_1d = [](int i, int lo, int hi, int tilesize,
-                            int& ntile, int& tileidx, int& tlo, int& thi) {
-            int ncells = hi-lo+1;
-            ntile = std::max(ncells/tilesize, 1);
-            int ts_right = ncells/ntile;
-            int ts_left  = ts_right+1;
-            int nleft = ncells - ntile*ts_right;
-	    int ii = i - lo;
-            int nbndry = nleft*ts_left;
-            if (ii < nbndry) {
-                tileidx = ii / ts_left; // tiles on the left of nbndry have size of ts_left
-                tlo = lo + tileidx * ts_left;
-                thi = tlo + ts_left - 1;
-            } else {
-                tileidx = nleft + (ii-nbndry) / ts_right;  // tiles on the right: ts_right
-                tlo = lo + tileidx * ts_right + nleft;
-                thi = tlo + ts_right - 1;
-            }
-        };
-        const IntVect& small = box.smallEnd();
-        const IntVect& big   = box.bigEnd();
-        IntVect ntiles, ivIndex, tilelo, tilehi;
-
-        AMREX_D_TERM(int iv0 = std::min(std::max(iv[0], small[0]), big[0]);,
-               int iv1 = std::min(std::max(iv[1], small[1]), big[1]);,
-               int iv2 = std::min(std::max(iv[2], small[2]), big[2]););
-
-        AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
-               tiling_1d(iv1, small[1], big[1], tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
-               tiling_1d(iv2, small[2], big[2], tile_size[2], ntiles[2], ivIndex[2], tilelo[2], tilehi[2]););
-
-        tbx = Box(tilelo, tilehi);
-
-        return AMREX_D_TERM(ivIndex[0], + ntiles[0]*ivIndex[1], + ntiles[0]*ntiles[1]*ivIndex[2]);
-    }
-}
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::Where (const ParticleType& p,
@@ -155,7 +107,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
               if (pld.m_grown_gridbox.contains(iv)) {
                   pld.m_cell = iv;
                   if (!pld.m_tilebox.contains(iv)) {
-                      pld.m_tile = getTileIndex(iv, pld.m_gridbox, pld.m_tilebox);
+		    pld.m_tile = getTileIndex(iv, pld.m_gridbox, do_tiling, tile_size, pld.m_tilebox);
                   }
                   return true;
               }
@@ -177,7 +129,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
           const Box& bx = ba.getCellCenteredBox(grid);
 	  pld.m_lev  = lev;
 	  pld.m_grid = grid;
-	  pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+	  pld.m_tile = getTileIndex(iv, bx, do_tiling, tile_size, pld.m_tilebox);
 	  pld.m_cell = iv;
 	  pld.m_gridbox = bx;
           pld.m_grown_gridbox = amrex::grow(bx, nGrow);
@@ -237,7 +189,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 
                 pld.m_lev  = lev;
                 pld.m_grid = grid;
-		pld.m_tile = getTileIndex(iv, bx, pld.m_tilebox);
+		pld.m_tile = getTileIndex(iv, bx, do_tiling, tile_size, pld.m_tilebox);
                 pld.m_cell = iv;
                 pld.m_gridbox = bx;
                 pld.m_grown_gridbox = bx;
@@ -978,6 +930,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             }
         }
     }
+#endif
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
+		    Cuda::DeviceVector<int>& bin_start, 
+		    Cuda::DeviceVector<int>& bin_stop, 
+		    const IntVect& bin_size)
+{
+#ifdef AMREX_USE_CUDA
+  
+    BL_PROFILE("ParticleContainer::SortParticlesByBin()");
+  
 #endif
 }
 
@@ -1936,13 +1903,15 @@ BuildRedistributeMask (int lev, int nghost) const {
     BL_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
+        redistribute_mask_nghost < nghost ||
         ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
         ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
         {
             const Geometry& geom = this->Geom(lev);
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-            
+
+            redistribute_mask_nghost = nghost;
             redistribute_mask_ptr.reset(new iMultiFab(ba, dmap, 2, nghost));
             redistribute_mask_ptr->setVal(-1, nghost);
             
@@ -2280,7 +2249,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKCPU (int le
                         return false;
                     }
                     Box tbx;
-                    if (getTileIndex(iv, gridbox, tbx) != tile)
+                    if (getTileIndex(iv, gridbox, do_tiling, tile_size, tbx) != tile)
                     {
                         return false;
                     }

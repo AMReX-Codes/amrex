@@ -54,3 +54,4 @@ public:
   Package* getFront(bool lockIgnore);
 };
 #endif
+
