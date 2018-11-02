@@ -712,7 +712,7 @@ MultiFab::contains_nan (int scomp,
     bool r = false;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(|:r)
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(|:r)
 #endif
     {
         amrex::Gpu::DeviceScalar<int> local_sm(0);
@@ -761,7 +761,7 @@ MultiFab::contains_inf (int scomp,
     bool r = false;
 
 #ifdef _OPENMP
-#pragma omp parallel reduction(|:r)
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(|:r)
 #endif
     {
         amrex::Gpu::DeviceScalar<int> local_sm(0);
