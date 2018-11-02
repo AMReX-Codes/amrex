@@ -339,16 +339,20 @@ Laser initialization
     ``laser.profile_focal_distance`` in the laboratory frame, and use ``warpx.gamma_boost``
     to automatically perform the conversion to the boosted frame.
 
+* ``laser.stc_direction`` (`3 floats`) optional (default `1. 0. 0.`)
+    Direction of laser spatio-temporal couplings.
+  	See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
+
 * ``laser.zeta`` (`float`; in meters.seconds) optional (default `0.`)
-    Spatial chirp at focus in the ``x`` direction. See definition in
+    Spatial chirp at focus in direction ``laser.stc_direction``. See definition in
     Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``laser.beta`` (`float`; in seconds) optional (default `0.`)
-    Angular dispersion (or angular chirp) at focus in the ``x`` direction.
+    Angular dispersion (or angular chirp) at focus in direction ``laser.stc_direction``.
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 * ``laser.phi2`` (`float`; in seconds**2) optional (default `0.`)
-    Temporal chirp at focus in the ``x`` direction.
+    Temporal chirp at focus.
     See definition in Akturk et al., Opt Express, vol 12, no 19 (2014).
 
 Numerics and algorithms

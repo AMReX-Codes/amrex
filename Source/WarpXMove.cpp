@@ -24,10 +24,10 @@ WarpX::UpdatePlasmaInjectionPosition (Real dt)
     }
 }
 
-void
+int
 WarpX::MoveWindow (bool move_j)
 {
-    if (do_moving_window == 0) return;
+    if (do_moving_window == 0) return 0;
 
     // Update the continuous position of the moving window,
     // and of the plasma injection
@@ -43,7 +43,7 @@ WarpX::MoveWindow (bool move_j)
     const Real* dx = geom[0].CellSize();
     int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
 
-    if (num_shift_base == 0) return;
+    if (num_shift_base == 0) return 0;
 
     // update the problem domain. Note the we only do this on the base level because
     // amrex::Geometry objects share the same, static RealBox.
@@ -174,6 +174,8 @@ WarpX::MoveWindow (bool move_j)
             current_injection_position = new_injection_position;
         }
     }
+
+    return num_shift_base;
 }
 
 void
