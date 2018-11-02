@@ -7,6 +7,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
+#ifndef AMREX_CUDA_MAX_THREADS
+#define AMREX_CUDA_MAX_THREADS 256
+#endif
+
 int amrex::Cuda::Device::device_id = 0;
 int amrex::Cuda::Device::verbose = 0;
 
@@ -467,17 +471,16 @@ amrex::Cuda::Device::grid_stride_threads_and_blocks(dim3& numBlocks, dim3& numTh
 
 void 
 amrex::Cuda::Device::particle_threads_and_blocks(const int np, int& numThreads, int& numBlocks) {
-    numThreads = 256;
-    numBlocks = (np + 256 - 1) / 256;
+    numThreads = AMREX_CUDA_MAX_THREADS;
+    numBlocks = (np + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS;
 }
 
 
 void
 amrex::Cuda::Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 {
-    const long maxBlockSize = 256;
-    numThreads = maxBlockSize;
-    numBlocks = std::max((N + maxBlockSize - 1) / maxBlockSize, 1L); // in case N = 0
+    numThreads = AMREX_CUDA_MAX_THREADS;
+    numBlocks = std::max((N + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS, 1L); // in case N = 0
 }
 #endif
 

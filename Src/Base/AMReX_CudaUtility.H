@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_CudaDevice.H>
+#include <AMReX_REAL.H>
 #include <iostream>
 
 namespace amrex {
@@ -152,7 +153,7 @@ namespace Cuda {
     class StreamIter
     {
     public:
-        StreamIter (const int n, bool is_thread_safe);
+        StreamIter (const int n, bool is_thread_safe=true);
         ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
