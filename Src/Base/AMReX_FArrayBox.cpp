@@ -216,7 +216,7 @@ FArrayBox::contains_nan () const
 {
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
-        if (std::isnan(*dp++))
+        if (amrex::isnan(*dp++))
             return true;
     return false;
 }
@@ -234,7 +234,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isnan(this->operator()(p,scomp+i)))
+            if (amrex::isnan(this->operator()(p,scomp+i)))
                 return true;
         }
     }
@@ -260,7 +260,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (Cuda::is_nan(this->operator()(p,scomp+i)))
+            if (amrex::isnan(this->operator()(p,scomp+i)))
             {
                 where = p;
 
@@ -276,7 +276,7 @@ FArrayBox::contains_inf () const
 {
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
-        if (std::isinf(*dp++))
+        if (amrex::isinf(*dp++))
             return true;
     return false;
 }
@@ -294,7 +294,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (Cuda::is_inf(this->operator()(p,scomp+i)))
+            if (amrex::isinf(this->operator()(p,scomp+i)))
                 return true;
         }
     }
@@ -320,7 +320,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isinf(this->operator()(p,scomp+i)))
+            if (amrex::isinf(this->operator()(p,scomp+i)))
             {
                 where = p;
 
