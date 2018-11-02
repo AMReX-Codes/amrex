@@ -119,17 +119,14 @@ public:
 
     typedef T value_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
-    AMREX_GPU_HOST_DEVICE
     BaseFab ();
 
     //!  Make BaseFab with desired domain (box) and number of components.
-    AMREX_GPU_HOST_DEVICE
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
 		      bool       shared = false);
 
-    AMREX_GPU_HOST_DEVICE
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
     /**
@@ -137,18 +134,15 @@ public:
      * responsible for memory management.  And it's caller's responsibility that
      * p points to a chunk of memory large enough.
      */
-    AMREX_GPU_HOST_DEVICE
     BaseFab (const Box& bx, int ncomp, T* p);
 
     //! The destructor deletes the array memory.
-    AMREX_GPU_HOST_DEVICE
     ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
 
-    AMREX_GPU_HOST_DEVICE
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     AMREX_GPU_HOST_DEVICE
@@ -168,7 +162,6 @@ public:
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
     */
-    AMREX_GPU_HOST_DEVICE
     void resize (const Box& b,
                  int        N = 1);
 
@@ -176,7 +169,6 @@ public:
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
      */
-    AMREX_GPU_HOST_DEVICE
     void clear ();
 
     //! Returns how many bytes used
@@ -1119,38 +1111,41 @@ public:
     AMREX_GPU_HOST_DEVICE
     void SetBoxType (const IndexType& typ) { domain.setType(typ); }
 
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) const {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEachIV (const Box& b, int c, int nc, F f) {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEachIV (const Box& b, int c, int nc, F f) {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEachIV (const Box& b, int c, int nc, F f) const {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEachIV (const Box& b, int c, int nc, F f) const {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                   const BaseFab<T>& src, int srccomp, F f);
 
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                   const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
 
-    template <typename P, class F> AMREX_GPU_HOST_DEVICE
+    template <typename P, class F> // AMREX_GPU_HOST_DEVICE
     P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void Transform (T* dst, const Box& b, int c, int nc, F f) const;
 
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void Transform (const Box& b, int c, int nc, T const* src, F f);
 
 protected:
     //! Allocates memory for the BaseFab<T>.
-    AMREX_GPU_HOST_DEVICE
     void define ();
 
     //! The function called by BaseFab copy operations.
@@ -1191,7 +1186,7 @@ public:
 
 
 template <class B, class F>
-AMREX_GPU_HOST_DEVICE
+//AMREX_GPU_HOST_DEVICE
 inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
@@ -1218,6 +1213,7 @@ ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
 
 template <class B, class F>
 inline
+//AMREX_GPU_HOST_DEVICE
 void
 ForEachIVImpl (B& fab, const Box& b, int c, int nc, F f)
 {
@@ -1331,7 +1327,6 @@ BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
 
 template <class T>
 template <class F>
-AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 {
@@ -1357,7 +1352,6 @@ BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 
 template <class T>
 template <class F>
-AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
 {
@@ -1648,13 +1642,7 @@ BaseFab<T>::define ()
 
     truesize  = nvar*numpts;
     ptr_owner = true;
-// amrex::Arena is a virtual base class, not supported on GPUs.
-// So for now, need to manually add allocation for objects built on GPU. 
-#ifndef __CUDA_ARCH__
     dptr      = static_cast<T*>(amrex::The_Arena()->alloc(truesize*sizeof(T)));
-#else
-    dptr      = static_cast<T*>(::operator new(truesize*sizeof(T)));
-#endif
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1667,9 +1655,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-#ifndef __CUDA_ARCH__
     amrex::update_fab_stats(numpts, truesize, sizeof(T));
-#endif
 }
 
 template <class T>
@@ -1810,12 +1796,10 @@ BaseFab<T>::clear ()
         //
 	if (ptr_owner)
 	{
-#ifndef __CUDA_ARCH__
 	    if (shared_memory)
 	    {
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
-#endif
 	    T* ptr = dptr;
 
 	    for (long i = 0; i < truesize; i++, ptr++)
@@ -1823,19 +1807,13 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 
-#ifndef __CUDA_ARCH__
 	    amrex::The_Arena()->free(dptr);
-#else
-            ::operator delete(dptr);
-#endif
 
-#ifndef __CUDA_ARCH__
 	    if (nvar > 1) {
 		amrex::update_fab_stats(-truesize/nvar, -truesize, sizeof(T));
 	    } else {
 		amrex::update_fab_stats(0, -truesize, sizeof(T));
 	    }
-#endif
 	}
 
 	dptr = 0;
