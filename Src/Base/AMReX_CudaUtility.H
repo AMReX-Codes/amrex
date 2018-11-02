@@ -5,6 +5,7 @@
 #include <AMReX_CudaDevice.H>
 #include <AMReX_REAL.H>
 #include <iostream>
+#include <cmath>
 
 namespace amrex {
 namespace Cuda {
@@ -161,7 +162,7 @@ namespace Cuda {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    bool is_nan(T m)
+    bool isnan(T m)
     {
 #if defined(__CUDA_ARCH__)
         return isnan(m);
@@ -172,7 +173,7 @@ namespace Cuda {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    bool is_inf(T m)
+    bool isinf(T m)
     {
 #ifdef __CUDA_ARCH__
         return isinf(m);
@@ -213,6 +214,9 @@ namespace Cuda {
 #if AMREX_USE_CUDA
 std::ostream& operator<< (std::ostream& os, const dim3& d);
 #endif
+
+using Cuda::isnan;
+using Cuda::isinf;
 
 } // namespace amrex
 
