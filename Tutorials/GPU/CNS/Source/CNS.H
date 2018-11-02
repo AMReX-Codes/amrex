@@ -106,7 +106,9 @@ public:
 
     static int numGrow() { return NUM_GROW; };
 
+#if !defined(AMREX_USE_CUDA)
 protected:
+#endif
 
     static void read_params ();
 

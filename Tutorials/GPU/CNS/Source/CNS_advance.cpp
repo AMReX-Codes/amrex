@@ -58,6 +58,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     BL_PROFILE("CNS::compute_dSdt()");
 
     const auto dx = geom.CellSizeArray();
+    const auto dxinv = geom.InvCellSizeArray();
     const int ncomp = dSdt.nComp();
     const int nprims = 8;
 
@@ -71,7 +72,10 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     {
         const Box& bx = mfi.tilebox();
         FArrayBox const* sfab = &(S[mfi]);
-        FArrayBox * dsdtfab = &(dSdt[mfi]); 
+        FArrayBox * dsdtfab = &(dSdt[mfi]);
+        GpuArray<FArrayBox*,AMREX_SPACEDIM> fluxfab {AMREX_D_DECL(&(fluxes[0][mfi]),
+                                                                  &(fluxes[1][mfi]),
+                                                                  &(fluxes[2][mfi]))};
 
         const Box& bxg2 = amrex::grow(bx,2);
         Gpu::DeviceFab q(bxg2, nprims);
@@ -80,6 +84,11 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         AMREX_LAUNCH_DEVICE_LAMBDA ( bxg2, tbx,
         {
             cns_ctoprim(tbx, *sfab, *qfab);
+        });
+
+        AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+        {
+            cns_flux_to_dudt(tbx, *dsdtfab, AMREX_D_DECL(*fluxfab[0],*fluxfab[1],*fluxfab[2]), dxinv);
         });
     }
 }
