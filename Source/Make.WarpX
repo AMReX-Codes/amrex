@@ -31,6 +31,11 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+  include $(AMREX_HOME)/Src/Amr/Make.package
+  include $(AMREX_HOME)/Src/Extern/SENSEI/Make.package
+endif
+
 include $(PICSAR_HOME)/src/Make.package
 
 DEFINES += -DPICSAR_NO_ASSUMED_ALIGNMENT

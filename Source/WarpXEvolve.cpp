@@ -9,6 +9,10 @@
 #include <WarpX_py.H>
 #endif
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrMeshInSituBridge.H>
+#endif
+
 using namespace amrex;
 
 void
@@ -35,6 +39,7 @@ WarpX::EvolveEM (int numsteps)
     Real cur_time = t_new[0];
     static int last_plot_file_step = 0;
     static int last_check_file_step = 0;
+    static int last_insitu_step = 0;
 
     int numsteps_max;
     if (numsteps < 0) {  // Note that the default argument is numsteps = -1
@@ -133,13 +138,18 @@ WarpX::EvolveEM (int numsteps)
 
         bool to_make_plot = (plot_int > 0) && ((step+1) % plot_int == 0);
 
-        bool move_j = is_synchronized || to_make_plot;
+        bool do_insitu = ((step+1) >= insitu_start) &&
+             (insitu_int > 0) && ((step+1) % insitu_int == 0);
+
+        bool move_j = is_synchronized || to_make_plot || do_insitu;
         // If is_synchronized we need to shift j too so that next step we can evolve E by dt/2.
         // We might need to move j because we are going to make a plotfile.
-	MoveWindow(move_j);
 
+	int num_moved = MoveWindow(move_j);
+        
         if (max_level == 0) {
-            mypc->RedistributeLocal();
+            int num_redistribute_ghost = num_moved + 1;
+            mypc->RedistributeLocal(num_redistribute_ghost);
         }
         else {
             mypc->Redistribute();
@@ -172,7 +182,7 @@ WarpX::EvolveEM (int numsteps)
             myBFD->writeLabFrameData(cell_centered_data.get(), *mypc, geom[0], cur_time, dt[0]);
         }
 
-	if (to_make_plot)
+	if (to_make_plot || do_insitu)
         {
             FillBoundaryE();
             FillBoundaryB();
@@ -185,8 +195,15 @@ WarpX::EvolveEM (int numsteps)
             }
 
 	    last_plot_file_step = step+1;
-	    WritePlotFile();
+	    last_insitu_step = step+1;
+
+        if (to_make_plot)
+    	    WritePlotFile();
+
+        if (do_insitu)
+            UpdateInSitu();
 	}
+
 
 	if (check_int > 0 && (step+1) % check_int == 0) {
 	    last_check_file_step = step+1;
@@ -204,7 +221,12 @@ WarpX::EvolveEM (int numsteps)
 	// End loop on time steps
     }
 
-    if (plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step))
+    bool write_plot_file = plot_int > 0 && istep[0] > last_plot_file_step && (max_time_reached || istep[0] >= max_step);
+
+    bool do_insitu = (insitu_start >= istep[0]) && (insitu_int > 0) &&
+        (istep[0] > last_insitu_step) && (max_time_reached || istep[0] >= max_step);
+
+    if (write_plot_file || do_insitu)
     {
         FillBoundaryE();
         FillBoundaryB();
@@ -216,7 +238,11 @@ WarpX::EvolveEM (int numsteps)
                               *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
         }
 
-	WritePlotFile();
+        if (write_plot_file)
+            WritePlotFile();
+
+        if (do_insitu)
+            UpdateInSitu();
     }
 
     if (check_int > 0 && istep[0] > last_check_file_step && (max_time_reached || istep[0] >= max_step)) {
@@ -226,6 +252,10 @@ WarpX::EvolveEM (int numsteps)
     if (do_boosted_frame_diagnostic) {
         myBFD->Flush(geom[0]);
     }
+
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge->finalize();
+#endif
 }
 
 /* /brief Perform one PIC iteration, without subcycling

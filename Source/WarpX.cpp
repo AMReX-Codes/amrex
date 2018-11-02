@@ -18,6 +18,10 @@
 #include <WarpXWrappers.h>
 #include <WarpXUtil.H>
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrMeshInSituBridge.H>
+#endif
+
 using namespace amrex;
 
 Vector<Real> WarpX::B_external(3, 0.0);
@@ -204,6 +208,10 @@ WarpX::WarpX ()
     comm_fft.resize(nlevs_max,MPI_COMM_NULL);
     color_fft.resize(nlevs_max,-1);
 #endif
+
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge = nullptr;
+#endif
 }
 
 WarpX::~WarpX ()
@@ -212,6 +220,10 @@ WarpX::~WarpX ()
     for (int lev = 0; lev < nlevs_max; ++lev) {
         ClearLevel(lev);
     }
+
+#ifdef BL_USE_SENSEI_INSITU
+    delete insitu_bridge;
+#endif
 }
 
 void
@@ -441,6 +453,17 @@ WarpX::ReadParameters ()
         pp.query("noz", noz_fft);
     }
 #endif
+
+    {
+        insitu_start = 0;
+        insitu_int = 0;
+        insitu_config = "";
+
+        ParmParse pp("insitu");
+        pp.query("int", insitu_int);
+        pp.query("start", insitu_start);
+        pp.query("config", insitu_config);
+    }
 }
 
 // This is a virtual function.

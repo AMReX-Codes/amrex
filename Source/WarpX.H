@@ -27,6 +27,12 @@
 #include <fftw3.h>
 #endif
 
+#if defined(BL_USE_SENSEI_INSITU)
+namespace amrex {
+class AmrMeshInSituBridge;
+}
+#endif
+
 enum struct DtType : int
 {
     Full = 0,
@@ -126,7 +132,7 @@ public:
     }
 
     void ComputeDt ();
-    void MoveWindow (bool move_j);
+    int  MoveWindow (bool move_j);
     void UpdatePlasmaInjectionPosition (amrex::Real dt);
 
     void EvolveE (         amrex::Real dt);
@@ -172,6 +178,7 @@ public:
 
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
+    void UpdateInSitu () const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
@@ -577,6 +584,13 @@ private:
     void PushPSATD (int lev, amrex::Real dt);
 
 #endif
+
+#if defined(BL_USE_SENSEI_INSITU)
+    amrex::AmrMeshInSituBridge *insitu_bridge;
+#endif
+    int insitu_int;
+    int insitu_start;
+    std::string insitu_config;
 };
 
 #endif

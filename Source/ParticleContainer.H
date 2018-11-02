@@ -143,7 +143,7 @@ public:
 
     void Redistribute ();
 
-    void RedistributeLocal ();
+    void RedistributeLocal (const int num_ghost);
 
     amrex::Vector<long> NumberOfParticlesInGrid(int lev) const;
 

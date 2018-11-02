@@ -57,6 +57,8 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	   pp.get("profile_duration", profile_duration);
 	   pp.get("profile_t_peak", profile_t_peak);
 	   pp.get("profile_focal_distance", profile_focal_distance);
+	   stc_direction = p_X;
+	   pp.queryarr("stc_direction", stc_direction);
 	   pp.query("zeta", zeta);
 	   pp.query("beta", beta);
 	   pp.query("phi2", phi2);
@@ -89,7 +91,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
     if (WarpX::gamma_boost > 1.) {
         // Check that the laser direction is equal to the boost direction
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             nvec[0]*WarpX::boost_direction[0]
           + nvec[1]*WarpX::boost_direction[1]
           + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
@@ -108,10 +110,26 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
             "Laser plane vector is not perpendicular to the main polarization vector");
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
+
+	s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
+	stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
+	dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
+            "stc_direction is not perpendicular to the laser plane vector");
+
+	// Get angle between p_X and stc_direction
+	// in 2d, stcs are in the simulation plane
+#if AMREX_SPACEDIM == 3
+	theta_stc = acos(stc_direction[0]*p_X[0] +
+			 stc_direction[1]*p_X[1] +
+			 stc_direction[2]*p_X[2]);
+#else
+	theta_stc = 0.;
+#endif
 
 #if AMREX_SPACEDIM == 3
 	u_X = p_X;
@@ -317,7 +335,7 @@ LaserParticleContainer::Evolve (int lev,
       if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset( new amrex::FArrayBox());
       if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
       if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
-      
+
         Cuda::DeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -369,8 +387,8 @@ LaserParticleContainer::Evolve (int lev,
 	    if (profile == laser_t::Gaussian) {
 		warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
 				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
-				      &zeta, &beta, &phi2 );
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.data(),
+				      &zeta, &beta, &phi2, &theta_stc );
 	    }
 
             if (profile == laser_t::Harris) {
@@ -410,7 +428,7 @@ LaserParticleContainer::Evolve (int lev,
             BL_PROFILE_VAR_STOP(blp_copy);
 
             if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
-            
+
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();

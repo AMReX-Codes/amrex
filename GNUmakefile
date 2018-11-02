@@ -33,6 +33,8 @@ EBASE     = main
 
 USE_PYTHON_MAIN = FALSE
 
+USE_SENSEI_INSITU = FALSE
+
 WarpxBinDir = Bin
 
 USE_PSATD = FALSE

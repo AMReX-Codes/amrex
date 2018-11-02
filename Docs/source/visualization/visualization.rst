@@ -7,3 +7,4 @@ Visualizing the simulation results
    yt
    visit
    picviewer
+   sensei

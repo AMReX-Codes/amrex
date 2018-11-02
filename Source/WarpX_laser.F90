@@ -19,12 +19,12 @@ contains
 
   subroutine warpx_gaussian_laser( np, Xp, Yp, t, &
       wavelength, e_max, waist, duration, t_peak, f, amplitude, &
-      zeta, beta, phi2 ) bind(C, name="warpx_gaussian_laser")
+      zeta, beta, phi2, theta_stc ) bind(C, name="warpx_gaussian_laser")
 
     integer(c_long), intent(in) :: np
     real(amrex_real), intent(in)    :: Xp(np),Yp(np)
     real(amrex_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
-    real(amrex_real), intent(in)    :: zeta, beta, phi2
+    real(amrex_real), intent(in)    :: zeta, beta, phi2, theta_stc
     real(amrex_real), intent(inout) :: amplitude(np)
 
     integer(c_long)  :: i
@@ -37,18 +37,18 @@ contains
 #ifdef USE_ACC_LASER_SUBROUTINE
     call warpx_gaussian_laser_acc( np, Xp, Yp, t, &
       wavelength, e_max, waist, duration, t_peak, f, amplitude, &
-      zeta, beta, phi2 )
+      zeta, beta, phi2, theta_stc  )
 
   end subroutine warpx_gaussian_laser
-    
+
   subroutine warpx_gaussian_laser_acc( np, Xp, Yp, t, &
       wavelength, e_max, waist, duration, t_peak, f, amplitude, &
-      zeta, beta, phi2 )
+      zeta, beta, phi2, theta_stc  )
 
     integer(c_long), intent(in) :: np
     real(amrex_real), intent(in)    :: Xp(np),Yp(np)
     real(amrex_real), intent(in)    :: e_max, t, t_peak, wavelength, duration, f, waist
-    real(amrex_real), intent(in)    :: zeta, beta, phi2
+    real(amrex_real), intent(in)    :: zeta, beta, phi2, theta_stc 
     real(amrex_real), intent(inout) :: amplitude(np)
 
     integer(c_long)  :: i
@@ -58,7 +58,7 @@ contains
                         stc_exponent, stcfactor
     complex*16, parameter :: j=cmplx(0., 1.)
 #endif
-    
+
     ! This function uses the complex expression of a Gaussian laser
     ! (Including Gouy phase and laser oscillations)
 
@@ -70,13 +70,13 @@ contains
     ! laser diffraction, and phase front curvature
     diffract_factor = 1 + j * f * 2./(k0*waist**2)
     inv_complex_waist_2 = 1./( waist**2 * diffract_factor )
-    
+
     ! Time stretching due to STCs and phi2 complex envelope
-    ! (1 if zeta=0, beta=0, phi2=0) 
+    ! (1 if zeta=0, beta=0, phi2=0)
    stretch_factor = 1. + &
         4*(zeta + beta*f)**2 * (inv_tau2*inv_complex_waist_2) + &
         2*j*(phi2 - beta**2*k0*f) * inv_tau2
-    
+
     ! Amplitude and monochromatic oscillations
     prefactor = e_max * exp( j * oscillation_phase )
 
@@ -94,10 +94,11 @@ contains
     !$acc loop
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
-      stc_exponent = 1./stretch_factor * inv_tau2 * &
-          (t - t_peak - beta*k0*Xp(i) - 2*j*Xp(i)*( zeta - beta*f ) * &
-          inv_complex_waist_2)**2 
-      ! stcfactor = everything but complex transverse envelope 
+      stc_exponent = 1./stretch_factor * inv_tau2 * \
+          (t - t_peak - beta*k0*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc)) -\
+          2*j*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc))*( zeta - beta*f ) *\
+          inv_complex_waist_2)**2
+      ! stcfactor = everything but complex transverse envelope
       stcfactor = prefactor * exp( - stc_exponent )
       ! Exp argument for transverse envelope
       exp_argument = - ( Xp(i)*Xp(i) + Yp(i)*Yp(i) ) * inv_complex_waist_2
@@ -112,7 +113,7 @@ contains
 #else
   end subroutine warpx_gaussian_laser
 #endif
-  
+
   ! Harris function for the laser temporal profile
   subroutine warpx_harris_laser( np, Xp, Yp, t, &
       wavelength, e_max, waist, duration, f, amplitude ) &
@@ -132,7 +133,7 @@ contains
             wavelength, e_max, waist, duration, f, amplitude )
 
   end subroutine warpx_harris_laser
-       
+
   subroutine warpx_harris_laser_acc( np, Xp, Yp, t, &
           wavelength, e_max, waist, duration, f, amplitude )
 
@@ -184,7 +185,7 @@ contains
 #else
   end subroutine warpx_harris_laser
 #endif
-  
+
   ! Parse function from the input script for the laser temporal profile
   subroutine parse_function_laser( np, Xp, Yp, t, amplitude, parser_instance_number ) bind(C, name="parse_function_laser")
        integer(c_long), intent(in) :: np
@@ -211,7 +212,7 @@ contains
     real(amrex_real), intent(in) :: xp(np), yp(np), zp(np)
     real(amrex_real), intent(in) :: u_Xx, u_Xy, u_Xz
     real(amrex_real), intent(in) :: u_Yx, u_Yy, u_Yz
-    real(amrex_real), intent(in) :: positionx, positiony, positionz    
+    real(amrex_real), intent(in) :: positionx, positiony, positionz
     real(amrex_real), intent(out) :: plane_Xp(np), plane_Yp(np)
     integer :: ip
 
@@ -229,7 +230,7 @@ contains
     real(amrex_real), intent(in) :: xp(np), yp(np), zp(np)
     real(amrex_real), intent(in) :: u_Xx, u_Xy, u_Xz
     real(amrex_real), intent(in) :: u_Yx, u_Yy, u_Yz
-    real(amrex_real), intent(in) :: positionx, positiony, positionz    
+    real(amrex_real), intent(in) :: positionx, positiony, positionz
     real(amrex_real), intent(out) :: plane_Xp(np), plane_Yp(np)
     integer :: ip
 #endif
@@ -286,19 +287,19 @@ contains
     integer(c_long), intent(in) :: np
     real(amrex_real), intent(in) :: amplitude_E(np), wp(np)
     real(amrex_real), intent(inout) :: xp(np), yp(np), zp(np)
-    real(amrex_real), intent(out) :: uxp(np), uyp(np), uzp(np), giv(np)    
+    real(amrex_real), intent(out) :: uxp(np), uyp(np), uzp(np), giv(np)
     real(amrex_real), intent(in) :: p_Xx, p_Xy, p_Xz
     real(amrex_real), intent(in) :: nvecx, nvecy, nvecz
     real(amrex_real), intent(in) :: c, beta_boost, gamma_boost, mobility, dt
 #endif
-    
+
     real(amrex_real)     :: vx, vy, vz, v_over_c, sign_charge, gamma
     integer  :: ip
 
     !$acc parallel deviceptr(amplitude_E, wp, xp, yp, zp, uxp, uyp, uzp, giv)
     !$acc loop
     do ip = 1, np
-       ! Calculate the velocity according to the amplitude of E       
+       ! Calculate the velocity according to the amplitude of E
        sign_charge = SIGN( 1.0_amrex_real, wp(ip) )
        v_over_c = sign_charge * mobility * amplitude_E(ip)
        ! The velocity is along the laser polarization p_X
@@ -332,5 +333,5 @@ contains
 #else
   end subroutine update_laser_particle
 #endif
-  
+
 end module warpx_laser_module

@@ -1,4 +1,4 @@
-import os, sys, shutil
+import os, sys, shutil, datetime
 import argparse, re, time
 from functions_perftest import *
 
@@ -68,7 +68,7 @@ do_commit = args.commit
 run_name = args.input_file
 
 # list of tests to run and analyse. 
-# Note: This is overwritten if is_automated
+# Note: This is overwritten if option --automated is used
 # each element of test_list contains
 # [str input_file, int n_node, int n_mpi PER NODE, int n_omp]
 test_list = []
@@ -76,12 +76,6 @@ n_repeat = 2
 filename1 = args.input_file
 test_list.extend([[filename1, 1, 128, 1]]*n_repeat)
 test_list.extend([[filename1, 1, 64, 2]]*n_repeat)
-# test_list.extend([[filename1, 1, 32, 4]]*n_repeat)
-# test_list.extend([[filename1, 1, 16, 8]]*n_repeat)
-# test_list.extend([[filename1, 1, 8, 16]]*n_repeat)
-# test_list.extend([[filename1, 1, 4, 32]]*n_repeat)
-# test_list.extend([[filename1, 1, 2, 64]]*n_repeat)
-# test_list.extend([[filename1, 1, 1, 128]]*n_repeat)
 
 # Nothing should be changed after this line
 # if flag --automated is used, test_list and do_commit are 
@@ -89,7 +83,7 @@ test_list.extend([[filename1, 1, 64, 2]]*n_repeat)
 
 if args.automated == True:
     test_list = []
-    n_repeat = 4
+    n_repeat = 2
     test_list.extend([['automated_test_1_uniform_rest_32ppc', 1, 16, 8]]*n_repeat)
     test_list.extend([['automated_test_2_uniform_rest_1ppc',  1, 16, 8]]*n_repeat)
     test_list.extend([['automated_test_3_uniform_drift_4ppc', 1, 16, 8]]*n_repeat)
@@ -121,6 +115,8 @@ day = time.strftime('%d')
 month = time.strftime('%m')
 year = time.strftime('%Y')
 n_node   = int(args.n_node)
+
+perf_database_file = cwd + 'perf_database_warpx.h5'
 
 # Initialize tests
 # ----------------
@@ -248,6 +244,28 @@ if args.mode == 'read':
                              args.architecture, str(n_node), str(n_mpi),\
                              str(n_omp)] +  timing_list + ['\n'])
         write_perf_logfile(log_dir + log_file, log_line)
+        # Read data for all test to put in hdf5 a database
+        # ------------------------------------------------
+        # This is an hdf5 file containing ALL the simulation parameters and results. Might be too large for a repo
+        df_newline = extract_dataframe(res_dir + output_filename, n_steps)
+        # Add all simulation parameters to the dataframe                                                                                                                                                                                                                                                                     
+        df_newline['run_name'] = run_name
+        df_newline['n_node'] = n_node
+        df_newline['n_mpi'] = n_mpi
+        df_newline['n_omp'] = n_omp
+        df_newline['n_steps'] = n_steps
+        df_newline['rep'] = count
+        df_newline['date'] = datetime.datetime.now()
+        input_file_open = open(cwd + input_file, 'r')
+        input_file_content = input_file_open.read()
+        input_file_open.close()
+        df_newline['inputs_content'] = input_file_content
+        if os.path.exists(perf_database_file):
+            df_base = pd.read_hdf(perf_database_file, 'all_data')
+            updated_df = df_base.append(df_newline, ignore_index=True)
+        else:
+            updated_df = df_newline
+        updated_df.to_hdf(perf_database_file, key='all_data', mode='w')
 
     # Store test parameters fot record
     dir_record_base = './perf_warpx_record/'
@@ -281,7 +299,7 @@ if args.mode == 'read':
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    filename0 = 'performance_log'
+    filename0 = 'my_performance_log'
     filename = filename0 + '.txt'
     fontsize = 14
     matplotlib.rcParams.update({'font.size': fontsize})
