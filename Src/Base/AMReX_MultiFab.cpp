@@ -964,7 +964,7 @@ MultiFab::minIndex (int comp,
     IntVect loc;
 
 #ifdef _OPENMP
-#pragma omp parallel !(Gpu::notInLaunchRegion)
+#pragma omp parallel if (Gpu::notInLaunchRegion)
 #endif
     {
 	Real priv_mn = std::numeric_limits<Real>::max();
