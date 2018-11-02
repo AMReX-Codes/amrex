@@ -20,7 +20,7 @@ void cns_ctoprim (Box const& bx, FArrayBox const& u, FArrayBox & q)
                 Real rho  = *up0(i,j,k,URHO);
                 Real mx   = *up0(i,j,k,UMX);
                 Real my   = *up0(i,j,k,UMY);
-                Real mz   = *up0(i,j,k,UMY);
+                Real mz   = *up0(i,j,k,UMZ);
                 Real etot = *up0(i,j,k,UEDEN);
                 Real ei   = *up0(i,j,k,UEINT);
 
