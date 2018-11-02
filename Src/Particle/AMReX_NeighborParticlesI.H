@@ -743,8 +743,13 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
 
         if (sort) {
             for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
+#ifdef AMREX_USE_CUDA
+                thrust::sort(nl.begin() + i + 1,
+                             nl.begin() + nl[i] + i + 1);
+#else
                 std::sort(nl.begin() + i + 1,
                           nl.begin() + nl[i] + i + 1);
+#endif
             }
         }
     }
