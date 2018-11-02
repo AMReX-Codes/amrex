@@ -1654,6 +1654,7 @@ BaseFab<T>::define ()
     AMREX_ASSERT(this->numpts > 0);
     AMREX_ASSERT(std::numeric_limits<long>::max()/this->nvar > this->numpts);
 
+    this->truesize  = this->nvar*this->numpts;
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(amrex::The_Arena()->alloc(this->truesize*sizeof(T)));
     //
