@@ -3,7 +3,7 @@
 #include <cmath>
 
 #include "CNS_K.H"
-#include "CNS_index.H"
+#include "CNS_index_macros.H"
 
 using namespace amrex;
 

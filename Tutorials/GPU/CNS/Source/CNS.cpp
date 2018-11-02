@@ -32,10 +32,10 @@ CNS::CNS (Amr&            papa,
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     if (do_reflux && level > 0) {
-        flux_reg.define(bl, papa.boxArray(level-1),
-                        dm, papa.DistributionMap(level-1),
-                        level_geom, papa.Geom(level-1),
-                        papa.refRatio(level-1), level, NUM_STATE);
+//        flux_reg.define(bl, papa.boxArray(level-1),
+//                        dm, papa.DistributionMap(level-1),
+//                        level_geom, papa.Geom(level-1),
+//                        papa.refRatio(level-1), level, NUM_STATE);
     }
 
     buildMetrics();
@@ -381,6 +381,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     BL_PROFILE("CNS::computeTemp()");
 
 #if 0
+    // xxxxx todo
     auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(State.Factory());
     auto const& flags = fact.getMultiEBCellFlagFab();
 
