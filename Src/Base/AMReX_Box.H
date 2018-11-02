@@ -349,6 +349,13 @@ public:
     AMREX_GPU_HOST_DEVICE
     long index (const IntVect& v) const;
 
+    //! Given the offset, compute IntVect
+    AMREX_GPU_HOST_DEVICE
+    IntVect atOffset (long offset) const;
+
+    AMREX_GPU_HOST_DEVICE
+    GpuArray<int,3> atOffset3d (long offset) const;
+
     //! Redefine the small end of the Box.
     AMREX_GPU_HOST_DEVICE
     Box& setSmall (const IntVect& sm) { smallend = sm; return *this; }
@@ -794,6 +801,34 @@ Box::index (const IntVect& v) const
                          +(v[2]-smallend[2])*length(1));
 #endif
     return result;
+}
+
+inline
+IntVect
+Box::atOffset (long offset) const
+{
+    auto len = this->length3d();
+    auto lo  = this->loVect3d();
+    long k = offset / (len[0]*len[1]);
+    long j = (offset - k*(len[0]*len[1])) / len[0];
+    long i = (offset - k*(len[0]*len[1])) - j*len[0];
+    return {AMREX_D_DECL(static_cast<int>(i+lo[0]),
+                         static_cast<int>(j+lo[1]),
+                         static_cast<int>(k+lo[2])) };
+}
+
+inline
+GpuArray<int,3>
+Box::atOffset3d (long offset) const
+{
+    auto len = this->length3d();
+    auto lo  = this->loVect3d();
+    long k = offset / (len[0]*len[1]);
+    long j = (offset - k*(len[0]*len[1])) / len[0];
+    long i = (offset - k*(len[0]*len[1])) - j*len[0];
+    return {static_cast<int>(i+lo[0]),
+            static_cast<int>(j+lo[1]),
+            static_cast<int>(k+lo[2]) };
 }
 
 inline

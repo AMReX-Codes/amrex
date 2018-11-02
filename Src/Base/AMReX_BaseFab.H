@@ -63,6 +63,14 @@ struct StridedPtr
     inline P operator() (int i, int j, int k, int n=0) const {
         return p +(i+j*jstride+k*kstride+n*nstride);
     }
+    AMREX_GPU_HOST_DEVICE
+    inline P get() const {
+        return p;
+    }
+    AMREX_GPU_HOST_DEVICE
+    inline P comp (int n) const {
+        return p + n*nstride;
+    }
 };
 
 template <typename T>
@@ -335,6 +343,44 @@ public:
         int kstride = jstride*len[1];
         int nstride = kstride*len[2];
         T* p = this->dptr + n*nstride;
+        return StridedPtr<T*>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    StridedPtr<T const*> stridedPtr (const IntVect& iv, int n = 0) const {
+        const auto& len = this->domain.length3d();
+        int jstride = len[0];
+        int kstride = jstride*len[1];
+        int nstride = kstride*len[2];
+        const auto& dlo = this->domain.loVect3d();
+#if (AMREX_SPACEDIM == 3)
+        const auto& slo = iv;
+#else
+        const auto& slo = {AMREX_D_DECL(iv[0],iv[1],iv[2])};
+#endif
+        T const* p = this->dptr + ((slo[0]-dlo[0])
+                                +  (slo[1]-dlo[1])*jstride
+                                +  (slo[2]-dlo[2])*kstride
+                                +                n*nstride);
+        return StridedPtr<T const*>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    StridedPtr<T*> stridedPtr (const IntVect& iv, int n = 0) {
+        const auto& len = this->domain.length3d();
+        int jstride = len[0];
+        int kstride = jstride*len[1];
+        int nstride = kstride*len[2];
+        const auto& dlo = this->domain.loVect3d();
+#if (AMREX_SPACEDIM == 3)
+        const auto& slo = iv;
+#else
+        const auto& slo = {AMREX_D_DECL(iv[0],iv[1],iv[2])};
+#endif
+        T* p = this->dptr + ((slo[0]-dlo[0])
+                          +  (slo[1]-dlo[1])*jstride
+                          +  (slo[2]-dlo[2])*kstride
+                          +                n*nstride);
         return StridedPtr<T*>{p, jstride, kstride, nstride};
     }
 

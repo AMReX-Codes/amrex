@@ -18,6 +18,46 @@
 // ************************************************
 // CUDA versions
 
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        long amrex_i_npts = BX.numPts(); \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(amrex_i_npts); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+                const auto IV = BX.atOffset(amrex_i_i); \
+                block \
+            } \
+        }); \
+        CudaErrorCheck(); \
+    } \
+    else { \
+        long amrex_i_npts = BX.numPts(); \
+        for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+            const auto IV = BX.atOffset(amrex_i_i); \
+            block \
+        } \
+    }
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        long amrex_i_npts = BX.numPts(); \
+        auto amrex_i_ec = amrex::Cuda::ExecutionConfig(amrex_i_npts); \
+        amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+                const auto IV = BX.atOffset(amrex_i_i); \
+                block \
+            } \
+        }); \
+        CudaErrorCheck(); \
+    } \
+    else { \
+        amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOXIV: cannot call device function from host"); \
+    }
+
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
@@ -233,6 +273,17 @@
 // ************************************************
 // CPU versions
 
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(BX,IV,block) \
+    { \
+        long amrex_i_npts = BX.numPts(); \
+        for (auto const amrex_i_i : amrex::Cuda::Range(amrex_i_npts)) { \
+            const auto IV = BX.atOffset(amrex_i_i); \
+            block \
+        } \
+    }
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOXIV(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOXIV(__VA_ARGS__)
+
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { \
         for (auto const TI : amrex::Cuda::Range(TN)) { \
@@ -240,18 +291,15 @@
         } \
     }
 
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block) \
-    { \
-        for (auto const TI : amrex::Cuda::Range(TN)) { \
-            block \
-        } \
-    }
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(__VA_ARGS__)
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \
         const amrex::Box& tbb = bbb; \
         block \
     }
+
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOX(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(__VA_ARGS__)
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_ASYNC(bbb,tbb,sync_id,block) \
     { \
@@ -267,12 +315,6 @@
         blocky \
         const amrex::Box& tbz = bbz; \
         blockz \
-    }
-
-#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
-    { \
-        const amrex::Box& tbb = bbb; \
-        block \
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
