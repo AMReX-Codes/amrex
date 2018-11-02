@@ -147,8 +147,39 @@ namespace Cuda {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE
+        inline void Or (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicOr(m, value);
+#else
+            *m = (*m) || value; 
+#endif
+        }
+
     } // namespace Atomic
 
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    bool is_nan(T m)
+    {
+#if defined(__CUDA_ARCH__)
+        return isnan(m);
+#else
+        return std::isnan(m);
+#endif
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    bool is_inf(T m)
+    {
+#ifdef __CUDA_ARCH__
+        return isinf(m);
+#else
+        return std::isinf(m);
+#endif
+    }
 
     class StreamIter
     {
