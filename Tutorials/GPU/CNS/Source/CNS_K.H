@@ -14,4 +14,11 @@ amrex::Real cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& state,
 AMREX_GPU_DEVICE
 void cns_ctoprim (amrex::Box const& bx, amrex::FArrayBox const& u, amrex::FArrayBox& q);
 
+AMREX_GPU_DEVICE
+void cns_flux_to_dudt (amrex::Box const& bx, amrex::FArrayBox& dudt,
+                       AMREX_D_DECL(amrex::FArrayBox const& fx,
+                                    amrex::FArrayBox const& fy,
+                                    amrex::FArrayBox const& fz),
+                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxinv);
+
 #endif

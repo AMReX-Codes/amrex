@@ -47,6 +47,34 @@ void cns_ctoprim (Box const& bx, FArrayBox const& u, FArrayBox & q)
             }
         }
     }
-
 }
+
+#if (AMREX_SPACEDIM == 3)
+AMREX_GPU_DEVICE
+void cns_flux_to_dudt (Box const& bx, FArrayBox& dudtfab,
+                       FArrayBox const& fxfab, FArrayBox const& fyfab, FArrayBox const& fzfab,
+                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
+{
+    const auto dudt0 = dudtfab.stridedPtr(bx);
+    const auto len = bx.length3d();
+    const auto fx0 = fxfab.stridedPtr(bx);
+    const auto fy0 = fyfab.stridedPtr(bx);
+    const auto fz0 = fzfab.stridedPtr(bx);
+    const int ncomp = dudtfab.nComp();
+
+    for (int n = 0; n < 5; ++n)
+    {
+        for         (int k = 0; k < len[2]; ++k) {
+            for     (int j = 0; j < len[1]; ++j) {
+                for (int i = 0; i < len[0]; ++i) {
+                    Real* AMREX_RESTRICT dudt = dudt0(i,j,k,n);
+                    *dudt = dxinv[0] * (*fx0(i,j,k,n) - *fx0(i+1,j,k,n))
+                        +   dxinv[1] * (*fy0(i,j,k,n) - *fy0(i,j+1,k,n))
+                        +   dxinv[2] * (*fz0(i,j,k,n) - *fz0(i,j,k+1,n));
+                }
+            }
+        }
+    }
+}
+#endif
 
