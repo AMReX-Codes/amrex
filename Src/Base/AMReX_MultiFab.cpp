@@ -703,7 +703,7 @@ MultiFab::contains_nan (int scomp,
                         int ngrow,
 			bool local) const
 {
-    // TODO GPU
+    // TODO GPU -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
@@ -714,12 +714,24 @@ MultiFab::contains_nan (int scomp,
 #ifdef _OPENMP
 #pragma omp parallel reduction(|:r)
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.growntilebox(ngrow);
-	
-	if (this->FabArray<FArrayBox>::get(mfi).contains_nan(bx,scomp,ncomp))
-	    r = true;
+        amrex::Gpu::DeviceScalar<int> local_sm(0);
+        int* p = local_sm.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            if (local_sm.dataValue()) // Reduce calc if prevelant throughout MF.
+            {
+                const Box& bx = mfi.growntilebox(ngrow);
+                FArrayBox const* fab = &(get(mfi));
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                {	
+                    int t = fab->contains_nan(tbx,scomp,ncomp);
+                    amrex::Gpu::Atomic::Or(p, t);
+                });
+            }
+        }
+        r = (r || local_sm.dataValue());  // <---- Int to bool.
     }
 
     if (!local)
@@ -740,7 +752,7 @@ MultiFab::contains_inf (int scomp,
                         int ngrow,
 			bool local) const
 {
-    // TODO GPU
+    // TODO GPU  -- CHECK
     BL_ASSERT(scomp >= 0);
     BL_ASSERT(scomp + ncomp <= nComp());
     BL_ASSERT(ncomp >  0 && ncomp <= nComp());
@@ -751,12 +763,24 @@ MultiFab::contains_inf (int scomp,
 #ifdef _OPENMP
 #pragma omp parallel reduction(|:r)
 #endif
-    for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
     {
-	const Box& bx = mfi.growntilebox(ngrow);
-	
-	if (this->FabArray<FArrayBox>::get(mfi).contains_inf(bx,scomp,ncomp))
-	    r = true;
+        amrex::Gpu::DeviceScalar<int> local_sm(0);
+        int* p = local_sm.dataPtr();
+        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            if (local_sm.dataValue())  // Reduce calc if prevelant throughout MF.
+            {
+                const Box& bx = mfi.growntilebox(ngrow);
+                FArrayBox const* fab = &(get(mfi));
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                {	
+                    int t = fab->contains_inf(tbx,scomp,ncomp);
+                    amrex::Gpu::Atomic::Or(p, t);
+                });
+            }
+        }
+        r = (r || local_sm.dataValue());  // <---- Int to bool.
     }
 
     if (!local)
@@ -940,7 +964,7 @@ MultiFab::minIndex (int comp,
     IntVect loc;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel !(Gpu::notInLaunchRegion)
 #endif
     {
 	Real priv_mn = std::numeric_limits<Real>::max();

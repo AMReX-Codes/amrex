@@ -260,7 +260,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isnan(this->operator()(p,scomp+i)))
+            if (Cuda::is_nan(this->operator()(p,scomp+i)))
             {
                 where = p;
 
@@ -294,7 +294,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isinf(this->operator()(p,scomp+i)))
+            if (Cuda::is_inf(this->operator()(p,scomp+i)))
                 return true;
         }
     }
