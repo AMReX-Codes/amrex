@@ -1275,7 +1275,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost)
     Vector<long> cost(rcost.size());
 
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = 1.e9/wmax;
+    Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
 
     for (int i = 0; i < rcost.size(); ++i) {
         cost[i] = long(rcost[i]*scale) + 1L;
@@ -1347,7 +1347,7 @@ DistributionMapping::makeRoundRobin (const MultiFab& weight)
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
 
 	Real wmax = *std::max_element(rcost.begin(), rcost.end());
-	Real scale = 1.e9/wmax;
+        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
 	
 	for (int i = 0; i < rcost.size(); ++i) {
 	    cost[i] = long(rcost[i]*scale) + 1L;
@@ -1382,7 +1382,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 	ParallelAllReduce::Sum(&rcost[0], rcost.size(), ParallelContext::CommunicatorSub());
 
 	Real wmax = *std::max_element(rcost.begin(), rcost.end());
-	Real scale = 1.e9/wmax;
+        Real scale = (wmax == 0) ? 1.e9 : 1.e9/wmax;
 	
 	for (int i = 0; i < rcost.size(); ++i) {
 	    cost[i] = long(rcost[i]*scale) + 1L;
