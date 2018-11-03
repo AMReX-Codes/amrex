@@ -56,9 +56,9 @@ template <typename P>
 struct StridedPtr
 {
     P p;
-    int jstride;
-    int kstride;
-    int nstride;
+    long jstride;
+    long kstride;
+    long nstride;
     AMREX_GPU_HOST_DEVICE
     inline P operator() (int i, int j, int k, int n=0) const {
         return p +(i+j*jstride+k*kstride+n*nstride);
@@ -70,6 +70,19 @@ struct StridedPtr
     AMREX_GPU_HOST_DEVICE
     inline P comp (int n) const {
         return p + n*nstride;
+    }
+};
+
+template <typename T>
+struct FabView
+{
+    T* p;
+    long jstride;
+    long kstride;
+    long nstride;
+    AMREX_GPU_HOST_DEVICE
+    inline T& operator() (int i, int j, int k, int n=0) const {
+        return *(p + (i+j*jstride+k*kstride+n*nstride));
     }
 };
 
@@ -327,31 +340,34 @@ public:
 
 
     AMREX_GPU_HOST_DEVICE
-    StridedPtr<T const*> stridedPtr (int n = 0) const {
+    StridedPtr<T const*> stridedPtr (int n = 0) const
+    {
         const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        int nstride = kstride*len[2];
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
         T const* p = this->dptr + n*nstride;
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
     }
 
     AMREX_GPU_HOST_DEVICE
-    StridedPtr<T*> stridedPtr (int n = 0) {
+    StridedPtr<T*> stridedPtr (int n = 0)
+    {
         const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        int nstride = kstride*len[2];
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
         T* p = this->dptr + n*nstride;
         return StridedPtr<T*>{p, jstride, kstride, nstride};
     }
 
     AMREX_GPU_HOST_DEVICE
-    StridedPtr<T const*> stridedPtr (const IntVect& iv, int n = 0) const {
+    StridedPtr<T const*> stridedPtr (const IntVect& iv, int n = 0) const
+    {
         const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        int nstride = kstride*len[2];
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
 #if (AMREX_SPACEDIM == 3)
         const auto& slo = iv;
@@ -366,11 +382,12 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    StridedPtr<T*> stridedPtr (const IntVect& iv, int n = 0) {
+    StridedPtr<T*> stridedPtr (const IntVect& iv, int n = 0)
+    {
         const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        int nstride = kstride*len[2];
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
 #if (AMREX_SPACEDIM == 3)
         const auto& slo = iv;
@@ -385,11 +402,12 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    StridedPtr<T const*> stridedPtr (const Box& subbox, int n = 0) const {
+    StridedPtr<T const*> stridedPtr (const Box& subbox, int n = 0) const
+    {
         const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        int nstride = kstride*len[2];
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
         const auto& slo = subbox.loVect3d();
         T const* p = this->dptr + ((slo[0]-dlo[0])
@@ -400,11 +418,12 @@ public:
     }
 
     AMREX_GPU_HOST_DEVICE
-    StridedPtr<T*> stridedPtr (const Box& subbox, int n = 0) {
+    StridedPtr<T*> stridedPtr (const Box& subbox, int n = 0)
+    {
         const auto& len = this->domain.length3d();
-        int jstride = len[0];
-        int kstride = jstride*len[1];
-        int nstride = kstride*len[2];
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
         const auto& slo = subbox.loVect3d();
         T* p = this->dptr + ((slo[0]-dlo[0])
@@ -412,6 +431,100 @@ public:
                           +  (slo[2]-dlo[2])*kstride
                           +                n*nstride);
         return StridedPtr<T*>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    FabView<T const> view (int n = 0) const
+    {
+        const auto& len = this->domain.length3d();
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
+        T const* p = this->dptr + n*nstride;
+        return FabView<T const>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    FabView<T> view (int n = 0)
+    {
+        const auto& len = this->domain.length3d();
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
+        T* p = this->dptr + n*nstride;
+        return FabView<T>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    FabView<T const> view (const IntVect& iv, int n = 0) const
+    {
+        const auto& len = this->domain.length3d();
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
+        const auto& dlo = this->domain.loVect3d();
+#if (AMREX_SPACEDIM == 3)
+        const auto& slo = iv;
+#else
+        const auto& slo = {AMREX_D_DECL(iv[0],iv[1],iv[2])};
+#endif
+        T const* p = this->dptr + ((slo[0]-dlo[0])
+                                +  (slo[1]-dlo[1])*jstride
+                                +  (slo[2]-dlo[2])*kstride
+                                +                n*nstride);
+        return FabView<T const>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    FabView<T> view (const IntVect& iv, int n = 0)
+    {
+        const auto& len = this->domain.length3d();
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
+        const auto& dlo = this->domain.loVect3d();
+#if (AMREX_SPACEDIM == 3)
+        const auto& slo = iv;
+#else
+        const auto& slo = {AMREX_D_DECL(iv[0],iv[1],iv[2])};
+#endif
+        T* p = this->dptr + ((slo[0]-dlo[0])
+                          +  (slo[1]-dlo[1])*jstride
+                          +  (slo[2]-dlo[2])*kstride
+                          +                n*nstride);
+        return FabView<T>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    FabView<T const> view (const Box& subbox, int n = 0) const
+    {
+        const auto& len = this->domain.length3d();
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
+        const auto& dlo = this->domain.loVect3d();
+        const auto& slo = subbox.loVect3d();
+        T const* p = this->dptr + ((slo[0]-dlo[0])
+                                +  (slo[1]-dlo[1])*jstride
+                                +  (slo[2]-dlo[2])*kstride
+                                +                n*nstride);
+        return FabView<T const>{p, jstride, kstride, nstride};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    FabView<T> view (const Box& subbox, int n = 0)
+    {
+        const auto& len = this->domain.length3d();
+        long jstride = len[0];
+        long kstride = jstride*len[1];
+        long nstride = kstride*len[2];
+        const auto& dlo = this->domain.loVect3d();
+        const auto& slo = subbox.loVect3d();
+        T* p = this->dptr + ((slo[0]-dlo[0])
+                          +  (slo[1]-dlo[1])*jstride
+                          +  (slo[2]-dlo[2])*kstride
+                          +                n*nstride);
+        return FabView<T>{p, jstride, kstride, nstride};
     }
 
     //! Returns true if the data for the FAB has been allocated.
