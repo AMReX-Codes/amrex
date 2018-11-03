@@ -1,4 +1,6 @@
+
 DEBUG = FALSE
+
 TEST = TRUE
 USE_ASSERTION = TRUE
 
@@ -7,13 +9,12 @@ USE_EB = TRUE
 USE_MPI  = TRUE
 USE_OMP  = FALSE
 
-USE_HYPRE = FALSE
-USE_PETSC = FALSE
-
+USE_HYPRE  = FALSE
+USE_PETSC  = FALSE
 
 COMP = gnu
 
-DIM = 2
+DIM = 3
 
 AMREX_HOME ?= ../../..
 
@@ -23,6 +24,23 @@ include ./Make.package
 Pdirs := Base Boundary AmrCore
 Pdirs += EB
 Pdirs += LinearSolvers/C_CellMG LinearSolvers/MLMG
+
+ifeq ($(DIM),3)
+USE_ALGOIM = TRUE
+else
+USE_ALGOIM = FALSE
+endif
+
+ifeq ($(USE_ALGOIM),TRUE)
+    ALGOIM_HOME ?= $(AMREX_HOME)/Src/Extern/Algoim
+    BLITZ_HOME  ?= /path/to/blitz
+    Pdirs += Extern/Algoim
+    INCLUDE_LOCATIONS += $(ALGOIM_HOME)
+    INCLUDE_LOCATIONS += $(ALGOIM_HOME)/src
+    INCLUDE_LOCATIONS += $(BLITZ_HOME)/include
+    VPATH_LOCATIONS   += $(ALGOIM_HOME)
+    DEFINES += -DUSE_ALGOIM
+endif
 
 ifeq ($(USE_HYPRE),TRUE)
     Pdirs += Extern/HYPRE
