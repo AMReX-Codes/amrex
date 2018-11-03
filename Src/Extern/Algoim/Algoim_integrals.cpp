@@ -57,8 +57,8 @@ namespace amrex
 
 void compute_integrals(MultiFab* intg)
 {
-    std::cout << "Algoim computing volfrac " << std::endl;
-    std::cout << std::fixed << std::setprecision(16);
+    // std::cout << "Algoim computing volfrac " << std::endl;
+    // std::cout << std::fixed << std::setprecision(16);
 
     // This indicates a volume quadrature -- the integral occurs over phi NEGATIVE
     int dim = -1;
