@@ -28,7 +28,11 @@
 #define AMREX_PRAGMA_SIMD _Pragma("omp simd")
 
 #elif defined(__INTEL_COMPILER)
+#if __INTEL_COMPILER >= 1800
+#define AMREX_PRAGMA_SIMD _Pragma("ivdep")
+#else
 #define AMREX_PRAGMA_SIMD _Pragma("simd")
+#endif
 
 #elif defined(_CRAYC)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
