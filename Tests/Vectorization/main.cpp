@@ -11,17 +11,53 @@ int main(int argc, char* argv[])
     amrex::Initialize(argc,argv);
     {
         const Box bx(IntVect(0), IntVect(63));
-        const int ncomp = 5;
+        const Box& bxg2 = amrex::grow(bx,2);
+        const int ncomp = 7;
+        FArrayBox ufab(bxg2,ncomp);
+        FArrayBox qfab(bxg2,8);
         FArrayBox dudtfab(bx,ncomp);
         FArrayBox fxfab(amrex::convert(bx,IntVect::TheDimensionVector(0)),ncomp);
         FArrayBox fyfab(amrex::convert(bx,IntVect::TheDimensionVector(1)),ncomp);
         FArrayBox fzfab(amrex::convert(bx,IntVect::TheDimensionVector(2)),ncomp);
 
+        ufab.setVal(3.0);
         fxfab.setVal(1.0);
         fyfab.setVal(1.0);
         fzfab.setVal(1.0);
 
         Array<Real,3> dxinv {10.,10.,10.};
+
+        // ctoprim
+        {
+            double t0 = amrex::second();
+
+            for (int i = 0; i < 1000; ++i) {
+                __asm__ __volatile__("");
+                ctoprim_f(BL_TO_FORTRAN_BOX(bxg2),
+                          BL_TO_FORTRAN_ANYD(ufab),
+                          BL_TO_FORTRAN_ANYD(qfab));
+            }
+            
+            double t1 = amrex::second();
+            
+            for (int i = 0; i < 1000; ++i) {
+                __asm__ __volatile__("");
+                ctoprim_c_simd(bxg2, ufab, qfab);
+            }
+            
+            double t2 = amrex::second();
+            
+            for (int i = 0; i < 1000; ++i) {
+                __asm__ __volatile__("");
+                ctoprim_c_nosimd(bxg2, ufab, qfab);
+            }
+            
+            double t3 = amrex::second();
+            
+            amrex::Print() << "ctoprim: Fortran time: " << t1-t0 << "\n"
+                           << "         C++ w/ simd time: " << t2-t1  << "\n"
+                           << "         C++ w/o simd time: " << t3-t2 << std::endl;
+        }
 
         // flux_to_dudt 
         {
