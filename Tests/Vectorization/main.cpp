@@ -43,14 +43,14 @@ int main(int argc, char* argv[])
         double t0 = amrex::second();
 
         for (int i = 0; i < 1000; ++i) {
-            asm volatile("" : "+r" (dxinv[0]));
+            __asm__ __volatile__("");
             flux_to_dudt_c(bx, dudtfab, fxfab, fyfab, fzfab, dxinv);
         }
 
         double t1 = amrex::second();
 
         for (int i = 0; i < 1000; ++i) {
-            asm volatile("" : "+r" (dxinv[0]));
+            __asm__ __volatile__("");
             flux_to_dudt_f(BL_TO_FORTRAN_BOX(bx),
                            BL_TO_FORTRAN_ANYD(dudtfab),
                            BL_TO_FORTRAN_ANYD(fxfab),
