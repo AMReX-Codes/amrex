@@ -462,6 +462,9 @@ class Simulation(picmistandard.PICMI_Simulation):
             self.lasers[i].initialize_inputs()
             self.laser_injection_methods[i].initialize_inputs(self.lasers[i])
 
+        for diagnostic in self.diagnostics:
+            diagnostic.initialize_inputs()
+
     def initialize_warpx(self):
         if self.warpx_initialized:
             return
@@ -492,3 +495,90 @@ class Simulation(picmistandard.PICMI_Simulation):
         if self.warpx_initialized:
             self.warpx_initialized = False
             pywarpx.warpx.finalize()
+
+
+# ----------------------------
+# Simulation frame diagnostics
+# ----------------------------
+
+
+class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
+    def init(self, kw):
+
+        self.plot_raw_fields = kw.pop('warpx_plot_raw_fields', None)
+        self.plot_raw_fields_guards = kw.pop('warpx_plot_raw_fields_guards', None)
+        self.plot_finepatch = kw.pop('warpx_plot_finepatch', None)
+        self.plot_crsepatch = kw.pop('warpx_plot_crsepatch', None)
+
+    def initialize_inputs(self):
+        # --- For now, the period must be the same as plot_int if set
+        pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
+        pywarpx.amr.plot_int = self.period
+
+        if 'rho' in self.field_types:
+            pywarpx.warpx.plot_rho = 1
+        if 'dive' in self.field_types:
+            pywarpx.warpx.plot_dive = 1
+        if 'divb' in self.field_types:
+            pywarpx.warpx.plot_divb = 1
+        if 'F' in self.field_types:
+            pywarpx.warpx.plot_F = 1
+        if 'proc_number' in self.field_types:
+            pywarpx.warpx.plot_proc_number = 1
+
+        pywarpx.warpx.plot_raw_fields = self.plot_raw_fields
+        pywarpx.warpx.plot_raw_fields_guards = self.plot_raw_fields_guards
+
+        pywarpx.amr.check_consistency('plot_finepatch', self.plot_finepatch, 'The fine patch flag must be the same for all simulation frame field diagnostics')
+        pywarpx.amr.check_consistency('plot_crsepatch', self.plot_crsepatch, 'The coarse patch flag must be the same for all simulation frame field diagnostics')
+        pywarpx.warpx.plot_finepatch = self.plot_finepatch
+        pywarpx.warpx.plot_crsepatch = self.plot_crsepatch
+
+class ElectrostaticFieldDiagnostic(picmistandard.PICMI_ElectrostaticFieldDiagnostic):
+    def initialize_inputs(self):
+        # --- For now, the period must be the same as plot_int if set
+        pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
+        pywarpx.amr.plot_int = self.period
+
+
+class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
+    def initialize_inputs(self):
+        # --- For now, the period must be the same as plot_int if set
+        pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
+        pywarpx.amr.plot_int = self.period
+
+        if 'part_per_cell' in self.particle_data:
+            pywarpx.warpx.plot_part_per_cell = 1
+        if 'part_per_grid' in self.particle_data:
+            pywarpx.warpx.plot_part_per_grid = 1
+        if 'part_per_proc' in self.particle_data:
+            pywarpx.warpx.plot_part_per_proc = 1
+
+
+# ----------------------------
+# Lab frame diagnostics
+# ----------------------------
+
+
+class LabFrameFieldDiagnostic(picmistandard.PICMI_LabFrameFieldDiagnostic):
+    def initialize_inputs(self):
+
+        pywarpx.warpx.check_consistency('num_snapshots_lab', self.num_snapshots, 'The number of snapshots must be the same in all lab frame diagnostics')
+        pywarpx.warpx.check_consistency('dt_snapshots_lab', self.dt_snapshots, 'The time between snapshots must be the same in all lab frame diagnostics')
+
+        pywarpx.warpx.do_boosted_frame_diagnostic = 1
+        pywarpx.warpx.num_snapshots_lab = self.num_snapshots
+        pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
+        pywarpx.warpx.do_boosted_frame_fields = 1
+
+
+class LabFrameParticleDiagnostic(picmistandard.PICMI_LabFrameParticleDiagnostic):
+    def initialize_inputs(self):
+
+        pywarpx.warpx.check_consistency('num_snapshots_lab', self.num_snapshots, 'The number of snapshots must be the same in all lab frame diagnostics')
+        pywarpx.warpx.check_consistency('dt_snapshots_lab', self.dt_snapshots, 'The time between snapshots must be the same in all lab frame diagnostics')
+
+        pywarpx.warpx.do_boosted_frame_diagnostic = 1
+        pywarpx.warpx.num_snapshots_lab = self.num_snapshots
+        pywarpx.warpx.dt_snapshots_lab = self.dt_snapshots
+        pywarpx.warpx.do_boosted_frame_particles = 1

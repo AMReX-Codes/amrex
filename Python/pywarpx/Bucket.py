@@ -20,6 +20,10 @@ class Bucket(object):
         except KeyError:
             return object.__getattr__(self, name)
 
+    def check_consistency(self, vname, value, errmsg):
+        if vname in self.argvattrs:
+            assert (self.argvattrs[vname] is None) or (self.argvattrs[vname] == value), Exception(errmsg)
+
     def attrlist(self):
         "Concatenate the attributes into a string"
         result = []
