@@ -7,6 +7,10 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_EB2.H>
 
+#if(AMREX_SPACEDIM == 3)
+#include <Algoim_integrals.H>
+#endif
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -29,17 +33,16 @@ MyTest::solve ()
 {
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
-    for (int idim = 0; idim < 2; ++idim) {
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
             mlmg_lobc[idim] = LinOpBCType::Periodic;
             mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {
-            mlmg_lobc[idim] = LinOpBCType::Dirichlet;
+            mlmg_lobc[idim] = LinOpBCType::Neumann;
             mlmg_hibc[idim] = LinOpBCType::Dirichlet;
         }
     }
-    mlmg_lobc[AMREX_SPACEDIM-1] = LinOpBCType::Neumann;
-    mlmg_hibc[AMREX_SPACEDIM-1] = LinOpBCType::Dirichlet;
+            
 
     LPInfo info;
     info.setMaxCoarseningLevel(max_coarsening_level);
@@ -58,6 +61,18 @@ MyTest::solve ()
 
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
 
+#if 0
+#if (AMREX_SPACEDIM == 2)
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        amrex::VisMF::Write(rhs[ilev], "rhs2d");
+    }
+#else
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        amrex::VisMF::Write(rhs[ilev], "rhs3d");
+    }
+#endif
+#endif
+
     MLMG mlmg(mlndlap);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
@@ -69,17 +84,27 @@ MyTest::solve ()
 
     mlndlap.updateVelocity(amrex::GetVecOfPtrs(vel), amrex::GetVecOfConstPtrs(phi));
 
+#if 0
+#if (AMREX_SPACEDIM == 2)
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(phi[ilev], "phi"+std::to_string(ilev));
+        amrex::VisMF::Write(phi[ilev], "phi2d");
     }
+#else
+    for (int ilev = 0; ilev <= max_level; ++ilev) {
+        amrex::VisMF::Write(phi[ilev], "phi3d");
+    }
+#endif
+#endif
 
     mlndlap.compRHS(amrex::GetVecOfPtrs(rhs), amrex::GetVecOfPtrs(vel), {}, {});
 
+#if 0
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::VisMF::Write(rhs[ilev], "rhs"+std::to_string(ilev));
         amrex::Print() << "rhs.norm0() = " << rhs[ilev].norm0() << "\n";
         amrex::Print() << "rhs.norm1()/npoints = " << rhs[ilev].norm1() / grids[0].d_numPts() << "\n";
     }
+#endif
 }
 
 void
@@ -90,7 +115,7 @@ MyTest::writePlotfile ()
 
 void
 MyTest::readParameters ()
-{
+{   
     ParmParse pp;
     pp.query("max_level", max_level);
     pp.query("n_cell", n_cell);
@@ -108,6 +133,12 @@ MyTest::readParameters ()
 #endif
 
     pp.query("sigma", sigma);
+
+#if (AMREX_SPACEDIM == 3)
+    ParmParse pp_eb("eb2");
+    std::string geom_type;
+    pp_eb.get("cylinder_direction", cylinder_direction);
+#endif
 }
 
 void
@@ -118,8 +149,24 @@ MyTest::initGrids ()
     grids.resize(nlevels);
 
     RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
-    std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
-    Geometry::Setup(&rb, 0, is_periodic.data());
+
+    // Make the domain periodic at the ends of the cylinder
+    if (cylinder_direction == 0)
+    {
+       std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(1,0,0)};
+       Geometry::Setup(&rb, 0, is_periodic.data());
+
+    } else if (cylinder_direction == 1)
+    {
+       std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,1,0)};
+       Geometry::Setup(&rb, 0, is_periodic.data());
+
+    } else if (cylinder_direction == 2)
+    {
+       std::array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,1)};
+       Geometry::Setup(&rb, 0, is_periodic.data());
+    }
+
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
     Box domain = domain0;
     for (int ilev = 0; ilev < nlevels; ++ilev)
@@ -173,24 +220,78 @@ MyTest::initData ()
         {
             const Box& bx = mfi.validbox();
             FArrayBox& fab = vel[ilev][mfi];
-            int icomp = 0; // vx
+
             int ncomp = 1;
-            fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_x, const IntVect& iv) {
-                    Real rx = (iv[0]+0.5)*h - 0.5;
-                    Real ry = (iv[1]+0.5)*h - 0.5;
-                    Real r = std::sqrt(rx*rx+ry*ry);
-                    Real fac = std::exp(-(r*r/(0.16*0.16)));
-                    v_x = v_x + 2.0*r*ry/r*fac;
+
+#if (AMREX_SPACEDIM > 2)
+            if (cylinder_direction == 2)
+#endif
+            {
+               int icomp = 0; // vx
+               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_x, const IntVect& iv) 
+                   {
+                       Real rx = (iv[0]+0.5)*h - 0.5;
+                       Real ry = (iv[1]+0.5)*h - 0.5;
+                       Real r = std::sqrt(rx*rx+ry*ry);
+                       Real fac = std::exp(-(r*r/(0.16*0.16)));
+                       v_x = v_x + 2.0*r*ry/r*fac;
+                   });
+               icomp = 1; // vy
+               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_y, const IntVect& iv) 
+                   {
+                       Real rx = (iv[0]+0.5)*h - 0.5;
+                       Real ry = (iv[1]+0.5)*h - 0.5;
+                       Real r = std::sqrt(rx*rx+ry*ry);
+                       Real fac = std::exp(-(r*r/(0.16*0.16)));
+                       v_y = v_y - 2.0*r*rx/r*fac;
+                   });
+
+            } 
+#if (AMREX_SPACEDIM > 2)
+            else if (cylinder_direction == 1) 
+            {
+               int icomp = 0; // vx
+               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_x, const IntVect& iv) 
+                   {
+                       Real rx = (iv[0]+0.5)*h - 0.5;
+                       Real rz = (iv[2]+0.5)*h - 0.5;
+                       Real r = std::sqrt(rx*rx+rz*rz);
+                       Real fac = std::exp(-(r*r/(0.16*0.16)));
+                       v_x = v_x - 2.0*r*rz/r*fac;
+                   });
+               icomp = 2; // vx
+               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_z, const IntVect& iv) 
+                   {
+                       Real rx = (iv[0]+0.5)*h - 0.5;
+                       Real rz = (iv[2]+0.5)*h - 0.5;
+                       Real r = std::sqrt(rx*rx+rz*rz);
+                       Real fac = std::exp(-(r*r/(0.16*0.16)));
+                       v_z = v_z + 2.0*r*rx/r*fac;
+                   });
+
+            } 
+            else if (cylinder_direction == 0) 
+            {
+               int icomp = 1; // v:
+               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_y, const IntVect& iv) 
+                   {
+                       Real ry = (iv[1]+0.5)*h - 0.5;
+                       Real rz = (iv[2]+0.5)*h - 0.5;
+                       Real r = std::sqrt(ry*ry+rz*rz);
+                       Real fac = std::exp(-(r*r/(0.16*0.16)));
+                       v_y = v_y + 2.0*r*rz/r*fac;
+                   });
+               icomp = 2; // vz
+               fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_z, const IntVect& iv) 
+                   {
+                       Real rz = (iv[2]+0.5)*h - 0.5;
+                       Real ry = (iv[1]+0.5)*h - 0.5;
+                       Real r = std::sqrt(ry*ry+rz*rz);
+                       Real fac = std::exp(-(r*r/(0.16*0.16)));
+                       v_z = v_z - 2.0*r*ry/r*fac;
                 });
-            icomp = 1; // vy
-            fab.ForEachIV(bx, icomp, ncomp, [=] (Real& v_y, const IntVect& iv) {
-                    Real rx = (iv[0]+0.5)*h - 0.5;
-                    Real ry = (iv[1]+0.5)*h - 0.5;
-                    Real r = std::sqrt(rx*rx+ry*ry);
-                    Real fac = std::exp(-(r*r/(0.16*0.16)));
-                    v_y = v_y - 2.0*r*rx/r*fac;
-                });
+            } 
+#endif
         }
     }
 }
-
