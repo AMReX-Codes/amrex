@@ -239,7 +239,7 @@ void compute_integrals(MultiFab* intg)
              }
           }
        }
-       std::cout << "Integrated over " << n_count << " cells " << std::endl;
+       // std::cout << "Integrated over " << n_count << " cells " << std::endl;
     }
 }
 }
