@@ -29,10 +29,14 @@ int main(int argc, char* argv[])
 
         // ctoprim
         {
+            ctoprim_f(BL_TO_FORTRAN_BOX(bxg2),
+                      BL_TO_FORTRAN_ANYD(ufab),
+                      BL_TO_FORTRAN_ANYD(qfab));
+
             double t0 = amrex::second();
 
             for (int i = 0; i < 1000; ++i) {
-                __asm__ __volatile__("");
+                __asm__ __volatile__("" : : : "memory");
                 ctoprim_f(BL_TO_FORTRAN_BOX(bxg2),
                           BL_TO_FORTRAN_ANYD(ufab),
                           BL_TO_FORTRAN_ANYD(qfab));
@@ -41,14 +45,14 @@ int main(int argc, char* argv[])
             double t1 = amrex::second();
             
             for (int i = 0; i < 1000; ++i) {
-                __asm__ __volatile__("");
+                __asm__ __volatile__("" : : : "memory");
                 ctoprim_c_simd(bxg2, ufab, qfab);
             }
             
             double t2 = amrex::second();
             
             for (int i = 0; i < 1000; ++i) {
-                __asm__ __volatile__("");
+                __asm__ __volatile__("" : : : "memory");
                 ctoprim_c_nosimd(bxg2, ufab, qfab);
             }
             
@@ -61,10 +65,18 @@ int main(int argc, char* argv[])
 
         // flux_to_dudt 
         {
+            flux_to_dudt_f(BL_TO_FORTRAN_BOX(bx),
+                           BL_TO_FORTRAN_ANYD(dudtfab),
+                           BL_TO_FORTRAN_ANYD(fxfab),
+                           BL_TO_FORTRAN_ANYD(fyfab),
+                           BL_TO_FORTRAN_ANYD(fzfab),
+                           dxinv.data(),
+                           &ncomp);
+
             double t0 = amrex::second();
 
             for (int i = 0; i < 1000; ++i) {
-                __asm__ __volatile__("");
+                __asm__ __volatile__("" : : : "memory");
                 flux_to_dudt_f(BL_TO_FORTRAN_BOX(bx),
                                BL_TO_FORTRAN_ANYD(dudtfab),
                                BL_TO_FORTRAN_ANYD(fxfab),
@@ -77,14 +89,14 @@ int main(int argc, char* argv[])
             double t1 = amrex::second();
             
             for (int i = 0; i < 1000; ++i) {
-                __asm__ __volatile__("");
+                __asm__ __volatile__("" : : : "memory");
                 flux_to_dudt_c_simd(bx, dudtfab, fxfab, fyfab, fzfab, dxinv);
             }
             
             double t2 = amrex::second();
             
             for (int i = 0; i < 1000; ++i) {
-                __asm__ __volatile__("");
+                __asm__ __volatile__("" : : : "memory");
                 flux_to_dudt_c_nosimd(bx, dudtfab, fxfab, fyfab, fzfab, dxinv);
             }
             
