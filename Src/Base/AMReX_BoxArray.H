@@ -419,7 +419,7 @@ public:
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
-    Box minimalBox (int& npts_avg_box) const;
+    Box minimalBox (long& npts_avg_box) const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).
