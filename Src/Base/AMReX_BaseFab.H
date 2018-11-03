@@ -11,7 +11,7 @@
 #include <omp.h>
 #endif
 
-#include <AMReX_RESTRICT.H>
+#include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
@@ -68,7 +68,7 @@ struct StridedPtr
         return p;
     }
     AMREX_GPU_HOST_DEVICE
-    inline P comp (int n) const {
+    AMREX_INLINE P comp (int n) const {
         return p + n*nstride;
     }
 };
@@ -81,7 +81,7 @@ struct FabView
     long kstride;
     long nstride;
     AMREX_GPU_HOST_DEVICE
-    inline T& operator() (int i, int j, int k, int n=0) const {
+    AMREX_INLINE T& operator() (int i, int j, int k, int n=0) const {
         return *(p + (i+j*jstride+k*kstride+n*nstride));
     }
 };
