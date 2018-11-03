@@ -3247,6 +3247,7 @@ contains
     integer :: i,j,k,ii,jj,kk
     real(amrex_real) :: w1m, w1p, w2m ,w2p, wmm, wpm, wmp, wpp
     real(amrex_real) :: wmmm, wpmm, wmpm, wppm, wmmp, wpmp, wmpp, wppp
+    real(amrex_real) :: sten_lo, sten_hi
 
     do k = lo(3), hi(3)
        kk = 2*k
@@ -3259,47 +3260,117 @@ contains
 
                 crse(i,j,k) = fine(ii,jj,kk)
 
-                if (sten(ii-2,jj,kk,ist_p00).eq.0.d0 .and. sten(ii-1,jj,kk,ist_p00).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj,kk)
+                ! *******************************************************************************************************
+
+                ! sten_lo = abs(sten(ii-2,jj,kk,ist_p00))
+                ! sten_hi = abs(sten(ii-1,jj,kk,ist_p00))
+
+                sten_lo = abs(sten(ii-2,jj,kk,ist_p00)) + abs(sten(ii-2,jj,kk,ist_p0p)) + abs(sten(ii-2,jj,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii-2,jj,kk,ist_pp0)) + abs(sten(ii-2,jj-1,kk,ist_pp0)) 
+                sten_hi = abs(sten(ii-1,jj,kk,ist_p00)) + abs(sten(ii-1,jj,kk,ist_p0p)) + abs(sten(ii-1,jj,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii-1,jj,kk,ist_pp0)) + abs(sten(ii-1,jj-1,kk,ist_pp0)) 
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii-1,jj,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk)*abs(sten(ii-1,jj,kk,ist_p00)) &
-                        / (abs(sten(ii-2,jj,kk,ist_p00))+abs(sten(ii-1,jj,kk,ist_p00)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk) * sten_hi / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk,ist_p00).eq.0.d0 .and. sten(ii+1,jj,kk,ist_p00).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj,kk)
+                ! *******************************************************************************************************
+
+                ! sten_lo = abs(sten(ii  ,jj,kk,ist_p00))
+                ! sten_hi = abs(sten(ii+1,jj,kk,ist_p00))
+
+                sten_lo = abs(sten(ii  ,jj,kk,ist_p00)) + abs(sten(ii  ,jj,kk,ist_p0p)) + abs(sten(ii  ,jj  ,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii  ,jj,kk,ist_pp0)) + abs(sten(ii  ,jj-1,kk  ,ist_pp0)) 
+                sten_hi = abs(sten(ii+1,jj,kk,ist_p00)) + abs(sten(ii+1,jj,kk,ist_p0p)) + abs(sten(ii+1,jj  ,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii+1,jj,kk,ist_pp0)) + abs(sten(ii+1,jj-1,kk  ,ist_pp0)) 
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii+1,jj,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk)*abs(sten(ii,jj,kk,ist_p00)) &
-                        / (abs(sten(ii,jj,kk,ist_p00))+abs(sten(ii+1,jj,kk,ist_p00))) 
+                   crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk) * sten_lo / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj-2,kk,ist_0p0).eq.0.d0 .and. sten(ii,jj-1,kk,ist_0p0).eq.0.d0) then
-                   crse(i,j,k) = crse(i,j,k) + 0.50*fine(ii,jj-1,kk)
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj-1,kk)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj-2,kk,ist_0p0)) + abs(sten(ii,jj-2,kk,ist_0pp)) + abs(sten(ii  ,jj-2,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj-2,kk,ist_pp0)) + abs(sten(ii-1,jj-2,kk  ,ist_pp0)) 
+                sten_hi = abs(sten(ii,jj-1,kk,ist_0p0)) + abs(sten(ii,jj-1,kk,ist_0pp)) + abs(sten(ii  ,jj-1,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj-1,kk,ist_pp0)) + abs(sten(ii-1,jj-1,kk  ,ist_pp0)) 
+
+                ! sten_lo = abs(sten(ii,jj-2,kk,ist_0p0))
+                ! sten_hi = abs(sten(ii,jj-1,kk,ist_0p0))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
+                   crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj-1,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk)*abs(sten(ii,jj-1,kk,ist_0p0)) &
-                        / (abs(sten(ii,jj-2,kk,ist_0p0))+abs(sten(ii,jj-1,kk,ist_0p0)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk) * sten_hi / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk,ist_0p0).eq.0.d0 .and. sten(ii,jj+1,kk,ist_0p0).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj+1,kk)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj  ,kk,ist_0p0)) + abs(sten(ii,jj  ,kk,ist_0pp)) + abs(sten(ii  ,jj  ,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj  ,kk,ist_pp0)) + abs(sten(ii-1,jj  ,kk  ,ist_pp0)) 
+                sten_hi = abs(sten(ii,jj+1,kk,ist_0p0)) + abs(sten(ii,jj+1,kk,ist_0pp)) + abs(sten(ii  ,jj+1,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj+1,kk,ist_pp0)) + abs(sten(ii-1,jj+1,kk  ,ist_pp0)) 
+
+                ! sten_lo = abs(sten(ii,jj  ,kk,ist_0p0))
+                ! sten_hi = abs(sten(ii,jj+1,kk,ist_0p0))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj+1,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk)*abs(sten(ii,jj,kk,ist_0p0)) &
-                        / (abs(sten(ii,jj,kk,ist_0p0))+abs(sten(ii,jj+1,kk,ist_0p0)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk) * sten_lo / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk-2,ist_00p).eq.0.d0 .and. sten(ii,jj,kk-1,ist_00p).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj,kk-1)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj,kk-2,ist_00p)) + abs(sten(ii,jj,kk-2,ist_0pp)) + abs(sten(ii  ,jj-1,kk-2,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk-2,ist_p0p)) + abs(sten(ii-1,jj  ,kk-2,ist_p0p)) 
+                sten_hi = abs(sten(ii,jj,kk-1,ist_00p)) + abs(sten(ii,jj,kk-1,ist_0pp)) + abs(sten(ii  ,jj-1,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk-1,ist_p0p)) + abs(sten(ii-1,jj  ,kk-1,ist_p0p)) 
+
+                ! sten_lo = abs(sten(ii,jj,kk-2,ist_00p))
+                ! sten_hi = abs(sten(ii,jj,kk-1,ist_00p))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj,kk-1)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk-1)*abs(sten(ii,jj,kk-1,ist_00p)) &
-                        / (abs(sten(ii,jj,kk-2,ist_00p))+abs(sten(ii,jj,kk-1,ist_00p)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk-1)*sten_hi / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk,ist_00p).eq.0.d0 .and. sten(ii,jj,kk+1,ist_00p).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj,kk+1)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj,kk  ,ist_00p)) + abs(sten(ii,jj,kk  ,ist_0pp)) + abs(sten(ii  ,jj-1,kk  ,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk  ,ist_p0p)) + abs(sten(ii-1,jj  ,kk  ,ist_p0p)) 
+                sten_hi = abs(sten(ii,jj,kk+1,ist_00p)) + abs(sten(ii,jj,kk+1,ist_0pp)) + abs(sten(ii  ,jj-1,kk+1,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk+1,ist_p0p)) + abs(sten(ii-1,jj  ,kk+1,ist_p0p)) 
+
+                ! sten_lo = abs(sten(ii,jj,kk  ,ist_00p))
+                ! sten_hi = abs(sten(ii,jj,kk+1,ist_00p))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj,kk+1)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk+1)*abs(sten(ii,jj,kk,ist_00p)) &
-                        / (abs(sten(ii,jj,kk,ist_00p))+abs(sten(ii,jj,kk+1,ist_00p)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk+1)*sten_lo  / (sten_lo + sten_hi)
                 end if
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj-1,kk)
+                ! *******************************************************************************************************
 
                 ! keven
                 w1m = abs(sten(ii-2,jj-1,kk,ist_p00)) / (abs(sten(ii-2,jj-2,kk,ist_pp0)) &
@@ -3316,6 +3387,10 @@ contains
                 wpp = abs(sten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj-1,kk)*wpp/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj-1,kk)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii  ,jj-1,kk,ist_p00)) / (abs(sten(ii  ,jj-2,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps)
                 w1p = abs(sten(ii+1,jj-1,kk,ist_p00)) / (abs(sten(ii+1,jj-2,kk,ist_pp0)) &
@@ -3329,6 +3404,10 @@ contains
                 wmp = abs(sten(ii  ,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
                 wpp = abs(sten(ii+1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj-1,kk)*wmp/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine(i-1,jj+1,kk)
+                ! *******************************************************************************************************
 
                 w1m = abs(sten(ii-2,jj+1,kk,ist_p00)) / (abs(sten(ii-2,jj  ,kk,ist_pp0)) &
                      &                                  +abs(sten(ii-2,jj+1,kk,ist_pp0)) + eps)
@@ -3344,6 +3423,10 @@ contains
                 wpp = abs(sten(ii-1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj+1,kk)*wpm/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(i+1,jj+1,kk)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii  ,jj+1,kk,ist_p00)) / (abs(sten(ii  ,jj+1,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps)
                 w1p = abs(sten(ii+1,jj+1,kk,ist_p00)) / (abs(sten(ii+1,jj+1,kk,ist_pp0)) &
@@ -3357,6 +3440,10 @@ contains
                 wmp = abs(sten(ii  ,jj+1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
                 wpp = abs(sten(ii+1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj+1,kk)*wmm/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj,kk-1)
+                ! *******************************************************************************************************
 
                 ! jeven
                 w1m = abs(sten(ii-2,jj,kk-1,ist_p00)) / (abs(sten(ii-2,jj,kk-2,ist_p0p)) &
@@ -3373,6 +3460,10 @@ contains
                 wpp = abs(sten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj,kk-1)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii  ,jj,kk-1,ist_p00)) / (abs(sten(ii  ,jj,kk-2,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps)
                 w1p = abs(sten(ii+1,jj,kk-1,ist_p00)) / (abs(sten(ii+1,jj,kk-2,ist_p0p)) &
@@ -3386,6 +3477,10 @@ contains
                 wmp = abs(sten(ii  ,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2p)
                 wpp = abs(sten(ii+1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj,kk+1)
+                ! *******************************************************************************************************
 
                 w1m = abs(sten(ii-2,jj,kk+1,ist_p00)) / (abs(sten(ii-2,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii-2,jj,kk  ,ist_p0p)) + eps)
@@ -3401,6 +3496,10 @@ contains
                 wpp = abs(sten(ii-1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj,kk+1)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii  ,jj,kk+1,ist_p00)) / (abs(sten(ii  ,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps)
                 w1p = abs(sten(ii+1,jj,kk+1,ist_p00)) / (abs(sten(ii+1,jj,kk+1,ist_p0p)) &
@@ -3414,6 +3513,10 @@ contains
                 wmp = abs(sten(ii  ,jj,kk+1,ist_p0p)) * (1.d0 + w1m + w2p)
                 wpp = abs(sten(ii+1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj-1,kk-1)
+                ! *******************************************************************************************************
 
                 ! ieven
                 w1m = abs(sten(ii,jj-2,kk-1,ist_0p0)) / (abs(sten(ii,jj-2,kk-2,ist_0pp)) &
@@ -3430,6 +3533,10 @@ contains
                 wpp = abs(sten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj+1,kk-1)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii,jj  ,kk-1,ist_0p0)) / (abs(sten(ii,jj  ,kk-2,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps)
                 w1p = abs(sten(ii,jj+1,kk-1,ist_0p0)) / (abs(sten(ii,jj+1,kk-2,ist_0pp)) &
@@ -3445,6 +3552,10 @@ contains
 
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj-1,kk+1)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii,jj-2,kk+1,ist_0p0)) / (abs(sten(ii,jj-2,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-2,kk  ,ist_0pp)) + eps)
                 w1p = abs(sten(ii,jj-1,kk+1,ist_0p0)) / (abs(sten(ii,jj-1,kk+1,ist_0pp)) &
@@ -3459,6 +3570,10 @@ contains
                 wpp = abs(sten(ii,jj-1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps)
 
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj+1,kk+1)
+                ! *******************************************************************************************************
+
                 w1m = abs(sten(ii,jj  ,kk+1,ist_0p0)) / (abs(sten(ii,jj  ,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps)
                 w1p = abs(sten(ii,jj+1,kk+1,ist_0p0)) / (abs(sten(ii,jj+1,kk+1,ist_0pp)) &
@@ -3472,6 +3587,10 @@ contains
                 wmp = abs(sten(ii,jj  ,kk+1,ist_0pp)) * (1.d0 + w1m + w2p)
                 wpp = abs(sten(ii,jj+1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine at corners
+                ! *******************************************************************************************************
 
                 wmmm = 1.d0 &
                      +   abs(sten(ii  ,jj+1,kk+1,ist_p00)) / &
