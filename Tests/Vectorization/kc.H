@@ -61,22 +61,26 @@ void SIMDORNOT(ctoprim_c)
         for     (int j = 0; j < len[1]; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len[0]; ++i) {
-                q(i,j,k,QRHO) = (u(i,j,k,URHO) > smallr)
-                               ? u(i,j,k,URHO) : smallr;
-                Real rhoinv = 1.0/q(i,j,k,QRHO);
-                q(i,j,k,QU) = u(i,j,k,UMX)*rhoinv;
-                q(i,j,k,QV) = u(i,j,k,UMY)*rhoinv;
-                q(i,j,k,QW) = u(i,j,k,UMZ)*rhoinv;
-                Real kineng = 0.5*q(i,j,k,QRHO)*(q(i,j,k,QU)*q(i,j,k,QU)
-                                               + q(i,j,k,QV)*q(i,j,k,QV)
-                                               + q(i,j,k,QW)*q(i,j,k,QW));
-                q(i,j,k,QEINT) = (u(i,j,k,UEDEN) <= kineng)
-                                ? u(i,j,k,UEINT)*rhoinv
-                                : (u(i,j,k,UEDEN)-kineng)*rhoinv;
-                q(i,j,k,QPRES) = (gamma-1.0)*u(i,j,k,UEINT);
-                q(i,j,k,QPRES) = (q(i,j,k,QPRES) > smallp)
-                                ? q(i,j,k,QPRES) : smallp;
-                q(i,j,k,QCS) = std::sqrt(gamma*q(i,j,k,QPRES)*rhoinv);
+                Real rho = u(i,j,k,URHO);
+                rho = (rho > smallr) ? rho : smallr;
+                Real rhoinv = 1.0/rho;
+                Real ux = u(i,j,k,UMX)*rhoinv;
+                Real uy = u(i,j,k,UMY)*rhoinv;
+                Real uz = u(i,j,k,UMZ)*rhoinv;
+                Real kineng = 0.5*rho*(ux*ux+uy*uy+uz*uz);
+                Real ei = u(i,j,k,UEDEN) - kineng;
+                if (ei <= 0.0) ei = u(i,j,k,UEINT);
+                Real p = (gamma-1.0)*ei;
+                p = (p > smallp) ? p : smallp;
+                ei *= rhoinv;
+
+                q(i,j,k,QRHO) = rho;
+                q(i,j,k,QU) = ux;
+                q(i,j,k,QV) = uy;
+                q(i,j,k,QW) = uz;
+                q(i,j,k,QEINT) = ei;
+                q(i,j,k,QPRES) = p;
+                q(i,j,k,QCS) = std::sqrt(gamma*p*rhoinv);
                 q(i,j,k,QTEMP) = 0.0;
             }
         }
