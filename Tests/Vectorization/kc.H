@@ -8,11 +8,12 @@ void SIMDORNOT(flux_to_dudt_c)
      Array<Real,AMREX_SPACEDIM> const& dxinv)
 {
     const auto len = bx.length3d();
+    const auto lo  = bx.loVect3d();
     const int ncomp = dudtfab.nComp();
-    const auto dudt = dudtfab.view(bx);
-    const auto fx   =   fxfab.view(bx);
-    const auto fy   =   fyfab.view(bx);
-    const auto fz   =   fzfab.view(bx);
+    const auto dudt = dudtfab.view(lo);
+    const auto fx   =   fxfab.view(lo);
+    const auto fy   =   fyfab.view(lo);
+    const auto fz   =   fzfab.view(lo);
 
     for (int n = 0; n < 5; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
@@ -32,8 +33,9 @@ void SIMDORNOT(ctoprim_c)
     (Box const& bx, FArrayBox const& ufab, FArrayBox & qfab)
 {
     const auto len = bx.length3d();
-    const auto u = ufab.view(bx);
-    const auto q = qfab.view(bx);
+    const auto lo  = bx.loVect3d();
+    const auto u = ufab.view(lo);
+    const auto q = qfab.view(lo);
     const Real smallr = 1.e-19;
     const Real smallp = 1.e-10;
     const Real gamma = 1.4;
