@@ -659,6 +659,10 @@ public:
         }
     }
 
+    AMREX_GPU_HOST_DEVICE friend AMREX_INLINE Dim3 lbound (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_INLINE Dim3 ubound (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_INLINE Dim3 length (Box const& box);
+
 private:
     IntVect         smallend;
     IntVect         bigend;
@@ -1177,6 +1181,44 @@ void AllGatherBoxes (Vector<Box>& bxs);
     //! Read from istream.
     std::istream& operator>> (std::istream& os, Box& bx);
 
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 lbound (Box const& box)
+    {
+#if (AMREX_SPACEDIM == 1)
+        return {box.smallend[0], 0, 0};
+#elif (AMREX_SPACEDIM == 2)
+        return {box.smallend[0], box.smallend[1], 0};
+#elif (AMREX_SPACEDIM == 3)
+        return {box.smallend[0], box.smallend[1], box.smallend[2]};
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 ubound (Box const& box)
+    {
+#if (AMREX_SPACEDIM == 1)
+        return {box.bigend[0], 0, 0};
+#elif (AMREX_SPACEDIM == 2)
+        return {box.bigend[0], box.bigend[1], 0};
+#elif (AMREX_SPACEDIM == 3)
+        return {box.bigend[0], box.bigend[1], box.bigend[2]};
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 length (Box const& box)
+    {
+#if (AMREX_SPACEDIM == 1)
+        return {box.bigend[0]-box.smallend[0]+1, 1, 1};
+#elif (AMREX_SPACEDIM == 2)
+        return {box.bigend[0]-box.smallend[0]+1,
+                box.bigend[1]-box.smallend[1]+1, 1};
+#elif (AMREX_SPACEDIM == 3)
+        return {box.bigend[0]-box.smallend[0]+1,
+                box.bigend[1]-box.smallend[1]+1,
+                box.bigend[2]-box.smallend[2]+1};
+#endif
+    }
 }
 
 #endif /*BL_BOX_H*/

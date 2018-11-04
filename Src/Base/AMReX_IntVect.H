@@ -17,6 +17,8 @@
 
 namespace amrex {
 
+struct Dim3 { int x; int y; int z; };
+
 /**
 * An Integer Vector in SPACEDIM-Dimensional Space
 *
