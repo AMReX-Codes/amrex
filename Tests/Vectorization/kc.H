@@ -5,7 +5,7 @@ void SIMDORNOT(flux_to_dudt_c)
      FArrayBox const& fxfab,
      FArrayBox const& fyfab,
      FArrayBox const& fzfab,
-     Array<Real,AMREX_SPACEDIM> const& dxinv)
+     Array<Real,AMREX_SPACEDIM> const& a_dxinv)
 {
     const auto len = bx.length3d();
     const auto lo  = bx.loVect3d();
@@ -14,15 +14,18 @@ void SIMDORNOT(flux_to_dudt_c)
     const auto fx   =   fxfab.view(lo);
     const auto fy   =   fyfab.view(lo);
     const auto fz   =   fzfab.view(lo);
+    const Real dxinv = a_dxinv[0];
+    const Real dyinv = a_dxinv[1];
+    const Real dzinv = a_dxinv[2];
 
     for (int n = 0; n < 7; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = 0; i < len[0]; ++i) {
-                    dudt(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
-                        +           dxinv[1] * (fy(i,j,k,n) - fy(i,j+1,k,n))
-                        +           dxinv[2] * (fz(i,j,k,n) - fz(i,j,k+1,n));
+                    dudt(i,j,k,n) = dxinv * (fx(i,j,k,n) - fx(i+1,j,k,n))
+                        +           dyinv * (fy(i,j,k,n) - fy(i,j+1,k,n))
+                        +           dzinv * (fz(i,j,k,n) - fz(i,j,k+1,n));
                 }
             }
         }
