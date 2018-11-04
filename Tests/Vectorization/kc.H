@@ -7,8 +7,8 @@ void SIMDORNOT(flux_to_dudt_c)
      FArrayBox const& fzfab,
      Array<Real,AMREX_SPACEDIM> const& a_dxinv)
 {
-    const auto len = bx.length3d();
-    const auto lo  = bx.loVect3d();
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
     const int ncomp = dudtfab.nComp();
     const auto dudt = dudtfab.view(lo);
     const auto fx   =   fxfab.view(lo);
@@ -19,10 +19,10 @@ void SIMDORNOT(flux_to_dudt_c)
     const Real dzinv = a_dxinv[2];
 
     for (int n = 0; n < 7; ++n) {
-        for         (int k = 0; k < len[2]; ++k) {
-            for     (int j = 0; j < len[1]; ++j) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
                 AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len[0]; ++i) {
+                for (int i = 0; i < len.x; ++i) {
                     dudt(i,j,k,n) = dxinv * (fx(i,j,k,n) - fx(i+1,j,k,n))
                         +           dyinv * (fy(i,j,k,n) - fy(i,j+1,k,n))
                         +           dzinv * (fz(i,j,k,n) - fz(i,j,k+1,n));
@@ -35,8 +35,8 @@ void SIMDORNOT(flux_to_dudt_c)
 void SIMDORNOT(ctoprim_c)
     (Box const& bx, FArrayBox const& ufab, FArrayBox & qfab)
 {
-    const auto len = bx.length3d();
-    const auto lo  = bx.loVect3d();
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
     const auto u = ufab.view(lo);
     const auto q = qfab.view(lo);
     const Real smallr = 1.e-19;
@@ -60,10 +60,10 @@ void SIMDORNOT(ctoprim_c)
     const int QEINT  = 6;
     const int QTEMP  = 7;
 
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len[0]; ++i) {
+            for (int i = 0; i < len.x; ++i) {
                 Real rho = u(i,j,k,URHO);
                 rho = (rho > smallr) ? rho : smallr;
                 Real rhoinv = 1.0/rho;

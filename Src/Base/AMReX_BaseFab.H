@@ -451,6 +451,48 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
+    StridedPtr<T const*> stridedPtr (const Dim3& slo, int n = 0) const
+    {
+        const auto len = amrex::length(this->domain);
+        const auto dlo = amrex::lbound(this->domain);
+        long jstride = len.x;
+        long kstride = jstride*len.y;
+        long nstride = kstride*len.z;
+        T const* p = this->dptr + ((slo.x-dlo.x)
+                                +  (slo.y-dlo.y)*jstride
+                                +  (slo.z-dlo.z)*kstride
+                                +              n*nstride);
+#ifdef AMREX_DEBUG
+        return StridedPtr<T const*>{p, jstride, kstride, nstride,
+                len.x-slo.x,len.y-slo.y,len.z-slo.z,this->nvar-n};
+#else
+        return StridedPtr<T const*>{p, jstride, kstride, nstride};
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
+    StridedPtr<T*> stridedPtr (const Dim3& slo, int n = 0)
+    {
+        const auto len = amrex::length(this->domain);
+        const auto dlo = amrex::lbound(this->domain);
+        long jstride = len.x;
+        long kstride = jstride*len.y;
+        long nstride = kstride*len.z;
+        T* p = this->dptr + ((slo.x-dlo.x)
+                          +  (slo.y-dlo.y)*jstride
+                          +  (slo.z-dlo.z)*kstride
+                          +              n*nstride);
+#ifdef AMREX_DEBUG
+        return StridedPtr<T*>{p, jstride, kstride, nstride,
+                len.x-slo.x,len.y-slo.y,len.z-slo.z,this->nvar-n};
+#else
+        return StridedPtr<T*>{p, jstride, kstride, nstride};
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
     FabView<T const> view (int n = 0) const
     {
         return view(this->domain.loVect3d(),n);
@@ -540,6 +582,48 @@ public:
 #ifdef AMREX_DEBUG
         return FabView<T>{p, jstride, kstride, nstride,
                 len[0]-slo[0],len[1]-slo[1],len[2]-slo[2],this->nvar-n};
+#else
+        return FabView<T>{p, jstride, kstride, nstride};
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
+    FabView<T const> view (const Dim3& slo, int n = 0) const
+    {
+        const auto len = amrex::length(this->domain);
+        const auto dlo = amrex::lbound(this->domain);
+        long jstride = len.x;
+        long kstride = jstride*len.y;
+        long nstride = kstride*len.z;
+        T const* p = this->dptr + ((slo.x-dlo.x)
+                                +  (slo.y-dlo.y)*jstride
+                                +  (slo.z-dlo.z)*kstride
+                                +              n*nstride);
+#ifdef AMREX_DEBUG
+        return FabView<T const>{p, jstride, kstride, nstride,
+                len.x-slo.x,len.y-slo.y,len.z-slo.z,this->nvar-n};
+#else
+        return FabView<T const>{p, jstride, kstride, nstride};
+#endif
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
+    FabView<T> view (const Dim3& slo, int n = 0)
+    {
+        const auto len = amrex::length(this->domain);
+        const auto dlo = amrex::lbound(this->domain);
+        long jstride = len.x;
+        long kstride = jstride*len.y;
+        long nstride = kstride*len.z;
+        T* p = this->dptr + ((slo.x-dlo.x)
+                          +  (slo.y-dlo.y)*jstride
+                          +  (slo.z-dlo.z)*kstride
+                          +              n*nstride);
+#ifdef AMREX_DEBUG
+        return FabView<T>{p, jstride, kstride, nstride,
+                len.x-slo.x,len.y-slo.y,len.z-slo.z,this->nvar-n};
 #else
         return FabView<T>{p, jstride, kstride, nstride};
 #endif
