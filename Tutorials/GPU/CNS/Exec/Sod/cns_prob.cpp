@@ -16,11 +16,11 @@ extern "C" {
 
 AMREX_GPU_DEVICE
 void
-cns_initdata (Box const& bx, FArrayBox& state, GeometryData const& geomdata)
+cns_initdata (Box const& bx, FArrayBox& statefab, GeometryData const& geomdata)
 {
-    const auto dp0 = state.stridedPtr(bx);
     const auto len = bx.length3d();
     const auto lo  = bx.loVect3d();
+    const auto state = statefab.view(lo);
     const Real* prob_lo = geomdata.ProbLo();
     const Real* dx      = geomdata.CellSize();
 
@@ -28,6 +28,7 @@ cns_initdata (Box const& bx, FArrayBox& state, GeometryData const& geomdata)
 
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
+            AMREX_PRAGMA_SIMD
             for (int i = 0; i < len[0]; ++i) {
                 Real x = prob_lo[0] + (i+lo[0]+0.5)*dx[0];
                 Real Pt, rhot, uxt;
@@ -40,21 +41,14 @@ cns_initdata (Box const& bx, FArrayBox& state, GeometryData const& geomdata)
                     rhot = 0.125;
                     uxt = 0.0;
                 }
-                Real* AMREX_RESTRICT rho = dp0(i,j,k,URHO);
-                Real* AMREX_RESTRICT mx  = dp0(i,j,k,UMX);
-                Real* AMREX_RESTRICT my  = dp0(i,j,k,UMY);
-                Real* AMREX_RESTRICT mz  = dp0(i,j,k,UMY);
-                Real* AMREX_RESTRICT ei  = dp0(i,j,k,UEINT);
-                Real* AMREX_RESTRICT ed  = dp0(i,j,k,UEDEN);
-                Real* AMREX_RESTRICT T   = dp0(i,j,k,UTEMP);
-
-                *rho = rhot;
-                *mx  = rhot*uxt;
-                *my  = 0.0;
-                *mz  = 0.0;
-                *ei  = Pt/(gamma-1.0);
-                *ed  = (*ei) + 0.5*rhot*uxt*uxt;
-                *T   = 0.0;
+                state(i,j,k,URHO ) = rhot;
+                state(i,j,k,UMX  ) = rhot*uxt;
+                state(i,j,k,UMY  ) = 0.0;
+                state(i,j,k,UMY  ) = 0.0;
+                Real et = Pt/(gamma-1.0);
+                state(i,j,k,UEINT) = et;
+                state(i,j,k,UEDEN) = et + 0.5*rhot*uxt*uxt;
+                state(i,j,k,UTEMP) = 0.0;
             }
         }
     }

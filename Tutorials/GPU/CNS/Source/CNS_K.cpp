@@ -9,11 +9,12 @@ using namespace amrex;
 
 AMREX_GPU_DEVICE
 Real
-cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& state,
+cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
            GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    const auto dp0 = state.stridedPtr(bx);
     const auto len = bx.length3d();
+    const auto lo  = bx.loVect3d();
+    const auto state = statefab.view(lo);
     Real dt = std::numeric_limits<Real>::max();
     const Real smallr = 1.e-19;
     const Real smallp = 1.e-10;
@@ -22,11 +23,11 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& state,
     for         (int k = 0; k < len[2]; ++k) {
         for     (int j = 0; j < len[1]; ++j) {
             for (int i = 0; i < len[0]; ++i) {
-                Real rho = *dp0(i,j,k,URHO);
-                Real mx  = *dp0(i,j,k,UMX);
-                Real my  = *dp0(i,j,k,UMY);
-                Real mz  = *dp0(i,j,k,UMY);
-                Real ei  = *dp0(i,j,k,UEINT);
+                Real rho = state(i,j,k,URHO);
+                Real mx  = state(i,j,k,UMX);
+                Real my  = state(i,j,k,UMY);
+                Real mz  = state(i,j,k,UMY);
+                Real ei  = state(i,j,k,UEINT);
                 Real rhoinv = 1.0/((rho > smallr) ? rho : smallr);
                 Real vx = mx*rhoinv;
                 Real vy = my*rhoinv;

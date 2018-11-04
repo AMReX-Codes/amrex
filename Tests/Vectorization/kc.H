@@ -15,7 +15,7 @@ void SIMDORNOT(flux_to_dudt_c)
     const auto fy   =   fyfab.view(lo);
     const auto fz   =   fzfab.view(lo);
 
-    for (int n = 0; n < 5; ++n) {
+    for (int n = 0; n < 7; ++n) {
         for         (int k = 0; k < len[2]; ++k) {
             for     (int j = 0; j < len[1]; ++j) {
                 AMREX_PRAGMA_SIMD
