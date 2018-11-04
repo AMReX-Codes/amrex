@@ -38,7 +38,7 @@
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
 
 #elif defined(__PGI)
-#define AMREX_PRAGMA_SIMD _Pragma("vector")
+#define AMREX_PRAGMA_SIMD _Pragma("loop ivdep")
 
 #elif defined(__NEC__)
 #define AMREX_PRAGMA_SIMD 
