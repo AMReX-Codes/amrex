@@ -41,20 +41,24 @@ subroutine err_phi(lo, hi, phi, philo, phihi, dx, prob_lo, prob_hi,a,d,r,time) b
   real(amrex_real), intent(in   ) :: time
 
   integer          :: i,j
-  double precision :: x,y,sym,tupi
+  double precision :: x,y,sym,tupi, maxphi
 
   tupi=3.14159265358979323846d0*2d0
-  !  Form the diffusion coefficient that the 2nd order Laplacian produces
+
+  !  Form the diffusion coefficient for the 2nd order Laplacian produces
   sym=d*(-2.0d0+2.0d0*cos(tupi*dx(1)))/(dx(1)*dx(1))
   sym=sym+d*(-2.0d0+2.0d0*cos(tupi*dx(2)))/(dx(2)*dx(2))
   sym=sym-r    !  Add reaction
 
+  maxphi=-1.0
   do j = lo(2), hi(2)
      y = prob_lo(2) + (dble(j)+0.5d0) * dx(2) +a*time
      do i = lo(1), hi(1)
         x = prob_lo(1) + (dble(i)) * dx(1) + a*time
         phi(i,j) = phi(i,j)-sin(x*tupi)*sin(y*tupi)*exp(time*sym)
+        if (abs(phi(i,j)) .gt. maxphi) maxphi=abs(phi(i,j))
      end do
   end do
 
+  print *,'max error in phi=',maxphi
 end subroutine err_phi

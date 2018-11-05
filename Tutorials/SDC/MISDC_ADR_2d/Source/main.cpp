@@ -17,15 +17,16 @@ int main (int argc, char* argv[])
 
 void main_main ()
 {
-    // What time is it now?  We'll use this to compute total run time.
     Real a;  // advection coef.
     Real d;  // diffusion coef.
     Real r;   // reaction coef. 
+
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, Nsteps, plot_int;
     Vector<int> bc_lo(AMREX_SPACEDIM,0);
     Vector<int> bc_hi(AMREX_SPACEDIM,0);
 
+    // What time is it now?  We'll use this to compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
     // ParmParse is way of reading inputs from the inputs file
@@ -42,8 +43,11 @@ void main_main ()
     //  If plot_int < 0 then no plot files will be writtenq
     plot_int = -1;
     pp.query("plot_int",plot_int);
+
+    // Set  plot_err = 1 to  output the error to plot files instead of the solution
+    int plot_err = 1;
     
-    // Read in number of steps and final tim
+    // Read in number of steps and final time
     pp.query("Nsteps",Nsteps);
     Real Tfin=0.0;
     pp.query("Tfin",Tfin);    
@@ -103,7 +107,7 @@ void main_main ()
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
-    // Initialize phi_new by calling a Fortran routine.
+    // Initialize phi_new by calling a Fortran routine (init_phi_2d.f90).
     // MFIter = MultiFab Iterator
     for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
     {
@@ -148,10 +152,14 @@ void main_main ()
     }
 
     // Make an SDC structure
-    int Nnodes=5;
-    int Npieces=3;
+    int Nnodes=5;  // Default to 8th order
+    int Npieces=3; // Default is full MISDC
+    int Nsweeps=2*Nnodes-2;
+    pp.get("Nnodes",Nnodes);
+    pp.get("Npieces",Npieces);
+    //    pp.get("Nsweeps",Nsweeps);            
     SDCstruct SDCmats(Nnodes,Npieces,phi_old);
-    SDCmats.Nsweeps =8;  // Number of SDC sweeps per time step
+    SDCmats.Nsweeps =Nsweeps;  // Number of SDC sweeps per time step
     
     const Real* dx = geom.CellSize();
     
@@ -253,7 +261,6 @@ void main_main ()
       MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);    
       
       
-      int plot_err = 1;
       if (plot_err == 1)  // Turn the solution into the error
 	for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
 	  {
