@@ -8,7 +8,7 @@
 #include <AMReX_EB2.H>
 
 #if(AMREX_SPACEDIM == 3)
-#include <Algoim_integrals.H>
+#include <AMReX_algoim_integrals.H>
 #endif
 
 using namespace amrex;

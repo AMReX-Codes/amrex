@@ -11,7 +11,7 @@
 
 #include <AMReX_MLNodeLap_F.H>
 
-#include "Algoim_integrals.H"
+#include "AMReX_algoim_integrals.H"
 
 #ifdef _OPENMP
 #include <omp.h>
