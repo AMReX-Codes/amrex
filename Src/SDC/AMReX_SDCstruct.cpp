@@ -11,10 +11,10 @@ SDCstruct::SDCstruct(int Nnodes_in,int Npieces_in, MultiFab& sol_in)
   Qall= new Real[4*(Nnodes-1)*Nnodes];  
   Nflags= new int[Nnodes];
 
-  Qgauss.resize(Nnodes, Vector<Real>(Nnodes-1));
-  Qexp.resize(Nnodes, Vector<Real>(Nnodes-1));
-  Qimp.resize(Nnodes, Vector<Real>(Nnodes-1));
-  QLU.resize(Nnodes, Vector<Real>(Nnodes-1));  
+  Qgauss.resize(Nnodes-1, Vector<Real>(Nnodes));
+  Qexp.resize(Nnodes-1, Vector<Real>(Nnodes));
+  Qimp.resize(Nnodes-1, Vector<Real>(Nnodes));
+  QLU.resize(Nnodes-1, Vector<Real>(Nnodes));  
 
   //  Make the quadrature tables
   SDC_quadrature(&qtype, &Nnodes, &Nnodes,qnodes,Nflags, &Qall[0]);  
