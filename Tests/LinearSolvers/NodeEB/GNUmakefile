@@ -32,14 +32,18 @@ USE_ALGOIM = FALSE
 endif
 
 ifeq ($(USE_ALGOIM),TRUE)
-    ALGOIM_HOME ?= $(AMREX_HOME)/Src/Extern/Algoim
+    ALGOIM_HOME ?= /path/to/algoim
     BLITZ_HOME  ?= /path/to/blitz
-    Pdirs += Extern/Algoim
-    INCLUDE_LOCATIONS += $(ALGOIM_HOME)
+    INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/Algoim
     INCLUDE_LOCATIONS += $(ALGOIM_HOME)/src
     INCLUDE_LOCATIONS += $(BLITZ_HOME)/include
-    VPATH_LOCATIONS   += $(ALGOIM_HOME)
+    VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/Algoim
+    VPATH_LOCATIONS   += $(ALGOIM_HOME)/src
     DEFINES += -DUSE_ALGOIM
+endif
+
+ifeq ($(USE_ALGOIM),TRUE)
+    Pdirs += Extern/Algoim
 endif
 
 ifeq ($(USE_HYPRE),TRUE)
