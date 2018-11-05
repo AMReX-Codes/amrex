@@ -18,19 +18,19 @@ AMREX_GPU_DEVICE
 void
 cns_initdata (Box const& bx, FArrayBox& statefab, GeometryData const& geomdata)
 {
-    const auto len = bx.length3d();
-    const auto lo  = bx.loVect3d();
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
     const auto state = statefab.view(lo);
     const Real* prob_lo = geomdata.ProbLo();
     const Real* dx      = geomdata.CellSize();
 
     const Real gamma = 1.4;
 
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len[0]; ++i) {
-                Real x = prob_lo[0] + (i+lo[0]+0.5)*dx[0];
+            for (int i = 0; i < len.x; ++i) {
+                Real x = prob_lo[0] + (i+lo.x+0.5)*dx[0];
                 Real Pt, rhot, uxt;
                 if (x < 0.5) {
                     Pt = 1.0;  // xxxxx parameterize them later

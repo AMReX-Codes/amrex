@@ -12,17 +12,17 @@ Real
 cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
            GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    const auto len = bx.length3d();
-    const auto lo  = bx.loVect3d();
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
     const auto state = statefab.view(lo);
     Real dt = std::numeric_limits<Real>::max();
     const Real smallr = 1.e-19;
     const Real smallp = 1.e-10;
     const Real gamma = 1.4;
 
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
-            for (int i = 0; i < len[0]; ++i) {
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
                 Real rho = state(i,j,k,URHO);
                 Real mx  = state(i,j,k,UMX);
                 Real my  = state(i,j,k,UMY);
