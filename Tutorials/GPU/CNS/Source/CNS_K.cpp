@@ -48,3 +48,26 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
     return dt;
 }
 
+
+AMREX_GPU_DEVICE
+void
+cns_compute_temperature (Box const& bx, FArrayBox& statefab)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto u = statefab.view(lo);
+
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                Real rhoinv = 1.0/u(i,j,k,URHO);
+                Real mx = u(i,j,k,UMX);
+                Real my = u(i,j,k,UMY);
+                Real mz = u(i,j,k,UMZ);
+                u(i,j,k,UEINT) = u(i,j,k,UEDEN) - 0.5 * rhoinv * (mx*mx+my*my+mz*mz);
+                u(i,j,k,UTEMP) = 0.0;
+            }
+        }
+    }
+}

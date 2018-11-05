@@ -380,27 +380,18 @@ CNS::computeTemp (MultiFab& State, int ng)
 {
     BL_PROFILE("CNS::computeTemp()");
 
-#if 0
-    // xxxxx todo
-    auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(State.Factory());
-    auto const& flags = fact.getMultiEBCellFlagFab();
-
     // This will reset Eint and compute Temperature 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(State,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-
-        const auto& sfab = State[mfi];
-        const auto& flag = flags[mfi];
-
-        if (flag.getType(bx) != FabType::covered) {
-            cns_compute_temperature(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(State[mfi]));
-        }
+        FArrayBox* sfab = &(State[mfi]);
+        AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+        {
+            cns_compute_temperature(tbx, *sfab);
+        });
     }
-#endif
 }
 
