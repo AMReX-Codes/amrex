@@ -17,7 +17,7 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
         auto tiling_1d = [](int i, int lo, int hi, int tilesize,
                             int& ntile, int& tileidx, int& tlo, int& thi) {
             int ncells = hi-lo+1;
-            ntile = utility::max(ncells/tilesize, 1);
+            ntile = amrex::max(ncells/tilesize, 1);
             int ts_right = ncells/ntile;
             int ts_left  = ts_right+1;
             int nleft = ncells - ntile*ts_right;
@@ -37,9 +37,9 @@ int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling,
         const IntVect& big   = box.bigEnd();
         IntVect ntiles, ivIndex, tilelo, tilehi;
 
-        AMREX_D_TERM(int iv0 = utility::min(utility::max(iv[0], small[0]), big[0]);,
-		     int iv1 = utility::min(utility::max(iv[1], small[1]), big[1]);,
-		     int iv2 = utility::min(utility::max(iv[2], small[2]), big[2]););
+        AMREX_D_TERM(int iv0 = amrex::min(amrex::max(iv[0], small[0]), big[0]);,
+		     int iv1 = amrex::min(amrex::max(iv[1], small[1]), big[1]);,
+		     int iv2 = amrex::min(amrex::max(iv[2], small[2]), big[2]););
 
         AMREX_D_TERM(tiling_1d(iv0, small[0], big[0], a_tile_size[0], ntiles[0], ivIndex[0], tilelo[0], tilehi[0]);,
 		     tiling_1d(iv1, small[1], big[1], a_tile_size[1], ntiles[1], ivIndex[1], tilelo[1], tilehi[1]);,
