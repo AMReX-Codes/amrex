@@ -19,6 +19,8 @@ namespace amrex {
 
 struct Dim3 { int x; int y; int z; };
 
+std::ostream& operator<< (std::ostream& os, const Dim3& d);
+
 /**
 * An Integer Vector in SPACEDIM-Dimensional Space
 *
