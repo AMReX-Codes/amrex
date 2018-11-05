@@ -7,27 +7,9 @@
 
 namespace amrex
 {
-  namespace utility
-  {
-    template<class T> 
-    AMREX_GPU_HOST_DEVICE
-    const T& min(const T& a, const T& b)
-    {
-      return (b < a) ? b : a;
-    }
-
-    template<class T>
-    AMREX_GPU_HOST_DEVICE
-    const T& max(const T& a, const T& b)
-    {
-      return (a < b) ? b : a;
-    }
-  }
-
   AMREX_GPU_HOST_DEVICE
   int getTileIndex (const IntVect& iv, const Box& box, const bool a_do_tiling, 
-		    const IntVect& a_tile_size, Box& tbx);
-  
+		    const IntVect& a_tile_size, Box& tbx);  
 }
 
 #endif // include guard
