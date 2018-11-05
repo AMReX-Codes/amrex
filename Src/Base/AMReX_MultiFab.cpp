@@ -970,20 +970,27 @@ MultiFab::minIndex (int comp,
 	Real priv_mn = std::numeric_limits<Real>::max();
 	IntVect priv_loc;
 
+        amrex::Gpu::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
+        Real* p = local_mn.dataPtr();
+
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-	    const Real lmn = get(mfi).min(bx,comp);
+            const FArrayBox* fab = &(get(mfi));
 
-//            get(mfi).minIndex(bx, priv_mn, priv_loc, comp);
-
-	    if (lmn < priv_mn)
-	    {
-		priv_mn  = lmn;
-		priv_loc = get(mfi).minIndex(bx,comp);
-	    }
-
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                // Where to add the atomics?
+                // How to return the IntVect?
+                const Real lmn = fab.min(tbx,comp);
+                if (lmn < priv_mn)
+                {
+                    priv_mn  = lmn;
+		    IntVect priv_loc = fab.minIndex(tbx,comp);
+                };
+	    });
 	}
+
 #ifdef _OPENMP
 #pragma omp critical (multifab_minindex)
 #endif
@@ -1214,12 +1221,12 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     int nthreads = 1;
 #endif
     // Device malloc'd copy of comps
-    const Cuda::DeviceVector<int> d_comps(comps.begin(), comps.end());
+    const Gpu::DeviceVector<int> d_comps(comps.begin(), comps.end());
     const int* dptr_comps = d_comps.dataPtr();
 
     // Host and Device copy of thread's results.
-    Vector<Cuda::HostVector<Real> > h_priv_nm0(nthreads, Vector<Real>(n, -rmax));
-    Vector<Cuda::DeviceVector<Real> > d_priv_nm0(nthreads, Vector<Real>(n, -rmax));
+    Vector<Gpu::HostVector<Real> > h_priv_nm0(nthreads, Vector<Real>(n, -rmax));
+    Vector<Gpu::DeviceVector<Real> > d_priv_nm0(nthreads, Vector<Real>(n, -rmax));
 
 #ifdef _OPENMP
 #pragma omp parallel if(Gpu::notInDeviceRegion())
@@ -1250,6 +1257,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
             }
         }
 
+// Cuda::copy( );
         thrust::copy(d_priv_nm0[tid].begin(), d_priv_nm0[tid].end(), h_priv_nm0[tid].begin());
 
 #ifdef _OPENMP
@@ -1317,12 +1325,12 @@ MultiFab::norm2 (const Vector<int>& comps) const
     int nthreads = 1;
 #endif
     // Device malloc'd copy of comps
-    const Cuda::DeviceVector<int> d_comps(comps.begin(), comps.end());
+    const Gpu::DeviceVector<int> d_comps(comps.begin(), comps.end());
     const int* dptr_comps = d_comps.dataPtr();
 
     // Host and Device copy of thread's results.
-    Vector<Cuda::HostVector<Real> > h_priv_nm2(nthreads, Vector<Real>(n, 0.0));
-    Vector<Cuda::DeviceVector<Real> > d_priv_nm2(nthreads, Vector<Real>(n, 0.0));
+    Vector<Gpu::HostVector<Real> > h_priv_nm2(nthreads, Vector<Real>(n, 0.0));
+    Vector<Gpu::DeviceVector<Real> > d_priv_nm2(nthreads, Vector<Real>(n, 0.0));
 
 #ifdef _OPENMP
 #pragma omp parallel if(Gpu::notInDeviceRegion())
@@ -1438,12 +1446,12 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     int nthreads = 1;
 #endif
     // Device malloc'd copy of comps
-    const Cuda::DeviceVector<int> d_comps(comps.begin(), comps.end());
+    const Gpu::DeviceVector<int> d_comps(comps.begin(), comps.end());
     const int* dptr_comps = d_comps.dataPtr();
 
     // Host and Device copy of thread's results.
-    Vector<Cuda::HostVector<Real> > h_priv_nm1(nthreads, Vector<Real>(n, 0.0));
-    Vector<Cuda::DeviceVector<Real> > d_priv_nm1(nthreads, Vector<Real>(n, 0.0));
+    Vector<Gpu::HostVector<Real> > h_priv_nm1(nthreads, Vector<Real>(n, 0.0));
+    Vector<Gpu::DeviceVector<Real> > d_priv_nm1(nthreads, Vector<Real>(n, 0.0));
 
 #ifdef _OPENMP
 #pragma omp parallel if(Gpu::notInDeviceRegion())
