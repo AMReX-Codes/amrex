@@ -60,7 +60,9 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     const auto dx = geom.CellSizeArray();
     const auto dxinv = geom.InvCellSizeArray();
     const int ncomp = dSdt.nComp();
-    const int nprims = 8;
+    const int nslope = 5;
+    const int ncons = 7;
+    const int nprim = 8;
 
     Array<MultiFab,AMREX_SPACEDIM> fluxes;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -78,13 +80,47 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                                                                   &(fluxes[2][mfi]))};
 
         const Box& bxg2 = amrex::grow(bx,2);
-        Gpu::DeviceFab q(bxg2, nprims);
+        Gpu::DeviceFab q(bxg2, nprim);
         FArrayBox* qfab = q.fabPtr();
 
         AMREX_LAUNCH_DEVICE_LAMBDA ( bxg2, tbx,
         {
             cns_ctoprim(tbx, *sfab, *qfab);
         });
+
+        const Box& nbxg2 = amrex::surroundingNodes(bxg2);
+        Gpu::DeviceFab slope(nbxg2,nslope);
+        FArrayBox* slopefab = slope.fabPtr();
+
+        // x-direction
+        int cdir = 0;
+        const Box& xbx   = amrex::surroundingNodes(bx,cdir);
+        const Box& xbxg1 = amrex::grow(xbx, cdir, 1);
+        AMREX_LAUNCH_DEVICE_LAMBDA ( xbxg1, tbx,
+        {
+            cns_slope_x(tbx, *slopefab, *qfab);
+        });
+
+        // y-direction
+        cdir = 1;
+        const Box& ybx   = amrex::surroundingNodes(bx,cdir);
+        const Box& ybxg1 = amrex::grow(ybx, cdir, 1);
+        AMREX_LAUNCH_DEVICE_LAMBDA ( ybxg1, tbx,
+        {
+            cns_slope_y(tbx, *slopefab, *qfab);
+        });
+
+        // z-direction
+        cdir = 2;
+        const Box& zbx   = amrex::surroundingNodes(bx,cdir);
+        const Box& zbxg1 = amrex::grow(zbx, cdir, 1);
+        AMREX_LAUNCH_DEVICE_LAMBDA ( zbxg1, tbx,
+        {
+            cns_slope_z(tbx, *slopefab, *qfab);
+        });
+
+        q.clear(); // don't need them anymore
+        slope.clear();
 
         AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
         {

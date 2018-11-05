@@ -21,4 +21,13 @@ void cns_flux_to_dudt (amrex::Box const& bx, amrex::FArrayBox& dudt,
                                     amrex::FArrayBox const& fz),
                        amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxinv);
 
+AMREX_GPU_DEVICE
+void cns_slope_x (amrex::Box const& bx, amrex::FArrayBox& slope, amrex::FArrayBox const& q);
+
+AMREX_GPU_DEVICE
+void cns_slope_y (amrex::Box const& bx, amrex::FArrayBox& slope, amrex::FArrayBox const& q);
+
+AMREX_GPU_DEVICE
+void cns_slope_z (amrex::Box const& bx, amrex::FArrayBox& slope, amrex::FArrayBox const& q);
+
 #endif
