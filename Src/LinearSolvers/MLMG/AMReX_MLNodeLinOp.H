@@ -80,9 +80,9 @@ protected:
 
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?
-    Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask; // cell-cenetered mask for cells covered by fine
-    Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask; // nodal mask: 0: this level node, 1: c/f boudnary, 2: fine node
-    Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contains c/f boundary?
+    Vector<std::unique_ptr<iMultiFab> > m_cc_fine_mask;          // cell-centered mask for cells covered by fine
+    Vector<std::unique_ptr<iMultiFab> > m_nd_fine_mask;          // nodal mask: 0: this level node, 1: c/f boundary, 2: fine node
+    Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
     MultiFab m_bottom_dot_mask;
     MultiFab m_coarse_dot_mask;
 };
