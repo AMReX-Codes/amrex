@@ -28,19 +28,16 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
                 Real my  = state(i,j,k,UMY);
                 Real mz  = state(i,j,k,UMY);
                 Real ei  = state(i,j,k,UEINT);
-                Real rhoinv = 1.0/((rho > smallr) ? rho : smallr);
+                Real rhoinv = 1.0/amrex::max(rho,smallr);
                 Real vx = mx*rhoinv;
                 Real vy = my*rhoinv;
                 Real vz = mz*rhoinv;
-                Real p = (gamma-1.0)*ei;
-                p = (p > smallp) ? p : smallp;
+                Real p = amrex::max((gamma-1.0)*ei, smallp);
                 Real cs = std::sqrt(gamma*p*rhoinv);
                 Real dtx = dx[0]/(std::abs(vx)+cs);
                 Real dty = dx[1]/(std::abs(vy)+cs);
                 Real dtz = dx[2]/(std::abs(vz)+cs);
-                dt = (dt < dtx) ? dt : dtx;
-                dt = (dt < dty) ? dt : dty;
-                dt = (dt < dtz) ? dt : dtz;
+                dt = amrex::min(dt,amrex::min(dtx,amrex::min(dty,dtz)));
             }
         }
     }

@@ -320,14 +320,14 @@ namespace amrex
 
   template<class T> 
   AMREX_GPU_HOST_DEVICE
-  inline const T& min(const T& a, const T& b)
+  AMREX_INLINE const T& min (const T& a, const T& b)
   {
     return (b < a) ? b : a;
   }
 
   template<class T>
   AMREX_GPU_HOST_DEVICE
-  inline const T& max(const T& a, const T& b)
+  AMREX_INLINE const T& max (const T& a, const T& b)
   {
     return (a < b) ? b : a;
   }

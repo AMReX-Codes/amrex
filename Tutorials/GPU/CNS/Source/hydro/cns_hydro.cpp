@@ -20,8 +20,7 @@ void cns_ctoprim (Box const& bx, FArrayBox const& ufab, FArrayBox & qfab)
         for     (int j = 0; j < len.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real rho = u(i,j,k,URHO);
-                rho = (rho > smallr) ? rho : smallr;
+                Real rho = amrex::max(u(i,j,k,URHO),smallr);
                 Real rhoinv = 1.0/rho;
                 Real ux = u(i,j,k,UMX)*rhoinv;
                 Real uy = u(i,j,k,UMY)*rhoinv;
@@ -29,8 +28,7 @@ void cns_ctoprim (Box const& bx, FArrayBox const& ufab, FArrayBox & qfab)
                 Real kineng = 0.5*rho*(ux*ux+uy*uy+uz*uz);
                 Real ei = u(i,j,k,UEDEN) - kineng;
                 if (ei <= 0.0) ei = u(i,j,k,UEINT);
-                Real p = (gamma-1.0)*ei;
-                p = (p > smallp) ? p : smallp;
+                Real p = amrex::max((gamma-1.0)*ei,smallp);
                 ei *= rhoinv;
 
                 q(i,j,k,QRHO) = rho;
@@ -93,11 +91,9 @@ void cns_slope_x (Box const& bx, FArrayBox& dqfab, FArrayBox const& qfab)
                 auto f = [] (Real dlft, Real drgt) -> Real {
                     Real dcen = 0.5*(dlft+drgt);
                     Real dsgn = std::copysign(1.0, dcen);
-                    Real slop = 2.0 * ((std::abs(dlft) < std::abs(drgt)) ?
-                                        std::abs(dlft) : std::abs(drgt));
+                    Real slop = 2.0 * amrex::min(std::abs(dlft),std::abs(drgt));
                     Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-                    Real d = dsgn*((dlim < std::abs(dcen)) ?
-                                    dlim : std::abs(dcen));
+                    Real d = dsgn * amrex::min(dlim,std::abs(dcen));
                     return d;
                 };
 
@@ -147,11 +143,9 @@ void cns_slope_y (Box const& bx, FArrayBox& dqfab, FArrayBox const& qfab)
                 auto f = [] (Real dlft, Real drgt) -> Real {
                     Real dcen = 0.5*(dlft+drgt);
                     Real dsgn = std::copysign(1.0, dcen);
-                    Real slop = 2.0 * ((std::abs(dlft) < std::abs(drgt)) ?
-                                        std::abs(dlft) : std::abs(drgt));
+                    Real slop = 2.0 * amrex::min(std::abs(dlft), std::abs(drgt));
                     Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-                    Real d = dsgn*((dlim < std::abs(dcen)) ?
-                                    dlim : std::abs(dcen));
+                    Real d = dsgn * amrex::min(dlim, std::abs(dcen));
                     return d;
                 };
 
@@ -201,11 +195,9 @@ void cns_slope_z (Box const& bx, FArrayBox& dqfab, FArrayBox const& qfab)
                 auto f = [] (Real dlft, Real drgt) -> Real {
                     Real dcen = 0.5*(dlft+drgt);
                     Real dsgn = std::copysign(1.0, dcen);
-                    Real slop = 2.0 * ((std::abs(dlft) < std::abs(drgt)) ?
-                                        std::abs(dlft) : std::abs(drgt));
+                    Real slop = 2.0 * amrex::min(std::abs(dlft), std::abs(drgt));
                     Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-                    Real d = dsgn*((dlim < std::abs(dcen)) ?
-                                    dlim : std::abs(dcen));
+                    Real d = dsgn * amrex::min(dlim, std::abs(dcen));
                     return d;
                 };
 
@@ -260,7 +252,7 @@ void riemann (const Real gamma, const Real smallp, const Real smallr,
     Real ccsmall = small*(cleft+cright);
 
     Real pstar = (wl*pr + wr*pl - wr*wl*(ur-ul))/(wl+wr);
-    pstar = (pstar > smallp) ? pstar : smallp;
+    pstar = amrex::max(pstar,smallp);
     Real pstnm1 = pstar;
 
     Real wlsq = (.5*(gamma-1.)*(pstar+pl)+pstar)*rl;
@@ -272,7 +264,7 @@ void riemann (const Real gamma, const Real smallp, const Real smallr,
     Real ustarm = ur + (pstar-pr)/wr;
 
     pstar = (wl*pr + wr*pl - wr*wl*(ur-ul))/(wl+wr);
-    pstar = (pstar > smallp) ? pstar : smallp;
+    pstar = amrex::max(pstar,smallp);
 
     Real ustar;
     for (int iter = 0; iter < 3; ++iter)
@@ -300,10 +292,10 @@ void riemann (const Real gamma, const Real smallp, const Real smallr,
         }
 
         Real zz = zp+zm;
-        Real denom = dpditer/ ((zz > ccsmall) ? zz : ccsmall);
+        Real denom = dpditer/ amrex::max(zz,ccsmall);
         pstnm1 = pstar;
         pstar = pstar - denom*(ustarm-ustarp);
-        pstar = (pstar > smallp) ? pstar : smallp;
+        pstar = amrex::max(pstar,smallp);
         ustar = 0.5*(ustarm+ustarp);
     }
 
@@ -342,8 +334,8 @@ void riemann (const Real gamma, const Real smallp, const Real smallr,
         spin = wo/ro-sgnm*uo;
         spout = spin;
     }
-    Real ss = (spout-spin > spout+spin) ? spout-spin : spout+spin;
-    Real frac = 0.5*(1.+(spin+spout)/((ss > ccsmall) ? ss : ccsmall));
+    Real ss = amrex::max(spout-spin, spout+spin);
+    Real frac = 0.5*(1.+(spin+spout)/amrex::max(ss,ccsmall));
 
     Real rgdnv, ugdnv, pgdnv;
     if (spout < 0.) {
@@ -388,19 +380,19 @@ void cns_riemann_x (Box const& bx, FArrayBox& fluxfab, FArrayBox const& dqfab, F
             for (int i = 0; i < len.x; ++i) {
                 Real cspeed = q(i-1,j,k,QCS);
                 Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,0)+dq(i-1,j,k,2))/cspeed + dq(i-1,j,k,1));
-                rl = (rl > smallr) ? rl : smallr;
+                rl = amrex::max(rl, smallr);
                 Real ul = q(i-1,j,k,QU) + 0.5 * ( (dq(i-1,j,k,2)-dq(i-1,j,k,0))/q(i-1,j,k,QRHO));
                 Real pl = q(i-1,j,k,QPRES) + 0.5 *  (dq(i-1,j,k,0)+dq(i-1,j,k,2))*cspeed;
-                pl = (pl > smallp) ? pl : smallp;
+                pl = amrex::max(pl, smallp);
                 Real ut1l = q(i-1,j,k,QV) + 0.5 * dq(i-1,j,k,3);
                 Real ut2l = q(i-1,j,k,QW) + 0.5 * dq(i-1,j,k,4);
              
                 cspeed = q(i,j,k,QCS);
                 Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = (rr > smallr) ? rr : smallr;
+                rr = amrex::max(rr, smallr);
                 Real ur = q(i,j,k,QU) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
                 Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = (pr > smallp) ? pr : smallp;
+                pr = amrex::max(pr, smallp);
                 Real ut1r = q(i,j,k,QV) - 0.5 * dq(i,j,k,3);
                 Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
@@ -429,19 +421,19 @@ void cns_riemann_y (Box const& bx, FArrayBox& fluxfab, FArrayBox const& dqfab, F
             for (int i = 0; i < len.x; ++i) {
                 Real cspeed = q(i,j-1,k,QCS);
                 Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,0)+dq(i,j-1,k,2))/cspeed + dq(i,j-1,k,1));
-                rl = (rl > smallr) ? rl : smallr;
+                rl = amrex::max(rl, smallr);
                 Real ul = q(i,j-1,k,QV) + 0.5 * ( (dq(i,j-1,k,2)-dq(i,j-1,k,0))/q(i,j-1,k,QRHO));
                 Real pl = q(i,j-1,k,QPRES) + 0.5 *  (dq(i,j-1,k,0)+dq(i,j-1,k,2))*cspeed;
-                pl = (pl > smallp) ? pl : smallp;
+                pl = amrex::max(pl, smallp);
                 Real ut1l = q(i,j-1,k,QU) + 0.5 * dq(i,j-1,k,3);
                 Real ut2l = q(i,j-1,k,QW) + 0.5 * dq(i,j-1,k,4);
 
                 cspeed = q(i,j,k,QCS);
                 Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = (rr > smallr) ? rr : smallr;
+                rr = amrex::max(rr, smallr);
                 Real ur = q(i,j,k,QV) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
                 Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = (pr > smallp) ? pr : smallp;
+                pr = amrex::max(pr, smallp);
                 Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
                 Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
@@ -470,19 +462,19 @@ void cns_riemann_z (Box const& bx, FArrayBox& fluxfab, FArrayBox const& dqfab, F
             for (int i = 0; i < len.x; ++i) {
                 Real cspeed = q(i,j,k-1,QCS);
                 Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,0)+dq(i,j,k-1,2))/cspeed + dq(i,j,k-1,1));
-                rl = (rl > smallr) ? rl : smallr;
+                rl = amrex::max(rl, smallr);
                 Real ul = q(i,j,k-1,QW) + 0.5 * ( (dq(i,j,k-1,2)-dq(i,j,k-1,0))/q(i,j,k-1,QRHO));
                 Real pl = q(i,j,k-1,QPRES) + 0.5 *  (dq(i,j,k-1,0)+dq(i,j,k-1,2))*cspeed;
-                pl = (pl > smallp) ? pl : smallp;
+                pl = amrex::max(pl, smallp);
                 Real ut1l = q(i,j,k-1,QU) + 0.5 * dq(i,j,k-1,3);
                 Real ut2l = q(i,j,k-1,QV) + 0.5 * dq(i,j,k-1,4);
                 
                 cspeed = q(i,j,k,QCS);
                 Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = (rr > smallr) ? rr : smallr;
+                rr = amrex::max(rr, smallr);
                 Real ur = q(i,j,k,QW) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
                 Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = (pr > smallp) ? pr : smallp;
+                pr = amrex::max(pr, smallp);
                 Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
                 Real ut2r = q(i,j,k,QV) - 0.5 * dq(i,j,k,4);
                 
