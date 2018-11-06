@@ -76,11 +76,21 @@ public:
     //! Returns the cellsize for the specified coordinate direction.
     Real CellSize (int dir) const { BL_ASSERT(ok); return dx[dir]; }
 
+    GpuArray<Real,AMREX_SPACEDIM> CellSizeArray () const {
+        BL_ASSERT(ok);
+        return { AMREX_D_DECL(dx[0],dx[1],dx[2]) };
+    }
+
     //! Returns the inverse cellsize for each coordinate direction.
     const Real* InvCellSize () const { BL_ASSERT(ok); return inv_dx; }
 
     //! Returns the inverse cellsize for the specified coordinate direction.
     Real InvCellSize (int dir) const { BL_ASSERT(ok); return inv_dx[dir]; }
+
+    GpuArray<Real,AMREX_SPACEDIM> InvCellSizeArray () const {
+        BL_ASSERT(ok);
+        return { AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) };
+    }
 
     //! Returns location of cell center in specified direction.
     Real CellCenter (int point, int dir) const
