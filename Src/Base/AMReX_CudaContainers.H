@@ -148,7 +148,7 @@ public:
         }
     }
 };
-        
+
 #else
     // When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
@@ -158,12 +158,22 @@ public:
     using HostVector = Vector<T>;
 
     template <class T>
-    using ManagedVector = Vector<T>;        
+    using ManagedVector = Vector<T>;
 
     template <class T>
-    using ManagedDeviceVector = Vector<T>;        
+    using ManagedDeviceVector = Vector<T>;
 #endif
-    
+
+    template<class InIter, class OutIter>
+    OutIter thrust_copy (InIter begin, InIter end, OutIter result)
+    {
+#ifdef AMREX_USE_CUDA
+        return thrust::copy(begin, end, result);
+#else
+        return std::copy(begin, end, result);
+#endif
+    }
+
 }
 
     
