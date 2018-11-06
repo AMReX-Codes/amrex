@@ -1250,11 +1250,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     Vector<Real> nm0(n, -rmax);
 
 #ifdef _OPENMP
-    if (Gpu::notInDeviceRegion()) {
-        int nthreads = omp_get_max_threads();
-    } else {
-        int nthreads = 1;
-    }
+    int nthreads = Gpu::notInLaunchRegion() ? omp_get_max_threads() : 1;
 #else
     int nthreads = 1;
 #endif
@@ -1267,15 +1263,11 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
     Vector<Gpu::DeviceVector<Real> > d_priv_nm0(nthreads, Vector<Real>(n, -rmax));
 
 #ifdef _OPENMP
-#pragma omp parallel if(Gpu::notInDeviceRegion())
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
     {
 #ifdef _OPENMP
-        if (Gpu::notInDeviceRegion()) {
-	    int tid = omp_get_thread_num();
-        } else {
-            int tid = 0;
-        }
+        int tid = omp_get_thread_num();
 #else
 	int tid = 0;
 #endif
@@ -1299,7 +1291,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
 
 #ifdef _OPENMP
 #pragma omp barrier
-#pragma omp for if (Gpu::notInDeviceRegion())
+#pragma omp for
 #endif
 	for (int i=0; i<n; i++) {
             for (int it=0; it<nthreads; it++) {
@@ -1353,11 +1345,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
     Vector<Real> nm2(n, 0.e0);
 
 #ifdef _OPENMP
-    if (Gpu::notInDeviceRegion()) {
-        int nthreads = omp_get_max_threads();
-    } else {
-        int nthreads = 1;
-    } 
+    int nthreads = Gpu::notInLaunchRegion() ? omp_get_max_threads() : 1;
 #else
     int nthreads = 1;
 #endif
@@ -1370,15 +1358,11 @@ MultiFab::norm2 (const Vector<int>& comps) const
     Vector<Gpu::DeviceVector<Real> > d_priv_nm2(nthreads, Vector<Real>(n, 0.0));
 
 #ifdef _OPENMP
-#pragma omp parallel if(Gpu::notInDeviceRegion())
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
     {
 #ifdef _OPENMP
-        if (Gpu::notInDeviceRegion()) {
-	    int tid = omp_get_thread_num();
-        } else {
-            int tid = 0;
-        }
+        int tid = omp_get_thread_num();
 #else
 	int tid = 0;
 #endif
@@ -1401,7 +1385,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
 
 #ifdef _OPENMP
 #pragma omp barrier
-#pragma omp for if (Gpu::notInDeviceRegion())
+#pragma omp for
 #endif
 	for (int i=0; i<n; i++) {
 	    for (int it=1; it<nthreads; it++) {
@@ -1474,11 +1458,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     Vector<Real> nm1(n, 0.e0);
 
 #ifdef _OPENMP
-    if (Gpu::notInDeviceRegion()) {
-        int nthreads = omp_get_max_threads();
-    } else {
-        int nthreads = 1;
-    }
+    int nthreads = Gpu::notInLaunchRegion() ? omp_get_max_threads() : 1;
 #else
     int nthreads = 1;
 #endif
@@ -1491,15 +1471,11 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
     Vector<Gpu::DeviceVector<Real> > d_priv_nm1(nthreads, Vector<Real>(n, 0.0));
 
 #ifdef _OPENMP
-#pragma omp parallel if(Gpu::notInDeviceRegion())
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
     {
 #ifdef _OPENMP
-        if (Gpu::notInDeviceRegion()) {
-            int tid = omp_get_thread_num();
-        } else {
-            int tid = 0;
-        }
+        int tid = omp_get_thread_num();
 #else
 	int tid = 0;
 #endif
@@ -1523,7 +1499,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 
 #ifdef _OPENMP
 #pragma omp barrier
-#pragma omp for if (Gpu::notInDeviceRegion())
+#pragma omp for
 #endif
 	for (int i=0; i<n; i++) {
 	    for (int it=0; it<nthreads; it++) {
