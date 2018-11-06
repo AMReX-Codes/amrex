@@ -387,22 +387,22 @@ void cns_riemann_x (Box const& bx, FArrayBox& fluxfab, FArrayBox const& dqfab, F
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
                 Real cspeed = q(i-1,j,k,QCS);
-                Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,1)+dq(i-1,j,k,3))/cspeed + dq(i-1,j,k,2));
+                Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,0)+dq(i-1,j,k,2))/cspeed + dq(i-1,j,k,1));
                 rl = (rl > smallr) ? rl : smallr;
-                Real ul = q(i-1,j,k,QU) + 0.5 * ( (dq(i-1,j,k,3)-dq(i-1,j,k,1))/q(i-1,j,k,QRHO));
-                Real pl = q(i-1,j,k,QPRES) + 0.5 *  (dq(i-1,j,k,1)+dq(i-1,j,k,3))*cspeed;
+                Real ul = q(i-1,j,k,QU) + 0.5 * ( (dq(i-1,j,k,2)-dq(i-1,j,k,0))/q(i-1,j,k,QRHO));
+                Real pl = q(i-1,j,k,QPRES) + 0.5 *  (dq(i-1,j,k,0)+dq(i-1,j,k,2))*cspeed;
                 pl = (pl > smallp) ? pl : smallp;
-                Real ut1l = q(i-1,j,k,QV) + 0.5 * dq(i-1,j,k,4);
-                Real ut2l = q(i-1,j,k,QW) + 0.5 * dq(i-1,j,k,5);
+                Real ut1l = q(i-1,j,k,QV) + 0.5 * dq(i-1,j,k,3);
+                Real ut2l = q(i-1,j,k,QW) + 0.5 * dq(i-1,j,k,4);
              
                 cspeed = q(i,j,k,QCS);
-                Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2));
+                Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
                 rr = (rr > smallr) ? rr : smallr;
-                Real ur = q(i,j,k,QU) - 0.5 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO));
-                Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed;
+                Real ur = q(i,j,k,QU) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
+                Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
                 pr = (pr > smallp) ? pr : smallp;
-                Real ut1r = q(i,j,k,QV) - 0.5 * dq(i,j,k,4);
-                Real ut2r = q(i,j,k,QW) - 0.5 *  dq(i,j,k,5);
+                Real ut1r = q(i,j,k,QV) - 0.5 * dq(i,j,k,3);
+                Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
                 riemann(gamma, smallp, smallr, rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
                         fx(i,j,k,URHO), fx(i,j,k,UMX), fx(i,j,k,UMY), fx(i,j,k,UMZ), fx(i,j,k,UEDEN));
@@ -428,22 +428,22 @@ void cns_riemann_y (Box const& bx, FArrayBox& fluxfab, FArrayBox const& dqfab, F
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
                 Real cspeed = q(i,j-1,k,QCS);
-                Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,1)+dq(i,j-1,k,3))/cspeed + dq(i,j-1,k,2));
+                Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,0)+dq(i,j-1,k,2))/cspeed + dq(i,j-1,k,1));
                 rl = (rl > smallr) ? rl : smallr;
-                Real ul = q(i,j-1,k,QV) + 0.5 * ( (dq(i,j-1,k,3)-dq(i,j-1,k,1))/q(i,j-1,k,QRHO));
-                Real pl = q(i,j-1,k,QPRES) + 0.5 *  (dq(i,j-1,k,1)+dq(i,j-1,k,3))*cspeed;
+                Real ul = q(i,j-1,k,QV) + 0.5 * ( (dq(i,j-1,k,2)-dq(i,j-1,k,0))/q(i,j-1,k,QRHO));
+                Real pl = q(i,j-1,k,QPRES) + 0.5 *  (dq(i,j-1,k,0)+dq(i,j-1,k,2))*cspeed;
                 pl = (pl > smallp) ? pl : smallp;
-                Real ut1l = q(i,j-1,k,QU) + 0.5 * dq(i,j-1,k,4);
-                Real ut2l = q(i,j-1,k,QW) + 0.5 * dq(i,j-1,k,5);
+                Real ut1l = q(i,j-1,k,QU) + 0.5 * dq(i,j-1,k,3);
+                Real ut2l = q(i,j-1,k,QW) + 0.5 * dq(i,j-1,k,4);
 
                 cspeed = q(i,j,k,QCS);
-                Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2));
+                Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
                 rr = (rr > smallr) ? rr : smallr;
-                Real ur = q(i,j,k,QV) - 0.5 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO));
-                Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,1)+dq(i,j,k,3))*cspeed;
+                Real ur = q(i,j,k,QV) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
+                Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
                 pr = (pr > smallp) ? pr : smallp;
-                Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,4);
-                Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,5);
+                Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
+                Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
                 riemann(gamma, smallp, smallr, rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
                         fy(i,j,k,URHO), fy(i,j,k,UMY), fy(i,j,k,UMX), fy(i,j,k,UMZ), fy(i,j,k,UEDEN));
@@ -469,22 +469,22 @@ void cns_riemann_z (Box const& bx, FArrayBox& fluxfab, FArrayBox const& dqfab, F
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
                 Real cspeed = q(i,j,k-1,QCS);
-                Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,1)+dq(i,j,k-1,3))/cspeed + dq(i,j,k-1,2));
+                Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,0)+dq(i,j,k-1,2))/cspeed + dq(i,j,k-1,1));
                 rl = (rl > smallr) ? rl : smallr;
-                Real ul = q(i,j,k-1,QW) + 0.5 * ( (dq(i,j,k-1,3)-dq(i,j,k-1,1))/q(i,j,k-1,QRHO));
-                Real pl = q(i,j,k-1,QPRES) + 0.5 *  (dq(i,j,k-1,1)+dq(i,j,k-1,3))*cspeed;
+                Real ul = q(i,j,k-1,QW) + 0.5 * ( (dq(i,j,k-1,2)-dq(i,j,k-1,0))/q(i,j,k-1,QRHO));
+                Real pl = q(i,j,k-1,QPRES) + 0.5 *  (dq(i,j,k-1,0)+dq(i,j,k-1,2))*cspeed;
                 pl = (pl > smallp) ? pl : smallp;
-                Real ut1l = q(i,j,k-1,QU) + 0.5 * dq(i,j,k-1,4);
-                Real ut2l = q(i,j,k-1,QV) + 0.5 * dq(i,j,k-1,5);
+                Real ut1l = q(i,j,k-1,QU) + 0.5 * dq(i,j,k-1,3);
+                Real ut2l = q(i,j,k-1,QV) + 0.5 * dq(i,j,k-1,4);
                 
                 cspeed = q(i,j,k,QCS);
-                Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,1)+dq(i,j,k,3))/cspeed + dq(i,j,k,2));
+                Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
                 rr = (rr > smallr) ? rr : smallr;
-                Real ur = q(i,j,k,QW) - 0.5 * ( (dq(i,j,k,3)-dq(i,j,k,1))/q(i,j,k,QRHO));
-                Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,1)+dq(i,j,k,3))*cspeed;
+                Real ur = q(i,j,k,QW) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
+                Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
                 pr = (pr > smallp) ? pr : smallp;
-                Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,4);
-                Real ut2r = q(i,j,k,QV) - 0.5 *  dq(i,j,k,5);
+                Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
+                Real ut2r = q(i,j,k,QV) - 0.5 * dq(i,j,k,4);
                 
                 riemann(gamma, smallp, smallr, rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
                         fz(i,j,k,URHO), fz(i,j,k,UMZ), fz(i,j,k,UMX), fz(i,j,k,UMY), fz(i,j,k,UEDEN));
