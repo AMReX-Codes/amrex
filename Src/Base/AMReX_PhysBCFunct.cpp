@@ -86,7 +86,7 @@ PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
 	FArrayBox& dest = mf[mfi];
-	const Box& bx = dest.box();
+	const Box& bx = mfi.fabbox();
         
         // if there are cells not in the valid + periodic grown box
         // we need to fill them here
