@@ -956,7 +956,7 @@ IntVect
 MultiFab::minIndex (int comp,
                     int nghost) const
 {
-    // TODO GPU
+    // TODO GPU -- CHECK
 
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
@@ -967,12 +967,11 @@ MultiFab::minIndex (int comp,
 #pragma omp parallel if (Gpu::notInLaunchRegion)
 #endif
     {
-	Real priv_mn = std::numeric_limits<Real>::max();
-	IntVect priv_loc;
+        Real priv_mn = std::numeric_limits<Real>::max();
+        IntVect priv_loc;
 
         amrex::Gpu::DeviceScalar<Real> local_mn(std::numeric_limits<Real>::max());
         Real* p = local_mn.dataPtr();
-
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
@@ -980,16 +979,31 @@ MultiFab::minIndex (int comp,
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
-                // Where to add the atomics?
-                // How to return the IntVect?
-                const Real lmn = fab.min(tbx,comp);
-                if (lmn < priv_mn)
+                Real t = fab->min(tbx,comp);
+                amrex::Gpu::Atomic::Min(p, t);
+            });
+	}
+        priv_mn = std::min(priv_mn, local_mn.dataValue());
+       
+
+        amrex::Gpu::DeviceScalar<IntVect> local_loc(IntVect::TheZeroVector());
+        IntVect* l = local_loc.dataPtr();
+	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            const FArrayBox* fab = &(get(mfi));
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                IntVect t_loc = fab->indexFromValue(priv_mn, tbx,comp);
+
+                if (tbx.contains(t_loc))
                 {
-                    priv_mn  = lmn;
-		    IntVect priv_loc = fab.minIndex(tbx,comp);
+                    *l = t_loc; // For total safety, this should be a Gpu::Atomic.
                 };
 	    });
 	}
+        priv_loc = local_loc.dataValue();
 
 #ifdef _OPENMP
 #pragma omp critical (multifab_minindex)
@@ -1033,7 +1047,7 @@ IntVect
 MultiFab::maxIndex (int comp,
                     int nghost) const
 {
-    // TODO GPU
+    // TODO GPU -- CHECK
 
     BL_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
@@ -1044,20 +1058,44 @@ MultiFab::maxIndex (int comp,
 #pragma omp parallel
 #endif
     {
-	Real priv_mx = std::numeric_limits<Real>::lowest();
-	IntVect priv_loc;
+        Real priv_mx = std::numeric_limits<Real>::lowest();
+        IntVect priv_loc;
 
+        amrex::Gpu::DeviceScalar<Real> local_mx(std::numeric_limits<Real>::lowest());
+        Real* p = local_mx.dataPtr();
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-	    const Real lmx = get(mfi).max(bx,comp);
+            const FArrayBox* fab = &(get(mfi));
 
-	    if (lmx > priv_mx)
-	    {
-		priv_mx  = lmx;
-		priv_loc = get(mfi).maxIndex(bx,comp);
-	    }
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                Real t = fab->max(tbx,comp);
+                amrex::Gpu::Atomic::Max(p, t);
+            });
 	}
+        priv_mx = std::max(priv_mx, local_mx.dataValue());
+       
+
+        amrex::Gpu::DeviceScalar<IntVect> local_loc(IntVect::TheZeroVector());
+        IntVect* l = local_loc.dataPtr();
+	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            const FArrayBox* fab = &(get(mfi));
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            {
+                IntVect t_loc = fab->indexFromValue(priv_mx, tbx,comp);
+
+                if (tbx.contains(t_loc))
+                {
+                    *l = t_loc; // For total safety, this should be a Gpu::Atomic.
+                };
+	    });
+	}
+        priv_loc = local_loc.dataValue();
+
 #ifdef _OPENMP
 #pragma omp critical (multifab_maxindex)
 #endif
@@ -1257,8 +1295,7 @@ MultiFab::norm0 (const Vector<int>& comps, int nghost, bool local) const
             }
         }
 
-// Cuda::copy( );
-        thrust::copy(d_priv_nm0[tid].begin(), d_priv_nm0[tid].end(), h_priv_nm0[tid].begin());
+        Gpu::thrust_copy(d_priv_nm0[tid].begin(), d_priv_nm0[tid].end(), h_priv_nm0[tid].begin());
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1360,7 +1397,7 @@ MultiFab::norm2 (const Vector<int>& comps) const
             }
         }
 
-        thrust::copy(d_priv_nm2[tid].begin(), d_priv_nm2[tid].end(), h_priv_nm2[tid].begin());
+        Gpu::thrust_copy(d_priv_nm2[tid].begin(), d_priv_nm2[tid].end(), h_priv_nm2[tid].begin());
 
 #ifdef _OPENMP
 #pragma omp barrier
@@ -1482,7 +1519,7 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 	    }
         }
 
-        thrust::copy(d_priv_nm1[tid].begin(), d_priv_nm1[tid].end(), h_priv_nm1[tid].begin());
+        Gpu::thrust_copy(d_priv_nm1[tid].begin(), d_priv_nm1[tid].end(), h_priv_nm1[tid].begin());
 
 #ifdef _OPENMP
 #pragma omp barrier
