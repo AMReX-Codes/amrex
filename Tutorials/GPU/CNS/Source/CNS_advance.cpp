@@ -88,19 +88,19 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             cns_ctoprim(tbx, *sfab, *qfab);
         });
 
-        const Box& nbxg2 = amrex::surroundingNodes(bxg2);
-        Gpu::DeviceFab slope(nbxg2,neqns);
+        const Box& bxg1 = amrex::grow(bx,1);
+        Gpu::DeviceFab slope(bxg1,neqns);
         FArrayBox* slopefab = slope.fabPtr();
 
         // x-direction
         int cdir = 0;
-        const Box& xbx   = amrex::surroundingNodes(bx,cdir);
-        const Box& xbxg1 = amrex::grow(xbx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( xbxg1, tbx,
+        const Box& xflxbx = amrex::surroundingNodes(bx,cdir);
+        const Box& xslpbx = amrex::grow(bx, cdir, 1);
+        AMREX_LAUNCH_DEVICE_LAMBDA ( xslpbx, tbx,
         {
             cns_slope_x(tbx, *slopefab, *qfab);
         });
-        AMREX_LAUNCH_DEVICE_LAMBDA (xbx, tbx,
+        AMREX_LAUNCH_DEVICE_LAMBDA (xflxbx, tbx,
         {
             cns_riemann_x(tbx, *fxfab, *slopefab, *qfab);
             fxfab->setVal(0.0, tbx, neqns, (fxfab->nComp()-neqns));
@@ -108,13 +108,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
         // y-direction
         cdir = 1;
-        const Box& ybx   = amrex::surroundingNodes(bx,cdir);
-        const Box& ybxg1 = amrex::grow(ybx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( ybxg1, tbx,
+        const Box& yflxbx = amrex::surroundingNodes(bx,cdir);
+        const Box& yslpbx = amrex::grow(bx, cdir, 1);
+        AMREX_LAUNCH_DEVICE_LAMBDA ( yslpbx, tbx,
         {
             cns_slope_y(tbx, *slopefab, *qfab);
         });
-        AMREX_LAUNCH_DEVICE_LAMBDA (ybx, tbx,
+        AMREX_LAUNCH_DEVICE_LAMBDA (yflxbx, tbx,
         {
             cns_riemann_y(tbx, *fyfab, *slopefab, *qfab);
             fyfab->setVal(0.0, tbx, neqns, (fyfab->nComp()-neqns));
@@ -122,13 +122,13 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
         // z-direction
         cdir = 2;
-        const Box& zbx   = amrex::surroundingNodes(bx,cdir);
-        const Box& zbxg1 = amrex::grow(zbx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( zbxg1, tbx,
+        const Box& zflxbx = amrex::surroundingNodes(bx,cdir);
+        const Box& zslpbx = amrex::grow(bx, cdir, 1);
+        AMREX_LAUNCH_DEVICE_LAMBDA ( zslpbx, tbx,
         {
             cns_slope_z(tbx, *slopefab, *qfab);
         });
-        AMREX_LAUNCH_DEVICE_LAMBDA (zbx, tbx,
+        AMREX_LAUNCH_DEVICE_LAMBDA (zflxbx, tbx,
         {
             cns_riemann_z(tbx, *fzfab, *slopefab, *qfab);
             fzfab->setVal(0.0, tbx, neqns, (fzfab->nComp()-neqns));

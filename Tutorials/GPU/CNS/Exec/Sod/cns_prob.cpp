@@ -44,7 +44,7 @@ cns_initdata (Box const& bx, FArrayBox& statefab, GeometryData const& geomdata)
                 state(i,j,k,URHO ) = rhot;
                 state(i,j,k,UMX  ) = rhot*uxt;
                 state(i,j,k,UMY  ) = 0.0;
-                state(i,j,k,UMY  ) = 0.0;
+                state(i,j,k,UMZ  ) = 0.0;
                 Real et = Pt/(gamma-1.0);
                 state(i,j,k,UEINT) = et;
                 state(i,j,k,UEDEN) = et + 0.5*rhot*uxt*uxt;

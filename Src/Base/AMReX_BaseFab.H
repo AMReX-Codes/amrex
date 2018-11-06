@@ -422,9 +422,9 @@ public:
                                 +                n*nstride);
 #ifdef AMREX_DEBUG
         return StridedPtr<T const*>{p, jstride, kstride, nstride,
-                len[0]-slo[0]+dlo[0],
-                len[1]-slo[1]+dlo[1],
-                len[2]-slo[2]+dlo[2],
+                len[0]-(slo[0]-dlo[0]),
+                len[1]-(slo[1]-dlo[1]),
+                len[2]-(slo[2]-dlo[2]),
                 this->nvar-n};
 #else
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
@@ -446,9 +446,9 @@ public:
                           +                n*nstride);
 #ifdef AMREX_DEBUG
         return StridedPtr<T*>{p, jstride, kstride, nstride,
-                len[0]-slo[0]+dlo[0],
-                len[1]-slo[1]+dlo[1],
-                len[2]-slo[2]+dlo[2],
+                len[0]-(slo[0]-dlo[0]),
+                len[1]-(slo[1]-dlo[1]),
+                len[2]-(slo[2]-dlo[2]),
                 this->nvar-n};
 #else
         return StridedPtr<T*>{p, jstride, kstride, nstride};
@@ -470,9 +470,9 @@ public:
                                 +              n*nstride);
 #ifdef AMREX_DEBUG
         return StridedPtr<T const*>{p, jstride, kstride, nstride,
-                len.x-slo.x+dlo.x,
-                len.y-slo.y+dlo.y,
-                len.z-slo.z+dlo.z,
+                len.x-(slo.x-dlo.x),
+                len.y-(slo.y-dlo.y),
+                len.z-(slo.z-dlo.z),
                 this->nvar-n};
 #else
         return StridedPtr<T const*>{p, jstride, kstride, nstride};
@@ -494,9 +494,9 @@ public:
                           +              n*nstride);
 #ifdef AMREX_DEBUG
         return StridedPtr<T*>{p, jstride, kstride, nstride,
-                len.x-slo.x+dlo.x,
-                len.y-slo.y+dlo.y,
-                len.z-slo.z+dlo.z,
+                len.x-(slo.x-dlo.x),
+                len.y-(slo.y-dlo.y),
+                len.z-(slo.z-dlo.z),
                 this->nvar-n};
 #else
         return StridedPtr<T*>{p, jstride, kstride, nstride};
@@ -572,9 +572,9 @@ public:
                                 +                n*nstride);
 #ifdef AMREX_DEBUG
         return FabView<T const>{p, jstride, kstride, nstride,
-                len[0]-slo[0]+dlo[0],
-                len[1]-slo[1]+dlo[1],
-                len[2]-slo[2]+dlo[2],
+                len[0]-(slo[0]-dlo[0]),
+                len[1]-(slo[1]-dlo[1]),
+                len[2]-(slo[2]-dlo[2]),
                 this->nvar-n};
 #else
         return FabView<T const>{p, jstride, kstride, nstride};
@@ -596,9 +596,9 @@ public:
                           +                n*nstride);
 #ifdef AMREX_DEBUG
         return FabView<T>{p, jstride, kstride, nstride,
-                len[0]-slo[0]+dlo[0],
-                len[1]-slo[1]+dlo[1],
-                len[2]-slo[2]+dlo[2],
+                len[0]-(slo[0]-dlo[0]),
+                len[1]-(slo[1]-dlo[1]),
+                len[2]-(slo[2]-dlo[2]),
                 this->nvar-n};
 #else
         return FabView<T>{p, jstride, kstride, nstride};
@@ -620,9 +620,9 @@ public:
                                 +              n*nstride);
 #ifdef AMREX_DEBUG
         return FabView<T const>{p, jstride, kstride, nstride,
-                len.x-slo.x+dlo.x,
-                len.y-slo.y+dlo.y,
-                len.z-slo.z+dlo.z,
+                len.x-(slo.x-dlo.x),
+                len.y-(slo.y-dlo.y),
+                len.z-(slo.z-dlo.z),
                 this->nvar-n};
 #else
         return FabView<T const>{p, jstride, kstride, nstride};
@@ -644,9 +644,9 @@ public:
                           +              n*nstride);
 #ifdef AMREX_DEBUG
         return FabView<T>{p, jstride, kstride, nstride,
-                len.x-slo.x+dlo.x,
-                len.y-slo.y+dlo.y,
-                len.z-slo.z+dlo.z,
+                len.x-(slo.x-dlo.x),
+                len.y-(slo.y-dlo.y),
+                len.z-(slo.z-dlo.z),
                 this->nvar-n};
 #else
         return FabView<T>{p, jstride, kstride, nstride};
