@@ -109,6 +109,8 @@ void compute_integrals(MultiFab* intg)
 
     int ncomp = intg->nComp();
 
+    Real vol_diff = 0.0;
+
     for (MFIter mfi(*intg,true); mfi.isValid(); ++mfi)
     {
        const Box& bx = mfi.growntilebox();
@@ -162,9 +164,18 @@ void compute_integrals(MultiFab* intg)
 
                  if (std::abs(volume - volfrac) > 1.e-12)
                  { 
+#if 0
                     std::cout << "Volume fractions don't match!" << std::endl;
                     std::cout << "VF " << iv << " " << volfrac << " " << volume << std::endl;
-                    exit(0);
+                    std::cout << "  Using bndry cent:" << (*bcent)[mfi](iv,0) << " " 
+                                                       << (*bcent)[mfi](iv,1) << " " 
+                                                       << (*bcent)[mfi](iv,2) << std::endl;
+                    std::cout << "  Using bndry norm:" << (*bnorm)[mfi](iv,0) << " " 
+                                                       << (*bnorm)[mfi](iv,1) << " " 
+                                                       << (*bnorm)[mfi](iv,2) << std::endl;
+#endif
+                    vol_diff = std::max(vol_diff,std::abs(volfrac - volume));
+                    // exit(0);
                  } 
  
                  Real val_S_x   = q([](const auto& x) { return x(0); });
@@ -218,29 +229,32 @@ void compute_integrals(MultiFab* intg)
 
                  n_count++;
 
+#if 0
                  if (std::abs(val_S_x/volume - (*ccent)[mfi](iv,0)) > 1.e-12 || 
                      std::abs(val_S_y/volume - (*ccent)[mfi](iv,1)) > 1.e-12 || 
                      std::abs(val_S_z/volume - (*ccent)[mfi](iv,2)) > 1.e-12 )
                  { 
-                    std::cout << "Bndry Centroid doesn't match!" << std::endl;
+                    std::cout << "Centroid doesn't match!" << std::endl;
                     std::cout << "IV                " << iv     << std::endl;
                     std::cout << "VF                " << volume << std::endl;
-                    std::cout << "BC_X FROM FACTORY " << (*ccent)[mfi](iv,0) << " " 
-                                                      << (*ccent)[mfi](iv,1) << " " 
-                                                      << (*ccent)[mfi](iv,2) << std::endl;
+                    std::cout << "Centroid from amrex:  " << (*ccent)[mfi](iv,0) << " " 
+                                                          << (*ccent)[mfi](iv,1) << " " 
+                                                          << (*ccent)[mfi](iv,2) << std::endl;
 
-                    std::cout << "BC_X FROM ALGOIM  " << val_S_x/volume << " " << val_S_y/volume << " " << val_S_z/volume << std::endl;
-
-                    std::cout << "BN_X FROM FACTORY " << (*bnorm)[mfi](iv,0) << " " 
-                                                      << (*bnorm)[mfi](iv,1) << " " 
-                                                      << (*bnorm)[mfi](iv,2) << "\n" << std::endl;
+                    std::cout << "Centroid from algoim: " << val_S_x/volume << " " << val_S_y/volume << " " << val_S_z/volume << std::endl;
+                    std::cout << "Norm from amrex     : " << (*bnorm)[mfi](iv,0) << " " 
+                                                          << (*bnorm)[mfi](iv,1) << " " 
+                                                          << (*bnorm)[mfi](iv,2) << "\n" << std::endl;
                     exit(0);
                  }
+#endif
              }
           }
        }
        // std::cout << "Integrated over " << n_count << " cells " << std::endl;
     }
+    std::cout << "Maximum discrepancy in volume fraction " << vol_diff << std::endl;
+
 }
 }
 #endif
