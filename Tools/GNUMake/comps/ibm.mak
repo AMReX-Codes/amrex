@@ -28,8 +28,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g -O2
-  CFLAGS   += -g -O2
+  CXXFLAGS += -g -O2 -qsimd=auto
+  CFLAGS   += -g -O2 -qsimd=auto
 
 endif
 
