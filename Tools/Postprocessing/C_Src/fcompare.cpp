@@ -307,10 +307,10 @@ int main ( int argc, char* argv[] )
 	       Real rerr = 0.0;
 
 	       if ( aerror[nv] > 0.0 )
-		   aerr = min ( max ( aerror[nv], 1e-99 ), 1e+98 );
+		   aerr = amrex::min ( amrex::max ( aerror[nv], 1e-99 ), 1e+98 );
 
 	       if ( rerror[nv] > 0.0 )
-		   rerr = min ( max ( rerror[nv], 1e-99 ), 1e+98 );
+		   rerr = amrex::min ( amrex::max ( rerror[nv], 1e-99 ), 1e+98 );
 
 	       Print() << scientific;
 	       Print() << " " << setw(22) << varNames1[nv] << "  "
