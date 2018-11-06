@@ -96,7 +96,7 @@ struct ManagedData
 };
 
 
-template <class T, typename = amrex::EnableIf_t<std::is_pod<T>::value> >
+template <class T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
 struct DeviceScalar
 {
     DeviceScalar (DeviceScalar const&) = delete;
