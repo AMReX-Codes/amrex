@@ -9,45 +9,46 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
                    GpuArray<Real,2> const& offset,
                    GpuArray<Real,2> const& dx, const int coord)
 {
-    const auto dp0 = vol.stridedPtr(bx);
-    const IntVect len = bx.length();
-    const IntVect lo  = bx.smallEnd();
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = vol.view(lo);
+
     if (coord == 0) // Cartesian
     {
         Real dv = dx[0]*dx[1];
-        for     (int j = 0; j < len[1]; ++j) {
-            Real* AMREX_RESTRICT dp = dp0(0,j,0);
-            for (int i = 0; i < len[0]; ++i) {
-                dp[i] = dv;
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                dp(i,j,0) = dv;
             }
         }
     }
     else if (coord == 1) // r-z
     {
         const Real pi = 3.1415926535897932;
-        for     (int j = 0; j < len[1]; ++j) {
-            Real* AMREX_RESTRICT dp = dp0(0,j,0);
-            for (int i = 0; i < len[0]; ++i) {
-                Real ri = offset[0] + dx[0]*(i+lo[0]);
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                Real ri = offset[0] + dx[0]*(i+lo.x);
                 Real ro = ri + dx[0];
                 Real v = pi*dx[1]*dx[0]*(ro + ri);
-                dp[i] = std::abs(v);
+                dp(i,j,0) = std::abs(v);
             }
         }
     }
     else // r-theta
     {
         const Real pi = 3.1415926535897932;
-        for     (int j = 0; j < len[1]; ++j) {
-            Real ti = offset[1] + dx[1]*(j+lo[1]);
+        for     (int j = 0; j < len.y; ++j) {
+            Real ti = offset[1] + dx[1]*(j+lo.y);
             Real to = ti + dx[1];
             Real tmp = (2.*pi)*(std::cos(ti)-std::cos(to))/3.0;
-            Real* AMREX_RESTRICT dp = dp0(0,j,0);
-            for (int i = 0; i < len[0]; ++i) {
-                Real ri = offset[0] + dx[0]*(i+lo[0]);
-                Real ro = ri + dx[0];
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                Real ri = offset[0] + dx[0]*(i+lo.x);
+                Real ro = ri + dx.x;
                 Real v = tmp*(ro-ri)*(ro*ro+ro*ri+ri*ri);
-                dp[i] = std::abs(v);
+                dp(i,j,0) = std::abs(v);
             }
         }
     }
@@ -58,16 +59,17 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
                     GpuArray<Real,2> const& offset,
                     GpuArray<Real,2> const& dx, const int dir, const int coord)
 {
-    const auto dp0 = area.stridedPtr(bx);
-    const IntVect len = bx.length();
-    const IntVect lo  = bx.smallEnd();
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = area.view(lo);
+
     if (coord == 0)
     {
         Real a = (dir == 0) ? dx[1] : dx[0];
-        for     (int j = 0; j < len[1]; ++j) {
-            Real* AMREX_RESTRICT dp = dp0(0,j,0);
-            for (int i = 0; i < len[0]; ++i) {
-                dp[i] = a;
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                dp(i,j,0) = a;
             }
         }
     }
@@ -76,23 +78,23 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
         const Real pi = 3.1415926535897932;
         if (dir == 0)
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real ri = offset[0] + dx[0]*(i+lo[0]);
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real ri = offset[0] + dx[0]*(i+lo.x);
                     Real a = std::abs((2.*pi)*ri*dx[1]);
-                    dp[i] = a;
+                    dp(i,j,0) = a;
                 }
             }
         }
         else
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real rc = offset[0] + dx[0]*(i+lo[0]+0.5);
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real rc = offset[0] + dx[0]*(i+lo.x+0.5);
                     Real a = std::abs(dx[0]*(2.*pi)*rc);
-                    dp[i] = a;
+                    dp(i,j,0) = a;
                 }
             }
         }
@@ -102,29 +104,29 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
         const Real pi = 3.1415926535897932;
         if (dir == 0)
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real ti = offset[1] + dx[1]*(j+lo[1]);
+            for     (int j = 0; j < len.y; ++j) {
+                Real ti = offset[1] + dx[1]*(j+lo.y);
                 Real to = ti + dx[1];
                 Real tmp = (2.*pi)*(std::cos(ti)-std::cos(to));
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real ri = offset[0] + dx[0]*(i+lo[0]);
+                AMREX_PRAGMA_SIMD 
+                for (int i = 0; i < len.x; ++i) {
+                    Real ri = offset[0] + dx[0]*(i+lo.x);
                     Real a = tmp*ri*ri;
-                    dp[i] = a;
+                    dp(i,j,0) = a;
                 }
             }
         }
         else
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real ti = offset[1] + dx[1]*(j+lo[1]);
+            for     (int j = 0; j < len.y; ++j) {
+                Real ti = offset[1] + dx[1]*(j+lo.y);
                 Real tmp = pi*std::sin(ti);
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real ri = offset[0] + dx[0]*(i+lo[0]);
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real ri = offset[0] + dx[0]*(i+lo.x);
                     Real ro = ri + dx[0];
                     Real a = tmp*(ro-ri)*(ro+ri);
-                    dp[i] = a;
+                    dp(i,j,0) = a;
                 }
             }
         }
@@ -136,15 +138,16 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
                      GpuArray<Real,2> const& offset,
                      GpuArray<Real,2> const& dx, const int dir, const int coord)
 {
-    const auto dp0 = dloga.stridedPtr(bx);
-    const IntVect len = bx.length();
-    const IntVect lo  = bx.smallEnd();
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = dloga.view(lo);
+
     if (coord == 0)
     {
-        for     (int j = 0; j < len[1]; ++j) {
-            Real* AMREX_RESTRICT dp = dp0(0,j,0);
-            for (int i = 0; i < len[0]; ++i) {
-                dp[i] = 0.0;
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                dp(i,j,0) = 0.0;
             }
         }
     }
@@ -152,20 +155,20 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
     {
         if (dir == 0)
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real rc = offset[0] + dx[0]*(i+lo[0]+0.5);
-                    dp[i] = 1.0/rc;
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real rc = offset[0] + dx[0]*(i+lo.x+0.5);
+                    dp(i,j,0) = 1.0/rc;
                 }
             }
         }
         else
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    dp[i] = 0.0;
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,0) = 0.0;
                 }
             }
         }
@@ -174,24 +177,24 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
     {
         if (dir == 0)
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real rc = offset[0] + dx[0]*(i+lo[0]+0.5);
-                    dp[i] = 2.0/rc;
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real rc = offset[0] + dx[0]*(i+lo.x+0.5);
+                    dp(i,j,0) = 2.0/rc;
                 }
             }
         }
         else
         {
-            for     (int j = 0; j < len[1]; ++j) {
-                Real ti = offset[1] + dx[1]*(j+lo[1]);
+            for     (int j = 0; j < len.y; ++j) {
+                Real ti = offset[1] + dx[1]*(j+lo.y);
                 Real to = ti + dx[1];
                 Real tmp = 1.0/std::tan(0.5*(ti+to));
-                Real* AMREX_RESTRICT dp = dp0(0,j,0);
-                for (int i = 0; i < len[0]; ++i) {
-                    Real rc = offset[0] + dx[0]*(i+lo[0]+0.5);
-                    dp[i] = tmp/rc;
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real rc = offset[0] + dx[0]*(i+lo.x+0.5);
+                    dp(i,j,0) = tmp/rc;
                 }
             }
         }
