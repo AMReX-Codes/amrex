@@ -1428,7 +1428,21 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
 FillPatchIteratorHelper::~FillPatchIteratorHelper () {}
 
-FillPatchIterator::~FillPatchIterator () {}
+FillPatchIterator::~FillPatchIterator () {
+#ifdef USE_PERILLA
+        while(regionList.size()){
+          RegionGraph* tmp= regionList.front();
+          delete tmp;
+          regionList.pop_front();
+        }
+
+        while(mfList.size()){
+          MultiFab *tmp= mfList.front();
+          delete tmp;
+          mfList.pop_front();
+        }
+#endif
+    }
 
 void
 AmrLevel::FillCoarsePatch (MultiFab& mf,
@@ -2819,6 +2833,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                 {
                     destGraph = new RegionGraph(m_fabs.IndexArray().size());
                     fsrcGraph = new RegionGraph(smf[0]->IndexArray().size());
+		    regionList.push_back(destGraph);
+		    regionList.push_back(fsrcGraph);
                 }
 #ifdef USE_PERILLA_PTHREADS
 //                perilla::syncAllThreads();
@@ -2851,6 +2867,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                     {
                         dmf = &m_fabs;
                         destGraph = new RegionGraph(m_fabs.IndexArray().size());
+		        regionList.push_back(destGraph);
                     }
 #ifdef USE_PERILLA_PTHREADS
  //                   perilla::syncAllThreads();
@@ -2875,6 +2892,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                         destGraph = new RegionGraph(m_fabs.IndexArray().size());
                         fsrcGraph = new RegionGraph(dmf->IndexArray().size());
                         fsrcGraph->buildTileArray(*dmf);
+		        regionList.push_back(fsrcGraph);
+		        mfList.push_back(dmf);
                     }
 #ifdef USE_PERILLA_PTHREADS
 //                    perilla::syncAllThreads();
@@ -2975,6 +2994,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 #endif
                           {
                              m_mf_crse_patch = new MultiFab(m_fpc->ba_crse_patch, m_fpc->dm_crse_patch, ncomp, 0);
+		             mfList.push_back(m_mf_crse_patch);
                              //m_mf_crse_patch->initVal(); // for Perilla NUMA
                              BL_ASSERT(scomp+ncomp <= smf_crse[0]->nComp());
                              BL_ASSERT(dcomp+ncomp <= m_mf_crse_patch->nComp());
@@ -2993,6 +3013,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                                   m_rg_crse_patch = new RegionGraph(m_mf_crse_patch->IndexArray().size());
                                   m_rg_crse_patch->isDepGraph = true;
                                   csrcGraph = new RegionGraph(smf_crse[0]->IndexArray().size());
+		    		  regionList.push_back(m_rg_crse_patch);
+		    		  regionList.push_back(csrcGraph);
                               }
 #ifdef USE_PERILLA_PTHREADS
 //                            perilla::syncAllThreads();
@@ -3025,6 +3047,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
 
                                   Perilla::multifabBuildFabCon(m_rg_crse_patch, *m_mf_crse_patch, geom->periodicity());
                                   m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
+		    		  regionList.push_back(m_rg_crse_patch);
                                 }
                               else
                               {
@@ -3039,6 +3062,9 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                                       m_rg_crse_patch->isDepGraph = true;
                                       csrcGraph = new RegionGraph(dmf->IndexArray().size());
                                       csrcGraph->buildTileArray(*dmf);
+		    		      regionList.push_back(m_rg_crse_patch);
+		    		      regionList.push_back(csrcGraph);
+		    		      mfList.push_back(dmf);
                                   }
 #ifdef USE_PERILLA_PTHREADS
 //                                perilla::syncAllThreads();
@@ -3080,6 +3106,9 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                           destGraph = new RegionGraph(m_fabs.IndexArray().size());
                           //fsrcGraph = new RegionGraph(smf_fine[0]->IndexArray().size());
                           fsrcGraph = new RegionGraph(dmff->IndexArray().size());
+			  regionList.push_back(destGraph);
+			  regionList.push_back(fsrcGraph);
+			  mfList.push_back(dmff);
 
                           if(m_rg_crse_patch != 0)
                           {
@@ -3126,6 +3155,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                           destGraph = new RegionGraph(m_fabs.IndexArray().size());
                           Perilla::multifabBuildFabCon(destGraph, m_fabs, geom->periodicity());
                           m_amrlevel.parent->graphArray[level].push_back(destGraph);
+			  regionList.push_back(destGraph);
                       }
                       else
                       {
@@ -3139,6 +3169,9 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                               destGraph = new RegionGraph(m_fabs.IndexArray().size());
                               fsrcGraph = new RegionGraph(dmff->IndexArray().size());
                               fsrcGraph->buildTileArray(*dmff);
+			      regionList.push_back(destGraph);
+			      regionList.push_back(fsrcGraph);
+			      mfList.push_back(dmff);
                           }
 #ifdef USE_PERILLA_PTHREADS
 //                        perilla::syncAllThreads();
