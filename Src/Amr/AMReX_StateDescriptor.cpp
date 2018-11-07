@@ -122,6 +122,20 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 }
 
 void
+StateDescriptor::BndryFunc::operator () (Box const& bx, FArrayBox& data,
+                                         const int dcomp, const int numcomp,
+                                         Geometry const& geom, const Real time,
+                                         const Vector<BCRec>& bcr, const int bcomp,
+                                         const int scomp) const
+{
+    if (numcomp == 1) {
+        m_funcfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+    } else {
+        m_gfuncfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+    }
+}
+
+void
 StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
                                          const Real* dx, const Real* grd_lo,

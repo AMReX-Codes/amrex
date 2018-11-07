@@ -68,7 +68,13 @@ public:
 	virtual void operator () (Real* data, const int* lo, const int* hi,
 				  const int* dom_lo, const int* dom_hi,
 				  const Real* dx, const Real* grd_lo,
-				  const Real* time, const int* bc) const override;
+				  const Real* time, const int* bc) const override final;
+
+        virtual void operator () (Box const& bx, FArrayBox& data,
+                                  const int dcomp, const int numcomp,
+                                  Geometry const& geom, const Real time,
+                                  const Vector<BCRec>& bcr, const int bcomp,
+                                  const int scomp) const override final;
         //
         // Fill boundary cells using "group" function.
         //
@@ -76,8 +82,6 @@ public:
                           const int* dom_lo, const int* dom_hi,
                           const Real* dx, const Real* grd_lo,
                           const Real* time, const int* bc, int ng) const;
-
-        using BndryFunctBase::operator();
 
     private:
 
@@ -232,6 +236,11 @@ public:
     bool master (int i) const { return m_master[i]; }
 
     int groupsize (int i) const { return m_groupsize[i]; }
+
+    // will it run on gpu?
+    bool RunOnGPU () const { return bc_func[0]->RunOnGPU(); }
+    // has new fab version of BndryFunc?
+    bool hasBndryFuncFab () const { return bc_func[0]->hasFabVersion(); }
 
     static void setBndryFuncThreadSafety (int ext_dir_safe) { bf_ext_dir_threadsafe = ext_dir_safe; }
 
