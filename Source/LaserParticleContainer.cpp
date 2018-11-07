@@ -387,7 +387,7 @@ LaserParticleContainer::Evolve (int lev,
 	    if (profile == laser_t::Gaussian) {
 		warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
 				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.data(),
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
 				      &zeta, &beta, &phi2, &theta_stc );
 	    }
 
