@@ -67,13 +67,13 @@ BCRec::operator!= (const BCRec& rhs) const
 }
 
 void
-setBC (const Box&          bx,
-               const Box&          domain,
-               int                 src_comp,
-               int                 dest_comp,
-               int                 ncomp,
-               const Vector<BCRec>& bc_dom,
-               Vector<BCRec>&       bcr)
+setBC (const Box&           bx,
+       const Box&           domain,
+       int                  src_comp,
+       int                  dest_comp,
+       int                  ncomp,
+       const Vector<BCRec>& bc_dom,
+       Vector<BCRec>&       bcr)
 {
     const int* bxlo = bx.loVect();
     const int* bxhi = bx.hiVect();
@@ -95,9 +95,9 @@ setBC (const Box&          bx,
 
 void
 setBC (const Box&   bx,
-               const Box&   domain, 
-               const BCRec& bc_dom,
-               BCRec&       bcr)
+       const Box&   domain, 
+       const BCRec& bc_dom,
+       BCRec&       bcr)
 {
     const int* bxlo = bx.loVect();
     const int* bxhi = bx.hiVect();
