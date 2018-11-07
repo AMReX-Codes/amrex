@@ -49,6 +49,7 @@ CEXE_headers += AMReX_EB2_IF_Cylinder.H
 CEXE_headers += AMReX_EB2_IF_Ellipsoid.H
 CEXE_headers += AMReX_EB2_IF_Plane.H
 CEXE_headers += AMReX_EB2_IF_Sphere.H
+CEXE_headers += AMReX_EB2_IF_Torus.H
 CEXE_headers += AMReX_EB2_IF_Polynomial.H
 
 
