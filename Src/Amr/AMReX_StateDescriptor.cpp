@@ -14,22 +14,33 @@ int StateDescriptor::bf_ext_dir_threadsafe = 0;
 StateDescriptor::BndryFunc::BndryFunc ()
     :
     BndryFunctBase(),
-    m_gfunc(0),
-    m_gfunc3D(0)
+    m_gfunc(nullptr),
+    m_gfunc3D(nullptr),
+    m_gfuncfab(nullptr)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
     :
     BndryFunctBase(inFunc),
-    m_gfunc(0),
-    m_gfunc3D(0)
+    m_gfunc(nullptr),
+    m_gfunc3D(nullptr),
+    m_gfuncfab(nullptr)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc)
     :
     BndryFunctBase(inFunc),
-    m_gfunc(0),
-    m_gfunc3D(0)
+    m_gfunc(nullptr),
+    m_gfunc3D(nullptr),
+    m_gfuncfab(nullptr)
+{}
+
+StateDescriptor::BndryFunc::BndryFunc (BndryFuncFabDefault inFunc)
+    :
+    BndryFunctBase(inFunc),
+    m_gfunc(nullptr),
+    m_gfunc3D(nullptr),
+    m_gfuncfab(nullptr)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc,
@@ -37,15 +48,26 @@ StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc,
     :
     BndryFunctBase(inFunc),
     m_gfunc(gFunc),
-    m_gfunc3D(0)
+    m_gfunc3D(nullptr),
+    m_gfuncfab(nullptr)
 {}
 
 StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc,
                                        BndryFunc3DDefault gFunc)
     :
     BndryFunctBase(inFunc),
-    m_gfunc(0),
-    m_gfunc3D(gFunc)
+    m_gfunc(nullptr),
+    m_gfunc3D(gFunc),
+    m_gfuncfab(nullptr)
+{}
+
+StateDescriptor::BndryFunc::BndryFunc (BndryFuncFabDefault inFunc,
+                                       BndryFuncFabDefault gFunc)
+    :
+    BndryFunctBase(inFunc),
+    m_gfunc(nullptr),
+    m_gfunc3D(nullptr),
+    m_gfuncfab(gFunc)
 {}
 
 StateDescriptor::BndryFunc*

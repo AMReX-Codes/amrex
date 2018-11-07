@@ -33,7 +33,7 @@ public:
     //
     // Class wrapper around BndryFuncDefault.
     //
-    class BndryFunc
+    class BndryFunc final
 	: public BndryFunctBase
     {
     public:
@@ -46,11 +46,13 @@ public:
         //
         BndryFunc (BndryFuncDefault inFunc);
         BndryFunc (BndryFunc3DDefault inFunc);
+        BndryFunc (BndryFuncFabDefault inFunc);
         //
         // Another Constructor.
         //
         BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc);
         BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc);
+        BndryFunc (BndryFuncFabDefault inFunc,BndryFuncFabDefault gFunc);
         //
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
@@ -70,15 +72,18 @@ public:
         //
         // Fill boundary cells using "group" function.
         //
-        virtual void operator () (Real* data, const int* lo, const int* hi,
-                                  const int* dom_lo, const int* dom_hi,
-                                  const Real* dx, const Real* grd_lo,
-                                  const Real* time, const int* bc, int ng) const;
+        void operator () (Real* data, const int* lo, const int* hi,
+                          const int* dom_lo, const int* dom_hi,
+                          const Real* dx, const Real* grd_lo,
+                          const Real* time, const int* bc, int ng) const;
+
+        using BndryFunctBase::operator();
 
     private:
 
         BndryFuncDefault   m_gfunc;
         BndryFunc3DDefault m_gfunc3D;
+        BndryFuncFabDefault m_gfuncfab;
     };
     //
     // The default constructor.
