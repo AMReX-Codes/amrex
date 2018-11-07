@@ -61,8 +61,12 @@ if (ENABLE_EB)
    include (EB/CMakeLists.txt)
 endif ()
 
-if (ENABLE_PROFPARSER OR ENABLE_AMRDATA)
-   include (Extern/CMakeLists.txt)
+if (ENABLE_AMRDATA)
+   include(Extern/amrdata/CMakeLists.txt)
+endif()
+
+if (ENABLE_PROFPARSER)
+   include(Extern/ProfParser/CMakeLists.txt)
 endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
