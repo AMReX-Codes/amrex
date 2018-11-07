@@ -1428,8 +1428,8 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
 
 FillPatchIteratorHelper::~FillPatchIteratorHelper () {}
 
-#ifdef USE_PERILLA
 FillPatchIterator::~FillPatchIterator () {
+#ifdef USE_PERILLA
         while(regionList.size()){
           RegionGraph* tmp= regionList.front();
           delete tmp;
@@ -1441,8 +1441,8 @@ FillPatchIterator::~FillPatchIterator () {
           delete tmp;
           mfList.pop_front();
         }
-    }
 #endif
+    }
 
 void
 AmrLevel::FillCoarsePatch (MultiFab& mf,
