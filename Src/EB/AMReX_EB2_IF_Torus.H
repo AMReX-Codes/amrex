@@ -29,8 +29,8 @@ public:
     TorusIF& operator= (TorusIF&& rhs) = delete;
 
     Real operator() (const RealArray& p) const {
-        Real d2 = sqrt((p[0]-m_center[0])*(p[0]-m_center[0]) +
-                      +(p[1]-m_center[1])*(p[1]-m_center[1]));
+        Real d2 = std::sqrt((p[0]-m_center[0])*(p[0]-m_center[0]) +
+                           +(p[1]-m_center[1])*(p[1]-m_center[1]));
 #if (AMREX_SPACEDIM == 2)
         return m_sign*((m_large_radius-d2)*(m_large_radius-d2) 
                       - m_small_radius2);
