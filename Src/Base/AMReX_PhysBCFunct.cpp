@@ -5,20 +5,30 @@ namespace amrex {
 
 BndryFunctBase::BndryFunctBase ()
     :
-    m_func(0),
-    m_func3D(0)
+    m_func(nullptr),
+    m_func3D(nullptr),
+    m_funcfab(nullptr)
 {}
 
 BndryFunctBase::BndryFunctBase (BndryFuncDefault inFunc)
     :
     m_func(inFunc),
-    m_func3D(0)
+    m_func3D(nullptr),
+    m_funcfab(nullptr)
 {}
 
 BndryFunctBase::BndryFunctBase (BndryFunc3DDefault inFunc)
     :
-    m_func(0),
-    m_func3D(inFunc)
+    m_func(nullptr),
+    m_func3D(inFunc),
+    m_funcfab(nullptr)
+{}
+
+BndryFunctBase::BndryFunctBase (BndryFuncFabDefault inFunc)
+    :
+    m_func(nullptr),
+    m_func3D(nullptr),
+    m_funcfab(inFunc)
 {}
 
 BndryFunctBase::~BndryFunctBase () {}
@@ -35,9 +45,9 @@ BndryFunctBase::operator () (Real* data,const int* lo,const int* hi,
 			     const Real* dx, const Real* grd_lo,
 			     const Real* time, const int* bc) const
 {
-    BL_ASSERT(m_func != 0 || m_func3D != 0);
+    BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
-    if (m_func != 0) {
+    if (m_func != nullptr) {
 	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
     } else {
 	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
@@ -45,6 +55,16 @@ BndryFunctBase::operator () (Real* data,const int* lo,const int* hi,
     }
 }
 
+void
+BndryFunctBase::operator () (Box const& bx, FArrayBox& data,
+                             const int dcomp, const int numcomp,
+                             Geometry const& geom, const Real time,
+                             const Vector<BCRec>& bcr, const int bcomp,
+                             const int scomp) const
+{
+    AMREX_ASSERT(m_funcfab != nullptr);
+    m_funcfab(bx, data, dcomp, numcomp, geom, time, bcr, bcomp, scomp);
+}
 
 PhysBCFunct::PhysBCFunct (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func)
     : m_geom(geom), m_bcr(bcr), m_bc_func(func.clone())

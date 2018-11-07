@@ -18,6 +18,12 @@ extern "C"
                                        const int* dom_lo, const int* dom_hi,
                                        const Real* dx, const Real* grd_lo,
                                        const Real* time, const int* bc);
+
+    typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
+                                         const int dcomp, const int numcomp,
+                                         Geometry const& geom, const Real time,
+                                         const Vector<BCRec>& bcr, const int bcomp,
+                                         const int scomp);
 }
 
 class BndryFunctBase
@@ -26,6 +32,7 @@ public:
     BndryFunctBase ();
     BndryFunctBase (BndryFuncDefault inFunc);
     BndryFunctBase (BndryFunc3DDefault inFunc);
+    BndryFunctBase (BndryFuncFabDefault inFunc);
     virtual ~BndryFunctBase ();
     /**
     * \brief Return a ptr to a clone of this object.
@@ -37,9 +44,19 @@ public:
 			      const int* dom_lo, const int* dom_hi,
 			      const Real* dx, const Real* grd_lo,
 			      const Real* time, const int* bc) const;
+    virtual void operator () (Box const& bx, FArrayBox& data,
+                              const int dcomp, const int numcomp,
+                              Geometry const& geom, const Real time,
+                              const Vector<BCRec>& bcr, const int bcomp,
+                              const int scomp) const;
+    bool hasFabVersion () const { return m_funcfab != nullptr; }
+    void setRunOnGPU (bool b) { run_on_gpu = b; }
+    bool RunOnGPU () const { return run_on_gpu; }
 protected:
     BndryFuncDefault    m_func;
     BndryFunc3DDefault  m_func3D;
+    BndryFuncFabDefault m_funcfab;
+    bool run_on_gpu = false;
 };
 
 class PhysBCFunctBase {
