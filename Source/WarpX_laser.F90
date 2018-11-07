@@ -94,9 +94,9 @@ contains
     !$acc loop
     do i = 1, np
       ! Exp argument for the temporal gaussian envelope + STCs
-      stc_exponent = 1./stretch_factor * inv_tau2 * \
-          (t - t_peak - beta*k0*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc)) -\
-          2*j*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc))*( zeta - beta*f ) *\
+      stc_exponent = 1./stretch_factor * inv_tau2 * &
+          (t - t_peak - beta*k0*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc)) - &
+          2*j*(Xp(i)*cos(theta_stc) + Yp(i)*sin(theta_stc))*( zeta - beta*f ) * &
           inv_complex_waist_2)**2
       ! stcfactor = everything but complex transverse envelope
       stcfactor = prefactor * exp( - stc_exponent )
