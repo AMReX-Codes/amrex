@@ -716,6 +716,16 @@ public:
     T max (const Box& subbox,
            int        comp = 0) const;
     /**
+    * \return Returns index that has given location, or IntVect
+    * outside of the subbox if value is not present.
+    */
+
+    AMREX_GPU_HOST_DEVICE
+    IntVect indexFromValue (Real value, 
+                            const Box& subbox, 
+                            int comp) const;
+
+    /**
     * \return location of minimum value in given component.
     */
     AMREX_GPU_HOST_DEVICE
@@ -2387,28 +2397,6 @@ BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
     return IntVect(AMREX_D_DECL(imin+lo.x,jmin+lo.y,kmin+lo.z));
 }
 
-template <class T>
-void
-BaseFab<T>::minIndex (const Box& subbox, 
-                      Real& min_val,
-                      IntVect& min_idx,
-                      int comp) const
-{
-    const auto len  = amrex::length(subbox);
-    const auto lo   = amrex::lbound(subbox);
-    const auto dp   = view(lo, comp);
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
-                if (dp(i,j,k,0) < min_val) {
-                    min_val = dp(i,j,k,0);
-                    min_idx = IntVect(AMREX_D_DECL(i+lo.x,j+lo.y,k+lo.z)); 
-                }
-            }
-        }
-    }
-}
 
 template <class T>
 IntVect
@@ -2441,29 +2429,6 @@ BaseFab<T>::maxIndex (const Box& subbox,
     }
 
     return IntVect(AMREX_D_DECL(imax+lo.x,jmax+lo.y,kmax+lo.z));
-}
-
-template <class T>
-void
-BaseFab<T>::maxIndex (const Box& subbox, 
-                      Real& max_val,
-                      IntVect& max_idx,
-                      int comp) const
-{
-    const auto len  = amrex::length(subbox);
-    const auto lo   = amrex::lbound(subbox);
-    const auto dp   = view(lo, comp);
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
-                if (dp(i,j,k,0) > max_val) {
-                    max_val = dp(i,j,k,0);
-                    max_idx = IntVect(AMREX_D_DECL(i+lo.x,j+lo.y,k+lo.z)); 
-                }
-            }
-        }
-    }
 }
 
 template <class T>
