@@ -2167,6 +2167,8 @@ BaseFab<T>::performSetVal (T          val,
                            int        ns,
                            int        num)
 {
+    if (!bx.ok()) return;
+  
     AMREX_ASSERT(this->domain.contains(bx));
     AMREX_ASSERT(ns >= 0 && ns + num <= this->nvar);
 
