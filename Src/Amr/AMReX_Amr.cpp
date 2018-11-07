@@ -1951,11 +1951,14 @@ Amr::timeStep (int  level,
     else
     {
         int lev_top = std::min(finest_level, max_level-1);
+        bool *metadataChanged=new bool[finest_level+1];
+        for (int l=0; l <= finest_level; l++)
+            metadataChanged[l]=false;
 
-	bool metadataChanged=false;
         for (int i(level); i <= lev_top; ++i)
         {
             const int old_finest = finest_level;
+
 
             if (okToRegrid(i))
             {
@@ -1993,8 +1996,13 @@ Amr::timeStep (int  level,
                     }
                 }
 #ifdef USE_PERILLA
-                getLevel(i).finalizePerilla(cumtime);
-		metadataChanged=true;
+                for (int k(i>0?i-1:0); k <= finest_level; ++k) {
+		    if(metadataChanged[k]==false){
+                        getLevel(k).finalizePerilla(cumtime);
+                        graphArray[k].clear();
+	       	        metadataChanged[k]=true;
+	            }
+		}
 #endif
             }
             if (old_finest > finest_level) {
@@ -2002,11 +2010,14 @@ Amr::timeStep (int  level,
 	    }
         }
 #ifdef USE_PERILLA
-	if(metadataChanged){
-            for(int i=0; i<= finest_level; i++)
+        int cnt=0;
+        for(int i=0; i<= finest_level; i++)
+	    if(metadataChanged[i]){
                 getLevel(i).initPerilla(cumtime);
- 	    Perilla::updatedMetadata=1;
-	}
+	        cnt++;
+	    }
+ 	if(cnt)Perilla::updatedMetadata=1;
+	delete metadataChanged;
 #endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
@@ -2221,7 +2232,6 @@ Amr::coarseTimeStep (Real stop_time)
             pthread_mutex_unlock(&teamFinishLock);
         }
     }
-//cout<<"Thread "<<perilla::tid()<<"completed"<<endl;
 #else
     Perilla::numTeamsFinished = 0;
     RegionGraph::graphCnt = 0;
@@ -2253,7 +2263,6 @@ Amr::coarseTimeStep (Real stop_time)
     if(perilla::isMasterThread()){
         if(level_steps[0] == Perilla::max_step){
             for(int i=0; i<= finest_level; i++){
-                cout<<"Delete metadata at level"<<i<<endl;
                 getLevel(i).finalizePerilla(cumtime);
             }
         }
