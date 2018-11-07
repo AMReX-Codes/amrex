@@ -70,7 +70,11 @@ if (ENABLE_PROFPARSER)
 endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
-   include (LinearSolvers/CMakeLists.txt)
+   include(LinearSolvers/CMakeLists.txt)
+endif ()
+
+if (ENABLE_3D_NODAL_MLMG)
+   include(Extern/Algoim/CMakeLists.txt)
 endif ()
 
 if (ENABLE_FORTRAN_INTERFACES) 
