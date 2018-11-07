@@ -5,6 +5,7 @@
 #include <AMReX_EB2_IF_Ellipsoid.H>
 #include <AMReX_EB2_IF_Plane.H>
 #include <AMReX_EB2_IF_Sphere.H>
+#include <AMReX_EB2_IF_Torus.H>
 
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
@@ -117,6 +118,25 @@ Build (const Geometry& geom, int required_coarsening_level,
         EB2::SphereIF sf(radius, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::SphereIF> gshop(sf);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
+    }
+    else if (geom_type == "torus")
+    {
+        RealArray center;
+        pp.get("torus_center", center);
+
+        Real small_radius;
+        pp.get("torus_small_radius", small_radius);
+
+        Real large_radius;
+        pp.get("torus_large_radius", large_radius);
+
+        bool has_fluid_inside = true;
+
+        EB2::TorusIF sf(large_radius, small_radius, center, has_fluid_inside);
+
+        EB2::GeometryShop<EB2::TorusIF> gshop(sf);
         EB2::Build(gshop, geom, required_coarsening_level,
                    max_coarsening_level, ngrow);
     }

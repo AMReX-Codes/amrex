@@ -629,6 +629,8 @@ public:
     RegionGraph*                      csrcGraph;
     RegionGraph*                      fsrcGraph;
     RegionGraph*                      m_rg_crse_patch;
+    std::list<RegionGraph*>	      regionList;
+    std::list<MultiFab*>	      mfList;
 
 
 
