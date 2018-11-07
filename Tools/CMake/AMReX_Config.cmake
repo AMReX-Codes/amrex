@@ -35,7 +35,6 @@ function (configure_amrex)
    include( AMReX_Defines )
    include( AMReX_Compilers )
    include( AMReX_Utils )
-   include( AMReX_ThirdPartyLibraries )
    
    # 
    # Set properties for target "amrex"
@@ -131,13 +130,10 @@ function (configure_amrex)
    #
    if (ENABLE_3D_NODAL_MLMG)
       # Add Algoim dependency
-      # add_dependencies(amrex algoim)
       target_include_directories( amrex PRIVATE ${ALGOIM_INSTALL_DIR}/src )
       #  Blitz dependency
-      # add_dependencies( amrex blitz )
       target_include_directories( amrex PRIVATE ${BLITZ_INSTALL_DIR}/include )
       target_link_libraries( amrex PUBLIC ${BLITZ_INSTALL_DIR}/lib/libblitz.a)
-      # add_amrex_third_party_libraries()
    endif()
    
    #

@@ -10,20 +10,7 @@ if (NOT BLITZ_INSTALL_DIR)
    set(BLITZ_GIT_TAG     0d5d1feaad1b1b31aa9881da00bad68f7036ff63 )
    set(BLITZ_ROOT_DIR    ${EXTERNAL_LIBS_PATH}/blitz              )
    set(BLITZ_INSTALL_DIR ${BLITZ_ROOT_DIR}/installdir CACHE PATH
-      "Path to Blitz installation directory")
-
-   # Configure command
-   set(BLITZ_CONFIG_COMMAND 
-      CC=${CMAKE_C_COMPILER}
-      FC=${CMAKE_Fortran_COMPILER}
-      CXX=${CMAKE_CXX_COMPILER}
-      ./configure --prefix=${BLITZ_INSTALL_DIR}
-      )
-   # if (DDEBUG)
-   #    set(BLITZ_CONFIGURE_COMMAND ${BLITZ_CONFIGURE_COMMAND} --enable-debug)
-   # else ()
-   #    set(BLITZ_CONFIGURE_COMMAND ${BLITZ_CONFIGURE_COMMAND} --enable-optimize)
-   # endif ()
+      "Path to Blitz installation directory")  
 
    # Clone
    message(STATUS "Cloning Blitz")
@@ -52,9 +39,21 @@ if (NOT BLITZ_INSTALL_DIR)
    if (NOT "${RVAR}" STREQUAL "0")
       message(FATAL_ERROR "Fatal error when running autoreconf for BLITZ ")
    endif()
-   
+
+   if (DDEBUG)
+      set(BLITZ_BUILD_TYPE_FLAG --enable-debug)
+   else ()
+      set(BLITZ_BUILD_TYPE_FLAG --enable-optimize)
+   endif ()
+
+   # If would be "more correct" to define FC, CXX, and CC before ./configure
+   # and not after. However, this does not work with execute_process.
+   # Nonetheless, this should not be a problem since many 'configure' implementation
+   # support this approach.
    execute_process(
-      COMMAND           ${BLITZ_ROOT_DIR}/configure --prefix=${BLITZ_INSTALL_DIR}
+      COMMAND           ${BLITZ_ROOT_DIR}/configure
+                        CC=${CMAKE_C_COMPILER} FC=${CMAKE_Fortran_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+                        --prefix=${BLITZ_INSTALL_DIR} ${BLITZ_BUILD_TYPE_FLAG}
       OUTPUT_FILE       ${BLITZ_ROOT_DIR}/cmake_configure.log
       ERROR_FILE        ${BLITZ_ROOT_DIR}/cmake_configure.error
       WORKING_DIRECTORY ${BLITZ_ROOT_DIR}
