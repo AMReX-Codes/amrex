@@ -31,10 +31,10 @@ function (configure_amrex)
    #
    # Include the required modules
    # 
-   include ( AMReX_ThirdPartyProfilers )
-   include ( AMReX_Defines )
-   include ( AMReX_Compilers )
-   include ( AMReX_Utils )
+   include( AMReX_ThirdPartyProfilers )
+   include( AMReX_Defines )
+   include( AMReX_Compilers )
+   include( AMReX_Utils )
    
    # 
    # Set properties for target "amrex"
@@ -46,8 +46,9 @@ function (configure_amrex)
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
    
+   
    # 
-   # Location for Fortran modules
+   # Location of Fortran modules
    # 
    set ( AMREX_Fortran_MODULE_DIR ${PROJECT_BINARY_DIR}/mod_files )
 
@@ -120,14 +121,25 @@ function (configure_amrex)
       strip (OpenMP_CXX_FLAGS)
       target_link_libraries ( amrex PUBLIC ${OpenMP_CXX_FLAGS} )
    else ()
-      	 # Cray compiler has OMP turned on by default
-	 target_compile_options ( amrex PUBLIC $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )
+      # Cray compiler has OMP turned on by default
+      target_compile_options ( amrex PUBLIC $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )
    endif()
-
+      
+   #
+   # Add third party libraries
+   #
+   if (ENABLE_3D_NODAL_MLMG)
+      # Add Algoim dependency
+      target_include_directories( amrex PRIVATE ${ALGOIM_INSTALL_DIR}/src )
+      #  Blitz dependency
+      target_include_directories( amrex PRIVATE ${BLITZ_INSTALL_DIR}/include )
+      target_link_libraries( amrex PUBLIC ${BLITZ_INSTALL_DIR}/lib/libblitz.a)
+   endif()
+   
    #
    # Setup third-party profilers
    # 
-   set_amrex_profilers ()
+   set_amrex_profilers()
 
    #
    # Setup SENSEI

@@ -75,8 +75,6 @@ public:
                                   const Real* dx, const Real* grd_lo,
                                   const Real* time, const int* bc, int ng) const;
 
-	void Print() const;
-
     private:
 
         BndryFuncDefault   m_gfunc;
@@ -232,8 +230,6 @@ public:
 
     static void setBndryFuncThreadSafety (int ext_dir_safe) { bf_ext_dir_threadsafe = ext_dir_safe; }
 
-    void Print() const;
-
 private:
 
     IndexType          type;     // Cell centered, node centered ...
@@ -338,8 +334,6 @@ public:
     // Returns StateDescriptor at index k.
     //
     const StateDescriptor& operator[] (int k) const;
-
-    void Print() const;
 
 private:
     //
