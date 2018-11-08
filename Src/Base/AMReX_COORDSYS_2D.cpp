@@ -46,7 +46,7 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
                 Real ri = offset[0] + dx[0]*(i+lo.x);
-                Real ro = ri + dx.x;
+                Real ro = ri + dx[0];
                 Real v = tmp*(ro-ri)*(ro*ro+ro*ri+ri*ri);
                 dp(i,j,0) = std::abs(v);
             }
