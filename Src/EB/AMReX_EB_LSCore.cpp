@@ -20,7 +20,8 @@
 #include <LSCore.H>
 #include <LSCore_F.H>
 
-using namespace amrex;
+//using namespace amrex;
+namespace amrex {
 
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
@@ -36,6 +37,7 @@ LSCore::LSCore () {
     int nlevs_max = max_level + 1;
 
     level_set.resize(nlevs_max);
+    ls_factory.resize(nlevs_max);
 
     istep.resize(nlevs_max, 0);
 
@@ -131,6 +133,7 @@ void LSCore::RemakeLevel ( int lev, Real time, const BoxArray & ba,
 // Delete level data overrides the pure virtual function in AmrCore
 void LSCore::ClearLevel (int lev) {
     level_set[lev].clear();
+    ls_factory[lev].clear();
 }
 
 
@@ -143,6 +146,8 @@ void LSCore::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
     const int nghost = 1;
 
     level_set[lev].define(ba, dm, ncomp, nghost);
+    // NOTE: use move semantics since LSFactory contains unique_ptrs
+    ls_factory[lev] = std::move(LSFacory(0, ));
 
     const Real * dx = geom[lev].CellSize();
 
@@ -503,4 +508,8 @@ void LSCore::ReadCheckpointFile () {
 void LSCore::GotoNextLine (std::istream & is) {
     constexpr std::streamsize bl_ignore_max { 100000 };
     is.ignore(bl_ignore_max, '\n');
+}
+
+
+
 }
