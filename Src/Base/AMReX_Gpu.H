@@ -11,7 +11,7 @@
 #include <AMReX_CudaDevice.H>
 #include <AMReX_CudaAllocators.H>
 #include <AMReX_CudaContainers.H>
-#include <AMReX_CudaFab.H>
+#include <AMReX_CudaAsyncFab.H>
 #include <AMReX_CudaAsyncArray.H>
 
 namespace amrex {

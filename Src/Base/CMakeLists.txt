@@ -166,7 +166,7 @@ add_sources( AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_
 add_sources( AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
 add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
-add_sources( AMReX_CudaFab.H AMReX_CudaFab.cpp AMReX_CudaFabImpl.H AMReX_CudaFabImpl.cpp )
+add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
 add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
 #endif()
 

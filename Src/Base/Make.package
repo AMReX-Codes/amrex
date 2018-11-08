@@ -52,11 +52,11 @@ C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaRange.H AMReX_CudaContain
 C$(AMREX_BASE)_sources += AMReX_CudaDevice.cpp AMReX_CudaLaunch.cpp AMReX_CudaUtility.cpp AMReX_CudaAllocators.cpp
 C$(AMREX_BASE)_headers += AMReX_CudaDevice.H   AMReX_CudaLaunch.H   AMReX_CudaUtility.H   AMReX_CudaAllocators.H
 
-C$(AMREX_BASE)_headers += AMReX_CudaFab.H
-C$(AMREX_BASE)_sources += AMReX_CudaFab.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaAsyncFab.H
+C$(AMREX_BASE)_sources += AMReX_CudaAsyncFab.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaFabImpl.H
-C$(AMREX_BASE)_sources += AMReX_CudaFabImpl.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaAsyncFabImpl.H
+C$(AMREX_BASE)_sources += AMReX_CudaAsyncFabImpl.cpp
 
 C$(AMREX_BASE)_headers += AMReX_CudaAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_CudaAsyncArray.cpp
