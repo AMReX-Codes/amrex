@@ -54,7 +54,7 @@ public:
 
     const Geometry& Geom () const { return m_geom; }
     IndexSpace const* getEBIndexSpace () const { return m_parent; }
-    
+
 protected:
 
     Level (Level && rhs) = default;
@@ -62,7 +62,7 @@ protected:
     Level (Level const& rhs) = delete;
     Level& operator=(Level const& rhs) = delete;
     Level& operator=(Level && rhs) = delete;
- 
+
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
     void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
@@ -185,19 +185,19 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     {
         Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
         Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
-        
+
         for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
         {
             auto& gfab = m_mgf[mfi];
             const Box& vbx = gfab.validbox();
-            
+
             auto& levelset = gfab.getLevelSet();
             gshop.fillFab(levelset, geom);
-            
+
             auto& cellflag = m_cellflag[mfi];
-            
+
             gfab.buildTypes(cellflag);
-            
+
 #if (AMREX_SPACEDIM == 3)
             auto& facetype = gfab.getFaceType();
             auto& edgetype = gfab.getEdgeType();
@@ -220,13 +220,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 const Box& b = facetype[idim].box();
                 M2[idim].resize(b,3);
             }
-            
+
             // regular by default
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_areafrac[idim][mfi].setVal(1.0);
                 m_facecent[idim][mfi].setVal(0.0);
             }
-            
+
             amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
                                   BL_TO_FORTRAN_ANYD(facetype[0]),
@@ -249,7 +249,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(M2[1]),
                                   BL_TO_FORTRAN_ANYD(M2[2]),
                                   dx, dxinv, problo);
-            
+
             // regular by default
             m_volfrac[mfi].setVal(1.0);
             m_centroid[mfi].setVal(0.0);
@@ -276,7 +276,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
                                   BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
                                   BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
-            
+
 #elif (AMREX_SPACEDIM == 2)
             auto& facetype = gfab.getFaceType();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -319,7 +319,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             m_bndryarea[mfi].setVal(0.0);
             m_bndrycent[mfi].setVal(-1.0);
             m_bndrynorm[mfi].setVal(0.0);
-            
+
             amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
                                   BL_TO_FORTRAN_ANYD(facetype[0]),

@@ -24,7 +24,9 @@ class AmrMeshInSituBridge;
 }
 #endif
 
-using namespace amrex;
+//using namespace amrex;
+
+namespace amrex {
 
 class LSCore
     : public amrex::AmrCore
@@ -120,9 +122,11 @@ private:
      ***************************************************************************/
 
     // Paticle data (used for defining levelset)
-    Vector<particle_info> particle_data;
+    //Vector<particle_info> particle_data;
+    Vector<const EB2::Level *> eb_levels;
 
-    Vector<MultiFab> level_set;
+    Vector<MultiFab>  level_set;
+    Vector<LSFactory> ls_factory;
 
     // This is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction
@@ -139,16 +143,19 @@ private:
     std::string restart_chkfile = "";
 
     // plotfile prefix and frequency
-    std::string plot_file {"plt"};
+    std::string plot_file {"ls_plt"};
     int plot_int = -1;
 
     // checkpoint prefix and frequency
-    std::string chk_file {"chk"};
+    std::string chk_file {"ls_chk"};
     int chk_int = -1;
 
 #if defined(BL_USE_SENSEI_INSITU)
     amrex::AmrMeshInSituBridge *insitu_bridge;
 #endif
 };
+
+
+}
 
 #endif
