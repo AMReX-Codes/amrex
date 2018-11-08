@@ -185,6 +185,9 @@ ifneq ($(USE_CUDA),TRUE)
   USE_GPU_PRAGMA = FALSE
 endif
 
+SKIP_LINKING ?= FALSE
+USE_COMPILE_PIC ?= FALSE
+
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
