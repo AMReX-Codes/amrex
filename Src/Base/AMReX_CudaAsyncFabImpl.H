@@ -1,5 +1,5 @@
-#ifndef AMREX_CUDA_FAB_IMPL_H_
-#define AMREX_CUDA_FAB_IMPL_H_
+#ifndef AMREX_CUDA_ASYNC_FAB_IMPL_H_
+#define AMREX_CUDA_ASYNC_FAB_IMPL_H_
 
 #include <memory>
 #include <AMReX_FArrayBox.H>
@@ -7,17 +7,17 @@
 namespace amrex {
 namespace Cuda {
 
-class DeviceFabImpl
+class AsyncFabImpl
 {
 public:
 
-    DeviceFabImpl ();
-    DeviceFabImpl (Box const& bx, int ncomp);
-    DeviceFabImpl (FArrayBox& a_fab);
-    DeviceFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp);
-    ~DeviceFabImpl ();
-    DeviceFabImpl (DeviceFabImpl const&) = delete;
-    void operator= (DeviceFabImpl const&) = delete;
+    AsyncFabImpl ();
+    AsyncFabImpl (Box const& bx, int ncomp);
+    AsyncFabImpl (FArrayBox& a_fab);
+    AsyncFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp);
+    ~AsyncFabImpl ();
+    AsyncFabImpl (AsyncFabImpl const&) = delete;
+    void operator= (AsyncFabImpl const&) = delete;
 
     void resize (Box const& bx, int ncomp);
     FArrayBox* fabPtr ();

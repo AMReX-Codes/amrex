@@ -1,4 +1,4 @@
-#include <AMReX_CudaFabImpl.H>
+#include <AMReX_CudaAsyncFabImpl.H>
 
 #ifdef AMREX_USE_CUDA
 
@@ -29,7 +29,7 @@ namespace {
 }
 
 void
-DeviceFabImpl::Initialize ()
+AsyncFabImpl::Initialize ()
 {
     if (initialized) return;
     initialized = true;
@@ -43,13 +43,13 @@ DeviceFabImpl::Initialize ()
 }
 
 void
-DeviceFabImpl::Finalize ()
+AsyncFabImpl::Finalize ()
 {
     fab_stacks.clear();
 }
 
 
-DeviceFabImpl::DeviceFabImpl ()
+AsyncFabImpl::AsyncFabImpl ()
 {
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(BaseFabData<Real>),
                   "BaseFabData must be trivially copyable");
@@ -63,7 +63,7 @@ DeviceFabImpl::DeviceFabImpl ()
     }
 }
 
-DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
+AsyncFabImpl::AsyncFabImpl (Box const& bx, int ncomp)
     : m_cpu_fab(bx,ncomp)
 {
     auto& fabstack = get_stack();
@@ -76,7 +76,7 @@ DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
     copy_htod();
 }
 
-DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab)
+AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab)
 {
     if (a_fab.isAllocated()) {
         m_cpu_fab.resize(a_fab.box(), a_fab.nComp());
@@ -91,18 +91,18 @@ DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab)
     copy_htod();
 }
 
-DeviceFabImpl::DeviceFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
-    : DeviceFabImpl(bx,ncomp)
+AsyncFabImpl::AsyncFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
+    : AsyncFabImpl(bx,ncomp)
 {}
 
-DeviceFabImpl::~DeviceFabImpl ()
+AsyncFabImpl::~AsyncFabImpl ()
 {
     auto& fabstack = get_stack();
     fabstack.push_back(std::move(m_gpu_fab));
 }
 
 void
-DeviceFabImpl::resize (Box const& bx, int ncomp)
+AsyncFabImpl::resize (Box const& bx, int ncomp)
 {
     if (ncomp != m_cpu_fab.nComp() || bx != m_cpu_fab.box())
     {
@@ -112,14 +112,14 @@ DeviceFabImpl::resize (Box const& bx, int ncomp)
 }
 
 FArrayBox*
-DeviceFabImpl::fabPtr ()
+AsyncFabImpl::fabPtr ()
 {
     AMREX_ASSERT(m_gpu_fab != nullptr);
     return m_gpu_fab.get();
 }
 
 void
-DeviceFabImpl::copy_htod ()
+AsyncFabImpl::copy_htod ()
 {
     auto dest = static_cast<BaseFabData<Real>*>(m_gpu_fab.get());
     if (inLaunchRegion())
@@ -144,27 +144,27 @@ DeviceFabImpl::copy_htod ()
 namespace amrex {
 namespace Cuda {
 
-void DeviceFabImpl::Initialize () {}
-void DeviceFabImpl::Finalize () {}
+void AsyncFabImpl::Initialize () {}
+void AsyncFabImpl::Finalize () {}
 
-DeviceFabImpl::DeviceFabImpl () {}
+AsyncFabImpl::AsyncFabImpl () {}
 
-DeviceFabImpl::DeviceFabImpl (Box const& bx, int ncomp)
+AsyncFabImpl::AsyncFabImpl (Box const& bx, int ncomp)
     : m_cpu_fab(bx,ncomp), m_cpu_fab_alias(&m_cpu_fab) {}
 
-DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab) : m_cpu_fab_alias (&a_fab) {}
+AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab) : m_cpu_fab_alias (&a_fab) {}
 
-DeviceFabImpl::DeviceFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp)
+AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp)
     : m_cpu_fab_alias(&a_fab)
 {
     resize(bx,ncomp);
 }
 
-DeviceFabImpl::~DeviceFabImpl () {}
+AsyncFabImpl::~AsyncFabImpl () {}
 
-void DeviceFabImpl::resize (Box const& bx, int ncomp) { m_cpu_fab_alias->resize(bx,ncomp); }
+void AsyncFabImpl::resize (Box const& bx, int ncomp) { m_cpu_fab_alias->resize(bx,ncomp); }
 
-FArrayBox* DeviceFabImpl::fabPtr () { return m_cpu_fab_alias; }
+FArrayBox* AsyncFabImpl::fabPtr () { return m_cpu_fab_alias; }
 
 }}
 
