@@ -30,12 +30,6 @@ namespace amrex
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf);
 
-    // Specialization for non-interpolating in time FillPatch. NOTE: the time
-    // variable is used by the PhysBC
-    void FillPatchSingleLevel (MultiFab & mf, Real time, const MultiFab & smf,
-                               int scomp, int dcomp, int ncomp,
-                               const Geometry & geom, PhysBCFunctBase & physbcf);
-
     void FillPatchTwoLevels (MultiFab& mf, Real time,
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
 			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
@@ -55,30 +49,6 @@ namespace amrex
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
 			     const IntVect& ratio,
 			     Interpolater* mapper, const Vector<BCRec>& bcs,
-                             const InterpHook& pre_interp = NullInterpHook(),
-                             const InterpHook& post_interp = NullInterpHook());
-
-    // Specialization for non-interpolating in time FillPatch. NOTE: the time
-    // variable is used by the PhysBC
-    void FillPatchTwoLevels (MultiFab& mf, Real time,
-                             const MultiFab & cmf, const MultiFab & fmf,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-                             const IntVect& ratio,
-                             Interpolater* mapper, const BCRec& bcs,
-                             const InterpHook& pre_interp = NullInterpHook(),
-                             const InterpHook& post_interp = NullInterpHook());
-
-    // Specialization for non-interpolating in time FillPatch. NOTE: the time
-    // variable is used by the PhysBC
-    void FillPatchTwoLevels (MultiFab& mf, Real time,
-                             const MultiFab & cmf, const MultiFab & fmf,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-                             const IntVect& ratio,
-                             Interpolater* mapper, const Vector<BCRec>& bcs,
                              const InterpHook& pre_interp = NullInterpHook(),
                              const InterpHook& post_interp = NullInterpHook());
 
