@@ -8,12 +8,12 @@
 #ifdef AMREX_USE_CUDA
 
 namespace {
-    std::mutex callback_mutex;
+    std::mutex cudafab_callback_mutex;
 }
 
 extern "C" {
     void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p) {
-        std::lock_guard<std::mutex> guard(callback_mutex);
+        std::lock_guard<std::mutex> guard(cudafab_callback_mutex);
         delete (amrex::Cuda::DeviceFabImpl*)p;
     }
 }
