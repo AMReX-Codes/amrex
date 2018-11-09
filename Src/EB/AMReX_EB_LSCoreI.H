@@ -52,7 +52,7 @@ void LSCore<F>::ClearLevel (int lev) {
 // virtual function in AmrCore
 template<class F>
 void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
-                                      const DistributionMapping & dm) {
+                                         const DistributionMapping & dm) {
     const int ncomp  = 1;
     const int nghost = 1;
 
@@ -64,24 +64,45 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         new LSFactory(lev, 1, 1, levelset_pad, levelset_eb_pad, ba, geom[lev], dm)
         );
 
-    const Real * dx = geom[lev].CellSize();
 
-    // Number of particles
-    //int np = particle_data.size();
+    int max_level = 0;
+    EB2::Build(m_gshop, geom[lev], max_level, max_level);
+    const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+    eb_levels[lev] = & cylinder_ebis.getLevel(geom[lev]);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(level_set[lev], true); mfi.isValid(); ++mfi) {
-        const Box &  tile_box = mfi.tilebox();
-              auto & phi_tile = level_set[lev][mfi];
 
-        // fill_levelset_ib ( tile_box.loVect(), tile_box.hiVect(),
-        //                    particle_data.dataPtr(), & np,
-        //                    BL_TO_FORTRAN_3D(phi_tile),
-        //                    dx                                     );
+    int eb_pad = ls_factory[lev]->get_eb_pad();
+    EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
+                                  {eb_pad, eb_pad, eb_pad}, EBSupport::full);
 
-    }
+
+    GShopLSFactory<F> ls_gshop(m_gshop, * ls_factory[lev]);
+    std::unique_ptr<MultiFab> cylinder_mf_impfunc = ls_gshop.fill_impfunc();
+    ls_factory[lev]->intersection_ebf(eb_factory, * cylinder_mf_impfunc);
+
+    int ng = ls_factory[lev]->get_ls_pad();
+    level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
+
+    Print() << "made level: " << lev << std::endl;
+
+//    const Real * dx = geom[lev].CellSize();
+//
+//    // Number of particles
+//    //int np = particle_data.size();
+//
+//#ifdef _OPENMP
+//#pragma omp parallel
+//#endif
+//    for (MFIter mfi(level_set[lev], true); mfi.isValid(); ++mfi) {
+//        const Box &  tile_box = mfi.tilebox();
+//              auto & phi_tile = level_set[lev][mfi];
+//
+//        // fill_levelset_ib ( tile_box.loVect(), tile_box.hiVect(),
+//        //                    particle_data.dataPtr(), & np,
+//        //                    BL_TO_FORTRAN_3D(phi_tile),
+//        //                    dx                                     );
+//
+//    }
 
     level_set[lev].FillBoundary(geom[lev].periodicity());
 

@@ -101,6 +101,8 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_ls_gshop.fill_impfunc();
 
     LSCore<CylinderIF> amr_ls(cylinder_gshop);
+    amr_ls.InitData();
+    amr_ls.WritePlotFile();
 
     VisMF::Write(* cylinder_mf_impfunc, "ImpFunc_SideWalls");
 

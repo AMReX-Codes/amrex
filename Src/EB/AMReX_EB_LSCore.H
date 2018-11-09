@@ -30,7 +30,7 @@ class AmrMeshInSituBridge;
 namespace amrex {
 
 
-template <class F>
+template<class F>
 class LSCore
     : public LSCoreBase
 {
