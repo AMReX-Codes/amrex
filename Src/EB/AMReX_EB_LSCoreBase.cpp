@@ -37,6 +37,7 @@ LSCoreBase::LSCoreBase () {
 
     level_set.resize(nlevs_max);
     ls_factory.resize(nlevs_max);
+    eb_levels.resize(nlevs_max);
 
     istep.resize(nlevs_max, 0);
 

@@ -63,6 +63,8 @@ make_my_eb2(int lev, const BoxArray & grids, const DistributionMapping & dmap,
       EB2::GeometryShop<CylinderIF> gshop(* impfunc);
 
       LSCore<CylinderIF> amr_ls(gshop);
+      amr_ls.InitData();
+      amr_ls.WritePlotFile();
 
       GShopLSFactory<CylinderIF>    cylinder_ls_gshop(gshop, * level_set);
 

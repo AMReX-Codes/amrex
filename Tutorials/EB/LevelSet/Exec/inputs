@@ -48,5 +48,24 @@ eb.levelset__eb_refinement = 1
 eb.levelset__eb_pad        = 8
 
 
-amr.max_level = 1
 amr.n_cell    = 32 32 32
+
+amr.max_grid_size = 8
+
+geometry.prob_lo     = 0.      0.      0.      # lo corner of physical domain
+geometry.prob_hi     = 0.0032  0.0032  0.0032  # hi corner of physical domain
+
+geometry.is_periodic = 1       1       0       # Is periodic in each direction?
+
+# VERBOSITY
+amr.v              = 1       # verbosity in Amr
+
+# REFINEMENT
+amr.max_level       = 3       # maximum level number allowed
+amr.ref_ratio       = 2 2 2 2 # refinement ratio
+amr.blocking_factor = 8       # block factor in grid generation
+
+
+
+# Tagging
+amr.phierr = 1.e-4  5.e-5  1.e-5  5.e-6
