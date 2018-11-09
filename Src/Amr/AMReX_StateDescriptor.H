@@ -33,8 +33,7 @@ public:
     //
     // Class wrapper around BndryFuncDefault.
     //
-    class BndryFunc final
-	: public BndryFunctBase
+    class BndryFunc
     {
     public:
         //
@@ -44,50 +43,59 @@ public:
         //
         // A Constructor.
         //
-        BndryFunc (BndryFuncDefault inFunc);
-        BndryFunc (BndryFunc3DDefault inFunc);
-        BndryFunc (BndryFuncFabDefault inFunc);
+        BndryFunc (BndryFuncDefault inFunc) : m_func(inFunc) {}
+        BndryFunc (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
+        BndryFunc (BndryFuncFabDefault inFunc) : m_funcfab(inFunc) {}
         //
         // Another Constructor.
         //
-        BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc);
-        BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc);
-        BndryFunc (BndryFuncFabDefault inFunc,BndryFuncFabDefault gFunc);
+        BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc)
+            : m_func(inFunc), m_gfunc(gFunc) {}
+        BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc)
+            : m_func3D(inFunc), m_gfunc3D(gFunc) {}
         //
         // Return a ptr to a clone of this object.
         // It is the responsibility of the caller to delete the result.
         //
-        virtual BndryFunc* clone () const override;
+        virtual BndryFunc* clone () const;
         //
         // Destructor.
         //
-        virtual ~BndryFunc () override;
+        virtual ~BndryFunc ();
 	//
 	// Fill boundary cells using "regular" function.
 	//
 	virtual void operator () (Real* data, const int* lo, const int* hi,
 				  const int* dom_lo, const int* dom_hi,
 				  const Real* dx, const Real* grd_lo,
-				  const Real* time, const int* bc) const override final;
+				  const Real* time, const int* bc) const;
+        //
+        // Fill boundary cells using "group" function.
+        //
+        virtual void operator () (Real* data, const int* lo, const int* hi,
+                                  const int* dom_lo, const int* dom_hi,
+                                  const Real* dx, const Real* grd_lo,
+                                  const Real* time, const int* bc, int ng) const;
 
         virtual void operator () (Box const& bx, FArrayBox& data,
                                   const int dcomp, const int numcomp,
                                   Geometry const& geom, const Real time,
                                   const Vector<BCRec>& bcr, const int bcomp,
-                                  const int scomp) const override final;
-        //
-        // Fill boundary cells using "group" function.
-        //
-        void operator () (Real* data, const int* lo, const int* hi,
-                          const int* dom_lo, const int* dom_hi,
-                          const Real* dx, const Real* grd_lo,
-                          const Real* time, const int* bc, int ng) const;
+                                  const int scomp) const;
+
+        bool RunOnGPU () const { return m_run_on_gpu; }
+        void setRunOnGPU (bool b) { m_run_on_gpu = b; }
+        
+        bool hasFabVersion () const { return m_funcfab != nullptr; }
 
     private:
 
-        BndryFuncDefault   m_gfunc;
-        BndryFunc3DDefault m_gfunc3D;
-        BndryFuncFabDefault m_gfuncfab;
+        BndryFuncDefault   m_func = nullptr;
+        BndryFunc3DDefault m_func3D = nullptr;
+        BndryFuncDefault   m_gfunc = nullptr;
+        BndryFunc3DDefault m_gfunc3D = nullptr;
+        BndryFuncFabDefault m_funcfab = nullptr;
+        bool m_run_on_gpu = false;
     };
     //
     // The default constructor.

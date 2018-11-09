@@ -23,7 +23,7 @@ class NoOpPhysBC
 public:
     NoOpPhysBC () {}
     virtual ~NoOpPhysBC () {}
-    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time) override { }
+    virtual void FillBoundary (amrex::MultiFab& mf, int, int, amrex::Real time, int) override { }
     using amrex::PhysBCFunctBase::FillBoundary;
 };
 
@@ -237,8 +237,8 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
 
             amrex::InterpFromCoarseLevel(*phi[lev+1], 0.0, *phi[lev],
                                          0, 0, 1, geom[lev], geom[lev+1],
-                                         cphysbc, fphysbc,
-                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs);            
+                                         cphysbc, 0, fphysbc, 0,
+                                         IntVect(D_DECL(2, 2, 2)), &mapper, bcs, 0);
         }
 
         //        VisMF::Write(*phi[lev], amrex::MultiFabFileFullPrefix(lev, "tmp", "Level_", "phi"));
