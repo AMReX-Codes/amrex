@@ -23,15 +23,16 @@ extern "C"
                                          const int dcomp, const int numcomp,
                                          Geometry const& geom, const Real time,
                                          const Vector<BCRec>& bcr, const int bcomp,
-                                         const int orig_comp);
+                                         const int scomp);
 }
 
-class BndryFuncPtr
+// This version calls function working on array
+class BndryFuncArray
 {
 public:
-    BndryFuncPtr () {}
-    BndryFuncPtr (BndryFuncDefault inFunc) : m_func(inFunc) {}
-    BndryFuncPtr (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
+    BndryFuncArray () {}
+    BndryFuncArray (BndryFuncDefault inFunc) : m_func(inFunc) {}
+    BndryFuncArray (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
 
     void operator() (Box const& bx, FArrayBox& data,
                      const int dcomp, const int numcomp,
@@ -46,6 +47,12 @@ protected:
     BndryFuncDefault   m_func   = nullptr;
     BndryFunc3DDefault m_func3D = nullptr;
     bool m_run_on_gpu = false;
+};
+
+// TODO
+// This version calls function working on FArrayBox
+class BndryFuncFab
+{
 };
 
 class PhysBCFunctBase {
@@ -99,16 +106,23 @@ public:
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
-            FArrayBox& dest = mf[mfi];
-            const Box& bx = mfi.fabbox();
-        
-            // if there are cells not in the valid + periodic grown box
-            // we need to fill them here
-            if (!gdomain.contains(bx))
+            Vector<BCRec> bcrs(ncomp);
+            for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
-                m_f(bx, dest, icomp, ncomp, m_geom, time, m_bcr, bccomp, bccomp);
+                FArrayBox& dest = mf[mfi];
+                const Box& bx = mfi.fabbox();
+                
+                // if there are cells not in the valid + periodic grown box
+                // we need to fill them here
+                if (!gdomain.contains(bx))
+                {
+                    // Based on BCRec for the domain, we need to make BCRec for this Box
+                    amrex::setBC(bx, domain, bccomp, 0, ncomp, m_bcr, bcrs);
+
+                    // Note that we pass 0 as starting component of bcrs.
+                    m_f(bx, dest, icomp, ncomp, m_geom, time, m_bcr, 0, bccomp);
+                }
             }
         }
     }
