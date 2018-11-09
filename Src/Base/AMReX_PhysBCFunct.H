@@ -19,11 +19,22 @@ extern "C"
                                        const Real* dx, const Real* grd_lo,
                                        const Real* time, const int* bc);
 
-    typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
-                                         const int dcomp, const int numcomp,
-                                         Geometry const& geom, const Real time,
-                                         const Vector<BCRec>& bcr, const int bcomp,
-                                         const int scomp);
+    // Note that i, j, k, nc, and time are passed by value.
+    // Also note that prob_lo is the lo of the whole domain.
+    typedef void (*UserFillCell) (const int i, const int j, const int k,
+                                  Real* data, const int* dlo, const int* dhi, const int nc,
+                                  const int* dom_lo, const int* dom_hi,
+                                  const Real* dx, const Real* prob_lo,
+                                  const Real time, const int* bc,
+                                  const int orig_comp);
+
+    // Note that nc and time are passed by value.
+    // Also note that prob_lo is the lo of the whole domain.
+    typedef void (*UserFillBox) (Real* data, const int* dlo, const int* dhi, const int nc,
+                                 const int* dom_lo, const int* dom_hi,
+                                 const Real* dx, const Real* prob_lo,
+                                 const Real time, const int* bc,
+                                 const int orig_comp);
 }
 
 // This version calls function working on array
@@ -49,10 +60,38 @@ protected:
     bool m_run_on_gpu = false;
 };
 
-// TODO
-// This version calls function working on FArrayBox
-class BndryFuncFab
+// This gpu version calls function working on FArrayBox
+class GpuBndryFuncFab
 {
+public:
+    GpuBndryFuncFab () = default;
+    GpuBndryFuncFab (UserFillCell a_f) : f_user(a_f) {}
+
+    void operator() (Box const& bx, FArrayBox& data,
+                     const int dcomp, const int numcomp,
+                     Geometry const& geom, const Real time,
+                     const Vector<BCRec>& bcr, const int bcomp,
+                     const int orig_comp);
+
+protected:
+    UserFillCell f_user = nullptr;
+};
+
+// This cpu version calls function working on FArrayBox
+class CpuBndryFuncFab
+{
+public:
+    CpuBndryFuncFab () = default;
+    CpuBndryFuncFab (UserFillBox a_f) : f_user(a_f) {}
+
+    void operator() (Box const& bx, FArrayBox& data,
+                     const int dcomp, const int numcomp,
+                     Geometry const& geom, const Real time,
+                     const Vector<BCRec>& bcr, const int bcomp,
+                     const int orig_comp);
+
+protected:
+    UserFillBox f_user = nullptr;
 };
 
 class PhysBCFunctBase {
