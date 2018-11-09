@@ -22,75 +22,99 @@ extern "C"
     typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
                                          const int dcomp, const int numcomp,
                                          Geometry const& geom, const Real time,
-                                         const Vector<BCRec>& bcr, const int bcomp,
-                                         const int scomp);
+                                         const Vector<BCRec>& bcr, const int bcomp);
 }
 
-class BndryFunctBase
+class BndryFuncPtr
 {
 public:
-    BndryFunctBase ();
-    BndryFunctBase (BndryFuncDefault inFunc);
-    BndryFunctBase (BndryFunc3DDefault inFunc);
-    BndryFunctBase (BndryFuncFabDefault inFunc);
-    virtual ~BndryFunctBase ();
-    /**
-    * \brief Return a ptr to a clone of this object.
-    * It is the responsibility of the caller to delete the result.
-    */    
-    virtual BndryFunctBase* clone () const;
-    //! Fill boundary cells
-    virtual void operator () (Real* data, const int* lo, const int* hi,
-			      const int* dom_lo, const int* dom_hi,
-			      const Real* dx, const Real* grd_lo,
-			      const Real* time, const int* bc) const;
-    virtual void operator () (Box const& bx, FArrayBox& data,
-                              const int dcomp, const int numcomp,
-                              Geometry const& geom, const Real time,
-                              const Vector<BCRec>& bcr, const int bcomp,
-                              const int scomp) const;
-    bool hasFabVersion () const { return m_funcfab != nullptr; }
-    void setRunOnGPU (bool b) { run_on_gpu = b; }
-    bool RunOnGPU () const { return run_on_gpu; }
+    BndryFuncPtr () {}
+    BndryFuncPtr (BndryFuncDefault inFunc) : m_func(inFunc) {}
+    BndryFuncPtr (BndryFunc3DDefault inFunc) : m_func3d(inFunc) {}
+
+    void operator() (Box const& bx, FArrayBox& data,
+                     const int dcomp, const int numcomp,
+                     Geometry const& geom, const Real time,
+                     const Vector<BCRec>& bcr, const int bcomp);
+
+    bool RunOnGPU () const { return m_run_on_gpu; }
+    void setRunOnGPU (bool b) { m_run_on_gpu = b; }
+
 protected:
-    BndryFuncDefault    m_func;
-    BndryFunc3DDefault  m_func3D;
-    BndryFuncFabDefault m_funcfab;
-    bool run_on_gpu = false;
+    BndryFuncDefault   m_func   = nullptr;
+    BndryFunc3DDefault m_func3d = nullptr;
+    bool m_run_on_gpu = false;
 };
 
 class PhysBCFunctBase {
 public:
     // note this is pure virtual and must be implemented in a derived class
     // (see PhysBCFunct below for an example)
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time) = 0;
-    virtual void FillBoundary (MultiFab& mf, Real time)
-	{ FillBoundary(mf, 0, mf.nComp(), time); }
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) = 0;
     virtual ~PhysBCFunctBase () = 0;
 };
 
 inline PhysBCFunctBase::~PhysBCFunctBase () {}
 
-// PhyBCFunct is an example of how to derive from PhysBCFunctBase and is
-// not meant to be a base class. PhysBCFunctBase is the base class.
-// PhysBCFunctBase is designed for users to derive and extend. 
-// You could/should write your own class derived from PhysBCFuncBase.
-// There you can make modifications such as storing a vector of BCRecs for, e.g.,
-// multiple component MultiFabs.
+template <class F>
 class PhysBCFunct
     : public PhysBCFunctBase
 {
 public:
     PhysBCFunct () {}
+
+    PhysBCFunct (const Geometry& geom, const Vector<BCRec>& bcr, F const& f)
+        : m_geom(geom), m_bcr(bcr), m_f(f)
+        {}
+
     virtual ~PhysBCFunct () {}
-    PhysBCFunct (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func);
-    void define (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func);
-    virtual void FillBoundary (MultiFab& mf, int, int, Real time) override;
-    using PhysBCFunctBase::FillBoundary;
+
+    void define (const Geometry& geom, const Vector<BCRec>& bcr, F const& f) {
+        m_geom = geom; m_bcr = bcr; m_f = f;
+    }
+
+    virtual void FillBoundary (MultiFab& mf, int icomp, int ncomp, Real time, int bccomp) override
+    {
+        if (m_geom.isAllPeriodic()) return;
+
+        BL_PROFILE("PhysBCFunct::FillBoundary");
+
+        const Box&     domain      = m_geom.Domain();
+        const int*     dlo         = domain.loVect();
+        const int*     dhi         = domain.hiVect();
+        const Real*    dx          = m_geom.CellSize();
+        const RealBox& prob_domain = m_geom.ProbDomain();
+        const Real*    problo      = prob_domain.lo();
+        
+        // create a grown domain box containing valid + periodic cells
+        Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            if (m_geom.isPeriodic(i)) {
+                gdomain.grow(i, mf.nGrow());
+            }
+        }
+        
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
+            FArrayBox& dest = mf[mfi];
+            const Box& bx = mfi.fabbox();
+        
+            // if there are cells not in the valid + periodic grown box
+            // we need to fill them here
+            if (!gdomain.contains(bx))
+            {
+                m_f(bx, dest, icomp, ncomp, m_geom, time, m_bcr, bccomp);
+            }
+        }
+    }
+
 private:
-    Geometry m_geom;
-    BCRec    m_bcr;
-    std::unique_ptr<BndryFunctBase> m_bc_func;
+    Geometry      m_geom;
+    Vector<BCRec> m_bcr;
+    F             m_f;
 };
 
 }

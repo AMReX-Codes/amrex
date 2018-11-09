@@ -3,127 +3,48 @@
 
 namespace amrex {
 
-BndryFunctBase::BndryFunctBase ()
-    :
-    m_func(nullptr),
-    m_func3D(nullptr),
-    m_funcfab(nullptr)
-{}
-
-BndryFunctBase::BndryFunctBase (BndryFuncDefault inFunc)
-    :
-    m_func(inFunc),
-    m_func3D(nullptr),
-    m_funcfab(nullptr)
-{}
-
-BndryFunctBase::BndryFunctBase (BndryFunc3DDefault inFunc)
-    :
-    m_func(nullptr),
-    m_func3D(inFunc),
-    m_funcfab(nullptr)
-{}
-
-BndryFunctBase::BndryFunctBase (BndryFuncFabDefault inFunc)
-    :
-    m_func(nullptr),
-    m_func3D(nullptr),
-    m_funcfab(inFunc)
-{}
-
-BndryFunctBase::~BndryFunctBase () {}
-
-BndryFunctBase*
-BndryFunctBase::clone () const
-{
-    return new BndryFunctBase(*this);
-}
-
 void
-BndryFunctBase::operator () (Real* data,const int* lo,const int* hi,
-			     const int* dom_lo, const int* dom_hi,
-			     const Real* dx, const Real* grd_lo,
-			     const Real* time, const int* bc) const
+BndryFuncPtr::operator () (Box const& /*bx*/, FArrayBox& dest,
+                           const int dcomp, const int numcomp,
+                           Geometry const& geom, const Real time,
+                           const Vector<BCRec>& bcr, const int bcomp)
 {
     BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
-    if (m_func != nullptr) {
-	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),dom_lo,dom_hi,dx,grd_lo,time,bc);
-    } else {
-	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-		 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
-    }
-}
+    Real*     data = dest.dataPtr(dcomp);
+    const Box&  bx = dest.box();
+    const int*  lo = dest.loVect();
+    const int*  hi = dest.hiVect();
+    const Box& domain = geom.Domain();
+    const int* plo = domain.loVect();
+    const int* phi = domain.hiVect();
+    const Real* dx = geom.CellSize();
 
-void
-BndryFunctBase::operator () (Box const& bx, FArrayBox& data,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp,
-                             const int scomp) const
-{
-    AMREX_ASSERT(m_funcfab != nullptr);
-    m_funcfab(bx, data, dcomp, numcomp, geom, time, bcr, bcomp, scomp);
-}
-
-PhysBCFunct::PhysBCFunct (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func)
-    : m_geom(geom), m_bcr(bcr), m_bc_func(func.clone())
-{ }
-
-void
-PhysBCFunct::define (const Geometry& geom, const BCRec& bcr, const BndryFunctBase& func)
-{
-    m_geom = geom;
-    m_bcr = bcr;
-    m_bc_func.reset(func.clone());
-}
-
-void
-PhysBCFunct::FillBoundary (MultiFab& mf, int, int, Real time)
-{
-    BL_PROFILE("PhysBCFunct::FillBoundary");
-
-    if (m_geom.isAllPeriodic()) return;
-
-    const Box&     domain      = m_geom.Domain();
-    const int*     dlo         = domain.loVect();
-    const int*     dhi         = domain.hiVect();
-    const Real*    dx          = m_geom.CellSize();
-    const RealBox& prob_domain = m_geom.ProbDomain();
-    const Real*    problo      = prob_domain.lo();
-
-    // create a grown domain box containing valid + periodic cells
-    Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
-    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-	if (m_geom.isPeriodic(i)) {
-	    gdomain.grow(i, mf.nGrow());
-	}
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    Real grd_lo[AMREX_SPACEDIM];
+    const Real* problo = geom.ProbLo();
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
     {
-	FArrayBox& dest = mf[mfi];
-	const Box& bx = mfi.fabbox();
-        
-        // if there are cells not in the valid + periodic grown box
-        // we need to fill them here
-	if (!gdomain.contains(bx)) {
+        grd_lo[i] = problo[i] + dx[i]*(lo[i]-plo[i]);
+    }
 
-	    const int* fablo = bx.loVect();
-	    const int* fabhi = bx.hiVect();
+    BCRec bcrtmp;
+    Vector<int> bcrs(2*AMREX_SPACEDIM*numcomp);
+    int* bci = bcrs.data();
+    for (int j = 0; j < numcomp; ++j)
+    {
+        amrex::setBC(bx, domain, bcr[bcomp+j], bcrtmp);
+        const int* bc = bcrtmp.vect();
+        for (int k = 0; k < 2*AMREX_SPACEDIM; k++) {
+            bci[k] = bc[k];
+        }
+        bci += 2*AMREX_SPACEDIM;
+    }
 
-	    Real xlo[AMREX_SPACEDIM];
-	    for (int i = 0; i < AMREX_SPACEDIM; i++)
-	    {
-		xlo[i] = problo[i] + dx[i]*(fablo[i]-dlo[i]);
-	    }
-
-	    (*m_bc_func)(dest.dataPtr(), fablo, fabhi, dlo, dhi,
-			 dx, xlo, &time, m_bcr.vect());
-	}
+    if (m_func != nullptr) {
+	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),plo,phi,dx,grd_lo,&time,bcrs.data());
+    } else {
+	m_func3d(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(plo),AMREX_ARLIM_3D(phi),
+		 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),&time,bcrs.data());
     }
 }
 
