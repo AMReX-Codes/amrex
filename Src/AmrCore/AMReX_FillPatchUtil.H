@@ -22,11 +22,11 @@ namespace amrex
         virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final {}
     };
 
-    bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow, 
+    bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow,
 			 const IndexType& boxType, Interpolater* mapper);
 
-    void FillPatchSingleLevel (MultiFab& mf, Real time, 
-			       const Vector<MultiFab*>& smf, const Vector<Real>& stime, 
+    void FillPatchSingleLevel (MultiFab& mf, Real time,
+			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom,
                                PhysBCFunctBase& physbcf, int bcfcomp);
@@ -61,7 +61,7 @@ namespace amrex
                                     int ref_ratio);
 
     enum InterpEM_t { InterpE, InterpB};
-    
+
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
                                      const std::array<MultiFab,AMREX_SPACEDIM>& crse,
                                      std::array<MultiFab,AMREX_SPACEDIM>& fine,

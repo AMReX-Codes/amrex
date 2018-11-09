@@ -8,7 +8,7 @@ module amrex_eb_util_module
   private
   public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, &
        amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence, &
-       amrex_eb_avg_fc_to_cc
+       amrex_eb_avg_fc_to_cc, amrex_eb_set_covered_nodes
 
 contains
 
@@ -286,5 +286,29 @@ contains
        end do
     end do
   end subroutine amrex_eb_avg_fc_to_cc
+
+  subroutine amrex_eb_set_covered_nodes (lo, hi, d, dlo, dhi, f, flo, fhi, v, nc) &
+       bind(c,name='amrex_eb_set_covered_nodes')
+    integer, intent(in) :: lo(2), hi(2), dlo(2), dhi(2), flo(2), fhi(2), nc
+    real(amrex_real), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),nc)
+    integer, intent(in) :: f(flo(1):fhi(1),flo(2):fhi(2))
+    real(amrex_real), intent(in) :: v(nc)
+
+    integer :: i, j, n
+
+    do n = 1, nc
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             if (is_covered_cell(f(i-1,j-1)) .and. &
+                 is_covered_cell(f(i  ,j-1)) .and. &
+                 is_covered_cell(f(i-1,j  )) .and. &
+                 is_covered_cell(f(i  ,j  ))) then
+                d(i,j,n) = v(n)
+             end if
+          end do
+       end do
+    end do
+
+  end subroutine amrex_eb_set_covered_nodes
 
 end module amrex_eb_util_module
