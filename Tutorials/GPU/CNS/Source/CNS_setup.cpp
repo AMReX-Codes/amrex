@@ -139,7 +139,7 @@ CNS::variableSetUp ()
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_e";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Temp";
 
-    StateDescriptor::BndryFunc bndryfunc(cns_bcfill_single,cns_bcfill_group);
+    StateDescriptor::BndryFunc bndryfunc(cns_bcfill);
     bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
 
     desc_lst.setComponent(State_Type,
