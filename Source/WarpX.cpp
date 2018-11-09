@@ -48,6 +48,8 @@ bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
 bool WarpX::refine_plasma     = false;
 
+int  WarpX::sort_int = -1;
+
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
 Real WarpX::dt_snapshots_lab  = std::numeric_limits<Real>::lowest();
@@ -168,6 +170,11 @@ WarpX::WarpX ()
     gather_buffer_masks.resize(nlevs_max);
     current_buf.resize(nlevs_max);
     charge_buf.resize(nlevs_max);
+
+    current_fp_owner_masks.resize(nlevs_max);
+    current_cp_owner_masks.resize(nlevs_max);
+    rho_fp_owner_masks.resize(nlevs_max);
+    rho_cp_owner_masks.resize(nlevs_max);
 
     pml.resize(nlevs_max);
 
@@ -335,6 +342,7 @@ WarpX::ReadParameters ()
         pp.query("do_dive_cleaning", do_dive_cleaning);
         pp.query("n_field_gather_buffer", n_field_gather_buffer);
         pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
+	pp.query("sort_int", sort_int);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -492,7 +500,13 @@ WarpX::ClearLevel (int lev)
 	Efield_cax[lev][i].reset();
 	Bfield_cax[lev][i].reset();
         current_buf[lev][i].reset();
+
+        current_fp_owner_masks[lev][i].reset();
+        current_cp_owner_masks[lev][i].reset();
     }
+
+    rho_fp_owner_masks[lev].reset();
+    rho_cp_owner_masks[lev].reset();
 
     charge_buf[lev].reset();
 
@@ -613,14 +627,22 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
 
-    if (do_subcycling == 1 && lev == 0) {
+    const auto& period = Geom(lev).periodicity();
+    current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
+    current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
+    current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
+    
+    if (do_dive_cleaning || plot_rho)
+    {
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
+        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
+    }
+    
+    if (do_subcycling == 1 && lev == 0)
+    {
         current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
         current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
         current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
-    }
-
-    if (do_dive_cleaning || plot_rho){
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
     }
 
     if (do_dive_cleaning)
@@ -631,6 +653,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     else
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
+        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
 #endif
 
@@ -678,8 +701,14 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
 
+        const auto& cperiod = Geom(lev).periodicity();
+        current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
+        current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
+        current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
+
         if (do_dive_cleaning || plot_rho){
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
         if (do_dive_cleaning)
         {
@@ -689,6 +718,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         else
         {
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
 #endif
     }

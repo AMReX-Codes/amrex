@@ -40,8 +40,8 @@ WarpX::MoveWindow (bool move_j)
     Real new_hi[AMREX_SPACEDIM];
     const Real* current_lo = geom[0].ProbLo();
     const Real* current_hi = geom[0].ProbHi();
-    const Real* dx = geom[0].CellSize();
-    int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / dx[dir]);
+    const Real* cdx = geom[0].CellSize();
+    int num_shift_base = static_cast<int>((moving_window_x - current_lo[dir]) / cdx[dir]);
 
     if (num_shift_base == 0) return 0;
 
@@ -51,8 +51,8 @@ WarpX::MoveWindow (bool move_j)
         new_lo[i] = current_lo[i];
         new_hi[i] = current_hi[i];
     }
-    new_lo[dir] = current_lo[dir] + num_shift_base * dx[dir];
-    new_hi[dir] = current_hi[dir] + num_shift_base * dx[dir];
+    new_lo[dir] = current_lo[dir] + num_shift_base * cdx[dir];
+    new_hi[dir] = current_hi[dir] + num_shift_base * cdx[dir];
     RealBox new_box(new_lo, new_hi);
     Geometry::ProbDomain(new_box);
 
@@ -181,6 +181,7 @@ WarpX::MoveWindow (bool move_j)
 void
 WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 {
+    BL_PROFILE("WarpX::shiftMF()");
     const BoxArray& ba = mf.boxArray();
     const DistributionMapping& dm = mf.DistributionMap();
     const int nc = mf.nComp();
@@ -221,25 +222,24 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 #endif
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
     {
-        FArrayBox& srcfab = tmpmf[mfi];
-
-        Box outbox = mfi.fabbox();
-        outbox &= adjBox;
-        if (outbox.ok()) {  // outbox is the region that the window moved into
-            srcfab.setVal(0.0, outbox, 0, nc);
-        }
-
-        FArrayBox& dstfab = mf[mfi];
-        dstfab.setVal(0.0);
-
-        Box dstBox = dstfab.box();
-
-        if (num_shift > 0) {
-            dstBox.growHi(dir, -num_shift);
-        } else {
-            dstBox.growLo(dir,  num_shift);
-        }
-
-        dstfab.copy(srcfab, amrex::shift(dstBox,dir,num_shift), 0, dstBox, 0, nc);
+      FArrayBox* dstfab = &(mf[mfi]);
+      FArrayBox* srcfab = &(tmpmf[mfi]);
+      Box outbox = mfi.fabbox();
+      outbox &= adjBox;
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(outbox, toutbox,
+      {
+	srcfab->setVal(0.0, toutbox, 0, nc);
+      });
+      Box dstBox = dstfab->box();
+      if (num_shift > 0) {
+	dstBox.growHi(dir, -num_shift);
+      } else {
+	dstBox.growLo(dir,  num_shift);
+      }
+      AMREX_LAUNCH_HOST_DEVICE_LAMBDA(dstBox, tdstBox,
+      {
+        dstfab->setVal(0.0, tdstBox, 0, nc);
+        dstfab->copy(*srcfab, amrex::shift(tdstBox,dir,num_shift), 0, tdstBox, 0, nc);
+      });
     }
 }

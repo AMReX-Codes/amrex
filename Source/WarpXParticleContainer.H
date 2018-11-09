@@ -36,27 +36,27 @@ public:
     WarpXParIter (ContainerType& pc, int level);
 
 #if (AMREX_SPACEDIM == 2)
-    void GetPosition (amrex::Vector<amrex::Real>& x,
-                      amrex::Vector<amrex::Real>& y,
-                      amrex::Vector<amrex::Real>& z) const;
-    void SetPosition (const amrex::Vector<amrex::Real>& x,
-                      const amrex::Vector<amrex::Real>& y,
-                      const amrex::Vector<amrex::Real>& z);
+    void GetPosition (amrex::Cuda::DeviceVector<amrex::Real>& x,
+                      amrex::Cuda::DeviceVector<amrex::Real>& y,
+                      amrex::Cuda::DeviceVector<amrex::Real>& z) const;
+    void SetPosition (const amrex::Cuda::DeviceVector<amrex::Real>& x,
+                      const amrex::Cuda::DeviceVector<amrex::Real>& y,
+                      const amrex::Cuda::DeviceVector<amrex::Real>& z);
 #endif
 
-    const std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () const { 
+    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
     }
     
-    std::array<amrex::Vector<amrex::Real>, PIdx::nattribs>& GetAttribs () { 
+    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
         return GetStructOfArrays().GetRealData(); 
     }
 
-    const amrex::Vector<amrex::Real>& GetAttribs (int comp) const { 
+    const RealVector& GetAttribs (int comp) const { 
         return GetStructOfArrays().GetRealData(comp);
     }
     
-    amrex::Vector<amrex::Real>& GetAttribs (int comp) { 
+    RealVector& GetAttribs (int comp) { 
         return GetStructOfArrays().GetRealData(comp);
     }
 };
@@ -141,6 +141,33 @@ public:
                        bool local = false);
     std::unique_ptr<amrex::MultiFab> GetChargeDensity(int lev, bool local = false);
 
+   virtual void DepositCharge(WarpXParIter& pti,
+                             RealVector& wp,
+                             amrex::MultiFab* rhomf,
+                             amrex::MultiFab* crhomf,
+                             int icomp,
+                             const long np_current,
+                             const long np,
+                             int thread_num,
+                             int lev );
+  
+  virtual void DepositCurrent(WarpXParIter& pti,
+                              RealVector& wp,
+                              RealVector& uxp,
+                              RealVector& uyp,
+                              RealVector& uzp,
+                              amrex::MultiFab& jx,
+                              amrex::MultiFab& jy,
+                              amrex::MultiFab& jz,
+                              amrex::MultiFab* cjx,
+                              amrex::MultiFab* cjy,
+                              amrex::MultiFab* cjz,
+                              const long np_current,
+                              const long np,
+                              int thread_num,
+                              int lev,
+                              amrex::Real dt );
+  
     /// 
     /// This returns the total charge for all the particles in this ParticleContainer.
     /// This is needed when solving Poisson's equation with periodic boundary conditions.
@@ -182,6 +209,14 @@ protected:
     bool deposit_on_main_grid = false;
 
     static int do_not_push;
+
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_rho;
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jx;
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jy;
+  amrex::Vector<std::unique_ptr<amrex::FArrayBox> > local_jz;
+
+  amrex::Vector<amrex::Cuda::DeviceVector<amrex::Real> > m_xp, m_yp, m_zp, m_giv;
+  
 };
 
 #endif

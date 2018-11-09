@@ -10,6 +10,7 @@ DIM	= 3
 
 COMP = gcc
 #COMP = intel
+#COMP = pgi
 
 TINY_PROFILE   = TRUE
 #PROFILE       = TRUE
@@ -19,6 +20,7 @@ TINY_PROFILE   = TRUE
 STORE_OLD_PARTICLE_ATTRIBS = FALSE
 
 USE_OMP   = TRUE
+USE_GPU   = FALSE
 
 EBASE     = main
 

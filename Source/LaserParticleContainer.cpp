@@ -91,7 +91,7 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 
     if (WarpX::gamma_boost > 1.) {
         // Check that the laser direction is equal to the boost direction
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( 
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             nvec[0]*WarpX::boost_direction[0]
           + nvec[1]*WarpX::boost_direction[1]
           + nvec[2]*WarpX::boost_direction[2] - 1. < 1.e-12,
@@ -110,22 +110,22 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	p_X = { p_X[0]*s, p_X[1]*s, p_X[2]*s };
 
 	Real dp = std::inner_product(nvec.begin(), nvec.end(), p_X.begin(), 0.0);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
             "Laser plane vector is not perpendicular to the main polarization vector");
 
 	p_Y = CrossProduct(nvec, p_X);   // The second polarization vector
 
 	s = 1.0/std::sqrt(stc_direction[0]*stc_direction[0] + stc_direction[1]*stc_direction[1] + stc_direction[2]*stc_direction[2]);
-	stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };    
+	stc_direction = { stc_direction[0]*s, stc_direction[1]*s, stc_direction[2]*s };
 	dp = std::inner_product(nvec.begin(), nvec.end(), stc_direction.begin(), 0.0);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14, 
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::abs(dp) < 1.0e-14,
             "stc_direction is not perpendicular to the laser plane vector");
-    
+
 	// Get angle between p_X and stc_direction
 	// in 2d, stcs are in the simulation plane
 #if AMREX_SPACEDIM == 3
-	theta_stc = acos(stc_direction[0]*p_X[0] + 
-			 stc_direction[1]*p_X[1] + 
+	theta_stc = acos(stc_direction[0]*p_X[0] +
+			 stc_direction[1]*p_X[1] +
 			 stc_direction[2]*p_X[2]);
 #else
 	theta_stc = 0.;
@@ -250,7 +250,7 @@ LaserParticleContainer::InitData (int lev)
     BoxArray plane_ba { Box {IntVect(plane_lo[0],0), IntVect(plane_hi[0],0)} };
 #endif
 
-    Vector<Real> particle_x, particle_y, particle_z, particle_w;
+    RealVector particle_x, particle_y, particle_z, particle_w;
 
     const DistributionMapping plane_dm {plane_ba, nprocs};
     const Vector<int>& procmap = plane_dm.ProcessorMap();
@@ -263,7 +263,7 @@ LaserParticleContainer::InitData (int lev)
 	    {
 		const Vector<Real>& pos = Transform(cell[0], cell[1]);
 #if (AMREX_SPACEDIM == 3)
-		const Real* x = pos.data();
+		const Real* x = pos.dataPtr();
 #else
 		const Real x[2] = {pos[0], pos[2]};
 #endif
@@ -281,15 +281,15 @@ LaserParticleContainer::InitData (int lev)
 	}
     }
     const int np = particle_z.size();
-    Vector<Real> particle_ux(np, 0.0);
-    Vector<Real> particle_uy(np, 0.0);
-    Vector<Real> particle_uz(np, 0.0);
+    RealVector particle_ux(np, 0.0);
+    RealVector particle_uy(np, 0.0);
+    RealVector particle_uz(np, 0.0);
 
     if (Verbose()) amrex::Print() << "Adding laser particles\n";
     AddNParticles(lev,
-                  np, particle_x.data(), particle_y.data(), particle_z.data(),
-		  particle_ux.data(), particle_uy.data(), particle_uz.data(),
-		  1, particle_w.data(), 1);
+                  np, particle_x.dataPtr(), particle_y.dataPtr(), particle_z.dataPtr(),
+		  particle_ux.dataPtr(), particle_uy.dataPtr(), particle_uz.dataPtr(),
+		  1, particle_w.dataPtr(), 1);
 }
 
 void
@@ -297,8 +297,8 @@ LaserParticleContainer::Evolve (int lev,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				const MultiFab&, const MultiFab&, const MultiFab&,
 				MultiFab& jx, MultiFab& jy, MultiFab& jz,
-                                MultiFab*, MultiFab*, MultiFab*,
-                                MultiFab* rho, MultiFab*,
+                                MultiFab* cjx, MultiFab* cjy, MultiFab* cjz,
+                                MultiFab* rho, MultiFab* crho,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 const MultiFab*, const MultiFab*, const MultiFab*,
                                 Real t, Real dt)
@@ -307,11 +307,7 @@ LaserParticleContainer::Evolve (int lev,
     BL_PROFILE_VAR_NS("Laser::Evolve::Copy", blp_copy);
     BL_PROFILE_VAR_NS("PICSAR::LaserParticlePush", blp_pxr_pp);
     BL_PROFILE_VAR_NS("PICSAR::LaserCurrentDepo", blp_pxr_cd);
-
-    const std::array<Real,3>& dx = WarpX::CellSize(lev);
-
-    // WarpX assumes the same number of guard cells for Jx, Jy, Jz
-    long ngJ  = jx.nGrow();
+    BL_PROFILE_VAR_NS("Laser::Evolve::Accumulate", blp_accumulate);
 
     Real t_lab = t;
     if (WarpX::gamma_boost > 1) {
@@ -329,8 +325,18 @@ LaserParticleContainer::Evolve (int lev,
 #pragma omp parallel
 #endif
     {
-	Vector<Real> xp, yp, zp, giv, plane_Xp, plane_Yp, amplitude_E;
-        FArrayBox local_rho, local_jx, local_jy, local_jz;
+#ifdef _OPENMP
+      int thread_num = omp_get_thread_num();
+#else
+      int thread_num = 0;
+#endif
+
+      if (local_rho[thread_num] == nullptr) local_rho[thread_num].reset( new amrex::FArrayBox());
+      if (local_jx[thread_num]  == nullptr) local_jx[thread_num].reset( new amrex::FArrayBox());
+      if (local_jy[thread_num]  == nullptr) local_jy[thread_num].reset(  new amrex::FArrayBox());
+      if (local_jz[thread_num]  == nullptr) local_jz[thread_num].reset(  new amrex::FArrayBox());
+
+        Cuda::DeviceVector<Real> plane_Xp, plane_Yp, amplitude_E;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
 	{
@@ -346,13 +352,11 @@ LaserParticleContainer::Evolve (int lev,
             auto& uzp = attribs[PIdx::uz];
 
 	    const long np  = pti.numParticles();
+            // For now, laser particles do not take the current buffers into account
+            const long np_current = np;
 
-	    // Data on the grid
-	    FArrayBox& jxfab = jx[pti];
-	    FArrayBox& jyfab = jy[pti];
-	    FArrayBox& jzfab = jz[pti];
+            m_giv[thread_num].resize(np);
 
-	            giv.resize(np);
                plane_Xp.resize(np);
                plane_Yp.resize(np);
             amplitude_E.resize(np);
@@ -361,193 +365,69 @@ LaserParticleContainer::Evolve (int lev,
 	    // copy data from particle container to temp arrays
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            pti.GetPosition(xp, yp, zp);
+            pti.GetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
 	    BL_PROFILE_VAR_STOP(blp_copy);
 
-	    for (int i = 0; i < np; ++i)
-            {
-                // Find the coordinates of the particles in the emission plane
-#if (AMREX_SPACEDIM == 3)
-                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                            + u_X[1]*(yp[i] - position[1])
-                            + u_X[2]*(zp[i] - position[2]);
-                plane_Yp[i] = u_Y[0]*(xp[i] - position[0])
-                            + u_Y[1]*(yp[i] - position[1])
-                            + u_Y[2]*(zp[i] - position[2]);
-#elif (AMREX_SPACEDIM == 2)
-                plane_Xp[i] = u_X[0]*(xp[i] - position[0])
-                            + u_X[2]*(zp[i] - position[2]);
-                plane_Yp[i] = 0;
-#endif
-            }
-
-            const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
-            const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
-
-            long lvect = 8;
-
-            auto depositCharge = [&] (MultiFab* rhomf, int icomp)
-            {
-                long ngRho = rhomf->nGrow();
-
-                Real* data_ptr;
-                const int *rholen;
-                FArrayBox& rhofab = (*rhomf)[pti];
-                Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-                Box grown_box;
-                const std::array<Real, 3>& xyzmin = xyzmin_tile;
-                tile_box.grow(ngRho);
-                local_rho.resize(tile_box);
-                local_rho = 0.0;
-                data_ptr = local_rho.dataPtr();
-                rholen = local_rho.length();
-
-#if (AMREX_SPACEDIM == 3)
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = rholen[1]-1-2*ngRho;
-                const long nz = rholen[2]-1-2*ngRho;
-#else
-                const long nx = rholen[0]-1-2*ngRho;
-                const long ny = 0;
-                const long nz = rholen[1]-1-2*ngRho;
-#endif
-            	warpx_charge_deposition(data_ptr, &np,
-					xp.data(), yp.data(), zp.data(), wp.data(),
-                                        &this->charge,
-					&xyzmin[0], &xyzmin[1], &xyzmin[2],
-                                        &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
-                                        &ngRho, &ngRho, &ngRho,
-					&WarpX::nox,&WarpX::noy,&WarpX::noz,
-                                        &lvect, &WarpX::charge_deposition_algo);
-
-                const int ncomp = 1;
-                amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_rho),
-                                            BL_TO_FORTRAN_N_3D(rhofab,icomp), ncomp);
-            };
-
-            if (rho) depositCharge(rho,0);
+            if (rho) DepositCharge(pti, wp, rho, crho, 0, np_current, np, thread_num, lev);
 
 	    //
 	    // Particle Push
 	    //
 	    BL_PROFILE_VAR_START(blp_pxr_pp);
+            // Find the coordinates of the particles in the emission plane
+            calculate_laser_plane_coordinates( &np,
+                m_xp[thread_num].dataPtr(),
+                m_yp[thread_num].dataPtr(),
+                m_zp[thread_num].dataPtr(),
+                plane_Xp.dataPtr(), plane_Yp.dataPtr(),
+                &u_X[0], &u_X[1], &u_X[2], &u_Y[0], &u_Y[1], &u_Y[2],
+                &position[0], &position[1], &position[2] );
 	    // Calculate the laser amplitude to be emitted,
 	    // at the position of the emission plane
 	    if (profile == laser_t::Gaussian) {
-		warpx_gaussian_laser( &np, plane_Xp.data(), plane_Yp.data(),
+		warpx_gaussian_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
 				      &t_lab, &wavelength, &e_max, &profile_waist, &profile_duration,
-				      &profile_t_peak, &profile_focal_distance, amplitude_E.data(),
+				      &profile_t_peak, &profile_focal_distance, amplitude_E.dataPtr(),
 				      &zeta, &beta, &phi2, &theta_stc );
 	    }
 
             if (profile == laser_t::Harris) {
-		warpx_harris_laser( &np, plane_Xp.data(), plane_Yp.data(),
+		warpx_harris_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(),
                                     &t, &wavelength, &e_max, &profile_waist, &profile_duration,
-                                    &profile_focal_distance, amplitude_E.data() );
+                                    &profile_focal_distance, amplitude_E.dataPtr() );
 	    }
 
             if (profile == laser_t::parse_field_function) {
-		parse_function_laser( &np, plane_Xp.data(), plane_Yp.data(), &t,
-				      amplitude_E.data(), parser_instance_number );
+		parse_function_laser( &np, plane_Xp.dataPtr(), plane_Yp.dataPtr(), &t,
+				      amplitude_E.dataPtr(), parser_instance_number );
 	    }
-
 	    // Calculate the corresponding momentum and position for the particles
-            for (int i = 0; i < np; ++i)
-            {
-                // Calculate the velocity according to the amplitude of E
-                Real sign_charge = std::copysign( 1.0, wp[i] );
-                Real v_over_c = sign_charge * mobility * amplitude_E[i];
-                AMREX_ALWAYS_ASSERT_WITH_MESSAGE( v_over_c < 1,
-                    "The laser particles have to move unphysically in order to emit the laser.");
-                // The velocity is along the laser polarization p_X
-                Real vx = PhysConst::c * v_over_c * p_X[0];
-                Real vy = PhysConst::c * v_over_c * p_X[1];
-                Real vz = PhysConst::c * v_over_c * p_X[2];
-                // When running in the boosted-frame, their is additional
-                // velocity along nvec
-                if (WarpX::gamma_boost > 1.) {
-                    vx -= PhysConst::c * WarpX::beta_boost * nvec[0];
-                    vy -= PhysConst::c * WarpX::beta_boost * nvec[1];
-                    vz -= PhysConst::c * WarpX::beta_boost * nvec[2];
-                }
-                // Get the corresponding momenta
-                giv[i] = std::sqrt(1 - std::pow(v_over_c,2))/WarpX::gamma_boost;
-                Real gamma = 1./giv[i];
-                uxp[i] = gamma * vx;
-                uyp[i] = gamma * vy;
-                uzp[i] = gamma * vz;
-                // Push the the particle positions
-                xp[i] += vx * dt;
-#if (AMREX_SPACEDIM == 3)
-                yp[i] += vy * dt;
-#endif
-                zp[i] += vz * dt;
-            }
-
+            update_laser_particle(
+               &np,
+               m_xp[thread_num].dataPtr(),
+               m_yp[thread_num].dataPtr(),
+               m_zp[thread_num].dataPtr(),
+               uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+               m_giv[thread_num].dataPtr(),
+               wp.dataPtr(), amplitude_E.dataPtr(), &p_X[0], &p_X[1], &p_X[2],
+               &nvec[0], &nvec[1], &nvec[2], &mobility, &dt,
+               &PhysConst::c, &WarpX::beta_boost, &WarpX::gamma_boost );
 	    BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 	    //
 	    // Current Deposition
 	    //
-            BL_PROFILE_VAR_START(blp_pxr_cd);
-            Real *jx_ptr, *jy_ptr, *jz_ptr;
-            const int  *jxntot, *jyntot, *jzntot;
-            Box tbx = convert(pti.tilebox(), WarpX::jx_nodal_flag);
-            Box tby = convert(pti.tilebox(), WarpX::jy_nodal_flag);
-            Box tbz = convert(pti.tilebox(), WarpX::jz_nodal_flag);
-
-            const std::array<Real, 3>& xyzmin = xyzmin_tile;
-
-            tbx.grow(ngJ);
-            tby.grow(ngJ);
-            tbz.grow(ngJ);
-
-            local_jx.resize(tbx);
-            local_jy.resize(tby);
-            local_jz.resize(tbz);
-
-            local_jx = 0.0;
-            local_jy = 0.0;
-            local_jz = 0.0;
-
-            jx_ptr = local_jx.dataPtr();
-            jy_ptr = local_jy.dataPtr();
-            jz_ptr = local_jz.dataPtr();
-
-            jxntot = local_jx.length();
-            jyntot = local_jy.length();
-            jzntot = local_jz.length();
-
-            warpx_current_deposition(
-                jx_ptr, &ngJ, jxntot,
-                jy_ptr, &ngJ, jyntot,
-                jz_ptr, &ngJ, jzntot,
-                &np, xp.data(), yp.data(), zp.data(),
-                uxp.data(), uyp.data(), uzp.data(),
-                giv.data(), wp.data(), &this->charge,
-                &xyzmin[0], &xyzmin[1], &xyzmin[2],
-                &dt, &dx[0], &dx[1], &dx[2],
-                &WarpX::nox,&WarpX::noy,&WarpX::noz,
-                &lvect,&WarpX::current_deposition_algo);
-
-            const int ncomp = 1;
-            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jx),
-                                        BL_TO_FORTRAN_3D(jxfab), ncomp);
-            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jy),
-                                        BL_TO_FORTRAN_3D(jyfab), ncomp);
-            amrex_atomic_accumulate_fab(BL_TO_FORTRAN_3D(local_jz),
-                                        BL_TO_FORTRAN_3D(jzfab), ncomp);
-
-	    BL_PROFILE_VAR_STOP(blp_pxr_cd);
-
-            if (rho) depositCharge(rho,1);
+            DepositCurrent(pti, wp, uxp, uyp, uzp, jx, jy, jz,
+                           cjx, cjy, cjz, np_current, np, thread_num, lev, dt);
 
 	    //
 	    // copy particle data back
 	    //
 	    BL_PROFILE_VAR_START(blp_copy);
-            pti.SetPosition(xp, yp, zp);
+            pti.SetPosition(m_xp[thread_num], m_yp[thread_num], m_zp[thread_num]);
             BL_PROFILE_VAR_STOP(blp_copy);
+
+            if (rho) DepositCharge(pti, wp, rho, crho, 1, np_current, np, thread_num, lev);
 
             if (cost) {
                 const Box& tbx = pti.tilebox();

@@ -261,6 +261,14 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 void
+MultiParticleContainer::SortParticlesByCell ()
+{
+    for (auto& pc : allcontainers) {
+	pc->SortParticlesByCell();
+    }
+}
+
+void
 MultiParticleContainer::Redistribute ()
 {
     for (auto& pc : allcontainers) {
