@@ -5,6 +5,13 @@ OPENBC_HOME ?= ../../../openbc_poisson
 USE_MPI       = TRUE
 USE_PARTICLES = TRUE
 
+ifeq ($(USE_GPU),TRUE)
+  USE_OMP  = FALSE
+  USE_CUDA = TRUE
+  USE_ACC  = TRUE
+  NVCC_HOST_COMP = gcc
+endif
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 ifndef USE_PYTHON_MAIN
