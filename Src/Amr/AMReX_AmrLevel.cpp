@@ -1032,7 +1032,7 @@ FillPatchIterator::FillFromLevel0 (Real time, int idx, int scomp, int dcomp, int
 
     StateDataPhysBCFunct physbcf(statedata,scomp,geom);
 
-    amrex::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, dcomp, ncomp, geom, physbcf);
+    amrex::FillPatchSingleLevel (m_fabs, time, smf, stime, scomp, dcomp, ncomp, geom, physbcf, scomp);
 }
 
 void
@@ -1064,13 +1064,15 @@ FillPatchIterator::FillFromTwoLevels (Real time, int idx, int scomp, int dcomp, 
     const StateDescriptor& desc = AmrLevel::desc_lst[idx];
 
     amrex::FillPatchTwoLevels(m_fabs, time, 
-			       smf_crse, stime_crse, 
-			       smf_fine, stime_fine,
-			       scomp, dcomp, ncomp, 
-			       geom_crse, geom_fine,
-			       physbcf_crse, physbcf_fine,
-			       crse_level.fineRatio(), 
-			       desc.interp(scomp), desc.getBCs());
+                              smf_crse, stime_crse, 
+                              smf_fine, stime_fine,
+                              scomp, dcomp, ncomp, 
+                              geom_crse, geom_fine,
+                              physbcf_crse, scomp,
+                              physbcf_fine, scomp,
+                              crse_level.fineRatio(), 
+                              desc.interp(scomp),
+                              desc.getBCs(),scomp);
 }
 
 static
@@ -1517,7 +1519,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    StateDataPhysBCFunct physbcf(statedata,SComp,cgeom);
 
             crseMF.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
-	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf);
+	    amrex::FillPatchSingleLevel(crseMF,time,smf,stime,SComp,0,NComp,cgeom,physbcf,SComp);
 	}
 	else
 	{
@@ -1550,7 +1552,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	}
 
 	StateDataPhysBCFunct physbcf(state[idx],SComp,geom);
-	physbcf.FillBoundary(mf, DComp, NComp, time);
+	physbcf.FillBoundary(mf, DComp, NComp, time, SComp);
 
         DComp += NComp;
     }

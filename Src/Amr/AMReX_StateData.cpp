@@ -526,7 +526,7 @@ StateData::FillBoundary (Box const&      bx,
                 //
                 // Use the "group" boundary fill routine.
                 //
-		desc->bndryFill(sc)(bx,dest,dc,groupsize,geom,time,bcr,0,sc);;
+		desc->bndryFill(sc)(bx,dest,dc,groupsize,geom,time,bcr,0,sc);
                 i += groupsize;
             }
             else
@@ -829,7 +829,7 @@ StateDataPhysBCFunct::StateDataPhysBCFunct (StateData&sd, int sc, const Geometry
 { }
 
 void
-StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, Real time)
+StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, Real time, int /*bccomp*/)
 {
     BL_PROFILE("StateDataPhysBCFunct::FillBoundary");
 

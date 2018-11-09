@@ -22,7 +22,8 @@ extern "C"
     typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
                                          const int dcomp, const int numcomp,
                                          Geometry const& geom, const Real time,
-                                         const Vector<BCRec>& bcr, const int bcomp);
+                                         const Vector<BCRec>& bcr, const int bcomp,
+                                         const int orig_comp);
 }
 
 class BndryFuncPtr
@@ -30,19 +31,20 @@ class BndryFuncPtr
 public:
     BndryFuncPtr () {}
     BndryFuncPtr (BndryFuncDefault inFunc) : m_func(inFunc) {}
-    BndryFuncPtr (BndryFunc3DDefault inFunc) : m_func3d(inFunc) {}
+    BndryFuncPtr (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
 
     void operator() (Box const& bx, FArrayBox& data,
                      const int dcomp, const int numcomp,
                      Geometry const& geom, const Real time,
-                     const Vector<BCRec>& bcr, const int bcomp);
+                     const Vector<BCRec>& bcr, const int bcomp,
+                     const int orig_comp);
 
     bool RunOnGPU () const { return m_run_on_gpu; }
     void setRunOnGPU (bool b) { m_run_on_gpu = b; }
 
 protected:
     BndryFuncDefault   m_func   = nullptr;
-    BndryFunc3DDefault m_func3d = nullptr;
+    BndryFunc3DDefault m_func3D = nullptr;
     bool m_run_on_gpu = false;
 };
 
@@ -106,7 +108,7 @@ public:
             // we need to fill them here
             if (!gdomain.contains(bx))
             {
-                m_f(bx, dest, icomp, ncomp, m_geom, time, m_bcr, bccomp);
+                m_f(bx, dest, icomp, ncomp, m_geom, time, m_bcr, bccomp, bccomp);
             }
         }
     }

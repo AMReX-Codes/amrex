@@ -11,65 +11,6 @@ namespace amrex {
 
 int StateDescriptor::bf_ext_dir_threadsafe = 0;
 
-StateDescriptor::BndryFunc::BndryFunc ()
-    :
-    BndryFunctBase(),
-    m_gfunc(nullptr),
-    m_gfunc3D(nullptr),
-    m_gfuncfab(nullptr)
-{}
-
-StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc)
-    :
-    BndryFunctBase(inFunc),
-    m_gfunc(nullptr),
-    m_gfunc3D(nullptr),
-    m_gfuncfab(nullptr)
-{}
-
-StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc)
-    :
-    BndryFunctBase(inFunc),
-    m_gfunc(nullptr),
-    m_gfunc3D(nullptr),
-    m_gfuncfab(nullptr)
-{}
-
-StateDescriptor::BndryFunc::BndryFunc (BndryFuncFabDefault inFunc)
-    :
-    BndryFunctBase(inFunc),
-    m_gfunc(nullptr),
-    m_gfunc3D(nullptr),
-    m_gfuncfab(nullptr)
-{}
-
-StateDescriptor::BndryFunc::BndryFunc (BndryFuncDefault inFunc,
-                                       BndryFuncDefault gFunc)
-    :
-    BndryFunctBase(inFunc),
-    m_gfunc(gFunc),
-    m_gfunc3D(nullptr),
-    m_gfuncfab(nullptr)
-{}
-
-StateDescriptor::BndryFunc::BndryFunc (BndryFunc3DDefault inFunc,
-                                       BndryFunc3DDefault gFunc)
-    :
-    BndryFunctBase(inFunc),
-    m_gfunc(nullptr),
-    m_gfunc3D(gFunc),
-    m_gfuncfab(nullptr)
-{}
-
-StateDescriptor::BndryFunc::BndryFunc (BndryFuncFabDefault inFunc,
-                                       BndryFuncFabDefault gFunc)
-    :
-    BndryFunctBase(inFunc),
-    m_gfunc(nullptr),
-    m_gfunc3D(nullptr),
-    m_gfuncfab(gFunc)
-{}
-
 StateDescriptor::BndryFunc*
 StateDescriptor::BndryFunc::clone () const
 {
@@ -122,20 +63,6 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 }
 
 void
-StateDescriptor::BndryFunc::operator () (Box const& bx, FArrayBox& data,
-                                         const int dcomp, const int numcomp,
-                                         Geometry const& geom, const Real time,
-                                         const Vector<BCRec>& bcr, const int bcomp,
-                                         const int scomp) const
-{
-    if (numcomp == 1) {
-        m_funcfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
-    } else {
-        m_gfuncfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
-    }
-}
-
-void
 StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
                                          const int* dom_lo, const int* dom_hi,
                                          const Real* dx, const Real* grd_lo,
@@ -160,6 +87,17 @@ StateDescriptor::BndryFunc::operator () (Real* data,const int* lo,const int* hi,
 	  m_gfunc3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
                     AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),time,bc);
     }
+}
+
+void
+StateDescriptor::BndryFunc::operator () (Box const& bx, FArrayBox& data,
+                                         const int dcomp, const int numcomp,
+                                         Geometry const& geom, const Real time,
+                                         const Vector<BCRec>& bcr, const int bcomp,
+                                         const int scomp) const
+{
+    AMREX_ASSERT(m_funcfab != nullptr);
+    m_funcfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 }
 
 DescriptorList::DescriptorList ()

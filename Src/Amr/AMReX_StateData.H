@@ -338,7 +338,7 @@ class StateDataPhysBCFunct
 {
 public:
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time) override;
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) override;
     using PhysBCFunctBase::FillBoundary;
 private:
     StateData* statedata;
