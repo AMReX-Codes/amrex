@@ -79,20 +79,52 @@ GpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
                              const Vector<BCRec>& bcr, const int bcomp,
                              const int orig_comp)
 {
-    amrex::Abort("GpuBndryFuncFab::operator() todo");
-
-#if 0
-    FArrayBox* fab = &data;
+    FArrayBox* fab = &dest;
     const auto geomdata = geom.data();
-    const BCRec* bp = bcr.data();
-    Gpu::AsyncArray<BCRec> bcr_aa(bp+bcomp, numcomp);
+
+    Gpu::AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
     BCRec* bcr_p = bcr_aa.data();
-    AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+    
+    Box gdomain = geom.Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            gdomain.grow(idim,bx.length(idim));
+        }
+    }
+
+    const auto& bl = amrex::boxDiff(bx, gdomain);
+    if (bl.isEmpty()) return;
+
+    const Vector<Box>& boxes = bl.data();
+    const int nboxes = boxes.size();
+    Gpu::AsyncArray<Box> boxes_aa(boxes.data(), nboxes);
+    Box* boxes_p = boxes_aa.data();
+
+    long ncells = 0;
+    for (const auto& b : boxes) {
+        ncells += b.numPts();
+    }
+
+    AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
     {
-//        amrex_fill_bc_cc(tbx, *fab, dcomp, numcomp, geomdata, time,
+        int ibox;
+        long ncells_subtotal = 0;
+        long offset = 0;
+        for (ibox = 0; ibox < nboxes; ++ibox) {
+            const long n = boxes_p[ibox].numPts();
+            ncells_subtotal += n;
+            if (icell < ncells_subtotal) {
+                offset = icell - (ncells_subtotal - n);
+                break;
+            }
+        }
+
+        const Box& b = boxes_p[ibox];
+        const IntVect& iv = b.atOffset(offset);
+
+        //        amrex_fill_bc_cc(tbx, *fab, dcomp, numcomp, geomdata, time,
 //                         bcr_aa, scomp);
     });
-#endif
 }
 
 }
