@@ -5,7 +5,7 @@
     implicit none
     private
     
-    public  particle_t, neighbor_t
+    public  particle_t
     
     type, bind(C)  :: particle_t
        real(amrex_particle_real) :: pos(3)     !< Position
@@ -14,14 +14,6 @@
        integer(c_int)            :: id         !< Particle id
        integer(c_int)            :: cpu        !< Particle cpu
     end type particle_t
-    
-    type, bind(C)  :: neighbor_t
-       real(amrex_particle_real) :: pos(3)     !< Position
-       real(amrex_particle_real) :: vel(3)     !< Particle velocity
-       real(amrex_particle_real) :: acc(3)     !< Particle acceleration
-       integer(c_int)            :: id         !< Particle id
-       integer(c_int)            :: cpu        !< Particle cpu
-    end type neighbor_t
     
   end module short_range_particle_module
 
@@ -92,11 +84,11 @@
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
-    use short_range_particle_module, only : particle_t, neighbor_t
+    use short_range_particle_module, only : particle_t
         
     integer,          intent(in   ) :: np, nn
     type(particle_t), intent(inout) :: particles(np)
-    type(neighbor_t), intent(in   ) :: neighbors(nn)
+    type(particle_t), intent(in   ) :: neighbors(nn)
 
     real(amrex_real) dx, dy, dz, r2, r, coef
     real(amrex_real) cutoff, min_r, mass
