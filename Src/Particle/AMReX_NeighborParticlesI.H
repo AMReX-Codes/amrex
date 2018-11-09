@@ -680,7 +680,11 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
+#ifdef AMREX_USE_CUDA
+        Cuda::HostVector<int> nl;
+#else
         IntVector& nl = neighbor_list[index];
+#endif
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();
@@ -752,6 +756,10 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
 #endif
             }
         }
+#ifdef AMREX_USE_CUDA
+        neighbor_list[index].resize(nl.size());
+        thrust::copy(nl.begin(), nl.end(), neighbor_list[index].begin());
+#endif
     }
     }
 }

@@ -22,11 +22,11 @@ namespace amrex
         virtual void operator() (FArrayBox& fab, const Box& bx, int icomp, int ncomp) const final {}
     };
 
-    bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow, 
+    bool ProperlyNested (const IntVect& ratio, const IntVect& blockint_factor, int ngrow,
 			 const IndexType& boxType, Interpolater* mapper);
 
-    void FillPatchSingleLevel (MultiFab& mf, Real time, 
-			       const Vector<MultiFab*>& smf, const Vector<Real>& stime, 
+    void FillPatchSingleLevel (MultiFab& mf, Real time,
+			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
 			       const Geometry& geom, PhysBCFunctBase& physbcf);
 
@@ -34,9 +34,9 @@ namespace amrex
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
 			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom, 
+			     const Geometry& cgeom, const Geometry& fgeom,
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-			     const IntVect& ratio, 
+			     const IntVect& ratio,
 			     Interpolater* mapper, const BCRec& bcs,
                              const InterpHook& pre_interp = NullInterpHook(),
                              const InterpHook& post_interp = NullInterpHook());
@@ -45,17 +45,17 @@ namespace amrex
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
 			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom, 
+			     const Geometry& cgeom, const Geometry& fgeom,
 			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-			     const IntVect& ratio, 
+			     const IntVect& ratio,
 			     Interpolater* mapper, const Vector<BCRec>& bcs,
                              const InterpHook& pre_interp = NullInterpHook(),
                              const InterpHook& post_interp = NullInterpHook());
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom, 
-				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
+				const Geometry& cgeom, const Geometry& fgeom,
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio,
 				Interpolater* mapper, const BCRec& bcs,
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
@@ -63,8 +63,8 @@ namespace amrex
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom, 
-				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio, 
+				const Geometry& cgeom, const Geometry& fgeom,
+				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio,
 				Interpolater* mapper, const Vector<BCRec>& bcs,
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
@@ -75,7 +75,7 @@ namespace amrex
                                     int ref_ratio);
 
     enum InterpEM_t { InterpE, InterpB};
-    
+
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
                                      const std::array<MultiFab,AMREX_SPACEDIM>& crse,
                                      std::array<MultiFab,AMREX_SPACEDIM>& fine,

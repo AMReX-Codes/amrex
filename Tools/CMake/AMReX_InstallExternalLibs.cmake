@@ -50,9 +50,44 @@ if (NOT BLITZ_INSTALL_DIR)
    # and not after. However, this does not work with execute_process.
    # Nonetheless, this should not be a problem since many 'configure' implementation
    # support this approach.
+   # Also, we are using a hack to compile on cray machines because blitz configure
+   # setup sucks.
+   if ("${SITE}" STREQUAL "nersc")      
+      # Fortran 
+      if ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel")
+         set(FC ifort)
+      elseif ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
+         set(FC gfortran)
+      elseif ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "PGI")
+         set(FC pgf90)           
+      endif ()
+
+      # C++    
+      if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
+         set(CXX icpc)
+      elseif ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+         set(CXX g++)
+      elseif ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "PGI")
+         set(CXX pgc++)           
+      endif ()
+
+      # C    
+      if ( ${CMAKE_C_COMPILER_ID} STREQUAL "Intel")
+         set(CC icc)
+      elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
+         set(CC gcc)
+      elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "PGI")
+         set(CC pgcc)           
+      endif ()     
+   else ()
+      set(FC  ${CMAKE_Fortran_COMPILER} )
+      set(CXX ${CMAKE_CXX_COMPILER} )
+      set(CC  ${CMAKE_C_COMPILER} )
+   endif ()
+
    execute_process(
       COMMAND           ${BLITZ_ROOT_DIR}/configure
-                        CC=${CMAKE_C_COMPILER} FC=${CMAKE_Fortran_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+                        CC=${CC} FC=${FC} CXX=${CXX}
                         --prefix=${BLITZ_INSTALL_DIR} ${BLITZ_BUILD_TYPE_FLAG}
       OUTPUT_FILE       ${BLITZ_ROOT_DIR}/cmake_configure.log
       ERROR_FILE        ${BLITZ_ROOT_DIR}/cmake_configure.error
