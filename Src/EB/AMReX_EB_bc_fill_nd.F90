@@ -1,4 +1,4 @@
-module bc_fill_module
+module amrex_eb_bc_fill_module
 
 ! since this is a .F90 file (instead of .f90) we run this through a C++ preprocessor
 ! for e.g., #if (BL_SPACEDIM == 1) statements.
@@ -26,5 +26,5 @@ contains
     call amrex_filccn(phi_lo, phi_hi, phi, phi_lo, phi_hi, 1, domlo, domhi, delta, xlo, bc)
 
   end subroutine phifill
-  
-end module bc_fill_module
+
+end module amrex_eb_bc_fill_module

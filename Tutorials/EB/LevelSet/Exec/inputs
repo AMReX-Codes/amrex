@@ -46,3 +46,7 @@ eb.levelset__pad        = 4
 # EBIS refinement and padding
 eb.levelset__eb_refinement = 1
 eb.levelset__eb_pad        = 8
+
+
+amr.max_level = 1
+amr.n_cell    = 32 32 32

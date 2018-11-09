@@ -40,7 +40,7 @@ public:
     /**
      * \brief Initialize BoxArray, DistributionMapping and data from scratch.
      * Calling this function requires the derive class implement its own MakeNewLevelFromScratch
-     * to allocate and intialize data. 
+     * to allocate and intialize data.
      * Also note usually one needs to average the fine data down to coarse level after this.
      */
     void InitFromScratch (Real time);

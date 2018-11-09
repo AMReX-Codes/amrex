@@ -2,6 +2,7 @@
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EB2_IF_Polynomial.H>
 #include <AMReX_EB_levelset.H>
+#include <AMReX_EB_LSCore.H>
 
 #include <AMReX_ParmParse.H>
 
@@ -60,6 +61,8 @@ make_my_eb2(int lev, const BoxArray & grids, const DistributionMapping & dmap,
 
       Geometry geom_eb = LSUtility::make_eb_geometry(* level_set, geom);
       EB2::GeometryShop<CylinderIF> gshop(* impfunc);
+
+      LSCore<CylinderIF> amr_ls(gshop);
 
       GShopLSFactory<CylinderIF>    cylinder_ls_gshop(gshop, * level_set);
 
