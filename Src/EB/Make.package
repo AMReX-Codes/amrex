@@ -42,6 +42,11 @@ CEXE_sources += AMReX_EB_levelset.cpp
 F90EXE_sources += AMReX_compute_normals.F90 AMReX_EB_geometry.F90
 F90EXE_sources += AMReX_EB_levelset_F.F90
 
+CEXE_headers += AMReX_EB_LSCoreBase.H
+CEXE_sources += AMReX_EB_LSCoreBase.cpp
+F90EXE_sources += AMReX_EB_Tagging.F90 AMReX_EB_bc_fill_nd.F90
+
+CEXE_headers += AMReX_EB_LSCore.H
 
 CEXE_headers += AMReX_EB2_IF_AllRegular.H
 CEXE_headers += AMReX_EB2_IF_Box.H

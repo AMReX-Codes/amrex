@@ -3,6 +3,8 @@
 #include <AMReX_EB2_IF_Polynomial.H>
 #include <AMReX_EB2_IF_Intersection.H>
 
+#include <AMReX_EB_LSCore.H>
+
 #include <make_shapes.H>
 
 using namespace amrex;
@@ -97,6 +99,8 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     // Implicit function used by LSFactory
     //  -- returned MF has the same DM as LSFactory
     std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_ls_gshop.fill_impfunc();
+
+    LSCore<CylinderIF> amr_ls(cylinder_gshop);
 
     VisMF::Write(* cylinder_mf_impfunc, "ImpFunc_SideWalls");
 
