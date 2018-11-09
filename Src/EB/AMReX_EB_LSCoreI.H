@@ -84,19 +84,16 @@ void LSCore::InitData () {
         InitFromScratch(time);
         AverageDown();
 
-        if (chk_int > 0) {
+        if (chk_int > 0)
             WriteCheckpointFile();
-        }
 
-    }
-    else {
+    } else {
         // restart from a checkpoint
         ReadCheckpointFile();
     }
 
-    if (plot_int > 0) {
+    if (plot_int > 0)
         WritePlotFile();
-    }
 }
 
 
@@ -146,8 +143,12 @@ void LSCore::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
     const int nghost = 1;
 
     level_set[lev].define(ba, dm, ncomp, nghost);
-    // NOTE: use move semantics since LSFactory contains unique_ptrs
-    ls_factory[lev] = std::move(LSFacory(0, ));
+    // NOTE: use move semantics since LSFactory contains unique_ptrs.
+    int levelset_pad    = 1;
+    int levelset_eb_pad = 1;
+    ls_factory[lev] = std::move(
+        LSFacory(lev, 1, 1, levelset_pad, levelset_eb_pad, ba, geom[lev], dm)
+        );
 
     const Real * dx = geom[lev].CellSize();
 
@@ -243,34 +244,13 @@ void LSCore::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
 // read in some parameters from inputs file
 void LSCore::ReadParameters () {
 
-
     /************************************************************************
      * Parse inputs                                                         *
      ***********************************************************************/
 
+    ParmParse pp("eb_amr");
+    pp.query("eb_pad", eb_pad);
 
-    {
-        ParmParse pp("particles");
-
-        int n_part;
-        Vector<Real> pos, rad;
-
-        pp.query("n_particles", n_part);
-        pp.getarr("positions", pos, 0, 3 * n_part);
-        pp.getarr("radii", rad, 0, n_part);
-
-
-        // Convert input arrays to vectors of type particle_info
-        int i_part = 0;
-        for(int i = 0; i + 2 < pos.size(); i += 3) {
-            particle_info particle;
-
-            particle.pos = RealVect(pos[i], pos[i+1], pos[i+2]);
-            particle.radius = rad[i_part];
-            particle_data.push_back(particle);
-            i_part ++;
-        }
-    }
 }
 
 
@@ -326,8 +306,8 @@ void LSCore::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp) 
 void LSCore::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp) {
     BL_ASSERT(lev > 0);
 
-    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+    PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(phifill));
+    PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(phifill));
 
     Interpolater * mapper = & cell_cons_interp;
 

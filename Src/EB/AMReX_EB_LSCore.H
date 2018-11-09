@@ -28,6 +28,8 @@ class AmrMeshInSituBridge;
 
 namespace amrex {
 
+
+template <class F>
 class LSCore
     : public amrex::AmrCore
 {
@@ -39,7 +41,7 @@ public:
 
     // Constructor - reads amr in parameters from inputs file
     //             - sizes multilevel arrays and data structures
-    LSCore ();
+    LSCore (EB2::GeometryShop<F> gshop);
     virtual ~LSCore ();
 
     // Initializes multilevel data
@@ -127,6 +129,9 @@ private:
 
     Vector<MultiFab>  level_set;
     Vector<LSFactory> ls_factory;
+
+
+    int eb_pad;
 
     // This is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction

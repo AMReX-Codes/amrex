@@ -21,7 +21,7 @@ namespace IIF_detail {
     {
         return f(p);
     }
-    
+
     template <typename F, typename... Fs>
     Real do_min (const RealArray& p, F&& f, Fs&... fs)
     {
