@@ -47,6 +47,8 @@ AmrCoreAdv::AmrCoreAdv ()
     phi_new.resize(nlevs_max);
     phi_old.resize(nlevs_max);
 
+    bcs.resize(1);
+
     // periodic boundaries
     int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
@@ -56,14 +58,13 @@ AmrCoreAdv::AmrCoreAdv ()
     int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
     int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
 */
-    
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         // lo-side BCs
         if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setLo(idim, bc_lo[idim]);
+            bcs[0].setLo(idim, bc_lo[idim]);
         }
         else {
             amrex::Abort("Invalid bc_lo");
@@ -73,7 +74,7 @@ AmrCoreAdv::AmrCoreAdv ()
         if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setHi(idim, bc_hi[idim]);
+            bcs[0].setHi(idim, bc_hi[idim]);
         }
         else {
             amrex::Abort("Invalid bc_hi");
@@ -415,9 +416,10 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
-	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
+        BndryFuncPtr bfunc(phifill);
+        PhysBCFunct<BndryFuncPtr> physbc(geom[lev], bcs, bfunc);
 	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
-				     geom[lev], physbc);
+                                    geom[lev], physbc, 0);
     }
     else
     {
@@ -426,15 +428,16 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+        BndryFuncPtr bfunc(phifill);
+        PhysBCFunct<BndryFuncPtr> cphysbc(geom[lev-1],bcs,bfunc);
+        PhysBCFunct<BndryFuncPtr> fphysbc(geom[lev  ],bcs,bfunc);
 
 	Interpolater* mapper = &cell_cons_interp;
 
 	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
-				   0, icomp, ncomp, geom[lev-1], geom[lev],
-				   cphysbc, fphysbc, refRatio(lev-1),
-				   mapper, bcs);
+                                  0, icomp, ncomp, geom[lev-1], geom[lev],
+                                  cphysbc, 0, fphysbc, 0,
+                                  refRatio(lev-1), mapper, bcs, 0);
     }
 }
 
@@ -453,14 +456,15 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
 
-    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+    BndryFuncPtr bfunc(phifill);
+    PhysBCFunct<BndryFuncPtr> cphysbc(geom[lev-1],bcs,bfunc);
+    PhysBCFunct<BndryFuncPtr> fphysbc(geom[lev  ],bcs,bfunc);
 
     Interpolater* mapper = &cell_cons_interp;
 
     amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
-				 cphysbc, fphysbc, refRatio(lev-1),
-				 mapper, bcs);
+				 cphysbc, 0, fphysbc, 0, refRatio(lev-1),
+				 mapper, bcs, 0);
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
