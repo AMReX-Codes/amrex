@@ -39,7 +39,7 @@ public:
         //
         // Bogus constructor.
         //
-        BndryFunc ();
+        BndryFunc () = default;
         //
         // A Constructor.
         //
