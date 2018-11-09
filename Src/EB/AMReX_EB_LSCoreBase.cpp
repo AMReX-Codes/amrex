@@ -36,8 +36,11 @@ LSCoreBase::LSCoreBase () {
     int nlevs_max = max_level + 1;
 
     level_set.resize(nlevs_max);
+    level_set_cc.resize(nlevs_max);
+
     ls_factory.resize(nlevs_max);
     eb_levels.resize(nlevs_max);
+    rebuild_eb.resize(nlevs_max, 1); // At first rebuild eb on each level
 
     istep.resize(nlevs_max, 0);
 
@@ -105,7 +108,9 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
     const int ncomp  = level_set[lev - 1].nComp();
     const int nghost = level_set[lev - 1].nGrow();
 
-    level_set[lev].define(ba, dm, ncomp, nghost);
+    BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
+    level_set[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_cc[lev].define(ba, dm, ncomp, nghost);
 
     FillCoarsePatch(lev, time, level_set[lev], 0, ncomp);
 }
@@ -119,7 +124,8 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
     const int ncomp  = level_set[lev].nComp();
     const int nghost = level_set[lev].nGrow();
 
-    MultiFab new_state(ba, dm, ncomp, nghost);
+    BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
+    MultiFab new_state(ba_nd, dm, ncomp, nghost);
 
     FillPatch(lev, time, new_state, 0, ncomp);
 
@@ -211,8 +217,14 @@ void LSCoreBase::ReadParameters () {
 // Set covered coarse cells to be the average of overlying fine cells
 void LSCoreBase::AverageDown () {
     for (int lev = finest_level-1; lev >= 0; --lev) {
+        // amrex::average_down(level_set[lev+1], level_set[lev],
+        //                     geom[lev+1], geom[lev],
+        //                     0, level_set[lev].nComp(), refRatio(lev));
+
+        // amrex::average_down_nodal(level_set[lev+1], level_set[lev],
+        //                           refRatio(lev));
+
         amrex::average_down(level_set[lev+1], level_set[lev],
-                            geom[lev+1], geom[lev],
                             0, level_set[lev].nComp(), refRatio(lev));
     }
 }
@@ -221,9 +233,16 @@ void LSCoreBase::AverageDown () {
 // More flexible version of AverageDown() that lets you average down across
 // multiple levels
 void LSCoreBase::AverageDownTo (int crse_lev) {
+    // amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
+    //                     geom[crse_lev+1], geom[crse_lev],
+    //                     0, level_set[crse_lev].nComp(), refRatio(crse_lev));
+
+    // amrex::average_down_nodal(level_set[crse_lev+1], level_set[crse_lev],
+    //                           refRatio(crse_lev));
+
     amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
-                        geom[crse_lev+1], geom[crse_lev],
                         0, level_set[crse_lev].nComp(), refRatio(crse_lev));
+
 }
 
 
@@ -244,7 +263,9 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
         PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(phifill));
         PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(phifill));
 
-        Interpolater* mapper = &cell_cons_interp;
+        //Interpolater * mapper = & cell_cons_interp;
+        Interpolater * mapper = & node_bilinear_interp;
+
 
         amrex::FillPatchTwoLevels(mf, time, {& level_set[lev - 1]}, {0.}, {& level_set[lev]}, {0.},
                                   0, icomp, ncomp, geom[lev-1], geom[lev],
@@ -263,7 +284,8 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, i
     PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(phifill));
     PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(phifill));
 
-    Interpolater * mapper = & cell_cons_interp;
+    //Interpolater * mapper = & cell_cons_interp;
+    Interpolater * mapper = & node_bilinear_interp;
 
     amrex::InterpFromCoarseLevel(mf, time, level_set[lev - 1], 0, icomp, ncomp, geom[lev-1], geom[lev],
                                  cphysbc, fphysbc, refRatio(lev-1),
@@ -278,10 +300,11 @@ std::string LSCoreBase::PlotFileName (int lev) const {
 
 
 // put together an array of multifabs for writing
-Vector<const MultiFab*> LSCoreBase::PlotFileMF () const {
+Vector<const MultiFab*> LSCoreBase::PlotFileMF () {
     Vector<const MultiFab*> r;
     for (int i = 0; i <= finest_level; ++i) {
-        r.push_back(&level_set[i]);
+        amrex::average_node_to_cellcenter(level_set_cc[i], 0, level_set[i], 0, 1);
+        r.push_back(&level_set_cc[i]);
     }
     return r;
 }
@@ -294,7 +317,7 @@ Vector<std::string> LSCoreBase::PlotFileVarNames () const {
 
 
 // write plotfile to disk
-void LSCoreBase::WritePlotFile () const {
+void LSCoreBase::WritePlotFile () {
     const std::string& plotfilename = PlotFileName(istep[0]);
     const auto& mf = PlotFileMF();
     const auto& varnames = PlotFileVarNames();

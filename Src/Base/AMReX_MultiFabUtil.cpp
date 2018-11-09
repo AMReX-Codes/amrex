@@ -7,22 +7,22 @@
 namespace {
 
     using namespace amrex;
-   
+
     static Box
     getIndexBox(const RealBox& real_box, const Geometry& geom) {
         IntVect slice_lo, slice_hi;
-        
+
         AMREX_D_TERM(slice_lo[0]=floor((real_box.lo(0) - geom.ProbLo(0))/geom.CellSize(0));,
                      slice_lo[1]=floor((real_box.lo(1) - geom.ProbLo(1))/geom.CellSize(1));,
                      slice_lo[2]=floor((real_box.lo(2) - geom.ProbLo(2))/geom.CellSize(2)););
-        
+
         AMREX_D_TERM(slice_hi[0]=floor((real_box.hi(0) - geom.ProbLo(0))/geom.CellSize(0));,
                      slice_hi[1]=floor((real_box.hi(1) - geom.ProbLo(1))/geom.CellSize(1));,
                      slice_hi[2]=floor((real_box.hi(2) - geom.ProbLo(2))/geom.CellSize(2)););
-        
+
         return Box(slice_lo, slice_hi) & geom.Domain();
     }
-    
+
     static
     std::unique_ptr<MultiFab> allocateSlice(int dir, const MultiFab& cell_centered_data,
                                             int ncomp, const Geometry& geom, Real dir_coord,
@@ -34,7 +34,7 @@ namespace {
         real_slice.setHi(dir, dir_coord);
         Box slice_box = getIndexBox(real_slice, geom);
 
-        // define the multifab that stores slice 
+        // define the multifab that stores slice
         BoxArray ba = cell_centered_data.boxArray();
         const DistributionMapping& dm = cell_centered_data.DistributionMap();
         std::vector< std::pair<int, Box> > isects;
@@ -61,7 +61,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
 	{
             const Box& bx = mfi.tilebox();
             amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
@@ -78,7 +78,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
 
@@ -88,7 +88,7 @@ namespace amrex
 		 AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
 			BL_TO_FORTRAN((*edge[1])[mfi]),
 			BL_TO_FORTRAN((*edge[2])[mfi])));
-	}	
+	}
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
@@ -120,7 +120,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
 
@@ -148,7 +148,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
 
@@ -184,7 +184,7 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi) 
+	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
 	{
 	    const Box& xbx = mfi.nodaltilebox(0);
 #if (AMREX_SPACEDIM > 1)
@@ -193,7 +193,7 @@ namespace amrex
 #if (AMREX_SPACEDIM == 3)
 	    const Box& zbx = mfi.nodaltilebox(2);
 #endif
-	    
+
 	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
 		(xbx.loVect(), xbx.hiVect(),
 #if (AMREX_SPACEDIM > 1)
@@ -216,17 +216,17 @@ namespace amrex
     // We do NOT assume that the coarse layout is a coarsened version of the fine layout.
     // This version DOES use volume-weighting.
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
-		       const Geometry& fgeom, const Geometry& cgeom, 
+		       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, int rr)
     {
          average_down(S_fine,S_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector());
     }
 
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
-		       const Geometry& fgeom, const Geometry& cgeom, 
+		       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, const IntVect& ratio)
     {
-  
+
         if (S_fine.is_nodal() || S_crse.is_nodal())
         {
             amrex::Error("Can't use amrex::average_down for nodal MultiFab!");
@@ -244,7 +244,7 @@ namespace amrex
         //
 	const BoxArray& fine_BA = S_fine.boxArray();
 	const DistributionMapping& fine_dm = S_fine.DistributionMap();
-        BoxArray crse_S_fine_BA = fine_BA; 
+        BoxArray crse_S_fine_BA = fine_BA;
 	crse_S_fine_BA.coarsen(ratio);
 
         MultiFab crse_S_fine(crse_S_fine_BA,fine_dm,ncomp,0,MFInfo(),FArrayBoxFactory());
@@ -288,7 +288,7 @@ namespace amrex
 
     void sum_fine_to_coarse(const MultiFab& S_fine, MultiFab& S_crse,
                             int scomp, int ncomp, const IntVect& ratio,
-                            const Geometry& cgeom, const Geometry& fgeom) 
+                            const Geometry& cgeom, const Geometry& fgeom)
     {
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
         AMREX_ASSERT(ratio == ratio[0]);
@@ -310,19 +310,19 @@ namespace amrex
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& tbx = mfi.growntilebox(nGrow);
-            
+
             BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
                 (tbx.loVect(), tbx.hiVect(),
                  BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
                  BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
                  ratio.getVect(),&ncomp);
         }
-        
+
         S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
                     cgeom.periodicity(), FabArrayBase::ADD);
     }
 
-    void average_down (const MultiFab& S_fine, MultiFab& S_crse, 
+    void average_down (const MultiFab& S_fine, MultiFab& S_crse,
                        int scomp, int ncomp, const IntVect& ratio)
     {
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
@@ -330,12 +330,12 @@ namespace amrex
                      (S_crse.is_nodal()         && S_fine.is_nodal()));
 
         bool is_cell_centered = S_crse.is_cell_centered();
-        
+
         //
         // Coarsen() the fine stuff on processors owning the fine data.
         //
         BoxArray crse_S_fine_BA = S_fine.boxArray(); crse_S_fine_BA.coarsen(ratio);
-        
+
         if (crse_S_fine_BA == S_crse.boxArray() and S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
@@ -372,7 +372,7 @@ namespace amrex
             {
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& tbx = mfi.tilebox();
-                
+
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
                 //        not part of the actual crse multifab which came in.
@@ -391,7 +391,7 @@ namespace amrex
                          ratio.getVect(),&ncomp);
                 }
             }
-            
+
             S_crse.copy(crse_S_fine,0,scomp,ncomp);
         }
    }
@@ -440,7 +440,7 @@ namespace amrex
                 for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
                 {
                     const Box& tbx = mfi.growntilebox(ngcrse);
-                    
+
                     BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
                         (tbx.loVect(),tbx.hiVect(),
                          BL_TO_FORTRAN((*fine[n])[mfi]),
@@ -510,7 +510,7 @@ namespace amrex
         for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
             {
                 const Box& tbx = mfi.growntilebox(ngcrse);
-                
+
                 BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
                     (tbx.loVect(),tbx.hiVect(),
                      BL_TO_FORTRAN(fine[mfi]),
@@ -541,11 +541,11 @@ namespace amrex
 		  ss << mf[mfi](cell,i) << ", ";
 		}
 	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << ss.str() << std::endl;	    
+	      amrex::AllPrint() << ss.str() << std::endl;
 	    }
 	  }
 	}
-      
+
     }
 
     void writeFabs (const MultiFab& mf, const std::string& name)
@@ -591,18 +591,18 @@ namespace amrex
 
         const Real* dx  = geom.CellSize();
         const Real* plo = geom.ProbLo();
-        
+
         Vector<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
-        
-        int nf = cc.nComp();        
+
+        int nf = cc.nComp();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for (MFIter mfi(*slice, true); mfi.isValid(); ++mfi) {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
-        
+
             const Box& tile_box  = mfi.tilebox();
 
             if (interpolate)
@@ -610,7 +610,7 @@ namespace amrex
                 amrex_fill_slice_interp(BL_TO_FORTRAN_BOX(tile_box),
                                         BL_TO_FORTRAN_ANYD(cc[full_gid]),
                                         BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
-                                        &start_comp, &nf, &ncomp, &dir, 
+                                        &start_comp, &nf, &ncomp, &dir,
                                         &coord, AMREX_ZFILL(plo), AMREX_ZFILL(dx));
             }
             else
@@ -621,7 +621,7 @@ namespace amrex
                                  &start_comp, &nf, &ncomp);
             }
         }
-        
+
         return slice;
     }
 

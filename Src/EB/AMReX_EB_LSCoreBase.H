@@ -71,7 +71,7 @@ public:
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
     // Write plotfile to disk
-    void WritePlotFile () const;
+    void WritePlotFile ();
 
 
 protected:
@@ -102,7 +102,7 @@ protected:
     std::string PlotFileName (int lev) const;
 
     // Put together an array of multifabs for writing
-    Vector<const MultiFab *> PlotFileMF () const;
+    Vector<const MultiFab *> PlotFileMF ();
 
     // Set plotfile variables names
     Vector<std::string> PlotFileVarNames () const;
@@ -121,15 +121,24 @@ protected:
      * private data members                                                     *
      ***************************************************************************/
 
-    // Paticle data (used for defining levelset)
-    //Vector<particle_info> particle_data;
-    Vector<const EB2::Level *> eb_levels;
-
-    Vector<MultiFab>  level_set;
-    // NOTE: use unique_ptr because LSFactory does not have a default constructor
+    //
+    // EB data used for rebuilding levels from scratch. Used by extension
+    // classes (as they rely on template parameters). NOTE: use unique_ptr
+    // because LSFactory does not have a default constructor.
+    //
+    Vector<const EB2::Level *>         eb_levels;
     Vector<std::unique_ptr<LSFactory>> ls_factory;
+    // Apparently std::vector<bool> isn't a thing?! (more precisely it's a
+    // different thing)
+    Vector<int>                        rebuild_eb;
 
+    // Level set data
+    Vector<MultiFab>  level_set;
+    // Cell-centered level set data:
+    Vector<MultiFab>  level_set_cc;
 
+    // Resolve EB up to this many ghost cells (NOTE: these are scaled based on
+    // local refinement level)
     int eb_pad;
 
     // This is essentially a 2*DIM integer array storing the physical boundary
