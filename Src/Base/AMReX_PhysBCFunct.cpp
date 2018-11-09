@@ -4,11 +4,11 @@
 namespace amrex {
 
 void
-BndryFuncPtr::operator () (Box const& /*bx*/, FArrayBox& dest,
-                           const int dcomp, const int numcomp,
-                           Geometry const& geom, const Real time,
-                           const Vector<BCRec>& bcr, const int bcomp,
-                           const int /*orig_comp*/)
+BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
+                             const int dcomp, const int numcomp,
+                             Geometry const& geom, const Real time,
+                             const Vector<BCRec>& bcr, const int bcomp, // BCRec for this box
+                             const int /*orig_comp*/)
 {
     BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
@@ -28,24 +28,14 @@ BndryFuncPtr::operator () (Box const& /*bx*/, FArrayBox& dest,
         grd_lo[i] = problo[i] + dx[i]*(lo[i]-plo[i]);
     }
 
-    BCRec bcrtmp;
-    Vector<int> bcrs(2*AMREX_SPACEDIM*numcomp);
-    int* bci = bcrs.data();
-    for (int j = 0; j < numcomp; ++j)
-    {
-        amrex::setBC(bx, domain, bcr[bcomp+j], bcrtmp);
-        const int* bc = bcrtmp.vect();
-        for (int k = 0; k < 2*AMREX_SPACEDIM; k++) {
-            bci[k] = bc[k];
-        }
-        bci += 2*AMREX_SPACEDIM;
-    }
+    static_assert(sizeof(BCRec) == 2*AMREX_SPACEDIM*sizeof(int),
+                  "Let us know if this assertion fails");
 
     if (m_func != nullptr) {
-	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),plo,phi,dx,grd_lo,&time,bcrs.data());
+	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),plo,phi,dx,grd_lo,&time,bcr[0].vect());
     } else {
 	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),AMREX_ARLIM_3D(plo),AMREX_ARLIM_3D(phi),
-		 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),&time,bcrs.data());
+		 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),&time,bcr[0].vect());
     }
 }
 

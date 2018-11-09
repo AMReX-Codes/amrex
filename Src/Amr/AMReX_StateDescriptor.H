@@ -85,7 +85,7 @@ public:
 
         bool RunOnGPU () const { return m_run_on_gpu; }
         void setRunOnGPU (bool b) { m_run_on_gpu = b; }
-        
+
         bool hasFabVersion () const { return m_funcfab != nullptr; }
 
     private:

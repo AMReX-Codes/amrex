@@ -85,7 +85,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         return;
     }
     
-    PhysBCFunct<BndryFuncPtr> cphysbc, fphysbc;
+    PhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
     int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir}; // periodic boundaries
     int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));

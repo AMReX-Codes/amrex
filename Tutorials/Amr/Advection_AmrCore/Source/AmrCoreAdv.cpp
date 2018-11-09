@@ -416,8 +416,8 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
-        BndryFuncPtr bfunc(phifill);
-        PhysBCFunct<BndryFuncPtr> physbc(geom[lev], bcs, bfunc);
+        BndryFuncArray bfunc(phifill);
+        PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
 	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
                                     geom[lev], physbc, 0);
     }
@@ -428,9 +428,9 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        BndryFuncPtr bfunc(phifill);
-        PhysBCFunct<BndryFuncPtr> cphysbc(geom[lev-1],bcs,bfunc);
-        PhysBCFunct<BndryFuncPtr> fphysbc(geom[lev  ],bcs,bfunc);
+        BndryFuncArray bfunc(phifill);
+        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
+        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
 
 	Interpolater* mapper = &cell_cons_interp;
 
@@ -456,9 +456,9 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
 
-    BndryFuncPtr bfunc(phifill);
-    PhysBCFunct<BndryFuncPtr> cphysbc(geom[lev-1],bcs,bfunc);
-    PhysBCFunct<BndryFuncPtr> fphysbc(geom[lev  ],bcs,bfunc);
+    BndryFuncArray bfunc(phifill);
+    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
+    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
 
     Interpolater* mapper = &cell_cons_interp;
 
