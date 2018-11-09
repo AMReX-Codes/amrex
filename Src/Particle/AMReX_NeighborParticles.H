@@ -19,9 +19,6 @@ namespace amrex {
 /// in AMR subcycling to keep track of coarse level particles that may move on to fine
 /// levels during a fine level time step.
 ///
-/// Note: For the neighbor particles, we don't communicate the integer components, only the
-/// real data.
-///
 template <int NStructReal, int NStructInt>
 class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
@@ -104,7 +101,7 @@ public:
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
     using AoS = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::AoS;
-    using CharVector = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::CharVector;
+    using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::ParticleVector;
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::IntVector;
 
     NeighborParticleContainer(ParGDBBase* gdb, int ncells);
@@ -153,8 +150,8 @@ public:
     void setRealCommComp(int i, bool value);
     void setIntCommComp(int i, bool value);
 
-    // Note that CharVector and IntVector are defined in AMReXParticles.H
-    std::map<PairIndex, CharVector > neighbors;
+    // Note that ParticleVector and IntVector are defined in AMReXParticles.H
+    std::map<PairIndex, ParticleVector > neighbors;
     std::map<PairIndex, IntVector  > neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
     
