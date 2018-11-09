@@ -24,6 +24,7 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                        dx,problo,time,phierr) bind(C, name="state_error")
 
   use amrex_fort_module, only : amrex_real
+  use amrex_eb_levelset_module, only: amrex_eb_interp_levelset
   implicit none
 
   integer          :: lo(3),hi(3)
@@ -37,11 +38,15 @@ subroutine state_error(tag,tag_lo,tag_hi, &
   integer          :: set,clear
 
   integer          :: i, j, k
+  real(amrex_real) :: pos(3)
 
   ! Tag on regions of high phi
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
+
+           pos = (/i, j, k /)*dx + 0.5*dx
+
            if (abs(state(i,j,k)) .le. phierr) then
               tag(i,j,k) = set
            endif

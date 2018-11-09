@@ -580,44 +580,44 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
     }
 
-   /****************************************************************************
-    * Set and validate boundary values of eb_ls                                *
-    ****************************************************************************/
-
-    // Simulation domain
-    Box domain = Box(geom_ls.Domain());
-
-    // Int array flagging periodic directions => no need to fill the periodic
-    // ones as they are filled by FillBoundary
-    IntVect periodic(
-            AMREX_D_DECL(
-                geom_ls.isPeriodic(0),
-                geom_ls.isPeriodic(1),
-                geom_ls.isPeriodic(2)
-            )
-        );
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
-        auto & ls_tile = eb_ls[mfi];
-        auto & v_tile  = eb_valid[mfi];
-        const auto & if_tile = impfunct[mfi];
-
-        if(len_facets > 0) {
-            amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
-                                        BL_TO_FORTRAN_3D(v_tile),
-                                        periodic.getVect(), domain.loVect(), domain.hiVect(),
-                                        facets->dataPtr(), & len_facets,
-                                        dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
-
-            amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
-                                            BL_TO_FORTRAN_3D(v_tile),
-                                            periodic.getVect(), domain.loVect(), domain.hiVect(),
-                                            BL_TO_FORTRAN_3D(if_tile)         );
-        }
-    }
+//    /****************************************************************************
+//     * Set and validate boundary values of eb_ls                                *
+//     ****************************************************************************/
+// 
+//     // Simulation domain
+//     Box domain = Box(geom_ls.Domain());
+// 
+//     // Int array flagging periodic directions => no need to fill the periodic
+//     // ones as they are filled by FillBoundary
+//     IntVect periodic(
+//             AMREX_D_DECL(
+//                 geom_ls.isPeriodic(0),
+//                 geom_ls.isPeriodic(1),
+//                 geom_ls.isPeriodic(2)
+//             )
+//         );
+// 
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
+//         auto & ls_tile = eb_ls[mfi];
+//         auto & v_tile  = eb_valid[mfi];
+//         const auto & if_tile = impfunct[mfi];
+// 
+//         if(len_facets > 0) {
+//             amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+//                                         BL_TO_FORTRAN_3D(v_tile),
+//                                         periodic.getVect(), domain.loVect(), domain.hiVect(),
+//                                         facets->dataPtr(), & len_facets,
+//                                         dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
+// 
+//             amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+//                                             BL_TO_FORTRAN_3D(v_tile),
+//                                             periodic.getVect(), domain.loVect(), domain.hiVect(),
+//                                             BL_TO_FORTRAN_3D(if_tile)         );
+//         }
+//     }
 
     eb_ls.FillBoundary(geom_ls.periodicity());
     eb_valid.FillBoundary(geom_ls.periodicity());
