@@ -18,24 +18,19 @@ extern "C"
                                        const int* dom_lo, const int* dom_hi,
                                        const Real* dx, const Real* grd_lo,
                                        const Real* time, const int* bc);
-
-    // Note that i, j, k, nc, and time are passed by value.
-    // Also note that prob_lo is the lo of the whole domain.
-    typedef void (*UserFillCell) (const int i, const int j, const int k,
-                                  Real* data, const int* dlo, const int* dhi, const int nc,
-                                  const int* dom_lo, const int* dom_hi,
-                                  const Real* dx, const Real* prob_lo,
-                                  const Real time, const int* bc,
-                                  const int orig_comp);
-
-    // Note that nc and time are passed by value.
-    // Also note that prob_lo is the lo of the whole domain.
-    typedef void (*UserFillBox) (Real* data, const int* dlo, const int* dhi, const int nc,
-                                 const int* dom_lo, const int* dom_hi,
-                                 const Real* dx, const Real* prob_lo,
-                                 const Real time, const int* bc,
-                                 const int orig_comp);
 }
+
+typedef void (*UserFillCell) (const IntVect& iv, FArrayBox& dest,
+                              const int dcomp, const int numcomp,
+                              GeometryData const& geom, const Real time,
+                              const BCRec* bcr, const int bcomp,
+                              const int orig_comp);
+
+typedef void (*UserFillBox) (Box const& bx, FArrayBox& dest,
+                             const int dcomp, const int numcomp,
+                             GeometryData const& geom, const Real time,
+                             const BCRec* bcr, const int bcomp,
+                             const int orig_comp);
 
 // This version calls function working on array
 class BndryFuncArray
@@ -45,7 +40,7 @@ public:
     BndryFuncArray (BndryFuncDefault inFunc) : m_func(inFunc) {}
     BndryFuncArray (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
 
-    void operator() (Box const& bx, FArrayBox& data,
+    void operator() (Box const& bx, FArrayBox& dest,
                      const int dcomp, const int numcomp,
                      Geometry const& geom, const Real time,
                      const Vector<BCRec>& bcr, const int bcomp,
@@ -67,7 +62,7 @@ public:
     GpuBndryFuncFab () = default;
     GpuBndryFuncFab (UserFillCell a_f) : f_user(a_f) {}
 
-    void operator() (Box const& bx, FArrayBox& data,
+    void operator() (Box const& bx, FArrayBox& dest,
                      const int dcomp, const int numcomp,
                      Geometry const& geom, const Real time,
                      const Vector<BCRec>& bcr, const int bcomp,
@@ -84,7 +79,7 @@ public:
     CpuBndryFuncFab () = default;
     CpuBndryFuncFab (UserFillBox a_f) : f_user(a_f) {}
 
-    void operator() (Box const& bx, FArrayBox& data,
+    void operator() (Box const& bx, FArrayBox& dest,
                      const int dcomp, const int numcomp,
                      Geometry const& geom, const Real time,
                      const Vector<BCRec>& bcr, const int bcomp,

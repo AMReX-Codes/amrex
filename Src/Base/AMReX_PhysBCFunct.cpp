@@ -1,6 +1,7 @@
 
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_filcc_f.H>
+#include <AMReX_FilCC_C.H>
 
 namespace amrex {
 
@@ -66,9 +67,8 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
 
     if (f_user != nullptr)
     {
-        f_user(BL_TO_FORTRAN_N_ANYD(dest,dcomp), numcomp,
-               BL_TO_FORTRAN_BOX(domain),
-               dx, problo, time, bcr[bcomp].vect(), orig_comp);
+        f_user(bx, dest, dcomp, numcomp, geom.data(), time,
+               &(bcr[bcomp]), 0, orig_comp);
     }
 }
 
@@ -120,10 +120,15 @@ GpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
         }
 
         const Box& b = boxes_p[ibox];
-        const IntVect& iv = b.atOffset(offset);
+        const auto& cell = b.atOffset(offset);
 
-        //        amrex_fill_bc_cc(tbx, *fab, dcomp, numcomp, geomdata, time,
-//                         bcr_aa, scomp);
+        filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                   bcr_p, 0, orig_comp);
+
+        if (f_user != nullptr) {
+            f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                   bcr_p, 0, orig_comp);
+        }
     });
 }
 
