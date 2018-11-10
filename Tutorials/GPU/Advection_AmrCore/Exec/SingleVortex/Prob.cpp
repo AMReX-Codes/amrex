@@ -1,3 +1,5 @@
+#include <AmrCoreAdv_F.H>
+
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -6,18 +8,18 @@ using namespace amrex;
 
 void
 initdata(const int level, const int time,
-         Box const& bx, FArrayBox& phifab, GeometryData const& geomdata)
+         Box const& bx, FArrayBox& phifab, GeometryData const& geom)
 {
 
     const auto len = length(bx);
     const auto lo  = lbound(bx);
     const auto phi = phifab.view(lo);
-    const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
-    const Real* AMREX_RESTRICT dx      = geomdata.CellSize();
+    const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
+    const Real* AMREX_RESTRICT dx      = geom.CellSize();
 
     const Real gamma = 1.4;
 
-# pragma omp parallel for collapse(2)
+//#pragma omp parallel for collapse(2)
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             Real z = prob_lo[2] + (k+0.5) * dx[2];
