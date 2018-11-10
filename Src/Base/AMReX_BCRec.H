@@ -19,68 +19,84 @@ public:
     /**
     * \brief The default constructor, which does NOT set valid boundary types.
     */
+    AMREX_GPU_HOST_DEVICE
     BCRec ();
     /**
     * \brief The constructor.
     */
+    AMREX_GPU_HOST_DEVICE
     BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
            AMREX_D_DECL(int hiX, int hiY, int hiZ));
     /**
     * \brief Another constructor.
     */
+    AMREX_GPU_HOST_DEVICE
     BCRec (const int* lo,
            const int* hi);
     /*
     * \brief Yet another constructor.  Inherits bndry types from bc_domain
     * when bx lies on edge of domain otherwise gets interior Dirchlet.
     */
+    AMREX_GPU_HOST_DEVICE
     BCRec (const Box&   bx,
            const Box&   domain,
            const BCRec& bc_domain);
     /*
     * \brief Explicitly set lo bndry value.
     */
+    AMREX_GPU_HOST_DEVICE
     void setLo (int dir, int bc_val) { bc[dir] = bc_val; }
     /**
     * \brief Explicitly set hi bndry value.
     */
+    AMREX_GPU_HOST_DEVICE
     void setHi (int dir, int bc_val) { bc[AMREX_SPACEDIM+dir] = bc_val; }
     /**
     * \brief  Return bndry values (used in calls to FORTRAN).
     */
+    AMREX_GPU_HOST_DEVICE
     const int* vect () const& { return bc; }
     const int* vect () && = delete;
 
+    AMREX_GPU_HOST_DEVICE
     const int* data () const& { return bc; }
     const int* data () && = delete;
 
+    AMREX_GPU_HOST_DEVICE
     int vectSize () const { return (2 * AMREX_SPACEDIM); }
+    AMREX_GPU_HOST_DEVICE
     void setVect (const int *bcvect) { for(int i(0); i < vectSize(); ++i) { bc[i] = bcvect[i]; } }
     /**
     * \brief Return low-end boundary data.
     */
+    AMREX_GPU_HOST_DEVICE
     const int* lo () const& { return bc; }
     const int* lo () && = delete;
     /**
     * \brief Return high-end boundary data.
     */
+    AMREX_GPU_HOST_DEVICE
     const int* hi () const& { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
     * \brief Return low-end boundary data in direction <dir>.
     */
+    AMREX_GPU_HOST_DEVICE
     int lo (int dir) const { return bc[dir]; }
     /**
     * \brief Return high-end boundary data in direction <dir>.
     */
+    AMREX_GPU_HOST_DEVICE
     int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
     /**
     * \brief Equal test.
     */
+    AMREX_GPU_HOST_DEVICE
     bool operator== (const BCRec& rhs) const;
     /**
     * \brief Not equal test.
     */
+    AMREX_GPU_HOST_DEVICE
     bool operator!= (const BCRec& rhs) const;
     /**
     * \brief ASCII write to ostream.
@@ -97,6 +113,7 @@ private:
     /**
     * \brief Function for setting a BC.
     */
+    AMREX_GPU_HOST_DEVICE
     void setBC (const Box&   bx, 
                 const Box&   domain,
                 const BCRec& bc_dom, 
@@ -104,12 +121,12 @@ private:
     /**
     * \brief Function for setting array of BCs.
     */
-    void setBC (const Box&          bx, 
-                const Box&          domain, 
-                int                 src_comp, 
-                int                 dest_comp, 
-                int                 ncomp,
-                const Vector<BCRec>& bc_dom, 
+    void setBC (const Box&           bx,
+                const Box&           domain,
+                int                  src_comp,
+                int                  dest_comp,
+                int                  ncomp,
+                const Vector<BCRec>& bc_dom,
                 Vector<BCRec>&       bcr);
 }
 
