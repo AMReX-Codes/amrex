@@ -38,18 +38,28 @@ subroutine state_error(tag,tag_lo,tag_hi, &
   integer          :: set,clear
 
   integer          :: i, j, k
-  real(amrex_real) :: pos(3)
+  real(amrex_real) :: pos(3), plo(3), ls_val
+
+  plo = (/ 0., 0., 0. /)
 
   ! Tag on regions of high phi
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
 
-           pos = (/i, j, k /)*dx + 0.5*dx
+           pos = (/ i, j, k /)*dx + 0.5*dx
+           call amrex_eb_interp_levelset ( &
+                pos, plo, 1,                &
+                state, state_lo, state_hi,  &
+                dx, ls_val                 )
 
-           if (abs(state(i,j,k)) .le. phierr) then
-              tag(i,j,k) = set
+           ! if (abs(state(i, j, k)) .le. phierr) then
+           !    tag(i, j, k) = set
+           ! endif
+           if (abs(ls_val) .le. phierr) then
+              tag(i, j, k) = set
            endif
+
         enddo
      enddo
   enddo
