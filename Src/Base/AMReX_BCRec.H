@@ -20,19 +20,27 @@ public:
     * \brief The default constructor, which does NOT set valid boundary types.
     */
     AMREX_GPU_HOST_DEVICE
-    BCRec ();
+    BCRec ()
+        : bc {AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus),
+              AMREX_D_DECL(BCType::bogus,BCType::bogus,BCType::bogus)}
+        { }
     /**
     * \brief The constructor.
     */
     AMREX_GPU_HOST_DEVICE
     BCRec (AMREX_D_DECL(int loX, int loY, int loZ),
-           AMREX_D_DECL(int hiX, int hiY, int hiZ));
+           AMREX_D_DECL(int hiX, int hiY, int hiZ))
+        : bc {AMREX_D_DECL(loX,loY,loZ),
+              AMREX_D_DECL(hiX,hiY,hiZ)}
+        {}
     /**
     * \brief Another constructor.
     */
     AMREX_GPU_HOST_DEVICE
-    BCRec (const int* lo,
-           const int* hi);
+    BCRec (const int* lo, const int* hi)
+        : bc {AMREX_D_DECL(lo[0],lo[1],lo[2]),
+              AMREX_D_DECL(hi[0],hi[1],hi[2])}
+        {}
     /*
     * \brief Yet another constructor.  Inherits bndry types from bc_domain
     * when bx lies on edge of domain otherwise gets interior Dirchlet.
@@ -40,64 +48,88 @@ public:
     AMREX_GPU_HOST_DEVICE
     BCRec (const Box&   bx,
            const Box&   domain,
-           const BCRec& bc_domain);
+           const BCRec& bc_domain)
+    {
+        const int* bxlo = bx.loVect();
+        const int* bxhi = bx.hiVect();
+        const int* dlo  = domain.loVect();
+        const int* dhi  = domain.hiVect();
+        for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+        {
+            int ilo = dir;
+            int ihi = dir+AMREX_SPACEDIM;
+            bc[ilo] = ( bxlo[dir]<=dlo[dir] ? bc_domain.bc[ilo] : BCType::int_dir );
+            bc[ihi] = ( bxhi[dir]>=dhi[dir] ? bc_domain.bc[ihi] : BCType::int_dir );
+        }
+    }
     /*
     * \brief Explicitly set lo bndry value.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setLo (int dir, int bc_val) { bc[dir] = bc_val; }
     /**
     * \brief Explicitly set hi bndry value.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     void setHi (int dir, int bc_val) { bc[AMREX_SPACEDIM+dir] = bc_val; }
     /**
     * \brief  Return bndry values (used in calls to FORTRAN).
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const int* vect () const& { return bc; }
     const int* vect () && = delete;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const int* data () const& { return bc; }
     const int* data () && = delete;
 
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int vectSize () const { return (2 * AMREX_SPACEDIM); }
-    AMREX_GPU_HOST_DEVICE
-    void setVect (const int *bcvect) { for(int i(0); i < vectSize(); ++i) { bc[i] = bcvect[i]; } }
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    void setVect (const int *bcvect) {
+        for(int i(0); i < vectSize(); ++i) {
+            bc[i] = bcvect[i];
+        }
+    }
     /**
     * \brief Return low-end boundary data.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE  AMREX_INLINE
     const int* lo () const& { return bc; }
     const int* lo () && = delete;
     /**
     * \brief Return high-end boundary data.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const int* hi () const& { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
     * \brief Return low-end boundary data in direction <dir>.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int lo (int dir) const { return bc[dir]; }
     /**
     * \brief Return high-end boundary data in direction <dir>.
     */
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
     /**
     * \brief Equal test.
     */
-    AMREX_GPU_HOST_DEVICE
-    bool operator== (const BCRec& rhs) const;
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    bool operator== (const BCRec& rhs) const {
+        bool retval = true;
+        for (int i = 0; i < 2*AMREX_SPACEDIM && retval; i++)
+        {
+            retval &= bc[i] == rhs.bc[i];
+        }
+        return retval;
+    }
     /**
     * \brief Not equal test.
     */
-    AMREX_GPU_HOST_DEVICE
-    bool operator!= (const BCRec& rhs) const;
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    bool operator!= (const BCRec& rhs) const { return !(*this == rhs); }
     /**
     * \brief ASCII write to ostream.
     */
