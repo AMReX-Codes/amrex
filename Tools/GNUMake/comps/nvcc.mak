@@ -32,13 +32,17 @@ HOST_CXX := $(CXX)
 HOST_CC := $(CC)
 
 ifeq ($(lowercase_nvcc_host_comp),gnu)
-  CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS) --std=c++11'
+  ifeq ($(gcc_major_version),4)
+    CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' --std=c++11
+  else ifeq ($(gcc_major_version),5)
+    CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' --std=c++14
+  endif
 else
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
 endif
 CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
-CXXFLAGS = $(CXXFLAGS_FROM_HOST) --std=c++11 -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
+CXXFLAGS = $(CXXFLAGS_FROM_HOST) -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 CFLAGS = $(CFLAGS_FROM_HOST) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 
 CXXFLAGS += --ptxas-options=-v
