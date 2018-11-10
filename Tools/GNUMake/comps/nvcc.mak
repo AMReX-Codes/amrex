@@ -33,9 +33,9 @@ HOST_CC := $(CC)
 
 ifeq ($(lowercase_nvcc_host_comp),gnu)
   ifeq ($(gcc_major_version),4)
-    CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' --std=c++11
-  else ifeq ($(gcc_major_version),5)
-    CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)' --std=c++14
+    CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS) --std=c++11' --std=c++11
+  else
+    CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
   endif
 else
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
