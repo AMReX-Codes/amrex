@@ -2,6 +2,19 @@
 #define _AmrCoreAdv_F_H_
 #include <AMReX_BLFort.H>
 
+#include <AMReX_Box.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_Geometry.H>
+
+using namespace amrex;
+
+    // these are C++ function definitions converted from Fortran 
+
+    void initdata(const int level, const int time,
+                  Box const& bx, FArrayBox& phifab, 
+                  GeometryData const & geom);
+
+
 #ifdef __cplusplus
 extern "C" 
 {
@@ -9,18 +22,12 @@ extern "C"
 
     // these are interfaces to fortran subroutines
 
-    void initdata(const int level, const int time,
-                  Box const& bx, FArrayBox& phifab, 
-                  GeometryData const& geomdata)
-
-
 /*
     void initdata(const int* level, const amrex_real* time, 
 		  const int* lo, const int* hi,
 		  BL_FORT_FAB_ARG_3D(state),
 		  const amrex_real* dx, const amrex_real* problo);
 */
-    void 
 
     void get_face_velocity(const int* level, const amrex_real* time, 
 			   AMREX_D_DECL(BL_FORT_FAB_ARG(xvel),

@@ -272,13 +272,18 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
     {
+        FArrayBox* fab = &(state[mfi]);
+        GeometryData geomData = geom[lev].data();
         const Box& box = mfi.validbox();
         const int* lo  = box.loVect();
         const int* hi  = box.hiVect();
 
+        initdata(lev, cur_time, box, *fab, geomData);
+/*
 	initdata(&lev, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
 		 BL_TO_FORTRAN_3D(state[mfi]), AMREX_ZFILL(dx),
 		 AMREX_ZFILL(prob_lo));
+*/
     }
 }
 
