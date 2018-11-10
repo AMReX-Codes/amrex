@@ -52,7 +52,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     // TODO: more light-weight structure here? (since we don't need all the
     // LSFactory features for LSCore)
     int levelset_pad    = nghost;
-    int levelset_eb_pad = eb_pad*4;
+    int levelset_eb_pad = eb_pad * 2 * lev;
     ls_factory[lev] = std::unique_ptr<LSFactory>(
         new LSFactory(lev, 1, 1, levelset_pad, levelset_eb_pad, ba, geom[lev], dm)
         );
@@ -71,7 +71,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     int ng = ls_factory[lev]->get_ls_pad();
     level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
 
-    VisMF::Write(level_set[lev], "LevelSet_L");
+    // VisMF::Write(level_set[lev], "LevelSet_L");
 
     Print() << "made level: " << lev << std::endl;
 
