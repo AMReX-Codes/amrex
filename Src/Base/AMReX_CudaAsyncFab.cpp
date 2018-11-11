@@ -3,17 +3,11 @@
 #include <AMReX_CudaAsyncFab.H>
 #include <AMReX_CudaAsyncFabImpl.H>
 #include <AMReX_CudaDevice.H>
-#include <mutex>
 
 #ifdef AMREX_USE_CUDA
 
-namespace {
-    std::mutex cudafab_callback_mutex;
-}
-
 extern "C" {
     void CUDART_CB amrex_devicefab_delete (cudaStream_t stream, cudaError_t error, void* p) {
-        std::lock_guard<std::mutex> guard(cudafab_callback_mutex);
         delete (amrex::Cuda::AsyncFabImpl*)p;
     }
 }

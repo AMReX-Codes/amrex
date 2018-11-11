@@ -5,6 +5,7 @@
 #include <AMReX_CudaDevice.H>
 #include <AMReX_Vector.H>
 #include <cstring>
+#include <mutex>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -15,6 +16,9 @@ namespace Cuda {
 
 namespace {
     bool initialized = false;
+
+    std::mutex asyncfab_mutex;
+
     Vector<Vector<std::unique_ptr<FArrayBox> > > fab_stacks;
 
     inline Vector<std::unique_ptr<FArrayBox> >& get_stack ()
@@ -54,24 +58,32 @@ AsyncFabImpl::AsyncFabImpl ()
     static_assert(AMREX_IS_TRIVIALLY_COPYABLE(BaseFabData<Real>),
                   "BaseFabData must be trivially copyable");
     auto& fabstack = get_stack();
-    if (fabstack.empty()) {
-        m_gpu_fab.reset(new FArrayBox());
-    } else {
-        m_gpu_fab = std::move(fabstack.back());
-        fabstack.pop_back();
-        copy_htod();
+    bool do_copy = false;
+    {
+        std::lock_guard<std::mutex> guard(asyncfab_mutex);
+        if (fabstack.empty()) {
+            m_gpu_fab.reset(new FArrayBox());
+        } else {
+            m_gpu_fab = std::move(fabstack.back());
+            fabstack.pop_back();
+            do_copy = true;
+        }
     }
+    if (do_copy) copy_htod();
 }
 
 AsyncFabImpl::AsyncFabImpl (Box const& bx, int ncomp)
     : m_cpu_fab(bx,ncomp)
 {
     auto& fabstack = get_stack();
-    if (fabstack.empty()) {
-        m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
-    } else {
-        m_gpu_fab = std::move(fabstack.back());
-        fabstack.pop_back();
+    {
+        std::lock_guard<std::mutex> guard(asyncfab_mutex);
+        if (fabstack.empty()) {
+            m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
+        } else {
+            m_gpu_fab = std::move(fabstack.back());
+            fabstack.pop_back();
+        }
     }
     copy_htod();
 }
@@ -82,12 +94,15 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab)
         m_cpu_fab.resize(a_fab.box(), a_fab.nComp());
     }
     auto& fabstack = get_stack();
-    if (fabstack.empty()) {
-        m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
-    } else {
-        m_gpu_fab = std::move(fabstack.back());
-        fabstack.pop_back();
-    }   
+    {
+        std::lock_guard<std::mutex> guard(asyncfab_mutex);
+        if (fabstack.empty()) {
+            m_gpu_fab.reset(new FArrayBox());  // yes, we build an empty fab here, later it will be overwritten by copy_htod
+        } else {
+            m_gpu_fab = std::move(fabstack.back());
+            fabstack.pop_back();
+        }
+    }
     copy_htod();
 }
 
@@ -97,18 +112,9 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
 
 AsyncFabImpl::~AsyncFabImpl ()
 {
+    std::lock_guard<std::mutex> guard(asyncfab_mutex);
     auto& fabstack = get_stack();
     fabstack.push_back(std::move(m_gpu_fab));
-}
-
-void
-AsyncFabImpl::resize (Box const& bx, int ncomp)
-{
-    if (ncomp != m_cpu_fab.nComp() || bx != m_cpu_fab.box())
-    {
-        m_cpu_fab.resize(bx,ncomp);
-        copy_htod();
-    }
 }
 
 FArrayBox*
@@ -157,12 +163,10 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab) : m_cpu_fab_alias (&a_fab) {}
 AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp)
     : m_cpu_fab_alias(&a_fab)
 {
-    resize(bx,ncomp);
+    m_cpu_fab_alias->resize(bx,ncomp);
 }
 
 AsyncFabImpl::~AsyncFabImpl () {}
-
-void AsyncFabImpl::resize (Box const& bx, int ncomp) { m_cpu_fab_alias->resize(bx,ncomp); }
 
 FArrayBox* AsyncFabImpl::fabPtr () { return m_cpu_fab_alias; }
 
