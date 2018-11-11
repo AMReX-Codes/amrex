@@ -5,6 +5,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_FilCC_C.H>
+#include <AMReX_TypeTraits.H>
 
 namespace amrex {
 
@@ -19,12 +21,6 @@ extern "C"
                                        const Real* dx, const Real* grd_lo,
                                        const Real* time, const int* bc);
 }
-
-typedef void (*UserFillCell) (const IntVect& iv, FArrayBox& dest,
-                              const int dcomp, const int numcomp,
-                              GeometryData const& geom, const Real time,
-                              const BCRec* bcr, const int bcomp,
-                              const int orig_comp);
 
 typedef void (*UserFillBox) (Box const& bx, FArrayBox& dest,
                              const int dcomp, const int numcomp,
@@ -55,21 +51,23 @@ protected:
     bool m_run_on_gpu = false;
 };
 
-// This gpu version calls function working on FArrayBox
+// In this gpu version, F is provided by the user.  It needs to have a
+// __device__ operator() that can work on a cell for boundaries not
+// handled by amrex_fab_filcc.
+template <class F>
 class GpuBndryFuncFab
 {
 public:
     GpuBndryFuncFab () = default;
-    GpuBndryFuncFab (UserFillCell a_f) : f_user(a_f) {}
+    GpuBndryFuncFab (F a_f) : m_user_f(a_f) {}
 
     void operator() (Box const& bx, FArrayBox& dest,
                      const int dcomp, const int numcomp,
                      Geometry const& geom, const Real time,
                      const Vector<BCRec>& bcr, const int bcomp,
                      const int orig_comp);
-
 protected:
-    UserFillCell f_user = nullptr;
+    F m_user_f;
 };
 
 // This cpu version calls function working on FArrayBox
@@ -128,7 +126,7 @@ public:
         const Real*    dx          = m_geom.CellSize();
         const RealBox& prob_domain = m_geom.ProbDomain();
         const Real*    problo      = prob_domain.lo();
-        
+
         // create a grown domain box containing valid + periodic cells
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -166,6 +164,67 @@ private:
     Vector<BCRec> m_bcr;
     F             m_f;
 };
+
+template <class F>
+void
+GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
+                                const int dcomp, const int numcomp,
+                                Geometry const& geom, const Real time,
+                                const Vector<BCRec>& bcr, const int bcomp,
+                                const int orig_comp)
+{
+    FArrayBox* fab = &dest;
+    const auto geomdata = geom.data();
+
+    Gpu::AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    BCRec* bcr_p = bcr_aa.data();
+
+    Box gdomain = geom.Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            gdomain.grow(idim,bx.length(idim));
+        }
+    }
+
+    const auto& bl = amrex::boxDiff(bx, gdomain);
+    if (bl.isEmpty()) return;
+
+    const Vector<Box>& boxes = bl.data();
+    const int nboxes = boxes.size();
+    Gpu::AsyncArray<Box> boxes_aa(boxes.data(), nboxes);
+    Box* boxes_p = boxes_aa.data();
+
+    long ncells = 0;
+    for (const auto& b : boxes) {
+        ncells += b.numPts();
+    }
+
+    const auto f_user = m_user_f;
+
+    AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+    {
+        int ibox;
+        long ncells_subtotal = 0;
+        long offset = 0;
+        for (ibox = 0; ibox < nboxes; ++ibox) {
+            const long n = boxes_p[ibox].numPts();
+            ncells_subtotal += n;
+            if (icell < ncells_subtotal) {
+                offset = icell - (ncells_subtotal - n);
+                break;
+            }
+        }
+
+        const Box& b = boxes_p[ibox];
+        const auto& cell = b.atOffset(offset);
+
+        filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                   bcr_p, 0, orig_comp);
+
+        f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+               bcr_p, 0, orig_comp);
+    });
+}
 
 }
 
