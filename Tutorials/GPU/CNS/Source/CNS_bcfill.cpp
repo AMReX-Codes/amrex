@@ -5,6 +5,24 @@
 
 using namespace amrex;
 
+struct CnsFillExtDir
+{
+    AMREX_GPU_DEVICE
+    void operator() (const IntVect& iv, FArrayBox& dest,
+                     const int dcomp, const int numcomp,
+                     GeometryData const& geom, const Real time,
+                     const BCRec* bcr, const int bcomp,
+                     const int orig_comp) const
+        {
+            // do something for external Dirichlet (BCType::ext_dir)
+        }
+};
+
+namespace {
+    static CnsFillExtDir cns_fill_ext_dir;
+    static GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(cns_fill_ext_dir);
+}
+
 // bx                  : Cells outside physical domain and inside bx are filled.
 // data, dcomp, numcomp: Fill numcomp components of data starting from dcomp.
 // bcr, bcomp          : bcr[bcomp] specifies BC for component dcomp and so on.
@@ -23,9 +41,9 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
 #endif
 
     if (run_on_gpu) {
-        // Without EXT_DIR (e.g., inflow), we can pass a nullptr
-        GpuBndryFuncFab(nullptr)(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+        gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     } else {
+        // Without EXT_DIR (e.g., inflow), we can pass a nullptr
         CpuBndryFuncFab(nullptr)(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     }
 }

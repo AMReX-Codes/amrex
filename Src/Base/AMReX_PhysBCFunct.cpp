@@ -1,7 +1,6 @@
 
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_filcc_f.H>
-#include <AMReX_FilCC_C.H>
 
 namespace amrex {
 
@@ -70,68 +69,6 @@ CpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
         f_user(bx, dest, dcomp, numcomp, geom.data(), time,
                &(bcr[bcomp]), 0, orig_comp);
     }
-}
-
-void
-GpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
-                             const int dcomp, const int numcomp,
-                             Geometry const& geom, const Real time,
-                             const Vector<BCRec>& bcr, const int bcomp,
-                             const int orig_comp)
-{
-    FArrayBox* fab = &dest;
-    const auto geomdata = geom.data();
-
-    Gpu::AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
-    BCRec* bcr_p = bcr_aa.data();
-    
-    Box gdomain = geom.Domain();
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        if (Geometry::isPeriodic(idim)) {
-            gdomain.grow(idim,bx.length(idim));
-        }
-    }
-
-    const auto& bl = amrex::boxDiff(bx, gdomain);
-    if (bl.isEmpty()) return;
-
-    const Vector<Box>& boxes = bl.data();
-    const int nboxes = boxes.size();
-    Gpu::AsyncArray<Box> boxes_aa(boxes.data(), nboxes);
-    Box* boxes_p = boxes_aa.data();
-
-    long ncells = 0;
-    for (const auto& b : boxes) {
-        ncells += b.numPts();
-    }
-
-    auto fu = f_user;
-
-    AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
-    {
-        int ibox;
-        long ncells_subtotal = 0;
-        long offset = 0;
-        for (ibox = 0; ibox < nboxes; ++ibox) {
-            const long n = boxes_p[ibox].numPts();
-            ncells_subtotal += n;
-            if (icell < ncells_subtotal) {
-                offset = icell - (ncells_subtotal - n);
-                break;
-            }
-        }
-
-        const Box& b = boxes_p[ibox];
-        const auto& cell = b.atOffset(offset);
-
-        filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
-
-        if (fu != nullptr) {
-            fu(cell, *fab, dcomp, numcomp, geomdata, time,
-               bcr_p, 0, orig_comp);
-        }
-    });
 }
 
 }
