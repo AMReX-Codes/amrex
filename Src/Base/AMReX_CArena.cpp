@@ -39,6 +39,8 @@ CArena::~CArena ()
 void*
 CArena::alloc (std::size_t nbytes)
 {
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -134,6 +136,8 @@ CArena::alloc (std::size_t nbytes)
 void
 CArena::free (void* vp)
 {
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
     if (vp == 0)
         //
         // Allow calls with NULL as allowed by C++ delete.
