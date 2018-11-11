@@ -105,6 +105,8 @@ GpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
         ncells += b.numPts();
     }
 
+    auto fu = f_user;
+
     AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
     {
         int ibox;
@@ -125,9 +127,9 @@ GpuBndryFuncFab::operator() (Box const& bx, FArrayBox& dest,
         filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
                    bcr_p, 0, orig_comp);
 
-        if (f_user != nullptr) {
-            f_user(cell, *fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
+        if (fu != nullptr) {
+            fu(cell, *fab, dcomp, numcomp, geomdata, time,
+               bcr_p, 0, orig_comp);
         }
     });
 }
