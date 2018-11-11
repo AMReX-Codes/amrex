@@ -224,7 +224,7 @@ void LSCoreBase::AverageDown () {
         // amrex::average_down_nodal(level_set[lev+1], level_set[lev],
         //                           refRatio(lev));
 
-        amrex::average_down(level_set[lev+1], level_set[lev],
+        amrex::average_down(level_set[lev + 1], level_set[lev],
                             0, level_set[lev].nComp(), refRatio(lev));
     }
 }

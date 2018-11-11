@@ -52,7 +52,15 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     // TODO: more light-weight structure here? (since we don't need all the
     // LSFactory features for LSCore)
     int levelset_pad    = nghost;
-    int levelset_eb_pad = eb_pad * 2 * lev;
+    int levelset_eb_pad = eb_pad ;//* std::pow(2, lev);
+
+
+    for (int i = lev - 1; i >= 0; i--){
+        IntVect rr = refRatio(i);
+        levelset_eb_pad *= std::max({AMREX_D_DECL(rr[0], rr[1], rr[2])});
+    }
+    std::cout << levelset_eb_pad << std::endl;
+
     ls_factory[lev] = std::unique_ptr<LSFactory>(
         new LSFactory(lev, 1, 1, levelset_pad, levelset_eb_pad, ba, geom[lev], dm)
         );

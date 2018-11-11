@@ -580,9 +580,9 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
     }
 
-//    /****************************************************************************
-//     * Set and validate boundary values of eb_ls                                *
-//     ****************************************************************************/
+//     /****************************************************************************
+//      * Set and validate boundary values of eb_ls                                *
+//      ***************************************************************************/
 // 
 //     // Simulation domain
 //     Box domain = Box(geom_ls.Domain());

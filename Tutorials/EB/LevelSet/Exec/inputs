@@ -49,7 +49,7 @@ eb.levelset__eb_pad        = 8
 
 
 eb_amr.eb_pad = 1
-amr.n_cell    = 16 16 16
+amr.n_cell    = 8  8  8 
 
 amr.max_grid_size = 4
 
@@ -62,11 +62,11 @@ geometry.is_periodic = 1       1       0       # Is periodic in each direction?
 amr.v              = 1       # verbosity in Amr
 
 # REFINEMENT
-amr.max_level       = 3       # maximum level number allowed
+amr.max_level       = 4       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
-amr.blocking_factor = 4       # block factor in grid generation
+amr.blocking_factor = 2       # block factor in grid generation
 
 
 
 # Tagging
-amr.phierr = 1.e-2  1.e-3  1.e-4  1.e-5
+amr.phierr = 1.e-4  8.e-5  6.e-5  4.e-5  2.e-5
