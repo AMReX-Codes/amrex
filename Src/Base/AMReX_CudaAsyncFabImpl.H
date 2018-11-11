@@ -19,7 +19,6 @@ public:
     AsyncFabImpl (AsyncFabImpl const&) = delete;
     void operator= (AsyncFabImpl const&) = delete;
 
-    void resize (Box const& bx, int ncomp);
     FArrayBox* fabPtr ();
 
     static void Initialize ();
