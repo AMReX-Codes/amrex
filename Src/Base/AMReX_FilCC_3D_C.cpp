@@ -24,6 +24,8 @@ filcc_cell (const IntVect& iv, FArrayBox& dest_fab,
     const int ihi = domain_hi[0];
     const int jhi = domain_hi[1];
     const int khi = domain_hi[2];
+
+    // xxxxx TODO This does NOT properly fill corner cells.
     
     for (int n = 0; n < numcomp; ++n)
     {
