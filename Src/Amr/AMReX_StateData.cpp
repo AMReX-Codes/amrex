@@ -500,7 +500,7 @@ StateData::FillBoundary (Box const&      bx,
                          int             num_comp)
 {
     BL_PROFILE("StateData::FillBoundary(geom)");
-    BL_ASSERT(dest.box().ixType() == desc->getType());
+    BL_ASSERT(bx.ixType() == desc->getType());
    
     if (domain.contains(bx)) return;
 
