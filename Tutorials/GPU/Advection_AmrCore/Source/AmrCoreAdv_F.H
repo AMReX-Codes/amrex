@@ -14,6 +14,11 @@ using namespace amrex;
                   Box const& bx, FArrayBox& phifab, 
                   GeometryData const & geom);
 
+    void get_face_velocity(const int level, const Real time,
+                           AMREX_D_DECL(FArrayBox& xvel,
+                                        FArrayBox& yvel,
+                                        FArrayBox& zvel),
+                           const Real d, const Real problo); 
 
 #ifdef __cplusplus
 extern "C" 
@@ -27,13 +32,14 @@ extern "C"
 		  const int* lo, const int* hi,
 		  BL_FORT_FAB_ARG_3D(state),
 		  const amrex_real* dx, const amrex_real* problo);
-*/
+
 
     void get_face_velocity(const int* level, const amrex_real* time, 
 			   AMREX_D_DECL(BL_FORT_FAB_ARG(xvel),
 				  BL_FORT_FAB_ARG(yvel),
 				  BL_FORT_FAB_ARG(zvel)),
 			   const amrex_real* dx, const amrex_real* problo);
+*/
 
     void state_error(int* tag, const int* tag_lo, const int* tag_hi,
 		     const BL_FORT_FAB_ARG_3D(state),
