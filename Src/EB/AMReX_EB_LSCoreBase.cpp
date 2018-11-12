@@ -281,17 +281,13 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
     //Interpolater * mapper = & cell_cons_interp;
     Interpolater * mapper = & node_bilinear_interp;
 
-    std::cout << "hi!" << std::endl;
-
     amrex::InterpFromCoarseLevel(mf, time, level_set[lev - 1], 0, icomp, ncomp, geom[lev-1], geom[lev],
                                  cphysbc, fphysbc, refRatio(lev - 1), mapper, bcs);
 
-    std::cout << "ho!" << std::endl;
 }
 
 
-Box LSCoreBase::eb_search_box(FArrayBox ls_crse, const IntVect & ref_ratio,
-                              const Geometry & geom_fine) {
+    Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail) {
 
     Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
 
@@ -300,10 +296,12 @@ Box LSCoreBase::eb_search_box(FArrayBox ls_crse, const IntVect & ref_ratio,
                                 geom_fine.InvCellSize(2)*max_ls));
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
-        if (n_grow[i] > max_eb_pad ) n_grow[i] = max_eb_pad;
+        if (n_grow[i] > max_eb_pad ) {
+            n_grow[i] = max_eb_pad;
+            bail = true;
+        }
 
-    Box bx = ls_crse.box();
-    bx.refine(ref_ratio);
+    Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
     bx.grow(n_grow);
 
     return bx;

@@ -491,13 +491,15 @@ void LSFactory::regrid(const BoxArray & ba, const DistributionMapping & dm)
     update_ba(ba, dm);
 
     int ng = ls_grid_pad;
-    std::unique_ptr<MultiFab> ls_grid_new = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
+    std::unique_ptr<MultiFab> ls_grid_new
+        = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
 
     ls_grid_new->copy(* ls_grid, 0, 0, 1, ng, ng);
     ls_grid_new->FillBoundary(geom_ls.periodicity());
     ls_grid = std::move(ls_grid_new);
 
-    std::unique_ptr<iMultiFab> ls_valid_new = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
+    std::unique_ptr<iMultiFab> ls_valid_new
+        = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
 
     ls_valid_new->copy(* ls_valid, 0, 0, 1, ng, ng);
     ls_valid_new->FillBoundary(geom_ls.periodicity());
