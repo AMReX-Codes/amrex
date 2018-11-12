@@ -30,30 +30,6 @@ void SDC_advance(MultiFab& phi_old,
   const BoxArray &ba=phi_old.boxArray();
   const DistributionMapping &dm=phi_old.DistributionMap();
 
-  const Box& domain_bx = geom.Domain();
-  const Real* dx = geom.CellSize();
-  // set the boundary conditions
-
-  
-  // relative and absolute tolerances for linear solve
-  const Real tol_rel = 1.e-10;
-  const Real tol_abs = 0.0;
-  // Set up coefficient matrices
-  MultiFab acoef(ba, dm, 1, 0);
-  
-  // fill in the acoef MultiFab and load this into the solver
-  acoef.setVal(1.0);
-  mlabec.setACoeffs(0, acoef);
-
-  std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-      const BoxArray& bamg = amrex::convert(acoef.boxArray(),
-					  IntVect::TheDimensionVector(idim));
-      face_bcoef[idim].define(bamg, acoef.DistributionMap(), 1, 0);
-    }
-  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
-
   // Copy old phi into first SDC node
   MultiFab::Copy(SDC.sol[0],phi_old, 0, 0, 1, 0);
 
@@ -196,24 +172,9 @@ void SDC_fcomp(MultiFab& rhs,
   const Real tol_rel = 1.e-10;
   const Real tol_abs = 0.0;
 
-  if (npiece == 1)
-    {  // Do diffusion solve
-      // Set up coefficient matrices
-      MultiFab acoef(ba, dm, 1, 0);
-      
-      // fill in the acoef MultiFab and load this into the solver
-      acoef.setVal(1.0);
-      mlabec.setACoeffs(0, acoef);
-      
-      std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	{
-	  const BoxArray& bamg = amrex::convert(acoef.boxArray(),
-						IntVect::TheDimensionVector(idim));
-	  face_bcoef[idim].define(bamg, acoef.DistributionMap(), 1, 0);
-	}
-      mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
-      
+  if (npiece == 1)  
+    {
+      // Do diffusion solve
       
       // Fill the ghost cells of each grid from the other grids
       // includes periodic domain boundaries
@@ -222,12 +183,11 @@ void SDC_fcomp(MultiFab& rhs,
       // Fill non-periodic physical boundaries
       FillDomainBoundary(rhs, geom, bc);
 
+      //  Set diffusion scalar in solve
       qij = d*dt*SDC.Qimp[sdc_m-1][sdc_m];	      
-      for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-	face_bcoef[idim].setVal(qij);	      
+      Real ascalar = 1.0;
+      mlabec.setScalars(ascalar, qij);
 
-      mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
-      
       // set the boundary conditions
       mlabec.setLevelBC(0, &rhs);
       mlabec.setLevelBC(0, &SDC.sol[sdc_m]);  
