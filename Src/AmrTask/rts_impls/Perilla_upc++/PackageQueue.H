@@ -44,6 +44,7 @@ private:
 public:  
   pthread_mutex_t queueLock;
   PackageQueue();
+  ~PackageQueue();
   int queueSize(void);  
   int queueSize(bool lockIgnore);
   void enqueue(Package* package);  
@@ -54,5 +55,6 @@ public:
   Package* getRear(bool lockIgnore);
   Package* getFront(void);
   Package* getFront(bool lockIgnore);
+  void emptyQueue();
 };
 #endif
