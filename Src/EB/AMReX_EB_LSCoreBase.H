@@ -98,6 +98,10 @@ protected:
     // comes into play when a new level of refinement appears
     void FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp);
 
+    // Construct a box over which to search for eb facets using the coarser
+    // level to inform how many ghost cells to fill
+    Box eb_search_box(FArrayBox ls_crse, const IntVect & ref_ratio, const Geometry & geom_fine);
+
     // Get plotfile name
     std::string PlotFileName (int lev) const;
 
@@ -139,7 +143,7 @@ protected:
 
     // Resolve EB up to this many ghost cells (NOTE: these are scaled based on
     // local refinement level)
-    int eb_pad;
+    int eb_pad, max_eb_pad;
 
     // This is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction

@@ -62,6 +62,8 @@ class LSFactory {
 
         // Construct eb_facets list from eb_factory
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
+        std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
+                                                const BoxArray & ba, const DistributionMapping & dm);
 
         void update_ba(const BoxArray & new_ba, const DistributionMapping & dm);
         void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
