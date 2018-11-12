@@ -28,7 +28,7 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_support == EBSupport::none)
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);        
+        return new FArrayBox(box, ncomps, info.alloc, info.shared);
     }
     else
     {
@@ -85,7 +85,7 @@ EBFArrayBoxFactory::boxArray () const
 {
     return m_ebdc->getVolFrac().boxArray();
 }
-        
+
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const Geometry& a_geom,
                   const BoxArray& a_ba,
