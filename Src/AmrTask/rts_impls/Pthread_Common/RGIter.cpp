@@ -118,7 +118,6 @@ namespace amrex{
 		if(f != -1)
 		{
 		    m_level_afpi[iteration-1]->Receive(this,dest,boxGrow,time,index,scomp,ncomp,f,true);
-cout<<"GGGGGGGGGGG task "<<f<<" is fireable"<<endl;
 		    m_level_afpi[iteration-1]->destGraph->setFireableRegion(f);
 		    if(m_level_afpi[iteration-1]->destGraph->worker[tg]->unfireableRegionQueue->queueSize(true) !=0 && 
 			    m_level_afpi[iteration-1]->destGraph->worker[tg]->fireableRegionQueue->queueSize(true) < 2)
