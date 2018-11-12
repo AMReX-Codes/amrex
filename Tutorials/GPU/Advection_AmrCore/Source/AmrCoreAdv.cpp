@@ -625,10 +625,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 	    }
 
             // compute velocities on faces (prescribed function of space and time)
-            get_face_velocity(&lev, &ctr_time,
-			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-				     BL_TO_FORTRAN(uface[1]),
-				     BL_TO_FORTRAN(uface[2])),
+            get_face_velocity(lev, ctr_time,
+			      AMREX_D_DECL(uface[0], uface[1], uface[2]),
 			      geom[lev].data());
 
             // compute new state (stateout) and fluxes.
@@ -734,10 +732,8 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 		uface[i].resize(bx,1);
 	    }
 
-	    get_face_velocity(&lev, &cur_time,
-			      AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-				     BL_TO_FORTRAN(uface[1]),
-				     BL_TO_FORTRAN(uface[2])),
+	    get_face_velocity(lev, cur_time,
+			      AMREX_D_DECL(uface[0], uface[1], uface[2]),
 			      geom[lev].data());
 
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {

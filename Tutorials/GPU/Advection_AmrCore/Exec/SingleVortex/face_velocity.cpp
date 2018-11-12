@@ -1,7 +1,11 @@
-#ifndef GetFaceVelocity_cpp
-#define GetFaceVelocity_cpp
+#ifndef face_velocity_cpp
+#define face_velocity_cpp
 
+#include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
+#include <AMReX_REAL.H>
+
+using namespace amrex;
 
 void get_face_velocity(const int level, const Real time,
                        AMREX_D_DECL(FArrayBox& xvel,
@@ -12,13 +16,15 @@ void get_face_velocity(const int level, const Real time,
 
 // Create FArrayBox for psi. Base it on AmrCoreAdv.cpp call of get_face_velocity.
 
-    FArrayBox psi;
+    FArrayBox psifab;
     Box xbx = xvel.box();
     Box ybx = yvel.box();
-    Box psi_box = ({min(xbx.lo(0)-1, ybx.lo(0)-1), min(xbx.lo(1)-1, ybx.lo(0)-1), 0}
-                   {max(xbx.hi(0)  , ybx.hi(0)+1), max(xbx.hi(1)+1, ybx.hi(1)   , 0});
+    Box psi_box = Box(IntVect(AMREX_D_DECL(std::min(xbx.smallEnd(0)-1, ybx.smallEnd(0)-1), 
+                                           std::min(xbx.smallEnd(1)-1, ybx.smallEnd(0)-1), 0)),
+                      IntVect(AMREX_D_DECL(std::max(xbx.bigEnd(0)  ,   ybx.bigEnd(0)+1),
+                                           std::max(xbx.bigEnd(1)+1,   ybx.bigEnd(1)  ), 0)));
 
-    psi.resize(psi_box);
+    psifab.resize(psi_box);
 
 /*  Setup for size of psi FArrayBox in Fortran.
     plo(1) = min(vx_l1-1, vy_l1-1)
@@ -28,93 +34,83 @@ void get_face_velocity(const int level, const Real time,
 */
 
     // Calculate psi
-    const Box& box = psi_box;
-    AMREX_LAUNCH_DEVICE_LAMBDA(box, tbox,
+    AMREX_LAUNCH_DEVICE_LAMBDA(psi_box, tbx,
     {
-        get_psi(time, tbox, psi, geom);
+//        const Real M_PI = 3.141592653589793238462643383279502884197;
+//        Use C++ M_PI instead.
+
+        const auto len = length(tbx);
+        const auto lo  = lbound(tbx);
+        const auto psi = psifab.view(lo); 
+        const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
+        const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
+
+        for     (int j = 0; j < len.y; ++j) {
+            Real y = dx[1]*(0.5 + j) + prob_lo[1]; 
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                Real x = dx[0]*(0.5 + i) + prob_lo[0];
+                psi(i,j,0) = pow(sin(M_PI*x), 2) * pow(sin(M_PI*y), 2)
+                           * cos(M_PI*time/2.0) * 1.0/M_PI; 
+                }
+            }
     });
 
     // Change box and calculate x velocity.
-    box = xbx; 
-    AMREX_LAUNCH_DEVICE_LAMBDA(box, tbox,
+    AMREX_LAUNCH_DEVICE_LAMBDA(xbx, tbx,
     {
-        get_xvel(time, tbox, xvel, psi, geom);
+        const auto len = length(tbx);
+        const auto lo  = lbound(tbx);
+        const auto vx  = xvel.view(lo);
+
+        const auto psi_lo = lbound(tbx);
+        const auto psi = psifab.view(psi_lo);
+
+        const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
+        const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
+
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                Real y = dx[1] * (0.5 + j) + prob_lo[1];
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real x = dx[0] * i + prob_lo[0];
+                    vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
+                }
+            }
+        }
     });
 
     // Change box and calculate y velocity.
-    box = ybx;
-    AMREX_LAUNCH_DEVICE_LAMBDA(box, tbox,
+    AMREX_LAUNCH_DEVICE_LAMBDA(ybx, tbx,
     {
-        get_yvel(time, tbox, yvel, psi, geom);
+        const auto len = length(tbx);
+        const auto lo  = lbound(tbx);
+        const auto vy  = yvel.view(lo); 
+
+        const auto psi_lo = lbound(tbx);
+        const auto psi = psifab.view(psi_lo);
+
+        const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
+        const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
+
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                Real y = dx[1] * j + prob_lo[1];
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    Real x = dx[0] * (0.5 + i) + prob_lo[0];
+                    vy(i,j,k) = -( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
+                }
+            }
+        }
     });
 
-#ifdef (AMREX_SPACEDIM == 3)
+    // If 3d, set z velocity to 1.
+#if (AMREX_SPACEDIM == 3)
     zvel.setVal(1.0);
 #endif
 
-}
-
-void get_psi(const Real time, Box const& bx, FArrayBox& psi, GeometryData const& geom)
-{
-    const Real M_PI = 3.141592653589793238462643383279502884197;
-
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto psi = psifab.view(lo); 
-    const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
-    const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
-
-    for     (int j = 0; j < len.y; ++j) {
-        Real y = dx[1]*(0.5 + j) + prob_lo[1]; 
-        AMREX_PRAGMA_SIMD
-        for (int i = 0; i < len.x; ++i) {
-            Real x = dx[0]*(0.5 + i) + prob_lo[0];
-            psi(i,j,0) = pow(sin(M_PI*x), 2) * pow(sin(M_PI*y), 2)
-                       * cos(M_PI*time/2.0) * 1/M_PI;
-            }
-        }
-}
-
-void get_xvel(const Real time, Box const& bx, FArrayBox& xvel,
-              FArrayBox& psi, GeometryData const& geom)
-{
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto vx  = xvel.view(lo); 
-    const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
-    const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            Real y = dx[1] * (0.5 + j) + prob_lo[1];
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                Real x = dx[0] * i + prob_lo[0];
-                vx(i,j,k) = -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) * (0.25/dx[1]); 
-            }
-        }
-    }
-}
-
-void get_yvel(const Real time, Box const& bx, FArrayBox& yvel,
-              FArrayBox& psi, GeometryData const& geom)
-{
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto vy  = yvel.view(lo); 
-    const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
-    const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            Real y = dx[1] * j + prob_lo[1];
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                Real x = dx[0] * (0.5 + i) + prob_lo[0];
-                vy(i,j,k) = -( (psi(i+1,j)+psi(i+1,j-1)) - (psi(i-1,j)+psi(i-1,j-1)) ) * (0.25/dx[1]); 
-            }
-        }
-    }
 }
 
 #endif
