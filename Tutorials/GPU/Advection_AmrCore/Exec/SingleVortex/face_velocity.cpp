@@ -16,7 +16,6 @@ void get_face_velocity(const int level, const Real time,
 
 // Create FArrayBox for psi. Base it on AmrCoreAdv.cpp call of get_face_velocity.
 
-    FArrayBox psifab;
     Box xbx = xvel.box();
     Box ybx = yvel.box();
     Box psi_box = Box(IntVect(AMREX_D_DECL(std::min(xbx.smallEnd(0)-1, ybx.smallEnd(0)-1), 
@@ -24,14 +23,15 @@ void get_face_velocity(const int level, const Real time,
                       IntVect(AMREX_D_DECL(std::max(xbx.bigEnd(0)  ,   ybx.bigEnd(0)+1),
                                            std::max(xbx.bigEnd(1)+1,   ybx.bigEnd(1)  ), 0)));
 
-    psifab.resize(psi_box);
-
 /*  Setup for size of psi FArrayBox in Fortran.
     plo(1) = min(vx_l1-1, vy_l1-1)
     plo(2) = min(vx_l2-1, vy_l2-1)
     phi(1) = max(vx_h1  , vy_h1+1)
     phi(2) = max(vx_h2+1, vy_h2  )
 */
+
+    Gpu::DeviceFab psi_dfab(psi_box, 1);
+    FArrayBox* psifab = psi_dfab.fabPtr();
 
     // Calculate psi
     AMREX_LAUNCH_DEVICE_LAMBDA(psi_box, tbx,
@@ -41,7 +41,7 @@ void get_face_velocity(const int level, const Real time,
 
         const auto len = length(tbx);
         const auto lo  = lbound(tbx);
-        const auto psi = psifab.view(lo); 
+        const auto psi = psifab->view(lo); 
         const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
         const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
 
@@ -64,7 +64,7 @@ void get_face_velocity(const int level, const Real time,
         const auto vx  = xvel.view(lo);
 
         const auto psi_lo = lbound(tbx);
-        const auto psi = psifab.view(psi_lo);
+        const auto psi = psifab->view(psi_lo);
 
         const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
         const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
@@ -89,7 +89,7 @@ void get_face_velocity(const int level, const Real time,
         const auto vy  = yvel.view(lo); 
 
         const auto psi_lo = lbound(tbx);
-        const auto psi = psifab.view(psi_lo);
+        const auto psi = psifab->view(psi_lo);
 
         const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
         const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
