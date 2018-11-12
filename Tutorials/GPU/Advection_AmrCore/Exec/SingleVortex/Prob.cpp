@@ -1,3 +1,6 @@
+#ifndef Prob_cpp
+#define Prob_cpp
+
 #include <AmrCoreAdv_F.H>
 
 #include <AMReX_Box.H>
@@ -37,3 +40,5 @@ initdata(const int level, const int time,
         }
     }
 }
+
+#endif
