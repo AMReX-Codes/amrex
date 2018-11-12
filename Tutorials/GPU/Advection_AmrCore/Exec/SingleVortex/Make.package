@@ -1,3 +1,4 @@
-CEXE_sources += Prob.cpp
-f90EXE_sources += face_velocity_$(DIM)d.f90
+CEXE_sources += Prob.cpp face_velocity.cpp 
+
+#f90EXE_sources += face_velocity_$(DIM)d.f90
 #f90EXE_source += Prob.f90

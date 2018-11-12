@@ -18,7 +18,16 @@ using namespace amrex;
                            AMREX_D_DECL(FArrayBox& xvel,
                                         FArrayBox& yvel,
                                         FArrayBox& zvel),
-                           const Real d, const Real problo); 
+                           GeometryData const& geom);
+
+    void get_psi(const Real time, Box const& bx, 
+                 FArrayBox& psi, GeometryData const& geom);
+
+    void get_xvel(const Real time, Box const& bx, 
+                  FArrayBox& xvel, FArrayBox& psi, GeometryData const& geom);
+
+    void get_yvel(const Real time, Box const& bx, 
+                  FArrayBox& yvel, FArrayBox& psi, GeometryData const& geom);
 
 #ifdef __cplusplus
 extern "C" 
