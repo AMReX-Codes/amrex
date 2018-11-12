@@ -210,6 +210,7 @@ void LSCoreBase::ReadParameters () {
 
     ParmParse pp("eb_amr");
     pp.query("eb_pad", eb_pad);
+    pp.query("max_eb_pad", max_eb_pad);
 
 }
 
@@ -220,9 +221,6 @@ void LSCoreBase::AverageDown () {
         // amrex::average_down(level_set[lev+1], level_set[lev],
         //                     geom[lev+1], geom[lev],
         //                     0, level_set[lev].nComp(), refRatio(lev));
-
-        // amrex::average_down_nodal(level_set[lev+1], level_set[lev],
-        //                           refRatio(lev));
 
         amrex::average_down(level_set[lev + 1], level_set[lev],
                             0, level_set[lev].nComp(), refRatio(lev));
@@ -236,9 +234,6 @@ void LSCoreBase::AverageDownTo (int crse_lev) {
     // amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
     //                     geom[crse_lev+1], geom[crse_lev],
     //                     0, level_set[crse_lev].nComp(), refRatio(crse_lev));
-
-    // amrex::average_down_nodal(level_set[crse_lev+1], level_set[crse_lev],
-    //                           refRatio(crse_lev));
 
     amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
                         0, level_set[crse_lev].nComp(), refRatio(crse_lev));
@@ -291,6 +286,29 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, i
                                  cphysbc, fphysbc, refRatio(lev-1),
                                  mapper, bcs);
 }
+
+
+Box LSCoreBase::eb_search_box(FArrayBox ls_crse, const IntVect & ref_ratio,
+                              const Geometry & geom_fine) {
+
+    Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
+
+    IntVect n_grow(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
+                                geom_fine.InvCellSize(1)*max_ls,
+                                geom_fine.InvCellSize(2)*max_ls));
+
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        if (n_grow[i] > max_eb_pad ) n_grow[i] = max_eb_pad;
+
+    Box bx = ls_crse.box();
+    bx.refine(ref_ratio);
+    bx.grow(n_grow);
+
+
+    return bx;
+}
+
 
 
 // get plotfile name

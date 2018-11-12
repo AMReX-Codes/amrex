@@ -197,6 +197,14 @@ void LSFactory::fill_valid(){
 
 
 std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory) {
+    return eb_facets(eb_factory, eb_ba, ls_dm);
+}
+
+
+
+std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory,
+                                                   const BoxArray & ba,
+                                                   const DistributionMapping & dm) {
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
     //   ^                 ^
@@ -211,7 +219,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     *                                                                          *
     ****************************************************************************/
 
-    MultiFab dummy(eb_ba, ls_dm, 1, eb_grid_pad, MFInfo(), eb_factory);
+    MultiFab dummy(ba, dm, 1, eb_grid_pad, MFInfo(), eb_factory);
     // Area fraction data
     std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
     // EB boundary-centre data
@@ -220,11 +228,11 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
 
    /****************************************************************************
     *                                                                          *
-    * Compute normals data (which are stored on MultiFab over the eb_ba Grid)  *
+    * Compute normals data (which are stored on MultiFab over the ba Grid)     *
     *                                                                          *
     ****************************************************************************/
 
-    MultiFab normal(eb_ba, ls_dm, 3, eb_grid_pad);
+    MultiFab normal(ba, dm, 3, eb_grid_pad);
 
     // while computing normals, count EB-facets
     int n_facets = 0;
@@ -307,6 +315,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     }
     return facet_list;
 }
+
 
 
 void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & valid_in) {
@@ -580,44 +589,44 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
     }
 
-//     /****************************************************************************
-//      * Set and validate boundary values of eb_ls                                *
-//      ***************************************************************************/
-// 
-//     // Simulation domain
-//     Box domain = Box(geom_ls.Domain());
-// 
-//     // Int array flagging periodic directions => no need to fill the periodic
-//     // ones as they are filled by FillBoundary
-//     IntVect periodic(
-//             AMREX_D_DECL(
-//                 geom_ls.isPeriodic(0),
-//                 geom_ls.isPeriodic(1),
-//                 geom_ls.isPeriodic(2)
-//             )
-//         );
-// 
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//     for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
-//         auto & ls_tile = eb_ls[mfi];
-//         auto & v_tile  = eb_valid[mfi];
-//         const auto & if_tile = impfunct[mfi];
-// 
-//         if(len_facets > 0) {
-//             amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
-//                                         BL_TO_FORTRAN_3D(v_tile),
-//                                         periodic.getVect(), domain.loVect(), domain.hiVect(),
-//                                         facets->dataPtr(), & len_facets,
-//                                         dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
-// 
-//             amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
-//                                             BL_TO_FORTRAN_3D(v_tile),
-//                                             periodic.getVect(), domain.loVect(), domain.hiVect(),
-//                                             BL_TO_FORTRAN_3D(if_tile)         );
-//         }
-//     }
+    /****************************************************************************
+     * Set and validate boundary values of eb_ls                                *
+     ***************************************************************************/
+
+    // Simulation domain
+    Box domain = Box(geom_ls.Domain());
+
+    // Int array flagging periodic directions => no need to fill the periodic
+    // ones as they are filled by FillBoundary
+    IntVect periodic(
+            AMREX_D_DECL(
+                geom_ls.isPeriodic(0),
+                geom_ls.isPeriodic(1),
+                geom_ls.isPeriodic(2)
+            )
+        );
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(eb_ls); mfi.isValid(); ++mfi){
+        auto & ls_tile = eb_ls[mfi];
+        auto & v_tile  = eb_valid[mfi];
+        const auto & if_tile = impfunct[mfi];
+
+        if(len_facets > 0) {
+            amrex_eb_fill_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+                                        BL_TO_FORTRAN_3D(v_tile),
+                                        periodic.getVect(), domain.loVect(), domain.hiVect(),
+                                        facets->dataPtr(), & len_facets,
+                                        dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
+
+            amrex_eb_validate_levelset_bcs( BL_TO_FORTRAN_3D(ls_tile),
+                                            BL_TO_FORTRAN_3D(v_tile),
+                                            periodic.getVect(), domain.loVect(), domain.hiVect(),
+                                            BL_TO_FORTRAN_3D(if_tile)         );
+        }
+    }
 
     eb_ls.FillBoundary(geom_ls.periodicity());
     eb_valid.FillBoundary(geom_ls.periodicity());

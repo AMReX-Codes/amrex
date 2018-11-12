@@ -59,6 +59,8 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         IntVect rr = refRatio(i);
         levelset_eb_pad *= std::max({AMREX_D_DECL(rr[0], rr[1], rr[2])});
     }
+    if (levelset_eb_pad > max_eb_pad) levelset_eb_pad = max_eb_pad;
+
     std::cout << levelset_eb_pad << std::endl;
 
     ls_factory[lev] = std::unique_ptr<LSFactory>(
