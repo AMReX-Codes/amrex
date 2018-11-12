@@ -52,36 +52,40 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     // TODO: more light-weight structure here? (since we don't need all the
     // LSFactory features for LSCore)
     int levelset_pad    = nghost;
-    int levelset_eb_pad = eb_pad ;//* std::pow(2, lev);
+    int levelset_eb_pad = eb_pad;
 
 
+    // Basic search radius
     for (int i = lev - 1; i >= 0; i--){
         IntVect rr = refRatio(i);
         levelset_eb_pad *= std::max({AMREX_D_DECL(rr[0], rr[1], rr[2])});
     }
     if (levelset_eb_pad > max_eb_pad) levelset_eb_pad = max_eb_pad;
 
-    std::cout << levelset_eb_pad << std::endl;
 
     ls_factory[lev] = std::unique_ptr<LSFactory>(
         new LSFactory(lev, 1, 1, levelset_pad, levelset_eb_pad, ba, geom[lev], dm)
         );
 
 
-    // Compute LSFactory
-    int eb_pad = ls_factory[lev]->get_eb_pad();
-    EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
-                                  {eb_pad, eb_pad, eb_pad}, EBSupport::full);
+    if (lev == 0){
+
+        // Compute LSFactory
+        int eb_pad = ls_factory[lev]->get_eb_pad();
+        EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
+                                      {eb_pad, eb_pad, eb_pad}, EBSupport::full);
+
+        GShopLSFactory<F> ls_gshop(m_gshop, * ls_factory[lev]);
+        std::unique_ptr<MultiFab> mf_impfunc = ls_gshop.fill_impfunc();
+        ls_factory[lev]->intersection_ebf(eb_factory, * mf_impfunc);
+
+        int ng = ls_factory[lev]->get_ls_pad();
+        level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
+    } else {
+        MakeNewLevelFromCoarse(lev, time, ba, dm);
+    }
 
 
-    GShopLSFactory<F> ls_gshop(m_gshop, * ls_factory[lev]);
-    std::unique_ptr<MultiFab> cylinder_mf_impfunc = ls_gshop.fill_impfunc();
-    ls_factory[lev]->intersection_ebf(eb_factory, * cylinder_mf_impfunc);
-
-    int ng = ls_factory[lev]->get_ls_pad();
-    level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
-
-    // VisMF::Write(level_set[lev], "LevelSet_L");
 
     Print() << "made level: " << lev << std::endl;
 
