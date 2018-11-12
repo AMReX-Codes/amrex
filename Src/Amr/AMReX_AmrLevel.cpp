@@ -2043,22 +2043,22 @@ AmrLevel::writeSmallPlotNow ()
     return false;
 }
 
-const BoxArray& AmrLevel::getAreaNotToTag()
+const BoxArray& AmrLevel::getAreaNotToTag ()
 {
     return m_AreaNotToTag;
 }
 
-const Box& AmrLevel::getAreaToTag()
+const Box& AmrLevel::getAreaToTag ()
 {
     return m_AreaToTag;
 }
 
-void AmrLevel::setAreaNotToTag(BoxArray& ba)
+void AmrLevel::setAreaNotToTag (BoxArray& ba)
 {
     m_AreaNotToTag = ba;
 }
 
-void AmrLevel::constructAreaNotToTag()
+void AmrLevel::constructAreaNotToTag ()
 {
     if (level == 0 || !parent->useFixedCoarseGrids() || parent->useFixedUpToLevel()>level)
         return;
@@ -2095,14 +2095,14 @@ void AmrLevel::constructAreaNotToTag()
 }
 
 void
-AmrLevel::FillPatch(AmrLevel& amrlevel,
-		    MultiFab& leveldata,
-		    int       boxGrow,
-		    Real      time,
-		    int       index,
-		    int       scomp,
-		    int       ncomp,
-                    int       dcomp)
+AmrLevel::FillPatch (AmrLevel& amrlevel,
+		     MultiFab& leveldata,
+                     int       boxGrow,
+                     Real      time,
+                     int       index,
+                     int       scomp,
+                     int       ncomp,
+                     int       dcomp)
 {
     BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
     BL_ASSERT(boxGrow <= leveldata.nGrow());
@@ -2112,14 +2112,14 @@ AmrLevel::FillPatch(AmrLevel& amrlevel,
 }
 
 void
-AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
-		       MultiFab& leveldata,
-                       int       boxGrow,
-                       Real      time,
-                       int       index,
-                       int       scomp,
-                       int       ncomp,
-                       int       dcomp)
+AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
+                        MultiFab& leveldata,
+                        int       boxGrow,
+                        Real      time,
+                        int       index,
+                        int       scomp,
+                        int       ncomp,
+                        int       dcomp)
 {
     BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
     BL_ASSERT(boxGrow <= leveldata.nGrow());
@@ -2129,9 +2129,9 @@ AmrLevel::FillPatchAdd(AmrLevel& amrlevel,
 }
 
 void
-AmrLevel::LevelDirectoryNames(const std::string &dir,
-                              std::string &LevelDir,
-			      std::string &FullPath)
+AmrLevel::LevelDirectoryNames (const std::string &dir,
+                               std::string &LevelDir,
+                               std::string &FullPath)
 {
     LevelDir = amrex::Concatenate("Level_", level, 1);
     //
