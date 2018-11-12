@@ -104,7 +104,7 @@ void LSCoreBase::InitData () {
 // with interpolated coarse level data. Overrides the pure virtual function in
 // AmrCore
 void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & ba,
-                                      const DistributionMapping & dm) {
+                                          const DistributionMapping & dm) {
     const int ncomp  = level_set[lev - 1].nComp();
     const int nghost = level_set[lev - 1].nGrow();
 
@@ -120,7 +120,7 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
 // fill with existing fine and coarse data.
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
-                           const DistributionMapping & dm) {
+                               const DistributionMapping & dm) {
     const int ncomp  = level_set[lev].nComp();
     const int nghost = level_set[lev].nGrow();
 
@@ -264,8 +264,7 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
         amrex::FillPatchTwoLevels(mf, time, {& level_set[lev - 1]}, {0.}, {& level_set[lev]}, {0.},
                                   0, icomp, ncomp, geom[lev-1], geom[lev],
-                                  cphysbc, fphysbc, refRatio(lev-1),
-                                  mapper, bcs);
+                                  cphysbc, fphysbc, refRatio(lev-1), mapper, bcs);
 
     }
 }
@@ -273,7 +272,7 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
 // Fill an entire multifab by interpolating from the coarser level. This comes
 // into play when a new level of refinement appears
-void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp) {
+void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
     BL_ASSERT(lev > 0);
 
     PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(phifill));
@@ -282,9 +281,12 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, i
     //Interpolater * mapper = & cell_cons_interp;
     Interpolater * mapper = & node_bilinear_interp;
 
+    std::cout << "hi!" << std::endl;
+
     amrex::InterpFromCoarseLevel(mf, time, level_set[lev - 1], 0, icomp, ncomp, geom[lev-1], geom[lev],
-                                 cphysbc, fphysbc, refRatio(lev-1),
-                                 mapper, bcs);
+                                 cphysbc, fphysbc, refRatio(lev - 1), mapper, bcs);
+
+    std::cout << "ho!" << std::endl;
 }
 
 
@@ -297,14 +299,12 @@ Box LSCoreBase::eb_search_box(FArrayBox ls_crse, const IntVect & ref_ratio,
                                 geom_fine.InvCellSize(1)*max_ls,
                                 geom_fine.InvCellSize(2)*max_ls));
 
-
     for (int i = 0; i < AMREX_SPACEDIM; i++)
         if (n_grow[i] > max_eb_pad ) n_grow[i] = max_eb_pad;
 
     Box bx = ls_crse.box();
     bx.refine(ref_ratio);
     bx.grow(n_grow);
-
 
     return bx;
 }
