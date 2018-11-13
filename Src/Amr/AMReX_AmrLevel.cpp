@@ -1441,6 +1441,12 @@ FillPatchIterator::~FillPatchIterator () {
           delete tmp;
           mfList.pop_front();
         }
+
+        while(stateDataList.size()){
+          StateDataPhysBCFunct *tmp= stateDataList.front();
+          delete tmp;
+          stateDataList.pop_front();
+        }
 #endif
     }
 
@@ -2817,6 +2823,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                 statedata.getData(smf,stime,time);
                 geom = &m_amrlevel.geom;
                 physbcf = new StateDataPhysBCFunct(statedata,scomp,*geom);
+		stateDataList.push_back(physbcf);
                 BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
                 BL_ASSERT(dcomp+ncomp <= m_fabs.nComp());
                 BL_ASSERT(smf.size() == stime.size());
@@ -2892,6 +2899,7 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                         destGraph = new RegionGraph(m_fabs.IndexArray().size());
                         fsrcGraph = new RegionGraph(dmf->IndexArray().size());
                         fsrcGraph->buildTileArray(*dmf);
+		        regionList.push_back(destGraph);
 		        regionList.push_back(fsrcGraph);
 		        mfList.push_back(dmf);
                     }
@@ -2960,6 +2968,8 @@ FillPatchIterator::initFillPatch(int boxGrow, int time, int index, int scomp, in
                       statedata_fine.getData(smf_fine,stime_fine,time);
                       physbcf_crse = new StateDataPhysBCFunct(statedata_crse,scomp,*geom_crse);
                       physbcf_fine = new StateDataPhysBCFunct(statedata_fine,scomp,*geom_fine);
+		      stateDataList.push_back(physbcf_crse);
+		      stateDataList.push_back(physbcf_fine);
                   }
 #ifdef USE_PERILLA_PTHREADS
 //                perilla::syncAllThreads();

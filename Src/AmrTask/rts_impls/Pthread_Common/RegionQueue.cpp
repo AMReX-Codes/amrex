@@ -24,6 +24,12 @@ RegionQueue::RegionQueue(int numTasks)
     queueLock=PTHREAD_MUTEX_INITIALIZER;
 }
 
+RegionQueue::~RegionQueue()
+{
+    delete[] buffer;
+}
+
+
 void RegionQueue::addRegion(int r)
 {
     pthread_mutex_lock(&queueLock);
