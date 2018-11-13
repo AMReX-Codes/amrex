@@ -1,13 +1,10 @@
 module cuda_module
 
-  use cudafor, only: cuda_stream_kind, cudaSuccess, cudaGetErrorString, cudaDeviceProp, dim3
+  use cudafor, only: cudaSuccess, cudaGetErrorString, cudaDeviceProp, dim3
 
   implicit none
 
   public
-
-  integer, parameter :: max_cuda_streams = 16
-  integer(kind=cuda_stream_kind) :: cuda_streams(0:max_cuda_streams) ! Note: zero will be the default stream.
 
   integer :: cuda_device_id
 
@@ -26,15 +23,6 @@ module cuda_module
 
   ! Max block size in each direction
   integer :: max_threads_dim(3)
-
-  ! The current stream index
-
-  integer :: stream_index
-  !$omp threadprivate(stream_index)
-
-  ! The current CUDA stream
-  integer(kind=cuda_stream_kind) :: cuda_stream
-  !$omp threadprivate(cuda_stream)
 
   ! The current number of blocks and threads
   type(dim3) :: numBlocks, numThreads
@@ -60,7 +48,7 @@ contains
 #ifdef AMREX_USE_ACC
     use openacc, only: acc_init, acc_set_device_num, acc_device_nvidia
 #endif
-    use cudafor, only: cudaStreamCreate, cudaGetDeviceProperties, cudaSetDevice, &
+    use cudafor, only: cudaGetDeviceProperties, cudaSetDevice, &
                        cudaDeviceSetCacheConfig, cudaFuncCachePreferL1
     use amrex_error_module, only: amrex_error
 
@@ -74,20 +62,6 @@ contains
     call acc_init(acc_device_nvidia)
     call acc_set_device_num(id, acc_device_nvidia)
 #endif
-
-    ! Set our stream 0 corresponding to CUDA stream 0, the null/default stream.
-    ! This stream is synchronous and blocking. It is our default choice, and we
-    ! only use the other, asynchronous streams when we know it is safe.
-
-    cuda_streams(0) = 0
-
-    stream_index = -1
-    cuda_stream = cuda_streams(0)
-
-    do i = 1, max_cuda_streams
-       cudaResult = cudaStreamCreate(cuda_streams(i))
-       call gpu_error_test(cudaResult)
-    enddo
 
     cudaResult = cudaGetDeviceProperties(prop, cuda_device_id)
     call gpu_error_test(cudaResult)
@@ -115,16 +89,11 @@ contains
 #ifdef AMREX_USE_ACC
     use openacc, only: acc_shutdown, acc_device_nvidia
 #endif
-    use cudafor, only: cudaStreamDestroy, cudaDeviceReset
+    use cudafor, only: cudaDeviceReset
 
     implicit none
 
     integer :: i, cudaResult
-
-    do i = 1, max_cuda_streams
-       cudaResult = cudaStreamDestroy(cuda_streams(i))
-       call gpu_error_test(cudaResult, abort=0)
-    end do
 
     call gpu_stop_profiler()
 
@@ -178,44 +147,6 @@ contains
     id = cuda_device_id
 
   end subroutine get_cuda_device_id
-
-
-
-  subroutine set_stream_idx(index_in) bind(c, name='set_stream_idx')
-
-    implicit none
-
-    integer, intent(in), value :: index_in
-
-    stream_index = index_in
-    cuda_stream = cuda_streams(stream_from_index(stream_index))
-
-  end subroutine set_stream_idx
-
-
-
-  subroutine get_stream_idx(index) bind(c, name='get_stream_idx')
-
-    implicit none
-
-    integer, intent(out) :: index
-
-    index = stream_index
-
-  end subroutine get_stream_idx
-
-
-
-  integer function stream_from_index(idx)
-
-    implicit none
-
-    integer :: idx
-
-    stream_from_index = MOD(idx, max_cuda_streams) + 1
-
-  end function stream_from_index
-
 
 
 #ifdef AMREX_SPACEDIM
@@ -496,96 +427,6 @@ contains
 
 
 
-  subroutine gpu_htod_memcpy_async(p_d, p_h, sz, idx) bind(c, name='gpu_htod_memcpy_async')
-
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyHostToDevice, c_devptr, cuda_stream_kind
-    use iso_c_binding, only: c_ptr, c_size_t
-
-    implicit none
-
-    type(c_devptr), value :: p_d
-    type(c_ptr), value :: p_h
-    integer(c_size_t) :: sz
-    integer :: idx
-
-    integer :: cudaResult
-
-    cudaResult = cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, cuda_streams(stream_from_index(idx)))
-    call gpu_error_test(cudaResult)
-
-  end subroutine gpu_htod_memcpy_async
-
-
-
-  subroutine gpu_dtoh_memcpy_async(p_h, p_d, sz, idx) bind(c, name='gpu_dtoh_memcpy_async')
-
-    use cudafor, only: cudaMemcpyAsync, cudaMemcpyDeviceToHost, c_devptr
-    use iso_c_binding, only: c_ptr, c_size_t
-
-    implicit none
-
-    type(c_ptr), value :: p_h
-    type(c_devptr), value :: p_d
-    integer(c_size_t) :: sz
-    integer :: idx
-
-    integer :: cudaResult
-
-    cudaResult = cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, cuda_streams(stream_from_index(idx)))
-    call gpu_error_test(cudaResult)
-
-  end subroutine gpu_dtoh_memcpy_async
-
-
-
-  subroutine gpu_htod_memprefetch_async(p, sz, idx) bind(c, name='gpu_htod_memprefetch_async')
-
-    use cudafor, only: cudaMemPrefetchAsync, c_devptr
-    use iso_c_binding, only: c_size_t
-
-    implicit none
-
-    type(c_devptr) :: p
-    integer(c_size_t) :: sz
-    integer :: idx
-
-    integer :: cudaResult
-
-    if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1 .and. prop%concurrentManagedAccess == 1)) then
-
-       cudaResult = cudaMemPrefetchAsync(p, sz, cuda_device_id, cuda_streams(stream_from_index(idx)))
-       call gpu_error_test(cudaResult)
-
-    end if
-
-  end subroutine gpu_htod_memprefetch_async
-
-
-
-  subroutine gpu_dtoh_memprefetch_async(p, sz, idx) bind(c, name='gpu_dtoh_memprefetch_async')
-
-    use cudafor, only: cudaMemPrefetchAsync, c_devptr, cudaCpuDeviceId
-    use iso_c_binding, only: c_size_t
-
-    implicit none
-
-    type(c_devptr) :: p
-    integer(c_size_t) :: sz
-    integer :: idx
-
-    integer :: cudaResult
-
-    if ((.not. have_prop) .or. (have_prop .and. prop%managedMemory == 1)) then
-
-       cudaResult = cudaMemPrefetchAsync(p, sz, cudaCpuDeviceId, cuda_streams(stream_from_index(idx)))
-       call gpu_error_test(cudaResult)
-
-    end if
-
-  end subroutine gpu_dtoh_memprefetch_async
-
-
-
   subroutine gpu_synchronize() bind(c, name='gpu_synchronize')
 
     use cudafor, only: cudaDeviceSynchronize
@@ -598,24 +439,6 @@ contains
     call gpu_error_test(cudaResult)
 
   end subroutine gpu_synchronize
-
-
-
-  subroutine gpu_stream_synchronize(index) bind(c, name='gpu_stream_synchronize')
-
-    use cudafor, only: cudaStreamSynchronize
-
-    implicit none
-
-    integer, intent(in), value :: index
-
-    integer :: cudaResult
-
-    cudaResult = cudaStreamSynchronize(cuda_streams(stream_from_index(index)))
-    call gpu_error_test(cudaResult)
-
-  end subroutine gpu_stream_synchronize
-
 
 
   subroutine gpu_start_profiler() bind(c, name='gpu_start_profiler')

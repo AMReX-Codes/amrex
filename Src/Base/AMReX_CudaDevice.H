@@ -53,8 +53,6 @@ extern "C" {
 #ifdef AMREX_USE_CUDA
     void initialize_cuda(const int* id);
     void finalize_cuda();
-    void set_stream_idx(const int idx);
-    void get_stream_idx(int* idx);
     void get_cuda_device_id(int* device);
     void gpu_malloc(void** p, const std::size_t* sz);
     void gpu_hostalloc(void** p, const std::size_t* sz);
@@ -62,7 +60,6 @@ extern "C" {
     void gpu_free(void* p);
     void gpu_freehost(void* p);
     void gpu_host_device_ptr(void** x, const void* y);
-    void gpu_stream_synchronize(const int idx);
     void gpu_synchronize();
     void gpu_start_profiler();
     void gpu_stop_profiler();
@@ -73,10 +70,6 @@ extern "C" {
                                 int* bx, int* by, int* bz, int* tx, int* ty, int* tz,
                                 const int* txmin, const int* tymin, const int* tzmin);
     __device__ void get_loop_bounds(int* blo, int* bhi, const int* lo, const int* hi);
-    void gpu_htod_memcpy_async(void* p_d, const void* p_h, const std::size_t* sz, const int* idx);
-    void gpu_dtoh_memcpy_async(void* p_h, const void* p_d, const std::size_t* sz, const int* idx);
-    void gpu_htod_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
-    void gpu_dtoh_memprefetch_async(void* p, const std::size_t* sz, const int* idx);
     void check_for_gpu_errors();
     void set_is_program_running(int r);
 #endif
@@ -96,8 +89,6 @@ public:
 
     static void set_stream_index(const int idx);
 
-    static int  get_stream_index();
-
     static void prepare_for_launch(const int* lo, const int* hi);
 
     static void* get_host_pointer(const void* ptr);
@@ -108,7 +99,7 @@ public:
 
     static void synchronize();
 
-    static void stream_synchronize(const int idx = -1);
+// xxxxx    static void stream_synchronize(const int idx = -1);
 
     static int program_running();
 
