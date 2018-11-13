@@ -106,6 +106,8 @@ void get_face_velocity(const int level, const Real time,
         }
     });
 
+    phi_dfab.clear();
+
     // If 3d, set z velocity to 1.
 #if (AMREX_SPACEDIM == 3)
     zvel.setVal(1.0);
