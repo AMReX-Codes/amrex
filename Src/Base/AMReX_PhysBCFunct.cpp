@@ -13,7 +13,6 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
 {
     BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
-    Real*     data = dest.dataPtr(dcomp);
     const Box&  bx = dest.box();
     const int*  lo = dest.loVect();
     const int*  hi = dest.hiVect();
@@ -32,14 +31,18 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
     static_assert(sizeof(BCRec) == 2*AMREX_SPACEDIM*sizeof(int),
                   "Let us know if this assertion fails");
 
-    if (m_func != nullptr) {
-	m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),
-               dom_lo,dom_hi,
-               dx,grd_lo,&time,bcr[bcomp].vect());
-    } else {
-	m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
-                 AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
-		 AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),&time,bcr[bcomp].vect());
+    for (int icomp = 0; icomp < numcomp; ++icomp)
+    {
+        Real* data = dest.dataPtr(dcomp+icomp);
+        if (m_func != nullptr) {
+            m_func(data,AMREX_ARLIM(lo),AMREX_ARLIM(hi),
+                   dom_lo,dom_hi,
+                   dx,grd_lo,&time,bcr[bcomp+icomp].vect());
+        } else {
+            m_func3D(data,AMREX_ARLIM_3D(lo),AMREX_ARLIM_3D(hi),
+                     AMREX_ARLIM_3D(dom_lo),AMREX_ARLIM_3D(dom_hi),
+                     AMREX_ZFILL(dx),AMREX_ZFILL(grd_lo),&time,bcr[bcomp+icomp].vect());
+        }
     }
 }
 
