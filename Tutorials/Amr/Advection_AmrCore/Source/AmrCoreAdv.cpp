@@ -187,7 +187,7 @@ AmrCoreAdv::InitData ()
     }
 }
 
-// Make a new level using provided BoxArray and DistributionMapping and 
+// Make a new level using provided BoxArray and DistributionMapping and
 // fill with interpolated coarse level data.
 // overrides the pure virtual function in AmrCore
 void
@@ -196,7 +196,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
 {
     const int ncomp = phi_new[lev-1].nComp();
     const int nghost = phi_new[lev-1].nGrow();
-    
+
     phi_new[lev].define(ba, dm, ncomp, nghost);
     phi_old[lev].define(ba, dm, ncomp, nghost);
 
@@ -210,7 +210,7 @@ AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray& ba,
     FillCoarsePatch(lev, time, phi_new[lev], 0, ncomp);
 }
 
-// Remake an existing level using provided BoxArray and DistributionMapping and 
+// Remake an existing level using provided BoxArray and DistributionMapping and
 // fill with existing fine and coarse data.
 // overrides the pure virtual function in AmrCore
 void
@@ -233,7 +233,7 @@ AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray& ba,
 
     if (lev > 0 && do_reflux) {
 	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
-    }    
+    }
 }
 
 // Delete level data
@@ -322,19 +322,19 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 #endif
     {
         Vector<int>  itags;
-	
+
 	for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
 	{
 	    const Box& tilebox  = mfi.tilebox();
 
             TagBox&     tagfab  = tags[mfi];
-	    
+
 	    // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
 	    // So we are going to get a temporary integer array.
             // set itags initially to 'untagged' everywhere
             // we define itags over the tilebox region
 	    tagfab.get_itags(itags, tilebox);
-	    
+
             // data pointer and index space
 	    int*        tptr    = itags.dataPtr();
 	    const int*  tlo     = tilebox.loVect();
@@ -343,8 +343,8 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
             // tag cells for refinement
 	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
 			BL_TO_FORTRAN_3D(state[mfi]),
-			&tagval, &clearval, 
-			AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()), 
+			&tagval, &clearval,
+			AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()),
 			AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
 	    //
 	    // Now update the tags in the TagBox in the tilebox region
@@ -378,7 +378,7 @@ AmrCoreAdv::ReadParameters ()
 
     {
 	ParmParse pp("adv");
-	
+
 	pp.query("cfl", cfl);
         pp.query("do_reflux", do_reflux);
     }
@@ -451,7 +451,7 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     Vector<MultiFab*> cmf;
     Vector<Real> ctime;
     GetData(lev-1, time, cmf, ctime);
-    
+
     if (cmf.size() != 1) {
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
@@ -509,15 +509,15 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
         static Vector<int> last_regrid_step(max_level+1, 0);
 
         // regrid changes level "lev+1" so we don't regrid on max_level
-        // also make sure we don't regrid fine levels again if 
+        // also make sure we don't regrid fine levels again if
         // it was taken care of during a coarser regrid
-        if (lev < max_level && istep[lev] > last_regrid_step[lev]) 
+        if (lev < max_level && istep[lev] > last_regrid_step[lev])
         {
             if (istep[lev] % regrid_int == 0)
             {
                 // regrid could add newly refine levels (if finest_level < max_level)
                 // so we save the previous finest level index
-		int old_finest = finest_level; 
+		int old_finest = finest_level;
 		regrid(lev, time);
 
                 // mark that we have regridded this level already
@@ -535,7 +535,7 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
     if (Verbose()) {
 	amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
-	amrex::Print() << "ADVANCE with time = " << t_new[lev] 
+	amrex::Print() << "ADVANCE with time = " << t_new[lev]
                        << " dt = " << dt[lev] << std::endl;
     }
 
@@ -566,7 +566,7 @@ AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
 	AverageDownTo(lev); // average lev+1 down to lev
     }
-    
+
 }
 
 // advance a single level for a single time step, updates flux registers
@@ -632,19 +632,19 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
             // compute new state (stateout) and fluxes.
             advect(&time, bx.loVect(), bx.hiVect(),
-		   BL_TO_FORTRAN_3D(statein), 
+		   BL_TO_FORTRAN_3D(statein),
 		   BL_TO_FORTRAN_3D(stateout),
 		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
 			  BL_TO_FORTRAN_3D(uface[1]),
 			  BL_TO_FORTRAN_3D(uface[2])),
-		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
-			  BL_TO_FORTRAN_3D(flux[1]), 
-			  BL_TO_FORTRAN_3D(flux[2])), 
+		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
+			  BL_TO_FORTRAN_3D(flux[1]),
+			  BL_TO_FORTRAN_3D(flux[2])),
 		   dx, &dt_lev);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
-		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
 		}
 	    }
 	}
@@ -658,16 +658,16 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
     // the flux registers from the coarse or fine grid perspective
     // NOTE: the flux register associated with flux_reg[lev] is associated
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
-    if (do_reflux) { 
+    if (do_reflux) {
 	if (flux_reg[lev+1]) {
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	        // update the lev+1/lev flux register (index lev+1)   
+	        // update the lev+1/lev flux register (index lev+1)
 	        flux_reg[lev+1]->CrseInit(fluxes[i],i,0,0,fluxes[i].nComp(), -1.0);
-	    }	    
+	    }
 	}
 	if (flux_reg[lev]) {
 	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-	        // update the lev/lev-1 flux register (index lev) 
+	        // update the lev/lev-1 flux register (index lev)
 		flux_reg[lev]->FineAdd(fluxes[i],i,0,0,fluxes[i].nComp(), 1.0);
 	    }
 	}
@@ -789,7 +789,7 @@ AmrCoreAdv::WritePlotFile () const
     const std::string& plotfilename = PlotFileName(istep[0]);
     const auto& mf = PlotFileMF();
     const auto& varnames = PlotFileVarNames();
-    
+
     amrex::Print() << "Writing plotfile " << plotfilename << "\n";
 
     amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,

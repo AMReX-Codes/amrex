@@ -44,6 +44,8 @@ LSCoreBase::LSCoreBase () {
 
     istep.resize(nlevs_max, 0);
 
+    bcs.resize(1);
+
     // // periodic boundaries
     // int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     // int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
@@ -57,7 +59,7 @@ LSCoreBase::LSCoreBase () {
         if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setLo(idim, bc_lo[idim]);
+            bcs[0].setLo(idim, bc_lo[idim]);
         }
         else {
             amrex::Abort("Invalid bc_lo");
@@ -67,7 +69,7 @@ LSCoreBase::LSCoreBase () {
         if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setHi(idim, bc_hi[idim]);
+            bcs[0].setHi(idim, bc_hi[idim]);
         }
         else {
             amrex::Abort("Invalid bc_hi");
@@ -243,24 +245,26 @@ void LSCoreBase::AverageDownTo (int crse_lev) {
 void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp) {
     if (lev == 0) {
 
-        PhysBCFunct physbc(geom[lev], bcs, BndryFunctBase(amrex_eb_phifill));
+        BndryFuncArray bfunc(amrex_eb_phifill);
+        PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
 
         // NOTE: if source MultiFab vector as size = 1 => no interpolation
         amrex::FillPatchSingleLevel(mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
-                                    geom[lev], physbc);
+                                    geom[lev], physbc, 0);
 
     } else {
 
-        PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(amrex_eb_phifill));
-        PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(amrex_eb_phifill));
+        BndryFuncArray bfunc(amrex_eb_phifill);
+        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1], bcs, bfunc);
+        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ], bcs, bfunc);
 
-        //Interpolater * mapper = & cell_cons_interp;
         Interpolater * mapper = & node_bilinear_interp;
 
 
         amrex::FillPatchTwoLevels(mf, time, {& level_set[lev - 1]}, {0.}, {& level_set[lev]}, {0.},
                                   0, icomp, ncomp, geom[lev-1], geom[lev],
-                                  cphysbc, fphysbc, refRatio(lev-1), mapper, bcs);
+                                  cphysbc, 0, fphysbc, 0,
+                                  refRatio(lev-1), mapper, bcs, 0);
 
     }
 }
@@ -271,14 +275,16 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
     BL_ASSERT(lev > 0);
 
-    PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(amrex_eb_phifill));
-    PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(amrex_eb_phifill));
+    BndryFuncArray bfunc(amrex_eb_phifill);
+    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1], bcs, bfunc);
+    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ], bcs, bfunc);
 
-    //Interpolater * mapper = & cell_cons_interp;
     Interpolater * mapper = & node_bilinear_interp;
 
-    amrex::InterpFromCoarseLevel(mf, time, level_set[lev - 1], 0, icomp, ncomp, geom[lev-1], geom[lev],
-                                 cphysbc, fphysbc, refRatio(lev - 1), mapper, bcs);
+    amrex::InterpFromCoarseLevel(mf, time, level_set[lev - 1], 0, icomp, ncomp,
+                                 geom[lev-1], geom[lev],
+                                 cphysbc, 0, fphysbc, 0,
+                                 refRatio(lev - 1), mapper, bcs, 0);
 
 }
 
