@@ -41,7 +41,9 @@ namespace amrex{
 	    pTileArray(): numTiles(0), tileBx(0){}
 	    ~pTileArray()
 	    {
-		tileBx.clear();
+                for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
+                tileBx.clear();
+                delete[] validBx;
 	    }
     };
 
