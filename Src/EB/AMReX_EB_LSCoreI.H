@@ -98,39 +98,10 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
         // EB boundary-centre data
         const MultiCutFab & bndrycent = eb_factory.getBndryCent();
-
-        MultiFab normal(ba, dm, 3, max_eb_pad + 1);
-
         const auto & flags = eb_factory.getMultiEBCellFlagFab();
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
-            Box tile_box = mfi.growntilebox();
-            const int * lo = tile_box.loVect();
-            const int * hi = tile_box.hiVect();
-
-            const auto & flag = flags[mfi];
-
-            if (flag.getType(tile_box) == FabType::singlevalued) {
-                // Target for compute_normals(...)
-                auto & norm_tile = normal[mfi];
-                // Area fractions in x, y, and z directions
-                const auto & af_x_tile = (* areafrac[0])[mfi];
-                const auto & af_y_tile = (* areafrac[1])[mfi];
-                const auto & af_z_tile = (* areafrac[2])[mfi];
-
-                amrex_eb_compute_normals(lo, hi,
-                                         BL_TO_FORTRAN_3D(flag),
-                                         BL_TO_FORTRAN_3D(norm_tile),
-                                         BL_TO_FORTRAN_3D(af_x_tile),
-                                         BL_TO_FORTRAN_3D(af_y_tile),
-                                         BL_TO_FORTRAN_3D(af_z_tile)  );
-            }
-        }
-
-        normal.FillBoundary(geom[lev].periodicity());
+        MultiFab normal(ba, dm, 3, max_eb_pad + 1);
+        FillEBNormals(normal, eb_factory, geom[lev]);
 
         iMultiFab eb_valid(ba, dm, 1, max_eb_pad +1);
         eb_valid.setVal(0);
@@ -192,15 +163,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 
             }
         }
-
-
-
     }
 
-
-
-    Print() << "made level: " << lev << std::endl;
-
-    // level_set[lev].FillBoundary(geom[lev].periodicity());
-
+    level_set[lev].FillBoundary(geom[lev].periodicity());
 }
