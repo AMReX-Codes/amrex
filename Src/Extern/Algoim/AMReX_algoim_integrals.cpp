@@ -253,8 +253,9 @@ void compute_integrals(MultiFab* intg)
        }
        // std::cout << "Integrated over " << n_count << " cells " << std::endl;
     }
+#ifdef AMREX_DEBUG
     std::cout << "Maximum discrepancy in volume fraction " << vol_diff << std::endl;
-
+#endif
 }
 }
 #endif
