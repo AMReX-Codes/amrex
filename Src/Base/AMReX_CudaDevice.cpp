@@ -226,8 +226,12 @@ void
 amrex::Cuda::Device::set_stream_index(const int idx) {
 
 #ifdef AMREX_USE_CUDA
-    set_stream_idx(idx);
-    cuda_stream = cuda_streams[idx % max_cuda_streams + 1];
+//    set_stream_idx(idx);
+    if (idx < 0) {
+        cuda_stream = 0;
+    } else {
+        cuda_stream = cuda_streams[idx % max_cuda_streams];
+    }
 #endif
 }
 
