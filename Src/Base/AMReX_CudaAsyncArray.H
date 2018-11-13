@@ -37,8 +37,8 @@ public:
 
     ~AsyncArray () { clear(); }
 
-    T const* data () const { return d_data; }
-    T* data () { return d_data; }
+    T const* data () const { return (d_data != nullptr) ? d_data : h_data; }
+    T* data () { return (d_data != nullptr) ? d_data : h_data; }
     void clear ()
     {
 #ifdef AMREX_USE_CUDA

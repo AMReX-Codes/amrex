@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <mutex>
 
 #include <AMReX_Arena.H>
 
@@ -27,6 +28,9 @@ public:
     * If hunk_size == 0 we use DefaultHunkSize as specified below.
     */
     CArena (std::size_t hunk_size = 0);
+
+    CArena (const CArena& rhs) = delete;
+    CArena& operator= (const CArena& rhs) = delete;
     
     //! The destructor.
     virtual ~CArena () override;
@@ -124,10 +128,7 @@ protected:
     //! The amount of heap space currently allocated.
     std::size_t m_used;
 
-private:
-    //! Disallowed.
-    CArena (const CArena& rhs);
-    CArena& operator= (const CArena& rhs);
+    std::mutex carena_mutex;
 };
 
 }

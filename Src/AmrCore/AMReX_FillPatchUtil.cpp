@@ -43,7 +43,7 @@ namespace amrex
     void FillPatchSingleLevel (MultiFab& mf, Real time,
 			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom, PhysBCFunctBase& physbcf)
+			       const Geometry& geom, PhysBCFunctBase& physbcf, int bcfcomp)
     {
 	BL_PROFILE("FillPatchSingleLevel");
 
@@ -112,34 +112,19 @@ namespace amrex
 	    amrex::Abort("FillPatchSingleLevel: high-order interpolation in time not implemented yet");
 	}
 
-	physbcf.FillBoundary(mf, dcomp, ncomp, time);
-    }
-
-    void FillPatchTwoLevels (MultiFab& mf, Real time,
-                             const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
-                             const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
-                             int scomp, int dcomp, int ncomp,
-                             const Geometry& cgeom, const Geometry& fgeom,
-                             PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-                             const IntVect& ratio,
-                             Interpolater* mapper, const BCRec& bcs,
-                             const InterpHook& pre_interp,
-                             const InterpHook& post_interp)
-    {
-        Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
-
-        FillPatchTwoLevels(mf,time,cmf,ct,fmf,ft,scomp,dcomp,ncomp,cgeom,fgeom,
-                           cbc,fbc,ratio,mapper,bcs_array,pre_interp,post_interp);
+	physbcf.FillBoundary(mf, dcomp, ncomp, time, bcfcomp);
     }
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
 			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom,
-			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-			     const IntVect& ratio,
-			     Interpolater* mapper, const Vector<BCRec>& bcs,
+			     const Geometry& cgeom, const Geometry& fgeom, 
+			     PhysBCFunctBase& cbc, int cbccomp,
+                             PhysBCFunctBase& fbc, int fbccomp,
+			     const IntVect& ratio, 
+			     Interpolater* mapper,
+                             const Vector<BCRec>& bcs, int bcscomp,
                              const InterpHook& pre_interp,
                              const InterpHook& post_interp)
     {
@@ -172,7 +157,7 @@ namespace amrex
 
                 mf_crse_patch.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), cgeom);
 
-		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc);
+		FillPatchSingleLevel(mf_crse_patch, time, cmf, ct, scomp, 0, ncomp, cgeom, cbc, cbccomp);
 
 		int idummy1=0, idummy2=0;
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
@@ -180,60 +165,49 @@ namespace amrex
 #ifdef _OPENMP
 #pragma omp parallel if (cc)
 #endif
-		for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
-		{
-                    FArrayBox& sfab = mf_crse_patch[mfi];
-		    int li = mfi.LocalIndex();
-		    int gi = fpc.dst_idxs[li];
-                    FArrayBox& dfab = mf[gi];
-		    const Box& dbx = fpc.dst_boxes[li];
-
-		    Vector<BCRec> bcr(ncomp);
-		    amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
-
-                    pre_interp(sfab, sfab.box(), 0, ncomp);
-
-		    mapper->interp(sfab,
-				   0,
-				   dfab,
-				   dcomp,
-				   ncomp,
-				   dbx,
-				   ratio,
-				   cgeom,
-				   fgeom,
-				   bcr,
-				   idummy1, idummy2);
-
-                    post_interp(dfab, dbx, dcomp, ncomp);
-		}
+                {
+                    Vector<BCRec> bcr(ncomp);
+                    for (MFIter mfi(mf_crse_patch); mfi.isValid(); ++mfi)
+                    {
+                        FArrayBox& sfab = mf_crse_patch[mfi];
+                        int li = mfi.LocalIndex();
+                        int gi = fpc.dst_idxs[li];	
+                        FArrayBox& dfab = mf[gi];
+                        const Box& dbx = fpc.dst_boxes[li];
+                        
+                        amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
+                        
+                        pre_interp(sfab, sfab.box(), 0, ncomp);
+                        
+                        mapper->interp(sfab,
+                                       0,
+                                       dfab,
+                                       dcomp,
+                                       ncomp,
+                                       dbx,
+                                       ratio,
+                                       cgeom,
+                                       fgeom,
+                                       bcr,
+                                       idummy1, idummy2);
+                        
+                        post_interp(dfab, dbx, dcomp, ncomp);
+                    }
+                }
 	    }
 	}
 
-	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc);
+	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc, fbccomp);
     }
 
-    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf, 
 				int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom,
-				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio,
-				Interpolater* mapper, const BCRec& bcs,
-                                const InterpHook& pre_interp,
-                                const InterpHook& post_interp)
-    {
-
-        Vector<BCRec> bcs_array(1,BCRec(bcs.lo(),bcs.hi()));
-        InterpFromCoarseLevel(mf,time,cmf,scomp,dcomp,ncomp,cgeom,fgeom,
-                              cbc,fbc,ratio,mapper,bcs_array,
-                              pre_interp, post_interp);
-
-    }
-
-    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
-				int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom,
-				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio,
-				Interpolater* mapper, const Vector<BCRec>& bcs,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunctBase& cbc, int cbccomp,
+                                PhysBCFunctBase& fbc, int fbccomp,
+                                const IntVect& ratio, 
+				Interpolater* mapper,
+                                const Vector<BCRec>& bcs, int bcscomp,
                                 const InterpHook& pre_interp,
                                 const InterpHook& post_interp)
     {
@@ -278,7 +252,7 @@ namespace amrex
 
 	mf_crse_patch.copy(cmf, scomp, 0, ncomp, cgeom.periodicity());
 
-	cbc.FillBoundary(mf_crse_patch, 0, ncomp, time);
+	cbc.FillBoundary(mf_crse_patch, 0, ncomp, time, cbccomp);
 
 	int idummy1=0, idummy2=0;
 
@@ -293,8 +267,8 @@ namespace amrex
                 FArrayBox& sfab = mf_crse_patch[mfi];
                 FArrayBox& dfab = mf[mfi];
                 const Box& dbx = dfab.box() & fdomain_g;
-
-                amrex::setBC(dbx,fdomain,scomp,0,ncomp,bcs,bcr);
+                
+                amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                 pre_interp(sfab, sfab.box(), 0, ncomp);
 
@@ -314,7 +288,7 @@ namespace amrex
             }
 	}
 
-	fbc.FillBoundary(mf, dcomp, ncomp, time);
+	fbc.FillBoundary(mf, dcomp, ncomp, time, fbccomp);
     }
 
     // B fields are assumed to be on staggered grids.

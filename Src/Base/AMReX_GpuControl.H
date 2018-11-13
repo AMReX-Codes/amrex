@@ -4,6 +4,8 @@
 namespace amrex {
 namespace Cuda {
 
+#if defined(AMREX_USE_GPU)
+
     extern bool in_launch_region;
 
     inline bool inLaunchRegion () { return in_launch_region; }
@@ -14,6 +16,14 @@ namespace Cuda {
         in_launch_region = launch;
         return r;
     }
+
+#else
+
+    inline static constexpr bool inLaunchRegion () { return false; }
+    inline static constexpr bool notInLaunchRegion () { return true; }
+    inline static constexpr bool setLaunchRegion (bool) { return false; }
+
+#endif
 
 }
 }

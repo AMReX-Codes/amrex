@@ -1,39 +1,49 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_BCRec.H>
+#include <AMReX_PhysBCFunct.H>
 
 using namespace amrex;
+
+struct CnsFillExtDir
+{
+    AMREX_GPU_DEVICE
+    void operator() (const IntVect& iv, FArrayBox& dest,
+                     const int dcomp, const int numcomp,
+                     GeometryData const& geom, const Real time,
+                     const BCRec* bcr, const int bcomp,
+                     const int orig_comp) const
+        {
+            // do something for external Dirichlet (BCType::ext_dir)
+        }
+};
+
+namespace {
+    static CnsFillExtDir cns_fill_ext_dir;
+    static GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(cns_fill_ext_dir);
+}
 
 // bx                  : Cells outside physical domain and inside bx are filled.
 // data, dcomp, numcomp: Fill numcomp components of data starting from dcomp.
 // bcr, bcomp          : bcr[bcomp] specifies BC for component dcomp and so on.
 // scomp               : component index for dcomp as in the desciptor set up in CNS::variableSetUp.
 
-void cns_bcfill_single (Box const& bx, FArrayBox& data,
-                        const int dcomp, const int numcomp,
-                        Geometry const& geom, const Real time,
-                        const Vector<BCRec>& bcr, const int bcomp,
-                        const int scomp)
+void cns_bcfill (Box const& bx, FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 Geometry const& geom, const Real time,
+                 const Vector<BCRec>& bcr, const int bcomp,
+                 const int scomp)
 {
-    AMREX_ALWAYS_ASSERT(numcomp == 1);
-    amrex::Abort("cns_bcfill_single TODO");
-}
+#if AMREX_USE_GPU
+    bool run_on_gpu = Gpu::inLaunchRegion();
+#else
+    bool run_on_gpu = false;
+#endif
 
-void cns_bcfill_group (Box const& bx, FArrayBox& data,
-                       const int dcomp, const int numcomp,
-                       Geometry const& geom, const Real time,
-                       const Vector<BCRec>& bcr, const int bcomp,
-                       const int scomp)
-{
-    FArrayBox* fab = &data;
-    const auto geomdata = geom.data();
-    const BCRec* bp = bcr.data();
-    Gpu::AsyncArray<BCRec> bcr_aa(bp+bcomp, numcomp);
-    BCRec* bcr_p = bcr_aa.data();
-    AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
-    {
-//        amrex_fill_bc_cc(tbx, *fab, dcomp, numcomp, geomdata, time,
-//                         bcr_aa, scomp);
-    });
+    if (run_on_gpu) {
+        gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+    } else {
+        // Without EXT_DIR (e.g., inflow), we can pass a nullptr
+        CpuBndryFuncFab(nullptr)(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+    }
 }
