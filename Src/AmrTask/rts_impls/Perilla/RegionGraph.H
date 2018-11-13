@@ -29,6 +29,12 @@ namespace amrex{
 		prev=0;
 		graphPartner=0;
 	    }
+#if 0
+            ~FabCopyAssoc()
+            {   
+                if(next) delete next;
+            }
+#endif
     };
 
     class pTileArray
@@ -40,7 +46,9 @@ namespace amrex{
 	    pTileArray(): numTiles(0), tileBx(0){}
 	    ~pTileArray()
 	    {
+                for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
 		tileBx.clear();
+	        delete[] validBx; 
 	    }
     };
 
@@ -92,7 +100,7 @@ namespace amrex{
 	    Worker():init(false), barr(0), l_barr(0), totalTasks(0){}
 
             ~Worker(){
-#if 0
+#if 1
 	        delete barr;
         	delete l_barr;
         	delete fireableRegionQueue;

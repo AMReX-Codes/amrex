@@ -7,9 +7,9 @@ independently in an operator splitting fashion.  The advection is
 treated explicitly.  The relative strengths of the three terms can be
 adjusted by changing the coefficients a,d, and r in inputs_2d.
 
-The advection operator is a 4th-order centered differences in flux
+The advection operator is a 4th-order centered difference in flux
 form.  The diffusion operator is a 2nd order discretization of the
-Laplacian and the implicit diffusion solve is done using
+Laplacian, and the implicit diffusion solve is done using
 multigrid. The "reaction" term here is just a simple linear damping
 hence the implicit solve is trivial.  See the routines in
 functions_2d.f90 for the code that evaluates the rhs terms.

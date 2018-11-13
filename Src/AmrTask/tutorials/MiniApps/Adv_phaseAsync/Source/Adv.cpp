@@ -316,7 +316,6 @@ Adv::avgDown (int state_indx, int iteration)
 Adv::initPerilla(Real time)
 {
     int state_indx = State_Type;
-
     Sborder = new MultiFab(grids, dmap, NUM_STATE, NUM_GROW);
 
     SborderFPI.resize(parent->nCycle(level));        
@@ -342,8 +341,8 @@ Adv::initPerilla(Real time)
 	RG_S_fine->buildTileArray(*crse_S_fine);
 
 	Perilla::multifabExtractCopyAssoc( RG_S_crse, RG_S_fine, *S_crse, *crse_S_fine, S_fine->nComp(), 0, 0, Periodicity::NonPeriodic());
-	parent->graphArray.push_back(RG_S_crse);
-	parent->graphArray.push_back(RG_S_fine);
+	parent->graphArray[level].push_back(RG_S_crse);
+	parent->graphArray[level].push_back(RG_S_fine);
     }
 }
 
@@ -353,27 +352,21 @@ Adv::finalizePerilla (Real time)
     if(ParallelDescriptor::MyProc()==0)
 	std::cout<< "Finalizing Perilla Level " << level <<std::endl;
 
-    delete Sborder;    
-    Sborder = 0;
-
-    for(int i=0; i<parent->nCycle(level); i++)
+    for(int i=0; i< parent->nCycle(level); i++)
     {
-	delete SborderFPI[i];
+	 delete SborderFPI[i];
     }
-    SborderFPI.resize(0);
+    SborderFPI.clear();
+    if(Sborder) delete Sborder;    
 
     if(level < parent->finestLevel())
     {
 	S_fine = 0;
 	S_crse = 0;
-	crse_S_fine=0;
-	RG_S_fine=0;
-	RG_S_crse=0;	
-	//delete crse_S_fine;
-	//delete RG_S_fine;
-	//delete RG_S_crse;	
+	if(crse_S_fine) delete crse_S_fine;
+	if(RG_S_fine) delete RG_S_fine;
+	if(RG_S_crse) delete RG_S_crse;	
     }
-    parent->graphArray.resize(0);  
 }
 
     void

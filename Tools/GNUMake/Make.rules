@@ -24,6 +24,7 @@ endif
 # Rules for building executable.
 #
 $(executable): $(objForExecs)
+ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
 	$(SILENT) $(F90) $(F90FLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
@@ -31,6 +32,7 @@ else
 	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 endif
 #	@echo SUCCESS
+endif
 
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="

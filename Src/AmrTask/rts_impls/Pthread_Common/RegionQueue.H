@@ -17,6 +17,7 @@ private:
 public:
   RegionQueue();
   RegionQueue(int numTasks);
+  ~RegionQueue();
   void addRegion(int r);
   void addRegion(int r, bool lockIgnore);
   int removeRegion();
