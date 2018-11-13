@@ -25,6 +25,9 @@ public:
     cnt(0), r_gid(0),
     r_grids(0)
   {}
+
+   ~RemoteCommDescriptor(){
+  }
 };
 
 class TransDescriptor
