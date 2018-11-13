@@ -80,7 +80,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                      FArrayBox* fzfab = &(fluxes[2][mfi]););
 
         const Box& bxg2 = amrex::grow(bx,2);
-        Gpu::DeviceFab q(bxg2, nprim);
+        Gpu::AsyncFab q(bxg2, nprim);
         FArrayBox* qfab = q.fabPtr();
 
         AMREX_LAUNCH_DEVICE_LAMBDA ( bxg2, tbx,
@@ -89,7 +89,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         });
 
         const Box& bxg1 = amrex::grow(bx,1);
-        Gpu::DeviceFab slope(bxg1,neqns);
+        Gpu::AsyncFab slope(bxg1,neqns);
         FArrayBox* slopefab = slope.fabPtr();
 
         // x-direction
