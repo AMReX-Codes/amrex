@@ -2778,8 +2778,11 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
+                T const * const AMREX_RESTRICT xpr = &(xp(0,j,k,n));
+                T const * const AMREX_RESTRICT ypr = &(yp(0,j,k,n));
                 for (int i = 0; i < len.x; ++i) {
-                    r += xp(i,j,k,n) * yp(i,j,k,n);
+//                    r += xp(i,j,k,n) + yp(i,j,k,n);
+                    r += xpr[i] * ypr[i];
                 }
             }
         }
@@ -2892,8 +2895,10 @@ BaseFab<T>::sum (const Box& subbox,
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
+                T const * const AMREX_RESTRICT dpr = &(dp(0,j,k,n));
                 for (int i = 0; i < len.x; ++i) {
-                    r += dp(i,j,k,n);
+//                    r += dp(i,j,k,n);
+                    r += dpr[i];
                 }
             }
         }
