@@ -187,11 +187,13 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             const int * thi  = tilebox.hiVect();
 
             // tag cells for refinement
-            state_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                          BL_TO_FORTRAN_3D(state[mfi]),
-                          &tagval, &clearval,
-                          AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()),
-                          AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
+            amrex_eb_state_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                   BL_TO_FORTRAN_3D(state[mfi]),
+                                   &tagval, &clearval,
+                                   AMREX_ARLIM_3D(tilebox.loVect()),
+                                   AMREX_ARLIM_3D(tilebox.hiVect()),
+                                   AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
+                                   &time, &phierr[lev]);
             //
             // Now update the tags in the TagBox in the tilebox region to be
             // equal to itags
@@ -218,9 +220,6 @@ void LSCoreBase::ReadParameters () {
 // Set covered coarse cells to be the average of overlying fine cells
 void LSCoreBase::AverageDown () {
     for (int lev = finest_level-1; lev >= 0; --lev) {
-        // amrex::average_down(level_set[lev+1], level_set[lev],
-        //                     geom[lev+1], geom[lev],
-        //                     0, level_set[lev].nComp(), refRatio(lev));
 
         amrex::average_down(level_set[lev + 1], level_set[lev],
                             0, level_set[lev].nComp(), refRatio(lev));
@@ -231,9 +230,6 @@ void LSCoreBase::AverageDown () {
 // More flexible version of AverageDown() that lets you average down across
 // multiple levels
 void LSCoreBase::AverageDownTo (int crse_lev) {
-    // amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
-    //                     geom[crse_lev+1], geom[crse_lev],
-    //                     0, level_set[crse_lev].nComp(), refRatio(crse_lev));
 
     amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
                         0, level_set[crse_lev].nComp(), refRatio(crse_lev));
@@ -247,7 +243,7 @@ void LSCoreBase::AverageDownTo (int crse_lev) {
 void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp) {
     if (lev == 0) {
 
-        PhysBCFunct physbc(geom[lev], bcs, BndryFunctBase(phifill));
+        PhysBCFunct physbc(geom[lev], bcs, BndryFunctBase(amrex_eb_phifill));
 
         // NOTE: if source MultiFab vector as size = 1 => no interpolation
         amrex::FillPatchSingleLevel(mf, time, {& level_set[0]}, {0.}, 0, icomp, ncomp,
@@ -255,8 +251,8 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 
     } else {
 
-        PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(phifill));
-        PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(phifill));
+        PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(amrex_eb_phifill));
+        PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(amrex_eb_phifill));
 
         //Interpolater * mapper = & cell_cons_interp;
         Interpolater * mapper = & node_bilinear_interp;
@@ -275,8 +271,8 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
     BL_ASSERT(lev > 0);
 
-    PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(phifill));
-    PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(phifill));
+    PhysBCFunct cphysbc(geom[lev-1], bcs, BndryFunctBase(amrex_eb_phifill));
+    PhysBCFunct fphysbc(geom[lev  ], bcs, BndryFunctBase(amrex_eb_phifill));
 
     //Interpolater * mapper = & cell_cons_interp;
     Interpolater * mapper = & node_bilinear_interp;

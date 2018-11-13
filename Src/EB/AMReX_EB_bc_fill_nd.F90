@@ -9,8 +9,8 @@ module amrex_eb_bc_fill_module
 
 contains
 
-  subroutine phifill(phi,phi_lo,phi_hi,domlo,domhi,delta,xlo,time,bc) &
-       bind(C, name="phifill")
+  subroutine amrex_eb_phifill(phi,phi_lo,phi_hi,domlo,domhi,delta,xlo,time,bc) &
+       bind(C, name="amrex_eb_phifill")
 
     use amrex_fort_module, only : bl_spacedim, amrex_real
     use amrex_filcc_module, only : amrex_filccn
@@ -25,6 +25,6 @@ contains
 
     call amrex_filccn(phi_lo, phi_hi, phi, phi_lo, phi_hi, 1, domlo, domhi, delta, xlo, bc)
 
-  end subroutine phifill
+  end subroutine amrex_eb_phifill
 
 end module amrex_eb_bc_fill_module
