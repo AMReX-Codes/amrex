@@ -147,7 +147,7 @@ protected:
 
     // This is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction
-    BCRec bcs;
+    Vector<BCRec> bcs; // 1-component
 
     amrex::Vector<int> istep;      // which step?
 
