@@ -1951,9 +1951,11 @@ Amr::timeStep (int  level,
     else
     {
         int lev_top = std::min(finest_level, max_level-1);
+#ifdef USE_PERILLA
         bool *metadataChanged=new bool[finest_level+1];
         for (int l=0; l <= finest_level; l++)
             metadataChanged[l]=false;
+#endif
 
         for (int i(level); i <= lev_top; ++i)
         {
@@ -1999,7 +2001,7 @@ Amr::timeStep (int  level,
                 for (int k(i>0?i-1:0); k <= finest_level; ++k) {
 		    if(metadataChanged[k]==false){
                         getLevel(k).finalizePerilla(cumtime);
-                        graphArray[k].clear();
+                        graphArray[k].resize(0);
 	       	        metadataChanged[k]=true;
 	            }
 		}

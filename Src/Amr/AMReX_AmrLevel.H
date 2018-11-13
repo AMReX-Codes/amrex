@@ -631,6 +631,7 @@ public:
     RegionGraph*                      m_rg_crse_patch;
     std::list<RegionGraph*>	      regionList;
     std::list<MultiFab*>	      mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
 
 
 

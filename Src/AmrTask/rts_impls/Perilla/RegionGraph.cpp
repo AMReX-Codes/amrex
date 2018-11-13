@@ -809,18 +809,17 @@ RegionGraph::~RegionGraph()
     sMap.clear();
     rMap.clear();
 
-#if 0
-    for(int i=0; i<task.size(); i++) delete task[i];
+//    for(int i=0; i<task.size(); i++) delete task[i];
     for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++) delete worker[tg];
-#endif
+    for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
+    for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
 
-    //fabTiles.clear();
-    //if(sCopyMapHead != 0)
-    //  delete sCopyMapHead;
-    //if(rCopyMapHead != 0)
-    //  delete rCopyMapHead;
-    //delete[] worker;
-    //delete[] task;
+    fabTiles.clear();
+    fabTiles_gtbx.clear();
+    if(sCopyMapHead != 0)
+      delete sCopyMapHead;
+    if(rCopyMapHead != 0)
+      delete rCopyMapHead;
     worker.clear();
     task.clear();
     delete[] okToReset;
