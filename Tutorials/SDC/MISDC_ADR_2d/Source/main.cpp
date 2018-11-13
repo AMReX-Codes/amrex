@@ -19,7 +19,7 @@ void main_main ()
 {
     Real a;  // advection coef.
     Real d;  // diffusion coef.
-    Real r;   // reaction coef. 
+    Real r;  // reaction coef. 
 
     // AMREX_SPACEDIM: number of dimensions
     int n_cell, max_grid_size, Nsteps, plot_int;
@@ -116,7 +116,7 @@ void main_main ()
                  BL_TO_FORTRAN_ANYD(phi_new[mfi]),
                  geom.CellSize(), geom.ProbLo(), geom.ProbHi());
     }
-
+    
     // Set up BCRec; see Src/Base/AMReX_BC_TYPES.H for supported types
     Vector<BCRec> bc(phi_old.nComp());
     for (int n = 0; n < phi_old.nComp(); ++n)
@@ -154,10 +154,12 @@ void main_main ()
     // Make an SDC structure
     int Nnodes=5;  // Default to 8th order
     int Npieces=3; // Default is full MISDC
-    int Nsweeps=2*Nnodes-2;
+    int Nsweeps=2*Nnodes-2;  //  This will give highest formal accuracy for Lobatto nodes
     pp.get("Nnodes",Nnodes);
     pp.get("Npieces",Npieces);
-    //    pp.get("Nsweeps",Nsweeps);            
+    //    pp.get("Nsweeps",Nsweeps);  //  Uncomment to adjust Nsweeps          
+
+    //  Build the structure
     SDCstruct SDCmats(Nnodes,Npieces,phi_old);
     SDCmats.Nsweeps =Nsweeps;  // Number of SDC sweeps per time step
     
@@ -166,9 +168,22 @@ void main_main ()
     // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
     if (plot_int > 0)
       {
+	if (plot_err == 1)  // Turn the solution into the error
+	  {
+	    MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
+	    for ( MFIter mfi(phi_new); mfi.isValid(); ++mfi )
+	      {
+		const Box& bx = mfi.validbox();
+		err_phi(BL_TO_FORTRAN_BOX(bx),
+			BL_TO_FORTRAN_ANYD(phi_new[mfi]),
+			geom.CellSize(), geom.ProbLo(), geom.ProbHi(),&a,&d,&r,&time);
+	      }
+	  }
 	int n = 0;
 	const std::string& pltfile = amrex::Concatenate("plt",n,5);
 	WriteSingleLevelPlotfile(pltfile, phi_new, {"phi"}, geom, time, 0);
+	if (plot_err == 1)  // Put the solution back
+	  MultiFab::Copy(phi_new, phi_old, 0, 0, 1, 0);	
       }
 
   // Set an assorment of solver and parallization options and parameters
@@ -225,15 +240,16 @@ void main_main ()
   mlabec.setACoeffs(0, acoef);
   
   // bcoef lives on faces so we make an array of face-centered MultiFabs
-  // then we will in face_bcoef MultiFabs and load them into the solver.
-  std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
-  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-    {
-      const BoxArray& bamg = amrex::convert(acoef.boxArray(),
-					  IntVect::TheDimensionVector(idim));
-      face_bcoef[idim].define(bamg, acoef.DistributionMap(), 1, 0);
-    }
-  mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
+  //   then we will in face_bcoef MultiFabs and load them into the solver.
+    std::array<MultiFab,AMREX_SPACEDIM> face_bcoef;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+      {
+        const BoxArray& bamg = amrex::convert(acoef.boxArray(),
+  					  IntVect::TheDimensionVector(idim));
+        face_bcoef[idim].define(bamg, acoef.DistributionMap(), 1, 0);
+	face_bcoef[idim].setVal(1.0);	      	
+      }
+    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
   
   // build an MLMG solver
   MLMG mlmg(mlabec);

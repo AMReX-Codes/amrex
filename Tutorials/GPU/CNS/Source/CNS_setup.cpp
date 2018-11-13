@@ -3,18 +3,22 @@
 
 using namespace amrex;
 
-inline void cns_null(Real* data, const int*, const int*,
-                     const int* dom_lo, const int* dom_hi,
-                     const Real* dx, const Real* grd_lo,
-                     const Real* time, const int* bc)
-{}
+void cns_bcfill_single (Box const& bx, FArrayBox& data,
+                        const int dcomp, const int numcomp,
+                        Geometry const& geom, const Real time,
+                        const Vector<BCRec>& bcr, const int bcomp,
+                        const int scomp);
+
+void cns_bcfill_group (Box const& bx, FArrayBox& data,
+                       const int dcomp, const int numcomp,
+                       Geometry const& geom, const Real time,
+                       const Vector<BCRec>& bcr, const int bcomp,
+                       const int scomp);
 
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
 
 static Box the_same_box (const Box& b) { return b; }
 //static Box grow_box_by_one (const Box& b) { return amrex::grow(b,1); }
-
-using BndryFunc = StateDescriptor::BndryFunc;
 
 //
 // Components are:
@@ -135,15 +139,16 @@ CNS::variableSetUp ()
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "rho_e";
     cnt++; set_scalar_bc(bc,phys_bc); bcs[cnt] = bc; name[cnt] = "Temp";
 
+    StateDescriptor::BndryFunc bndryfunc(cns_bcfill);
+    bndryfunc.setRunOnGPU(true);  // I promise the bc function will launch gpu kernels.
+
     desc_lst.setComponent(State_Type,
 			  Density,
 			  name,
 			  bcs,
-			  BndryFunc(cns_null,cns_null)); // xxxxx
+                          bndryfunc);
 
     num_state_data_types = desc_lst.size();
-
-    StateDescriptor::setBndryFuncThreadSafety(true); // xxxxx
 
     // DEFINE DERIVED QUANTITIES
 

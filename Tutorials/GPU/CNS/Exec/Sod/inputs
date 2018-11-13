@@ -3,7 +3,7 @@ amrex.fpe_trap_invalid=1
 max_step  = 100000
 stop_time = 0.2
 
-geometry.is_periodic = 1 1 1
+geometry.is_periodic = 0 1 1
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
 geometry.prob_lo     =   0.0     0.0     0.0
 geometry.prob_hi     =   1.0     1.0     1.0
@@ -14,8 +14,8 @@ amr.n_cell           =    64      64      64
 # 1 = Inflow             4 = SlipWall
 # 2 = Outflow            5 = NoSlipWall
 # >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
-cns.lo_bc       =  2   5   5
-cns.hi_bc       =  2   5   5
+cns.lo_bc       =  2   0   0
+cns.hi_bc       =  2   0   0
 
 cns.cfl = 0.3  # cfl number for hyperbolic system
 
@@ -53,7 +53,3 @@ prob.rho_l = 1.0
 prob.rho_r = 0.125
 prob.u_l   = 0.0
 prob.u_r   = 0.0
-
-max_step = 3
-amr.plot_files_output = 1
-amr.plot_int = 1

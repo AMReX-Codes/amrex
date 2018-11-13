@@ -28,44 +28,30 @@ namespace amrex
     void FillPatchSingleLevel (MultiFab& mf, Real time,
 			       const Vector<MultiFab*>& smf, const Vector<Real>& stime,
 			       int scomp, int dcomp, int ncomp,
-			       const Geometry& geom, PhysBCFunctBase& physbcf);
+			       const Geometry& geom,
+                               PhysBCFunctBase& physbcf, int bcfcomp);
 
     void FillPatchTwoLevels (MultiFab& mf, Real time,
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
 			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom,
-			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-			     const IntVect& ratio,
-			     Interpolater* mapper, const BCRec& bcs,
-                             const InterpHook& pre_interp = NullInterpHook(),
-                             const InterpHook& post_interp = NullInterpHook());
-
-    void FillPatchTwoLevels (MultiFab& mf, Real time,
-			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
-			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
-			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom,
-			     PhysBCFunctBase& cbc, PhysBCFunctBase& fbc,
-			     const IntVect& ratio,
-			     Interpolater* mapper, const Vector<BCRec>& bcs,
+			     const Geometry& cgeom, const Geometry& fgeom, 
+			     PhysBCFunctBase& cbc, int cbccomp,
+                             PhysBCFunctBase& fbc, int fbccomp,
+			     const IntVect& ratio, 
+			     Interpolater* mapper,
+                             const Vector<BCRec>& bcs, int bcscomp,
                              const InterpHook& pre_interp = NullInterpHook(),
                              const InterpHook& post_interp = NullInterpHook());
 
     void InterpFromCoarseLevel (MultiFab& mf, Real time,
 				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom,
-				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio,
-				Interpolater* mapper, const BCRec& bcs,
-                                const InterpHook& pre_interp = NullInterpHook(),
-                                const InterpHook& post_interp = NullInterpHook());
-
-
-    void InterpFromCoarseLevel (MultiFab& mf, Real time,
-				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom,
-				PhysBCFunctBase& cbc, PhysBCFunctBase& fbc, const IntVect& ratio,
-				Interpolater* mapper, const Vector<BCRec>& bcs,
+				const Geometry& cgeom, const Geometry& fgeom, 
+				PhysBCFunctBase& cbc, int cbccomp,
+                                PhysBCFunctBase& fbc, int fbccomp,
+                                const IntVect& ratio, 
+				Interpolater* mapper,
+                                const Vector<BCRec>& bcs, int bcscomp,
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
 
