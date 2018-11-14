@@ -431,18 +431,6 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                     attribs[PIdx::uzold] = u[2];
 #endif
 
-		    ParticleType p;
-		    p.id()  = ParticleType::NextID();
-		    p.cpu() = ParallelDescriptor::MyProc();
-#if (AMREX_SPACEDIM == 3)
-		    p.pos(0) = x;
-		    p.pos(1) = y;
-		    p.pos(2) = z;
-#elif (AMREX_SPACEDIM == 2)
-		    p.pos(0) = x;
-		    p.pos(1) = z;
-#endif
-
 		    AddOneParticle(lev, grid_id, tile_id, x, y, z, attribs);
                 }
             }
