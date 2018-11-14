@@ -153,7 +153,7 @@ public:
                     amrex::setBC(bx, domain, bccomp, 0, ncomp, m_bcr, bcrs);
 
                     // Note that we pass 0 as starting component of bcrs.
-                    m_f(bx, dest, icomp, ncomp, m_geom, time, m_bcr, 0, bccomp);
+                    m_f(bx, dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
                 }
             }
         }
