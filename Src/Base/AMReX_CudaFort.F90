@@ -35,12 +35,14 @@ module cuda_module
   ! Implement our own interface to cudaProfilerStart/cudaProfilerStop
   ! since XL does not provide this.
 
+#if 0
   interface
      subroutine cudaProfilerStart() bind(c, name='cudaProfilerStart')
      end subroutine cudaProfilerStart
      subroutine cudaProfilerStop() bind(c, name='cudaProfilerStop')
      end subroutine cudaProfilerStop
   end interface
+#endif
 
 contains
 
@@ -445,7 +447,7 @@ contains
 
     implicit none
 
-    call cudaProfilerStart()
+!    call cudaProfilerStart()
 
   end subroutine gpu_start_profiler
 
@@ -455,7 +457,7 @@ contains
 
     implicit none
 
-    call cudaProfilerStop()
+!    call cudaProfilerStop()
 
   end subroutine gpu_stop_profiler
 

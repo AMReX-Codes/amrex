@@ -7,6 +7,13 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
+#if defined(AMREX_USE_CUDA)
+#include <cuda_profiler_api.h>
+#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
+#include "nvToolsExt.h"
+#endif
+#endif
+
 #ifdef AMREX_USE_ACC
 #include <openacc.h>
 #endif
@@ -37,12 +44,23 @@ cudaDeviceProp Device::device_prop;
 void
 Device::Initialize ()
 {
+#ifdef AMREX_USE_CUDA
+
+#if defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)
+    // Wrap cuda init to identify it appropriately in nvvp.
+    // Note: first substantial cuda call may cause a lengthy
+    // cuda API and cuda driver API initialization that will
+    // be captured by the profiler. It a necessary, system
+    // dependent step that is unavoidable.
+    nvtxRangeId_t nvtx_init;
+    const char* pname = "initialize_device";
+    nvtx_init = nvtxRangeStartA(pname);
+#endif
+
     ParmParse pp("device");
 
     pp.query("v", verbose);
     pp.query("verbose", verbose);
-
-#ifdef AMREX_USE_CUDA
 
     // Count the number of CUDA visible devices.
 
@@ -157,10 +175,17 @@ Device::Initialize ()
     acc_set_device_num(device_id,acc_device_nvidia);
 #endif
 
-    initialize_cuda_c();
+    initialize_cuda();
 
-    if (amrex::Verbose())
+#if defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)
+    nvtxRangeEnd(nvtx_init);
+#endif
+
+    if (amrex::Verbose()) {
         amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
+    }
+
+    cudaProfilerStart();
 
 #endif
 
@@ -170,6 +195,9 @@ void
 Device::Finalize ()
 {
 #ifdef AMREX_USE_CUDA
+
+    cudaProfilerStop();
+
     for (int i = 0; i < max_cuda_streams; ++i)
     {
         AMREX_GPU_SAFE_CALL(cudaStreamDestroy(cuda_streams[i]));
@@ -183,10 +211,10 @@ Device::Finalize ()
 #endif
 }
 
-#if defined(AMREX_USE_CUDA)
 void
-Device::initialize_cuda_c ()
+Device::initialize_cuda ()
 {
+#if defined(AMREX_USE_CUDA)
     AMREX_GPU_SAFE_CALL(cudaGetDeviceProperties(&device_prop, device_id));
 
     if (device_prop.warpSize != 32) {
@@ -229,29 +257,18 @@ Device::initialize_cuda_c ()
     numBlocksOverride.x = (int) nx;
     numBlocksOverride.y = (int) ny;
     numBlocksOverride.z = (int) nz;
-}
-
-cudaStream_t
-Device::stream_from_index (int idx) {
-
-    if (idx < 0)
-        return 0;
-    else
-        return cuda_streams[idx % max_cuda_streams];
-
-}
 #endif
+}
 
 int
-Device::deviceId () {
-
+Device::deviceId ()
+{
     return device_id;
-
 }
 
 void
-Device::set_stream_index (const int idx) {
-
+Device::setStreamIndex (const int idx)
+{
 #ifdef AMREX_USE_CUDA
     if (idx < 0) {
         cuda_stream = 0;
@@ -262,81 +279,19 @@ Device::set_stream_index (const int idx) {
 }
 
 void
-Device::prepare_for_launch (const int* lo, const int* hi) {
-
-    // Sets the number of threads and blocks in Fortran.
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-    int txmin = numThreadsMin.x;
-    int tymin = numThreadsMin.y;
-    int tzmin = numThreadsMin.z;
-
-    set_threads_and_blocks(lo, hi, &txmin, &tymin, &tzmin);
-#endif
-
-}
-
-void*
-Device::get_host_pointer (const void* ptr) {
-
-    void* r = const_cast<void*>(ptr);
+Device::synchronize ()
+{
 #ifdef AMREX_USE_CUDA
-    gpu_host_device_ptr(&r, ptr);
+    AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
 #endif
-    return r;
-
 }
 
 void
-Device::check_for_errors () { // xxxxx remove?
-
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-    AMREX_GPU_ERROR_CHECK();
-#endif
-
-}
-
-void
-Device::synchronize () {
-
+Device::streamSynchronize ()
+{
 #ifdef AMREX_USE_CUDA
-    gpu_synchronize();
+    AMREX_GPU_SAFE_CALL(cudaStreamSynchronize(cuda_stream));
 #endif
-
-}
-
-#if 0
-void
-Device::stream_synchronize (const int idx) {
-
-#ifdef AMREX_USE_CUDA
-    gpu_stream_synchronize(idx);
-#endif
-
-}
-#endif
-
-void*
-Device::device_malloc (const std::size_t sz) {
-
-    void* ptr = nullptr;
-#ifdef AMREX_USE_CUDA
-    gpu_malloc(&ptr, &sz);
-#else
-    ptr = amrex_malloc(sz);
-#endif
-
-    return ptr;
-}
-
-void
-Device::device_free (void* ptr) {
-
-#ifdef AMREX_USE_CUDA
-    gpu_free(ptr);
-#else
-    amrex_free(ptr);
-#endif
-
 }
 
 void
@@ -393,25 +348,15 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz) {
 #endif
 }
 
-void
-Device::start_profiler () {
-
-#ifdef AMREX_USE_CUDA
-    gpu_start_profiler();
-#endif
-
-}
+#if defined(AMREX_USE_CUDA)
 
 void
-Device::stop_profiler () {
-
-#ifdef AMREX_USE_CUDA
-    gpu_stop_profiler();
-#endif
-
+Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
+{
+    numThreads = AMREX_CUDA_MAX_THREADS;
+    numBlocks = std::max((N + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS, 1L); // in case N = 0
 }
 
-#if (defined(AMREX_USE_CUDA) && defined(__CUDACC__))
 void
 Device::c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads) {
 
@@ -441,13 +386,11 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 }
 
 void
-Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) {
-
-    int num_SMs;
+Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads)
+{
+    int num_SMs = device_prop.multiProcessorCount;
 
     int SM_mult_factor = 32;
-
-    get_num_SMs(&num_SMs);
 
     if (num_SMs > 0) {
 
@@ -488,42 +431,7 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) {
 
 }
 
-void 
-Device::particle_threads_and_blocks (const int np, int& numThreads, int& numBlocks) {
-    numThreads = AMREX_CUDA_MAX_THREADS;
-    numBlocks = (np + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS;
-}
-
-
-void
-Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
-{
-    numThreads = AMREX_CUDA_MAX_THREADS;
-    numBlocks = std::max((N + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS, 1L); // in case N = 0
-}
 #endif
 
 }}
 
-extern "C" {
-    void* amrex_gpu_malloc (std::size_t size)
-    {
-#ifdef AMREX_USE_CUDA
-        void *ptr = nullptr;
-        cudaMalloc((void**) ptr, size); 
-        return ptr;
-#else
-        return amrex_malloc(size);
-#endif
-    }
-
-
-    void amrex_gpu_free (void* p)
-    {
-#ifdef AMREX_USE_CUDA
-        cudaFree(p); 
-#else
-        amrex_free(p);
-#endif
-    }
-}
