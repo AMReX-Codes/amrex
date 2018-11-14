@@ -2310,7 +2310,7 @@ BaseFab<T>::setComplement (T          x,
     for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
 #ifdef AMREX_USE_GPU
-        CudaAPICheck(cudaDeviceSynchronize());
+        AMREX_GPU_CHECK(cudaDeviceSynchronize());
 #endif
     }
 }

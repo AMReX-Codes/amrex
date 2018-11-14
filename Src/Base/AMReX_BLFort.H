@@ -55,7 +55,7 @@
       dim3 numBlocks, numThreads; \
       amrex::Gpu::Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
       function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
+      amrex::Cuda::ErrorCheck(); \
     }
 
 #define AMREX_FORT_LAUNCHABLE(func) __global__ func
@@ -89,7 +89,7 @@
 #define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function##numBlocks, function##numThreads; \
       amrex::Gpu::Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
-      CudaAPICheck(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
+      AMREX_GPU_CHECK(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
       cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::Device::cudaStream()>>> \
 
 #else
