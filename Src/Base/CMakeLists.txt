@@ -155,7 +155,7 @@ if (ENABLE_TINY_PROFILE)
    add_sources( AMReX_TinyProfiler.H )
 endif ()
 
-add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H )
+add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H AMReX_GpuError.H )
 add_sources( AMReX_GpuControl.cpp )
 
 #

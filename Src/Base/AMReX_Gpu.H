@@ -4,6 +4,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuLaunch.H>
+#include <AMReX_GpuError.H>
 
 #include <AMReX_CudaMemory.H>
 #include <AMReX_CudaRange.H>

@@ -3,32 +3,13 @@
 
 #include <cstdlib>
 #include <memory>
+#include <array>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
-
-#ifdef AMREX_USE_CUDA
-#ifdef AMREX_USE_NVML
-#include <nvml.h>
-#endif
-#endif
-
-#if defined(AMREX_USE_CUDA)
-
-#define AMREX_GPU_CHECK(error) amrex::Cuda::APICheck((error))
-#ifdef AMREX_USE_NVML
-#define AMREX_NVML_CHECK(error) amrex::Cuda::NvmlAPICheck((error))
-#endif
-
-#else
-
-#define AMREX_GPU_CHECK(error) (error)
-
-#endif
-
+#include <AMReX_GpuError.H>
 
 extern "C" {
 #ifdef AMREX_USE_CUDA
-    void initialize_cuda(const int* id);
     void finalize_cuda();
     void get_cuda_device_id(int* device);
     void gpu_malloc(void** p, const std::size_t* sz);
@@ -54,41 +35,6 @@ extern "C" {
 
 namespace amrex {
 namespace Cuda {
-
-inline void ErrorCheck ()
-{
-#if defined(AMREX_USE_CUDA)
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        std::string errStr("CUDA failure: ");
-        errStr.append(cudaGetErrorString(err));
-        amrex::Abort(errStr);
-    }
-#endif
-}
-
-#if defined(AMREX_USE_CUDA)
-inline void APICheck(cudaError_t err)
-{
-    if (err != cudaSuccess) {
-        std::string errStr("CUDA failure: ");
-        errStr.append(cudaGetErrorString(err));
-        amrex::Abort(errStr);
-    }
-}
-#endif
-
-#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_NVML)
-inline void ActualNvmlAPICheck(nvmlReturn_t err)
-{
-    if (err != NVML_SUCCESS) {
-        std::string errStr("NVML failure: ");
-        errStr.append(nvmlErrorString(err));
-        amrex::Abort(errStr);
-    }
-}
-#endif
-
 
 class Device
 {
@@ -169,8 +115,8 @@ private:
     static int verbose;
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
-    static const int max_cuda_streams = 16;
-    static cudaStream_t cuda_streams[max_cuda_streams];
+    static constexpr int max_cuda_streams = 16;
+    static std::array<cudaStream_t,max_cuda_streams> cuda_streams;
     static cudaStream_t cuda_stream;
 
     static dim3 numThreadsMin;

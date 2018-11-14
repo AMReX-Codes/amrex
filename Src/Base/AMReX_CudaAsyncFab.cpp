@@ -58,8 +58,9 @@ AsyncFab::clear ()
     {
         if (m_impl != nullptr) {
             AsyncFabImpl* p = m_impl.release();
-// CUDA 10        AMREX_GPU_CHECK(cudaLaunchHostFunc(Device::cudaStream(), amrex_devicefab_delete, p));
-            AMREX_GPU_CHECK(cudaStreamAddCallback(Device::cudaStream(), amrex_devicefab_delete, p, 0));
+// CUDA 10        AMREX_GPU_SAFE_CALL(cudaLaunchHostFunc(Device::cudaStream(), amrex_devicefab_delete, p));
+            AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
+                                                      amrex_devicefab_delete, p, 0));
         }
     }
     else
