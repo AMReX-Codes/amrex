@@ -1,5 +1,5 @@
-#ifndef _AMReX_EB_LSCoreBase_H_
-#define _AMReX_EB_LSCoreBase_H_
+#ifndef AMReX_EB_LSCoreBase_H_
+#define AMReX_EB_LSCoreBase_H_
 
 
 #include <string>
