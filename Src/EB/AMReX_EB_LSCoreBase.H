@@ -42,6 +42,7 @@ public:
     // Constructor - reads amr in parameters from inputs file
     //             - sizes multilevel arrays and data structures
     LSCoreBase ();
+    LSCoreBase (const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord=-1);
     virtual ~LSCoreBase ();
 
     // Initializes multilevel data
@@ -79,7 +80,7 @@ public:
 protected:
 
     /****************************************************************************
-     * private member functions                                                 *
+     * protected member functions                                               *
      ***************************************************************************/
 
     // Read in some parameters from inputs file
@@ -121,7 +122,7 @@ protected:
 
 
     /****************************************************************************
-     * private data members                                                     *
+     * protected data members                                                   *
      ***************************************************************************/
 
     //
@@ -165,6 +166,20 @@ protected:
     // checkpoint prefix and frequency
     std::string chk_file {"ls_chk"};
     int chk_int = -1;
+
+
+private:
+
+
+    /****************************************************************************
+     * private member functions                                                 *
+     ***************************************************************************/
+
+    // Initializer used by both default and specialized constructors
+    void InitLSCoreBase();
+
+
+
 
 #if defined(BL_USE_SENSEI_INSITU)
     amrex::AmrMeshInSituBridge *insitu_bridge;
