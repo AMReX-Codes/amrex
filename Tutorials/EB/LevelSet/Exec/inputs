@@ -6,7 +6,7 @@ n_cell = 32 32 32
 max_grid_size = 8
 
 prob_lo     = 0.      0.      0.      # lo corner of physical domain
-prob_hi     = 0.0032  0.0032  0.0032  # hi corner of physical domain
+prob_hi     = 0.0032  0.0032  0.0048  # hi corner of physical domain
 
 is_periodic = 1       1       0       # Is periodic in each direction?
 
@@ -31,7 +31,8 @@ eb.make_cylinder  = true
 
 cyl.cyl_dir       = 2
 cyl.cyl_radius    = .0016
-cyl.cyl_length    = .0032
+#cyl.cyl_length    = .0032
+cyl.cyl_length    = -1
 cyl.cyl_translate = .0016 .0016 0.
 
 #########################################################################
@@ -56,7 +57,7 @@ amr.n_cell    = 8  8  8
 amr.max_grid_size = 4
 
 geometry.prob_lo     = 0.      0.      0.      # lo corner of physical domain
-geometry.prob_hi     = 0.0032  0.0032  0.0032  # hi corner of physical domain
+geometry.prob_hi     = 0.0032  0.0032  0.0048  # hi corner of physical domain
 
 geometry.is_periodic = 1       1       0       # Is periodic in each direction?
 
