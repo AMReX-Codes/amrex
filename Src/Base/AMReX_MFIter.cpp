@@ -192,8 +192,8 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    Gpu::Device::check_for_errors();
-    Gpu::Device::set_stream_index(-1);
+    AMREX_GPU_ERROR_CHECK();
+    Gpu::Device::resetStreamIndex();
 #endif
 }
 
@@ -286,7 +286,7 @@ MFIter::Initialize ()
 	currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
-	Gpu::Device::set_stream_index(currentIndex);
+	Gpu::Device::setStreamIndex(currentIndex);
 #endif
 
 	typ = fabArray.boxArray().ixType();
@@ -447,8 +447,8 @@ MFIter::operator++ ()
 
     ++currentIndex;
 
-    Gpu::Device::set_stream_index(currentIndex);
-    Gpu::Device::check_for_errors();
+    Gpu::Device::setStreamIndex(currentIndex);
+    AMREX_GPU_ERROR_CHECK();
 #ifdef DEBUG
     Gpu::Device::synchronize();
 #endif

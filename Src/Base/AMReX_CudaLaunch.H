@@ -135,8 +135,7 @@
             } \
         }); \
         ++sync_var; \
-        amrex::Cuda::Device::set_stream_index(sync_var);       \
-        amrex::Cuda::Device::check_for_errors();                      \
+        amrex::Cuda::Device::set_stream_index(sync_var); \
         AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
