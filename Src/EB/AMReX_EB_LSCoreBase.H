@@ -73,6 +73,8 @@ public:
     // Write plotfile to disk
     void WritePlotFile ();
 
+    // Write checkpoint file to disk
+    void WriteCheckpointFile () const;
 
 protected:
 
@@ -110,9 +112,6 @@ protected:
 
     // Set plotfile variables names
     Vector<std::string> PlotFileVarNames () const;
-
-    // Write checkpoint file to disk
-    void WriteCheckpointFile () const;
 
     // read checkpoint file from disk
     void ReadCheckpointFile ();

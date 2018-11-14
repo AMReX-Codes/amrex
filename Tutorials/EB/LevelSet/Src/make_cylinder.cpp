@@ -103,6 +103,7 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     LSCore<CylinderIF> amr_ls(cylinder_gshop);
     amr_ls.InitData();
     amr_ls.WritePlotFile();
+    amr_ls.WriteCheckpointFile();
 
     VisMF::Write(* cylinder_mf_impfunc, "ImpFunc_SideWalls");
 
