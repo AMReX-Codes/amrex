@@ -142,7 +142,7 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
-  CUDA_ARCH ?= 35
+  CUDA_ARCH ?= 60
 
   # Maximum number of CUDA threads per block.
   CUDA_MAX_THREADS ?= 256
@@ -184,6 +184,12 @@ endif
 ifneq ($(USE_CUDA),TRUE)
   USE_GPU_PRAGMA = FALSE
 endif
+
+ifdef GPU_ERROR_CHECK
+  GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
+else
+  GPU_ERROR_CHECK := TRUE
+endif 
 
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
@@ -452,6 +458,9 @@ endif
 
 ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
+    ifeq ($(GPU_ERROR_CHECK),FALSE)
+        DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
