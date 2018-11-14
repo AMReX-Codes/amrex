@@ -30,7 +30,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         long amrex_i_npts = BX.numPts(); \
@@ -52,7 +52,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOXIV: cannot call device function from host"); \
@@ -68,7 +68,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         for (auto const TI : amrex::Cuda::Range(TN)) { \
@@ -86,7 +86,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE: cannot call device function from host"); \
@@ -109,7 +109,7 @@
                 if (tbb.ok()) block \
             } \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -136,7 +136,7 @@
         ++sync_var; \
         amrex::Cuda::Device::set_stream_index(sync_var);       \
         amrex::Cuda::Device::check_for_errors();                      \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -160,7 +160,7 @@
                 if (tbb.ok()) block \
             } \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
@@ -225,7 +225,7 @@
                 block \
             }}} \
         }); \
-        CudaErrorCheck(); \
+        amrex::Cuda::ErrorCheck(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -238,7 +238,7 @@
       { \
          auto amrex_i_ec = strategy;                                           \
          amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
-         CudaErrorCheck(); \
+         amrex::Cuda::ErrorCheck(); \
       } \
       else \
       { \
@@ -252,7 +252,7 @@
       { \
          auto amrex_i_ec = strategy; \
          amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
-         CudaErrorCheck(); \
+         amrex::Cuda::ErrorCheck(); \
       } \
       else \
       { \
@@ -265,7 +265,7 @@
     { \
         auto amrex_i_ec = strategy;                                             \
         function<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
-        CudaErrorCheck();                                               \
+        amrex::Cuda::ErrorCheck();                                               \
     }
 
 #else

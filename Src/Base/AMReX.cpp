@@ -470,7 +470,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 
     // Initialize after ParmParse so that we can read inputs.
-    Gpu::Device::initialize_device();
+    Gpu::Device::Initialize();
 
 #if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
     nvtxRangeEnd(nvtx_init);
@@ -666,7 +666,7 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 
 #ifdef AMREX_USE_GPU
-    Gpu::Device::finalize_device();
+    Gpu::Device::Finalize();
 #endif
 
 #if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)

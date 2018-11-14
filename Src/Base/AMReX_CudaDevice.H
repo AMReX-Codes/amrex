@@ -12,42 +12,19 @@
 #endif
 #endif
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+#if defined(AMREX_USE_CUDA)
 
-#define CudaErrorCheck() ActualCudaErrorCheck()
-
-inline void ActualCudaErrorCheck() {
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        std::string errStr("CUDA failure: ");
-        errStr.append(cudaGetErrorString(err));
-        amrex::Abort(errStr);
-    }
-}
-
-#define CudaAPICheck(error) ActualCudaAPICheck(error)
-
-inline void ActualCudaAPICheck(cudaError_t err) {
-    if (err != cudaSuccess) {
-        std::string errStr("CUDA failure: ");
-        errStr.append(cudaGetErrorString(err));
-        amrex::Abort(errStr);
-    }
-}
-
+#define AMREX_GPU_CHECK(error) amrex::Cuda::APICheck((error))
 #ifdef AMREX_USE_NVML
-#define NvmlAPICheck(error) ActualNvmlAPICheck(error)
-
-inline void ActualNvmlAPICheck(nvmlReturn_t err) {
-    if (err != NVML_SUCCESS) {
-        std::string errStr("NVML failure: ");
-        errStr.append(nvmlErrorString(err));
-        amrex::Abort(errStr);
-        }
-}
+#define AMREX_NVML_CHECK(error) amrex::Cuda::NvmlAPICheck((error))
 #endif
 
+#else
+
+#define AMREX_GPU_CHECK(error) (error)
+
 #endif
+
 
 extern "C" {
 #ifdef AMREX_USE_CUDA
@@ -78,14 +55,49 @@ extern "C" {
 namespace amrex {
 namespace Cuda {
 
+inline void ErrorCheck ()
+{
+#if defined(AMREX_USE_CUDA)
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::string errStr("CUDA failure: ");
+        errStr.append(cudaGetErrorString(err));
+        amrex::Abort(errStr);
+    }
+#endif
+}
+
+#if defined(AMREX_USE_CUDA)
+inline void APICheck(cudaError_t err)
+{
+    if (err != cudaSuccess) {
+        std::string errStr("CUDA failure: ");
+        errStr.append(cudaGetErrorString(err));
+        amrex::Abort(errStr);
+    }
+}
+#endif
+
+#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_NVML)
+inline void ActualNvmlAPICheck(nvmlReturn_t err)
+{
+    if (err != NVML_SUCCESS) {
+        std::string errStr("NVML failure: ");
+        errStr.append(nvmlErrorString(err));
+        amrex::Abort(errStr);
+    }
+}
+#endif
+
+
 class Device
 {
 
 public:
 
-    static void initialize_device();
+    static void Initialize ();
 
-    static void finalize_device();
+    static void Finalize ();
 
     static void set_stream_index(const int idx);
 
