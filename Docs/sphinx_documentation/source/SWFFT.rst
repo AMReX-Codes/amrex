@@ -7,8 +7,6 @@
 .. role:: underline
     :class: underline
 
-.. raw:: latex
-
 SWFFT
 =======
 
@@ -76,7 +74,8 @@ The following figures illustrate how data is distributed from block structured g
 
 Using the same number of AMReX grids as processes has been verified to work in the ``SWFFT`` and ``SWFFT_simple`` tutorials. This can be illustrated by the following equation for the total number of grids, :math:`N_{b}`, in a regularly structured domain:
 
-.. math:: N_{b} &= m_{bi} m_{bj} = n_{bi} n_{bj} n_{bk}
+.. raw:: latex
+.. math:: N_{b} = m_{bi} m_{bj} = n_{bi} n_{bj} n_{bk},
 
 where :math:`n_{bi}, n_{bj},` and :math:`n_{bk}` are the number of grids, or boxes, in the :math:`x, y,` and :math:`z` dimensions of the block-structured grid. Analogously, for pencil distributions, :math:`m_{bi}` and :math:`m_{bj}` are the number of grids along the remaining dimensions if pencils are taken in the :math:`k` direction. There are many possible ways of redistributing the data, for example :math:`m_{bi} = n_{bi}n_{bk}` & :math:`m_{bj} = n_{bj}` is one possible simple configuration. However, it is evident from the figures above that the SWFFT redistribution algorithm has a more sophisticated method for finding the prime factors of the grid.
 
