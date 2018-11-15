@@ -20,6 +20,14 @@ else ifeq ($(VERBOSE),FALSE)
   SILENT = @
 endif
 
+ifndef LINKFLAGS
+ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+  LINKFLAGS = $(F90FLAGS)
+else
+  LINKFLAGS = $(CXXFLAGS)
+endif
+endif
+
 #
 # Rules for building executable.
 #
@@ -27,9 +35,9 @@ $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-	$(SILENT) $(F90) $(F90FLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(F90) $(LINKFLAGS) $(FINAL_CPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
 else
-	$(SILENT) $(CXX) $(CXXFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(CXX) $(LINKFLAGS) $(FINAL_CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 endif
 #	@echo SUCCESS
 endif
