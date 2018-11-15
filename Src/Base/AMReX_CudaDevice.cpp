@@ -17,7 +17,7 @@
 #ifdef AMREX_USE_ACC
 extern "C" {
     void amrex_initialize_acc (int);
-    void armex_finalize_acc ();
+    void amrex_finalize_acc ();
 }
 #endif
 
