@@ -58,13 +58,13 @@ public:
     void SetMaxGridSize (const IntVect& new_mgs) {
         max_grid_size.assign(max_level+1, new_mgs);
     }
-    void SetMaxGridSize (const Vector<int>& new_mgs) { 
+    void SetMaxGridSize (const Vector<int>& new_mgs) {
         max_grid_size.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
             max_grid_size[i] = IntVect{AMREX_D_DECL(new_mgs[i],new_mgs[i],new_mgs[i])};
         }
     }
-    void SetMaxGridSize (const Vector<IntVect>& new_mgs) { 
+    void SetMaxGridSize (const Vector<IntVect>& new_mgs) {
         max_grid_size.assign(new_mgs.cbegin(), new_mgs.cbegin()+max_level+1);
     }
 
@@ -102,7 +102,7 @@ public:
     //! Return the minimum allowable grid efficiency.
     Real gridEff () const { return grid_eff; }
 
-    //! Return the number of cells to define proper nesting 
+    //! Return the number of cells to define proper nesting
     int nProper () const { return n_proper; }
 
     //! Return the blocking factor at level lev
@@ -163,7 +163,7 @@ public:
     static void Finalize ();
 
 protected:
-    
+
     int              verbose;
     int              max_level;    // Maximum allowed level.
     Vector<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
@@ -183,7 +183,7 @@ protected:
 
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
-    Vector<BoxArray>            grids;    
+    Vector<BoxArray>            grids;
 
     void checkInput();
 
@@ -197,4 +197,3 @@ private:
 }
 
 #endif
-
