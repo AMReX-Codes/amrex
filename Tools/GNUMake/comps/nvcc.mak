@@ -7,7 +7,7 @@
 #
 
 ifeq ($(USE_ACC),TRUE)
-  NVCC_HOST_COMP ?= COMP
+  NVCC_HOST_COMP ?= $(COMP)
 else
   NVCC_HOST_COMP ?= gnu
 endif
