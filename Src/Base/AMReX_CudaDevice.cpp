@@ -358,31 +358,69 @@ Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 }
 
 void
-Device::c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps, dim3& numBlocks, dim3& numThreads) {
-
+Device::c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
+                                    dim3& numBlocks, dim3& numThreads)
+{
     c_threads_and_blocks(lo, hi, numBlocks, numThreads);
     numBlocks.x *= static_cast<unsigned>(comps);
 }
 
 void
-Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) {
+Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads)
+{
+    // Our threading strategy will be to allocate thread blocks
+    //preferring the x direction first to guarantee coalesced accesses.
+    int tile_size[] = {AMREX_D_DECL(hi[0]-lo[0]+1,hi[1]-lo[1]+1,hi[2]-lo[2]+1)};
 
-    int bx, by, bz, tx, ty, tz;
+#if (AMREX_SPACEDIM == 1)
 
-    int txmin = numThreadsMin.x;
-    int tymin = numThreadsMin.y;
-    int tzmin = numThreadsMin.z;
+    numThreads.x = std::min(tile_size[0], AMREX_CUDA_MAX_THREADS);
+    numThreads.x = std::max(numThreads.x, numThreadsMin.x);
+    numThreads.y = 1;
+    numThreads.z = 1;
 
-    get_threads_and_blocks(lo, hi, &bx, &by, &bz, &tx, &ty, &tz, &txmin, &tymin, &tzmin);
+    numBlocks.x = (tile_size[0] + numThreads.x - 1) / numThreads.x;
+    numBlocks.y = 1;
+    numBlocks.z = 1;
 
-    numBlocks.x = bx;
-    numBlocks.y = by;
-    numBlocks.z = bz;
+#elif (AMREX_SPACEDIM == 2)
 
-    numThreads.x = tx;
-    numThreads.y = ty;
-    numThreads.z = tz;
+    numThreads.x = std::min(static_cast<unsigned>(tile_size[0]), AMREX_CUDA_MAX_THREADS / numThreadsMin.y);
+    numThreads.y = std::min(static_cast<unsigned>(tile_size[1]), AMREX_CUDA_MAX_THREADS / numThreads.x   );
+    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
+    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
+    numThreads.z = 1;
 
+    numBlocks.x = (tile_size[0] + numThreads.x - 1) / numThreads.x;
+    numBlocks.y = (tile_size[1] + numThreads.y - 1) / numThreads.y;
+    numBlocks.z = 1;
+
+#else
+
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
+    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
+
+    numThreads.x = std::max(numThreadsMin.x, std::min(static_cast<unsigned>(tile_size[0]), numThreads.x));
+    numThreads.y = std::max(numThreadsMin.y, std::min(static_cast<unsigned>(tile_size[1]), numThreads.y));
+    numThreads.z = std::max(numThreadsMin.z, std::min(static_cast<unsigned>(tile_size[2]), numThreads.z));
+
+    numBlocks.x = (tile_size[0] + numThreads.x - 1) / numThreads.x;
+    numBlocks.y = (tile_size[1] + numThreads.y - 1) / numThreads.y;
+    numBlocks.z = (tile_size[2] + numThreads.z - 1) / numThreads.z;
+
+#endif
+
+    AMREX_ASSERT(numThreads.x <= device_prop.maxThreadsDim[0]);
+    AMREX_ASSERT(numThreads.y <= device_prop.maxThreadsDim[1]);
+    AMREX_ASSERT(numThreads.z <= device_prop.maxThreadsDim[2]);
+    AMREX_ASSERT(numThreads.x*numThreads.y*numThreads.z <= device_prop.maxThreadsPerBlock);
+    AMREX_ASSERT(numThreads.x > 0);
+    AMREX_ASSERT(numThreads.y > 0);
+    AMREX_ASSERT(numThreads.z > 0);
+    AMREX_ASSERT(numBlocks.x > 0);
+    AMREX_ASSERT(numBlocks.y > 0);
+    AMREX_ASSERT(numBlocks.z > 0);
 }
 
 void
