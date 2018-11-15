@@ -43,16 +43,14 @@ endif
 CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
-CFLAGS = $(CFLAGS_FROM_HOST) -Wno-deprecated-gpu-targets -m64 -dc -x c -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
-
-CXXFLAGS += --ptxas-options=-v
+CFLAGS   = $(CFLAGS_FROM_HOST)   -Wno-deprecated-gpu-targets -m64 -dc -x cu -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
 
 ifeq ($(DEBUG),TRUE)
   CXXFLAGS += -g -G
   CFLAGS += -g -G
 else
-  CXXFLAGS += --use_fast_math -lineinfo
-  CFLAGS += --use_fast_math -lineinfo
+  CXXFLAGS += --use_fast_math -lineinfo --ptxas-options=-O3,-v
+  CFLAGS   += --use_fast_math -lineinfo --ptxas-options=-O3,-v
 endif
 
 CXX := nvcc
