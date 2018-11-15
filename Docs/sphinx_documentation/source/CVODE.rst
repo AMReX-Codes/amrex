@@ -6,7 +6,7 @@
 
 
 Compiling AMReX with CVODE (Cray or Sundials version 2.7)
-=========================================================
+-----------------------------------------------------------
 
 The following steps describe how to compile an AMReX application with
 CVODE support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
@@ -74,7 +74,7 @@ On systems which are not Cray:
    libraries are installed.
 
 CVODE Tutorials
-===================
+------------------
 
 AMReX provides two CVODE tutorials in the ``amrex/Tutorials/CVODE`` directory, called
 ``EX1`` and ``EX2``.  See the Tutorials CVODE_ documentation for more detail.

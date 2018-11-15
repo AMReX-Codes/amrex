@@ -1,5 +1,5 @@
 AMReX Tutorials
-================================
+===============
 
 AMReX is a software framework library containing all the functionality to write
 massively parallel, block-structured adaptive mesh refinement (AMR)
