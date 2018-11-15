@@ -116,7 +116,7 @@ add_sources( AMReX_MultiFabUtil_F.H )
 add_sources( AMReX_FilCC_${DIM}D_C.cpp )
 add_sources( AMReX_FilCC_C.H )
 
-add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
+add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_acc_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
 add_sources( AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
 add_sources( AMReX_bc_types_mod.F90 )
 add_sources( AMReX_ParallelDescriptor_F.F90 )

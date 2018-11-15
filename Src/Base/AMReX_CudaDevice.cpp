@@ -15,7 +15,10 @@
 #endif
 
 #ifdef AMREX_USE_ACC
-#include <openacc.h>
+extern "C" {
+    void amrex_initialize_acc (int);
+    void armex_finalize_acc ();
+}
 #endif
 
 #ifndef AMREX_CUDA_MAX_THREADS
@@ -28,7 +31,7 @@ namespace Cuda {
 int Device::device_id = 0;
 int Device::verbose = 0;
 
-#if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
+#if defined(AMREX_USE_CUDA)
 constexpr int Device::max_cuda_streams;
 
 std::array<cudaStream_t,Device::max_cuda_streams> Device::cuda_streams;
@@ -171,8 +174,7 @@ Device::Initialize ()
     AMREX_GPU_SAFE_CALL(cudaSetDevice(device_id));
 
 #ifdef AMREX_USE_ACC
-    acc_init(acc_device_nvidia);
-    acc_set_device_num(device_id,acc_device_nvidia);
+    amrex_initialize_acc(device_id);
 #endif
 
     initialize_cuda();
@@ -204,7 +206,7 @@ Device::Finalize ()
     }
 
 #ifdef AMREX_USE_ACC
-    acc_shutdown(acc_device_nvidia);
+    amrex_finalize_acc();
 #endif
 
     AMREX_GPU_SAFE_CALL(cudaDeviceReset());
