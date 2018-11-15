@@ -40,7 +40,7 @@
 #include <numeric>
 
 namespace amrex {
-//! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication 
+//! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication
 namespace ParallelDescriptor
 {
 #ifdef BL_USE_MPI3
@@ -53,7 +53,7 @@ namespace ParallelDescriptor
     //
     const std::string Unnamed("Unnamed");
 
-    //! Hold the description and status of communication data 
+    //! Hold the description and status of communication data
     class Message
     {
     public:
@@ -122,7 +122,7 @@ namespace ParallelDescriptor
 	return r;
 #else
 	return 0;
-#endif	
+#endif
     }
 
     //! Provide functionalities needed to construct a team of processes to perform a particular job
@@ -131,7 +131,7 @@ namespace ParallelDescriptor
 	typedef MPI_Comm team_t;
 
         //! synchronize processes within the team
-	void Barrier () const { 
+	void Barrier () const {
 	    if (m_size > 1) {
 #if defined(BL_USE_MPI3)
 		MPI_Barrier(m_team_comm);
@@ -167,7 +167,7 @@ namespace ParallelDescriptor
 	    }
 #endif
 	}
-	
+
 	const team_t& get() const {
 	    return m_team_comm;
 	}
@@ -269,8 +269,8 @@ namespace ParallelDescriptor
 	return (rank >= 0) ? (rank / m_Team.m_size) : MPI_PROC_NULL;
     }
     inline bool
-    doTeamReduce () 
-    { 
+    doTeamReduce ()
+    {
 	return m_Team.m_do_team_reduce;
     }
     inline const ProcessTeam&
@@ -316,9 +316,9 @@ namespace ParallelDescriptor
 	    } else {           // get nr items
 		rb += tid * nr + nlft;
 		re = rb + nr;
-	    }	    
+	    }
 	}
-#endif	
+#endif
 
 	return std::make_pair(rb,re);
     }
@@ -920,7 +920,7 @@ ParallelDescriptor::Gather (const T& t, int root)
 
 template <class T>
 void
-ParallelDescriptor::Gatherv (const T* send, int sc, 
+ParallelDescriptor::Gatherv (const T* send, int sc,
 			     T* recv, const std::vector<int>& rc, const std::vector<int>& disp,
 			     int root)
 {
@@ -936,7 +936,7 @@ ParallelDescriptor::Gatherv (const T* send, int sc,
 
 template <class T>
 void
-ParallelDescriptor::Gatherv (const T* send, long sc, 
+ParallelDescriptor::Gatherv (const T* send, long sc,
 			     T* recv, const std::vector<long>& rc, const std::vector<long>& disp,
 			     int root)
 {
