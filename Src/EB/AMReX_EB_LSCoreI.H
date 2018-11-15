@@ -3,8 +3,18 @@
 // called by default.
 template<class F>
 LSCore<F>::LSCore (EB2::GeometryShop<F> a_gshop)
-    : m_gshop(a_gshop)
+: m_gshop(a_gshop)
 {}
+
+
+// NOTE: here we need to explicitly call the super call (LSCoreBase)
+// constructor due to the extra arguments
+template<class F>
+LSCore<F>::LSCore (EB2::GeometryShop<F> a_gshop,
+                   const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord)
+: LSCoreBase(rb, max_level_in, n_cell_in, coord), m_gshop(a_gshop)
+{}
+
 
 
 template<class F>
