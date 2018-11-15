@@ -23,7 +23,7 @@ public:
 
     EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
                         const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        const Vector<int>& a_ngrow, EBSupport a_support);    
+                        const Vector<int>& a_ngrow, EBSupport a_support);
     virtual ~EBFArrayBoxFactory () = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
@@ -66,7 +66,7 @@ public:
 
     const DistributionMapping& DistributionMap () const;
     const BoxArray& boxArray () const;
-   
+
 private:
 
     EBSupport m_support;
@@ -96,4 +96,3 @@ makeEBFabFactory (const EB2::IndexSpace*, const Geometry& a_geom,
 }
 
 #endif
-
