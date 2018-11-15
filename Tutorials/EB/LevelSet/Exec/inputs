@@ -1,3 +1,5 @@
+n_lev = 4
+
 # Number of grid cells in each direction at the coarsest level
 n_cell = 32 32 32
 

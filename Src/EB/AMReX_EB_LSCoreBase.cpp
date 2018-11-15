@@ -26,9 +26,27 @@ namespace amrex {
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
 LSCoreBase::LSCoreBase () {
-    ReadParameters();
+    //NOTE: Geometry on all levels has been defined already.
 
-    // Geometry on all levels has been defined already.
+    ReadParameters();
+    InitLSCoreBase();
+}
+
+
+LSCoreBase::LSCoreBase(const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord)
+    : AmrCore(rb, max_level_in, n_cell_in, coord)
+{
+    //NOTE: Geometry on all levels has been defined already.
+
+    ReadParameters();
+    InitLSCoreBase();
+}
+
+
+LSCoreBase::~LSCoreBase () {}
+
+
+void LSCoreBase::InitLSCoreBase() {
 
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
@@ -75,10 +93,10 @@ LSCoreBase::LSCoreBase () {
             amrex::Abort("Invalid bc_hi");
         }
     }
+
 }
 
 
-LSCoreBase::~LSCoreBase () {}
 
 
 // Initializes multilevel data
@@ -205,7 +223,8 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     }
 }
 
-// read in some parameters from inputs file
+
+// Read some parameters from inputs file
 void LSCoreBase::ReadParameters () {
 
     /************************************************************************

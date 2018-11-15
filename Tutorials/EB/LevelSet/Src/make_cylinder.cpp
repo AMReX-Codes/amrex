@@ -13,8 +13,7 @@ using namespace amrex;
 std::unique_ptr<CappedCylinderIF>
 make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & translation,
                        int lev, const Geometry & geom, const DistributionMapping & dm,
-                       LSFactory * level_set)
-{
+                       LSFactory * level_set, LSCoreBase * ls_core) {
     // Polynomial defining (curved) cylinder walls parallel to a given axis:
     //     IF = a^2 + b^2 - R^2
     // where a, b \in {a, x, z} - {axis} for example, if the cylinder lies on
@@ -100,10 +99,10 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     //  -- returned MF has the same DM as LSFactory
     std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_ls_gshop.fill_impfunc();
 
-    LSCore<CylinderIF> amr_ls(cylinder_gshop);
-    amr_ls.InitData();
-    amr_ls.WritePlotFile();
-    amr_ls.WriteCheckpointFile();
+    // LSCore<CylinderIF> amr_ls(cylinder_gshop);
+    // amr_ls.InitData();
+    // amr_ls.WritePlotFile();
+    // amr_ls.WriteCheckpointFile();
 
     VisMF::Write(* cylinder_mf_impfunc, "ImpFunc_SideWalls");
 
@@ -132,6 +131,9 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
         new CappedCylinderIF(EB2::TranslationIF<EB2::UnionIF<EB2::PlaneIF,EB2::PlaneIF>>(walls_if),
                              EB2::TranslationIF<EB2::PolynomialIF>(cylinder_if))
         );
+
+    EB2::GeometryShop<CappedCylinderIF> capped_cylinder_gshop(* ret);
+    ls_core = new LSCore<CappedCylinderIF>(capped_cylinder_gshop);
 
     return ret;
 }

@@ -45,6 +45,9 @@ public:
     // Constructor - reads amr in parameters from inputs file
     //             - sizes multilevel arrays and data structures
     LSCore (EB2::GeometryShop<F> gshop);
+    LSCore (EB2::GeometryShop<F> a_gshop,
+            const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord=-1);
+
     virtual ~LSCore ();
 
     // Delete level data. Overrides the pure virtual function in AmrCore
