@@ -620,12 +620,13 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-    amrex_mempool_finalize();
-
 #ifdef BL_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif
+
+    amrex_mempool_finalize();
+    Arena::Finalize();
 
     ParallelDescriptor::EndTeams();
 
