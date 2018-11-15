@@ -1,19 +1,40 @@
 
-# Generic setup for using PGI
-#
+ifndef AMREX_CCOMP
+  AMREX_CCOMP = pgi
+endif
 
-# Due to how we are handling CUDA C compiling,
-# we must handle all of the C/C++ options first,
-# and only handle Fortran afterward.
-
-CXX = pgc++
-CC  = pgcc
+ifndef AMREX_FCOMP
+  AMREX_FCOMP = pgi
+endif
 
 ########################################################################
 
-pgi_version = $(shell $(CXX) -V 2>&1 | grep 'target')
+pgi_version = $(shell pgc++ -V 2>&1 | grep 'target')
 
 COMP_VERSION = $(pgi_version)
+
+########################################################################
+
+GENERIC_PGI_FLAGS =
+
+ifeq ($(USE_OMP),TRUE)
+  GENERIC_PGI_FLAGS += -mp=nonuma -Minfo=mp
+endif
+
+ifeq ($(USE_ACC),TRUE)
+  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
+else
+  GENERIC_PGI_FLAGS += -noacc
+endif
+
+########################################################################
+########################################################################
+########################################################################
+
+ifeq ($(AMREX_CCOMP),pgi)
+
+CXX = pgc++
+CC  = pgcc
 
 ########################################################################
 
@@ -41,30 +62,16 @@ endif
 CXXFLAGS += --c++11
 CFLAGS   += -c99
 
-
-
-GENERIC_PGI_FLAGS =
-
-ifeq ($(USE_OMP),TRUE)
-  GENERIC_PGI_FLAGS += -mp=nonuma -Minfo=mp
-endif
-
-ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
-else
-  GENERIC_PGI_FLAGS += -noacc
-endif
-
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
-ifeq ($(USE_CUDA),TRUE)
-  include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
-endif
+endif # AMREX_CCOMP == pgi
 
-override XTRALIBS += -lstdc++
+########################################################################
+########################################################################
+########################################################################
 
-
+ifeq ($(AMREX_FCOMP),pgi)
 
 #
 # Now set the Fortran flags. Since this is done after the GNU include
@@ -119,6 +126,8 @@ ifeq ($(USE_CUDA),TRUE)
     FFLAGS   += -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT)
   endif
 
+  DEFINES += -DAMREX_USE_CUDA_FORTRAN
+
   LINK_WITH_FORTRAN_COMPILER = TRUE
 
 endif
@@ -139,3 +148,5 @@ F90FLAGS += $(GENERIC_PGI_FLAGS)
 override XTRALIBS += -lstdc++ -pgf90libs -latomic
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
+
+endif # AMREX_FCOMP == pgi

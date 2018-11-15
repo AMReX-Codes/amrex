@@ -110,7 +110,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   ! Note that the device versions of these
   ! functions are intentionally constructed
   ! by hand rather than scripted.
@@ -148,7 +148,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_subtract_device(x, y)
 
     implicit none
@@ -182,7 +182,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_max_device(x, y)
 
     implicit none
@@ -216,7 +216,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_min_device(x, y)
 
     implicit none

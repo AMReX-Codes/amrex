@@ -1,21 +1,20 @@
-#
-# Generic setup for using gcc
-#
-CXX = g++
-CC  = gcc
-FC  = gfortran
-F90 = gfortran
-
-CXXFLAGS =
-CFLAGS   =
-FFLAGS   =
-F90FLAGS =
+GNU_DOT_MAK_INCLUDED = TRUE
 
 ########################################################################
 
-gcc_version       = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
-gcc_major_version = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-gcc_minor_version = $(shell $(CXX) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+ifndef AMREX_CCOMP
+  AMREX_CCOMP = gnu
+endif
+
+ifndef AMREX_FCOMP
+  AMREX_FCOMP = gnu
+endif
+
+########################################################################
+
+gcc_version       = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
+gcc_major_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
 COMP_VERSION = $(gcc_version)
 
@@ -32,62 +31,6 @@ ifeq ($(gcc_major_le_4),1)
     $(warning Your default GCC is version $(gcc_version). This might break during build. We therefore recommend that you specify a GCC >= 4.8 in your Make.local. The the docs on building AMReX for an example.)
   endif
 endif
-
-########################################################################
-
-ifeq ($(DEBUG),TRUE)
-
-  CXXFLAGS += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable -Werror=return-type
-  CFLAGS   += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable -Werror=return-type
-
-  FFLAGS   += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-  F90FLAGS += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-
-  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
-    CXXFLAGS += -Wnull-dereference
-    CFLAGS += -Wnull-dereference
-  endif
-
-else
-
-  CXXFLAGS += -g -O3
-  CFLAGS   += -g -O3
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
-
-endif
-
-
-ifeq ($(USE_GPROF),TRUE)
-
-  CXXFLAGS += -pg
-  CFLAGS += -pg
-  FFLAGS += -pg
-  F90FLAGS += -pg
-
-endif
-
-
-ifeq ($(USE_COMPILE_PIC),TRUE)
-
-  CXXFLAGS = -fPIC
-  CFLAGS = -fPIC
-  FFLAGS = -fPIC
-  F90FLAGS = -fPIC
-
-endif
-
-########################################################################
-
-ifeq ($(gcc_major_version),4)
-  CXXFLAGS += -std=c++11
-else ifeq ($(gcc_major_version),5)
-  CXXFLAGS += -std=c++14
-endif
-CFLAGS     += -std=gnu99
-
-FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
-F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir) -fimplicit-none
 
 ########################################################################
 
@@ -110,10 +53,115 @@ ifeq ($(USE_OMP),TRUE)
   GENERIC_GNU_FLAGS += -fopenmp
 endif
 
+########################################################################
+########################################################################
+########################################################################
+
+ifeq ($(AMREX_CCOMP),gnu)
+
+CXX = g++
+CC  = gcc
+
+CXXFLAGS =
+CFLAGS   =
+
+########################################################################
+
+ifeq ($(DEBUG),TRUE)
+
+  CXXFLAGS += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable -Werror=return-type
+  CFLAGS   += -g -O0 -ggdb -Wshadow -Wall -Wno-sign-compare -ftrapv -Wno-unused-but-set-variable -Werror=return-type
+
+  ifneq ($(gcc_major_version),$(filter $(gcc_major_version),4 5))
+    CXXFLAGS += -Wnull-dereference
+    CFLAGS += -Wnull-dereference
+  endif
+
+else
+
+  CXXFLAGS += -g -O3
+  CFLAGS   += -g -O3
+
+endif
+
+
+ifeq ($(USE_GPROF),TRUE)
+
+  CXXFLAGS += -pg
+  CFLAGS += -pg
+
+endif
+
+
+ifeq ($(USE_COMPILE_PIC),TRUE)
+
+  CXXFLAGS = -fPIC
+  CFLAGS = -fPIC
+
+endif
+
+########################################################################
+
+ifeq ($(gcc_major_version),4)
+  CXXFLAGS += -std=c++11
+else ifeq ($(gcc_major_version),5)
+  CXXFLAGS += -std=c++14
+endif
+CFLAGS     += -std=gnu99
+
+########################################################################
+
 CXXFLAGS += $(GENERIC_GNU_FLAGS)
 CFLAGS   += $(GENERIC_GNU_FLAGS)
 FFLAGS   += $(GENERIC_GNU_FLAGS)
 F90FLAGS += $(GENERIC_GNU_FLAGS)
+
+endif # AMREX_CCOMP == gnu
+
+########################################################################
+########################################################################
+########################################################################
+
+ifeq ($(AMREX_FCOMP),gnu)
+
+FC  = gfortran
+F90 = gfortran
+
+FFLAGS   =
+F90FLAGS =
+
+########################################################################
+
+ifeq ($(DEBUG),TRUE)
+
+  FFLAGS   += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+  F90FLAGS += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+
+else
+
+  FFLAGS   += -g -O3
+  F90FLAGS += -g -O3
+
+endif
+
+ifeq ($(USE_GPROF),TRUE)
+
+  FFLAGS += -pg
+  F90FLAGS += -pg
+
+endif
+
+ifeq ($(USE_COMPILE_PIC),TRUE)
+
+  FFLAGS = -fPIC
+  F90FLAGS = -fPIC
+
+endif
+
+########################################################################
+
+FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)
+F90FLAGS += -ffree-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir) -fimplicit-none
 
 ########################################################################
 
@@ -130,3 +178,10 @@ else
 endif
 
 override XTRALIBS += -lgfortran -lquadmath
+
+FFLAGS   += $(GENERIC_GNU_FLAGS)
+F90FLAGS += $(GENERIC_GNU_FLAGS)
+
+endif # AMREX_FCOMP == gnu
+
+
