@@ -355,9 +355,17 @@ private:
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx);
 
+    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int ngrow);
+
     static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx);
+
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int ngrow);
 
     void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                       const std::array<      amrex::MultiFab*,3>& crse,
