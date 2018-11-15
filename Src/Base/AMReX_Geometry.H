@@ -84,9 +84,9 @@ public:
     //! Returns the problem domain.
     static const RealBox& ProbDomain () { return prob_domain; }
     //! Sets the problem domain.
-    static void ProbDomain (const RealBox& rb) 
-    { 
-        prob_domain = rb; 
+    static void ProbDomain (const RealBox& rb)
+    {
+        prob_domain = rb;
         SetOffset(rb.lo());
     }
     //! Returns the lo end of the problem domain in each dimension.
@@ -193,7 +193,7 @@ public:
     * this as a special case if there is some periodicity.
     */
     void periodicShift (const Box&      target,
-                        const Box&      src, 
+                        const Box&      src,
                         Vector<IntVect>& out) const;
 
     // Return domain box with non-periodic directions grown by ngrow.
