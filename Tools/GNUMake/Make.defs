@@ -214,7 +214,11 @@ EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
 ifeq ($(USE_CUDA),TRUE)
-  AMREX_CCOMP = gnu
+  ifdef NVCC_HOST_COMP
+    AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else
+    AMREX_CCOMP = gnu
+  endif
 endif
 
 lowercase_comp = $(shell echo $(COMP) | tr A-Z a-z)
