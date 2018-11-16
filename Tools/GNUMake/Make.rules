@@ -28,6 +28,14 @@ else
 endif
 endif
 
+ifndef AMREX_LINKER
+ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+  AMREX_LINKER = $(F90)
+else
+  AMREX_LINKER = $(CXX)
+endif
+endif
+
 #
 # Rules for building executable.
 #
@@ -35,9 +43,9 @@ $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
 ifeq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-	$(SILENT) $(F90) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(FCPPFLAGS) $(fincludes) $(LDFLAGS) -o $@ $^ $(libraries)
 else
-	$(SILENT) $(CXX) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+	$(SILENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
 endif
 #	@echo SUCCESS
 endif
