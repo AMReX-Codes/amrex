@@ -137,13 +137,6 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 {
     BL_PROFILE("MLLinOp::defineGrids()");
 
-    static bool printed_node_list = false;
-    if (!printed_node_list) {
-        char *node_list_str = std::getenv("SLURM_NODELIST");
-        Print() << "SLURM_NODELIST = " << node_list_str << std::endl;
-        printed_node_list = true;
-    }
-
     m_num_amr_levels = a_geom.size();
 
     m_amr_ref_ratio.resize(m_num_amr_levels);
