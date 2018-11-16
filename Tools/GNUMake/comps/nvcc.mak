@@ -68,13 +68,3 @@ CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
 
 CXX = nvcc
 CC  = nvcc
-
-ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-  LINKFLAGS = $(NVCC_FLAGS)
-  # we are using nvcc for linking
-  comm := ,
-  space :=
-  space +=
-  libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
-  AMREX_LINKER = nvcc
-endif
