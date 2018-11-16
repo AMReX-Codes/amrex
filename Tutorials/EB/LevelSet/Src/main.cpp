@@ -128,6 +128,8 @@ int main (int argc, char* argv[]) {
 
     VisMF::Write(* ls_data, "LevelSet");
 
+    delete ls_core;
+
     amrex::Finalize();
     return 0;
 }

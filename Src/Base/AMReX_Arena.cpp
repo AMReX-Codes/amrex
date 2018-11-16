@@ -13,6 +13,11 @@ namespace amrex {
 
 namespace {
     bool initialized = false;
+
+    Arena* the_arena = nullptr;
+    Arena* the_device_arena = nullptr;
+    Arena* the_managed_arena = nullptr;
+    Arena* the_pinned_arena = nullptr;
 }
 
 const unsigned int Arena::align_size;
@@ -34,7 +39,42 @@ Arena::Initialize ()
     if (initialized) return;
     initialized = true;
 
-    amrex::ExecOnFinalize(Arena::Finalize);
+    BL_ASSERT(the_arena == nullptr);
+    BL_ASSERT(the_device_arena == nullptr);
+    BL_ASSERT(the_managed_arena == nullptr);
+    BL_ASSERT(the_pinned_arena == nullptr);
+    
+#if defined(BL_COALESCE_FABS)
+    the_arena = new CArena;
+#else
+    the_arena = new BArena;
+#endif
+    
+#ifdef AMREX_USE_GPU
+    the_arena->SetPreferred();
+#endif
+
+#if AMREX_USE_GPU
+    the_device_arena = new CArena;
+    the_device_arena->SetDeviceMemory();
+#else
+    the_device_arena = new BArena;
+#endif
+    
+#if defined(AMREX_USE_GPU)
+    the_managed_arena = new CArena;
+#else
+    the_managed_arena = new BArena;
+#endif
+
+#if defined(AMREX_USE_GPU)
+    const std::size_t hunk_size = 64 * 1024;
+    the_pinned_arena = new CArena(hunk_size);
+    the_pinned_arena->SetHostAlloc();
+#else
+    the_pinned_arena = new BArena;
+#endif
+
 #endif
 }
 
@@ -90,7 +130,50 @@ Arena::Finalize ()
             }
         }
     }
+
+    delete the_arena;
+    the_arena = nullptr;
+
+    delete the_device_arena;
+    the_device_arena = nullptr;
+
+    delete the_managed_arena;
+    the_managed_arena = nullptr;
+
+    delete the_pinned_arena;
+    the_pinned_arena = nullptr;
 #endif
 }
 
+#ifndef AMREX_FORTRAN_BOXLIB
+
+Arena*
+The_Arena ()
+{
+    BL_ASSERT(the_arena != nullptr);
+    return the_arena;
+}
+
+Arena*
+The_Device_Arena ()
+{
+    BL_ASSERT(the_device_arena != nullptr);
+    return the_device_arena;
+}
+
+Arena*
+The_Managed_Arena ()
+{
+    BL_ASSERT(the_managed_arena != nullptr);
+    return the_managed_arena;
+}
+
+Arena*
+The_Pinned_Arena ()
+{
+    BL_ASSERT(the_pinned_arena != nullptr);
+    return the_pinned_arena;
+}
+
+#endif
 }
