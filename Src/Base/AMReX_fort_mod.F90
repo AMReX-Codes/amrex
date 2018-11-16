@@ -35,17 +35,6 @@ module amrex_fort_module
        type(c_ptr), value :: p
      end subroutine amrex_free
 
-     function amrex_gpu_malloc (s) bind(c,name='amrex_gpu_malloc')
-       import
-       integer(c_size_t), intent(in), value :: s
-       type(c_ptr) :: amrex_gpu_malloc
-     end function amrex_gpu_malloc
-
-     subroutine amrex_gpu_free (p) bind(c,name='amrex_gpu_free')
-       import
-       type(c_ptr), value :: p
-     end subroutine amrex_gpu_free
-
      function amrex_random () bind(c,name='amrex_random')
        import
        real(c_double) :: amrex_random
@@ -121,7 +110,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   ! Note that the device versions of these
   ! functions are intentionally constructed
   ! by hand rather than scripted.
@@ -159,7 +148,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_subtract_device(x, y)
 
     implicit none
@@ -193,7 +182,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_max_device(x, y)
 
     implicit none
@@ -227,7 +216,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_min_device(x, y)
 
     implicit none

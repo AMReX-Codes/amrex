@@ -42,7 +42,7 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H
+C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H AMReX_GpuError.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
@@ -174,7 +174,7 @@ ifneq ($(BL_NO_FORT),TRUE)
     CUDA_MAXREGCOUNT_AMReX_filcc_mod.F90 := 128
   endif
 
-  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90 AMReX_acc_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
 
@@ -188,10 +188,6 @@ endif
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
-
-ifeq ($(USE_CUDA),TRUE)
-  F90$(AMREX_BASE)_sources += AMReX_CudaFort.F90
-endif
 
 ifeq ($(LAZY),TRUE)
   C$(AMREX_BASE)_sources += AMReX_Lazy.cpp
