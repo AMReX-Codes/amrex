@@ -72,7 +72,6 @@ else ifeq ($(gcc_major_version),5)
 endif
 CFLAGS   += -c99
 
-<<<<<<< HEAD
 GENERIC_PGI_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
@@ -85,8 +84,6 @@ else
   GENERIC_PGI_FLAGS += -noacc
 endif
 
-=======
->>>>>>> 5de1c7c9e6e093616c826a5b5abe8cb0a1412504
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
