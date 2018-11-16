@@ -222,11 +222,9 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     ****************************************************************************/
 
     MultiFab dummy(ba, dm, 1, eb_grid_pad, MFInfo(), eb_factory);
-    // Area fraction data
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
     // EB boundary-centre data
     const MultiCutFab * bndrycent = & eb_factory.getBndryCent();
-
+    // EB flags (tests if contains facets)
     const auto& flags = eb_factory.getMultiEBCellFlagFab();
 
 
