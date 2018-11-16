@@ -602,6 +602,7 @@ private:
     int insitu_int;
     int insitu_start;
     std::string insitu_config;
+    int insitu_pin_mesh;
 };
 
 #endif

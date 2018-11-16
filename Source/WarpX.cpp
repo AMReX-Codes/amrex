@@ -463,11 +463,13 @@ WarpX::ReadParameters ()
         insitu_start = 0;
         insitu_int = 0;
         insitu_config = "";
+        insitu_pin_mesh = 0;
 
         ParmParse pp("insitu");
         pp.query("int", insitu_int);
         pp.query("start", insitu_start);
         pp.query("config", insitu_config);
+        pp.query("pin_mesh", insitu_pin_mesh);
     }
 }
 
