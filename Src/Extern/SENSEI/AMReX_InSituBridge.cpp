@@ -21,7 +21,7 @@ InSituBridge::InSituBridge() :
 #if defined(BL_USE_SENSEI_INSITU)
     analysis_adaptor(nullptr),
 #endif
-    enabled(0), frequency(1), counter(0)
+    enabled(0), frequency(1), counter(0), pinMesh(0)
 {
 #if defined(BL_USE_SENSEI_INSITU)
     timer::Initialize();
@@ -54,6 +54,7 @@ InSituBridge::initialize()
 
     pp.query("config", config);
     pp.query("frequency", frequency);
+    pp.query("pin_mesh", pinMesh);
 
     amrex::Print() << "SENSEI Begin initialize..." << std::endl;
 

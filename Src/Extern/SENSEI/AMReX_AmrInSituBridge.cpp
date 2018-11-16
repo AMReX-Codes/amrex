@@ -25,6 +25,7 @@ AmrInSituBridge::update(Amr *dataSource)
         amrex::AmrDataAdaptor *data_adaptor = amrex::AmrDataAdaptor::New();
         if (comm != MPI_COMM_NULL)
             data_adaptor->SetCommunicator(comm);
+        data_adaptor->SetPinMesh(pinMesh);
         data_adaptor->SetDataSource(dataSource);
         data_adaptor->SetDataTime(dataSource->cumTime());
         data_adaptor->SetDataTimeStep(dataSource->levelSteps(0));
