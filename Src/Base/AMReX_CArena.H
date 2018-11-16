@@ -44,11 +44,6 @@ public:
     */
     virtual void free (void* ap) override;
 
-#ifdef AMREX_USE_GPU
-    virtual void* alloc_device (std::size_t nbytes) override;
-    virtual void free_device (void* ap) override;
-#endif
-
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const;
 

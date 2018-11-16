@@ -1,4 +1,32 @@
 
+ifndef AMREX_CCOMP
+  AMREX_CCOMP = ibm
+endif
+
+ifndef AMREX_FCOMP
+  AMREX_FCOMP = ibm
+endif
+
+########################################################################
+
+ibm_version  = $(shell $(CXX) --version | head -1)
+
+COMP_VERSION = $(ibm_version)
+
+########################################################################
+
+GENERIC_IBM_FLAGS =
+
+ifeq ($(USE_OMP),TRUE)
+  GENERIC_IBM_FLAGS += -qsmp=omp
+endif
+
+########################################################################
+########################################################################
+########################################################################
+
+ifeq ($(AMREX_CCOMP),ibm)
+
 ifeq ($(USE_OMP),TRUE)
   CXX = xlC_r
   CC  = xlc_r
@@ -12,12 +40,6 @@ endif
 
 CXXFLAGS =
 CFLAGS   =
-
-########################################################################
-
-ibm_version  = $(shell $(CXX) --version | head -1)
-
-COMP_VERSION = $(ibm_version)
 
 ########################################################################
 
@@ -40,22 +62,16 @@ CFLAGS   += -std=gnu99
 
 ########################################################################
 
-GENERIC_IBM_FLAGS =
-
-ifeq ($(USE_OMP),TRUE)
-  GENERIC_IBM_FLAGS += -qsmp=omp
-endif
-
 CXXFLAGS += $(GENERIC_IBM_FLAGS)
 CFLAGS   += $(GENERIC_IBM_FLAGS)
 
-CPP_PREFIX = -WF,
+endif # AMREX_CCOMP == ibm
 
-ifeq ($(USE_CUDA),TRUE)
-  include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
-endif
+########################################################################
+########################################################################
+########################################################################
 
-
+ifeq ($(AMREX_FCOMP),ibm)
 
 ifeq ($(USE_OMP),TRUE)
   FC  = xlf_r
@@ -96,6 +112,8 @@ FFLAGS   += -qmoddir=$(fmoddir) -I $(fmoddir)
 FFLAGS   += $(GENERIC_IBM_FLAGS)
 F90FLAGS += $(GENERIC_IBM_FLAGS)
 
+CPP_PREFIX = -WF,
+
 override XTRALIBS = -lstdc++ -libmc++ -lxlf90_r -lm -lxlfmath
 
 ifeq ($(USE_OMP),TRUE)
@@ -117,7 +135,11 @@ ifeq ($(USE_CUDA),TRUE)
     FFLAGS   += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)
   endif
 
+  DEFINES += -DAMREX_USE_CUDA_FORTRAN
+
   LINK_WITH_FORTRAN_COMPILER = TRUE
 endif
 
 LINK_WITH_FORTRAN_COMPILER ?= $(USE_F_INTERFACES)
+
+endif

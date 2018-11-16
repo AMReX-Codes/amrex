@@ -2310,7 +2310,7 @@ BaseFab<T>::setComplement (T          x,
     for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
 #ifdef AMREX_USE_GPU
-        CudaAPICheck(cudaDeviceSynchronize());
+        AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
 #endif
     }
 }
@@ -3837,17 +3837,6 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   return *this;
 }
 
-class BF_init
-{
-public:
-    BF_init ();
-    ~BF_init ();
-private:
-    static int m_cnt;
-};
-
 }
-
-static amrex::BF_init amrex_file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/
