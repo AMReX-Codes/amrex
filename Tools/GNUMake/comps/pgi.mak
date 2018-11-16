@@ -11,7 +11,9 @@ CC  = pgcc
 
 ########################################################################
 
-pgi_version = $(shell $(CXX) -V 2>&1 | grep 'target')
+pgi_version = $(shell $(CXX) -V 2>&1 | grep 'target' | sed 's|.*$(CXX) \([0-9\.]*\).*|\1|')
+pgi_major_version = $(shell echo $(pgi_version) | cut -f1 -d.)
+pgi_minor_version = $(shell echo $(pgi_version) | cut -f2 -d.)
 
 COMP_VERSION = $(pgi_version)
 
