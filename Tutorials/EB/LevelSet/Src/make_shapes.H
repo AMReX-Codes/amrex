@@ -49,13 +49,13 @@ using CappedCylinderIF = typename
 
 
 void make_my_eb2(int n_lev, const BoxArray & grids, const DistributionMapping & dmap,
-                 const Geometry & geom, LSFactory * level_set, LSCoreBase * ls_core);
+                 const Geometry & geom, LSFactory * level_set, LSCoreBase *& ls_core);
 
 
 std::unique_ptr<CappedCylinderIF>
 make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & translation,
                        int lev, const Geometry & geom, const DistributionMapping & dm,
-                       LSFactory * level_set, LSCoreBase * ls_core);
+                       LSFactory * level_set, LSCoreBase *& ls_core);
 
 
 std::unique_ptr<CylinderIF>
