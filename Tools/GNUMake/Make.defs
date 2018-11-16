@@ -754,4 +754,14 @@ ifeq ($(USE_CUDA),TRUE)
 
     DEFINES += -DAMREX_CUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
 
+    ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+      LINKFLAGS = $(NVCC_FLAGS)
+      # we are using nvcc for linking
+      comm := ,
+      space :=
+      space +=
+      libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
+      AMREX_LINKER = nvcc
+    endif
+
 endif
