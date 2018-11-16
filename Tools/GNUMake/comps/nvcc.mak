@@ -20,11 +20,9 @@ endif
 #endif
 
 #
-# If we are using CUDA, pull in the gcc compiler first
-# and override it as necessary. This is done because the
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using
-# OpenACC, then PGI is required, so we cannot do this.
+# OpenACC, then PGI is required.
 #
 
 ifeq ($(USE_ACC),TRUE)
@@ -42,9 +40,6 @@ ifeq ($(lowercase_nvcc_host_comp),$(filter $(lowercase_nvcc_host_comp),gcc gnu g
     include $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
   endif
 endif
-
-CXX = nvcc
-CC  = nvcc
 
 ifeq ($(lowercase_nvcc_host_comp),gnu)
   ifeq ($(gcc_major_version),4)
@@ -70,6 +65,9 @@ CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
 CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+
+CXX = nvcc
+CC  = nvcc
 
 ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
   LINKFLAGS = $(NVCC_FLAGS)
