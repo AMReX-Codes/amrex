@@ -47,6 +47,7 @@ int main (int argc, char* argv[])
         BL_PROFILE("main()");
 
         amrex::machine::init();
+        amrex::machine::find_best_nbh(ParallelContext::NProcsAll() / 2);
 
         init_prob_parms();
 
