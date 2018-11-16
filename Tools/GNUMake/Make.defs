@@ -142,7 +142,7 @@ endif
 
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
-  CUDA_ARCH ?= 35
+  CUDA_ARCH ?= 60
 
   # Maximum number of CUDA threads per block.
   CUDA_MAX_THREADS ?= 256
@@ -185,6 +185,12 @@ ifneq ($(USE_CUDA),TRUE)
   USE_GPU_PRAGMA = FALSE
 endif
 
+ifdef GPU_ERROR_CHECK
+  GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
+else
+  GPU_ERROR_CHECK := TRUE
+endif 
+
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
@@ -207,37 +213,62 @@ RANLIB          = ranlib
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
+ifeq ($(USE_CUDA),TRUE)
+  ifdef NVCC_HOST_COMP
+    AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else
+    AMREX_CCOMP = gnu
+  endif
+endif
 
 lowercase_comp = $(shell echo $(COMP) | tr A-Z a-z)
 
 ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
   lowercase_comp = gnu
+  AMREX_FCOMP ?= gnu
+  AMREX_CCOMP ?= gnu
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 else ifeq ($(lowercase_comp),intel)
+  AMREX_FCOMP ?= intel
+  AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
 else ifeq ($(lowercase_comp),cray)
+  AMREX_FCOMP ?= cray
+  AMREX_CCOMP ?= cray
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/cray.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/cray.mak
 else ifeq ($(lowercase_comp),pgi)
+  AMREX_FCOMP ?= pgi
+  AMREX_CCOMP ?= pgi
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
 else ifeq ($(lowercase_comp),ibm)
+  AMREX_FCOMP ?= ibm
+  AMREX_CCOMP ?= ibm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
+  AMREX_FCOMP ?= gnu
+  AMREX_CCOMP ?= clang
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm-flang flang))
   lowercase_comp = llvm-flang
+  AMREX_FCOMP ?= flang
+  AMREX_CCOMP ?= clang
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm-flang.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm-flang.mak
 else ifeq ($(lowercase_comp),nag)
+  AMREX_FCOMP ?= nag
+  AMREX_CCOMP ?= gnu
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak
 else ifeq ($(lowercase_comp),nec)
+  AMREX_FCOMP ?= nec
+  AMREX_CCOMP ?= nec
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
 else
@@ -392,11 +423,16 @@ ifeq ($(USE_CUDA),TRUE)
         $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
     endif
 
-    ifneq ($(lowercase_comp),pgi)
-        ifneq ($(lowercase_comp),ibm)
-            $(error CUDA can only be used with COMP=pgi COMP=ibm)
-        endif
+    ifeq ($(lowercase_comp),pgi)
+        LINK_WITH_FORTRAN_COMPILER=TRUE
+    else ifeq ($(lowercase_comp),ibm)
+        LINK_WITH_FORTRAN_COMPILER=TRUE
+    else ifeq ($(lowercase_comp),gnu)
+    else
+        $(error CUDA can only be used with COMP=pgi or ibm or gnu)
     endif
+
+    include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
 
     ifeq ($(USE_MPI),TRUE)
       # Make sure that the C/C++ MPI
@@ -404,17 +440,15 @@ ifeq ($(USE_CUDA),TRUE)
       # Right now we handle OpenMPI/Spectrum MPI and MPICH.
       # Other MPI implementations could be added later.
 
-      export OMPI_CC := $(CC)
-      export OMPI_CXX := $(CXX)
+      export OMPI_CC := nvcc
+      export OMPI_CXX := nvcc
       export OMPI_F77 := $(FC)
       export OMPI_FC  := $(F90)
 
-      export MPICH_CC  := $(CC)
-      export MPICH_CXX := $(CXX)
+      export MPICH_CC  := nvcc
+      export MPICH_CXX := nvcc
       export MPICH_F77 := $(FC)
       export MPICH_FC  := $(F90)
-
-      LINK_WITH_FORTRAN_COMPILER=TRUE
     endif
 
     DEFINES += -DAMREX_USE_CUDA
@@ -452,6 +486,9 @@ endif
 
 ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
+    ifeq ($(GPU_ERROR_CHECK),FALSE)
+        DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
 endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
@@ -716,5 +753,15 @@ ifeq ($(USE_CUDA),TRUE)
     # Set the CUDA threads define in case the user updated it.
 
     DEFINES += -DAMREX_CUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
+
+    ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+      LINKFLAGS = $(NVCC_FLAGS)
+      # we are using nvcc for linking
+      comm := ,
+      space :=
+      space +=
+      libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
+      AMREX_LINKER = nvcc
+    endif
 
 endif

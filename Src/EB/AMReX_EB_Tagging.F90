@@ -58,13 +58,10 @@ contains
 
              pos = (/ i, j, k /)*dx + 0.5*dx
              call amrex_eb_interp_levelset ( &
-                  pos, plo, 1,                &
-                  state, state_lo, state_hi,  &
+                  pos, plo, 1,               &
+                  state, state_lo, state_hi, &
                   dx, ls_val                 )
 
-             ! if (abs(state(i, j, k)) .le. phierr) then
-             !    tag(i, j, k) = set
-             ! endif
              if (abs(ls_val) .le. phierr) then
                 tag(i, j, k) = set
              endif

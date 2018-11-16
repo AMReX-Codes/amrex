@@ -55,34 +55,15 @@
       dim3 numBlocks, numThreads; \
       amrex::Gpu::Device::c_threads_and_blocks(box.loVect(), box.hiVect(), numBlocks, numThreads); \
       function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::cudaStream()>>>(__VA_ARGS__); \
-      CudaErrorCheck(); \
+      AMREX_GPU_ERROR_CHECK(); \
     }
 
 #define AMREX_FORT_LAUNCHABLE(func) __global__ func
-
-#define AMREX_FORT_LAUNCH_PARTICLES(num_particles, function, ...) \
-    { \
-        int numThreads; int numBlocks; \
-        amrex::Gpu::Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
-        function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::cudaStream()>>>(__VA_ARGS__); \
-        CudaErrorCheck(); \
-    }
-
-#define AMREX_FORT_LAUNCH_PARTICLES_STREAM(num_particles, stream, function, ...)      \
-    { \
-        int numThreads; int numBlocks; \
-        amrex::Gpu::Device::particle_threads_and_blocks(num_particles, numThreads, numBlocks); \
-        amrex::Print() << amrex::Gpu::Device::stream_from_index(stream) << std::endl; \
-        function<<<numBlocks, numThreads, 0, amrex::Gpu::Device::stream_from_index(stream)>>>(__VA_ARGS__); \
-        CudaErrorCheck(); \
-    }
 
 #else
 
 #define AMREX_FORT_LAUNCH(box, function, ...) function(__VA_ARGS__)
 #define AMREX_FORT_LAUNCHABLE(func) func
-#define AMREX_FORT_LAUNCH_PARTICLES(num_particles, function, ...) function(__VA_ARGS__)
-#define AMREX_FORT_LAUNCH_PARTICLES_STREAM(num_particles, stream, function, ...) function(__VA_ARGS__)
 
 #endif
 
@@ -108,7 +89,7 @@
 #define AMREX_DEVICE_LAUNCH(function)                         \
       dim3 function##numBlocks, function##numThreads; \
       amrex::Gpu::Device::grid_stride_threads_and_blocks(function##numBlocks, function##numThreads); \
-      CudaAPICheck(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
+      AMREX_GPU_SAFE_CALL(cudaFuncSetAttribute(&cuda_##function, cudaFuncAttributePreferredSharedMemoryCarveout, 0)); \
       cuda_##function<<<function##numBlocks, function##numThreads, 0, amrex::Gpu::Device::cudaStream()>>> \
 
 #else

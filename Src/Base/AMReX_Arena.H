@@ -35,18 +35,6 @@ public:
     * \brief A pure virtual function for deleting the arena pointed to by pt
     */
     virtual void free (void* pt) = 0;
-#ifdef AMREX_USE_GPU
-    /**
-    * Allocate a dynamic device memory arena
-    * \param sz size of the memory request
-    * \return a pointer to the allocated memory
-    */
-    virtual void* alloc_device (std::size_t sz) = 0;
-    /**
-    * \brief A pure virtual function for deleting the device arena pointed to by pt
-    */
-    virtual void free_device (void* pt) = 0;
-#endif
     /**
     * \brief Given a minimum required arena size of sz bytes, this returns
     * the next largest arena size that will align to align_size bytes

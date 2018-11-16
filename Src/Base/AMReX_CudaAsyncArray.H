@@ -29,8 +29,8 @@ public:
         if (inLaunchRegion())
         {
             d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
-            CudaAPICheck(cudaMemcpyAsync(d_data, h_data, n*sizeof(T),
-                                         cudaMemcpyHostToDevice, Device::cudaStream()));
+            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(d_data, h_data, n*sizeof(T),
+                                                cudaMemcpyHostToDevice, Device::cudaStream()));
         }
 #endif
     }
@@ -48,7 +48,8 @@ public:
                 T** p = static_cast<T**>(std::malloc(2*sizeof(T*)));
                 p[0] = d_data;
                 p[1] = h_data;
-                CudaAPICheck(cudaStreamAddCallback(Device::cudaStream(), amrex_asyncarray_delete, p, 0));
+                AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
+                                                          amrex_asyncarray_delete, p, 0));
             }
         }
         else
