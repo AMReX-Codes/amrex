@@ -1,6 +1,6 @@
 
-CEXE_sources += main.cpp init_prob.cpp solve_with_mlmg.cpp write_plotfile.cpp
+CEXE_sources += main.cpp init_prob.cpp solve_with_mlmg.cpp write_plotfile.cpp AMReX_Machine.cpp
 
-CEXE_headers += fort.H prob_par.H
+CEXE_headers += fort.H prob_par.H AMReX_Machine.H
 
 F90EXE_sources += fort_$(DIM)d.F90

@@ -2,6 +2,7 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_Machine.H>
 
 #ifdef AMREX_SOFT_PERF_COUNTERS
 // need for perf counters
@@ -44,6 +45,8 @@ int main (int argc, char* argv[])
     
     {
         BL_PROFILE("main()");
+
+        amrex::machine::init();
 
         init_prob_parms();
 
