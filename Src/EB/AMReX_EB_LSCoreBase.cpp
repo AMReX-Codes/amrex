@@ -190,8 +190,7 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     {
         Vector<int>  itags;
 
-        for (MFIter mfi(state,true); mfi.isValid(); ++mfi)
-        {
+        for (MFIter mfi(state,true); mfi.isValid(); ++mfi) {
             const Box &    tilebox = mfi.tilebox();
                   TagBox & tagfab  = tags[mfi];
 
@@ -209,11 +208,11 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             // tag cells for refinement
             amrex_eb_state_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
                                    BL_TO_FORTRAN_3D(state[mfi]),
-                                   &tagval, &clearval,
+                                   & tagval, & clearval,
                                    AMREX_ARLIM_3D(tilebox.loVect()),
                                    AMREX_ARLIM_3D(tilebox.hiVect()),
                                    AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
-                                   &time, &phierr[lev]);
+                                   & time, & phierr[lev]);
             //
             // Now update the tags in the TagBox in the tilebox region to be
             // equal to itags

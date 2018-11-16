@@ -14,7 +14,7 @@ using namespace amrex;
 
 
 void make_my_eb2(int n_lev, const BoxArray & grids, const DistributionMapping & dmap,
-                 const Geometry & geom, LSFactory * level_set, LSCoreBase * ls_core) {
+                 const Geometry & geom, LSFactory * level_set, LSCoreBase *& ls_core) {
 
     int lev  = 0;
 
@@ -102,9 +102,9 @@ void make_my_eb2(int n_lev, const BoxArray & grids, const DistributionMapping & 
         Vector<Real> transvec(3);
         {
           ParmParse pp("cyl");
-          pp.get("cyl_dir",cyl_dir);
-          pp.get("cyl_radius",cyl_radius);
-          pp.get("cyl_length",cyl_length);
+          pp.get("cyl_dir", cyl_dir);
+          pp.get("cyl_radius", cyl_radius);
+          pp.get("cyl_length", cyl_length);
           pp.getarr("cyl_translate", transvec,  0, 3);
         }
 
