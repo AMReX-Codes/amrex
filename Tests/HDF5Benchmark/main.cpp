@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
     myPC.SetVerbose(false);
 
     int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
-    bool serialize = true;
+    bool serialize = false;
     int iseed = 451;
     Real mass = 10.0;
     MyPC::ParticleInitData pdata = {1.0, 2.0, 3.0, 4.0, 5, 6.0,
