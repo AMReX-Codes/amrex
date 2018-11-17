@@ -58,7 +58,6 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 
     // Define MultiFab data (will store final level set for this level)
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
-    level_set_cc[lev].define(ba, dm, ncomp, nghost);
 
 
     // Construct LSFactory (does the actual level-set building)
