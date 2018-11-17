@@ -21,10 +21,6 @@ extern "C" {
 }
 #endif
 
-#ifndef AMREX_CUDA_MAX_THREADS
-#define AMREX_CUDA_MAX_THREADS 256
-#endif
-
 namespace amrex {
 namespace Cuda {
 

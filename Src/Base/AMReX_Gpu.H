@@ -9,6 +9,7 @@
 #include <AMReX_CudaMemory.H>
 #include <AMReX_CudaRange.H>
 #include <AMReX_CudaUtility.H>
+#include <AMReX_CudaReduce.H>
 #include <AMReX_CudaDevice.H>
 #include <AMReX_CudaAllocators.H>
 #include <AMReX_CudaContainers.H>
