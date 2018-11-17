@@ -3,18 +3,18 @@ file(MAKE_DIRECTORY ${EXTERNAL_LIBS_PATH})
 
 #
 # Build and install blitz if required
-# 
-if (NOT BLITZ_INSTALL_DIR) 
-   
+#
+if (NOT BLITZ_INSTALL_DIR)
+
    set(BLITZ_REPO        https://github.com/blitzpp/blitz.git     )
    set(BLITZ_GIT_TAG     0d5d1feaad1b1b31aa9881da00bad68f7036ff63 )
    set(BLITZ_ROOT_DIR    ${EXTERNAL_LIBS_PATH}/blitz              )
    set(BLITZ_INSTALL_DIR ${BLITZ_ROOT_DIR}/installdir CACHE PATH
-      "Path to Blitz installation directory")  
+      "Path to Blitz installation directory")
 
    # Clone
    message(STATUS "Cloning Blitz")
-   execute_process( 
+   execute_process(
       COMMAND           git clone -q ${BLITZ_REPO} # -q to have it quiet
       WORKING_DIRECTORY ${EXTERNAL_LIBS_PATH}
       RESULT_VARIABLE   RVAR
@@ -24,7 +24,7 @@ if (NOT BLITZ_INSTALL_DIR)
    if (NOT "${RVAR}" STREQUAL "0")
       message(FATAL_ERROR "Fatal error when cloning BLITZ repo")
    endif()
-   
+
    # Configure
    message(STATUS "Configuring Blitz")
    execute_process(
@@ -52,33 +52,33 @@ if (NOT BLITZ_INSTALL_DIR)
    # support this approach.
    # Also, we are using a hack to compile on cray machines because blitz configure
    # setup sucks.
-   if ("${SITE}" STREQUAL "nersc")      
-      # Fortran 
+   if ("${SITE}" STREQUAL "nersc")
+      # Fortran
       if ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel")
          set(FC ifort)
       elseif ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "GNU")
          set(FC gfortran)
       elseif ( ${CMAKE_Fortran_COMPILER_ID} STREQUAL "PGI")
-         set(FC pgf90)           
+         set(FC pgf90)
       endif ()
 
-      # C++    
+      # C++
       if ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
          set(CXX icpc)
       elseif ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
          set(CXX g++)
       elseif ( ${CMAKE_CXX_COMPILER_ID} STREQUAL "PGI")
-         set(CXX pgc++)           
+         set(CXX pgc++)
       endif ()
 
-      # C    
+      # C
       if ( ${CMAKE_C_COMPILER_ID} STREQUAL "Intel")
          set(CC icc)
       elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
          set(CC gcc)
       elseif ( ${CMAKE_C_COMPILER_ID} STREQUAL "PGI")
-         set(CC pgcc)           
-      endif ()     
+         set(CC pgcc)
+      endif ()
    else ()
       set(FC  ${CMAKE_Fortran_COMPILER} )
       set(CXX ${CMAKE_CXX_COMPILER} )
@@ -107,7 +107,7 @@ if (NOT BLITZ_INSTALL_DIR)
       ERROR_FILE        ${BLITZ_ROOT_DIR}/cmake_install.error
       WORKING_DIRECTORY ${BLITZ_ROOT_DIR}
       RESULT_VARIABLE   RVAR
-      )   
+      )
 
    if (NOT "${RVAR}" STREQUAL "0")
       message(FATAL_ERROR "Fatal error when installing BLITZ ")
@@ -115,43 +115,44 @@ if (NOT BLITZ_INSTALL_DIR)
 
 endif()
 
-  
+
 #
 # Download algoim if required
-# 
+#
 if (NOT ALGOIM_INSTALL_DIR)
-  
+
    set(ALGOIM_REPO        https://github.com/algoim/algoim.git     )
    set(ALGOIM_GIT_TAG     a3d0b7bb2872cd414f77dbe7e77b25b9e707eaf3 )
    set(ALGOIM_INSTALL_DIR ${EXTERNAL_LIBS_PATH}/algoim CACHE PATH
       "Path to Algoim installation directory")
-   
+
    # Clone
    message(STATUS "Cloning Algoim")
-   execute_process( 
+   execute_process(
       COMMAND           git clone -q ${ALGOIM_REPO} # -q to have it quiet
       WORKING_DIRECTORY ${EXTERNAL_LIBS_PATH}/
       RESULT_VARIABLE   RVAR
       OUTPUT_QUIET
       )
- 
+
    if (NOT "${RVAR}" STREQUAL "0")
       message(FATAL_ERROR "Fatal error when cloning ALGOIM repo")
    endif()
 
-   # Fix source code
-   execute_process( 
-      COMMAND           sed -i /tinyvec-et.h/d  ${ALGOIM_INSTALL_DIR}/src/algoim_blitzinc.hpp 
+   # Fix source code NOTE: there is a odd problem using the macOS default sed:
+   # https://stackoverflow.com/questions/7573368/in-place-edits-with-sed-on-os-x
+   execute_process(
+      COMMAND           sed -i /tinyvec-et.h/d  ${ALGOIM_INSTALL_DIR}/src/algoim_blitzinc.hpp
       WORKING_DIRECTORY ${ALGOIM_INSTALL_DIR}
       RESULT_VARIABLE   RVAR
       OUTPUT_QUIET
       )
- 
+
    if (NOT "${RVAR}" STREQUAL "0")
-      message(FATAL_ERROR "Fatal error when fixing ALGOIM source code")
+      message(FATAL_ERROR "Fatal error when fixing ALGOIM source code. If you're using macOS, please install gnu-sed via homebrew.")
    endif()
 
-endif ()   
+endif ()
 
    set(  BLITZ_INSTALL_DIR "" CACHE PATH
       "Path to Blitz installation directory (leave empty for superbuild)")
