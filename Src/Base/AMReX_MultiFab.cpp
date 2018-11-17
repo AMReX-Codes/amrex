@@ -11,6 +11,7 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_LayoutData.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
@@ -1521,23 +1522,52 @@ MultiFab::sum (int comp, bool local) const
 
     Real sm = 0.e0;
 
-#ifdef _OPENMP
-#pragma omp parallel if (!system::regtest_reduction && Gpu::notInLaunchRegion()) reduction(+:sm)
-#endif
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
     {
-        amrex::Gpu::DeviceScalar<Real> local_sm(0.0);
-        Real* p = local_sm.dataPtr();
-        for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        LayoutData<Gpu::GridSize> gs;
+        int ntotblocks;
+        Gpu::getGridSize(*this,0,gs,ntotblocks);
+
+        Gpu::DeviceVector<Real> sum_block(ntotblocks);
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.tilebox();
+            const Box& bx = mfi.validbox();
             FArrayBox const* fab = &(get(mfi));
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-            {
-                Real t = fab->sum(tbx, comp, 1);
-                amrex::Gpu::Atomic::Add(p, t);
+
+            const auto& grid_size = gs[mfi];
+            const int global_bid_begin = grid_size.globalBlockId;
+            Real* pblock = sum_block.data().get() + global_bid_begin;
+
+            amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+                grid_size.numThreads*sizeof(Real), Gpu::Device::cudaStream()>>>(
+            [=] AMREX_GPU_DEVICE () {
+                extern __shared__ Real sdata[];
+                Real tsum = 0.0;
+                for (auto const& tbx : Gpu::Range(bx)) {
+                    tsum += fab->sum(tbx,comp,1);
+                }
+                sdata[threadIdx.x] = tsum;
+                __syncthreads();
+
+                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
             });
         }
-        sm += local_sm.dataValue();
+
+        sm = thrust::reduce(sum_block.begin(), sum_block.end(), 0.0, thrust::plus<Real>());
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            sm += get(mfi).sum(bx, comp, 1);
+        }
     }
 
     if (!local)
