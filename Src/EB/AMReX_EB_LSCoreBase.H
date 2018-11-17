@@ -47,9 +47,7 @@ public:
 
     // Initializes multilevel data
     void InitData ();
-
-    // Set tag levels
-    void SetTagLeves ();
+    void InitData (const Vector<Real> & m_phierr);
 
     // Make a new level using provided BoxArray and DistributionMapping and fill
     // with interpolated coarse level data. Overrides the pure virtual function
@@ -85,6 +83,14 @@ protected:
     /****************************************************************************
      * protected member functions                                               *
      ***************************************************************************/
+
+    void Init ();
+
+    // Load tag levels from inputs database
+    void LoadTagLevels ();
+
+    // Set tag levels
+    void SetTagLevels (const Vector<Real> & phierr);
 
     // Read in some parameters from inputs file
     void ReadParameters ();
@@ -150,6 +156,8 @@ protected:
     // condition types at the lo/hi walls in each direction
     Vector<BCRec> bcs; // 1-component
 
+    bool phierr_set = false;
+    Vector<Real> phierr;
 
     /****************************************************************************
      * runtime parameters                                                       *

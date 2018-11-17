@@ -94,10 +94,26 @@ void LSCoreBase::InitLSCoreBase() {
 }
 
 
+void LSCoreBase::LoadTagLevels () {
+    // read in an array of "phierr", which is the tagging threshold in this
+    // example, we tag values of "phi" which are greater than phierr for that
+    // particular level in subroutine state_error, you could use more elaborate
+    // tagging, such as more advanced logical expressions, or gradients, etc.
+    ParmParse pp("amr");
+    int n = pp.countval("phierr");
+    if (n > 0) {
+        pp.getarr("phierr", phierr, 0, n);
+    }
+}
+
+
+void LSCoreBase::SetTagLevels (const Vector<Real> & m_phierr) {
+    phierr = m_phierr;
+}
 
 
 // Initializes multilevel data
-void LSCoreBase::InitData () {
+void LSCoreBase::Init () {
     if (restart_chkfile == "") {
         // start simulation from the beginning
         const Real time = 0.0;
@@ -114,6 +130,18 @@ void LSCoreBase::InitData () {
 
     if (plot_int > 0)
         WritePlotFile();
+}
+
+
+void LSCoreBase::InitData () {
+    LoadTagLevels();
+    Init();
+}
+
+
+void LSCoreBase::InitData (const Vector<Real> & m_phierr) {
+    SetTagLevels(m_phierr);
+    Init();
 }
 
 
@@ -152,23 +180,6 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
-    static bool first = true;
-    static Vector<Real> phierr;
-
-    // only do this during the first call to ErrorEst
-    if (first) {
-        first = false;
-        // read in an array of "phierr", which is the tagging threshold in this
-        // example, we tag values of "phi" which are greater than phierr for
-        // that particular level in subroutine state_error, you could use more
-        // elaborate tagging, such as more advanced logical expressions, or
-        // gradients, etc.
-        ParmParse pp("amr");
-        int n = pp.countval("phierr");
-        if (n > 0) {
-            pp.getarr("phierr", phierr, 0, n);
-        }
-    }
 
     if (lev >= phierr.size()) return;
 
@@ -235,7 +246,7 @@ void LSCoreBase::ReadParameters () {
 
 // Set covered coarse cells to be the average of overlying fine cells
 void LSCoreBase::AverageDown () {
-    for (int lev = finest_level-1; lev >= 0; --lev) {
+    for (int lev = finest_level-1; lev >= 0; lev--) {
 
         amrex::average_down(level_set[lev + 1], level_set[lev],
                             0, level_set[lev].nComp(), refRatio(lev));
@@ -303,7 +314,10 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 }
 
 
-    Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail) {
+// Constructs a box over which to look for EB facets. The Box size grows based
+// on the coarse-level level-set value. But it never grows larger than
+// max_eb_pad.
+Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail) {
 
     Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
 
@@ -312,7 +326,7 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
                                 geom_fine.InvCellSize(2)*max_ls));
 
     for (int i = 0; i < AMREX_SPACEDIM; i++)
-        if (n_grow[i] > max_eb_pad ) {
+        if (n_grow[i] > max_eb_pad) {
             n_grow[i] = max_eb_pad;
             bail = true;
         }
@@ -325,14 +339,14 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 
 
 
-// get plotfile name
+// Get plotfile name
 std::string LSCoreBase::PlotFileName (int lev) const {
     // return amrex::Concatenate(plot_file, lev, 5);
     return plot_file;
 }
 
 
-// put together an array of multifabs for writing
+// Put together an array of multifabs for writing
 Vector<MultiFab> LSCoreBase::PlotFileMF () const {
     Vector<MultiFab> r(max_level + 1);
     for (int i = 0; i < max_level + 1; i++) {
@@ -346,13 +360,13 @@ Vector<MultiFab> LSCoreBase::PlotFileMF () const {
 }
 
 
-// set plotfile variable names
+// Set plotfile variable names
 Vector<std::string> LSCoreBase::PlotFileVarNames () const {
     return {"level-set"};
 }
 
 
-// write plotfile to disk
+// Write plotfile to disk
 void LSCoreBase::WritePlotFile () const {
     // Get plotfile name
     const std::string & plotfilename = PlotFileName(0);
