@@ -54,13 +54,10 @@ void LSCoreBase::InitLSCoreBase() {
     int nlevs_max = max_level + 1;
 
     level_set.resize(nlevs_max);
-    level_set_cc.resize(nlevs_max);
 
     ls_factory.resize(nlevs_max);
     eb_levels.resize(nlevs_max);
     rebuild_eb.resize(nlevs_max, 1); // At first rebuild eb on each level
-
-    istep.resize(nlevs_max, 0);
 
     bcs.resize(1);
 
@@ -130,7 +127,6 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
 
     BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
-    level_set_cc[lev].define(ba, dm, ncomp, nghost);
 
     FillCoarsePatch(lev, time, level_set[lev], 0, ncomp);
 }
@@ -331,16 +327,20 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 
 // get plotfile name
 std::string LSCoreBase::PlotFileName (int lev) const {
-    return amrex::Concatenate(plot_file, lev, 5);
+    // return amrex::Concatenate(plot_file, lev, 5);
+    return plot_file;
 }
 
 
 // put together an array of multifabs for writing
-Vector<const MultiFab*> LSCoreBase::PlotFileMF () {
-    Vector<const MultiFab*> r;
-    for (int i = 0; i <= finest_level; ++i) {
-        amrex::average_node_to_cellcenter(level_set_cc[i], 0, level_set[i], 0, 1);
-        r.push_back(&level_set_cc[i]);
+Vector<MultiFab> LSCoreBase::PlotFileMF () const {
+    Vector<MultiFab> r(max_level + 1);
+    for (int i = 0; i < max_level + 1; i++) {
+        const int ncomp  = level_set[i].nComp();
+        const int nghost = level_set[i].nGrow();
+        r[i].define(grids[i], dmap[i], ncomp, nghost);
+
+        amrex::average_node_to_cellcenter(r[i], 0, level_set[i], 0, 1);
     }
     return r;
 }
@@ -348,19 +348,33 @@ Vector<const MultiFab*> LSCoreBase::PlotFileMF () {
 
 // set plotfile variable names
 Vector<std::string> LSCoreBase::PlotFileVarNames () const {
-    return {"phi"};
+    return {"level-set"};
 }
 
 
 // write plotfile to disk
-void LSCoreBase::WritePlotFile () {
-    const std::string& plotfilename = PlotFileName(istep[0]);
-    const auto& mf = PlotFileMF();
-    const auto& varnames = PlotFileVarNames();
+void LSCoreBase::WritePlotFile () const {
+    // Get plotfile name
+    const std::string & plotfilename = PlotFileName(0);
 
-    amrex::Print() << "Writing plotfile " << plotfilename << "\n";
+    // Generate cell-centered data to put into plotfile
+    const Vector<MultiFab> mf_plt = PlotFileMF();
+    Vector<const MultiFab*> mf_ptr;
+    for (const MultiFab & mf : mf_plt)
+        mf_ptr.push_back(& mf);
 
-    amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
+    // Get variable names
+    const auto & varnames = PlotFileVarNames();
+
+    // Keep user informed
+    amrex::Print() << "Writing ";
+    for (const std::string & str_name : varnames)
+        amrex::Print() << str_name << " ";
+    amrex::Print() << "plotfile: " << plotfilename << "\n";
+
+    // Save plot file
+    Vector<int> istep(max_level + 1, 0);
+    amrex::WriteMultiLevelPlotfile(plotfilename, finest_level + 1, mf_ptr, varnames,
                                    Geom(), 0., istep, refRatio());
 }
 
@@ -377,11 +391,12 @@ void LSCoreBase::WriteCheckpointFile () const {
     //                     each level of refinement
 
     // checkpoint file name, e.g., chk00010
-    const std::string& checkpointname = amrex::Concatenate(chk_file,istep[0]);
+    // const std::string & checkpointname = amrex::Concatenate(chk_file,istep[0]);
+    const std::string & checkpointname = chk_file;
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
-    const int nlevels = finest_level+1;
+    const int nlevels = finest_level + 1;
 
     // ---- prebuild a hierarchy of directories
     // ---- dirName is built first.  if dirName exists, it is renamed.  then build
@@ -414,6 +429,7 @@ void LSCoreBase::WriteCheckpointFile () const {
         HeaderFile << finest_level << "\n";
 
         // write out array of istep
+        Vector<int> istep(max_level + 1, 0);
         for (int i = 0; i < istep.size(); ++i) {
             HeaderFile << istep[i] << " ";
         }
@@ -458,15 +474,15 @@ void LSCoreBase::ReadCheckpointFile () {
     is >> finest_level;
     GotoNextLine(is);
 
-    // read in array of istep
-    std::getline(is, line);
-    {
-        std::istringstream lis(line);
-        int i = 0;
-        while (lis >> word) {
-            istep[i++] = std::stoi(word);
-        }
-    }
+    // // read in array of istep
+    // std::getline(is, line);
+    // {
+    //     std::istringstream lis(line);
+    //     int i = 0;
+    //     while (lis >> word) {
+    //         istep[i++] = std::stoi(word);
+    //     }
+    // }
 
     for (int lev = 0; lev <= finest_level; ++lev) {
 

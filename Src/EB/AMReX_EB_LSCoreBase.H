@@ -48,6 +48,9 @@ public:
     // Initializes multilevel data
     void InitData ();
 
+    // Set tag levels
+    void SetTagLeves ();
+
     // Make a new level using provided BoxArray and DistributionMapping and fill
     // with interpolated coarse level data. Overrides the pure virtual function
     // in AmrCore
@@ -72,7 +75,7 @@ public:
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
     // Write plotfile to disk
-    void WritePlotFile ();
+    void WritePlotFile () const;
 
     // Write checkpoint file to disk
     void WriteCheckpointFile () const;
@@ -109,7 +112,7 @@ protected:
     std::string PlotFileName (int lev) const;
 
     // Put together an array of multifabs for writing
-    Vector<const MultiFab *> PlotFileMF ();
+    Vector<MultiFab> PlotFileMF () const;
 
     // Set plotfile variables names
     Vector<std::string> PlotFileVarNames () const;
@@ -138,8 +141,6 @@ protected:
 
     // Level set data
     Vector<MultiFab>  level_set;
-    // Cell-centered level set data:
-    Vector<MultiFab>  level_set_cc;
 
     // Resolve EB up to this many ghost cells (NOTE: these are scaled based on
     // local refinement level)
@@ -148,8 +149,6 @@ protected:
     // This is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction
     Vector<BCRec> bcs; // 1-component
-
-    amrex::Vector<int> istep;      // which step?
 
 
     /****************************************************************************
