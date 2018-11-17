@@ -13,9 +13,9 @@ pgi_version = $(shell $(CXX) -V 2>&1 | grep 'target' | sed 's|.*$(CXX) \([0-9\.]
 pgi_major_version = $(shell echo $(pgi_version) | cut -f1 -d.)
 pgi_minor_version = $(shell echo $(pgi_version) | cut -f2 -d.)
 
-gcc_version       = $(shell $g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
-gcc_major_version = $(shell $g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-gcc_minor_version = $(shell $g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+gcc_version       = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
+gcc_major_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
 COMP_VERSION = $(pgi_version)
 
@@ -65,14 +65,13 @@ else
 
 endif
 
-ifeq ($(gcc_major_version),4)
-  CXXFLAGS += -std=c++11
-else ifeq ($(gcc_major_version),5)
+ifeq ($(shell expr $(gcc_major_version) \>= 5), 1)
   CXXFLAGS += -std=c++14
+else ifeq ($(shell expr $(gcc_major_version) \>= 4), 1)
+  CXXFLAGS += -std=c++11
 endif
 CFLAGS   += -c99
 
-<<<<<<< HEAD
 GENERIC_PGI_FLAGS =
 
 ifeq ($(USE_OMP),TRUE)
@@ -85,8 +84,6 @@ else
   GENERIC_PGI_FLAGS += -noacc
 endif
 
-=======
->>>>>>> 5de1c7c9e6e093616c826a5b5abe8cb0a1412504
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 
