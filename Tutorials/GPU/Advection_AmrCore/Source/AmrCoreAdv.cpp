@@ -631,14 +631,9 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
             // compute new state (stateout) and fluxes.
             advect(&time, bx.loVect(), bx.hiVect(),
-		   BL_TO_FORTRAN_3D(statein), 
-		   BL_TO_FORTRAN_3D(stateout),
-		   AMREX_D_DECL(BL_TO_FORTRAN_3D(uface[0]),
-			  BL_TO_FORTRAN_3D(uface[1]),
-			  BL_TO_FORTRAN_3D(uface[2])),
-		   AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]), 
-			  BL_TO_FORTRAN_3D(flux[1]), 
-			  BL_TO_FORTRAN_3D(flux[2])), 
+		   statein, stateout,
+		   AMREX_D_DECL(uface[0], uface[1], uface[2]),
+		   AMREX_D_DECL(flux[0], flux[1], flux[2]), 
 		   dx, &dt_lev);
 
 	    if (do_reflux) {

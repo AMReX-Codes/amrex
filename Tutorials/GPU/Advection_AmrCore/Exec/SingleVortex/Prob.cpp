@@ -10,7 +10,7 @@
 using namespace amrex;
 
 void
-initdata(const int level, const int time,
+initdata(const int level, const Real time,
          Box const& bx, FArrayBox& phifab, GeometryData const& geom)
 {
 

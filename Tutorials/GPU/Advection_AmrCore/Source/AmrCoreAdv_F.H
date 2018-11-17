@@ -10,7 +10,7 @@ using namespace amrex;
 
     // these are C++ function definitions converted from Fortran 
 
-    void initdata(const int level, const int time,
+    void initdata(const int level, const Real time,
                   Box const& bx, FArrayBox& phifab, 
                   GeometryData const & geom);
 
@@ -20,14 +20,18 @@ using namespace amrex;
                                         FArrayBox& zvel),
                            GeometryData const& geom);
 
-    void get_psi(const Real time, Box const& bx, 
-                 FArrayBox& psi, GeometryData const& geom);
+    void advect(const Real time, Box const& bx
+                const FArrayBox& statein,
+                FArrayBox& stateout,
+		AMREX_D_DECL(const FArrayBox& xvel,
+                             const FArrayBox& yvel,
+                             const FArrayBox& zvel),
+                AMREX_D_DECL(FArrayBox& fx,
+                             FArrayBox& fy,
+                             FArrayBox& fz),
+		const Real& dx, const Real dt);
 
-    void get_xvel(const Real time, Box const& bx, 
-                  FArrayBox& xvel, FArrayBox& psi, GeometryData const& geom);
 
-    void get_yvel(const Real time, Box const& bx, 
-                  FArrayBox& yvel, FArrayBox& psi, GeometryData const& geom);
 
 #ifdef __cplusplus
 extern "C" 
