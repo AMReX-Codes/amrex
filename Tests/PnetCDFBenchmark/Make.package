@@ -1,0 +1,2 @@
+CEXE_sources += main.cpp WritePlotfilePNETCDF.cpp
+CEXE_headers += WritePlotfilePNETCDF.H
