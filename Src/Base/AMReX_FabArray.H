@@ -1232,7 +1232,7 @@ FabArray<FAB>::setBndry (value_type val)
 }
 
 template <class FAB>
-template <class>
+template <class FOO>
 void
 FabArray<FAB>::setBndry (value_type val,
                          int        strt_comp,
@@ -1240,12 +1240,42 @@ FabArray<FAB>::setBndry (value_type val,
 {
     if (n_grow.max() > 0)
     {
+        if (Gpu::inLaunchRegion())
+        {
+            for (MFIter fai(*this); fai.isValid(); ++fai)
+            {
+                const Box& gbx = fai.fabbox();
+                const Box& vbx = fai.validbox();
+                BoxList blst = amrex::boxDiff(gbx,vbx);
+                const int nboxes = blst.size();
+                if (nboxes > 0)
+                {
+                    Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                    Box const* pboxes = async_boxes.data();
+
+                    long ncells = 0;
+                    for (const auto& b : blst) {
+                        ncells += b.numPts();
+                    }
+
+                    FAB* fab = &(get(fai));
+                    AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
+                    {
+                        const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
+                        fab->setVal(val, Box(iv,iv,fab->box().ixType()), strt_comp, ncomp);
+                    });
+                }
+            }
+        }
+        else
+        {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
-        {
-            get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
+            for (MFIter fai(*this); fai.isValid(); ++fai)
+            {
+                get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
+            }
         }
     }
 }
@@ -1259,7 +1289,7 @@ FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
 }
 
 template <class FAB>
-template <class>
+template <class FOO>
 void
 FabArray<FAB>::setDomainBndry (value_type val,
                                int        strt_comp,
@@ -1273,12 +1303,42 @@ FabArray<FAB>::setDomainBndry (value_type val,
             domain_box.grow(idim, n);
         }
     }
+
+    if (Gpu::inLaunchRegion())
+    {
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            const Box& gbx = fai.fabbox();
+            BoxList blst = amrex::boxDiff(gbx,domain_box);
+            const int nboxes = blst.size();
+            if (nboxes > 0)
+            {
+                Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                Box const* pboxes = async_boxes.data();
+
+                long ncells = 0;
+                for (const auto& b : blst) {
+                    ncells += b.numPts();
+                }
+
+                FAB* fab = &(get(fai));
+                AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
+                {
+                    const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
+                    fab->setVal(val, Box(iv,iv,fab->box().ixType()), strt_comp, ncomp);
+                });
+            }
+        }
+    }
+    else
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter fai(*this); fai.isValid(); ++fai)
-    {
-        get(fai).setComplement(val, domain_box, strt_comp, ncomp);
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
+        }
     }
 }
 
