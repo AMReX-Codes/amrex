@@ -716,7 +716,6 @@ public:
     * setVal above, except that instead of setting values on the
     * Box b, values are set on the complement of b in the domain.
     */
-// TODO    AMREX_GPU_HOST_DEVICE
     void setComplement (T          x,
                         const Box& b,
                         int        ns,
@@ -2309,9 +2308,6 @@ BaseFab<T>::setComplement (T          x,
     BoxList b_lst = amrex::boxDiff(this->domain,b);
     for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
-#ifdef AMREX_USE_GPU
-        AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
-#endif
     }
 }
 
