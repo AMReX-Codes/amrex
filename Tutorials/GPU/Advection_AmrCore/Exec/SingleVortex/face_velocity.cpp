@@ -36,8 +36,8 @@ void get_face_velocity(const int level, const Real time,
     // Calculate psi
     AMREX_LAUNCH_DEVICE_LAMBDA(psi_box, tbx,
     {
-//        const Real M_PI = 3.141592653589793238462643383279502884197;
 //        Use C++ M_PI instead.
+//        const Real M_PI = 3.141592653589793238462643383279502884197;
 
         const auto len = length(tbx);
         const auto lo  = lbound(tbx);
