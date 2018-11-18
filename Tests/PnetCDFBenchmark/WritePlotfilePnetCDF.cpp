@@ -660,7 +660,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         
         BL_PROFILE_VAR("H5DwriteGrids", h5dwg);
         //ret = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memdataspace, dataspace, dxfer_template,  a_buffer.dataPtr());
-        err = ncmpi_put_vara_double(vFile, dataset, ch_offset, hs_procsize, a_buffer.dataPtr());
+        err = ncmpi_put_vara_double_all(vFile, dataset, ch_offset, hs_procsize, a_buffer.dataPtr());
         BL_PROFILE_VAR_STOP(h5dwg);
         ERR
         //if(ret < 0) {
