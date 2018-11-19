@@ -23,7 +23,7 @@ class AsyncArray
 public:
     AsyncArray (T const* h_p, const std::size_t n)
     {
-        h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
+        h_data = static_cast<T*>(The_Pinned_Arena()->alloc(n*sizeof(T)));
         std::memcpy(h_data, h_p, n*sizeof(T));
 #ifdef AMREX_USE_CUDA
         if (inLaunchRegion())
@@ -55,7 +55,7 @@ public:
         else
 #endif
         {
-            std::free(h_data);
+            The_Pinned_Arena()->free(h_data);
         }
         d_data = nullptr;
         h_data = nullptr;
