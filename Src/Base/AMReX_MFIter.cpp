@@ -439,7 +439,7 @@ MFIter::operator++ ()
 {
     if (Gpu::inLaunchRegion()) {
         if (real_reduce_list.size() == currentIndex + 1) {
-            Gpu::Device::device_dtoh_memcpy_async(&real_reduce_list[currentIndex],
+            Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex],
                                              real_device_reduce_list[currentIndex],
                                              sizeof(Real));
         }
@@ -472,7 +472,7 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
         Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
         real_device_reduce_list.push_back(dval);
 
-        Gpu::Device::device_htod_memcpy_async(real_device_reduce_list[currentIndex],
+        Gpu::Device::htod_memcpy_async(real_device_reduce_list[currentIndex],
                                          &real_reduce_list[currentIndex],
                                          sizeof(Real));
 
