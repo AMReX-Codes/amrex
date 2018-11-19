@@ -6,8 +6,11 @@ import re
 import os
 # Get relevant environment variables
 dim = os.environ.get('WARPX_TEST_DIM', None)
-test_dir = os.environ.get('WARPX_TEST_DIR', '')
 arch = os.environ.get('WARPX_TEST_ARCH', 'CPU')
+
+# Find the directory in which the tests should be run
+current_dir = os.getcwd()
+test_dir = re.sub('Regression', 'test_dir', current_dir)
 
 with open('WarpX-tests.ini') as f:
     text = f.read()

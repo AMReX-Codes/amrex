@@ -4,7 +4,6 @@
 rm -rf test_dir
 mkdir test_dir
 cd test_dir
-export WARPX_TEST_DIR=$(pwd)
 
 # Copy WarpX into current test directory
 mkdir warpx
