@@ -13,12 +13,42 @@ template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
 void warpxReduceSum (volatile T* data, int tid)
 {
-    if (blockSize >= 64) data[tid] += data[tid + 32];
-    if (blockSize >= 32) data[tid] += data[tid + 16];
-    if (blockSize >= 16) data[tid] += data[tid + 8];
-    if (blockSize >=  8) data[tid] += data[tid + 4];
-    if (blockSize >=  4) data[tid] += data[tid + 2];
-    if (blockSize >=  2) data[tid] += data[tid + 1];
+    if (blockSize >= 64) {
+        data[tid] += data[tid + 32];
+#if __CUDA_ARCH__ >= 700
+        __syncwarp();
+#endif
+    }
+    if (blockSize >= 32) {
+        data[tid] += data[tid + 16];
+#if __CUDA_ARCH__ >= 700
+        __syncwarp();
+#endif
+    }
+    if (blockSize >= 16) {
+        data[tid] += data[tid + 8];
+#if __CUDA_ARCH__ >= 700
+        __syncwarp();
+#endif
+    }
+    if (blockSize >=  8) {
+        data[tid] += data[tid + 4];
+#if __CUDA_ARCH__ >= 700
+        __syncwarp();
+#endif
+    }
+    if (blockSize >=  4) {
+        data[tid] += data[tid + 2];
+#if __CUDA_ARCH__ >= 700
+        __syncwarp();
+#endif
+    }
+    if (blockSize >=  2) {
+        data[tid] += data[tid + 1];
+#if __CUDA_ARCH__ >= 700
+        __syncwarp();
+#endif
+    }
 }
 
 template <unsigned int blockSize, typename T>
