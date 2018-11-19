@@ -6,6 +6,7 @@ namespace amrex {
 
 namespace Cuda {
 
+#ifdef AMREX_USE_CUDA
 void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks)
 {
     gs = LayoutData<GridSize>(fa.boxArray(),fa.DistributionMap());
@@ -19,6 +20,7 @@ void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, i
         ntotblocks += ec.numBlocks.x;
     }
 }
+#endif
 
 // Return intersection of the cell for this thread and the entire domain.
 // If more threads are assigned than mesh cells in the domain, intersection will return an empty box.
