@@ -7,7 +7,7 @@ namespace amrex {
 namespace Cuda {
 #ifdef AMREX_USE_CUDA
 
-// Based on https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
+// Based on https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf by Mark Harris
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
