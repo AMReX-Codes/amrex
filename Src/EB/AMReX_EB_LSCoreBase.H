@@ -78,6 +78,8 @@ public:
     // Write checkpoint file to disk
     void WriteCheckpointFile () const;
 
+    const MultiFab * getLevelSet(int n) const {return & level_set[n];}
+
 protected:
 
     /****************************************************************************
