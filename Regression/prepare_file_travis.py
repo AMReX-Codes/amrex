@@ -5,13 +5,15 @@
 import re
 import os
 # Get relevant environment variables
-dim = os.environ.get('WARPX_DIM', None)
+dim = os.environ.get('WARPX_TEST_DIM', None)
+test_dir = os.environ.get('WARPX_TEST_DIR', '')
+arch = os.environ.get('WARPX_TEST_ARCH', 'CPU')
 
 with open('WarpX-tests.ini') as f:
     text = f.read()
 
 # Replace default folder name
-text = re.sub('/home/regtester/AMReX_RegTesting/', '/home/travis/', text)
+text = re.sub('/home/regtester/AMReX_RegTesting', test_dir, text)
 
 # Add doComparison = 0 for each test
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
