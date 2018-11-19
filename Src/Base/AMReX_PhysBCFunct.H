@@ -203,20 +203,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
 
     AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
     {
-        int ibox;
-        long ncells_subtotal = 0;
-        long offset = 0;
-        for (ibox = 0; ibox < nboxes; ++ibox) {
-            const long n = boxes_p[ibox].numPts();
-            ncells_subtotal += n;
-            if (icell < ncells_subtotal) {
-                offset = icell - (ncells_subtotal - n);
-                break;
-            }
-        }
-
-        const Box& b = boxes_p[ibox];
-        const auto& cell = b.atOffset(offset);
+        const auto& cell = getCell(boxes_p, nboxes, icell);
 
         filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
                    bcr_p, 0, orig_comp);
