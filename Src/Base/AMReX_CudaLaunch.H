@@ -349,6 +349,9 @@ namespace amrex {
     void launch_host (L f0, Lambdas... fs) { f0(); launch_host(fs...); }
 
 
+    template <class T> class LayoutData;
+    class FabArrayBase;
+
 namespace Cuda {
 
 // ************************************************
@@ -359,7 +362,15 @@ namespace Cuda {
         int nc;
     };
 
+    struct GridSize {
+        int numBlocks;
+        int numThreads;
+        int globalBlockId;
+    };
+
 // ************************************************
+
+    void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks);
 
     AMREX_GPU_HOST_DEVICE
     Box getThreadBox (const Box& bx);
@@ -400,6 +411,8 @@ namespace Cuda {
             Cuda::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         ExecutionConfig (const Box& box) {
+            // If we change this, we must make sure it doesn't break say getGridSize, which
+            // assumes the decomposiiton is 1D.
             Cuda::Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);
