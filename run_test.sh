@@ -1,4 +1,16 @@
 #!/bin/bash
+# This script runs some of WarpX's standard regression tests, but
+# without comparing the output to previously run simulations.
+# This checks that:
+# - The code compiles and runs without error
+# - For some of the tests, a Python script checks that the results are
+# physically correct.
+
+# The tests can be influenced by environment variables:
+# Use `export WARPX_TEST_DIM=3` or `export WARPX_TEST_DIM=2` in order to
+# select only the tests that correspond to this dimension
+# Use `export WARPX_TEST_ARCH=CPU` or `export WARPX_TEST_ARCH=GPU` in order
+# to run the tests on CPU or GPU respectively.
 
 # Create test directory
 rm -rf test_dir
