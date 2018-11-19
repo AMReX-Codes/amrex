@@ -1,7 +1,8 @@
 # This script modifies `WarpX-test.ini` (which is used for nightly builds)
 # and creates the file `travis-test.ini` (which is used for continous
 # integration on TravisCI (https://travis-ci.org/)
-# The subtests that are selected are controlled by the environement WARPX_DIM
+# The subtests that are selected are controlled by WARPX_TEST_DIM
+# The architecture (CPU/GPU) is selected by WARPX_TEST_ARCH
 import re
 import os
 # Get relevant environment variables
@@ -10,7 +11,9 @@ arch = os.environ.get('WARPX_TEST_ARCH', 'CPU')
 
 # Find the directory in which the tests should be run
 current_dir = os.getcwd()
-test_dir = re.sub('Regression', 'test_dir', current_dir)
+print(current_dir)
+test_dir = re.sub('warpx/Regression', '', current_dir )
+print(test_dir)
 
 with open('WarpX-tests.ini') as f:
     text = f.read()
@@ -21,6 +24,11 @@ text = re.sub('/home/regtester/AMReX_RegTesting', test_dir, text)
 # Add doComparison = 0 for each test
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
                '[\g<name>]\ndoComparison = 0\nbuildDir = ', text )
+
+# Change compile options when running on GPU
+if arch == 'GPU':
+    text = re.sub( 'addToCompileString = ',
+                    'addToCompileString = USE_GPU=TRUE COMP=pgi ', text)
 
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )

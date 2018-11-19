@@ -15,10 +15,10 @@ before_install:
     - export PATH=/home/travis/miniconda2/bin:$PATH
     - pip install --upgrade pip && pip install numpy scipy matplotlib yt
 
-install:
-    # Run the script that prepares the test environment
-    - ./run_test.sh
-
 script:
-    - cd test_dir/regression_testing ; export FFTW_HOME=/usr/; export OMP_NUM_THREADS=1
-    - python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=$TRAVIS_COMMIT
+    - export FFTW_HOME=/usr/
+    - export OMP_NUM_THREADS=1
+    # Run the tests on the current commit
+    - export WARPX_TEST_COMMIT=$TRAVIS_COMMIT
+    # Run the script that prepares the test environment and runs the tests
+    - ./run_test.sh

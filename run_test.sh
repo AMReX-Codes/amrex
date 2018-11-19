@@ -23,4 +23,6 @@ cd warpx/Regression
 python prepare_file_travis.py
 cp travis-tests.ini ../../rt-WarpX
 
-
+# Run the tests
+cd ../../regression_testing/
+python regtest.py ../rt-WarpX/travis-tests.ini --no_update all --source_git_hash=$WARPX_TEST_COMMIT
