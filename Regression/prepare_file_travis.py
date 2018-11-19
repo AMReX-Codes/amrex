@@ -27,8 +27,9 @@ text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
 
 # Change compile options when running on GPU
 if arch == 'GPU':
-    text = re.sub( 'addToCompileString = ',
-                    'addToCompileString = USE_GPU=TRUE COMP=pgi ', text)
+    text = re.sub( 'addToCompileString =',
+                    'addToCompileString = USE_GPU=TRUE COMP=pgi', text)
+print('Compiling for %s' %arch)
 
 # Use only 2 cores for compiling
 text = re.sub( 'numMakeJobs = \d+', 'numMakeJobs = 2', text )
