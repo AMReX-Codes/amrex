@@ -16,6 +16,9 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
     const char   tagval = TagBox::SET;
     const char clearval = TagBox::CLEAR;
 
+    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(state.Factory());
+    auto const& flags = factory.getMultiEBCellFlagFab();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -23,8 +26,7 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
     {
         const Box& bx = mfi.tilebox();
 
-        const auto& sfab = dynamic_cast<EBFArrayBox const&>(state[mfi]);
-        const auto& flag = sfab.getEBCellFlagFab();
+        const auto& flag = flags[mfi];
 
         const FabType typ = flag.getType(bx);
         if (typ != FabType::regular && typ != FabType::covered)

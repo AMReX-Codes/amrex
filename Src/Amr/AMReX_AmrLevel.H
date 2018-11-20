@@ -28,6 +28,7 @@ class TagBox;
 class TagBoxArray;
 template <class T>
 class MFGraph;
+class RGIter;
 
 /**
 * \brief Virtual base class for managing individual levels.
@@ -41,6 +42,8 @@ class AmrLevel
   friend class FillPatchIteratorHelper;
   template <class T>
   friend class MFGraph;
+  friend class RGIter;
+  friend class AsyncFillPatchIterator;
 
 public:
     //! What time are we at?
@@ -626,6 +629,9 @@ public:
     RegionGraph*                      csrcGraph;
     RegionGraph*                      fsrcGraph;
     RegionGraph*                      m_rg_crse_patch;
+    std::list<RegionGraph*>	      regionList;
+    std::list<MultiFab*>	      mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
 
 
 
@@ -650,8 +656,8 @@ public:
     void FillFromLevel0Push (Real time, int index, int scomp, int dcomp, int ncomp, int f);
     void FillFromLevel0PushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
     void FillFromLevel0Pull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
-    void FillFromTwoLevelsPush (Real time, int index, int scomp, int dcomp, int ncomp, int f);
     void FillFromTwoLevelsPushOnly (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
+    void FillFromTwoLevelsPush (Real time, int index, int scomp, int dcomp, int ncomp, int f, unsigned char pushLevel, bool singleT);
     void FillFromTwoLevelsPull (Real time, int index, int scomp, int dcomp, int ncomp, int f, bool singleT);
     void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
                                  Vector<MultiFab*>& cmf, Vector<Real>& ct,
@@ -748,6 +754,325 @@ private:
     std::map< int,Vector< Vector<Box> > >                m_cbox; // [grid][level][fillablesubbox]
     std::map< int,Vector< Vector< Vector<FillBoxId> > > > m_fbid; // [grid][level][fillablesubbox][oldnew]
 };
+
+
+  //////////////////////////////////////Perilla/////////////////////
+#ifdef USE_PERILLA
+class AsyncFillPatchIterator
+    :
+    public MFIter
+{
+  public:
+
+  friend class AmrLevel;
+  friend class RGIter;
+
+    AsyncFillPatchIterator (AmrLevel& amrlevel,
+                            MultiFab& leveldata,
+                            int       boxGrow,
+                            Real      time,
+                            int       state_indx,
+                            int       scomp,
+                            int       ncomp,
+                            int iter);
+
+    void initFillPatch(int boxGrow,
+                       int time,
+                       int index,
+                       int scomp,
+                       int ncomp,
+                       int iter);
+
+    static void  initialSend(amrex::Vector<amrex::AsyncFillPatchIterator*> afpi,
+                             amrex::Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
+                             int  boxGrow,
+                             Real time,
+                             int  state_indx,
+                             int  scomp,
+                             int  ncomp,
+                             int  iter);
+
+    void PushOnly (int  boxGrow,
+                   Real time,
+                   int  state_indx,
+                   int  scomp,
+                   int  ncomp,
+                   int f,
+                   unsigned char pushLevel,
+                   bool singleT=false);
+
+    void SendIntraLevel (RGIter& rgi,
+                         int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int  iter,
+                         int f,
+                         bool singleT=false);
+
+    void SendIntraLevel (RGIter* rgi,
+                         int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int  iter,
+                         int f,
+                         bool singleT=false);
+
+    void SendInterLevel (RGIter& rgi,
+                         int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int  iter,
+                         int f,
+                         bool singleT=false);
+
+    void SendInterLevel (RGIter* rgi,
+                         int  boxGrow,
+                         Real time,
+                         int  state_indx,
+                         int  scomp,
+                         int  ncomp,
+                         int  iter,
+                         int f,
+                         bool singleT=false);
+
+    void Receive (RGIter& rgi,
+                   int  boxGrow,
+                   Real time,
+                   int  state_indx,
+                   int  scomp,
+                   int  ncomp,
+                   int f,
+                   bool singleT=false);
+
+    void Receive (RGIter* rgi,
+                   int  boxGrow,
+                   Real time,
+                   int  state_indx,
+                   int  scomp,
+                   int  ncomp,
+                   int f,
+                   bool singleT=false);
+
+    void Receive (RGIter& rgi,
+                  MultiFab& dest,
+                  int  boxGrow,
+                  Real time,
+                  int  state_indx,
+                  int  scomp,
+                  int  ncomp,
+                  int f,
+                  bool singleT=false);
+
+    void Receive (RGIter* rgi,
+                  MultiFab& dest,
+                  int  boxGrow,
+                  const Real time,
+                  int  state_indx,
+                  int  scomp,
+                  int  ncomp,
+                  int f,
+                  bool singleT=false);
+
+    void PullOnly (int  boxGrow,
+                   Real time,
+                   int  state_indx,
+                   int  scomp,
+                   int  ncomp,
+                   int f,
+                   bool singleT=false);
+
+    void PullOnly (MultiFab& dest,
+                   int  boxGrow,
+                   Real time,
+                   int  state_indx,
+                   int  scomp,
+                   int  ncomp,
+                   int f,
+                   bool singleT=false);
+
+    void FillPatchTwoLevelsPush (Amr& amr, MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 AsyncFillPatchIterator* fpIter,
+                                 MultiFab *dmf,
+                                 MultiFab *dmff,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, unsigned char pushLevel, bool singleT);
+
+    void FillPatchTwoLevelsPull (MultiFab& mf, Real time,
+                                 Vector<MultiFab*>& cmf, Vector<Real>& ct,
+                                 Vector<MultiFab*>& fmf, Vector<Real>& ft,
+                                 RegionGraph* destGraph, RegionGraph* csrcGraph, RegionGraph* fsrcGraph, int f,
+                                 AsyncFillPatchIterator* fpIter,
+                                 int scomp, int dcomp, int ncomp,
+                                 const Geometry& cgeom, const Geometry& fgeom,
+                                 StateDataPhysBCFunct& cbc, StateDataPhysBCFunct& fbc,
+                                 const IntVect& ratio,
+                                 Interpolater* mapper, const Vector<BCRec>& bcs, bool singleT);
+
+    void FillPatchSingleLevelPush (Amr& amr, MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, const Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   MultiFab *dmf,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
+    void FillPatchSingleLevelPull (MultiFab& mf, Real time,
+                                   Vector<MultiFab*>& smf, const Vector<Real>& stime,
+                                   RegionGraph* destGraph, RegionGraph* srcGraph, int f,
+                                   int scomp, int dcomp, int ncomp,
+                                   const Geometry& geom, StateDataPhysBCFunct& physbcf, bool singleT);
+
+    void FillFromTwoLevelsPush (Real time,
+                                int index,
+                                int scomp,
+                                int dcomp,
+                                int ncomp,
+                                int f,
+                                unsigned char pushLevel,
+                                bool singleT);
+    void FillFromTwoLevelsPull (Real time,
+                                int index,
+                                int scomp,
+                                int dcomp,
+                                int ncomp,
+                                int f,
+                                bool singleT);
+
+    void FillFromTwoLevelsPull (MultiFab& dest,
+                                Real time,
+                                int index,
+                                int scomp,
+                                int dcomp,
+                                int ncomp,
+                                int f,
+                                bool singleT);
+
+    ~AsyncFillPatchIterator (){};
+
+    FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
+
+    Box UngrownBox () const { return MFIter::validbox(); }
+
+    MultiFab& get_mf() { return m_fabs; }
+
+  //  protected:
+    //
+    // Disallowed.
+    //
+    AsyncFillPatchIterator ();
+    AsyncFillPatchIterator (const AsyncFillPatchIterator& rhs);
+    AsyncFillPatchIterator& operator= (const AsyncFillPatchIterator& rhs);
+
+    //
+    // The data.
+    //
+    AmrLevel&                         m_amrlevel;
+    MultiFab&                         m_leveldata;
+    std::vector< std::pair<int,int> > m_range;
+    MultiFab                          m_fabs;
+    int                               m_ncomp;
+
+public:
+    bool                              isProperlyNested;
+
+    amrex::Vector<MultiFab*>                  smf;
+    amrex::Vector<Real>                       stime;
+    StateDataPhysBCFunct*             physbcf;
+    Geometry*                         geom;
+
+
+    amrex::Vector<MultiFab*>                  smf_crse;
+    amrex::Vector<Real>                       stime_crse;
+    StateDataPhysBCFunct*             physbcf_crse;
+    Geometry*                         geom_crse;
+
+    amrex::Vector<MultiFab*>                  smf_fine;
+    amrex::Vector<Real>                       stime_fine;
+    StateDataPhysBCFunct*             physbcf_fine;
+    Geometry*                         geom_fine;
+
+
+    RegionGraph*                      destGraph;
+    RegionGraph*                      csrcGraph;
+    RegionGraph*                      fsrcGraph;
+
+    MultiFab*                         m_mf_crse_patch;
+    RegionGraph*                      m_rg_crse_patch;
+    const FabArrayBase::FPinfo*       m_fpc;
+
+  //PArray<MultiFab>                  raii;
+    MultiFab*                         dmf;
+    MultiFab*                         dmff;
+
+
+    void completeRegionGraphs()
+    { 
+      //std::cout << "Completing RGs ";
+      
+      if(destGraph != NULL)
+        { 
+          //std::cout << destGraph->graphID << " ";
+           destGraph->finalizeRegionGraph();
+        }
+      if(csrcGraph != NULL)
+        { 
+          //std::cout << csrcGraph->graphID << " ";
+          csrcGraph->finalizeRegionGraph();
+        }
+      if(fsrcGraph != NULL)
+        { 
+          //std::cout << fsrcGraph->graphID << " ";
+          fsrcGraph->finalizeRegionGraph();
+        }
+      if(m_rg_crse_patch != NULL)
+        { 
+          //std::cout << m_rg_crse_patch->graphID << " ";
+          m_rg_crse_patch->finalizeRegionGraph();
+        }
+      //std::cout <<" by tg " << tg << std::endl;
+    }
+
+    void Reset()
+    {
+      //std::cout << "Resetting RGs ";
+      if(destGraph != NULL)
+        {
+          //std::cout << destGraph->graphID << " ";
+           destGraph->Reset();
+        }
+      if(csrcGraph != NULL)
+        {
+          //std::cout << csrcGraph->graphID << " ";
+          csrcGraph->Reset();
+        }
+      if(fsrcGraph != NULL)
+        {
+          //std::cout << fsrcGraph->graphID << " ";
+          fsrcGraph->Reset();
+        }
+      if(m_rg_crse_patch != NULL)
+        {
+          //std::cout << m_rg_crse_patch->graphID << " ";
+          m_rg_crse_patch->Reset();
+        }
+      //std::cout <<" by tg " << tg << std::endl;
+    }
+
+  // Variables for optimization calls of two level push/pulll
+
+};
+#endif
+
 
 }
 

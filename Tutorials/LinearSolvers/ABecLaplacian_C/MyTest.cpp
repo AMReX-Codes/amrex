@@ -166,10 +166,8 @@ MyTest::solveABecLaplacian ()
                                                     IntVect::TheDimensionVector(idim));
                 face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
             }
-            amrex::average_cellcenter_to_face({AMREX_D_DECL(&face_bcoef[0],
-                                                            &face_bcoef[1],
-                                                            &face_bcoef[2])},
-                                               bcoef[ilev], geom[ilev]);
+            amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                              bcoef[ilev], geom[ilev]);
             mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(face_bcoef));
         }
 
@@ -226,10 +224,8 @@ MyTest::solveABecLaplacian ()
                                                     IntVect::TheDimensionVector(idim));
                 face_bcoef[idim].define(ba, bcoef[ilev].DistributionMap(), 1, 0);
             }
-            amrex::average_cellcenter_to_face({AMREX_D_DECL(&face_bcoef[0],
-                                                            &face_bcoef[1],
-                                                            &face_bcoef[2])},
-                                               bcoef[ilev], geom[ilev]);
+            amrex::average_cellcenter_to_face(GetArrOfPtrs(face_bcoef),
+                                              bcoef[ilev], geom[ilev]);
             mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
             MLMG mlmg(mlabec);

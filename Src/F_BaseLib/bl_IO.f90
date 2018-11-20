@@ -21,12 +21,12 @@ module bl_IO_module
 
   !! Several routines are written so that they can be conveniently
   !! called in routines that have optional arguments.  For example,
-  !! 
+  !!
   !! subroutine print_box(box, unit)
   !!  optional :: unit
   !!  write(unit=unit_stdout(unit), fmt *) box
   !!
-  !! This routine will print on the stdout if UNIT is not passed to 
+  !! This routine will print on the stdout if UNIT is not passed to
   !! print_box, but will print to UNIT if UNIT is passed.
 
 contains
@@ -103,4 +103,3 @@ contains
   end function unit_get_skip
 
 end module bl_IO_module
-

@@ -29,6 +29,12 @@ namespace amrex{
 		prev=0;
 		graphPartner=0;
 	    }
+#if 0
+            ~FabCopyAssoc()
+            {   
+                if(next) delete next;
+            }
+#endif
     };
 
     class pTileArray
@@ -40,14 +46,16 @@ namespace amrex{
 	    pTileArray(): numTiles(0), tileBx(0){}
 	    ~pTileArray()
 	    {
+                for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
 		tileBx.clear();
+	        delete[] validBx; 
 	    }
     };
 
     class Task
     {
 	public:
-            std::vector<int> state;
+	    std::vector<int> state;
 	    bool init;
 	    FabCopyAssoc *cpAsc_srcHead;
 	    FabCopyAssoc *cpAsc_dstHead;
@@ -90,6 +98,17 @@ namespace amrex{
 	    RegionQueue* computedRegionQueue;
 	    RegionQueue* completedRegionQueue;
 	    Worker():init(false), barr(0), l_barr(0), totalTasks(0){}
+
+            ~Worker(){
+#if 1
+	        delete barr;
+        	delete l_barr;
+        	delete fireableRegionQueue;
+        	delete unfireableRegionQueue;
+        	delete computedRegionQueue;
+        	delete completedRegionQueue;
+#endif
+	    }
     };
 
     //template <class FAB>
@@ -162,36 +181,37 @@ namespace amrex{
 	    void regionGraphReset(int numfabs);
 	    void regionGraphMinReset(void);
 	    void enableAllRegions();
-	    void disableRegion(int r, int tg, int ntid);
+	    void disableRegion(int r);
 	    void finalizeRegion(int r);
 	    void finalizeRegionGraph();
-	    void regionComputed(int r, int tg, int ntid);
-	    bool isFireableRegion(int r, bool patchFilled=false);
+	    void regionComputed(int r);
+	    bool isFireableRegion(int r);
 	    int  getAnyFireableRegion();
+            int  getAnyFireableRegion(RegionGraph& depGraph);
 	    int  getPulledFireableRegion();
-	    int  getFireableRegion(bool patchFilled=false, bool isSingleThread=false);
+	    int  getFireableRegion(bool isSingleThread=false);
 	    void setFireableRegion(int r);
-	    void graphTeardown(int tg);
-	    void workerTeardown(int tg);
+	    void graphTeardown();
+	    void workerTeardown();
 	    int size(){return task.size();}
 
 	    int getRegion(){
-	        return worker[perilla::wid()]->computedRegionQueue->getFrontRegion(true);
-            }
+		return worker[perilla::wid()]->computedRegionQueue->getFrontRegion(true);
+	    }
 
-            void syncComputeWorkerThreads(){
-	        worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
-            }
-            void syncComputeWorkerThreads(int numthreads){
-	        worker[perilla::wid()]->barr->sync(numthreads);
-            }
+	    void syncComputeWorkerThreads(){
+		worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+	    }
+	    void syncComputeWorkerThreads(int numthreads){
+		worker[perilla::wid()]->barr->sync(numthreads);
+	    }
 
-            void syncWorkerThreads(){
-	        worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
-            }
-            void syncWorkerThreads(int numthreads){
-	        worker[perilla::wid()]->barr->sync(numthreads);
-            }
+	    void syncWorkerThreads(){
+		worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
+	    }
+	    void syncWorkerThreads(int numthreads){
+		worker[perilla::wid()]->barr->sync(numthreads);
+	    }
 
 	    void alloc_lMap(const MultiFab& mf)
 	    {
@@ -259,6 +279,27 @@ namespace amrex{
 		{
 		    fabTiles_gtbx[mfi.LocalIndex()]->numTiles++;
 		    fabTiles_gtbx[mfi.LocalIndex()]->tileBx.push_back(new Box(mfi.growntilebox(ng)));
+		}
+	    }
+
+	    void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
+	    {
+		int myProc = amrex::ParallelDescriptor::MyProc();
+		const int n = mf.indexArray.size();
+		fabTiles.resize(n);
+
+		//typ = mf.boxArray().ixType();
+
+		for (int i = 0; i < n; ++i)
+		{
+		    fabTiles[i] = new pTileArray();
+		}
+		for (amrex::MFIter mfi(mf, tilesize); mfi.isValid(); ++mfi)
+		{
+		    if( fabTiles[mfi.LocalIndex()]->numTiles == 0 )
+			fabTiles[mfi.LocalIndex()]->validBx = new amrex::Box(mfi.validbox());
+		    fabTiles[mfi.LocalIndex()]->numTiles++;
+		    fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
 		}
 	    }
 

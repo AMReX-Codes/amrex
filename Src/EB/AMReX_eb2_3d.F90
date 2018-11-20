@@ -296,7 +296,13 @@ contains
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not suported")
                 end if
 
-                if (lym.eq.lyp .and. lzm.eq.lzp) then
+                if (lym.le.small .and. lyp.le.small .and. lzm.le.small .and. lzp.le.small) then
+                   apx(i,j,k) = zero
+                   fcx(i,j,k,:) = zero
+                   m2x(i,j,k,1) = zero
+                   m2x(i,j,k,2) = zero
+                   m2x(i,j,k,3) = zero
+                else if (lym.eq.lyp .and. lzm.eq.lzp) then
                    apx(i,j,k) = one
                    fcx(i,j,k,:) = zero
                    m2x(i,j,k,1) = twelfth
@@ -411,7 +417,13 @@ contains
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
 
-                if (lxm.eq.lxp .and. lzm.eq.lzp) then
+                if (lxm.le.small .and. lxp.le.small .and. lzm.le.small .and. lzp.le.small) then
+                   apy(i,j,k) = zero
+                   fcy(i,j,k,:) = zero
+                   m2y(i,j,k,1) = zero
+                   m2y(i,j,k,2) = zero
+                   m2y(i,j,k,3) = zero
+                else if (lxm.eq.lxp .and. lzm.eq.lzp) then
                    apy(i,j,k) = one
                    fcy(i,j,k,:) = zero
                    m2y(i,j,k,1) = twelfth
@@ -527,7 +539,13 @@ contains
                    call amrex_error("amrex_eb2_build_faces: more than 2 cuts not supported")
                 end if
 
-                if (lxm.eq.lxp .and. lym.eq.lyp) then
+                if (lxm.le.small .and. lxp.le.small .and. lym.le.small .and. lyp.le.small) then
+                   apz(i,j,k) = zero
+                   fcz(i,j,k,:) = zero
+                   m2z(i,j,k,1) = zero
+                   m2z(i,j,k,2) = zero
+                   m2z(i,j,k,3) = zero
+                else if (lxm.eq.lxp .and. lym.eq.lyp) then
                    apz(i,j,k) = one
                    fcz(i,j,k,:) = zero
                    m2z(i,j,k,1) = twelfth
@@ -589,19 +607,51 @@ contains
       nyabs = abs(ny)
 
       if (nxabs .lt. tiny .or. nyabs .gt. almostone) then
-         areafrac = axm
-         centx = zero
-         centy = (eighth*(ayp-aym) + ny*half*bcy**2)/areafrac
-         Sx2 = twentyfourth*(axm+axp)
-         Sy2 = twentyfourth*(ayp+aym) + ny*third*bcy**3
-         Sxy = zero
+         areafrac = half*(axm+axp)
+         if (areafrac .gt. one-small) then
+            areafrac = one
+            centx = zero
+            centy = zero
+            Sx2 = twelfth
+            Sy2 = twelfth
+            Sxy = zero
+         else if (areafrac .lt. small) then
+            areafrac = zero
+            centx = zero
+            centy = zero
+            Sx2 = zero
+            Sy2 = zero
+            Sxy = zero
+         else
+            centx = zero
+            centy = (eighth*(ayp-aym) + ny*half*bcy**2)/areafrac
+            Sx2 = twentyfourth*(axm+axp)
+            Sy2 = twentyfourth*(ayp+aym) + ny*third*bcy**3
+            Sxy = zero
+         end if
       else if (nyabs .lt. tiny .or. nxabs .gt. almostone) then
-         areafrac = aym
-         centx = (eighth*(axp-axm) + nx*half*bcx**2)/areafrac
-         centy = zero
-         Sx2 = twentyfourth*(axp+axm) + nx*third*bcx**3
-         Sy2 = twentyfourth*(ayp+aym)
-         Sxy = zero
+         areafrac = half*(aym+ayp)
+         if (areafrac .gt. one-small) then
+            areafrac = one
+            centx = zero
+            centy = zero
+            Sx2 = twelfth
+            Sy2 = twelfth
+            Sxy = zero
+         else if (areafrac .lt. small) then
+            areafrac = zero
+            centx = zero
+            centy = zero
+            Sx2 = zero
+            Sy2 = zero
+            Sxy = zero
+         else
+            centx = (eighth*(axp-axm) + nx*half*bcx**2)/areafrac
+            centy = zero
+            Sx2 = twentyfourth*(axp+axm) + nx*third*bcx**3
+            Sy2 = twentyfourth*(ayp+aym)
+            Sxy = zero
+         end if
       else
          if (nx .gt. zero) then
             x_ym = -half + aym
@@ -756,6 +806,12 @@ contains
                 dapy = aym - ayp
                 dapz = azm - azp
                 apnorm = sqrt(dapx**2 + dapy**2 + dapz**2)
+                if (apnorm .eq. zero) then
+#ifdef AMREX_DEBUG
+                   print *, "amrex_eb2_build_cells: multiple cuts in cell ", i,j,k
+#endif
+                   call amrex_error("amrex_eb2_build_cells: apnorm==0, multiple cuts not supported")
+                end if
                 apnorminv = one/apnorm
                 nx = dapx * apnorminv
                 ny = dapy * apnorminv

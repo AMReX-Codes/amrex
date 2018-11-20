@@ -61,6 +61,10 @@
 #endif
 #endif
 
+#ifdef BL_USE_SENSEI_INSITU
+#include <AMReX_AmrInSituBridge.H>
+#endif
+
 namespace amrex {
 
 //
@@ -72,8 +76,11 @@ std::list<std::string> Amr::derive_plot_vars;
 std::list<std::string> Amr::derive_small_plot_vars;
 bool                   Amr::first_plotfile;
 bool                   Amr::first_smallplotfile;
-Vector<BoxArray>        Amr::initial_ba;
-Vector<BoxArray>        Amr::regrid_ba;
+Vector<BoxArray>       Amr::initial_ba;
+Vector<BoxArray>       Amr::regrid_ba;
+#ifdef BL_USE_SENSEI_INSITU
+AmrInSituBridge*       Amr::insitu_bridge;
+#endif
 
 namespace
 {
@@ -96,6 +103,7 @@ namespace
     int  regrid_on_restart;
     int  use_efficient_regrid;
     int  plotfile_on_restart;
+    int  insitu_on_restart;
     int  checkpoint_on_restart;
     bool checkpoint_files_output;
     int  compute_new_dt_on_regrid;
@@ -104,6 +112,8 @@ namespace
     VisMF::Header::Version plot_headerversion(VisMF::Header::Version_v1);
     VisMF::Header::Version checkpoint_headerversion(VisMF::Header::Version_v1);
 //}
+
+
 
 bool
 Amr::UsingPrecreateDirectories()
@@ -128,6 +138,7 @@ Amr::Initialize ()
     regrid_on_restart        = 0;
     use_efficient_regrid     = 0;
     plotfile_on_restart      = 0;
+    insitu_on_restart        = 0;
     checkpoint_on_restart    = 0;
     checkpoint_files_output  = true;
     compute_new_dt_on_regrid = 0;
@@ -135,7 +146,9 @@ Amr::Initialize ()
     prereadFAHeaders         = true;
     plot_headerversion       = VisMF::Header::Version_v1;
     checkpoint_headerversion = VisMF::Header::Version_v1;
-
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge            = nullptr;
+#endif
     amrex::ExecOnFinalize(Amr::Finalize);
 
     initialized = true;
@@ -149,6 +162,7 @@ Amr::Finalize ()
     Amr::derive_small_plot_vars.clear();
     Amr::regrid_ba.clear();
     Amr::initial_ba.clear();
+    Amr::finalizeInSitu();
 
     initialized = false;
 }
@@ -249,7 +263,10 @@ Amr::InitAmr ()
     record_run_info_terse  = false;
     bUserStopRequest       = false;
     message_int            = 10;
-    
+#ifdef BL_USE_SENSEI_INSITU
+    insitu_bridge          = nullptr;
+#endif
+
     for (int i = 0; i < AMREX_SPACEDIM; i++)
         isPeriodic[i] = false;
 
@@ -260,6 +277,7 @@ Amr::InitAmr ()
     pp.query("regrid_on_restart",regrid_on_restart);
     pp.query("use_efficient_regrid",use_efficient_regrid);
     pp.query("plotfile_on_restart",plotfile_on_restart);
+    pp.query("insitu_on_restart",insitu_on_restart);
     pp.query("checkpoint_on_restart",checkpoint_on_restart);
 
     pp.query("compute_new_dt_on_regrid",compute_new_dt_on_regrid);
@@ -352,6 +370,11 @@ Amr::InitAmr ()
     //
     initPltAndChk();
     
+    //
+    // Setup insitu controls
+    //
+    initInSitu();
+
     //
     // Setup subcycling controls.
     //
@@ -484,6 +507,49 @@ Amr::InitAmr ()
 
     loadbalance_max_fac = 1.5;
     pp.query("loadbalance_max_fac", loadbalance_max_fac);
+}
+
+int
+Amr::initInSitu()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    insitu_bridge = new AmrInSituBridge;
+    if (insitu_bridge->initialize())
+    {
+        amrex::ErrorStream() << "Amr::initInSitu : Failed to initialize." << std::endl;
+        amrex::Abort();
+    }
+#endif
+    return 0;
+}
+
+int
+Amr::updateInSitu()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    if (insitu_bridge && insitu_bridge->update(this))
+    {
+        amrex::ErrorStream() << "Amr::updateInSitu : Failed to update." << std::endl;
+        amrex::Abort();
+    }
+#endif
+    return 0;
+}
+
+int
+Amr::finalizeInSitu()
+{
+#if defined(BL_USE_SENSEI_INSITU)
+    if (insitu_bridge)
+    {
+        if (insitu_bridge->finalize())
+            amrex::ErrorStream() << "Amr::finalizeInSitu : Failed to finalize." << std::endl;
+
+        delete insitu_bridge;
+        insitu_bridge = nullptr;
+    }
+#endif
+    return 0;
 }
 
 bool
@@ -794,7 +860,7 @@ Amr::writePlotFile ()
         amr_level[0]->setPlotVariables();
     }
 
-    Real dPlotFileTime0 = ParallelDescriptor::second();
+    Real dPlotFileTime0 = amrex::second();
 
     const std::string& pltfile = amrex::Concatenate(plot_file_root,level_steps[0],file_name_digits);
 
@@ -878,7 +944,7 @@ Amr::writePlotFile ()
 
     if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+        Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
@@ -926,7 +992,7 @@ Amr::writeSmallPlotFile ()
       return;
     }
 
-    Real dPlotFileTime0 = ParallelDescriptor::second();
+    Real dPlotFileTime0 = amrex::second();
 
     const std::string& pltfile = amrex::Concatenate(small_plot_file_root,
                                                      level_steps[0],
@@ -1003,7 +1069,7 @@ Amr::writeSmallPlotFile ()
 
     if (verbose > 0) {
         const int IOProc        = ParallelDescriptor::IOProcessorNumber();
-        Real      dPlotFileTime = ParallelDescriptor::second() - dPlotFileTime0;
+        Real      dPlotFileTime = amrex::second() - dPlotFileTime0;
 
         ParallelDescriptor::ReduceRealMax(dPlotFileTime,IOProc);
 
@@ -1112,11 +1178,15 @@ Amr::init (Real strt_time,
     {
         initialInit(strt_time,stop_time);
         checkPoint();
+
         if(plot_int > 0 || plot_per > 0) {
             writePlotFile();
-	}
-	if (small_plot_int > 0 || small_plot_per > 0)
-	    writeSmallPlotFile();
+        }
+
+        if (small_plot_int > 0 || small_plot_per > 0)
+	        writeSmallPlotFile();
+
+        updateInSitu();
     }
 
 #ifdef BL_COMM_PROFILING
@@ -1152,7 +1222,7 @@ Amr::readProbinFile (int& a_init)
     const int NSets   = (NProcs + (nAtOnce - 1)) / nAtOnce;
     const int MySet   = MyProc/nAtOnce;
 
-    Real piStart = 0, piEnd = 0, piStartAll = ParallelDescriptor::second();
+    Real piStart = 0, piEnd = 0, piStartAll = amrex::second();
 
     for (int iSet = 0; iSet < NSets; ++iSet)
     {
@@ -1161,15 +1231,15 @@ Amr::readProbinFile (int& a_init)
             //
             // Call the pesky probin reader.
             //
-            piStart = ParallelDescriptor::second();
+            piStart = amrex::second();
 
 #ifdef AMREX_DIMENSION_AGNOSTIC
 
             amrex_probinit(&a_init,
 			   probin_file_name.dataPtr(),
 			   &probin_file_length,
-			   ZFILL(Geometry::ProbLo()),
-			   ZFILL(Geometry::ProbHi()));
+			   AMREX_ZFILL(Geometry::ProbLo()),
+			   AMREX_ZFILL(Geometry::ProbHi()));
 
 #else
 
@@ -1180,7 +1250,7 @@ Amr::readProbinFile (int& a_init)
 			   Geometry::ProbHi());
 #endif
 
-            piEnd = ParallelDescriptor::second();
+            piEnd = amrex::second();
             const int iBuff     = 0;
             const int wakeUpPID = (MyProc + nAtOnce);
             const int tag       = (MyProc % nAtOnce);
@@ -1203,7 +1273,7 @@ Amr::readProbinFile (int& a_init)
     {
         const int IOProc     = ParallelDescriptor::IOProcessorNumber();
         Real      piTotal    = piEnd - piStart;
-        Real      piTotalAll = ParallelDescriptor::second() - piStartAll;
+        Real      piTotalAll = amrex::second() - piStartAll;
 
         ParallelDescriptor::ReduceRealMax(piTotal,    IOProc);
         ParallelDescriptor::ReduceRealMax(piTotalAll, IOProc);
@@ -1333,6 +1403,7 @@ Amr::FinalizeInit (Real              strt_time,
         gridlog << "INITIAL GRIDS \n";
         printGridInfo(gridlog,0,finest_level);
     }
+
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
@@ -1344,7 +1415,7 @@ Amr::restart (const std::string& filename)
 
     which_level_being_advanced = -1;
 
-    Real dRestartTime0 = ParallelDescriptor::second();
+    Real dRestartTime0 = amrex::second();
 
     VisMF::SetMFFileInStreams(mffile_nstreams);
 
@@ -1611,6 +1682,13 @@ Amr::restart (const std::string& filename)
        }
     }
 
+    // Save the number of steps taken so far. This mainly
+    // helps in the edge case where we end up not taking
+    // any timesteps before the run terminates, so that
+    // we know not to unnecessarily overwrite the old file.
+    last_checkpoint = level_steps[0];
+    last_plotfile = level_steps[0];
+
     for (int lev = 0; lev <= finest_level; ++lev)
     {
 	Box restart_domain(Geom(lev).Domain());
@@ -1628,7 +1706,7 @@ Amr::restart (const std::string& filename)
 
     if (verbose > 0)
     {
-        Real dRestartTime = ParallelDescriptor::second() - dRestartTime0;
+        Real dRestartTime = amrex::second() - dRestartTime0;
 
         ParallelDescriptor::ReduceRealMax(dRestartTime,ParallelDescriptor::IOProcessorNumber());
 
@@ -1658,7 +1736,7 @@ Amr::checkPoint ()
     VisMF::Header::Version currentVersion(VisMF::GetHeaderVersion());
     VisMF::SetHeaderVersion(checkpoint_headerversion);
 
-    Real dCheckPointTime0 = ParallelDescriptor::second();
+    Real dCheckPointTime0 = amrex::second();
 
     const std::string& ckfile = amrex::Concatenate(check_file_root,level_steps[0],file_name_digits);
 
@@ -1790,7 +1868,7 @@ Amr::checkPoint ()
 
     if (verbose > 0)
     {
-        Real dCheckPointTime = ParallelDescriptor::second() - dCheckPointTime0;
+        Real dCheckPointTime = amrex::second() - dCheckPointTime0;
 
         ParallelDescriptor::ReduceRealMax(dCheckPointTime,
 	                            ParallelDescriptor::IOProcessorNumber());
@@ -1832,6 +1910,8 @@ Amr::RegridOnly (Real time)
     if (checkpoint_on_restart)
        checkPoint();
 
+    if (insitu_on_restart)
+        updateInSitu();
 }
 
 void
@@ -1867,10 +1947,16 @@ Amr::timeStep (int  level,
     else
     {
         int lev_top = std::min(finest_level, max_level-1);
+#ifdef USE_PERILLA
+        bool *metadataChanged=new bool[finest_level+1];
+        for (int l=0; l <= finest_level; l++)
+            metadataChanged[l]=false;
+#endif
 
         for (int i(level); i <= lev_top; ++i)
         {
             const int old_finest = finest_level;
+
 
             if (okToRegrid(i))
             {
@@ -1907,11 +1993,30 @@ Amr::timeStep (int  level,
                         dt_level[k]    = dt_level[k-1]/n_cycle[k];
                     }
                 }
+#ifdef USE_PERILLA
+                for (int k(i>0?i-1:0); k <= finest_level; ++k) {
+		    if(metadataChanged[k]==false){
+                        getLevel(k).finalizePerilla(cumtime);
+                        graphArray[k].resize(0);
+	       	        metadataChanged[k]=true;
+	            }
+		}
+#endif
             }
             if (old_finest > finest_level) {
                 lev_top = std::min(finest_level, max_level - 1);
 	    }
         }
+#ifdef USE_PERILLA
+        int cnt=0;
+        for(int i=0; i<= finest_level; i++)
+	    if(metadataChanged[i]){
+                getLevel(i).initPerilla(cumtime);
+	        cnt++;
+	    }
+ 	if(cnt)Perilla::updatedMetadata=1;
+	delete metadataChanged;
+#endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
         {
@@ -1983,6 +2088,10 @@ Amr::timeStep (int  level,
 		dt_level[k] = dt_level[k-1] / n_cycle[k];
 	    }
 	}
+#ifdef USE_PERILLA
+        getLevel(level).finalizePerilla(cumtime);
+        getLevel(level).initPerilla(cumtime);
+#endif
     }
 
 #ifdef USE_PERILLA
@@ -2041,7 +2150,7 @@ Amr::coarseTimeStepDt (Real stop_time)
 void
 Amr::coarseTimeStep (Real stop_time)
 {
-    Real      run_stop;
+    Real run_stop;
     Real run_strt;
 #ifdef USE_PERILLA_PTHREADS
     perilla::syncAllThreads();
@@ -2053,7 +2162,7 @@ Amr::coarseTimeStep (Real stop_time)
     std::stringstream stepName;
     stepName << "timeStep STEP " << level_steps[0];
 
-    run_strt = ParallelDescriptor::second() ;
+    run_strt = amrex::second() ;
 
     //
     // Compute new dt.
@@ -2091,18 +2200,28 @@ Amr::coarseTimeStep (Real stop_time)
 #ifdef USE_PERILLA_PTHREADS
     if(perilla::isMasterThread()){
         Perilla::numTeamsFinished = 0;
+        Perilla::updatedMetadata = 0;
         RegionGraph::graphCnt = 0;
         if(levelSteps(0)==0){
+	    graphArray.resize(finest_level+1);
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
-                    Perilla::communicateTags(graphArray);
+            Perilla::communicateTags();
         }
     }
     perilla::syncAllThreads();
 
     if(perilla::isCommunicationThread())
     {
-        Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+	if(!okToRegrid(0)){
+            Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+        }
+	else{
+	    while(!Perilla::updatedMetadata){
+		
+	    }
+	    Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+	}
     }else{
         timeStep(0,cumtime,1,1,stop_time);
         if(perilla::isMasterWorkerThread()){
@@ -2115,9 +2234,10 @@ Amr::coarseTimeStep (Real stop_time)
     Perilla::numTeamsFinished = 0;
     RegionGraph::graphCnt = 0;
     if(levelSteps(0)==0){
+	graphArray.resize(finest_level+1);
         for(int i=0; i<= finest_level; i++)
             getLevel(i).initPerilla(cumtime);
-        Perilla::communicateTags(graphArray);
+        Perilla::communicateTags();
     }
 
 #pragma omp parallel
@@ -2136,15 +2256,16 @@ Amr::coarseTimeStep (Real stop_time)
     }
 #endif
 
-#ifdef USE_PERILLA_PTHREADS
+#ifdef USE_PERILLA
     perilla::syncAllThreads();
-#endif
     if(perilla::isMasterThread()){
         if(level_steps[0] == Perilla::max_step){
-            for(int i=0; i<= finest_level; i++)
+            for(int i=0; i<= finest_level; i++){
                 getLevel(i).finalizePerilla(cumtime);
+            }
         }
     }
+#endif
 
 #else
     //synchronous
@@ -2166,7 +2287,7 @@ Amr::coarseTimeStep (Real stop_time)
     if (verbose > 0)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        run_stop = ParallelDescriptor::second() - run_strt;
+        run_stop = amrex::second() - run_strt;
 	const int istep    = level_steps[0];
 
 #ifdef BL_LAZY
@@ -2301,8 +2422,10 @@ Amr::coarseTimeStep (Real stop_time)
       last_plotfile   = level_steps[0];
     }
 
-    if (to_checkpoint && write_plotfile_with_checkpoint)
+    if (to_checkpoint && write_plotfile_with_checkpoint) {
       to_plot = 1;
+      to_small_plot = 1;
+    }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)
@@ -2321,6 +2444,8 @@ Amr::coarseTimeStep (Real stop_time)
         writeSmallPlotFile();
     }
 
+    updateInSitu();
+
     bUserStopRequest = to_stop;
     if (to_stop)
     {
@@ -2336,6 +2461,8 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
+
+
 #ifdef USE_PERILLA_PTHREADS
     }
 #endif
@@ -2793,7 +2920,7 @@ Amr::grid_places (int              lbase,
 {
     BL_PROFILE("Amr::grid_places()");
 
-    const Real strttime = ParallelDescriptor::second();
+    const Real strttime = amrex::second();
 
     if (lbase == 0)
     {
@@ -2868,7 +2995,7 @@ Amr::grid_places (int              lbase,
 
     if (verbose > 0)
     {
-        Real stoptime = ParallelDescriptor::second() - strttime;
+        Real stoptime = amrex::second() - strttime;
 
 #ifdef BL_LAZY
 	Lazy::QueueReduction( [=] () mutable {

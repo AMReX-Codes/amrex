@@ -46,6 +46,21 @@ ifeq ($(findstring summitdev, $(host_name)), summitdev)
   which_computer := summitdev
 endif
 
+ifeq ($(findstring ascent, $(host_name)), ascent)
+  which_site := olcf
+  which_computer := ascent
+endif
+
+ifeq ($(findstring sierra, $(host_name)), sierra)
+  which_site := llnl
+  which_computer := sierra
+endif
+
+ifeq ($(findstring butte, $(host_name)), butte)
+  which_site := llnl
+  which_computer := butte
+endif
+
 ifeq ($(findstring ray, $(host_name)), ray)
   which_site := llnl
   which_computer := ray
@@ -54,6 +69,11 @@ endif
 ifeq ($(findstring rzmanta, $(host_name)), rzmanta)
   which_site := llnl
   which_computer := rzmanta
+endif
+
+ifeq ($(findstring rzansel, $(host_name)), rzansel)
+  which_site := llnl
+  which_computer := rzansel
 endif
 
 ifeq ($(findstring mira, $(host_name)), mira)
@@ -76,7 +96,17 @@ ifeq ($(findstring merlin, $(host_name)), merlin)
   which_computer := merlin
 endif
 
+ifeq ($(findstring aurora, $(host_name)), aurora)
+  which_site := hs
+  which_computer := aurora
+endif
+
 ifeq ($(findstring nrel, $(host_name)), nrel)
   which_site := nrel
   which_computer := anymachine
+endif
+
+ifeq ($(findstring daint, $(host_name)), daint)
+  which_site := cscs
+  which_computer := daint
 endif

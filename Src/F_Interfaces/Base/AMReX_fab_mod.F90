@@ -5,6 +5,7 @@ module amrex_fab_module
   use amrex_fort_module
   use amrex_box_module
   use amrex_mempool_module
+  use amrex_error_module
 
   implicit none
   private
@@ -22,17 +23,28 @@ module amrex_fab_module
      procedure :: dataptr       => amrex_fab_dataptr
      procedure :: resize        => amrex_fab_resize
      procedure :: norminf       => amrex_fab_norminf
+     ! DO NOT use this on fab that has memory allocated!
+     ! This is here only to get around a compiler bug!
+     ! Used incorrectly, this will cause memory leak!
+     procedure :: reset_omp_private => amrex_fab_reset_omp_private
      procedure, private :: amrex_fab_assign
      procedure, private :: amrex_fab_resize
      procedure, private :: amrex_fab_norminf
+     procedure, private :: amrex_fab_reset_omp_private
 #if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fab_destroy
 #endif
   end type amrex_fab
 
+  interface amrex_fab_build
+     module procedure amrex_fab_build_alloc
+     module procedure amrex_fab_build_install
+  end interface amrex_fab_build
+
 contains
 
-  subroutine amrex_fab_build (fab, bx, nc)
+  ! Build a fab, allocate own memory
+  subroutine amrex_fab_build_alloc (fab, bx, nc)
     type(amrex_fab), intent(inout) :: fab
     type(amrex_box), intent(in   ) :: bx
     integer, intent(in) :: nc
@@ -42,7 +54,38 @@ contains
     fab%owner = .true.
     call amrex_allocate(fab%fp, bx%lo, bx%hi, nc)
     fab%cp = c_loc(fab%fp(bx%lo(1),bx%lo(2),bx%lo(3),1))
-  end subroutine amrex_fab_build
+  end subroutine amrex_fab_build_alloc
+
+  ! Build a fab, install memory which remains owned by caller
+  subroutine amrex_fab_build_install (fab, dp, bx, nc)
+    type(amrex_fab), intent(inout) :: fab
+    real(amrex_real), contiguous, pointer, intent(in), dimension(:,:,:,:) :: dp
+    type(amrex_box), intent(in   ) :: bx
+    integer,optional, intent(in) :: nc
+    integer :: mync
+    call amrex_fab_destroy(fab)! sets owner .false.
+    if (associated(dp)) then   ! if passed disassociated dp, just remain in destroyed state
+       if (present(nc)) then
+          mync = nc
+       else
+          mync = size(dp,4)
+       end if
+#ifdef AMREX_DEBUG
+       if ((bx%hi(1)-bx%lo(1)+1 .NE. size(dp,1)) .OR. &
+           (bx%hi(2)-bx%lo(2)+1 .NE. size(dp,2)) .OR. &
+           (bx%hi(3)-bx%lo(3)+1 .NE. size(dp,3))) then
+          call amrex_error("amrex_fab_build_install: bx does not match shape of dp")
+       end if
+       if (mync > size(dp,4)) then
+          call amrex_error("amrex_fab_build_install: nc does not match shape of dp")
+       end if
+#endif
+       fab%bx    = bx
+       fab%nc    = mync
+       fab%fp(bx%lo(1):,bx%lo(2):,bx%lo(3):,1:) => dp
+       fab%cp = c_loc(fab%fp(bx%lo(1),bx%lo(2),bx%lo(3),1))
+    end if
+  end subroutine amrex_fab_build_install
 
   impure elemental subroutine amrex_fab_destroy (fab)
     type(amrex_fab), intent(inout) :: fab
@@ -109,6 +152,18 @@ contains
        end do
     end do
   end function amrex_fab_norminf
+
+  ! DO NOT use this on fab that has memory allocated!
+  ! This is here only to get around a compiler bug!
+  ! Used incorrectly, this will cause memory leak!
+  subroutine amrex_fab_reset_omp_private (this)
+    class(amrex_fab), intent(inout) :: this
+    this%bx = amrex_box()
+    this%nc = 0
+    this%owner = .false.
+    this%cp = c_null_ptr
+    this%fp => null()
+  end subroutine amrex_fab_reset_omp_private
 
 end module amrex_fab_module
 

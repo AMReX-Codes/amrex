@@ -1,5 +1,6 @@
 module compute_flux_module
 
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   private
@@ -24,7 +25,7 @@ contains
     use slope_module, only: slopex, slopey, slopez
 
     integer, intent(in) :: lo(3), hi(3), glo(3), ghi(3)
-    double precision, intent(in) :: dt, dx(3)
+    real(amrex_real), intent(in) :: dt, dx(3)
     integer, intent(in) :: ph_lo(3), ph_hi(3)
     integer, intent(in) ::  u_lo(3),  u_hi(3)
     integer, intent(in) ::  v_lo(3),  v_hi(3)
@@ -32,18 +33,18 @@ contains
     integer, intent(in) :: fx_lo(3), fx_hi(3)
     integer, intent(in) :: fy_lo(3), fy_hi(3)
     integer, intent(in) :: fz_lo(3), fz_hi(3)
-    double precision, intent(in   ) :: phi (ph_lo(1):ph_hi(1),ph_lo(2):ph_hi(2),ph_lo(3):ph_hi(3))
-    double precision, intent(in   ) :: umac( u_lo(1): u_hi(1), u_lo(2): u_hi(2), u_lo(3): u_hi(3))
-    double precision, intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2), v_lo(3): v_hi(3))
-    double precision, intent(in   ) :: wmac( w_lo(1): w_hi(1), w_lo(2): w_hi(2), w_lo(3): w_hi(3))
-    double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
-    double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
-    double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
-    double precision, dimension(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3)) :: &
+    real(amrex_real), intent(in   ) :: phi (ph_lo(1):ph_hi(1),ph_lo(2):ph_hi(2),ph_lo(3):ph_hi(3))
+    real(amrex_real), intent(in   ) :: umac( u_lo(1): u_hi(1), u_lo(2): u_hi(2), u_lo(3): u_hi(3))
+    real(amrex_real), intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2), v_lo(3): v_hi(3))
+    real(amrex_real), intent(in   ) :: wmac( w_lo(1): w_hi(1), w_lo(2): w_hi(2), w_lo(3): w_hi(3))
+    real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
+    real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
+    real(amrex_real), intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
+    real(amrex_real), dimension(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3)) :: &
          phix, phix_y, phix_z, phiy, phiy_x, phiy_z, phiz, phiz_x, phiz_y, slope
          
     integer :: i, j, k
-    double precision :: hdtdx(3), tdtdx(3)
+    real(amrex_real) :: hdtdx(3), tdtdx(3)
 
     hdtdx = 0.5*(dt/dx)
     tdtdx = (1.d0/3.d0)*(dt/dx)

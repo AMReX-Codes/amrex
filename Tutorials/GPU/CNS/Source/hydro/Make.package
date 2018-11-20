@@ -1,0 +1,3 @@
+
+CEXE_sources += cns_hydro.cpp
+

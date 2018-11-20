@@ -65,9 +65,10 @@ namespace detail {
     {
         auto mpi_type = ParallelDescriptor::Mpi_typemap<T>::type();
         if (root == -1) {
-            MPI_Allgather(v, cnt, mpi_type, vs, cnt, mpi_type, comm);
+            // const_cast for MPI-2
+            MPI_Allgather(const_cast<T*>(v), cnt, mpi_type, vs, cnt, mpi_type, comm);
         } else {
-            MPI_Gather(v, cnt, mpi_type, vs, cnt, mpi_type, root, comm);
+            MPI_Gather(const_cast<T*>(v), cnt, mpi_type, vs, cnt, mpi_type, root, comm);
         }
     }
 

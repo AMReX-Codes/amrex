@@ -1,3 +1,4 @@
+#include <sstream>
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
@@ -22,6 +23,9 @@ namespace {
     int  verbose = 0;
     Real tolerance_rel = 1.e-8;
     Real tolerance_abs = 0.0;
+
+    bool flag_test_modify_split = false;
+    bool flag_test_custom_output_files = true;
 }
 
 extern "C"
@@ -179,23 +183,30 @@ void fork_solve(MultiFab& soln, const MultiFab& rhs,
     fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
     fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
-    auto comp_n = soln.nComp();
-    if (comp_n > ntasks) {
-        amrex::Print() << "Doing a custom split where first component is ignored\n";
-        // test custom split, skip the first component
-        Vector<ForkJoin::ComponentSet> comp_split(ntasks);
-        for (int i = 0; i < ntasks; ++i) {
-            // split components across tasks
-            comp_split[i].lo = 1 + (comp_n-1) *  i    / ntasks;
-            comp_split[i].hi = 1 + (comp_n-1) * (i+1) / ntasks;
-        }
+    if (flag_test_modify_split) {
+        auto comp_n = soln.nComp();
+        if (comp_n > ntasks) {
+            amrex::Print() << "Doing a custom split where first component is ignored\n";
+            // test custom split, skip the first component
+            Vector<ForkJoin::ComponentSet> comp_split(ntasks);
+            for (int i = 0; i < ntasks; ++i) {
+                // split components across tasks
+                comp_split[i].lo = 1 + (comp_n-1) *  i    / ntasks;
+                comp_split[i].hi = 1 + (comp_n-1) * (i+1) / ntasks;
+            }
 
-        fj.modify_split("rhs", 0, comp_split);
-        fj.modify_split("alpha", 0, comp_split);
-        for (int i = 0; i < beta.size(); ++i) {
-            fj.modify_split("beta", i, comp_split);
+            fj.modify_split("rhs", 0, comp_split);
+            fj.modify_split("alpha", 0, comp_split);
+            for (int i = 0; i < beta.size(); ++i) {
+                fj.modify_split("beta", i, comp_split);
+            }
+            fj.modify_split("soln", 0, comp_split);
         }
-        fj.modify_split("soln", 0, comp_split);
+    }
+
+    std::string custom_task_output_dir("my_output");
+    if (flag_test_custom_output_files && ParallelContext::MyProcSub() == 0) {
+        amrex::UtilCreateDirectory(custom_task_output_dir, 0755);
     }
 
     // can reuse ForkJoin object for multiple fork-join invocations
@@ -203,7 +214,15 @@ void fork_solve(MultiFab& soln, const MultiFab& rhs,
     for (int i = 0; i < 2; ++i) {
         // issue fork-join
         fj.fork_join(
-            [&geom] (ForkJoin &f) {
+            [&geom, i, &custom_task_output_dir] (ForkJoin &f) {
+                if (flag_test_custom_output_files) {
+                    std::ostringstream oss;
+                    oss << custom_task_output_dir << "/";
+                    oss << "T-" << ParallelContext::frames.back().MyID();
+                    oss << ".out";
+                    // this will cause tasks to append on the second iteration
+                    f.set_task_output_file(oss.str());
+                }
                 solve_all(f.get_mf("soln"), f.get_mf("rhs"), f.get_mf("alpha"),
                           f.get_mf_vec("beta"), geom);
             }

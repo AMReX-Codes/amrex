@@ -137,7 +137,11 @@ contains
        call fillpatch(ilev, time, phiborder(ilev))
     end do
 
-    !$omp parallel private(oti,ilev,igrd,bx,pin,pout,pux,puy,puz,pfx,pfy,pfz,uface)
+    !$omp parallel private(oti,ilev,igrd,bx,tbx,pin,pout,pux,puy,puz,pfx,pfy,pfz,pf,pfab,uface)
+    do idim = 1, amrex_spacedim
+       call uface(idim)%reset_omp_private()
+    end do
+
     call amrex_octree_iter_build(oti)
 
     do while(oti%next())

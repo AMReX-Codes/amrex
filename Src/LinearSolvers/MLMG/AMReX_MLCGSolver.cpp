@@ -10,6 +10,7 @@
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_ParallelReduce.H>
+#include <AMReX_MLMG.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -47,8 +48,9 @@ sxay (MultiFab&       ss,
 
 }
 
-MLCGSolver::MLCGSolver (MLLinOp& _lp, Type _typ)
-    : Lp(_lp),
+MLCGSolver::MLCGSolver (MLMG* a_mlmg, MLLinOp& _lp, Type _typ)
+    : mlmg(a_mlmg),
+      Lp(_lp),
       solver_type(_typ),
       amrlev(0),
       mglev(_lp.NMGLevels(0)-1)
@@ -100,8 +102,13 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
     MultiFab t    (ba, dm, ncomp, 0, MFInfo(), factory);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
-    Lp.normalize(amrlev, mglev, r);
 
+    // If singular remove mean from residual
+//    if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
+ 
+    // Then normalize
+    Lp.normalize(amrlev, mglev, r);
+ 
     MultiFab::Copy(sorig,sol,0,0,ncomp,0);
     MultiFab::Copy(rh,   r,  0,0,ncomp,0);
 
@@ -160,6 +167,9 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         sxay(sol, sol,  alpha, ph);
         sxay(s,     r, -alpha,  v);
 
+        //Subtract mean from s 
+//        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, s);
+ 
         rnorm = norm_inf(s);
 
         if ( verbose > 2 && ParallelDescriptor::IOProcessor() )
@@ -194,6 +204,8 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 	}
         sxay(sol, sol,  omega, sh);
         sxay(r,     s, -omega,  t);
+
+//        if (Lp.isBottomSingular()) mlmg->makeSolvable(amrlev, mglev, r);
 
         rnorm = norm_inf(r);
 

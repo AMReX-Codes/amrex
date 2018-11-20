@@ -1,0 +1,2 @@
+mpirun -n 1 ./main2*ex inputs.oneGrid
+mpirun -n 4 ./main2*ex inputs.multipleGrids

@@ -1,8 +1,10 @@
 module slope_module
- 
+
+  use amrex_fort_module, only : amrex_real
+  use amrex_constants_module, only : one
   implicit none
 
-  double precision, parameter:: four3rd=4.d0/3.d0, sixth=1.d0/6.d0
+  real(amrex_real), parameter:: four3rd=4.d0/3.d0, sixth=1.d0/6.d0
   
   private
  
@@ -17,12 +19,12 @@ contains
     implicit none
 
     integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2)
-    double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
-    double precision, intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+    real(amrex_real), intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
+    real(amrex_real), intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
 
     integer :: i, j
-    double precision, dimension(lo(1)-1:hi(1)+1) :: dsgn, dlim, df, dcen
-    double precision :: dlft, drgt, dq1
+    real(amrex_real), dimension(lo(1)-1:hi(1)+1) :: dsgn, dlim, df, dcen
+    real(amrex_real) :: dlft, drgt, dq1
 
     do j = lo(2), hi(2)
 
@@ -31,7 +33,7 @@ contains
           dlft = q(i  ,j) - q(i-1,j)
           drgt = q(i+1,j) - q(i  ,j)
           dcen(i) = .5d0 * (dlft+drgt)
-          dsgn(i) = sign(1.d0, dcen(i))
+          dsgn(i) = sign(one, dcen(i))
           if (dlft*drgt .ge. 0.d0) then
              dlim(i) = 2.d0 * min( abs(dlft), abs(drgt) )
           else
@@ -57,11 +59,11 @@ contains
     use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
     integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2)
-    double precision, intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
-    double precision, intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+    real(amrex_real), intent(in ) ::  q( qlo(1): qhi(1), qlo(2): qhi(2))
+    real(amrex_real), intent(out) :: dq(dqlo(1):dqhi(1),dqlo(2):dqhi(2))
 
     ! Some compiler may not support 'contiguous'.  Remove it in that case.
-    double precision, dimension(:,:), pointer, contiguous :: dsgn, dlim, df, dcen
+    real(amrex_real), dimension(:,:), pointer, contiguous :: dsgn, dlim, df, dcen
 
     call bl_allocate(dsgn, lo(1), hi(1), lo(2)-1, hi(2)+1)
     call bl_allocate(dlim, lo(1), hi(1), lo(2)-1, hi(2)+1)
@@ -87,15 +89,15 @@ contains
 
     integer, intent(in) :: lo(2), hi(2), qlo(2), qhi(2), dqlo(2), dqhi(2), &
          ddlo(2), ddhi(2)
-    double precision, intent(in ) ::  q  ( qlo(1): qhi(1), qlo(2): qhi(2))
-    double precision, intent(out) :: dq  (dqlo(1):dqhi(1),dqlo(2):dqhi(2))
-    double precision              :: dsgn(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
-    double precision              :: dlim(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
-    double precision              :: df  (ddlo(1):ddhi(1),ddlo(2):ddhi(2))
-    double precision              :: dcen(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    real(amrex_real), intent(in ) ::  q  ( qlo(1): qhi(1), qlo(2): qhi(2))
+    real(amrex_real), intent(out) :: dq  (dqlo(1):dqhi(1),dqlo(2):dqhi(2))
+    real(amrex_real)              :: dsgn(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    real(amrex_real)              :: dlim(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    real(amrex_real)              :: df  (ddlo(1):ddhi(1),ddlo(2):ddhi(2))
+    real(amrex_real)              :: dcen(ddlo(1):ddhi(1),ddlo(2):ddhi(2))
 
     integer :: i, j
-    double precision :: dlft, drgt, dq1
+    real(amrex_real) :: dlft, drgt, dq1
 
     ! first compute Fromm slopes
     do j    = lo(2)-1, hi(2)+1
@@ -103,7 +105,7 @@ contains
           dlft = q(i,j  ) - q(i,j-1)
           drgt = q(i,j+1) - q(i,j  )
           dcen(i,j) = .5d0 * (dlft+drgt)
-          dsgn(i,j) = sign( 1.d0, dcen(i,j) )
+          dsgn(i,j) = sign( one, dcen(i,j) )
           if (dlft*drgt .ge. 0.d0) then
              dlim(i,j) = 2.d0 * min( abs(dlft), abs(drgt) )
           else

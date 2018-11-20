@@ -40,8 +40,8 @@ class FabFactory
 public:
     virtual ~FabFactory () {}
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
+    virtual void destroy (FAB* fab) const = 0;
     virtual FabFactory<FAB>* clone () const = 0;
-    virtual Box getDomain () const { return Box(); }
 };
 
 template <class FAB>
@@ -52,6 +52,11 @@ public:
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const override
     {
         return new FAB(box, ncomps, info.alloc, info.shared);
+    }
+
+    virtual void destroy (FAB* fab) const override
+    {
+        delete fab;
     }
 
     virtual DefaultFabFactory<FAB>* clone () const override {

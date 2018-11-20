@@ -9,6 +9,7 @@
 
 #include <AMReX_TinyProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParallelReduce.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 
@@ -19,9 +20,9 @@
 namespace amrex {
 
 std::vector<std::string>          TinyProfiler::regionstack;
-std::stack<std::pair<Real,Real> > TinyProfiler::ttstack;
+std::stack<std::pair<double,double> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
-Real TinyProfiler::t_init = std::numeric_limits<Real>::max();
+double TinyProfiler::t_init = std::numeric_limits<double>::max();
 
 namespace {
     std::set<std::string> improperly_nested_timers;
@@ -65,10 +66,14 @@ TinyProfiler::start ()
 #endif
     if (stats.empty())
     {
-	Real t = amrex::second();
+	double t = amrex::second();
 
 	ttstack.push(std::make_pair(t, 0.0));
 	global_depth = ttstack.size();
+
+#ifdef AMREX_USE_CUDA
+	nvtx_id = nvtxRangeStartA(fname.c_str());
+#endif
 
         for (auto const& region : regionstack)
         {
@@ -87,7 +92,7 @@ TinyProfiler::stop ()
 #endif
     if (!stats.empty()) 
     {
-	Real t = amrex::second();
+	double t = amrex::second();
 
 	while (static_cast<int>(ttstack.size()) > global_depth) {
 	    ttstack.pop();
@@ -95,13 +100,13 @@ TinyProfiler::stop ()
 
 	if (static_cast<int>(ttstack.size()) == global_depth)
 	{
-	    const std::pair<Real,Real>& tt = ttstack.top();
+	    const std::pair<double,double>& tt = ttstack.top();
 	    
 	    // first: wall time when the pair is pushed into the stack
 	    // second: accumulated dt of children
 	    
-	    Real dtin = t - tt.first; // elapsed time since start() is called.
-	    Real dtex = dtin - tt.second;
+	    double dtin = t - tt.first; // elapsed time since start() is called.
+	    double dtex = dtin - tt.second;
 
             for (Stats* st : stats)
             {
@@ -115,9 +120,13 @@ TinyProfiler::stop ()
                 
 	    ttstack.pop();
 	    if (!ttstack.empty()) {
-		std::pair<Real,Real>& parent = ttstack.top();
+		std::pair<double,double>& parent = ttstack.top();
 		parent.second += dtin;
 	    }
+
+#ifdef AMREX_USE_CUDA
+	    nvtxRangeEnd(nvtx_id);
+#endif
 	} else {
 	    improperly_nested_timers.insert(fname);
 	} 
@@ -145,7 +154,7 @@ TinyProfiler::Finalize (bool bFlushing)
       }
     }
 
-    Real t_final = amrex::second();
+    double t_final = amrex::second();
 
     // make a local copy so that any functions call after this will not be recorded in the local copy.
     auto lstatsmap = statsmap;
@@ -175,13 +184,13 @@ TinyProfiler::Finalize (bool bFlushing)
     int nprocs = ParallelDescriptor::NProcs();
     int ioproc = ParallelDescriptor::IOProcessorNumber();
 
-    Real dt_max = t_final - t_init;
-    ParallelDescriptor::ReduceRealMax(dt_max, ioproc);
-    Real dt_min = t_final - t_init;
-    ParallelDescriptor::ReduceRealMin(dt_min, ioproc);
-    Real dt_avg = t_final - t_init;
-    ParallelDescriptor::ReduceRealSum(dt_avg, ioproc);
-    dt_avg /= Real(nprocs);
+    double dt_max = t_final - t_init;
+    ParallelReduce::Max(dt_max, ioproc, ParallelDescriptor::Communicator());
+    double dt_min = t_final - t_init;
+    ParallelReduce::Min(dt_min, ioproc, ParallelDescriptor::Communicator());
+    double dt_avg = t_final - t_init;
+    ParallelReduce::Sum(dt_avg, ioproc, ParallelDescriptor::Communicator());
+    dt_avg /= double(nprocs);
 
     if  (ParallelDescriptor::IOProcessor())
     {
@@ -222,7 +231,7 @@ TinyProfiler::Finalize (bool bFlushing)
 }
 
 void
-TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
+TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max)
 {
     // make sure the set of profiled functions is the same on all processes
     {
@@ -257,10 +266,10 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, Real dt_max)
     for (auto it = regstats.cbegin(); it != regstats.cend(); ++it)
     {
 	long n = it->second.n;
-	Real dts[2] = {it->second.dtin, it->second.dtex};
+	double dts[2] = {it->second.dtin, it->second.dtex};
 
 	std::vector<long> ncalls(nprocs);
-	std::vector<Real> dtdt(2*nprocs);
+	std::vector<double> dtdt(2*nprocs);
 
 	if (ParallelDescriptor::NProcs() == 1) {
 	    ncalls[0] = n;

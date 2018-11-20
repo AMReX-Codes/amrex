@@ -218,6 +218,9 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         
         m_crse_data.setVal(0.0);
         
+        auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(crse_state.Factory());
+        auto const& flags = factory.getMultiEBCellFlagFab();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -230,8 +233,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                 {
                     const Box& bx = mfi.tilebox();
                     
-                    auto& sfab = dynamic_cast<EBFArrayBox&>(crse_state[mfi]);
-                    const auto& ebflag = sfab.getEBCellFlagFab();
+                    const auto& ebflag = flags[mfi];
                     
                     if (ebflag.getType(bx) != FabType::covered) {
                         if (ebflag.getType(amrex::grow(bx,1)) == FabType::regular)
@@ -266,6 +268,9 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
     MultiFab cf(ba, fine_state.DistributionMap(), m_ncomp, 0, MFInfo(), FArrayBoxFactory());
     cf.ParallelCopy(m_crse_data);
 
+    auto const& factory = dynamic_cast<EBFArrayBoxFactory const&>(fine_state.Factory());
+    auto const& flags = factory.getMultiEBCellFlagFab();
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -274,8 +279,7 @@ EBFluxRegister::Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
         const Box& cbx = mfi.tilebox();
         const Box& fbx = amrex::refine(cbx, m_ratio);
         
-        auto& sfab = dynamic_cast<EBFArrayBox&>(fine_state[mfi]);
-        const auto& ebflag = sfab.getEBCellFlagFab();
+        const auto& ebflag = flags[mfi];
         
         if (ebflag.getType(fbx) != FabType::covered)
         {

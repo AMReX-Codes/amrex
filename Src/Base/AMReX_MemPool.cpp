@@ -59,8 +59,12 @@ void amrex_mempool_init ()
 #endif
 
 #ifdef USE_PERILLA
+#ifdef _OPENMP
 	//Just in case Perilla thread spawns multiple OMP threads
         nthreads *= perilla::nThreads();
+#else
+	nthreads = perilla::nThreads();
+#endif
 #endif
 
 	the_memory_pool.resize(nthreads);
@@ -104,7 +108,11 @@ void* amrex_mempool_alloc (size_t nbytes)
 #endif
 
 #ifdef USE_PERILLA
+#ifdef _OPENMP
   tid = perilla::tid()*omp_get_max_threads()+tid;
+#else
+  tid = perilla::tid();
+#endif
 #endif
   return the_memory_pool[tid]->alloc(nbytes);
 }
@@ -118,7 +126,11 @@ void amrex_mempool_free (void* p)
 #endif
 
 #ifdef USE_PERILLA
+#ifdef _OPENMP
   tid = perilla::tid()*omp_get_max_threads()+tid;
+#else
+  tid = perilla::tid();
+#endif
 #endif
 
   the_memory_pool[tid]->free(p);

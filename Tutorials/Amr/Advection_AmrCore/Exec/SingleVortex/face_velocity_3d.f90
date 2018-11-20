@@ -5,24 +5,25 @@ subroutine get_face_velocity(level, time, &
      vz, vz_l1, vz_l2, vz_l3, vz_h1, vz_h2, vz_h3, &
      dx, prob_lo) bind(C, name="get_face_velocity")
 
+  use amrex_fort_module, only : amrex_real
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
   implicit none
 
   integer, intent(in) :: level
-  double precision, intent(in) :: time
+  real(amrex_real), intent(in) :: time
   integer, intent(in) :: vx_l1, vx_l2, vx_l3, vx_h1, vx_h2, vx_h3
   integer, intent(in) :: vy_l1, vy_l2, vy_l3, vy_h1, vy_h2, vy_h3
   integer, intent(in) :: vz_l1, vz_l2, vz_l3, vz_h1, vz_h2, vz_h3
-  double precision, intent(out) :: vx(vx_l1:vx_h1,vx_l2:vx_h2,vx_l3:vx_h3)
-  double precision, intent(out) :: vy(vy_l1:vy_h1,vy_l2:vy_h2,vy_l3:vy_h3)
-  double precision, intent(out) :: vz(vz_l1:vz_h1,vz_l2:vz_h2,vz_l3:vz_h3)
-  double precision, intent(in) :: dx(3), prob_lo(3)
+  real(amrex_real), intent(out) :: vx(vx_l1:vx_h1,vx_l2:vx_h2,vx_l3:vx_h3)
+  real(amrex_real), intent(out) :: vy(vy_l1:vy_h1,vy_l2:vy_h2,vy_l3:vy_h3)
+  real(amrex_real), intent(out) :: vz(vz_l1:vz_h1,vz_l2:vz_h2,vz_l3:vz_h3)
+  real(amrex_real), intent(in) :: dx(3), prob_lo(3)
 
   integer :: i, j, k, plo(2), phi(2)
-  double precision :: x, y, z
-  double precision, pointer, contiguous :: psi(:,:)
-  double precision, parameter :: M_PI = 3.141592653589793238462643383279502884197d0
+  real(amrex_real) :: x, y, z
+  real(amrex_real), pointer, contiguous :: psi(:,:)
+  real(amrex_real), parameter :: M_PI = 3.141592653589793238462643383279502884197d0
 
   plo(1) = min(vx_l1-1, vy_l1-1)
   plo(2) = min(vx_l2-1, vy_l2-1)

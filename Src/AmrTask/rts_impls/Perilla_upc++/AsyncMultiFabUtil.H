@@ -1,9 +1,11 @@
+#if 0
 #ifndef _AsyncMultiFabUtil_H_
 #define _AsyncMultiFabUtil_H_
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 
 void average_down_push(Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse, const Geometry& fine_geom, const Geometry& crse_geom, int scomp, int ncomp, const IntVect& ratio, int f, int tid);
 
@@ -23,4 +25,6 @@ void average_down_pull(MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine,
 void average_down_push(Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse, int scomp, int ncomp, int ratio, int f, int tid);  
 
 void average_down_pull(MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, int scomp, int ncomp, int ratio, int f, int tid);
+#endif
+
 #endif

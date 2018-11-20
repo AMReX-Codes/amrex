@@ -273,6 +273,20 @@ extern "C" {
         mfi = new MFIter(*imf, MFItInfo().EnableTiling(IntVect(tilesize)).SetDynamic(dynamic));
     }
 
+    void amrex_fi_new_mfiter_badm (MFIter*& mfi, BoxArray* ba, DistributionMapping* dm, int tiling, int dynamic)
+    {
+        if (tiling) {
+            mfi = new MFIter(*ba, *dm, MFItInfo().EnableTiling().SetDynamic(dynamic));
+        } else {
+            mfi = new MFIter(*ba, *dm, MFItInfo().SetDynamic(dynamic));
+        }
+    }
+
+    void amrex_fi_new_mfiter_badm_s (MFIter*& mfi, BoxArray* ba, DistributionMapping* dm, const int* tilesize, int dynamic)
+    {
+        mfi = new MFIter(*ba, *dm, MFItInfo().EnableTiling(IntVect(tilesize)).SetDynamic(dynamic));
+    }
+
     void amrex_fi_delete_mfiter (MFIter* mfi)
     {
 	delete mfi;

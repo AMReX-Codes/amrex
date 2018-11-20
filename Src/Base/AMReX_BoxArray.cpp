@@ -974,7 +974,7 @@ BoxArray::minimalBox () const
 }
 
 Box
-BoxArray::minimalBox (int& npts_avg_box) const
+BoxArray::minimalBox (long& npts_avg_box) const
 {
     BL_ASSERT(m_simple);
     Box minbox;
@@ -1654,38 +1654,6 @@ readBoxArray (BoxArray&     ba,
         }
     }
 }
-
-
-Vector<int> SerializeBoxArray(const BoxArray &ba)
-{
-  int nIntsInBox(3 * AMREX_SPACEDIM);
-  Vector<int> retArray(ba.size() * nIntsInBox, -1);
-  for(int i(0); i < ba.size(); ++i) {
-    Vector<int> aiBox(amrex::SerializeBox(ba[i]));
-    BL_ASSERT(aiBox.size() == nIntsInBox);
-    for(int j(0); j < aiBox.size(); ++j) {
-      retArray[i * aiBox.size() + j] = aiBox[j];
-    }
-  }
-  return retArray;
-}
-
-
-BoxArray UnSerializeBoxArray(const Vector<int> &serarray)
-{
-  int nIntsInBox(3 * AMREX_SPACEDIM);
-  int nBoxes(serarray.size() / nIntsInBox);
-  BoxArray ba(nBoxes);
-  for(int i(0); i < nBoxes; ++i) {
-    Vector<int> aiBox(nIntsInBox);
-    for(int j(0); j < nIntsInBox; ++j) {
-      aiBox[j] = serarray[i * nIntsInBox + j];
-    }
-    ba.set(i, amrex::UnSerializeBox(aiBox));
-  }
-  return ba;
-}
-
 
 bool match (const BoxArray& x, const BoxArray& y)
 {

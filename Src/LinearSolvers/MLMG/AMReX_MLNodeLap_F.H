@@ -15,7 +15,8 @@ extern "C" {
     void amrex_mlndlap_solution_residual (const int* lo, const int* hi,
                                           amrex_real* res, const int* rlo, const int* rhi,
                                           const amrex_real* b, const int* blo, const int* bhi,
-                                          const int* msk, const int* mlo, const int* mhi);
+                                          const int* msk, const int* mlo, const int* mhi,
+					  const int* nc);
 
 #if (AMREX_SPACEDIM == 2)
     void amrex_mlndlap_set_rz (const int* rz);

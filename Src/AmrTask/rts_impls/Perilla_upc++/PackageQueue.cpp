@@ -207,3 +207,16 @@ Package* PackageQueue::getFront(bool lockIgnore)
     if(!lockIgnore) pthread_mutex_unlock(&queueLock);
     return package;
 }
+
+void PackageQueue::emptyQueue(){
+    while(n){
+        Package* p= dequeue(true);
+        delete p;
+    }
+}
+
+PackageQueue::~PackageQueue()
+{
+    emptyQueue();
+}
+

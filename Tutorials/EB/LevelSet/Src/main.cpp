@@ -10,24 +10,27 @@
 
 using namespace amrex;
 
-int main (int argc, char* argv[])
-{
+int main (int argc, char* argv[]) {
 
-    // AMReX will now read the inputs file and the command line arguments, but the
-    //        command line arguments are in mfix-format so it will just ignore them.
+    // AMReX will now read the inputs file and the command line arguments, but
+    // the command line arguments are in mfix-format so it will just ignore
+    // them.
     amrex::Initialize(argc,argv);
 
-    {
 
     // Issue an error if AMR input file is not given
     if ( argc < 2 )
        amrex::Abort("AMReX input file missing");
 
+
+    /****************************************************************************
+     * Load LEVEL-SET parameters                                                *
+     ***************************************************************************/
+
     int levelset__refinement    = 1;
     int levelset__eb_refinement = 1;
     int levelset__pad           = 1;
     int levelset__eb_pad        = 1;
-
     {
         ParmParse pp("eb");
 
@@ -45,19 +48,22 @@ int main (int argc, char* argv[])
         pp.query("levelset__eb_pad", levelset__eb_pad);
     }
 
+
+    /****************************************************************************
+     * Load GRID parameters                                                     *
+     ***************************************************************************/
+
     // AMREX_SPACEDIM: number of dimensions
-    int n_cell, max_grid_size;
+    int n_cell, max_grid_size, n_lev;
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // non-periodic in all direction by default
     Vector<Real> prob_lo(AMREX_SPACEDIM,0);
     Vector<Real> prob_hi(AMREX_SPACEDIM,0);
-
-    // inputs parameters
     {
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of
-        //   a square (or cubic) domain.
+        // We need to get n_cell from the inputs file - this is the number of
+        // cells on each side of a square (or cubic) domain.
         pp.get("n_cell", n_cell);
 
         // The domain is broken into boxes of size max_grid_size
@@ -67,9 +73,15 @@ int main (int argc, char* argv[])
 
         pp.getarr("prob_lo", prob_lo);
         pp.getarr("prob_hi", prob_hi);
+
+        pp.get("n_lev", n_lev);
     }
 
-    // make BoxArray and Geometry
+
+    /****************************************************************************
+     * BUILD BoxArray, Geometry, and DistributionMapping                        *
+     ***************************************************************************/
+
     BoxArray grids;
     Geometry geom;
     {
@@ -99,21 +111,25 @@ int main (int argc, char* argv[])
 
     int lev = 0;
     std::unique_ptr<LSFactory> level_set = std::unique_ptr<LSFactory>(
-                    new LSFactory(lev, levelset__refinement, levelset__eb_refinement,
-                                  levelset__pad, levelset__eb_pad, grids, geom, dmap) );
+        new LSFactory(lev, levelset__refinement, levelset__eb_refinement,
+                      levelset__pad, levelset__eb_pad, grids, geom, dmap) );
 
-    // Constructs EB, followed by level-set
+    LSCoreBase * ls_core;
 
-    make_my_eb2(lev, grids, dmap, geom, level_set.get());
+    // Constructs EB, followed by level-set or ls_core
+    make_my_eb2(n_lev, grids, dmap, geom, level_set.get(), ls_core);
 
-    // Make sure that at (at least) an initial MultiFab is stored in ls[lev].
-    //std::unique_ptr<MultiFab> ls_data = level_set->coarsen_data();
+    ls_core->InitData();
+    ls_core->WritePlotFile();
+    ls_core->WriteCheckpointFile();
+
 
     const MultiFab * ls_data = level_set->get_data();
 
     VisMF::Write(* ls_data, "LevelSet");
 
-    }
+    level_set.reset();
+    delete ls_core;
 
     amrex::Finalize();
     return 0;

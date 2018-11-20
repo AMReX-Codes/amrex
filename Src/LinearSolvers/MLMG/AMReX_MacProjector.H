@@ -22,9 +22,14 @@ public:
     void setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
                       const Array<LinOpBCType,AMREX_SPACEDIM>& hibc);
 
-    void project (Real reltol);
+    void project (Real reltol, Real atol = 0.0 );
 
     void setVerbose (int v) { m_verbose = v; }
+
+    void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in)
+     { bottom_solver_type = bottom_solver_type_in;}
+
+    MLLinOp& getLinOp () { return *m_linop; }
 
 private:
 
@@ -45,6 +50,8 @@ private:
     Vector<Geometry> m_geom;
 
     int m_verbose = 0;
+
+    MLMG::BottomSolver bottom_solver_type = MLMG::BottomSolver::bicgstab;
 };
 
 }

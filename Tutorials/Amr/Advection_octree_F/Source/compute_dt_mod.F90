@@ -50,6 +50,7 @@ contains
     dt_est = huge(1._amrex_real)
 
     !$omp parallel reduction(min:dt_est) private(umax,bx,u,mfi,p)
+    call u%reset_omp_private()
     call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
     do while(mfi%next())
        bx = mfi%nodaltilebox()

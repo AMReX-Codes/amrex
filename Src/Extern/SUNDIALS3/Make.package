@@ -1,0 +1,14 @@
+ifeq ($(USE_ARKODE_LIBS), TRUE)
+f90EXE_sources += arkode_interface.f90
+f90EXE_sources += farkode.f90
+endif
+
+ifeq ($(USE_CVODE_LIBS), TRUE)
+f90EXE_sources += cvode_interface.f90
+f90EXE_sources += fcvode.f90
+endif
+
+f90EXE_sources += fnvector_serial.f90
+f90EXE_sources += fnvector_serial_fprefix.f90
+f90EXE_sources += fsunlinsol_dense.f90
+f90EXE_sources += fsunmat_dense.f90

@@ -114,12 +114,23 @@ GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
 {
     const Real* problo = geom.ProbLo();
     const Real* dx = geom.CellSize();
-    levelset.ForEachIV (levelset.box(), 0, 1, [=] (Real& d, const IntVect& iv) {
-            RealArray xyz {AMREX_D_DECL(problo[0]+iv[0]*dx[0],
-                                        problo[1]+iv[1]*dx[1],
-                                        problo[2]+iv[2]*dx[2])};
-            d = m_f(xyz);
-        });
+
+    const auto dp0 = levelset.stridedPtr();
+    const Box& bx = levelset.box();
+    const auto len = bx.length3d();
+    const auto lo  = bx.loVect3d();
+
+    for         (int k = 0; k < len[2]; ++k) {
+        for     (int j = 0; j < len[1]; ++j) {
+            Real* AMREX_RESTRICT dp = dp0(0,j,k);
+            for (int i = 0; i < len[0]; ++i) {
+                RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo[0])*dx[0],
+                                            problo[1]+(j+lo[1])*dx[1],
+                                            problo[2]+(k+lo[2])*dx[2])};
+                dp[i] = m_f(xyz);
+            }
+        }
+    }
 }
 
 template <class F>

@@ -19,7 +19,7 @@ public:
     EBFArrayBox& operator= (const EBFArrayBox&) = delete;
     EBFArrayBox& operator= (EBFArrayBox&&) = delete;
 
-    virtual ~EBFArrayBox ();
+    ~EBFArrayBox ();
 
     const EBCellFlagFab& getEBCellFlagFab () const { return *m_ebcellflag; }
 

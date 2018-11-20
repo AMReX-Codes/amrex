@@ -45,7 +45,7 @@ main_C and main_F introduce the following:
     runtime parameters used to build AMReX ParmParse database, and `parm=value` is an input
     parameter that will override its value in `inputs_file`.  Both `inputs_file` and
     `parm=value` are optional.  At most one `inputs_file` is allowed. Howeer, there can be
-    multiple `parm=value`s.
+    multiple `parm=value` s.
 
     The parsing of the command line arguments is performed in amrex::Initialize.  Applications
     can choose to skip command line parsing.  Applications can also provide a function that

@@ -1,0 +1,19 @@
+#
+# For CSCS machines: Daint
+#
+
+ifdef PE_ENV
+  lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
+  ifneq ($(lowercase_peenv),$(lowercase_comp))
+    has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
+  endif
+endif
+
+
+ifeq ($(USE_MPI),TRUE)
+  CC  = cc
+  CXX = CC
+  FC  = ftn
+  F90 = ftn
+  LIBRARIES += -lmpichf90
+endif

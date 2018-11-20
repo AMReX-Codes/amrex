@@ -8,7 +8,7 @@
 
 #include <unistd.h>
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 #include <execinfo.h>
 #endif
 
@@ -46,7 +46,7 @@ namespace
 	}
     }
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
     void print_backtrace_info (FILE* f)
     {
 	const int nbuf = 32;
@@ -111,7 +111,7 @@ extern "C"
 	    break;
 	}
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 	std::string errfilename;
 	{
 	    std::ostringstream ss;
@@ -167,7 +167,7 @@ extern "C"
     void set_fpe_trap_c (int trap_invalid, int trap_zero, int trap_overflow)
     {
 	fpe_trap_flags = 0;
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
 	if (trap_invalid ) fpe_trap_flags |= FE_INVALID;
 	if (trap_zero    ) fpe_trap_flags |= FE_DIVBYZERO;

@@ -12,6 +12,11 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_BCRec.H>
+#if defined(BL_USE_SENSEI_INSITU)
+namespace amrex {
+class AmrMeshInSituBridge;
+}
+#endif
 
 using namespace amrex;
 
@@ -34,13 +39,13 @@ public:
     // initializes multilevel data
     void InitData ();
 
-    // Make a new level using provided BoxArray and DistributionMapping and 
+    // Make a new level using provided BoxArray and DistributionMapping and
     // fill with interpolated coarse level data.
     // overrides the pure virtual function in AmrCore
     virtual void MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxArray& ba,
 					 const amrex::DistributionMapping& dm) override;
 
-    // Remake an existing level using provided BoxArray and DistributionMapping and 
+    // Remake an existing level using provided BoxArray and DistributionMapping and
     // fill with existing fine and coarse data.
     // overrides the pure virtual function in AmrCore
     virtual void RemakeLevel (int lev, amrex::Real time, const amrex::BoxArray& ba,
@@ -127,7 +132,7 @@ private:
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
 
     // keep track of old time, new time, and time step at each level
-    amrex::Vector<amrex::Real> t_new;  
+    amrex::Vector<amrex::Real> t_new;
     amrex::Vector<amrex::Real> t_old;
     amrex::Vector<amrex::Real> dt;
 
@@ -136,18 +141,18 @@ private:
     amrex::Vector<amrex::MultiFab> phi_new;
     amrex::Vector<amrex::MultiFab> phi_old;
 
-    // this is essentially a 2*DIM integer array storing the physical boundary
+    // BCRec is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction
-    BCRec bcs;
+    amrex::Vector<BCRec> bcs;  // 1-component
 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
     // NOTE: the flux register associated with flux_reg[lev] is associated
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
-    // therefore flux_reg[0] and flux_reg[nlevs_max] are never actually 
+    // therefore flux_reg[0] and flux_reg[nlevs_max] are never actually
     // used in the reflux operation
-    amrex::Vector<std::unique_ptr<amrex::FluxRegister> > flux_reg; 
-    
+    amrex::Vector<std::unique_ptr<amrex::FluxRegister> > flux_reg;
+
     ////////////////
     // runtime parameters
 
@@ -175,6 +180,10 @@ private:
     // checkpoint prefix and frequency
     std::string chk_file {"chk"};
     int chk_int = -1;
+
+#if defined(BL_USE_SENSEI_INSITU)
+    amrex::AmrMeshInSituBridge *insitu_bridge;
+#endif
 };
 
 #endif

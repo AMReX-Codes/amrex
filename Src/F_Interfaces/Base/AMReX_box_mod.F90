@@ -3,6 +3,7 @@ module amrex_box_module
 
   use iso_c_binding
   use amrex_fort_module, only : ndims => amrex_spacedim, amrex_real, amrex_coarsen_intvect
+  use amrex_error_module, only : amrex_error
 
   implicit none
 
@@ -34,6 +35,7 @@ module amrex_box_module
   end type amrex_box
 
   public :: amrex_print
+  public :: amrex_intersection
 
   interface amrex_box
      module procedure amrex_box_build
@@ -42,6 +44,10 @@ module amrex_box_module
   interface amrex_print
      module procedure amrex_box_print
   end interface amrex_print
+
+  interface amrex_intersection
+     module procedure amrex_box_intersection
+  end interface amrex_intersection
 
   interface
      subroutine amrex_fi_print_box(lo,hi,nodal) bind(c)
@@ -200,6 +206,20 @@ contains
     logical :: r
     r = all(this%lo(1:ndims) .le. pt) .and. all(this%hi(1:ndims) .ge. pt)
   end function amrex_box_contains_pt
+
+  function amrex_box_intersection(box1, box2) result(r)
+    type(amrex_box), intent(in) :: box1
+    type(amrex_box), intent(in) :: box2
+    type(amrex_box) :: r
+
+    if ( any(box1%nodal .neqv. box2%nodal) ) then
+       call amrex_error("amrex_intersection: Boxes must be from same index space")
+    end if
+
+    r%nodal = box1%nodal
+    r%lo(1:ndims) = max(box1%lo(1:ndims), box2%lo(1:ndims))
+    r%hi(1:ndims) = min(box1%hi(1:ndims), box2%hi(1:ndims))
+  end function amrex_box_intersection
 
 end module amrex_box_module
 

@@ -4,32 +4,11 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
+#include <cmath>
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex { namespace EB2 {
-
-
-/********************************************************************************
- *                                                                              *
- * Integer-based powers:                                                        *
- *     -- Do not use std::pow => we don't need non-integer powers               *
- *                                                                              *
- ********************************************************************************/
-
-inline Real exp_int (Real base, int exponent)
-{
-    if (exponent < 0)   return 1./exp_int(base, -exponent);
-    if (exponent == 0 ) return 1.;
-    if (exponent == 1 ) return base;
-
-    Real tmp = exp_int(base, exponent/2);
-
-    if (exponent%2 == 0) return tmp*tmp;
-    else return base*tmp*tmp;
-}
-
-
 
 /********************************************************************************
  *                                                                              *
@@ -71,12 +50,11 @@ public:
 
         // Evaluate the polynomial
         for (int iterm = 0; iterm < m_polynomial.size(); iterm++) {
-            Real cur = m_polynomial[iterm].coef;
-
-            for (int idir = 0; idir < SpaceDim; idir++)
-                cur *= exp_int(p[idir], m_polynomial[iterm].powers[idir]);
-
-            retval += cur;
+            const IntVect& iexp = m_polynomial[iterm].powers;
+            retval += m_polynomial[iterm].coef
+                * AMREX_D_TERM(  std::pow(p[0], iexp[0]),
+                               * std::pow(p[1], iexp[1]),
+                               * std::pow(p[2], iexp[2]) );
         }
 
         // Change the sign to change inside to outside

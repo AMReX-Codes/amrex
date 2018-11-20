@@ -1,5 +1,5 @@
 AMReX Tutorials
-================================
+===============
 
 AMReX is a software framework library containing all the functionality to write
 massively parallel, block-structured adaptive mesh refinement (AMR)
@@ -39,3 +39,5 @@ The copyright notice of AMReX is included in the AMReX home directory as README.
 Your use of this software is under a 3-clause BSD license with
 additional modification -- the license agreement is included in the
 AMReX home directory as license.txt.
+
+For a pdf version of this documentation, click :download:`here <amrex.pdf>`.

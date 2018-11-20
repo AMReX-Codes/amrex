@@ -8,11 +8,11 @@ module amrex_mlebabeclap_2d_module
        get_neighbor_cells_int_single
   implicit none
 
-  real(amrex_real), parameter, private :: dx_eb = third
+  real(amrex_real), parameter, public :: dx_eb = third
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, &
-       amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad
+       amrex_eb_mg_interp, amrex_mlebabeclap_flux, amrex_mlebabeclap_grad, amrex_blend_beta
 
 contains
 
@@ -130,7 +130,7 @@ contains
                    sy =  sign(one,anrmy)
                    ! sy = -sign(one,gy)
                 else
-                   dg = dx_eb/abs(anrmy)
+                   dg = dx_eb / abs(anrmy)
                    gx = bctx - dg*anrmx
                    gy = bcty - dg*anrmy
                    ! sx = -sign(one,gx)
@@ -173,12 +173,12 @@ contains
                    c_x(-1,0) = -bsxinv
                    c_x(0,-1) = sx*bcty*bsyinv
                    c_x(-1,-1) = -sx*bctx*bcty*bsxinv*bsyinv
-                
+
                    c_y(0,0) = sx*bsxinv*bsyinv
                    c_y(-1,0) = sy*bctx*bsxinv
                    c_y(0,-1) = -bsyinv
                    c_y(-1,-1) = -sy*bctx*bcty*bsxinv*bsyinv
-                   
+
                    c_xy(0,0) = bsxinv*bsyinv
                    c_xy(-1,0) = -sy*bsxinv
                    c_xy(0,-1) = -sx*bsyinv

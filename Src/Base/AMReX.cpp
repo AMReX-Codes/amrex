@@ -8,12 +8,17 @@
 #include <stack>
 #include <limits>
 
-#include <AMReX.H>
 #include <AMReX_ParallelDescriptor.H>
+#include <AMReX.H>
+#include <AMReX_BaseFab.H>
+#include <AMReX_Box.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
+
+#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -55,13 +60,14 @@ namespace amrex {
 namespace system
 {
     std::string exename;
-    int verbose;
+    int verbose = 1;
     int signal_handling;
     int call_addr2line;
     int throw_exception;
     int regtest_reduction;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
+    ErrorHandler error_handler = nullptr;
 }
 }
 
@@ -89,6 +95,12 @@ std::string amrex::Version ()
 }
 
 int amrex::Verbose () { return amrex::system::verbose; }
+
+void amrex::SetVerbose (int v) { amrex::system::verbose = v; }
+
+void amrex::SetErrorHandler (amrex::ErrorHandler f) {
+    amrex::system::error_handler = f;
+}
 
 //
 // This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
@@ -133,13 +145,21 @@ write_lib_id(const char* msg)
 void
 amrex::Error (const char* msg)
 {
-    if (system::throw_exception) {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("%s\n", msg);
+#endif
+#else
+    if (system::error_handler) {
+        system::error_handler(msg);
+    } else if (system::throw_exception) {
         throw RuntimeError(msg);
     } else {
         write_lib_id("Error");
         write_to_stderr_without_buffering(msg);
         ParallelDescriptor::Abort();
     }
+#endif
 }
 
 void
@@ -213,13 +233,25 @@ BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
 void
 amrex::Abort (const char* msg)
 {
-   if (system::throw_exception) {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("Abort %s\n", msg);
+    assert(0);
+#endif
+#else
+    if (system::error_handler) {
+        system::error_handler(msg);
+    } else if (system::throw_exception) {
         throw RuntimeError(msg);
     } else {
        write_lib_id("Abort");
        write_to_stderr_without_buffering(msg);
+#ifdef _OPENMP
+#pragma omp critical (amrex_abort_omp_critical)
+#endif
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 void
@@ -231,10 +263,16 @@ amrex::Abort (const std::string& msg)
 void
 amrex::Warning (const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) printf("%s\n", msg);
+#endif
+#else
     if (msg)
     {
 	amrex::Print(Print::AllProcs,amrex::ErrorStream()) << msg << '!' << '\n';
     }
+#endif
 }
 
 void
@@ -249,6 +287,19 @@ amrex::Assert (const char* EX,
                int         line,
                const char* msg)
 {
+#if defined(__CUDA_ARCH__)
+#if !defined(__APPLE__)
+    if (msg) {
+        printf("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+               EX, file, line, msg);
+    } else {
+        printf("Assertion `%s' failed, file \"%s\", line %d",
+               EX, file, line);
+    }
+
+    assert(0);
+#endif
+#else
     const int N = 512;
 
     char buf[N];
@@ -270,12 +321,15 @@ amrex::Assert (const char* EX,
                  line);
     }
 
-   if (system::throw_exception) {
+    if (system::error_handler) {
+        system::error_handler(buf);
+    } else if (system::throw_exception) {
         throw RuntimeError(buf);
     } else {
        write_to_stderr_without_buffering(buf);
        ParallelDescriptor::Abort();
    }
+#endif
 }
 
 namespace
@@ -297,26 +351,31 @@ amrex::ExecOnInitialize (PTR_TO_VOID_FUNC fp)
 }
 
 void
-amrex::Initialize (MPI_Comm mpi_comm, std::ostream& a_osout, std::ostream& a_oserr)
+amrex::Initialize (MPI_Comm mpi_comm,
+                   std::ostream& a_osout, std::ostream& a_oserr,
+                   ErrorHandler a_errhandler)
 {
     int argc = 0;
     char** argv = 0;
-    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr);
+    Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
 }
 
 void
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
-                   std::ostream& a_osout, std::ostream& a_oserr)
+                   std::ostream& a_osout, std::ostream& a_oserr,
+                   ErrorHandler a_errhandler)
 {
     system::exename.clear();
-    system::verbose = 0;
+//    system::verbose = 0;
     system::regtest_reduction = 0;
     system::signal_handling = 1;
     system::call_addr2line = 1;
     system::throw_exception = 0;
     system::osout = &a_osout;
     system::oserr = &a_oserr;
+    system::error_handler = a_errhandler;
+
     ParallelDescriptor::StartParallel(&argc, &argv, mpi_comm);
 
     prev_out_precision = system::osout->precision(10);
@@ -346,11 +405,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::exename += argv[0];
     }
 
-#ifdef BL_USE_UPCXX
-    upcxx::init(&argc, &argv);
-    if (upcxx::myrank() != ParallelDescriptor::MyProc())
-	amrex::Abort("UPC++ rank != MPI rank");
-#elif defined PERILLA_USE_UPCXX
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::init();
 #endif
 
@@ -401,16 +456,20 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         func_parm_parse();
     }
 
+#ifdef AMREX_USE_GPU
+    // Initialize after ParmParse so that we can read inputs.
+    Gpu::Device::Initialize();
+#endif
+
     {
 	ParmParse pp("amrex");
 	pp.query("v", system::verbose);
 	pp.query("verbose", system::verbose);
-
         pp.query("regtest_reduction", system::regtest_reduction);
-
         pp.query("signal_handling", system::signal_handling);
         pp.query("throw_exception", system::throw_exception);
         pp.query("call_addr2line", system::call_addr2line);
+
         if (system::signal_handling)
         {
             // We could save the singal handlers and restore them in Finalize.
@@ -436,7 +495,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             if (invalid)   curr_fpe_excepts |= FE_INVALID;
             if (divbyzero) curr_fpe_excepts |= FE_DIVBYZERO;
             if (overflow)  curr_fpe_excepts |= FE_OVERFLOW;
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
             prev_fpe_excepts = fegetexcept();
             if (curr_fpe_excepts != 0) {
@@ -455,13 +514,16 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     ParallelDescriptor::StartTeams();
 
+    Arena::Initialize();
     amrex_mempool_init();
 
     // For thread safety, we should do these initializations here.
+    BaseFab_Initialize();
     BoxArray::Initialize();
     DistributionMapping::Initialize();
     FArrayBox::Initialize();
     IArrayBox::Initialize();
+    Gpu::AsyncFab::Initialize();
     FabArrayBase::Initialize();
     MultiFab::Initialize();
     iMultiFab::Initialize();
@@ -558,12 +620,13 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-    amrex_mempool_finalize();
-
 #ifdef BL_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif
+
+    amrex_mempool_finalize();
+    Arena::Finalize();
 
     ParallelDescriptor::EndTeams();
 
@@ -575,7 +638,7 @@ amrex::Finalize (bool finalize_parallel)
         if (prev_handler_sigint != SIG_ERR) signal(SIGINT, prev_handler_sigint);
         if (prev_handler_sigabrt != SIG_ERR) signal(SIGABRT, prev_handler_sigabrt);
         if (prev_handler_sigfpe != SIG_ERR) signal(SIGFPE, prev_handler_sigfpe);
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__NEC__)
 #if !defined(__PGI) || (__PGIC__ >= 16)
         if (curr_fpe_excepts != 0) {
             fedisableexcept(curr_fpe_excepts);
@@ -586,7 +649,11 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-#ifdef BL_USE_UPCXX
+#ifdef AMREX_USE_GPU
+    Gpu::Device::Finalize();
+#endif
+
+#if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
     upcxx::finalize();
 #endif
 

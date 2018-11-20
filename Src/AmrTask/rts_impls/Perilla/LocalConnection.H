@@ -1,3 +1,4 @@
+#if 0
 #ifndef P_LOCALCONNECTION_H
 #define P_LOCALCONNECTION_H
 
@@ -44,4 +45,6 @@ class LocalConnection
 	    if(dcpy) free(dcpy);
 	}
 };
+#endif
+
 #endif

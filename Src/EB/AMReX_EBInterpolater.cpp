@@ -44,8 +44,8 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
     }
     else
     {
-        const EBFArrayBox& crse_eb = dynamic_cast<EBFArrayBox const&>(crse);
-        EBFArrayBox&       fine_eb = dynamic_cast<EBFArrayBox      &>(fine);
+        const EBFArrayBox& crse_eb = static_cast<EBFArrayBox const&>(crse);
+        EBFArrayBox&       fine_eb = static_cast<EBFArrayBox      &>(fine);
         
         const EBCellFlagFab& crse_flag = crse_eb.getEBCellFlagFab();
         const EBCellFlagFab& fine_flag = fine_eb.getEBCellFlagFab();

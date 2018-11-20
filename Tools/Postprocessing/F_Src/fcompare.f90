@@ -253,11 +253,13 @@ program fcompare
      call bl_error("ERROR: number of levels do not match")
   endif
 
-  if (pf_a%flevel /= 0) then
+  !! In some cases the plot file will contain no fluid level or no fluid vars =>
+  !! do nothing here
+  if ((pf_a%flevel /= 0) .and. (pf_a%nvars /= 0)) then
      ! check if the finest domains are the same size
      bx_a = plotfile_get_pd_box(pf_a, pf_a%flevel)
      bx_b = plotfile_get_pd_box(pf_b, pf_b%flevel)
-     
+
      if (.not. box_equal(bx_a, bx_b)) then
         call bl_error("ERROR: grids do not match")
      endif
@@ -384,6 +386,8 @@ program fcompare
 998 format(1x,a24,2x,a24,   2x,a24)
 999 format(1x,70("-"))
 
+1003 format(1x,a24,2x,g24.10)
+
   write (*,*) " "
   write (*,998) "variable name", "absolute error",  "relative error"
   write (*,998) "",              "(||A - B||)",     "(||A - B||/||A||)"
@@ -393,208 +397,11 @@ program fcompare
 
   err_zone%max_abs_err = -1.d33
 
-  do i = 1, pf_a%flevel
-
-     aerror(:) = ZERO
-     rerror(:) = ZERO
-     rerror_denom(:) = ZERO
-
-     has_nan_a(:) = .false.
-     has_nan_b(:) = .false.
-
-     ! make sure the dx's agree
-     dx_a = 0.0_dp_t
-     dx_b = 0.0_dp_t
-     dx_a(1:dm) = plotfile_get_dx(pf_a, i)
-     dx_b(1:dm) = plotfile_get_dx(pf_b, i)
-
-     if ((dx_a(1) /= dx_b(1)) .OR. &
-         (pf_a%dim >= 2 .AND. dx_a(2) /= dx_b(2)) .OR. &
-         (pf_a%dim == 3 .AND. dx_a(3) /= dx_b(3))) then
-        call bl_error("ERROR: grid dx does not match")
-     endif
-
-     ! make sure the number of boxes agree
-     nboxes_a = nboxes(pf_a, i)
-     nboxes_b = nboxes(pf_b, i)
-
-     if (nboxes_a /= nboxes_b) then
-        call bl_error("ERROR: number of boxes do not match")
-     endif
-
-     do j = 1, nboxes_a
-
-        ! make sure that the grids match
-        bx_a = get_box(pf_a, i, j)
-
-        lo_a = 1
-        hi_a = 1
-        lo_a(1:dm) = lwb(bx_a)
-        hi_a(1:dm) = upb(bx_a)
-
-        bx_b = get_box(pf_b, i, j)
-
-        if (.not. box_equal(bx_a, bx_b)) then
-           call bl_error("ERROR: grids do not match")
-        endif
-
-        if (.not. nghost(pf_a, i, j) == nghost(pf_b, i, j)) then
-           if (.not. gc_warn) then
-              call bl_warn("WARNING: grids have different numbers of ghost cells")
-              gc_warn = .true.
-           endif
-           ng = 0
-        else
-           if (do_ghost) then
-              ng = nghost(pf_a, i, j)
-           else
-              ng = 0
-           endif
-        endif
-
-        ! loop over the variables.  Take plotfile_a to be the one defining
-        ! the list of variables, and bind them one-by-one.  Don't assume that
-        ! the variables are in the same order in plotfile_b.
-
-        do n_a = 1, pf_a%nvars
-
-           n_b = ivar_b(n_a)
-           if (n_b == -1) cycle
-
-           call fab_bind_comp_vec(pf_a, i, j, (/ n_a /) )
-           call fab_bind_comp_vec(pf_b, i, j, (/ n_b /) )
-
-           p_a => dataptr(pf_a, i, j)
-           p_b => dataptr(pf_b, i, j)
-
-           ! are we storing the diff?
-           if (n_a == save_var_a) then
-              mp => dataptr(mf_array(i), j, get_box(mf_array(i), j))
-
-              mp(:,:,:,1) = abs(p_a(:,:,:,1) - p_b(:,:,:,1))
-           endif
-
-           ! check for NaNs -- comparisons don't work when they are present
-           ! note: regardless of do_ghost, this will check the ghostcells
-           ! too if they are present.
-           call fab_contains_nan(p_a, volume(get_pbox(pf_a, i, j)), ir_a)
-           if (ir_a == 1) has_nan_a(n_a) = .true.
-
-           call fab_contains_nan(p_b, volume(get_pbox(pf_b, i, j)), ir_b)
-           if (ir_b == 1) has_nan_b(n_a) = .true.
-
-           if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
-
-           !$omp parallel do collapse(2) default(none) &
-           !$omp   shared(lo_a, hi_a, ng, p_a, p_b, norm, n_a, zone_info_var_a, i, j) &
-           !$omp   private(pa, pb, pd) &
-           !$omp   reduction(err_reduce:aerror, rerror, rerror_denom) &
-           !$omp   reduction(err_zone_reduce:err_zone)
-           do kk = lo_a(3)-ng, hi_a(3)+ng
-              do jj = lo_a(2)-ng, hi_a(2)+ng
-                 do ii = lo_a(1)-ng, hi_a(1)+ng
-
-                    pa = abs(p_a(ii,jj,kk,1))
-                    pb = abs(p_b(ii,jj,kk,1))
-                    pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
-
-                    if (norm == 0) then
-                       aerror(n_a) = max(aerror(n_a), pd)
-
-                       rerror(n_a) = max(rerror(n_a), pd)
-                       rerror_denom(n_a) = max(rerror_denom(n_a), pa)
-                    else
-                       aerror(n_a) = aerror(n_a) + pd**norm
-
-                       rerror(n_a) = rerror(n_a) + pd**norm
-                       rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
-                    endif
-
-                    if (n_a == zone_info_var_a .and. pd > err_zone%max_abs_err) then
-                       err_zone % max_abs_err = pd
-                       err_zone % level = i
-                       err_zone % box = j
-                       err_zone % i = ii
-                       err_zone % j = jj
-                       err_zone % k = kk
-                    endif
-
-                 enddo
-              enddo
-           enddo
-
-           call fab_unbind(pf_a, i, j)
-           call fab_unbind(pf_b, i, j)
-
-        enddo  ! variable loop
-
-     enddo  ! boxes loop
-
-     ! Normalize
-     if (norm > 0) then
-
-        do n_a = 1, pf_a%nvars
-           aerror(n_a) = aerror(n_a)*product(dx_a(1:pf_a%dim))
-           aerror(n_a) = aerror(n_a)**(ONE/real(norm,dp_t))
-
-           ! since we are taking the ratio of two norms, no grid normalization
-           ! is needed
-           rerror(n_a) = (rerror(n_a)/rerror_denom(n_a))**(ONE/real(norm,dp_t))
-        enddo
-
-     else
-
-        do n_a = 1, pf_a%nvars
-           rerror(n_a) = rerror(n_a)/rerror_denom(n_a)
-        enddo
-
-     endif
-
-
-     !------------------------------------------------------------------------
-     ! print out the comparison report for this level
-     !------------------------------------------------------------------------
-
-1000 format(1x,"level = ", i2)
-1001 format(1x,a24,2x,g24.10,2x,g24.10)
-1002 format(1x,a24,2x,a50)
-1003 format(1x,a24,2x,g24.10)
-
-     write (*,1000) i
-
-     do n_a = 1, pf_a%nvars
-        if (ivar_b(n_a) == -1) then
-           write (*,1002) pf_a%names(n_a), "< variable not present in both files > "
-
-        else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
-           write (*,1002) pf_a%names(n_a), "< NaN present > "
-
-        else
-           if (aerror(n_a) > 0.0d0) then
-              aerr = min(max(aerror(n_a), 1.d-99), 1.d98)
-           else
-              aerr = 0.0d0
-           endif
-
-           if (rerror(n_a) > 0.0d0) then
-              rerr = min(max(rerror(n_a), 1.d-99), 1.d98)
-           else
-              rerr = 0.0d0
-           endif
-
-           write (*,1001) pf_a%names(n_a), aerr, rerr
-        endif
-     enddo
-
-     if (i == 1) then
-        global_error = maxval(aerror(:))
-     else
-        global_error = max(global_error, maxval(aerror(:)))
-     endif
-
-     any_nans = any(has_nan_a .or. has_nan_b) .or. any_nans
-
-  enddo  ! level loop
+  if (pf_a%nvars /= 0) then
+     do i = 1, pf_a%flevel
+        call compare_level(i)
+     enddo  ! level loop
+  end if
 
   if (save_var_a > 0) then
      call fabio_ml_multifab_write_d(mf_array, ref_ratio, &
@@ -648,5 +455,214 @@ program fcompare
   else
      call send_fail_return_code()
   endif
+
+contains
+
+  subroutine compare_level(i)
+
+    implicit none
+
+    integer, intent(in) :: i
+
+
+    aerror(:) = ZERO
+    rerror(:) = ZERO
+    rerror_denom(:) = ZERO
+
+    has_nan_a(:) = .false.
+    has_nan_b(:) = .false.
+
+    ! make sure the dx's agree
+    dx_a = 0.0_dp_t
+    dx_b = 0.0_dp_t
+    dx_a(1:dm) = plotfile_get_dx(pf_a, i)
+    dx_b(1:dm) = plotfile_get_dx(pf_b, i)
+
+    if ((dx_a(1) /= dx_b(1)) .OR. &
+         (pf_a%dim >= 2 .AND. dx_a(2) /= dx_b(2)) .OR. &
+         (pf_a%dim == 3 .AND. dx_a(3) /= dx_b(3))) then
+       call bl_error("ERROR: grid dx does not match")
+    endif
+
+    ! make sure the number of boxes agree
+    nboxes_a = nboxes(pf_a, i)
+    nboxes_b = nboxes(pf_b, i)
+
+    if (nboxes_a /= nboxes_b) then
+       call bl_error("ERROR: number of boxes do not match")
+    endif
+
+    do j = 1, nboxes_a
+
+       ! make sure that the grids match
+       bx_a = get_box(pf_a, i, j)
+
+       lo_a = 1
+       hi_a = 1
+       lo_a(1:dm) = lwb(bx_a)
+       hi_a(1:dm) = upb(bx_a)
+
+       bx_b = get_box(pf_b, i, j)
+
+       if (.not. box_equal(bx_a, bx_b)) then
+          call bl_error("ERROR: grids do not match")
+       endif
+
+       if (.not. nghost(pf_a, i, j) == nghost(pf_b, i, j)) then
+          if (.not. gc_warn) then
+             call bl_warn("WARNING: grids have different numbers of ghost cells")
+             gc_warn = .true.
+          endif
+          ng = 0
+       else
+          if (do_ghost) then
+             ng = nghost(pf_a, i, j)
+          else
+             ng = 0
+          endif
+       endif
+
+       ! loop over the variables.  Take plotfile_a to be the one defining
+       ! the list of variables, and bind them one-by-one.  Don't assume that
+       ! the variables are in the same order in plotfile_b.
+
+       do n_a = 1, pf_a%nvars
+
+          n_b = ivar_b(n_a)
+          if (n_b == -1) cycle
+
+          call fab_bind_comp_vec(pf_a, i, j, (/ n_a /) )
+          call fab_bind_comp_vec(pf_b, i, j, (/ n_b /) )
+
+          p_a => dataptr(pf_a, i, j)
+          p_b => dataptr(pf_b, i, j)
+
+          ! are we storing the diff?
+          if (n_a == save_var_a) then
+             mp => dataptr(mf_array(i), j, get_box(mf_array(i), j))
+
+             mp(:,:,:,1) = abs(p_a(:,:,:,1) - p_b(:,:,:,1))
+          endif
+
+          ! check for NaNs -- comparisons don't work when they are present
+          ! note: regardless of do_ghost, this will check the ghostcells
+          ! too if they are present.
+          call fab_contains_nan(p_a, volume(get_pbox(pf_a, i, j)), ir_a)
+          if (ir_a == 1) has_nan_a(n_a) = .true.
+
+          call fab_contains_nan(p_b, volume(get_pbox(pf_b, i, j)), ir_b)
+          if (ir_b == 1) has_nan_b(n_a) = .true.
+
+          if (has_nan_a(n_a) .or. has_nan_b(n_a)) cycle
+
+          !$omp parallel do collapse(2) default(none) &
+          !$omp   shared(lo_a, hi_a, ng, p_a, p_b, norm, n_a, zone_info_var_a, i, j) &
+          !$omp   private(pa, pb, pd) &
+          !$omp   reduction(err_reduce:aerror, rerror, rerror_denom) &
+          !$omp   reduction(err_zone_reduce:err_zone)
+          do kk = lo_a(3)-ng, hi_a(3)+ng
+             do jj = lo_a(2)-ng, hi_a(2)+ng
+                do ii = lo_a(1)-ng, hi_a(1)+ng
+
+                   pa = abs(p_a(ii,jj,kk,1))
+                   pb = abs(p_b(ii,jj,kk,1))
+                   pd = abs(p_a(ii,jj,kk,1) - p_b(ii,jj,kk,1))
+
+                   if (norm == 0) then
+                      aerror(n_a) = max(aerror(n_a), pd)
+
+                      rerror(n_a) = max(rerror(n_a), pd)
+                      rerror_denom(n_a) = max(rerror_denom(n_a), pa)
+                   else
+                      aerror(n_a) = aerror(n_a) + pd**norm
+
+                      rerror(n_a) = rerror(n_a) + pd**norm
+                      rerror_denom(n_a) = rerror_denom(n_a) + pa**norm
+                   endif
+
+                   if (n_a == zone_info_var_a .and. pd > err_zone%max_abs_err) then
+                      err_zone % max_abs_err = pd
+                      err_zone % level = i
+                      err_zone % box = j
+                      err_zone % i = ii
+                      err_zone % j = jj
+                      err_zone % k = kk
+                   endif
+
+                enddo
+             enddo
+          enddo
+
+          call fab_unbind(pf_a, i, j)
+          call fab_unbind(pf_b, i, j)
+
+       enddo  ! variable loop
+
+    enddo  ! boxes loop
+
+    ! Normalize
+    if (norm > 0) then
+
+       do n_a = 1, pf_a%nvars
+          aerror(n_a) = aerror(n_a)*product(dx_a(1:pf_a%dim))
+          aerror(n_a) = aerror(n_a)**(ONE/real(norm,dp_t))
+
+          ! since we are taking the ratio of two norms, no grid normalization
+          ! is needed
+          rerror(n_a) = (rerror(n_a)/rerror_denom(n_a))**(ONE/real(norm,dp_t))
+       enddo
+
+    else
+
+       do n_a = 1, pf_a%nvars
+          rerror(n_a) = rerror(n_a)/rerror_denom(n_a)
+       enddo
+
+    endif
+
+
+    !------------------------------------------------------------------------
+    ! print out the comparison report for this level
+    !------------------------------------------------------------------------
+
+1000 format(1x,"level = ", i2)
+1001 format(1x,a24,2x,g24.10,2x,g24.10)
+1002 format(1x,a24,2x,a50)
+
+    write (*,1000) i
+
+    do n_a = 1, pf_a%nvars
+       if (ivar_b(n_a) == -1) then
+          write (*,1002) pf_a%names(n_a), "< variable not present in both files > "
+
+       else if (has_nan_a(n_a) .or. has_nan_b(n_a)) then
+          write (*,1002) pf_a%names(n_a), "< NaN present > "
+
+       else
+          if (aerror(n_a) > 0.0d0) then
+             aerr = min(max(aerror(n_a), 1.d-99), 1.d98)
+          else
+             aerr = 0.0d0
+          endif
+
+          if (rerror(n_a) > 0.0d0) then
+             rerr = min(max(rerror(n_a), 1.d-99), 1.d98)
+          else
+             rerr = 0.0d0
+          endif
+
+          write (*,1001) pf_a%names(n_a), aerr, rerr
+       endif
+    enddo
+
+    if (i == 1) then
+       global_error = maxval(aerror(:))
+    else
+       global_error = max(global_error, maxval(aerror(:)))
+    endif
+
+    any_nans = any(has_nan_a .or. has_nan_b) .or. any_nans
+
+  end subroutine compare_level
 
 end program fcompare

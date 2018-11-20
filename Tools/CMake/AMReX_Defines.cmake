@@ -28,84 +28,80 @@ function ( set_amrex_defines )
    #
    
    # Git version
-   add_amrex_define ( "AMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\"" NO_LEGACY )
+   add_amrex_define( "AMREX_GIT_VERSION=\"${AMREX_GIT_VERSION}\"" NO_LEGACY )
 
    # XSDK mode 
-   add_amrex_define ( AMREX_XSDK IF USE_XSDK_DEFAULTS )
+   add_amrex_define( AMREX_XSDK IF USE_XSDK_DEFAULTS )
 
    # Debug flag
-   add_amrex_define ( AMREX_DEBUG NO_LEGACY IF DEBUG )
-
-   # Let CMake take care of this one
-   # if ( (NOT DEBUG) AND (NOT USE_XSDK_DEFAULTS) )
-   #    add_amrex_define (NDEBUG)
-   # endif ()
+   add_amrex_define( AMREX_DEBUG NO_LEGACY IF DEBUG )
 
    # Base profiling options
-   add_amrex_define ( AMREX_PROFILING IF ENABLE_BASE_PROFILE )
-
-   add_amrex_define ( AMREX_TRACE_PROFILING IF ENABLE_TRACE_PROFILE )
-
-   add_amrex_define ( AMREX_COMM_PROFILING  IF ENABLE_COMM_PROFILE )
+   add_amrex_define( AMREX_PROFILING IF ENABLE_BASE_PROFILE )
+   add_amrex_define( AMREX_TRACE_PROFILING IF ENABLE_TRACE_PROFILE )
+   add_amrex_define( AMREX_COMM_PROFILING  IF ENABLE_COMM_PROFILE )
 
    # Tiny profiler
-   add_amrex_define ( AMREX_TINY_PROFILING IF ENABLE_TINY_PROFILE )
+   add_amrex_define( AMREX_TINY_PROFILING IF ENABLE_TINY_PROFILE )
 
    # Mem profiler 
-   add_amrex_define ( AMREX_MEM_PROFILING IF ENABLE_MEM_PROFILE )
+   add_amrex_define( AMREX_MEM_PROFILING IF ENABLE_MEM_PROFILE )
 
    # Profparser 
-   add_amrex_define ( AMREX_USE_PROFPARSER IF ENABLE_PROFPARSER )
+   add_amrex_define( AMREX_USE_PROFPARSER IF ENABLE_PROFPARSER )
 
    # Backtrace
    if (ENABLE_BACKTRACE)
-      add_amrex_define ( AMREX_BACKTRACING )
-      add_amrex_define ( AMREX_TESTING )
+      add_amrex_define( AMREX_BACKTRACING )
+      add_amrex_define( AMREX_TESTING )
    endif ()
 
    # Third party profiling
    if (${TP_PROFILE} MATCHES "CRAYPAT")
-      add_amrex_define ( AMREX_CRAYPAT )
+      add_amrex_define( AMREX_CRAYPAT )
    elseif (${TP_PROFILE} MATCHES "FORGE")
-      add_amrex_define ( AMREX_FORGE )
+      add_amrex_define( AMREX_FORGE )
    elseif (${TP_PROFILE} MATCHES "VTUNE")
-      add_amrex_define ( AMREX_VTUNE )
+      add_amrex_define( AMREX_VTUNE )
    endif ()
 
    # MPI
-   add_amrex_define ( AMREX_USE_MPI IF ENABLE_MPI )
+   add_amrex_define( AMREX_USE_MPI IF ENABLE_MPI )
 
    # OpenMP
-   add_amrex_define ( AMREX_USE_OMP IF ENABLE_OMP )
+   add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
 
+   # CUDA
+   add_amrex_define( AMREX_USE_CUDA    IF ENABLE_CUDA )
+   add_amrex_define( AMREX_USE_GPU     IF ENABLE_CUDA )
+   
    # Precision
    if (NOT ENABLE_DP)
-      add_amrex_define (AMREX_USE_FLOAT)
+      add_amrex_define(AMREX_USE_FLOAT)
    endif ()
 
    # Dimensionality
-   add_amrex_define ( AMREX_SPACEDIM=${DIM} )
+   add_amrex_define( AMREX_SPACEDIM=${DIM} )
 
    # System
-   add_amrex_define ( AMREX_${CMAKE_SYSTEM_NAME} )
+   add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
 
    # Particles
    if (ENABLE_PARTICLES)
-      add_amrex_define ( AMREX_PARTICLES )
-
+      add_amrex_define( AMREX_PARTICLES )
       if (NOT ENABLE_DP_PARTICLES)
-	 add_amrex_define ( AMREX_SINGLE_PRECISION_PARTICLES )
+	 add_amrex_define( AMREX_SINGLE_PRECISION_PARTICLES )
       endif ()
    endif ()
 
-   #  Assertions
-   add_amrex_define ( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
-
-   add_amrex_define ( AMREX_USE_EB IF ENABLE_EB )
-
-   add_amrex_define ( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES )
+   # External libraries for nodal MLMG
+   add_amrex_define( USE_ALGOIM IF ENABLE_3D_NODAL_MLMG)
    
-   add_amrex_define ( AMREX_NO_STRICT_PREFIX )
+   #  Assertions
+   add_amrex_define( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
+   add_amrex_define( AMREX_USE_EB IF ENABLE_EB )
+   add_amrex_define( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES ) 
+   add_amrex_define( AMREX_NO_STRICT_PREFIX )
 
    #
    # Fortran-specific defines: BL_LANG_FORT e AMREX_LANG_FORT
@@ -155,7 +151,10 @@ function ( set_amrex_defines )
       message (AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
    endif ()
 
-   add_amrex_define ( AMREX_FORT_USE_${FORTLINK} )
+   add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
+
+   # SENSEI Insitu
+   add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
    
 endfunction ()
 

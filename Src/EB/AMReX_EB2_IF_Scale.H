@@ -29,8 +29,8 @@ public:
 
     ~ScaleIF () {}
 
-    ScaleIF (const ScaleIF& rhs) noexcept = default;
-    ScaleIF (ScaleIF&& rhs) noexcept = default;
+    ScaleIF (const ScaleIF& rhs) = default;
+    ScaleIF (ScaleIF&& rhs) = default;
     ScaleIF& operator= (const ScaleIF& rhs) = delete;
     ScaleIF& operator= (ScaleIF&& rhs) = delete;
 
