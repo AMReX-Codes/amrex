@@ -82,10 +82,8 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
                                             IntVect::TheDimensionVector(idim));
         bcoefs[idim].define(ba, beta[ilev].DistributionMap(), 1, 0);
       }
-      amrex::average_cellcenter_to_face({AMREX_D_DECL(&bcoefs[0],
-                                                      &bcoefs[1],
-                                                      &bcoefs[2])},
-        beta[ilev], geom[ilev]);
+      amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoefs),
+                                        beta[ilev], geom[ilev]);
       mlabec.setBCoeffs(ilev, amrex::GetArrOfConstPtrs(bcoefs));
     }
 
@@ -128,10 +126,8 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
                                             IntVect::TheDimensionVector(idim));
         bcoefs[idim].define(ba, beta[ilev].DistributionMap(), 1, 0);
       }
-      amrex::average_cellcenter_to_face({AMREX_D_DECL(&bcoefs[0],
-                                                      &bcoefs[1],
-                                                      &bcoefs[2])},
-                                           beta[ilev], geom[ilev]);
+      amrex::average_cellcenter_to_face(amrex::GetArrOfPtrs(bcoefs),
+                                        beta[ilev], geom[ilev]);
       mlabec.setBCoeffs(solver_level, amrex::GetArrOfConstPtrs(bcoefs));
 
       MLMG mlmg(mlabec);

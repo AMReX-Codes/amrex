@@ -41,7 +41,9 @@ namespace amrex{
 	    pTileArray(): numTiles(0), tileBx(0){}
 	    ~pTileArray()
 	    {
-		tileBx.clear();
+                for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
+                tileBx.clear();
+                delete[] validBx;
 	    }
     };
 
@@ -169,6 +171,7 @@ namespace amrex{
 	    void regionComputed(int r);
 	    bool isFireableRegion(int r);
 	    int  getAnyFireableRegion();
+            int  getAnyFireableRegion(RegionGraph& depGraph);
 	    int  getPulledFireableRegion();
 	    int  getFireableRegion(bool isSingleThread=false);
 	    void setFireableRegion(int r);
@@ -262,6 +265,29 @@ namespace amrex{
 		    fabTiles_gtbx[mfi.LocalIndex()]->tileBx.push_back(new Box(mfi.growntilebox(ng)));
 		}
 	    }
+
+            void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
+            {
+                int myProc = amrex::ParallelDescriptor::MyProc();
+                const int n = mf.indexArray.size();
+                fabTiles.resize(n);
+
+                //typ = mf.boxArray().ixType();
+
+                for (int i = 0; i < n; ++i)
+                {
+                    fabTiles[i] = new pTileArray();
+                }
+                for (amrex::MFIter mfi(mf, tilesize); mfi.isValid(); ++mfi)
+                {
+                    if( fabTiles[mfi.LocalIndex()]->numTiles == 0 )
+                        fabTiles[mfi.LocalIndex()]->validBx = new amrex::Box(mfi.validbox());
+                    fabTiles[mfi.LocalIndex()]->numTiles++;
+                    fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
+                }
+            }
+
+
 
 	    ~RegionGraph();
     };

@@ -344,7 +344,7 @@ BoxList::complementIn (const Box& b, const BoxArray& ba)
     }
     else
     {
-        int npts_avgbox;
+        long npts_avgbox;
 	Box mbox = ba.minimalBox(npts_avgbox);
         *this = amrex::boxDiff(b, mbox);
         auto mytyp = ixType();

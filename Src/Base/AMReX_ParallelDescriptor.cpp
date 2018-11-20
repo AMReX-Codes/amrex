@@ -52,10 +52,6 @@ namespace ParallelDescriptor
 
     const int ioProcessor = 0;
 
-#ifdef BL_USE_UPCXX
-    UPCXX_MPI_Mode Mode;
-#endif    
-
 #ifdef BL_USE_MPI3
     MPI_Win cp_win;
     MPI_Win fb_win;
@@ -932,10 +928,6 @@ void
 ParallelDescriptor::util::DoAllReduceReal (Real&  r,
                                            MPI_Op op)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -945,7 +937,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real&  r,
 
     Real recv;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Real recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
@@ -976,10 +968,6 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -991,7 +979,7 @@ ParallelDescriptor::util::DoAllReduceReal (Real*  r,
 
     Vector<Real> recv(cnt);
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Vector<Real> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, Mpi_typemap<Real>::type(), op,
@@ -1024,10 +1012,6 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1037,7 +1021,7 @@ ParallelDescriptor::util::DoReduceReal (Real&  r,
 
     Real recv;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Real recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, Mpi_typemap<Real>::type(), op,
@@ -1075,10 +1059,6 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
                                         int    cnt,
                                         int    cpu)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1090,7 +1070,7 @@ ParallelDescriptor::util::DoReduceReal (Real*  r,
 
     Vector<Real> recv(cnt);
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Vector<Real> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, Mpi_typemap<Real>::type(), op,
@@ -1129,10 +1109,6 @@ void
 ParallelDescriptor::util::DoAllReduceLong (long&  r,
                                            MPI_Op op)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1142,7 +1118,7 @@ ParallelDescriptor::util::DoAllReduceLong (long&  r,
 
     long recv;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	long recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
@@ -1173,10 +1149,6 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
                                            MPI_Op op,
                                            int    cnt)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1188,7 +1160,7 @@ ParallelDescriptor::util::DoAllReduceLong (long*  r,
 
     Vector<long> recv(cnt);
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Vector<long> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_LONG, op,
@@ -1221,10 +1193,6 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
                                         MPI_Op op,
                                         int    cpu)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1234,7 +1202,7 @@ ParallelDescriptor::util::DoReduceLong (long&  r,
 
     long recv;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	long recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_LONG, op,
@@ -1272,10 +1240,6 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
                                         int    cnt,
                                         int    cpu)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1287,7 +1251,7 @@ ParallelDescriptor::util::DoReduceLong (long*  r,
 
     Vector<long> recv(cnt);
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Vector<long> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
@@ -1326,10 +1290,6 @@ void
 ParallelDescriptor::util::DoAllReduceInt (int&   r,
                                           MPI_Op op)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1339,7 +1299,7 @@ ParallelDescriptor::util::DoAllReduceInt (int&   r,
 
     int recv;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	int recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
@@ -1370,10 +1330,6 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
                                           MPI_Op op,
                                           int    cnt)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1385,7 +1341,7 @@ ParallelDescriptor::util::DoAllReduceInt (int*   r,
 
     Vector<int> recv(cnt);
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Vector<int> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, recv_team.dataPtr(), cnt, MPI_INT, op,
@@ -1418,10 +1374,6 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
                                        MPI_Op op,
                                        int    cpu)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1431,7 +1383,7 @@ ParallelDescriptor::util::DoReduceInt (int&   r,
 
     int recv;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	int recv_team;
 	BL_MPI_REQUIRE( MPI_Reduce(&r, &recv_team, 1, MPI_INT, op,
@@ -1469,10 +1421,6 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
                                        int    cnt,
                                        int    cpu)
 {
-#ifdef BL_USE_UPCXX
-    Mode.set_mpi_mode();
-#endif
-
 #ifdef BL_LAZY
     Lazy::EvalReduction();
 #endif
@@ -1484,7 +1432,7 @@ ParallelDescriptor::util::DoReduceInt (int*   r,
 
     Vector<int> recv(cnt);
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     if (doTeamReduce() > 1) {
 	Vector<long> recv_team(cnt);
 	BL_MPI_REQUIRE( MPI_Reduce(r, &recv_team[0], cnt, MPI_LONG, op,
@@ -2049,7 +1997,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 
     Vector<Setbuf_Char_Type> io_buffer(IO_Buffer_Size);
 
-    int fileLength(0), fileLengthPadded(0);
+    long fileLength(0), fileLengthPadded(0);
 
     std::ifstream iss;
 
@@ -2064,7 +2012,7 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
 	  }
         } else {
           iss.seekg(0, std::ios::end);
-          fileLength = iss.tellg();
+          fileLength = static_cast<std::streamoff>(iss.tellg());
           iss.seekg(0, std::ios::beg);
 	}
     }
@@ -2095,7 +2043,7 @@ ParallelDescriptor::StartTeams ()
     int team_size = 1;
     int do_team_reduce = 0;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     ParmParse pp("team");
     pp.query("size", team_size);
     pp.query("reduce", do_team_reduce);
@@ -2115,7 +2063,7 @@ ParallelDescriptor::StartTeams ()
 
     m_Team.m_do_team_reduce = team_size > 0 && do_team_reduce;
 
-#if defined(BL_USE_UPCXX) || defined(BL_USE_MPI3)
+#if defined(BL_USE_MPI3)
     {
 	MPI_Group grp, team_grp, lead_grp;
 	BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
@@ -2138,12 +2086,6 @@ ParallelDescriptor::StartTeams ()
         BL_MPI_REQUIRE( MPI_Group_free(&grp) );
         BL_MPI_REQUIRE( MPI_Group_free(&team_grp) );
         BL_MPI_REQUIRE( MPI_Group_free(&lead_grp) );
-
-#ifdef BL_USE_UPCXX
-	upcxx::team* team;
-	upcxx::team_all.split(MyTeamColor(), MyRankInTeam(), team);
-        m_Team.m_upcxx_team = team;
-#endif
     }
 #endif
 }
@@ -2162,7 +2104,7 @@ ParallelDescriptor::MPIOneSided ()
     static bool do_onesided = false;
 
 #ifndef BL_AMRPROF
-#if defined(BL_USE_MPI3) && !defined(BL_USE_UPCXX)
+#if defined(BL_USE_MPI3)
     static bool first = true;
     if (first) {
 	first = false;

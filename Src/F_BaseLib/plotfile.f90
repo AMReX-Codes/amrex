@@ -18,7 +18,7 @@ module plotfile_module
   end interface build
 
   type plotfile_fab
-     ! a single array of data (a boxlib FAB).  
+     ! a single array of data (a boxlib FAB).
      private
      integer :: dim = 0
      character(len=MAX_PATH_NAME) :: filename = ""
@@ -45,7 +45,7 @@ module plotfile_module
      real(kind=dp_t), pointer :: phi(:,:) => Null()
      type(plotfile_fab), pointer :: fabs(:) => Null()
      type(box) :: pdbx
-     real(kind=dp_t), pointer :: dxlev(:) 
+     real(kind=dp_t), pointer :: dxlev(:)
   end type plotfile_grid
 
   type plotfile
@@ -114,7 +114,7 @@ contains
     type(plotfile), intent(in) :: pf
     integer :: idx
     integer :: n
-    
+
     idx = -1
     do n = 1, pf%nvars
        if (pf%names(n) == r) then
@@ -157,7 +157,7 @@ contains
   end function plotfile_dataptr
 
   function plotfile_get_pd_box(pf, n) result(r)
-    ! this is the box (integer indices of the corners) of the 
+    ! this is the box (integer indices of the corners) of the
     ! entire domain at a given level of refinement.
     type(box) :: r
     type(plotfile), intent(in) :: pf
@@ -272,7 +272,7 @@ contains
     if ( str == '&PLOTFILE' ) then
        call build_pf
     else if ( str == 'NavierStokes-V1.1' .or. str == 'HyperCLaw-V1.1' &
-         .or. str == 'CartGrid-V2.0' .or. str == 'PorousMedia-V1.1' ) then 
+         .or. str == 'CartGrid-V2.0' .or. str == 'PorousMedia-V1.1' ) then
        call build_ns_plotfile
     else
        call bl_error('BUILD_PLOTIFILE: Header has improper magic string', str)
@@ -359,7 +359,9 @@ contains
       read(unit=lun, fmt=*) pf%flevel
       pf%flevel = pf%flevel + 1
 
-      if (pf%flevel .eq. 0) then
+      !! If number of levels is zero or the number of vars is zero then there is
+      !! no fluid data => Do nothing
+      if ((pf%flevel .eq. 0) .or. (pf%nvars .eq. 0)) then
          return
       end if
 
@@ -416,7 +418,7 @@ contains
          do j = 1, pf%grids(i)%nboxes
             call box_read(pf%grids(i)%fabs(j)%bx, unit = lun)
             pf%grids(i)%fabs(j)%pbx = grow(pf%grids(i)%fabs(j)%bx, ng)
-            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%pbx) 
+            pf%grids(i)%fabs(j)%size = volume(pf%grids(i)%fabs(j)%pbx)
             pf%grids(i)%fabs(j)%nc = nc
             pf%grids(i)%fabs(j)%ng = ng
          end do
@@ -451,15 +453,17 @@ contains
     type(plotfile), intent(inout) :: pf
     integer :: i, j
 
-    do i = 1, pf%flevel
-       deallocate(pf%grids(i)%plo, pf%grids(i)%phi, pf%grids(i)%dxlev)
-       do j = 1, size(pf%grids(i)%fabs)
-          deallocate(pf%grids(i)%fabs(j)%mn, pf%grids(i)%fabs(j)%mx)
-          if ( associated(pf%grids(i)%fabs(j)%p) ) &
-               deallocate(pf%grids(i)%fabs(j)%p)
+    if (pf%nvars > 0) then
+       do i = 1, pf%flevel
+          deallocate(pf%grids(i)%plo, pf%grids(i)%phi, pf%grids(i)%dxlev)
+          do j = 1, size(pf%grids(i)%fabs)
+             deallocate(pf%grids(i)%fabs(j)%mn, pf%grids(i)%fabs(j)%mx)
+             if ( associated(pf%grids(i)%fabs(j)%p) ) &
+                  deallocate(pf%grids(i)%fabs(j)%p)
+          end do
+          deallocate(pf%grids(i)%fabs)
        end do
-       deallocate(pf%grids(i)%fabs)
-    end do
+    end if
     if (associated(pf%refrat)) then
        deallocate(pf%refrat)
     end if
@@ -573,7 +577,7 @@ contains
     lo(1:pf%dim) = lwb(pf%grids(i)%fabs(j)%bx)
     hi(1:pf%dim) = upb(pf%grids(i)%fabs(j)%bx)
     ng = pf%grids(i)%fabs(j)%ng
- 
+
     ! This handles the case where it really is 2D so there no ghost cells in the z-direction
     if (lo(3) .eq. hi(3)) then
         allocate(pf%grids(i)%fabs(j)%p(lo(1)-ng:hi(1)+ng, lo(2)-ng:hi(2)+ng, lo(3):hi(3), size(c)))

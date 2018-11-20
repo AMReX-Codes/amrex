@@ -26,6 +26,7 @@ namespace amrex
 
     //! Average cell-centered MultiFab onto face-based MultiFab.
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc, const Geometry& geom);
 
     //! Average fine face-based MultiFab onto crse face-based MultiFab.
     void average_down_faces (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse, const IntVect& ratio, int ngcrse=0);
@@ -60,10 +61,6 @@ namespace amrex
 
     // This adds a coarsened version of the data in S_fine to S_crse, including ghost cells.
     void sum_fine_to_coarse(const MultiFab& S_Fine, MultiFab& S_crse, int scomp, int ncomp, const IntVect& ratio, const Geometry& cgeom, const Geometry& fgeom);
-
-    //! Fill MultiFab boundaries except for physical boundaries.
-    void fill_boundary(MultiFab& mf, const Geometry& geom, bool cross = false);
-    void fill_boundary(MultiFab& mf, int scomp, int ncomp, const Geometry& geom, bool cross = false);
 
     //! Output state data for a single zone
     void print_state(const MultiFab& mf, const IntVect& cell, const int n=-1);

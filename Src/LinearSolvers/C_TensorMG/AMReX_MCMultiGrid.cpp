@@ -279,7 +279,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
   // Relax system maxiter times, stop if relative error <= _eps_rel or
   // if absolute err <= _abs_eps
   //
-  const Real strt_time = ParallelDescriptor::second();
+  const Real strt_time = amrex::second();
   //
   // Elide a reduction by doing these together.
   //
@@ -338,7 +338,7 @@ MCMultiGrid::solve_ (MultiFab& _sol,
     }
   }
 
-  Real run_time = (ParallelDescriptor::second() - strt_time);
+  Real run_time = (amrex::second() - strt_time);
   if ( verbose > 0 )
   {
       if ( ParallelDescriptor::IOProcessor() )

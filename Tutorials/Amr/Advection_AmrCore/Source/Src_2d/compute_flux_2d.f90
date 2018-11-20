@@ -1,5 +1,6 @@
 module compute_flux_module
 
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   private
@@ -19,22 +20,22 @@ contains
     use slope_module, only: slopex, slopey
 
     integer, intent(in) :: lo(2), hi(2), glo(2), ghi(2)
-    double precision, intent(in) :: dt, dx(2)
+    real(amrex_real), intent(in) :: dt, dx(2)
     integer, intent(in) :: ph_lo(2), ph_hi(2)
     integer, intent(in) ::  u_lo(2),  u_hi(2)
     integer, intent(in) ::  v_lo(2),  v_hi(2)
     integer, intent(in) :: fx_lo(2), fx_hi(2)
     integer, intent(in) :: fy_lo(2), fy_hi(2)
-    double precision, intent(in   ) :: phi (ph_lo(1):ph_hi(1),ph_lo(2):ph_hi(2))
-    double precision, intent(in   ) :: umac( u_lo(1): u_hi(1), u_lo(2): u_hi(2))
-    double precision, intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2))
-    double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
-    double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
-    double precision, dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
+    real(amrex_real), intent(in   ) :: phi (ph_lo(1):ph_hi(1),ph_lo(2):ph_hi(2))
+    real(amrex_real), intent(in   ) :: umac( u_lo(1): u_hi(1), u_lo(2): u_hi(2))
+    real(amrex_real), intent(in   ) :: vmac( v_lo(1): v_hi(1), v_lo(2): v_hi(2))
+    real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2))
+    real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2))
+    real(amrex_real), dimension(glo(1):ghi(1),glo(2):ghi(2)) :: &
          phix_1d, phiy_1d, phix, phiy, slope
          
     integer :: i, j, k
-    double precision :: hdtdx(2)
+    real(amrex_real) :: hdtdx(2)
 
     hdtdx = 0.5*(dt/dx)
 

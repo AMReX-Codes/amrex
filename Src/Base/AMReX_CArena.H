@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <mutex>
 
 #include <AMReX_Arena.H>
 
@@ -26,13 +27,16 @@ public:
     * minimum size of hunks of memory to allocate from the heap.
     * If hunk_size == 0 we use DefaultHunkSize as specified below.
     */
-    CArena (size_t hunk_size = 0);
+    CArena (std::size_t hunk_size = 0);
+
+    CArena (const CArena& rhs) = delete;
+    CArena& operator= (const CArena& rhs) = delete;
     
     //! The destructor.
     virtual ~CArena () override;
 
     //! Allocate some memory.
-    virtual void* alloc (size_t nbytes) override;
+    virtual void* alloc (std::size_t nbytes) override;
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
@@ -41,7 +45,7 @@ public:
     virtual void free (void* ap) override;
 
     //! The current amount of heap space used by the CArena object.
-    size_t heap_space_used () const;
+    std::size_t heap_space_used () const;
 
     //! The default memory hunk size to grab from the heap.
     enum { DefaultHunkSize = 1024*1024*8 };
@@ -51,28 +55,9 @@ protected:
     class Node
     {
     public:
-        //! The default constructor.
-        Node ()
+        Node (void* a_block, void* a_owner, std::size_t a_size)
             :
-            m_block(0), m_size(0) {}
-        
-        //! Another constructor.
-        Node (void* a_block, size_t a_size)
-            :
-            m_block(a_block), m_size(a_size) {}
-
-        //! The copy constructor.
-        Node (const Node& rhs)
-            :
-            m_block(rhs.m_block), m_size(rhs.m_size) {}
-
-        //! The copy assignment constructor.
-        Node& operator= (const Node& rhs)
-        {
-            m_block = rhs.m_block;
-            m_size  = rhs.m_size;
-            return *this;
-        }
+            m_block(a_block), m_owner(a_owner), m_size(a_size) {}
 
         //! The "less-than" operator.
         bool operator< (const Node& rhs) const
@@ -93,16 +78,24 @@ protected:
         void block (void* blk) { m_block = blk; }
 
         //! The size of the memory block.
-        size_t size () const { return m_size; }
+        std::size_t size () const { return m_size; }
 
         //! Set size.
-        void size (size_t sz) { m_size = sz; }
+        void size (std::size_t sz) { m_size = sz; }
+
+        void* owner () const { return m_owner; }
+
+        bool coalescable (const Node& rhs) const {
+            return m_owner == rhs.m_owner;
+        }
 
     private:
         //! The block of memory we reference.
         void* m_block;
+        //! The starting address of the original allocation
+        void* m_owner;
         //! The size of the block we represent.
-        size_t m_size;
+        std::size_t m_size;
     };
 
     /**
@@ -126,14 +119,11 @@ protected:
     */
     NL m_busylist;
     //! The minimal size of hunks to request via ::operator new().
-    size_t m_hunk;
+    std::size_t m_hunk;
     //! The amount of heap space currently allocated.
-    size_t m_used;
+    std::size_t m_used;
 
-private:
-    //! Disallowed.
-    CArena (const CArena& rhs);
-    CArena& operator= (const CArena& rhs);
+    std::mutex carena_mutex;
 };
 
 }

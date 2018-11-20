@@ -50,7 +50,7 @@ public:
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
     //!  The destructor.
-    virtual ~IArrayBox () = default;
+    ~IArrayBox () = default;
 
     IArrayBox (IArrayBox&& rhs) noexcept = default;
 

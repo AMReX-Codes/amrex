@@ -27,7 +27,7 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final;
+    virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override;
 
     virtual bool needsUpdate () const override {
         return MLLinOp::needsUpdate();
@@ -123,30 +123,30 @@ protected:
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const override;
     virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const final;
+                         bool skip_fillboundary=false) const final override;
 
     virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) final;
+                                   const MultiFab* crse_bcdata=nullptr) final override;
 
     virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final;
+                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) final override;
 
     // The assumption is crse_sol's boundary has been filled, but not fine_sol.
     virtual void reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab&,
-                         MultiFab&, MultiFab& fine_sol, const MultiFab&) const final;
+                         MultiFab&, MultiFab& fine_sol, const MultiFab&) const final override;
     virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const final;
+                           MultiFab& sol, Location loc) const final override;
     virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                            MultiFab& sol, Location loc) const override;
 
-    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final;
-    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final;
+    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override;
+    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const final override;
+    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) final override;
 
     virtual void prepareForSolve () override;
 
-    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
+    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final override;
 
     virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const = 0;
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh, int redblack) const = 0;

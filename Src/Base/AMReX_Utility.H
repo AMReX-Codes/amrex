@@ -36,6 +36,11 @@ namespace amrex
     //! Splits "instr" into separate pieces based on "separators".
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
+
+    //! Converts all characters of the string into lower or uppercase based on std::locale 
+    std::string toLower (std::string s);
+    std::string toUpper (std::string s);
+
     //! Returns rootNNNN where NNNN == num.
     std::string Concatenate (const std::string& root,
                              int                num,
@@ -312,6 +317,20 @@ namespace amrex
                                                std::chrono::high_resolution_clock,
                                                std::chrono::steady_clock>::type;
     double second ();
+
+  template<class T> 
+  AMREX_GPU_HOST_DEVICE
+  AMREX_INLINE const T& min (const T& a, const T& b)
+  {
+    return (b < a) ? b : a;
+  }
+
+  template<class T>
+  AMREX_GPU_HOST_DEVICE
+  AMREX_INLINE const T& max (const T& a, const T& b)
+  {
+    return (a < b) ? b : a;
+  }
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
@@ -408,7 +427,6 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
-
 
 extern "C" {
     void* amrex_malloc (std::size_t size);

@@ -1,3 +1,5 @@
+#if 0
+
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
 #include <AsyncMultiFabUtil.H>
@@ -8,19 +10,19 @@ using namespace amrex;
 using namespace perilla;
 
 void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse, 
-	const Geometry& fgeom, const Geometry& cgeom, int scomp, int ncomp, int rr, int f, int tid)
+	const Geometry& fgeom, const Geometry& cgeom, int scomp, int ncomp, int rr, int f)
 {
-    average_down_push(amr,S_fine,S_crse,crse_S_fine,RG_fine,RG_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector(),f,tid);
+    average_down_push(amr,S_fine,S_crse,crse_S_fine,RG_fine,RG_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector(),f);
 }
 
 void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, 
-const Geometry& fgeom, const Geometry& cgeom, int scomp, int ncomp, int rr, int f, int tid)
+	const Geometry& fgeom, const Geometry& cgeom, int scomp, int ncomp, int rr, int f)
 {
-    average_down_pull(S_fine,S_crse,RG_fine,RG_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector(),f,tid);
+    average_down_pull(S_fine,S_crse,RG_fine,RG_crse,fgeom,cgeom,scomp,ncomp,rr*IntVect::TheUnitVector(),f);
 }
 
 void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse, 
-	const Geometry& fgeom, const Geometry& cgeom, int scomp, int ncomp, const IntVect& ratio, int f, int tid)
+	const Geometry& fgeom, const Geometry& cgeom, int scomp, int ncomp, const IntVect& ratio, int f)
 {
     if (S_fine.is_nodal() || S_crse.is_nodal())
     {
@@ -28,7 +30,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
     }
 
 #if (BL_SPACEDIM == 3)
-    average_down_push(amr, S_fine, S_crse, crse_S_fine, RG_fine, RG_crse, scomp, ncomp, ratio, f, tid);
+    average_down_push(amr, S_fine, S_crse, crse_S_fine, RG_fine, RG_crse, scomp, ncomp, ratio, f);
     return;
 #else
 
@@ -53,7 +55,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
 }
 
 void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, const Geometry& fgeom, const Geometry& cgeom, 
-	int scomp, int ncomp, const IntVect& ratio, int f, int tid)
+	int scomp, int ncomp, const IntVect& ratio, int f)
 {
 
     if (S_fine.is_nodal() || S_crse.is_nodal())
@@ -62,7 +64,7 @@ void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine
     }
 
 #if (BL_SPACEDIM == 3)
-    average_down_pull(S_fine, S_crse, RG_fine, RG_crse, scomp, ncomp, ratio, f, tid);
+    average_down_pull(S_fine, S_crse, RG_fine, RG_crse, scomp, ncomp, ratio, f);
     return;
 #else
     assert(S_crse.nComp() == S_fine.nComp());
@@ -70,21 +72,21 @@ void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine
 #endif
 }
 
-
 // *************************************************************************************************************
 
 void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse,
-	int scomp, int ncomp, int rr, int f, int tid)
+	int scomp, int ncomp, int rr, int f)
 {
-    average_down_push(amr,S_fine,S_crse,crse_S_fine,RG_fine,RG_crse,scomp,ncomp,rr*IntVect::TheUnitVector(),f,tid);
+    average_down_push(amr,S_fine,S_crse,crse_S_fine,RG_fine,RG_crse,scomp,ncomp,rr*IntVect::TheUnitVector(),f);
 }
-void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, int scomp, int ncomp, int rr, int f, int tid)
+
+void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, int scomp, int ncomp, int rr, int f)
 {
-    average_down_pull(S_fine,S_crse,RG_fine,RG_crse,scomp,ncomp,rr*IntVect::TheUnitVector(),f,tid);
+    average_down_pull(S_fine,S_crse,RG_fine,RG_crse,scomp,ncomp,rr*IntVect::TheUnitVector(),f);
 }
 
 void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse,
-	int scomp, int ncomp, const IntVect& ratio, int f, int tid)
+	int scomp, int ncomp, const IntVect& ratio, int f)
 {
     assert(S_crse.nComp() == S_fine.nComp());
 
@@ -108,39 +110,10 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
 }
 
 void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, 
-	int scomp, int ncomp, const IntVect& ratio, int f, int tid)
+	int scomp, int ncomp, const IntVect& ratio, int f)
 {
     assert(S_crse.nComp() == S_fine.nComp());
     Perilla::multifabCopyPull(RG_crse, RG_fine, &S_crse, &S_fine, f, scomp, 0, ncomp, 0, 0, false);
 }
 
-// *************************************************************************************************************
-
-#if 0
-// Average fine face-based MultiFab onto crse fine-centered MultiFab.
-// This routine assumes that the crse BoxArray is a coarsened version of the fine BoxArray.
-void average_down_faces (PArray<MultiFab>& fine, PArray<MultiFab>& crse, IntVect& ratio)
-{
-    BL_ASSERT(crse.size()  == BL_SPACEDIM);
-    BL_ASSERT(fine.size()  == BL_SPACEDIM);
-    BL_ASSERT(crse[0].nComp() == fine[0].nComp());
-
-    int ncomp = crse[0].nComp();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (int n=0; n<BL_SPACEDIM; ++n) {
-	for (MFIter mfi(crse[n],true); mfi.isValid(); ++mfi)
-	{
-	    const Box& tbx = mfi.tilebox();
-
-	    BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-		(tbx.loVect(),tbx.hiVect(),
-		 BL_TO_FORTRAN(fine[n][mfi]),
-		 BL_TO_FORTRAN(crse[n][mfi]),
-		 ratio.getVect(),n,ncomp);
-	}
-    }
-}
 #endif

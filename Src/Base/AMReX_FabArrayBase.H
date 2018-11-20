@@ -5,16 +5,13 @@
 #include <omp.h>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <AMReX_BLPgas.H>
-#endif
-
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
 
 namespace amrex {
 
@@ -26,6 +23,7 @@ template <typename FAB> class FabFactory;
 class AmrTask;
 #ifdef USE_PERILLA
 class Perilla;
+class RegionGraph;
 #endif
 
 class FabArrayBase
@@ -35,6 +33,7 @@ class FabArrayBase
     friend class AmrTask;
 #ifdef USE_PERILLA
     friend class Perilla;
+    friend class RegionGraph;
 #endif
 
 public:
@@ -275,6 +274,13 @@ public:
     //
     static int MaxComp;
     //
+    // Whether to use CUDA-aware MPI.
+    // If true, MPI buffers will be staged on the GPU and sent
+    // directly from there; if false, the MPI staging buffers
+    // will be on the host.
+    //
+    static int use_cuda_aware_mpi;
+    //
     // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     //
     // Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.
@@ -287,8 +293,6 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
-    bool IsInitialized() const;
-    void SetInitialized(bool binit);
     //
     // To maximize thread efficiency we now can decompose things like
     // intersections among boxes into smaller tiles. This sets
@@ -396,14 +400,6 @@ public:
                                    Vector<char*>&       send_data,
                                    Vector<MPI_Status>&  stats);
 
-#ifdef BL_USE_UPCXX
-    //! Block until all send requests complete
-    static void WaitForAsyncSends_PGAS (int                 N_snds,
-                                        Vector<char*>&       send_data,
-                                        upcxx::event*       send_event,
-                                        volatile int*       send_counter);
-#endif
-
 protected:
 
     void clear ();
@@ -496,6 +492,9 @@ protected:
     //
     // parallel copy or add
     //
+#ifdef AMREX_USE_CUDA
+public:
+#endif
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
@@ -539,6 +538,9 @@ protected:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
+#ifdef AMREX_USE_CUDA
+protected:
+#endif
     //
     typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
     typedef CPCache::iterator CPCacheIter;
@@ -603,9 +605,12 @@ protected:
 			      const Vector<int>& recv_size,
 			      MPI_Datatype datatype, int tag);
 #endif
+
 };
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
+
+Arena* The_FA_Arena ();
 
 }
 

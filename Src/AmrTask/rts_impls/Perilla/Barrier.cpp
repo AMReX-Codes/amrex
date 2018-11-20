@@ -1,3 +1,4 @@
+#if 0
 #include <Barrier.H>
 #include <stdio.h>
 #include <limits.h>
@@ -10,6 +11,7 @@ Barrier::Barrier()
   maxThreads=INT_MAX;
   condition= PTHREAD_COND_INITIALIZER;
   condition_mutex= PTHREAD_MUTEX_INITIALIZER;
+  globalSense = false;
 }
 
 Barrier::Barrier(int numthreads)
@@ -19,6 +21,7 @@ Barrier::Barrier(int numthreads)
   maxThreads= numthreads;
   condition= PTHREAD_COND_INITIALIZER;
   condition_mutex= PTHREAD_MUTEX_INITIALIZER;
+  globalSense = false;
 }
 
 void Barrier::init(int numthreads)
@@ -28,11 +31,15 @@ void Barrier::init(int numthreads)
   maxThreads= numthreads;
   condition= PTHREAD_COND_INITIALIZER;
   condition_mutex= PTHREAD_MUTEX_INITIALIZER;
+  globalSense = false;
 }
 
 void Barrier::sync() //sync all threads associated with this barrier
 {
   assert(maxThreads<INT_MAX);
+  bool localSense;
+  localSense = globalSense;
+  localSense =  !localSense;
 
   pthread_mutex_lock(&condition_mutex);
   counter--;
@@ -40,25 +47,36 @@ void Barrier::sync() //sync all threads associated with this barrier
   if(counter == 0)
   {
       counter = maxThreads;
+      globalSense = localSense;
       pthread_cond_broadcast(&condition);
   } else {
+      //while(globalSense != localSense){pthread_cond_wait(&condition, &condition_mutex);} //keep sleeping until signaled
       pthread_cond_wait(&condition, &condition_mutex);
   }
   pthread_mutex_unlock(&condition_mutex);
 }
 
-void Barrier::sync(int numthreads) //sync a subset of threads
+//sync a subset of threads (note: each thread cannot belong to more than 1 synchronization subset)
+void Barrier::sync(int numthreads) 
 {
   assert(numthreads<=maxThreads);
+  bool localSense;
+  localSense = globalSense;
+  localSense =  !localSense;
+
   pthread_mutex_lock(&condition_mutex);
   counter--;
 
   if(counter == (maxThreads-numthreads))
   {
       counter = maxThreads;
+      globalSense = localSense;
       pthread_cond_broadcast(&condition);
   } else {
+      //while(globalSense != localSense){pthread_cond_wait(&condition, &condition_mutex);} //keep sleeping until signaled
       pthread_cond_wait(&condition, &condition_mutex);
   }
   pthread_mutex_unlock(&condition_mutex);
 }
+
+#endif

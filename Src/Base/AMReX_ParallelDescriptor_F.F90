@@ -5,24 +5,28 @@ module amrex_paralleldescriptor_module
   implicit none
 
   interface
-     integer(c_int) function amrex_fi_pd_myproc () bind(c)
+     function amrex_fi_pd_myproc () bind(c)
        import
        implicit none
+       integer(c_int) :: amrex_fi_pd_myproc
      end function amrex_fi_pd_myproc
 
-     integer(c_int) function amrex_fi_pd_nprocs () bind(c)
+     function amrex_fi_pd_nprocs () bind(c)
        import
        implicit none
+       integer(c_int) :: amrex_fi_pd_nprocs
      end function amrex_fi_pd_nprocs
      
-     integer(c_int) function amrex_fi_pd_ioprocessor () bind(c)
+     function amrex_fi_pd_ioprocessor () bind(c)
        import
        implicit none
+       integer(c_int) :: amrex_fi_pd_ioprocessor
      end function amrex_fi_pd_ioprocessor
 
-     integer(c_int) function amrex_fi_pd_ioprocessor_number () bind(c)
+     function amrex_fi_pd_ioprocessor_number () bind(c)
        import
        implicit none
+       integer(c_int) amrex_fi_pd_ioprocessor_number
      end function amrex_fi_pd_ioprocessor_number
 
      subroutine amrex_fi_pd_bcast_r (x, n, root) bind(c)
@@ -32,9 +36,10 @@ module amrex_paralleldescriptor_module
        integer(c_int), intent(in), value :: n, root
      end subroutine amrex_fi_pd_bcast_r
 
-     real(amrex_real) function amrex_fi_pd_wtime () bind(c)
+     function amrex_fi_pd_wtime () bind(c)
        import
        implicit none
+       real(amrex_real) :: amrex_fi_pd_wtime
      end function amrex_fi_pd_wtime
   end interface
 

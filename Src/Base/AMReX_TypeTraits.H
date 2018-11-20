@@ -3,6 +3,13 @@
 
 #include <type_traits>
 
+// workaround missing "is_trivially_copyable" in g++ < 5.0
+#if __GNUG__ && __GNUC__ < 5
+#define AMREX_IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
+#else
+#define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable<T>::value
+#endif
+
 namespace amrex
 {
     template <class T> class BaseFab;
@@ -24,6 +31,9 @@ namespace amrex
                              std::is_base_of<FabArray<typename D::FABType::value_type>,
                                              D>::value>::type>
         : std::true_type {};
+
+    template <bool B, class T = void>
+    using EnableIf_t = typename std::enable_if<B,T>::type;
 }
 
 #endif

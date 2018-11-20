@@ -5,6 +5,9 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 
+#include <AMReX_BArena.H>
+#include <AMReX_CArena.H>
+
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
@@ -20,6 +23,20 @@ namespace amrex {
 //
 bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
+int     FabArrayBase::use_cuda_aware_mpi;
+
+#if defined(AMREX_USE_GPU) && defined(AMREX_USE_GPU_PRAGMA)
+
+#if AMREX_SPACEDIM == 1
+IntVect FabArrayBase::mfiter_tile_size(1024000);
+#elif AMREX_SPACEDIM == 2
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
+#else
+IntVect FabArrayBase::mfiter_tile_size(1024000,1024000,1024000);
+#endif
+
+#else
+
 #if AMREX_SPACEDIM == 1
 IntVect FabArrayBase::mfiter_tile_size(1024000);
 #elif AMREX_SPACEDIM == 2
@@ -27,8 +44,16 @@ IntVect FabArrayBase::mfiter_tile_size(1024000,1024000);
 #else
 IntVect FabArrayBase::mfiter_tile_size(1024000,8,8);
 #endif
+
+#endif
+
+#ifdef AMREX_USE_GPU
+IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
+IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 1024000, 1024000));
+#else
 IntVect FabArrayBase::comm_tile_size(AMREX_D_DECL(1024000, 8, 8));
 IntVect FabArrayBase::mfghostiter_tile_size(AMREX_D_DECL(1024000, 8, 8));
+#endif
 
 FabArrayBase::TACache              FabArrayBase::m_TheTileArrayCache;
 FabArrayBase::FBCache              FabArrayBase::m_TheFBCache;
@@ -48,20 +73,8 @@ FabArrayBase::FabArrayStats        FabArrayBase::m_FA_stats;
 
 namespace
 {
+    Arena* the_fa_arena = nullptr;
     bool initialized = false;
-}
-
-
-bool
-FabArrayBase::IsInitialized () const
-{
-  return initialized;
-}
-
-void
-FabArrayBase::SetInitialized (bool binit)
-{
-  initialized = binit;
 }
 
 void
@@ -101,6 +114,18 @@ FabArrayBase::Initialize ()
     if (MaxComp < 1)
         MaxComp = 1;
 
+#ifdef AMREX_USE_CUDA
+    FabArrayBase::use_cuda_aware_mpi = 1;
+    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
+#else
+    FabArrayBase::use_cuda_aware_mpi = 0;
+#endif
+    if (FabArrayBase::use_cuda_aware_mpi) {
+        the_fa_arena = The_Device_Arena();
+    } else {
+        the_fa_arena = new BArena;
+    }
+
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
 
 #ifdef BL_MEM_PROFILING
@@ -125,6 +150,12 @@ FabArrayBase::Initialize ()
 			 return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
 		     }));
 #endif
+}
+
+Arena*
+The_FA_Arena ()
+{
+    return the_fa_arena;
 }
 
 FabArrayBase::FabArrayBase ()
@@ -355,11 +386,14 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	BaseFab<int> localtouch, remotetouch;
 	bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
 	if (omp_get_max_threads() > 1) {
 	    check_local = true;
 	    check_remote = true;
 	}
+#elif defined(AMREX_USE_GPU)
+        check_local = true;
+        check_remote = true;
 #endif    
 	
 	if (ParallelDescriptor::TeamSize() > 1) {
@@ -698,11 +732,14 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
     }
+#elif defined(AMREX_USE_GPU)
+    check_local = true;
+    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
@@ -920,11 +957,14 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_max_threads() > 1) {
 	check_local = true;
 	check_remote = true;
     }
+#elif defined(AMREX_USE_GPU)
+    check_local = true;
+    check_remote = true;
 #endif
 
     if (ParallelDescriptor::TeamSize() > 1) {
@@ -1450,6 +1490,11 @@ FabArrayBase::Finalize ()
     
     m_FA_stats = FabArrayStats();
 
+    if (!FabArrayBase::use_cuda_aware_mpi) {
+        delete the_fa_arena;
+    }
+    the_fa_arena = nullptr;
+
     initialized = false;
 }
 
@@ -1696,40 +1741,10 @@ FabArrayBase::WaitForAsyncSends (int                 N_snds,
     BL_ASSERT(send_reqs.size() == N_snds);
     BL_ASSERT(send_data.size() == N_snds);
 
-    Vector<int> indx;
-
     ParallelDescriptor::Waitall(send_reqs, stats);
-
-    for (int i = 0; i < N_snds; i++) {
-        if (send_data[i]) {
-            amrex::The_Arena()->free(send_data[i]);
-        }
-    }
 #endif /*BL_USE_MPI*/
 }
 
-#ifdef BL_USE_UPCXX
-void
-FabArrayBase::WaitForAsyncSends_PGAS (int                 N_snds,
-                                      Vector<char*>&       send_data,
-                                      upcxx::event*       send_event,
-                                      volatile int*       send_counter)
-{
-    BL_ASSERT(N_snds > 0);
-    BL_ASSERT(send_data.size() == N_snds);
-    int N_null = std::count(send_data.begin(), send_data.begin()+N_snds, nullptr);
-    // Need to make sure all sends have been started
-    while ((*send_counter) < N_snds-N_null) {
-        upcxx::advance();
-    }
-    send_event->wait(); // wait for the sends
-    for (int i = 0; i < N_snds; i++) {
-        if (send_data[i]) {
-            BLPgas::free(send_data[i]);
-        }
-    }
-}
-#endif
 
 #ifdef BL_USE_MPI
 bool

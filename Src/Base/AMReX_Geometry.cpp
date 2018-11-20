@@ -172,9 +172,9 @@ void
 Geometry::GetVolume (MultiFab&       vol) const
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(vol,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(vol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	CoordSys::SetVolume(vol[mfi], mfi.growntilebox());
     }
@@ -199,9 +199,9 @@ Geometry::GetDLogA (MultiFab&       dloga,
 {
     dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(dloga,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dloga,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	CoordSys::SetDLogA(dloga[mfi], mfi.growntilebox(), dir);
     }
@@ -227,9 +227,9 @@ Geometry::GetFaceArea (MultiFab&       area,
                        int             dir) const
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(area,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(area,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	CoordSys::SetFaceArea(area[mfi],mfi.growntilebox(),dir);
     }
@@ -321,6 +321,30 @@ Geometry::periodicShift (const Box&      target,
         if (ri != 0 && is_periodic[0])
             locsrc.shift(0,-ri*domain.length(0));
     }
+}
+
+Box
+Geometry::growNonPeriodicDomain (int ngrow) const
+{
+    Box b = Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (!Geometry::isPeriodic(idim)) {
+            b.grow(idim,ngrow);
+        }
+    }
+    return b;
+}
+
+Box
+Geometry::growPeriodicDomain (int ngrow) const
+{
+    Box b = Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            b.grow(idim,ngrow);
+        }
+    }
+    return b;
 }
 
 }

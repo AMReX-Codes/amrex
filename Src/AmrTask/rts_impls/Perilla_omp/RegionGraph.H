@@ -162,16 +162,16 @@ namespace amrex{
 	    void regionGraphReset(int numfabs);
 	    void regionGraphMinReset(void);
 	    void enableAllRegions();
-	    void disableRegion(int r, int tg, int ntid);
+	    void disableRegion(int r, int tg);
 	    void finalizeRegion(int r);
-	    void regionComputed(int r, int tg, int ntid);
-	    bool isFireableRegion(int r, bool patchFilled=false);
+	    void regionComputed(int r);
+	    bool isFireableRegion(int r);
 	    int  getAnyFireableRegion();
 	    int  getPulledFireableRegion();
-	    int  getFireableRegion(bool patchFilled=false, bool isSingleThread=false);
+	    int  getFireableRegion(bool isSingleThread=false);
 	    void setFireableRegion(int r);
-	    void graphTeardown(int tg);
-	    void workerTeardown(int tg);
+	    void graphTeardown();
+	    void workerTeardown();
             int size(){return task.size();}
 
 	    int getRegion(){

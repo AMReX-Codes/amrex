@@ -26,8 +26,6 @@ void
 MyTest::solve ()
 {
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(factory[ilev]->getVolFrac(), "vfrc-"+std::to_string(ilev));
-
         const MultiFab& vfrc = factory[ilev]->getVolFrac();
         MultiFab v(vfrc.boxArray(), vfrc.DistributionMap(), 1, 0,
                    MFInfo(), *factory[ilev]);
@@ -85,10 +83,24 @@ MyTest::solve ()
     const Real tol_rel = reltol;
     const Real tol_abs = 0.0;
     mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+}
 
+void
+MyTest::writePlotfile ()
+{
+    Vector<MultiFab> plotmf(max_level+1);
     for (int ilev = 0; ilev <= max_level; ++ilev) {
-        amrex::VisMF::Write(phi[0], "phi-"+std::to_string(ilev));
+        const MultiFab& vfrc = factory[ilev]->getVolFrac();
+        plotmf[ilev].define(grids[ilev],dmap[ilev],2,0);
+        MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
+        MultiFab::Copy(plotmf[ilev], vfrc, 0, 1, 1, 0);    
     }
+    WriteMultiLevelPlotfile(plot_file_name, max_level+1,
+                            amrex::GetVecOfConstPtrs(plotmf),
+                            {"phi","vfrac"},
+                            geom, 0.0, Vector<int>(max_level+1,0),
+                            Vector<IntVect>(max_level,IntVect{2}));
+                            
 }
 
 void
@@ -100,6 +112,8 @@ MyTest::readParameters ()
     pp.query("max_grid_size", max_grid_size);
     pp.query("is_periodic", is_periodic);
     pp.query("eb_is_dirichlet", eb_is_dirichlet);
+
+    pp.query("plot_file", plot_file_name);
 
     scalars.resize(2);
     if (is_periodic) {

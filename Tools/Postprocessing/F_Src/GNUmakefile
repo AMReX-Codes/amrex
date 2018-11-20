@@ -85,20 +85,20 @@ VPATH_LOCATIONS += $(Fmlocs)
 # list of directories to put in the Fortran include path
 FINCLUDE_LOCATIONS += $(Fmincs)
 
-#programs += faverage
+programs += faverage
 programs += faverplot
-#programs += plt_compare_diff_grids
-#programs += fcompare
-#programs += fextract
-#programs += fextrema
+programs += plt_compare_diff_grids
+programs += fcompare
+programs += fextract
+programs += fextrema
 #programs += fIDLdump
-#programs += fsnapshot2d
-#programs += fsnapshot3d
-#programs += ftime
-#programs += fintgvar2d
-#programs += fdumpdata2d
-#programs += fcoarsen
-#programs += fwritecontents2d
+programs += fsnapshot2d
+programs += fsnapshot3d
+programs += ftime
+programs += fintgvar2d
+programs += fdumpdata2d
+programs += fcoarsen
+programs += fwritecontents2d
 
 ifeq ($(DO_ALL), TRUE)
   ptmp := $(wildcard f*.f90)

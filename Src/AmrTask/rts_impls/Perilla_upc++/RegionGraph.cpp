@@ -427,6 +427,41 @@ int RegionGraph::getAnyFireableRegion()
 }
 
 
+int RegionGraph::getAnyFireableRegion(RegionGraph& depGraph)
+{
+    int nt;
+    int tg;
+    int r;
+    bool fireable;
+
+    int myProc = amrex::ParallelDescriptor::MyProc();
+
+    tg = perilla::wid();
+    nt = perilla::wtid();
+    if(nt == perilla::NUM_COMM_THREADS && worker[tg]->fireableRegionQueue->queueSize()==0)
+    {
+        fireable = false;
+        r = worker[tg]->unfireableRegionQueue->removeRegion(true);
+        while(!fireable)
+        {
+            fireable = isFireableRegion(r);
+            fireable &= depGraph.isFireableRegion(r);
+            if(!fireable)
+            {
+                worker[tg]->unfireableRegionQueue->addRegion(r,true);
+                r = worker[tg]->unfireableRegionQueue->removeRegion(true);
+            }
+            else
+                worker[tg]->fireableRegionQueue->addRegion(r,true);
+        }
+    }
+    worker[tg]->barr->sync(); // Barrier to synchronize team threads
+    r = worker[tg]->fireableRegionQueue->getFrontRegion(true);
+    return r;
+}
+
+
+
 int RegionGraph::getPulledFireableRegion()
 {
     bool fireable;
@@ -697,14 +732,20 @@ RegionGraph::~RegionGraph()
     lMap.clear();
     sMap.clear();
     rMap.clear();
-    //fabTiles.clear();
-    //if(sCopyMapHead != 0)
-    //  delete sCopyMapHead;
-    //if(rCopyMapHead != 0)
-    //  delete rCopyMapHead;
-    //delete[] worker;
-    //delete[] task;
+
+//    for(int i=0; i<task.size(); i++) delete task[i];
+    for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++) delete worker[tg];
+    for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
+    for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
+
+    fabTiles.clear();
+    fabTiles_gtbx.clear();
+    if(sCopyMapHead != 0)
+      delete sCopyMapHead;
+    if(rCopyMapHead != 0)
+      delete rCopyMapHead;
     worker.clear();
     task.clear();
     delete[] okToReset;
 }
+

@@ -5,6 +5,7 @@
 #include <AMReX_EB2_IF_Ellipsoid.H>
 #include <AMReX_EB2_IF_Plane.H>
 #include <AMReX_EB2_IF_Sphere.H>
+#include <AMReX_EB2_IF_Torus.H>
 
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
@@ -33,7 +34,8 @@ void Finalize ()
 }
 
 void
-Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_level)
+Build (const Geometry& geom, int required_coarsening_level,
+       int max_coarsening_level, int ngrow)
 {
     ParmParse pp("eb2");
     std::string geom_type;
@@ -43,7 +45,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
     {
         EB2::AllRegularIF rif;
         EB2::GeometryShop<EB2::AllRegularIF> gshop(rif);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "box")
     {
@@ -52,14 +55,15 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
 
         RealArray hi;
         pp.get("box_hi", hi);
-        
+
         bool has_fluid_inside;
         pp.get("box_has_fluid_inside", has_fluid_inside);
-        
+
         EB2::BoxIF bf(lo, hi, has_fluid_inside);
 
         EB2::GeometryShop<EB2::BoxIF> gshop(bf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "cylinder")
     {
@@ -69,12 +73,12 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         Real radius;
         pp.get("cylinder_radius", radius);
 
-        Real height;
-        pp.get("cylinder_height", height);
+        Real height = -1.0;
+        pp.query("cylinder_height", height);
 
         int direction;
         pp.get("cylinder_direction", direction);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(direction >=0 && direction <= AMREX_SPACEDIM,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(direction >=0 && direction < AMREX_SPACEDIM,
                                          "eb2.cylinder_direction is invalid");
 
         bool has_fluid_inside;
@@ -83,7 +87,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::CylinderIF cf(radius, height, direction, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::CylinderIF> gshop(cf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "plane")
     {
@@ -96,7 +101,8 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::PlaneIF pf(point, normal);
 
         EB2::GeometryShop<EB2::PlaneIF> gshop(pf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else if (geom_type == "sphere")
     {
@@ -112,7 +118,27 @@ Build (const Geometry& geom, int required_coarsening_level, int max_coarsening_l
         EB2::SphereIF sf(radius, center, has_fluid_inside);
 
         EB2::GeometryShop<EB2::SphereIF> gshop(sf);
-        EB2::Build(gshop, geom, required_coarsening_level, max_coarsening_level);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
+    }
+    else if (geom_type == "torus")
+    {
+        RealArray center;
+        pp.get("torus_center", center);
+
+        Real small_radius;
+        pp.get("torus_small_radius", small_radius);
+
+        Real large_radius;
+        pp.get("torus_large_radius", large_radius);
+
+        bool has_fluid_inside = true;
+
+        EB2::TorusIF sf(large_radius, small_radius, center, has_fluid_inside);
+
+        EB2::GeometryShop<EB2::TorusIF> gshop(sf);
+        EB2::Build(gshop, geom, required_coarsening_level,
+                   max_coarsening_level, ngrow);
     }
     else
     {

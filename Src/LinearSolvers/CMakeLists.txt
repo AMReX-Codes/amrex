@@ -18,6 +18,9 @@ add_sources ( MLMG/AMReX_MLCellLinOp.cpp )
 add_sources ( MLMG/AMReX_MLNodeLinOp.H )
 add_sources ( MLMG/AMReX_MLNodeLinOp.cpp )
 
+add_sources ( MLMG/AMReX_MLCellABecLap.H )
+add_sources ( MLMG/AMReX_MLCellABecLap.cpp )
+
 add_sources ( MLMG/AMReX_MLCGSolver.H )
 add_sources ( MLMG/AMReX_MLCGSolver.cpp )
 

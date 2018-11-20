@@ -10,13 +10,15 @@
 
 namespace amrex {
 
+class MLMG;
+
 class MLCGSolver
 {
 public:
 
     enum struct Type { BiCGStab, CG };
 
-    MLCGSolver (MLLinOp& _lp, Type _typ = Type::BiCGStab);
+    MLCGSolver (MLMG* a_mlmg, MLLinOp& _lp, Type _typ = Type::BiCGStab);
     ~MLCGSolver ();
 
     MLCGSolver (const MLCGSolver& rhs) = delete;
@@ -44,6 +46,7 @@ public:
 
 private:
 
+    MLMG* mlmg;
     MLLinOp& Lp;
     Type solver_type;
     const int amrlev;

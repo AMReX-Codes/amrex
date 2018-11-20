@@ -141,6 +141,28 @@ ifeq ($(USE_MPI3),TRUE)
   USE_MPI := TRUE
 endif
 
+
+ifdef USE_CUDA
+  USE_CUDA := $(strip $(USE_CUDA))
+else
+  USE_CUDA = FALSE
+endif
+
+ifndef NO_DEVICE_LAUNCH
+  NO_DEVICE_LAUNCH = FALSE
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  # Set the default CUDA architecture version.
+  CUDA_ARCH ?= 60
+
+  # Maximum number of CUDA threads per block.
+  CUDA_MAX_THREADS ?= 256
+
+  # Limit the maximum number of registers available.
+  CUDA_MAXREGCOUNT ?= 255
+endif
+
 ifdef DIMENSION_AGNOSTIC
   DIMENSION_AGNOSTIC := $(strip $(DIMENSION_AGNOSTIC))
 else
@@ -153,11 +175,36 @@ else
   USE_EB := FALSE
 endif
 
+ifdef USE_SENSEI_INSITU
+  USE_SENSEI_INSITU := $(strip $(USE_SENSEI_INSITU))
+else
+  USE_SENSEI_INSITU := FALSE
+endif
+
 ifdef EBASE
   EBASE := $(strip $(EBASE))
 else
   EBASE := main
 endif
+
+ifdef USE_GPU_PRAGMA
+  USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
+else
+  USE_GPU_PRAGMA := FALSE
+endif
+
+ifneq ($(USE_CUDA),TRUE)
+  USE_GPU_PRAGMA = FALSE
+endif
+
+ifdef GPU_ERROR_CHECK
+  GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
+else
+  GPU_ERROR_CHECK := TRUE
+endif 
+
+SKIP_LINKING ?= FALSE
+USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
 DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
@@ -178,38 +225,66 @@ RANLIB          = ranlib
 EXE_OUTPUT_OPTION      = -o $(objEXETempDir)/$*.o
 FORT_EXE_OUTPUT_OPTION = -o $(objEXETempDir)/$*.o
 
+ifeq ($(USE_CUDA),TRUE)
+  ifdef NVCC_HOST_COMP
+    AMREX_CCOMP = $(NVCC_HOST_COMP)
+  else
+    AMREX_CCOMP = gnu
+  endif
+endif
 
 lowercase_comp = $(shell echo $(COMP) | tr A-Z a-z)
 
 ifeq ($(lowercase_comp),$(filter $(lowercase_comp),gcc gnu g++))
   lowercase_comp = gnu
+  AMREX_FCOMP ?= gnu
+  AMREX_CCOMP ?= gnu
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/gnu.mak
 else ifeq ($(lowercase_comp),intel)
+  AMREX_FCOMP ?= intel
+  AMREX_CCOMP ?= intel
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/intel.mak
 else ifeq ($(lowercase_comp),cray)
+  AMREX_FCOMP ?= cray
+  AMREX_CCOMP ?= cray
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/cray.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/cray.mak
 else ifeq ($(lowercase_comp),pgi)
+  AMREX_FCOMP ?= pgi
+  AMREX_CCOMP ?= pgi
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/pgi.mak
 else ifeq ($(lowercase_comp),ibm)
+  AMREX_FCOMP ?= ibm
+  AMREX_CCOMP ?= ibm
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/ibm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm clang clang++))
   lowercase_comp = llvm
+  AMREX_FCOMP ?= gnu
+  AMREX_CCOMP ?= clang
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm.mak
 else ifeq ($(lowercase_comp),$(filter $(lowercase_comp),llvm-flang flang))
   lowercase_comp = llvm-flang
+  AMREX_FCOMP ?= flang
+  AMREX_CCOMP ?= clang
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/llvm-flang.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/llvm-flang.mak
 else ifeq ($(lowercase_comp),nag)
+  AMREX_FCOMP ?= nag
+  AMREX_CCOMP ?= gnu
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak...)
   include        $(AMREX_HOME)/Tools/GNUMake/comps/nag.mak
+else ifeq ($(lowercase_comp),nec)
+  AMREX_FCOMP ?= nec
+  AMREX_CCOMP ?= nec
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak...)
+  include        $(AMREX_HOME)/Tools/GNUMake/comps/nec.mak
 else
-  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, and nag)
+  $(error Unknown compiler $(COMP). Supported compilers are gnu, intel, cray, pgi, ibm, llvm, nag, and nec)
 endif
 
 ifeq ($(MAKECMDGOALS),check_fortran)
@@ -339,8 +414,94 @@ else
     OMPSuffix	:=
 endif
 
-DEFINES += -DAMREX_LAUNCH=""
-DEFINES += -DAMREX_DEVICE=""
+USE_GPU := FALSE
+
+ifeq ($(USE_ACC),TRUE)
+
+  USE_GPU := TRUE
+  ACCSuffix := .ACC
+  DEFINES += -DAMREX_USE_ACC
+
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+
+    USE_GPU := TRUE
+
+    # The CUDA implementation is not currently threadsafe.
+    # Throw an error if the user tries to build with OpenMP and CUDA.
+
+    ifeq ($(USE_OMP),TRUE)
+        $(error The CUDA implementation is not thread-safe; do not try to use OpenMP)
+    endif
+
+    ifeq ($(lowercase_comp),pgi)
+        LINK_WITH_FORTRAN_COMPILER=TRUE
+    else ifeq ($(lowercase_comp),ibm)
+        LINK_WITH_FORTRAN_COMPILER=TRUE
+    else ifeq ($(lowercase_comp),gnu)
+    else
+        $(error CUDA can only be used with COMP=pgi or ibm or gnu)
+    endif
+
+    include $(AMREX_HOME)/Tools/GNUMake/comps/nvcc.mak
+
+    ifeq ($(USE_MPI),TRUE)
+      # Make sure that the C/C++ MPI
+      # wrappers are calling nvcc to compile the code.
+      # Right now we handle OpenMPI/Spectrum MPI and MPICH.
+      # Other MPI implementations could be added later.
+
+      export OMPI_CC := nvcc
+      export OMPI_CXX := nvcc
+      export OMPI_F77 := $(FC)
+      export OMPI_FC  := $(F90)
+
+      export MPICH_CC  := nvcc
+      export MPICH_CXX := nvcc
+      export MPICH_F77 := $(FC)
+      export MPICH_FC  := $(F90)
+    endif
+
+    DEFINES += -DAMREX_USE_CUDA
+
+    ifeq ($(USE_GPU_PRAGMA),TRUE)
+        DEFINES += -DAMREX_USE_GPU_PRAGMA
+    endif
+
+    CUDASuffix := .CUDA
+
+    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+      DEFINES += -DAMREX_LAUNCH='attributes(global)'
+      DEFINES += -DAMREX_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE='attributes(device)'
+      DEFINES += -DAMREX_CUDA_FORT_HOST='attributes(host)'
+    else
+      DEFINES += -DAMREX_LAUNCH=""
+      DEFINES += -DAMREX_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+      DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+      DEFINES += -DAMREX_CUDA_FORT_HOST=""
+      DEFINES += -DAMREX_NO_DEVICE_LAUNCH
+    endif
+
+else
+    DEFINES += -DAMREX_LAUNCH=""
+    DEFINES += -DAMREX_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
+    DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
+    DEFINES += -DAMREX_CUDA_FORT_HOST=""
+
+    CUDASuffix :=
+endif
+
+ifeq ($(USE_GPU),TRUE)
+    DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS
+    ifeq ($(GPU_ERROR_CHECK),FALSE)
+        DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
+    endif
+endif
 
 ifeq ($(USE_SINGLE_PRECISION_PARTICLES), TRUE)
   DEFINES += -DBL_SINGLE_PRECISION_PARTICLES -DAMREX_SINGLE_PRECISION_PARTICLES
@@ -423,29 +584,32 @@ ifeq ($(AMREX_XSDK),TRUE)
    DEFINES += -DAMREX_XSDK
 endif
 
-includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
-fincludes	= $(includes)
-fmoddir         = $(objEXETempDir)
-
 CPPFLAGS	+= $(DEFINES)
 
 libraries	= $(LIBRARIES) $(XTRALIBS)
 
 LDFLAGS		+= -L. $(addprefix -L, $(LIBRARY_LOCATIONS))
 
-machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(USERSuffix)
-
-
+machineSuffix	= $(lowercase_comp)$(archSuffix)$(PrecisionSuffix)$(DebugSuffix)$(ProfSuffix)$(MProfSuffix)$(BTSuffix)$(MPISuffix)$(UPCXXSuffix)$(OMPSuffix)$(ACCSuffix)$(CUDASuffix)$(USERSuffix)
 
 optionsSuffix	= $(DIM)d.$(machineSuffix)
 
 executable	= $(addsuffix $(optionsSuffix).ex, $(EBASE))
 
 TmpBuildDir     = tmp_build_dir
+srcTempDir      = $(TmpBuildDir)/s/$(optionsSuffix).EXE
 depEXETempDir	= $(TmpBuildDir)/d/$(optionsSuffix).EXE
 objEXETempDir   = $(TmpBuildDir)/o/$(optionsSuffix).EXE
 f77EXETempDir	= $(TmpBuildDir)/f/$(optionsSuffix).EXE
 tmpEXETempDir	= $(TmpBuildDir)/t/$(optionsSuffix).EXE
+
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+  includes	= -I$(srcTempDir) -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+else
+  includes	= -I. $(addprefix -I, $(INCLUDE_LOCATIONS))
+endif
+fincludes	= $(includes)
+fmoddir         = $(objEXETempDir)
 
 amrexlib = $(objEXETempDir)/libamrex.a
 
@@ -509,6 +673,11 @@ ifeq ($(USE_UPCXX),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.upcxx
 endif
 
+ifeq ($(USE_SUNDIALS_3x4x),TRUE)
+  $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3...)
+  include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.sundials3
+endif
+
 ifeq ($(USE_CVODE),TRUE)
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode...)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.cvode
@@ -534,8 +703,86 @@ ifeq ($(USE_PETSC),TRUE)
   include        $(AMREX_HOME)/Tools/GNUMake/packages/Make.petsc
 endif
 
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+  $(into Loading $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+  include        $(AMREX_HOME)/Tools/GNUMake/tools/Make.sensei
+endif
+
 ifneq ("$(wildcard $(AMREX_HOME)/Tools/GNUMake/Make.local)","")
   $(info Loading $(AMREX_HOME)/Tools/GNUMake/Make.local...)
   include        $(AMREX_HOME)/Tools/GNUMake/Make.local
 endif
 
+ifeq ($(USE_CUDA),TRUE)
+
+    # Allow the user to specify the location of the CUDA toolkit.
+    # If they don't, check if it has been defined for one of the
+    # systems we know about.
+
+    MAKE_CUDA_PATH :=
+    ifneq ($(CUDA_PATH),)
+        MAKE_CUDA_PATH := $(CUDA_PATH)
+    else ifneq ($(SYSTEM_CUDA_PATH),)
+        MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
+    endif
+
+    ifneq ($(MAKE_CUDA_PATH),)
+        LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
+        INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
+
+        ifeq ($(PROFILE),TRUE)
+            LIBRARIES += -lnvToolsExt
+        endif
+
+        ifeq ($(TINY_PROFILE),TRUE)
+            LIBRARIES += -lnvToolsExt
+        endif
+    endif
+
+    # Bring in NVML support. This is not required,
+    # but is recommended if you do not have a solution
+    # for mapping MPI ranks to GPUs. Set the environment
+    # variable NVML_PATH to point us to the library,
+    # or set SYSTEM_NVML_PATH for your site in the build system.
+
+    MAKE_NVML_PATH :=
+
+    ifneq ($(NVML_PATH),)
+        MAKE_NVML_PATH := $(NVML_PATH)
+    else ifneq ($(SYSTEM_NVML_PATH),)
+        MAKE_NVML_PATH := $(SYSTEM_NVML_PATH)
+    endif
+
+    ifneq ($(MAKE_NVML_PATH),)
+
+       LIBRARIES += -lnvidia-ml
+       LIBRARY_LOCATIONS += $(MAKE_NVML_PATH)
+       DEFINES += -DAMREX_USE_NVML
+
+    endif
+
+    # Provide system configuration, if available.
+
+    ifdef GPUS_PER_SOCKET
+       DEFINES += -DAMREX_GPUS_PER_SOCKET=$(GPUS_PER_SOCKET)
+    endif
+
+    ifdef GPUS_PER_NODE
+       DEFINES += -DAMREX_GPUS_PER_NODE=$(GPUS_PER_NODE)
+    endif
+
+    # Set the CUDA threads define in case the user updated it.
+
+    DEFINES += -DAMREX_CUDA_MAX_THREADS=$(CUDA_MAX_THREADS)
+
+    ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+      LINKFLAGS = $(NVCC_FLAGS)
+      # we are using nvcc for linking
+      comm := ,
+      space :=
+      space +=
+      libraries := $(subst -Wl$(comm),-Xlinker=,$(libraries))
+      AMREX_LINKER = nvcc
+    endif
+
+endif

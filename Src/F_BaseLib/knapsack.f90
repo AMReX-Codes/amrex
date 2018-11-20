@@ -530,7 +530,7 @@ contains
       dm     =  get_dim(bxs(1))
       allocate(boxkeys(dm,size(bxs)))
       do i = 1, size(bxs)
-         boxkeys(:,i) = make_box_key(i)
+         boxkeys(:,i) = make_box_key(dm, i)
       end do
       mpower =  maxpower()
       pbxs   => bxs
@@ -541,9 +541,10 @@ contains
       nullify(pbxs)
     end subroutine close_sfc_module
 
-    function make_box_key(i) result(r)
-      integer :: r(dm)
+    function make_box_key(dm, i) result(r)
+      integer, intent(in) :: dm
       integer, intent(in) :: i
+      integer :: r(dm)
       r = lwb(bxs(i))
 !      r = (lwb(bxs(i)) + upb(bxs(i))) / 2
     end function make_box_key

@@ -46,6 +46,7 @@ private:
     int linop_maxorder = 3;
     int max_coarsening_level = 30;
     bool use_hypre = false;
+    bool use_petsc = false;
 
     int composite_solve = 0;
 

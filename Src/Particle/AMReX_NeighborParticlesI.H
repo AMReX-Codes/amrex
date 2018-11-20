@@ -321,7 +321,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
         PairIndex dst_index(grid, tile);
         const Vector<NeighborIndexMap>& map = local_map[dst_index];
         const int num_ghosts = map.size();
-        neighbors[dst_index].resize(num_ghosts * pdata_size);
+        neighbors[dst_index].resize(num_ghosts);
         local_neighbor_sizes[dst_index] = neighbors[dst_index].size();  // store this for later
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -331,7 +331,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
             BL_ASSERT(nim.src_index < tags.size());
-            tags[nim.src_index].dst_offset = i * pdata_size;
+            tags[nim.src_index].dst_offset = i;
             BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[dst_index].size());
         }
     }
@@ -428,7 +428,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 }
                 if (who == MyProc) {
                     PairIndex dst_index(tag.grid, tag.tile);
-                    Vector<char>& buffer = neighbors[dst_index];
+                    ParticleVector& buffer = neighbors[dst_index];
                     BL_ASSERT(tag.dst_offset < buffer.size());
                     std::memcpy(&buffer[tag.dst_offset], &p, pdata_size);
                 } else {
@@ -621,10 +621,10 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 
                 PairIndex dst_index(gid, tid);
                 size_t old_size = neighbors[dst_index].size();
-                size_t new_size = neighbors[dst_index].size() + np*pdata_size;
+                size_t new_size = neighbors[dst_index].size() + np;
                 neighbors[dst_index].resize(new_size);
                 
-                char* dst = &neighbors[dst_index][old_size];
+                char* dst = (char*) &neighbors[dst_index][old_size];
                 char* src = buffer;
 
                 for (int n = 0; n < np; ++n) {
@@ -664,7 +664,7 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        neighbor_list[index] = Vector<int>();
+        neighbor_list[index]; // = IntVector();
     }
 
 #ifdef _OPENMP
@@ -680,11 +680,15 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        Vector<int>& nl = neighbor_list[index];
+#ifdef AMREX_USE_CUDA
+        Cuda::HostVector<int> nl;
+#else
+        IntVector& nl = neighbor_list[index];
+#endif
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();
-        int Nn = neighbors[index].size() / pdata_size;
+        int Nn = neighbors[index].size();
         int N = Np + Nn;
 
         cells.resize(N);
@@ -743,10 +747,19 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
 
         if (sort) {
             for (unsigned i = 0; i < nl.size(); i += nl[i] +1) {
+#ifdef AMREX_USE_CUDA
+                thrust::sort(nl.begin() + i + 1,
+                             nl.begin() + nl[i] + i + 1);
+#else
                 std::sort(nl.begin() + i + 1,
                           nl.begin() + nl[i] + i + 1);
+#endif
             }
         }
+#ifdef AMREX_USE_CUDA
+        neighbor_list[index].resize(nl.size());
+        thrust::copy(nl.begin(), nl.end(), neighbor_list[index].begin());
+#endif
     }
     }
 }
@@ -772,7 +785,7 @@ buildNeighborListFort(int lev, bool sort) {
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();
-        int Nn = neighbors[index].size() / pdata_size;
+        int Nn = neighbors[index].size();
         int Ns = particles.dataShape().first;
         int N = Np + Nn;
 

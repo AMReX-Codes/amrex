@@ -2,6 +2,7 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 
@@ -22,71 +23,9 @@
 
 namespace amrex
 {
+
     typedef void (*PTR_TO_VOID_FUNC)(void);
-
-    std::string Version ();
-
-    void Initialize (MPI_Comm mpi_comm,
-                     std::ostream& a_osout = std::cout,
-                     std::ostream& a_oserr = std::cerr);
-
-    void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
-                     MPI_Comm mpi_comm = MPI_COMM_WORLD,
-                     const std::function<void()>& func_parm_parse = {},
-                     std::ostream& a_osout = std::cout,
-                     std::ostream& a_oserr = std::cerr);
-
-    void Finalize(bool finalize_parallel = true);
-    /**
-    * \brief We maintain a stack of functions that need to be called in Finalize().
-    * The functions are called in LIFO order.  The idea here is to allow
-    * classes to clean up any "global" state that they maintain when we're
-    * exiting from AMReX.
-    */
-    void ExecOnFinalize (PTR_TO_VOID_FUNC);
-    void ExecOnInitialize (PTR_TO_VOID_FUNC);
-
-    //! Print out message to cerr and exit via amrex::Abort().
-    void Error (const char * msg = 0);
-    void Error (const std::string& msg);
-
-    //! Print out warning message to cerr.
-    void Warning (const char * msg);
-    void Warning (const std::string& msg);
-
-    //! Print out message to cerr and exit via abort().
-    void Abort (const char * msg = 0);
-    void Abort (const std::string& msg);
-
-    /**
-    * \brief Prints assertion failed messages to cerr and exits
-    * via abort().  Intended for use by the BL_ASSERT() macro
-    * in <AMReX_BLassert.H>.
-    */
-    void Assert (const char* EX,
-                 const char* file,
-                 int         line,
-                 const char* msg = nullptr);
-    /**
-    * \brief Prints out an out-of-memory message and aborts.  It is
-    *         called by various BoxLib routines when a call to new fails.
-    *
-    *        Called as amrex::OutOfMemory(__FILE__, __LINE__);
-    */
-    void OutOfMemory (const char* file,
-                      int         line);
-
-    /**
-    * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
-    * to ensure that when writing the message to stderr, that no additional
-    * heap-based memory is allocated.
-    */
-    void write_to_stderr_without_buffering (const char* str);
-
-    std::ostream& OutStream ();
-    std::ostream& ErrorStream ();
-
-    int Verbose ();
+    typedef void (*ErrorHandler) (const char* msg);
 
     namespace system
     {
@@ -110,7 +49,82 @@ namespace amrex
 
         extern std::ostream* osout;
         extern std::ostream* oserr;
+        
+        extern ErrorHandler error_handler;
     }
+
+    std::string Version ();
+
+    void Initialize (MPI_Comm mpi_comm,
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr,
+                     ErrorHandler a_errhandler = nullptr);
+
+    void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
+                     MPI_Comm mpi_comm = MPI_COMM_WORLD,
+                     const std::function<void()>& func_parm_parse = {},
+                     std::ostream& a_osout = std::cout,
+                     std::ostream& a_oserr = std::cerr,
+                     ErrorHandler a_errorhandler = nullptr);
+
+    void Finalize(bool finalize_parallel = true);
+    /**
+    * \brief We maintain a stack of functions that need to be called in Finalize().
+    * The functions are called in LIFO order.  The idea here is to allow
+    * classes to clean up any "global" state that they maintain when we're
+    * exiting from AMReX.
+    */
+    void ExecOnFinalize (PTR_TO_VOID_FUNC);
+    void ExecOnInitialize (PTR_TO_VOID_FUNC);
+
+    //! Print out message to cerr and exit via amrex::Abort().
+    AMREX_GPU_HOST_DEVICE
+    void Error (const char * msg = 0);
+    void Error (const std::string& msg);
+
+    //! Print out warning message to cerr.
+    AMREX_GPU_HOST_DEVICE
+    void Warning (const char * msg);
+    void Warning (const std::string& msg);
+
+    //! Print out message to cerr and exit via abort().
+    AMREX_GPU_HOST_DEVICE
+    void Abort (const char * msg = 0);
+    void Abort (const std::string& msg);
+
+    /**
+    * \brief Prints assertion failed messages to cerr and exits
+    * via abort().  Intended for use by the BL_ASSERT() macro
+    * in <AMReX_BLassert.H>.
+    */
+    AMREX_GPU_HOST_DEVICE
+    void Assert (const char* EX,
+                 const char* file,
+                 int         line,
+                 const char* msg = nullptr);
+    /**
+    * \brief Prints out an out-of-memory message and aborts.  It is
+    *         called by various routines when a call to new fails.
+    *
+    *        Called as amrex::OutOfMemory(__FILE__, __LINE__);
+    */
+    void OutOfMemory (const char* file,
+                      int         line);
+
+    /**
+    * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
+    * to ensure that when writing the message to stderr, that no additional
+    * heap-based memory is allocated.
+    */
+    void write_to_stderr_without_buffering (const char* str);
+
+    void SetErrorHandler (ErrorHandler errhandler);
+
+    std::ostream& OutStream ();
+    std::ostream& ErrorStream ();
+
+    int Verbose ();
+    void SetVerbose (int v);
 
     inline void GccPlacater ()
     {

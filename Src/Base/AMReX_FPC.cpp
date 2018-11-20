@@ -4,6 +4,18 @@
 ///
 /// Set up endian-ness macros
 ///
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
+
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define AMREX_LITTLE_ENDIAN
+#elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define AMREX_BIG_ENDIAN
+#else
+#error Unknow Byte Order
+#endif
+
+#else
+
 #if defined(__i486__) || \
     defined(i386) || \
     defined(__i386__) || \
@@ -12,7 +24,7 @@
     defined(__LITTLE_ENDIAN__) || \
     defined(__powerpc__) || \
     defined(powerpc)
-    #define AMREX_LITTLE_ENDIAN
+#define AMREX_LITTLE_ENDIAN
 #endif
 
 #if defined(__sgi) || \
@@ -23,26 +35,17 @@
     defined(_SX)   || \
     defined(__hpux)
 #if !defined(__LITTLE_ENDIAN__)
-    #define AMREX_BIG_ENDIAN
+#define AMREX_BIG_ENDIAN
 #endif
 #endif
 
-#if !(defined(_SX)      || \
-      defined(__sgi)    || \
-      defined(__sun)    || \
-      defined(__i486__) || \
-      defined(i386)     || \
-      defined(__ppc__) || \
-      defined(__ppc64__) || \
-      defined(__i386__) || \
-      defined(__amd64__) || \
-      defined(__x86_64) || \
-      defined(__hpux)   || \
-      defined(__powerpc__) || \
-      defined(powerpc)  || \
-      defined(__LITTLE_ENDIAN__)  || \
-      defined(_MSC_VER) || \
-      defined(_AIX))
+#endif
+
+#if defined(AMREX_LITTLE_ENDIAN) && defined(AMREX_BIG_ENDIAN)
+#error We cannot have both AMREX_LITTLE_ENDIAN and AMREX_BIG_ENDIAN defined
+#endif
+
+#if !defined(AMREX_LITTLE_ENDIAN) && !defined(AMREX_BIG_ENDIAN)
 #error We do not yet support FAB I/O on this machine
 #endif
 

@@ -9,6 +9,11 @@
 #include <AMReX_EBFabFactory.H>
 #endif
 
+#ifdef AMREX_USE_PETSC
+#include <petscksp.h>
+#include <AMReX_PETSc.H>
+#endif
+
 namespace amrex {
 
 constexpr int MLLinOp::mg_coarsen_ratio;
@@ -484,5 +489,14 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
         }
     }
 }
+
+#ifdef AMREX_USE_PETSC
+std::unique_ptr<PETScABecLap>
+MLLinOp::makePETSc () const
+{
+    amrex::Abort("MLLinOp::makePETSc: How did we get here?");
+    return {nullptr};
+}
+#endif
 
 }

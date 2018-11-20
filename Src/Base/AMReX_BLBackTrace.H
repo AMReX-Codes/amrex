@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 #include <execinfo.h>
 #endif
 

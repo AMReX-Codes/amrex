@@ -21,10 +21,13 @@ class LSFactory {
     private:
 
         // MultiFab pointers storing level-set data
-        //    -> ls_phi:   nodal MultiFab storing signed distance function to the nearest wall
-        //    -> ls_valid: cell-centered iMultiFab storing integer flags assuming the following values:
+        //    -> ls_phi: nodal MultiFab storing signed distance function to the
+        //               nearest wall
+        //    -> ls_valid: cell-centered iMultiFab storing integer flags
+        //                 assuming the following values:
         //         -1 : not all nodes around cell have been initialized
-        //          0 : none of the cell's neighbours contain negative vlaues of ls_phi on its nodes
+        //          0 : none of the cell's neighbours contain negative vlaues of
+        //              ls_phi on its nodes
         //          1 : the cell is in the neighbourhood of phi < 0
 
         std::unique_ptr<MultiFab>  ls_grid;
@@ -59,6 +62,8 @@ class LSFactory {
 
         // Construct eb_facets list from eb_factory
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
+        std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
+                                                const BoxArray & ba, const DistributionMapping & dm);
 
         void update_ba(const BoxArray & new_ba, const DistributionMapping & dm);
         void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
@@ -121,6 +126,7 @@ class LSFactory {
 
         const Geometry & get_geom()          const {return base_geom;};
         const Geometry & get_ls_geom()       const {return geom_ls;};
+        const Geometry & get_eb_geom()       const {return geom_eb;};
         const DistributionMapping & get_dm() const {return ls_dm;};
 };
 
@@ -137,8 +143,11 @@ class GShopLSFactory {
 
     public:
         GShopLSFactory( const EB2::GeometryShop<F> & gshop, const LSFactory & level_set )
-            : m_gshop(gshop), m_geom(level_set.get_ls_geom()),
-              m_ls_ba(level_set.get_ls_ba()), m_ls_dm(level_set.get_dm()), m_ls_pad(level_set.get_ls_pad())
+            : m_gshop(gshop),
+              m_geom(level_set.get_ls_geom()),
+              m_ls_ba(level_set.get_ls_ba()),
+              m_ls_dm(level_set.get_dm()),
+              m_ls_pad(level_set.get_ls_pad())
         {}
 
         std::unique_ptr<MultiFab> fill_impfunc() {

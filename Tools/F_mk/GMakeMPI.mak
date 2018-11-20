@@ -138,13 +138,10 @@ endif
 ifeq ($(findstring summitdev, $(HOST)), summitdev)
     #
     # summitdev (Oak Ridge, OLCF machine)
-		#
-		# Cray machines require you use their compiler wrappers
-		# even if you aren't using Cray compiler
     #
     ifdef MPI
-        CXX := mpicc
-        CC  := mpicxx
+        CXX := mpicxx
+        CC  := mpicc
         FC  := mpif77
         F90 := mpif90
     endif

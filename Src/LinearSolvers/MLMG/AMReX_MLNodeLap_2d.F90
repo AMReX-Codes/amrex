@@ -17,6 +17,13 @@ module amrex_mlnodelap_2d_module
 
   real(amrex_real), private, parameter :: eps = 1.d-100
 
+#ifdef AMREX_USE_EB
+  integer, private, parameter :: i_S_x     = 1
+  integer, private, parameter :: i_S_y     = 2
+  integer, private, parameter :: i_S_x2    = 3
+  integer, private, parameter :: i_S_y2    = 4
+#endif
+
   logical, private, save :: is_rz = .false.
 
   private
@@ -1538,13 +1545,14 @@ contains
 
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          sten(i,j,1) = -(sten(i-1,j,2) + sten(i,j,2) + sten(i,j-1,3) + sten(i,j,3) &
-               + sten(i-1,j-1,4) + sten(i,j-1,4) + sten(i-1,j,4) + sten(i,j,4))
-          sten(i,j,5) = 1.d0 / (abs(sten(i-1,j,2)) + abs(sten(i,j,2)) + abs(sten(i,j-1,3)) &
-               + abs(sten(i,j,3)) + abs(sten(i-1,j-1,4)) + abs(sten(i,j-1,4)) &
-               + abs(sten(i-1,j,4)) + abs(sten(i,j,4)) + eps)
+          sten(i,j,1) = -(sten(i-1,j  ,2) + sten(i,j  ,2) + sten(i,j-1,3) + sten(i,j,3) &
+                        + sten(i-1,j-1,4) + sten(i,j-1,4) + sten(i-1,j,4) + sten(i,j,4))
+          sten(i,j,5) = 1.d0 / (abs(sten(i-1,j,2)) + abs(sten(i  ,j  ,2)) + abs(sten(i,j-1,3)) &
+                              + abs(sten(i  ,j,3)) + abs(sten(i-1,j-1,4)) + abs(sten(i,j-1,4)) &
+                              + abs(sten(i-1,j,4)) + abs(sten(i  ,j  ,4)) + eps)
        end do
     end do
+
   end subroutine amrex_mlndlap_set_stencil_s0
 
 
@@ -2028,8 +2036,10 @@ contains
     integer :: i,j
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-          intg(i,j,1:2) = 0.d0
-          intg(i,j,3:4) = twelfth
+          intg(i,j,i_S_x ) = zero
+          intg(i,j,i_S_y ) = zero
+          intg(i,j,i_S_x2) = twelfth
+          intg(i,j,i_S_y2) = twelfth
        end do
     end do
   end subroutine amrex_mlndlap_set_integral
@@ -2061,8 +2071,10 @@ contains
 
           else if (is_regular_cell(flag(i,j)) .or. vol(i,j).ge.almostone) then
 
-             intg(i,j,1:2) = 0.d0
-             intg(i,j,3:4) = twelfth
+             intg(i,j,i_S_x ) = zero
+             intg(i,j,i_S_y ) = zero
+             intg(i,j,i_S_x2) = twelfth
+             intg(i,j,i_S_y2) = twelfth
 
           else
 
@@ -2119,10 +2131,11 @@ contains
                 Sy2 = twentyfourth*(ayp+aym) + (anrmy/abs(anrmx))*twelfth*(ymax**4-ymin**4)
              end if
 
-             intg(i,j,1) = Sx
-             intg(i,j,2) = Sy
-             intg(i,j,3) = Sx2
-             intg(i,j,4) = Sy2
+             intg(i,j,i_S_x ) = Sx
+             intg(i,j,i_S_y ) = Sy
+             intg(i,j,i_S_x2) = Sx2
+             intg(i,j,i_S_y2) = Sy2
+
           end if
        end do
     end do
@@ -2139,7 +2152,6 @@ contains
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2))
 
     integer :: i,j
-    real(amrex_real) :: Sx, Sx2, Sy, Sy2 ! integral of x, x2, y, and y2
     real(amrex_real), parameter :: almostone = 1.d0 - 1.d2*epsilon(1._amrex_real)
 
     do    j = lo(2), hi(2)
@@ -2154,34 +2166,16 @@ contains
 
           else
 
-             Sx = intg(i,j,1)
-             Sy = intg(i,j,2)
-             Sx2 = intg(i,j,3)
-             Sy2 = intg(i,j,4)
+             ! Note that these are normalized so that they equal 1 in the case of a regular cell
 
-             ! For d/dx of (i,j) and (i+1,j)
-             conn(i,j,1) = 3.d0*Sy2 - 3.d0*Sy + 0.75d0*vol(i,j)
+             conn(i,j,1) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_y2) - intg(i,j,i_S_y))
+             conn(i,j,2) = 6.d0*(.25d0*vol(i,j) - intg(i,j,i_S_y2))
+             conn(i,j,3) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_y2) + intg(i,j,i_S_y))
 
-             ! For d/dx of (i  ,j) & (i  ,j+1)
-             !             (i+1,j) & (i+1,j+1)
-             !             (i  ,j) & (i+1,j+1)
-             !             (i+1,j) & (i  ,j+1)
-             conn(i,j,2) = 1.5d0*vol(i,j) - 6.d0*Sy2
+             conn(i,j,4) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_x2) - intg(i,j,i_S_x))
+             conn(i,j,5) = 6.d0*(.25d0*vol(i,j) - intg(i,j,i_S_x2))
+             conn(i,j,6) = 3.d0*(.25d0*vol(i,j) + intg(i,j,i_S_x2) + intg(i,j,i_S_x))
 
-             ! For d/dx of (i,j+1) and (i+1,j+1)
-             conn(i,j,3) = 3.d0*Sy2 + 3.d0*Sy + 0.75d0*vol(i,j)
-
-             ! For d/dy of (i,j) and (i,j+1)
-             conn(i,j,4) = 3.d0*Sx2 - 3.d0*Sx + 0.75d0*vol(i,j)
-
-             ! For d/dy of (i,j  ) & (i+1,j  )
-             !             (i,j+1) & (i+1,j+1)
-             !             (i  ,j) & (i+1,j+1)
-             !             (i+1,j) & (i  ,j+1)
-             conn(i,j,5) = 1.5d0*vol(i,j) - 6.d0*Sx2
-
-             ! For d/dy of (i+1,j) and (i+1,j+1)
-             conn(i,j,6) = 3.d0*Sx2 + 3.d0*Sx + 0.75d0*vol(i,j)
           end if
        end do
     end do

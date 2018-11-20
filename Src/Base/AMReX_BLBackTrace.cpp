@@ -38,7 +38,7 @@ BLBackTrace::handler(int s)
 	break;
     }
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 
     std::string errfilename;
     {
@@ -81,7 +81,7 @@ BLBackTrace::handler(int s)
     ParallelDescriptor::Abort(s, false);
 }
 
-#ifdef __linux__
+#if defined(__linux__) && !defined(__NEC__)
 void
 BLBackTrace::print_backtrace_info (const std::string& filename)
 {
@@ -126,6 +126,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	for (int i = 0; i < nptrs; ++i) {
 	    std::string line = strings[i];
 	    line += "\n";
+#if !defined(_OPENMP) || !defined(__INTEL_COMPILER)
 	    if (amrex::system::call_addr2line && have_addr2line && !amrex::system::exename.empty()) {
 		std::size_t found1 = line.rfind('[');
 		std::size_t found2 = line.rfind(']');
@@ -142,6 +143,7 @@ BLBackTrace::print_backtrace_info (FILE* f)
 		    }
 		}
 	    }
+#endif
 	    fprintf(f, "%2d: %s\n", i, line.c_str());
 	}
     }

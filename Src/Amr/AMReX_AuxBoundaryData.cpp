@@ -63,7 +63,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
 
     const bool verbose   = false;
     const int  NProcs    = ParallelDescriptor::NProcs();
-    const Real strt_time = ParallelDescriptor::second();
+    const Real strt_time = amrex::second();
 
     m_ngrow = n_grow;
 
@@ -108,7 +108,7 @@ AuxBoundaryData::initialize (const BoxArray& ba,
     if (verbose)
     {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
-        Real      run_time = ParallelDescriptor::second() - strt_time;
+        Real      run_time = amrex::second() - strt_time;
 	const int sz       = nba.size();
 
 #ifdef BL_LAZY

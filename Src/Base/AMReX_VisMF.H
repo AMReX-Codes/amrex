@@ -178,6 +178,16 @@ public:
                        const std::string& name,
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
+    /**
+    * \brief Write only the header-file corresponding to FabArray<FArrayBox> to
+    * disk without the corresponding FAB data. This writes BoxArray information
+    * (which might still be needed by data post-processing tools such as yt)
+    * when the FAB data is not needed. Returns the total number of bytes written
+    * on this processor.
+    */
+    static long WriteOnlyHeader (const FabArray<FArrayBox> & mf,
+                                 const std::string         & mf_name,
+                                 VisMF::How                  how = NFiles);
     //! this will remove nfiles associated with name and the header
     static void RemoveFiles(const std::string &name, bool verbose = false);
 

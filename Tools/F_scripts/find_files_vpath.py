@@ -22,7 +22,7 @@ def find_files(vpath, files_in):
     if files_in is None:
         sys.exit("files is empty -- nothing to search")
 
-    filenames = files_in.split()
+    filenames = [os.path.basename(f) for f in files_in.split()]
     vpath = vpath.split()
 
     for f in filenames:

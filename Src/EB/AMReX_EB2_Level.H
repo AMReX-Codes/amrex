@@ -50,11 +50,11 @@ public:
     const DistributionMapping& DistributionMap () const { return m_dmap; }
 
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
-    void prepareForCoarsening (const Level& rhs, int max_grid_size);
+    void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow);
 
     const Geometry& Geom () const { return m_geom; }
     IndexSpace const* getEBIndexSpace () const { return m_parent; }
-    
+
 protected:
 
     Level (Level && rhs) = default;
@@ -62,12 +62,13 @@ protected:
     Level (Level const& rhs) = delete;
     Level& operator=(Level const& rhs) = delete;
     Level& operator=(Level && rhs) = delete;
- 
+
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
     void buildCellFlag ();
     void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
-    Geometry m_geom;    
+    Geometry m_geom;
+    IntVect  m_ngrow;
     BoxArray m_grids;
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
@@ -91,12 +92,14 @@ class GShopLevel
     : public Level
 {
 public:
-    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size);
-    GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel);
+    GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size, int ngrow);
+    GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
+                const Geometry& geom, GShopLevel<G>& fineLevel);
 };
 
 template <typename G>
-GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size)
+GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom,
+                           int max_grid_size, int ngrow)
     : Level(is, geom)
 {
     if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
@@ -107,7 +110,20 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
     BL_PROFILE("EB2::GShopLevel()-fine");
 
-    m_grids.define(geom.Domain());
+    // make sure ngrow is multiple of 16
+    m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
+
+    Box domain_grown = geom.Domain();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (Geometry::isPeriodic(idim)) {
+            m_ngrow[idim] = 0;
+        } else {
+            m_ngrow[idim] = std::min(m_ngrow[idim], domain_grown.length(idim));
+        }
+    }
+    domain_grown.grow(m_ngrow);
+
+    m_grids.define(domain_grown);
     m_grids.maxSize(max_grid_size);
     m_dmap.define(m_grids);
 
@@ -169,19 +185,19 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     {
         Array<BaseFab<Real>, AMREX_SPACEDIM> intercept;
         Array<BaseFab<Real>, AMREX_SPACEDIM> M2;
-        
+
         for (MFIter mfi(m_mgf); mfi.isValid(); ++mfi)
         {
             auto& gfab = m_mgf[mfi];
             const Box& vbx = gfab.validbox();
-            
+
             auto& levelset = gfab.getLevelSet();
             gshop.fillFab(levelset, geom);
-            
+
             auto& cellflag = m_cellflag[mfi];
-            
+
             gfab.buildTypes(cellflag);
-            
+
 #if (AMREX_SPACEDIM == 3)
             auto& facetype = gfab.getFaceType();
             auto& edgetype = gfab.getEdgeType();
@@ -204,13 +220,13 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                 const Box& b = facetype[idim].box();
                 M2[idim].resize(b,3);
             }
-            
+
             // regular by default
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_areafrac[idim][mfi].setVal(1.0);
                 m_facecent[idim][mfi].setVal(0.0);
             }
-            
+
             amrex_eb2_build_faces(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
                                   BL_TO_FORTRAN_ANYD(facetype[0]),
@@ -233,7 +249,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(M2[1]),
                                   BL_TO_FORTRAN_ANYD(M2[2]),
                                   dx, dxinv, problo);
-            
+
             // regular by default
             m_volfrac[mfi].setVal(1.0);
             m_centroid[mfi].setVal(0.0);
@@ -260,7 +276,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                                   BL_TO_FORTRAN_ANYD(m_bndryarea[mfi]),
                                   BL_TO_FORTRAN_ANYD(m_bndrycent[mfi]),
                                   BL_TO_FORTRAN_ANYD(m_bndrynorm[mfi]));
-            
+
 #elif (AMREX_SPACEDIM == 2)
             auto& facetype = gfab.getFaceType();
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -303,7 +319,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
             m_bndryarea[mfi].setVal(0.0);
             m_bndrycent[mfi].setVal(-1.0);
             m_bndrynorm[mfi].setVal(0.0);
-            
+
             amrex_eb2_build_cells(BL_TO_FORTRAN_BOX(vbx),
                                   BL_TO_FORTRAN_ANYD(cellflag),
                                   BL_TO_FORTRAN_ANYD(facetype[0]),
@@ -326,7 +342,8 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
 
 template <typename G>
-GShopLevel<G>::GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, const Geometry& geom, GShopLevel<G>& fineLevel)
+GShopLevel<G>::GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int /*ngrow*/,
+                           const Geometry& geom, GShopLevel<G>& fineLevel)
     : Level(is, geom)
 {
     if (fineLevel.isAllRegular()) {
@@ -345,6 +362,11 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, co
     bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
         && (fine_covered_grids.empty() || fine_covered_grids.coarsenable(coarse_ratio));
 
+    m_ngrow = amrex::coarsen(fineLevel.m_ngrow,2);
+    if (amrex::scale(m_ngrow,2) != fineLevel.m_ngrow) {
+        m_ngrow = IntVect::TheZeroVector();
+    }
+
     if (coarsenable)
     {
         int ierr = coarsenFromFine(fineLevel, true);
@@ -353,7 +375,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, co
     else
     {
         Level fine_level_2(is, fineLevel.m_geom);
-        fine_level_2.prepareForCoarsening(fineLevel, max_grid_size);
+        fine_level_2.prepareForCoarsening(fineLevel, max_grid_size, amrex::scale(m_ngrow,2));
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);
     }

@@ -28,12 +28,26 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_support == EBSupport::none)
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);        
+        return new FArrayBox(box, ncomps, info.alloc, info.shared);
     }
     else
     {
         const EBCellFlagFab& ebcellflag = m_ebdc->getMultiEBCellFlagFab()[box_index];
         return new EBFArrayBox(ebcellflag, box, ncomps);
+    }
+}
+
+void
+EBFArrayBoxFactory::destroy (FArrayBox* fab) const
+{
+    if (m_support == EBSupport::none)
+    {
+        delete fab;
+    }
+    else
+    {
+        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
+        delete p;
     }
 }
 
@@ -58,6 +72,18 @@ EBFArrayBoxFactory::maxCoarseningLevel () const
     } else {
         return EB2::maxCoarseningLevel(m_geom);
     }
+}
+
+const DistributionMapping&
+EBFArrayBoxFactory::DistributionMap () const
+{
+    return m_ebdc->getVolFrac().DistributionMap();
+}
+
+const BoxArray&
+EBFArrayBoxFactory::boxArray () const
+{
+    return m_ebdc->getVolFrac().boxArray();
 }
 
 std::unique_ptr<EBFArrayBoxFactory>

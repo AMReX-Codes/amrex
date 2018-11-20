@@ -7,6 +7,8 @@
 #include <RegionGraph.H>
 #include <pthread.h>
 
+#include <RGIter.H>
+
 //#define USE_PERILLA_PTHREADS
 
 using namespace std;
@@ -24,10 +26,11 @@ namespace amrex{
 	static std::map<int,std::map<int,int>> pTagCnt;
 	static std::map<int,std::map<int,std::map<int,std::map<int,std::map<int,int>>>>> tagMap;
 	static std::map<int,std::map<int,std::map<int,std::map<int,int>>>> myTagMap;
-	static void communicateTags(std::vector<RegionGraph*> ga);
+	static void communicateTags();
         static void registerId(int tid);
 	static int tid();
 	static volatile int numTeamsFinished;
+        static volatile int updatedMetadata;
 	static Barrier * globalBarrier;
 	static void multifabBuildFabCon(RegionGraph* graph, const MultiFab& mf, const Periodicity& period);
 	static void serviceLocalRequests(RegionGraph *graph, int tg);
@@ -35,7 +38,7 @@ namespace amrex{
 	static void serviceRemoteRequests(RegionGraph *graph);  
 	static void serviceSingleGraphComm(RegionGraph* graph, int tid);
 	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bool cpyAcross, int tid);
-	static void serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid);
+	static void serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGraph*> >graphArray, bool cpyAcross, int tid);
 	static void serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, int tid);
 	static void fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f);
 	static void fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f);
@@ -50,6 +53,20 @@ namespace amrex{
 	static void serviceLocalGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int tg);
 	static void serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraph, int tg);
 	static void resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, int g, int nGraph, int tg);
+
+
+
+        static void multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
+        static void multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, bool singleT);
+       
+       static void multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* dmf, amrex::MultiFab* smf, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT);
+       static void fillBoundaryPull_1Team(RegionGraph *graph, amrex::MultiFab& mf, int f);
+
+        static void fillBoundaryPush(amrex::RGIter& rgi, amrex::MultiFab& mf);
+        static void fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf);
+        static void fillBoundaryPush(amrex::RGIter& rgi, RegionGraph *graph, amrex::MultiFab& mf);
+        static void fillBoundaryPull(amrex::RGIter& rgi, RegionGraph *graph, amrex::MultiFab& mf);
+
     }; // class Perilla
 }
 #endif

@@ -1,5 +1,5 @@
 
-module mllinop_3d_module
+module amrex_mllinop_3d_module
   use amrex_fort_module, only : amrex_real
   implicit none
 
@@ -51,4 +51,4 @@ contains
 
   end subroutine amrex_mllinop_grad
 
-end module mllinop_3d_module
+end module amrex_mllinop_3d_module

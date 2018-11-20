@@ -1,0 +1,6 @@
+CEXE_sources += main.cpp
+
+FEXE_headers += myfunc_F.H
+
+f90EXE_sources += integrate_ode.f90
+f90EXE_sources += ode_mod.f90

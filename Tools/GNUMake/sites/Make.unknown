@@ -62,3 +62,24 @@ ifeq ($(USE_MPI),TRUE)
 endif
 endif
 
+
+ifneq ($(NO_CUDA_CHECKING),TRUE)
+ifeq ($(USE_CUDA),TRUE)
+  CUDA_HOME ?= /usr/local/cuda
+
+  COMPILE_CUDA_PATH = $(CUDA_HOME)
+  SYSTEM_CUDA_PATH = $(CUDA_HOME)
+
+  cuda_device_query_result := $(shell $(CUDA_HOME)/extras/demo_suite/deviceQuery | grep "CUDA Capability")
+  ifneq ($(cuda_device_query_result),)
+     TEMP_CUDA_ARCH = $(lastword $(cuda_device_query_result))
+#      CUDA_ARCH = $(subst .,,$(TEMP_CUDA_ARCH))
+     # We do this because pgfortran does not support all cuda arches.
+     ifeq ($(TEMP_CUDA_ARCH),3.5)
+         CUDA_ARCH = 35
+     else
+         CUDA_ARCH = $(firstword $(subst ., ,$(TEMP_CUDA_ARCH)))0
+     endif
+  endif
+endif
+endif

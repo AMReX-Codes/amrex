@@ -51,7 +51,7 @@ module amrex_parmparse_module
      procedure, private :: add_intarr
      procedure, private :: add_realarr
      procedure, private :: add_stringarr
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
+#if (!defined(__GFORTRAN__) || (__GNUC__ > 4)) && (!defined(__ibmxl__))
      final :: amrex_parmparse_destroy
 #endif
   end type amrex_parmparse
@@ -72,9 +72,10 @@ module amrex_parmparse_module
        type(c_ptr), value :: pp
      end subroutine amrex_delete_parmparse
 
-     integer(c_int) function amrex_parmparse_get_counts (pp, name) bind(c)
+     function amrex_parmparse_get_counts (pp, name) bind(c)
        import
        implicit none
+       integer(c_int) :: amrex_parmparse_get_counts
        type(c_ptr), value :: pp
        character(kind=c_char), intent(in) :: name(*)       
      end function amrex_parmparse_get_counts

@@ -218,8 +218,8 @@ public:
     FArrayBox (const Box& b, int ncomp, Real* p);
 
     //!  The destructor.
-    virtual ~FArrayBox () = default;
-    
+    ~FArrayBox () = default;
+
     FArrayBox (FArrayBox&& rhs) noexcept = default;
 
     FArrayBox (const FArrayBox&) = delete;
@@ -235,31 +235,40 @@ public:
     * This may return false, even if the FAB contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
     */
+    AMREX_GPU_HOST_DEVICE
     bool contains_nan () const;
 
+    AMREX_GPU_HOST_DEVICE
     bool contains_nan (const Box& bx, int scomp, int ncomp) const;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
     */
+    AMREX_GPU_HOST_DEVICE
     bool contains_nan (IntVect& where) const;
 
+    AMREX_GPU_HOST_DEVICE
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const;
     /**
     * \brief Are there any Infs in the FAB?
     * This may return false, even if the FAB contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     */
+    AMREX_GPU_HOST_DEVICE
     bool contains_inf () const;
 
+    AMREX_GPU_HOST_DEVICE
     bool contains_inf (const Box& bx, int scomp, int ncomp) const;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
     */
+    AMREX_GPU_HOST_DEVICE
     bool contains_inf (IntVect& where) const;
 
+    AMREX_GPU_HOST_DEVICE
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const;
+
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
                  int        N = 1);

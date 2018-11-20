@@ -83,7 +83,11 @@ MyTest::solve ()
         mlmg.setBottomTolerance(bottom_reltol);
         mlmg.setVerbose(verbose);
         mlmg.setBottomVerbose(bottom_verbose);
-        if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        if (use_hypre) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+        } else if (use_petsc) {
+            mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+        }
         
         const Real tol_rel = reltol;
         const Real tol_abs = 0.0;
@@ -119,7 +123,11 @@ MyTest::solve ()
             mlmg.setBottomTolerance(bottom_reltol);
             mlmg.setVerbose(verbose);
             mlmg.setBottomVerbose(bottom_verbose);
-            if (use_hypre) mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            if (use_hypre) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+            } else if (use_petsc) {
+                mlmg.setBottomSolver(MLMG::BottomSolver::petsc);
+            }
             
             const Real tol_rel = reltol;
             const Real tol_abs = 0.0;
@@ -204,6 +212,9 @@ MyTest::readParameters ()
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
 #endif
+#ifdef AMREX_USE_PETSC
+    pp.query("use_petsc", use_petsc);
+#endif
 
     pp.query("composite_solve", composite_solve);
 }
@@ -238,7 +249,12 @@ MyTest::addFineGrids ()
     {
         const EB2::IndexSpace& eb_is = EB2::IndexSpace::top();
         const EB2::Level& eb_level = eb_is.getLevel(geom[ilev]);
-        grids[ilev] = eb_level.boxArray();
+        BoxList bl = eb_level.boxArray().boxList();
+        const Box& domain = geom[ilev].Domain();
+        for (Box& b : bl) {
+            b &= domain;
+        }
+        grids[ilev].define(bl);
     }
 }
 
@@ -284,6 +300,7 @@ MyTest::initData ()
         }
 
         const Real* dx = geom[ilev].CellSize();
+        const Box& domainbox = geom[ilev].Domain();
 
         const FabArray<EBCellFlagFab>& flags = factory[ilev]->getMultiEBCellFlagFab();
         const MultiCutFab& bcent = factory[ilev]->getBndryCent();
@@ -329,6 +346,14 @@ MyTest::initData ()
                                   BL_TO_FORTRAN_ANYD(cent[mfi]),
                                   BL_TO_FORTRAN_ANYD(bcent[mfi]),
                                   dx, &prob_type);
+            }
+
+            const Box& gbx = mfi.growntilebox(1);
+            if (!domainbox.contains(gbx)) {
+                mytest_set_phi_boundary(BL_TO_FORTRAN_BOX(gbx),
+                                        BL_TO_FORTRAN_BOX(domainbox),
+                                        BL_TO_FORTRAN_ANYD(phi[ilev][mfi]),
+                                        dx);
             }
         }
     }

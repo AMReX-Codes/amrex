@@ -4,7 +4,7 @@
 // Take 2 plotfiles as input and compare each level zone by zone for differences.
 // The grids at each level may not be identical, but must have the same
 // problem domain.
-// 
+//
 // This does not rely on FBaselib.
 //
 //  Author: Michele Rosso
@@ -17,7 +17,7 @@ using namespace std;
 
 //
 // Prototypes
-// 
+//
 void GetInputArgs ( const int argc, char** argv,
 		    bool& ghost, int& norm,
 		    string& diffvar, string& zonevar,
@@ -27,8 +27,8 @@ void PrintHelp ( const char* progName );
 
 
 //
-// 
-// 
+//
+//
 int main ( int argc, char* argv[] )
 {
 
@@ -39,19 +39,19 @@ int main ( int argc, char* argv[] )
     // This runs in serial for now
     if ( ParallelDescriptor::NProcs() > 1 )
     	Abort("Only run this with one processor");
-    
+
     // Input arguments
     bool    do_ghost=false;
     int     norm=0;
     string  diffVar;
     string  zoneVar;
     string  file1;
-    string  file2;    
-    
-	
+    string  file2;
+
+
     GetInputArgs ( argc, argv, do_ghost, norm, diffVar, zoneVar,
 		   file1, file2 );
-   
+
     // Start dataservices (no clue why we need to do this )
     DataServices::SetBatchMode();
 
@@ -67,17 +67,17 @@ int main ( int argc, char* argv[] )
     // of checking that when loading the files.
     if ( !dataServices1.AmrDataOk() || !dataServices2.AmrDataOk() )
 	DataServices::Dispatch(DataServices::ExitRequest, NULL);
-    
-    // get data from plot files 
+
+    // get data from plot files
     AmrData& data1 = dataServices1.AmrDataRef();
     AmrData& data2 = dataServices2.AmrDataRef();
-    
+
     // Check if both plotfiles have the same numbers of levels
     if ( data1.FinestLevel () != data2.FinestLevel () )
 	Abort ("number of levels do not match");
 
     int finestLevel = data1.FinestLevel ();
-    
+
     // Check that the problem domain (bounding box) are the same size
     // check that boxarray and distribution maps are the same
     // for both plotfiles
@@ -88,21 +88,21 @@ int main ( int argc, char* argv[] )
     {
 	if ( bb1[nl] != bb2[nl] )
     	    Abort ("grids do no match");
-	
+
 	const BoxArray& ba1 = data1.boxArray(nl);
 	const BoxArray& ba2 = data2.boxArray(nl);
 	const DistributionMapping& dm1 = data1.DistributionMap (nl);
 	const DistributionMapping& dm2 = data2.DistributionMap (nl);
-	
+
 	AMREX_ALWAYS_ASSERT ( ba1 == ba2 );
-	AMREX_ALWAYS_ASSERT ( dm1 == dm2 );	
+	AMREX_ALWAYS_ASSERT ( dm1 == dm2 );
     }
-    
+
     // Check if plotfiles have same numbers of variables
     if ( data1.NComp () != data2.NComp () )
 	Warning ("WARNING: number of variables do not match");
 
-    // Check grid spacing is the same for both plotfiles    
+    // Check grid spacing is the same for both plotfiles
     const Vector<Vector<Real> >& dxLevel1 = data1.DxLevel();
     const Vector<Vector<Real> >& dxLevel2 = data2.DxLevel();
 
@@ -110,7 +110,7 @@ int main ( int argc, char* argv[] )
 	for (int nd = 0; nd < AMREX_SPACEDIM; ++nd )
 	    if ( dxLevel1[nl][nd] != dxLevel2[nl][nd] )
 		Abort ("grid dx does not match");
-    
+
     // Check for the same number of ghost cells
     int ng = 0;
 
@@ -118,12 +118,12 @@ int main ( int argc, char* argv[] )
     {
 	Warning ("grids have different numbers of ghost cells");
     }
-    else 
+    else
     {
 	if (do_ghost)
 	    ng = data1.NGrow();
     }
-    
+
     // Check if variables in file 1 are also in file 2
     // and print a warning if this is not the case
     const Vector<string>& varNames1 = data1.PlotVarNames ();
@@ -131,11 +131,11 @@ int main ( int argc, char* argv[] )
 
     bool         allVarsFound = true;
     Vector<int>  varMap(data1.NComp(),-1);
-    
+
     for (int nv2 = 0; nv2 < data2.NComp (); ++nv2 )
     {
-	bool varFound = false; 
-	    
+	bool varFound = false;
+
 	for (int nv1 = 0; nv1 < data1.NComp (); ++nv1 )
 	{
 	    if ( varNames2[nv2] == varNames1[nv1] )
@@ -146,22 +146,22 @@ int main ( int argc, char* argv[] )
 	    }
 	}
 
-	
+
 	if ( !varFound )
 	{
 	    string warnmsg = "WARNING: variable " + varNames2[nv2]
 		+ " not found in plotfile " + file1;
-	    
+
 	    Warning (warnmsg);
-	    	
+
 	    allVarsFound = false;
 	}
-	
+
     }
 
-    // 
+    //
     // Go level-by-level and patch-by-patch and compare the data
-    // 
+    //
     cout << endl;
 
     cout << setw(25) << " variable name  "
@@ -173,9 +173,9 @@ int main ( int argc, char* argv[] )
     	 << setw(22) << "(||A - B||)"
     	 << setw(29) << "(||A - B||/||A||)"
     	 << endl;
-    
+
     cout << string(77, '-') << std::endl;
-    
+
     vector<Real>  aerror(data1.NComp());
     vector<Real>  rerror(data1.NComp());
     vector<Real>  rerror_den(data1.NComp());
@@ -192,9 +192,9 @@ int main ( int argc, char* argv[] )
 	fill ( rerror.begin(),     rerror.end(), 0.0 );
 	fill ( rerror_den.begin(), rerror_den.end(), 0.0 );
 	fill ( has_nan.begin(),   has_nan.end(), false );
-	
+
 	// We already checked that boxarray is the same for
-	// both plotfiles 
+	// both plotfiles
 	const BoxArray& ba = data1.boxArray(nl);
 
 	// Loop over boxes on same level
@@ -213,7 +213,7 @@ int main ( int argc, char* argv[] )
             //
 	    // In doing the calculation below, assume that the
 	    // data are always cell-centered
-	    //     
+	    //
 	    for (int nv = 0; nv < data1.NComp(); ++nv)
 	    {
 		if ( varMap[nv] == -1 )
@@ -221,7 +221,7 @@ int main ( int argc, char* argv[] )
 
 		data1.FillVar ( mf1, nl, varNames1[nv] );
 		data2.FillVar ( mf2, nl, varNames2[varMap[nv]] );
-		
+
 		// check for NaNs -- comparisons don't work when they are present
 		// note: regardless of do_ghost, this will check the ghostcells
 		// too if they are present.
@@ -231,29 +231,29 @@ int main ( int argc, char* argv[] )
 		    anyNaNs = true;
 		    continue;
 		}
-		
+
 		MultiFab::LinComb ( mfdiff, 1.0, mf1, 0, -1.0, mf2, 0, 0, 1, ng );
-		
+
 		if ( norm == 0 )
 		{
-		    aerror[nv]       = max ( mfdiff.norm0(0,ng), aerror[nv] );
-		    rerror_den[nv]   = max ( mf1.norm0(0,ng),    rerror_den[nv] );
+		    aerror[nv]       = amrex::max ( mfdiff.norm0(0,ng), aerror[nv] );
+		    rerror_den[nv]   = amrex::max ( mf1.norm0(0,ng),    rerror_den[nv] );
 		}
 		else if ( norm == 1 )
 		{
 		    aerror[nv]       = aerror[nv] + mfdiff.norm1(0,ng);
-		    rerror_den[nv]   = rerror_den[nv] + mf1.norm1(); 
+		    rerror_den[nv]   = rerror_den[nv] + mf1.norm1();
 		}
 		else if ( norm == 2 )
 		{
-		    aerror[nv]       = aerror[nv] + MultiFab::Dot ( mfdiff, 0, mfdiff, 0, 1, ng ); 
+		    aerror[nv]       = aerror[nv] + MultiFab::Dot ( mfdiff, 0, mfdiff, 0, 1, ng );
 		    rerror_den[nv]   = rerror_den[nv] + MultiFab::Dot ( mf1, 0, mf1, 0, 1, ng );
 		}
 
 		rerror[nv] = aerror[nv];
 
     	    }
-	    
+
 	    data1.FlushGrids();
 	    data2.FlushGrids();
     	}
@@ -261,7 +261,7 @@ int main ( int argc, char* argv[] )
 	// Compute normalized norms for this level and print out value
 	// What  if nghost are included?
 	// In this case the normalization by grid volume is not correct
-	if ( norm > 0 ) 
+	if ( norm > 0 )
 	{
 	    // Metric coefficient
 	    Real dvol = 1.0;
@@ -269,7 +269,7 @@ int main ( int argc, char* argv[] )
 	    for (int nd = 0; nd < AMREX_SPACEDIM; ++nd )
 		dvol = dvol * dxLevel1[nl][nd];
 
-	    
+
 	    for (int nv = 0; nv < data1.NComp(); ++nv )
 	    {
 		aerror[nv]  = pow ( aerror[nv]*dvol, 1.0/norm );
@@ -282,7 +282,7 @@ int main ( int argc, char* argv[] )
 		rerror[nv]  = aerror[nv] / rerror_den[nv];
 	}
 
-	// 
+	//
 	// print out the comparison report for this level
 	//
 	Print() << " level = " << setw(2) << nl << endl;
@@ -307,10 +307,10 @@ int main ( int argc, char* argv[] )
 	       Real rerr = 0.0;
 
 	       if ( aerror[nv] > 0.0 )
-		   aerr = min ( max ( aerror[nv], 1e-99 ), 1e+98 );
+		   aerr = amrex::min ( amrex::max ( aerror[nv], 1e-99 ), 1e+98 );
 
 	       if ( rerror[nv] > 0.0 )
-		   rerr = min ( max ( rerror[nv], 1e-99 ), 1e+98 );
+		   rerr = amrex::min ( amrex::max ( rerror[nv], 1e-99 ), 1e+98 );
 
 	       Print() << scientific;
 	       Print() << " " << setw(22) << varNames1[nv] << "  "
@@ -318,13 +318,13 @@ int main ( int argc, char* argv[] )
 		       << "  " << setw(24) << setprecision(10)  << rerr
 		       << endl;
 	   }
-	       
+
 
 	}
 
 	// compute global error
 	for ( unsigned int nv = 0; nv < aerror.size(); ++nv )
-	    globalError = max (globalError, aerror[nv] );
+	    globalError = amrex::max (globalError, aerror[nv] );
 
     }
 
@@ -332,9 +332,9 @@ int main ( int argc, char* argv[] )
     {
 	if ( !allVarsFound )
 	    Warning ("WARNING: not all variables present in both files");
-     
+
 	Print() << "PLOTFILES AGREE" << endl;
-	
+
 	exit (EXIT_SUCCESS);
     }
     else
@@ -343,19 +343,19 @@ int main ( int argc, char* argv[] )
     }
 
     Finalize ();
-}	
+}
 
 
 
 //
 // Parse command line arguments
-//  
+//
 void GetInputArgs ( const int argc, char** argv,
 		    bool& ghost, int& norm,
 		    string& diffvar, string& zonevar,
 		    string& file1, string& file2 )
 {
-    
+
     int i = 1; // skip program name
 
     while ( i < argc - 2 ) // Skip last two: those are the files names
@@ -376,7 +376,7 @@ void GetInputArgs ( const int argc, char** argv,
 		PrintHelp ( argv[0] );
 		exit (EXIT_FAILURE);
 	    }
-	    
+
 	}
 	else if ( !strcmp(argv[i],"-d") || !strcmp(argv[i],"--diffvar") )
 	{
@@ -411,7 +411,7 @@ void GetInputArgs ( const int argc, char** argv,
 	PrintHelp (argv[0]);
 	Abort("Missing one or both input files");
     }
-    
+
     // Print summary
     cout << "\nFile 1 is " + file1
 	 << "\nFile 2 is " + file2;
@@ -420,7 +420,7 @@ void GetInputArgs ( const int argc, char** argv,
 	cout << "\nGhost cells will be compared (if stored)";
 
     if (!diffvar.empty())
-	cout << "\nPlotfile with differences for variable " + diffvar 
+	cout << "\nPlotfile with differences for variable " + diffvar
 	     << " will be output";
 
     if (!zonevar.empty())
@@ -434,7 +434,7 @@ void GetInputArgs ( const int argc, char** argv,
 
 //
 // Print usage info
-// 
+//
 void PrintHelp (const char* progName)
 {
     cout  << "\nCompare two plotfiles, zone by zone, to machine precision"
@@ -453,6 +453,5 @@ void PrintHelp (const char* progName)
 	  // << "\n   -z|--zone_info var : output the information for a zone corresponding"
 	  // << "\n                        to the maximum error for the given variable"
 	  << "\n\n" << endl;
-   
-}
 
+}

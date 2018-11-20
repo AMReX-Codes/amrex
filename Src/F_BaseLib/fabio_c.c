@@ -16,9 +16,14 @@
 #define FILE_MODE  (            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 #define DIR_MODE   (FILE_MODE | S_IXUSR |           S_IXGRP | S_IXOTH)
 #define O_BINARY   0
-
+//
+#ifdef __NEC__
+#define BUFFER_SIZE 512
+#define FABIO_MAX_PATH_NAME 512
+#else
 static const int BUFFER_SIZE = 512;
 static const int FABIO_MAX_PATH_NAME = 512;
+#endif
 
 static
 void
@@ -87,22 +92,18 @@ fabio_open_str(int* fdp, const int* ifilename, const int* flagp)
 /*
  * NORDER_? : normal byte order floats(f), doubles(d) on this architecture
  */
-static const char* str_ieee_d = "64 11 52 0 1 12 0 1023";
-static const char* str_ieee_f = "32 8 23 0 1 9 0 127";
-#if defined(__sgi) || \
-    defined(__sun) || \
-    defined(_AIX)  || \
-    defined(__ppc__) || \
-    defined(__ppc64__) || \
-    defined(_SX)   || \
-    defined(__hpux)
-#if !defined(__LITTLE_ENDIAN__)
-static const int norder_d[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
-static const char* str_norder_d = "1 2 3 4 5 6 7 8";
-static const int norder_f[4] = { 1, 2, 3, 4};
-static const char* str_norder_f = "1 2 3 4";
+
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
+
+#if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define AMREX_LITTLE_ENDIAN
+#elif (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define AMREX_BIG_ENDIAN
+#else
+#error Unknow Byte Order
 #endif
-#endif
+
+#else
 
 #if defined(__i486__) || \
     defined(i386) || \
@@ -112,6 +113,41 @@ static const char* str_norder_f = "1 2 3 4";
     defined(__LITTLE_ENDIAN__) || \
     defined(__powerpc__) || \
     defined(powerpc)
+#define AMREX_LITTLE_ENDIAN
+#endif
+
+#if defined(__sgi) || \
+    defined(__sun) || \
+    defined(_AIX)  || \
+    defined(__ppc__) || \
+    defined(__ppc64__) || \
+    defined(_SX)   || \
+    defined(__hpux)
+#if !defined(__LITTLE_ENDIAN__)
+#define AMREX_BIG_ENDIAN
+#endif
+#endif
+
+#endif
+
+#if defined(AMREX_LITTLE_ENDIAN) && defined(AMREX_BIG_ENDIAN)
+#error We cannot have both AMREX_LITTLE_ENDIAN and AMREX_BIG_ENDIAN defined
+#endif
+
+#if !defined(AMREX_LITTLE_ENDIAN) && !defined(AMREX_BIG_ENDIAN)
+#error We do not yet support FAB I/O on this machine
+#endif
+
+static const char* str_ieee_d = "64 11 52 0 1 12 0 1023";
+static const char* str_ieee_f = "32 8 23 0 1 9 0 127";
+#if defined(AMREX_BIG_ENDIAN)
+static const int norder_d[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
+static const char* str_norder_d = "1 2 3 4 5 6 7 8";
+static const int norder_f[4] = { 1, 2, 3, 4};
+static const char* str_norder_f = "1 2 3 4";
+#endif
+
+#if defined(AMREX_LITTLE_ENDIAN)
 static const int norder_d[8] = { 8, 7, 6, 5, 4, 3, 2, 1};
 static const char* str_norder_d = "8 7 6 5 4 3 2 1";
 static const int norder_f[4] = { 4, 3, 2, 1 };

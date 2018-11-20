@@ -411,6 +411,6 @@ endmacro ()
 #
 macro (strip var)
   if (${var})
-    string ( STRIP ${${var}} ${var} )
+    string ( STRIP "${${var}}" ${var} )
   endif ()  
 endmacro ()

@@ -23,16 +23,17 @@ subroutine state_error(tag,tag_lo,tag_hi, &
                        lo,hi,&
                        dx,problo,time,phierr) bind(C, name="state_error")
 
+  use amrex_fort_module, only : amrex_real
   implicit none
   
   integer          :: lo(3),hi(3)
   integer          :: state_lo(3),state_hi(3)
   integer          :: tag_lo(3),tag_hi(3)
-  double precision :: state(state_lo(1):state_hi(1), &
+  real(amrex_real) :: state(state_lo(1):state_hi(1), &
                             state_lo(2):state_hi(2), &
                             state_lo(3):state_hi(3))
   integer          :: tag(tag_lo(1):tag_hi(1),tag_lo(2):tag_hi(2),tag_lo(3):tag_hi(3))
-  double precision :: problo(3),dx(3),time,phierr
+  real(amrex_real) :: problo(3),dx(3),time,phierr
   integer          :: set,clear
 
   integer          :: i, j, k

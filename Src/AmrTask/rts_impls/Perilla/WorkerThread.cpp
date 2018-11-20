@@ -1,3 +1,4 @@
+#if 0
 #include <WorkerThread.H>
 #include <PerillaConfig.H>
 #include <Perilla.H>
@@ -8,10 +9,12 @@ namespace perilla
     void* WorkerThread::team_shared_memory[perilla::NUM_THREAD_TEAMS];
     Barrier* WorkerThread::globalBarrier;
     Barrier* WorkerThread::localBarriers[perilla::NUM_THREAD_TEAMS];
+    Barrier* WorkerThread::localBarriers1[perilla::NUM_THREAD_TEAMS];
 
     void WorkerThread::init(){
 	WorkerThread::globalBarrier= new Barrier(perilla::NUM_THREAD_TEAMS);
 	for(int i=0; i<perilla::NUM_THREAD_TEAMS; i++) WorkerThread::localBarriers[i]= new Barrier(perilla::NUM_THREADS_PER_TEAM);
+	for(int i=0; i<perilla::NUM_THREAD_TEAMS; i++) WorkerThread::localBarriers1[i]= new Barrier(perilla::NUM_THREADS_PER_TEAM-1);
     }
 
     void WorkerThread::syncWorkers(){
@@ -23,10 +26,11 @@ namespace perilla
     }
 
     void WorkerThread::syncWorkerThreads(){
-        WorkerThread::localBarriers[perilla_wid()]->sync(perilla::NUM_THREADS_PER_TEAM-1);
+        WorkerThread::localBarriers1[perilla_wid()]->sync(perilla::NUM_THREADS_PER_TEAM-1);
     }
     void WorkerThread::syncWorkerThreads(int numthreads){
-        WorkerThread::localBarriers[perilla_wid()]->sync(numthreads);
+	assert(numthreads== perilla::NUM_THREADS_PER_TEAM-1);
+        WorkerThread::localBarriers1[perilla_wid()]->sync(numthreads);
     }
 
     void WorkerThread::syncAllThreads(){
@@ -45,11 +49,12 @@ namespace perilla
     }
 
     void WorkerThread::syncComputeWorkerThreads(){
-        WorkerThread::localBarriers[perilla_wid()]->sync(perilla::NUM_THREADS_PER_TEAM-1);
+        WorkerThread::localBarriers1[perilla_wid()]->sync(perilla::NUM_THREADS_PER_TEAM-1);
     }
 
     void WorkerThread::syncComputeWorkerThreads(int numthreads){
-        WorkerThread::localBarriers[perilla_wid()]->sync(numthreads);
+	assert(numthreads== perilla::NUM_THREADS_PER_TEAM-1);
+        WorkerThread::localBarriers1[perilla_wid()]->sync(numthreads);
     }
  
     int WorkerThread::perilla_tid(){
@@ -63,6 +68,7 @@ namespace perilla
     int WorkerThread::perilla_nWorkerThreads(){
 	return perilla::NUM_THREADS_PER_TEAM-1;
     }
+
     int WorkerThread::perilla_nWorkers(){
 	return perilla::NUM_THREAD_TEAMS;
     }
@@ -88,7 +94,7 @@ namespace perilla
 	    return false;
     }
 
-    bool WorkerThread::perilla_isMasterThread(){
+    bool WorkerThread::perilla_isMasterThread(){ //pick the first one among master worker threads
 	return perilla_tid()==1;
     }
 
@@ -114,3 +120,4 @@ namespace perilla
 	return team_shared_memory[tg];
     }
 }//end namepsace
+#endif

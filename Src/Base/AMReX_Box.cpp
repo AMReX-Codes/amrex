@@ -337,35 +337,6 @@ adjCell (const Box&  b,
     return Box(low,hi,typ);
 }
 
-Vector<int> SerializeBox(const Box &b)
-{
-  int count(0);
-  Vector<int> retArray(AMREX_SPACEDIM * 3);
-  for(int i(0); i < AMREX_SPACEDIM; ++i) {
-    retArray[count] = b.smallEnd(i);
-    ++count;
-  }
-  for(int i(0); i < AMREX_SPACEDIM; ++i) {
-    retArray[count] = b.bigEnd(i);
-    ++count;
-  }
-  IntVect ivType(b.type());
-  for(int i(0); i < AMREX_SPACEDIM; ++i) {
-    retArray[count] = ivType[i];
-    ++count;
-  }
-  return retArray;
-}
-
-Box UnSerializeBox(const Vector<int> &serarray)
-{
-  BL_ASSERT(serarray.size() == (3 * AMREX_SPACEDIM));
-  const int *iptr = serarray.dataPtr();
-  return Box(IntVect(iptr),
-             IntVect(iptr + AMREX_SPACEDIM),
-	     IndexType(IntVect(iptr + (2 * AMREX_SPACEDIM))));
-}
-
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
