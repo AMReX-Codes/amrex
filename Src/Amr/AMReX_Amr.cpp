@@ -2422,8 +2422,10 @@ Amr::coarseTimeStep (Real stop_time)
       last_plotfile   = level_steps[0];
     }
 
-    if (to_checkpoint && write_plotfile_with_checkpoint)
+    if (to_checkpoint && write_plotfile_with_checkpoint) {
       to_plot = 1;
+      to_small_plot = 1;
+    }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)
