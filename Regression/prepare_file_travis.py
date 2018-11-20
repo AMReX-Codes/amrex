@@ -11,9 +11,7 @@ arch = os.environ.get('WARPX_TEST_ARCH', 'CPU')
 
 # Find the directory in which the tests should be run
 current_dir = os.getcwd()
-print(current_dir)
 test_dir = re.sub('warpx/Regression', '', current_dir )
-print(test_dir)
 
 with open('WarpX-tests.ini') as f:
     text = f.read()
@@ -28,7 +26,8 @@ text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
 # Change compile options when running on GPU
 if arch == 'GPU':
     text = re.sub( 'addToCompileString =',
-                    'addToCompileString = USE_GPU=TRUE COMP=pgi USE_OMP=FALSE', text)
+                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE', text)
+    text = re.sub( 'COMP\s*=.*', 'COMP = pgi', text )
 print('Compiling for %s' %arch)
 
 # Use only 2 cores for compiling
