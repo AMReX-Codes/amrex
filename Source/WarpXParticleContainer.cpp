@@ -74,7 +74,11 @@ WarpXParticleContainer::ReadParameters ()
     {
 	ParmParse pp("particles");
 
-        do_tiling = true;  // because the default in amrex is false
+#ifdef AMREX_USE_GPU
+        do_tiling = false; // By default, tiling is off on GPU
+#else
+        do_tiling = true;
+#endif
 	pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
 
