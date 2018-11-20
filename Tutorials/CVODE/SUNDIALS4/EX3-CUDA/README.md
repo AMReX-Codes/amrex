@@ -16,9 +16,13 @@ To run, do `main3d.gnu.ex inputs`
 # Building with CUDA
 
 To build the example with CUDA CVODE, use the PGI compiler and do
-`make COMP=PGI USE_CUDA=TRUE`. I've tested this with CUDA 9.
+`make USE_CUDA=TRUE USE_CUDA_CVODE=TRUE USE_CVODE_CUSOLVER=TRUE COMP=PGI`.
 
-# Testing on Groot
+I've tested this with CUDA 9.2 and 10.0. In conjunction with CUDA 10.0
+I used the PGI 18.10 compiler. You'll also need to define `CUDA_HOME`
+to point to the location of the CUDA installation.
+
+# Testing on Groot with CUDA 9.2
 
 Groot has a Xeon 5115 CPU and a NVIDIA GTX 1060 GPU. Here is the
 fcompare output for the plotfiles produced by the serial CPU CVODE and
