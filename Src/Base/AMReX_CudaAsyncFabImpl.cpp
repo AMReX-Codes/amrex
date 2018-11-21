@@ -112,9 +112,6 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& /*a_fab*/, Box const& bx, int ncomp)
 
 AsyncFabImpl::~AsyncFabImpl ()
 {
-    if (m_pinned_fab_data) {
-        The_Pinned_Arena()->free(m_pinned_fab_data);
-    }
     std::lock_guard<std::mutex> guard(asyncfab_mutex);
     auto& fabstack = get_stack();
     fabstack.push_back(std::move(m_gpu_fab));
@@ -135,10 +132,7 @@ AsyncFabImpl::copy_htod ()
     {
         m_cpu_fab_data = m_cpu_fab;
         m_cpu_fab_data.setOwner(false);
-        const std::size_t sz = sizeof(BaseFabData<Real>);
-        m_pinned_fab_data = The_Pinned_Arena()->alloc(sz);
-        std::memcpy(m_pinned_fab_data, &m_cpu_fab_data, sz);
-        AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(dest, m_pinned_fab_data, sz,
+        AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(dest, &m_cpu_fab_data, sizeof(BaseFabData<Real>),
                                             cudaMemcpyHostToDevice, Device::cudaStream()));
     }
     else
