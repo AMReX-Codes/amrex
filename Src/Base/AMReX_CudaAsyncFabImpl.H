@@ -29,7 +29,6 @@ private:
 #ifdef AMREX_USE_CUDA
     std::unique_ptr<FArrayBox> m_gpu_fab;
     BaseFabData<Real>          m_cpu_fab_data;
-    void*                      m_pinned_fab_data = nullptr;
 #else
     FArrayBox*                 m_cpu_fab_alias = nullptr;
 #endif
