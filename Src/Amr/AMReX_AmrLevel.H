@@ -777,7 +777,7 @@ class AsyncFillPatchIterator
                             int iter);
 
     void initFillPatch(int boxGrow,
-                       int time,
+                       Real time,
                        int index,
                        int scomp,
                        int ncomp,
@@ -957,7 +957,7 @@ class AsyncFillPatchIterator
                                 int f,
                                 bool singleT);
 
-    ~AsyncFillPatchIterator (){};
+    ~AsyncFillPatchIterator ();
 
     FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
 
@@ -1013,6 +1013,10 @@ public:
   //PArray<MultiFab>                  raii;
     MultiFab*                         dmf;
     MultiFab*                         dmff;
+    std::list<RegionGraph*>           regionList;
+    std::list<MultiFab*>              mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
+
 
 
     void completeRegionGraphs()
