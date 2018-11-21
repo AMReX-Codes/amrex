@@ -21,8 +21,9 @@ initdata(const int level, const Real time,
     const Real* AMREX_RESTRICT dx      = geom.CellSize();
 
     const Real gamma = 1.4;
-
-//#pragma omp parallel for collapse(2)
+#ifdef _OPENMP
+#pragma omp parallel for collapse(2)
+#endif
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             Real z = prob_lo[2] + (k+0.5) * dx[2];
