@@ -26,7 +26,7 @@ text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
 # Change compile options when running on GPU
 if arch == 'GPU':
     text = re.sub( 'addToCompileString =',
-                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE', text)
+                    'addToCompileString = USE_GPU=TRUE USE_OMP=FALSE USE_ACC=TRUE', text)
     text = re.sub( 'COMP\s*=.*', 'COMP = pgi', text )
 print('Compiling for %s' %arch)
 
