@@ -344,24 +344,38 @@ CNS::estTimeStep ()
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
 
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(min:estdt)
-#endif
+    LayoutData<Gpu::GridSize> gs;
+    int ntotblocks;
+    Gpu::getGridSize(S,0,gs,ntotblocks);
+
+    Gpu::DeviceVector<Real> tmin_block(ntotblocks);
+
+    for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
-        Gpu::DeviceScalar<Real> dt(std::numeric_limits<Real>::max());
-        Real* p_dt = dt.dataPtr();
-        for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& box = mfi.tilebox();
-            const FArrayBox* sfab = &(S[mfi]);
-            AMREX_LAUNCH_DEVICE_LAMBDA ( box, tbox,
-            {
-                Real local_tmin = cns_estdt(tbox, *sfab, dx);
-                Gpu::Atomic::Min(p_dt, local_tmin);
-            });
-        }
-        estdt = std::min(estdt,dt.dataValue());
+        const Box& bx = mfi.validbox();
+        FArrayBox const* fab = &(S[mfi]);
+
+        const auto& grid_size = gs[mfi];
+        const int global_bid_begin = grid_size.globalBlockId;
+        Real* pblock = tmin_block.dataPtr() + global_bid_begin;
+
+        amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+            grid_size.numThreads*sizeof(Real), Gpu::Device::cudaStream()>>>(
+        [=] AMREX_GPU_DEVICE () {
+            extern __shared__ Real sdata[];
+            Real tmin = std::numeric_limits<Real>::max();
+            for (auto const& tbx : Gpu::Range(bx)) {
+                Real local_tmin = cns_estdt(tbx, *fab, dx);
+                tmin = amrex::min(tmin, local_tmin);
+            }
+            sdata[threadIdx.x] = tmin;
+            __syncthreads();
+            
+            Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+        });
     }
+
+    estdt = *(thrust::min_element(tmin_block.begin(), tmin_block.end()));
 
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
