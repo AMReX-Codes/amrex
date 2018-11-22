@@ -36,6 +36,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_LayoutData.H>
 
 #include <AMReX_Gpu.H>
 
@@ -367,6 +368,22 @@ public:
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
+
+    template <class F, class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    value_type reduceSum (int nghost, F f) const;
+
+    template <class F, class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    value_type reduceMin (int nghost, F f) const;
+
+    template <class F, class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    value_type reduceMax (int nghost, F f) const;
+
+    template <class F, class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    bool reduceAnd (int nghost, F f) const;
+
+    template <class F, class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    bool reduceOr (int nghost, F f) const;
+
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy
@@ -1340,6 +1357,150 @@ FabArray<FAB>::setDomainBndry (value_type val,
             get(fai).setComplement(val, domain_box, strt_comp, ncomp);
         }
     }
+}
+
+
+template <class FAB>
+template <class F, class FOO>
+FabArray<FAB>::value_type
+FabArray<FAB>::reduceSum (int nghost, F f) const
+{
+    value_type sm = 0;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        LayoutData<Gpu::GridSize> gs;
+        int ntotblocks;
+        Gpu::getGridSize(*this,0,gs,ntotblocks);
+
+        Gpu::DeviceVector<value_type> sum_block(ntotblocks);
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            FAB const* fab = &(get(mfi));
+
+            const auto& grid_size = gs[mfi];
+            const int global_bid_begin = grid_size.globalBlockId;
+            value_type* pblock = sum_block.dataPtr() + global_bid_begin;
+
+            amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+                grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
+            [=] AMREX_GPU_DEVICE () {
+                extern __shared__ value_type sdata[];
+                value_type tsum = 0.0;
+                for (auto const& tbx : Gpu::Range(bx)) {
+                    tsum += f(*fab,tbx);
+                }
+                sdata[threadIdx.x] = tsum;
+                __syncthreads();
+
+                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+            });
+        }
+
+        sm = thrust::reduce(sum_block.begin(), sum_block.end(), 0.0, thrust::plus<value_type>());
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp parallel if (!system::regtest_reduction) reduction(+:sm)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            sm += f(get(mfi),bx);
+        }
+    }
+
+    return sm;
+}
+
+template <class FAB>
+template <class F, class FOO>
+FabArray<FAB>::value_type
+FabArray<FAB>::reduceMin (int nghost, F f) const
+{
+    value_type r = std::numeric_limits<value_type>::max();
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        LayoutData<Gpu::GridSize> gs;
+        int ntotblocks;
+        Gpu::getGridSize(*this,0,gs,ntotblocks);
+
+        Gpu::DeviceVector<value_type> tmin_block(ntotblocks);
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            FArrayBox const* fab = &(get(mfi));
+
+            const auto& grid_size = gs[mfi];
+            const int global_bid_begin = grid_size.globalBlockId;
+            value_type* pblock = tmin_block.dataPtr() + global_bid_begin;
+
+            amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+                grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
+            [=] AMREX_GPU_DEVICE () {
+                extern __shared__ value_type sdata[];
+                value_type tmin = std::numeric_limits<value_type>::max();
+                for (auto const& tbx : Gpu::Range(bx)) {
+                    value_type local_tmin = f(*fab, bx);
+                    tmin = amrex::min(tmin, local_tmin);
+                }
+                sdata[threadIdx.x] = tmin;
+                __syncthreads();
+
+                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+            });
+        }
+
+        r = *(thrust::min_element(tmin_block.begin(), tmin_block.end()));
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp paralle reduction(min:r)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            r = std::min(r,f(get(mfi),bx));
+        }
+    }
+
+    return r;
+}
+
+template <class FAB>
+template <class F, class FOO>
+FabArray<FAB>::value_type
+FabArray<FAB>::reduceMax (int nghost, F f) const
+{
+    value_type r = std::numeric_limits<value_type>::lowest();
+
+    return r;
+}
+
+template <class FAB>
+template <class F, class FOO>
+bool
+FabArray<FAB>::reduceAnd (int nghost, F f) const
+{
+    return true;
+}
+
+template <class FAB>
+template <class F, class FOO>
+bool
+FabArray<FAB>::reduceOr (int nghost, F f) const
+{
+    return false;
 }
 
 //
