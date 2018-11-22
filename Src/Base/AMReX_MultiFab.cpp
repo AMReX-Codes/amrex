@@ -11,7 +11,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_LayoutData.H>
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
