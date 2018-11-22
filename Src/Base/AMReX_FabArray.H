@@ -1362,7 +1362,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
 
 template <class FAB>
 template <class F, class FOO>
-FabArray<FAB>::value_type
+typename FabArray<FAB>::value_type
 FabArray<FAB>::reduceSum (int nghost, F f) const
 {
     value_type sm = 0;
@@ -1420,7 +1420,7 @@ FabArray<FAB>::reduceSum (int nghost, F f) const
 
 template <class FAB>
 template <class F, class FOO>
-FabArray<FAB>::value_type
+typename FabArray<FAB>::value_type
 FabArray<FAB>::reduceMin (int nghost, F f) const
 {
     value_type r = std::numeric_limits<value_type>::max();
@@ -1479,7 +1479,7 @@ FabArray<FAB>::reduceMin (int nghost, F f) const
 
 template <class FAB>
 template <class F, class FOO>
-FabArray<FAB>::value_type
+typename FabArray<FAB>::value_type
 FabArray<FAB>::reduceMax (int nghost, F f) const
 {
     value_type r = std::numeric_limits<value_type>::lowest();
