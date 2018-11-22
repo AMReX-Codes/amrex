@@ -1449,13 +1449,13 @@ FabArray<FAB>::reduceMin (int nghost, F f) const
                 extern __shared__ value_type sdata[];
                 value_type tmin = std::numeric_limits<value_type>::max();
                 for (auto const& tbx : Gpu::Range(bx)) {
-                    value_type local_tmin = f(*fab, bx);
+                    value_type local_tmin = f(*fab, tbx);
                     tmin = amrex::min(tmin, local_tmin);
                 }
                 sdata[threadIdx.x] = tmin;
                 __syncthreads();
 
-                Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+                Gpu::blockReduceMin<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
             });
         }
 
@@ -1484,6 +1484,55 @@ FabArray<FAB>::reduceMax (int nghost, F f) const
 {
     value_type r = std::numeric_limits<value_type>::lowest();
 
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        LayoutData<Gpu::GridSize> gs;
+        int ntotblocks;
+        Gpu::getGridSize(*this,0,gs,ntotblocks);
+
+        Gpu::DeviceVector<value_type> tmax_block(ntotblocks);
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            FArrayBox const* fab = &(get(mfi));
+
+            const auto& grid_size = gs[mfi];
+            const int global_bid_begin = grid_size.globalBlockId;
+            value_type* pblock = tmax_block.dataPtr() + global_bid_begin;
+
+            amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+                grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
+            [=] AMREX_GPU_DEVICE () {
+                extern __shared__ value_type sdata[];
+                value_type tmax = std::numeric_limits<value_type>::lowest();
+                for (auto const& tbx : Gpu::Range(bx)) {
+                    value_type local_tmax = f(*fab, tbx);
+                    tmax = amrex::max(tmax, local_tmax);
+                }
+                sdata[threadIdx.x] = tmax;
+                __syncthreads();
+
+                Gpu::blockReduceMax<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+            });
+        }
+
+        r = *(thrust::max_element(tmax_block.begin(), tmax_block.end()));
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp paralle reduction(max:r)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            r = std::max(r,f(get(mfi),bx));
+        }
+    }
+
     return r;
 }
 
@@ -1492,7 +1541,57 @@ template <class F, class FOO>
 bool
 FabArray<FAB>::reduceAnd (int nghost, F f) const
 {
-    return true;
+    bool r = true;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        LayoutData<Gpu::GridSize> gs;
+        int ntotblocks;
+        Gpu::getGridSize(*this,0,gs,ntotblocks);
+
+        Gpu::DeviceVector<char> tr_block(ntotblocks);
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            FArrayBox const* fab = &(get(mfi));
+
+            const auto& grid_size = gs[mfi];
+            const int global_bid_begin = grid_size.globalBlockId;
+            char* pblock = tr_block.dataPtr() + global_bid_begin;
+
+            amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+                grid_size.numThreads*sizeof(char), Gpu::Device::cudaStream()>>>(
+            [=] AMREX_GPU_DEVICE () {
+                extern __shared__ char sdata[];
+                bool tr = true;
+                for (auto const& tbx : Gpu::Range(bx)) {
+                    tr = tr && f(*fab, tbx);
+                }
+                sdata[threadIdx.x] = tr;
+                __syncthreads();
+
+                Gpu::blockReduceAnd<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+            });
+        }
+
+        r = thrust::reduce(tr_block.begin(), tr_block.end(), true, thrust::logical_and<char>());
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp paralle reduction(&&:r)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            r = r && f(get(mfi),bx);
+        }
+    }
+
+    return r;
 }
 
 template <class FAB>
@@ -1500,7 +1599,57 @@ template <class F, class FOO>
 bool
 FabArray<FAB>::reduceOr (int nghost, F f) const
 {
-    return false;
+    bool r = false;
+
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion())
+    {
+        LayoutData<Gpu::GridSize> gs;
+        int ntotblocks;
+        Gpu::getGridSize(*this,0,gs,ntotblocks);
+
+        Gpu::DeviceVector<char> tr_block(ntotblocks);
+
+        for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = amrex::grow(mfi.validbox(),nghost);
+            FArrayBox const* fab = &(get(mfi));
+
+            const auto& grid_size = gs[mfi];
+            const int global_bid_begin = grid_size.globalBlockId;
+            char* pblock = tr_block.dataPtr() + global_bid_begin;
+
+            amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
+                grid_size.numThreads*sizeof(char), Gpu::Device::cudaStream()>>>(
+            [=] AMREX_GPU_DEVICE () {
+                extern __shared__ char sdata[];
+                bool tr = false;
+                for (auto const& tbx : Gpu::Range(bx)) {
+                    tr = tr || f(*fab, tbx);
+                }
+                sdata[threadIdx.x] = tr;
+                __syncthreads();
+
+                Gpu::blockReduceOr<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
+            });
+        }
+
+        r = thrust::reduce(tr_block.begin(), tr_block.end(), false, thrust::logical_or<char>());
+    }
+    else
+#endif
+    {
+#ifdef _OPENMP
+#pragma omp paralle reduction(||:r)
+#endif
+        for (MFIter mfi(*this,true); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(nghost);
+            r = r || f(get(mfi),bx);
+        }
+    }
+
+    return r;
 }
 
 //
