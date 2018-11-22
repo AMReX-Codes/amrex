@@ -339,43 +339,14 @@ CNS::estTimeStep ()
 {
     BL_PROFILE("CNS::estTimeStep()");
 
-    Real estdt = std::numeric_limits<Real>::max();
-
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
 
-    LayoutData<Gpu::GridSize> gs;
-    int ntotblocks;
-    Gpu::getGridSize(S,0,gs,ntotblocks);
-
-    Gpu::DeviceVector<Real> tmin_block(ntotblocks);
-
-    for (MFIter mfi(S); mfi.isValid(); ++mfi)
+    Real estdt = S.reduceMin(0, // 0 ghost cells
+    [=] AMREX_GPU_HOST_DEVICE (FArrayBox const& fab, Box const& bx) -> Real
     {
-        const Box& bx = mfi.validbox();
-        FArrayBox const* fab = &(S[mfi]);
-
-        const auto& grid_size = gs[mfi];
-        const int global_bid_begin = grid_size.globalBlockId;
-        Real* pblock = tmin_block.dataPtr() + global_bid_begin;
-
-        amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
-            grid_size.numThreads*sizeof(Real), Gpu::Device::cudaStream()>>>(
-        [=] AMREX_GPU_DEVICE () {
-            extern __shared__ Real sdata[];
-            Real tmin = std::numeric_limits<Real>::max();
-            for (auto const& tbx : Gpu::Range(bx)) {
-                Real local_tmin = cns_estdt(tbx, *fab, dx);
-                tmin = amrex::min(tmin, local_tmin);
-            }
-            sdata[threadIdx.x] = tmin;
-            __syncthreads();
-            
-            Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *(pblock+blockIdx.x));
-        });
-    }
-
-    estdt = *(thrust::min_element(tmin_block.begin(), tmin_block.end()));
+        return cns_estdt(bx, fab, dx);
+    });
 
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
