@@ -1518,8 +1518,6 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 Real
 MultiFab::sum (int comp, bool local) const
 {
-    // TODO GPU -- CHECK
-
     Real sm = 0.e0;
 
 #ifdef AMREX_USE_GPU
@@ -1538,7 +1536,7 @@ MultiFab::sum (int comp, bool local) const
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
-            Real* pblock = sum_block.data().get() + global_bid_begin;
+            Real* pblock = sum_block.dataPtr() + global_bid_begin;
 
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
                 grid_size.numThreads*sizeof(Real), Gpu::Device::cudaStream()>>>(
