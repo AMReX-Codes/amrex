@@ -5,6 +5,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_FabArrayUtility.H>
 #include <AMReX_Geometry.H>
 
 namespace amrex {
