@@ -37,7 +37,9 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
                 grid_size.numThreads*sizeof(value_type),
                 Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tsum = 0.0;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab);
@@ -99,7 +101,9 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 grid_size.numThreads*sizeof(value_type),
                 Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tsum = 0.0;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab1, *fab2);
@@ -162,7 +166,9 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 grid_size.numThreads*sizeof(value_type),
                 Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tsum = 0.0;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab1, *fab2, *fab3);
@@ -221,7 +227,9 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
                 grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tmin = std::numeric_limits<value_type>::max();
                 for (auto const& tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab);
@@ -282,7 +290,9 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
                 grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tmin = std::numeric_limits<value_type>::max();
                 for (auto const& tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab1, *fab2);
@@ -342,7 +352,9 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
                 grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tmax = std::numeric_limits<value_type>::lowest();
                 for (auto const& tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab);
@@ -403,7 +415,9 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
                 grid_size.numThreads*sizeof(value_type), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ value_type sdata[];
+                Gpu::SharedMemory<value_type> gsm;
+                value_type* sdata = gsm.dataPtr();
+
                 value_type tmax = std::numeric_limits<value_type>::lowest();
                 for (auto const& tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab1, *fab2);
@@ -448,7 +462,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
         int ntotblocks;
         Gpu::getGridSize(fa,0,gs,ntotblocks);
 
-        Gpu::DeviceVector<char> tr_block(ntotblocks);
+        Gpu::DeviceVector<unsigned char> tr_block(ntotblocks);
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
@@ -457,12 +471,14 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
-            char* pblock = tr_block.dataPtr() + global_bid_begin;
+            unsigned char* pblock = tr_block.dataPtr() + global_bid_begin;
 
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
-                grid_size.numThreads*sizeof(char), Gpu::Device::cudaStream()>>>(
+                grid_size.numThreads*sizeof(unsigned char), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ char sdata[];
+                Gpu::SharedMemory<unsigned char> gsm;
+                unsigned char* sdata = gsm.dataPtr();
+
                 bool tr = true;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tr = tr && f(tbx, *fab);
@@ -474,7 +490,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        r = thrust::reduce(tr_block.begin(), tr_block.end(), true, thrust::logical_and<char>());
+        r = thrust::reduce(tr_block.begin(), tr_block.end(), true, thrust::logical_and<unsigned char>());
     }
     else
 #endif
@@ -507,7 +523,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         int ntotblocks;
         Gpu::getGridSize(fa1,0,gs,ntotblocks);
 
-        Gpu::DeviceVector<char> tr_block(ntotblocks);
+        Gpu::DeviceVector<unsigned char> tr_block(ntotblocks);
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -517,12 +533,14 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
-            char* pblock = tr_block.dataPtr() + global_bid_begin;
+            unsigned char* pblock = tr_block.dataPtr() + global_bid_begin;
 
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
-                grid_size.numThreads*sizeof(char), Gpu::Device::cudaStream()>>>(
+                grid_size.numThreads*sizeof(unsigned char), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ char sdata[];
+                Gpu::SharedMemory<unsigned char> gsm;
+                unsigned char* sdata = gsm.dataPtr();
+
                 bool tr = true;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tr = tr && f(tbx, *fab1, *fab2);
@@ -534,7 +552,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        r = thrust::reduce(tr_block.begin(), tr_block.end(), true, thrust::logical_and<char>());
+        r = thrust::reduce(tr_block.begin(), tr_block.end(), true, thrust::logical_and<unsigned char>());
     }
     else
 #endif
@@ -566,7 +584,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
         int ntotblocks;
         Gpu::getGridSize(fa,0,gs,ntotblocks);
 
-        Gpu::DeviceVector<char> tr_block(ntotblocks);
+        Gpu::DeviceVector<unsigned char> tr_block(ntotblocks);
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
@@ -575,12 +593,14 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
-            char* pblock = tr_block.dataPtr() + global_bid_begin;
+            unsigned char* pblock = tr_block.dataPtr() + global_bid_begin;
 
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
-                grid_size.numThreads*sizeof(char), Gpu::Device::cudaStream()>>>(
+                grid_size.numThreads*sizeof(unsigned char), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ char sdata[];
+                Gpu::SharedMemory<unsigned char> gsm;
+                unsigned char* sdata = gsm.dataPtr();
+
                 bool tr = false;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tr = tr || f(tbx, *fab);
@@ -592,7 +612,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
             });
         }
 
-        r = thrust::reduce(tr_block.begin(), tr_block.end(), false, thrust::logical_or<char>());
+        r = thrust::reduce(tr_block.begin(), tr_block.end(), false, thrust::logical_or<unsigned char>());
     }
     else
 #endif
@@ -625,7 +645,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         int ntotblocks;
         Gpu::getGridSize(fa1,0,gs,ntotblocks);
 
-        Gpu::DeviceVector<char> tr_block(ntotblocks);
+        Gpu::DeviceVector<unsigned char> tr_block(ntotblocks);
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
@@ -635,12 +655,14 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
-            char* pblock = tr_block.dataPtr() + global_bid_begin;
+            unsigned char* pblock = tr_block.dataPtr() + global_bid_begin;
 
             amrex::launch_global<<<grid_size.numBlocks, grid_size.numThreads,
-                grid_size.numThreads*sizeof(char), Gpu::Device::cudaStream()>>>(
+                grid_size.numThreads*sizeof(unsigned char), Gpu::Device::cudaStream()>>>(
             [=] AMREX_GPU_DEVICE () {
-                extern __shared__ char sdata[];
+                Gpu::SharedMemory<unsigned char> gsm;
+                unsigned char* sdata = gsm.dataPtr();
+
                 bool tr = false;
                 for (auto const& tbx : Gpu::Range(bx)) {
                     tr = tr || f(tbx, *fab1, *fab2);
@@ -652,7 +674,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
             });
         }
 
-        r = thrust::reduce(tr_block.begin(), tr_block.end(), false, thrust::logical_or<char>());
+        r = thrust::reduce(tr_block.begin(), tr_block.end(), false, thrust::logical_or<unsigned char>());
     }
     else
 #endif
