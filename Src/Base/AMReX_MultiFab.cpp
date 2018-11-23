@@ -1517,8 +1517,8 @@ MultiFab::norm1 (const Vector<int>& comps, int ngrow, bool local) const
 Real
 MultiFab::sum (int comp, bool local) const
 {
-    // 0 ghost cells, 0.0 is initial value
-    Real sm = amrex::reduceSum(*this, 0, 0.0,
+    // 0 ghost cells
+    Real sm = amrex::ReduceSum(*this, 0,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
     {
         return fab.sum(bx,comp,1);

@@ -3,17 +3,17 @@
 
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
+#include <limits>
 
 namespace amrex {
 
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-reduceSum (FabArray<FAB> const& fa, int nghost,
-           typename FAB::value_type init, F f)
+ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type sm = init;
+    value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -70,11 +70,11 @@ reduceSum (FabArray<FAB> const& fa, int nghost,
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-reduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost,
-           typename FAB1::value_type init, F f)
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+           int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type sm = init;
+    value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -132,11 +132,11 @@ reduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost,
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-reduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
-           int nghost, typename FAB1::value_type init, F f)
+ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
+           int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type sm = init;
+    value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -195,11 +195,10 @@ reduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-reduceMin (FabArray<FAB> const& fa, int nghost,
-           typename FAB::value_type init, F f)
+ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type r = init;
+    value_type r = std::numeric_limits<value_type>::max();
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -213,7 +212,7 @@ reduceMin (FabArray<FAB> const& fa, int nghost,
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab = &(fa[mfi]);
+            FAB const* fab = &(fa[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -241,7 +240,7 @@ reduceMin (FabArray<FAB> const& fa, int nghost,
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(min:r)
+#pragma omp parallel reduction(min:r)
 #endif
         for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
         {
@@ -256,11 +255,10 @@ reduceMin (FabArray<FAB> const& fa, int nghost,
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-reduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost,
-           typename FAB1::value_type init, F f)
+ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type r = init;
+    value_type r = std::numeric_limits<value_type>::max();
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -274,8 +272,8 @@ reduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab1 = &(fa1[mfi]);
-            FArrayBox const* fab2 = &(fa2[mfi]);
+            FAB1 const* fab1 = &(fa1[mfi]);
+            FAB2 const* fab2 = &(fa2[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -303,7 +301,7 @@ reduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost,
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(min:r)
+#pragma omp parallel reduction(min:r)
 #endif
         for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
         {
@@ -318,11 +316,10 @@ reduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost,
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 typename FAB::value_type
-reduceMax (FabArray<FAB> const& fa, int nghost,
-           typename FAB::value_type init, F f)
+ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type r = init;
+    value_type r = std::numeric_limits<value_type>::lowest();
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -336,7 +333,7 @@ reduceMax (FabArray<FAB> const& fa, int nghost,
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab = &(fa[mfi]);
+            FAB const* fab = &(fa[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -364,12 +361,12 @@ reduceMax (FabArray<FAB> const& fa, int nghost,
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(max:r)
+#pragma omp parallel reduction(max:r)
 #endif
         for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(nghost);
-            r = std::max(r, f(fa[mfi],bx));
+            r = std::max(r, f(bx, fa[mfi]));
         }
     }
 
@@ -379,11 +376,10 @@ reduceMax (FabArray<FAB> const& fa, int nghost,
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 typename FAB1::value_type
-reduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
-           int nghost, typename FAB1::value_type init, F f)
+ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type r = init;
+    value_type r = std::numeric_limits<value_type>::lowest();
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -397,8 +393,8 @@ reduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab1 = &(fa1[mfi]);
-            FArrayBox const* fab2 = &(fa2[mfi]);
+            FAB1 const* fab1 = &(fa1[mfi]);
+            FAB2 const* fab2 = &(fa2[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -426,7 +422,7 @@ reduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(max:r)
+#pragma omp parallel reduction(max:r)
 #endif
         for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
         {
@@ -441,7 +437,7 @@ reduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 bool
-reduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
+ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 {
     bool r = true;
 
@@ -457,7 +453,7 @@ reduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab = &(fa[mfi]);
+            FAB const* fab = &(fa[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -484,7 +480,7 @@ reduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(&&:r)
+#pragma omp parallel reduction(&&:r)
 #endif
         for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
         {
@@ -499,7 +495,7 @@ reduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 bool
-reduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   int nghost, F f)
 {
     bool r = true;
@@ -516,8 +512,8 @@ reduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab1 = &(fa1[mfi]);
-            FArrayBox const* fab2 = &(fa2[mfi]);
+            FAB1 const* fab1 = &(fa1[mfi]);
+            FAB2 const* fab2 = &(fa2[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -544,7 +540,7 @@ reduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(&&:r)
+#pragma omp parallel reduction(&&:r)
 #endif
         for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
         {
@@ -559,7 +555,7 @@ reduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 template <class FAB, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
 bool
-reduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
+ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 {
     bool r = false;
 
@@ -575,7 +571,7 @@ reduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab = &(fa[mfi]);
+            FAB const* fab = &(fa[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -602,7 +598,7 @@ reduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(||:r)
+#pragma omp parallel reduction(||:r)
 #endif
         for (MFIter mfi(fa,true); mfi.isValid(); ++mfi)
         {
@@ -617,7 +613,7 @@ reduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 template <class FAB1, class FAB2, class F,
           class bar = amrex::EnableIf_t<IsBaseFab<FAB1>::value> >
 bool
-reduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
+ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  int nghost, F f)
 {
     bool r = false;
@@ -634,8 +630,8 @@ reduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
         {
             const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            FArrayBox const* fab1 = &(fa1[mfi]);
-            FArrayBox const* fab2 = &(fa2[mfi]);
+            FAB1 const* fab1 = &(fa1[mfi]);
+            FAB2 const* fab2 = &(fa2[mfi]);
 
             const auto& grid_size = gs[mfi];
             const int global_bid_begin = grid_size.globalBlockId;
@@ -662,7 +658,7 @@ reduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #endif
     {
 #ifdef _OPENMP
-#pragma omp paralle reduction(||:r)
+#pragma omp parallel reduction(||:r)
 #endif
         for (MFIter mfi(fa1,true); mfi.isValid(); ++mfi)
         {
