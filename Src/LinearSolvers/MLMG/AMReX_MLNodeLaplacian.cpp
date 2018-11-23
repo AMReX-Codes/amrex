@@ -36,11 +36,7 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const LPInfo& a_info,
                                   const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
-    Vector<FabFactory<FArrayBox> const*> _factory;
-    for (auto x : a_factory) {
-        _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
-    }
-    define(a_geom, a_grids, a_dmap, a_info, _factory);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 #endif
 
