@@ -1219,6 +1219,23 @@ void AllGatherBoxes (Vector<Box>& bxs);
                 box.bigend[2]-box.smallend[2]+1};
 #endif
     }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    IntVect getCell (Box const* boxes, int nboxes, long icell)
+    {
+        int ibox;
+        long ncells_subtotal = 0;
+        long offset = 0;
+        for (ibox = 0; ibox < nboxes; ++ibox) {
+            const long n = boxes[ibox].numPts();
+            ncells_subtotal += n;
+            if (icell < ncells_subtotal) {
+                offset = icell - (ncells_subtotal - n);
+                break;
+            }
+        }
+        return boxes[ibox].atOffset(offset);
+    }
 }
 
 #endif /*BL_BOX_H*/
