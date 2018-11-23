@@ -1,6 +1,10 @@
 #ifndef AMREX_GPU_CONTROL_H_
 #define AMREX_GPU_CONTROL_H_
 
+#ifndef AMREX_CUDA_MAX_THREADS
+#define AMREX_CUDA_MAX_THREADS 256
+#endif
+
 namespace amrex {
 namespace Cuda {
 
