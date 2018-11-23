@@ -342,8 +342,8 @@ CNS::estTimeStep ()
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
 
-    Real estdt = S.reduceMin(0, // 0 ghost cells
-    [=] AMREX_GPU_HOST_DEVICE (FArrayBox const& fab, Box const& bx) -> Real
+    Real estdt = amrex::reduceMin(S, 0, std::numeric_limits<Real>::max(),
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
     {
         return cns_estdt(bx, fab, dx);
     });

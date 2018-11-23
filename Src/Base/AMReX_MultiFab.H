@@ -8,6 +8,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
 
 namespace amrex
