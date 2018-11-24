@@ -142,11 +142,20 @@ int main (int argc, char * argv[]) {
         DistributionMapping dmap(grids, ParallelDescriptor::NProcs());
 
 
-        RealArray center{10., 10., 10.};
+        RealArray center{30., 30., 30.};
         EB2::TorusIF donut(10, 5, center, false);
 
         auto gshop = EB2::makeShop(donut);
         EB2::Build(gshop, geom, max_lev, max_lev);
+
+        const EB2::IndexSpace & ebis      = EB2::IndexSpace::top();
+        const EB2::Level &      ebis_lev  = ebis.getLevel(geom);
+
+        int eb_grow = 1;
+        EBFArrayBoxFactory eb_factory (ebis_lev, geom, grids, dmap,
+                                       {eb_grow, eb_grow, eb_grow}, EBSupport::full);
+
+        WriteEBSurface (grids, dmap, geom, eb_factory);
     }
 
     amrex::Finalize();
