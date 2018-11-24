@@ -86,7 +86,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
 	n_error_buf[i] = 1;
         blocking_factor[i] = IntVect{AMREX_D_DECL(8,8,8)};
         max_grid_size[i] = (AMREX_SPACEDIM == 2) ? IntVect{AMREX_D_DECL(128,128,128)}
-                                              : IntVect{AMREX_D_DECL(32,32,32)};
+                                                 : IntVect{AMREX_D_DECL(32,32,32)};
     }
 
 
@@ -849,7 +849,11 @@ AmrMesh::checkInput ()
         int len = domain.length(idim);
         if (blocking_factor[0][idim] <= max_grid_size[0][idim])
            if (len%blocking_factor[0][idim] != 0)
+           {
+              amrex::Print() << "domain size in direction " << idim << " is " << len << std::endl;
+              amrex::Print() << "blocking_factor is " << blocking_factor[0][idim] << std::endl;
               amrex::Error("domain size not divisible by blocking_factor");
+           }
     }
 
     //
@@ -861,7 +865,12 @@ AmrMesh::checkInput ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
            if (blocking_factor[i][idim] <= max_grid_size[i][idim])
               if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+              {
+                 amrex::Print() << "max_grid_size in direction " << idim 
+                                << " is " << max_grid_size[i][idim] << std::endl;
+                 amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
                  amrex::Error("max_grid_size not divisible by blocking_factor");
+              }
             }
         }
     }
