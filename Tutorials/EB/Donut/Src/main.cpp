@@ -12,6 +12,9 @@
 
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IF_Torus.H>
+#include <AMReX_EB2_IF_Union.H>
+#include <AMReX_EB2_IF_Cylinder.H>
+#include <AMReX_EB2_IF_Difference.H>
 #include <AMReX_EB2_GeometryShop.H>
 
 #include "EB_F.H"
@@ -29,7 +32,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
 
-        const auto & sfab    = static_cast<EBFArrayBox const&>((mf_ba)[mfi]);
+        const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
         const auto & my_flag = sfab.getEBCellFlagFab();
 
         const Box & bx = mfi.validbox();
@@ -37,7 +40,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         if (my_flag.getType(bx) == FabType::covered or
             my_flag.getType(bx) == FabType::regular) continue;
 
-        std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac;
+        std::array<const MultiCutFab *, AMREX_SPACEDIM> areafrac;
         const MultiCutFab * bndrycent;
 
         areafrac  =   ebf.getAreaFrac();
@@ -62,16 +65,23 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
 
-        const auto& sfab = static_cast<EBFArrayBox const&>((mf_ba)[mfi]);
-        const auto& my_flag = sfab.getEBCellFlagFab();
+        const auto & sfab    = static_cast<EBFArrayBox const &>(mf_ba[mfi]);
+        const auto & my_flag = sfab.getEBCellFlagFab();
 
-        const Box& bx = mfi.validbox();
+        const Box & bx = mfi.validbox();
 
         if (my_flag.getType(bx) == FabType::covered or
             my_flag.getType(bx) == FabType::regular) continue;
 
         mfix_eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
     }
+}
+
+
+inline
+void set_tooth_pos(RealArray & tooth_pos, Real angle, Real radius, const RealArray & center) {
+    tooth_pos[0] = center[0] + radius * std::cos(angle);
+    tooth_pos[1] = center[1] + radius * std::sin(angle);
 }
 
 
@@ -142,20 +152,79 @@ int main (int argc, char * argv[]) {
         DistributionMapping dmap(grids, ParallelDescriptor::NProcs());
 
 
-        RealArray center{30., 30., 30.};
-        EB2::TorusIF donut(10, 5, center, false);
+        /************************************************************************
+         * Basic DONUT                                                          *
+         ***********************************************************************/
 
-        auto gshop = EB2::makeShop(donut);
+        RealArray donut_center{30., 30., 30.};
+        EB2::TorusIF donut(10, 5, donut_center, false);
+
+
+        /************************************************************************
+         * Bite Mark                                                            *
+         ***********************************************************************/
+
+        Real radius = 5;
+        Real tooth_radius = 1.1;
+        RealArray bite_center{15., 30., 30.};
+        EB2::CylinderIF bite_0(radius, 2, bite_center, false);
+
+        Real angle_0 = -1.45;
+        RealArray tooth_pos = bite_center;
+
+        set_tooth_pos(tooth_pos, 0 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_1(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 0.4 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_2(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 0.8 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_3(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 1.2 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_4(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 1.6 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_5(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 2.0 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_6(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 2.4 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_7(tooth_radius, 2, tooth_pos, false);
+
+        set_tooth_pos(tooth_pos, 2.8 + angle_0, radius - tooth_radius*0.6, bite_center);
+        EB2::CylinderIF tooth_8(tooth_radius, 2, tooth_pos, false);
+
+        auto bite = EB2::makeUnion(bite_0,
+                                   tooth_1, tooth_2, tooth_3, tooth_4, tooth_5,
+                                   tooth_6, tooth_7, tooth_8);
+
+
+        /************************************************************************
+         * Take a bite OUT of DONUT                                             *
+         ***********************************************************************/
+
+        auto bite_donut = EB2::makeDifference(donut, bite);
+
+
+        /************************************************************************
+         * Construct EB surface                                                 *
+         ***********************************************************************/
+
+        auto gshop = EB2::makeShop(bite_donut);
         EB2::Build(gshop, geom, max_lev, max_lev);
 
-        const EB2::IndexSpace & ebis      = EB2::IndexSpace::top();
-        const EB2::Level &      ebis_lev  = ebis.getLevel(geom);
+        const EB2::IndexSpace & ebis_donut = EB2::IndexSpace::top();
 
         int eb_grow = 1;
-        EBFArrayBoxFactory eb_factory (ebis_lev, geom, grids, dmap,
-                                       {eb_grow, eb_grow, eb_grow}, EBSupport::full);
+        EBFArrayBoxFactory ebf_donut (ebis_donut.getLevel(geom), geom, grids, dmap,
+                                      {eb_grow, eb_grow, eb_grow}, EBSupport::full);
 
-        WriteEBSurface (grids, dmap, geom, eb_factory);
+
+
+
+        WriteEBSurface (grids, dmap, geom, ebf_donut);
     }
 
     amrex::Finalize();
