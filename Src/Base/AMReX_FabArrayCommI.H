@@ -905,6 +905,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
             if (Gpu::inLaunchRegion() || !is_thread_safe)
             {
+                // gpu version or omp over dest fabs
+
                 LayoutData<Vector<CopyTag2<FAB> > > copy_tags(boxArray(),DistributionMap());
                 for (int j = 0; j < N_locs; ++j) {
                     const CopyComTag& tag = (*thecpc.m_LocTags)[j];
@@ -914,50 +916,27 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     }
                 }
 
-                if (Gpu::inLaunchRegion())
-                {
-                    // gpu version
-                    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                        FAB* dfab = &((*this)[mfi]);
-                        const auto& fab_copy_tags = copy_tags[mfi];
-                        if (op == FabArrayBase::COPY) {
-                            for (auto const& tag2 : fab_copy_tags) {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag2.dbox, dbx,
-                                {
-                                    const Box sbx = dbx + tag2.offset;
-                                    dfab->copy(*tag2.sfab, sbx, SC, dbx, DC, NC);
-                                });
-                            }
-                        } else {
-                            for (auto const& tag2 : fab_copy_tags) {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag2.dbox, dbx,
-                                {
-                                    const Box sbx = dbx + tag2.offset;
-                                    dfab->plus(*tag2.sfab, sbx, dbx, SC, DC, NC);
-                                });
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // cpu version, omp over dest boxes
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-                    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                        FAB* dfab = &((*this)[mfi]);
-                        const auto& fab_copy_tags = copy_tags[mfi];
-                        if (op == FabArrayBase::COPY) {
-                            for (auto const& tag2 : fab_copy_tags) {
-                                const Box sbx = tag2.dbox + tag2.offset;
-                                dfab->copy(*tag2.sfab, sbx, SC, tag2.dbox, DC, NC);
-                            }
-                        } else {
-                            for (auto const& tag2 : fab_copy_tags) {
-                                const Box sbx = tag2.dbox + tag2.offset;
-                                dfab->plus(*tag2.sfab, sbx, tag2.dbox, SC, DC, NC);
-                            }
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+                    FAB* dfab = &((*this)[mfi]);
+                    const auto& fab_copy_tags = copy_tags[mfi];
+                    if (op == FabArrayBase::COPY) {
+                        for (auto const& tag2 : fab_copy_tags) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag2.dbox, dbx,
+                            {
+                                const Box sbx = dbx + tag2.offset;
+                                dfab->copy(*tag2.sfab, sbx, SC, dbx, DC, NC);
+                            });
+                        }
+                    } else {
+                        for (auto const& tag2 : fab_copy_tags) {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag2.dbox, dbx,
+                            {
+                                const Box sbx = dbx + tag2.offset;
+                                dfab->plus(*tag2.sfab, sbx, dbx, SC, DC, NC);
+                            });
                         }
                     }
                 }
