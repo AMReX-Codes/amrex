@@ -154,6 +154,8 @@ private:
 #endif
 };
 
+#if AMREX_USE_CUDA
+
 template <class T>
 struct SharedMemory
 {
@@ -261,6 +263,8 @@ struct SharedMemory<bool>
         return amrex_sm_bool;
     }
 };
+
+#endif
 
 }}  //namespace
 
