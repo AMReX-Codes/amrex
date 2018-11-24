@@ -1,13 +1,13 @@
 max_lev = 0
 
 # Number of grid cells in each direction at the coarsest level
-n_cell = 40 40 40
+n_cell = 60 60 60
 
 # Maximum allowable size of each subdomain in the problem domain;
 #    this is used to decompose the domain for parallel calculations.
 max_grid_size = 8
 
 prob_lo     = 0.      0.      0.      # lo corner of physical domain
-prob_hi     = 20.000  20.000  20.000  # hi corner of physical domain
+prob_hi     = 60.000  60.000  60.000  # hi corner of physical domain
 
 is_periodic = 0       0       0       # Is periodic in each direction?
