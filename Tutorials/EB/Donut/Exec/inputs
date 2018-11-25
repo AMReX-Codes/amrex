@@ -22,8 +22,9 @@ amr.v               = 1       # verbosity in Amr
 
 # REFINEMENT
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
-amr.blocking_factor = 4       # block factor in grid generation
+amr.blocking_factor = 10      # block factor in grid generation
+amr.max_grid_size   = 30
 
 
-amr.phierr = 10 1
+amr.phierr = 1 .1
 
