@@ -43,25 +43,52 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         //
 	int N_loc = (*TheFB.m_LocTags).size();
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
-            const int i = sit();
-            const CopyComTag& tag = (*TheFB.m_LocTags)[i];
-
-            BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-            BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
-
-            const FAB* sfab = &(get(tag.srcIndex));
-                  FAB* dfab = &(get(tag.dstIndex));
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+            LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
+            for (int i = 0; i < N_loc; ++i)
             {
-                Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-                dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
-            });
+                const CopyComTag& tag = (*TheFB.m_LocTags)[i];
+
+                BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
+                BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+
+                loc_copy_tags[tag.dstIndex].push_back
+                    ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+            }
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+            {
+                const auto& tags = loc_copy_tags[mfi];
+                FAB* dfab = &((*this)[mfi]);
+                for (auto const & tag : tags)
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                    {
+                        const Box sbx = dbx + tag.offset;
+                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                    });
+                }
+            }
+        }
+        else
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int i = 0; i < N_loc; ++i)
+            {
+                const CopyComTag& tag = (*TheFB.m_LocTags)[i];
+
+                BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
+                BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
+                
+                const FAB* sfab = &(get(tag.srcIndex));
+                      FAB* dfab = &(get(tag.dstIndex));
+                dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
+            }
         }
 
         return;
@@ -242,7 +269,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
                         sfab->copyToMem(tbx, scomp, ncomp, p);
                     });
-
                     dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
                 BL_ASSERT(dptr == send_data[j] + send_size[j]); 
@@ -353,27 +379,57 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     else
     {
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
-	{
-            const int i = sit();
-	    const CopyComTag& tag = (*TheFB.m_LocTags)[i];
-
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
-	    
-	    if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
+        if (Gpu::inLaunchRegion() && !is_thread_safe)
+        {
+            LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
+            for (int i = 0; i < N_locs; ++i)
             {
-                const FAB* sfab = &(get(tag.srcIndex));
-                      FAB* dfab = &(get(tag.dstIndex));
+                const CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+                BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
+                BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
+	    
+                if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
                 {
-                    Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-                    dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
-                });
+                    loc_copy_tags[tag.dstIndex].push_back
+                        ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                }
+            }
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+            {
+                const auto& tags = loc_copy_tags[mfi];
+                FAB* dfab = &((*this)[mfi]);
+                for (auto const & tag : tags)
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                    {
+                        const Box sbx = dbx + tag.offset;
+                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                    });
+                }
+            }
+        }
+        else
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int i = 0; i < N_locs; ++i)
+            {
+                const CopyComTag& tag = (*TheFB.m_LocTags)[i];
+
+                BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
+                BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
+	    
+                if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
+                {
+                    const FAB* sfab = &(get(tag.srcIndex));
+                          FAB* dfab = &(get(tag.dstIndex));
+                    dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
+                }
 	    }
 	}
     }
@@ -401,6 +457,39 @@ FabArray<FAB>::FillBoundary_finish ()
     const int N_rcvs = TheFB.m_RcvTags->size();
     const int N_snds = TheFB.m_SndTags->size();
 
+    Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
+    LayoutData<Vector<VoidCopyTag> > recv_copy_tags;
+    if (N_rcvs > 0)
+    {
+	for (int k = 0; k < N_rcvs; k++) 
+	{
+            if (fb_recv_size[k] > 0)
+            {
+                auto const& cctc = TheFB.m_RcvTags->at(fb_recv_from[k]);
+                recv_cctc[k] = &cctc;
+            }
+	}
+        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv;
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
+        {
+            recv_copy_tags.define(boxArray(),DistributionMap());
+            for (int k = 0; k < N_rcvs; ++k)
+            {
+                const char* dptr = fb_recv_data[k];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
+                    {
+                        recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
+                        dptr += tag.dbox.numPts() * fb_ncomp * sizeof(value_type);
+                    }
+                    BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+                }
+            }
+        }
+    }
+
     int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
 
     if (ParallelDescriptor::MPIOneSided()) {
@@ -421,44 +510,50 @@ FabArray<FAB>::FillBoundary_finish ()
 
     if (N_rcvs > 0)
     {
-	Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
-
-	for (int k = 0; k < N_rcvs; k++) 
-	{
-            if (fb_recv_size[k] > 0)
-            {
-                auto const& cctc = TheFB.m_RcvTags->at(fb_recv_from[k]);
-                recv_cctc[k] = &cctc;
-            }
-	}	
-
-        bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_rcv;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
+        if (!recv_copy_tags.empty())
         {
-            const int k = sit();
-            const char* dptr = fb_recv_data[k];
-            if (dptr != nullptr)
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
-                auto const& cctc = *recv_cctc[k];
-                for (auto const& tag : cctc)
+                const auto& tags = recv_copy_tags[mfi];
+                FAB* dfab = &((*this)[mfi]);
+                const int scomp = fb_scomp;
+                const int ncomp = fb_ncomp;
+                for (auto const & tag : tags)
                 {
-                    const Box& bx  = tag.dbox;
-                    FAB* dfab = &(get(tag.dstIndex));
-                    const int scomp = fb_scomp;
-                    const int ncomp = fb_ncomp;
-
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
                     {
-                        const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                        dfab->copyFromMem(tbx, scomp, ncomp, p);
+                        const char* p = tag.p + sizeof(value_type)*ncomp
+                            * tag.dbox.index(dbx.smallEnd());
+                        dfab->copyFromMem(dbx, scomp, ncomp, p);
                     });
-                    
-                    dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
-                BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+            }
+        }
+        else
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int k = 0; k < N_rcvs; ++k)
+            {
+                const char* dptr = fb_recv_data[k];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx  = tag.dbox;
+                        FAB* dfab = &(get(tag.dstIndex));
+                        const int scomp = fb_scomp;
+                        const int ncomp = fb_ncomp;
+                        dfab->copyFromMem(bx, scomp, ncomp, dptr);
+                        dptr += bx.numPts() * ncomp * sizeof(value_type);
+                    }
+                    BL_ASSERT(dptr == fb_recv_data[k] + fb_recv_size[k]);
+                }
             }
         }
 
