@@ -76,7 +76,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int i = 0; i < N_loc; ++i)
             {
@@ -415,7 +415,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int i = 0; i < N_locs; ++i)
             {
@@ -535,7 +535,7 @@ FabArray<FAB>::FillBoundary_finish ()
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int k = 0; k < N_rcvs; ++k)
             {
@@ -699,7 +699,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int i = 0; i < N_loc; ++i)
             {
@@ -1083,7 +1083,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             {
                 // cpu version, omp over dest tile boxes
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
                 for (int j = 0; j < N_locs; ++j)
                 {
@@ -1192,7 +1192,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             else
             {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
                 for (int k = 0; k < N_rcvs; ++k)
                 {
@@ -1377,7 +1377,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int i = 0; i < N_loc; ++i)
             {
@@ -1686,7 +1686,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         {
         // cpu version, omp over dest tile boxes
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int j = 0; j < N_locs; ++j)
             {
@@ -1800,7 +1800,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
         else
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel for
 #endif
             for (int k = 0; k < N_rcvs; ++k)
             {
