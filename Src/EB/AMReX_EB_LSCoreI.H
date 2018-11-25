@@ -42,10 +42,12 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 
     // Make sure EB geometry exists (build if necessary)
     if (rebuild_eb[lev] == 1) {
-        int max_level = lev; // Important! this is needed to allow EBFactory to
-                             // be built on coarser levels (which is needed by
-                             // FillCoarsePatch)
-        EB2::Build(m_gshop, geom[lev], max_level, max_level);
+        int max_crse_level = lev; // Important! this is needed to allow
+                                  // EBFactory to be built on coarser levels
+                                  // (which is needed by FillCoarsePatch)
+        int required_crse_lev = std::max(0, lev - 1);
+        //int required_crse_lev = lev;
+        EB2::Build(m_gshop, geom[lev], required_crse_lev, max_level);
         const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
         eb_levels[lev] = & cylinder_ebis.getLevel(geom[lev]);
 
