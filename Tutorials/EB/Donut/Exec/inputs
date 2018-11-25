@@ -15,15 +15,15 @@ is_periodic = 0       0       0       # Is periodic in each direction?
 
 
 eb_amr.eb_pad     = 1
-eb_amr.max_eb_pad = 4
+eb_amr.max_eb_pad = 8
 
 # VERBOSITY
 amr.v               = 1       # verbosity in Amr
 
 # REFINEMENT
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
-amr.blocking_factor = 10      # block factor in grid generation
-amr.max_grid_size   = 30
+amr.blocking_factor = 06      # block factor in grid generation
+amr.max_grid_size   = 06
 
 
 amr.phierr = 1 .1

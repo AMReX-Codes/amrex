@@ -103,8 +103,6 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                       {max_eb_pad + 1, max_eb_pad + 1, max_eb_pad + 1},
                                       EBSupport::full);
 
-        // Dummy array for MFIter
-        MultiFab dummy(ba, dm, 1, max_eb_pad + 1, MFInfo(), eb_factory);
         // Area fraction data
         std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
         // EB boundary-centre data
@@ -133,7 +131,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
             int n_facets = 0;
             const auto & flag = flags[mfi];
             // Need to count number of eb-facets (in order to allocate facet_list)
-            amrex_eb_count_facets(eb_search.loVect(), eb_search.hiVect(),
+            amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
                                   BL_TO_FORTRAN_3D(flag),
                                   & n_facets);
 
@@ -145,7 +143,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                 const auto & bcent_tile = bndrycent[mfi];
 
                 int c_facets = 0;
-                amrex_eb_as_list(eb_search.loVect(), eb_search.hiVect(), & c_facets,
+                amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
                                  BL_TO_FORTRAN_3D(flag),
                                  BL_TO_FORTRAN_3D(norm_tile),
                                  BL_TO_FORTRAN_3D(bcent_tile),
@@ -153,21 +151,19 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                  geom[lev].CellSize()                               );
 
                 Box tile_box   = mfi.tilebox();
-                const int * lo = tile_box.loVect();
-                const int * hi = tile_box.hiVect();
 
                       auto & ls_tile_w = level_set[lev][mfi];
                       auto & v_tile    = eb_valid[mfi];
                 const auto & if_tile   = (* mf_impfunc)[mfi];
 
-                amrex_eb_fill_levelset(lo, hi,
+                amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
                                        facet_list.dataPtr(), & facet_list_size,
                                        BL_TO_FORTRAN_3D(v_tile),
                                        BL_TO_FORTRAN_3D(ls_tile_w),
                                        geom[lev].CellSize(), geom[lev].CellSize() );
 
                 const int ls_grid_ref = 1;
-                amrex_eb_validate_levelset(lo, hi, & ls_grid_ref,
+                amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
                                            BL_TO_FORTRAN_3D(if_tile),
                                            BL_TO_FORTRAN_3D(v_tile),
                                            BL_TO_FORTRAN_3D(ls_tile_w)   );
