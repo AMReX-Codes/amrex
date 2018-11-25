@@ -17,6 +17,8 @@
 #include <AMReX_EB2_IF_Difference.H>
 #include <AMReX_EB2_GeometryShop.H>
 
+#include <AMReX_EB_LSCore.H>
+
 #include "EB_F.H"
 
 
@@ -129,25 +131,23 @@ int main (int argc, char * argv[]) {
 
         BoxArray grids;
         Geometry geom;
-        {
-            IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
-            IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
-            Box domain(dom_lo, dom_hi);
+        IntVect dom_lo(AMREX_D_DECL(       0,        0,        0));
+        IntVect dom_hi(AMREX_D_DECL(n_cell-1, n_cell-1, n_cell-1));
+        Box domain(dom_lo, dom_hi);
 
-            // Initialize the boxarray "grids" from the single box "domain"
-            grids.define(domain);
-            // Break up boxarray "grids" into chunks no larger than
-            // "max_grid_size" along a direction
-            grids.maxSize(max_grid_size);
+        // Initialize the boxarray "grids" from the single box "domain"
+        grids.define(domain);
+        // Break up boxarray "grids" into chunks no larger than "max_grid_size"
+        // along a direction
+        grids.maxSize(max_grid_size);
 
-            // This defines the physical box, [-1,1] in each direction.
-            RealBox real_box( prob_lo[0], prob_lo[1],
-                              prob_lo[2], prob_hi[0],
-                              prob_hi[1], prob_hi[2] );
+        // This defines the physical box, [-1,1] in each direction.
+        RealBox real_box( prob_lo[0], prob_lo[1],
+                          prob_lo[2], prob_hi[0],
+                          prob_hi[1], prob_hi[2] );
 
-            // This defines a Geometry object
-            geom.define(domain, & real_box, CoordSys::cartesian, is_periodic.data());
-        }
+        // This defines a Geometry object
+        geom.define(domain, & real_box, CoordSys::cartesian, is_periodic.data());
 
         DistributionMapping dmap(grids, ParallelDescriptor::NProcs());
 
@@ -165,7 +165,7 @@ int main (int argc, char * argv[]) {
          ***********************************************************************/
 
         Real radius = 5;
-        Real tooth_radius = 1.1;
+        Real tooth_radius = 1.3;
         RealArray bite_center{15., 30., 30.};
         EB2::CylinderIF bite_0(radius, 2, bite_center, false);
 
@@ -213,18 +213,44 @@ int main (int argc, char * argv[]) {
          ***********************************************************************/
 
         auto gshop = EB2::makeShop(bite_donut);
-        EB2::Build(gshop, geom, max_lev, max_lev);
+        EB2::Build(gshop, geom, 0, 0);
 
         const EB2::IndexSpace & ebis_donut = EB2::IndexSpace::top();
 
         int eb_grow = 1;
-        EBFArrayBoxFactory ebf_donut (ebis_donut.getLevel(geom), geom, grids, dmap,
-                                      {eb_grow, eb_grow, eb_grow}, EBSupport::full);
+        EBFArrayBoxFactory ebf_donut ( ebis_donut.getLevel(geom), geom, grids, dmap,
+                                       {eb_grow, eb_grow, eb_grow}, EBSupport::full );
 
-
-
-
+        Print() << "Writing EB surface" << std::endl;
         WriteEBSurface (grids, dmap, geom, ebf_donut);
+
+
+        /************************************************************************
+         * Build AMR mesh around donut                                          *
+         ***********************************************************************/
+
+        Print() << "Building adaptive mesh" << std::endl;
+
+        Box domain_crse = domain;
+        domain_crse.coarsen(4);
+
+        const IntVect & dom_crse_lo = domain_crse.smallEnd();
+        const IntVect & dom_crse_hi = domain_crse.bigEnd();
+        // Picket-fence principle
+        IntVect n_cells_crse= dom_crse_hi - dom_crse_lo + IntVect{1, 1, 1};
+        Vector<int> v_cells = {
+            AMREX_D_DECL(n_cells_crse[0], n_cells_crse[1], n_cells_crse[2])
+        };
+
+        amrex::Print() << "Declaring AMR levelset:" << std::endl
+                       << "coarsest level: " << domain_crse << " n_cells: " << n_cells_crse
+                       << std::endl;
+
+        LSCore<decltype(bite_donut)> ls_core(gshop, & real_box, max_lev, v_cells);
+        ls_core.InitData();
+        ls_core.WritePlotFile();
+
+        amrex::Print() << " ... done" <<std::endl;
     }
 
     amrex::Finalize();
