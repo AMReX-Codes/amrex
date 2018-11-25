@@ -379,7 +379,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     else
     {
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
-        if (Gpu::inLaunchRegion() && !is_thread_safe)
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
             LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
             for (int i = 0; i < N_locs; ++i)
@@ -585,7 +585,6 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif // MPI
 }
 
-
 template <class FAB>
 void
 FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
@@ -655,7 +654,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
         bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
-        if (Gpu::inLaunchRegion() && !is_thread_safe)
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
             LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
             for (int i = 0; i < N_loc; ++i)
@@ -663,7 +662,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 #ifdef _OPENMP
@@ -1333,7 +1332,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
         bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
-        if (Gpu::inLaunchRegion() && !is_thread_safe)
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
             LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
             for (int i = 0; i < N_loc; ++i)
@@ -1341,7 +1340,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 #ifdef _OPENMP
