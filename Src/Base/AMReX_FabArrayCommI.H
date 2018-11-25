@@ -7,7 +7,7 @@ struct FabCopyTag {
 };
 
 struct VoidCopyTag {
-    void const* p;
+    char const* p;
     Box dbox;
 };
 
@@ -1039,14 +1039,18 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         for (auto const& void_tag : void_copy_tags) {
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(void_tag.dbox, tbx,
                             {
-                                dfab->copyFromMem(tbx,DC,NC,void_tag.p);
+                                const char* p = void_tag.p + sizeof(value_type)*NC
+                                    * void_tag.dbox.index(tbx.smallEnd());
+                                dfab->copyFromMem(tbx,DC,NC,p);
                             });
                         }
                     } else {
                         for (auto const& void_tag : void_copy_tags) {
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(void_tag.dbox, tbx,
                             {
-                                dfab->addFromMem(tbx,DC,NC,void_tag.p);
+                                const char* p = void_tag.p + sizeof(value_type)*NC
+                                    * void_tag.dbox.index(tbx.smallEnd());
+                                dfab->addFromMem(tbx,DC,NC,p);
                             });
                         }
                     }
