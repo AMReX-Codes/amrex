@@ -12,12 +12,7 @@ using namespace amrex;
 
 int main (int argc, char* argv[]) {
 
-    // AMReX will now read the inputs file and the command line arguments, but
-    // the command line arguments are in mfix-format so it will just ignore
-    // them.
-    amrex::Initialize(argc,argv);
-
-
+    amrex::Initialize(argc, argv);
     // Issue an error if AMR input file is not given
     if ( argc < 2 )
        amrex::Abort("AMReX input file missing");
