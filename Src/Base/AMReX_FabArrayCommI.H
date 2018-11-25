@@ -655,29 +655,68 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
         bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
+        if (Gpu::inLaunchRegion() && !is_thread_safe)
         {
-            const int i = sit();
-            const CopyComTag& tag = (*thecpc.m_LocTags)[i];
-	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                const FAB* sfab = &(src[tag.srcIndex]);
-                      FAB* dfab = &(get(tag.dstIndex));
-		// avoid self copy or plus
-		if (op == FabArrayBase::COPY) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+            LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
+            for (int i = 0; i < N_loc; ++i)
+            {
+                const CopyComTag& tag = (*thecpc.m_LocTags)[i];
+                if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                    loc_copy_tags[tag.dstIndex].push_back
+                        ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                }
+            }
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+            {
+                const auto& tags = loc_copy_tags[mfi];
+                FAB* dfab = &((*this)[mfi]);
+                if (op == FabArrayBase::COPY)
+                {
+                    for (auto const & tag : tags)
                     {
-                        Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                        dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
-                    });
-		} else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                        {
+                            const Box sbx = dbx + tag.offset;
+                            dfab->copy(*tag.sfab, sbx, scomp, dbx, dcomp, ncomp);
+                        });
+                    }
+                }
+                else
+                {
+                    for (auto const & tag : tags)
                     {
-                        Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                        dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
-                    });
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                        {
+                            const Box sbx = dbx + tag.offset;
+                            dfab->plus(*tag.sfab, sbx, dbx, scomp, dcomp, ncomp);
+                        });
+                    }
+                }
+            }
+        }
+        else
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int i = 0; i < N_loc; ++i)
+            {
+                const CopyComTag& tag = (*thecpc.m_LocTags)[i];
+                if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                    // avoid self copy or plus
+                    const FAB* sfab = &(src[tag.srcIndex]);
+                          FAB* dfab = &(get(tag.dstIndex));
+                    if (op == FabArrayBase::COPY)
+                    {
+                        dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, dcomp, ncomp);
+                    }
+                    else
+                    {
+                        dfab->plus(*sfab, tag.sbox, tag.dbox, scomp, dcomp, ncomp);
+                    }
 		}
 	    }
         }
@@ -1294,29 +1333,68 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         //
 	int N_loc = (*thecpc.m_LocTags).size();
         bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_loc,is_thread_safe); sit.isValid(); ++sit)
+        if (Gpu::inLaunchRegion() && !is_thread_safe)
         {
-            const int i = sit();
-            const CopyComTag& tag = (*thecpc.m_LocTags)[i];
-            // avoid self copy or plus
-	    if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                const FAB* sfab = &(src[tag.srcIndex]);
-                      FAB* dfab = &(get(tag.dstIndex));
-		if (op == FabArrayBase::COPY) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+            LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
+            for (int i = 0; i < N_loc; ++i)
+            {
+                const CopyComTag& tag = (*thecpc.m_LocTags)[i];
+                if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                    loc_copy_tags[tag.dstIndex].push_back
+                        ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                }
+            }
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+            {
+                const auto& tags = loc_copy_tags[mfi];
+                FAB* dfab = &((*this)[mfi]);
+                if (op == FabArrayBase::COPY)
+                {
+                    for (auto const & tag : tags)
                     {
-                        Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                        dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
-                    });
-		} else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                        {
+                            const Box sbx = dbx + tag.offset;
+                            dfab->copy(*tag.sfab, sbx, scomp, dbx, dcomp, ncomp);
+                        });
+                    }
+                }
+                else
+                {
+                    for (auto const & tag : tags)
                     {
-                        Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                        dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
-                    });
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                        {
+                            const Box sbx = dbx + tag.offset;
+                            dfab->plus(*tag.sfab, sbx, dbx, scomp, dcomp, ncomp);
+                        });
+                    }
+                }
+            }
+        }
+        else
+        {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int i = 0; i < N_loc; ++i)
+            {
+                const CopyComTag& tag = (*thecpc.m_LocTags)[i];
+                if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                    // avoid self copy or plus
+                    const FAB* sfab = &(src[tag.srcIndex]);
+                          FAB* dfab = &(get(tag.dstIndex));
+                    if (op == FabArrayBase::COPY)
+                    {
+                        dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, dcomp, ncomp);
+                    }
+                    else
+                    {
+                        dfab->plus(*sfab, tag.sbox, tag.dbox, scomp, dcomp, ncomp);
+                    }
 		}
 	    }
         }
@@ -1567,31 +1645,62 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     else 
     {
         bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_locs,is_thread_safe); sit.isValid(); ++sit)
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
-            const int j = sit();
-            const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-            
-            // avoid self copy or plus
-            if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                const FAB* sfab = &(src[tag.srcIndex]);
-                      FAB* dfab = &(get(tag.dstIndex));
+            // gpu version or omp over dest fabs
 
+            LayoutData<Vector<FabCopyTag<FAB> > > copy_tags(boxArray(),DistributionMap());
+            for (int j = 0; j < N_locs; ++j) {
+                const CopyComTag& tag = (*thecpc.m_LocTags)[j];
+                if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                    copy_tags[tag.dstIndex].push_back
+                        ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                }
+            }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
+                FAB* dfab = &((*this)[mfi]);
+                const auto& fab_copy_tags = copy_tags[mfi];
                 if (op == FabArrayBase::COPY) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
-                    {
-                        Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                        dfab->copy(*sfab, tbx, scomp, dbx, dcomp, ncomp);
-                    });
+                    for (auto const& fab_tag : fab_copy_tags) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(fab_tag.dbox, dbx,
+                        {
+                            const Box sbx = dbx + fab_tag.offset;
+                            dfab->copy(*fab_tag.sfab, sbx, scomp, dbx, dcomp, ncomp);
+                        });
+                    }
                 } else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
-                    {
-                        Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                        dfab->plus(*sfab, tbx, dbx, scomp, dcomp, ncomp);
-                    });
+                    for (auto const& fab_tag : fab_copy_tags) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(fab_tag.dbox, dbx,
+                        {
+                            const Box sbx = dbx + fab_tag.offset;
+                            dfab->plus(*fab_tag.sfab, sbx, dbx, scomp, dcomp, ncomp);
+                        });
+                    }
+                }
+            }
+        }
+        else
+        {
+        // cpu version, omp over dest tile boxes
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int j = 0; j < N_locs; ++j)
+            {
+                const CopyComTag& tag = (*thecpc.m_LocTags)[j];
+                // avoid self copy or plus
+                if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
+                    const FAB* sfab = &(src[tag.srcIndex]);
+                          FAB* dfab = &(get(tag.dstIndex));
+                    if (op == FabArrayBase::COPY) {
+                        dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, dcomp, ncomp);
+                    } else {
+                        dfab->plus(*sfab, tag.sbox, tag.dbox, scomp, dcomp, ncomp);
+                    }
                 }
             }
         }
@@ -1609,6 +1718,41 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 #ifdef BL_USE_MPI
     BL_PROFILE("FabArray::ParallelCopy_finish()");
 
+    // prepare for receive
+    Vector<const CopyComTagsContainer*> recv_cctc;
+    LayoutData<Vector<VoidCopyTag> > recv_copy_tags;
+    if (N_rcvs > 0)
+    {
+        recv_cctc.resize(N_rcvs,nullptr);
+        for (int k = 0; k < N_rcvs; ++k)
+        {
+            if (recv_size[k] > 0)
+            {
+                auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
+                recv_cctc[k] = &cctc;
+            }
+        }
+
+        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
+        if (Gpu::inLaunchRegion() || !is_thread_safe)
+        {
+            recv_copy_tags.define(dstfa.boxArray(),dstfa.DistributionMap());
+            for (int k = 0; k < N_rcvs; ++k) {
+                const char* dptr = recv_data[k];
+                if (dptr != nullptr)
+                {
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
+                    {
+                        recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
+                        dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
+                    }
+                    BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
+                }
+            }
+        }
+    }
+
     //
     //  wait and unpack
     //
@@ -1623,52 +1767,64 @@ FabArray<FAB>::CopierHandleImpl::finish ()
     
     if (N_rcvs > 0)
     {
-        Vector<const CopyComTagsContainer*> recv_cctc(N_rcvs,nullptr);
-        
-        for (int k = 0; k < N_rcvs; ++k)
+        if (!recv_copy_tags.empty())
         {
-            if (recv_size[k] > 0)
-            {
-                auto const& cctc = thecpc.m_RcvTags->at(recv_from[k]);
-                recv_cctc[k] = &cctc;
+            // gpu version or omp over dest fabs
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(dstfa); mfi.isValid(); ++mfi) {
+                FAB* dfab = &(dstfa[mfi]);
+                const auto& void_copy_tags = recv_copy_tags[mfi];
+                if (op == FabArrayBase::COPY)
+                {
+                    for (auto const& void_tag : void_copy_tags) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(void_tag.dbox, tbx,
+                        {
+                            const char* p = void_tag.p + sizeof(value_type)*ncomp
+                                * void_tag.dbox.index(tbx.smallEnd());
+                            dfab->copyFromMem(tbx,dcomp,ncomp,p);
+                        });
+                    }
+                } else {
+                    for (auto const& void_tag : void_copy_tags) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(void_tag.dbox, tbx,
+                        {
+                            const char* p = void_tag.p + sizeof(value_type)*ncomp
+                                * void_tag.dbox.index(tbx.smallEnd());
+                            dfab->addFromMem(tbx,dcomp,ncomp,p);
+                        });
+                    }
+                }
             }
         }
-
-        bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_rcv;
-#ifdef _OPENMP
-#pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
-#endif
-        for (Gpu::StreamIter sit(N_rcvs,is_thread_safe); sit.isValid(); ++sit)
+        else
         {
-            const int k = sit();
-            const char* dptr = recv_data[k];
-            if (dptr != nullptr)
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for (int k = 0; k < N_rcvs; ++k)
             {
-                auto const& cctc = *recv_cctc[k];
-                for (auto const& tag : cctc)
+                const char* dptr = recv_data[k];
+                if (dptr != nullptr)
                 {
-                    const Box& bx  = tag.dbox;
-                    FAB* dfab = &(dstfa[tag.dstIndex]);
-                    if (op == FabArrayBase::COPY)
+                    auto const& cctc = *recv_cctc[k];
+                    for (auto const& tag : cctc)
                     {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        FAB* dfab = &(get(tag.dstIndex));
+                        if (op == FabArrayBase::COPY)
                         {
-                            const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                            dfab->copyFromMem(tbx, dcomp, ncomp, p);
-                        });
-                    }
-                    else
-                    {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                            dfab->copyFromMem(tag.dbox,dcomp,ncomp,dptr);
+                        }
+                        else
                         {
-                            const char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                            dfab->addFromMem(tbx, dcomp, ncomp, p);
-                        });
+                            dfab->addFromMem(tag.dbox, dcomp, ncomp, dptr);
+                        }
+                        
+                        dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                     }
-
-                    dptr += (bx.numPts() * ncomp * sizeof(value_type));
+                    BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
                 }
-                BL_ASSERT(dptr == recv_data[k] + recv_size[k]);
             }
         }
 
