@@ -168,6 +168,7 @@ Device::Initialize ()
     }
 
     AMREX_GPU_SAFE_CALL(cudaSetDevice(device_id));
+    AMREX_GPU_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);

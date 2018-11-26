@@ -22,7 +22,7 @@ amrex::BArena::alloc (std::size_t sz_)
     }
     else if (device_use_hostalloc) {
 
-	AMREX_GPU_SAFE_CALL(cudaMallocHost(&pt, sz_));
+	AMREX_GPU_SAFE_CALL(cudaHostAlloc(&pt, sz_, cudaHostAllocMapped));
 
     }
     else {

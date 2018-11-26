@@ -61,7 +61,7 @@ CArena::alloc (std::size_t nbytes)
 #if defined(AMREX_USE_GPU)
         if (device_use_hostalloc) {
 
-	    AMREX_GPU_SAFE_CALL(cudaMallocHost(&vp, N));
+	    AMREX_GPU_SAFE_CALL(cudaHostAlloc(&vp, N, cudaHostAllocMapped));
 
 	}
 	else if (device_use_managed_memory) {
