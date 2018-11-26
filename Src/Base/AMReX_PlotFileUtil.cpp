@@ -232,31 +232,16 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
 // refinement ratio is computed from the Geometry vector
 // "time" and "level_steps" are set to zero
 void WriteMLMF (const std::string &plotfilename,
-                const Vector<MultiFab>& mf,
+                const Vector<const MultiFab*>& mf,
                 const Vector<Geometry> &geom)
 {
     int nlevs = mf.size();
-    
-    int nComp = mf[0].nComp();
+    int ncomp = mf[0]->nComp();
 
     // variables names are "Var0", "Var1", etc.
-    Vector<std::string> varnames;
-    varnames.resize(nComp);
-    for (int i=0; i<nComp; ++i) {
+    Vector<std::string> varnames(ncomp);
+    for (int i=0; i<ncomp; ++i) {
         varnames[i] = "Var" + std::to_string(i);
-    }
-
-    // temporary MultiFab to hold plotfile data
-    Vector<MultiFab*> plot_mf_data(nlevs);
-    for (int i = 0; i < nlevs; ++i) {
-        plot_mf_data[i] = new MultiFab((mf[i]).boxArray(),(mf[i]).DistributionMap(),nComp,0);
-        plot_mf_data[i]->copy((mf[i]),0,0,nComp);
-    }
-
-    // this is what gets passed into WriteMultiLevelPlotfile
-    Vector<const MultiFab*> plot_mf;
-    for (int i = 0; i < nlevs; ++i) {
-        plot_mf.push_back(plot_mf_data[i]);
     }
 
     // compute refinement ratio by looking at hi coordinates of domain at each level from
@@ -270,13 +255,12 @@ void WriteMLMF (const std::string &plotfilename,
     }
 
     // set step_array to zero
-    Vector<int> step_array;
-    step_array.resize(nlevs,0);
+    Vector<int> step_array(nlevs,0);
 
     // set time to zero
     Real time = 0.;
     
-    WriteMultiLevelPlotfile(plotfilename, nlevs, plot_mf, varnames,
+    WriteMultiLevelPlotfile(plotfilename, nlevs, mf, varnames,
                             geom, time, step_array, ref_ratio);   
     
 }    
