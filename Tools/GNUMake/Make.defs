@@ -145,7 +145,13 @@ endif
 ifdef USE_CUDA
   USE_CUDA := $(strip $(USE_CUDA))
 else
-  USE_CUDA = FALSE
+  USE_CUDA := FALSE
+endif
+
+ifdef USE_CUDA_FAST_MATH
+  USE_CUDA_FAST_MATH := $(strip $(USE_CUDA_FAST_MATH))
+else
+  USE_CUDA_FAST_MATH := TRUE
 endif
 
 ifndef NO_DEVICE_LAUNCH
