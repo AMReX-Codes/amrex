@@ -40,6 +40,17 @@ using namespace amrex;
                                       FArrayBox& flxy,
                                       FArrayBox& flxz));
 
+    void slopex(Box const& bx,
+                const FArrayBox &qfab,
+                FArrayBox &dq4fab);
+
+    void slopey(Box const& bx,
+                const FArrayBox &qfab,
+                FArrayBox &dq4fab);
+
+    void slopez(Box const& bx,
+                const FArrayBox &qfab,
+                FArrayBox &dq4fab);
 
 #ifdef __cplusplus
 extern "C" 
