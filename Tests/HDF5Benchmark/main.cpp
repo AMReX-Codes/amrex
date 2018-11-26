@@ -12,7 +12,7 @@ using namespace amrex;
 int main(int argc, char* argv[])
 {    
     amrex::Initialize(argc,argv);
-    
+    { 
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
 
@@ -127,6 +127,6 @@ int main(int argc, char* argv[])
     }
     
     myPC.Checkpoint("plt00000", "particle0", false, particle_varnames);
-    
+    }
     amrex::Finalize();
 }
