@@ -6,6 +6,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_LayoutData.H>
 #include <AMReX_Derive.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Interpolater.H>

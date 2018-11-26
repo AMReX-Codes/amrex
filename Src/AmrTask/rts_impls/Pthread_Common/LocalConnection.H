@@ -42,8 +42,8 @@ class LocalConnection
 	~LocalConnection()
 	{
 	    if(localBarrier) free(localBarrier);
-	    if(scpy) free(scpy);
-	    if(dcpy) free(dcpy);
+	    if(scpy) delete [] scpy;
+	    if(dcpy) delete [] dcpy;
 	}
 };
 #endif

@@ -79,6 +79,7 @@ add_sources( AMReX_iMultiFab.H )
 
 add_sources( AMReX_FabArrayBase.cpp AMReX_MFIter.cpp )
 add_sources( AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayCommI.H )
+add_sources( AMReX_FabArrayUtility.H )
 add_sources( AMReX_FabArrayBase.H AMReX_MFIter.H AMReX_LayoutData.H)
 
 #

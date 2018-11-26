@@ -119,10 +119,10 @@ namespace amrex
 			     const Vector<MultiFab*>& cmf, const Vector<Real>& ct,
 			     const Vector<MultiFab*>& fmf, const Vector<Real>& ft,
 			     int scomp, int dcomp, int ncomp,
-			     const Geometry& cgeom, const Geometry& fgeom, 
+			     const Geometry& cgeom, const Geometry& fgeom,
 			     PhysBCFunctBase& cbc, int cbccomp,
                              PhysBCFunctBase& fbc, int fbccomp,
-			     const IntVect& ratio, 
+			     const IntVect& ratio,
 			     Interpolater* mapper,
                              const Vector<BCRec>& bcs, int bcscomp,
                              const InterpHook& pre_interp,
@@ -171,14 +171,14 @@ namespace amrex
                     {
                         FArrayBox& sfab = mf_crse_patch[mfi];
                         int li = mfi.LocalIndex();
-                        int gi = fpc.dst_idxs[li];	
+                        int gi = fpc.dst_idxs[li];
                         FArrayBox& dfab = mf[gi];
                         const Box& dbx = fpc.dst_boxes[li];
-                        
+
                         amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
-                        
+
                         pre_interp(sfab, sfab.box(), 0, ncomp);
-                        
+
                         mapper->interp(sfab,
                                        0,
                                        dfab,
@@ -190,7 +190,7 @@ namespace amrex
                                        fgeom,
                                        bcr,
                                        idummy1, idummy2);
-                        
+
                         post_interp(dfab, dbx, dcomp, ncomp);
                     }
                 }
@@ -200,12 +200,12 @@ namespace amrex
 	FillPatchSingleLevel(mf, time, fmf, ft, scomp, dcomp, ncomp, fgeom, fbc, fbccomp);
     }
 
-    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf, 
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
 				int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom, 
+				const Geometry& cgeom, const Geometry& fgeom,
 				PhysBCFunctBase& cbc, int cbccomp,
                                 PhysBCFunctBase& fbc, int fbccomp,
-                                const IntVect& ratio, 
+                                const IntVect& ratio,
 				Interpolater* mapper,
                                 const Vector<BCRec>& bcs, int bcscomp,
                                 const InterpHook& pre_interp,
@@ -267,7 +267,7 @@ namespace amrex
                 FArrayBox& sfab = mf_crse_patch[mfi];
                 FArrayBox& dfab = mf[mfi];
                 const Box& dbx = dfab.box() & fdomain_g;
-                
+
                 amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                 pre_interp(sfab, sfab.box(), 0, ncomp);

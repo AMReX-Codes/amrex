@@ -339,29 +339,14 @@ CNS::estTimeStep ()
 {
     BL_PROFILE("CNS::estTimeStep()");
 
-    Real estdt = std::numeric_limits<Real>::max();
-
     const auto dx = geom.CellSizeArray();
     const MultiFab& S = get_new_data(State_Type);
 
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(min:estdt)
-#endif
+    Real estdt = amrex::ReduceMin(S, 0,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
     {
-        Gpu::DeviceScalar<Real> dt(std::numeric_limits<Real>::max());
-        Real* p_dt = dt.dataPtr();
-        for (MFIter mfi(S,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& box = mfi.tilebox();
-            const FArrayBox* sfab = &(S[mfi]);
-            AMREX_LAUNCH_DEVICE_LAMBDA ( box, tbox,
-            {
-                Real local_tmin = cns_estdt(tbox, *sfab, dx);
-                Gpu::Atomic::Min(p_dt, local_tmin);
-            });
-        }
-        estdt = std::min(estdt,dt.dataValue());
-    }
+        return cns_estdt(bx, fab, dx);
+    });
 
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);

@@ -258,7 +258,6 @@ AsyncFillPatchIterator::~AsyncFillPatchIterator () {
 		BL_ASSERT(m_amrlevel.level == 0);
 		StateData& statedata = m_amrlevel.state[index];
 		statedata.getData(smf,stime,time);
-cout<<"In init FillPatch smf size is "<<smf.size()<<"time is"<<time<<endl;
 		geom = &m_amrlevel.geom;
 		physbcf = new StateDataPhysBCFunct(statedata,scomp,*geom);
                 stateDataList.push_back(physbcf);
@@ -387,7 +386,7 @@ cout<<"In init FillPatch smf size is "<<smf.size()<<"time is"<<time<<endl;
 
 			    else if (iter > 1)
 			    {
-				if (false && m_mf_crse_patch->boxArray() == smf_crse[0]->boxArray())
+				if (m_mf_crse_patch->boxArray() == smf_crse[0]->boxArray())
 				{
 				    //dmf = m_mf_crse_patch;
 				    m_rg_crse_patch = new RegionGraph(m_mf_crse_patch->IndexArray().size());
@@ -482,7 +481,7 @@ cout<<"In init FillPatch smf size is "<<smf.size()<<"time is"<<time<<endl;
 			//PArray<MultiFab> raii(PArrayManage);
 			//MultiFab * dmf;
 
-			if (false && m_fabs.boxArray() == smf_fine[0]->boxArray())
+			if (m_fabs.boxArray() == smf_fine[0]->boxArray())
 			{
 			    //dmf = &m_fabs;
 			    destGraph = new RegionGraph(m_fabs.IndexArray().size());
@@ -616,7 +615,6 @@ cout<<"In init FillPatch smf size is "<<smf.size()<<"time is"<<time<<endl;
 		Vector<Real>                       tstime;
 		StateData& statedata = m_amrlevel.state[index];
 		statedata.getData(tsmf,tstime,time);
-cout<<"In Push Only smf size is "<<tsmf.size()<<"time is"<<time<<endl;
 		FillPatchSingleLevelPush (*(m_amrlevel.parent), m_fabs, time, tsmf, tstime, destGraph, fsrcGraph, f, dmf, SComp, DComp, NComp, *geom, *physbcf, singleT);
 	    }else{
 		if (level == 1 || isProperlyNested)
@@ -772,7 +770,6 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 	int tg = perilla::wid();
 	int nt = perilla::wtid();
 
-cout<<"In FillPatchSingleLevelPush smf size is "<<smf.size()<<"time is"<<time<<endl;
 	if (smf.size() == 1)
 	{
 	    //mf.copy(smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());        
@@ -892,7 +889,7 @@ cout<<"In FillPatchSingleLevelPush smf size is "<<smf.size()<<"time is"<<time<<e
 		// So FillBoundary is safe.
 		//mf.FillBoundary(dcomp,ncomp,geom.periodicity());
 
-		Perilla::fillBoundaryPull(destGraph, &mf, f);
+		Perilla::fillBoundaryPull(destGraph, &mf, f, singleT);
 
 		//std::cout << "After sameba fBPull" << std::endl;
 	    }
