@@ -1032,46 +1032,6 @@ MultiFab::norm0 (const iMultiFab& mask, int comp, int nghost, bool local) const
 }
 
 Real
-MultiFab::norm0 (int comp, const BoxArray& ba, int nghost, bool local) const
-{
-    // TODO GPU -- CHECK
-
-    Real nm0 = -std::numeric_limits<Real>::max();
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:nm0)
-#endif
-    {
-	std::vector< std::pair<int,Box> > isects;
-        amrex::Gpu::DeviceScalar<Real> local_nm0(-std::numeric_limits<Real>::max());
-        Real* p = local_nm0.dataPtr();
-
-	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-	{
-	    ba.intersections(amrex::grow(mfi.validbox(),nghost),isects);
-            FArrayBox const* fab = &(get(mfi));
-
-	    for (int i = 0; i<isects.size(); ++i)
-	    {
-                const Box& bx = isects[i].second;
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-                {
-                    Real t = fab->norm(tbx, 0, comp, 1);
-                    amrex::Gpu::Atomic::Max(p, t);
-                });
-
-	    }
-	}
-        nm0 = std::max(nm0, local_nm0.dataValue());
-    }
- 
-    if (!local)
-	ParallelAllReduce::Max(nm0, ParallelContext::CommunicatorSub());
- 
-    return nm0;
-}
-
-Real
 MultiFab::norm0 (int comp, int nghost, bool local) const
 {
     Real nm0 = amrex::ReduceMax(*this, nghost,
