@@ -271,8 +271,8 @@ class Machine
     }
 
     // find a compact neighborhood of size rank_n in the current ParallelContext subgroup
-    // TODO: cache results
-    Vector<int> find_best_nbh (int nbh_rank_n)
+    // TODO: cache results based on set of current ranks and nbh_rank_n
+    Vector<int> find_best_nbh (int nbh_rank_n, bool flag_local_ranks)
     {
         BL_PROFILE("Machine::find_best_nbh()");
 
@@ -280,11 +280,15 @@ class Machine
         auto sg_g_ranks = get_subgroup_ranks();
         auto sg_rank_n = sg_g_ranks.size();
         Vector<int> sg_node_ids(sg_rank_n);
-        std::unordered_map<int, std::vector<int>> node_l_ranks;
+        std::unordered_map<int, std::vector<int>> node_ranks;
         for (int i = 0; i < sg_rank_n; ++i) {
             AMREX_ASSERT(sg_g_ranks[i] >= 0 && sg_g_ranks[i] < node_ids.size());
             sg_node_ids[i] = node_ids[sg_g_ranks[i]];
-            node_l_ranks[sg_node_ids[i]].push_back(i);
+            if (flag_local_ranks) {
+                node_ranks[sg_node_ids[i]].push_back(sg_g_ranks[i]);
+            } else {
+                node_ranks[sg_node_ids[i]].push_back(i);
+            }
         }
 
         if (flag_verbose) {
@@ -327,13 +331,13 @@ class Machine
         Vector<int> result;
         result.reserve(nbh_rank_n);
         for (int i = 0; i < local_nbh.size(); ++i) {
-            for (auto rank : node_l_ranks.at(local_nbh[i])) {
+            for (auto rank : node_ranks.at(local_nbh[i])) {
                 if (result.size() < nbh_rank_n) {
                     result.push_back(rank);
                 }
             }
         }
-        Print() << "Ranks (local) in neighborhood: " << to_str(result) << std::endl;
+        Print() << "Ranks in neighborhood: " << to_str(result) << std::endl;
 
         return result;
     }
@@ -438,6 +442,8 @@ namespace amrex {
 namespace machine {
 
 void init () { the_machine.init(); }
-Vector<int> find_best_nbh (int rank_n) { return the_machine.find_best_nbh(rank_n); }
+Vector<int> find_best_nbh (int rank_n, bool flag_local_ranks) {
+    return the_machine.find_best_nbh(rank_n, flag_local_ranks);
+}
 
 }}

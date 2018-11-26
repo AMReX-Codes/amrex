@@ -279,6 +279,7 @@ private:
     static void makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMapping>& dm,
                                       int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
+    void remapNeighborhoods (Vector<DistributionMapping> & dms);
 };
 
 }

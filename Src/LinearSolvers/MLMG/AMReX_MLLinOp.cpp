@@ -1,8 +1,11 @@
 
 #include <cmath>
 #include <algorithm>
+#include <unordered_map>
+#include <set>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Machine.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -26,7 +29,9 @@ namespace {
     int consolidation_strategy = 3;
 
     int flag_verbose_linop = 0;
-    int flag_old_version = 0;
+    int flag_comm_cache = 0;
+    int flag_use_mota = 0;
+    int remap_nbh_lb = 1;
 
     // hash combiner borrowed from Boost
     template<typename T>
@@ -110,7 +115,9 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 	pp.query("consolidation_ratio", consolidation_ratio);
 	pp.query("consolidation_strategy", consolidation_strategy);
 	pp.query("verbose_linop", flag_verbose_linop);
-	pp.query("old_version", flag_old_version);
+	pp.query("comm_cache", flag_comm_cache);
+	pp.query("mota", flag_use_mota);
+	pp.query("remap_nbh_lb", remap_nbh_lb);
 	initialized = true;
     }
 
@@ -362,6 +369,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         makeConsolidatedDMap(m_grids[0], m_dmap[0], consolidation_ratio, consolidation_strategy);
     }
+    if (flag_use_mota && (agged || coned))
+    {
+        remapNeighborhoods(m_dmap[0]);
+    }
 
     if (info.do_agglomeration || info.do_consolidation)
     {
@@ -471,10 +482,11 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
         Print() << "MLLinOp::makeSubCommunicator() called for " << newgrp_ranks.size() << " ranks" << std::endl;
     }
 
+    // TODO: add current group ranks to the hash in addition to new group ranks
     auto key = hash_vector(newgrp_ranks);
     MPI_Comm newcomm;
     bool cache_hit = comm_cache.get(key, newcomm);
-    if (!flag_old_version && cache_hit) {
+    if (flag_comm_cache && cache_hit) {
         if (flag_verbose_linop) {
             Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;
         }
@@ -499,14 +511,14 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
         }
 
         {
-            BL_PROFILE("MLLinOp::makeSubCommunicator()::MPI_Comm_create");
+            BL_PROFILE_VAR("MLLinOp::makeSubCommunicator()::MPI_Comm_create", blp_mpicommcreate);
             MPI_Comm_create(m_default_comm, newgrp, &newcomm);
         }
 
-        if (flag_old_version) {
-            m_raii_comm.reset(new CommContainer(newcomm));
-        } else {
+        if (flag_comm_cache) {
             comm_cache.add(key, newcomm);
+        } else {
+            m_raii_comm.reset(new CommContainer(newcomm));
         }
 
         MPI_Group_free(&defgrp);
@@ -596,6 +608,49 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                 Vector<int> pmap_g(pmap.size());
                 ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
                 dm[i].define(std::move(pmap_g));
+            }
+        }
+    }
+}
+
+void
+MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
+{
+    BL_PROFILE("MLLinOp::remapNeighborhoods()");
+
+    if (flag_verbose_linop) {
+
+        Print() << "Remapping ranks to neighborhoods ..." << std::endl;
+
+        for (int j = 0; j < dms.size(); ++j)
+        {
+            const Vector<int> & pmap = dms[j].ProcessorMap();
+            std::set<int> g_ranks_set(pmap.begin(), pmap.end());
+            auto lev_rank_n = g_ranks_set.size();
+            if (lev_rank_n >= remap_nbh_lb && lev_rank_n < ParallelContext::NProcsSub())
+            {
+                // find best neighborhood with lev_rank_n ranks
+                auto nbh_g_ranks = machine::find_best_nbh(lev_rank_n);
+                AMREX_ASSERT(nbh_g_ranks.size() == lev_rank_n);
+
+                // construct mapping from original global rank to neighborhood global rank
+                int idx = 0;
+                std::unordered_map<int, int> rank_mapping;
+                for (auto orig_g_rank : g_ranks_set) {
+                    AMREX_ASSERT(idx < nbh_g_ranks.size());
+                    rank_mapping[orig_g_rank] = nbh_g_ranks[idx++];
+                    if (flag_verbose_linop) {
+                        Print() << "  Mapped " << orig_g_rank << " to "
+                                << nbh_g_ranks[idx-1] << std::endl;
+                    }
+                }
+
+                // remap and redefine DM
+                Vector<int> nbh_pmap(pmap.size());
+                for (int i = 0; i < pmap.size(); ++i) {
+                    nbh_pmap[i] = rank_mapping.at(pmap[i]);
+                }
+                dms[j].define(std::move(nbh_pmap));
             }
         }
     }
