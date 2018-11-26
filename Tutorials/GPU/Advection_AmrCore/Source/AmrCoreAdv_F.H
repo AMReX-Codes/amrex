@@ -1,7 +1,7 @@
 #ifndef _AmrCoreAdv_F_H_
 #define _AmrCoreAdv_F_H_
-#include <AMReX_BLFort.H>
 
+#include <AMReX_BLFort.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -20,7 +20,7 @@ using namespace amrex;
                                         FArrayBox& zvel),
                            GeometryData const& geom);
 
-    void advect(const Real time, Box const& bx
+    void advect(const Real time, Box const& bx,
                 const FArrayBox& statein,
                 FArrayBox& stateout,
 		AMREX_D_DECL(const FArrayBox& xvel,
@@ -29,8 +29,16 @@ using namespace amrex;
                 AMREX_D_DECL(FArrayBox& fx,
                              FArrayBox& fy,
                              FArrayBox& fz),
-		const Real& dx, const Real dt);
+		const GpuArray<Real, AMREX_SPACEDIM>& dx, const Real dt);
 
+    void compute_flux_3d(Box const& bx, GpuArray<Real, AMREX_SPACEDIM>& dtdx,
+                         const FArrayBox& phifab,
+                         AMREX_D_DECL(const FArrayBox& velx,
+                                      const FArrayBox& vely,
+                                      const FArrayBox& velz),
+                         AMREX_D_DECL(FArrayBox& flxx,
+                                      FArrayBox& flxy,
+                                      FArrayBox& flxz));
 
 
 #ifdef __cplusplus
@@ -52,14 +60,6 @@ extern "C"
 				  BL_FORT_FAB_ARG(yvel),
 				  BL_FORT_FAB_ARG(zvel)),
 			   const amrex_real* dx, const amrex_real* problo);
-*/
-
-    void state_error(int* tag, const int* tag_lo, const int* tag_hi,
-		     const BL_FORT_FAB_ARG_3D(state),
-		     const int* tagval, const int* clearval,
-		     const int* lo, const int* hi,
-		     const amrex_real* dx, const amrex_real* problo,
-		     const amrex_real* time, const amrex_real* phierr);
 
     void advect(const amrex_real* time, const int* lo, const int* hi,
 		const BL_FORT_FAB_ARG_3D(statein),
@@ -71,6 +71,14 @@ extern "C"
 		       BL_FORT_FAB_ARG_3D(fy),
 		       BL_FORT_FAB_ARG_3D(fz)),
 		const amrex_real* dx, const amrex_real* dt);
+*/
+
+    void state_error(int* tag, const int* tag_lo, const int* tag_hi,
+		     const BL_FORT_FAB_ARG_3D(state),
+		     const int* tagval, const int* clearval,
+		     const int* lo, const int* hi,
+		     const amrex_real* dx, const amrex_real* problo,
+		     const amrex_real* time, const amrex_real* phierr);
 
     void phifill (BL_FORT_FAB_ARG_3D(state),
 		  const int* dlo, const int* dhi,
