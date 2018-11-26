@@ -6,6 +6,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_LayoutData.H>
 #include <AMReX_Derive.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Interpolater.H>
@@ -629,6 +630,9 @@ public:
     RegionGraph*                      csrcGraph;
     RegionGraph*                      fsrcGraph;
     RegionGraph*                      m_rg_crse_patch;
+    std::list<RegionGraph*>	      regionList;
+    std::list<MultiFab*>	      mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
 
 
 
@@ -774,7 +778,7 @@ class AsyncFillPatchIterator
                             int iter);
 
     void initFillPatch(int boxGrow,
-                       int time,
+                       Real time,
                        int index,
                        int scomp,
                        int ncomp,
@@ -954,7 +958,7 @@ class AsyncFillPatchIterator
                                 int f,
                                 bool singleT);
 
-    ~AsyncFillPatchIterator (){};
+    ~AsyncFillPatchIterator ();
 
     FArrayBox& operator() () { return m_fabs[MFIter::index()]; }
 
@@ -1010,6 +1014,10 @@ public:
   //PArray<MultiFab>                  raii;
     MultiFab*                         dmf;
     MultiFab*                         dmff;
+    std::list<RegionGraph*>           regionList;
+    std::list<MultiFab*>              mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
+
 
 
     void completeRegionGraphs()

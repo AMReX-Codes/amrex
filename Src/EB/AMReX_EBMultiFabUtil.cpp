@@ -25,6 +25,8 @@ EB_set_covered (MultiFab& mf, Real val)
 void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 {
+    AMREX_ALWAYS_ASSERT(mf.ixType().cellCentered() || mf.ixType().nodeCentered());
+    bool is_cell_centered = mf.ixType().cellCentered();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -33,10 +35,17 @@ EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
         const Box& bx = mfi.tilebox();
         FArrayBox& fab = mf[mfi];
         const auto& flagfab = amrex::getEBCellFlagFab(fab);
-        amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
-                             BL_TO_FORTRAN_N_ANYD(fab,icomp),
-                             BL_TO_FORTRAN_ANYD(flagfab),
-                             vals.data(),&ncomp);
+        if (is_cell_centered) {
+            amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
+                                 BL_TO_FORTRAN_N_ANYD(fab,icomp),
+                                 BL_TO_FORTRAN_ANYD(flagfab),
+                                 vals.data(),&ncomp);
+        } else {
+            amrex_eb_set_covered_nodes(BL_TO_FORTRAN_BOX(bx),
+                                       BL_TO_FORTRAN_N_ANYD(fab,icomp),
+                                       BL_TO_FORTRAN_ANYD(flagfab),
+                                       vals.data(),&ncomp);
+        }
     }
 }
 

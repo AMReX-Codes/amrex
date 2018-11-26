@@ -79,6 +79,7 @@ add_sources( AMReX_iMultiFab.H )
 
 add_sources( AMReX_FabArrayBase.cpp AMReX_MFIter.cpp )
 add_sources( AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayCommI.H )
+add_sources( AMReX_FabArrayUtility.H )
 add_sources( AMReX_FabArrayBase.H AMReX_MFIter.H AMReX_LayoutData.H)
 
 #
@@ -113,7 +114,10 @@ add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
 add_sources( AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
 add_sources( AMReX_MultiFabUtil_F.H )
 
-add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
+add_sources( AMReX_FilCC_${DIM}D_C.cpp )
+add_sources( AMReX_FilCC_C.H )
+
+add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_acc_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
 add_sources( AMReX_error_mod.F90 AMReX_parmparse_mod.F90 AMReX_string_mod.F90 )
 add_sources( AMReX_bc_types_mod.F90 )
 add_sources( AMReX_ParallelDescriptor_F.F90 )
@@ -152,7 +156,7 @@ if (ENABLE_TINY_PROFILE)
    add_sources( AMReX_TinyProfiler.H )
 endif ()
 
-add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H )
+add_sources( AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuControl.H AMReX_GpuLaunch.H AMReX_GpuError.H )
 add_sources( AMReX_GpuControl.cpp )
 
 #
@@ -163,9 +167,11 @@ add_sources( AMReX_GpuControl.cpp )
 #if (ENABLE_CUDA)
 add_sources( AMReX_CudaAllocators.H AMReX_CudaRange.H )
 add_sources( AMReX_CudaMemory.H AMReX_CudaAllocators.H AMReX_CudaLaunch.H AMReX_CudaContainers.H)
+add_sources( AMReX_CudaReduce.H )
 add_sources( AMReX_CudaLaunch.cpp AMReX_CudaAllocators.cpp)
 add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
-add_sources( AMReX_CudaFab.H AMReX_CudaFab.cpp AMReX_CudaFabImpl.H AMReX_CudaFabImpl.cpp )
+add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
+add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
 #endif()
 

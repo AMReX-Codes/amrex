@@ -42,22 +42,25 @@ C$(AMREX_BASE)_headers += AMReX_NFiles.H
 C$(AMREX_BASE)_headers += AMReX_parstream.H
 C$(AMREX_BASE)_sources += AMReX_parstream.cpp
 
-C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H
+C$(AMREX_BASE)_headers += AMReX_Gpu.H AMReX_GpuQualifiers.H AMReX_GpuLaunch.H AMReX_GpuError.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuControl.H
 C$(AMREX_BASE)_sources += AMReX_GpuControl.cpp
 
 C$(AMREX_BASE)_headers += AMReX_CudaMemory.H AMReX_CudaRange.H AMReX_CudaContainers.H
+C$(AMREX_BASE)_headers += AMReX_CudaReduce.H
 
 C$(AMREX_BASE)_sources += AMReX_CudaDevice.cpp AMReX_CudaLaunch.cpp AMReX_CudaUtility.cpp AMReX_CudaAllocators.cpp
 C$(AMREX_BASE)_headers += AMReX_CudaDevice.H   AMReX_CudaLaunch.H   AMReX_CudaUtility.H   AMReX_CudaAllocators.H
 
-C$(AMREX_BASE)_headers += AMReX_CudaFab.H
-C$(AMREX_BASE)_sources += AMReX_CudaFab.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaAsyncFab.H
+C$(AMREX_BASE)_sources += AMReX_CudaAsyncFab.cpp
 
-C$(AMREX_BASE)_headers += AMReX_CudaFabImpl.H
-C$(AMREX_BASE)_sources += AMReX_CudaFabImpl.cpp
+C$(AMREX_BASE)_headers += AMReX_CudaAsyncFabImpl.H
+C$(AMREX_BASE)_sources += AMReX_CudaAsyncFabImpl.cpp
 
+C$(AMREX_BASE)_headers += AMReX_CudaAsyncArray.H
+C$(AMREX_BASE)_sources += AMReX_CudaAsyncArray.cpp
 
 #
 # I/O stuff.
@@ -110,7 +113,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
-C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H
+C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H AMReX_FabArrayUtility.H
 C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #
@@ -132,6 +135,9 @@ ifneq ($(BL_NO_FORT),TRUE)
   C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_PhysBCFunct.H
   C$(AMREX_BASE)_headers += AMReX_BC_TYPES.H AMReX_BCUtil.H
 endif
+
+C$(AMREX_BASE)_headers += AMReX_FilCC_C.H
+C$(AMREX_BASE)_sources += AMReX_FilCC_$(DIM)D_C.cpp
 
 #
 # Plotfile
@@ -169,7 +175,7 @@ ifneq ($(BL_NO_FORT),TRUE)
     CUDA_MAXREGCOUNT_AMReX_filcc_mod.F90 := 128
   endif
 
-  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90
+  F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90 AMReX_acc_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_parmparse_mod.F90 AMReX_string_mod.F90
 
@@ -183,10 +189,6 @@ endif
 C$(AMREX_BASE)_sources += AMReX_BLProfiler.cpp
 C$(AMREX_BASE)_sources += AMReX_BLBackTrace.cpp
 C$(AMREX_BASE)_headers += AMReX_ThirdPartyProfiling.H
-
-ifeq ($(USE_CUDA),TRUE)
-  F90$(AMREX_BASE)_sources += AMReX_CudaFort.F90
-endif
 
 ifeq ($(LAZY),TRUE)
   C$(AMREX_BASE)_sources += AMReX_Lazy.cpp

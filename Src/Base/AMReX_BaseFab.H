@@ -96,17 +96,17 @@ struct BaseFabData : public Gpu::Managed
 
 /**
 *  \brief A Fortran Array-like Object
-*  BaseFab emulates the Fortran array concept.  
+*  BaseFab emulates the Fortran array concept.
 *  Useful operations can be performed upon
 *  BaseFabs in C++, and they provide a convenient interface to
 *  Fortran when it is necessary to retreat into that language.
-        
+
 *  BaseFab is a template class.  Through use of the
 *  template, a BaseFab may be based upon any class.  So far at least,
 *  most applications have been based upon simple types like integers,
-*  real*4s, or real*8s.  Most applications do not use BaseFabs 
+*  real*4s, or real*8s.  Most applications do not use BaseFabs
 *  directly, but utilize specialized classes derived from BaseFab.
-        
+
 *  BaseFab objects depend on the dimensionality of space
 *  (indirectly through the DOMAIN Box member).  It is
 *  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
@@ -117,19 +117,19 @@ struct BaseFabData : public Gpu::Managed
 *  point in the rectangular indexing space, there are NVAR values
 *  associated with that point.  A Fortran array corresponding to a
 *  BaseFab would have (SPACEDIM+1) dimensions.
-        
+
 *  By design, the array layout in a BaseFab mirrors that of a
 *  Fortran array.  The first index (x direction for example) varies
 *  most rapidly, the next index (y direction), if any, varies next
 *  fastest. The component index varies last, after all the spatial
 *  indices.
-        
+
 *  It is sometimes convenient to be able to treat a sub-array within an
 *  existing BaseFab as a BaseFab in its own right.  This is often
-*  referred to as aliasing the BaseFab.  Note that when aliasing is 
-*  used, the BaseFabs domain will not, in general, be the same as the 
+*  referred to as aliasing the BaseFab.  Note that when aliasing is
+*  used, the BaseFabs domain will not, in general, be the same as the
 *  parent BaseFabs domain, nor will the number of components.
-*  BaseFab is a dimension dependent class, so SPACEDIM must be 
+*  BaseFab is a dimension dependent class, so SPACEDIM must be
 *  defined as either 1, 2, or 3 when compiling.
 
 *  This is NOT a polymorphic class.
@@ -148,17 +148,14 @@ public:
 
     typedef T value_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
-    AMREX_GPU_HOST_DEVICE
     BaseFab ();
 
     //!  Make BaseFab with desired domain (box) and number of components.
-    AMREX_GPU_HOST_DEVICE
     explicit BaseFab (const Box& bx,
                       int        n = 1,
 		      bool       alloc = true,
 		      bool       shared = false);
 
-    AMREX_GPU_HOST_DEVICE
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
     /**
@@ -166,18 +163,15 @@ public:
      * responsible for memory management.  And it's caller's responsibility that
      * p points to a chunk of memory large enough.
      */
-    AMREX_GPU_HOST_DEVICE
     BaseFab (const Box& bx, int ncomp, T* p);
 
     //! The destructor deletes the array memory.
-    AMREX_GPU_HOST_DEVICE
     ~BaseFab ();
 
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (BaseFab<T>&& rhs) = delete;
 
-    AMREX_GPU_HOST_DEVICE
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     AMREX_GPU_HOST_DEVICE
@@ -188,7 +182,7 @@ public:
 
     /**
     * \brief This function resizes a BaseFab so it covers the Box b
-    * with N components.  
+    * with N components.
 
     * The default action is that under resizing, the memory allocated for the
     * BaseFab only grows and never shrinks.  This function is
@@ -197,7 +191,6 @@ public:
     * Resizing is typically faster than re-allocating a
     * BaseFab because memory allocation can often be avoided.
     */
-    AMREX_GPU_HOST_DEVICE
     void resize (const Box& b,
                  int        N = 1);
 
@@ -205,7 +198,6 @@ public:
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
      */
-    AMREX_GPU_HOST_DEVICE
     void clear ();
 
     //! Returns how many bytes used
@@ -225,13 +217,13 @@ public:
     AMREX_GPU_HOST_DEVICE
     int nComp () const { return this->nvar; }
 
-    //! for calls to fortran.  
+    //! for calls to fortran.
     AMREX_GPU_HOST_DEVICE
     const int* nCompPtr() const {
         return &(this->nvar);
     }
 
-    //! Returns the number of points 
+    //! Returns the number of points
     AMREX_GPU_HOST_DEVICE
     long nPts () const { return this->numpts; }
 
@@ -262,8 +254,8 @@ public:
     const IntVect& bigEnd () const { return this->domain.bigEnd(); }
 
     /**
-    * \brief Returns the lower corner of the domain.  
-  
+    * \brief Returns the lower corner of the domain.
+
     *Instead of returning them in the form of INTVECTs, as in smallEnd and
     * bigEnd, it returns the values as a pointer to an array of
     * constant integers.  This is useful when interfacing to
@@ -273,7 +265,7 @@ public:
     const int* loVect () const { return this->domain.loVect(); }
 
     /**
-    * \brief Returns the upper corner of the domain.  
+    * \brief Returns the upper corner of the domain.
 
     *Instead of returning them in the form of INTVECTs, as in smallEnd and
     * bigEnd, it returns the values as a pointer to an array of
@@ -320,7 +312,7 @@ public:
     T* dataPtr (const IntVect& iv, int n = 0);
     AMREX_GPU_HOST_DEVICE
     const T* dataPtr (const IntVect& iv, int n = 0) const;
-    
+
     void setPtr (T* p, long sz) { AMREX_ASSERT(this->dptr == 0 && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
     AMREX_GPU_HOST_DEVICE
@@ -544,7 +536,6 @@ public:
     * setVal above, except that instead of setting values on the
     * Box b, values are set on the complement of b in the domain.
     */
-// TODO    AMREX_GPU_HOST_DEVICE
     void setComplement (T          x,
                         const Box& b,
                         int        ns,
@@ -672,7 +663,7 @@ public:
     Real norm (int p,
                int scomp = 0,
                int ncomp = 1) const;
-    
+
     //! Same as above except only on given subbox.
     AMREX_GPU_HOST_DEVICE
     Real norm (const Box& subbox,
@@ -716,14 +707,13 @@ public:
     T max (const Box& subbox,
            int        comp = 0) const;
     /**
-    * \return Returns index that has given location, or IntVect
-    * outside of the subbox if value is not present.
+    * \return location of a cell containing the specified value
+    * given subbox. Returns IntVect outside box if value not present.
     */
-
     AMREX_GPU_HOST_DEVICE
-    IntVect indexFromValue (Real value, 
-                            const Box& subbox, 
-                            int comp) const;
+    IntVect indexFromValue (Real       value,
+                            const Box& subbox,
+                            int        comp = 0) const;
 
     /**
     * \return location of minimum value in given component.
@@ -738,6 +728,16 @@ public:
     IntVect minIndex (const Box& subbox,
                       int        comp = 0) const;
     /**
+    * \return return mininum value and location to allow
+    * efficient looping over multiple boxes.
+    */
+    AMREX_GPU_HOST_DEVICE
+    void  minIndex (const Box&     subbox,
+                          Real&    min_val,
+                          IntVect& min_idx,
+                          int      comp = 0) const;
+
+    /**
     * \return location of maximum value in given component.
     */
     AMREX_GPU_HOST_DEVICE
@@ -749,6 +749,17 @@ public:
     AMREX_GPU_HOST_DEVICE
     IntVect maxIndex (const Box& subbox,
                       int        comp = 0) const;
+    /**
+    * \return return maximum value and location to allow
+    * efficient looping over multiple boxes.
+    */
+    AMREX_GPU_HOST_DEVICE
+    void  maxIndex (const Box&     subbox,
+                          Real&    max_value,
+                          IntVect& max_index,
+                          int      comp = 0) const;
+
+
     /**
     * \brief Compute mask array with value of 1 in cells where
     * BaseFab has value less than val, 0 otherwise.
@@ -764,7 +775,7 @@ public:
     int maskLE (BaseFab<int>& mask,
                 T             val,
                 int           comp = 0) const;
-    
+
     //! Same as above except mark cells with value equal to val.
     AMREX_GPU_HOST_DEVICE
     int maskEQ (BaseFab<int>& mask,
@@ -878,7 +889,7 @@ public:
                       int               destcomp,
                       int               numcomp=1);
 
-    //! Atomic FAB addition (a[i] <- a[i] + b[i]). 
+    //! Atomic FAB addition (a[i] <- a[i] + b[i]).
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& atomicAdd (const BaseFab<T>& src);
 
@@ -1237,38 +1248,41 @@ public:
     AMREX_GPU_HOST_DEVICE
     void SetBoxType (const IndexType& typ) { this->domain.setType(typ); }
 
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEach (const Box& b, int c, int nc, F f) const {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEachIV (const Box& b, int c, int nc, F f) {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEachIV (const Box& b, int c, int nc, F f) {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE void ForEachIV (const Box& b, int c, int nc, F f) const {
+    template <class F> // AMREX_GPU_HOST_DEVICE
+    void ForEachIV (const Box& b, int c, int nc, F f) const {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                   const BaseFab<T>& src, int srccomp, F f);
 
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                   const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
 
-    template <typename P, class F> AMREX_GPU_HOST_DEVICE
+    template <typename P, class F> // AMREX_GPU_HOST_DEVICE
     P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void Transform (T* dst, const Box& b, int c, int nc, F f) const;
 
-    template <class F> AMREX_GPU_HOST_DEVICE
+    template <class F> // AMREX_GPU_HOST_DEVICE
     void Transform (const Box& b, int c, int nc, T const* src, F f);
 
 protected:
     //! Allocates memory for the BaseFab<T>.
-    AMREX_GPU_HOST_DEVICE
     void define ();
 
     //! The function called by BaseFab copy operations.
@@ -1299,7 +1313,7 @@ public:
 
 
 template <class B, class F>
-AMREX_GPU_HOST_DEVICE
+//AMREX_GPU_HOST_DEVICE
 inline
 void
 ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
@@ -1326,6 +1340,7 @@ ForEachImpl (B& fab, const Box& b, int c, int nc, F f)
 
 template <class B, class F>
 inline
+//AMREX_GPU_HOST_DEVICE
 void
 ForEachIVImpl (B& fab, const Box& b, int c, int nc, F f)
 {
@@ -1382,7 +1397,7 @@ BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
                 }
             }
         }
-    }   
+    }
 }
 
 template <class T>
@@ -1411,7 +1426,7 @@ BaseFab<T>::ForEach (const Box& dstbox, int dstcomp, int numcomp,
                 }
             }
         }
-    }   
+    }
 }
 
 template <class T>
@@ -1439,7 +1454,6 @@ BaseFab<T>::Accumulate (const Box& b, int c, int nc, P init, F f) const
 
 template <class T>
 template <class F>
-AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 {
@@ -1465,7 +1479,6 @@ BaseFab<T>::Transform (T* dst, const Box& b, int c, int nc, F f) const
 
 template <class T>
 template <class F>
-AMREX_GPU_HOST_DEVICE
 void
 BaseFab<T>::Transform (const Box& b, int c, int nc, T const* src, F f)
 {
@@ -1755,13 +1768,7 @@ BaseFab<T>::define ()
 
     this->truesize  = this->nvar*this->numpts;
     this->ptr_owner = true;
-// amrex::Arena is a virtual base class, not supported on GPUs.
-// So for now, need to manually add allocation for objects built on GPU. 
-#ifndef __CUDA_ARCH__
     this->dptr = static_cast<T*>(amrex::The_Arena()->alloc(this->truesize*sizeof(T)));
-#else
-    this->dptr = static_cast<T*>(::operator new(this->truesize*sizeof(T)));
-#endif
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -1774,9 +1781,7 @@ BaseFab<T>::define ()
         new (ptr) T;
     }
 
-#ifndef __CUDA_ARCH__
     amrex::update_fab_stats(this->numpts, this->truesize, sizeof(T));
-#endif
 }
 
 template <class T>
@@ -1913,12 +1918,11 @@ BaseFab<T>::clear ()
         //
 	if (this->ptr_owner)
 	{
-#ifndef __CUDA_ARCH__
 	    if (this->shared_memory)
 	    {
 		amrex::Abort("BaseFab::clear: BaseFab cannot be owner of shared memory");
 	    }
-#endif
+
 	    T* ptr = this->dptr;
 
 	    for (long i = 0; i < this->truesize; i++, ptr++)
@@ -1926,19 +1930,13 @@ BaseFab<T>::clear ()
 		ptr->~T();
 	    }
 
-#ifndef __CUDA_ARCH__
 	    amrex::The_Arena()->free(this->dptr);
-#else
-            ::operator delete(this->dptr);
-#endif
 
-#ifndef __CUDA_ARCH__
 	    if (this->nvar > 1) {
 		amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
 	    } else {
 		amrex::update_fab_stats(0, -this->truesize, sizeof(T));
 	    }
-#endif
 	}
 
 	this->dptr = 0;
@@ -1987,6 +1985,8 @@ BaseFab<T>::performSetVal (T          val,
                            int        ns,
                            int        num)
 {
+    if (!bx.ok()) return;
+
     AMREX_ASSERT(this->domain.contains(bx));
     AMREX_ASSERT(ns >= 0 && ns + num <= this->nvar);
 
@@ -2130,9 +2130,6 @@ BaseFab<T>::setComplement (T          x,
     BoxList b_lst = amrex::boxDiff(this->domain,b);
     for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
         performSetVal(x, *bli, ns, num);
-#ifdef AMREX_USE_GPU
-        CudaAPICheck(cudaDeviceSynchronize());
-#endif
     }
 }
 
@@ -2400,6 +2397,54 @@ BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
 
 template <class T>
 IntVect
+BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
+{
+    AMREX_D_DECL(int imin = -10, jmin = -10, kmin = -10);
+
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
+
+    for         (int k = 0; k < len[2]; ++k) {
+        for     (int j = 0; j < len[1]; ++j) {
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
+            for (int i = 0; i < len[0]; ++i) {
+                if (dp[i] == value) {
+                    AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;)
+                }
+            }
+        }
+    }
+
+    const auto& lo = subbox.loVect();
+    return IntVect(AMREX_D_DECL(imin+lo[0],jmin+lo[1],kmin+lo[2]));
+}
+
+template <class T>
+void
+BaseFab<T>::minIndex (const Box& subbox,
+                      Real& min_val,
+                      IntVect& min_idx,
+                      int comp) const
+{
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
+    const auto& lo = subbox.loVect();
+
+    for         (int k = 0; k < len[2]; ++k) {
+        for     (int j = 0; j < len[1]; ++j) {
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
+            for (int i = 0; i < len[0]; ++i) {
+                if (dp[i] < min_val) {
+                    min_val = dp[i];
+                    min_idx = IntVect(AMREX_D_DECL(i+lo[0],j+lo[1],k+lo[2]));
+                }
+            }
+        }
+    }
+}
+
+template <class T>
+IntVect
 BaseFab<T>::maxIndex (int comp) const
 {
     return this->maxIndex(this->domain,comp);
@@ -2429,6 +2474,30 @@ BaseFab<T>::maxIndex (const Box& subbox,
     }
 
     return IntVect(AMREX_D_DECL(imax+lo.x,jmax+lo.y,kmax+lo.z));
+}
+
+template <class T>
+void
+BaseFab<T>::maxIndex (const Box& subbox,
+                      Real& max_val,
+                      IntVect& max_idx,
+                      int comp) const
+{
+    const auto dp0 = this->stridedPtr(subbox,comp);
+    const auto len = subbox.length3d();
+    const auto& lo = subbox.loVect();
+
+    for         (int k = 0; k < len[2]; ++k) {
+        for     (int j = 0; j < len[1]; ++j) {
+            T const* AMREX_RESTRICT dp = dp0(0,j,k);
+            for (int i = 0; i < len[0]; ++i) {
+                if (dp[i] > max_val) {
+                    max_val = dp[i];
+                    max_idx = IntVect(AMREX_D_DECL(i+lo[0],j+lo[1],k+lo[2]));
+                }
+            }
+        }
+    }
 }
 
 template <class T>
@@ -3604,17 +3673,6 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   return *this;
 }
 
-class BF_init
-{
-public:
-    BF_init ();
-    ~BF_init ();
-private:
-    static int m_cnt;
-};
-
 }
-
-static amrex::BF_init amrex_file_scope_BF_init_object;
 
 #endif /*BL_BASEFAB_H*/

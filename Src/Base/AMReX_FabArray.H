@@ -36,6 +36,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_LayoutData.H>
 
 #include <AMReX_Gpu.H>
 
@@ -359,7 +360,7 @@ public:
     void setBndry (value_type val,
                    int        strt_comp,
                    int        ncomp);
- 
+
    //! Set all values outside the Geometry domain to val.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setDomainBndry (value_type val, const Geometry& goem);
@@ -367,6 +368,7 @@ public:
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
+
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy
@@ -414,7 +416,7 @@ public:
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp, period, op); }
 
-    //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively 
+    //! Similar to the above function, except that source and destination are grown by src_nghost and dst_nghost, respectively
     void ParallelAdd (const FabArray<FAB>& src,
                       int                  src_comp,
                       int                  dest_comp,
@@ -576,7 +578,7 @@ public:
 		 int        num_comp,
 		 int        nghost = 0) const;
 
-    //! Shift the boxarray by vector v 
+    //! Shift the boxarray by vector v
     void shift (const IntVect& v);
 
     bool defined (int i) const;
@@ -590,7 +592,7 @@ public:
     * If the length of periodic is provided, periodic boundaries are
     * also filled.  Note that FabArray itself does not contains
     * any periodicity information.
-    * FillBoundary expects that its cell-centered version of its BoxArray 
+    * FillBoundary expects that its cell-centered version of its BoxArray
     * is non-overlapping.
     */
     void FillBoundary (bool cross = false);
@@ -627,7 +629,7 @@ public:
     // interior  : interior cells (i.e., valid cells)
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void BuildMask (const Box& phys_domain, const Periodicity& period,
-		    value_type covered, value_type notcovered, 
+		    value_type covered, value_type notcovered,
 		    value_type physbnd, value_type interior);
 
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
@@ -640,7 +642,7 @@ protected:
     std::unique_ptr<FabFactory<FAB> > m_factory;
 
     bool define_function_called = false;
-    
+
     //
     // The data.
     //
@@ -683,7 +685,7 @@ protected:
 #if defined(BL_USE_MPI3)
                 win = rhs.win;
                 rhs.win = MPI_WIN_NULL;
-#endif                
+#endif
             }
             return *this;
         }
@@ -719,7 +721,7 @@ private:
                    int                                    SeqNum,
                    int                                    preSeqNum);
 #endif
-    
+
 #ifdef BL_USE_MPI3
     void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
                                 char*&                            the_recv_data,
@@ -733,7 +735,7 @@ private:
                                 int                               SeqNum,
                                 MPI_Win &                         win);
 #endif
-  
+
 public:
     // Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
@@ -913,7 +915,7 @@ FabArray<FAB>::FabArray (const BoxArray&            bxs,
 
 template <class FAB>
 FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
-    : m_factory(rhs.Factory().clone()), 
+    : m_factory(rhs.Factory().clone()),
       shmem()
 {
     m_FA_stats.recordBuild();
@@ -1095,7 +1097,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
         const Box& tmpbox = fabbox(K);
         m_fabs_v.push_back(factory.create(tmpbox, n_comp, fab_info, K));
     }
-    
+
 #ifdef BL_USE_TEAM
     if (shmem.alloc)
     {
@@ -1137,7 +1139,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 
 	const MPI_Comm& team_comm = ParallelDescriptor::MyTeam().get();
 
-	BL_MPI_REQUIRE( MPI_Win_allocate_shared(bytes, sizeof(value_type), 
+	BL_MPI_REQUIRE( MPI_Win_allocate_shared(bytes, sizeof(value_type),
 						info, team_comm, &mfp, &shmem.win) );
 
 	for (int w = 0; w < nworkers; ++w) {
@@ -1208,12 +1210,12 @@ FabArray<FAB>::setFab (const MFIter& mfi,
         //
         if (n_comp == 0)
             n_comp = elem->nComp();
-        
+
         BL_ASSERT(n_comp == elem->nComp());
         BL_ASSERT(boxarray.size() > 0);
         BL_ASSERT(elem->box() == fabbox(mfi.index()));
         BL_ASSERT(!this->defined(mfi));
-        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());        
+        BL_ASSERT(distributionMap[mfi.index()] == ParallelDescriptor::MyProc());
     }
 
     if (m_fabs_v.size() == 0) {
@@ -1232,7 +1234,7 @@ FabArray<FAB>::setBndry (value_type val)
 }
 
 template <class FAB>
-template <class>
+template <class FOO>
 void
 FabArray<FAB>::setBndry (value_type val,
                          int        strt_comp,
@@ -1240,12 +1242,42 @@ FabArray<FAB>::setBndry (value_type val,
 {
     if (n_grow.max() > 0)
     {
+        if (Gpu::inLaunchRegion())
+        {
+            for (MFIter fai(*this); fai.isValid(); ++fai)
+            {
+                const Box& gbx = fai.fabbox();
+                const Box& vbx = fai.validbox();
+                BoxList blst = amrex::boxDiff(gbx,vbx);
+                const int nboxes = blst.size();
+                if (nboxes > 0)
+                {
+                    Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                    Box const* pboxes = async_boxes.data();
+
+                    long ncells = 0;
+                    for (const auto& b : blst) {
+                        ncells += b.numPts();
+                    }
+
+                    FAB* fab = &(get(fai));
+                    AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
+                    {
+                        const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
+                        fab->setVal(val, Box(iv,iv,fab->box().ixType()), strt_comp, ncomp);
+                    });
+                }
+            }
+        }
+        else
+        {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter fai(*this); fai.isValid(); ++fai)
-        {
-            get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
+            for (MFIter fai(*this); fai.isValid(); ++fai)
+            {
+                get(fai).setComplement(val, fai.validbox(), strt_comp, ncomp);
+            }
         }
     }
 }
@@ -1259,7 +1291,7 @@ FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
 }
 
 template <class FAB>
-template <class>
+template <class FOO>
 void
 FabArray<FAB>::setDomainBndry (value_type val,
                                int        strt_comp,
@@ -1273,12 +1305,42 @@ FabArray<FAB>::setDomainBndry (value_type val,
             domain_box.grow(idim, n);
         }
     }
+
+    if (Gpu::inLaunchRegion())
+    {
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            const Box& gbx = fai.fabbox();
+            BoxList blst = amrex::boxDiff(gbx,domain_box);
+            const int nboxes = blst.size();
+            if (nboxes > 0)
+            {
+                Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                Box const* pboxes = async_boxes.data();
+
+                long ncells = 0;
+                for (const auto& b : blst) {
+                    ncells += b.numPts();
+                }
+
+                FAB* fab = &(get(fai));
+                AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
+                {
+                    const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
+                    fab->setVal(val, Box(iv,iv,fab->box().ixType()), strt_comp, ncomp);
+                });
+            }
+        }
+    }
+    else
+    {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter fai(*this); fai.isValid(); ++fai)
-    {
-        get(fai).setComplement(val, domain_box, strt_comp, ncomp);
+        for (MFIter fai(*this); fai.isValid(); ++fai)
+        {
+            get(fai).setComplement(val, domain_box, strt_comp, ncomp);
+        }
     }
 }
 
@@ -1564,7 +1626,7 @@ template <class FAB>
 template <class>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
-			  value_type covered, value_type notcovered, 
+			  value_type covered, value_type notcovered,
 			  value_type physbnd, value_type interior)
 {
     int ncomp = this->nComp();

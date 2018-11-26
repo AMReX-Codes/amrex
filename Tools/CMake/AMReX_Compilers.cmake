@@ -64,13 +64,13 @@ function ( set_amrex_compiler_flags )
    endif ()
 
    #
-   # Set REQUIRED fortran flags (only amrdata needs this)
+   # Set REQUIRED fortran flags 
    # 
    target_compile_options ( amrex
       PRIVATE
       # GNU 
       $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -ffixed-line-length-none>> 
+      -ffixed-line-length-none -ffree-line-length-none >> 
       # Intel 
       $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<$<COMPILE_LANGUAGE:Fortran>:
       -extend_source>>
@@ -118,14 +118,25 @@ function ( set_amrex_compiler_flags )
    # C++ REQUIRED flags
    # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
    # add c++11 support manually in order to have transitive property
-   target_compile_options ( amrex
-      PUBLIC
-      $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
-      $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-      $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+   if (NOT ENABLE_3D_NODAL_MLMG)
+      target_compile_options ( amrex
+         PUBLIC
+         $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
+         $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+         $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+         $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+         $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+         $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+   else ()
+      target_compile_options ( amrex
+         PUBLIC
+         $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
+         $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+         $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+         $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+         $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+         $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
+   endif ()
 
    
    #

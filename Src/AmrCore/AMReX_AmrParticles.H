@@ -85,7 +85,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
         return;
     }
     
-    PhysBCFunct cphysbc, fphysbc;
+    PhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
     int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir}; // periodic boundaries
     int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
@@ -108,8 +108,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AssignDensity
                                          rho_index, rho_index, ncomp,
                                          this->m_gdb->Geom(lev),
                                          this->m_gdb->Geom(lev+1),
-                                         cphysbc, fphysbc,
-                                         this->m_gdb->refRatio(lev), &mapper, bcs);
+                                         cphysbc, 0, fphysbc, 0,
+                                         this->m_gdb->refRatio(lev), &mapper,
+                                         bcs, 0);
         }
         
         if (lev > lev_min) {

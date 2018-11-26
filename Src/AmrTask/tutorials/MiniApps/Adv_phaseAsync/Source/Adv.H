@@ -88,7 +88,7 @@ public:
     //Proceed with next timestep?
     //
     virtual int okToContinue () { return 1; }
-    virtual int okToRegrid () { return false; }
+//    virtual int okToRegrid () { return false; }
     //
     //Advance grids at this level in time.
     //

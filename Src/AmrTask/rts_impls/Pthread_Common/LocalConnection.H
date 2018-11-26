@@ -22,6 +22,8 @@ class LocalCopyDescriptor
 	int dcpyCnt,scpyCnt;
 	pthread_mutex_t ghostLock;
 	LocalCopyDescriptor() : ns(-1), nd(-1), scpyCnt(0), dcpyCnt(0), sz(0), sPartner(-1), dPartner(-1), ghostLock(PTHREAD_MUTEX_INITIALIZER) {}
+	~LocalCopyDescriptor(){
+	}
 };
 
 class LocalConnection
@@ -40,8 +42,8 @@ class LocalConnection
 	~LocalConnection()
 	{
 	    if(localBarrier) free(localBarrier);
-	    if(scpy) free(scpy);
-	    if(dcpy) free(dcpy);
+	    if(scpy) delete [] scpy;
+	    if(dcpy) delete [] dcpy;
 	}
 };
 #endif

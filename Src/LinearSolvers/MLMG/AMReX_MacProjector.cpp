@@ -96,7 +96,7 @@ MacProjector::setDomainBC (const Array<LinOpBCType,AMREX_SPACEDIM>& lobc,
 }
 
 void
-MacProjector::project (Real reltol)
+MacProjector::project (Real reltol, Real atol )
 {
     if (m_mlmg == nullptr)
     {
@@ -127,7 +127,7 @@ MacProjector::project (Real reltol)
         MultiFab::Subtract(m_rhs[ilev], divu, 0, 0, 1, 0);
     }
 
-    m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, 0.0);
+    m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
 
     m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
     

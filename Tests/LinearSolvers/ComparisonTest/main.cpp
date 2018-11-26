@@ -57,6 +57,8 @@ int main(int argc, char* argv[])
 {
   amrex::Initialize(argc,argv);
 
+  {
+
   ParmParse pp;
 
   {
@@ -226,6 +228,8 @@ int main(int argc, char* argv[])
   pp.query("comp_norm", comp_norm);
   if (comp_norm) {
       compute_norm(psoln, pexac, geom, grids, nsoln, iCpp, iF90, iHyp);
+  }
+
   }
 
   amrex::Finalize();

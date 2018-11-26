@@ -457,25 +457,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 
 #ifdef AMREX_USE_GPU
-
-#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
-    // Wrap cuda init to identify it appropriately in nvvp.
-    // Note: first substantial cuda call may cause a lengthy
-    // cuda API and cuda driver API initialization that will
-    // be captured by the profiler. It a necessary, system
-    // dependent step that is unavoidable.
-    nvtxRangeId_t nvtx_init;
-    const char* pname = "initialize_device";
-    nvtx_init = nvtxRangeStartA(pname);
-#endif
-
     // Initialize after ParmParse so that we can read inputs.
-    Gpu::Device::initialize_device();
-
-#if (defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING)))
-    nvtxRangeEnd(nvtx_init);
-#endif
-
+    Gpu::Device::Initialize();
 #endif
 
     {
@@ -540,7 +523,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     DistributionMapping::Initialize();
     FArrayBox::Initialize();
     IArrayBox::Initialize();
-    Gpu::DeviceFab::Initialize();
+    Gpu::AsyncFab::Initialize();
     FabArrayBase::Initialize();
     MultiFab::Initialize();
     iMultiFab::Initialize();
@@ -583,6 +566,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                        << omp_get_max_threads()
                        << " OMP threads\n";
 #endif
+
+        amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
 }
 
@@ -637,12 +622,13 @@ amrex::Finalize (bool finalize_parallel)
     }
 #endif
 
-    amrex_mempool_finalize();
-
 #ifdef BL_MEM_PROFILING
     MemProfiler::report("Final");
     MemProfiler::Finalize();
 #endif
+
+    amrex_mempool_finalize();
+    Arena::Finalize();
 
     ParallelDescriptor::EndTeams();
 
@@ -666,7 +652,7 @@ amrex::Finalize (bool finalize_parallel)
 #endif
 
 #ifdef AMREX_USE_GPU
-    Gpu::Device::finalize_device();
+    Gpu::Device::Finalize();
 #endif
 
 #if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
@@ -678,6 +664,8 @@ amrex::Finalize (bool finalize_parallel)
     amrex::OutStream().precision(prev_out_precision);
     amrex::ErrorStream().precision(prev_err_precision);
 
+    bool is_ioproc = ParallelDescriptor::IOProcessor();
+
     if (finalize_parallel) {
 #if defined(BL_USE_FORTRAN_MPI)
 	bl_fortran_mpi_comm_free();
@@ -686,6 +674,10 @@ amrex::Finalize (bool finalize_parallel)
 #ifndef GASNET_CONDUIT_MPI
         ParallelDescriptor::EndParallel();
 #endif
+    }
+
+    if (amrex::system::verbose > 0 && is_ioproc) {
+        amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << std::endl;
     }
 }
 

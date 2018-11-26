@@ -1,2 +1,2 @@
-CEXE_sources += Algoim_integrals.cpp
-CEXE_headers += Algoim_integrals.H
+CEXE_sources += AMReX_algoim_integrals.cpp
+CEXE_headers += AMReX_algoim_integrals.H

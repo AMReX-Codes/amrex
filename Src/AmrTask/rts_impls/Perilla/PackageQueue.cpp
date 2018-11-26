@@ -203,3 +203,15 @@ Package* PackageQueue::getFront(bool lockIgnore)
     return package;
 }
 
+void PackageQueue::emptyQueue(){
+    while(n){
+	Package* p= dequeue(false);
+	delete p;
+    }
+}
+
+PackageQueue::~PackageQueue()
+{
+    emptyQueue();   
+}
+

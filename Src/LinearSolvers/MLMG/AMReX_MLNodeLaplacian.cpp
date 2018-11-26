@@ -6,7 +6,7 @@
 
 #ifdef AMREX_USE_EB
 #ifdef USE_ALGOIM
-#include <Algoim_integrals.H>
+#include <AMReX_algoim_integrals.H>
 #endif
 #endif
 
@@ -88,7 +88,6 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
         m_integral[amrlev].reset
             (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1,
                           MFInfo(), *m_factory[amrlev][0]));
-
 #else
         m_integral[amrlev].reset
             (new MultiFab(m_grids[amrlev][0], m_dmap[amrlev][0], ncomp_i, 1));

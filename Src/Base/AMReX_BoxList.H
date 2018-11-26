@@ -39,8 +39,8 @@ namespace amrex
     BoxList removeOverlap (const BoxList& bl);
 
 
-//! Output a BoxList to an ostream in ASCII format.
-std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
+    //! Output a BoxList to an ostream in ASCII format.
+    std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
 
 
 /** \brief A class for managing a List of Boxes that share a common

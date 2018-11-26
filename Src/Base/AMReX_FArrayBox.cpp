@@ -189,18 +189,18 @@ FArrayBox::initVal ()
 #ifdef BL_USE_DOUBLE
 #if defined(AMREX_USE_GPU)
 
-        double * p = dataPtr();
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (truesize, i,
-        {
-#ifdef UINT64_MAX
-            const uint64_t snan = UINT64_C(0x7ff0000080000001);
-#else
-            static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
-            const long long snan = 0x7ff0000080000001LL;
-#endif
-            double* pi = p + i;
-            std::memcpy(pi, &snan, sizeof(double));
-        });
+//         double * p = dataPtr();
+//         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (truesize, i,
+//         {
+// #ifdef UINT64_MAX
+//             const uint64_t snan = UINT64_C(0x7ff0000080000001);
+// #else
+//             static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
+//             const long long snan = 0x7ff0000080000001LL;
+// #endif
+//             double* pi = p + i;
+//             std::memcpy(pi, &snan, sizeof(double));
+//         });
 
 #else
 	amrex_array_init_snan(dataPtr(), truesize);
@@ -216,7 +216,7 @@ FArrayBox::contains_nan () const
 {
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
-        if (std::isnan(*dp++))
+        if (amrex::isnan(*dp++))
             return true;
     return false;
 }
@@ -234,7 +234,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isnan(this->operator()(p,scomp+i)))
+            if (amrex::isnan(this->operator()(p,scomp+i)))
                 return true;
         }
     }
@@ -260,7 +260,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isnan(this->operator()(p,scomp+i)))
+            if (amrex::isnan(this->operator()(p,scomp+i)))
             {
                 where = p;
 
@@ -276,7 +276,7 @@ FArrayBox::contains_inf () const
 {
     const Real* dp = dptr;
     for (int i = 0; i < numpts*nvar; i++)
-        if (std::isinf(*dp++))
+        if (amrex::isinf(*dp++))
             return true;
     return false;
 }
@@ -294,7 +294,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isinf(this->operator()(p,scomp+i)))
+            if (amrex::isinf(this->operator()(p,scomp+i)))
                 return true;
         }
     }
@@ -320,7 +320,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     {
         for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
         {
-            if (std::isinf(this->operator()(p,scomp+i)))
+            if (amrex::isinf(this->operator()(p,scomp+i)))
             {
                 where = p;
 

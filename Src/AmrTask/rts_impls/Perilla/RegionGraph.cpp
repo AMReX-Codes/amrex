@@ -1,6 +1,8 @@
 #include <RegionGraph.H>
 #include <WorkerThread.H>
+#include <stdlib.h>
 
+using namespace std;
 using namespace amrex;
 using namespace perilla;
 
@@ -805,23 +807,28 @@ void RegionGraph::workerTeardown()
 
 RegionGraph::~RegionGraph()
 {
+    delete[] okToReset;
+    for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++)delete worker[tg];
+    worker.clear();
+    for(int i=0; i<task.size(); i++) delete task[i];
+    task.clear();
+
+    if(sCopyMapHead != 0)
+      delete sCopyMapHead;
+    if(rCopyMapHead != 0)
+      delete rCopyMapHead;
+
+    for(int i=0; i<lMap.size(); i++) delete lMap[i];
+    for(int i=0; i<sMap.size(); i++) delete sMap[i];
+    for(int i=0; i<rMap.size(); i++) delete rMap[i];
+
     lMap.clear();
     sMap.clear();
     rMap.clear();
 
-#if 0
-    for(int i=0; i<task.size(); i++) delete task[i];
-    for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++) delete worker[tg];
-#endif
+    //for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
+    //for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
 
-    //fabTiles.clear();
-    //if(sCopyMapHead != 0)
-    //  delete sCopyMapHead;
-    //if(rCopyMapHead != 0)
-    //  delete rCopyMapHead;
-    //delete[] worker;
-    //delete[] task;
-    worker.clear();
-    task.clear();
-    delete[] okToReset;
+    fabTiles.clear();
+    fabTiles_gtbx.clear();
 }

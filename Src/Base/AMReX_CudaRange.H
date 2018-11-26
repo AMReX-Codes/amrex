@@ -2,6 +2,7 @@
 #define AMREX_CUDA_RANGE_H_
 
 #include <AMReX_GpuQualifiers.H>
+#include <AMReX_GpuError.H>
 #include <AMReX_Box.H>
 #include <AMReX_TypeTraits.H>
 
