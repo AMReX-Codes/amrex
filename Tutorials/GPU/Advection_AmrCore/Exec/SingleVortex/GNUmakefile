@@ -6,13 +6,13 @@ PROFILE    = FALSE
 DEBUG      = TRUE
 DEBUG      = FALSE
 
-DIM        = 2
-#DIM       = 3
+#DIM        = 2
+DIM       = 3
 
-COMP	   = gnu
+COMP	   = intel 
 
 USE_MPI    = TRUE
-USE_OMP    = TRUE 
+USE_OMP    = FALSE 
 
 USE_SENSEI_INSITU = FALSE
 

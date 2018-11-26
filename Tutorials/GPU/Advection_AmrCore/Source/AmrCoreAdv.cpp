@@ -586,7 +586,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
     const Real new_time = t_new[lev];
     const Real ctr_time = 0.5*(old_time+new_time);
 
-    const Real* dx = geom[lev].CellSize();
+    const auto dx = geom[lev].CellSizeArray();
     const Real* prob_lo = geom[lev].ProbLo();
 
     MultiFab fluxes[BL_SPACEDIM];
@@ -630,11 +630,11 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 			      geom[lev].data());
 
             // compute new state (stateout) and fluxes.
-            advect(&time, bx.loVect(), bx.hiVect(),
+            advect(time, bx,
 		   statein, stateout,
 		   AMREX_D_DECL(uface[0], uface[1], uface[2]),
 		   AMREX_D_DECL(flux[0], flux[1], flux[2]), 
-		   dx, &dt_lev);
+		   dx, dt_lev);
 
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
