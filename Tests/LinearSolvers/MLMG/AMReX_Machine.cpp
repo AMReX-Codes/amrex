@@ -23,7 +23,8 @@ struct DoubleInt {
 using Coord = Array<int, 4>;
 
 // returns coordinate in an index space with no switches
-Coord read_node_coord (const std::string & name)
+// for dragonfly network
+Coord read_df_node_coord (const std::string & name)
 {
     int cabx, caby, cab_chas, slot, node;
     {
@@ -41,10 +42,7 @@ Coord read_node_coord (const std::string & name)
     if (name == "edison") {
         group = cabx / 2 + caby * 4; // 2 cabinets per group, 4 groups per row
         if (group > 12) { group--; } // nominal "group 12" is missing
-    } else if (name == "cori-haswell") {
-        group = cabx / 2;  // 2 cabinets per group
-        assert(caby == 0); // only 1 row of cabinets
-    } else if (name == "cori-knl") {
+    } else if (name == "cori") {
         group = cabx / 2 + caby * 6; // 2 cabinets per group, 6 groups per row
     } else {
         Print() << "Could not determine group!";
@@ -67,12 +65,14 @@ std::string get_mpi_processor_name ()
     return result;
 }
 
-int coord_to_id (const Coord & c)
+// assumes groups are in 4x16x6 configuration
+int df_coord_to_id (const Coord & c)
 {
     return c[0] + 4 * (c[1] + 16 * (c[2] + 6 * c[3]));
 }
 
-Coord id_to_coord (int id)
+// assumes groups are in 4x16x6 configuration
+Coord df_id_to_coord (int id)
 {
     int node = id % 4;  id /= 4;
     int slot = id % 16; id /= 16;
@@ -124,24 +124,11 @@ Vector<int> get_subgroup_ranks ()
     return granks;
 }
 
-struct Candidate
-{
-    int id;
-    Coord coord;
-    // how many ranks on this node
-    int rank_n = 0;
-    // sum of pairwise rank distances from the candidate node to already chosen nodes
-    int sum_dist = 0;
-
-    Candidate () = default;
-    Candidate (int i) : id(i), coord(id_to_coord(id)) {}
-};
-
 int pair_n (int x) {
     return x*(x-1)/2;
 }
 
-int dist (const Coord & a, const Coord & b)
+int df_dist (const Coord & a, const Coord & b)
 {
     if (a[3] != b[3]) {
         // large penalty for traversing across groups
@@ -160,9 +147,34 @@ int dist (const Coord & a, const Coord & b)
     }
 }
 
+Coord id_to_coord (int id)
+{
+    // TODO: implement support for other types of networks
+    return df_id_to_coord(id);
+}
+
+int dist (const Coord & a, const Coord & b)
+{
+    // TODO: implement support for other types of networks
+    return df_dist(a, b);
+}
+
+struct Candidate
+{
+    int id;
+    Coord coord;
+    // how many ranks on this node
+    int rank_n = 0;
+    // sum of pairwise rank distances from the candidate node to already chosen nodes
+    int sum_dist = 0;
+
+    Candidate () = default;
+    Candidate (int i) : id(i), coord(id_to_coord(id)) {}
+};
+
 // do a local search starting at current node
 std::pair<Vector<int>, double>
-search_local_nbh(int rank_me, Vector<int> sg_node_ids, int nbh_rank_n)
+search_local_nbh(int rank_me, const Vector<int> & sg_node_ids, int nbh_rank_n)
 {
     BL_PROFILE("Machine::search_local_nbh()");
 
@@ -188,15 +200,16 @@ search_local_nbh(int rank_me, Vector<int> sg_node_ids, int nbh_rank_n)
     }
 
     AMREX_ASSERT(rank_me >= 0 && rank_me < sg_node_ids.size());
-    const Candidate * cur_node = &candidates.at(sg_node_ids[rank_me]);
+    Candidate cur_node = std::move(candidates.at(sg_node_ids[rank_me]));
+    candidates.erase(cur_node.id);
 
     // add source_node
-    result.push_back(cur_node->id);
-    int total_rank_n = cur_node->rank_n;
+    result.push_back(cur_node.id);
+    int total_rank_n = cur_node.rank_n;
     int total_pairs_dist = 0;
     if (flag_verbose) {
-        Print() << "  Added " << cur_node->id
-                << ": " << to_str(cur_node->coord)
+        Print() << "  Added " << cur_node.id
+                << ": " << to_str(cur_node.coord)
                 << ", total ranks: " << total_rank_n
                 << ", avg dist: " << 0 << std::endl;
     }
@@ -207,40 +220,40 @@ search_local_nbh(int rank_me, Vector<int> sg_node_ids, int nbh_rank_n)
     double min_avg_dist;
     while (total_rank_n < nbh_rank_n)
     {
-        // cur_node was just added
-        candidates.erase(cur_node->id);
         min_avg_dist = std::numeric_limits<double>::max();
-        const Candidate * next_node = nullptr;
+        Candidate * next_node = nullptr;
         // update candidates with their pairwise rank distances to cur_node
         for (auto & p : candidates) {
-            Candidate * const cand_node = &p.second;
-            auto cand_dist = dist(cand_node->coord, cur_node->coord);
+            Candidate & cand_node = p.second;
+            auto cand_dist = dist(cand_node.coord, cur_node.coord);
             // multiply distance by number of rank pairs across the two nodes
-            cand_node->sum_dist += cand_dist * (cand_node->rank_n * cur_node->rank_n);
-            double avg_dist = static_cast<double>(cand_node->sum_dist + total_pairs_dist) /
-                              pair_n(cand_node->rank_n + total_rank_n);
+            cand_node.sum_dist += cand_dist * (cand_node.rank_n * cur_node.rank_n);
+            double avg_dist = static_cast<double>(cand_node.sum_dist + total_pairs_dist) /
+                              pair_n(cand_node.rank_n + total_rank_n);
             if (flag_verbose) {
-                Print() << "    Distance from " << cand_node->id
-                        << " to " << cur_node->id
+                Print() << "    Distance from " << cand_node.id
+                        << " to " << cur_node.id
                         << ": " << cand_dist
                         << ", candidate avg: " << avg_dist << std::endl;
             }
             // keep track of what should be the next node to add
             if (avg_dist < min_avg_dist) {
-                next_node = cand_node;
+                next_node = &cand_node;
                 min_avg_dist = avg_dist;
             }
         }
-        cur_node = next_node;
+        cur_node = std::move(*next_node);
+        next_node = nullptr;
+        candidates.erase(cur_node.id);
 
         // add cur_node to result
-        result.push_back(cur_node->id);
-        total_rank_n += cur_node->rank_n;
-        total_pairs_dist += cur_node->sum_dist;
+        result.push_back(cur_node.id);
+        total_rank_n += cur_node.rank_n;
+        total_pairs_dist += cur_node.sum_dist;
 
         if (flag_verbose) {
-            Print() << "  Added " << cur_node->id
-                    << ", ranks: " << cur_node->rank_n
+            Print() << "  Added " << cur_node.id
+                    << ", ranks: " << cur_node.rank_n
                     << ", total ranks: " << total_rank_n
                     << ", avg dist: " << min_avg_dist << std::endl;
         }
@@ -258,6 +271,7 @@ class Machine
     }
 
     // find a compact neighborhood of size rank_n in the current ParallelContext subgroup
+    // TODO: cache results
     Vector<int> find_best_nbh (int nbh_rank_n)
     {
         BL_PROFILE("Machine::find_best_nbh()");
@@ -266,9 +280,11 @@ class Machine
         auto sg_g_ranks = get_subgroup_ranks();
         auto sg_rank_n = sg_g_ranks.size();
         Vector<int> sg_node_ids(sg_rank_n);
+        std::unordered_map<int, std::vector<int>> node_l_ranks;
         for (int i = 0; i < sg_rank_n; ++i) {
             AMREX_ASSERT(sg_g_ranks[i] >= 0 && sg_g_ranks[i] < node_ids.size());
             sg_node_ids[i] = node_ids[sg_g_ranks[i]];
+            node_l_ranks[sg_node_ids[i]].push_back(i);
         }
 
         if (flag_verbose) {
@@ -308,7 +324,18 @@ class Machine
 
         Print() << "Winning neighborhood: " << winner_rank << ": " << to_str(local_nbh) << ", score = " << winner_score << std::endl;
 
-        return local_nbh;
+        Vector<int> result;
+        result.reserve(nbh_rank_n);
+        for (int i = 0; i < local_nbh.size(); ++i) {
+            for (auto rank : node_l_ranks.at(local_nbh[i])) {
+                if (result.size() < nbh_rank_n) {
+                    result.push_back(rank);
+                }
+            }
+        }
+        Print() << "Ranks (local) in neighborhood: " << to_str(result) << std::endl;
+
+        return result;
     }
 
   private:
@@ -319,6 +346,7 @@ class Machine
     std::string node_list;
     std::string topo_addr;
 
+    bool flag_nersc_df;
     int my_node_id;
     Vector<int> node_ids;
 
@@ -326,16 +354,25 @@ class Machine
     {
         hostname   = std::string(std::getenv("HOSTNAME"));
         nersc_host = std::string(std::getenv("NERSC_HOST"));
-        partition  = std::string(std::getenv("SLURM_JOB_PARTITION"));
-        node_list  = std::string(std::getenv("SLURM_NODELIST"));
-        topo_addr  = std::string(std::getenv("SLURM_TOPOLOGY_ADDR"));
+        flag_nersc_df = (nersc_host == "edison" ||
+                         nersc_host == "cori" ||
+                         nersc_host == "saul");
 
-        if (flag_verbose) {
-            Print() << "HOSTNAME = " << hostname << std::endl;
-            Print() << "NERSC_HOST = " << nersc_host << std::endl;
-            Print() << "SLURM_JOB_PARTITION = " << partition << std::endl;
-            Print() << "SLURM_NODELIST = " << node_list << std::endl;
-            Print() << "SLURM_TOPOLOGY_ADDR = " << topo_addr << std::endl;
+        if (flag_nersc_df) {
+            partition  = std::string(std::getenv("SLURM_JOB_PARTITION"));
+            node_list  = std::string(std::getenv("SLURM_NODELIST"));
+            topo_addr  = std::string(std::getenv("SLURM_TOPOLOGY_ADDR"));
+
+            if (flag_verbose) {
+                Print() << "HOSTNAME = " << hostname << std::endl;
+                Print() << "NERSC_HOST = " << nersc_host << std::endl;
+                Print() << "SLURM_JOB_PARTITION = " << partition << std::endl;
+                Print() << "SLURM_NODELIST = " << node_list << std::endl;
+                Print() << "SLURM_TOPOLOGY_ADDR = " << topo_addr << std::endl;
+            }
+        } else {
+            // TODO: implement support for other types of machines
+            std::abort();
         }
     }
 
@@ -343,29 +380,35 @@ class Machine
     int get_my_node_id ()
     {
         int result = -1;
-        std::string tag = "nid";
-        auto pos = topo_addr.find(tag);
-        if (pos != std::string::npos) {
-            result = stoi(topo_addr.substr(pos + tag.size())); // assumes format '.*nid(\d+)'
-            Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
+        if (flag_nersc_df) {
+            std::string tag = "nid";
+            auto pos = topo_addr.find(tag);
+            if (pos != std::string::npos) {
+                result = stoi(topo_addr.substr(pos + tag.size())); // assumes format ".*nid(\d+)"
+                Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
 #if BL_USE_MPI
-        } else {
-            auto mpi_proc_name = get_mpi_processor_name();
-            Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
-            if (mpi_proc_name.substr(0,3) == "nid") {
-                result = stoi(mpi_proc_name.substr(3)); // assumes format 'nid(\d+)'
-                Print() << "Got node ID from MPI_Get_processor_name(): " << result << std::endl;
+            } else {
+                auto mpi_proc_name = get_mpi_processor_name();
+                Print() << "MPI_Get_processor_name: " << mpi_proc_name << std::endl;
+                pos = mpi_proc_name.find(tag);
+                if (pos != std::string::npos) {
+                    result = stoi(mpi_proc_name.substr(pos + tag.size())); // assumes format ".*nid(\d+)"
+                    Print() << "Got node ID from MPI_Get_processor_name(): " << result << std::endl;
+                }
+#endif
             }
-#endif
-        }
 
-        // check result
-        AMREX_ALWAYS_ASSERT(result != -1);
+            // check result
+            AMREX_ALWAYS_ASSERT(result != -1);
 #ifndef NDEBUG
-        auto coord = read_node_coord("cori-knl");
-        int id_from_coord = coord_to_id(coord);
-        AMREX_ASSERT(id_from_coord == result);
+            auto coord = read_df_node_coord(nersc_host);
+            int id_from_coord = df_coord_to_id(coord);
+            AMREX_ASSERT(id_from_coord == result);
 #endif
+        } else {
+            // TODO: implement support for other types of machines
+            std::abort();
+        }
         return result;
     }
 
@@ -373,8 +416,9 @@ class Machine
     // this is collective over ALL ranks in the job
     Vector<int> get_node_ids ()
     {
+        int node_id = -1;
         Vector<int> ids(ParallelDescriptor::NProcs(), 0);
-        int node_id = get_my_node_id();
+        node_id = get_my_node_id();
         ParallelAllGather::AllGather(node_id, ids.data(), ParallelContext::CommunicatorAll());
         if (flag_verbose) {
             Print() << "Rank: Node ID: Node Coord:" << std::endl;
