@@ -3,6 +3,7 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuError.H>
 #include <AMReX_CudaRange.H>
 #include <AMReX_CudaDevice.H>
 #include <AMReX_Box.H>
@@ -30,7 +31,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         long amrex_i_npts = BX.numPts(); \
@@ -52,7 +53,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_BOXIV: cannot call device function from host"); \
@@ -68,7 +69,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         for (auto const TI : amrex::Cuda::Range(TN)) { \
@@ -86,7 +87,7 @@
                 block \
             } \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE: cannot call device function from host"); \
@@ -109,7 +110,7 @@
                 if (tbb.ok()) block \
             } \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -134,9 +135,8 @@
             } \
         }); \
         ++sync_var; \
-        amrex::Cuda::Device::set_stream_index(sync_var);       \
-        amrex::Cuda::Device::check_for_errors();                      \
-        CudaErrorCheck(); \
+        amrex::Cuda::Device::set_stream_index(sync_var); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -160,7 +160,7 @@
                 if (tbb.ok()) block \
             } \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA: cannot call device function from host"); \
@@ -225,7 +225,7 @@
                 block \
             }}} \
         }); \
-        CudaErrorCheck(); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         const amrex::Box& tbb = bbb; \
@@ -238,7 +238,7 @@
       { \
          auto amrex_i_ec = strategy;                                           \
          amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
-         CudaErrorCheck(); \
+         AMREX_GPU_ERROR_CHECK(); \
       } \
       else \
       { \
@@ -252,7 +252,7 @@
       { \
          auto amrex_i_ec = strategy; \
          amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
-         CudaErrorCheck(); \
+         AMREX_GPU_ERROR_CHECK(); \
       } \
       else \
       { \
@@ -265,7 +265,7 @@
     { \
         auto amrex_i_ec = strategy;                                             \
         function<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(__VA_ARGS__); \
-        CudaErrorCheck();                                               \
+        AMREX_GPU_ERROR_CHECK();                                               \
     }
 
 #else
@@ -349,6 +349,9 @@ namespace amrex {
     void launch_host (L f0, Lambdas... fs) { f0(); launch_host(fs...); }
 
 
+    template <class T> class LayoutData;
+    class FabArrayBase;
+
 namespace Cuda {
 
 // ************************************************
@@ -359,7 +362,15 @@ namespace Cuda {
         int nc;
     };
 
+    struct GridSize {
+        int numBlocks;
+        int numThreads;
+        int globalBlockId;
+    };
+
 // ************************************************
+
+    void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks);
 
     AMREX_GPU_HOST_DEVICE
     Box getThreadBox (const Box& bx);
@@ -400,6 +411,8 @@ namespace Cuda {
             Cuda::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
         ExecutionConfig (const Box& box) {
+            // If we change this, we must make sure it doesn't break say getGridSize, which
+            // assumes the decomposiiton is 1D.
             Cuda::Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);

@@ -27,7 +27,7 @@ class BoxCommHelper;
 * and a low and high INTVECT which defines the lower and upper corners
 * of the Box.  Boxes can exist in positive and negative indexing space.
 *
-* Box is a dimension dependent class, so SPACEDIM must be 
+* Box is a dimension dependent class, so SPACEDIM must be
 * defined as either 1, 2, or 3 when compiling.
 */
 class Box // : public Gpu::Managed
@@ -37,8 +37,8 @@ class Box // : public Gpu::Managed
 
 public:
     /*
-    * \brief The default constructor.  For safety, the constructed Box is  
-    * invalid and may be tested for validity with ok(). 
+    * \brief The default constructor.  For safety, the constructed Box is
+    * invalid and may be tested for validity with ok().
     * DO NOT CHANGE THIS BEHAVIOR!
     */
     AMREX_GPU_HOST_DEVICE
@@ -209,10 +209,10 @@ public:
     */
     AMREX_GPU_HOST_DEVICE
     bool contains (const Box& b) const
-    { 
-	BL_ASSERT(sameType(b)); 
+    {
+	BL_ASSERT(sameType(b));
 	return b.smallend.allGE(smallend) && b.bigend.allLE(bigend);
-    } 
+    }
 
     //! Returns true if argument is strictly contained within Box.
     AMREX_GPU_HOST_DEVICE
@@ -223,8 +223,8 @@ public:
     * It is an error if the Boxes have different types.
     */
     AMREX_GPU_HOST_DEVICE
-    bool strictly_contains (const Box& b) const 
-    { 
+    bool strictly_contains (const Box& b) const
+    {
 	BL_ASSERT(sameType(b));
 	return b.smallend.allGT(smallend) && b.bigend.allLT(bigend);
     }
@@ -314,7 +314,7 @@ public:
     */
     AMREX_GPU_HOST_DEVICE
     long volume () const {
-        return AMREX_D_TERM( static_cast<long>(length(0)-btype[0]), 
+        return AMREX_D_TERM( static_cast<long>(length(0)-btype[0]),
                             *static_cast<long>(length(1)-btype[1]),
                             *static_cast<long>(length(2)-btype[2]));
     }
@@ -619,7 +619,7 @@ public:
     void next (IntVect &) const;
 
     /**
-    * \brief This static member function returns a constant reference to 
+    * \brief This static member function returns a constant reference to
     * an object of type Box representing the unit box in
     * AMREX_SPACEDIM-dimensional space.
     */
@@ -691,7 +691,7 @@ Box::coarsen (const IntVect& ref_ratio)
     if (ref_ratio != 1)
     {
         smallend.coarsen(ref_ratio);
-        
+
         if (btype.any())
         {
             IntVect off(0);
@@ -847,7 +847,7 @@ Box::setRange (int dir,
 }
 
 inline
-void 
+void
 Box::linearOut(void* a_buffer ) const
 {
     unsigned char* buf = (unsigned char*) a_buffer;
@@ -860,7 +860,7 @@ Box::linearOut(void* a_buffer ) const
 }
 
 inline
-void 
+void
 Box::linearIn(void* a_buffer )
 {
     unsigned char* buf = (unsigned char*) a_buffer;
@@ -870,7 +870,7 @@ Box::linearIn(void* a_buffer )
     buf += ivlo.linearSize();
     ivhi.linearIn(buf);
     buf += ivhi.linearSize();
-    
+
     *this = Box(ivlo, ivhi);
 }
 
@@ -945,7 +945,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
 
     /**
     * \brief Grow Box in all directions by given amount.
-  
+
     * NOTE: n_cell negative shrinks the Box by that number of cells.
     */
     AMREX_GPU_HOST_DEVICE
@@ -1097,7 +1097,7 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     /**
-    * \brief Returns a Box with CELL based coordinates in 
+    * \brief Returns a Box with CELL based coordinates in
     * direction dir that is enclosed by b.
     * NOTE: equivalent to b.convert(dir,CELL)
     * NOTE: error if b.type(dir) == CELL.
@@ -1218,6 +1218,23 @@ void AllGatherBoxes (Vector<Box>& bxs);
                 box.bigend[1]-box.smallend[1]+1,
                 box.bigend[2]-box.smallend[2]+1};
 #endif
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    IntVect getCell (Box const* boxes, int nboxes, long icell)
+    {
+        int ibox;
+        long ncells_subtotal = 0;
+        long offset = 0;
+        for (ibox = 0; ibox < nboxes; ++ibox) {
+            const long n = boxes[ibox].numPts();
+            ncells_subtotal += n;
+            if (icell < ncells_subtotal) {
+                offset = icell - (ncells_subtotal - n);
+                break;
+            }
+        }
+        return boxes[ibox].atOffset(offset);
     }
 }
 

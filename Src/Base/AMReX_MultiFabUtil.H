@@ -3,6 +3,7 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_LayoutData.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 

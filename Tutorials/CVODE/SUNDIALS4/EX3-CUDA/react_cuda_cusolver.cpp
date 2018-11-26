@@ -68,7 +68,7 @@ void do_react(const int* lo, const int* hi,
   flag = CVodeSetMaxNumSteps(cvode_mem, 150000);
 
   // Initialize cuSolver Linear Solver
-  flag = cv_cuSolver_SetLinearSolver(cvode_mem, LinearSolverMethod);
+  flag = cv_cuSolver_SetLinearSolver(cvode_mem, LinearSolverMethod, 1==1, 0);
   flag = cv_cuSolver_CSR_SetSizes(cvode_mem, neqs, jac_number_nonzero, size_state);
   flag = cv_cuSolver_SetJacFun(cvode_mem, &fun_csr_jac);
   flag = cv_cuSolver_SystemInitialize(cvode_mem, &csr_row_count[0], &csr_col_index[0]);

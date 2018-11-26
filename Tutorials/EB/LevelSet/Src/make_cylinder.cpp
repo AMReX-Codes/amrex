@@ -3,6 +3,8 @@
 #include <AMReX_EB2_IF_Polynomial.H>
 #include <AMReX_EB2_IF_Intersection.H>
 
+#include <AMReX_EB_LSCore.H>
+
 #include <make_shapes.H>
 
 using namespace amrex;
@@ -11,8 +13,7 @@ using namespace amrex;
 std::unique_ptr<CappedCylinderIF>
 make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & translation,
                        int lev, const Geometry & geom, const DistributionMapping & dm,
-                       LSFactory * level_set)
-{
+                       LSFactory * level_set, LSCoreBase *& ls_core) {
     // Polynomial defining (curved) cylinder walls parallel to a given axis:
     //     IF = a^2 + b^2 - R^2
     // where a, b \in {a, x, z} - {axis} for example, if the cylinder lies on
@@ -88,8 +89,6 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     VisMF::Write(* walls_mf_impfunc, "ImpFunc_EndCaps");
 
 
-
-
     CylinderIF                    cylinder_if(EB2::PolynomialIF(poly), offset);
     EB2::GeometryShop<CylinderIF> cylinder_gshop(cylinder_if);
     GShopLSFactory<CylinderIF>    cylinder_ls_gshop(cylinder_gshop, * level_set);
@@ -125,6 +124,13 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
         new CappedCylinderIF(EB2::TranslationIF<EB2::UnionIF<EB2::PlaneIF,EB2::PlaneIF>>(walls_if),
                              EB2::TranslationIF<EB2::PolynomialIF>(cylinder_if))
         );
+
+    EB2::GeometryShop<CappedCylinderIF> capped_cylinder_gshop(* ret);
+    ls_core = new LSCore<CappedCylinderIF>(capped_cylinder_gshop);
+
+    // ls_core = new LSCore<CylinderIF>(cylinder_gshop);
+
+    //ls_core = new LSCore<WallsIF>(walls_gshop);
 
     return ret;
 }

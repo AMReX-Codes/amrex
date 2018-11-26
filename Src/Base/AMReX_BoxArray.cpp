@@ -974,7 +974,7 @@ BoxArray::minimalBox () const
 }
 
 Box
-BoxArray::minimalBox (int& npts_avg_box) const
+BoxArray::minimalBox (long& npts_avg_box) const
 {
     BL_ASSERT(m_simple);
     Box minbox;

@@ -3,6 +3,7 @@
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_LayoutData.H>
 
 using namespace amrex;
 class CNS
@@ -157,5 +158,11 @@ protected:
     static int refine_max_dengrad_lev;
     static amrex::Real refine_dengrad;
 };
+
+void cns_bcfill (amrex::Box const& bx, amrex::FArrayBox& data,
+                 const int dcomp, const int numcomp,
+                 amrex::Geometry const& geom, const amrex::Real time,
+                 const amrex::Vector<amrex::BCRec>& bcr, const int bcomp,
+                 const int scomp);
 
 #endif

@@ -65,8 +65,8 @@ subroutine initdata(level, time, lo, hi, &
 
   !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
   do k=lo(3),hi(3)
-     z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
      do j=lo(2),hi(2)
+        z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
         y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
         do i=lo(1),hi(1)
            x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)

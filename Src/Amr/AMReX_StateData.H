@@ -20,6 +20,8 @@
 
 namespace amrex {
 
+class StateDataPhysBCFunct;
+
 //
 // Current and previous level-time data.
 //
@@ -28,6 +30,8 @@ namespace amrex {
 
 class StateData
 {
+    friend class StateDataPhysBCFunct;
+
 public:
     //
     // The default constructor.
@@ -161,6 +165,14 @@ public:
                        int            dest_comp,
                        int            src_comp,
                        int            num_comp = 1);
+
+    void FillBoundary (Box const&      bx,
+                       FArrayBox&      dest,
+                       Real            time,
+                       Geometry const& geom,
+                       int             dest_comp,
+                       int             src_comp,
+                       int             num_comp);
     //
     // Write the state data to a checkpoint file.
     //
@@ -326,7 +338,7 @@ class StateDataPhysBCFunct
 {
 public:
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
-    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time) override;
+    virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) override;
     using PhysBCFunctBase::FillBoundary;
 private:
     StateData* statedata;

@@ -26,17 +26,6 @@ public:
     * \brief Deletes the arena pointed to by pt.
     */
     virtual void free (void* pt) override;
-#ifdef AMREX_USE_GPU
-    /**
-    * \brief Allocates a dynamic device memory arena of size sz.
-    * Returns a pointer to this memory.
-    */
-    virtual void* alloc_device (std::size_t sz) override;
-    /**
-    * \brief Deletes the device arena pointed to by pt.
-    */
-    virtual void free_device (void* pt) override;
-#endif
 };
 
 }

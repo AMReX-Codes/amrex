@@ -27,10 +27,11 @@ CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
 #ifdef AMREX_USE_GPU
-	if (device_use_hostalloc)
-	    gpu_freehost(m_alloc[i]);
-	else
-	    gpu_free(m_alloc[i]);
+	if (device_use_hostalloc) {
+	    AMREX_GPU_SAFE_CALL(cudaFreeHost(m_alloc[i]));
+        } else {
+	    AMREX_GPU_SAFE_CALL(cudaFree(m_alloc[i]));
+        }
 #else
         ::operator delete(m_alloc[i]);
 #endif
@@ -39,6 +40,8 @@ CArena::~CArena ()
 void*
 CArena::alloc (std::size_t nbytes)
 {
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     //
     // Find node in freelist at lowest memory address that'll satisfy request.
@@ -58,12 +61,12 @@ CArena::alloc (std::size_t nbytes)
 #if defined(AMREX_USE_GPU)
         if (device_use_hostalloc) {
 
-	    gpu_hostalloc(&vp, &N);
+	    AMREX_GPU_SAFE_CALL(cudaMallocHost(&vp, N));
 
 	}
 	else if (device_use_managed_memory) {
 
-	    gpu_malloc_managed(&vp, &N);
+	    AMREX_GPU_SAFE_CALL(cudaMallocManaged(&vp, N));
 	    if (device_set_readonly)
 		Gpu::Device::mem_advise_set_readonly(vp, N);
 	    if (device_set_preferred) {
@@ -74,7 +77,7 @@ CArena::alloc (std::size_t nbytes)
 	}
 	else {
 
-	    gpu_malloc(&vp, &N);
+	    AMREX_GPU_SAFE_CALL(cudaMalloc(&vp, N));
 
 	}
 #else
@@ -134,6 +137,8 @@ CArena::alloc (std::size_t nbytes)
 void
 CArena::free (void* vp)
 {
+    std::lock_guard<std::mutex> lock(carena_mutex);
+
     if (vp == 0)
         //
         // Allow calls with NULL as allowed by C++ delete.
@@ -207,22 +212,6 @@ CArena::free (void* vp)
         m_freelist.erase(hi_it);
     }
 }
-
-#ifdef AMREX_USE_GPU
-// Device allocators are not currently implemented in CArena.
-
-void*
-CArena::alloc_device (std::size_t nbytes)
-{
-    void* pt = 0;
-    return pt;
-}
-
-void
-CArena::free_device (void* pt)
-{
-}
-#endif
 
 std::size_t
 CArena::heap_space_used () const

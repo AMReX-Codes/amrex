@@ -10,7 +10,9 @@
 #include <AMReX_MultiCutFab.H>
 #include "AMReX_BoxIterator.H"
 #include <AMReX_EBCellFlag.H>
+
 #include <AMReX_EB_F.H>
+#include <AMReX_EB_utils.H>
 
 #include <AMReX_EB2.H>
 
@@ -197,6 +199,14 @@ void LSFactory::fill_valid(){
 
 
 std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory) {
+    return eb_facets(eb_factory, eb_ba, ls_dm);
+}
+
+
+
+std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory,
+                                                   const BoxArray & ba,
+                                                   const DistributionMapping & dm) {
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
     //   ^                 ^
@@ -211,55 +221,24 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     *                                                                          *
     ****************************************************************************/
 
-    MultiFab dummy(eb_ba, ls_dm, 1, eb_grid_pad, MFInfo(), eb_factory);
-    // Area fraction data
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
+    MultiFab dummy(ba, dm, 1, eb_grid_pad, MFInfo(), eb_factory);
     // EB boundary-centre data
     const MultiCutFab * bndrycent = & eb_factory.getBndryCent();
+    // EB flags (tests if contains facets)
+    const auto& flags = eb_factory.getMultiEBCellFlagFab();
 
 
    /****************************************************************************
     *                                                                          *
-    * Compute normals data (which are stored on MultiFab over the eb_ba Grid)  *
+    * Compute normals data (which are stored on MultiFab over the ba Grid)     *
     *                                                                          *
     ****************************************************************************/
 
-    MultiFab normal(eb_ba, ls_dm, 3, eb_grid_pad);
+    MultiFab normal(ba, dm, 3, eb_grid_pad);
+    FillEBNormals(normal, eb_factory, geom_eb);
 
     // while computing normals, count EB-facets
     int n_facets = 0;
-
-    const auto& flags = eb_factory.getMultiEBCellFlagFab();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
-        Box tile_box = mfi.growntilebox();
-        const int * lo = tile_box.loVect();
-        const int * hi = tile_box.hiVect();
-
-        const auto & flag = flags[mfi];
-
-        //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued)
-        if (flag.getType(tile_box) == FabType::singlevalued) {
-            // Target for compute_normals(...)
-            auto & norm_tile = normal[mfi];
-            // Area fractions in x, y, and z directions
-            const auto & af_x_tile = (* areafrac[0])[mfi];
-            const auto & af_y_tile = (* areafrac[1])[mfi];
-            const auto & af_z_tile = (* areafrac[2])[mfi];
-
-            amrex_eb_compute_normals(lo, hi,
-                                     BL_TO_FORTRAN_3D(flag),
-                                     BL_TO_FORTRAN_3D(norm_tile),
-                                     BL_TO_FORTRAN_3D(af_x_tile),
-                                     BL_TO_FORTRAN_3D(af_y_tile),
-                                     BL_TO_FORTRAN_3D(af_z_tile)  );
-        }
-    }
-
-    normal.FillBoundary(geom_eb.periodicity());
 
 
    /****************************************************************************
@@ -307,6 +286,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     }
     return facet_list;
 }
+
 
 
 void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & valid_in) {
@@ -482,13 +462,15 @@ void LSFactory::regrid(const BoxArray & ba, const DistributionMapping & dm)
     update_ba(ba, dm);
 
     int ng = ls_grid_pad;
-    std::unique_ptr<MultiFab> ls_grid_new = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
+    std::unique_ptr<MultiFab> ls_grid_new
+        = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
 
     ls_grid_new->copy(* ls_grid, 0, 0, 1, ng, ng);
     ls_grid_new->FillBoundary(geom_ls.periodicity());
     ls_grid = std::move(ls_grid_new);
 
-    std::unique_ptr<iMultiFab> ls_valid_new = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
+    std::unique_ptr<iMultiFab> ls_valid_new
+        = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
 
     ls_valid_new->copy(* ls_valid, 0, 0, 1, ng, ng);
     ls_valid_new->FillBoundary(geom_ls.periodicity());
@@ -580,9 +562,9 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
     }
 
-   /****************************************************************************
-    * Set and validate boundary values of eb_ls                                *
-    ****************************************************************************/
+    /****************************************************************************
+     * Set and validate boundary values of eb_ls                                *
+     ***************************************************************************/
 
     // Simulation domain
     Box domain = Box(geom_ls.Domain());
