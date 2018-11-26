@@ -205,7 +205,7 @@ Package* PackageQueue::getFront(bool lockIgnore)
 
 void PackageQueue::emptyQueue(){
     while(n){
-	Package* p= dequeue(true);
+	Package* p= dequeue(false);
 	delete p;
     }
 }

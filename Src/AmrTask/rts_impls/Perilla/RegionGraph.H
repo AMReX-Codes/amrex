@@ -29,12 +29,10 @@ namespace amrex{
 		prev=0;
 		graphPartner=0;
 	    }
-#if 0
             ~FabCopyAssoc()
-            {   
+            {
                 if(next) delete next;
             }
-#endif
     };
 
     class pTileArray
@@ -44,12 +42,12 @@ namespace amrex{
 	    std::vector<Box*> tileBx;
 	    Box* validBx;
 	    pTileArray(): numTiles(0), tileBx(0){}
-	    ~pTileArray()
-	    {
+            ~pTileArray()
+            {   
                 for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
-		tileBx.clear();
-	        delete[] validBx; 
-	    }
+                tileBx.clear();
+                //if(validBx) delete validBx;
+            }
     };
 
     class Task
@@ -79,9 +77,9 @@ namespace amrex{
 		state.clear();
 		depTaskIDs.clear();
 		if(cpAsc_srcHead != 0)
-		    delete[] cpAsc_srcHead;
-		if(cpAsc_dstHead != 0)
-		    delete[] cpAsc_dstHead;
+		    delete cpAsc_srcHead;
+		//if(cpAsc_dstHead != 0)
+		    //delete cpAsc_dstHead;
 	    }
     };
 
@@ -100,14 +98,12 @@ namespace amrex{
 	    Worker():init(false), barr(0), l_barr(0), totalTasks(0){}
 
             ~Worker(){
-#if 1
 	        delete barr;
         	delete l_barr;
         	delete fireableRegionQueue;
         	delete unfireableRegionQueue;
         	delete computedRegionQueue;
         	delete completedRegionQueue;
-#endif
 	    }
     };
 

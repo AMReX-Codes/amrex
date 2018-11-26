@@ -5,6 +5,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_FabArrayUtility.H>
 #include <AMReX_Geometry.H>
 
 namespace amrex {
@@ -113,6 +114,7 @@ public:
              int        comp,
              int        nghost = 0,
 	     bool       local = false) const;
+#if 0
     //
     // Returns the maximum *absolute* value contained in 
     // component comp of the iMultiFab.
@@ -136,6 +138,7 @@ public:
     // No ghost cells are used.
     //
     int norm2 (int comp = 0) const;
+#endif
     //
     // Adds the scalar value val to the value of each cell in the
     // specified subregion of the iMultiFab.  The subregion consists

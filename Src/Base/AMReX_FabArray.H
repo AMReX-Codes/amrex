@@ -36,6 +36,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_LayoutData.H>
 
 #include <AMReX_Gpu.H>
 
@@ -367,6 +368,7 @@ public:
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& goem);
+
     /**
     * \brief This function copies data from fa to this FabArray.  Each FAB
     * in fa is intersected with all FABs in this FabArray and a copy

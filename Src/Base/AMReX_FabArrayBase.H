@@ -163,10 +163,10 @@ public:
 	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
 	bool operator< (const CopyComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+                   (sbox.smallEnd() < rhs.sbox.smallEnd()
+		               || ((sbox.smallEnd() == rhs.sbox.smallEnd()) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
-                   (dbox.smallEnd() < rhs.dbox.smallEnd()
-		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
-                   (sbox.smallEnd() < rhs.sbox.smallEnd()))))))));
+                   (dbox.smallEnd() < rhs.dbox.smallEnd()))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.

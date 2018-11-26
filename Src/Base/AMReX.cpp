@@ -566,6 +566,8 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                        << omp_get_max_threads()
                        << " OMP threads\n";
 #endif
+
+        amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
 }
 
@@ -662,6 +664,8 @@ amrex::Finalize (bool finalize_parallel)
     amrex::OutStream().precision(prev_out_precision);
     amrex::ErrorStream().precision(prev_err_precision);
 
+    bool is_ioproc = ParallelDescriptor::IOProcessor();
+
     if (finalize_parallel) {
 #if defined(BL_USE_FORTRAN_MPI)
 	bl_fortran_mpi_comm_free();
@@ -670,6 +674,10 @@ amrex::Finalize (bool finalize_parallel)
 #ifndef GASNET_CONDUIT_MPI
         ParallelDescriptor::EndParallel();
 #endif
+    }
+
+    if (amrex::system::verbose > 0 && is_ioproc) {
+        amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << std::endl;
     }
 }
 
