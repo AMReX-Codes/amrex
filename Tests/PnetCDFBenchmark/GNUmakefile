@@ -27,7 +27,7 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-PNETCDF_HOME   = /home/khl7265/.local/ncmpi_eval
+PNETCDF_HOME   = /home/khl7265/.local
 USE_PNETCDF = TRUE
 ifeq ($(USE_PNETCDF), TRUE)
 DEFINES += -DBL_PNETCDF
