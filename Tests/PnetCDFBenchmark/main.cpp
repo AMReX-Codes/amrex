@@ -4,7 +4,7 @@
 #include <AMReX_Particles.H>
 
 #ifdef BL_PNETCDF
-#include <WritePlotfilePNETCDF.H>
+#include <WritePlotfilePnetCDF.H>
 #endif
 
 using namespace amrex;
