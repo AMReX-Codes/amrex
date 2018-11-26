@@ -36,6 +36,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_LayoutData.H>
 
 #include <AMReX_Gpu.H>
 

@@ -567,7 +567,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                        << " OMP threads\n";
 #endif
 
-        amrex::Print() << "AMReX initialized" << std::endl;
+        amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
 }
 
@@ -677,7 +677,7 @@ amrex::Finalize (bool finalize_parallel)
     }
 
     if (amrex::system::verbose > 0 && is_ioproc) {
-        amrex::OutStream() << "AMReX finalized" << std::endl;
+        amrex::OutStream() << "AMReX (" << amrex::Version() << ") finalized" << std::endl;
     }
 }
 
