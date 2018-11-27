@@ -1,5 +1,7 @@
 ifneq ($(USE_PYTHON_MAIN),TRUE)
-  CEXE_sources += main.cpp WarpXWrappers.cpp
+  CEXE_sources += main.cpp
+else
+  CEXE_sources += WarpXWrappers.cpp
   CEXE_headers += WarpXWrappers.h               
 endif
 
