@@ -41,6 +41,14 @@ public :
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
+#ifdef AMREX_USE_EB
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info,
+                 const Vector<EBFArrayBoxFactory const*>& a_factory);
+#endif
+
     void setRZCorrection (bool rz) { m_is_rz = rz; }
 
     void setSigma (int amrlev, const MultiFab& a_sigma);

@@ -84,7 +84,7 @@ namespace amrex
     // refinement ratio is computed from the Geometry vector
     // "time" and "level_steps" are set to zero
     void WriteMLMF (const std::string &plotfilename,
-                    const Vector<MultiFab>& mf,
+                    const Vector<const MultiFab*>& mf,
                     const Vector<Geometry> &geom);
 
     void WriteMultiLevelPlotfileHeaders (const std::string& plotfilename, int nlevels,

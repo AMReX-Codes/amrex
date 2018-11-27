@@ -54,6 +54,30 @@ namespace amrex {
 #endif
     }
 
+
+AsyncFillPatchIterator::~AsyncFillPatchIterator () {
+#ifdef USE_PERILLA
+        while(regionList.size()){
+          RegionGraph* tmp= regionList.front();
+          delete tmp;
+          regionList.pop_front();
+        }
+
+        while(mfList.size()){
+          MultiFab *tmp= mfList.front();
+          delete tmp;
+          mfList.pop_front();
+        }
+
+        while(stateDataList.size()){
+          StateDataPhysBCFunct *tmp= stateDataList.front();
+          delete tmp;
+          stateDataList.pop_front();
+        }
+#endif
+    }
+
+
     void AsyncFillPatchIterator::FillFromTwoLevelsPush (Real time,
 	    int index,
 	    int scomp,
@@ -198,7 +222,7 @@ namespace amrex {
     }
 
     void AsyncFillPatchIterator::initFillPatch(int boxGrow,
-	    int time,
+	    Real time,
 	    int index,
 	    int scomp,
 	    int ncomp,
@@ -236,6 +260,7 @@ namespace amrex {
 		statedata.getData(smf,stime,time);
 		geom = &m_amrlevel.geom;
 		physbcf = new StateDataPhysBCFunct(statedata,scomp,*geom);
+                stateDataList.push_back(physbcf);
 		BL_ASSERT(scomp+ncomp <= smf[0]->nComp());
 		BL_ASSERT(dcomp+ncomp <= m_fabs.nComp());
 		BL_ASSERT(smf.size() == stime.size());
@@ -246,6 +271,8 @@ namespace amrex {
 		    dmf = new MultiFab(smf[0]->boxArray(), smf[0]->DistributionMap(), ncomp, 0);
 		    destGraph = new RegionGraph(m_fabs.IndexArray().size());
 		    fsrcGraph = new RegionGraph(smf[0]->IndexArray().size());
+                    regionList.push_back(destGraph);
+                    regionList.push_back(fsrcGraph);
 		    Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *smf[0], ncomp, m_fabs.nGrow(), 0, geom->periodicity());
 		    m_amrlevel.parent->graphArray[level].push_back(destGraph);
 		    m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
@@ -257,6 +284,7 @@ namespace amrex {
 		    {
 			dmf = &m_fabs;
 			destGraph = new RegionGraph(m_fabs.IndexArray().size());
+                        regionList.push_back(destGraph);
 			Perilla::multifabBuildFabCon(destGraph, m_fabs, geom->periodicity());
 			m_amrlevel.parent->graphArray[level].push_back(destGraph);
 		    }
@@ -266,6 +294,10 @@ namespace amrex {
 			destGraph = new RegionGraph(m_fabs.IndexArray().size());
 			fsrcGraph = new RegionGraph(dmf->IndexArray().size());
 			fsrcGraph->buildTileArray(*dmf);
+                        regionList.push_back(destGraph);
+                        regionList.push_back(fsrcGraph);
+                        mfList.push_back(dmf);
+
 			Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *dmf, ncomp, m_fabs.nGrow(), 0, geom->periodicity());
 			m_amrlevel.parent->graphArray[level].push_back(destGraph);
 			m_amrlevel.parent->graphArray[level].push_back(fsrcGraph);
@@ -297,6 +329,10 @@ namespace amrex {
 		    StateData& statedata_fine = fine_level.state[index];
 		    statedata_fine.getData(smf_fine,stime_fine,time);
 		    physbcf_fine = new StateDataPhysBCFunct(statedata_fine,scomp,*geom_fine);
+
+                    stateDataList.push_back(physbcf_crse);
+                    stateDataList.push_back(physbcf_fine);
+
 		    const StateDescriptor& desc = AmrLevel::desc_lst[index];
 		    int ngrow = m_fabs.nGrow();
 		    if (ngrow > 0 || m_fabs.getBDKey() != smf_fine[0]->getBDKey())
@@ -320,6 +356,7 @@ namespace amrex {
 			if (!m_fpc->ba_crse_patch.empty())
 			{
 			    m_mf_crse_patch = new MultiFab(m_fpc->ba_crse_patch, m_fpc->dm_crse_patch, ncomp, 0);
+                            mfList.push_back(m_mf_crse_patch);
 			    BL_ASSERT(scomp+ncomp <= smf_crse[0]->nComp());
 			    BL_ASSERT(dcomp+ncomp <= m_mf_crse_patch->nComp());
 			    BL_ASSERT(smf_crse.size() == stime_crse.size());
@@ -334,6 +371,9 @@ namespace amrex {
 
 				csrcGraph = new RegionGraph(smf_crse[0]->IndexArray().size());
 
+                                regionList.push_back(m_rg_crse_patch);
+                                regionList.push_back(csrcGraph);
+
 				Perilla::multifabExtractCopyAssoc( m_rg_crse_patch, csrcGraph, *m_mf_crse_patch, *smf_crse[0], ncomp, m_mf_crse_patch->nGrow(), 0,geom_crse->periodicity());
 #if 0
 				MultiFab  temp_4_tile(m_fpc->ba_dst_boxes, m_fpc->dm_crse_patch, ncomp, 0);
@@ -346,7 +386,7 @@ namespace amrex {
 
 			    else if (iter > 1)
 			    {
-				if (false && m_mf_crse_patch->boxArray() == smf_crse[0]->boxArray())
+				if (m_mf_crse_patch->boxArray() == smf_crse[0]->boxArray())
 				{
 				    //dmf = m_mf_crse_patch;
 				    m_rg_crse_patch = new RegionGraph(m_mf_crse_patch->IndexArray().size());
@@ -355,6 +395,7 @@ namespace amrex {
 
 				    Perilla::multifabBuildFabCon(m_rg_crse_patch, *m_mf_crse_patch,geom_crse->periodicity());
 				    m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
+                                    regionList.push_back(m_rg_crse_patch);
 				}
 				else
 				{
@@ -368,6 +409,11 @@ namespace amrex {
 				    MultiFab      temp_4_tile(m_fpc->ba_dst_boxes, m_fpc->dm_crse_patch, ncomp, 0);
 				    m_rg_crse_patch->buildTileArray(temp_4_tile);
 #endif
+
+                                      regionList.push_back(m_rg_crse_patch);
+                                      regionList.push_back(csrcGraph);
+                                      mfList.push_back(dmf);
+
 
 				    Perilla::multifabExtractCopyAssoc( m_rg_crse_patch, csrcGraph, *m_mf_crse_patch, *dmf, ncomp, m_mf_crse_patch->nGrow(), 0, geom_crse->periodicity());
 				    m_amrlevel.parent->graphArray[level].push_back(m_rg_crse_patch);
@@ -393,6 +439,10 @@ namespace amrex {
 		    {
 			destGraph = new RegionGraph(m_fabs.IndexArray().size());
 			fsrcGraph = new RegionGraph(smf_fine[0]->IndexArray().size());
+
+                          regionList.push_back(destGraph);
+                          regionList.push_back(fsrcGraph);
+
 
 			if(m_rg_crse_patch != 0)
 			{
@@ -431,13 +481,14 @@ namespace amrex {
 			//PArray<MultiFab> raii(PArrayManage);
 			//MultiFab * dmf;
 
-			if (false && m_fabs.boxArray() == smf_fine[0]->boxArray())
+			if (m_fabs.boxArray() == smf_fine[0]->boxArray())
 			{
 			    //dmf = &m_fabs;
 			    destGraph = new RegionGraph(m_fabs.IndexArray().size());
 
 			    Perilla::multifabBuildFabCon(destGraph, m_fabs, geom_fine->periodicity());
 			    m_amrlevel.parent->graphArray[level].push_back(destGraph);
+                            regionList.push_back(destGraph);
 			}
 			else
 			{
@@ -447,6 +498,9 @@ namespace amrex {
 			    destGraph = new RegionGraph(m_fabs.IndexArray().size());
 			    fsrcGraph = new RegionGraph(dmff->IndexArray().size());
 			    fsrcGraph->buildTileArray(*dmff);
+                              regionList.push_back(destGraph);
+                              regionList.push_back(fsrcGraph);
+                              mfList.push_back(dmff);
 
 			    Perilla::multifabExtractCopyAssoc( destGraph, fsrcGraph, m_fabs, *dmff, ncomp, m_fabs.nGrow(), 0, geom_fine->periodicity());
 			    m_amrlevel.parent->graphArray[level].push_back(destGraph);
@@ -835,7 +889,7 @@ AsyncFillPatchIterator::PullOnly (MultiFab& dest,
 		// So FillBoundary is safe.
 		//mf.FillBoundary(dcomp,ncomp,geom.periodicity());
 
-		Perilla::fillBoundaryPull(destGraph, &mf, f);
+		Perilla::fillBoundaryPull(destGraph, &mf, f, singleT);
 
 		//std::cout << "After sameba fBPull" << std::endl;
 	    }

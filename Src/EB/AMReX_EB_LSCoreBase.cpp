@@ -488,16 +488,6 @@ void LSCoreBase::ReadCheckpointFile () {
     is >> finest_level;
     GotoNextLine(is);
 
-    // // read in array of istep
-    // std::getline(is, line);
-    // {
-    //     std::istringstream lis(line);
-    //     int i = 0;
-    //     while (lis >> word) {
-    //         istep[i++] = std::stoi(word);
-    //     }
-    // }
-
     for (int lev = 0; lev <= finest_level; ++lev) {
 
         // read in level 'lev' BoxArray from Header
