@@ -1,6 +1,7 @@
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_MultiFabUtil_C.H>
 #include <sstream>
 #include <iostream>
 
@@ -568,14 +569,17 @@ namespace amrex
 
         const int ncomp = imf.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& tbx = mfi.growntilebox();
-            amrex_fort_int_to_real(BL_TO_FORTRAN_BOX(tbx), &ncomp,
-                                   BL_TO_FORTRAN_ANYD(mf[mfi]),
-                                   BL_TO_FORTRAN_ANYD(imf[mfi]));
+            const Box& gbx = mfi.growntilebox();
+            FArrayBox      * rfab = &( mf[mfi]);
+            IArrayBox const* ifab = &(imf[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
+            {
+                amrex_int_to_real(tbx, *rfab, *ifab, 0, 0, ncomp);
+            });
         }
 
         return mf;
