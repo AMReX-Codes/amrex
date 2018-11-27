@@ -77,9 +77,9 @@ void NeighborListParticleContainer::computeForces() {
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        int Nn = neighbors[index].size();
+        int Nn = neighbors[lev][index].size();
         amrex_compute_forces(particles.data(), &Np, 
-                             neighbors[index].dataPtr(), &Nn, 
+                             neighbors[lev][index].dataPtr(), &Nn, 
                              &cutoff, &min_r);
     }
 }
@@ -99,10 +99,10 @@ void NeighborListParticleContainer::computeForcesNL() {
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
-        int Nn = neighbors[index].size();
+        int Nn = neighbors[lev][index].size();
         int size = neighbor_list[index].size();
         amrex_compute_forces_nl(particles.data(), &Np, 
-                                neighbors[index].dataPtr(), &Nn,
+                                neighbors[lev][index].dataPtr(), &Nn,
                                 neighbor_list[index].dataPtr(), &size, 
                                 &cutoff, &min_r);
     }
