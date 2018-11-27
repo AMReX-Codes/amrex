@@ -333,7 +333,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 
             TagBox&     tagfab  = tags[mfi];
 	    
-	    // We cannot pass tagfab to Fortran becuase it is BaseFab<char>.
+	    // We cannot pass tagfab to Fortran because it is BaseFab<char>.
 	    // So we are going to get a temporary integer array.
             // set itags initially to 'untagged' everywhere
             // we define itags over the tilebox region
