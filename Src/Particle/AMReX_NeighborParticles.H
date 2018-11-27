@@ -112,10 +112,11 @@ public:
                               int                         nneighbor);
 
     ///
-    /// This resets the particle container to use the given BoxArray
-    /// and DistributionMapping
+    /// Regrid functions
     ///
-    void Regrid(const DistributionMapping &dmap, const BoxArray &ba );
+    void Regrid(const DistributionMapping& dmap, const BoxArray& ba);
+    void Regrid(const DistributionMapping& dmap, const BoxArray& ba, const int lev);
+    void Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba);
 
     ///
     /// This builds the internal data structure used for looking up neighbors
