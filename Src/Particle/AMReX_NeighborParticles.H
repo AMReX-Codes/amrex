@@ -145,8 +145,6 @@ public:
     template <class CheckPair>
     void buildNeighborList(int lev, CheckPair check_pair, bool sort=false);
 
-    void buildNeighborListFort(int lev, bool sort=false);
-
     void setRealCommComp(int i, bool value);
     void setIntCommComp(int i, bool value);
 
