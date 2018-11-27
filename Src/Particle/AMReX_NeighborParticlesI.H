@@ -662,11 +662,11 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     BL_ASSERT(lev == 0);
     BL_ASSERT(this->OK());
 
-    neighbor_list.clear();
+    neighbor_list[lev].clear();
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        neighbor_list[index]; // = IntVector();
+        neighbor_list[lev][index]; // = IntVector();
     }
 
 #ifdef _OPENMP
@@ -685,7 +685,7 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
 #ifdef AMREX_USE_CUDA
         Cuda::HostVector<int> nl;
 #else
-        IntVector& nl = neighbor_list[index];
+        IntVector& nl = neighbor_list[lev][index];
 #endif
         AoS& particles = pti.GetArrayOfStructs();
 
@@ -759,8 +759,8 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
             }
         }
 #ifdef AMREX_USE_CUDA
-        neighbor_list[index].resize(nl.size());
-        thrust::copy(nl.begin(), nl.end(), neighbor_list[index].begin());
+        neighbor_list[lev][index].resize(nl.size());
+        thrust::copy(nl.begin(), nl.end(), neighbor_list[lev][index].begin());
 #endif
     }
     }
@@ -774,7 +774,7 @@ buildNeighborListFort(int lev, bool sort) {
     BL_PROFILE("NeighborParticleContainer::buildNeighborListFort");
     BL_ASSERT(lev == 0);
 
-    neighbor_list.clear();
+    neighbor_list[lev].clear();
 
     const Geometry& gm  = this->Geom(lev);
     const Real*     plo = gm.ProbLo();
@@ -783,7 +783,7 @@ buildNeighborListFort(int lev, bool sort) {
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        Vector<int>& nl = neighbor_list[index];
+        Vector<int>& nl = neighbor_list[lev][index];
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();

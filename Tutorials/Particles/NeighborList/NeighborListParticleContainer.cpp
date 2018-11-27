@@ -100,10 +100,10 @@ void NeighborListParticleContainer::computeForcesNL() {
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
         int Nn = neighbors[lev][index].size();
-        int size = neighbor_list[index].size();
+        int size = neighbor_list[lev][index].size();
         amrex_compute_forces_nl(particles.data(), &Np, 
                                 neighbors[lev][index].dataPtr(), &Nn,
-                                neighbor_list[index].dataPtr(), &size, 
+                                neighbor_list[lev][index].dataPtr(), &size, 
                                 &cutoff, &min_r);
     }
 }
