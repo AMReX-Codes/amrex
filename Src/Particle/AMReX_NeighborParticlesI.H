@@ -781,6 +781,8 @@ resizeContainers(const int lev)
     {
         neighbors.resize(lev+1);
         neighbor_list.resize(lev+1);
+        mask_ptr.resize(lev+1);
     }
-    AMREX_ASSERT(neighbors.size() == neighbor_list.size());
+    AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and
+                 (neighbors.size() == mask_ptr.size()     )    );
 }
