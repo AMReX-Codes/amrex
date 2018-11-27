@@ -955,7 +955,6 @@ PhysicalParticleContainer::FieldGather (int lev,
 	    // Field Gather
 	    //
 	    const int ll4symtry          = false;
-	    const int l_lower_order_in_v = warpx_l_lower_order_in_v();
             long lvect_fieldgathe = 64;
 	    warpx_geteb_energy_conserving(
 	       &np,
@@ -974,7 +973,7 @@ PhysicalParticleContainer::FieldGather (int lev,
                BL_TO_FORTRAN_ANYD(bxfab),
 	       BL_TO_FORTRAN_ANYD(byfab),
 	       BL_TO_FORTRAN_ANYD(bzfab),
-	       &ll4symtry, &l_lower_order_in_v,
+	       &ll4symtry, &WarpX::l_lower_order_in_v,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             if (cost) {
@@ -1069,7 +1068,7 @@ PhysicalParticleContainer::Evolve (int lev,
             FArrayBox const* byfab = &(By[pti]);
             FArrayBox const* bzfab = &(Bz[pti]);
 
-            if (warpx_use_fdtd_nci_corr())
+            if (WarpX::use_fdtd_nci_corr)
             {
 #if (AMREX_SPACEDIM == 2)
                 const Box& tbox = amrex::grow(pti.tilebox(),{static_cast<int>(WarpX::nox),
@@ -1249,7 +1248,6 @@ PhysicalParticleContainer::Evolve (int lev,
                 // Field Gather of Aux Data (i.e., the full solution)
                 //
                 const int ll4symtry          = false;
-                const int l_lower_order_in_v = warpx_l_lower_order_in_v();
                 long lvect_fieldgathe = 64;
 
                 const std::array<Real,3>& xyzmin_grid = WarpX::LowerCorner(box, lev);
@@ -1276,7 +1274,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     BL_TO_FORTRAN_ANYD(*bxfab),
                     BL_TO_FORTRAN_ANYD(*byfab),
                     BL_TO_FORTRAN_ANYD(*bzfab),
-                    &ll4symtry, &l_lower_order_in_v,
+                    &ll4symtry, &WarpX::l_lower_order_in_v,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
                 if (np_gather < np)
@@ -1293,7 +1291,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     const FArrayBox* cbyfab = &(*cBy)[pti];
                     const FArrayBox* cbzfab = &(*cBz)[pti];
 
-                    if (warpx_use_fdtd_nci_corr())
+                    if (WarpX::use_fdtd_nci_corr)
                     {
 #if (AMREX_SPACEDIM == 2)
                         const Box& tbox = amrex::grow(cbox,{static_cast<int>(WarpX::nox),
@@ -1373,7 +1371,7 @@ PhysicalParticleContainer::Evolve (int lev,
                         BL_TO_FORTRAN_ANYD(*cbxfab),
                         BL_TO_FORTRAN_ANYD(*cbyfab),
                         BL_TO_FORTRAN_ANYD(*cbzfab),
-                        &ll4symtry, &l_lower_order_in_v,
+                        &ll4symtry, &WarpX::l_lower_order_in_v,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 }
 
@@ -1526,7 +1524,6 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
             const int* ixyzmin_grid = box.loVect();
 
             const int ll4symtry          = false;
-            const int l_lower_order_in_v = true;
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
                 &np,
@@ -1545,7 +1542,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bxfab),
                 BL_TO_FORTRAN_ANYD(byfab),
                 BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &l_lower_order_in_v,
+                &ll4symtry, &WarpX::l_lower_order_in_v,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             warpx_particle_pusher_momenta(&np,

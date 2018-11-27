@@ -43,6 +43,9 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
+bool WarpX::use_fdtd_nci_corr = false;
+int  WarpX::l_lower_order_in_v = true;
+
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
@@ -92,6 +95,8 @@ int WarpX::n_field_gather_buffer = 0;
 int WarpX::n_current_deposition_buffer = -1;
 
 WarpX* WarpX::m_instance = nullptr;
+
+
 
 WarpX&
 WarpX::GetInstance ()
@@ -564,7 +569,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
-    if (warpx_use_fdtd_nci_corr()) {
+    if (WarpX::use_fdtd_nci_corr) {
         int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
