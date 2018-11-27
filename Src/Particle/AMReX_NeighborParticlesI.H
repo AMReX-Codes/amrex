@@ -70,7 +70,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
     const int lev = 0;
-    BL_ASSERT(finestLevel() == 0);
+    AMREX_ASSERT(this->finestLevel() == 0);
     this->SetParticleBoxArray(lev, ba);
     this->SetParticleDistributionMap(lev, dmap);
     this->Redistribute();
@@ -80,7 +80,7 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::Regrid(const DistributionMapping &dmap, const BoxArray &ba, const int lev) {
-    BL_ASSERT(lev <= finestLevel());
+    AMREX_ASSERT(lev <= this->finestLevel());
     this->SetParticleBoxArray(lev, ba);
     this->SetParticleDistributionMap(lev, dmap);
     this->Redistribute();
@@ -91,7 +91,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba) {
     int num_levels = ba.size();
-    BL_ASSERT(num_levels == finestLevel()+1);
+    AMREX_ASSERT(num_levels == this->finestLevel()+1);
     for (int lev = 0; lev < num_levels; ++lev)
     {
         this->SetParticleBoxArray(lev, ba[lev]);
@@ -164,7 +164,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
 
-    BL_ASSERT(this->OK());
+    AMREX_ASSERT(this->OK());
 
     resizeContainers(lev);
     
@@ -357,9 +357,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const NeighborIndexMap& nim = map[i];
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
-            BL_ASSERT(nim.src_index < tags.size());
+            AMREX_ASSERT(nim.src_index < tags.size());
             tags[nim.src_index].dst_offset = i;
-            BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[lev][dst_index].size());
+            AMREX_ASSERT(tags[nim.src_index].dst_offset < neighbors[lev][dst_index].size());
         }
     }
 
@@ -455,7 +455,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 if (who == MyProc) {
                     PairIndex dst_index(tag.grid, tag.tile);
                     ParticleVector& buffer = neighbors[lev][dst_index];
-                    BL_ASSERT(tag.dst_offset < buffer.size());
+                    AMREX_ASSERT(tag.dst_offset < buffer.size());
                     std::memcpy(&buffer[tag.dst_offset], &p, pdata_size);
                 } else {
                     char* dst = &send_data[who][tag.dst_offset];
@@ -519,7 +519,7 @@ getRcvCountsMPI() {
 #ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
 
-    BL_ASSERT(send_data.size() == neighbor_procs.size());
+    AMREX_ASSERT(send_data.size() == neighbor_procs.size());
 
     // each proc figures out how many bytes it will send, and how
     // many it will receive
@@ -547,7 +547,7 @@ getRcvCountsMPI() {
         const int Who = neighbor_procs[i];
         const long Cnt = 1;
 
-        BL_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
         rreqs[i] = ParallelDescriptor::Arecv(&rcvs[Who], Cnt, Who, SeqNum).req();
     }
@@ -557,7 +557,7 @@ getRcvCountsMPI() {
         const int Who = neighbor_procs[i];
         const long Cnt = 1;
 
-        BL_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
 
         ParallelDescriptor::Send(&snds[Who], Cnt, Who, SeqNum);        
     }
@@ -608,9 +608,9 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
         const auto offset = rOffset[i];
         const auto Cnt    = rcvs[Who];
         
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
-        BL_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
         
         rreqs[i] = ParallelDescriptor::Arecv(&recvdata[offset], Cnt, Who, SeqNum).req();
     }
@@ -620,9 +620,9 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
         const auto Who = kv.first;
         const auto Cnt = kv.second.size();
         
-        BL_ASSERT(Cnt > 0);
-        BL_ASSERT(Who >= 0 && Who < NProcs);
-        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
         
         ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
     }
@@ -684,7 +684,7 @@ NeighborParticleContainer<NStructReal, NStructInt>::
 buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
-    BL_ASSERT(this->OK());
+    AMREX_ASSERT(this->OK());
 
     neighbor_list[lev].clear();
     
