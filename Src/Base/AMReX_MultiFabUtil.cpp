@@ -123,23 +123,21 @@ namespace amrex
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
 
-        Real dx[3] = {1.0,1.0,1.0};
-        Real problo[3] = {0.,0.,0.};
-        int coord_type = 0;
-
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-                (bx.loVect(), bx.hiVect(),
-                BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-                BL_TO_FORTRAN((*fc[1])[mfi]),
-                BL_TO_FORTRAN((*fc[2])[mfi])),
-                dx, problo, coord_type);
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = &(cc[mfi]);
+            AMREX_D_TERM(FArrayBox const* fxfab = &((*fc[0])[mfi]);,
+                         FArrayBox const* fyfab = &((*fc[1])[mfi]);,
+                         FArrayBox const* fzfab = &((*fc[2])[mfi]););
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), GeometryData());
+            });
         }
     }
 
@@ -150,25 +148,24 @@ namespace amrex
 	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.tilebox();
+            FArrayBox* ccfab = &(cc[mfi]);
+            AMREX_D_TERM(FArrayBox const* fxfab = &((*fc[0])[mfi]);,
+                         FArrayBox const* fyfab = &((*fc[1])[mfi]);,
+                         FArrayBox const* fzfab = &((*fc[2])[mfi]););
 
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), gd);
+            });
+        }
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
