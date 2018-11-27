@@ -11,7 +11,7 @@ void slopex(Box const& bx,
            FArrayBox &dq4fab)
 {
      const Box xbx = amrex::grow(bx, 0, 1);
-     Gpu::DeviceFab fabdq (xbx, 1);
+     Gpu::AsyncFab fabdq (xbx, 1);
      FArrayBox* dqptr = fabdq.fabPtr();
 
      // Find 2nd order slope
@@ -74,7 +74,7 @@ void slopey(Box const& bx,
            FArrayBox &dq4fab)
 {
      const Box ybx = amrex::grow(bx, 1, 1);
-     Gpu::DeviceFab fabdq (ybx, 1);
+     Gpu::AsyncFab fabdq (ybx, 1);
      FArrayBox* dqptr = fabdq.fabPtr();
 
      // Find 2nd order slope
@@ -137,7 +137,7 @@ void slopez(Box const& bx,
            FArrayBox &dq4fab)
 {
      const Box zbx = amrex::grow(bx, 1, 1);
-     Gpu::DeviceFab fabdq (zbx, 1);
+     Gpu::AsyncFab fabdq (zbx, 1);
      FArrayBox* dqptr = fabdq.fabPtr();
 
      // Find 2nd order slope
