@@ -10,14 +10,8 @@
 namespace amrex
 {
     //! Average nodal-based MultiFab onto cell-centered MultiFab.
-    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp);
-
-    //! Average nodal-based MultiFab onto cell-centered MultiFab.
-    // This fills in ngrow ghost cells in the cell-centered MultiFab.
-    // Both cell centered and node centered MultiFabs need to have ngrow
-    // ghost values
-    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd,
-        int scomp, int ncomp, int ngrow);
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp,
+                                     int ngrow = 0);
 
     //! Average edge-based MultiFab onto cell-centered MultiFab.
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge);
