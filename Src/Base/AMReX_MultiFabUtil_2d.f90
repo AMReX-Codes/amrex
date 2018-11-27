@@ -1,33 +1,3 @@
-! ***************************************************************************************
-! subroutine bl_avg_eg_to_cc 
-! ***************************************************************************************
-
-subroutine bl_avg_eg_to_cc (lo, hi, &
-     cc, ccl1, ccl2, cch1, cch2, &
-     Ex, Exl1, Exl2, Exh1, Exh2, &
-     Ey, Eyl1, Eyl2, Eyh1, Eyh2 )
-
-  use amrex_fort_module, only : amrex_real
-  implicit none
-  integer          :: lo(2),hi(2)
-  integer          :: ccl1, ccl2, cch1, cch2
-  integer          :: Exl1, Exl2, Exh1, Exh2
-  integer          :: Eyl1, Eyl2, Eyh1, Eyh2
-  real(amrex_real) :: cc(ccl1:cch1, ccl2:cch2, 2)
-  real(amrex_real) :: Ex(Exl1:Exh1, Exl2:Exh2)
-  real(amrex_real) :: Ey(Eyl1:Eyh1, Eyl2:Eyh2)
-
-  ! Local variables
-  integer          :: i,j
-  
-  do j=lo(2),hi(2)
-     do i=lo(1),hi(1)
-        cc(i,j,1) = 0.5d0 * ( Ex(i,j) + Ex(i,j+1))
-        cc(i,j,2) = 0.5d0 * ( Ey(i,j) + Ey(i+1,j))
-     enddo
-  enddo
-
-end subroutine bl_avg_eg_to_cc
 
 ! ***************************************************************************************
 ! subroutine bl_avg_fc_to_cc
