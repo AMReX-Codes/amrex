@@ -29,19 +29,28 @@ class BoxArray;
 struct GeometryData
 {
  //! Returns the cellsize for each coordinate direction.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Real* CellSize () const { return dx; }
+    //
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real CellSize (int dir) const { return dx[dir]; }
  //! Returns the lo end of the problem domain in each dimension.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Real* ProbLo () const { return prob_domain.lo(); }
+    //
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real ProbLo (int dir) const { return prob_domain.lo(dir); }
  //! Returns the hi end of the problem domain in each dimension.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Real* ProbHi () const { return prob_domain.hi(); }
+    //
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real ProbHi (int dir) const { return prob_domain.hi(dir); }
  //! Returns our rectangular domain.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Box& Domain () const { return domain; }
  //! Returns whether the domain is periodic in the given direction.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int isPeriodic (const int i) const { return is_periodic[i]; }
 
 public:
