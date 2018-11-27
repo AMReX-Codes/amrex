@@ -141,6 +141,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
     BL_ASSERT(lev == 0);
     BL_ASSERT(this->OK());
 
+    resizeContainers(lev);
+    
     clearNeighbors(lev);
     
     const int MyProc = ParallelDescriptor::MyProc();
@@ -666,7 +668,7 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        neighbor_list[lev][index]; // = IntVector();
+        neighbor_list[lev][index];
     }
 
 #ifdef _OPENMP
@@ -776,5 +778,5 @@ resizeContainers(const int lev)
         neighbors.resize(lev);
         neighbor_list.resize(lev);
     }
-    AMREX_ASSERT(neighbors.size() == neighbors_list.size());
+    AMREX_ASSERT(neighbors.size() == neighbor_list.size());
 }
