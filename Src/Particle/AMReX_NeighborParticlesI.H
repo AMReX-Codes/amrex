@@ -321,8 +321,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
         PairIndex dst_index(grid, tile);
         const Vector<NeighborIndexMap>& map = local_map[dst_index];
         const int num_ghosts = map.size();
-        neighbors[dst_index].resize(num_ghosts);
-        local_neighbor_sizes[dst_index] = neighbors[dst_index].size();  // store this for later
+        neighbors[lev][dst_index].resize(num_ghosts);
+        local_neighbor_sizes[dst_index] = neighbors[lev][dst_index].size();  // store this for later
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -332,7 +332,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
             BL_ASSERT(nim.src_index < tags.size());
             tags[nim.src_index].dst_offset = i;
-            BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[dst_index].size());
+            BL_ASSERT(tags[nim.src_index].dst_offset < neighbors[lev][dst_index].size());
         }
     }
 
@@ -428,7 +428,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 }
                 if (who == MyProc) {
                     PairIndex dst_index(tag.grid, tag.tile);
-                    ParticleVector& buffer = neighbors[dst_index];
+                    ParticleVector& buffer = neighbors[lev][dst_index];
                     BL_ASSERT(tag.dst_offset < buffer.size());
                     std::memcpy(&buffer[tag.dst_offset], &p, pdata_size);
                 } else {
@@ -460,7 +460,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
         const int grid = mfi.index();
         const int tile = mfi.LocalTileIndex();
         PairIndex dst_index(grid, tile);
-        neighbors[dst_index].resize(local_neighbor_sizes[dst_index]);
+        neighbors[lev][dst_index].resize(local_neighbor_sizes[dst_index]);
     }
     
     BL_PROFILE_VAR_STOP(update);
@@ -477,7 +477,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
     BL_ASSERT(lev == 0);
 
-    neighbors.clear();
+    neighbors[lev].clear();
     buffer_tag_cache.clear();
     send_data.clear();
 }
@@ -601,6 +601,8 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
         
         ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
     }
+
+    const int lev = 0;
     
     // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
@@ -620,11 +622,11 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 np = size / cdata_size;
                 
                 PairIndex dst_index(gid, tid);
-                size_t old_size = neighbors[dst_index].size();
-                size_t new_size = neighbors[dst_index].size() + np;
-                neighbors[dst_index].resize(new_size);
+                size_t old_size = neighbors[lev][dst_index].size();
+                size_t new_size = neighbors[lev][dst_index].size() + np;
+                neighbors[lev][dst_index].resize(new_size);
                 
-                char* dst = (char*) &neighbors[dst_index][old_size];
+                char* dst = (char*) &neighbors[lev][dst_index][old_size];
                 char* src = buffer;
 
                 for (int n = 0; n < np; ++n) {
@@ -688,14 +690,14 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();
-        int Nn = neighbors[index].size();
+        int Nn = neighbors[lev][index].size();
         int N = Np + Nn;
 
         cells.resize(N);
         tmp_particles.resize(N);
         std::memcpy(&tmp_particles[0], particles.data(), Np*sizeof(ParticleType));
         if (Nn > 0)
-           std::memcpy(&tmp_particles[Np], neighbors[index].dataPtr(), Nn*pdata_size); 
+           std::memcpy(&tmp_particles[Np], neighbors[lev][index].dataPtr(), Nn*pdata_size); 
 
         // For each cell on this tile, we build linked lists storing the
         // indices of the particles belonging to it.
@@ -785,7 +787,7 @@ buildNeighborListFort(int lev, bool sort) {
         AoS& particles = pti.GetArrayOfStructs();
 
         int Np = particles.size();
-        int Nn = neighbors[index].size();
+        int Nn = neighbors[lev][index].size();
         int Ns = particles.dataShape().first;
         int N = Np + Nn;
 
@@ -794,7 +796,7 @@ buildNeighborListFort(int lev, bool sort) {
 
         for (int i = 0; i < Nn; ++i) {
             std::memcpy(&tmp_particles[i + Np],
-                        neighbors[index].dataPtr() + i*pdata_size,
+                        neighbors[lev][index].dataPtr() + i*pdata_size,
                         pdata_size);
         }
 
