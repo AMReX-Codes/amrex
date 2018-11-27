@@ -438,11 +438,16 @@ std::unique_ptr<MultiFab> LSFactory::coarsen_data() const {
     std::unique_ptr<MultiFab> ls_crse = std::unique_ptr<MultiFab>(new MultiFab);
     const MultiFab * ls_fine = ls_grid.get(); // Pointer to fine level-set MultiFab
 
-    const BoxArray & ls_fine_ba = ls_fine->boxArray();
-    BoxArray crse_ba = ls_fine_ba; // Coarse nodal level-set BoxArray (amrex::average_down requires coarse BA)
+    // Coarse nodal level-set BoxArray (amrex::average_down requires coarse BA)
+    BoxArray crse_ba = ls_fine->boxArray();
     crse_ba.coarsen(ls_grid_ref);
-    ls_crse->define(crse_ba, ls_fine->DistributionMap(), ls_fine->nComp(), ls_fine->nGrow());
-    amrex::average_down(* ls_fine, * ls_crse, 0, 1, ls_grid_ref);
+    int ng_crse = ls_fine->nGrow() / ls_grid_ref;
+
+    IntVect ratio = IntVect{AMREX_D_DECL(ls_grid_ref, ls_grid_ref, ls_grid_ref)};
+    ls_crse->define(crse_ba, ls_fine->DistributionMap(), ls_fine->nComp(), ng_crse);
+    // Don't use average_down, average_down_nodal fills ghost cells
+    // amrex::average_down(* ls_fine, * ls_crse, 0, 1, ls_grid_ref);
+    amrex::average_down_nodal(* ls_fine, * ls_crse, ratio, ng_crse );
 
     // Do this in the write plot file function
     // Now map the nodal MultiFab to the cell-centered MultiFab:
