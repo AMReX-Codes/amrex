@@ -168,6 +168,7 @@ Device::Initialize ()
     }
 
     AMREX_GPU_SAFE_CALL(cudaSetDevice(device_id));
+    AMREX_GPU_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
@@ -223,6 +224,12 @@ Device::initialize_cuda ()
 
     // Prefer L1 cache to shared memory (this has no effect on GPUs with a fixed L1 cache size).
     AMREX_GPU_SAFE_CALL(cudaDeviceSetCacheConfig(cudaFuncCachePreferL1));
+
+    if (sizeof(Real) == 8) {
+        AMREX_GPU_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
+    } else if (sizeof(Real) == 4) {
+        AMREX_GPU_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeFourByte));
+    }
 
     for (int i = 0; i < max_cuda_streams; ++i) {
         AMREX_GPU_SAFE_CALL(cudaStreamCreate(&cuda_streams[i]));
