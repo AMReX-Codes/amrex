@@ -5,6 +5,7 @@
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil_F.H>
 #include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_MultiFabUtil_C.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 
@@ -474,10 +475,6 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
         const auto& flags = factory.getMultiEBCellFlagFab();
         const auto& area = factory.getAreaFrac();
 
-	Real dx[3] = {1.0,1.0,1.0};
-	Real problo[3] = {0.,0.,0.};
-	int coord_type = 0;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -493,13 +490,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
             if (fabtyp == FabType::covered) {
                 ccfab.setVal(0.0, bx, dcomp, 1);
             } else if (fabtyp == FabType::regular) {
-                BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-                    (bx.loVect(), bx.hiVect(),
-                     BL_TO_FORTRAN_N(ccfab,dcomp),
-                     AMREX_D_DECL(BL_TO_FORTRAN(xfab),
-                                  BL_TO_FORTRAN(yfab),
-                                  BL_TO_FORTRAN(zfab)),
-                     dx, problo, coord_type);
+                amrex_avg_fc_to_cc(bx,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp,GeometryData());
             } else {
                 amrex_eb_avg_fc_to_cc(BL_TO_FORTRAN_BOX(bx),
                                       BL_TO_FORTRAN_N_ANYD(ccfab,dcomp),

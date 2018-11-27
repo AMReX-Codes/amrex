@@ -27,11 +27,12 @@ void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab
 
 AMREX_GPU_HOST_DEVICE
 void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& exfab, FArrayBox const& eyfab, FArrayBox const& ezfab)
+                         FArrayBox const& exfab, FArrayBox const& eyfab, FArrayBox const& ezfab,
+                         int cccomp)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo);
+    const auto cc = ccfab.view(lo,cccomp);
     const auto Ex = exfab.view(lo);
     const auto Ey = eyfab.view(lo);
     const auto Ez = ezfab.view(lo);
@@ -51,11 +52,11 @@ void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
 AMREX_GPU_HOST_DEVICE
 void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
                          FArrayBox const& fxfab, FArrayBox const& fyfab, FArrayBox const& fzfab,
-                         GeometryData const& gd)
+                         int cccomp, GeometryData const& gd)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo);
+    const auto cc = ccfab.view(lo,cccomp);
     const auto fx = fxfab.view(lo);
     const auto fy = fyfab.view(lo);
     const auto fz = fzfab.view(lo);
