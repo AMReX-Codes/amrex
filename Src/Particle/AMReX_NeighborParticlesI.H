@@ -70,8 +70,33 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::Regrid(const DistributionMapping &dmap, const BoxArray &ba ) {
     const int lev = 0;
+    BL_ASSERT(finestLevel() == 0);
     this->SetParticleBoxArray(lev, ba);
     this->SetParticleDistributionMap(lev, dmap);
+    this->Redistribute();
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>
+::Regrid(const DistributionMapping &dmap, const BoxArray &ba, const int lev) {
+    BL_ASSERT(lev <= finestLevel());
+    this->SetParticleBoxArray(lev, ba);
+    this->SetParticleDistributionMap(lev, dmap);
+    this->Redistribute();
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>
+::Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba) {
+    int num_levels = ba.size();
+    BL_ASSERT(num_levels == finestLevel()+1);
+    for (int lev = 0; lev < num_levels; ++lev)
+    {
+        this->SetParticleBoxArray(lev, ba[lev]);
+        this->SetParticleDistributionMap(lev, dmap[lev]);
+    }
     this->Redistribute();
 }
 
