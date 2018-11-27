@@ -151,8 +151,8 @@ public:
     void setIntCommComp(int i, bool value);
 
     // Note that ParticleVector and IntVector are defined in AMReXParticles.H
-    std::map<PairIndex, ParticleVector > neighbors;
-    std::map<PairIndex, IntVector  > neighbor_list;
+    amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
+    std::map<PairIndex, IntVector> neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
     
 protected:
