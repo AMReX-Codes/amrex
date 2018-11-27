@@ -8,6 +8,8 @@ using namespace amrex;
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
+
+    {
     
     ParmParse pp;
     
@@ -65,6 +67,8 @@ int main(int argc, char* argv[])
     }
 
     if (write_particles) myPC.writeParticles(max_step);
+
+    }
     
     amrex::Finalize();
 }
