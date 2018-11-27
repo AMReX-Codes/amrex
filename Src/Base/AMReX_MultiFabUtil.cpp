@@ -71,6 +71,21 @@ namespace amrex
         }
     }
 
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp,
+         const MultiFab& nd, int scomp, int ncomp, int ngrow)
+    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        {
+            Box bx = mfi.growntilebox(ngrow);
+            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
+                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
+                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
+        }
+    }
+
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
     {
 	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
@@ -92,11 +107,40 @@ namespace amrex
 	}
     }
 
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
+        const Vector<const MultiFab*>& edge, int ngrow)
+    {
+        AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+        AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
+        AMREX_ASSERT(edge[0]->nComp() == 1);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        {
+            Box bx = mfi.growntilebox(ngrow);
+            BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
+                (bx.loVect(), bx.hiVect(),
+                BL_TO_FORTRAN_N(cc[mfi],dcomp),
+                AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
+                BL_TO_FORTRAN((*edge[1])[mfi]),
+                BL_TO_FORTRAN((*edge[2])[mfi])));
+        }
+    }
+
     void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
     {
         average_face_to_cellcenter(cc, dcomp,
                                    Array<MultiFab const*,AMREX_SPACEDIM>
                                                   {AMREX_D_DECL(fc[0],fc[1],fc[2])});
+    }
+
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+        const Vector<const MultiFab*>& fc, int ngrow)
+    {
+        average_face_to_cellcenter(cc, dcomp,
+            Array<MultiFab const*,AMREX_SPACEDIM>{AMREX_D_DECL(fc[0],fc[1],fc[2])},
+            ngrow);
     }
 
     void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
@@ -133,6 +177,32 @@ namespace amrex
 			BL_TO_FORTRAN((*fc[2])[mfi])),
 		 dx, problo, coord_type);
 	}
+    }
+
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
+    {
+        AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+        AMREX_ASSERT(fc[0]->nComp() == 1);
+
+        Real dx[3] = {1.0,1.0,1.0};
+        Real problo[3] = {0.,0.,0.};
+        int coord_type = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        {
+            Box bx = mfi.growntilebox(ngrow);
+            BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
+                (bx.loVect(), bx.hiVect(),
+                BL_TO_FORTRAN_N(cc[mfi],dcomp),
+                AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
+                BL_TO_FORTRAN((*fc[1])[mfi]),
+                BL_TO_FORTRAN((*fc[2])[mfi])),
+                dx, problo, coord_type);
+        }
     }
 
     void average_face_to_cellcenter (MultiFab& cc,
