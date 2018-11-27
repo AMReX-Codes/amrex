@@ -2394,31 +2394,6 @@ BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
     return IntVect(AMREX_D_DECL(imin+lo.x,jmin+lo.y,kmin+lo.z));
 }
 
-
-template <class T>
-IntVect
-BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
-{
-    AMREX_D_DECL(int imin = -10, jmin = -10, kmin = -10);
-
-    const auto dp0 = this->stridedPtr(subbox,comp);
-    const auto len = subbox.length3d();
-
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dp0(0,j,k);
-            for (int i = 0; i < len[0]; ++i) {
-                if (dp[i] == value) {
-                    AMREX_D_TERM(imin = i;,  jmin = j;,  kmin = k;)
-                }
-            }
-        }
-    }
-
-    const auto& lo = subbox.loVect();
-    return IntVect(AMREX_D_DECL(imin+lo[0],jmin+lo[1],kmin+lo[2]));
-}
-
 template <class T>
 void
 BaseFab<T>::minIndex (const Box& subbox,
