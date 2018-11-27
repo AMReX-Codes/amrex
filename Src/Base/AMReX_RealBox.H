@@ -50,10 +50,13 @@ public:
     AMREX_GPU_HOST_DEVICE
     const Real* hi () && = delete;
     //! Returns length in specified direction.
+    AMREX_GPU_HOST_DEVICE
     Real lo (int dir) const { return xlo[dir]; }
     //! Returns hi side in specified direction.
+    AMREX_GPU_HOST_DEVICE
     Real hi (int dir) const { return xhi[dir]; }
     //! Returns length in specified direction.
+    AMREX_GPU_HOST_DEVICE
     Real length (int dir) const { return xhi[dir]-xlo[dir]; }
     //! Sets lo side.
     void setLo (const Real* a_lo) { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }

@@ -12,6 +12,12 @@ AMREX_GPU_HOST_DEVICE
 void amrex_int_to_real (Box const& bx, FArrayBox& rfab, IArrayBox const& ifab,
                         int rcomp, int icomp, int ncomp);
 
+
+AMREX_GPU_HOST_DEVICE
+void amrex_fill_slice_interp (Box const& bx, FArrayBox & slicefab, FArrayBox const& fullfab,
+                              int scomp, int fcomp, int ncomp,
+                              int dir, Real coord, GeometryData const& gd);
+
 }
 
 #endif
