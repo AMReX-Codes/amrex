@@ -141,13 +141,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
                  mfi.isValid(); ++mfi) {
                 const Box& box = mfi.growntilebox();
                 for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
-                    const int grid = (*mask_ptr[lev])[mfi](iv, 0);
+                    const int grid = (*mask_ptr[lev])[mfi](iv, MaskComps::grid);
                     if (grid >= 0) {
-                        const int tile = (*mask_ptr[lev])[mfi](iv, 1);
-                        const int proc = this->ParticleDistributionMap(lev)[grid];
+                        const int tile = (*mask_ptr[lev])[mfi](iv, MaskComps::tile);
+                        const int level = (*mask_ptr[lev])[mfi](iv, MaskComps::level);
+                        const int proc = this->ParticleDistributionMap(level)[grid];
                         NeighborCommTag comm_tag(proc, grid, tile);
                         local_neighbors.push_back(comm_tag);
-                        if (proc != ParallelDescriptor::MyProc())  
+                        if (proc != ParallelDescriptor::MyProc())
                             neighbor_procs.push_back(proc);
                     }
                 }
