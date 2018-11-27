@@ -30,7 +30,7 @@ void get_face_velocity(const int level, const Real time,
     phi(2) = max(vx_h2+1, vy_h2  )
 */
 
-    Gpu::DeviceFab psi_dfab(psi_box, 1);
+    Gpu::AsyncFab psi_dfab(psi_box, 1);
     FArrayBox* psifab = psi_dfab.fabPtr();
 
     // Calculate psi

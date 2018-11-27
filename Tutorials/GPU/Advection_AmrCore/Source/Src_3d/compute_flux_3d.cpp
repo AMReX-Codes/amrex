@@ -25,7 +25,7 @@ void compute_flux_3d(Box const& bx,
 
     const Box nbx = amrex::grow(bx, 1);
 
-    Gpu::DeviceFab fabslope (nbx, 1);
+    Gpu::AsyncFab fabslope (nbx, 1);
     FArrayBox* slope = fabslope.fabPtr();
 
 /*
@@ -34,9 +34,9 @@ void compute_flux_3d(Box const& bx,
                 slope, glo, ghi)
 */
 
-    Gpu::DeviceFab fabphix (nbx, 1);
-    Gpu::DeviceFab fabphiy (nbx, 1);
-    Gpu::DeviceFab fabphiz (nbx, 1);
+    Gpu::AsyncFab fabphix (nbx, 1);
+    Gpu::AsyncFab fabphiy (nbx, 1);
+    Gpu::AsyncFab fabphiz (nbx, 1);
     FArrayBox* phix = fabphix.fabPtr();
     FArrayBox* phiy = fabphiy.fabPtr();
     FArrayBox* phiz = fabphiz.fabPtr();
@@ -124,8 +124,8 @@ void compute_flux_3d(Box const& bx,
 //    ! transverse terms
 //    !!!!!!!!!!!!!!!!!!!!
 
-    Gpu::DeviceFab fabphix_y (nbx, 1);
-    Gpu::DeviceFab fabphix_z (nbx, 1);
+    Gpu::AsyncFab fabphix_y (nbx, 1);
+    Gpu::AsyncFab fabphix_z (nbx, 1);
     FArrayBox* phix_y = fabphix_y.fabPtr();
     FArrayBox* phix_z = fabphix_z.fabPtr();
 
@@ -180,8 +180,8 @@ void compute_flux_3d(Box const& bx,
         }
     });
 
-    Gpu::DeviceFab fabphiy_x (nbx, 1);
-    Gpu::DeviceFab fabphiy_z (nbx, 1);
+    Gpu::AsyncFab fabphiy_x (nbx, 1);
+    Gpu::AsyncFab fabphiy_z (nbx, 1);
     FArrayBox* phiy_x = fabphiy_x.fabPtr();
     FArrayBox* phiy_z = fabphiy_z.fabPtr();
 
@@ -236,8 +236,8 @@ void compute_flux_3d(Box const& bx,
         }
     });
 
-    Gpu::DeviceFab fabphiz_x (nbx, 1);
-    Gpu::DeviceFab fabphiz_y (nbx, 1);
+    Gpu::AsyncFab fabphiz_x (nbx, 1);
+    Gpu::AsyncFab fabphiz_y (nbx, 1);
     FArrayBox* phiz_x = fabphiz_x.fabPtr();
     FArrayBox* phiz_y = fabphiz_y.fabPtr();
 
