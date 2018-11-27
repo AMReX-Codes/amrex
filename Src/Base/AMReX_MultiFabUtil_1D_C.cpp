@@ -21,11 +21,11 @@ void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab
 }
 
 AMREX_GPU_HOST_DEVICE
-void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& exfab)
+void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& exfab, int cccomp)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo);
+    const auto cc = ccfab.view(lo,cccomp);
     const auto Ex = exfab.view(lo);
     
     AMREX_PRAGMA_SIMD
@@ -36,11 +36,11 @@ void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& exfab
 
 AMREX_GPU_HOST_DEVICE
 void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
-                         FArrayBox const& fxfab, GeometryData const& gd)
+                         FArrayBox const& fxfab, int cccomp, GeometryData const& gd)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
-    const auto cc = ccfab.view(lo);
+    const auto cc = ccfab.view(lo,cccomp);
     const auto fx = fxfab.view(lo);
 
     const int coord_type = gd.Coord();

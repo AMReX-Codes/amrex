@@ -26,14 +26,15 @@ AMREX_GPU_HOST_DEVICE
 void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
                          AMREX_D_DECL(FArrayBox const& exfab,
                                       FArrayBox const& eyfab,
-                                      FArrayBox const& ezfab));
+                                      FArrayBox const& ezfab),
+                         int cccomp);
 
 AMREX_GPU_HOST_DEVICE
 void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
                          AMREX_D_DECL(FArrayBox const& exfab,
                                       FArrayBox const& eyfab,
                                       FArrayBox const& ezfab),
-                         GeometryData const& gd);
+                         int cccomp, GeometryData const& gd);
 
 }
 
