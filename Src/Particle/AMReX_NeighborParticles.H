@@ -154,6 +154,8 @@ public:
     const size_t pdata_size = sizeof(ParticleType);
     
 protected:
+
+    void resizeContainers(const int lev);
     
     void initializeCommComps();
     
