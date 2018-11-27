@@ -10,10 +10,6 @@ extern "C"
     void amrex_fort_avg_nd_to_cc(const int* lo, const int* hi, const int* ncomp,
                                  BL_FORT_FAB_ARG(cc), const BL_FORT_FAB_ARG(nd));
 
-    void amrex_fort_int_to_real (const int* lo, const int* hi, const int* ncomp,
-                                 amrex_real* rdata, const int* rlo, const int* rhi,
-                                 const int* idata, const int* ilo, const int* ihi);
-
     void amrex_fill_slice(const int* lo, const int* hi,
                           const amrex_real* full_data, const int* flo, const int* fhi,
                           amrex_real* slice_data, const int* slo, const int* shi,
