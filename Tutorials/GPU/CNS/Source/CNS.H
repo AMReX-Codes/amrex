@@ -3,6 +3,7 @@
 
 #include <AMReX_AmrLevel.H>
 #include <AMReX_FluxRegister.H>
+#include <AMReX_LayoutData.H>
 
 using namespace amrex;
 class CNS

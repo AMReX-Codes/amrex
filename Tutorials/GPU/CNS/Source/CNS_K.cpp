@@ -7,7 +7,7 @@
 
 using namespace amrex;
 
-AMREX_GPU_DEVICE
+AMREX_GPU_HOST_DEVICE
 Real
 cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
            GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)

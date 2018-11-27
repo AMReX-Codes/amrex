@@ -60,7 +60,7 @@ Arena::Initialize ()
 #else
     the_device_arena = new BArena;
 #endif
-    
+
 #if defined(AMREX_USE_GPU)
     the_managed_arena = new CArena;
 #else
@@ -68,12 +68,26 @@ Arena::Initialize ()
 #endif
 
 #if defined(AMREX_USE_GPU)
-    const std::size_t hunk_size = 64 * 1024;
-    the_pinned_arena = new CArena(hunk_size);
+//    const std::size_t hunk_size = 64 * 1024;
+//    the_pinned_arena = new CArena(hunk_size);
+    the_pinned_arena = new CArena();
     the_pinned_arena->SetHostAlloc();
 #else
     the_pinned_arena = new BArena;
 #endif
+
+    std::size_t N = 1024*1024*8;
+    void *p = the_arena->alloc(N);
+    the_arena->free(p);
+
+    p = the_device_arena->alloc(N);
+    the_device_arena->free(p);
+
+    p = the_managed_arena->alloc(N);
+    the_managed_arena->free(p);
+
+    p = the_pinned_arena->alloc(N);
+    the_pinned_arena->free(p);
 
 #endif
 }

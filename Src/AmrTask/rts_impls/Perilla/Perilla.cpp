@@ -17,7 +17,9 @@ using namespace perilla;
 
 
 volatile int Perilla::numTeamsFinished = 0;
-volatile int Perilla::updatedMetadata = 0;
+volatile int Perilla::updateMetadata_request = 0;
+volatile int Perilla::updateMetadata_noticed = 0;
+volatile int Perilla::updateMetadata_done = 0;
 int Perilla::max_step=1;
 std::map<int,std::map<int,int>> Perilla::pTagCnt;
 int Perilla::uTags=0;
@@ -1690,7 +1692,15 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	}
 } // serviceMultipleGraphComm
 
-void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, bool cpyAcross, int tid)
+void Perilla::flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, std::vector<RegionGraph*> &graphArray){
+    int gCnt=0;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
+    for(int l=0; l<graphArrayHierarchy.size(); l++)
+        for(int g=0; g<graphArrayHierarchy[l].size(); g++)
+            graphArray.push_back(graphArrayHierarchy[l][g]);
+}
+
+void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph* > graphArray, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
     int np = ParallelDescriptor::NProcs();    
@@ -1705,14 +1715,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGrap
     double numloops=0;
     double ltime,lstime,letime;
 
-    int gCnt=0;
-    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
-    std::vector<RegionGraph*> graphArray;
-    for(int l=0; l<graphArrayHierarchy.size(); l++) 
-        for(int g=0; g<graphArrayHierarchy[l].size(); g++) 
-	    graphArray.push_back(graphArrayHierarchy[l][g]);
-
-    while(true)
+    //while(true)
     {	
 	//lstime = omp_get_wtime();
 	for(int g=0; g<graphArray.size(); g++)
@@ -1773,13 +1776,13 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<std::vector<RegionGrap
 	//std::cout << g+1 << ":" << graphArray[g]->totalFinishes << " | ";
 
 
-	if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+	/*if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
 	{
 	    if(doublechecked) // double check if there are still something to send
 		return;
 	    else
 		doublechecked = true;
-	}
+	}*/
 
 	//std::cout<<"Teams Completed "<< Perilla::numTeamsFinished << " tid "<< tid << " myProc " << myProc <<std::endl;
 
@@ -1904,16 +1907,16 @@ void Perilla::fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f)
 
 } // fillBoundaryPush
 
-void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
+void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f, bool singleT)
 {
-
     int nComp = mf->nComp();
     int tg= WorkerThread::perilla_wid();
     int ntid = WorkerThread::perilla_wtid();
 
     if(ntid==0)
 	pthread_mutex_lock(&(graph->lMap[f]->l_con.dLock));
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads    
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads    
 
     if(perilla::LAZY_PUSH)
     { }
@@ -1945,7 +1948,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 	} // if(UNPACKING_FINEGRAIN) - else
     } // if(LAZY_PUSH) - else
 
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     if(ntid==0)
     {
@@ -1960,7 +1964,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 		graph->lMap[f]->l_con.firingRuleCnt++;
 	pthread_mutex_unlock(&(graph->lMap[f]->l_con.dLock));
     }
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     int np = ParallelDescriptor::NProcs();
     if (np==1) return;
@@ -1970,7 +1975,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 	pthread_mutex_lock(&(graph->rMap[f]->r_con.rcvLock));
 	pthread_mutex_lock(&(graph->lMap[f]->r_con.rcvLock));
     }
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     for(int i=0; i<graph->lMap[f]->r_con.nrcv; i++)
 	if( (i%(perilla::NUM_THREADS_PER_TEAM-1)) == ntid)
@@ -1986,7 +1992,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 	    rcvPackage->notified = false;
 	    graph->lMap[f]->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);
 	}
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     if(ntid==0)
     {
@@ -2002,22 +2009,22 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 } // fillBoundaryPull
 
 
-  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf)
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf, bool singleT)
   {
     if(rgi.currentItr != 1)
       return;
 
     int f = rgi.currentRegion;
-    fillBoundaryPull(rg, &mf, f);
+    fillBoundaryPull(rg, &mf, f, singleT);
   }
 
-  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf)
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf, bool singleT)
   {
     if(rgi.currentItr != 1)
       return;
 
     int f = rgi.currentRegion;
-    fillBoundaryPull(rgi.itrGraph, &mf, f);
+    fillBoundaryPull(rgi.itrGraph, &mf, f, singleT);
   }
 
 

@@ -113,7 +113,7 @@ C$(AMREX_BASE)_headers += AMReX_iMultiFab.H
 
 C$(AMREX_BASE)_sources += AMReX_FabArrayBase.cpp AMReX_MFIter.cpp
 C$(AMREX_BASE)_headers += AMReX_FabArray.H AMReX_FACopyDescriptor.H AMReX_FabArrayBase.H AMReX_MFIter.H
-C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H
+C$(AMREX_BASE)_headers += AMReX_FabArrayCommI.H AMReX_FabArrayUtility.H
 C$(AMREX_BASE)_headers += AMReX_LayoutData.H
 
 #
@@ -125,6 +125,8 @@ C$(AMREX_BASE)_headers += AMReX_CoordSys.H AMReX_Geometry.H AMReX_COORDSYS_C.H
 ifneq ($(BL_NO_FORT),TRUE)
   C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp AMReX_MultiFabUtil_Perilla.cpp
   C$(AMREX_BASE)_headers += AMReX_MultiFabUtil.H AMReX_MultiFabUtil_Perilla.H
+  C$(AMREX_BASE)_headers += AMReX_MultiFabUtil_C.H
+  C$(AMREX_BASE)_sources += AMReX_MultiFabUtil_$(DIM)D_C.cpp AMReX_MultiFabUtil_nd_C.cpp
 endif
 
 #
@@ -168,7 +170,6 @@ ifneq ($(BL_NO_FORT),TRUE)
   f90$(AMREX_BASE)_sources +=  AMReX_constants_mod.f90
 
   f90$(AMREX_BASE)_headers += AMReX_MultiFabUtil_F.H
-  F90$(AMREX_BASE)_sources += AMReX_MultiFabUtil_nd.F90
 
   F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
   ifeq ($(USE_CUDA),TRUE)

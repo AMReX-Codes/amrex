@@ -8,6 +8,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
+#include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
 
 namespace amrex
@@ -171,13 +172,6 @@ public:
     Real norm0 (int comp = 0, int nghost = 0, bool local = false) const;
 
     Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
-
-    /**
-    * \brief Returns the maximum *absolute* value contained in
-    * component comp of the MultiFab in the intersection of the BoxArray
-    * and the valid regions of the MultiFab.
-    */
-    Real norm0 (int comp, const BoxArray& ba, int nghost = 0, bool local = false) const;
 
     /**
     * \brief Returns the maximum *absolute* values contained in
