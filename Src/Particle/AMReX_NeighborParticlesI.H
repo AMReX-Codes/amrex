@@ -146,7 +146,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         const int tile = (*mask_ptr[lev])[mfi](iv, MaskComps::tile);
                         const int level = (*mask_ptr[lev])[mfi](iv, MaskComps::level);
                         const int proc = this->ParticleDistributionMap(level)[grid];
-                        NeighborCommTag comm_tag(proc, grid, tile);
+                        NeighborCommTag comm_tag(proc, level, grid, tile);
                         local_neighbors.push_back(comm_tag);
                         if (proc != ParallelDescriptor::MyProc())
                             neighbor_procs.push_back(proc);
@@ -250,6 +250,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             NeighborCopyTag tag;
                             tag.grid = mask(neighbor_cell, MaskComps::grid);
                             tag.tile = mask(neighbor_cell, MaskComps::tile);
+                            tag.level = mask(neighbor_cell, MaskComps::level);
                             for (int dim = 0; dim < 3; ++dim)
                                 tag.periodic_shift[dim] = 0;
                             if (periodicity.isAnyPeriodic()) {
@@ -262,7 +263,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                                 }
                             }
 
-                            if ((grid == tag.grid)           and
+                            if ((lev  == tag.level)          and
+                                (grid == tag.grid)           and
                                 (tile == tag.tile)           and
                                 (tag.periodic_shift[0] == 0) and
                                 (tag.periodic_shift[1] == 0) and
@@ -288,15 +290,15 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     cache.push_back(tag);
                     
                     const int who = dmap[tag.grid];
-                    NeighborIndexMap nim(dst_index.first, dst_index.second, -1,
-                                         src_index.first, src_index.second, 
+                    NeighborIndexMap nim(tag.level, dst_index.first, dst_index.second, -1,
+                                         lev, src_index.first, src_index.second, 
                                          cache_index, thread_num);
                     if (who == MyProc) {
                         auto& tmp = tmp_local_map[dst_index];
                         Vector<NeighborIndexMap>& buffer = tmp[thread_num];
                         buffer.push_back(nim);
                     } else {
-                        NeighborCommTag comm_tag(who, tag.grid, tag.tile);
+                        NeighborCommTag comm_tag(who, tag.level, tag.grid, tag.tile);
                         Vector<NeighborIndexMap>& buffer = tmp_remote_map[comm_tag][thread_num];
                         buffer.push_back(nim);
                     }

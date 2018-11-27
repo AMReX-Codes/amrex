@@ -34,22 +34,26 @@ class NeighborParticleContainer
     };
     
     struct NeighborIndexMap {
+        int dst_level;
         int dst_grid;
         int dst_tile;
         int dst_index;
+        int src_level;
         int src_grid;
         int src_tile;
         int src_index;
         int thread_num;
 
-        NeighborIndexMap(int dgrid, int dtile, int dindex,
-                         int sgrid, int stile, int sindex, int tnum)
-            : dst_grid(dgrid), dst_tile(dtile), dst_index(dindex),
-              src_grid(sgrid), src_tile(stile), src_index(sindex), thread_num(tnum)
+        NeighborIndexMap(int dlevel, int dgrid, int dtile, int dindex,
+                         int slevel, int sgrid, int stile, int sindex, int tnum)
+            : dst_level(dlevel), dst_grid(dgrid), dst_tile(dtile), dst_index(dindex),
+              src_level(slevel), src_grid(sgrid), src_tile(stile), src_index(sindex),
+              thread_num(tnum)
         {}
     };
     
     struct NeighborCopyTag {
+        int level;
         int grid;
         int tile;
         int src_index;
@@ -57,6 +61,7 @@ class NeighborParticleContainer
         int periodic_shift[3];
 
         bool operator<(const NeighborCopyTag& other) const {
+            if (level != other.level) return level < other.level;
             if (grid != other.grid) return grid < other.grid;
             if (tile != other.tile) return tile < other.tile;
             if (periodic_shift[0] != other.periodic_shift[0]) 
@@ -69,7 +74,7 @@ class NeighborParticleContainer
         }
         
         bool operator==(const NeighborCopyTag& other) const {
-            return (grid == other.grid) and (tile == other.tile)
+            return (level == other.level) and (grid == other.grid) and (tile == other.tile)
                 and (periodic_shift[0] == other.periodic_shift[0])
                 and (periodic_shift[1] == other.periodic_shift[1])
                 and (periodic_shift[2] == other.periodic_shift[2]);
@@ -78,11 +83,12 @@ class NeighborParticleContainer
 
     struct NeighborCommTag {
         
-        NeighborCommTag(int pid, int gid, int tid)
-            : proc_id(pid), grid_id(gid), tile_id(tid)
+        NeighborCommTag(int pid, int lid, int gid, int tid)
+            : proc_id(pid), level_id(lid), grid_id(gid), tile_id(tid)
             {}
         
         int proc_id;
+        int level_id;
         int grid_id;
         int tile_id;
         
@@ -92,13 +98,18 @@ class NeighborParticleContainer
                      grid_id < other.grid_id) ||
                     (proc_id == other.proc_id && 
                      grid_id == other.grid_id && 
-                     tile_id < other.tile_id ));
+                     tile_id < other.tile_id) ||
+                    (proc_id == other.proc_id && 
+                     grid_id == other.grid_id && 
+                     tile_id == other.tile_id &&
+                     level_id < other.level_id));
         }
 
         bool operator==(const NeighborCommTag& other) const {
             return ( (proc_id == other.proc_id) and 
                      (grid_id == other.grid_id) and
-                     (tile_id == other.tile_id) );
+                     (tile_id == other.tile_id) and
+                     (level_id == other.level_id));
         }
     };    
         
