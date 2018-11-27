@@ -19,9 +19,11 @@ class RealBox // : public Gpu::Managed
 {
 public:
     //! The default constructor.  Builds invalid RealBox.
+    AMREX_GPU_HOST_DEVICE
     RealBox ();
 
     //! Construct region given diagonal points.
+    AMREX_GPU_HOST_DEVICE
     RealBox (const Real* lo,
              const Real* hi);
 
@@ -32,6 +34,7 @@ public:
     * \brief Construct region given index box, cell spacing
     * and physical location of index (0,0,0).
     */
+    AMREX_GPU_HOST_DEVICE
     RealBox (const Box&  bx,
              const Real* dx,
              const Real* base);
@@ -71,17 +74,23 @@ public:
     //! Sets hi side in specified direction.
     void setHi (int dir, Real a_hi) { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xhi[dir] = a_hi; }
     //! Is the RealBox OK; i.e. does it have non-negative volume?
+    AMREX_GPU_HOST_DEVICE
     bool ok () const;
     //! Returns the volume of the RealBox. If this RealBox is invalid, 
     //! it's volume is considered to be zero.
+    AMREX_GPU_HOST_DEVICE
     Real volume () const;
     //! Is the specified point contained in the RealBox?
+    AMREX_GPU_HOST_DEVICE
     bool contains (const Real* point, Real eps=0.0) const;
+    AMREX_GPU_HOST_DEVICE
     bool contains (const RealVect& rv, Real eps=0.0) const { return contains(rv.dataPtr(), eps); }
     //! Is the specified RealBox contained in this RealBox?
+    AMREX_GPU_HOST_DEVICE
     bool contains (const RealBox& bx, Real eps=0.0) const;
 
     //! Does the specified RealBox intersect with this RealBox?
+    AMREX_GPU_HOST_DEVICE
     bool intersects (const RealBox& bx) const;
     
 private:

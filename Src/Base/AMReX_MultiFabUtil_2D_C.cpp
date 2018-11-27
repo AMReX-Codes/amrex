@@ -41,4 +41,24 @@ void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
+                         FArrayBox const& fxfab, FArrayBox const& fyfab,
+                         GeometryData const& gd)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto cc = ccfab.view(lo);
+    const auto fx = fxfab.view(lo);
+    const auto fy = fyfab.view(lo);
+
+    for     (int j = 0; j < len.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len.x; ++i) {
+            cc(i,j,0,0) = 0.5 * ( fx(i,j,0) + fx(i+1,j,0) );
+            cc(i,j,0,1) = 0.5 * ( fy(i,j,0) + fy(i,j+1,0) );
+        }
+    }
+}
+
 }

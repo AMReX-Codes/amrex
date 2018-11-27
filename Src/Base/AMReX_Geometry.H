@@ -52,12 +52,15 @@ struct GeometryData
  //! Returns whether the domain is periodic in the given direction.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int isPeriodic (const int i) const { return is_periodic[i]; }
+ // Coordinates type
+    int Coord () const { return coord; }
 
 public:
     RealBox prob_domain;
     Box domain;
     Real dx[AMREX_SPACEDIM];
     int is_periodic[AMREX_SPACEDIM];
+    int coord;
 };
 
 class Geometry
@@ -81,8 +84,9 @@ public:
 
     // Returns non-static copy of geometry's stored data.
     GeometryData data() const {
-      return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
-	  {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])}};
+        return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
+            {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
+                static_cast<int>(c_sys) };
     }
 
     static void Finalize ();
