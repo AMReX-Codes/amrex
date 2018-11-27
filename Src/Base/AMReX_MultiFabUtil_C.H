@@ -18,6 +18,10 @@ void amrex_fill_slice_interp (Box const& bx, FArrayBox & slicefab, FArrayBox con
                               int scomp, int fcomp, int ncomp,
                               int dir, Real coord, GeometryData const& gd);
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
+                         int cccomp, int ndcomp, int ncomp);
+
 }
 
 #endif

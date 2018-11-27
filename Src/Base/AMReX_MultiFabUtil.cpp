@@ -57,32 +57,22 @@ namespace {
 
 namespace amrex
 {
-    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp)
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-            const Box& bx = mfi.tilebox();
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
-        }
-    }
-
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = &(cc[mfi]);
+            FArrayBox const* ndfab = &(nd[mfi]);
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_nd_to_cc(tbx, *ccfab, *ndfab, dcomp, scomp, ncomp);
+            });
         }
     }
 
