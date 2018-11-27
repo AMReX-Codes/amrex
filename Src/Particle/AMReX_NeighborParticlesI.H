@@ -81,7 +81,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::BuildLevelMask(int lev) {
     
     BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
-    BL_ASSERT(lev == 0);
 
     resizeContainers(lev);
     
@@ -140,7 +139,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
 
-    BL_ASSERT(lev == 0);
     BL_ASSERT(this->OK());
 
     resizeContainers(lev);
@@ -394,7 +392,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::updateNeighbors(int lev, bool reuse_rcv_counts) {
     
     BL_PROFILE_VAR("NeighborParticleContainer::updateNeighbors", update);
-    BL_ASSERT(lev == 0);
 
     const int MyProc = ParallelDescriptor::MyProc();
     const Periodicity& periodicity = this->Geom(lev).periodicity();
@@ -479,7 +476,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
 {
 
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
-    BL_ASSERT(lev == 0);
 
     resizeContainers(lev);
     
@@ -541,9 +537,7 @@ getRcvCountsMPI() {
         ParallelDescriptor::Send(&snds[Who], Cnt, Who, SeqNum);        
     }
 
-    if (num_rcvs > 0) {
-        ParallelDescriptor::Waitall(rreqs, stats);
-    }
+    if (num_rcvs > 0) ParallelDescriptor::Waitall(rreqs, stats);
 
 #endif // BL_USE_MPI
 }
@@ -665,7 +659,6 @@ NeighborParticleContainer<NStructReal, NStructInt>::
 buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
-    BL_ASSERT(lev == 0);
     BL_ASSERT(this->OK());
 
     neighbor_list[lev].clear();
