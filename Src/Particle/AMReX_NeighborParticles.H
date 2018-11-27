@@ -174,7 +174,7 @@ protected:
     size_t cdata_size;
     int num_neighbor_cells;
     amrex::Vector<NeighborCommTag> local_neighbors;
-    std::unique_ptr<iMultiFab> mask_ptr;
+    amrex::Vector<std::unique_ptr<iMultiFab> > mask_ptr;
 
     std::map<PairIndex, Vector<Vector<NeighborCopyTag> > > buffer_tag_cache;
     std::map<PairIndex, int> local_neighbor_sizes;
