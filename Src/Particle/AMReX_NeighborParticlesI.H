@@ -479,6 +479,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
     BL_ASSERT(lev == 0);
 
+    resizeContainers(lev);
+    
     neighbors[lev].clear();
     buffer_tag_cache.clear();
     send_data.clear();
@@ -775,8 +777,8 @@ resizeContainers(const int lev)
 {
     if ( static_cast<int>(neighbors.size()) <= lev )
     {
-        neighbors.resize(lev);
-        neighbor_list.resize(lev);
+        neighbors.resize(lev+1);
+        neighbor_list.resize(lev+1);
     }
     AMREX_ASSERT(neighbors.size() == neighbor_list.size());
 }
