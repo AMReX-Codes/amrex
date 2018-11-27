@@ -20,5 +20,19 @@ void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& exfab)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto cc = ccfab.view(lo);
+    const auto Ex = exfab.view(lo);
+    
+    AMREX_PRAGMA_SIMD
+    for (int i = 0; i < len.x; ++i) {
+        cc(i,0,0) = Ex(i,0,0);
+    }
+}
+
 }
 

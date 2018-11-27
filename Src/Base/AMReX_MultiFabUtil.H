@@ -14,34 +14,23 @@ namespace amrex
                                      int ngrow = 0);
 
     //! Average edge-based MultiFab onto cell-centered MultiFab.
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge);
-
-    //! Average edge-based MultiFab onto cell-centered MultiFab.
     // This fills in ngrow ghost cells in the cell-centered MultiFab.
     // Both cell centered and edge centered MultiFabs need to have ngrow
     // ghost values
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
-        const Vector<const MultiFab*>& edge, int ngrow);
+        const Vector<const MultiFab*>& edge, int ngrow = 0);
 
     //! Average face-based MultiFab onto cell-centered MultiFab.
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc);
-    void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
-                                     const Geometry& geom);
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc);
+                                     const Vector<const MultiFab*>& fc, int ngrow=0);
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow=0);
+    void average_face_to_cellcenter (MultiFab& cc,
+                                     const Vector<const MultiFab*>& fc,
+                                     const Geometry& geom);
     void average_face_to_cellcenter (MultiFab& cc,
                                      const Array<const MultiFab*,AMREX_SPACEDIM>& fc,
                                      const Geometry& geom);
-
-    //! Average face-based MultiFab onto cell-centered MultiFab.
-    // This fills in ngrow ghost cells in the cell-centered MultiFab.
-    // Both cell centered and face centered MultiFabs need to have ngrow
-    // ghost values
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Vector<const MultiFab*>& fc, int ngrow);
-
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow);
 
     //! Average cell-centered MultiFab onto face-based MultiFab.
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc, const Geometry& geom);

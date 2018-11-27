@@ -7,8 +7,6 @@
 extern "C"
 {
 #endif
-    void amrex_fort_avg_nd_to_cc(const int* lo, const int* hi, const int* ncomp,
-                                 BL_FORT_FAB_ARG(cc), const BL_FORT_FAB_ARG(nd));
 
     void amrex_compute_divergence (const int* lo, const int* hi,
                                    amrex_real* divu, const int* dlo, const int* dhi,
@@ -24,13 +22,6 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-
-BL_FORT_PROC_DECL(BL_AVG_EG_TO_CC, bl_avg_eg_to_cc)
-  (const int* lo, const int* hi,
-   BL_FORT_FAB_ARG(cc),
-   AMREX_D_DECL(const BL_FORT_FAB_ARG(Ex),
-	  const BL_FORT_FAB_ARG(Ey),
-	  const BL_FORT_FAB_ARG(Ez)));
 
 BL_FORT_PROC_DECL(BL_AVG_FC_TO_CC, bl_avg_fc_to_cc)
   (const int* lo, const int* hi,

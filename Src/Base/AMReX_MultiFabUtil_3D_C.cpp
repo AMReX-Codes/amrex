@@ -25,4 +25,27 @@ void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& exfab,
+                         FArrayBox const& eyfab, FArrayBox const& ezfab)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto cc = ccfab.view(lo);
+    const auto Ex = exfab.view(lo);
+    const auto Ey = eyfab.view(lo);
+    const auto Ez = ezfab.view(lo);
+    
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                cc(i,j,k,0) = 0.25 * ( Ex(i,j,k) + Ex(i,j+1,k) + Ex(i,j,k+1) + Ex(i,j+1,k+1) );
+                cc(i,j,k,1) = 0.25 * ( Ey(i,j,k) + Ey(i+1,j,k) + Ey(i,j,k+1) + Ey(i+1,j,k+1) );
+                cc(i,j,k,2) = 0.25 * ( Ez(i,j,k) + Ez(i+1,j,k) + Ez(i,j+1,k) + Ez(i+1,j+1,k) );
+            }
+        }
+    }
+}
+
 }

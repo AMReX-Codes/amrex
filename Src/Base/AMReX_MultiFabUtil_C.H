@@ -22,6 +22,12 @@ AMREX_GPU_HOST_DEVICE
 void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
                          int cccomp, int ndcomp, int ncomp);
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
+                         AMREX_D_DECL(FArrayBox const& exfab,
+                                      FArrayBox const& eyfab,
+                                      FArrayBox const& ezfab));
+
 }
 
 #endif
