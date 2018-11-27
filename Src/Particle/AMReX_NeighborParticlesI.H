@@ -765,3 +765,16 @@ buildNeighborList(int lev, CheckPair check_pair, bool sort) {
     }
     }
 }
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+resizeContainers(const int lev)
+{
+    if ( static_cast<int>(neighbors.size()) <= lev )
+    {
+        neighbors.resize(lev);
+        neighbor_list.resize(lev);
+    }
+    AMREX_ASSERT(neighbors.size() == neighbors_list.size());
+}
