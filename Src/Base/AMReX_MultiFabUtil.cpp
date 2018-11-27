@@ -593,36 +593,38 @@ namespace amrex
             AMREX_ASSERT(cc.nGrow() >= 1);
         }
 
-        const Real* dx  = geom.CellSize();
-        const Real* plo = geom.ProbLo();
+        const auto geomdata = geom.data();
 
         Vector<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
 
-        int nf = cc.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(*slice, true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*slice, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
+            FArrayBox* slice_fab = &((*slice)[mfi]);
+            FArrayBox const* full_fab = &(cc[full_gid]);
 
             const Box& tile_box  = mfi.tilebox();
 
             if (interpolate)
             {
-                amrex_fill_slice_interp(BL_TO_FORTRAN_BOX(tile_box),
-                                        BL_TO_FORTRAN_ANYD(cc[full_gid]),
-                                        BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
-                                        &start_comp, &nf, &ncomp, &dir,
-                                        &coord, AMREX_ZFILL(plo), AMREX_ZFILL(dx));
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
+                {
+                    amrex_fill_slice_interp(thread_box, *slice_fab, *full_fab,
+                                            0, start_comp, ncomp,
+                                            dir, coord, geomdata);
+                });
             }
             else
             {
-                amrex_fill_slice(BL_TO_FORTRAN_BOX(tile_box),
-                                 BL_TO_FORTRAN_ANYD(cc[full_gid]),
-                                 BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
-                                 &start_comp, &nf, &ncomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
+                {
+                    slice_fab->copy(*full_fab, thread_box, start_comp, thread_box, 0, ncomp);
+                });
             }
         }
 

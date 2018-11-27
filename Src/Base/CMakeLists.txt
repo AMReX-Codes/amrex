@@ -111,7 +111,7 @@ add_sources( AMReX_COORDSYS_C.H AMReX_filcc_f.H )
 add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
    AMReX_BLProfiler_F.F90)
 
-add_sources( AMReX_MultiFabUtil_${DIM}d.f90 AMReX_MultiFabUtil_nd.F90 AMReX_FILCC_${DIM}D.F90 )
+add_sources( AMReX_MultiFabUtil_${DIM}d.f90 AMReX_FILCC_${DIM}D.F90 )
 add_sources( AMReX_MultiFabUtil_F.H )
 add_sources( AMRex_MultiFabUtil_${DIM}D_C.cpp AMReX_MulitFabUtil_nd_C.cpp )
 add_sources( AMReX_MultiFabUtil_C.H )
