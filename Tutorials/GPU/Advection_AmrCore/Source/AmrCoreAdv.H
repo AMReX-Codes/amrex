@@ -143,7 +143,7 @@ private:
 
     // this is essentially a 2*DIM integer array storing the physical boundary
     // condition types at the lo/hi walls in each direction
-    BCRec bcs;
+    amrex::Vector<BCRec> bcs;  // 1-component
 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
