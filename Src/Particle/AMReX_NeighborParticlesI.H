@@ -117,7 +117,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
             
-            mask_ptr[lev].reset(new iMultiFab(ba, dmap, 2, num_neighbor_cells));
+            mask_ptr[lev].reset(new iMultiFab(ba, dmap, num_mask_comps, num_neighbor_cells));
             mask_ptr[lev]->setVal(-1, num_neighbor_cells);
             
 #ifdef _OPENMP
@@ -128,8 +128,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 const Box& box = mfi.tilebox();
                 const int grid_id = mfi.index();
                 const int tile_id = mfi.LocalTileIndex();
-                mask_ptr[lev]->setVal(grid_id, box, 0, 1);
-                mask_ptr[lev]->setVal(tile_id, box, 1, 1);
+                mask_ptr[lev]->setVal(grid_id, box, MaskComps::grid,  1);
+                mask_ptr[lev]->setVal(tile_id, box, MaskComps::tile,  1);
+                mask_ptr[lev]->setVal(lev    , box, MaskComps::level, 1);
             }
             
             mask_ptr[lev]->FillBoundary(geom.periodicity());
@@ -246,8 +247,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             IntVect neighbor_cell = iv + shift;
 
                             NeighborCopyTag tag;
-                            tag.grid = mask(neighbor_cell, 0);
-                            tag.tile = mask(neighbor_cell, 1);
+                            tag.grid = mask(neighbor_cell, MaskComps::grid);
+                            tag.tile = mask(neighbor_cell, MaskComps::tile);
                             for (int dim = 0; dim < 3; ++dim)
                                 tag.periodic_shift[dim] = 0;
                             if (periodicity.isAnyPeriodic()) {

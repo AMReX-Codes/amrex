@@ -24,6 +24,15 @@ class NeighborParticleContainer
     : public ParticleContainer<NStructReal, NStructInt, 0, 0>
 {
 
+    struct MaskComps
+    {
+        enum {
+            grid = 0,
+            tile,
+            level
+        };
+    };
+    
     struct NeighborIndexMap {
         int dst_grid;
         int dst_tile;
@@ -172,6 +181,7 @@ protected:
     ///
     void getRcvCountsMPI();
 
+    static constexpr int num_mask_comps = 3;  // grid, tile, level    
     size_t cdata_size;
     int num_neighbor_cells;
     amrex::Vector<NeighborCommTag> local_neighbors;
