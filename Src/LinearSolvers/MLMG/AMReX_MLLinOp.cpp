@@ -639,10 +639,6 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
                 for (auto orig_g_rank : g_ranks_set) {
                     AMREX_ASSERT(idx < nbh_g_ranks.size());
                     rank_mapping[orig_g_rank] = nbh_g_ranks[idx++];
-                    if (flag_verbose_linop) {
-                        Print() << "  Mapped " << orig_g_rank << " to "
-                                << nbh_g_ranks[idx-1] << std::endl;
-                    }
                 }
 
                 // remap and redefine DM

@@ -4,7 +4,7 @@
 namespace amrex {
 namespace machine {
 
-void init (); // must be called by ALL ranks in the job
+void Initialize (); // called in amrex::Initialize()
 
 // find the best topologically close neighborhood of ranks
 // returns a vector of global or local rank IDs based on flag_local_ranks
