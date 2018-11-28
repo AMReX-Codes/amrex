@@ -343,7 +343,10 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 	    int*        tptr    = itags.dataPtr();
 	    const int*  tlo     = tilebox.loVect();
 	    const int*  thi     = tilebox.hiVect();
-
+/*
+            state_error(tagfab, tilebox, state[mfi], &tagval, &clearval,
+                        geomdata, &time, &phierr[lev]);
+*/
             // tag cells for refinement
 	    state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
 			BL_TO_FORTRAN_3D(state[mfi]),
