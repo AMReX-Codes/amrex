@@ -26,31 +26,8 @@ void advect(const Real time, Box const& bx,
 
     const Box nbx = amrex::grow(bx, 1);
 
-/*  NOT USED HERE. MOVE INTO COMPUTE_FLUX_3D?
-    Gpu::DeviceFab fphix   (nbx, 1);
-    Gpu::DeviceFab fphix_y (nbx, 1);
-    Gpu::DeviceFab fphix_z (nbx, 1);
-    Gpu::DeviceFab fphiy   (nbx, 1);
-    Gpu::DeviceFab fphiy_x (nbx, 1);
-    Gpu::DeviceFab fphiy_z (nbx, 1);
-    Gpu::DeviceFab fphiz   (nbx, 1);
-    Gpu::DeviceFab fphiz_x (nbx, 1);
-    Gpu::DeviceFab fphiz_y (nbx, 1);
-    Gpu::DeviceFab fslope  (nbx, 1);
-
-    FArrayBox* phix   = fphix.fabPtr();
-    FArrayBox* phix_y = fphix_y.fabPtr();
-    FArrayBox* phix_z = fphix_z.fabPtr();
-    FArrayBox* phiy   = fphiy.fabPtr();
-    FArrayBox* phiy_x = fphiy_x.fabPtr();
-    FArrayBox* phiy_z = fphiy_z.fabPtr();
-    FArrayBox* phiz   = fphiz.fabPtr();
-    FArrayBox* phiz_x = fphiz_x.fabPtr();
-    FArrayBox* phiz_y = fphiz_y.fabPtr();
-    FArrayBox* slope  = fslope.fabPtr();
-*/
-
-/* CHECK CFL. ADD MODIFIED MAX LOOP HERE. 
+/*
+// CHECK CFL. ADD MODIFIED MAX LOOP HERE. 
     Real umax = ;
     Real vmax = ;
     Real wmax = ;
@@ -74,34 +51,6 @@ void advect(const Real time, Box const& bx,
                     AMREX_D_DECL(xvel, yvel, zvel),
                     AMREX_D_DECL(fx, fy, fz));
   
-/*
-    compute_flux_3d(lo, hi, dt, dx, 
-                    uin, ui_lo, ui_hi, 
-                    vx, vx_lo, vx_hi, 
-                    vy, vy_lo, vy_hi,
-                    vz, vz_lo, vz_h,i
-                    fx, fx_lo, fx_hi,
-                    fy, fy_lo, fy_hi,
-                    fz, fz_lo, fz_hi,
-                    phix, phix_y, phix_z, 
-                    phiy, phiy_x, phiy_z, 
-                    phiz, phiz_x, phiz_y, 
-                    slope, glo, ghi);
-*/
-
-/*  NOT USED HERE. MOVE TO COMPUTE_FLUX_3D
-    fphix.clear();
-    fphix_y.clear();
-    fphix_z.clear();
-    fphiy.clear();
-    fphiy_x.clear();
-    fphiy_z.clear();
-    fphiz.clear();
-    fphiz_x.clear();
-    fphiz_y.clear();
-    fslope.clear();
-*/
-
     // Do a conservative update
     AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
     {
@@ -175,63 +124,6 @@ void advect(const Real time, Box const& bx,
             }
         }
     });
-
-/*
-    POSSIBLE ALTERNATIVE TO THREE LAUNCHES AND THREE BOX BUILDS?
-    SIMPLE EXAMPLE. MAY BE MORE USEFUL FOR COMPUTE_FLUX_3D AND 
-    ITS 12 SEPARATE LOOPS WITH UNIQUE LOOP RANGES. 
-
-    WORTH IT?: 
-    1) READABLE? (MIRRORED REFLECTION OF PREVIOUS METHOD).
-    2) LAUNCH LATENCY VS. NON-COALESCED MEMORY ACCESSES (ACROSS LOOPS).
-
-    CAN (SOMEHOW) THESE LOOPS BE COMBINED TO BE CLEANER?
-    (E.G. A "SHARED" LOOP AND A "REMAINDER" LOOP?
-     IFS PLACED ON OUTER LOOP LEVELS TO PREVENT INTERFERENCE WITH SIMD?)
-
-    // One box with hi(i)+1 for all i.
-    const Box abx = amrex::growHi(bx, 0); 
-                       abx.growHi(1);
-                       abx.growHi(2);
-
-    AMREX_LAUNCH_DEVICE_LAMBDA(abx, tbx
-    {
-        const auto len = length(tbx);
-        const auto lo  = lbound(tbx);
-
-        // Alter lo to start at the appropriate place.
-
-        const auto flxx = fx.view(lo);
-        const auto flxy = fy.view(lo);
-        const auto flxz = fz.view(lo);
-
-        for         (int k = 0; k < (len.z-1); ++k) {
-            for     (int j = 0; j < (len.y-1); ++j) {
-                for (int i = 0; i < len.x;     ++i) {
-                    flxx(i,j,k) = flxx(i,j,k) * (dt * dx[1]*dx[2]);
-                }
-            }
-        }
-
-        for         (int k = 0; k < (len.z-1); ++k) {
-            for     (int j = 0; j < len.y;     ++j) {
-                for (int i = 0; i < (len.x-1); ++i) {
-                    flxy(i,j,k) = flxy(i,j,k) * (dt * dx[0]*dx[2]);
-                }
-            }
-        }
-
-        for         (int k = 0; k < len.z;     ++k) {
-            for     (int j = 0; j < (len.y-1); ++j) {
-                for (int i = 0; i < (len.x-1); ++i) {
-                    flxz(i,j,k) = flxz(i,j,k) * (dt * dx[0]*dx[1]);
-                }
-            }
-        }
-
-    }
-*/
-
 }
 
 #endif
