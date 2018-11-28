@@ -73,4 +73,46 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box const& zbx,
+                         FArrayBox& fxfab, FArrayBox& fyfab, FArrayBox& fzfab,
+                         FArrayBox const& ccfab, GeometryData const& gd)
+{
+    const auto lo = lbound(ndbx);
+    const auto fx = fxfab.view(lo);
+    const auto fy = fyfab.view(lo);
+    const auto fz = fzfab.view(lo);
+    const auto cc = ccfab.view(lo);
+
+    const auto xlen = length(ndbx,xbx);
+    for         (int k = 0; k < xlen.z; ++k) {
+        for     (int j = 0; j < xlen.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < xlen.x; ++i) {
+                fx(i,j,k) = 0.5*(cc(i-1,j,k) + cc(i,j,k));
+            }
+        }
+    }    
+
+    const auto ylen = length(ndbx,ybx);
+    for         (int k = 0; k < ylen.z; ++k) {
+        for     (int j = 0; j < ylen.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < ylen.x; ++i) {
+                fy(i,j,k) = 0.5*(cc(i,j-1,k) + cc(i,j,k));
+            }
+        }
+    }    
+
+    const auto zlen = length(ndbx,zbx);
+    for         (int k = 0; k < zlen.z; ++k) {
+        for     (int j = 0; j < zlen.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < zlen.x; ++i) {
+                fz(i,j,k) = 0.5*(cc(i,j,k-1) + cc(i,j,k));
+            }
+        }
+    }        
+}
+
 }

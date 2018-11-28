@@ -1221,6 +1221,14 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 length (Box nodal_box, Box const& domain_box)
+    {
+        nodal_box.setType(domain_box.ixType());
+        nodal_box &= domain_box;
+        return length(nodal_box);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     IntVect getCell (Box const* boxes, int nboxes, long icell)
     {
         int ibox;
