@@ -35,19 +35,18 @@ namespace {
 
     // hash combiner borrowed from Boost
     template<typename T>
-    void hash_combine (size_t& seed, const T& val)
+    void hash_combine (uint64_t & seed, const T & val)
     {
         seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
     }
 
     template<typename T>
-    size_t hash_vector (const Vector<T> & vec)
+    uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF)
     {
-        size_t result = 0xDEADBEEFDEADBEEF;
         for (const auto & x: vec) {
-            hash_combine(result, x);
+            hash_combine(seed, x);
         }
-        return result;
+        return seed;
     }
 
 #ifdef BL_USE_MPI
@@ -479,18 +478,22 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     newgrp_ranks.erase(last, newgrp_ranks.end());
     
     if (flag_verbose_linop) {
-        Print() << "MLLinOp::makeSubCommunicator() called for " << newgrp_ranks.size() << " ranks" << std::endl;
+        Print() << "MLLinOp::makeSubCommunicator(): called for " << newgrp_ranks.size() << " ranks" << std::endl;
     }
 
-    // TODO: add current group ranks to the hash in addition to new group ranks
-    auto key = hash_vector(newgrp_ranks);
     MPI_Comm newcomm;
-    bool cache_hit = comm_cache.get(key, newcomm);
-    if (flag_comm_cache && cache_hit) {
-        if (flag_verbose_linop) {
+    bool cache_hit = false;
+    uint64_t key = 0;
+    if (flag_comm_cache) {
+        // TODO: add current group ranks to the hash in addition to new group ranks
+        key = hash_vector(newgrp_ranks);
+        cache_hit = comm_cache.get(key, newcomm);
+        if (cache_hit && flag_verbose_linop) {
             Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;
         }
-    } else {
+    }
+
+    if (!flag_comm_cache || !cache_hit) {
         MPI_Group defgrp, newgrp;
         MPI_Comm_group(m_default_comm, &defgrp);
         if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
