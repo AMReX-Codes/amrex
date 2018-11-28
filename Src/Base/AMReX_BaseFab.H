@@ -707,6 +707,18 @@ public:
     T max (const Box& subbox,
            int        comp = 0) const;
     /**
+    * \return Maximum of the absolute value of given component.
+    */
+    AMREX_GPU_HOST_DEVICE
+    T maxabs (int comp = 0) const;
+    /**
+    * \return Maximum of the absolute value of given component in given subbox.
+    */
+    AMREX_GPU_HOST_DEVICE
+    T maxabs (const Box& subbox,
+              int        comp = 0) const;
+
+    /**
     * \return location of a cell containing the specified value
     * given subbox. Returns IntVect outside box if value not present.
     */
@@ -2337,6 +2349,40 @@ BaseFab<T>::max (const Box& subbox, int comp) const
 
     return r;
 }
+
+template <class T>
+T
+BaseFab<T>::maxabs (int comp) const
+{
+    return this->maxabs(this->domain,comp);
+}
+
+template <class T>
+T
+BaseFab<T>::maxabs (const Box& subbox, int comp) const
+{
+    T r = std::numeric_limits<T>::lowest();
+
+    const auto len  = amrex::length(subbox);
+    const auto lo   = amrex::lbound(subbox);
+    const auto dp   = view(lo, comp);
+
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+#if defined(__CUDA_ARCH__)
+                T t = std::abs(dp(i,j,k,0));
+                r = (r > t) ? r : t;
+#else
+                r = std::max(r, std::abs(dp(i,j,k,0)));
+#endif
+            }
+        }
+    }
+
+    return r;
+}
+
 
 template <class T>
 IntVect
