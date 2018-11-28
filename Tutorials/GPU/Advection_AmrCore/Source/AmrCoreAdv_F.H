@@ -39,7 +39,13 @@ using namespace amrex;
                          AMREX_D_DECL(FArrayBox& flxx,
                                       FArrayBox& flxy,
                                       FArrayBox& flxz));
-
+/*
+    void state_error(TagBox& tag,
+		     const FArrayBox& state,
+		     const int tagval, const int clearval,
+                     Box const& bx,
+		     const amrex_real* phierr);
+*/
     void slopex(Box const& bx,
                 const FArrayBox &qfab,
                 FArrayBox &dq4fab);
@@ -83,13 +89,13 @@ extern "C"
 		       BL_FORT_FAB_ARG_3D(fz)),
 		const amrex_real* dx, const amrex_real* dt);
 */
-
     void state_error(int* tag, const int* tag_lo, const int* tag_hi,
 		     const BL_FORT_FAB_ARG_3D(state),
 		     const int* tagval, const int* clearval,
 		     const int* lo, const int* hi,
 		     const amrex_real* dx, const amrex_real* problo,
 		     const amrex_real* time, const amrex_real* phierr);
+
 
     void phifill (BL_FORT_FAB_ARG_3D(state),
 		  const int* dlo, const int* dhi,
