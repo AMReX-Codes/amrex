@@ -582,6 +582,28 @@ namespace amrex
         return mf;
     }
 
+    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
+    {
+        FabArray<BaseFab<long> > lmf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
+
+        const int ncomp = imf.nComp();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& gbx = mfi.growntilebox();
+            BaseFab<long>  * lfab = &(lmf[mfi]);
+            IArrayBox const* ifab = &(imf[mfi]);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
+            {
+                amrex_int_to_long(tbx, *lfab, *ifab, 0, 0, ncomp);
+            });
+        }
+
+        return lmf;
+    }
+
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
 
         BL_PROFILE("amrex::get_slice_data");
