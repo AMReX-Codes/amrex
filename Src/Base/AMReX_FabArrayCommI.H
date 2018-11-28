@@ -1810,7 +1810,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
                     auto const& cctc = *recv_cctc[k];
                     for (auto const& tag : cctc)
                     {
-                        FAB* dfab = &(get(tag.dstIndex));
+                        FAB* dfab = &(dstfa[tag.dstIndex]);
                         if (op == FabArrayBase::COPY)
                         {
                             dfab->copyFromMem(tag.dbox,dcomp,ncomp,dptr);
