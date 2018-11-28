@@ -57,54 +57,23 @@ namespace {
 
 namespace amrex
 {
-    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp)
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-            const Box& bx = mfi.tilebox();
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
-        }
-    }
-
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = &(cc[mfi]);
+            FArrayBox const* ndfab = &(nd[mfi]);
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_nd_to_cc(tbx, *ccfab, *ndfab, dcomp, scomp, ncomp);
+            });
         }
-    }
-
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
-    {
-	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
-	AMREX_ASSERT(edge[0]->nComp() == 1);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
-
-	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
-			BL_TO_FORTRAN((*edge[1])[mfi]),
-			BL_TO_FORTRAN((*edge[2])[mfi])));
-	}
     }
 
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
@@ -114,25 +83,21 @@ namespace amrex
         AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
         AMREX_ASSERT(edge[0]->nComp() == 1);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
-                (bx.loVect(), bx.hiVect(),
-                BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
-                BL_TO_FORTRAN((*edge[1])[mfi]),
-                BL_TO_FORTRAN((*edge[2])[mfi])));
-        }
-    }
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = &(cc[mfi]);
+            AMREX_D_TERM(FArrayBox const* exfab = &((*edge[0])[mfi]);,
+                         FArrayBox const* eyfab = &((*edge[1])[mfi]);,
+                         FArrayBox const* ezfab = &((*edge[2])[mfi]););
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
-    {
-        average_face_to_cellcenter(cc, dcomp,
-                                   Array<MultiFab const*,AMREX_SPACEDIM>
-                                                  {AMREX_D_DECL(fc[0],fc[1],fc[2])});
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_eg_to_cc(tbx, *ccfab, AMREX_D_DECL(*exfab,*eyfab,*ezfab), dcomp);
+            });
+        }
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
@@ -153,55 +118,26 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc)
-    {
-	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	AMREX_ASSERT(fc[0]->nComp() == 1);
-
-	Real dx[3] = {1.0,1.0,1.0};
-	Real problo[3] = {0.,0.,0.};
-	int coord_type = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
-
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
-    }
-
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
         const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
     {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
 
-        Real dx[3] = {1.0,1.0,1.0};
-        Real problo[3] = {0.,0.,0.};
-        int coord_type = 0;
-
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-                (bx.loVect(), bx.hiVect(),
-                BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-                BL_TO_FORTRAN((*fc[1])[mfi]),
-                BL_TO_FORTRAN((*fc[2])[mfi])),
-                dx, problo, coord_type);
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = &(cc[mfi]);
+            AMREX_D_TERM(FArrayBox const* fxfab = &((*fc[0])[mfi]);,
+                         FArrayBox const* fyfab = &((*fc[1])[mfi]);,
+                         FArrayBox const* fzfab = &((*fc[2])[mfi]););
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp, GeometryData());
+            });
         }
     }
 
@@ -212,25 +148,24 @@ namespace amrex
 	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.tilebox();
+            FArrayBox* ccfab = &(cc[mfi]);
+            AMREX_D_TERM(FArrayBox const* fxfab = &((*fc[0])[mfi]);,
+                         FArrayBox const* fyfab = &((*fc[1])[mfi]);,
+                         FArrayBox const* fzfab = &((*fc[2])[mfi]););
 
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0, gd);
+            });
+        }
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
@@ -248,36 +183,28 @@ namespace amrex
 	AMREX_ASSERT(cc.nGrow() >= 1);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData& gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const Box& xbx = mfi.nodaltilebox(0);
-#if (AMREX_SPACEDIM > 1)
-	    const Box& ybx = mfi.nodaltilebox(1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-	    const Box& zbx = mfi.nodaltilebox(2);
-#endif
+            AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                         const Box& ybx = mfi.nodaltilebox(1);,
+                         const Box& zbx = mfi.nodaltilebox(2););
+            const Box& ndbx = mfi.nodaltilebox();
 
-	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
-		(xbx.loVect(), xbx.hiVect(),
-#if (AMREX_SPACEDIM > 1)
-		 ybx.loVect(), ybx.hiVect(),
-#endif
-#if (AMREX_SPACEDIM == 3)
-		 zbx.loVect(), zbx.hiVect(),
-#endif
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 dx, problo, coord_type);
+            AMREX_D_TERM(FArrayBox* fxfab = &((*fc[0])[mfi]);,
+                         FArrayBox* fyfab = &((*fc[0])[mfi]);,
+                         FArrayBox* fzfab = &((*fc[0])[mfi]););
+            FArrayBox const* ccfab = &(cc[mfi]);
+            
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (ndbx, tndbx,
+            {
+                amrex_avg_cc_to_fc(tndbx, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
+            });
 	}
     }
 
