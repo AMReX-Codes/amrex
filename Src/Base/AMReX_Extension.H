@@ -21,7 +21,10 @@
 
 // simd
 
-#if defined(__CUDA_ARCH__)
+#if defined(AMREX_DEBUG)
+#define AMREX_PRAGMA_SIMD 
+
+#elif defined(__CUDA_ARCH__)
 #define AMREX_PRAGMA_SIMD 
 
 #elif defined(_OPENMP) && (_OPENMP >= 201307) && !defined(__PGI)
