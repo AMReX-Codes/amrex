@@ -196,8 +196,8 @@ namespace amrex
             const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
             AMREX_D_TERM(FArrayBox* fxfab = &((*fc[0])[mfi]);,
-                         FArrayBox* fyfab = &((*fc[0])[mfi]);,
-                         FArrayBox* fzfab = &((*fc[0])[mfi]););
+                         FArrayBox* fyfab = &((*fc[1])[mfi]);,
+                         FArrayBox* fzfab = &((*fc[2])[mfi]););
             FArrayBox const* ccfab = &(cc[mfi]);
             
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
