@@ -183,36 +183,28 @@ namespace amrex
 	AMREX_ASSERT(cc.nGrow() >= 1);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData& gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const Box& xbx = mfi.nodaltilebox(0);
-#if (AMREX_SPACEDIM > 1)
-	    const Box& ybx = mfi.nodaltilebox(1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-	    const Box& zbx = mfi.nodaltilebox(2);
-#endif
+            AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                         const Box& ybx = mfi.nodaltilebox(1);,
+                         const Box& zbx = mfi.nodaltilebox(2););
+            const Box& ndbx = mfi.nodaltilebox();
 
-	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
-		(xbx.loVect(), xbx.hiVect(),
-#if (AMREX_SPACEDIM > 1)
-		 ybx.loVect(), ybx.hiVect(),
-#endif
-#if (AMREX_SPACEDIM == 3)
-		 zbx.loVect(), zbx.hiVect(),
-#endif
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 dx, problo, coord_type);
+            AMREX_D_TERM(FArrayBox* fxfab = &((*fc[0])[mfi]);,
+                         FArrayBox* fyfab = &((*fc[0])[mfi]);,
+                         FArrayBox* fzfab = &((*fc[0])[mfi]););
+            FArrayBox const* ccfab = &(cc[mfi]);
+            
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (ndbx, tndbx,
+            {
+                amrex_avg_cc_to_fc(tndbx, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
+            });
 	}
     }
 

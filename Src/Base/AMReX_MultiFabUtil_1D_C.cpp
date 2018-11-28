@@ -86,5 +86,58 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, FArrayBox& fxfab,
+                         FArrayBox const& ccfab, GeometryData const& gd)
+{
+    const auto lo = lbound(ndbx);
+    const auto fx = fxfab.view(lo);
+    const auto cc = ccfab.view(lo);
+
+    const auto xlen = length(ndbx,xbx);
+
+    const int coord_type = gd.Coord();
+
+    switch (coord_type)
+    {
+    case 0:
+    {
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < xlen.x; ++i) {
+            fx(i,0,0) = 0.5*(cc(i-1,0,0) + cc(i,0,0));
+        }
+        break;
+    }
+    case 1:
+    {
+        const Real problo = gd.ProbLo(0);
+        const Real dx = gd.CellSize(0);
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < xlen.x; ++i) {
+            Real rlo = problo + (i+lo.x-0.5)*dx;
+            Real rhi = problo + (i+lo.x+0.5)*dx;
+            Real rcen = 0.5*(rlo+rhi);
+            fx(i,0,0) = 0.5*(rlo*cc(i-1,0,0) + rhi*cc(i,0,0)) / rcen;
+        }
+        break;
+    }
+    case 2:
+    {
+        const Real problo = gd.ProbLo(0);
+        const Real dx = gd.CellSize(0);
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < xlen.x; ++i) {
+            Real rlo = problo + (i+lo.x-0.5)*dx;
+            Real rhi = problo + (i+lo.x+0.5)*dx;
+            Real rcen = 0.5*(rlo+rhi);
+            fx(i,0,0) = 0.5*(rlo*rlo*cc(i-1,0,0) + rhi*rhi*cc(i,0,0)) / (rcen*rcen);
+        }
+        break;
+    }
+    default:
+        amrex::Abort("amrex_avg_cc_to_fc: wrong coord_type");
+    }
+}
+
 }
 

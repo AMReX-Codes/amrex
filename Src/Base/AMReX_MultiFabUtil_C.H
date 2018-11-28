@@ -36,6 +36,11 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
                                       FArrayBox const& ezfab),
                          int cccomp, GeometryData const& gd);
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avg_cc_to_fc (Box const& ndbx, AMREX_D_DECL(Box const& xbx, Box const& ybx, Box const& zbx),
+                         AMREX_D_DECL(FArrayBox& fxfab, FArrayBox& fyfab, FArrayBox& fzfab),
+                         FArrayBox const& ccfab, GeometryData const& gd);
+
 }
 
 #endif

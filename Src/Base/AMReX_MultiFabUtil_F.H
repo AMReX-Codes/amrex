@@ -23,19 +23,6 @@ extern "C"
 }
 #endif
 
-BL_FORT_PROC_DECL(BL_AVG_CC_TO_FC, bl_avg_cc_to_fc)
-  (const int* xlo, const int* xhi,
-#if (AMREX_SPACEDIM > 1)
-   const int* ylo, const int* yhi,
-#endif
-#if (AMREX_SPACEDIM == 3)
-   const int* zlo, const int* zhi,
-#endif
-   AMREX_D_DECL(BL_FORT_FAB_ARG(fx),
-	  BL_FORT_FAB_ARG(fy),
-	  BL_FORT_FAB_ARG(fz)),
-   const BL_FORT_FAB_ARG(cc),
-   const amrex_real* dx, const amrex_real* problo, const int& coord_type);
 
 BL_FORT_PROC_DECL(BL_AVGDOWN_FACES, bl_avgdown_faces)
   (const int* lo, const int* hi,
