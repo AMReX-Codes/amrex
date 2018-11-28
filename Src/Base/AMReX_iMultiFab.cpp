@@ -8,6 +8,7 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParmParse.H>
@@ -391,6 +392,25 @@ iMultiFab::max (const Box& region,
 	ParallelDescriptor::ReduceIntMax(mx);
 
     return mx;
+}
+
+long
+iMultiFab::sum (int comp, int nghost, bool local) const
+{
+    AMREX_ASSERT(nghost >= 0 && nghost <= n_grow.min());
+
+    iMultiFab imf(*this, amrex::make_alias, comp, 1);
+    FabArray<BaseFab<long> > lmf = ToLongMultiFab(imf);
+
+    long sm = amrex::ReduceSum(lmf, nghost,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, BaseFab<long> const& fab) -> long
+    {
+        return fab.sum(bx,comp);
+    });
+
+    if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+
+    return sm;
 }
 
 IntVect
