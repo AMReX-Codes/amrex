@@ -405,7 +405,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     long sm = amrex::ReduceSum(lmf, nghost,
     [=] AMREX_GPU_HOST_DEVICE (Box const& bx, BaseFab<long> const& fab) -> long
     {
-        return fab.sum(bx,comp);
+        return fab.sum(bx,0);
     });
 
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
