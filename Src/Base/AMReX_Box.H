@@ -1221,11 +1221,31 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Dim3 length (Box nodal_box, Box const& domain_box)
+    Dim3 length (Box mincov_box, Box const& domain_box)
     {
-        nodal_box.setType(domain_box.ixType());
-        nodal_box &= domain_box;
-        return length(nodal_box);
+        mincov_box.setType(domain_box.ixType());
+        mincov_box &= domain_box;
+        return length(mincov_box);
+    }
+
+    // They don't need to have same type
+    AMREX_INLINE
+    Box getMinCoverBox (Box const& b1, Box const& b2)
+    {
+        Box b = b1;
+        b.setType(b2.ixType());
+        b.minBox(b2);
+        return b;
+    }
+    AMREX_INLINE
+    Box getMinCoverBox (Box const& b1, Box const& b2, Box const& b3)
+    {
+        return getMinCoverBox(getMinCoverBox(b1,b2),b3);
+    }
+    AMREX_INLINE
+    Box getMinCoverBox (Box const& b1)
+    {
+        return b1;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE

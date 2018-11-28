@@ -193,16 +193,16 @@ namespace amrex
             AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
                          const Box& ybx = mfi.nodaltilebox(1);,
                          const Box& zbx = mfi.nodaltilebox(2););
-            const Box& ndbx = mfi.nodaltilebox();
+            const Box& mincov_box = amrex::getMinCoverBox(AMREX_D_DECL(xbx,ybx,zbx));
 
             AMREX_D_TERM(FArrayBox* fxfab = &((*fc[0])[mfi]);,
                          FArrayBox* fyfab = &((*fc[0])[mfi]);,
                          FArrayBox* fzfab = &((*fc[0])[mfi]););
             FArrayBox const* ccfab = &(cc[mfi]);
             
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (ndbx, tndbx,
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (mincov_box, tbx,
             {
-                amrex_avg_cc_to_fc(tndbx, AMREX_D_DECL(xbx,ybx,zbx),
+                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
                                    AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
             });
 	}
