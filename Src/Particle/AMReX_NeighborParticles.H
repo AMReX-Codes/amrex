@@ -175,11 +175,6 @@ public:
     IntVector& GetNeighborList(int lev, int grid, int tile) {return neighbor_list[lev][std::make_pair(grid,tile)];}
     const IntVector& GetNeighborList(int lev, int grid, int tile) const {return neighbor_list[lev][std::make_pair(grid,tile)];}
     
-    // Note that ParticleVector and IntVector are defined in AMReXParticles.H
-    amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
-    amrex::Vector<std::map<PairIndex, IntVector> > neighbor_list;
-    const size_t pdata_size = sizeof(ParticleType);
-    
 protected:
 
     void resizeContainers(const int lev);
@@ -198,6 +193,10 @@ protected:
     ///
     void getRcvCountsMPI();
 
+    amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
+    amrex::Vector<std::map<PairIndex, IntVector> > neighbor_list;
+    const size_t pdata_size = sizeof(ParticleType);
+    
     static constexpr int num_mask_comps = 3;  // grid, tile, level    
     size_t cdata_size;
     int num_neighbor_cells;
