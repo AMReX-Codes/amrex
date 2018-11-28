@@ -26,7 +26,7 @@
 
 namespace {
 int flag_verbose_mapper;
-int flag_old_version;
+int flag_makesfc_use_weights;
 }
 
 namespace amrex {
@@ -117,17 +117,17 @@ DistributionMapping::Initialize ()
     max_efficiency   = 0.9;
     node_size        = 0;
     flag_verbose_mapper = 0;
-    flag_old_version    = 0;
+    flag_makesfc_use_weights = 1;
 
     ParmParse pp("DistributionMapping");
 
-    pp.query("v"      ,          verbose);
-    pp.query("verbose",          verbose);
-    pp.query("efficiency",       max_efficiency);
-    pp.query("sfc_threshold",    sfc_threshold);
-    pp.query("node_size",        node_size);
-    pp.query("verbose_mapper",   flag_verbose_mapper);
-    pp.query("old_version",      flag_old_version);
+    pp.query("v"      ,             verbose);
+    pp.query("verbose",             verbose);
+    pp.query("efficiency",          max_efficiency);
+    pp.query("sfc_threshold",       sfc_threshold);
+    pp.query("node_size",           node_size);
+    pp.query("verbose_mapper",      flag_verbose_mapper);
+    pp.query("makesfc_use_weights", flag_makesfc_use_weights);
 
     std::string theStrategy;
 
@@ -1518,12 +1518,12 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     for (int i = 0; i < N; ++i)
     {
 	const Box& bx = ba[i];
-        if (flag_old_version) {
-            tokens.push_back(SFCToken(i,bx.smallEnd(),1.0));
-        } else {
+        if (flag_makesfc_use_weights) {
             const auto & bx_vol = bx.volume();
             tokens.push_back(SFCToken(i,bx.smallEnd(),bx_vol));
             vol_sum += bx_vol;
+        } else {
+            tokens.push_back(SFCToken(i,bx.smallEnd(),1.0));
         }
 
         const SFCToken& token = tokens.back();
@@ -1547,10 +1547,10 @@ DistributionMapping::makeSFC (const BoxArray& ba)
 
     const int nprocs = ParallelContext::NProcsSub();
     Real volper;
-    if (flag_old_version) {
-        volper = static_cast<Real>(N)/static_cast<Real>(nprocs);
-    } else {
+    if (flag_makesfc_use_weights) {
         volper = vol_sum / nprocs;
+    } else {
+        volper = static_cast<Real>(N)/static_cast<Real>(nprocs);
     }
 
     std::vector< std::vector<int> > r(nprocs);

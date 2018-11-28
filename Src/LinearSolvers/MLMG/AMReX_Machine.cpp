@@ -236,14 +236,17 @@ class Machine
         auto sg_g_ranks = get_subgroup_ranks();
         auto sg_rank_n = sg_g_ranks.size();
         if (flag_verbose) {
-            Print() << "Machine::find_best_nbh() called: " << nbh_rank_n
+            Print() << "Machine::find_best_nbh(): called for " << nbh_rank_n
                     << " of " << sg_rank_n << " ranks" << std::endl;
         }
 
         Vector<int> result;
         auto key = nbh_cache.hash(sg_g_ranks, nbh_rank_n);
-        if (!nbh_cache.get(key, result))
-        {
+        if (nbh_cache.get(key, result)) {
+            if (flag_verbose) {
+                Print() << "Machine::find_best_nbh(): found neighborhood in cache" << std::endl;
+            }
+        } else {
             // get node IDs of current subgroup
             Vector<int> sg_node_ids(sg_rank_n);
             std::unordered_map<int, std::vector<int>> node_ranks;
@@ -483,7 +486,7 @@ class Machine
         Vector<int> result;
 
         // construct map of node candidates to select
-        std::unordered_map<int, Candidate> candidates;
+        std::map<int, Candidate> candidates;
         for (auto node_id : sg_node_ids) {
             if (candidates.count(node_id) == 0) {
                 candidates[node_id] = Candidate(node_id);
