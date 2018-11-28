@@ -575,7 +575,7 @@ namespace amrex
             IArrayBox const* ifab = &(imf[mfi]);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
             {
-                amrex_int_to_real(tbx, *rfab, *ifab, 0, 0, ncomp);
+                amrex::cast(tbx, *rfab, *ifab, 0, 0, ncomp);
             });
         }
 
@@ -597,7 +597,7 @@ namespace amrex
             IArrayBox const* ifab = &(imf[mfi]);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
             {
-                amrex_int_to_long(tbx, *lfab, *ifab, 0, 0, ncomp);
+                amrex::cast(tbx, *lfab, *ifab, 0, 0, ncomp);
             });
         }
 

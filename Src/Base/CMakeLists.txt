@@ -67,6 +67,7 @@ add_sources( AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H )
 add_sources( AMReX_FArrayBox.cpp AMReX_IArrayBox.cpp AMReX_BaseFab.cpp )
 add_sources( AMReX_FArrayBox.H AMReX_IArrayBox.H AMReX_MakeType.H
    AMReX_TypeTraits.H AMReX_BaseFab.H AMReX_FabFactory.H )
+add_sources( AMReX_BaseFabUtility.H )
 
 #
 # Fortran data defined on unions of rectangles.
