@@ -205,6 +205,32 @@ void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
 }
 
 AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                             FArrayBox const& finevolfab, int ccomp, int fcomp, int ncomp,
+                             IntVect const& ratio)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+    const auto fv = finevolfab.view(lo);
+
+    const int facx = ratio[0];
+
+    for (int n = 0; n < ncomp; ++n) {
+        for (int i = 0; i < len.x; ++i) {
+            int ii = i*facx;
+            Real cd = 0., cv = 0.;
+            for (int iref = 0; iref < facx; ++iref) {
+                cv +=                     fv(ii+iref,0,0);
+                cd += fine(ii+iref,0,0,n)*fv(ii+iref,0,0);
+            }
+            crse(i,0,0,n) = cd/cv;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE
 void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio)
 {

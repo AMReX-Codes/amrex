@@ -247,6 +247,38 @@ void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
 }
 
 AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                             FArrayBox const& finevolfab, int ccomp, int fcomp, int ncomp,
+                             IntVect const& ratio)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+    const auto fv = finevolfab.view(lo);
+
+    const int facx = ratio[0];
+    const int facy = ratio[1];
+
+    for (int n = 0; n < ncomp; ++n) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                int ii = i*facx;
+                int jj = j*facy;
+                Real cd = 0., cv = 0.;
+                for     (int jref = 0; jref < facy; ++jref) {
+                    for (int iref = 0; iref < facx; ++iref) {
+                        cv +=                           fv(ii+iref,jj+jref,0);
+                        cd += fine(ii+iref,jj+jref,0,n)*fv(ii+iref,jj+jref,0);
+                    }
+                }
+                crse(i,j,0,n) = cd/cv;
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE
 void amrex_compute_divergence (Box const& bx, FArrayBox& divufab,
                                FArrayBox const& ufab, FArrayBox const& vfab,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
