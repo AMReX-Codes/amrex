@@ -144,9 +144,10 @@ void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
 {
     const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto crse = crsefab.view(lo,ccomp);
-    const auto fine = finefab.view(lo,fcomp);
+    const auto clo = lbound(bx);
+    const auto flo = refine(clo,ratio);
+    const auto crse = crsefab.view(clo,ccomp);
+    const auto fine = finefab.view(flo,fcomp);
 
     const int facx = ratio[0];
 
@@ -162,9 +163,10 @@ void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
 {
     const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto crse = crsefab.view(lo,ccomp);
-    const auto fine = finefab.view(lo,fcomp);
+    const auto clo = lbound(bx);
+    const auto flo = refine(clo,ratio);
+    const auto crse = crsefab.view(clo,ccomp);
+    const auto fine = finefab.view(flo,fcomp);
 
     const int facx = ratio[0];
     Real facInv = 1./facx;
@@ -185,9 +187,10 @@ void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                     int ccomp, int fcomp, int ncomp, IntVect const& ratio)
 {
     const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto crse = crsefab.view(lo,ccomp);
-    const auto fine = finefab.view(lo,fcomp);
+    const auto clo = lbound(bx);
+    const auto flo = refine(clo,ratio);
+    const auto crse = crsefab.view(clo,ccomp);
+    const auto fine = finefab.view(flo,fcomp);
 
     const int facx = ratio[0];
     const Real volfrac = 1.0/static_cast<Real>(facx);
@@ -210,10 +213,11 @@ void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const&
                              IntVect const& ratio)
 {
     const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto crse = crsefab.view(lo,ccomp);
-    const auto fine = finefab.view(lo,fcomp);
-    const auto fv = finevolfab.view(lo);
+    const auto clo = lbound(bx);
+    const auto flo = refine(clo,ratio);
+    const auto crse = crsefab.view(clo,ccomp);
+    const auto fine = finefab.view(flo,fcomp);
+    const auto fv = finevolfab.view(flo);
 
     const int facx = ratio[0];
 
@@ -235,9 +239,10 @@ void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio)
 {
     const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto crse = crsefab.view(lo,ccomp);
-    const auto fine = finefab.view(lo,fcomp);
+    const auto clo = lbound(bx);
+    const auto flo = refine(clo,ratio);
+    const auto crse = crsefab.view(clo,ccomp);
+    const auto fine = finefab.view(flo,fcomp);
 
     const int facx = ratio[0];
 

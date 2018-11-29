@@ -717,6 +717,18 @@ coarsen (const IntVect& p1,
     return v;
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Dim3 refine (Dim3 const& coarse, IntVect const& ratio)
+{
+#if (AMREX_SPACEDIM == 1)
+    return {coarse.x*ratio[0], coarse.y, coarse.z};
+#elif (AMREX_SPACEDIM == 2)
+    return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z};
+#else
+    return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z*ratio[2]};
+#endif
+}
+
 }
 
 #endif /*BL_INTVECT_H*/
