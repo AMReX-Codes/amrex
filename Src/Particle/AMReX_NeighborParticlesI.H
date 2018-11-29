@@ -3,7 +3,7 @@ template <int NStructReal, int NStructInt>
 NeighborParticleContainer<NStructReal, NStructInt>
 ::NeighborParticleContainer(ParGDBBase* gdb, int ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (gdb),
-      num_neighbor_cells(ncells)
+    num_neighbor_cells(ncells)
 {
     initializeCommComps();
 }
@@ -116,21 +116,31 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::BuildLevelMask() {
+::BuildMasks() {
     
-    BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
+    BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
-    const int lev = 0;
+    int num_levels = this->finestLevel() + 1;
     
-    resizeContainers(lev);
-    
-    if (mask_ptr[lev] == nullptr ||
-        ! BoxArray::SameRefs(mask_ptr[lev]->boxArray(), this->ParticleBoxArray(lev)) ||
-        ! DistributionMapping::SameRefs(mask_ptr[lev]->DistributionMap(), this->ParticleDistributionMap(lev)))
+    resizeContainers( this->finestLevel() );
+
+    for (int lev = 0; lev < num_levels; ++lev)
+    {
+        // compute ref ratio relative to level 0
+        IntVect rr = IntVect(AMREX_D_DECL(1,1,1));
+        for (int flev = 1; flev < num_levels; ++flev) rr *= this->GetParGDB()->refRatio(flev);
+
+        BoxArray ba = this->ParticleBoxArray(lev);
+        ba.coarsen(rr);
+
+        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+        
+        if (mask_ptr[lev] == nullptr ||
+            ! BoxArray::SameRefs(mask_ptr[lev]->boxArray(), ba) ||
+            ! DistributionMapping::SameRefs(mask_ptr[lev]->DistributionMap(), dmap))
         {
             const Geometry& geom = this->Geom(lev);
             const BoxArray& ba = this->ParticleBoxArray(lev);
-            const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
             
             mask_ptr[lev].reset(new iMultiFab(ba, dmap, num_mask_comps, num_neighbor_cells));
             mask_ptr[lev]->setVal(-1, num_neighbor_cells);
@@ -138,7 +148,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(*mask_ptr[lev], this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+            for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
                  mfi.isValid(); ++mfi) {
                 const Box& box = mfi.tilebox();
                 const int grid_id = mfi.index();
@@ -149,10 +159,12 @@ NeighborParticleContainer<NStructReal, NStructInt>
             }
             
             mask_ptr[lev]->FillBoundary(geom.periodicity());
+
+            // average down, fill ghost
             
             local_neighbors.clear();
             neighbor_procs.clear();
-            for (MFIter mfi(*mask_ptr[lev], this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+            for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
                  mfi.isValid(); ++mfi) {
                 const Box& box = mfi.growntilebox();
                 for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
@@ -172,6 +184,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             RemoveDuplicates(local_neighbors);
             RemoveDuplicates(neighbor_procs);
         }
+    }
 }
 
 template <int NStructReal, int NStructInt>
@@ -427,7 +440,7 @@ void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::fillNeighbors() {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");    
-    BuildLevelMask();
+    BuildMasks();
     cacheNeighborInfo();
     updateNeighbors(false);
 }
