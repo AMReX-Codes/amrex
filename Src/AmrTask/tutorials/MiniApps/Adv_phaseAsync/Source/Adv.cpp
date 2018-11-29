@@ -292,13 +292,7 @@ Adv::avgDown (int state_indx, int iteration)
 		if(t % (perilla::NUM_THREADS_PER_TEAM-1) == nt)
 		{
 		    const Box& tbx = *(crse_lev.RG_S_fine->fabTiles[f]->tileBx[t]);
-
-
-		    //BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-		    bl_avgdown(tbx.loVect(), tbx.hiVect(),
-			 BL_TO_FORTRAN_3D(fin),
-			 BL_TO_FORTRAN_3D(cin),
-			 ratio.getVect(),&ncomp);
+                    amrex_avgdown(tbx,cin,fin,0,0,ncomp,ratio);
 		}
 #endif
 	    perilla::syncWorkerThreads();

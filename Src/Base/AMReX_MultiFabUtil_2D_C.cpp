@@ -193,4 +193,57 @@ void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                    int ccomp, int fcomp, int ncomp, IntVect const& ratio)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const int facx = ratio[0];
+    const int facy = ratio[1];
+    const Real volfrac = 1.0/static_cast<Real>(facx*facy);
+
+    for (int n = 0; n < ncomp; ++n) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                int ii = i*facx;
+                int jj = j*facy;
+                Real c = 0.;
+                for     (int jref = 0; jref < facy; ++jref) {
+                    for (int iref = 0; iref < facx; ++iref) {
+                        c += fine(ii+iref,jj+jref,0,n);
+                    }
+                }
+                crse(i,j,0,n) = volfrac * c;
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const int facx = ratio[0];
+    const int facy = ratio[1];
+
+    for (int n = 0; n < ncomp; ++n) {
+        for     (int j = 0; j < len.y; ++j) {
+            int jj = j*facy;
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                crse(i,j,0,n) = fine(i*facx,jj,0,n);
+            }
+        }
+    }
+}
+
 }

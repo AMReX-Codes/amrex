@@ -99,11 +99,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
 	if(t % (perilla::NUM_THREADS_PER_TEAM-1) == nt)
 	{
 	    const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
-	    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-		(tbx.loVect(), tbx.hiVect(),
-		 BL_TO_FORTRAN_N(S_fine[lfi],scomp),
-		 BL_TO_FORTRAN_N(crse_S_fine[lfi],0),
-		 ratio.getVect(),&ncomp);
+            amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
 	}
     RG_fine->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
