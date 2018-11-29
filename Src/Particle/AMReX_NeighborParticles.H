@@ -125,12 +125,12 @@ public:
     using IntVector  = typename ParticleContainer<NStructReal, NStructInt, 0, 0>::IntVector;
 
     NeighborParticleContainer(ParGDBBase* gdb, int ncells);
-
+    
     NeighborParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int                         nneighbor);
-
+    
     NeighborParticleContainer(const Vector<Geometry>            & geom,
                               const Vector<DistributionMapping> & dmap,
                               const Vector<BoxArray>            & ba,
@@ -147,30 +147,30 @@ public:
     ///
     /// This builds the internal data structure used for looking up neighbors
     ///
-    void BuildLevelMask(int lev);
+    void BuildLevelMask();
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
     ///
-    void fillNeighbors(int lev);
+    void fillNeighbors();
 
-    void cacheNeighborInfo(int lev);
+    void cacheNeighborInfo();
 
     ///
     /// This updates the neighbors with their current particle data.
     ///
-    void updateNeighbors(int lev, bool reuse_rcv_counts=true);
+    void updateNeighbors(bool reuse_rcv_counts=true);
 
     ///
     /// Each tile clears its neighbors, freeing the memory
     ///
-    void clearNeighbors(int lev);
+    void clearNeighbors();
 
     ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList(int lev, CheckPair check_pair, bool sort=false);
+    void buildNeighborList(CheckPair check_pair, bool sort=false);
 
     void setRealCommComp(int i, bool value);
     void setIntCommComp (int i, bool value);

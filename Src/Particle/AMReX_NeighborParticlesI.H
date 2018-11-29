@@ -15,7 +15,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             const BoxArray            & ba,
                             int                         ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba),
-      num_neighbor_cells(ncells)
+    num_neighbor_cells(ncells)
 {
     initializeCommComps();
 }
@@ -28,7 +28,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                             const Vector<int>                 & rr,
                             int                               ncells)
     : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba, rr),
-      num_neighbor_cells(ncells)
+    num_neighbor_cells(ncells)
 {
     initializeCommComps();
 }
@@ -116,10 +116,12 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::BuildLevelMask(int lev) {
+::BuildLevelMask() {
     
     BL_PROFILE("NeighborParticleContainer::BuildLevelMask");
 
+    const int lev = 0;
+    
     resizeContainers(lev);
     
     if (mask_ptr[lev] == nullptr ||
@@ -175,15 +177,17 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void 
 NeighborParticleContainer<NStructReal, NStructInt>
-::cacheNeighborInfo(int lev) {
+::cacheNeighborInfo() {
     
     BL_PROFILE("NeighborParticleContainer::cacheNeighborInfo");
 
+    const int lev = 0;
+    
     AMREX_ASSERT(this->OK());
 
     resizeContainers(lev);
     
-    clearNeighbors(lev);
+    clearNeighbors();
     
     const int MyProc = ParallelDescriptor::MyProc();
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
@@ -421,20 +425,21 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void 
 NeighborParticleContainer<NStructReal, NStructInt>
-::fillNeighbors(int lev) {
-    BL_PROFILE("NeighborParticleContainer::fillNeighbors");
-    BuildLevelMask(lev);
-    cacheNeighborInfo(lev);
-    updateNeighbors(lev, false);
+::fillNeighbors() {
+    BL_PROFILE("NeighborParticleContainer::fillNeighbors");    
+    BuildLevelMask();
+    cacheNeighborInfo();
+    updateNeighbors(false);
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::updateNeighbors(int lev, bool reuse_rcv_counts) {
+::updateNeighbors(bool reuse_rcv_counts) {
     
     BL_PROFILE_VAR("NeighborParticleContainer::updateNeighbors", update);
 
+    const int lev = 0;
     const int MyProc = ParallelDescriptor::MyProc();
     const Periodicity& periodicity = this->Geom(lev).periodicity();
     const RealBox& prob_domain = this->Geom(lev).ProbDomain();
@@ -514,11 +519,13 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
-::clearNeighbors(int lev) 
+::clearNeighbors() 
 {
 
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
 
+    const int lev = 0;
+    
     resizeContainers(lev);
     
     neighbors[lev].clear();
@@ -698,11 +705,13 @@ template <int NStructReal, int NStructInt>
 template <class CheckPair>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-buildNeighborList(int lev, CheckPair check_pair, bool sort) {
+buildNeighborList(CheckPair check_pair, bool sort) {
     
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
     AMREX_ASSERT(this->OK());
 
+    const int lev = 0;
+    
     neighbor_list[lev].clear();
     
     for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
@@ -818,6 +827,7 @@ resizeContainers(const int lev)
         neighbor_list.resize(lev+1);
         mask_ptr.resize(lev+1);
     }
+
     AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and
                  (neighbors.size() == mask_ptr.size()     )    );
 }
