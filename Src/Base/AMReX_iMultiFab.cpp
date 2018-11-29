@@ -397,6 +397,9 @@ iMultiFab::max (const Box& region,
 long
 iMultiFab::sum (int comp, int nghost, bool local) const
 {
+#ifdef BL_NO_FORT
+    return 0;  // we could remove this after MultiFabUtil works w/o Fortran
+#else
     AMREX_ASSERT(nghost >= 0 && nghost <= n_grow.min());
 
     iMultiFab imf(*this, amrex::make_alias, comp, 1);
@@ -411,6 +414,7 @@ iMultiFab::sum (int comp, int nghost, bool local) const
     if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
 
     return sm;
+#endif
 }
 
 IntVect
