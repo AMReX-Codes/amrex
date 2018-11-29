@@ -684,19 +684,19 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
-        const Real* dxinv = geom.InvCellSize();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(divu,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(divu,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(divu[mfi]),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*umac[0])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*umac[1])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*umac[2])[mfi])),
-                                      dxinv);
+            FArrayBox* divufab = &(divu[mfi]);
+            AMREX_D_TERM(FArrayBox const* ufab = &((*umac[0])[mfi]);,
+                         FArrayBox const* vfab = &((*umac[1])[mfi]);,
+                         FArrayBox const* wfab = &((*umac[2])[mfi]););
+
+            amrex_compute_divergence(bx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
         }
     }
 }

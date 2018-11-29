@@ -344,4 +344,33 @@ void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
     }
 }
 
+
+AMREX_GPU_HOST_DEVICE
+void amrex_compute_divergence (Box const& bx, FArrayBox& divufab,
+                               FArrayBox const& ufab, FArrayBox const& vfab, FArrayBox const& wfab,
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto divu = divufab.view(lo);
+    const auto    u =    ufab.view(lo);
+    const auto    v =    vfab.view(lo);
+    const auto    w =    wfab.view(lo);
+
+    const Real dxi = dxinv[0];
+    const Real dyi = dxinv[1];
+    const Real dzi = dxinv[2];
+
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                divu(i,j,k) = dxi * (u(i+1,j,k)-u(i,j,k))
+                    +         dyi * (v(i,j+1,k)-v(i,j,k))
+                    +         dzi * (w(i,j,k+1)-w(i,j,k));
+            }
+        }
+    }
+}
+
 } // namespace amrex

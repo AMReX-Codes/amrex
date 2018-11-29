@@ -398,7 +398,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             }
         }
 
-        const Real* dxinv = geom.InvCellSize();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -415,12 +415,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             if (fabtyp == FabType::covered) {
                 divufab.setVal(0.0, bx, 0, 1);
             } else if (fabtyp == FabType::regular) {
-                amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD(divufab),
-                                          AMREX_D_DECL(BL_TO_FORTRAN_ANYD(ufab),
-                                                       BL_TO_FORTRAN_ANYD(vfab),
-                                                       BL_TO_FORTRAN_ANYD(wfab)),
-                                          dxinv);
+                amrex_compute_divergence(bx,divufab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
             } else {
                 amrex_compute_eb_divergence(BL_TO_FORTRAN_BOX(bx),
                                             BL_TO_FORTRAN_ANYD(divufab),
@@ -436,7 +431,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                          BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                          BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                            dxinv);
+                                            dxinv.data());
             }
         }
     }
