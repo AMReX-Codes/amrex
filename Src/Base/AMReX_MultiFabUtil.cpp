@@ -477,18 +477,19 @@ namespace amrex
 	int ncomp = crse[0]->nComp();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
         for (int n=0; n<AMREX_SPACEDIM; ++n) {
-            for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.growntilebox(ngcrse);
+                const Box& bx = mfi.growntilebox(ngcrse);
+                FArrayBox* crsefab = &((*crse[n])[mfi]);
+                FArrayBox const* finefab = &((*fine[n])[mfi]);
 
-                BL_FORT_PROC_CALL(BL_AVGDOWN_EDGES,bl_avgdown_edges)
-                    (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN((*fine[n])[mfi]),
-                     BL_TO_FORTRAN((*crse[n])[mfi]),
-                     ratio.getVect(),n,ncomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown_edges(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, n);
+                });
             }
         }
     }

@@ -157,5 +157,28 @@ void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const int facx = ratio[0];
+    Real facInv = 1./facx;
+
+    for (int n = 0; n < ncomp; ++n) {
+        for (int i = 0; i < len.x; ++i) {
+            Real c = 0.;
+            for (int iref = 0; iref < facx; ++iref) {
+                c += fine(facx*i+iref,0,0,n);
+            }
+            crse(i,0,0,n) = c * facInv;
+        }
+    }
+}
+
 }
 
