@@ -26,11 +26,11 @@ NeighborListParticleContainer(const Vector<Geometry>            & geom,
     (geom, dmap, ba, rr, ncells)
 {}
 
-void NeighborListParticleContainer::InitParticles() {
-
+void NeighborListParticleContainer::InitParticles()
+{
     BL_PROFILE("NeighborListParticleContainer::InitParticles");
-
-    const int lev = 0;
+    
+    const int lev = 0;  // initialize the particles on level 0
     const Geometry& geom = Geom(lev);
     const Real* dx  = geom.CellSize();
     
@@ -74,72 +74,74 @@ void NeighborListParticleContainer::InitParticles() {
     }
 }
 
-void NeighborListParticleContainer::computeForces() {
-
+void NeighborListParticleContainer::computeForces()
+{
     BL_PROFILE("NeighborListParticleContainer::computeForces");
-
-    const int lev = 0;
-
+    
+    int num_levs = finestLevel() + 1;
+    for (int lev = 0; lev < num_levs; ++lev) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        AoS& particles = pti.GetArrayOfStructs();
-        int Np = particles.size();
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        int Nn = neighbors[lev][index].size();
-        amrex_compute_forces(particles.data(), &Np, 
-                             neighbors[lev][index].dataPtr(), &Nn, 
-                             &cutoff, &min_r);
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            AoS& particles = pti.GetArrayOfStructs();
+            int Np = particles.size();
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            int Nn = neighbors[lev][index].size();
+            amrex_compute_forces(particles.data(), &Np, 
+                                 neighbors[lev][index].dataPtr(), &Nn, 
+                                 &cutoff, &min_r);
+        }
     }
 }
 
-void NeighborListParticleContainer::computeForcesNL() {
-
+void NeighborListParticleContainer::computeForcesNL()
+{
     BL_PROFILE("NeighborListParticleContainer::computeForcesNL");
-
-    const int lev = 0;
-
-    buildNeighborList(lev, CheckPair);
-
+    
+    buildNeighborList(CheckPair);
+    
+    int num_levs = finestLevel() + 1;
+    for (int lev = 0; lev < num_levs; ++lev) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS& particles = pti.GetArrayOfStructs();
-        int Np = particles.size();
-        int Nn = neighbors[lev][index].size();
-        int size = neighbor_list[lev][index].size();
-        amrex_compute_forces_nl(particles.data(), &Np, 
-                                neighbors[lev][index].dataPtr(), &Nn,
-                                neighbor_list[lev][index].dataPtr(), &size, 
-                                &cutoff, &min_r);
+        for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+            AoS& particles = pti.GetArrayOfStructs();
+            int Np = particles.size();
+            int Nn = neighbors[lev][index].size();
+            int size = neighbor_list[lev][index].size();
+            amrex_compute_forces_nl(particles.data(), &Np, 
+                                    neighbors[lev][index].dataPtr(), &Nn,
+                                    neighbor_list[lev][index].dataPtr(), &size, 
+                                    &cutoff, &min_r);
+        }
     }
 }
 
-void NeighborListParticleContainer::moveParticles(const Real dt) {
-
+void NeighborListParticleContainer::moveParticles(const Real dt)
+{
     BL_PROFILE("NeighborListParticleContainer::moveParticles");
-
-    const int lev = 0;
-    const RealBox& prob_domain = Geom(lev).ProbDomain();
-
+    
+    int num_levs = finestLevel() + 1;
+    for (int lev = 0; lev < num_levs; ++lev) {
+        const RealBox& prob_domain = Geom(lev).ProbDomain();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        AoS& particles = pti.GetArrayOfStructs();
-        int Np = particles.size();
-        amrex_move_particles(particles.data(), &Np, &dt,
-                             prob_domain.lo(), prob_domain.hi());
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
+            AoS& particles = pti.GetArrayOfStructs();
+            int Np = particles.size();
+            amrex_move_particles(particles.data(), &Np, &dt,
+                                 prob_domain.lo(), prob_domain.hi());
+        }
     }
 }
 
-void NeighborListParticleContainer::writeParticles(int n) {
-
+void NeighborListParticleContainer::writeParticles(int n)
+{
     BL_PROFILE("NeighborListParticleContainer::writeParticles");
-
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
     WriteAsciiFile(pltfile);
 }
