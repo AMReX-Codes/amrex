@@ -139,5 +139,23 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, FArrayBox& fxfab,
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const int facx = ratio[0];
+
+    for (int n = 0; n < ncomp; ++n) {
+        for (int i = 0; i < len.x; ++i) {
+            crse(i,0,0,n) = fine(facx*i,0,0,n);
+        }
+    }
+}
+
 }
 

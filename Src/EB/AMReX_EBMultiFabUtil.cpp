@@ -285,12 +285,7 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
                
                     if(typ == FabType::regular || typ == FabType::covered) 
                     {    
-
-                        BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-                            (tbx.loVect(),tbx.hiVect(),
-                             BL_TO_FORTRAN((*fine[n])[mfi]),
-                             BL_TO_FORTRAN((*crse[n])[mfi]),
-                             ratio.getVect(),n, ncomp);
+                        amrex_avgdown_faces(tbx, (*crse[n])[mfi], (*fine[n])[mfi], 0, 0, ncomp, ratio, n);
                     }
                     else
                     {
