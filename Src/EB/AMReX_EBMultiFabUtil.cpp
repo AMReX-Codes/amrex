@@ -112,12 +112,8 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
 #if (AMREX_SPACEDIM == 3)
             amrex_avgdown(tbx, crse_fab, fine_fab, 0, scomp, ncomp, ratio);
 #else
-            BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(fine_fab,scomp),
-                 BL_TO_FORTRAN_N(crse_fab,0),
-                 BL_TO_FORTRAN(vol_fine[mfi]),
-                 ratio.getVect(),&ncomp);
+            amrex_avgdown_with_vol(tbx, crse_fab, fine_fab, vol_fine[mfi],
+                                   0, scomp, ncomp, ratio);
 #endif
         }
         else if (typ == FabType::singlevalued)

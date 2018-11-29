@@ -41,12 +41,8 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
     int lfi = crse_S_fine.IndexArray()[f];
     const Box& tbx = crse_S_fine[ lfi ].box();
 
-    BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
-	(tbx.loVect(), tbx.hiVect(),
-	 BL_TO_FORTRAN_N(S_fine[lfi],scomp),
-	 BL_TO_FORTRAN_N(crse_S_fine[lfi],0),
-	 BL_TO_FORTRAN(fvolume[lfi]),
-	 ratio.getVect(),&ncomp);
+    amrex_avgdown_with_vol(tbx,crse_S_fine[lfi],S_fine[lfi],fvolume[mfi],
+                           0,scomp,ncomp,ratio);
 
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, tid, scomp, 0, ncomp, 0, 0, false);
 #endif

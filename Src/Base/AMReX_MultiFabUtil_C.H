@@ -49,6 +49,11 @@ void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                     int ccomp, int fcomp, int ncomp, IntVect const& ratio);
 
 AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                             FArrayBox const& finevolfab, int ccomp, int fcomp, int ncomp,
+                             IntVect const& ratio);
+
+AMREX_GPU_HOST_DEVICE
 void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio);
 
