@@ -21,6 +21,19 @@ NeighborParticleContainer<NStructReal, NStructInt>
 }
 
 template <int NStructReal, int NStructInt>
+NeighborParticleContainer<NStructReal, NStructInt>
+::NeighborParticleContainer(const Vector<Geometry>            & geom,
+                            const Vector<DistributionMapping> & dmap,
+                            const Vector<BoxArray>            & ba,
+                            const Vector<int>                 & rr,
+                            int                               ncells)
+    : ParticleContainer<NStructReal, NStructInt, 0, 0> (geom, dmap, ba, rr),
+      num_neighbor_cells(ncells)
+{
+    initializeCommComps();
+}
+
+template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::initializeCommComps() {
