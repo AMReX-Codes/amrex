@@ -147,7 +147,7 @@ public:
     ///
     /// This builds the internal data structure used for looking up neighbors
     ///
-    void BuildLevelMask();
+    void BuildMasks();
 
     ///
     /// This fills the neighbor buffers for each tile with the proper data
@@ -175,11 +175,25 @@ public:
     void setRealCommComp(int i, bool value);
     void setIntCommComp (int i, bool value);
 
-    ParticleVector& GetNeighbors(int lev, int grid, int tile) {return neighbors[lev][std::make_pair(grid,tile)];}
-    const ParticleVector& GetNeighbors(int lev, int grid, int tile) const {return neighbors[lev][std::make_pair(grid,tile)];}
+    ParticleVector& GetNeighbors(int lev, int grid, int tile)
+    {
+        return neighbors[lev][std::make_pair(grid,tile)];
+    }
+
+    const ParticleVector& GetNeighbors(int lev, int grid, int tile) const
+    {
+        return neighbors[lev][std::make_pair(grid,tile)];
+    }
     
-    IntVector& GetNeighborList(int lev, int grid, int tile) {return neighbor_list[lev][std::make_pair(grid,tile)];}
-    const IntVector& GetNeighborList(int lev, int grid, int tile) const {return neighbor_list[lev][std::make_pair(grid,tile)];}
+    IntVector& GetNeighborList(int lev, int grid, int tile)
+    {
+        return neighbor_list[lev][std::make_pair(grid,tile)];
+    }
+
+    const IntVector& GetNeighborList(int lev, int grid, int tile) const
+    {
+        return neighbor_list[lev][std::make_pair(grid,tile)];
+    }
     
 protected:
 
