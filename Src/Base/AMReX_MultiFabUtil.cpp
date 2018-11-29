@@ -432,24 +432,25 @@ namespace amrex
         if (isMFIterSafe(*fine[0], *crse[0]))
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+                for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.growntilebox(ngcrse);
+                    const Box& bx = mfi.growntilebox(ngcrse);
+                    FArrayBox* crsefab = &((*crse[n])[mfi]);
+                    FArrayBox const* finefab = &((*fine[n])[mfi]);
 
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-                        (tbx.loVect(),tbx.hiVect(),
-                         BL_TO_FORTRAN((*fine[n])[mfi]),
-                         BL_TO_FORTRAN((*crse[n])[mfi]),
-                         ratio.getVect(),n,ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown_faces(tbx, *crsefab, *finefab, 0, 0, 1, ratio, n);
+                    });
                 }
             }
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
+            Array<MultiFab,AMREX_SPACEDIM> ctmp;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();

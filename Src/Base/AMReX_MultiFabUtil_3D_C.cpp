@@ -115,4 +115,90 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
     }        
 }
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto crse = crsefab.view(lo,ccomp);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const int facx = ratio[0];
+    const int facy = ratio[1];
+    const int facz = ratio[2];
+
+    switch (idir) {
+    case 0:
+    {
+        Real facInv = 1.0 / (facy*facz);
+        for (int n = 0; n < ncomp; ++n) {
+            for         (int k = 0; k < len.z; ++k) {
+                for     (int j = 0; j < len.y; ++j) {
+                    for (int i = 0; i < len.x; ++i) {
+                        int ii = i*facx;
+                        int jj = j*facy;
+                        int kk = k*facz;
+                        Real c = 0.;
+                        for     (int kref = 0; kref < facz; ++kref) {
+                            for (int jref = 0; jref < facy; ++jref) {
+                                c += fine(ii,jj+jref,kk+kref,n);
+                            }
+                        }
+                        crse(i,j,k,n) = c * facInv;
+                    }
+                }
+            }
+        }
+        break;
+    }
+    case 1:
+    {
+        Real facInv = 1.0 / (facx*facz);
+        for (int n = 0; n < ncomp; ++n) {
+            for         (int k = 0; k < len.z; ++k) {
+                for     (int j = 0; j < len.y; ++j) {
+                    for (int i = 0; i < len.x; ++i) {
+                        int ii = i*facx;
+                        int jj = j*facy;
+                        int kk = k*facz;
+                        Real c = 0.;
+                        for     (int kref = 0; kref < facz; ++kref) {
+                            for (int iref = 0; iref < facx; ++iref) {
+                                c += fine(ii+iref,jj,kk+kref,n);
+                            }
+                        }
+                        crse(i,j,k,n) = c * facInv;
+                    }
+                }
+            }
+        }
+        break;
+    }
+    case 2:
+    {
+        Real facInv = 1.0 / (facx*facy);
+        for (int n = 0; n < ncomp; ++n) {
+            for         (int k = 0; k < len.z; ++k) {
+                for     (int j = 0; j < len.y; ++j) {
+                    for (int i = 0; i < len.x; ++i) {
+                        int ii = i*facx;
+                        int jj = j*facy;
+                        int kk = k*facz;
+                        Real c = 0.;
+                        for     (int jref = 0; jref < facy; ++jref) {
+                            for (int iref = 0; iref < facx; ++iref) {
+                                c += fine(ii+iref,jj+jref,kk,n);
+                            }
+                        }
+                        crse(i,j,k,n) = c * facInv;
+                    }
+                }
+            }
+        }
+        break;
+    }
+    }
+}
+
 }

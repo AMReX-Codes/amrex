@@ -1,36 +1,3 @@
-
-! ***************************************************************************************
-! subroutine bl_avgdown_faces
-! ***************************************************************************************
-
-subroutine bl_avgdown_faces (lo, hi, &
-     f, f_l1, f_h1, &
-     c, c_l1, c_h1, &
-     ratio,idir,nc)
-
-  use amrex_fort_module, only : amrex_real
-  implicit none
-  integer          :: lo(1),hi(1)
-  integer          :: f_l1, f_h1
-  integer          :: c_l1, c_h1
-  integer          :: ratio(1), idir, nc
-  real(amrex_real) :: f(f_l1:f_h1,nc)
-  real(amrex_real) :: c(c_l1:c_h1,nc)
-
-  ! Local variables
-  integer i,n,facx
-
-  facx = ratio(1)
-
-   ! lo(1)..hi(1) are edge base indices
-  do n = 1, nc
-     do i = lo(1), hi(1)
-        c(i,n) = f(facx*i,n)
-     end do
-  end do
-
-end subroutine bl_avgdown_faces
-
 ! ***************************************************************************************
 ! subroutine bl_avgdown_edges
 ! ***************************************************************************************
