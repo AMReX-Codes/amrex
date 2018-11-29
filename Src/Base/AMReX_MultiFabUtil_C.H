@@ -40,6 +40,10 @@ AMREX_GPU_HOST_DEVICE
 void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir);
 
+AMREX_GPU_HOST_DEVICE
+void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir);
+
 }
 
 #endif
