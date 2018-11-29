@@ -36,7 +36,7 @@ int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
   x.resize(n);
 
   amrex::Real m;
-  for (unsigned i=1; i<n; ++i) {
+  for (unsigned i=1; i < n; ++i) {
     m = a[i-1]/b[i-1];
     b[i] -= m*c[i-1];
     d[i] -= m*d[i-1];
@@ -45,7 +45,7 @@ int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
   x[n-1] = d[n-1] / b[n-1];
 
 
-  for (unsigned i=n-2; i>0; --i) {
+  for (unsigned i=n-2; i > 0; --i) {
     x[i] = (d[i]-c[i]*x[i+1])/b[i];
   }
   return 0;
