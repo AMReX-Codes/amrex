@@ -657,17 +657,22 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                 }
             }
 
+
+            amrex::Print() << "got " << host_particles.size() << " particles to add \n";
+            
 	    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-	    particle_tile.resize(host_particles.size());
+            auto old_size = particle_tile.GetArrayOfStructs().size();
+            auto new_size = old_size + host_particles.size();
+	    particle_tile.resize(new_size);
 
 	    thrust::copy(host_particles.begin(),
 			 host_particles.end(),
-			 particle_tile.GetArrayOfStructs().begin());
+			 particle_tile.GetArrayOfStructs().begin() + old_size);
 
 	    for (int kk = 0; kk < PIdx::nattribs; ++kk) {
 	      thrust::copy(host_attribs[kk].begin(),
 			   host_attribs[kk].end(),
-			   particle_tile.GetStructOfArrays().GetRealData(kk).begin());
+			   particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
 	    }
 	    			 
             if (cost) {
