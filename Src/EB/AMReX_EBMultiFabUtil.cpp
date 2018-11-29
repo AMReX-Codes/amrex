@@ -4,7 +4,6 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil_F.H>
-#include <AMReX_MultiFabUtil_F.H>
 #include <AMReX_MultiFabUtil_C.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
