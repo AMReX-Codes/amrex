@@ -131,6 +131,12 @@ public:
                               const BoxArray            & ba,
                               int                         nneighbor);
 
+    NeighborParticleContainer(const Vector<Geometry>            & geom,
+                              const Vector<DistributionMapping> & dmap,
+                              const Vector<BoxArray>            & ba,
+                              const Vector<int>                 & rr,
+                              int                               nneighbor);
+    
     ///
     /// Regrid functions
     ///
