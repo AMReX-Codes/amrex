@@ -61,7 +61,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     const auto dxinv = geom.InvCellSizeArray();
     const int ncomp = dSdt.nComp();
     const int neqns = 5;
-    const int ncons = 7;
+//    const int ncons = 7;
     const int nprim = 8;
 
     Array<MultiFab,AMREX_SPACEDIM> fluxes;
@@ -88,54 +88,45 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             cns_ctoprim(tbx, *sfab, *qfab);
         });
 
-        const Box& bxg1 = amrex::grow(bx,1);
-        Gpu::AsyncFab slope(bxg1,neqns);
-        FArrayBox* slopefab = slope.fabPtr();
+        const Box& xslopebox = amrex::grow(bx, 0, 1);
+        const Box& yslopebox = amrex::grow(bx, 1, 1);
+        const Box& zslopebox = amrex::grow(bx, 2, 1);
+        Gpu::AsyncFab xslope(xslopebox,neqns);
+        Gpu::AsyncFab yslope(yslopebox,neqns);
+        Gpu::AsyncFab zslope(zslopebox,neqns);
+        FArrayBox* xslopefab = xslope.fabPtr();
+        FArrayBox* yslopefab = yslope.fabPtr();
+        FArrayBox* zslopefab = zslope.fabPtr();
 
-        // x-direction
-        int cdir = 0;
-        const Box& xslpbx = amrex::grow(bx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( xslpbx, tbx,
-        {
-            cns_slope_x(tbx, *slopefab, *qfab);
-        });
-        const Box& xflxbx = amrex::surroundingNodes(bx,cdir);
-        AMREX_LAUNCH_DEVICE_LAMBDA (xflxbx, tbx,
-        {
-            cns_riemann_x(tbx, *fxfab, *slopefab, *qfab);
-            fxfab->setVal(0.0, tbx, neqns, (fxfab->nComp()-neqns));
-        });
+        AMREX_LAUNCH_DEVICE_LAMBDA (
+            xslopebox, xbx, { cns_slope_x(xbx, *xslopefab, *qfab); },
+            yslopebox, ybx, { cns_slope_x(ybx, *yslopefab, *qfab); },
+            zslopebox, zbx, { cns_slope_x(zbx, *zslopefab, *qfab); });
 
-        // y-direction
-        cdir = 1;
-        const Box& yslpbx = amrex::grow(bx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( yslpbx, tbx,
-        {
-            cns_slope_y(tbx, *slopefab, *qfab);
-        });
-        const Box& yflxbx = amrex::surroundingNodes(bx,cdir);
-        AMREX_LAUNCH_DEVICE_LAMBDA (yflxbx, tbx,
-        {
-            cns_riemann_y(tbx, *fyfab, *slopefab, *qfab);
-            fyfab->setVal(0.0, tbx, neqns, (fyfab->nComp()-neqns));
-        });
-
-        // z-direction
-        cdir = 2;
-        const Box& zslpbx = amrex::grow(bx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( zslpbx, tbx,
-        {
-            cns_slope_z(tbx, *slopefab, *qfab);
-        });
-        const Box& zflxbx = amrex::surroundingNodes(bx,cdir);
-        AMREX_LAUNCH_DEVICE_LAMBDA (zflxbx, tbx,
-        {
-            cns_riemann_z(tbx, *fzfab, *slopefab, *qfab);
-            fzfab->setVal(0.0, tbx, neqns, (fzfab->nComp()-neqns));
-        });
+        const Box& xflxbx = amrex::surroundingNodes(bx,0);
+        const Box& yflxbx = amrex::surroundingNodes(bx,1);
+        const Box& zflxbx = amrex::surroundingNodes(bx,2);
+        AMREX_LAUNCH_DEVICE_LAMBDA (
+            xflxbx, xbx,
+            {
+                cns_riemann_x(xbx, *fxfab, *xslopefab, *qfab);
+                fxfab->setVal(0.0, xbx, neqns, (fxfab->nComp()-neqns));
+            },
+            yflxbx, ybx,
+            {
+                cns_riemann_y(ybx, *fyfab, *yslopefab, *qfab);
+                fyfab->setVal(0.0, ybx, neqns, (fyfab->nComp()-neqns));
+            },
+            zflxbx, zbx,
+            {
+                cns_riemann_z(zbx, *fzfab, *zslopefab, *qfab);
+                fzfab->setVal(0.0, zbx, neqns, (fzfab->nComp()-neqns));
+            });
 
         q.clear(); // don't need them anymore
-        slope.clear();
+        xslope.clear();
+        yslope.clear();
+        zslope.clear();
 
         AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
         {
