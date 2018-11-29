@@ -657,9 +657,6 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                 }
             }
 
-
-            amrex::Print() << "got " << host_particles.size() << " particles to add \n";
-            
 	    auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
             auto old_size = particle_tile.GetArrayOfStructs().size();
             auto new_size = old_size + host_particles.size();
