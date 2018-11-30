@@ -10,15 +10,37 @@ using namespace amrex;
 
     // these are C++ function definitions converted from Fortran 
 
-    void initdata(const int level, const Real time,
-                  Box const& bx, FArrayBox& phifab, 
+    AMREX_GPU_DEVICE
+    void initdata(Box const& bx, FArrayBox& phifab, 
                   GeometryData const & geom);
 
-    void get_face_velocity(const int level, const Real time,
-                           AMREX_D_DECL(FArrayBox& xvel,
-                                        FArrayBox& yvel,
-                                        FArrayBox& zvel),
-                           GeometryData const& geom);
+// ==== GET_FACE_VELOCITY =====
+
+    AMREX_GPU_DEVICE
+    void get_face_velocity_psi(Box const& bx,
+                               const Real time,
+                               FArrayBox& psifab,
+                               GeometryData const& geom);
+
+    AMREX_GPU_DEVICE
+    void get_face_velocity_x(Box const& bx,
+                             FArrayBox& xvelfab,
+                             const FArrayBox& psifab,
+                             GeometryData const& geom);
+
+    AMREX_GPU_DEVICE
+    void get_face_velocity_y(Box const& bx,
+                             FArrayBox& yvelfab,
+                             const FArrayBox& psifab,
+                             GeometryData const& geom);
+
+    AMREX_GPU_DEVICE
+    void get_face_velocity_z(Box const& bx,
+                             FArrayBox& zvelfab,
+                             const FArrayBox& psifab,
+                             GeometryData const& geom);
+
+// ==== GET_FACE_VELOCITY =====
 
     void advect(const Real time, Box const& bx,
                 const FArrayBox& statein,
