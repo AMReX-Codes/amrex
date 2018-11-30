@@ -9,9 +9,9 @@
 
 using namespace amrex;
 
+AMREX_GPU_DEVICE
 void
-initdata(const int level, const Real time,
-         Box const& bx, FArrayBox& phifab, GeometryData const& geom)
+initdata(Box const& bx, FArrayBox& phifab, GeometryData const& geom)
 {
 
     const auto len = length(bx);
@@ -20,23 +20,22 @@ initdata(const int level, const Real time,
     const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
     const Real* AMREX_RESTRICT dx      = geom.CellSize();
 
-    const Real gamma = 1.4;
 #ifdef _OPENMP
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) if (GPU::notInLaunchRegion)
 #endif
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            Real z = prob_lo[2] + (k+0.5) * dx[2];
-            Real y = prob_lo[1] + (j+0.5) * dx[1];
+            Real z = prob_lo[2] + (0.5+k) * dx[2];
+            Real y = prob_lo[1] + (0.5+j) * dx[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = prob_lo[0] + (i+0.5) * dx[0]; 
+                Real x = prob_lo[0] + (0.5+1) * dx[0]; 
 #if (AMREX_SPACEDIM == 2)
                 Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2)) / 0.01;
 #else
                 Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2) + pow((z-0.5),2)) / 0.01;
 #endif
-                phi(i,j,k) = 1 + exp(-r2);
+                phi(i,j,k) = 1.0 + exp(-r2);
             }
         }
     }
