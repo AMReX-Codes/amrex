@@ -56,7 +56,8 @@ AmrCoreAdv::AmrCoreAdv ()
     int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
     int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
 */
-    
+
+    bcs.resize(1);     // Setup 1-component
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         // lo-side BCs
@@ -264,10 +265,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
     }
 
-    const Real* dx = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
     Real cur_time = t_new[lev];
-
     MultiFab& state = phi_new[lev];
 
     for (MFIter mfi(state); mfi.isValid(); ++mfi)
@@ -275,15 +273,11 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         FArrayBox* fab = &(state[mfi]);
         GeometryData geomData = geom[lev].data();
         const Box& box = mfi.validbox();
-        const int* lo  = box.loVect();
-        const int* hi  = box.hiVect();
 
-        initdata(lev, cur_time, box, *fab, geomData);
-/*
-	initdata(&lev, &cur_time, AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi),
-		 BL_TO_FORTRAN_3D(state[mfi]), AMREX_ZFILL(dx),
-		 AMREX_ZFILL(prob_lo));
-*/
+        AMREX_LAUNCH_DEVICE_LAMBDA(box, tbx,
+        {
+            initdata(tbx, *fab, geomData);
+        });
     }
 }
 
@@ -619,7 +613,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
-
 	    const FArrayBox& statein = Sborder[mfi];
 	    FArrayBox& stateout      =   S_new[mfi];
 
@@ -629,12 +622,12 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 		flux[i].resize(bxtmp,S_new.nComp());
 		uface[i].resize(amrex::grow(bxtmp,1),1);
 	    }
-
+/*
             // compute velocities on faces (prescribed function of space and time)
             get_face_velocity(lev, ctr_time,
 			      AMREX_D_DECL(uface[0], uface[1], uface[2]),
 			      geom[lev].data());
-
+*/
             // compute new state (stateout) and fluxes.
             advect(time, bx,
 		   statein, stateout,
@@ -716,34 +709,93 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
     Real dt_est = std::numeric_limits<Real>::max();
 
     const Real* dx = geom[lev].CellSize();
-    const Real* prob_lo = geom[lev].ProbLo();
+//    const Real* prob_lo = geom[lev].ProbLo();
     const Real cur_time = t_new[lev];
     const MultiFab& S_new = phi_new[lev];
 
+    Array<MultiFab,AMREX_SPACEDIM> facevel;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        facevel[idim].define(amrex::convert(S_new.boxArray(), IntVect::TheDimensionVector(idim)),
+                             S_new.DistributionMap(), 1, 0);
+    }
+
 #ifdef _OPENMP
-#pragma omp parallel reduction(min:dt_est)
+#pragma omp parallel reduction(min:dt_est) if (Gpu::notInLaunchRegion())
 #endif
     {
-	FArrayBox uface[BL_SPACEDIM];
-
-	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+        // Calculate face velocities.
+	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-		const Box& bx = mfi.nodaltilebox(i);
-		uface[i].resize(bx,1);
-	    }
 
-	    get_face_velocity(lev, cur_time,
-			      AMREX_D_DECL(uface[0], uface[1], uface[2]),
-			      geom[lev].data());
+            FArrayBox* uface[BL_SPACEDIM];
+            AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
+                         uface[1] = &(facevel[1][mfi]);,
+                         uface[2] = &(facevel[2][mfi]););
 
-	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-		Real umax = uface[i].norm(0);
-		if (umax > 1.e-100) {
-		    dt_est = std::min(dt_est, dx[i] / umax);
-		}
-	    }
+/*
+            // Setup for size of psi FArrayBox in Fortran, for reference.
+            plo(1) = min(vx_l1-1, vy_l1-1)
+            plo(2) = min(vx_l2-1, vy_l2-1)
+            phi(1) = max(vx_h1  , vy_h1+1)
+            phi(2) = max(vx_h2+1, vy_h2  )
+*/
+            const Box& xbx = mfi.nodaltilebox(0); 
+            const Box& ybx = mfi.nodaltilebox(1);
+            const Box& zbx = mfi.nodaltilebox(2);
+
+            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(xbx.smallEnd(0)-1, ybx.smallEnd(0)-1),
+                                                         std::min(xbx.smallEnd(1)-1, ybx.smallEnd(0)-1),
+                                                         0)),
+                                    IntVect(AMREX_D_DECL(std::max(xbx.bigEnd(0),   ybx.bigEnd(0)+1),
+                                                         std::max(xbx.bigEnd(1)+1, ybx.bigEnd(1)),
+                                                         0)));
+
+            Gpu::AsyncFab psi(psibox, 1);
+            FArrayBox* psifab = psi.fabPtr();
+            GeometryData geomdata = geom[lev].data();
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(psibox, tbx,
+            {
+                get_face_velocity_psi(tbx, cur_time,
+                                      *psifab,
+                                      geomdata); 
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(xbx, tbx,
+            {
+                get_face_velocity_x(tbx,
+                                    *psifab, *uface[0],
+                                    geomdata); 
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(ybx, tbx,
+            {
+                get_face_velocity_y(tbx,
+                                    *psifab, *uface[1],
+                                    geomdata); 
+            });
+
+#if (AMREX_SPACEDIM == 3)
+            AMREX_LAUNCH_DEVICE_LAMBDA(zbx, tbx,
+            {
+                get_face_velocity_z(tbx,
+                                    *psifab, *uface[2],
+                                    geomdata); 
+            });
+#endif
+
+            psi.clear();
 	}
+    }
+
+    // Calc dt_est from abs(max(vel))
+    for (int i=0; i<BL_SPACEDIM; ++i) {
+        Real est = amrex::ReduceMax(facevel[i], 0,
+        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+        {
+            return fab.norm(bx, 0, 0, 1);
+        });
+        dt_est = std::min(dt_est, dx[i]/est);
     }
 
     if (!local) {
