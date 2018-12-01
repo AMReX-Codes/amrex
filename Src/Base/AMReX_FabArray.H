@@ -612,7 +612,7 @@ public:
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FillBoundary_finish ();
 
-    void FillBounary_test ();
+    void FillBoundary_test ();
 
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
