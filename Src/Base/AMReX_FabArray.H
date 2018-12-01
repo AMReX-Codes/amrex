@@ -1614,6 +1614,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
+    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait(scomp, ncomp, nGrowVect(), period, cross);
 }
 
@@ -1622,6 +1623,7 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period, bool cross)
 {
+    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait(scomp, ncomp, nghost, period, cross);
 }
 

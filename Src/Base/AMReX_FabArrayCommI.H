@@ -18,7 +18,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
 			    bool enforce_periodicity_only)
 {
-
     fb_cross = cross;
     fb_epo   = enforce_periodicity_only;
     fb_scomp = scomp;
@@ -496,6 +495,8 @@ template <class FOO>  // FOO fools nvcc
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
+    BL_PROFILE("FillBoundary_finish()");
+
     if ( n_grow.allLE(IntVect::TheZeroVector()) && !fb_epo ) return; // For epo (Enforce Periodicity Only), there may be no ghost cells.
 
     if (ParallelContext::NProcsSub() == 1) return;
