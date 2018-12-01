@@ -612,6 +612,8 @@ public:
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FillBoundary_finish ();
 
+    void FillBounary_test ();
+
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
     * is allowed to be overlapping.
@@ -750,6 +752,7 @@ public:
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
     Vector<MPI_Request> fb_recv_reqs;
+    Vector<MPI_Status>  fb_recv_stat;
 #ifdef BL_USE_MPI3
     Vector<MPI_Aint>    fb_recv_disp;
 #endif
