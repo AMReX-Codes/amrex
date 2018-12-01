@@ -587,6 +587,12 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
     const Real ctr_time = 0.5*(old_time+new_time);
 
     const auto dx = geom[lev].CellSizeArray();
+    GpuArray<Real, AMREX_SPACEDIM> dtdx; 
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+    {
+        dtdx[i] = time/(dx[i]); 
+    }
+
     const Real* prob_lo = geom[lev].ProbLo();
 
     MultiFab fluxes[BL_SPACEDIM];
@@ -604,43 +610,159 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
     MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
+    // Build temporary multiFabs to work on.
+    Array<MultiFab, AMREX_SPACEDIM> fluxcalc;
+    Array<MultiFab, AMREX_SPACEDIM> facevel;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        BoxArray ba = amrex::convert(S_new.boxArray(), IntVect::TheDimensionVector(idim));
+
+        fluxcalc[idim].define (ba,         S_new.DistributionMap(), S_new.nComp(), 0);
+        facevel [idim].define (ba.grow(1), S_new.DistributionMap(),             1, 0);
+    }
+
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
-	FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
+//	FArrayBox flux[BL_SPACEDIM], uface[BL_SPACEDIM];
 
+        // ======== GET FACE VELOCITY =========
 	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
 	{
-	    const Box& bx = mfi.tilebox();
 	    const FArrayBox& statein = Sborder[mfi];
 	    FArrayBox& stateout      =   S_new[mfi];
 
+            const Box nbxs[BL_SPACEDIM] = { AMREX_D_DECL(mfi.nodaltilebox(0),
+                                                         mfi.nodaltilebox(1),
+                                                         mfi.nodaltilebox(2)) };
+
+            FArrayBox* uface[BL_SPACEDIM];
+            AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
+                         uface[1] = &(facevel[1][mfi]);,
+                         uface[2] = &(facevel[2][mfi]););
+/*
 	    // Allocate fabs for fluxes and Godunov velocities.
 	    for (int i = 0; i < BL_SPACEDIM ; i++) {
 		const Box& bxtmp = amrex::surroundingNodes(bx,i);
 		flux[i].resize(bxtmp,S_new.nComp());
 		uface[i].resize(amrex::grow(bxtmp,1),1);
 	    }
-/*
-            // compute velocities on faces (prescribed function of space and time)
-            get_face_velocity(lev, ctr_time,
-			      AMREX_D_DECL(uface[0], uface[1], uface[2]),
-			      geom[lev].data());
 */
+            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxs[0].smallEnd(0)-1, nbxs[1].smallEnd(0)-1),
+                                                         std::min(nbxs[0].smallEnd(1)-1, nbxs[1].smallEnd(0)-1),
+                                                         0)),
+                                    IntVect(AMREX_D_DECL(std::max(nbxs[0].bigEnd(0),   nbxs[1].bigEnd(0)+1),
+                                                         std::max(nbxs[0].bigEnd(1)+1, nbxs[1].bigEnd(1)),
+                                                         0)));
+
+            Gpu::AsyncFab psi(psibox, 1);
+            FArrayBox* psifab = psi.fabPtr();
+            GeometryData geomdata = geom[lev].data();
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(psibox, tbx,
+            {
+                get_face_velocity_psi(tbx, ctr_time,
+                                      *psifab,
+                                      geomdata); 
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[0], tbx,
+            {
+                get_face_velocity_x(tbx,
+                                    *psifab, *uface[0],
+                                    geomdata); 
+            });
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[1], tbx,
+            {
+                get_face_velocity_y(tbx,
+                                    *psifab, *uface[1],
+                                    geomdata); 
+            });
+
+#if (AMREX_SPACEDIM == 3)
+            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[2], tbx,
+            {
+                get_face_velocity_z(tbx,
+                                    *psifab, *uface[2],
+                                    geomdata); 
+            });
+#endif
+            psi.clear();
+        }
+
+       // ======== CFL CHECK =========
+
+        Real umax = facevel[0].norm0(0,0,false);
+        Real vmax = facevel[1].norm0(0,0,false);
+        Real wmax = facevel[2].norm0(0,0,false);
+
+        if (umax*dt_lev > dx[1] ||
+            vmax*dt_lev > dx[2] ||
+            wmax*dt_lev > dx[3])
+        {
+            amrex::Print() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax 
+                           << ", dt = " << ctr_time << "dx = " << dx[1] << " " << dx[2] << " " << dx[3] << std::endl;
+            amrex::Abort("CFL violation. use smaller adv.cfl.");
+        }
+
+        // ======== FLUX CALC AND UPDATE =========
+
+	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+	{
+	    const Box& bx = mfi.tilebox();
+            const Box& gbx = amrex::grow(bx, 1);
+            const Box nbxs[BL_SPACEDIM] = { AMREX_D_DECL(mfi.nodaltilebox(0),
+                                                         mfi.nodaltilebox(1),
+                                                         mfi.nodaltilebox(2)) };
+
+            const FArrayBox& statein = Sborder[mfi];
+            FArrayBox& stateout      =   S_new[mfi];
+
+            FArrayBox* uface[BL_SPACEDIM];
+            AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
+                         uface[1] = &(facevel[1][mfi]);,
+                         uface[2] = &(facevel[2][mfi]););
+
+            FArrayBox* flux[BL_SPACEDIM];
+            AMREX_D_TERM(flux[0] = &(fluxcalc[0][mfi]);,
+                         flux[1] = &(fluxcalc[1][mfi]);,
+                         flux[2] = &(fluxcalc[2][mfi]););
+
+            //  compute flux placeholder 
+/*
+            compute_flux_3d(bx, dtdx,
+                    statein,
+                    AMREX_D_DECL(xvel, yvel, zvel),
+                    AMREX_D_DECL(fx, fy, fz));
+*/
+            
+
+
+
+
+
+
+
+            
             // compute new state (stateout) and fluxes.
+/*
             advect(time, bx,
 		   statein, stateout,
 		   AMREX_D_DECL(uface[0], uface[1], uface[2]),
 		   AMREX_D_DECL(flux[0], flux[1], flux[2]), 
 		   dx, dt_lev);
-
+*/
 	    if (do_reflux) {
 		for (int i = 0; i < BL_SPACEDIM ; i++) {
-		    fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));	  
+                    AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[i], tbx,
+                    {
+                        fluxes[i][mfi].copy(*flux[i],tbx);
+                    });
 		}
 	    }
-	}
+        }
     }
 
     // increment or decrement the flux registers by area and time-weighted fluxes
@@ -727,6 +849,10 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 
+            const Box nbxs[BL_SPACEDIM] = { AMREX_D_DECL(mfi.nodaltilebox(0),
+                                                         mfi.nodaltilebox(1),
+                                                         mfi.nodaltilebox(2)) };
+
             FArrayBox* uface[BL_SPACEDIM];
             AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
                          uface[1] = &(facevel[1][mfi]);,
@@ -739,15 +865,12 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
             phi(1) = max(vx_h1  , vy_h1+1)
             phi(2) = max(vx_h2+1, vy_h2  )
 */
-            const Box& xbx = mfi.nodaltilebox(0); 
-            const Box& ybx = mfi.nodaltilebox(1);
-            const Box& zbx = mfi.nodaltilebox(2);
 
-            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(xbx.smallEnd(0)-1, ybx.smallEnd(0)-1),
-                                                         std::min(xbx.smallEnd(1)-1, ybx.smallEnd(0)-1),
+            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxs[0].smallEnd(0)-1, nbxs[1].smallEnd(0)-1),
+                                                         std::min(nbxs[0].smallEnd(1)-1, nbxs[1].smallEnd(0)-1),
                                                          0)),
-                                    IntVect(AMREX_D_DECL(std::max(xbx.bigEnd(0),   ybx.bigEnd(0)+1),
-                                                         std::max(xbx.bigEnd(1)+1, ybx.bigEnd(1)),
+                                    IntVect(AMREX_D_DECL(std::max(nbxs[0].bigEnd(0),   nbxs[1].bigEnd(0)+1),
+                                                         std::max(nbxs[0].bigEnd(1)+1, nbxs[1].bigEnd(1)),
                                                          0)));
 
             Gpu::AsyncFab psi(psibox, 1);
@@ -761,14 +884,14 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                                       geomdata); 
             });
 
-            AMREX_LAUNCH_DEVICE_LAMBDA(xbx, tbx,
+            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[0], tbx,
             {
                 get_face_velocity_x(tbx,
                                     *psifab, *uface[0],
                                     geomdata); 
             });
 
-            AMREX_LAUNCH_DEVICE_LAMBDA(ybx, tbx,
+            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[1], tbx,
             {
                 get_face_velocity_y(tbx,
                                     *psifab, *uface[1],
@@ -776,7 +899,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
             });
 
 #if (AMREX_SPACEDIM == 3)
-            AMREX_LAUNCH_DEVICE_LAMBDA(zbx, tbx,
+            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[2], tbx,
             {
                 get_face_velocity_z(tbx,
                                     *psifab, *uface[2],
@@ -788,16 +911,14 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 	}
     }
 
-    // Calc dt_est from abs(max(vel))
-    for (int i=0; i<BL_SPACEDIM; ++i) {
-        Real est = amrex::ReduceMax(facevel[i], 0,
-        [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
-        {
-            return fab.norm(bx, 0, 0, 1);
-        });
+    for (int i=0; i<BL_SPACEDIM; ++i)
+    {
+        Real est = facevel[i].norm0(0,0,true);
         dt_est = std::min(dt_est, dx[i]/est);
     }
 
+    // Currently, this never happens (function called with local = true).
+    // Reduction occurs outside this function.
     if (!local) {
 	ParallelDescriptor::ReduceRealMin(dt_est);
     }
