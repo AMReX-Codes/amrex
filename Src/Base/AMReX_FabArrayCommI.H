@@ -26,6 +26,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fb_nghost = nghost;
     fb_period = period;
 
+    fb_recv_reqs.clear();
+
     bool work_to_do;
     if (enforce_periodicity_only) {
 	work_to_do = period.isAnyPeriodic();
@@ -241,6 +243,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                      fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
                      scomp, ncomp, SeqNum, preSeqNum);
 	}
+        fb_recv_stat.resize(N_rcvs);
     }
 
     //
@@ -346,6 +349,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif
     }
 
+    FillBoundary_test();
+
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
@@ -378,6 +383,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     }
     else
     {
+        FillBoundary_test();
+
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
@@ -395,6 +402,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
+
+            FillBoundary_test();
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -431,9 +441,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
                 }
 	    }
+            FillBoundary_test();
 	}
     }
 
+    FillBoundary_test();
 #endif /*BL_USE_MPI*/
 }
 
@@ -499,12 +511,13 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
     } else {
 	if (actual_n_rcvs > 0) {
-	    Vector<MPI_Status> stats(N_rcvs);
-            ParallelDescriptor::Waitall(fb_recv_reqs, stats);
-	    if (!CheckRcvStats(stats, fb_recv_size, MPI_CHAR, fb_tag))
+            ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
+#ifdef AMREX_DEBUG
+	    if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
             {
                 amrex::Abort("FillBoundary_finish failed with wrong message size");
             }
+#endif
 	}
     }
 
@@ -2134,5 +2147,20 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
     ParallelCopy(src, scomp, dcomp, ncomp, nghost, nghost, Periodicity::NonPeriodic(),
                  FabArrayBase::COPY, &cpc);
 
+#endif
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FillBoundary_test ()
+{
+#ifdef BL_USE_MPI
+#ifndef AMREX_DEBUG
+    if (!fb_recv_reqs.empty()) {
+        int flag;
+        MPI_Testall(fb_recv_reqs.size(), fb_recv_reqs.data(), &flag,
+                    fb_recv_stat.data());
+    }
+#endif
 #endif
 }
