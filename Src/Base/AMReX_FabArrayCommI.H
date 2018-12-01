@@ -383,8 +383,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     }
     else
     {
-        FillBoundary_test();
-
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
         {
@@ -405,20 +403,65 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
             FillBoundary_test();
 
+            if (Gpu::inLaunchRegion())
+            {
+                LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
+                    dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                {
+                    FAB* dfab = &((*this)[mfi]);
+                    const Box& vbx = mfi.validbox();
+
+                    const auto& lc_tags = loc_copy_tags[mfi];
+
+                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                    {
+                        Box gbx = vbx;
+                        gbx.setRange(idim,vbx.smallEnd(idim)-nghost[idim],nghost[idim]);
+                        for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
+                            gbx.grow(jdim,nghost[jdim]);
+                        }
+
+                        Vector<FabCopyTag<FAB> > tags;
+                        for (const auto& lc_tag : lc_tags) {
+                            Box b = gbx & lc_tag.dbox;
+                            if (b.ok()) {
+                                tags.push_back({lc_tag.sfab,b,lc_tag.offset});
+                            }
+                        }
+                        const int ntags = tags.size();
+                        if (ntags > 0)
+                        {
+                            Gpu::AsyncArray<FabCopyTag<FAB> > async_tags(tags.data(), ntags);
+                            FabCopyTag<FAB>* ptags = async_tags.data();
+
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( gbx, tbx,
+                            {
+                                for (int i = 0; i < ntags; ++i) {
+                                    const auto& tag = ptags[i];
+                                    const Box& dbx = tbx & tag.dbox;
+                                    if (dbx.ok()) {
+                                        const Box sbx = dbx + tag.offset;
+                                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            else
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = loc_copy_tags[mfi];
                 FAB* dfab = &((*this)[mfi]);
-                for (auto const & tag : tags)
-                {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
-                    {
-                        const Box sbx = dbx + tag.offset;
-                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
-                    });
+
+                for (const auto& tag : tags ) {
+                    const Box sbx = tag.dbox + tag.offset;
+                    dfab->copy(*tag.sfab, sbx, scomp, tag.dbox, scomp, ncomp);
                 }
             }
         }
@@ -441,7 +484,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     dfab->copy(*sfab, tag.sbox, scomp, tag.dbox, scomp, ncomp);
                 }
 	    }
-            FillBoundary_test();
 	}
     }
 
