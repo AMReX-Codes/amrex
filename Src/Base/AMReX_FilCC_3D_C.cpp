@@ -24,131 +24,243 @@ filcc_cell (const IntVect& iv, FArrayBox& dest_fab,
     const int ihi = domain_hi[0];
     const int jhi = domain_hi[1];
     const int khi = domain_hi[2];
+    const int* qlo = dest_fab.loVect();
+    const int* qhi = dest_fab.hiVect();
+    const int is = amrex::max(qlo[0],ilo);
+    const int js = amrex::max(qlo[1],jlo);
+    const int ks = amrex::max(qlo[2],klo);
+    const int ie = amrex::min(qhi[0],ihi);
+    const int je = amrex::min(qhi[1],jhi);
+    const int ke = amrex::min(qhi[2],khi);
 
-    // xxxxx TODO This does NOT properly fill corner cells.
-    
     for (int n = 0; n < numcomp; ++n)
     {
         const BCRec& bc = bcr[bcomp+n];
 
         if (i < ilo)
         {
-            if (bc.lo(0) == BCType::foextrap)
+            switch (bc.lo(0)) {
+            case (BCType::foextrap):
             {
                 q(0,0,0,n) = q(ilo-i,0,0,n);
+                break;
             }
-            else if (bc.lo(0) == BCType::hoextrap)
+            case (BCType::hoextrap):
             {
-                amrex::Abort("BCType::hoextrap TODO");
+                if (i < ilo - 1)
+                {
+                    q(0,0,0,n) = q(ilo-i,0,0,n);
+                }
+                // i == ilo-1
+                else if (ilo+2 <= ie)
+                {
+                    q(0,0,0,n) = 0.125*(15.*q(1,0,0,n) - 10.*q(2,0,0,n) + 3.*q(3,0,0,n));
+                }
+                else
+                {
+                    q(0,0,0,n) = 0.5*(3.*q(1,0,0,n) - q(2,0,0,n));
+                }
+                break;
             }
-            else if (bc.lo(0) == BCType::reflect_even)
+            case (BCType::reflect_even):
             {
                 q(0,0,0,n) = q(2*(ilo-i)-1,0,0,n);
+                break;
             }
-            else if (bc.lo(0) == BCType::reflect_odd)
+            case (BCType::reflect_odd):
             {
                 q(0,0,0,n) = -q(2*(ilo-i)-1,0,0,n);
+                break;
+            }
             }
         }
         else if (i > ihi)
         {
-            if (bc.hi(0) == BCType::foextrap)
+            switch (bc.hi(0)) {
+            case (BCType::foextrap):
             {
                 q(0,0,0,n) = q(ihi-i,0,0,n);
+                break;
             }
-            else if (bc.hi(0) == BCType::hoextrap)
+            case (BCType::hoextrap):
             {
-                amrex::Abort("BCType::hoextrap TODO");
+                if (i > ihi + 1)
+                {
+                    q(0,0,0,n) = q(ihi-i,0,0,n);
+                }
+                // i == ihi+1
+                else if (ihi-2 >= is)
+                {
+                    q(0,0,0,n) = 0.125*(15.*q(-1,0,0,n) - 10.*q(-2,0,0,n) + 3.*q(-3,0,0,n));
+                }
+                else
+                {
+                    q(0,0,0,n) = 0.5*(3.*q(-1,0,0,n) - q(-2,0,0,n));
+                }
+                break;
             }
-            else if (bc.hi(0) == BCType::reflect_even)
+            case (BCType::reflect_even):
             {
                 q(0,0,0,n) = q(2*(ihi-i)+1,0,0,n);
+                break;
             }
-            else if (bc.hi(0) == BCType::reflect_odd)
+            case (BCType::reflect_odd):
             {
                 q(0,0,0,n) = -q(2*(ihi-i)+1,0,0,n);
+                break;
+            }
             }
         }
 
         if (j < jlo)
         {
-            if (bc.lo(1) == BCType::foextrap)
+            switch (bc.lo(1)) {
+            case (BCType::foextrap):
             {
                 q(0,0,0,n) = q(0,jlo-j,0,n);
+                break;
             }
-            else if (bc.lo(1) == BCType::hoextrap)
+            case (BCType::hoextrap):
             {
-                amrex::Abort("BCType::hoextrap TODO");
+                if (j < jlo - 1)
+                {
+                    q(0,0,0,n) = q(0,jlo-j,0,n);
+                }
+                // j == jlo-1
+                else if (jlo+2 <= je)
+                {
+                    q(0,0,0,n) = 0.125*(15.*q(0,1,0,n) - 10.*q(0,2,0,n) + 3.*q(0,3,0,n));
+                }
+                else
+                {
+                    q(0,0,0,n) = 0.5*(3.*q(0,1,0,n) - q(0,2,0,n));
+                }
+                break;
             }
-            else if (bc.lo(1) == BCType::reflect_even)
+            case (BCType::reflect_even):
             {
                 q(0,0,0,n) = q(0,2*(jlo-j)-1,0,n);
+                break;
             }
-            else if (bc.lo(1) == BCType::reflect_odd)
+            case (BCType::reflect_odd):
             {
                 q(0,0,0,n) = -q(0,2*(jlo-j)-1,0,n);
+                break;
+            }
             }
         }
         else if (j > jhi)
         {
-            if (bc.hi(1) == BCType::foextrap)
+            switch (bc.hi(1)) {
+            case (BCType::foextrap):
             {
                 q(0,0,0,n) = q(0,jhi-j,0,n);
+                break;
             }
-            else if (bc.hi(1) == BCType::hoextrap)
+            case (BCType::hoextrap):
             {
-                amrex::Abort("BCType::hoextrap TODO");
+                if (j > jhi + 1)
+                {
+                    q(0,0,0,n) = q(0,jhi-j,0,n);
+                }
+                // j == jhi+1
+                else if (jhi-2 >= js)
+                {
+                    q(0,0,0,n) = 0.125*(15.*q(0,-1,0,n) - 10.*q(0,-2,0,n) + 3.*q(0,-3,0,n));
+                }
+                else
+                {
+                    q(0,0,0,n) = 0.5*(3.*q(0,-1,0,n) - q(0,-2,0,n));
+                }
+                break;
             }
-            else if (bc.hi(1) == BCType::reflect_even)
+            case (BCType::reflect_even):
             {
                 q(0,0,0,n) = q(0,2*(jhi-j)+1,0,n);
+                break;
             }
-            else if (bc.hi(1) == BCType::reflect_odd)
+            case (BCType::reflect_odd):
             {
                 q(0,0,0,n) = -q(0,2*(jhi-j)+1,0,n);
+                break;
+            }
             }
         }
 
         if (k < klo)
         {
-            if (bc.lo(2) == BCType::foextrap)
+            switch (bc.lo(2)) {
+            case (BCType::foextrap):
             {
                 q(0,0,0,n) = q(0,0,klo-k,n);
+                break;
             }
-            else if (bc.lo(2) == BCType::hoextrap)
+            case (BCType::hoextrap):
             {
-                amrex::Abort("BCType::hoextrap TODO");
+                if (k < klo - 1)
+                {
+                    q(0,0,0,n) = q(0,0,klo-k,n);
+                }
+                // k == klo-1
+                else if (klo+2 <= ke)
+                {
+                    q(0,0,0,n) = 0.125*(15.*q(0,0,1,n) - 10.*q(0,0,2,n) + 3.*q(0,0,3,n));
+                }
+                else
+                {
+                    q(0,0,0,n) = 0.5*(3.*q(0,0,1,n) - q(0,0,2,n));
+                }
+                break;
             }
-            else if (bc.lo(2) == BCType::reflect_even)
+            case (BCType::reflect_even):
             {
                 q(0,0,0,n) = q(0,0,2*(klo-k)-1,n);
+                break;
             }
-            else if (bc.lo(2) == BCType::reflect_odd)
+            case (BCType::reflect_odd):
             {
                 q(0,0,0,n) = -q(0,0,2*(klo-k)-1,n);
+                break;
+            }
             }
         }
         else if (k > khi)
         {
-            if (bc.hi(2) == BCType::foextrap)
+            switch (bc.hi(2)) {
+            case (BCType::foextrap):
             {
                 q(0,0,0,n) = q(0,0,khi-k,n);
+                break;
             }
-            else if (bc.hi(2) == BCType::hoextrap)
+            case (BCType::hoextrap):
             {
-                amrex::Abort("BCType::hoextrap TODO");
+                if (k > khi + 1)
+                {
+                    q(0,0,0,n) = q(0,0,khi-k,n);
+                }
+                // k == khi+1
+                else if (khi-2 >= ks)
+                {
+                    q(0,0,0,n) = 0.125*(15.*q(0,0,-1,n) - 10.*q(0,0,-2,n) + 3.*q(0,0,-3,n));
+                }
+                else
+                {
+                    q(0,0,0,n) = 0.5*(3.*q(0,0,-1,n) - q(0,0,-2,n));
+                }
+                break;
             }
-            else if (bc.hi(2) == BCType::reflect_even)
+            case (BCType::reflect_even):
             {
                 q(0,0,0,n) = q(0,0,2*(khi-k)+1,n);
+                break;
             }
-            else if (bc.hi(2) == BCType::reflect_odd)
+            case (BCType::reflect_odd):
             {
                 q(0,0,0,n) = -q(0,0,2*(khi-k)+1,n);
+                break;
+            }
             }
         }
-
-        // xxxxx TODO more hoextrap stuff
     }
 }
 
