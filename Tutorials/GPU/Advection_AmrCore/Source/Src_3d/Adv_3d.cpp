@@ -6,6 +6,7 @@
 
 using namespace amrex;
 
+/*
 void advect(const Real time, Box const& bx,
             const FArrayBox& statein,
             FArrayBox& stateout,
@@ -17,7 +18,8 @@ void advect(const Real time, Box const& bx,
                          FArrayBox& fz),
             const GpuArray<Real, AMREX_SPACEDIM>& dx, const Real dt)
 {
-
+*/
+/*
     GpuArray<Real, AMREX_SPACEDIM> dtdx; 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
@@ -25,7 +27,7 @@ void advect(const Real time, Box const& bx,
     }
 
     const Box nbx = amrex::grow(bx, 1);
-
+*/
 /*
 // CHECK CFL. ADD MODIFIED MAX LOOP HERE. 
     Real umax = ;
@@ -45,85 +47,94 @@ void advect(const Real time, Box const& bx,
 */
 
 //  call a function to compute flux
-
+/*
     compute_flux_3d(bx, dtdx,
                     statein,
                     AMREX_D_DECL(xvel, yvel, zvel),
                     AMREX_D_DECL(fx, fy, fz));
-  
-    // Do a conservative update
-    AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
-    {
-        const auto len = length(tbx);
-        const auto lo  = lbound(tbx);
+*/
 
-        const auto uin  = statein.view(lo);
-        const auto uout = stateout.view(lo);
-        const auto flxx = fx.view(lo);
-        const auto flxy = fy.view(lo);
-        const auto flxz = fz.view(lo);
+void conservative(Box const& bx,
+                  const FArrayBox& statein,
+                  FArrayBox& stateout,
+                  AMREX_D_DECL(FArrayBox& fx,
+                               FArrayBox& fy,
+                               FArrayBox& fz),
+                  const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
 
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                for (int i = 0; i < len.x; ++i) {
-                    uout(i,j,k) = uin(i,j,k) + 
-                        ( (flxx(i,j,k) - flxx(i+1,j,k)) * dtdx[0] 
-                        + (flxy(i,j,k) - flxy(i,j+1,k)) * dtdx[1] 
-                        + (flxz(i,j,k) - flxz(i,j,k+1)) * dtdx[2] );
-                }
+    const auto uin  = statein.view(lo);
+    const auto uout = stateout.view(lo);
+    const auto flxx = fx.view(lo);
+    const auto flxy = fy.view(lo);
+    const auto flxz = fz.view(lo);
+
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                uout(i,j,k) = uin(i,j,k) + 
+                    ( (flxx(i,j,k) - flxx(i+1,j,k)) * dtdx[0] 
+                    + (flxy(i,j,k) - flxy(i,j+1,k)) * dtdx[1] 
+                    + (flxz(i,j,k) - flxz(i,j,k+1)) * dtdx[2] );
             }
         }
-    });
+    }
+}
 
-    // Scale by face area in order to correctly reflux
-    const Box xbx = amrex::growHi(bx, 0, 1); 
-    const Box ybx = amrex::growHi(bx, 1, 1); 
-    const Box zbx = amrex::growHi(bx, 2, 1); 
+void flux_scale_x(Box const& bx,
+                    FArrayBox& fx,
+                    const Real& dt,
+                    const GpuArray<Real, AMREX_SPACEDIM>& dx)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto flxx = fx.view(lo);
 
-    AMREX_LAUNCH_DEVICE_LAMBDA(xbx, tbx,
-    {
-        const auto len = length(tbx);
-        const auto lo  = lbound(tbx);
-        const auto flxx = fx.view(lo);
-
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                for (int i = 0; i < len.x; ++i) {
-                    flxx(i,j,k) = flxx(i,j,k) * (dt * dx[1]*dx[2]);
-                }
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                flxx(i,j,k) = flxx(i,j,k) * (dt * dx[1]*dx[2]);
             }
         }
-    });
+    }
+}
 
-    AMREX_LAUNCH_DEVICE_LAMBDA(ybx, tbx,
-    {
-        const auto len = length(tbx);
-        const auto lo  = lbound(tbx);
-        const auto flxy = fy.view(lo);
+void flux_scale_y(Box const& bx,
+                    FArrayBox& fy,
+                    const Real& dt,
+                    const GpuArray<Real, AMREX_SPACEDIM>& dx)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto flxy = fy.view(lo);
 
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                for (int i = 0; i < len.x; ++i) {
-                    flxy(i,j,k) = flxy(i,j,k) * (dt * dx[0]*dx[2]);
-                }
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                flxy(i,j,k) = flxy(i,j,k) * (dt * dx[0]*dx[2]);
             }
         }
-    });
+    }
+}
 
-    AMREX_LAUNCH_DEVICE_LAMBDA(zbx, tbx,
-    {
-        const auto len = length(tbx);
-        const auto lo  = lbound(tbx);
-        const auto flxz = fz.view(lo);
+void flux_scale_z(Box const& bx,
+                    FArrayBox& fz,
+                    const Real& dt,
+                    const GpuArray<Real, AMREX_SPACEDIM>& dx)
+{
+    const auto len = length(bx);
+    const auto lo  = lbound(bx);
+    const auto flxz = fz.view(lo);
 
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                for (int i = 0; i < len.x; ++i) {
-                    flxz(i,j,k) = flxz(i,j,k) * (dt * dx[0]*dx[1]);
-                }
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                flxz(i,j,k) = flxz(i,j,k) * (dt * dx[0]*dx[1]);
             }
         }
-    });
+    }
 }
 
 #endif
