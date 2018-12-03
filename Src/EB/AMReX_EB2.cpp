@@ -6,7 +6,7 @@
 #include <AMReX_EB2_IF_Plane.H>
 #include <AMReX_EB2_IF_Sphere.H>
 #include <AMReX_EB2_IF_Torus.H>
-
+#include <AMReX_EB2_IF_Spline.H>
 #include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
 #include <AMReX_ParmParse.H>
