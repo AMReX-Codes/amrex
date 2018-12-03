@@ -79,7 +79,7 @@ public:
     void WriteCheckpointFile () const;
 
     const MultiFab * getLevelSet(int n) const {return & level_set[n];}
-    const MultiFab * getValid(int n) const {return & level_set_valid[n];}
+    const iMultiFab * getValid(int n) const {return & level_set_valid[n];}
 
 protected:
 
