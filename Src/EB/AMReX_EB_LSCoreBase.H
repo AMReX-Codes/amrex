@@ -79,6 +79,7 @@ public:
     void WriteCheckpointFile () const;
 
     const MultiFab * getLevelSet(int n) const {return & level_set[n];}
+    const iMultiFab * getValid(int n) const {return & level_set_valid[n];}
 
 protected:
 
@@ -149,6 +150,7 @@ protected:
 
     // Level set data
     Vector<MultiFab>  level_set;
+    Vector<iMultiFab> level_set_valid;
 
     // Resolve EB up to this many ghost cells (NOTE: these are scaled based on
     // local refinement level)
