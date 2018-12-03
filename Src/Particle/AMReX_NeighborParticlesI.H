@@ -140,7 +140,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             ! DistributionMapping::SameRefs(mask_ptr[lev]->DistributionMap(), dmap))
         {
             const Geometry& geom = this->Geom(lev);
-            const BoxArray& ba = this->ParticleBoxArray(lev);
             
             mask_ptr[lev].reset(new iMultiFab(ba, dmap, num_mask_comps, num_neighbor_cells));
             mask_ptr[lev]->setVal(-1, num_neighbor_cells);
