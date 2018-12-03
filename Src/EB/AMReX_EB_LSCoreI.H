@@ -25,13 +25,15 @@ LSCore<F>::~LSCore () {}
 template<class F>
 void LSCore<F>::ClearLevel (int lev) {
     level_set[lev].clear();
+    level_set_valid[lev].clear();
+
     // NOTE: maybe I shouldn't do this (this method is being called by regrid...)
     //ls_factory[lev].clear();
 }
 
 
 // Make a new level from scratch using provided BoxArray and
-// DistributionMapping. Only used during initialization. overrides the pure
+// DistributionMapping. Only used during initialization. Overrides the pure
 // virtual function in AmrCore
 template<class F>
 void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
@@ -40,7 +42,11 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     const int ncomp  = 1;
     const int nghost = 1;
 
-    // Make sure EB geometry exists (build if necessary)
+
+    /****************************************************************************
+     * Make sure EB geometry exists (build if necessary)                        *
+     ***************************************************************************/
+
     if (rebuild_eb[lev] == 1) {
         int max_crse_level = lev; // Important! this is needed to allow
                                   // EBFactory to be built on coarser levels
@@ -55,6 +61,10 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     }
 
 
+    /****************************************************************************
+     * Define Basic data MultiFabs                                              *
+     ***************************************************************************/
+
     BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
 
 
@@ -62,7 +72,16 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
 
 
-    // Construct LSFactory (does the actual level-set building)
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_valid[lev].setVal(1);
+
+
+    /****************************************************************************
+     * Construct LSFactory (does the actual level-set building on lev 0)        *
+     ***************************************************************************/
+
     // TODO: more light-weight structure here? (since we don't need all the
     // LSFactory features for LSCore)
     int levelset_pad    = nghost;
@@ -84,9 +103,16 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     GShopLSFactory<F> ls_gshop(m_gshop, * ls_factory[lev]);
     std::unique_ptr<MultiFab> mf_impfunc = ls_gshop.fill_impfunc();
 
+
+    /****************************************************************************
+     * Fill the actual level-set MultiFabs (one for each level)                 *
+     ***************************************************************************/
+
     if (lev == 0){
 
-        // Compute LSFactory
+        //_______________________________________________________________________
+        // Compute level 0 using LSFactory
+
         int eb_pad = ls_factory[lev]->get_eb_pad();
         EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
                                       {eb_pad, eb_pad, eb_pad}, EBSupport::full);
@@ -96,6 +122,9 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         int ng = ls_factory[lev]->get_ls_pad();
         level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
     } else {
+
+        //_______________________________________________________________________
+        // Build finer levels locally, using coarse level set
 
         MakeNewLevelFromCoarse(lev, time, ba, dm);
 
@@ -115,6 +144,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         iMultiFab eb_valid(ba, dm, 1, max_eb_pad +1);
         eb_valid.setVal(0);
 
+        // TODO: some of this might be shifted to the base class?
 
 #ifdef _OPENMP
 #pragma omp parallel
