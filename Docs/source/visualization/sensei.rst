@@ -82,8 +82,10 @@ Examples
 2D laser plasma
 ------------------------
 
-* :download:`input file<./>`
-* :download:`2D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.2d.boost>`
-* :download:`3D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.3d.boost>`
-
+* :download:`input file<./inputs.2d>`
+* :download:`xml file<./ez2d.xml>`
+* :download:`session file<./ez2d.session>`
+* :E field screen shot at time step 40
+.. figure:: ez2d_00040.png
+   :alt: picture
 
