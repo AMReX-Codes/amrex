@@ -75,3 +75,15 @@ NERSC Cori
 ~~~~~~~~~~
 SENSEI is deployed at NERSC on Cori. The NERSC deployment includes the major
 back ends such as ParaView Catalyst, VisIt Libsim, and Python.
+
+Examples
+===================
+
+2D laser plasma
+------------------------
+
+* :download:`input file<./>`
+* :download:`2D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.2d.boost>`
+* :download:`3D case in boosted frame<../../../Examples/Physics_applications/plasma_acceleration/inputs.3d.boost>`
+
+
