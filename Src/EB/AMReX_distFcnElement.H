@@ -6,6 +6,8 @@
 #include "AMReX.H"
 #include "AMReX_Vector.H"
 
+namespace amrex {
+
 class distFcnElement2d {
  public:
   // Constructor
@@ -105,5 +107,7 @@ class SplineDistFcnElement2d: public distFcnElement2d {
   std::vector<amrex::Real> Dx;
   std::vector<amrex::Real> Dy;
 };
+
+}
 
 #endif
