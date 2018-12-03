@@ -20,6 +20,7 @@ class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
+template <typename FAB> class FabArray;
 class AmrTask;
 #ifdef USE_PERILLA
 class Perilla;
@@ -35,6 +36,8 @@ class FabArrayBase
     friend class Perilla;
     friend class RegionGraph;
 #endif
+
+    template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
 public:
 
