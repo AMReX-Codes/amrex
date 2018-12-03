@@ -78,7 +78,10 @@ int main(int argc, char* argv[])
     }
 
     Vector<DistributionMapping> dmap(nlevs);
-   
+    for (int lev = 0; lev < nlevs; lev++) {
+        dmap[lev] = DistributionMapping{ba[lev]};
+    }
+    
     int num_neighbor_cells = 1;
     NeighborListParticleContainer myPC(geom, dmap, ba, rr, num_neighbor_cells);
 
