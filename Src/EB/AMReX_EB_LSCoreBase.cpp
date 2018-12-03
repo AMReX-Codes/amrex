@@ -54,6 +54,7 @@ void LSCoreBase::InitLSCoreBase() {
     int nlevs_max = max_level + 1;
 
     level_set.resize(nlevs_max);
+    level_set_valid.resize(nlevs_max);
 
     ls_factory.resize(nlevs_max);
     eb_levels.resize(nlevs_max);
@@ -157,12 +158,17 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
 
     FillCoarsePatch(lev, time, level_set[lev], 0, ncomp);
+
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_valid[lev].setVal(1);
 }
 
 
 // Remake an existing level using provided BoxArray and DistributionMapping and
-// fill with existing fine and coarse data.
-// overrides the pure virtual function in AmrCore
+// fill with existing fine and coarse data. Overrides the pure virtual function
+// in AmrCore
 void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
                                const DistributionMapping & dm) {
     const int ncomp  = level_set[lev].nComp();
@@ -174,6 +180,11 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
     FillPatch(lev, time, new_state, 0, ncomp);
 
     std::swap(new_state, level_set[lev]);
+
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_valid[lev].setVal(1);
 }
 
 
