@@ -2,7 +2,7 @@
 
 #include "neighbor_list_F.H"
 
-using namespace amrex;
+usign namespace amrex;
 
 constexpr Real NeighborListParticleContainer::min_r;
 constexpr Real NeighborListParticleContainer::cutoff;
