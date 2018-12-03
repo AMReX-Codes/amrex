@@ -633,9 +633,9 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 	    const FArrayBox& statein = Sborder[mfi];
 	    FArrayBox& stateout      =   S_new[mfi];
 
-            const Box nbxs[BL_SPACEDIM] = { AMREX_D_DECL(mfi.nodaltilebox(0),
-                                                         mfi.nodaltilebox(1),
-                                                         mfi.nodaltilebox(2)) };
+            AMREX_D_TERM(const Box& nbxx = mfi.nodaltilebox(0);,
+                         const Box& nbxy = mfi.nodaltilebox(1);,
+                         const Box& nbxz = mfi.nodaltilebox(2););
 
             FArrayBox* uface[BL_SPACEDIM];
             AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
@@ -649,11 +649,11 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 		uface[i].resize(amrex::grow(bxtmp,1),1);
 	    }
 */
-            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxs[0].smallEnd(0)-1, nbxs[1].smallEnd(0)-1),
-                                                         std::min(nbxs[0].smallEnd(1)-1, nbxs[1].smallEnd(0)-1),
+            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxx.smallEnd(0)-1, nbxy.smallEnd(0)-1),
+                                                         std::min(nbxx.smallEnd(1)-1, nbxy.smallEnd(0)-1),
                                                          0)),
-                                    IntVect(AMREX_D_DECL(std::max(nbxs[0].bigEnd(0),   nbxs[1].bigEnd(0)+1),
-                                                         std::max(nbxs[0].bigEnd(1)+1, nbxs[1].bigEnd(1)),
+                                    IntVect(AMREX_D_DECL(std::max(nbxx.bigEnd(0),   nbxy.bigEnd(0)+1),
+                                                         std::max(nbxx.bigEnd(1)+1, nbxy.bigEnd(1)),
                                                          0)));
 
             Gpu::AsyncFab psi(psibox, 1);
@@ -667,55 +667,55 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                       geomdata); 
             });
 
-            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[0], tbx,
-            {
-                get_face_velocity_x(tbx,
-                                    *psifab, *uface[0],
-                                    geomdata); 
-            });
+            AMREX_D_TERM(
+                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxx, tbx,
+                         {
+                             get_face_velocity_x(tbx,
+                                                 *psifab, *uface[0],
+                                                 geomdata); 
+                         });,
 
-            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[1], tbx,
-            {
-                get_face_velocity_y(tbx,
-                                    *psifab, *uface[1],
-                                    geomdata); 
-            });
+                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxy, tbx,
+                         {
+                             get_face_velocity_y(tbx,
+                                                 *psifab, *uface[1],
+                                                 geomdata);
+                         });,
 
-#if (AMREX_SPACEDIM == 3)
-            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[2], tbx,
-            {
-                get_face_velocity_z(tbx,
-                                    *psifab, *uface[2],
-                                    geomdata); 
-            });
-#endif
+                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxz, tbx,
+                         {
+                             get_face_velocity_z(tbx,
+                                                 *psifab, *uface[2],
+                                                 geomdata); 
+                         });
+                        );
+
             psi.clear();
         }
 
        // ======== CFL CHECK =========
 
-        Real umax = facevel[0].norm0(0,0,false);
-        Real vmax = facevel[1].norm0(0,0,false);
-        Real wmax = facevel[2].norm0(0,0,false);
+        AMREX_D_TERM(Real umax = facevel[0].norm0(0,0,false);,
+                     Real vmax = facevel[1].norm0(0,0,false);,
+                     Real wmax = facevel[2].norm0(0,0,false););
 
-        if (umax*dt_lev > dx[1] ||
-            vmax*dt_lev > dx[2] ||
-            wmax*dt_lev > dx[3])
+        if (AMREX_D_TERM(umax*dt_lev > dx[1], ||
+                         vmax*dt_lev > dx[2], ||
+                         wmax*dt_lev > dx[3]))
         {
-            amrex::Print() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax 
-                           << ", dt = " << ctr_time << "dx = " << dx[1] << " " << dx[2] << " " << dx[3] << std::endl;
+//            amrex::Print() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax 
+//                           << ", dt = " << ctr_time << "dx = " << dx[1] << " " << dx[2] << " " << dx[3] << std::endl;
             amrex::Abort("CFL violation. use smaller adv.cfl.");
         }
 
         // ======== FLUX CALC AND UPDATE =========
 
-	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
-            const Box& gbx = amrex::grow(bx, 1);
-            const Box nbxs[BL_SPACEDIM] = { AMREX_D_DECL(mfi.nodaltilebox(0),
-                                                         mfi.nodaltilebox(1),
-                                                         mfi.nodaltilebox(2)) };
+            AMREX_D_TERM(const Box& gbxx = amrex::growHi(mfi.nodaltilebox(0), 0, 1);,
+                         const Box& gbxy = amrex::growHi(mfi.nodaltilebox(1), 0, 1);,
+                         const Box& gbxz = amrex::growHi(mfi.nodaltilebox(2), 0, 1););
 
             const FArrayBox& statein = Sborder[mfi];
             FArrayBox& stateout      =   S_new[mfi];
@@ -730,22 +730,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          flux[1] = &(fluxcalc[1][mfi]);,
                          flux[2] = &(fluxcalc[2][mfi]););
 
-            //  compute flux placeholder 
-/*
-            compute_flux_3d(bx, dtdx,
-                    statein,
-                    AMREX_D_DECL(xvel, yvel, zvel),
-                    AMREX_D_DECL(fx, fy, fz));
-*/
-            
-
-
-
-
-
-
-
-            
             // compute new state (stateout) and fluxes.
 /*
             advect(time, bx,
@@ -754,14 +738,50 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 		   AMREX_D_DECL(flux[0], flux[1], flux[2]), 
 		   dx, dt_lev);
 */
-	    if (do_reflux) {
-		for (int i = 0; i < BL_SPACEDIM ; i++) {
-                    AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[i], tbx,
+
+            //  compute flux placeholder 
+/*
+            compute_flux_3d(bx, dtdx,
+                    statein,
+                    AMREX_D_DECL(xvel, yvel, zvel),
+                    AMREX_D_DECL(fx, fy, fz));
+*/
+ 
+            // Do a conservative update
+            AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+            {
+                conservative(tbx, statein, stateout,
+                             AMREX_D_DECL(*flux[0], *flux[1], *flux[2]), 
+                             dtdx);
+            });
+
+            // Scale by face area in order to correctly reflux
+            AMREX_D_TERM(
+                         AMREX_LAUNCH_DEVICE_LAMBDA(gbxx, tbx,
+                         {
+                             flux_scale_x(tbx, *flux[0], dt_lev, dx);
+                         });,
+ 
+
+                         AMREX_LAUNCH_DEVICE_LAMBDA(gbxy, tbx,
+                         {
+                             flux_scale_y(tbx, *flux[1], dt_lev, dx);
+                         });,
+
+                         AMREX_LAUNCH_DEVICE_LAMBDA(gbxz, tbx,
+                         {
+                             flux_scale_z(tbx, *flux[2], dt_lev, dx);
+                         });
+                        );
+           
+            if (do_reflux) {
+                for (int i = 0; i < BL_SPACEDIM ; i++) {
+                    AMREX_LAUNCH_DEVICE_LAMBDA(mfi.nodaltilebox(i), tbx,
                     {
                         fluxes[i][mfi].copy(*flux[i],tbx);
                     });
-		}
-	    }
+                }
+            }
         }
     }
 
@@ -849,9 +869,9 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
 	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 
-            const Box nbxs[BL_SPACEDIM] = { AMREX_D_DECL(mfi.nodaltilebox(0),
-                                                         mfi.nodaltilebox(1),
-                                                         mfi.nodaltilebox(2)) };
+            AMREX_D_TERM(const Box& nbxx = mfi.nodaltilebox(0);,
+                         const Box& nbxy = mfi.nodaltilebox(1);,
+                         const Box& nbxz = mfi.nodaltilebox(2););
 
             FArrayBox* uface[BL_SPACEDIM];
             AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
@@ -866,11 +886,11 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
             phi(2) = max(vx_h2+1, vy_h2  )
 */
 
-            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxs[0].smallEnd(0)-1, nbxs[1].smallEnd(0)-1),
-                                                         std::min(nbxs[0].smallEnd(1)-1, nbxs[1].smallEnd(0)-1),
+            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxx.smallEnd(0)-1, nbxy.smallEnd(0)-1),
+                                                         std::min(nbxx.smallEnd(1)-1, nbxy.smallEnd(0)-1),
                                                          0)),
-                                    IntVect(AMREX_D_DECL(std::max(nbxs[0].bigEnd(0),   nbxs[1].bigEnd(0)+1),
-                                                         std::max(nbxs[0].bigEnd(1)+1, nbxs[1].bigEnd(1)),
+                                    IntVect(AMREX_D_DECL(std::max(nbxx.bigEnd(0),     nbxy.bigEnd(0)+1),
+                                                         std::max(nbxx.bigEnd(1)+1,   nbxy.bigEnd(1)),
                                                          0)));
 
             Gpu::AsyncFab psi(psibox, 1);
@@ -884,28 +904,28 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                                       geomdata); 
             });
 
-            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[0], tbx,
-            {
-                get_face_velocity_x(tbx,
-                                    *psifab, *uface[0],
-                                    geomdata); 
-            });
+            AMREX_D_TERM(
+                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxx, tbx,
+                         {
+                             get_face_velocity_x(tbx,
+                                                 *psifab, *uface[0],
+                                                 geomdata); 
+                         });,
 
-            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[1], tbx,
-            {
-                get_face_velocity_y(tbx,
-                                    *psifab, *uface[1],
-                                    geomdata); 
-            });
+                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxy, tbx,
+                         {
+                             get_face_velocity_y(tbx,
+                                                 *psifab, *uface[1],
+                                                 geomdata);
+                         });,
 
-#if (AMREX_SPACEDIM == 3)
-            AMREX_LAUNCH_DEVICE_LAMBDA(nbxs[2], tbx,
-            {
-                get_face_velocity_z(tbx,
-                                    *psifab, *uface[2],
-                                    geomdata); 
-            });
-#endif
+                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxz, tbx,
+                         {
+                             get_face_velocity_z(tbx,
+                                                 *psifab, *uface[2],
+                                                 geomdata); 
+                         });
+                        );
 
             psi.clear();
 	}

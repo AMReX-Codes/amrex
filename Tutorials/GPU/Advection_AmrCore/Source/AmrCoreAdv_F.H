@@ -41,7 +41,9 @@ using namespace amrex;
                              GeometryData const& geom);
 
 // ==== GET_FACE_VELOCITY =====
+// ==== ADVECT FUNCTIONS =====
 
+/*
     void advect(const Real time, Box const& bx,
                 const FArrayBox& statein,
                 FArrayBox& stateout,
@@ -52,6 +54,33 @@ using namespace amrex;
                              FArrayBox& fy,
                              FArrayBox& fz),
 		const GpuArray<Real, AMREX_SPACEDIM>& dx, const Real dt);
+*/
+
+void conservative(Box const& bx,
+                  const FArrayBox& statein,
+                  FArrayBox& stateout,
+                  AMREX_D_DECL(FArrayBox& fx,
+                               FArrayBox& fy,
+                               FArrayBox& fz),
+                  const GpuArray<Real, AMREX_SPACEDIM>& dtdx);
+
+void flux_scale_x(Box const& bx,
+                    FArrayBox& fx,
+                    const Real& dt,
+                    const GpuArray<Real, AMREX_SPACEDIM>& dx);
+
+void flux_scale_y(Box const& bx,
+                    FArrayBox& fy,
+                    const Real& dt,
+                    const GpuArray<Real, AMREX_SPACEDIM>& dx);
+
+void flux_scale_z(Box const& bx,
+                    FArrayBox& fz,
+                    const Real& dt,
+                    const GpuArray<Real, AMREX_SPACEDIM>& dx);
+
+
+// ==== ADVECT =====
 
     void compute_flux_3d(Box const& bx, GpuArray<Real, AMREX_SPACEDIM>& dtdx,
                          const FArrayBox& phifab,
@@ -61,6 +90,7 @@ using namespace amrex;
                          AMREX_D_DECL(FArrayBox& flxx,
                                       FArrayBox& flxy,
                                       FArrayBox& flxz));
+
 /*
     void state_error(TagBox& tag,
 		     const FArrayBox& state,
