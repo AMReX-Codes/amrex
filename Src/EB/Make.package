@@ -60,9 +60,9 @@ CEXE_headers += AMReX_EB2_IF_Ellipsoid.H
 CEXE_headers += AMReX_EB2_IF_Plane.H
 CEXE_headers += AMReX_EB2_IF_Sphere.H
 CEXE_headers += AMReX_EB2_IF_Torus.H
+CEXE_headers += AMReX_distFcnElement.H
+CEXE_headers += AMReX_EB2_IF_Spline.H
 CEXE_headers += AMReX_EB2_IF_Polynomial.H
-
-
 CEXE_headers += AMReX_EB2_IF_Complement.H
 CEXE_headers += AMReX_EB2_IF_Intersection.H
 CEXE_headers += AMReX_EB2_IF_Lathe.H
@@ -74,6 +74,8 @@ CEXE_headers += AMReX_EB2_IF_Extrusion.H
 CEXE_headers += AMReX_EB2_IF_Difference.H
 CEXE_headers += AMReX_EB2_IF.H
 
+CEXE_sources += AMReX_distFcnElement.cpp
+
 
 CEXE_headers += AMReX_EB2_GeometryShop.H AMReX_EB2.H AMReX_EB2_IndexSpaceI.H AMReX_EB2_Level.H
 CEXE_headers += AMReX_EB2_Graph.H AMReX_EB2_MultiGFab.H
@@ -82,7 +84,6 @@ CEXE_sources += AMReX_EB2.cpp AMReX_EB2_Level.cpp AMReX_EB2_MultiGFab.cpp
 
 CEXE_headers += AMReX_EB2_F.H
 F90EXE_sources += AMReX_eb2_$(DIM)d.F90
-
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/EB
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB
