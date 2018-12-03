@@ -2219,3 +2219,287 @@ FabArray<FAB>::FillBoundary_test ()
 #endif
 #endif
 }
+
+#ifdef BL_USE_MPI
+struct CommInfo {
+    CommInfo () : req(MPI_REQUEST_NULL), data(nullptr), size(0) {}
+    Vector<FabArrayBase::CopyComTagsContainer const*> cctcs;
+    Vector<int> imfs;
+    MPI_Request req;
+    char*       data;
+    std::size_t size;
+};
+#endif
+
+template <class FAB>
+void
+FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
+{
+    const int nummfs = mf.size();
+    if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable())
+    {
+        for (int imf = 0; imf < nummfs; ++imf) {
+            mf[imf]->FillBoundary(period);
+        }
+    }
+    else
+    {
+#ifdef BL_USE_MPI
+        int SeqNum = ParallelDescriptor::SeqNum();
+        MPI_Comm comm = ParallelContext::CommunicatorSub();
+        int myproc = ParallelDescriptor::MyProc();
+        using value_type = typename FAB::value_type;
+
+        Vector<int> scomp(nummfs,0);
+        Vector<int> ncomp;
+        Vector<IntVect> nghost;
+        for (auto pmf : mf) {
+            ncomp.push_back(pmf->nComp());
+            nghost.push_back(pmf->nGrowVect());
+        }
+
+        Vector<FabArrayBase::FB const*> TheFB;
+        int N_locs_tot = 0, N_rcvs_tot = 0, N_snds_tot = 0;
+        for (int imf = 0; imf < nummfs; ++imf) {
+            TheFB.push_back(&(mf[imf]->getFB(nghost[imf], period, false, false)));
+            N_locs_tot += TheFB[imf]->m_LocTags->size();
+            N_rcvs_tot += TheFB[imf]->m_RcvTags->size();
+            N_snds_tot += TheFB[imf]->m_SndTags->size();
+        }
+
+        if (N_locs_tot == 0 && N_rcvs_tot == 0 && N_snds_tot == 0) {
+            return;
+        }
+
+        char* the_send_data = nullptr;
+        char* the_recv_data = nullptr;
+
+        std::map<int,CommInfo> send_info;
+        std::map<int,CommInfo> recv_info;
+
+        if (N_rcvs_tot > 0)
+        {
+            std::size_t total_volume = 0;
+            for (int imf = 0; imf < nummfs; ++imf)
+            {
+                for (auto const& kv : *(TheFB[imf]->m_RcvVols))
+                {
+                    const int recv_from = kv.first;
+
+                    std::size_t nbytes = 0;
+                    for (auto const& cct : kv.second) {
+                        nbytes += (*mf[imf])[cct.dstIndex].nBytes(cct.dbox,scomp[imf],ncomp[imf]);
+                    }
+                    total_volume += nbytes;
+
+                    auto const& cctc = TheFB[imf]->m_RcvTags->at(recv_from);
+
+                    CommInfo& comm_info = recv_info[recv_from];
+                    comm_info.cctcs.push_back(&cctc);
+                    comm_info.imfs.push_back(imf);
+                    comm_info.size += nbytes;
+                }
+            }
+
+            the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+            char* p = the_recv_data;
+            for (auto it = recv_info.begin(); it != recv_info.end(); ++it)
+            {
+                const int recv_from = it->first;
+                CommInfo& comm_info = it->second;
+                comm_info.data = p;
+                AMREX_ASSERT(comm_info.size < std::numeric_limits<int>::max());
+                comm_info.req = ParallelDescriptor::Arecv(p, comm_info.size,
+                                                          ParallelContext::global_to_local_rank(recv_from),
+                                                          SeqNum, comm).req();
+                p += comm_info.size;
+            }
+        }
+
+        if (N_snds_tot > 0)
+        {
+            std::size_t total_volume = 0;
+            for (int imf = 0; imf < nummfs; ++imf)
+            {
+                for (auto const& kv : *(TheFB[imf]->m_SndVols))
+                {
+                    const int send_to = kv.first;
+
+                    std::size_t nbytes = 0;
+                    for (auto const& cct : kv.second) {
+                        nbytes += (*mf[imf])[cct.srcIndex].nBytes(cct.sbox,scomp[imf],ncomp[imf]);
+                    }
+                    total_volume += nbytes;
+
+                    auto const& cctc = TheFB[imf]->m_SndTags->at(send_to);
+
+                    CommInfo& comm_info = send_info[send_to];
+                    comm_info.cctcs.push_back(&cctc);
+                    comm_info.imfs.push_back(imf);
+                    comm_info.size += nbytes;
+                }
+            }
+
+            const int N_snds = send_info.size();
+
+            Vector<int> send_to_ranks;
+            send_to_ranks.reserve(send_info.size());
+
+            the_send_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(total_volume));
+            char* ptmp = the_send_data;
+            for (auto it = send_info.begin(); it != send_info.end(); ++it) {
+                send_to_ranks.push_back(it->first);
+                it->second.data = ptmp;
+                ptmp += it->second.size;
+            }
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (Gpu::StreamIter sit(N_snds); sit.isValid(); ++sit)
+            {
+                const int send_to = send_to_ranks[sit()];
+                CommInfo& comm_info = send_info[send_to];
+                char* dptr = comm_info.data;
+                auto const& cctcs = comm_info.cctcs;
+                auto const& imfs = comm_info.imfs;
+                for (int ifa = 0, nfa = imfs.size(); ifa < nfa; ++ifa)
+                {
+                    auto const& cctc = *cctcs[ifa];
+                    const int imf = imfs[ifa];
+                    auto& fabarray = *mf[imf];
+                    const int sc = scomp[imf];
+                    const int nc = ncomp[imf];
+                    for (auto const& tag : cctc)
+                    {
+                        const Box& bx = tag.sbox;
+                        const FAB* sfab = &(fabarray[tag.srcIndex]);
+
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                        {
+                            char* p = dptr + sizeof(value_type)*nc*bx.index(tbx.smallEnd());
+                            sfab->copyToMem(tbx, sc, nc, p);
+                        });
+                        dptr += bx.numPts()*nc*sizeof(value_type);
+                    }
+                }
+                AMREX_ASSERT(dptr == comm_info.data + comm_info.size);
+            }
+
+            for (auto it = send_info.begin(); it != send_info.end(); ++it)
+            {
+                const int send_to = it->first;
+                CommInfo& comm_info = it->second;
+                comm_info.req = ParallelDescriptor::Asend(comm_info.data, comm_info.size,
+                                                          ParallelContext::global_to_local_rank(send_to),
+                                                          SeqNum, comm).req();
+            }
+        }
+
+        if (N_locs_tot > 0)
+        {
+            for (int imf = 0; imf < nummfs; ++imf)
+            {
+                auto& fa = *mf[imf];
+                const int sc = scomp[imf];
+                const int nc = ncomp[imf];
+                const DistributionMapping& dm = fa.DistributionMap();
+                const auto& tags = *(TheFB[imf]->m_LocTags);
+                const int N_locs = tags.size();
+                if (false)
+                {
+                    
+                }
+                else
+                {
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+                    for (int i = 0; i < N_locs; ++i)
+                    {
+                        const auto& tag = tags[i];
+                        if (myproc == dm[tag.dstIndex])
+                        {
+                            const FAB* sfab = &(fa[tag.srcIndex]);
+                                  FAB* dfab = &(fa[tag.dstIndex]);
+                            dfab->copy(*sfab, tag.sbox, sc, tag.dbox, sc, nc);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!recv_info.empty())
+        {
+            const int N_rcvs = recv_info.size();
+            Vector<MPI_Request> recv_reqs;
+            Vector<int> recv_size;
+            Vector<CommInfo*> recv_info_v;
+            for (auto it = recv_info.begin(); it != recv_info.end(); ++it)
+            {
+                CommInfo& comm_info = it->second;
+                recv_reqs.push_back(comm_info.req);
+                recv_size.push_back(static_cast<int>(comm_info.size));
+                recv_info_v.push_back(&comm_info);
+            }
+            Vector<MPI_Status> recv_stat(N_rcvs);
+
+            ParallelDescriptor::Waitall(recv_reqs, recv_stat);
+#ifdef AMREX_DEBUG
+            if (!FabArrayBase::CheckRcvStats(recv_stat, recv_size, MPI_CHAR, SeqNum))
+            {
+                amrex::Abort("amrex::FillBoundary failed with wrong message size");
+            }
+#endif
+
+            if (false)
+            {
+            }
+            else
+            {
+//#ifdef _OPENMP
+//#pragma omp parallel for
+//#endif
+                for (int k = 0; k < N_rcvs; ++k)
+                {
+                    CommInfo& comm_info = *recv_info_v[k];
+                    const char* dptr = comm_info.data;
+                    auto const& cctcs = comm_info.cctcs;
+                    auto const& imfs = comm_info.imfs;
+                    for (int ifa = 0, nfa = imfs.size(); ifa < nfa; ++ifa)
+                    {
+                        auto const& cctc = *cctcs[ifa];
+                        const int imf = imfs[ifa];
+                        auto& fabarray = *mf[imf];
+                        const int sc = scomp[imf];
+                        const int nc = ncomp[imf];
+                        for (auto const& tag : cctc)
+                        {
+                            const Box& bx = tag.dbox;
+                            FAB* dfab = &(fabarray[tag.dstIndex]);
+                            dfab->copyFromMem(bx, sc, nc, dptr);
+                            dptr += bx.numPts()*nc*sizeof(value_type);
+                        }
+                    }
+                    AMREX_ASSERT(dptr == comm_info.data + comm_info.size);
+                }
+            }
+        }
+
+        if (!send_info.empty())
+        {
+            const int N_snds = send_info.size();
+            Vector<MPI_Request> send_reqs;
+            for (auto it = send_info.begin(); it != send_info.end(); ++it)
+            {
+                send_reqs.push_back(it->second.req);
+            }
+            Vector<MPI_Status> send_stat(N_snds);
+            ParallelDescriptor::Waitall(send_reqs, send_stat);
+        }
+
+        amrex::The_FA_Arena()->free(the_send_data);
+        amrex::The_FA_Arena()->free(the_recv_data);
+    }
+#endif
+}
