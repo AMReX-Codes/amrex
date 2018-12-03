@@ -974,9 +974,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const DistributionMapping& dmap = ParticleDistributionMap(lev);
     auto& plev  = m_particles[lev];
 
+    if (ba.size() == 1) 
+    {
+        EnforcePeriodicGPU();
+        AMREX_ASSERT(OK());
+        return;
+    }
+
     m_grids_tmp.resize(0);
     m_index_sequence_tmp.resize(0);
-
+    
     // temporaries
     m_grids_tmp.resize(0);
     m_index_sequence_tmp.resize(0);

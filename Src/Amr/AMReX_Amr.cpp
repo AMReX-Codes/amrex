@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <cstdio>
 #include <list>
@@ -1682,6 +1681,13 @@ Amr::restart (const std::string& filename)
        }
     }
 
+    // Save the number of steps taken so far. This mainly
+    // helps in the edge case where we end up not taking
+    // any timesteps before the run terminates, so that
+    // we know not to unnecessarily overwrite the old file.
+    last_checkpoint = level_steps[0];
+    last_plotfile = level_steps[0];
+
     for (int lev = 0; lev <= finest_level; ++lev)
     {
 	Box restart_domain(Geom(lev).Domain());
@@ -2443,8 +2449,10 @@ Amr::coarseTimeStep (Real stop_time)
       last_plotfile   = level_steps[0];
     }
 
-    if (to_checkpoint && write_plotfile_with_checkpoint)
+    if (to_checkpoint && write_plotfile_with_checkpoint) {
       to_plot = 1;
+      to_small_plot = 1;
+    }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)

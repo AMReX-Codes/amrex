@@ -64,7 +64,7 @@ contains
   end function amrex_coarsen_intvect
 
 
-  subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
+  subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='amrex_get_loop_bounds')
 
     implicit none
 
