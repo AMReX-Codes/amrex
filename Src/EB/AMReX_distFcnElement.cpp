@@ -4,6 +4,8 @@
 /* Implementation for Distance Function 2D Base Class */
 /* ---------------------------------------------------------------------------*/
 
+namespace amrex {
+
 amrex::Real distFcnElement2d::cpdist(amrex::RealVect pt,
                                      amrex::RealVect & cpmin) const {
   amrex::Abort("cp dist must be implemented by the derived class");
@@ -51,10 +53,14 @@ int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
   return 0;
 }
 
+}
+
 
 /* ---------------------------------------------------------------------------*/
 /* Implementation for Splines */
 /* ---------------------------------------------------------------------------*/
+
+namespace amrex {
 
 distFcnElement2d* SplineDistFcnElement2d::newDistFcnElement2d() const {
   SplineDistFcnElement2d* newSpline = new SplineDistFcnElement2d();
@@ -468,4 +474,6 @@ distFcnElement2d* LineDistFcnElement2d::newDistFcnElement2d() const {
   newLine->control_points_x = control_points_x;
   newLine->control_points_y = control_points_y;
   return static_cast<distFcnElement2d*>(newLine);
+}
+
 }
