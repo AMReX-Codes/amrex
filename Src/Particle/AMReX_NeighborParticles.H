@@ -79,6 +79,11 @@ class NeighborParticleContainer
                 and (periodic_shift[1] == other.periodic_shift[1])
                 and (periodic_shift[2] == other.periodic_shift[2]);
         }
+
+        bool operator!=(const NeighborCopyTag& other) const
+        {
+            return !operator==(other);
+        }        
     };
 
     struct NeighborCommTag {
