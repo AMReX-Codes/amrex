@@ -1579,4 +1579,11 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     MultiFab::Copy(*this, tmpmf, 0, 0, ncomp, 0);
 }
 
+void
+FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period)
+{
+    Vector<FabArray<FArrayBox>*> fa{mf.begin(),mf.end()};
+    FillBoundary(fa,period);
+}
+
 }

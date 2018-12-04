@@ -1,6 +1,8 @@
+#ifndef _PERILLA_RTS_
+#define _PERILLA_RTS_
+
 #include <AMReX_Amr.H>
 #include <PerillaConfig.H>
-
 
 namespace perilla{
 
@@ -15,7 +17,7 @@ struct _threadInfo{
     int _nWts; //number of thread groups
 };
 
-class PerillaRTS
+class RTS
 {
     private:
 	int _nWrks;
@@ -23,12 +25,12 @@ class PerillaRTS
 	int _rank, _nProcs;
 
     public:
-	PerillaRTS(){
+	RTS(){
 	    _nWrks=1;
 	    char* nWrks= getenv("NWORKERS");
 	    if(nWrks) _nWrks= atoi(nWrks);
 	}
-	PerillaRTS(int nWrks):_nWrks(nWrks){}
+	RTS(int nWrks):_nWrks(nWrks){}
 	int ProcCount();
 	int MyProc();
 	int WorkerThreadCount();
@@ -43,3 +45,4 @@ class PerillaRTS
 };
 
 }
+#endif

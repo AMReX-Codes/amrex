@@ -11,7 +11,7 @@ include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
-include $(AMREX_HOME)/Src/AmrTask/rts_impls/Perilla/Make.package
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi_pthreads/Make.package
 
 Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
 Bpack   += $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
@@ -19,7 +19,7 @@ Blocs   += $(foreach dir, $(Bdirs), $(TOP)/$(dir))
 
 include $(Bpack)
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/Perilla
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi_pthreads
 CXXFLAGS += $(PPFLAGS) 
 libraries += $(LDFLAGS)
 
@@ -27,7 +27,7 @@ vpathdir += $(AMREX_HOME)/Src/Boundary
 vpathdir += $(AMREX_HOME)/Src/Base
 vpathdir += $(AMREX_HOME)/Src/Amr
 vpathdir += $(AMREX_HOME)/Src/AmrCore
-vpathdir += $(AMREX_HOME)/Src/AmrTask/rts_impls/Perilla
+vpathdir += $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi_pthreads
 
 
 INCLUDE_LOCATIONS += $(Blocs)
