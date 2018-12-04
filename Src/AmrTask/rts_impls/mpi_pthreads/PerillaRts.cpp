@@ -31,19 +31,19 @@ namespace perilla{
     volatile char startSignal=0;
     pthread_mutex_t startLock= PTHREAD_MUTEX_INITIALIZER;
 
-    int PerillaRTS::ProcCount(){
+    int RTS::ProcCount(){
 	return _nProcs;
     }
 
-    int PerillaRTS::MyProc(){
+    int RTS::MyProc(){
 	return _rank;
     }
 
-    int PerillaRTS::WorkerThreadCount(){
+    int RTS::WorkerThreadCount(){
 	return _nWrks;
     }
 
-    int PerillaRTS::MyWorkerThread(){
+    int RTS::MyWorkerThread(){
 	return 0;
     }
 
@@ -55,10 +55,10 @@ namespace perilla{
 	int nTotalThreads;
 	int max_step;
 	Real stop_time;
-	PerillaRTS* thisRTS;
+	RTS* thisRTS;
     };
 
-    void PerillaRTS::runAMR(Amr* amr, int tid, int nThreads, int max_step, Real stop_time){
+    void RTS::runAMR(Amr* amr, int tid, int nThreads, int max_step, Real stop_time){
         while (amr->okToContinue() &&
               (amr->levelSteps(0) < max_step || max_step < 0) &&
               (amr->cumTime() < stop_time || stop_time < 0.0) )
@@ -79,7 +79,7 @@ namespace perilla{
 	int nTotalThreads= args->nTotalThreads;
 	int max_step= args->max_step;
 	Real stop_time= args->stop_time;
-	PerillaRTS* rts= args->thisRTS;
+	RTS* rts= args->thisRTS;
 	Perilla::registerId(g_tid);
 	//done with thread id setup, now wait for the start signal from master
         pthread_mutex_lock(&startLock);
@@ -98,27 +98,27 @@ namespace perilla{
 	}
     }
 
-    void PerillaRTS::RTS_Init(){
+    void RTS::RTS_Init(){
 	amrptr= NULL;
     }
 
-    void PerillaRTS::Init(){
+    void RTS::Init(){
         InitializeMPI();
         MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &_nProcs);
         RTS_Init();
     }
 
-    void PerillaRTS::Init(int rank, int nProcs){
+    void RTS::Init(int rank, int nProcs){
         _rank= rank;
 	_nProcs= nProcs;
 	RTS_Init();
     }
 
-    void PerillaRTS::Finalize(){
+    void RTS::Finalize(){
     }
 
-    void PerillaRTS::Iterate(void* amrGraph, int max_step, Real stop_time){
+    void RTS::Iterate(void* amrGraph, int max_step, Real stop_time){
 	    assert(amrGraph);
 	    Perilla::max_step= max_step;
 	    amrptr= (Amr*)amrGraph;
@@ -180,7 +180,7 @@ namespace perilla{
 
 #if 0
     const double kMicro = 1.0e-6;
-    double PerillaRTS::Time()
+    double RTS::Time()
     {
 	struct timeval TV;
 
@@ -194,7 +194,7 @@ namespace perilla{
     } 
 #endif
 
-    void PerillaRTS::Barrier(){
+    void RTS::Barrier(){
 	//nothing
     }
 
