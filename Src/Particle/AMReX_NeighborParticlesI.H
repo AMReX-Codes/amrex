@@ -391,8 +391,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
             AMREX_ASSERT(nim.src_index < tags.size());
-            tags[nim.src_index].dst_offset = i;
-            AMREX_ASSERT(tags[nim.src_index].dst_offset < neighbors[lev][dst_index].size());
+            tags[nim.src_index].dst_index = i;
+            AMREX_ASSERT(tags[nim.src_index].dst_index < neighbors[lev][dst_index].size());
         }
     }
 
@@ -429,7 +429,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const NeighborIndexMap& nim = kv.second[i];
             PairIndex src_index(nim.src_grid, nim.src_tile);
             Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
-            tags[nim.src_index].dst_offset = buffer_offset + i*cdata_size;
+            tags[nim.src_index].dst_index = buffer_offset + i*cdata_size;
         }
     }
 }
@@ -489,10 +489,10 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 if (who == MyProc) {
                     PairIndex dst_index(tag.grid, tag.tile);
                     ParticleVector& buffer = neighbors[lev][dst_index];
-                    AMREX_ASSERT(tag.dst_offset < buffer.size());
-                    std::memcpy(&buffer[tag.dst_offset], &p, pdata_size);
+                    AMREX_ASSERT(tag.dst_index < buffer.size());
+                    std::memcpy(&buffer[tag.dst_index], &p, pdata_size);
                 } else {
-                    char* dst = &send_data[who][tag.dst_offset];
+                    char* dst = &send_data[who][tag.dst_index];
                     char* src = (char *) &p;
                     for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
                         if (rc[ii]) {

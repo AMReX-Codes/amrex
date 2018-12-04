@@ -57,7 +57,7 @@ class NeighborParticleContainer
         int grid;
         int tile;
         int src_index;
-        int dst_offset;
+        int dst_index;
         int periodic_shift[3];
 
         bool operator<(const NeighborCopyTag& other) const {
