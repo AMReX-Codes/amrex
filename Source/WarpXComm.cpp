@@ -257,9 +257,8 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         }
 
         const auto& period = Geom(lev).periodicity();
-        (*Efield_fp[lev][0]).FillBoundary(period);
-        (*Efield_fp[lev][1]).FillBoundary(period);
-        (*Efield_fp[lev][2]).FillBoundary(period);
+        Vector<MultiFab*> mf{Efield_fp[lev][0].get(),Efield_fp[lev][1].get(),Efield_fp[lev][2].get()};
+        amrex::FillBoundary(mf, period);
     }
     else if (patch_type == PatchType::coarse)
     {
@@ -273,9 +272,8 @@ WarpX::FillBoundaryE (int lev, PatchType patch_type)
         }
 
         const auto& cperiod = Geom(lev-1).periodicity();
-        (*Efield_cp[lev][0]).FillBoundary(cperiod);
-        (*Efield_cp[lev][1]).FillBoundary(cperiod);
-        (*Efield_cp[lev][2]).FillBoundary(cperiod);
+        Vector<MultiFab*> mf{Efield_cp[lev][0].get(),Efield_cp[lev][1].get(),Efield_cp[lev][2].get()};
+        amrex::FillBoundary(mf, cperiod);
     }
 }
 
@@ -300,9 +298,8 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& period = Geom(lev).periodicity();
-        (*Bfield_fp[lev][0]).FillBoundary(period);
-        (*Bfield_fp[lev][1]).FillBoundary(period);
-        (*Bfield_fp[lev][2]).FillBoundary(period);
+        Vector<MultiFab*> mf{Bfield_fp[lev][0].get(),Bfield_fp[lev][1].get(),Bfield_fp[lev][2].get()};
+        amrex::FillBoundary(mf, period);
     }
     else if (patch_type == PatchType::coarse)
     {
@@ -315,9 +312,8 @@ WarpX::FillBoundaryB (int lev, PatchType patch_type)
         pml[lev]->FillBoundaryB(patch_type);
         }
         const auto& cperiod = Geom(lev-1).periodicity();
-        (*Bfield_cp[lev][0]).FillBoundary(cperiod);
-        (*Bfield_cp[lev][1]).FillBoundary(cperiod);
-        (*Bfield_cp[lev][2]).FillBoundary(cperiod);
+        Vector<MultiFab*> mf{Bfield_cp[lev][0].get(),Bfield_cp[lev][1].get(),Bfield_cp[lev][2].get()};
+        amrex::FillBoundary(mf, cperiod);
     }
 }
 
