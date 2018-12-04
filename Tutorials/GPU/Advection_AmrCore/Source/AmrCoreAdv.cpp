@@ -780,9 +780,9 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             // compute transverse fluxes
             // ===========================
 
-            AMREX_D_TERM(const Box& gbxx = amrex::grow(bx, 1);,
-                         const Box& gbxy = amrex::grow(bx, 1);,
-                         const Box& gbxz = amrex::grow(bx, 1););
+            AMREX_D_TERM(const Box& gbxx = amrex::grow(bx, 0, 1);,
+                         const Box& gbxy = amrex::grow(bx, 1, 1);,
+                         const Box& gbxz = amrex::grow(bx, 2, 1););
 
             // xy & xz --------------------
             Gpu::AsyncFab phix_y (gbx, 1);
@@ -934,12 +934,12 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                  Real vmax = facevel[1].norm0(0,0,false);,
                  Real wmax = facevel[2].norm0(0,0,false););
 
-    if (AMREX_D_TERM(umax*dt_lev > dx[1], ||
-                     vmax*dt_lev > dx[2], ||
-                     wmax*dt_lev > dx[3]))
+    if (AMREX_D_TERM(umax*dt_lev > dx[0], ||
+                     vmax*dt_lev > dx[1], ||
+                     wmax*dt_lev > dx[2]))
     {
-//        amrex::Print() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax 
-//                       << ", dt = " << ctr_time << "dx = " << dx[1] << " " << dx[2] << " " << dx[3] << std::endl;
+        amrex::Print() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax 
+                       << ", dt = " << ctr_time << " dx = " << dx[1] << " " << dx[2] << " " << dx[3] << std::endl;
         amrex::Abort("CFL violation. use smaller adv.cfl.");
     }
 
