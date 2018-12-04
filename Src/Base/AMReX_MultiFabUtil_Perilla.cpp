@@ -1,6 +1,7 @@
 #ifdef USE_PERILLA
 
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_MultiFabUtil_C.H>
 #include <AMReX_MultiFabUtil_Perilla.H>
 
 #include <Perilla.H>
