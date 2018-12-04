@@ -38,9 +38,7 @@ void get_face_velocity_x(Box const& bx,
     const auto len = length(bx);
     const auto lo  = lbound(bx);
     const auto vx  = xvelfab.view(lo);
-
-    const auto psi_lo = lbound(bx);
-    const auto psi = psifab.view(psi_lo);
+    const auto psi = psifab.view(IntVect{lo.x, lo.y, 0});
 
     const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
     const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
@@ -65,9 +63,7 @@ void get_face_velocity_y(Box const& bx,
     const auto len = length(bx);
     const auto lo  = lbound(bx);
     const auto vy  = yvelfab.view(lo); 
-
-    const auto psi_lo = lbound(bx);
-    const auto psi = psifab.view(psi_lo);
+    const auto psi = psifab.view(IntVect{lo.x, lo.y, 0});
 
     const Real* AMREX_RESTRICT prob_lo = geom.ProbLo();
     const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
