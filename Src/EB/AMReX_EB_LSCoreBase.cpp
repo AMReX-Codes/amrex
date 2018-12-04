@@ -344,6 +344,28 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 // max_eb_pad.
 Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail) {
 
+    // Infinities don't work well with std::max, so just bail and construct the
+    // maximum box.
+    if (ls_crse.contains_inf()){
+        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(n_grow);
+
+        bail = true;
+        return bx;
+    }
+
+    // Something's gone wrong :( ... so just bail and construct the maximum box.
+    if (ls_crse.contains_nan()){
+        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(n_grow);
+
+        bail = true;
+        return bx;
+    }
+
+
     Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
 
     IntVect n_grow(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
@@ -381,7 +403,7 @@ Vector<MultiFab> LSCoreBase::PlotFileMF () const {
 
         amrex::average_node_to_cellcenter(r[i], 0, level_set[i], 0, 1);
     }
-    return r;
+    return std::move(r);
 }
 
 

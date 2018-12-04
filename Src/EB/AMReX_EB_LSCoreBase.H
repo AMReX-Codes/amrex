@@ -148,7 +148,7 @@ protected:
     Vector<const EB2::Level *>         eb_levels;
     Vector<std::unique_ptr<LSFactory>> ls_factory;
     // Apparently std::vector<bool> isn't a thing?! (more precisely it's a
-    // different thing)
+    // different thing) => use int vector
     Vector<int>                        rebuild_eb;
 
     // Level set data
