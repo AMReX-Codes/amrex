@@ -6,21 +6,17 @@
 
 using namespace amrex;
 
-void slopex(Box const& bx,
-           const FArrayBox &qfab,
-           FArrayBox &dq4fab)
+void slopex2(Box const& bx,
+            const FArrayBox &qfab,
+            FArrayBox &dqfab)
 {
-     const Box xbx = amrex::grow(bx, 0, 1);
-     Gpu::AsyncFab fabdq (xbx, 1);
-     FArrayBox* dqptr = fabdq.fabPtr();
-
      // Find 2nd order slope
-     AMREX_LAUNCH_DEVICE_LAMBDA(xbx, tbx,
+     AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
      {
-         const auto len = length(bx);
-         const auto lo  = lbound(bx);
+         const auto len = length(tbx);
+         const auto lo  = lbound(tbx);
          const auto q   =  qfab.view(lo);
-         const auto dq  = dqptr->view(lo);
+         const auto dq  = dqfab.view(lo);
 
          for         (int k = 0; k < len.z; ++k) {
              for     (int j = 0; j < len.y; ++j) {
@@ -37,16 +33,20 @@ void slopex(Box const& bx,
              }
          }
      });
+}
 
-     Cuda::Device::synchronize();
-
+void slopex4(Box const& bx,
+             const FArrayBox &qfab,
+             const FArrayBox &dqfab,
+             FArrayBox &dq4fab)
+{
      // Calc 4th order slope from 2nd order slope
      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
      {
-         const auto len = length(bx);
-         const auto lo  = lbound(bx);
+         const auto len = length(tbx);
+         const auto lo  = lbound(tbx);
          const auto q   =   qfab.view(lo);
-         const auto dq  =  dqptr->view(lo);
+         const auto dq  =  dqfab.view(lo);
          const auto dq4 = dq4fab.view(lo);
 
          for         (int k = 0; k < len.z; ++k) {
@@ -69,21 +69,17 @@ void slopex(Box const& bx,
 
 // ***********************************************************
 
-void slopey(Box const& bx,
-           const FArrayBox &qfab,
-           FArrayBox &dq4fab)
+void slopey2(Box const& bx,
+            const FArrayBox &qfab,
+            FArrayBox &dqfab)
 {
-     const Box ybx = amrex::grow(bx, 1, 1);
-     Gpu::AsyncFab fabdq (ybx, 1);
-     FArrayBox* dqptr = fabdq.fabPtr();
-
      // Find 2nd order slope
-     AMREX_LAUNCH_DEVICE_LAMBDA(ybx, tbx,
+     AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
      {
-         const auto len = length(bx);
-         const auto lo  = lbound(bx);
+         const auto len = length(tbx);
+         const auto lo  = lbound(tbx);
          const auto q   =  qfab.view(lo);
-         const auto dq  = dqptr->view(lo);
+         const auto dq  = dqfab.view(lo);
 
          for         (int k = 0; k < len.z; ++k) {
              for     (int j = 0; j < len.y; ++j) {
@@ -100,16 +96,20 @@ void slopey(Box const& bx,
              }
          }
      });
+}
 
-     Cuda::Device::synchronize();
-
+void slopey4(Box const& bx,
+             const FArrayBox &qfab,
+             const FArrayBox &dqfab,
+             FArrayBox &dq4fab)
+{
      // Calc 4th order slope from 2nd order slope
      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
      {
-         const auto len = length(bx);
-         const auto lo  = lbound(bx);
+         const auto len = length(tbx);
+         const auto lo  = lbound(tbx);
          const auto q   =   qfab.view(lo);
-         const auto dq  =  dqptr->view(lo);
+         const auto dq  =  dqfab.view(lo);
          const auto dq4 = dq4fab.view(lo);
 
          for         (int k = 0; k < len.z; ++k) {
@@ -132,21 +132,17 @@ void slopey(Box const& bx,
 
 // ***********************************************************
 
-void slopez(Box const& bx,
-           const FArrayBox &qfab,
-           FArrayBox &dq4fab)
+void slopez2(Box const& bx,
+            const FArrayBox &qfab,
+            FArrayBox &dqfab)
 {
-     const Box zbx = amrex::grow(bx, 1, 1);
-     Gpu::AsyncFab fabdq (zbx, 1);
-     FArrayBox* dqptr = fabdq.fabPtr();
-
      // Find 2nd order slope
-     AMREX_LAUNCH_DEVICE_LAMBDA(zbx, tbx,
+     AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
      {
-         const auto len = length(bx);
-         const auto lo  = lbound(bx);
+         const auto len = length(tbx);
+         const auto lo  = lbound(tbx);
          const auto q   =  qfab.view(lo);
-         const auto dq  = dqptr->view(lo);
+         const auto dq  = dqfab.view(lo);
 
          for         (int k = 0; k < len.z; ++k) {
              for     (int j = 0; j < len.y; ++j) {
@@ -163,16 +159,20 @@ void slopez(Box const& bx,
              }
          }
      });
+}
 
-     Cuda::Device::synchronize();
-
+void slopez4(Box const& bx,
+             const FArrayBox &qfab,
+             const FArrayBox &dqfab,
+             FArrayBox &dq4fab)
+{
      // Calc 4th order slope from 2nd order slope
      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
      {
-         const auto len = length(bx);
-         const auto lo  = lbound(bx);
+         const auto len = length(tbx);
+         const auto lo  = lbound(tbx);
          const auto q   =   qfab.view(lo);
-         const auto dq  =  dqptr->view(lo);
+         const auto dq  =  dqfab.view(lo);
          const auto dq4 = dq4fab.view(lo);
 
          for         (int k = 0; k < len.z; ++k) {
