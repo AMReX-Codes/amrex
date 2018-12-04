@@ -711,8 +711,7 @@ private:
 
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
-    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
-                   const MapOfCopyComTagContainers&       m_RcvTags,
+    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
                    Vector<int>&                           recv_size,
@@ -725,7 +724,7 @@ private:
 #endif
 
 #ifdef BL_USE_MPI3
-    void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
+    void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvTagss,
                                 char*&                            the_recv_data,
                                 Vector<char*>&                    recv_data,
                                 Vector<int>&                      recv_size,
