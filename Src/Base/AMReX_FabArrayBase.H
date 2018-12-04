@@ -469,8 +469,6 @@ protected:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        MapOfCopyComTagContainers* m_SndVols;
-        MapOfCopyComTagContainers* m_RcvVols;
 	//
 	int                 m_nuse;
 	//
@@ -529,8 +527,6 @@ public:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        MapOfCopyComTagContainers* m_SndVols;
-        MapOfCopyComTagContainers* m_RcvVols;
 	//
         int         m_nuse;
 

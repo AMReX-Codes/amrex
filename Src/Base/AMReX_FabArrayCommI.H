@@ -151,10 +151,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         indv_send_size.reserve(N_snds);
 
         std::size_t total_volume = 0;
-        for (auto const& kv : *TheFB.m_SndVols)
+        for (auto const& kv : *TheFB.m_SndTags)
         {
             Vector<int> iss;                
-            auto const& cctc = TheFB.m_SndTags->at(kv.first);
+            auto const& cctc = kv.second;
 
             std::size_t nbytes = 0;
             if (FAB::preAllocatable())
@@ -231,14 +231,14 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     if (N_rcvs > 0) {
 	if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-	    PostRcvs_MPI_Onesided(*TheFB.m_RcvVols, fb_the_recv_data, fb_recv_data,
+	    PostRcvs_MPI_Onesided(*TheFB.m_RcvTags, fb_the_recv_data, fb_recv_data,
                                   fb_recv_size, fb_recv_from, fb_recv_reqs, fb_recv_disp,
                                   scomp, ncomp, SeqNum, ParallelDescriptor::fb_win);
 	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
 	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
 #endif
 	} else {
-	    PostRcvs(*TheFB.m_RcvVols, *TheFB.m_RcvTags, fb_the_recv_data,
+	    PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
                      fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
                      scomp, ncomp, SeqNum, preSeqNum);
 	}
@@ -860,10 +860,10 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             indv_send_size.reserve(N_snds);
 
             std::size_t total_volume = 0;
-            for (auto const& kv : *thecpc.m_SndVols)
+            for (auto const& kv : *thecpc.m_SndTags)
 	    {
                 Vector<int> iss;                
-                auto const& cctc = thecpc.m_SndTags->at(kv.first);
+                auto const& cctc = kv.second;
 
                 std::size_t nbytes = 0;
                 if (FAB::preAllocatable())
@@ -941,14 +941,14 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	if (N_rcvs > 0) {
 	    if (ParallelDescriptor::MPIOneSided()) {
 #if defined(BL_USE_MPI3)
-                PostRcvs_MPI_Onesided(*thecpc.m_RcvVols, the_recv_data, recv_data, 
+                PostRcvs_MPI_Onesided(*thecpc.m_RcvTags, the_recv_data, recv_data, 
                                       recv_size, recv_from, recv_reqs, recv_disp,
                                       SC, NC, SeqNum, ParallelDescriptor::cp_win);
 		MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
 		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
 #endif
 	    } else {
-                PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags, the_recv_data,
+                PostRcvs(*thecpc.m_RcvTags, the_recv_data,
                          recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
 	    }
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
@@ -1528,10 +1528,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         indv_send_size.reserve(N_snds);
         
         std::size_t total_volume = 0;
-        for (auto const& kv : *thecpc.m_SndVols)
+        for (auto const& kv : *thecpc.m_SndTags)
         {
             Vector<int> iss;                
-            auto const& cctc = thecpc.m_SndTags->at(kv.first);
+            auto const& cctc = kv.second;
             
             std::size_t nbytes = 0;
             if (FAB::preAllocatable())
@@ -1594,7 +1594,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     //
     handle.actual_n_rcvs = 0;
     if (N_rcvs > 0) {
-        PostRcvs(*thecpc.m_RcvVols, *thecpc.m_RcvTags, the_recv_data,
+        PostRcvs(*thecpc.m_RcvTags, the_recv_data,
                  recv_data, recv_size, recv_from, recv_reqs, scomp, ncomp, SeqNum, preSeqNum);
         handle.actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
     }
@@ -1991,8 +1991,7 @@ FabArray<FAB>::copyTo (FAB&       dest,
 #ifdef BL_USE_MPI
 template <class FAB>
 void
-FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
-                         const MapOfCopyComTagContainers&  m_RcvTags,
+FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
                          char*&                            the_recv_data,
                          Vector<char*>&                    recv_data,
                          Vector<int>&                      recv_size,
@@ -2009,7 +2008,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
     recv_reqs.clear();
 
     std::size_t TotalRcvsVolume = 0;
-    for (const auto& kv : m_RcvVols) // loop over senders
+    for (const auto& kv : m_RcvTags) // loop over senders
     {
         std::size_t nbytes = 0;
         if (FAB::preAllocatable())
@@ -2099,7 +2098,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvVols,
 #ifdef BL_USE_MPI3
 template <class FAB>
 void
-FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
+FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvTags,
                                       char*&                            the_recv_data,
                                       Vector<char*>&                    recv_data,
                                       Vector<int>&                      recv_size,
@@ -2118,7 +2117,7 @@ FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVol
     recv_disp.clear();
 
     std::size_t TotalRcvsVolume = 0;
-    for (const auto& kv : m_RcvVols) // loop over senders
+    for (const auto& kv : m_RcvTags) // loop over senders
     {
         std::size_t nbytes = 0;
         for (const auto& cct : kv.second)
@@ -2232,11 +2231,23 @@ struct CommInfo {
 #endif
 
 template <class FAB>
+bool
+SameLayout (Vector<FabArray<FAB>*> const& mf)
+{
+    bool r = true;
+    for (int i = 1, n = mf.size(); (i < n) && r; ++i) {
+        r = r && (mf[0]->boxArray() == mf[i]->boxArray());
+        r = r && (mf[0]->DistributionMap() == mf[i]->DistributionMap());
+    }
+    return r;
+}
+
+template <class FAB>
 void
 FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 {
     const int nummfs = mf.size();
-    if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable())
+    if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable() || !SameLayout(mf))
     {
         for (int imf = 0; imf < nummfs; ++imf) {
             mf[imf]->FillBoundary(period);
@@ -2282,17 +2293,16 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
             std::size_t total_volume = 0;
             for (int imf = 0; imf < nummfs; ++imf)
             {
-                for (auto const& kv : *(TheFB[imf]->m_RcvVols))
+                for (auto const& kv : *(TheFB[imf]->m_RcvTags))
                 {
                     const int recv_from = kv.first;
+                    auto const& cctc = kv.second;
 
                     std::size_t nbytes = 0;
-                    for (auto const& cct : kv.second) {
+                    for (auto const& cct : cctc) {
                         nbytes += (*mf[imf])[cct.dstIndex].nBytes(cct.dbox,scomp[imf],ncomp[imf]);
                     }
                     total_volume += nbytes;
-
-                    auto const& cctc = TheFB[imf]->m_RcvTags->at(recv_from);
 
                     CommInfo& comm_info = recv_info[recv_from];
                     comm_info.cctcs.push_back(&cctc);
@@ -2321,17 +2331,16 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
             std::size_t total_volume = 0;
             for (int imf = 0; imf < nummfs; ++imf)
             {
-                for (auto const& kv : *(TheFB[imf]->m_SndVols))
+                for (auto const& kv : *(TheFB[imf]->m_SndTags))
                 {
                     const int send_to = kv.first;
+                    auto const& cctc = kv.second;
 
                     std::size_t nbytes = 0;
-                    for (auto const& cct : kv.second) {
+                    for (auto const& cct : cctc) {
                         nbytes += (*mf[imf])[cct.srcIndex].nBytes(cct.sbox,scomp[imf],ncomp[imf]);
                     }
                     total_volume += nbytes;
-
-                    auto const& cctc = TheFB[imf]->m_SndTags->at(send_to);
 
                     CommInfo& comm_info = send_info[send_to];
                     comm_info.cctcs.push_back(&cctc);
@@ -2452,14 +2461,67 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
             }
 #endif
 
-            if (false)
+            bool is_thread_safe = FAB::isCopyOMPSafe();
+            for (int imf = 0; imf < nummfs; ++imf) {
+                is_thread_safe = is_thread_safe && TheFB[imf]->m_threadsafe_rcv;
+            }
+            if (true || Gpu::inLaunchRegion() || !is_thread_safe) // xxxxx
             {
+                Vector<LayoutData<Vector<VoidCopyTag> > > recv_copy_tags_all(nummfs);
+                for (int imf = 0; imf < nummfs; ++imf) {
+                    recv_copy_tags_all[imf].define(mf[imf]->boxArray(),mf[imf]->DistributionMap());
+                }
+                for (int k = 0; k < N_rcvs; ++k)
+                {
+                    CommInfo& comm_info = *recv_info_v[k];
+                    const char* dptr = comm_info.data;
+                    auto const& cctcs = comm_info.cctcs;
+                    auto const& imfs = comm_info.imfs;
+                    for (int ifa = 0, nfa = imfs.size(); ifa < nfa; ++ifa)
+                    {
+                        auto const& cctc = *cctcs[ifa];
+                        const int imf = imfs[ifa];
+                        auto & recv_copy_tags = recv_copy_tags_all[imf];
+                        const int sc = scomp[imf];
+                        const int nc = ncomp[imf];
+                        for (auto const& tag : cctc)
+                        {
+                            recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
+                            dptr += tag.dbox.numPts()*nc*sizeof(value_type);
+                        }
+                    }
+                    AMREX_ASSERT(dptr == comm_info.data + comm_info.size);
+                }
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+                for (int imf = 0; imf < nummfs; ++imf)
+                {
+                    auto& fabarray = *mf[imf];
+                    auto const& recv_copy_tags = recv_copy_tags_all[imf];
+                    const int sc = scomp[imf];
+                    const int nc = ncomp[imf];
+                    for (MFIter mfi(fabarray); mfi.isValid(); ++mfi)
+                    {
+                        const auto& tags = recv_copy_tags[mfi];
+                        FAB* dfab = &(fabarray[mfi]);
+                        for (auto const& tag : tags)
+                        {
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                            {
+                                const char* p = tag.p + sizeof(value_type) * nc
+                                    * tag.dbox.index(dbx.smallEnd());
+                                dfab->copyFromMem(dbx, sc, nc, p);
+                            });
+                        }
+                    }
+                }
             }
             else
             {
-//#ifdef _OPENMP
-//#pragma omp parallel for
-//#endif
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
                 for (int k = 0; k < N_rcvs; ++k)
                 {
                     CommInfo& comm_info = *recv_info_v[k];
@@ -2500,6 +2562,6 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 
         amrex::The_FA_Arena()->free(the_send_data);
         amrex::The_FA_Arena()->free(the_recv_data);
-    }
 #endif
+    }
 }
