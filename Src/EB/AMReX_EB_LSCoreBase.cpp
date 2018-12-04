@@ -188,6 +188,22 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
 }
 
 
+void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMapping & dm){
+
+    SetBoxArray(lev, ba);
+    SetDistributionMap(lev, dm);
+
+    MultiFab ls_regrid = amrex::MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost>
+        (ba, dm, level_set[lev]);
+    iMultiFab valid_regrid = amrex::MFUtil::duplicate<iMultiFab, MFUtil::SymmetricGhost>
+        (ba, dm, level_set_valid[lev]);
+
+    std::swap(ls_regrid, level_set[lev]);
+    std::swap(valid_regrid, level_set_valid[lev]);
+}
+
+
+
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
