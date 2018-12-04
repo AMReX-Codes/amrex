@@ -423,40 +423,49 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const int ncells_to_hi = vbx.length(idim)+nghost[idim];
                         const Box gbx_hi = gbx_lo + IntVect{ncells_to_hi};
 
-                        Vector<FabCopyTag<FAB> > tags;
+                        Vector<FabCopyTag<FAB> > tags_lo, tags_hi;
                         for (const auto& lc_tag : lc_tags) {
                             Box b = gbx_lo & lc_tag.dbox;
                             if (b.ok()) {
-                                tags.push_back({lc_tag.sfab,b,lc_tag.offset});
+                                tags_lo.push_back({lc_tag.sfab,b,lc_tag.offset});
                             }
                             b = gbx_hi & lc_tag.dbox;
                             if (b.ok()) {
-                                tags.push_back({lc_tag.sfab,b,lc_tag.offset});
+                                tags_hi.push_back({lc_tag.sfab,b,lc_tag.offset});
                             }
                         }
-                        const int ntags = tags.size();
-                        if (ntags > 0)
+                        const int ntags_lo = tags_lo.size();
+                        const int ntags_hi = tags_hi.size();
+                        if (ntags_lo > 0 || ntags_hi > 0)
                         {
-                            Gpu::AsyncArray<FabCopyTag<FAB> > async_tags(tags.data(), ntags);
-                            FabCopyTag<FAB>* ptags = async_tags.data();
+                            Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_lo(tags_lo.data(), ntags_lo);
+                            Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_hi(tags_hi.data(), ntags_hi);
+                            FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
+                            FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
 
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( gbx_lo, tbx_lo,
-                            {
-                                const Box tbx_hi = tbx_lo + IntVect{ncells_to_hi};
-                                for (int i = 0; i < ntags; ++i) {
-                                    const auto& tag = ptags[i];
-                                    Box dbx = tbx_lo & tag.dbox;
-                                    if (dbx.ok()) {
-                                        const Box sbx = dbx + tag.offset;
-                                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                gbx_lo, tbx_lo,
+                                {
+                                    for (int i = 0; i < ntags_lo; ++i) {
+                                        const auto& tag = ptags_lo[i];
+                                        const Box dbx = tbx_lo & tag.dbox;
+                                        if (dbx.ok()) {
+                                            const Box sbx = dbx + tag.offset;
+                                            dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                                        }
                                     }
-                                    dbx = tbx_hi & tag.dbox;
-                                    if (dbx.ok()) {
-                                        const Box sbx = dbx + tag.offset;
-                                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                                },
+                                gbx_hi, tbx_hi,
+                                {
+                                    for (int i = 0; i < ntags_hi; ++i) {
+                                        const auto& tag = ptags_hi[i];
+                                        const Box dbx = tbx_hi & tag.dbox;
+                                        if (dbx.ok()) {
+                                            const Box sbx = dbx + tag.offset;
+                                            dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                                        }
                                     }
-                                }
-                            });
+                                });
                         }
                     }
                 }
@@ -2465,7 +2474,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                                         {
                                             for (int i = 0; i < ntags_lo; ++i) {
                                                 const auto& tag = ptags_lo[i];
-                                                Box dbx = tbx_lo & tag.dbox;
+                                                const Box dbx = tbx_lo & tag.dbox;
                                                 if (dbx.ok()) {
                                                     const Box sbx = dbx + tag.offset;
                                                     dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
@@ -2476,7 +2485,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                                         {
                                             for (int i = 0; i < ntags_hi; ++i) {
                                                 const auto& tag = ptags_hi[i];
-                                                Box dbx = tbx_hi & tag.dbox;
+                                                const Box dbx = tbx_hi & tag.dbox;
                                                 if (dbx.ok()) {
                                                     const Box sbx = dbx + tag.offset;
                                                     dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);

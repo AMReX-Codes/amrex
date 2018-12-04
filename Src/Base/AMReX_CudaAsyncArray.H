@@ -23,6 +23,7 @@ class AsyncArray
 public:
     AsyncArray (T const* h_p, const std::size_t n)
     {
+        if (n == 0) return;
         h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
         std::memcpy(h_data, h_p, n*sizeof(T));
 #ifdef AMREX_USE_CUDA
