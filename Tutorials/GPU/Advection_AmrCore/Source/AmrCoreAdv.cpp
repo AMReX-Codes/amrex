@@ -638,7 +638,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 #endif
     {
         // ======== GET FACE VELOCITY =========
-	for (MFIter mfi(S_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 	    const FArrayBox& statein = Sborder[mfi];
 	    FArrayBox& stateout      =   S_new[mfi];
@@ -674,21 +674,21 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          AMREX_LAUNCH_DEVICE_LAMBDA(nbxx, tbx,
                          {
                              get_face_velocity_x(tbx,
-                                                 *psifab, *uface[0],
+                                                 *uface[0], *psifab,
                                                  geomdata); 
                          });,
 
                          AMREX_LAUNCH_DEVICE_LAMBDA(nbxy, tbx,
                          {
                              get_face_velocity_y(tbx,
-                                                 *psifab, *uface[1],
+                                                 *uface[1], *psifab,
                                                  geomdata);
                          });,
 
                          AMREX_LAUNCH_DEVICE_LAMBDA(nbxz, tbx,
                          {
                              get_face_velocity_z(tbx,
-                                                 *psifab, *uface[2],
+                                                 *uface[2], *psifab,
                                                  geomdata); 
                          });
                         );
@@ -1028,7 +1028,6 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
         // Calculate face velocities.
 	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-
             AMREX_D_TERM(const Box& nbxx = mfi.nodaltilebox(0);,
                          const Box& nbxy = mfi.nodaltilebox(1);,
                          const Box& nbxz = mfi.nodaltilebox(2););
@@ -1068,21 +1067,21 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                          AMREX_LAUNCH_DEVICE_LAMBDA(nbxx, tbx,
                          {
                              get_face_velocity_x(tbx,
-                                                 *psifab, *uface[0],
+                                                 *uface[0], *psifab,
                                                  geomdata); 
                          });,
 
                          AMREX_LAUNCH_DEVICE_LAMBDA(nbxy, tbx,
                          {
                              get_face_velocity_y(tbx,
-                                                 *psifab, *uface[1],
+                                                 *uface[1], *psifab,
                                                  geomdata);
                          });,
 
                          AMREX_LAUNCH_DEVICE_LAMBDA(nbxz, tbx,
                          {
                              get_face_velocity_z(tbx,
-                                                 *psifab, *uface[2],
+                                                 *uface[2], *psifab,
                                                  geomdata); 
                          });
                         );
