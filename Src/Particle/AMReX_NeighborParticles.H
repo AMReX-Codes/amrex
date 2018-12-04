@@ -58,7 +58,7 @@ class NeighborParticleContainer
         int tile;
         int src_index;
         int dst_index;
-        int periodic_shift[3];
+        IntVect periodic_shift;
 
         bool operator<(const NeighborCopyTag& other) const {
             if (level != other.level) return level < other.level;
