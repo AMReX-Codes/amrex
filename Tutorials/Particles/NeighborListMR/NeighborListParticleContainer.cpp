@@ -7,6 +7,12 @@ using namespace amrex;
 constexpr Real NeighborListParticleContainer::min_r;
 constexpr Real NeighborListParticleContainer::cutoff;
 
+std::ostream& amrex::operator <<(std::ostream& stream, const Tag& tag)
+{
+    stream << "(" << tag.lev << ", " << tag.grid << ", " << tag.tile << ")";
+    return stream;
+}
+
 NeighborListParticleContainer::
 NeighborListParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
@@ -72,6 +78,8 @@ void NeighborListParticleContainer::InitParticles()
             particle_tile.push_back(p);
         }
     }
+
+    Redistribute();
 }
 
 void NeighborListParticleContainer::computeForces()
@@ -144,4 +152,80 @@ void NeighborListParticleContainer::writeParticles(int n)
     BL_PROFILE("NeighborListParticleContainer::writeParticles");
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
     WriteAsciiFile(pltfile);
+}
+
+Vector<Tag>
+NeighborListParticleContainer::getNeighborGrids(const ParticleType& p,
+                                                const Tag src,
+                                                const int nGrow)
+{
+    return getNeighborGrids(p, src, IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)));
+}
+
+Vector< Tag >
+NeighborListParticleContainer::getNeighborGrids(const ParticleType& p,
+                                                const Tag src,
+                                                const IntVect& nGrow)
+{
+    Vector< Tag > grids;
+    std::vector< std::pair<int, Box> > isects;
+    Box tbx;
+    IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
+    const int num_levels = finestLevel() + 1;
+    for (int lev = 0; lev < num_levels; ++lev)
+    {
+        if (lev > 0) ref_fac *= this->GetParGDB()->refRatio(lev-1);
+        const BoxArray& ba = this->ParticleBoxArray(lev);
+        const IntVect& iv = this->Index(p, lev);
+        bool first_only = false;
+        Box pbox = Box(iv, iv);
+        ba.intersections(pbox, isects, first_only, ref_fac*nGrow);
+        for (const auto& isec : isects)
+        {
+            for (IntVect cell = pbox.smallEnd(); cell <= pbox.bigEnd(); pbox.next(cell))
+            {
+                if (isec.second.contains(cell))
+                {
+                    int tile = getTileIndex(cell, isec.second,
+                                            this->do_tiling, this->tile_size, tbx);
+                    auto nbor = Tag(lev, isec.first, tile);
+                    if (src != nbor) grids.push_back(nbor);
+                }
+            }
+        }
+    }
+    return grids;
+}
+
+void
+NeighborListParticleContainer::getNeighborParticles(const int nGrow)
+{
+    BL_PROFILE("getNeighborParticles()");
+
+    const int num_levels = finestLevel() + 1;
+    for (int lev = 0; lev < num_levels; ++lev)
+    {
+        for (MyParIter pti(*this, lev); pti.isValid(); ++pti)
+        {
+            AoS& particles = pti.GetArrayOfStructs();
+            auto grid = pti.index();
+            auto tile = pti.LocalTileIndex();
+            int np = particles.size();
+            for (int i = 0; i < np; ++i)
+            {
+                auto src = Tag(lev, grid, tile);
+                Vector<Tag> nbors = getNeighborGrids(particles[i], src, nGrow);
+                if (nbors.size() == 0) continue;
+                
+                amrex::Print() << "Particle " << particles[i].id() << " is on " << src
+                               << " and goes to: ";
+                for (const auto& nbor : nbors)
+                {
+                    BL_ASSERT(nbor != src);
+                    amrex::Print() << nbor << " ";
+                }
+                amrex::Print() << "\n";
+            }
+        }
+    }
 }

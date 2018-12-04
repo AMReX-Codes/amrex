@@ -83,23 +83,27 @@ int main(int argc, char* argv[])
     }
     
     int num_neighbor_cells = 1;
+
     NeighborListParticleContainer myPC(geom, dmap, ba, rr, num_neighbor_cells);
 
     myPC.InitParticles();
 
+    const int nGrow = 1;
+    myPC.getNeighborParticles(nGrow);
+    
     for (int i = 0; i < max_step; i++) {
-        if (write_particles) myPC.writeParticles(i);
+        // if (write_particles) myPC.writeParticles(i);
         
-        myPC.fillNeighbors();
+        // myPC.fillNeighbors();
 
-        if (do_nl) { myPC.computeForcesNL(); } 
-        else {       myPC.computeForces();   }
+        // if (do_nl) { myPC.computeForcesNL(); } 
+        // else {       myPC.computeForces();   }
 
-        myPC.clearNeighbors();
+        // myPC.clearNeighbors();
 
-        myPC.moveParticles(dt);
+        // myPC.moveParticles(dt);
 
-        myPC.Redistribute();
+        // myPC.Redistribute();
     }
 
     if (write_particles) myPC.writeParticles(max_step);
