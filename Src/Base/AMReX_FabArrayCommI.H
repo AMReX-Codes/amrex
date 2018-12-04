@@ -462,17 +462,18 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
             }
             else
+            {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-            {
-                const auto& tags = loc_copy_tags[mfi];
-                FAB* dfab = &((*this)[mfi]);
-
-                for (const auto& tag : tags ) {
-                    const Box sbx = tag.dbox + tag.offset;
-                    dfab->copy(*tag.sfab, sbx, scomp, tag.dbox, scomp, ncomp);
+                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+                {
+                    const auto& tags = loc_copy_tags[mfi];
+                    FAB* dfab = &((*this)[mfi]);
+                    for (const auto& tag : tags ) {
+                        const Box sbx = tag.dbox + tag.offset;
+                        dfab->copy(*tag.sfab, sbx, scomp, tag.dbox, scomp, ncomp);
+                    }
                 }
             }
         }
@@ -2231,23 +2232,11 @@ struct CommInfo {
 #endif
 
 template <class FAB>
-bool
-SameLayout (Vector<FabArray<FAB>*> const& mf)
-{
-    bool r = true;
-    for (int i = 1, n = mf.size(); (i < n) && r; ++i) {
-        r = r && (mf[0]->boxArray() == mf[i]->boxArray());
-        r = r && (mf[0]->DistributionMap() == mf[i]->DistributionMap());
-    }
-    return r;
-}
-
-template <class FAB>
 void
 FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 {
     const int nummfs = mf.size();
-    if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable() || !SameLayout(mf))
+    if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable())
     {
         for (int imf = 0; imf < nummfs; ++imf) {
             mf[imf]->FillBoundary(period);
@@ -2415,9 +2404,39 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                 const DistributionMapping& dm = fa.DistributionMap();
                 const auto& tags = *(TheFB[imf]->m_LocTags);
                 const int N_locs = tags.size();
-                if (false)
+                bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB[imf]->m_threadsafe_loc;
+                if (true || Gpu::inLaunchRegion() || !is_thread_safe)
                 {
-                    
+                    LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(fa.boxArray(),dm);
+                    for (int i = 0; i < N_locs; ++i)
+                    {
+                        const auto& tag = tags[i];
+                        if (dm[tag.dstIndex] == myproc)
+                        {
+                            loc_copy_tags[tag.dstIndex].push_back
+                                ({&(fa[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        }
+                    }
+
+                    if (Gpu::inLaunchRegion())
+                    {
+
+                    }
+                    else
+                    {
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+                        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
+                        {
+                            const auto& lc_tags = loc_copy_tags[mfi];
+                            FAB* dfab = &(fa[mfi]);
+                            for (const auto& tag : lc_tags) {
+                                const Box& sbx = tag.dbox + tag.offset;
+                                dfab->copy(*tag.sfab, sbx, sc, tag.dbox, sc, nc);
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -2465,7 +2484,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
             for (int imf = 0; imf < nummfs; ++imf) {
                 is_thread_safe = is_thread_safe && TheFB[imf]->m_threadsafe_rcv;
             }
-            if (true || Gpu::inLaunchRegion() || !is_thread_safe) // xxxxx
+            if (Gpu::inLaunchRegion() || !is_thread_safe)
             {
                 Vector<LayoutData<Vector<VoidCopyTag> > > recv_copy_tags_all(nummfs);
                 for (int imf = 0; imf < nummfs; ++imf) {
