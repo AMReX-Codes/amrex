@@ -229,7 +229,7 @@ namespace MFUtil {
 
         Cpy<T>::copy(mf_out, mf_in, nc, ng);
 
-        return mf_out;
+        return std::move(mf_out);
     }
 
 
@@ -240,7 +240,7 @@ namespace MFUtil {
         T mf_out = duplicate<T, Cpy>(ba, dm, mf_in);
         mf_out.FillBoundary(periodicity);
 
-        return mf_out;
+        return std::move(mf_out);
     }
 
 
