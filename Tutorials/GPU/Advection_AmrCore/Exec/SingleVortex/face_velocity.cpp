@@ -35,7 +35,6 @@ void get_face_velocity_x(Box const& bx,
                          const FArrayBox& psifab,
                          GeometryData const& geom)
 {
-    // Change box and calculate x velocity.
     const auto len = length(bx);
     const auto lo  = lbound(bx);
     const auto vx  = xvelfab.view(lo);
