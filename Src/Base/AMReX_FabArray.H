@@ -612,6 +612,8 @@ public:
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void FillBoundary_finish ();
 
+    void FillBoundary_test ();
+
     /** \brief Fill cells outside periodic domains with their corresponding cells inside
     * the domain.  Ghost cells are treated the same as valid cells.  The BoxArray
     * is allowed to be overlapping.
@@ -709,8 +711,7 @@ private:
 
 #ifdef BL_USE_MPI
     //! Prepost nonblocking receives
-    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvVols,
-                   const MapOfCopyComTagContainers&       m_RcvTags,
+    void PostRcvs (const MapOfCopyComTagContainers&       m_RcvTags,
                    char*&                                 the_recv_data,
                    Vector<char*>&                         recv_data,
                    Vector<int>&                           recv_size,
@@ -723,7 +724,7 @@ private:
 #endif
 
 #ifdef BL_USE_MPI3
-    void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvVols,
+    void PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvTagss,
                                 char*&                            the_recv_data,
                                 Vector<char*>&                    recv_data,
                                 Vector<int>&                      recv_size,
@@ -750,6 +751,7 @@ public:
     Vector<char*>       fb_recv_data;
     Vector<int>         fb_recv_size;
     Vector<MPI_Request> fb_recv_reqs;
+    Vector<MPI_Status>  fb_recv_stat;
 #ifdef BL_USE_MPI3
     Vector<MPI_Aint>    fb_recv_disp;
 #endif
@@ -1611,6 +1613,7 @@ template <class FAB>
 void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool cross)
 {
+    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait(scomp, ncomp, nGrowVect(), period, cross);
 }
 
@@ -1619,6 +1622,7 @@ void
 FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
                                     const Periodicity& period, bool cross)
 {
+    BL_PROFILE("FillBoundary_nowait()");
     FBEP_nowait(scomp, ncomp, nghost, period, cross);
 }
 

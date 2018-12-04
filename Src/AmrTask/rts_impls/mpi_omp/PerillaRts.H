@@ -1,23 +1,10 @@
-#ifndef _PERILLA_RTS_
-#define _PERILLA_RTS_
-
 #include <AMReX_Amr.H>
 #include <PerillaConfig.H>
 
+
 namespace perilla{
 
-struct _workerThreadInfo{
-    int _tid; //thread id in local group
-    int _size; //number of threads in the group
-};
-
-struct _threadInfo{
-    bool _isComm; //whether this thread handles communication
-    int _wtid; //worker thread id (-1 if this thread is decicated to communication)
-    int _nWts; //number of thread groups
-};
-
-class PerillaRTS
+class RTS
 {
     private:
 	int _nWrks;
@@ -25,12 +12,12 @@ class PerillaRTS
 	int _rank, _nProcs;
 
     public:
-	PerillaRTS(){
+	RTS(){
 	    _nWrks=1;
 	    char* nWrks= getenv("NWORKERS");
 	    if(nWrks) _nWrks= atoi(nWrks);
 	}
-	PerillaRTS(int nWrks):_nWrks(nWrks){}
+	RTS(int nWrks):_nWrks(nWrks){}
 	int ProcCount();
 	int MyProc();
 	int WorkerThreadCount();
@@ -41,8 +28,7 @@ class PerillaRTS
 	void Finalize();
 //	double Time();
 	void Barrier();
-	void runAMR(Amr* amrptr, int tid, int numthreads, int max_step, Real stop_time);
+	void runAMR(Amr* amrptr, int max_step, Real stop_time);
 };
 
 }
-#endif
