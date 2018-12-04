@@ -515,15 +515,15 @@ class FieldDiagnostic(picmistandard.PICMI_FieldDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
-        if 'rho' in self.field_types:
+        if 'rho' in self.data_list:
             pywarpx.warpx.plot_rho = 1
-        if 'dive' in self.field_types:
+        if 'dive' in self.data_list:
             pywarpx.warpx.plot_dive = 1
-        if 'divb' in self.field_types:
+        if 'divb' in self.data_list:
             pywarpx.warpx.plot_divb = 1
-        if 'F' in self.field_types:
+        if 'F' in self.data_list:
             pywarpx.warpx.plot_F = 1
-        if 'proc_number' in self.field_types:
+        if 'proc_number' in self.data_list:
             pywarpx.warpx.plot_proc_number = 1
 
         pywarpx.warpx.plot_raw_fields = self.plot_raw_fields
@@ -547,11 +547,11 @@ class ParticleDiagnostic(picmistandard.PICMI_ParticleDiagnostic):
         pywarpx.amr.check_consistency('plot_int', self.period, 'The period must be the same for all simulation frame diagnostics')
         pywarpx.amr.plot_int = self.period
 
-        if 'part_per_cell' in self.particle_data:
+        if 'part_per_cell' in self.data_list:
             pywarpx.warpx.plot_part_per_cell = 1
-        if 'part_per_grid' in self.particle_data:
+        if 'part_per_grid' in self.data_list:
             pywarpx.warpx.plot_part_per_grid = 1
-        if 'part_per_proc' in self.particle_data:
+        if 'part_per_proc' in self.data_list:
             pywarpx.warpx.plot_part_per_proc = 1
 
 

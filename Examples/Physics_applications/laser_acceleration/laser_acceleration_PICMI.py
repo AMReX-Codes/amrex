@@ -98,13 +98,15 @@ solver = picmi.ElectromagneticSolver(grid=grid, method='CKC', cfl=1.)
 # diagnostics
 ##########################
 
-field_diag1 = picmi.FieldDiagnostic(period = 100,
+field_diag1 = picmi.FieldDiagnostic(grid = grid,
+                                    period = 100,
                                     warpx_plot_raw_fields = 1,
                                     warpx_plot_raw_fields_guards = 1,
                                     warpx_plot_finepatch = 1,
                                     warpx_plot_crsepatch = 1)
 
-part_diag1 = picmi.ParticleDiagnostic(period = 100)
+part_diag1 = picmi.ParticleDiagnostic(period = 100,
+                                      species = [electrons])
 
 ##########################
 # simulation setup
