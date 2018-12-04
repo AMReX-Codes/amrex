@@ -480,9 +480,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 if (periodicity.isAnyPeriodic()) {
                     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                         if (not periodicity.isPeriodic(dir)) continue;
-                        if (tag.periodic_shift[dir] == -1) 
+                        if (tag.periodic_shift[dir] < 0) 
                             p.pos(dir) += prob_domain.length(dir);
-                        else if (tag.periodic_shift[dir] ==  1) 
+                        else if (tag.periodic_shift[dir] > 0) 
                             p.pos(dir) -= prob_domain.length(dir);
                     }
                 }
