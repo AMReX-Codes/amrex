@@ -2401,11 +2401,12 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                 auto& fa = *mf[imf];
                 const int sc = scomp[imf];
                 const int nc = ncomp[imf];
+                const auto& ng = nghost[imf];
                 const DistributionMapping& dm = fa.DistributionMap();
                 const auto& tags = *(TheFB[imf]->m_LocTags);
                 const int N_locs = tags.size();
                 bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB[imf]->m_threadsafe_loc;
-                if (true || Gpu::inLaunchRegion() || !is_thread_safe)
+                if (Gpu::inLaunchRegion() || !is_thread_safe)
                 {
                     LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(fa.boxArray(),dm);
                     for (int i = 0; i < N_locs; ++i)
@@ -2420,7 +2421,71 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 
                     if (Gpu::inLaunchRegion())
                     {
+                        LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
+                            dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
+                        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
+                        {
+                            FAB* dfab = &(fa[mfi]);
+                            const Box& vbx = mfi.validbox();
 
+                            const auto& lc_tags = loc_copy_tags[mfi];
+
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                            {
+                                Box gbx_lo = vbx;
+                                gbx_lo.setRange(idim,vbx.smallEnd(idim)-ng[idim],ng[idim]);
+                                for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
+                                    gbx_lo.grow(jdim,ng[jdim]);
+                                }
+                                const int ncells_to_hi = vbx.length(idim)+ng[idim];
+                                const Box gbx_hi = gbx_lo + IntVect{ncells_to_hi};
+
+                                Vector<FabCopyTag<FAB> > vtags_lo, vtags_hi;
+                                for (const auto& lc_tag : lc_tags) {
+                                    Box b = gbx_lo & lc_tag.dbox;
+                                    if (b.ok()) {
+                                        vtags_lo.push_back({lc_tag.sfab,b,lc_tag.offset});
+                                    }
+                                    b = gbx_hi & lc_tag.dbox;
+                                    if (b.ok()) {
+                                        vtags_hi.push_back({lc_tag.sfab,b,lc_tag.offset});
+                                    }
+                                }
+                                const int ntags_lo = vtags_lo.size();
+                                const int ntags_hi = vtags_hi.size();
+                                if (ntags_lo > 0 || ntags_hi > 0)
+                                {
+                                    Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_lo(vtags_lo.data(), ntags_lo);
+                                    Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_hi(vtags_hi.data(), ntags_hi);
+                                    FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
+                                    FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
+
+                                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                                        gbx_lo, tbx_lo,
+                                        {
+                                            for (int i = 0; i < ntags_lo; ++i) {
+                                                const auto& tag = ptags_lo[i];
+                                                Box dbx = tbx_lo & tag.dbox;
+                                                if (dbx.ok()) {
+                                                    const Box sbx = dbx + tag.offset;
+                                                    dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
+                                                }
+                                            }
+                                        },
+                                        gbx_hi, tbx_hi,
+                                        {
+                                            for (int i = 0; i < ntags_hi; ++i) {
+                                                const auto& tag = ptags_hi[i];
+                                                Box dbx = tbx_hi & tag.dbox;
+                                                if (dbx.ok()) {
+                                                    const Box sbx = dbx + tag.offset;
+                                                    dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
+                                                }
+                                            }
+                                        });
+                                }
+                            }
+                        }
                     }
                     else
                     {
