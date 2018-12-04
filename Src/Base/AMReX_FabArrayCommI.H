@@ -2244,6 +2244,8 @@ template <class FAB>
 void
 FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 {
+    BL_PROFILE("FillBoundary(Vector)");
+
     const int nummfs = mf.size();
     if (ParallelContext::NProcsSub() == 1 || !FAB::preAllocatable())
     {
