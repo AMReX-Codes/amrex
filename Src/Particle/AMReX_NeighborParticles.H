@@ -227,6 +227,8 @@ protected:
     ///
     void getRcvCountsMPI();
 
+    void getNeighborCommTags(Vector<NeighborCommTag>& tags, const Box& box);
+    
     void getNeighborTags(Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
                          const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
