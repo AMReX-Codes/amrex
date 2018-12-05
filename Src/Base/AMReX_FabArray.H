@@ -271,6 +271,12 @@ public:
     //! Return a reference to the FAB associated with the Kth element.
     FAB& get (int K)  { return this->operator[](K); }
 
+    // Return pointer to FAB 
+    FAB      * fabPtr (const MFIter& mfi);
+    FAB const* fabPtr (const MFIter& mfi) const;
+    FAB      * fabPtr (int K);
+    FAB const* fabPtr (int K) const;
+
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
 
@@ -824,6 +830,42 @@ FabArray<FAB>::operator[] (int K)
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
     return *m_fabs_v[li];
+}
+
+template <class FAB>
+FAB*
+FabArray<FAB>::fabPtr (const MFIter& mfi)
+{
+    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    return m_fabs_v[mfi.LocalIndex()];
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabPtr (const MFIter& mfi) const
+{
+    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    return m_fabs_v[mfi.LocalIndex()];
+}
+
+template <class FAB>
+FAB*
+FabArray<FAB>::fabPtr (int K)
+{
+    int li = localindex(K);
+    BL_ASSERT(li >=0 && li < indexArray.size());
+    return m_fabs_v[li];
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabPtr (int K) const
+{
+    int li = localindex(K);
+    BL_ASSERT(li >=0 && li < indexArray.size());
+    return m_fabs_v[li];
 }
 
 template <class FAB>
