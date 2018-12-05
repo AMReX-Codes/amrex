@@ -200,16 +200,13 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
     else
     {
-        std::vector< std::pair<int, Box> > isects;
-        Box tbx;
         const int num_levels = this->finestLevel() + 1;
         for (int lev = 0; lev < num_levels; ++lev)
         {
             for (MFIter mfi(*mask_ptr[lev], false); mfi.isValid(); ++mfi) {
-                Box box = mfi.validbox();
-                box.grow(num_neighbor_cells);
+                const Box& box = mfi.validbox();
                 Vector<NeighborCommTag> comm_tags;
-                getNeighborCommTags(comm_tags, box);
+                getNeighborCommTags(comm_tags, lev, box);
                 for (auto const& tag : comm_tags) {
                     local_neighbors.push_back(tag);
                     if (tag.proc_id != ParallelDescriptor::MyProc())
@@ -221,10 +218,46 @@ NeighborParticleContainer<NStructReal, NStructInt>
 }
 
 template <int NStructReal, int NStructInt>
+IntVect
+NeighborParticleContainer<NStructReal, NStructInt>
+::computeRefFac(const int src_lev, const int lev)
+{
+    IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
+    if (src_lev < lev) {
+        for (int l = src_lev; l < lev; ++l) {
+            ref_fac *= this->GetParGDB()->refRatio(lev-1);
+        }
+    } else if (src_lev > lev) {
+        for (int l = src_lev; l >= lev; --l) {
+            ref_fac *= this->GetParGDB()->refRatio(lev-1);
+        }
+        ref_fac *= -1;
+    }
+    return ref_fac;
+}
+
+template <int NStructReal, int NStructInt>
 void 
 NeighborParticleContainer<NStructReal, NStructInt>
-::getNeighborCommTags(Vector<NeighborCommTag>& tags, const Box& box)
+::getNeighborCommTags(Vector<NeighborCommTag>& tags, const int src_lev, const Box& src_box)
 {
+    Box box = amrex::grow(src_box, num_neighbor_cells);
+    std::vector< std::pair<int, Box> > isects;
+    Box tbx;    
+
+    const int num_levels = this->finestLevel() + 1;
+    for (int lev = 0; lev < num_levels; ++lev) {
+        const IntVect& ref_fac = computeRefFac(src_lev, lev); 
+        if (ref_fac < IntVect::TheZeroVector())
+        {
+            box.coarsen(ref_fac);
+        }
+        else if (ref_fac > IntVect::TheZeroVector())
+        {
+            box.refine(ref_fac);
+        }
+        
+    }
     
 }
 
@@ -627,11 +660,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
 
-    const int lev = 0;
-    
-    resizeContainers(lev);
-    
-    neighbors[lev].clear();
+    const int num_levels = this->finestLevel() + 1;
+    for (int lev = 0; lev < num_levels; ++lev) {    
+        resizeContainers(lev);
+        neighbors[lev].clear();
+    }
     buffer_tag_cache.clear();
     send_data.clear();
 }

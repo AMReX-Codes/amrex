@@ -227,7 +227,7 @@ protected:
     ///
     void getRcvCountsMPI();
 
-    void getNeighborCommTags(Vector<NeighborCommTag>& tags, const Box& box);
+    void getNeighborCommTags(Vector<NeighborCommTag>& tags, const int lev, const Box& box);
     
     void getNeighborTags(Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
@@ -236,6 +236,8 @@ protected:
     void getNeighborTags(Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+
+    IntVect computeRefFac(const int src_lev, const int lev);
     
     amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
     amrex::Vector<std::map<PairIndex, IntVector> >      neighbor_list;
