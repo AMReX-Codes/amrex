@@ -655,6 +655,9 @@ protected:
     // The data.
     //
     std::vector<FAB*> m_fabs_v;
+#ifdef AMREX_USE_GPU
+    std::vector<FAB*> m_host_fabs_v;
+#endif
 
     // for shared memory
     struct ShMem {
