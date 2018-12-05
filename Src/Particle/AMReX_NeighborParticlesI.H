@@ -123,6 +123,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
+    if (!do_mask) return;
+    
     int num_levels = this->finestLevel() + 1;
     
     resizeContainers( this->finestLevel() );
