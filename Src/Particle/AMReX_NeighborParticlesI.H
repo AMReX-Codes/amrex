@@ -208,11 +208,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     const int MyProc = ParallelDescriptor::MyProc();
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-    const Periodicity& periodicity = this->Geom(lev).periodicity();
-    const Box& domain = this->Geom(lev).Domain();
-    const IntVect& lo = domain.smallEnd();
-    const IntVect& hi = domain.bigEnd();
-    const int nc = num_neighbor_cells;
     
     std::map<PairIndex,       Vector<NeighborIndexMap> > local_map;
     std::map<NeighborCommTag, Vector<NeighborIndexMap> > remote_map;
@@ -409,24 +404,27 @@ NeighborParticleContainer<NStructReal, NStructInt>::
 getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                 const IntVect& nGrow, const int src_lev, const MyParIter& pti)
 {
-    const Periodicity& periodicity = this->Geom(src_lev).periodicity();
-    const Box& domain = this->Geom(src_lev).Domain();
-    const IntVect& lo = domain.smallEnd();
-    const IntVect& hi = domain.bigEnd();
-
     const int src_grid = pti.index();
     const int src_tile = pti.localTileIndex();
     Box shrink_box = pti.tilebox();
     shrink_box.grow(-nGrow);
-    
-    const BaseFab<int>& mask = (*mask_ptr[src_lev])[src_grid];
-    const int lev = 0;
 
-    const IntVect& iv = this->Index(p, lev);
-    if (shrink_box.contains(iv)) return;
+    if (do_mask) {
+        const BaseFab<int>& mask = (*mask_ptr[src_lev])[src_grid];
+        BL_ASSERT(this->finestLevel() == 0);
+        BL_ASSERT(src_lev == 0);
 
-    // Figure out all our neighbors, removing duplicates
-    AMREX_D_TERM(
+        const int lev = src_lev;
+        const IntVect& iv = this->Index(p, lev);
+        if (shrink_box.contains(iv)) return;
+
+        const Periodicity& periodicity = this->Geom(src_lev).periodicity();
+        const Box& domain = this->Geom(src_lev).Domain();
+        const IntVect& lo = domain.smallEnd();
+        const IntVect& hi = domain.bigEnd();
+        
+        // Figure out all our neighbors, removing duplicates
+        AMREX_D_TERM(
                  for (int ii = -nGrow[0]; ii < nGrow[0] + 1; ii += nGrow[0]) {,
                      for (int jj = -nGrow[1]; jj < nGrow[1] + 1; jj += nGrow[1]) {,
                          for (int kk = -nGrow[2]; kk < nGrow[2] + 1; kk += nGrow[2]) {)
@@ -463,8 +461,42 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                                           },
                                  },
                          })
-        
+            
         RemoveDuplicates(tags);
+        return;
+    }
+    else
+    {
+        std::vector< std::pair<int, Box> > isects;
+        Box tbx;
+        IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
+        const int num_levels = this->finestLevel() + 1;
+        for (int lev = 0; lev < num_levels; ++lev)
+        {
+            if (lev > 0) ref_fac *= this->GetParGDB()->refRatio(lev-1);
+            const Periodicity& periodicity = this->Geom(lev).periodicity();
+            const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
+            const BoxArray& ba = this->ParticleBoxArray(lev);
+            const IntVect& iv = this->Index(p, lev);
+            for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+            {
+                bool first_only = false;
+                ba.intersections(Box(iv,iv)+(*pit), isects, first_only, ref_fac*nGrow);
+                for (const auto& isec : isects)
+                {
+                    if (isec.second.contains(iv))
+                    {
+                        int tile = getTileIndex(iv, isec.second,
+                                                this->do_tiling, this->tile_size, tbx);
+                        auto nbor = NeighborCopyTag(lev, isec.first, tile);
+                        if (src != nbor) tags.push_back(nbor);
+                    }
+                }
+            }
+        }
+
+        return;
+    }    
 }
 
 template <int NStructReal, int NStructInt>
