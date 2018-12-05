@@ -123,8 +123,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
-    if (!do_mask) return;
-    
     int num_levels = this->finestLevel() + 1;
     
     resizeContainers( this->finestLevel() );
@@ -164,8 +162,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             
             mask_ptr[lev]->FillBoundary(geom.periodicity());
 
-            // average down, fill ghost
-            
             local_neighbors.clear();
             neighbor_procs.clear();
             for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
