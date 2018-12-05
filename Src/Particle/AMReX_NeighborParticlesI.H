@@ -252,16 +252,15 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int& tile = pti.LocalTileIndex(); 
             PairIndex src_index(grid, tile);
 
+            NeighborCopyTag src_tag(lev, grid, tile);
+            
             auto& cache = buffer_tag_cache[src_index][thread_num];
 
-            Box shrink_box = pti.tilebox();
-            shrink_box.grow(-num_neighbor_cells);
-            
             auto& particles = pti.GetArrayOfStructs();
             for (unsigned i = 0; i < pti.numParticles(); ++i) {
                 const ParticleType& p = particles[i];
 
-                getNeighborTags(tags, p, num_neighbor_cells, lev, grid);
+                getNeighborTags(tags, p, num_neighbor_cells, src_tag, pti);
                 
                 // Add neighbors to buffers
                 for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
@@ -393,33 +392,31 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
-                const int nGrow, const int src_lev, const MyParIter& pti)
+                const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
 {
-    getNeighborTags(tags, p, AMREX_D_DECL(nGrow, nGrow, nGrow), src_lev, pti);
+    getNeighborTags(tags, p, AMREX_D_DECL(nGrow, nGrow, nGrow), src_tag, pti);
 }
 
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
-                const IntVect& nGrow, const int src_lev, const MyParIter& pti)
+                const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
 {
-    const int src_grid = pti.index();
-    const int src_tile = pti.localTileIndex();
     Box shrink_box = pti.tilebox();
     shrink_box.grow(-nGrow);
 
     if (do_mask) {
-        const BaseFab<int>& mask = (*mask_ptr[src_lev])[src_grid];
+        const BaseFab<int>& mask = (*mask_ptr[src_tag.level])[src_tag.grid];
         BL_ASSERT(this->finestLevel() == 0);
-        BL_ASSERT(src_lev == 0);
+        BL_ASSERT(src_tag.level == 0);
 
-        const int lev = src_lev;
+        const int lev = 0;
         const IntVect& iv = this->Index(p, lev);
         if (shrink_box.contains(iv)) return;
 
-        const Periodicity& periodicity = this->Geom(src_lev).periodicity();
-        const Box& domain = this->Geom(src_lev).Domain();
+        const Periodicity& periodicity = this->Geom(lev).periodicity();
+        const Box& domain = this->Geom(lev).Domain();
         const IntVect& lo = domain.smallEnd();
         const IntVect& hi = domain.bigEnd();
         
@@ -445,15 +442,8 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                                          tag.periodic_shift[dir] =  1;
                                  }
                              }
-                             
-                             if ((src_lev  == tag.level)          and
-                                 (src_grid == tag.grid)           and
-                                 (src_tile == tag.tile)           and
-                                 (tag.periodic_shift[0] == 0)     and
-                                 (tag.periodic_shift[1] == 0)     and
-                                 (tag.periodic_shift[2] == 0)        ) continue;
-                             
-                             tags.push_back(tag);
+
+                             if (tag != src_tag) tags.push_back(tag);
                              
                              AMREX_D_TERM(
                                           },
@@ -487,7 +477,7 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                         int tile = getTileIndex(iv, isec.second,
                                                 this->do_tiling, this->tile_size, tbx);
                         auto nbor = NeighborCopyTag(lev, isec.first, tile);
-                        if (src != nbor) tags.push_back(nbor);
+                        if (src_tag != nbor) tags.push_back(nbor);
                     }
                 }
             }
