@@ -463,11 +463,13 @@ WarpX::ReadParameters ()
         insitu_start = 0;
         insitu_int = 0;
         insitu_config = "";
+        insitu_pin_mesh = 0;
 
         ParmParse pp("insitu");
         pp.query("int", insitu_int);
         pp.query("start", insitu_start);
         pp.query("config", insitu_config);
+        pp.query("pin_mesh", insitu_pin_mesh);
     }
 }
 
@@ -843,6 +845,26 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 }
 
 void
+WarpX::ComputeDivB (MultiFab& divB, int dcomp,
+                    const std::array<const MultiFab*, 3>& B,
+                    const std::array<Real,3>& dx, int ngrow)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.growntilebox(ngrow);
+        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
+                           dx.data());
+    }
+}
+
+void
 WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<const MultiFab*, 3>& E,
                     const std::array<Real,3>& dx)
@@ -853,6 +875,26 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
+                           dx.data());
+    }
+}
+
+void
+WarpX::ComputeDivE (MultiFab& divE, int dcomp,
+                    const std::array<const MultiFab*, 3>& E,
+                    const std::array<Real,3>& dx, int ngrow)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.growntilebox(ngrow);
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
