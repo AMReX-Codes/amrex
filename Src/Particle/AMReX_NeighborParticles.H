@@ -157,11 +157,6 @@ public:
     void Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba);
 
     ///
-    /// This builds the internal data structure used for looking up neighbors
-    ///
-    void BuildMasks();
-
-    ///
     /// This fills the neighbor buffers for each tile with the proper data
     ///
     void fillNeighbors();
@@ -209,6 +204,11 @@ public:
     
 protected:
 
+    ///
+    /// This builds the internal mask data structure used for looking up neighbors
+    ///
+    void BuildMasks();
+    
     void resizeContainers(const int lev);
     
     void initializeCommComps();
