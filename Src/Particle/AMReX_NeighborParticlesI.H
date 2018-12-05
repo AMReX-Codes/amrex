@@ -123,8 +123,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
-    int num_levels = this->finestLevel() + 1;
+    if ( !do_mask ) return;
     
+    int num_levels = this->finestLevel() + 1;    
     resizeContainers( this->finestLevel() );
 
     for (int lev = 0; lev < num_levels; ++lev)
@@ -161,30 +162,40 @@ NeighborParticleContainer<NStructReal, NStructInt>
             }
             
             mask_ptr[lev]->FillBoundary(geom.periodicity());
-
-            local_neighbors.clear();
-            neighbor_procs.clear();
-            for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-                 mfi.isValid(); ++mfi) {
-                const Box& box = mfi.growntilebox();
-                for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
-                    const int grid = (*mask_ptr[lev])[mfi](iv, MaskComps::grid);
-                    if (grid >= 0) {
-                        const int tile = (*mask_ptr[lev])[mfi](iv, MaskComps::tile);
-                        const int level = (*mask_ptr[lev])[mfi](iv, MaskComps::level);
-                        const int proc = this->ParticleDistributionMap(level)[grid];
-                        NeighborCommTag comm_tag(proc, level, grid, tile);
-                        local_neighbors.push_back(comm_tag);
-                        if (proc != ParallelDescriptor::MyProc())
-                            neighbor_procs.push_back(proc);
-                    }
-                }
-            }
-            
-            RemoveDuplicates(local_neighbors);
-            RemoveDuplicates(neighbor_procs);
         }
     }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>
+::GetNeighborCommTags()
+{    
+    BL_PROFILE("NeighborParticleContainer::GetNeighborCommTags");
+
+    local_neighbors.clear();
+    neighbor_procs.clear();
+
+    const int lev = 0;
+    for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+         mfi.isValid(); ++mfi) {
+        const Box& box = mfi.growntilebox();
+        for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
+            const int grid = (*mask_ptr[lev])[mfi](iv, MaskComps::grid);
+            if (grid >= 0) {
+                const int tile = (*mask_ptr[lev])[mfi](iv, MaskComps::tile);
+                const int level = (*mask_ptr[lev])[mfi](iv, MaskComps::level);
+                const int proc = this->ParticleDistributionMap(level)[grid];
+                NeighborCommTag comm_tag(proc, level, grid, tile);
+                local_neighbors.push_back(comm_tag);
+                if (proc != ParallelDescriptor::MyProc())
+                    neighbor_procs.push_back(proc);
+            }
+        }
+    }
+    
+    RemoveDuplicates(local_neighbors);
+    RemoveDuplicates(neighbor_procs);
 }
 
 template <int NStructReal, int NStructInt>
@@ -489,6 +500,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 ::fillNeighbors() {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");    
     BuildMasks();
+    GetNeighborCommTags();
     cacheNeighborInfo();
     updateNeighbors(false);
 }
