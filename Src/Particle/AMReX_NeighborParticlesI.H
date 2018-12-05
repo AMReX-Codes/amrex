@@ -200,14 +200,32 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
     else
     {
+        std::vector< std::pair<int, Box> > isects;
+        Box tbx;
         const int num_levels = this->finestLevel() + 1;
         for (int lev = 0; lev < num_levels; ++lev)
         {
-            for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
-                 mfi.isValid(); ++mfi) {
+            for (MFIter mfi(*mask_ptr[lev], false); mfi.isValid(); ++mfi) {
+                Box box = mfi.validbox();
+                box.grow(num_neighbor_cells);
+                Vector<NeighborCommTag> comm_tags;
+                getNeighborCommTags(comm_tags, box);
+                for (auto const& tag : comm_tags) {
+                    local_neighbors.push_back(tag);
+                    if (tag.proc_id != ParallelDescriptor::MyProc())
+                        neighbor_procs.push_back(tag.proc_id);
+                }
             }
         }
     }
+}
+
+template <int NStructReal, int NStructInt>
+void 
+NeighborParticleContainer<NStructReal, NStructInt>
+::getNeighborCommTags(Vector<NeighborCommTag>& tags, const Box& box)
+{
+    
 }
 
 template <int NStructReal, int NStructInt>
