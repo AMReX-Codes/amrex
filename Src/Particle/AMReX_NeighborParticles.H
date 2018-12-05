@@ -240,6 +240,8 @@ protected:
 
     std::array<bool, AMREX_SPACEDIM + NStructReal> rc; 
     std::array<bool, 2 + NStructInt>  ic;
+
+    static bool do_mask;
 };
 
 #include "AMReX_NeighborParticlesI.H"
