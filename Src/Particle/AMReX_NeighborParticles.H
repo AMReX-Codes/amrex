@@ -225,11 +225,11 @@ protected:
 
     void getNeighborTags(Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
-                         const int nGrow, const int src_lev, const MyParIter& pti);
+                         const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
     void getNeighborTags(Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
-                         const IntVect& nGrow, const int src_lev, const MyParIter& pti);
+                         const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
     
     amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
     amrex::Vector<std::map<PairIndex, IntVector> >      neighbor_list;
