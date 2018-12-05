@@ -49,6 +49,10 @@ public:
 
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+#ifdef AMREX_USE_GPU
+    IArrayBox (const IArrayBox& rhs, MakeType make_type);
+#endif
+
     //!  The destructor.
     ~IArrayBox () = default;
 
