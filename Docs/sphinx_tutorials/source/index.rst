@@ -22,7 +22,6 @@ The amrex/Tutorials directory is broken into the following categories:
    Basic_Tutorial
    CVODE_Tutorial
    EB_Tutorial
-   HYPRE_Tutorial
    LinearSolvers_Tutorial
    Particles_Tutorial
    SWFFT_Tutorial
