@@ -13,7 +13,6 @@ AMREX_GPU_DEVICE
 void
 initdata(Box const& bx, FArrayBox& phifab, GeometryData const& geom)
 {
-
     const auto len = length(bx);
     const auto lo  = lbound(bx);
     const auto phi = phifab.view(lo);
@@ -29,13 +28,13 @@ initdata(Box const& bx, FArrayBox& phifab, GeometryData const& geom)
             Real y = prob_lo[1] + (0.5+j) * dx[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = prob_lo[0] + (0.5+1) * dx[0]; 
+                Real x = prob_lo[0] + (0.5+i) * dx[0]; 
 #if (AMREX_SPACEDIM == 2)
                 Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2)) / 0.01;
 #else
                 Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2) + pow((z-0.5),2)) / 0.01;
 #endif
-                phi(i,j,k) = 1.0 + exp(-r2);
+                phi(i,j,k) = 1.0 + std::exp(-r2);
             }
         }
     }
