@@ -436,8 +436,6 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                              tag.grid  = mask(neighbor_cell, MaskComps::grid);
                              tag.tile  = mask(neighbor_cell, MaskComps::tile);
                              tag.level = mask(neighbor_cell, MaskComps::level);
-                             for (int dim = 0; dim < 3; ++dim)
-                                 tag.periodic_shift[dim] = 0;
                              if (periodicity.isAnyPeriodic()) {
                                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                      if (not periodicity.isPeriodic(dir)) continue;

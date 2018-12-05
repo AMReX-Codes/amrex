@@ -60,6 +60,11 @@ class NeighborParticleContainer
         int dst_index;
         IntVect periodic_shift;
 
+        NeighborCopyTag(int a_level, int a_grid, int a_tile) :
+            level(a_level), grid(a_grid), tile(a_tile), src_index(0), dst_index(0),
+            periodic_shift(IntVect(AMREX_D_DECL(0, 0, 0)))
+            {}
+        
         bool operator<(const NeighborCopyTag& other) const {
             if (level != other.level) return level < other.level;
             if (grid != other.grid) return grid < other.grid;
