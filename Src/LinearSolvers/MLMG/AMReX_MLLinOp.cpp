@@ -368,6 +368,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     {
         makeConsolidatedDMap(m_grids[0], m_dmap[0], consolidation_ratio, consolidation_strategy);
     }
+
     if (flag_use_mota && (agged || coned))
     {
         remapNeighborhoods(m_dmap[0]);
@@ -622,35 +623,34 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
     BL_PROFILE("MLLinOp::remapNeighborhoods()");
 
     if (flag_verbose_linop) {
-
         Print() << "Remapping ranks to neighborhoods ..." << std::endl;
+    }
 
-        for (int j = 0; j < dms.size(); ++j)
+    for (int j = 1; j < dms.size(); ++j)
+    {
+        const Vector<int> & pmap = dms[j].ProcessorMap();
+        std::set<int> g_ranks_set(pmap.begin(), pmap.end());
+        auto lev_rank_n = g_ranks_set.size();
+        if (lev_rank_n >= remap_nbh_lb && lev_rank_n < ParallelContext::NProcsSub())
         {
-            const Vector<int> & pmap = dms[j].ProcessorMap();
-            std::set<int> g_ranks_set(pmap.begin(), pmap.end());
-            auto lev_rank_n = g_ranks_set.size();
-            if (lev_rank_n >= remap_nbh_lb && lev_rank_n < ParallelContext::NProcsSub())
-            {
-                // find best neighborhood with lev_rank_n ranks
-                auto nbh_g_ranks = machine::find_best_nbh(lev_rank_n);
-                AMREX_ASSERT(nbh_g_ranks.size() == lev_rank_n);
+            // find best neighborhood with lev_rank_n ranks
+            auto nbh_g_ranks = machine::find_best_nbh(lev_rank_n);
+            AMREX_ASSERT(nbh_g_ranks.size() == lev_rank_n);
 
-                // construct mapping from original global rank to neighborhood global rank
-                int idx = 0;
-                std::unordered_map<int, int> rank_mapping;
-                for (auto orig_g_rank : g_ranks_set) {
-                    AMREX_ASSERT(idx < nbh_g_ranks.size());
-                    rank_mapping[orig_g_rank] = nbh_g_ranks[idx++];
-                }
-
-                // remap and redefine DM
-                Vector<int> nbh_pmap(pmap.size());
-                for (int i = 0; i < pmap.size(); ++i) {
-                    nbh_pmap[i] = rank_mapping.at(pmap[i]);
-                }
-                dms[j].define(std::move(nbh_pmap));
+            // construct mapping from original global rank to neighborhood global rank
+            int idx = 0;
+            std::unordered_map<int, int> rank_mapping;
+            for (auto orig_g_rank : g_ranks_set) {
+                AMREX_ASSERT(idx < nbh_g_ranks.size());
+                rank_mapping[orig_g_rank] = nbh_g_ranks[idx++];
             }
+
+            // remap and create new DM
+            Vector<int> nbh_pmap(pmap.size());
+            for (int i = 0; i < pmap.size(); ++i) {
+                nbh_pmap[i] = rank_mapping.at(pmap[i]);
+            }
+            dms[j] = DistributionMapping(std::move(nbh_pmap));
         }
     }
 }
