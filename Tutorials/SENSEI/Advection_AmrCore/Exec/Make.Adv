@@ -1,5 +1,5 @@
 AMREX_HOME ?= ../../../..
-ADR_DIR  ?= $(AMREX_HOME)/Tutorials/Amr/Advection_AmrLevel
+ADR_DIR  ?= $(AMREX_HOME)/Tutorials/Amr/Advection_AmrCore
 
 TOP := $(ADR_DIR)
 
@@ -16,7 +16,10 @@ include $(Bpack)
 INCLUDE_LOCATIONS += $(Blocs)
 VPATH_LOCATIONS   += $(Blocs)
 
-Pdirs 	:= Base Boundary AmrCore Amr Particle
+Pdirs 	:= Base Boundary AmrCore
+ifeq ($(USE_SENSEI_INSITU),TRUE)
+	Pdirs += Amr Extern/SENSEI
+endif
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 
 include $(Ppack)
