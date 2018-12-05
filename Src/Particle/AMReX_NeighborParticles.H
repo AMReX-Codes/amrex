@@ -218,11 +218,19 @@ protected:
     ///
     void getRcvCountsMPI();
 
+    void getNeighborTags(Vector<NeighborCopyTag>& tags,
+                         const ParticleType& p,
+                         const int nGrow, const int src_lev, const MyParIter& pti);
+
+    void getNeighborTags(Vector<NeighborCopyTag>& tags,
+                         const ParticleType& p,
+                         const IntVect& nGrow, const int src_lev, const MyParIter& pti);
+    
     amrex::Vector<std::map<PairIndex, ParticleVector> > neighbors;
-    amrex::Vector<std::map<PairIndex, IntVector> > neighbor_list;
+    amrex::Vector<std::map<PairIndex, IntVector> >      neighbor_list;
     const size_t pdata_size = sizeof(ParticleType);
     
-    static constexpr int num_mask_comps = 3;  // grid, tile, level    
+    static constexpr int num_mask_comps = 3;  // grid, tile, level
     size_t cdata_size;
     int num_neighbor_cells;
     amrex::Vector<NeighborCommTag> local_neighbors;

@@ -246,7 +246,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #endif
     {
         Vector<NeighborCopyTag> tags;
-        tags.reserve(AMREX_D_TERM(3, *3, *3));            
+        tags.reserve(AMREX_D_TERM(3, *3, *3));
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
 #ifdef _OPENMP
             int thread_num = omp_get_thread_num();
@@ -256,7 +256,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int& grid = pti.index();
             const int& tile = pti.LocalTileIndex(); 
             PairIndex src_index(grid, tile);
-            const BaseFab<int>& mask = (*mask_ptr[lev])[grid];
 
             auto& cache = buffer_tag_cache[src_index][thread_num];
 
@@ -266,52 +265,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
             auto& particles = pti.GetArrayOfStructs();
             for (unsigned i = 0; i < pti.numParticles(); ++i) {
                 const ParticleType& p = particles[i];
-                const IntVect& iv = this->Index(p, lev);
-                
-                // if the particle is more than `num_neighbor_cells` cell away from 
-                // the tile boundary, its not anybody's neighbor
-                if (shrink_box.contains(iv)) continue;
-                
-                // Figure out all our neighbors, removing duplicates
-                AMREX_D_TERM(
-                for (int ii = -nc; ii < nc + 1; ii += nc) {,
-                    for (int jj = -nc; jj < nc + 1; jj += nc) {,
-                        for (int kk = -nc; kk < nc + 1; kk += nc) {)
-                            if (AMREX_D_TERM((ii == 0), and (jj == 0), and (kk == 0))) continue;
-                            IntVect shift(AMREX_D_DECL(ii, jj, kk));
-                            IntVect neighbor_cell = iv + shift;
 
-                            NeighborCopyTag tag;
-                            tag.grid = mask(neighbor_cell, MaskComps::grid);
-                            tag.tile = mask(neighbor_cell, MaskComps::tile);
-                            tag.level = mask(neighbor_cell, MaskComps::level);
-                            for (int dim = 0; dim < 3; ++dim)
-                                tag.periodic_shift[dim] = 0;
-                            if (periodicity.isAnyPeriodic()) {
-                                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                    if (not periodicity.isPeriodic(dir)) continue;
-                                    if (neighbor_cell[dir] < lo[dir]) 
-                                        tag.periodic_shift[dir] = -1;
-                                    else if (neighbor_cell[dir] > hi[dir]) 
-                                        tag.periodic_shift[dir] =  1;
-                                }
-                            }
-
-                            if ((lev  == tag.level)          and
-                                (grid == tag.grid)           and
-                                (tile == tag.tile)           and
-                                (tag.periodic_shift[0] == 0) and
-                                (tag.periodic_shift[1] == 0) and
-                                (tag.periodic_shift[2] == 0)) continue;
-
-                            tags.push_back(tag);
-
-                    AMREX_D_TERM(
-                        },
-                    },
-                })
-                    
-                RemoveDuplicates(tags);
+                getNeighborTags(tags, p, num_neighbor_cells, lev, grid);
                 
                 // Add neighbors to buffers
                 for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
@@ -437,6 +392,79 @@ NeighborParticleContainer<NStructReal, NStructInt>
             tags[nim.src_index].dst_index = buffer_offset + i*cdata_size;
         }
     }
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
+                const int nGrow, const int src_lev, const MyParIter& pti)
+{
+    getNeighborTags(tags, p, AMREX_D_DECL(nGrow, nGrow, nGrow), src_lev, pti);
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
+                const IntVect& nGrow, const int src_lev, const MyParIter& pti)
+{
+    const Periodicity& periodicity = this->Geom(src_lev).periodicity();
+    const Box& domain = this->Geom(src_lev).Domain();
+    const IntVect& lo = domain.smallEnd();
+    const IntVect& hi = domain.bigEnd();
+
+    const int src_grid = pti.index();
+    const int src_tile = pti.localTileIndex();
+    Box shrink_box = pti.tilebox();
+    shrink_box.grow(-nGrow);
+    
+    const BaseFab<int>& mask = (*mask_ptr[src_lev])[src_grid];
+    const int lev = 0;
+
+    const IntVect& iv = this->Index(p, lev);
+    if (shrink_box.contains(iv)) return;
+
+    // Figure out all our neighbors, removing duplicates
+    AMREX_D_TERM(
+                 for (int ii = -nGrow[0]; ii < nGrow[0] + 1; ii += nGrow[0]) {,
+                     for (int jj = -nGrow[1]; jj < nGrow[1] + 1; jj += nGrow[1]) {,
+                         for (int kk = -nGrow[2]; kk < nGrow[2] + 1; kk += nGrow[2]) {)
+                             if (AMREX_D_TERM((ii == 0), and (jj == 0), and (kk == 0))) continue;
+                             IntVect shift(AMREX_D_DECL(ii, jj, kk));
+                             IntVect neighbor_cell = iv + shift;
+                             
+                             NeighborCopyTag tag;
+                             tag.grid  = mask(neighbor_cell, MaskComps::grid);
+                             tag.tile  = mask(neighbor_cell, MaskComps::tile);
+                             tag.level = mask(neighbor_cell, MaskComps::level);
+                             for (int dim = 0; dim < 3; ++dim)
+                                 tag.periodic_shift[dim] = 0;
+                             if (periodicity.isAnyPeriodic()) {
+                                 for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                                     if (not periodicity.isPeriodic(dir)) continue;
+                                     if (neighbor_cell[dir] < lo[dir]) 
+                                         tag.periodic_shift[dir] = -1;
+                                     else if (neighbor_cell[dir] > hi[dir]) 
+                                         tag.periodic_shift[dir] =  1;
+                                 }
+                             }
+                             
+                             if ((src_lev  == tag.level)          and
+                                 (src_grid == tag.grid)           and
+                                 (src_tile == tag.tile)           and
+                                 (tag.periodic_shift[0] == 0)     and
+                                 (tag.periodic_shift[1] == 0)     and
+                                 (tag.periodic_shift[2] == 0)        ) continue;
+                             
+                             tags.push_back(tag);
+                             
+                             AMREX_D_TERM(
+                                          },
+                                 },
+                         })
+        
+        RemoveDuplicates(tags);
 }
 
 template <int NStructReal, int NStructInt>
