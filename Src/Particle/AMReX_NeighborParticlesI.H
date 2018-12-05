@@ -106,9 +106,8 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>
 ::Regrid(const Vector<DistributionMapping>& dmap, const Vector<BoxArray>& ba) {
-    int num_levels = ba.size();
-    AMREX_ASSERT(num_levels == this->finestLevel()+1);
-    for (int lev = 0; lev < num_levels; ++lev)
+    AMREX_ASSERT(ba.size() == this->finestLevel()+1);
+    for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         this->SetParticleBoxArray(lev, ba[lev]);
         this->SetParticleDistributionMap(lev, dmap[lev]);
@@ -123,14 +122,12 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
-    int num_levels = this->finestLevel() + 1;    
     resizeContainers( this->finestLevel() );
 
-    for (int lev = 0; lev < num_levels; ++lev)
+    for (int lev = 0; lev < this->numLevels(); ++lev)
     {
         // compute ref ratio relative to level 0
-        IntVect rr = IntVect(AMREX_D_DECL(1,1,1));
-        for (int flev = 1; flev < num_levels; ++flev) rr *= this->GetParGDB()->refRatio(flev);
+        IntVect rr = computeRefFac(0, lev);
 
         BoxArray ba = this->ParticleBoxArray(lev);
         ba.coarsen(rr);
@@ -200,8 +197,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
     else
     {
-        const int num_levels = this->finestLevel() + 1;
-        for (int lev = 0; lev < num_levels; ++lev)
+        for (int lev = 0; lev < this->numLevels(); ++lev)
         {
             for (MFIter mfi(*mask_ptr[lev], false); mfi.isValid(); ++mfi) {
                 const Box& box = mfi.validbox();
@@ -245,8 +241,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     std::vector< std::pair<int, Box> > isects;
     Box tbx;    
 
-    const int num_levels = this->finestLevel() + 1;
-    for (int lev = 0; lev < num_levels; ++lev) {
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
         const IntVect& ref_fac = computeRefFac(src_lev, lev); 
         if (ref_fac < IntVect::TheZeroVector())
         {
@@ -527,11 +522,9 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
     {
         std::vector< std::pair<int, Box> > isects;
         Box tbx;
-        IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
-        const int num_levels = this->finestLevel() + 1;
-        for (int lev = 0; lev < num_levels; ++lev)
+        for (int lev = 0; lev < this->numLevels(); ++lev)
         {
-            if (lev > 0) ref_fac *= this->GetParGDB()->refRatio(lev-1);
+            IntVect ref_fac = computeRefFac(0, lev);
             const Periodicity& periodicity = this->Geom(lev).periodicity();
             const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
             const BoxArray& ba = this->ParticleBoxArray(lev);
@@ -660,11 +653,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
 
-    const int num_levels = this->finestLevel() + 1;
-    for (int lev = 0; lev < num_levels; ++lev) {    
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
         resizeContainers(lev);
         neighbors[lev].clear();
     }
+    
     buffer_tag_cache.clear();
     send_data.clear();
 }
