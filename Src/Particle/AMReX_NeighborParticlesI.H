@@ -268,7 +268,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 const ParticleType& p = particles[i];
                 const IntVect& iv = this->Index(p, lev);
                 
-                // if the particle is more than one cell away from 
+                // if the particle is more than `num_neighbor_cells` cell away from 
                 // the tile boundary, its not anybody's neighbor
                 if (shrink_box.contains(iv)) continue;
                 
