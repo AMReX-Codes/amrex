@@ -376,6 +376,12 @@ Numerics and algorithms
      - ``2``: Direct deposition, vectorized
      - ``3``: Direct deposition, non-optimized
 
+    .. warning::
+
+        The vectorized versions do not run on GPU. Use 
+		``algo.current_deposition=1`` or ``3`` when running
+		on GPU.
+
 * ``algo.charge_deposition`` (`integer`)
     The algorithm for the charge density deposition:
 
@@ -387,6 +393,10 @@ Numerics and algorithms
 
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
+    .. warning::
+
+        The vectorized version does not run on GPU. Use 
+		``algo.field_gather=1`` when running on GPU.
 
 * ``algo.particle_pusher`` (`integer`)
     The algorithm for the particle pusher:
