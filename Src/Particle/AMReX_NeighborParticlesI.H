@@ -394,7 +394,7 @@ NeighborParticleContainer<NStructReal, NStructInt>::
 getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                 const int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti)
 {
-    getNeighborTags(tags, p, AMREX_D_DECL(nGrow, nGrow, nGrow), src_tag, pti);
+    getNeighborTags(tags, p, IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)), src_tag, pti);
 }
 
 template <int NStructReal, int NStructInt>
