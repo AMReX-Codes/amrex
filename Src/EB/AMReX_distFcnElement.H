@@ -14,10 +14,10 @@ class distFcnElement2d {
   distFcnElement2d() {}
   ~distFcnElement2d() {}
 
-  virtual distFcnElement2d* newDistFcnElement2d() const;
+  virtual distFcnElement2d* newDistFcnElement2d() const = 0;
 
-  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const;
-  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const;
+  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
+  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const = 0;
   int solve_thomas(std::vector<amrex::Real> diagminus,
                    std::vector<amrex::Real> diag,
                    std::vector<amrex::Real> diagplus,
@@ -31,12 +31,12 @@ class LineDistFcnElement2d: public distFcnElement2d {
   LineDistFcnElement2d() {}
   ~LineDistFcnElement2d() {}
 
-  virtual distFcnElement2d* newDistFcnElement2d() const;
+  virtual distFcnElement2d* newDistFcnElement2d() const override;
 
   void set_control_points(std::vector<amrex::RealVect>  pts);
 
-  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const;
-  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const;
+  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
+  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
 
   void print_control_points();
 
@@ -60,7 +60,7 @@ class SplineDistFcnElement2d: public distFcnElement2d {
   SplineDistFcnElement2d() {}
   ~SplineDistFcnElement2d() {}
 
-  virtual distFcnElement2d* newDistFcnElement2d() const;
+  virtual distFcnElement2d* newDistFcnElement2d() const override;
 
 
   void set_control_points(std::vector<amrex::RealVect>  pts);
@@ -71,8 +71,8 @@ class SplineDistFcnElement2d: public distFcnElement2d {
 
   void calc_D(bool clamped_bc = true);
 
-  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const;
-  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const;
+  virtual  amrex::Real cpdist(amrex::RealVect pt, amrex::RealVect& cp) const override;
+  virtual  amrex::Real cpside(amrex::RealVect pt, amrex::RealVect& cp) const override;
 
  protected:
   amrex::Real eval(amrex::Real t, amrex::Real y0, amrex::Real y1,
