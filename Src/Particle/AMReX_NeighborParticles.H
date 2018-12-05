@@ -208,6 +208,8 @@ protected:
     /// This builds the internal mask data structure used for looking up neighbors
     ///
     void BuildMasks();
+
+    void GetNeighborCommTags();
     
     void resizeContainers(const int lev);
     
