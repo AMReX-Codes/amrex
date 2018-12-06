@@ -132,8 +132,8 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                       {max_eb_pad + 1, max_eb_pad + 1, max_eb_pad + 1},
                                       EBSupport::full);
 
-        // Area fraction data
-        std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
+        // // Area fraction data
+        // std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
         // EB boundary-centre data
         const MultiCutFab & bndrycent = eb_factory.getBndryCent();
         const auto & flags = eb_factory.getMultiEBCellFlagFab();
