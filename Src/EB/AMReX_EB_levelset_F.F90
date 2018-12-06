@@ -366,6 +366,12 @@ contains
                         else
                             phi(ii, jj, kk) = -levelset_node
                         end if
+
+                        if ( phi(ii, jj, kk) >= 3.d-4 ) then
+                           phi(ii, jj, kk) = 1
+                        else if ( phi(ii, jj, kk) <= -3.d-4 ) then
+                           phi(ii, jj, kk) = -1
+                        end if
                     end if
                 end do
             end do
