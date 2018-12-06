@@ -125,7 +125,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     if (this->numLevels() == 1) use_mask = true;
     else use_mask = false;
     
-    resizeContainers( this->finestLevel() );
+    resizeContainers(this->numLevels());
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
@@ -286,7 +286,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     AMREX_ASSERT(this->OK());
 
-    resizeContainers(this->finestLevel());
+    resizeContainers(this->numLevels());
     
     clearNeighbors();
     
@@ -682,8 +682,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     BL_PROFILE("NeighborParticleContainer::clearNeighbors");
 
+    resizeContainers(this->numLevels());    
     for (int lev = 0; lev < this->numLevels(); ++lev) {
-        resizeContainers(lev);
         neighbors[lev].clear();
         buffer_tag_cache[lev].clear();
     }
@@ -980,15 +980,15 @@ buildNeighborList(CheckPair check_pair, bool sort) {
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
-resizeContainers(const int lev)
+resizeContainers(const int num_levels)
 {
-    if ( static_cast<int>(neighbors.size()) <= lev )
+    if ( static_cast<int>(neighbors.size()) <= num_levels )
     {
-        neighbors.resize(lev+1);
-        neighbor_list.resize(lev+1);
-        mask_ptr.resize(lev+1);
-        buffer_tag_cache.resize(lev+1);
-        local_neighbor_sizes.resize(lev+1);
+        neighbors.resize(num_levels);
+        neighbor_list.resize(num_levels);
+        mask_ptr.resize(num_levels);
+        buffer_tag_cache.resize(num_levels);
+        local_neighbor_sizes.resize(num_levels);
     }
 
     AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and
