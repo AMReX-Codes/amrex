@@ -4,6 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-Tutorials/HYPRE
+Tutorials/Forkjoin
 ==========================
 
