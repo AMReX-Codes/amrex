@@ -122,6 +122,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     BL_PROFILE("NeighborParticleContainer::BuildMasks");
 
+    if (this->numLevels() == 1) use_mask = true;
+    else use_mask = false;
+    
     resizeContainers( this->finestLevel() );
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
