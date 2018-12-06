@@ -578,7 +578,7 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
 #endif
     for (MFIter mfi(* ls_grid, true); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
-        Box eb_search = amrex::convert(mfi.tilebox(), IntVect{0,0,0});
+        Box eb_search = amrex::convert(mfi.tilebox(), IntVect{AMREX_D_DECL(0,0,0)});
         eb_search.coarsen(ls_grid_ref);
         eb_search.grow(2*eb_grid_pad);
 
