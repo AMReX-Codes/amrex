@@ -263,8 +263,8 @@ protected:
     amrex::Vector<NeighborCommTag> local_neighbors;
     amrex::Vector<std::unique_ptr<iMultiFab> > mask_ptr;
 
-    std::map<PairIndex, Vector<Vector<NeighborCopyTag> > > buffer_tag_cache;
-    std::map<PairIndex, int> local_neighbor_sizes;
+    amrex::Vector<std::map<PairIndex, Vector<Vector<NeighborCopyTag> > > > buffer_tag_cache;
+    amrex::Vector<std::map<PairIndex, int> > local_neighbor_sizes;
 
     // each proc knows how many sends it will do, and how many bytes it will rcv 
     // from each other proc.
