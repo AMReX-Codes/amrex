@@ -358,8 +358,8 @@ contains
          do jj = lo(2), hi(2)
             do ii = lo(1), hi(1)
 
-               if ( phi(ii, jj, kk) > phi_th ) phi(ii, jj, kk) = phi_th
-               if ( phi(ii, jj, kk) < -phi_th ) phi(ii, jj, kk) = phi_th
+               if ( phi(ii, jj, kk) >  phi_th ) phi(ii, jj, kk) =  phi_th
+               if ( phi(ii, jj, kk) < -phi_th ) phi(ii, jj, kk) = -phi_th
 
             end do
          end do
