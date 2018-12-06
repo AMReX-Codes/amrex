@@ -292,33 +292,38 @@ NeighborParticleContainer<NStructReal, NStructInt>
     
     const int MyProc = ParallelDescriptor::MyProc();
 
-    std::map<PairIndex,       Vector<NeighborIndexMap> > local_map;
+    amrex::Vector<std::map<PairIndex,       Vector<NeighborIndexMap> > > local_map;
     std::map<NeighborCommTag, Vector<NeighborIndexMap> > remote_map;
 
     // tmp data structures used for OMP reduction
-    std::map<PairIndex,       Vector<Vector<NeighborIndexMap> > > tmp_local_map;
+    amrex::Vector<std::map<PairIndex,       Vector<Vector<NeighborIndexMap> > > > tmp_local_map;
     std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > > tmp_remote_map;
-    
-    for (int lev = 0; lev < this->numLevels(); ++lev) {
-        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-    
-        int num_threads = 1;
+
+    local_map.resize(this->numLevels());
+    tmp_local_map.resize(this->numLevels());
+
+    int num_threads = 1;
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp single
-        num_threads = omp_get_num_threads();
+    num_threads = omp_get_num_threads();
 #endif
-        
+
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
         // resize our temporaries in serial
         for (int i = 0; i < static_cast<int>(local_neighbors.size()); ++i) {
             const NeighborCommTag& comm_tag = local_neighbors[i];
             tmp_remote_map[comm_tag].resize(num_threads);
             remote_map[comm_tag];
             PairIndex index(comm_tag.grid_id, comm_tag.tile_id);
-            tmp_local_map[index].resize(num_threads);
-            local_map[index];
+            tmp_local_map[lev][index].resize(num_threads);
+            local_map[lev][index];
             buffer_tag_cache[lev][index].resize(num_threads);
         }
+    }
+    
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
+        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
         
         // First pass - each thread collects the NeighborIndexMaps it owes to other
         // grids / tiles / procs
@@ -363,7 +368,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                                              lev, src_index.first, src_index.second, 
                                              cache_index, thread_num);
                         if (who == MyProc) {
-                            auto& tmp = tmp_local_map[dst_index];
+                            auto& tmp = tmp_local_map[tag.level][dst_index];
                             Vector<NeighborIndexMap>& buffer = tmp[thread_num];
                             buffer.push_back(nim);
                         } else {
@@ -376,7 +381,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 }
             }
         }
+    }
 
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
         // second pass - for each tile, collect the neighbors owed from all threads
 #ifdef _OPENMP
 #pragma omp parallel
@@ -386,42 +393,42 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int tile = mfi.LocalTileIndex();
             PairIndex index(grid, tile);
             for (int i = 0; i < num_threads; ++i) {
-                local_map[index].insert(local_map[index].end(),
-                                        tmp_local_map[index][i].begin(),
-                                        tmp_local_map[index][i].end());
-                tmp_local_map[index][i].erase(tmp_local_map[index][i].begin(),
-                                              tmp_local_map[index][i].end());
+                local_map[lev][index].insert(local_map[lev][index].end(),
+                                        tmp_local_map[lev][index][i].begin(),
+                                        tmp_local_map[lev][index][i].end());
+                tmp_local_map[lev][index][i].erase(tmp_local_map[lev][index][i].begin(),
+                                              tmp_local_map[lev][index][i].end());
             }
         }
+    }
         
-        // do the same for the remote neighbors
-        typename std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > >::iterator it;
+    // do the same for the remote neighbors
+    typename std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > >::iterator it;
 #ifdef _OPENMP
 #pragma omp parallel
 #pragma omp single nowait
 #endif
-        for (it=tmp_remote_map.begin(); it != tmp_remote_map.end(); it++) {
+    for (it=tmp_remote_map.begin(); it != tmp_remote_map.end(); it++) {
 #ifdef _OPENMP
 #pragma omp task firstprivate(it)
 #endif
-            {
-                const NeighborCommTag& tag = it->first;
-                Vector<Vector<NeighborIndexMap> >& tmp = it->second;
-                for (int i = 0; i < num_threads; ++i) {
-                    remote_map[tag].insert(remote_map[tag].end(), tmp[i].begin(), tmp[i].end());
-                    tmp[i].erase(tmp[i].begin(), tmp[i].end());
-                }
+        {
+            const NeighborCommTag& tag = it->first;
+            Vector<Vector<NeighborIndexMap> >& tmp = it->second;
+            for (int i = 0; i < num_threads; ++i) {
+                remote_map[tag].insert(remote_map[tag].end(), tmp[i].begin(), tmp[i].end());
+                tmp[i].erase(tmp[i].begin(), tmp[i].end());
             }
         }
     }
-
+    
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         // now for the local neighbors, allocate buffers and cache
         for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
             const int grid = mfi.index();
             const int tile = mfi.LocalTileIndex();
             PairIndex dst_index(grid, tile);
-            const Vector<NeighborIndexMap>& map = local_map[dst_index];
+            const Vector<NeighborIndexMap>& map = local_map[lev][dst_index];
             const int num_ghosts = map.size();
             neighbors[lev][dst_index].resize(num_ghosts);
             local_neighbor_sizes[lev][dst_index] = neighbors[lev][dst_index].size();
@@ -433,7 +440,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int grid = mfi.index();
             const int tile = mfi.LocalTileIndex();
             PairIndex dst_index(grid, tile);
-            const Vector<NeighborIndexMap>& map = local_map[dst_index];
+            const Vector<NeighborIndexMap>& map = local_map[lev][dst_index];
             const int num_ghosts = map.size();
 #ifdef _OPENMP
 #pragma omp parallel for
