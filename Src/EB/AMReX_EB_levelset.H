@@ -61,11 +61,11 @@ class LSFactory {
         const RealVect dx_vect, dx_eb_vect;
 
         // Construct eb_facets list from eb_factory
-        std::unique_ptr<Vector<Real>> eb_facets(const FArrayBox & norm_tile,
-                                                const CutFab & bcent_tile,
-                                                const EBCellFlagFab & flag,
-                                                const RealVect & eb_dx,
-                                                const Box & eb_search);
+        static std::unique_ptr<Vector<Real>> eb_facets(const FArrayBox & norm_tile,
+                                                       const CutFab & bcent_tile,
+                                                       const EBCellFlagFab & flag,
+                                                       const RealVect & eb_dx,
+                                                       const Box & eb_search);
 
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
