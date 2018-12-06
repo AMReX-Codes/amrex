@@ -425,16 +425,26 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int num_ghosts = map.size();
             neighbors[lev][dst_index].resize(num_ghosts);
             local_neighbor_sizes[lev][dst_index] = neighbors[lev][dst_index].size();
+        }
+    }
+
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
+        for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            const int grid = mfi.index();
+            const int tile = mfi.LocalTileIndex();
+            PairIndex dst_index(grid, tile);
+            const Vector<NeighborIndexMap>& map = local_map[dst_index];
+            const int num_ghosts = map.size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < num_ghosts; ++i) {
                 const NeighborIndexMap& nim = map[i];
                 PairIndex src_index(nim.src_grid, nim.src_tile);
-                Vector<NeighborCopyTag>& tags = buffer_tag_cache[lev][src_index][nim.thread_num];
+                Vector<NeighborCopyTag>& tags = buffer_tag_cache[nim.src_level][src_index][nim.thread_num];
                 AMREX_ASSERT(nim.src_index < tags.size());
                 tags[nim.src_index].dst_index = i;
-                AMREX_ASSERT(tags[nim.src_index].dst_index < neighbors[lev][dst_index].size());
+                AMREX_ASSERT(tags[nim.src_index].dst_index < neighbors[nim.dst_level][dst_index].size());
             }
         }
     }
@@ -634,7 +644,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                     }
                     if (who == MyProc) {
                         PairIndex dst_index(tag.grid, tag.tile);
-                        ParticleVector& buffer = neighbors[lev][dst_index];
+                        ParticleVector& buffer = neighbors[tag.level][dst_index];
                         AMREX_ASSERT(tag.dst_index < buffer.size());
                         std::memcpy(&buffer[tag.dst_index], &p, pdata_size);
                     } else {
