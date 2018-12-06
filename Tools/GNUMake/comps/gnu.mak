@@ -12,25 +12,21 @@ endif
 
 ########################################################################
 
-gcc_version       = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
-gcc_major_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
-gcc_minor_version = $(shell g++ -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
+ifeq ($(USE_CUDA),TRUE)
+  GCC_VERSION_COMP = g++
+else
+  GCC_VERSION_COMP = $(CXX)
+endif
+
+gcc_version       = $(shell $(GCC_VERSION_COMP) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;')
+gcc_major_version = $(shell $(GCC_VERSION_COMP) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;\..*;;')
+gcc_minor_version = $(shell $(GCC_VERSION_COMP) -dumpfullversion -dumpversion | head -1 | sed -e 's;.*  *;;' | sed -e 's;[^.]*\.;;' | sed -e 's;\..*;;')
 
 COMP_VERSION = $(gcc_version)
 
 DEFINES += -DBL_GCC_VERSION=$(gcc_version)
 DEFINES += -DBL_GCC_MAJOR_VERSION=$(gcc_major_version)
 DEFINES += -DBL_GCC_MINOR_VERSION=$(gcc_minor_version)
-
-########################################################################
-
-gcc_major_le_4 = $(shell expr $(gcc_major_version) \<= 4)
-gcc_minor_lt_8 = $(shell expr $(gcc_minor_version) \< 8)
-ifeq ($(gcc_major_le_4),1)
-  ifeq ($(gcc_minor_lt_8),1)
-    $(warning Your default GCC is version $(gcc_version). This might break during build. We therefore recommend that you specify a GCC >= 4.8 in your Make.local. The the docs on building AMReX for an example.)
-  endif
-endif
 
 ########################################################################
 

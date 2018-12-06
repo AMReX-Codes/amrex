@@ -198,6 +198,45 @@ void LSFactory::fill_valid(){
 
 
 
+std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
+                                                   const CutFab & bcent_tile,
+                                                   const EBCellFlagFab & flag,
+                                                   const RealVect & dx_eb,
+                                                   const Box & eb_search) 
+{
+    // 1-D list of eb-facet data. Format:
+    // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
+    //   ^                 ^
+    //   |                 +---- {nx, ny, nz} is the normal vector pointing _towards_ the facet
+    //   +-----------------------{px, py, pz} is the position vector of the facet centre
+    std::unique_ptr<Vector<Real>> facet_list;
+
+    int n_facets = 0;
+    // Need to count number of eb-facets (in order to allocate facet_list)
+    amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
+                          BL_TO_FORTRAN_3D(flag),
+                          & n_facets);
+
+    int facet_list_size = 6 * n_facets;
+    facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(facet_list_size));
+
+    // if (n_facets == 0)
+    //     return facet_list;
+
+    if (flag.getType(eb_search) == FabType::singlevalued) {
+        int c_facets = 0;
+        amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
+                         BL_TO_FORTRAN_3D(flag),
+                         BL_TO_FORTRAN_3D(norm_tile),
+                         BL_TO_FORTRAN_3D(bcent_tile),
+                         facet_list->dataPtr(), & facet_list_size,
+                         dx_eb.dataPtr()                           );
+    }
+    return facet_list;
+}
+
+
+
 std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory) {
     return eb_facets(eb_factory, eb_ba, ls_dm);
 }
@@ -250,7 +289,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     *                                                                          *
     ****************************************************************************/
 
-    for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
+    for(MFIter mfi(dummy); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
         const int * lo = tile_box.loVect();
         const int * hi = tile_box.hiVect();
@@ -264,7 +303,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(6 * n_facets));
 
     int c_facets = 0;
-    for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
+    for(MFIter mfi(dummy); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
 
         const auto & flag = flags[mfi];
@@ -284,6 +323,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
                              dx_eb_vect.dataPtr()                               );
             }
     }
+
     return facet_list;
 }
 
@@ -505,6 +545,108 @@ void LSFactory::set_data(const MultiFab & mf_ls){
     ls_grid->FillBoundary(geom_ls.periodicity());
 
     fill_valid();
+}
+
+
+std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                   const MultiFab & mf_impfunc) {
+
+    const MultiCutFab & bndrycent = eb_factory.getBndryCent();
+    const auto & flags = eb_factory.getMultiEBCellFlagFab();
+
+    MultiFab normal(eb_ba, ls_dm, 3, eb_grid_pad);
+    FillEBNormals(normal, eb_factory, geom_eb);
+
+    iMultiFab eb_valid;
+    eb_valid.define(ls_ba, ls_dm, 1, ls_grid_pad);
+    eb_valid.setVal(0);
+
+
+    std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
+    region_valid->define(ls_ba, ls_dm, 1, ls_grid_pad);
+    region_valid->setVal(0);
+
+
+    // Fill local MultiFab with eb_factory's level-set data. Note the role of
+    // eb_valid:
+    //  -> eb_valid = 1 if the corresponding eb_ls location could be projected
+    //                  onto the eb-facets
+    //  -> eb_valid = 0 if eb_ls is the fall-back (euclidian) distance to the
+    //                  nearest eb-facet
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(* ls_grid, true); mfi.isValid(); ++mfi) {
+        Box tile_box = mfi.growntilebox();
+        Box eb_search = amrex::convert(mfi.tilebox(), IntVect{AMREX_D_DECL(0,0,0)});
+        eb_search.coarsen(ls_grid_ref);
+        eb_search.grow(2*eb_grid_pad);
+
+        auto & ls_tile = (* ls_grid)[mfi];
+        const auto & if_tile   = mf_impfunc[mfi];
+        const auto & norm_tile = normal[mfi];
+        const auto & bcent_tile = bndrycent[mfi];
+        const auto & flag = flags[mfi];
+
+        auto & region_tile = (* region_valid)[mfi];
+        auto & v_tile = eb_valid[mfi];
+
+
+        int n_facets = 0;
+        // Need to count number of eb-facets (in order to allocate facet_list)
+        amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
+                              BL_TO_FORTRAN_3D(flag),
+                              & n_facets);
+
+        int facet_list_size = 6 * n_facets;
+        Vector<Real> facets(facet_list_size);
+
+        if (n_facets > 0) {
+            int c_facets = 0;
+            amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
+                             BL_TO_FORTRAN_3D(flag),
+                             BL_TO_FORTRAN_3D(norm_tile),
+                             BL_TO_FORTRAN_3D(bcent_tile),
+                             facets.dataPtr(), & facet_list_size,
+                             dx_eb_vect.dataPtr()                           );
+        }
+
+        // std::unique_ptr<Vector<Real>> facets = eb_facets(norm_tile, bcent_tile, flag,
+        //                                                  dx_vect, eb_search);
+        int len_facets = facets.size();
+
+        if (len_facets > 0) {
+
+            amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
+                                   facets.dataPtr(), & len_facets,
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile),
+                                   dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
+
+            // amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
+            //                            BL_TO_FORTRAN_3D(if_tile),
+            //                            BL_TO_FORTRAN_3D(v_tile),
+            //                            BL_TO_FORTRAN_3D(ls_tile)   );
+
+            region_tile.setVal(1);
+        } else {
+            Real max_dx = std::max(dx_vect[0], std::max(dx_vect[1], dx_vect[2]));
+            ls_tile.setVal( max_dx * eb_grid_pad ); // TODO: Fix
+        }
+
+        amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
+                                   BL_TO_FORTRAN_3D(if_tile),
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile)   );
+
+
+        facets.clear();
+    }
+    //ls_grid->FillBoundary(geom_ls.periodicity());
+
+    fill_valid();
+
+    return region_valid;
 }
 
 
