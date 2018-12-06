@@ -317,7 +317,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             PairIndex index(comm_tag.grid_id, comm_tag.tile_id);
             tmp_local_map[index].resize(num_threads);
             local_map[index];
-            buffer_tag_cache[index].resize(num_threads);
+            buffer_tag_cache[lev][index].resize(num_threads);
         }
         
         // First pass - each thread collects the NeighborIndexMaps it owes to other
@@ -340,7 +340,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 
                 NeighborCopyTag src_tag(lev, grid, tile);
                 
-                auto& cache = buffer_tag_cache[src_index][thread_num];
+                auto& cache = buffer_tag_cache[lev][src_index][thread_num];
                 
                 auto& particles = pti.GetArrayOfStructs();
                 for (unsigned i = 0; i < pti.numParticles(); ++i) {
@@ -424,14 +424,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const Vector<NeighborIndexMap>& map = local_map[dst_index];
             const int num_ghosts = map.size();
             neighbors[lev][dst_index].resize(num_ghosts);
-            local_neighbor_sizes[dst_index] = neighbors[lev][dst_index].size();  // store this for later
+            local_neighbor_sizes[lev][dst_index] = neighbors[lev][dst_index].size();
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
             for (int i = 0; i < num_ghosts; ++i) {
                 const NeighborIndexMap& nim = map[i];
                 PairIndex src_index(nim.src_grid, nim.src_tile);
-                Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
+                Vector<NeighborCopyTag>& tags = buffer_tag_cache[lev][src_index][nim.thread_num];
                 AMREX_ASSERT(nim.src_index < tags.size());
                 tags[nim.src_index].dst_index = i;
                 AMREX_ASSERT(tags[nim.src_index].dst_index < neighbors[lev][dst_index].size());
@@ -471,7 +471,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
         for (int i = 0; i < np; ++i) {
             const NeighborIndexMap& nim = kv.second[i];
             PairIndex src_index(nim.src_grid, nim.src_tile);
-            Vector<NeighborCopyTag>& tags = buffer_tag_cache[src_index][nim.thread_num];
+            Vector<NeighborCopyTag>& tags = buffer_tag_cache[nim.src_level][src_index][nim.thread_num];
             tags[nim.src_index].dst_index = buffer_offset + i*cdata_size;
         }
     }
@@ -567,10 +567,7 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                                                 this->do_tiling, this->tile_size, tbx);
                         auto nbor = NeighborCopyTag(lev, isec.first, tile);
                         nbor.periodic_shift = -1*(*pit);
-                        if (src_tag != nbor) {
-                            tags.push_back(nbor);
-                            if (p.id() == 496) amrex::Print() << nbor << "\n";
-                        }
+                        if (src_tag != nbor) tags.push_back(nbor);
                     }
                 }
             }
@@ -617,7 +614,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             auto& particles = pti.GetArrayOfStructs();
             for (int j = 0; j < num_threads; ++j) {
-                auto& tags = buffer_tag_cache[src_index][j];
+                auto& tags = buffer_tag_cache[lev][src_index][j];
                 int num_tags = tags.size();
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -669,7 +666,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             const int grid = mfi.index();
             const int tile = mfi.LocalTileIndex();
             PairIndex dst_index(grid, tile);
-            neighbors[lev][dst_index].resize(local_neighbor_sizes[dst_index]);
+            neighbors[lev][dst_index].resize(local_neighbor_sizes[lev][dst_index]);
         }
     }
     BL_PROFILE_VAR_STOP(update);
@@ -688,9 +685,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         resizeContainers(lev);
         neighbors[lev].clear();
+        buffer_tag_cache[lev].clear();
     }
     
-    buffer_tag_cache.clear();
     send_data.clear();
 }
 
@@ -924,9 +921,6 @@ buildNeighborList(CheckPair check_pair, bool sort) {
                 const ParticleType& p = tmp_particles[i];
                 const IntVect& cell = this->Index(p, lev);
                 cells[i] = cell;
-                if (p.id() == 496) amrex::Print() << lev << " " << index.first << " " << index.second
-                                                  << " " << p << " " << cell << " " << box << " "
-                                                  << (i < Np) << "\n";
                 list[i] = head(cell);
                 head(cell) = i;
             }
@@ -993,6 +987,8 @@ resizeContainers(const int lev)
         neighbors.resize(lev+1);
         neighbor_list.resize(lev+1);
         mask_ptr.resize(lev+1);
+        buffer_tag_cache.resize(lev+1);
+        local_neighbor_sizes.resize(lev+1);
     }
 
     AMREX_ASSERT((neighbors.size() == neighbor_list.size()) and
