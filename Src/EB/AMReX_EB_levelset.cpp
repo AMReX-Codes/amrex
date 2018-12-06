@@ -580,7 +580,7 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
         Box tile_box = mfi.growntilebox();
         Box eb_search = amrex::convert(mfi.tilebox(), IntVect{AMREX_D_DECL(0,0,0)});
         eb_search.coarsen(ls_grid_ref);
-        eb_search.grow(2*eb_grid_pad);
+        eb_search.grow(eb_grid_pad);
 
         auto & ls_tile = (* ls_grid)[mfi];
         const auto & if_tile   = mf_impfunc[mfi];
@@ -623,15 +623,10 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
                                    BL_TO_FORTRAN_3D(ls_tile),
                                    dx_vect.dataPtr(), dx_eb_vect.dataPtr() );
 
-            // amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
-            //                            BL_TO_FORTRAN_3D(if_tile),
-            //                            BL_TO_FORTRAN_3D(v_tile),
-            //                            BL_TO_FORTRAN_3D(ls_tile)   );
-
             region_tile.setVal(1);
         } else {
             Real max_dx = std::max(dx_vect[0], std::max(dx_vect[1], dx_vect[2]));
-            ls_tile.setVal( max_dx * eb_grid_pad ); // TODO: Fix
+            ls_tile.setVal( max_dx * eb_grid_pad );
         }
 
         amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
@@ -640,10 +635,15 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
                                    BL_TO_FORTRAN_3D(ls_tile)   );
 
 
+        Real ls_threshold = -1;
+        amrex_eb_threshold_levelset( BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
+                                     BL_TO_FORTRAN_3D(ls_tile));
+
+
+
         facets.clear();
     }
     //ls_grid->FillBoundary(geom_ls.periodicity());
-
     fill_valid();
 
     return region_valid;
