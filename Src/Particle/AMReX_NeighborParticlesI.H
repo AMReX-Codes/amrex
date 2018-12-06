@@ -225,7 +225,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
         }
     } else if (src_lev > lev) {
         for (int l = src_lev; l > lev; --l) {
-            ref_fac *= this->GetParGDB()->refRatio(l);
+            ref_fac *= this->GetParGDB()->refRatio(l-1);
         }
         ref_fac *= -1;
     }
@@ -244,7 +244,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
         const IntVect& ref_fac = computeRefFac(src_lev, lev); 
         if (ref_fac < IntVect::TheZeroVector())
         {
-            box.coarsen(ref_fac);
+            box.coarsen(-1*ref_fac);
         }
         else if (ref_fac > IntVect::TheZeroVector())
         {
