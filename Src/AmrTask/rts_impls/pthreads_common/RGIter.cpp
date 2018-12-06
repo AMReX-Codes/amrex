@@ -91,7 +91,7 @@ namespace amrex{
 	getFireableTime(0.)
     {
 	int myProc = amrex::ParallelDescriptor::MyProc();
-	bool push = false;
+	bool push = true;
 
 	tid = perilla::tid();
 	tg = perilla::wid();
@@ -102,7 +102,7 @@ namespace amrex{
 	    m_level_afpi[iteration-1]->Reset();
 	itrGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
 
-	if(ntid == perilla::NUM_THREADS_PER_TEAM-1)
+	if(ntid == perilla::NUM_THREADS_PER_TEAM-2)
 	{
 	    int f;
 	    int level = m_level_afpi[iteration-1]->m_amrlevel.level;
@@ -128,9 +128,8 @@ namespace amrex{
 		{
 		    f = m_level_afpi[iteration-1]->destGraph->worker[tg]->computedRegionQueue->removeRegion();
 
-
 		    if(push & level == m_level_afpi[iteration-1]->m_amrlevel.parent->finestLevel() && iteration < m_level_afpi[iteration-1]->m_amrlevel.parent->nCycle(level))
-			m_level_afpi[iteration]->SendIntraLevel(this,boxGrow,time+dt,index,scomp,ncomp,iteration,f,true);
+			m_level_afpi[iteration]->SendIntraLevel(*(this),boxGrow,time+dt,index,scomp,ncomp,iteration,f,true);
 
 		    if(push & level < m_level_afpi[iteration-1]->m_amrlevel.parent->finestLevel())
 		    {
