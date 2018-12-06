@@ -202,7 +202,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             for (MFIter mfi(*mask_ptr[lev], false); mfi.isValid(); ++mfi) {
                 const Box& box = mfi.validbox();
                 Vector<NeighborCommTag> comm_tags;
-                getNeighborCommTags(comm_tags, lev, box);
+                GetCommTagsBox(comm_tags, lev, box);
                 for (auto const& tag : comm_tags) {
                     local_neighbors.push_back(tag);
                     if (tag.proc_id != ParallelDescriptor::MyProc())
@@ -235,9 +235,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void 
 NeighborParticleContainer<NStructReal, NStructInt>
-::getNeighborCommTags(Vector<NeighborCommTag>& tags, const int src_lev, const Box& src_box)
+::GetCommTagsBox(Vector<NeighborCommTag>& tags, const int src_lev, Box box)
 {
-    Box box = amrex::grow(src_box, num_neighbor_cells);
     std::vector< std::pair<int, Box> > isects;
     Box tbx;    
 
@@ -251,9 +250,28 @@ NeighborParticleContainer<NStructReal, NStructInt>
         {
             box.refine(ref_fac);
         }
-        
+        const Periodicity& periodicity = this->Geom(lev).periodicity();
+        const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
+        const BoxArray& ba = this->ParticleBoxArray(lev);
+
+        for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+        {
+            bool first_only = false;
+            ba.intersections(box+(*pit), isects, first_only, num_neighbor_cells);
+            for (const auto& isec : isects) {
+                for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
+                    const int grid = isec.first;
+                    const int proc = this->ParticleDistributionMap(lev)[grid];
+                    if (isec.second.contains(iv))
+                    {
+                        int tile = getTileIndex(iv, isec.second,
+                                                this->do_tiling, this->tile_size, tbx);
+                        tags.push_back(NeighborCommTag(proc, lev, grid, tile));
+                    }
+                }
+            }
+        }
     }
-    
 }
 
 template <int NStructReal, int NStructInt>

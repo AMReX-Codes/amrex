@@ -210,6 +210,8 @@ protected:
     void BuildMasks();
 
     void GetNeighborCommTags();
+
+    void GetCommTagsBox(Vector<NeighborCommTag>& tags, const int lev, Box box);
     
     void resizeContainers(const int lev);
     
@@ -227,7 +229,7 @@ protected:
     ///
     void getRcvCountsMPI();
 
-    void getNeighborCommTags(Vector<NeighborCommTag>& tags, const int lev, const Box& box);
+    void GetNeighborCommTags(Vector<NeighborCommTag>& tags, const int lev, Box box);
     
     void getNeighborTags(Vector<NeighborCopyTag>& tags,
                          const ParticleType& p,
