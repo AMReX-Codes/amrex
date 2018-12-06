@@ -221,11 +221,11 @@ NeighborParticleContainer<NStructReal, NStructInt>
     IntVect ref_fac = IntVect(AMREX_D_DECL(1,1,1));
     if (src_lev < lev) {
         for (int l = src_lev; l < lev; ++l) {
-            ref_fac *= this->GetParGDB()->refRatio(lev-1);
+            ref_fac *= this->GetParGDB()->refRatio(l);
         }
     } else if (src_lev > lev) {
-        for (int l = src_lev; l >= lev; --l) {
-            ref_fac *= this->GetParGDB()->refRatio(lev-1);
+        for (int l = src_lev; l > lev; --l) {
+            ref_fac *= this->GetParGDB()->refRatio(l);
         }
         ref_fac *= -1;
     }
