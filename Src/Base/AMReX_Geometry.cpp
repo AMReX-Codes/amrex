@@ -176,7 +176,8 @@ Geometry::GetVolume (MultiFab&       vol) const
 #endif
     for (MFIter mfi(vol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	CoordSys::SetVolume(vol[mfi], mfi.growntilebox());
+        FArrayBox& fab = Cuda::inLaunchRegion() ? *vol.fabPtr(mfi) : vol[mfi];
+	CoordSys::SetVolume(fab, mfi.growntilebox());
     }
 }
 
@@ -203,7 +204,8 @@ Geometry::GetDLogA (MultiFab&       dloga,
 #endif
     for (MFIter mfi(dloga,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	CoordSys::SetDLogA(dloga[mfi], mfi.growntilebox(), dir);
+        FArrayBox& fab = Cuda::inLaunchRegion() ? *dloga.fabPtr(mfi) : dloga[mfi];
+	CoordSys::SetDLogA(fab, mfi.growntilebox(), dir);
     }
 }
 #endif
@@ -231,7 +233,8 @@ Geometry::GetFaceArea (MultiFab&       area,
 #endif
     for (MFIter mfi(area,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	CoordSys::SetFaceArea(area[mfi],mfi.growntilebox(),dir);
+        FArrayBox& fab = Cuda::inLaunchRegion() ? *area.fabPtr(mfi) : area[mfi];
+	CoordSys::SetFaceArea(fab,mfi.growntilebox(),dir);
     }
 }
 

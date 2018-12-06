@@ -1094,6 +1094,8 @@ template <class FAB>
 bool
 FabArray<FAB>::ok () const
 {
+    // TODO gpu
+
     int isok = 1;
 
     for (MFIter fai(*this); fai.isValid() && isok; ++fai)
@@ -1365,7 +1367,7 @@ FabArray<FAB>::setBndry (value_type val,
                         ncells += b.numPts();
                     }
 
-                    FAB* fab = &(get(fai));
+                    FAB* fab = this->fabPtr(fai);
                     AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
                     {
                         const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
@@ -1428,7 +1430,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
                     ncells += b.numPts();
                 }
 
-                FAB* fab = &(get(fai));
+                FAB* fab = this->fabPtr(fai);
                 AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
                 {
                     const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
@@ -1527,7 +1529,7 @@ FabArray<FAB>::setVal (value_type val,
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
-        FAB* fab = &(get(fai));
+        FAB* fab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
@@ -1570,7 +1572,7 @@ FabArray<FAB>::setVal (value_type val,
         Box b = fai.growntilebox(nghost) & region;
 
         if (b.ok()) {
-            FAB* fab = &(get(fai));
+            FAB* fab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {
@@ -1584,6 +1586,8 @@ template <class FAB>
 void
 FabArray<FAB>::shift (const IntVect& v)
 {
+    // TODO gpu
+
     clearThisBD();  // The new boxarry will have a different ID.
     for(int id(0); id < AMREX_SPACEDIM; ++id)
     {
@@ -1736,6 +1740,8 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 			  value_type covered, value_type notcovered,
 			  value_type physbnd, value_type interior)
 {
+    // TODO gpu
+
     int ncomp = this->nComp();
     const IntVect& ngrow = this->nGrowVect();
 

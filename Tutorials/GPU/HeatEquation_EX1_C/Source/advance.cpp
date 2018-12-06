@@ -30,10 +30,10 @@ void advance (MultiFab& phi_old,
     {
         const Box& vbx = mfi.validbox();
 	const GeometryData& geomdata = geom.data();
-	FArrayBox* phiOld = &(phi_old[mfi]);
-	FArrayBox* fluxX = &(flux[0][mfi]);
-	FArrayBox* fluxY = &(flux[1][mfi]);
-	FArrayBox* fluxZ = &(flux[2][mfi]);
+	FArrayBox* phiOld = phi_old.fabPtr(mfi);
+	FArrayBox* fluxX = flux[0].fabPtr(mfi);
+	FArrayBox* fluxY = flux[1].fabPtr(mfi);
+	FArrayBox* fluxZ = flux[2].fabPtr(mfi);
 
         AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
 	{
@@ -56,11 +56,11 @@ void advance (MultiFab& phi_old,
     {
         const Box& vbx = mfi.validbox();
 	const GeometryData& geomdata = geom.data();
-	FArrayBox* phiOld = &(phi_old[mfi]);
-	FArrayBox* phiNew = &(phi_new[mfi]);
-	FArrayBox* fluxX = &(flux[0][mfi]);
-	FArrayBox* fluxY = &(flux[1][mfi]);
-	FArrayBox* fluxZ = &(flux[2][mfi]);
+	FArrayBox* phiOld = phi_old.fabPtr(mfi);
+	FArrayBox* phiNew = phi_new.fabPtr(mfi);
+	FArrayBox* fluxX = flux[0].fabPtr(mfi);
+	FArrayBox* fluxY = flux[1].fabPtr(mfi);
+	FArrayBox* fluxZ = flux[2].fabPtr(mfi);
 
         AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx, 
 	{

@@ -997,7 +997,7 @@ FillPatchIterator::Initialize (int  boxGrow,
 #endif
 		for (MFIter mfi(m_fabs); mfi.isValid(); ++mfi)
 		{
-		    fph->fill(m_fabs[mfi],DComp,mfi.index());
+		    fph->fill(*m_fabs.fabPtr(mfi),DComp,mfi.index());
 		}
 		
 		delete fph;
