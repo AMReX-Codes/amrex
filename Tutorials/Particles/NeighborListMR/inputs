@@ -4,6 +4,6 @@ max_step = 100
 write_particles = 0
 dt = 0.0005
 do_nl = 1
-nlevs = 2
+nlevs = 1
 
 particles.do_tiling = 1

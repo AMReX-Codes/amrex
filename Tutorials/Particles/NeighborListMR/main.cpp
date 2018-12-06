@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
-        is_per[i] = 0;
+        is_per[i] = 1;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Vector<Geometry> geom(nlevs);
@@ -88,22 +88,19 @@ int main(int argc, char* argv[])
 
     myPC.InitParticles();
 
-    const int nGrow = 1;
-    myPC.getNeighborParticles(nGrow);
-    
     for (int i = 0; i < max_step; i++) {
-        // if (write_particles) myPC.writeParticles(i);
+        if (write_particles) myPC.writeParticles(i);
         
-        // myPC.fillNeighbors();
+        myPC.fillNeighbors();
 
-        // if (do_nl) { myPC.computeForcesNL(); } 
-        // else {       myPC.computeForces();   }
+        if (do_nl) { myPC.computeForcesNL(); } 
+        else {       myPC.computeForces();   }
 
-        // myPC.clearNeighbors();
+        myPC.clearNeighbors();
 
-        // myPC.moveParticles(dt);
+        myPC.moveParticles(dt);
 
-        // myPC.Redistribute();
+        myPC.Redistribute();
     }
 
     if (write_particles) myPC.writeParticles(max_step);
