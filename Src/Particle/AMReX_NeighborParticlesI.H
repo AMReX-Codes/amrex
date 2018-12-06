@@ -544,26 +544,41 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
         {
             IntVect ref_fac = computeRefFac(0, lev);
             const Periodicity& periodicity = this->Geom(lev).periodicity();
+            const Box& domain = this->Geom(lev).Domain();
+            const IntVect& lo = domain.smallEnd();
+            const IntVect& hi = domain.bigEnd();
             const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
             const BoxArray& ba = this->ParticleBoxArray(lev);
             const IntVect& iv = this->Index(p, lev);
             for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
             {
+                Box pbox = amrex::grow(Box(iv, iv), ref_fac*nGrow) + (*pit);
                 bool first_only = false;
-                ba.intersections(Box(iv,iv)+(*pit), isects, first_only, ref_fac*nGrow);
+                ba.intersections(pbox, isects, first_only, 0);
                 for (const auto& isec : isects)
                 {
-                    if (isec.second.contains(iv))
-                    {
-                        int tile = getTileIndex(iv, isec.second,
+                    const Box& grid_box = ba[isec.first];
+                    for (IntVect cell = pbox.smallEnd(); cell <= pbox.bigEnd(); pbox.next(cell)) {
+                        if ( !grid_box.contains(cell) ) continue;
+                        int tile = getTileIndex(cell, grid_box,
                                                 this->do_tiling, this->tile_size, tbx);
                         auto nbor = NeighborCopyTag(lev, isec.first, tile);
+                        if (periodicity.isAnyPeriodic()) {
+                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                                if (not periodicity.isPeriodic(dir)) continue;
+                                if (cell[dir] < lo[dir]) 
+                                    nbor.periodic_shift[dir] = -1;
+                                else if (cell[dir] > hi[dir]) 
+                                    nbor.periodic_shift[dir] =  1;
+                            }
+                        }
                         if (src_tag != nbor) tags.push_back(nbor);
                     }
                 }
             }
         }
 
+        RemoveDuplicates(tags);        
         return;
     }    
 }
