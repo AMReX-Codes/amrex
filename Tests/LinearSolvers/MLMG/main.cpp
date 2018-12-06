@@ -46,8 +46,6 @@ int main (int argc, char* argv[])
     {
         BL_PROFILE("main()");
 
-        amrex::machine::init();
-
         init_prob_parms();
 
         Vector<Geometry> geom;
