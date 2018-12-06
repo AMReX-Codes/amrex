@@ -94,6 +94,14 @@ class NeighborParticleContainer
         bool operator!=(const NeighborCopyTag& other) const
         {
             return !operator==(other);
+        }
+
+        friend std::ostream& operator<< (std::ostream& os, const NeighborCopyTag& tag)
+        {
+            os << tag.level << " " << tag.grid << " " << tag.tile << " " << tag.periodic_shift;
+            if (!os.good())
+                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");            
+            return os;
         }        
     };
 
