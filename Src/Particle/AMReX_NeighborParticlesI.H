@@ -563,15 +563,7 @@ getNeighborTags(Vector<NeighborCopyTag>& tags, const ParticleType& p,
                         int tile = getTileIndex(cell, grid_box,
                                                 this->do_tiling, this->tile_size, tbx);
                         auto nbor = NeighborCopyTag(lev, isec.first, tile);
-                        if (periodicity.isAnyPeriodic()) {
-                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (not periodicity.isPeriodic(dir)) continue;
-                                if (cell[dir] < lo[dir]) 
-                                    nbor.periodic_shift[dir] = -1;
-                                else if (cell[dir] > hi[dir]) 
-                                    nbor.periodic_shift[dir] =  1;
-                            }
-                        }
+                        nbor.periodic_shift = -1*(*pit);
                         if (src_tag != nbor) tags.push_back(nbor);
                     }
                 }
