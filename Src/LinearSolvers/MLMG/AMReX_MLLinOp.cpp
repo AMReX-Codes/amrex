@@ -25,6 +25,7 @@ constexpr int MLLinOp::mg_box_min_width;
 namespace {
     // experimental features
     bool initialized = false;
+    int consolidation_threshold = -1;
     int consolidation_ratio = 2;
     int consolidation_strategy = 3;
 
@@ -111,6 +112,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
 
     if (!initialized) {
 	ParmParse pp("mg");
+	pp.query("consolidation_threshold", consolidation_threshold);
 	pp.query("consolidation_ratio", consolidation_ratio);
 	pp.query("consolidation_strategy", consolidation_strategy);
 	pp.query("verbose_linop", flag_verbose_linop);
@@ -321,12 +323,14 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
-        Real avg_npts, threshold_npts;
+        Real avg_npts;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
-            threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
-                                                            *info.con_grid_size,
-                                                            *info.con_grid_size));
+            if (consolidation_threshold == -1) {
+                consolidation_threshold = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
+                                                                         *info.con_grid_size,
+                                                                         *info.con_grid_size));
+            }
         }
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1
                and a_geom[0].Domain().coarsenable(rr)
@@ -339,7 +343,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             if (info.do_consolidation)
             {
-                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
+                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*consolidation_threshold)
                 {
                     coned = true;
                     con_lev = m_dmap[0].size();
