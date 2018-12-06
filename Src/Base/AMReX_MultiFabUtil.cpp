@@ -65,8 +65,8 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.growntilebox(ngrow);
-            FArrayBox* ccfab = &(cc[mfi]);
-            FArrayBox const* ndfab = &(nd[mfi]);
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            FArrayBox const* ndfab = Gpu::notInLaunchRegion() ? &(nd[mfi]) : nd.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -87,10 +87,10 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.growntilebox(ngrow);
-            FArrayBox* ccfab = &(cc[mfi]);
-            AMREX_D_TERM(FArrayBox const* exfab = &((*edge[0])[mfi]);,
-                         FArrayBox const* eyfab = &((*edge[1])[mfi]);,
-                         FArrayBox const* ezfab = &((*edge[2])[mfi]););
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* exfab = Gpu::notInLaunchRegion() ? &((*edge[0])[mfi]) : edge[0]->fabPtr(mfi);,
+                         FArrayBox const* eyfab = Gpu::notInLaunchRegion() ? &((*edge[1])[mfi]) : edge[1]->fabPtr(mfi);,
+                         FArrayBox const* ezfab = Gpu::notInLaunchRegion() ? &((*edge[2])[mfi]) : edge[2]->fabPtr(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -128,10 +128,10 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.growntilebox(ngrow);
-            FArrayBox* ccfab = &(cc[mfi]);
-            AMREX_D_TERM(FArrayBox const* fxfab = &((*fc[0])[mfi]);,
-                         FArrayBox const* fyfab = &((*fc[1])[mfi]);,
-                         FArrayBox const* fzfab = &((*fc[2])[mfi]););
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* fxfab = Gpu::notInLaunchRegion() ? &((*fc[0])[mfi]) : fc[0]->fabPtr(mfi);,
+                         FArrayBox const* fyfab = Gpu::notInLaunchRegion() ? &((*fc[1])[mfi]) : fc[1]->fabPtr(mfi);,
+                         FArrayBox const* fzfab = Gpu::notInLaunchRegion() ? &((*fc[2])[mfi]) : fc[2]->fabPtr(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -155,10 +155,10 @@ namespace amrex
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box bx = mfi.tilebox();
-            FArrayBox* ccfab = &(cc[mfi]);
-            AMREX_D_TERM(FArrayBox const* fxfab = &((*fc[0])[mfi]);,
-                         FArrayBox const* fyfab = &((*fc[1])[mfi]);,
-                         FArrayBox const* fzfab = &((*fc[2])[mfi]););
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* fxfab = Gpu::notInLaunchRegion() ? &((*fc[0])[mfi]) : fc[0]->fabPtr(mfi);,
+                         FArrayBox const* fyfab = Gpu::notInLaunchRegion() ? &((*fc[1])[mfi]) : fc[1]->fabPtr(mfi);,
+                         FArrayBox const* fzfab = Gpu::notInLaunchRegion() ? &((*fc[2])[mfi]) : fc[2]->fabPtr(mfi););
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -194,10 +194,10 @@ namespace amrex
                          const Box& zbx = mfi.nodaltilebox(2););
             const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
-            AMREX_D_TERM(FArrayBox* fxfab = &((*fc[0])[mfi]);,
-                         FArrayBox* fyfab = &((*fc[1])[mfi]);,
-                         FArrayBox* fzfab = &((*fc[2])[mfi]););
-            FArrayBox const* ccfab = &(cc[mfi]);
+            AMREX_D_TERM(FArrayBox* fxfab = Gpu::notInLaunchRegion() ? &((*fc[0])[mfi]) : fc[0]->fabPtr(mfi);,
+                         FArrayBox* fyfab = Gpu::notInLaunchRegion() ? &((*fc[1])[mfi]) : fc[1]->fabPtr(mfi);,
+                         FArrayBox* fzfab = Gpu::notInLaunchRegion() ? &((*fc[2])[mfi]) : fc[2]->fabPtr(mfi););
+            FArrayBox const* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
             
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
@@ -256,9 +256,9 @@ namespace amrex
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& bx = mfi.tilebox();
-            FArrayBox* crsefab = &(crse_S_fine[mfi]);
-            FArrayBox const* finefab = &(S_fine[mfi]);
-            FArrayBox const* finevolfab = &(fvolume[mfi]);
+            FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse_S_fine[mfi]) : crse_S_fine.fabPtr(mfi);
+            FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
+            FArrayBox const* finevolfab = Gpu::notInLaunchRegion() ? &(fvolume[mfi]) : fvolume.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -306,8 +306,8 @@ namespace amrex
         {
             //  NOTE: The tilebox is defined at the coarse level.
             const Box& bx = mfi.growntilebox(nGrow);
-            FArrayBox* crsefab = &(crse_S_fine[mfi]);
-            FArrayBox const* finefab = &(S_fine[mfi]);
+            FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse_S_fine[mfi]) : crse_S_fine.fabPtr(mfi);
+            FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -342,8 +342,8 @@ namespace amrex
             {
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& bx = mfi.tilebox();
-                FArrayBox* crsefab = &(S_crse[mfi]);
-                FArrayBox const* finefab = &(S_fine[mfi]);
+                FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(S_crse[mfi]) : S_crse.fabPtr(mfi);
+                FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
 
                 if (is_cell_centered) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
@@ -369,8 +369,8 @@ namespace amrex
             {
                 //  NOTE: The tilebox is defined at the coarse level.
                 const Box& bx = mfi.tilebox();
-                FArrayBox* crsefab = &(crse_S_fine[mfi]);
-                FArrayBox const* finefab = &(S_fine[mfi]);
+                FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse_S_fine[mfi]) : crse_S_fine.fabPtr(mfi);
+                FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
 
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
@@ -437,8 +437,8 @@ namespace amrex
                 for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
                     const Box& bx = mfi.growntilebox(ngcrse);
-                    FArrayBox* crsefab = &((*crse[n])[mfi]);
-                    FArrayBox const* finefab = &((*fine[n])[mfi]);
+                    FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &((*crse[n])[mfi]) : crse[n]->fabPtr(mfi);
+                    FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &((*fine[n])[mfi]) : fine[n]->fabPtr(mfi);
 
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
@@ -482,8 +482,8 @@ namespace amrex
             for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.growntilebox(ngcrse);
-                FArrayBox* crsefab = &((*crse[n])[mfi]);
-                FArrayBox const* finefab = &((*fine[n])[mfi]);
+                FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &((*crse[n])[mfi]) : crse[n]->fabPtr(mfi);
+                FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &((*fine[n])[mfi]) : fine[n]->fabPtr(mfi);
 
                 AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                 {
@@ -509,8 +509,8 @@ namespace amrex
         for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.growntilebox(ngcrse);
-            FArrayBox* crsefab = &(crse[mfi]);
-            FArrayBox const* finefab = &(fine[mfi]);
+            FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse[mfi]) : crse.fabPtr(mfi);
+            FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(fine[mfi]) : fine.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
@@ -573,8 +573,8 @@ namespace amrex
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& gbx = mfi.growntilebox();
-            FArrayBox      * rfab = &( mf[mfi]);
-            IArrayBox const* ifab = &(imf[mfi]);
+            FArrayBox      * rfab = Gpu::notInLaunchRegion() ? &( mf[mfi]) :  mf.fabPtr(mfi);
+            IArrayBox const* ifab = Gpu::notInLaunchRegion() ? &(imf[mfi]) : imf.fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
             {
                 amrex::cast(tbx, *rfab, *ifab, 0, 0, ncomp);
@@ -595,8 +595,8 @@ namespace amrex
         for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& gbx = mfi.growntilebox();
-            BaseFab<long>  * lfab = &(lmf[mfi]);
-            IArrayBox const* ifab = &(imf[mfi]);
+            BaseFab<long>  * lfab = Gpu::notInLaunchRegion() ? &(lmf[mfi]) : lmf.fabPtr(mfi);
+            IArrayBox const* ifab = Gpu::notInLaunchRegion() ? &(imf[mfi]) : imf.fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
             {
                 amrex::cast(tbx, *lfab, *ifab, 0, 0, ncomp);
@@ -626,8 +626,8 @@ namespace amrex
         {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
-            FArrayBox* slice_fab = &((*slice)[mfi]);
-            FArrayBox const* full_fab = &(cc[full_gid]);
+            FArrayBox* slice_fab = Gpu::notInLaunchRegion() ? &((*slice)[mfi]) : slice->fabPtr(mfi);
+            FArrayBox const* full_fab = Gpu::notInLaunchRegion() ? &(cc[full_gid]) : cc.fabPtr(full_gid);
 
             const Box& tile_box  = mfi.tilebox();
 
@@ -689,12 +689,15 @@ namespace amrex
         for (MFIter mfi(divu,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            FArrayBox* divufab = &(divu[mfi]);
-            AMREX_D_TERM(FArrayBox const* ufab = &((*umac[0])[mfi]);,
-                         FArrayBox const* vfab = &((*umac[1])[mfi]);,
-                         FArrayBox const* wfab = &((*umac[2])[mfi]););
+            FArrayBox* divufab = Gpu::notInLaunchRegion() ? &(divu[mfi]) : divu.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* ufab = Gpu::notInLaunchRegion() ? &((*umac[0])[mfi]) : umac[0]->fabPtr(mfi);,
+                         FArrayBox const* vfab = Gpu::notInLaunchRegion() ? &((*umac[1])[mfi]) : umac[1]->fabPtr(mfi);,
+                         FArrayBox const* wfab = Gpu::notInLaunchRegion() ? &((*umac[2])[mfi]) : umac[2]->fabPtr(mfi););
 
-            amrex_compute_divergence(bx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                amrex_compute_divergence(bx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+            });
         }
     }
 }
