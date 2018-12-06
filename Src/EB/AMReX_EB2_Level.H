@@ -145,6 +145,12 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
     amrex::AllGatherBoxes(cut_boxes);
     amrex::AllGatherBoxes(covered_boxes);
 
+    if ( cut_boxes.empty() && 
+        !covered_boxes.empty()) 
+    {
+        amrex::Abort("AMReX_EB2_Level.H: Domain is completely covered");
+    }
+
     if (!covered_boxes.empty()) {
         m_covered_grids = BoxArray(BoxList(std::move(covered_boxes)));
     }
