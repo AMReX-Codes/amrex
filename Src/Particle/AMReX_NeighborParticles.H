@@ -71,20 +71,24 @@ class NeighborParticleContainer
             if (level != other.level) return level < other.level;
             if (grid != other.grid) return grid < other.grid;
             if (tile != other.tile) return tile < other.tile;
+            AMREX_D_TERM(
             if (periodic_shift[0] != other.periodic_shift[0]) 
-                return periodic_shift[0] < other.periodic_shift[0];
+                return periodic_shift[0] < other.periodic_shift[0];,
             if (periodic_shift[1] != other.periodic_shift[1]) 
-                return periodic_shift[1] < other.periodic_shift[1];
+                return periodic_shift[1] < other.periodic_shift[1];,
             if (periodic_shift[2] != other.periodic_shift[2]) 
                 return periodic_shift[2] < other.periodic_shift[2];
+                )
             return false;
         }
         
         bool operator==(const NeighborCopyTag& other) const {
             return (level == other.level) and (grid == other.grid) and (tile == other.tile)
-                and (periodic_shift[0] == other.periodic_shift[0])
-                and (periodic_shift[1] == other.periodic_shift[1])
-                and (periodic_shift[2] == other.periodic_shift[2]);
+                AMREX_D_TERM(
+                    and (periodic_shift[0] == other.periodic_shift[0]),
+                    and (periodic_shift[1] == other.periodic_shift[1]),
+                    and (periodic_shift[2] == other.periodic_shift[2])
+                    );
         }
 
         bool operator!=(const NeighborCopyTag& other) const
