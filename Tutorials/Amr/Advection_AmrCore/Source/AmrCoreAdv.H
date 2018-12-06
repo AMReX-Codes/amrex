@@ -12,11 +12,6 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_BCRec.H>
-#if defined(BL_USE_SENSEI_INSITU)
-namespace amrex {
-class AmrMeshInSituBridge;
-}
-#endif
 
 using namespace amrex;
 
@@ -180,10 +175,6 @@ private:
     // checkpoint prefix and frequency
     std::string chk_file {"chk"};
     int chk_int = -1;
-
-#if defined(BL_USE_SENSEI_INSITU)
-    amrex::AmrMeshInSituBridge *insitu_bridge;
-#endif
 };
 
 #endif
