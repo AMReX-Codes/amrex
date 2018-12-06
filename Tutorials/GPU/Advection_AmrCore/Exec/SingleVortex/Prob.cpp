@@ -24,11 +24,11 @@ initdata(Box const& bx, FArrayBox& phifab, GeometryData const& geom)
 #endif
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            Real z = prob_lo[2] + (0.5+k) * dx[2];
-            Real y = prob_lo[1] + (0.5+j) * dx[1];
+            Real z = prob_lo[2] + (0.5+(k+lo.z)) * dx[2];
+            Real y = prob_lo[1] + (0.5+(j+lo.y)) * dx[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = prob_lo[0] + (0.5+i) * dx[0]; 
+                Real x = prob_lo[0] + (0.5+(i+lo.x)) * dx[0]; 
 #if (AMREX_SPACEDIM == 2)
                 Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2)) / 0.01;
 #else
