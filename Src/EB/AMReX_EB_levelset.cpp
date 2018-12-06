@@ -202,7 +202,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                                                    const CutFab & bcent_tile,
                                                    const EBCellFlagFab & flag,
                                                    const RealVect & dx_eb,
-                                                   const Box & eb_search) {
+                                                   const Box & eb_search) 
+{
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
     //   ^                 ^
@@ -219,8 +220,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
     int facet_list_size = 6 * n_facets;
     facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(facet_list_size));
 
-    if (n_facets == 0)
-        return facet_list;
+    // if (n_facets == 0)
+    //     return facet_list;
 
     if (flag.getType(eb_search) == FabType::singlevalued) {
         int c_facets = 0;
@@ -231,6 +232,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                          facet_list->dataPtr(), & facet_list_size,
                          dx_eb.dataPtr()                           );
     }
+    return facet_list;
 }
 
 
