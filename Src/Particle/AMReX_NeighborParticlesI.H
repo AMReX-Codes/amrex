@@ -1015,8 +1015,7 @@ printNeighborList(const std::string& prefix)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        {
-        
+        {        
             for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
                 PairIndex index(pti.index(), pti.LocalTileIndex());
 #ifdef AMREX_USE_CUDA
@@ -1024,12 +1023,20 @@ printNeighborList(const std::string& prefix)
 #else
                 IntVector& nl = neighbor_list[lev][index];
 #endif
+                if (nl.size() == 0) continue;
                 std::stringstream ss;
                 ss << prefix << "_level_" << lev;
-                for (auto& item : nl) {
-                    amrex::AllPrintToFile(ss.str()) << item << " ";
+                int ind = 0;
+                while (ind < nl.size()) {
+                    int num_partners = nl[ind++];
+                    amrex::AllPrintToFile(ss.str()) << num_partners << ": \n ";
+                    amrex::AllPrintToFile(ss.str()) << "\t";
+                    for (int i = ind; i < ind + num_partners; ++i) {
+                        amrex::AllPrintToFile(ss.str()) << nl[i] << " ";
+                    }
+                    amrex::AllPrintToFile(ss.str()) << "\n";
+                    ind += num_partners;
                 }
-                amrex::AllPrintToFile(ss.str()) << "\n";
             }
         }
     }
