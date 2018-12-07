@@ -50,6 +50,17 @@ class NeighborParticleContainer
               src_level(slevel), src_grid(sgrid), src_tile(stile), src_index(sindex),
               thread_num(tnum)
         {}
+
+        friend std::ostream& operator<< (std::ostream& os, const NeighborIndexMap& nim)
+        {
+            os << nim.dst_level << " " << nim.dst_grid << " " << nim.dst_tile << " " << nim.dst_index
+               << nim.src_level << " " << nim.src_grid << " " << nim.src_tile << " " << nim.src_index
+               << nim.thread_num;
+            if (!os.good())
+                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+            return os;
+        }
+
     };
     
     struct NeighborCopyTag {
@@ -135,7 +146,15 @@ class NeighborParticleContainer
                      (tile_id == other.tile_id) and
                      (level_id == other.level_id));
         }
-    };    
+
+        friend std::ostream& operator<< (std::ostream& os, const NeighborCommTag& tag)
+        {
+            os << tag.proc_id << " " << tag.grid_id << " " << tag.tile_id << " " << tag.level_id;
+            if (!os.good())
+                amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
+            return os;
+        }
+    };
         
 public:
 
