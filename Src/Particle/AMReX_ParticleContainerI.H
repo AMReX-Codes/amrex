@@ -1021,8 +1021,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         //
         thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
                           functors::assignParticleGrid(geom.data(),
-					 (*redistribute_mask_ptr)[gid].box(),
-                                       &((*redistribute_mask_ptr)[gid])));        
+					 (*redistribute_mask_ptr)[mfi].box(),
+                                         redistribute_mask_ptr->fabPtr(mfi)));
 
         BL_PROFILE_VAR_STOP(blp_transform);
 
@@ -2157,8 +2157,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
         thrust::transform(thrust::device, 
 			  aos().begin(), aos().end(), grid_indices.begin(),
                           functors::assignParticleGrid(geom.data(),
-                                         (*redistribute_mask_ptr)[i].box(),
-				       &((*redistribute_mask_ptr)[i])));
+                                         (*redistribute_mask_ptr)[mfi].box(),
+                                         redistribute_mask_ptr->fabPtr(mfi)));
 
         int count = thrust::count_if(grid_indices.begin(),
                                      grid_indices.end(),
