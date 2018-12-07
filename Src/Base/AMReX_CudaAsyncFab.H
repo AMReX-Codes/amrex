@@ -20,8 +20,12 @@ public:
     AsyncFab (Box const& bx, int ncomp);
     AsyncFab (FArrayBox& a_fab);
     AsyncFab (FArrayBox& a_fab, Box const& bx, int comp);
-    AMREX_GPU_HOST_DEVICE
+#ifdef AMREX_USE_GPU
+    AMREX_GPU_DEVICE
     AsyncFab (AsyncFab const& rhs) : m_impl(nullptr), m_fab(rhs.m_fab) {}
+#else
+    AsyncFab (AsyncFab const& rhs) = delete;
+#endif
     AMREX_GPU_HOST_DEVICE
     ~AsyncFab ();
     void operator= (AsyncFab const&) = delete;
