@@ -55,7 +55,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
                 loc_copy_tags[tag.dstIndex].push_back
-                    ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                    ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
             }
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -63,7 +63,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = loc_copy_tags[mfi];
-                FAB* dfab = &((*this)[mfi]);
+                FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                 for (auto const & tag : tags)
                 {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
@@ -264,7 +264,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 for (auto const& tag : cctc)
                 {
                     const Box& bx = tag.sbox;
-                    const FAB* sfab = &(get(tag.srcIndex));
+                    const FAB* sfab = Gpu::notInLaunchRegion() ? &(get(tag.srcIndex)) : this->fabPtr(tag.srcIndex);
 
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
@@ -366,8 +366,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
-            const FAB* sfab = &(get(tag.srcIndex));
-                  FAB* dfab = &(get(tag.dstIndex));
+            const FAB* sfab = Gpu::notInLaunchRegion() ? &(get(tag.srcIndex)) : this->fabPtr(tag.srcIndex);
+                  FAB* dfab = Gpu::notInLaunchRegion() ? &(get(tag.dstIndex)) : this->fabPtr(tag.dstIndex);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
             {
@@ -396,7 +396,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
                 {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({&(get(tag.srcIndex)), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 
@@ -408,7 +408,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
-                    FAB* dfab = &((*this)[mfi]);
+                    FAB* dfab = this->fabPtr(mfi);
                     const Box& vbx = mfi.validbox();
 
                     const auto& lc_tags = loc_copy_tags[mfi];
@@ -596,7 +596,7 @@ FabArray<FAB>::FillBoundary_finish ()
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = recv_copy_tags[mfi];
-                FAB* dfab = &((*this)[mfi]);
+                FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                 const int scomp = fb_scomp;
                 const int ncomp = fb_ncomp;
                 for (auto const & tag : tags)
@@ -703,8 +703,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             const Box& bx = fai.tilebox();
 
 	    if (this != &src) {
-                const FAB* sfab = &(src[fai]);
-                      FAB* dfab = &(get(fai));
+                const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[fai]) : src.fabPtr(fai);
+                      FAB* dfab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
 		// avoid self copy or plus
 		if (op == FabArrayBase::COPY) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
@@ -740,7 +740,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 #ifdef _OPENMP
@@ -749,7 +749,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = loc_copy_tags[mfi];
-                FAB* dfab = &((*this)[mfi]);
+                FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                 if (op == FabArrayBase::COPY)
                 {
                     for (auto const & tag : tags)
@@ -983,7 +983,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     for (auto const& tag : cctc)
                     {
                         const Box& bx = tag.sbox;
-                        const FAB* sfab = &(src[tag.srcIndex]);
+                        const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[tag.srcIndex]) : src.fabPtr(tag.srcIndex);
 
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                         {
@@ -1093,8 +1093,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 // avoid self copy or plus
 		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                    const FAB* sfab = &(src[tag.srcIndex]);
-                          FAB* dfab = &(get(tag.dstIndex));
+                    const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[tag.srcIndex]) : src.fabPtr(tag.srcIndex);
+                          FAB* dfab = Gpu::notInLaunchRegion() ? &(get(tag.dstIndex)) : this->fabPtr(tag.dstIndex);
 
 		    if (op == FabArrayBase::COPY) {
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
@@ -1128,7 +1128,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                     if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                         copy_tags[tag.dstIndex].push_back
-                            ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                            ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                     }
                 }
 
@@ -1136,7 +1136,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                    FAB* dfab = &((*this)[mfi]);
+                    FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                     const auto& fab_copy_tags = copy_tags[mfi];
                     if (op == FabArrayBase::COPY) {
                         for (auto const& fab_tag : fab_copy_tags) {
@@ -1243,7 +1243,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                    FAB* dfab = &((*this)[mfi]);
+                    FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                     const auto& void_copy_tags = recv_copy_tags[mfi];
                     if (op == FabArrayBase::COPY)
                     {
@@ -1382,8 +1382,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
             // avoid self copy or plus
 	    if (this != &src) {
-                const FAB* sfab = &(src[fai]);
-                      FAB* dfab = &(get(fai));
+                const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[fai]) : src.fabPtr(fai);
+                      FAB* dfab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
 		if (op == FabArrayBase::COPY) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
@@ -1418,7 +1418,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 #ifdef _OPENMP
@@ -1427,7 +1427,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = loc_copy_tags[mfi];
-                FAB* dfab = &((*this)[mfi]);
+                FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                 if (op == FabArrayBase::COPY)
                 {
                     for (auto const & tag : tags)
@@ -1628,7 +1628,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 for (auto const& tag : cctc)
                 {
                     const Box& bx = tag.sbox;
-                    const FAB* sfab = &(src[tag.srcIndex]);
+                    const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[tag.srcIndex]) : src.fabPtr(tag.srcIndex);
 
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
@@ -1696,8 +1696,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 		
             // avoid self copy or plus
             if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                const FAB* sfab = &(src[tag.srcIndex]);
-                      FAB* dfab = &(get(tag.dstIndex));
+                const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[tag.srcIndex]) : src.fabPtr(tag.srcIndex);
+                      FAB* dfab = Gpu::notInLaunchRegion() ? &(get(tag.dstIndex)) : this->fabPtr(tag.dstIndex);
 
                 if (op == FabArrayBase::COPY) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
@@ -1731,7 +1731,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     copy_tags[tag.dstIndex].push_back
-                        ({&(src[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 
@@ -1739,7 +1739,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                FAB* dfab = &((*this)[mfi]);
+                FAB* dfab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
                 const auto& fab_copy_tags = copy_tags[mfi];
                 if (op == FabArrayBase::COPY) {
                     for (auto const& fab_tag : fab_copy_tags) {
@@ -1851,7 +1851,7 @@ FabArray<FAB>::CopierHandleImpl::finish ()
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(dstfa); mfi.isValid(); ++mfi) {
-                FAB* dfab = &(dstfa[mfi]);
+                FAB* dfab = Gpu::notInLaunchRegion() ? &(dstfa[mfi]) : dstfa.fabPtr(mfi);
                 const auto& void_copy_tags = recv_copy_tags[mfi];
                 if (op == FabArrayBase::COPY)
                 {
@@ -2193,8 +2193,8 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
             const Box& bx = fai.growntilebox(nghost);
-            const FAB* sfab = &(src[fai]);
-                  FAB* dfab = &(get(fai));
+            const FAB* sfab = Gpu::notInLaunchRegion() ? &(src[fai]) : src.fabPtr(fai);
+                  FAB* dfab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
                 dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
@@ -2382,7 +2382,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                     for (auto const& tag : cctc)
                     {
                         const Box& bx = tag.sbox;
-                        const FAB* sfab = &(fabarray[tag.srcIndex]);
+                        const FAB* sfab = Gpu::notInLaunchRegion() ? &(fabarray[tag.srcIndex]) : fabarray.fabPtr(tag.srcIndex);
 
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                         {
@@ -2426,7 +2426,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                         if (dm[tag.dstIndex] == myproc)
                         {
                             loc_copy_tags[tag.dstIndex].push_back
-                                ({&(fa[tag.srcIndex]), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                                ({fa.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                         }
                     }
 
@@ -2436,7 +2436,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                             dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
                         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
                         {
-                            FAB* dfab = &(fa[mfi]);
+                            FAB* dfab = fa.fabPtr(mfi);
                             const Box& vbx = mfi.validbox();
 
                             const auto& lc_tags = loc_copy_tags[mfi];
@@ -2599,7 +2599,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                     for (MFIter mfi(fabarray); mfi.isValid(); ++mfi)
                     {
                         const auto& tags = recv_copy_tags[mfi];
-                        FAB* dfab = &(fabarray[mfi]);
+                        FAB* dfab = Gpu::notInLaunchRegion() ? &(fabarray[mfi]) : fabarray.fabPtr(mfi);
                         for (auto const& tag : tags)
                         {
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
