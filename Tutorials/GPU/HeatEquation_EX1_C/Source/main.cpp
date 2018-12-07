@@ -93,7 +93,7 @@ void main_main ()
     {
         const Box& vbx = mfi.validbox();
         const GeometryData& geomdata = geom.data();
-        FArrayBox* phiNew = &(phi_new[mfi]);
+        FArrayBox* phiNew = phi_new.fabPtr(mfi);
 
         AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
         {

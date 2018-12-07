@@ -852,7 +852,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    FArrayBox* dest = &(mf[mfi]);
+	    FArrayBox* dest = run_on_gpu ? mf.fabPtr(mfi) : &(mf[mfi]);
 	    const Box& bx = mfi.fabbox();
     
 	    bool has_phys_bc = false;

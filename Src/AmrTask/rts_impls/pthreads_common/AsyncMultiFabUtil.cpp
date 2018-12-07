@@ -43,7 +43,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
     const Box& tbx = crse_S_fine[ lfi ].box();
 
     amrex_avgdown_with_vol(tbx,crse_S_fine[lfi],S_fine[lfi],fvolume[lfi],
-                           0,scomp,ncomp,ratio);
+	    0,scomp,ncomp,ratio);
 
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
 #endif
@@ -94,7 +94,7 @@ void average_down_push (Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& 
 	if(t % (perilla::NUM_THREADS_PER_TEAM-1) == nt)
 	{
 	    const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
-            amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
+	    amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
 	}
     RG_fine->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
     Perilla::multifabCopyPushAsync(RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
@@ -106,3 +106,40 @@ void average_down_pull (MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine
     assert(S_crse.nComp() == S_fine.nComp());
     Perilla::multifabCopyPull(RG_crse, RG_fine, &S_crse, &S_fine, f, scomp, 0, ncomp, 0, 0, false);
 }
+
+
+void average_down_push (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, MultiFab* crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse,amrex::Geometry& geom, amrex::Geometry& geom1,
+	int scomp, int ncomp, const IntVect& ratio, int f)
+{
+    if(rgi.currentItr != rgi.totalItr)
+	return;
+
+    f = rgi.currentRegion;
+    //  NOTE: The tilebox is defined at the coarse level.
+    int lfi = crse_S_fine->IndexArray()[f];
+
+    //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
+    //        because the crse fab is a temporary which was made starting at comp 0, it is
+    //        not part of the actual crse multifab which came in.
+
+    perilla::syncWorkerThreads();
+    int nThreads= perilla::nWorkerThreads();
+    for(int t=0; t<RG_fine->fabTiles[f]->numTiles; t+= nThreads)
+    {
+	const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
+	amrex_avgdown(tbx,(*crse_S_fine)[lfi],(*S_fine)[lfi],0,scomp,ncomp,ratio);
+    }
+    perilla::syncWorkerThreads();
+    Perilla::multifabCopyPush(RG_crse, RG_fine, S_crse, crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);
+}
+
+void average_down_pull (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, amrex::Geometry& geom, amrex::Geometry& geom1,
+	int scomp, int ncomp, const IntVect& ratio, int f)
+{
+    if(rgi.currentItr != 1)
+	return;
+    f = rgi.currentRegion;
+
+    Perilla::multifabCopyPull(RG_crse, RG_fine, S_crse, S_fine, f, scomp, 0, ncomp, 0, 0, false);
+}
+

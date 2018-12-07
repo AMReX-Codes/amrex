@@ -190,6 +190,13 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
 
 void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMapping & dm){
 
+    bool ba_changed = ( ba != grids[lev] );
+    bool dm_changed = ( dm != dmap[lev] );
+
+    if (! (ba_changed || dm_changed))
+        return;
+
+
     SetBoxArray(lev, ba);
     SetDistributionMap(lev, dm);
 

@@ -10,9 +10,12 @@
 
 #include <iostream>
 #include <iomanip>
+#include <Perilla.H>
 
 #include <string>
 #include <fstream>
+
+#include <AsyncMultiFabUtil.H>
 
 
 using namespace amrex;
@@ -238,119 +241,32 @@ Adv::avgDown (int state_indx, int iteration)
 
         for(RGIter rgi(RG_S_crse); rgi.isValid(); ++rgi)
         {
-            /*amrex::average_down_pull(rgi, S_fine, S_crse, RG_S_fine, RG_S_crse,
-                                   fine_lev.geom, geom, 0, S_fine.nComp(),
-                                   parent->refRatio(level),f);*/
             int f = rgi.currentRegion;
+            average_down_pull(rgi, S_fine, S_crse, RG_S_fine, RG_S_crse,
+                                   fine_lev.geom, geom, 0, S_fine->nComp(),
+                                   parent->refRatio(level),f);
             // Send data to advance for next subcycle iteration  
             if(iteration < parent->nCycle(level))
                 SborderFPI[iteration]->SendIntraLevel(rgi, NUM_GROW, time, state_indx, 0, NUM_STATE, iteration, f, false);
         }
-
     }
 
-#if 0
     if (level > 0 && iteration == parent->nCycle(level))
     {
       Adv& crse_lev = getLevel(level-1);
 
-      MultiFab& S_fine = get_new_data(state_indx);
-      MultiFab& S_crse = crse_lev.get_new_data(state_indx);
+      MultiFab* S_fine = &(get_new_data(state_indx));
+      MultiFab* S_crse = &(crse_lev.get_new_data(state_indx));
 
       for(RGIter rgi(crse_lev.RG_S_fine,true); rgi.isValid(); ++rgi)
         {
           int f = rgi.currentRegion;
-          /*amrex::average_down_push(rgi, *parent, S_fine, S_crse, *(crse_lev.crse_S_fine),
-                                    crse_lev.RG_S_fine[state_indx], crse_lev.RG_S_crse,geom,crse_lev.geom,
-                                    0,crse_lev.get_new_data(state_indx).nComp(),parent->refRatio(level-1),f);*/
+          average_down_push(rgi, S_fine, S_crse, crse_lev.crse_S_fine,
+                                    crse_lev.RG_S_fine, crse_lev.RG_S_crse,geom,crse_lev.geom,
+                                    0,crse_lev.get_new_data(state_indx).nComp(),parent->refRatio(level-1),f);
 
         }
     }
-
-#endif
-
-#if 0
-    int tid = perilla::tid();
-    int tg = perilla::wid();
-    int nt = perilla::wtid();
-    int myProc = ParallelDescriptor::MyProc();
-    int f;
-
-    if(level < parent->finestLevel())
-    {
-	Adv& fine_lev = getLevel(level+1);
-
-	MultiFab* tS_fine = &(fine_lev.get_new_data(state_indx));
-	MultiFab* tS_crse = &(get_new_data(state_indx));
-
-	MultiFab& S_new = get_new_data(state_indx);
-	const Real time = state[state_indx].curTime();
-
-
-	if(perilla::isMasterWorkerThread())
-	    RG_S_crse->Reset();
-
-	while(!RG_S_crse->isGraphEmpty())
-	{
-	    f = RG_S_crse->getAnyFireableRegion();	  
-
-	    Perilla::multifabCopyPull(RG_S_crse, RG_S_fine, tS_crse, tS_fine, f, 0, 0, S_fine->nComp(), 0, 0, false);
-
-	    perilla::syncWorkerThreads();
-
-	    // Send data to advance for next subcycle iteration  
-	    if(iteration < parent->nCycle(level))
-		SborderFPI[iteration]->FillPatchPush(NUM_GROW, time, state_indx, 0, NUM_STATE, f, 0x02, false);
-	    RG_S_crse->finalizeRegion(f);
-	}
-
-	if(perilla::isMasterWorkerThread())
-	    RG_S_crse->finalizeGraph();
-    }
-
-    perilla::syncWorkers();
-
-    if (level > 0 && iteration == parent->nCycle(level))
-    {
-	Adv& crse_lev = getLevel(level-1);            
-	MultiFab* tS_fine = &(get_new_data(state_indx));
-	MultiFab* tS_crse = &(crse_lev.get_new_data(state_indx));
-
-
-	if(perilla::isMasterWorkerThread())
-	{
-	    crse_lev.RG_S_fine->Reset();	  
-	}
-
-
-	while(!crse_lev.RG_S_fine->isGraphEmpty())
-	{	
-	    f = crse_lev.RG_S_fine->getAnyFireableRegion();
-	    int lfi = tS_fine->IndexArray()[f];
-#if 0
-            const FArrayBox& fin = (*S_fine)[lfi]; 
-            const FArrayBox& cin = (*crse_S_fine)[lfi]; 
-
-	    int tg = perilla::wid();
-	    int nt = perilla::wtid();
-
-	    for(int t=0; t<crse_lev.RG_S_fine->fabTiles[f]->numTiles; t++)
-		if(t % (perilla::NUM_THREADS_PER_TEAM-1) == nt)
-		{
-		    const Box& tbx = *(crse_lev.RG_S_fine->fabTiles[f]->tileBx[t]);
-                    amrex_avgdown(tbx,cin,fin,0,0,ncomp,ratio);
-		}
-#endif
-	    perilla::syncWorkerThreads();
-	    Perilla::multifabCopyPushAsync(crse_lev.RG_S_crse, crse_lev.RG_S_fine, tS_crse, tS_fine, f, 0, 0, crse_lev.S_fine->nComp(), 0, 0, false);
-
-	    crse_lev.RG_S_fine->finalizeRegion(f);	      
-	}
-
-	if(perilla::isMasterWorkerThread())
-	    crse_lev.RG_S_fine->finalizeGraph();
-    }
-#endif
 }
 
     void
@@ -364,7 +280,6 @@ Adv::initPerilla(Real time)
     for(int i=0; i<parent->nCycle(level); i++)
     {
 	SborderFPI[i] = new AsyncFillPatchIterator(*this, tmp_Sborder, NUM_GROW, time+(i*parent->dtLevel(level)), State_Type, 0, NUM_STATE,i+1);
-	//SborderFPI[i]->initFillPatch(NUM_GROW, time+(i*parent->dtLevel(level)), State_Type, 0, NUM_STATE, i+1);	
     }
 
     if(level < parent->finestLevel())
@@ -375,7 +290,6 @@ Adv::initPerilla(Real time)
 	RG_S_crse = new RegionGraph(S_crse->IndexArray().size());
 	parent->graphArray[level].push_back(RG_S_crse);
 
-#if 0
 	const BoxArray& fine_BA = S_fine->boxArray();
 	BoxArray crse_S_fine_BA = fine_BA;
 	crse_S_fine_BA.coarsen(parent->refRatio(level));
@@ -386,7 +300,6 @@ Adv::initPerilla(Real time)
 
 	Perilla::multifabExtractCopyAssoc( RG_S_crse, RG_S_fine, *S_crse, *crse_S_fine, S_fine->nComp(), 0, 0, Periodicity::NonPeriodic());
 	parent->graphArray[level].push_back(RG_S_fine);
-#endif
     }
 }
 
@@ -407,8 +320,8 @@ Adv::finalizePerilla (Real time)
     {
 	S_fine = 0;
 	S_crse = 0;
-	//if(crse_S_fine) delete crse_S_fine;
-	//if(RG_S_fine) delete RG_S_fine;
+	if(crse_S_fine) delete crse_S_fine;
+	if(RG_S_fine) delete RG_S_fine;
 	if(RG_S_crse) delete RG_S_crse;	
     }
 }

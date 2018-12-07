@@ -73,11 +73,11 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox const* sfab = &(S[mfi]);
-        FArrayBox * dsdtfab = &(dSdt[mfi]);
-        AMREX_D_TERM(FArrayBox* fxfab = &(fluxes[0][mfi]);,
-                     FArrayBox* fyfab = &(fluxes[1][mfi]);,
-                     FArrayBox* fzfab = &(fluxes[2][mfi]););
+        FArrayBox const* sfab = S.fabPtr(mfi);
+        FArrayBox * dsdtfab = dSdt.fabPtr(mfi);
+        AMREX_D_TERM(FArrayBox* fxfab = fluxes[0].fabPtr(mfi);,
+                     FArrayBox* fyfab = fluxes[1].fabPtr(mfi);,
+                     FArrayBox* fzfab = fluxes[2].fabPtr(mfi););
 
         const Box& bxg2 = amrex::grow(bx,2);
         Gpu::AsyncFab q(bxg2, nprim);
