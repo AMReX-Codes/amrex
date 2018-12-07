@@ -68,6 +68,9 @@ public:
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) override = 0;
 
+    void UpdateGrids (int lev, const BoxArray & ba, const DistributionMapping & dm);
+
+
     // Tag all cells for refinement. Overrides the pure virtual function in
     // AmrCore
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
@@ -145,7 +148,7 @@ protected:
     Vector<const EB2::Level *>         eb_levels;
     Vector<std::unique_ptr<LSFactory>> ls_factory;
     // Apparently std::vector<bool> isn't a thing?! (more precisely it's a
-    // different thing)
+    // different thing) => use int vector
     Vector<int>                        rebuild_eb;
 
     // Level set data
@@ -160,6 +163,7 @@ protected:
     // condition types at the lo/hi walls in each direction
     Vector<BCRec> bcs; // 1-component
 
+    bool use_phierr = true;
     bool phierr_set = false;
     Vector<Real> phierr;
 
@@ -196,6 +200,81 @@ private:
     amrex::AmrMeshInSituBridge *insitu_bridge;
 #endif
 };
+
+
+namespace MFUtil {
+
+    template<typename T> // T can be either MultiFab or iMultiFab
+    struct SymmetricGhost {
+        static void copy (T & target, const T & source, int nc, int ng) {
+            target.copy(source, 0, 0, nc, ng, ng);
+        }
+    };
+
+
+    template<typename T> // T can be either MultiFab or iMultiFab
+    struct AsymmetricGhost {
+        static void copy (T & target, const T & source, int nc, int ng) {
+            target.copy(source, 0, 0, nc, 0, ng);
+        }
+    };
+
+
+    template<typename T, template<typename> typename Cpy> // T can be either MultiFab or iMultiFab
+    T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in) {
+
+        int ng = mf_in.nGrow();
+        int nc = mf_in.nComp();
+
+        T mf_out(ba, dm, nc, ng);
+
+        Cpy<T>::copy(mf_out, mf_in, nc, ng);
+
+        return std::move(mf_out);
+    }
+
+
+    template<typename T, template<typename> typename Cpy> // T can be either MultiFab or iMultiFab
+    T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in,
+                const Periodicity & periodicity) {
+
+        T mf_out = duplicate<T, Cpy>(ba, dm, mf_in);
+        mf_out.FillBoundary(periodicity);
+
+        return std::move(mf_out);
+    }
+
+
+
+    template<typename T_src, typename T_dest>
+    std::unique_ptr<T_dest> convert(const T_src & mf_in) {
+
+        const BoxArray & ba            = mf_in.boxArray();
+        const DistributionMapping & dm = mf_in.DistributionMap();
+              int ncomp                = mf_in.nComp();
+              int ngrow                = mf_in.nGrow();
+
+        std::unique_ptr<T_dest> mf_out(new T_dest(ba, dm, ncomp, ngrow));
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for(MFIter mfi(mf_in, true); mfi.isValid(); ++ mfi) {
+            const IArrayBox & in_tile  =      mf_in[mfi];
+                  FArrayBox & out_tile = (* mf_out)[mfi];
+
+            for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
+
+                for(int i = 0; i < ncomp; i ++)
+                    out_tile(bit(), i) = in_tile(bit(), i);
+
+            }
+        }
+
+        return mf_out;
+    }
+};
+
 
 
 }

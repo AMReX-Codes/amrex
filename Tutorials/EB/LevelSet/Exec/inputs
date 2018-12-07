@@ -48,7 +48,7 @@ eb.levelset__pad        = 4
 
 # EBIS refinement and padding
 eb.levelset__eb_refinement = 1
-eb.levelset__eb_pad        = 8
+eb.levelset__eb_pad        = 4
 
 
 eb_amr.eb_pad     = 1

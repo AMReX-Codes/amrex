@@ -97,6 +97,11 @@ extern "C"
             const amrex_real * dx
         );
 
+    void amrex_eb_threshold_levelset(
+            const int * lo,   const int * hi,     const amrex_real * threshold,
+            amrex_real * phi, const int * phi_lo, const int * phi_hi
+        );
+
     void amrex_eb_validate_levelset(
             const int * lo,          const int * hi,   const int * n_pad,
             const amrex_real * impf, const int * imlo, const int * imhi,

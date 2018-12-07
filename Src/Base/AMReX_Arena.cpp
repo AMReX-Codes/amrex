@@ -93,10 +93,9 @@ Arena::Initialize ()
 }
 
 void
-Arena::Finalize ()
+Arena::PrintUsage ()
 {
 #ifndef AMREX_FORTRAN_BOXLIB
-    initialized = false;
     if (amrex::Verbose() > 0) {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         if (The_Arena()) {
@@ -144,21 +143,31 @@ Arena::Finalize ()
             }
         }
     }
-
+#endif
+}
+    
+void
+Arena::Finalize ()
+{
+    PrintUsage();
+    
+#ifndef AMREX_FORTRAN_BOXLIB
+    initialized = false;
+    
     delete the_arena;
     the_arena = nullptr;
-
+    
     delete the_device_arena;
     the_device_arena = nullptr;
-
+    
     delete the_managed_arena;
     the_managed_arena = nullptr;
-
+    
     delete the_pinned_arena;
     the_pinned_arena = nullptr;
 #endif
 }
-
+    
 #ifndef AMREX_FORTRAN_BOXLIB
 
 Arena*

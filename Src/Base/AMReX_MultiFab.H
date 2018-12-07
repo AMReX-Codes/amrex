@@ -638,7 +638,12 @@ inline void GccPlacaterMF ()
 {
     std::allocator<MultiFab*> a1;
     std::allocator<MultiFab const*> a2;
+    std::allocator<FabArray<FArrayBox>*> a3;
+    std::allocator<FabArray<FArrayBox> const*> a4;
 }
+
+//  This is a special version of FillBoundary for warpx
+void FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period);
 
 }
 

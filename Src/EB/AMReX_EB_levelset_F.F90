@@ -105,7 +105,6 @@ contains
             end do
         end do
 
-    !contains
     end subroutine amrex_eb_fill_levelset
 
 
@@ -229,102 +228,145 @@ contains
     end subroutine amrex_eb_fill_levelset_bcs
 
 
-        !------------------------------------------------------------------------------------------------------------!
-        !                                                                                                            !
-        !   pure subroutine CLOSEST_DIST                                                                             !
-        !                                                                                                            !
-        !   Purpose: Find the distance to the closets point on the surface defined by the EB-facet list (from the    !
-        !   point `pos`). Note that this distance is **signed** => if the vector `eb_center - pos` points            !
-        !   **towards** the surface.                                                                                 !
-        !                                                                                                            !
-        !   Comments: sometimes the closes point is on an EB-facet edge. In this case, the surface normal is not     !
-        !   trivial, and this algorithm defaults to a negative distance. However this point is given an `valid`      !
-        !   flag of false. It is recommended that the EB's implicit function is used to determine the weather the    !
-        !   lies in the EB interior.                                                                                 !
-        !                                                                                                            !
-        !----------------------------------------------------------------------------------------------------------- !
+    !------------------------------------------------------------------------------------------------------------!
+    !                                                                                                            !
+    !   pure subroutine CLOSEST_DIST                                                                             !
+    !                                                                                                            !
+    !   Purpose: Find the distance to the closets point on the surface defined by the EB-facet list (from the    !
+    !   point `pos`). Note that this distance is **signed** => if the vector `eb_center - pos` points            !
+    !   **towards** the surface.                                                                                 !
+    !                                                                                                            !
+    !   Comments: sometimes the closes point is on an EB-facet edge. In this case, the surface normal is not     !
+    !   trivial, and this algorithm defaults to a negative distance. However this point is given an `valid`      !
+    !   flag of false. It is recommended that the EB's implicit function is used to determine the weather the    !
+    !   lies in the EB interior.                                                                                 !
+    !                                                                                                            !
+    !----------------------------------------------------------------------------------------------------------- !
 
-        pure subroutine closest_dist(min_dist, proj_valid,  &
-                                     eb_data,  l_eb, dx_eb, &
-                                     pos                   )
+    pure subroutine closest_dist(min_dist, proj_valid,  &
+                                 eb_data,  l_eb, dx_eb, &
+                                 pos                   )
 
-            use amrex_eb_geometry_module, only: facets_nearest_pt
+      use amrex_eb_geometry_module, only: facets_nearest_pt
 
-            implicit none
+      implicit none
 
-            ! ** define I/O dummy variables
-            integer,                       intent(in   ) :: l_eb
-            logical,                       intent(  out) :: proj_valid
-            real(c_real),                  intent(  out) :: min_dist
-            real(c_real), dimension(3),    intent(in   ) :: pos, dx_eb
-            real(c_real), dimension(l_eb), intent(in   ) :: eb_data
+      ! ** define I/O dummy variables
+      integer,                       intent(in   ) :: l_eb
+      logical,                       intent(  out) :: proj_valid
+      real(c_real),                  intent(  out) :: min_dist
+      real(c_real), dimension(3),    intent(in   ) :: pos, dx_eb
+      real(c_real), dimension(l_eb), intent(in   ) :: eb_data
 
 
-            ! ** define internal variables
-            !    i:         loop index variable
-            !    i_nearest: index of facet nearest to ps
-            integer                    :: i, i_nearest
-            !    vi_pt, vi_cent: vector indices (in MultiFab index-space) of:
-            !       +------|---> the projection point on the nearest EB facet
-            !              +---> the center of the nearest EB facet
-            integer,      dimension(3) :: vi_pt, vi_cent
-            !    dist_proj:        projected (minimal) distance to the nearest EB facet
-            !    dist2, min_dist2: squred distance to the EB facet centre, and square distance to the nearest EB facet
-            real(c_real)               :: dist_proj, dist2, min_dist2, min_edge_dist2
-            !    ind_dx:           inverse of dx_eb (used to allocate MultiFab indices to position vector)
-            !    eb_norm, eb_cent: EB normal and center (LATER: of the nearest EB facet)
-            !    eb_min_pt, c_vec: projected point on EB facet (c_vec: onto facet edge)
-            real(c_real), dimension(3) :: inv_dx, eb_norm, eb_cent, eb_min_pt, c_vec
+      ! ** define internal variables
+      !    i:         loop index variable
+      !    i_nearest: index of facet nearest to ps
+      integer                    :: i, i_nearest
+      !    vi_pt, vi_cent: vector indices (in MultiFab index-space) of:
+      !       +------|---> the projection point on the nearest EB facet
+      !              +---> the center of the nearest EB facet
+      integer,      dimension(3) :: vi_pt, vi_cent
+      !    dist_proj:        projected (minimal) distance to the nearest EB facet
+      !    dist2, min_dist2: squred distance to the EB facet centre, and square distance to the nearest EB facet
+      real(c_real)               :: dist_proj, dist2, min_dist2, min_edge_dist2
+      !    ind_dx:           inverse of dx_eb (used to allocate MultiFab indices to position vector)
+      !    eb_norm, eb_cent: EB normal and center (LATER: of the nearest EB facet)
+      !    eb_min_pt, c_vec: projected point on EB facet (c_vec: onto facet edge)
+      real(c_real), dimension(3) :: inv_dx, eb_norm, eb_cent, eb_min_pt, c_vec
 
-            inv_dx(:)  = 1.d0 / dx_eb(:)
+      inv_dx(:)  = 1.d0 / dx_eb(:)
 
-            min_dist   = huge(min_dist)
-            min_dist2  = huge(min_dist2)
-            i_nearest  = 0
-            proj_valid = .false.
+      min_dist   = huge(min_dist)
+      min_dist2  = huge(min_dist2)
+      i_nearest  = 0
+      proj_valid = .false.
 
-            ! Find nearest EB facet
-            do i = 1, l_eb, 6
-                eb_cent(:)   = eb_data(i     : i + 2)
-                eb_norm(:)   = eb_data(i + 3 : i + 5)
+      ! Find nearest EB facet
+      do i = 1, l_eb, 6
+         eb_cent(:)   = eb_data(i     : i + 2)
+         eb_norm(:)   = eb_data(i + 3 : i + 5)
 
-                dist2        = dot_product( pos(:) - eb_cent(:), pos(:) - eb_cent(:) )
+         dist2        = dot_product( pos(:) - eb_cent(:), pos(:) - eb_cent(:) )
 
-                if ( dist2 < min_dist2 ) then
-                    min_dist2 = dist2
-                    i_nearest = i
-                end if
+         if ( dist2 < min_dist2 ) then
+            min_dist2 = dist2
+            i_nearest = i
+         end if
+      end do
+
+
+      ! Test if pos "projects onto" the nearest EB facet's interior
+      eb_cent(:)   = eb_data(i_nearest     : i_nearest + 2)
+      eb_norm(:)   = eb_data(i_nearest + 3 : i_nearest + 5)
+
+      dist_proj = dot_product( pos(:) - eb_cent(:), -eb_norm(:) )
+      eb_min_pt(:) = pos(:) + eb_norm(:) * dist_proj
+
+      vi_cent(:) = floor( eb_cent(:) * inv_dx)
+      vi_pt(:)   = floor( eb_min_pt(:) * inv_dx);
+
+      ! If projects onto nearest EB facet, then return projected distance
+      ! Alternatively: find the nearest point on the EB edge
+      if ( all( vi_pt == vi_cent ) ) then
+         ! this is a signed distance function
+         min_dist   = dist_proj
+         proj_valid = .true.
+      else
+         ! fallback: find the nearest point on the EB edge
+         c_vec = facets_nearest_pt(vi_pt, vi_cent, pos, eb_norm, eb_cent, dx_eb)
+         min_edge_dist2 = dot_product( c_vec(:) - pos(:), c_vec(:) - pos(:))
+         min_dist       = -sqrt( min(min_dist2, min_edge_dist2) )
+      end if
+
+    end subroutine closest_dist
+
+    !---------------------------------------------------------------------------!
+    !                                                                           !
+    !   pure subroutine THRESHOLD_LEVELSET                                      !
+    !                                                                           !
+    !   PURPOSE: sets max/min threshold to the level-set function. This ensures !
+    !   that the level-set function is a local description near boundaries.     !
+    !                                                                           !
+    !   COMMENTS: some applications (such as filling level-set from discrete)   !
+    !   EB facets become less accurate far from the boundary. Thresholding can  !
+    !   therefore eliminate spurious level-set values                           !
+    !                                                                           !
+    !---------------------------------------------------------------------------!
+
+    pure subroutine amrex_eb_threshold_levelset(lo,  hi,     threshold, &
+                                                phi, phi_lo, phi_hi    )&
+                    bind(C, name="amrex_eb_threshold_levelset")
+
+      implicit none
+
+      integer,      dimension(3), intent(in   ) :: lo, hi, phi_lo, phi_hi
+      real(c_real),               intent(in   ) :: threshold
+      real(c_real),               intent(inout) :: phi (phi_lo(1):phi_hi(1), &
+                                                        phi_lo(2):phi_hi(2), &
+                                                        phi_lo(3):phi_hi(3))
+
+      integer      :: ii, jj, kk
+      real(c_real) :: phi_th
+
+
+      phi_th = threshold
+      if (phi_th < 0) phi_th = huge(phi_th)
+
+
+      do kk = lo(3), hi(3)
+         do jj = lo(2), hi(2)
+            do ii = lo(1), hi(1)
+
+               if ( phi(ii, jj, kk) >  phi_th ) phi(ii, jj, kk) =  phi_th
+               if ( phi(ii, jj, kk) < -phi_th ) phi(ii, jj, kk) = -phi_th
+
             end do
+         end do
+      end do
 
 
-            ! Test if pos "projects onto" the nearest EB facet's interior
-            eb_cent(:)   = eb_data(i_nearest     : i_nearest + 2)
-            eb_norm(:)   = eb_data(i_nearest + 3 : i_nearest + 5)
-
-            dist_proj = dot_product( pos(:) - eb_cent(:), -eb_norm(:) )
-            eb_min_pt(:) = pos(:) + eb_norm(:) * dist_proj
-
-            vi_cent(:) = floor( eb_cent(:) * inv_dx)
-            vi_pt(:)   = floor( eb_min_pt(:) * inv_dx);
-
-            ! If projects onto nearest EB facet, then return projected distance
-            ! Alternatively: find the nearest point on the EB edge
-            if ( all( vi_pt == vi_cent ) ) then
-                ! this is a signed distance function
-                min_dist   = dist_proj
-                proj_valid = .true.
-            else
-                ! fallback: find the nearest point on the EB edge
-                c_vec = facets_nearest_pt(vi_pt, vi_cent, pos, eb_norm, eb_cent, dx_eb)
-                min_edge_dist2 = dot_product( c_vec(:) - pos(:), c_vec(:) - pos(:))
-                min_dist       = -sqrt( min(min_dist2, min_edge_dist2) )
-            end if
-
-        end subroutine closest_dist
-
-    !end subroutine amrex_eb_fill_levelset
-
-
+    end subroutine amrex_eb_threshold_levelset
 
     !----------------------------------------------------------------------------------------------------------------!
     !                                                                                                                !
@@ -366,7 +408,7 @@ contains
                         else
                             phi(ii, jj, kk) = -levelset_node
                         end if
-                    end if
+                     end if
                 end do
             end do
         end do
