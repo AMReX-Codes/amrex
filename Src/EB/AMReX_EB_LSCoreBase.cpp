@@ -215,7 +215,7 @@ void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMa
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
 
-    if (lev >= phierr.size()) return;
+    if (use_phierr && (lev >= phierr.size())) return;
 
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -223,7 +223,14 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     const Real * dx      = geom[lev].CellSize();
     const Real * prob_lo = geom[lev].ProbLo();
 
-    const MultiFab & state = level_set[lev];
+    MultiFab volfrac(grids[lev], dmap[lev], 1, 1);
+    const MultiFab * state = & level_set[lev];
+
+    if (! use_phierr) {
+        eb_levels[lev]->fillVolFrac( volfrac, geom[lev]);
+        state = & volfrac;
+    }
+
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -231,7 +238,7 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     {
         Vector<int>  itags;
 
-        for (MFIter mfi(state,true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(* state, true); mfi.isValid(); ++mfi) {
             const Box &    tilebox = mfi.tilebox();
                   TagBox & tagfab  = tags[mfi];
 
@@ -247,18 +254,30 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             const int * thi  = tilebox.hiVect();
 
             // tag cells for refinement
-            if (use_phierr)
+            if (use_phierr) {
                 amrex_eb_levelset_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                          BL_TO_FORTRAN_3D(state[mfi]),
+                                          BL_TO_FORTRAN_3D((* state)[mfi]),
                                           & tagval, & clearval,
                                           BL_TO_FORTRAN_BOX(tilebox),
                                           AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
                                           & time, & phierr[lev]);
 
+            } else {
+
+                Real tol = 0.000001; // TODO: Fix magic numbers (after talking with ANN)
+                amrex_eb_volfrac_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                         BL_TO_FORTRAN_3D((*state)[mfi]),
+                                         & tagval, & clearval, & tol,
+                                         BL_TO_FORTRAN_BOX(tilebox),
+                                         AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo));
+            }
+
             //___________________________________________________________________
             // Now update the tags in the TagBox in the tilebox region to be
             // equal to itags
             //
+            if (! use_phierr)
+                tagfab.buffer(4, 4); // TODO: Fix magic numbers (after talking with ANN)
             tagfab.tags_and_untags(itags, tilebox);
         }
     }

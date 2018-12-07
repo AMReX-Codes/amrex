@@ -46,7 +46,7 @@ public:
     virtual ~LSCoreBase ();
 
     // Initializes multilevel data
-    void InitData (bool a_use_phierr = true);
+    void InitData (bool a_use_phierr = false);
     void InitData (const Vector<Real> & m_phierr);
 
     // Make a new level using provided BoxArray and DistributionMapping and fill
