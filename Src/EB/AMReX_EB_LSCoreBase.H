@@ -46,7 +46,7 @@ public:
     virtual ~LSCoreBase ();
 
     // Initializes multilevel data
-    void InitData ();
+    void InitData (bool a_use_phierr = true);
     void InitData (const Vector<Real> & m_phierr);
 
     // Make a new level using provided BoxArray and DistributionMapping and fill
@@ -163,7 +163,7 @@ protected:
     // condition types at the lo/hi walls in each direction
     Vector<BCRec> bcs; // 1-component
 
-    bool use_phierr = true;
+    bool use_phierr = false;
     bool phierr_set = false;
     Vector<Real> phierr;
 

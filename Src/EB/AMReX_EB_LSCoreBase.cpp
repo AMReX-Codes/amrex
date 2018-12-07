@@ -134,8 +134,10 @@ void LSCoreBase::Init () {
 }
 
 
-void LSCoreBase::InitData () {
-    LoadTagLevels();
+void LSCoreBase::InitData (bool a_use_phierr) {
+    use_phierr = a_use_phierr;
+    if (use_phierr)
+        LoadTagLevels();
     Init();
 }
 
@@ -246,11 +248,10 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
 
             // tag cells for refinement
             if (use_phierr)
-                amrex_eb_levelset_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                amrex_eb_levelset_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
                                           BL_TO_FORTRAN_3D(state[mfi]),
                                           & tagval, & clearval,
-                                          AMREX_ARLIM_3D(tilebox.loVect()),
-                                          AMREX_ARLIM_3D(tilebox.hiVect()),
+                                          BL_TO_FORTRAN_BOX(tilebox),
                                           AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
                                           & time, & phierr[lev]);
 
