@@ -525,8 +525,12 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
-            wt = (amrex::second() - wt) / cbx.d_numPts();
-            (*cost)[mfi].plus(wt, cbx);
+            wt = (amrex::second() - wt) / cbx.d_numPts();\
+            FArrayBox* costfab = cost->fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( cbx, work_box,
+            {
+                costfab->plus(wt, work_box);
+            });
         }
     }
 
@@ -668,7 +672,11 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
             wt = (amrex::second() - wt) / cbx.d_numPts();
-            (*cost)[mfi].plus(wt, cbx);
+            FArrayBox* costfab = cost->fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( cbx, work_box,
+            {
+                costfab->plus(wt, work_box);
+            });
         }
     }
 

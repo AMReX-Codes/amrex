@@ -80,6 +80,10 @@ public:
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
+    void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
+#ifdef AMREX_USE_GPU
+    void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
+#endif
 
     void MapParticletoBoostedFrame(amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
 
@@ -110,10 +114,6 @@ protected:
 			    const amrex::RealBox& tile_real_box,
 			    const amrex::RealBox& particle_real_box);
   
-    void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
-#ifdef AMREX_USE_GPU
-    void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
-#endif
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
 

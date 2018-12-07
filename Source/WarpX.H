@@ -144,9 +144,13 @@ public:
     void EvolveB (int lev, amrex::Real dt);
     void EvolveF (         amrex::Real dt, DtType dt_type);
     void EvolveF (int lev, amrex::Real dt, DtType dt_type);
+    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
 
     void DampPML ();
     void DampPML (int lev);
+    void DampPML (int lev, PatchType patch_type);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -252,11 +256,6 @@ private:
     void FillBoundaryB (int lev, PatchType patch_type);
     void FillBoundaryE (int lev, PatchType patch_type);
     void FillBoundaryF (int lev, PatchType patch_type);
-
-    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
-    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
-    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
-    void DampPML (int lev, PatchType patch_type);
 
     void OneStep_nosub (amrex::Real t);
     void OneStep_sub1 (amrex::Real t);
