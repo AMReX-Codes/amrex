@@ -24,13 +24,13 @@ contains
   ! ::: level       => refinement level of this array
   ! ::: -----------------------------------------------------------
 
-  subroutine amrex_eb_state_error(tag,   tag_lo,   tag_hi,   &
-                                  state, state_lo, state_hi, &
-                                  set,   clear,              &
-                                  lo,    hi,                 &
-                                  dx,    problo,             &
-                                  time,  phierr)             &
-    bind(C, name="amrex_eb_state_error")
+  subroutine amrex_eb_levelset_error(tag,   tag_lo,   tag_hi,   &
+                                     state, state_lo, state_hi, &
+                                     set,   clear,              &
+                                     lo,    hi,                 &
+                                     dx,    problo,             &
+                                     time,  phierr)             &
+    bind(C, name="amrex_eb_levelset_error")
 
     use amrex_fort_module, only : amrex_real
     use amrex_eb_levelset_module, only: amrex_eb_interp_levelset
@@ -72,6 +72,6 @@ contains
        enddo
     enddo
 
-  end subroutine amrex_eb_state_error
+  end subroutine amrex_eb_levelset_error
 
 end module amrex_eb_tagging_module
