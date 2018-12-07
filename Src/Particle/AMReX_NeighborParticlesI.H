@@ -929,14 +929,15 @@ buildNeighborList(CheckPair check_pair, bool sort) {
             // For each cell on this tile, we build linked lists storing the
             // indices of the particles belonging to it.
             Box box = pti.tilebox();
-            box.grow(ref_fac*num_neighbor_cells+1); // need an extra cell to account for roundoff errors.
+            box.coarsen(ref_fac);
+            box.grow(num_neighbor_cells+1); // need an extra cell to account for roundoff errors.
             head.resize(box);
             head.setVal(-1);
             list.resize(N, -1);
 
             for (int i = 0; i < N; ++i) {
                 const ParticleType& p = tmp_particles[i];
-                const IntVect& cell = this->Index(p, lev);
+                const IntVect& cell = this->Index(p, 0);  // we always bin on level 0
                 cells[i] = cell;
                 list[i] = head(cell);
                 head(cell) = i;
