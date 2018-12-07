@@ -993,7 +993,39 @@ buildNeighborList(CheckPair check_pair, bool sort) {
         }
     }
 }
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+printNeighborList()
+{    
+    BL_PROFILE("NeighborParticleContainer::printNeighborList");
+
+    for (int lev = 0; lev < this->numLevels(); ++lev) {
     
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+        
+            for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(true)); pti.isValid(); ++pti) {
+                PairIndex index(pti.index(), pti.LocalTileIndex());
+#ifdef AMREX_USE_CUDA
+                Cuda::HostVector<int> nl;
+#else
+                IntVector& nl = neighbor_list[lev][index];
+#endif
+                std::stringstream ss;
+                ss << "nl_level_" << lev;
+                for (auto& item : nl) {
+                    amrex::AllPrintToFile(ss.str()) << item << " ";
+                }
+                amrex::AllPrintToFile(ss.str()) << "\n";
+            }
+        }
+    }
+}
+
 template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
