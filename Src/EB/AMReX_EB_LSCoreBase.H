@@ -163,6 +163,7 @@ protected:
     // condition types at the lo/hi walls in each direction
     Vector<BCRec> bcs; // 1-component
 
+    bool use_phierr = false;
     bool phierr_set = false;
     Vector<Real> phierr;
 
