@@ -277,21 +277,21 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       BL_PROFILE_VAR_START(blp_accumulate);
 
       FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
-      FArrayBox* global_jx_ptr = &jx[pti];
+      FArrayBox* global_jx_ptr = jx.fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
       {
         global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
       });
 
       FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = &jy[pti];
+      FArrayBox* global_jy_ptr = jy.fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
       {
         global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
       });
 
       FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = &jz[pti];
+      FArrayBox* global_jz_ptr = jz.fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
       {
         global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
@@ -364,28 +364,24 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &lvect,&WarpX::current_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
-      FArrayBox& cjxfab = (*cjx)[pti];
-      FArrayBox& cjyfab = (*cjy)[pti];
-      FArrayBox& cjzfab = (*cjz)[pti];
-
       BL_PROFILE_VAR_START(blp_accumulate);
 
       FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
-      FArrayBox* global_jx_ptr = &cjxfab;
+      FArrayBox* global_jx_ptr = cjx->fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbx, thread_bx,
       {
         global_jx_ptr->atomicAdd(*local_jx_const_ptr, thread_bx, thread_bx, 0, 0, 1);
       });
 
       FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = &cjyfab;
+      FArrayBox* global_jy_ptr = cjx->fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
       {
         global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
       });
 
       FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = &cjzfab;
+      FArrayBox* global_jz_ptr = cjx->fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
       {
         global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
@@ -420,7 +416,6 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
   // Deposit charge for particles that are not in the current buffers
   if (np_current > 0)
     {
-      FArrayBox& rhofab = (*rhomf)[pti];
       const std::array<Real, 3>& xyzmin = xyzmin_tile;
       tile_box.grow(ngRho);
       local_rho[thread_num]->resize(tile_box);
@@ -457,7 +452,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
 
       const int ncomp = 1;
       FArrayBox const* local_fab = local_rho[thread_num].get();
-      FArrayBox*       global_fab = &rhofab;
+      FArrayBox*       global_fab = rhomf->fabPtr(pti);
       BL_PROFILE_VAR_START(blp_accumulate);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
       {
@@ -508,11 +503,10 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
                               &WarpX::nox,&WarpX::noy,&WarpX::noz,
                               &lvect, &WarpX::charge_deposition_algo);
       BL_PROFILE_VAR_STOP(blp_pxr_chd);
-      FArrayBox& crhofab = (*crhomf)[pti];
 
       const int ncomp = 1;
       FArrayBox const* local_fab = local_rho[thread_num].get();
-      FArrayBox*       global_fab = &crhofab;
+      FArrayBox*       global_fab = crhomf->fabPtr(pti);
       BL_PROFILE_VAR_START(blp_accumulate);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tile_box, tbx,
       {
@@ -878,7 +872,11 @@ WarpXParticleContainer::PushX (int lev, Real dt)
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                (*cost)[pti].plus(wt, tbx);
+                FArrayBox* costfab = cost->fabPtr(pti);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                {
+                    costfab->plus(wt, work_box);
+                });
             }
         }
     }

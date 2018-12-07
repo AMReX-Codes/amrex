@@ -222,15 +222,15 @@ WarpX::shiftMF (MultiFab& mf, const Geometry& geom, int num_shift, int dir)
 #endif
     for (MFIter mfi(tmpmf); mfi.isValid(); ++mfi )
     {
-      FArrayBox* dstfab = &(mf[mfi]);
-      FArrayBox* srcfab = &(tmpmf[mfi]);
+      FArrayBox* dstfab = mf.fabPtr(mfi);
+      FArrayBox* srcfab = tmpmf.fabPtr(mfi);
       Box outbox = mfi.fabbox();
       outbox &= adjBox;
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(outbox, toutbox,
       {
 	srcfab->setVal(0.0, toutbox, 0, nc);
       });
-      Box dstBox = dstfab->box();
+      Box dstBox = mf[mfi].box();
       if (num_shift > 0) {
 	dstBox.growHi(dir, -num_shift);
       } else {

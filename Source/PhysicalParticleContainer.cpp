@@ -437,7 +437,11 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
 
             if (cost) {
 	        wt = (amrex::second() - wt) / tile_box.d_numPts();
-		(*cost)[mfi].plus(wt, tile_box);
+                FArrayBox* costfab = cost->fabPtr(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, work_box,
+                {
+                    costfab->plus(wt, work_box);
+                });
             }
         }
     }
@@ -674,7 +678,11 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
 	    			 
             if (cost) {
 	        wt = (amrex::second() - wt) / tile_box.d_numPts();
-		(*cost)[mfi].plus(wt, tile_box);
+                FArrayBox* costfab = cost->fabPtr(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, work_box,
+                {
+                    costfab->plus(wt, work_box);
+                });
             }
         }		
     }
@@ -981,7 +989,11 @@ PhysicalParticleContainer::FieldGather (int lev,
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                (*cost)[pti].plus(wt, tbx);
+                FArrayBox* costfab = cost->fabPtr(pti);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                {
+                    costfab->plus(wt, work_box);
+                });
             }
         }
     }
@@ -1406,7 +1418,11 @@ PhysicalParticleContainer::Evolve (int lev,
             if (cost) {
                 const Box& tbx = pti.tilebox();
                 wt = (amrex::second() - wt) / tbx.d_numPts();
-                (*cost)[pti].plus(wt, tbx);
+                FArrayBox* costfab = cost->fabPtr(pti);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, work_box,
+                {
+                    costfab->plus(wt, work_box);
+                });
             }
         }
     }
