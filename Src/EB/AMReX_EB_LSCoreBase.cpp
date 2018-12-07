@@ -245,14 +245,16 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             const int * thi  = tilebox.hiVect();
 
             // tag cells for refinement
-            amrex_eb_state_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                   BL_TO_FORTRAN_3D(state[mfi]),
-                                   & tagval, & clearval,
-                                   AMREX_ARLIM_3D(tilebox.loVect()),
-                                   AMREX_ARLIM_3D(tilebox.hiVect()),
-                                   AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
-                                   & time, & phierr[lev]);
-            //
+            if (use_phierr)
+                amrex_eb_levelset_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                          BL_TO_FORTRAN_3D(state[mfi]),
+                                          & tagval, & clearval,
+                                          AMREX_ARLIM_3D(tilebox.loVect()),
+                                          AMREX_ARLIM_3D(tilebox.hiVect()),
+                                          AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
+                                          & time, & phierr[lev]);
+
+            //___________________________________________________________________
             // Now update the tags in the TagBox in the tilebox region to be
             // equal to itags
             //
