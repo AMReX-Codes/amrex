@@ -998,6 +998,14 @@ template <int NStructReal, int NStructInt>
 void
 NeighborParticleContainer<NStructReal, NStructInt>::
 printNeighborList()
+{
+    printNeighborList("nl");
+}
+
+template <int NStructReal, int NStructInt>
+void
+NeighborParticleContainer<NStructReal, NStructInt>::
+printNeighborList(const std::string& prefix)
 {    
     BL_PROFILE("NeighborParticleContainer::printNeighborList");
 
@@ -1016,7 +1024,7 @@ printNeighborList()
                 IntVector& nl = neighbor_list[lev][index];
 #endif
                 std::stringstream ss;
-                ss << "nl_level_" << lev;
+                ss << prefix << "_level_" << lev;
                 for (auto& item : nl) {
                     amrex::AllPrintToFile(ss.str()) << item << " ";
                 }
