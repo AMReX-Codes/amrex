@@ -191,6 +191,8 @@ public:
     template <class CheckPair>
     void buildNeighborList(CheckPair check_pair, bool sort=false);
 
+    void printNeighborList();
+    
     void setRealCommComp(int i, bool value);
     void setIntCommComp (int i, bool value);
 
