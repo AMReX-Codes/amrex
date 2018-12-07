@@ -28,7 +28,7 @@ int  main(int argc, char* argv[])
                 // what we used to do:  tmpfab.resize(bx,ncomp);
                 Gpu::DeviceFab device_fab(tmpfab, bx, ncomp);
                 FArrayBox* tfab = device_fab.fabPtr();
-                FArrayBox* mffab = &(mf[mfi]);  // make a pointer so that it can be capture by the lambda below
+                FArrayBox* mffab = mf.fabPtr(mfi);  // get pointer so that it can be capture by the lambda below
 
                 AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
                 {

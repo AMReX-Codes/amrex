@@ -24,4 +24,11 @@ void average_down_pull(MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine,
 void average_down_push(Amr& amr, MultiFab& S_fine, MultiFab& S_crse, MultiFab& crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse, int scomp, int ncomp, int ratio, int f);  
 
 void average_down_pull(MultiFab& S_fine, MultiFab& S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse, int scomp, int ncomp, int ratio, int f);
+
+
+void average_down_push (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, MultiFab* crse_S_fine, RegionGraph* RG_fine, RegionGraph* RG_crse,
+                       amrex::Geometry&, amrex::Geometry&,int scomp, int ncomp, const IntVect& ratio, int f);
+
+void average_down_pull (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, RegionGraph* RG_fine, RegionGraph* RG_crse,
+                       amrex::Geometry&, amrex::Geometry&, int scomp, int ncomp, const IntVect& ratio, int f);
 #endif

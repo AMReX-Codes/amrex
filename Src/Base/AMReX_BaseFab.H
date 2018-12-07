@@ -188,6 +188,10 @@ public:
 
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
+#ifdef AMREX_USE_GPU
+    BaseFab (const BaseFab<T>& rhs, MakeType make_type);
+#endif
+
     /**
      * \brief Create an NON-OWNING BaseFab.  Thus BaseFab is not
      * responsible for memory management.  And it's caller's responsibility that
@@ -2017,6 +2021,31 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int n
         amrex::Abort("BaseFab: unknown MakeType");
     }
 }
+
+#ifdef AMREX_USE_GPU
+template <class T>
+BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
+{
+    auto dst = static_cast<BaseFabData<T>*>(this);
+    auto src = static_cast<BaseFabData<T>const*>(&rhs);
+    if (Gpu::isDevicePtr(&rhs)) {
+        AMREX_GPU_SAFE_CALL(cudaMemcpy(dst, src, sizeof(BaseFabData<T>), cudaMemcpyDeviceToHost));
+    } else {
+        std::memcpy(dst, src, sizeof(BaseFabData<T>));
+    }
+
+    if (make_type == amrex::make_deep_copy)
+    {
+        this->dptr = nullptr;
+        define();
+        this->copy(rhs, this->domain, 0, this->domain, 0, this->nvar);
+    } else if (make_type == amrex::make_alias) {
+        this->setOwner(false);
+    } else {
+        amrex::Abort("BaseFab: unknown MakeType");
+    }
+}
+#endif
 
 template<class T>
 BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
