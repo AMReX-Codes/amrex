@@ -84,7 +84,6 @@ Adv::advance (Real time,
         //rgi.sync_workers();
     }
 
-
 #if 0
     //This is the FillPatch on the coarsest level, starting the async execution on multiple AMR levels
     if(level == 0 && iteration == 1)
