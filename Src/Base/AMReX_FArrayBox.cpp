@@ -169,6 +169,14 @@ FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
+#ifdef AMREX_USE_GPU
+FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type)
+    :
+    BaseFab<Real>(rhs,make_type)
+{
+}
+#endif
+
 FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
     :
     BaseFab<Real>(b,ncomp,p)
@@ -195,7 +203,7 @@ FArrayBox::initVal ()
 // #ifdef UINT64_MAX
 //             const uint64_t snan = UINT64_C(0x7ff0000080000001);
 // #else
-//             static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
+//             static_assert(sizeof(double) == sizeof(long long), "sizeof double != sizeof long long");
 //             const long long snan = 0x7ff0000080000001LL;
 // #endif
 //             double* pi = p + i;

@@ -24,27 +24,29 @@ contains
   ! ::: level       => refinement level of this array
   ! ::: -----------------------------------------------------------
 
-  subroutine amrex_eb_state_error(tag,tag_lo,tag_hi, &
-                                  state,state_lo,state_hi, &
-                                  set,clear,&
-                                  lo,hi,&
-                                  dx,problo,time,phierr) &
-    bind(C, name="amrex_eb_state_error")
+  subroutine amrex_eb_levelset_error(tag,   tag_lo,   tag_hi,   &
+                                     state, state_lo, state_hi, &
+                                     set,   clear,              &
+                                     lo,    hi,                 &
+                                     dx,    problo,             &
+                                     time,  phierr)             &
+    bind(C, name="amrex_eb_levelset_error")
 
     use amrex_fort_module, only : amrex_real
     use amrex_eb_levelset_module, only: amrex_eb_interp_levelset
 
     implicit none
 
-    integer          :: lo(3),hi(3)
-    integer          :: state_lo(3),state_hi(3)
-    integer          :: tag_lo(3),tag_hi(3)
-    real(amrex_real) :: state(state_lo(1):state_hi(1), &
-         state_lo(2):state_hi(2), &
-         state_lo(3):state_hi(3))
-    integer          :: tag(tag_lo(1):tag_hi(1),tag_lo(2):tag_hi(2),tag_lo(3):tag_hi(3))
-    real(amrex_real) :: problo(3),dx(3),time,phierr
-    integer          :: set,clear
+    integer, dimension(3), intent(in   ) :: lo, hi, state_lo, state_hi, tag_lo, tag_hi
+    real(amrex_real),      intent(in   ) :: problo(3), dx(3), time, phierr
+    integer,               intent(in   ) :: set, clear
+
+    real(amrex_real),      intent(in   ) :: state(state_lo(1):state_hi(1), &
+                                                  state_lo(2):state_hi(2), &
+                                                  state_lo(3):state_hi(3))
+    integer,               intent(  out) :: tag(tag_lo(1):tag_hi(1), &
+                                                tag_lo(2):tag_hi(2), &
+                                                tag_lo(3):tag_hi(3))
 
     integer          :: i, j, k
     real(amrex_real) :: pos(3), plo(3), ls_val
@@ -70,6 +72,6 @@ contains
        enddo
     enddo
 
-  end subroutine amrex_eb_state_error
+  end subroutine amrex_eb_levelset_error
 
 end module amrex_eb_tagging_module

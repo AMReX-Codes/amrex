@@ -6,22 +6,6 @@
 
 namespace amrex {
 
-amrex::Real distFcnElement2d::cpdist(amrex::RealVect pt,
-                                     amrex::RealVect & cpmin) const {
-  amrex::Abort("cp dist must be implemented by the derived class");
-}
-
-
-amrex::Real distFcnElement2d::cpside(amrex::RealVect pt,
-                                     amrex::RealVect & cpmin) const {
-  amrex::Abort("cp side must be implemented by the derived class");
-}
-
-distFcnElement2d* distFcnElement2d::newDistFcnElement2d() const {
-  amrex::Abort("new distfcn must be implemented by the derived class");
-}
-
-
 int distFcnElement2d::solve_thomas(std::vector<amrex::Real> ain,
                                    std::vector<amrex::Real> bin,
                                    std::vector<amrex::Real> cin,

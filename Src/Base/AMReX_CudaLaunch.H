@@ -423,7 +423,32 @@
         } \
     }
 
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    { \
+        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            block2 \
+        } \
+    }
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    { \
+        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            block2 \
+        } \
+        for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+            block3 \
+        } \
+    }
+
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(__VA_ARGS__)
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_2(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(__VA_ARGS__)
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_3(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \
