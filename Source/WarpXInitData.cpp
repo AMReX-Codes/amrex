@@ -50,6 +50,7 @@ WarpX::InitData ()
     insitu_bridge = new amrex::AmrMeshInSituBridge;
     insitu_bridge->setEnabled(insitu_int > 0 ? 1 : 0);
     insitu_bridge->setConfig(insitu_config);
+    insitu_bridge->setPinMesh(insitu_pin_mesh);
     if (insitu_bridge->initialize())
     {
         amrex::ErrorStream()

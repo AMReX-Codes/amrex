@@ -488,11 +488,11 @@ WarpX::UpdateInSitu () const
         Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
         PackPlotDataPtrs(srcmf, current_fp[lev]);
         int dcomp = 0;
-        amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+        amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
+        amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *current_fp[lev][1], 0, 1, ngrow);
 #endif
         if (lev == 0)
         {
@@ -503,10 +503,10 @@ WarpX::UpdateInSitu () const
         dcomp += 3;
 
         PackPlotDataPtrs(srcmf, Efield_aux[lev]);
-        amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+        amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
+        amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1, ngrow);
 #endif
         if (lev == 0)
         {
@@ -517,10 +517,10 @@ WarpX::UpdateInSitu () const
         dcomp += 3;
 
         PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-        amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf);
+        amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            MultiFab::Copy(mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
+        MultiFab::Copy(mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
         if (lev == 0)
         {
@@ -532,16 +532,14 @@ WarpX::UpdateInSitu () const
 
         if (plot_part_per_cell)
         {
-            MultiFab temp_dat(grids[lev],mf[lev].DistributionMap(),1,0);
-            temp_dat.setVal(0);
+            MultiFab temp_dat(grids[lev], mf[lev].DistributionMap(), 1, ngrow);
+            temp_dat.setVal(0, ngrow);
 
             // MultiFab containing number of particles in each cell
             mypc->Increment(temp_dat, lev);
-            MultiFab::Copy(mf[lev], temp_dat, 0, dcomp, 1, 0);
+            MultiFab::Copy(mf[lev], temp_dat, 0, dcomp, 1, ngrow);
             if (lev == 0)
-            {
                 varnames.push_back("part_per_cell");
-            }
             dcomp += 1;
         }
 
@@ -554,14 +552,13 @@ WarpX::UpdateInSitu () const
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-               for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi) {
-                   (mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
-               }
-               if (lev == 0)
-               {
-                   varnames.push_back("part_per_grid");
-               }
-               dcomp += 1;
+                for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
+                    (mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
+
+                if (lev == 0)
+                    varnames.push_back("part_per_grid");
+
+                dcomp += 1;
            }
 
            if (plot_part_per_proc)
@@ -570,30 +567,30 @@ WarpX::UpdateInSitu () const
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:n_per_proc)
 #endif
-                for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi) {
+                for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
                     n_per_proc += npart_in_grid[mfi.index()];
-                }
-                mf[lev].setVal(static_cast<Real>(n_per_proc), dcomp,1);
+
+                mf[lev].setVal(static_cast<Real>(n_per_proc), dcomp, ngrow);
+
                 if (lev == 0)
-                {
                     varnames.push_back("part_per_proc");
-                }
+
                 dcomp += 1;
             }
         }
 
         if (plot_proc_number)
         {
+            Real procid = static_cast<Real>(ParallelDescriptor::MyProc());
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-            for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi) {
-                (mf[lev])[mfi].setVal(static_cast<Real>(ParallelDescriptor::MyProc()), dcomp);
-            }
+            for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
+                (mf[lev])[mfi].setVal(procid, dcomp);
+
             if (lev == 0)
-            {
                 varnames.push_back("proc_number");
-            }
+
             dcomp += 1;
         }
 
@@ -601,56 +598,56 @@ WarpX::UpdateInSitu () const
         {
             ComputeDivB(mf[lev], dcomp,
                         {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()},
-                        WarpX::CellSize(lev));
+                        WarpX::CellSize(lev), ngrow);
             if (lev == 0)
-            {
                 varnames.push_back("divB");
-            }
+
             dcomp += 1;
         }
 
         if (plot_dive)
         {
             const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
-            MultiFab dive(ba,DistributionMap(lev),1,0);
+            MultiFab dive(ba, DistributionMap(lev), 1, ngrow);
+
             ComputeDivE(dive, 0,
                         {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
-                        WarpX::CellSize(lev));
-            amrex::average_node_to_cellcenter(mf[lev], dcomp, dive, 0, 1);
+                        WarpX::CellSize(lev), ngrow);
+
+            amrex::average_node_to_cellcenter(mf[lev], dcomp, dive, 0, 1, ngrow);
+
             if (lev == 0)
-            {
                 varnames.push_back("divE");
-            }
+
             dcomp += 1;
         }
 
         if (plot_rho)
         {
-            amrex::average_node_to_cellcenter(mf[lev], dcomp, *rho_fp[lev], 0, 1);
+            amrex::average_node_to_cellcenter(mf[lev], dcomp, *rho_fp[lev], 0, 1, ngrow);
             if (lev == 0)
-            {
                 varnames.push_back("rho");
-            }
+
             dcomp += 1;
         }
 
         if (plot_F)
         {
-            amrex::average_node_to_cellcenter(mf[lev], dcomp, *F_fp[lev], 0, 1);
+            amrex::average_node_to_cellcenter(mf[lev], dcomp, *F_fp[lev], 0, 1, ngrow);
+
             if (lev == 0)
-            {
                 varnames.push_back("F");
-            }
+
             dcomp += 1;
         }
 
         if (plot_finepatch)
         {
             PackPlotDataPtrs(srcmf, Efield_fp[lev]);
-            amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+            amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
             MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+            amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1, ngrow);
 #endif
             if (lev == 0)
             {
@@ -661,7 +658,7 @@ WarpX::UpdateInSitu () const
             dcomp += 3;
 
             PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
-            amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf);
+            amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
             MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
             MultiFab::Copy(mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
@@ -686,10 +683,10 @@ WarpX::UpdateInSitu () const
             {
                 std::array<std::unique_ptr<MultiFab>, 3> E = getInterpolatedE(lev);
                 PackPlotDataPtrs(srcmf, E);
-                amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf);
+                amrex::average_edge_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
                 MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *E[1], 0, 1);
+                amrex::average_node_to_cellcenter(mf[lev], dcomp+1, *E[1], 0, 1, ngrow);
 #endif
             }
             if (lev == 0)
@@ -709,7 +706,7 @@ WarpX::UpdateInSitu () const
             {
                 std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
                 PackPlotDataPtrs(srcmf, B);
-                amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf);
+                amrex::average_face_to_cellcenter(mf[lev], dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
                 MultiFab::Copy(mf[lev], mf[lev], dcomp+1, dcomp+2, 1, ngrow);
                 MultiFab::Copy(mf[lev], *B[1], 0, dcomp+1, 1, ngrow);
