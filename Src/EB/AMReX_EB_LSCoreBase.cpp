@@ -277,7 +277,7 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             // equal to itags
             //
             if (! use_phierr)
-                tagfab.buffer(4, 4); // TODO: Fix magic numbers (after talking with ANN)
+                tagfab.buffer(8, 0); // TODO: Fix magic numbers (after talking with ANN)
             tagfab.tags_and_untags(itags, tilebox);
         }
     }
