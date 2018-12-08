@@ -1,56 +1,72 @@
 import os, shutil, re
 import pandas as pd
 import numpy as np
+import git
 
-def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1):
+def scale_n_cell(ncell, n_node):
+     ncell_scaled = ncell[:]
+     index_dim = 0
+     while n_node > 1:
+         ncell_scaled[index_dim] *= 2
+         n_node /= 2
+         index_dim = (index_dim+1) % 3
+     return ncell_scaled
+
+def store_git_hash(repo_path=None, filename=None, name=None):
+    repo = git.Repo(path=repo_path)
+    sha = repo.head.object.hexsha
+    file_handler = open( filename, 'a+' )
+    file_handler.write( name + ':' + sha + ' ')
+    file_handler.close()
+
+def get_file_content(filename=None):
+    file_handler = open( filename, 'r' )
+    file_content = file_handler.read()
+    file_handler.close()
+    return file_content
+
+def run_batch_nnode(test_list, res_dir, bin_name, config_command, architecture='knl', Cname='knl', n_node=1, runtime_param_list=[]):
     # Clean res_dir
     if os.path.exists(res_dir):
-        shutil.rmtree(res_dir)
+        shutil.rmtree(res_dir, ignore_errors=True)
     os.makedirs(res_dir)
     # Copy files to res_dir
-    cwd = os.environ['WARPX'] + '/Tools/performance_tests/'
+    cwd = os.environ['AUTOMATED_PERF_TESTS'] + '/WarpX/Tools/performance_tests/'
     bin_dir = cwd + 'Bin/'
     shutil.copy(bin_dir + bin_name, res_dir)
     os.chdir(res_dir)
-    # Calculate simulation time. Take 10 min + 10 min / simulation
+    # Calculate simulation time. Take 5 min + 2 min / simulation
     job_time_min = 5. + len(test_list)*5.
     job_time_str = str(int(job_time_min/60)) + ':' + str(int(job_time_min%60)) + ':00'
     batch_string = ''
     batch_string += '#!/bin/bash\n'
-    batch_string += '#SBATCH --job-name=' + test_list[0][0] + '\n'
+    batch_string += '#SBATCH --job-name=' + test_list[0].input_file + '\n'
     batch_string += '#SBATCH --time=' + job_time_str + '\n'
     batch_string += '#SBATCH -C ' + Cname + '\n'
     batch_string += '#SBATCH -N ' + str(n_node) + '\n'
     batch_string += '#SBATCH -q regular\n'
     batch_string += '#SBATCH -e error.txt\n'
     batch_string += '#SBATCH --account=m2852\n'
-
-    for count, test_item in enumerate(test_list):
-        # test_item reads [input_file, int n_mpi, int n_omp]                                                                                                                                                       
-        input_file = test_item[0];
-        shutil.copy(cwd + input_file, res_dir)
-        # test_item[1] is not read since it contain the number of node, which is an 
-        # global parameter. However, we keep it for compatibility with run_alltests.py
-        n_mpi = test_item[2]
-        n_omp = test_item[3]
+    
+    for count, current_test in enumerate(test_list):
+        shutil.copy(cwd + current_test.input_file, res_dir)
         srun_string = ''
-        srun_string += 'export OMP_NUM_THREADS=' + str(n_omp) + '\n'
+        srun_string += 'export OMP_NUM_THREADS=' + str(current_test.n_omp) + '\n'
         # number of logical cores per MPI process
         if architecture == 'cpu':
-            cflag_value = max(1, int(32/n_mpi) * 2) # Follow NERSC directives
+            cflag_value = max(1, int(32/current_test.n_mpi_per_node) * 2) # Follow NERSC directives
         elif architecture == 'knl':
-            cflag_value = max(1, int(64/n_mpi) * 4) # Follow NERSC directives
-        output_filename = 'out_' + '_'.join([input_file, str(n_node), str(n_mpi), str(n_omp), str(count)]) + '.txt'
+            cflag_value = max(1, int(64/current_test.n_mpi_per_node) * 4) # Follow NERSC directives
+        output_filename = 'out_' + '_'.join([current_test.input_file, str(n_node), str(current_test.n_mpi_per_node), str(current_test.n_omp), str(count)]) + '.txt'
         srun_string += 'srun --cpu_bind=cores '+ \
-                       ' -n ' + str(n_node*n_mpi) + \
+                       ' -n ' + str(n_node*current_test.n_mpi_per_node) + \
                        ' -c ' + str(cflag_value)   + \
                        ' ./'  + bin_name + \
-                       ' ' + input_file + \
+                       ' ' + current_test.input_file + \
+                       runtime_param_list[ count ] + \
                        ' > ' + output_filename + '\n'
         batch_string += srun_string
-        batch_string += 'rm -rf plt*\n'
-        batch_string += 'rm -rf chk*\n'
-        batch_string += 'rm -rf lab_frame_data\n'
+        batch_string += 'rm -rf plotfiles ; rm -rf lab_frame_data\n'
     batch_file = 'slurm'
     f_exe = open(batch_file,'w')
     f_exe.write(batch_string)
@@ -172,6 +188,12 @@ def extract_dataframe(filename, n_steps):
     search_area = output_text.partition(partition_limit_start)[2]
     line_match_looptime = re.search('\nWarpX::Evolve().*', search_area)
     time_wo_initialization = float(line_match_looptime.group(0).split()[3])
+    # New, might break something
+    line_match_WritePlotFile = re.search('\nWarpX::WritePlotFile().*', search_area)
+    if line_match_WritePlotFile is not None:
+         time_WritePlotFile = float(line_match_WritePlotFile.group(0).split()[3])
+    else:
+         time_WritePlotFile = 0.
     # Get timers for all routines                                                                                                                                                    
     # Where to start and stop in the output_file                                                                                                                                     
     partition_limit_start = 'NCalls  Excl. Min  Excl. Avg  Excl. Max   Max %'
@@ -192,7 +214,8 @@ def extract_dataframe(filename, n_steps):
     df.loc[0] = time_array
     df['time_initialization'] = total_time - time_wo_initialization
     df['time_running'] = time_wo_initialization
-    df['string_output'] = partition_limit_start + '\n' + search_area
+    df['time_WritePlotFile'] = time_WritePlotFile
+    # df['string_output'] = partition_limit_start + '\n' + search_area
     return df
 
 # Run a performance test in an interactive allocation                                                                                                                                                                                                                            

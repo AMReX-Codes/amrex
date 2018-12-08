@@ -56,14 +56,12 @@ extern "C"
 
     bool warpx_use_fdtd_nci_corr()
     {
-	auto & mypc = WarpX::GetInstance().GetPartContainer();
-        return mypc.Use_fdtd_nci_corr();
+	return WarpX::use_fdtd_nci_corr;
     }
 
     int warpx_l_lower_order_in_v()
     {
-	auto & mypc = WarpX::GetInstance().GetPartContainer();
-        return mypc.L_lower_order_in_v();
+	return WarpX::l_lower_order_in_v;
     }
 
     int warpx_nComps() 

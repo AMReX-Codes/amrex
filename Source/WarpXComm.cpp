@@ -491,16 +491,16 @@ WarpX::SyncCurrent ()
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        current_fp[lev][0]->OverrideSync(period);
-        current_fp[lev][1]->OverrideSync(period);
-        current_fp[lev][2]->OverrideSync(period);
+        current_fp[lev][0]->OverrideSync(*current_fp_owner_masks[lev][0], period);
+        current_fp[lev][1]->OverrideSync(*current_fp_owner_masks[lev][1], period);
+        current_fp[lev][2]->OverrideSync(*current_fp_owner_masks[lev][2],period);
     }
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        current_cp[lev][0]->OverrideSync(cperiod);
-        current_cp[lev][1]->OverrideSync(cperiod);
-        current_cp[lev][2]->OverrideSync(cperiod);
+        current_cp[lev][0]->OverrideSync(*current_cp_owner_masks[lev][0], cperiod);
+        current_cp[lev][1]->OverrideSync(*current_cp_owner_masks[lev][1], cperiod);
+        current_cp[lev][2]->OverrideSync(*current_cp_owner_masks[lev][2], cperiod);
     }
 }
 
@@ -645,12 +645,12 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
-        rhof[lev]->OverrideSync(period);
+        rhof[lev]->OverrideSync(*rho_fp_owner_masks[lev], period);
     }
     for (int lev = 1; lev <= finest_level; ++lev)
     {
         const auto& cperiod = Geom(lev-1).periodicity();
-        rhoc[lev]->OverrideSync(cperiod);
+        rhoc[lev]->OverrideSync(*rho_cp_owner_masks[lev], cperiod);
     }
 }
 

@@ -43,10 +43,15 @@ long WarpX::nox = 1;
 long WarpX::noy = 1;
 long WarpX::noz = 1;
 
+bool WarpX::use_fdtd_nci_corr = false;
+int  WarpX::l_lower_order_in_v = true;
+
 bool WarpX::use_laser         = false;
 bool WarpX::use_filter        = false;
 bool WarpX::serialize_ics     = false;
 bool WarpX::refine_plasma     = false;
+
+int  WarpX::sort_int = -1;
 
 bool WarpX::do_boosted_frame_diagnostic = false;
 int  WarpX::num_snapshots_lab = std::numeric_limits<int>::lowest();
@@ -90,6 +95,8 @@ int WarpX::n_field_gather_buffer = 0;
 int WarpX::n_current_deposition_buffer = -1;
 
 WarpX* WarpX::m_instance = nullptr;
+
+
 
 WarpX&
 WarpX::GetInstance ()
@@ -168,6 +175,11 @@ WarpX::WarpX ()
     gather_buffer_masks.resize(nlevs_max);
     current_buf.resize(nlevs_max);
     charge_buf.resize(nlevs_max);
+
+    current_fp_owner_masks.resize(nlevs_max);
+    current_cp_owner_masks.resize(nlevs_max);
+    rho_fp_owner_masks.resize(nlevs_max);
+    rho_cp_owner_masks.resize(nlevs_max);
 
     pml.resize(nlevs_max);
 
@@ -335,6 +347,7 @@ WarpX::ReadParameters ()
         pp.query("do_dive_cleaning", do_dive_cleaning);
         pp.query("n_field_gather_buffer", n_field_gather_buffer);
         pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
+	pp.query("sort_int", sort_int);
 
         pp.query("do_pml", do_pml);
         pp.query("pml_ncell", pml_ncell);
@@ -450,11 +463,13 @@ WarpX::ReadParameters ()
         insitu_start = 0;
         insitu_int = 0;
         insitu_config = "";
+        insitu_pin_mesh = 0;
 
         ParmParse pp("insitu");
         pp.query("int", insitu_int);
         pp.query("start", insitu_start);
         pp.query("config", insitu_config);
+        pp.query("pin_mesh", insitu_pin_mesh);
     }
 }
 
@@ -492,7 +507,13 @@ WarpX::ClearLevel (int lev)
 	Efield_cax[lev][i].reset();
 	Bfield_cax[lev][i].reset();
         current_buf[lev][i].reset();
+
+        current_fp_owner_masks[lev][i].reset();
+        current_cp_owner_masks[lev][i].reset();
     }
+
+    rho_fp_owner_masks[lev].reset();
+    rho_cp_owner_masks[lev].reset();
 
     charge_buf[lev].reset();
 
@@ -550,7 +571,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     int ngy = (ngy_tmp % 2) ? ngy_tmp+1 : ngy_tmp;  // Always even number
     int ngz_nonci = (ngz_tmp % 2) ? ngz_tmp+1 : ngz_tmp;  // Always even number
     int ngz;
-    if (warpx_use_fdtd_nci_corr()) {
+    if (WarpX::use_fdtd_nci_corr) {
         int ng = ngz_tmp + (mypc->nstencilz_fdtd_nci_corr-1);
         ngz = (ng % 2) ? ng+1 : ng;
     } else {
@@ -613,14 +634,22 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
     current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
 
-    if (do_subcycling == 1 && lev == 0) {
+    const auto& period = Geom(lev).periodicity();
+    current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
+    current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
+    current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
+    
+    if (do_dive_cleaning || plot_rho)
+    {
+        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
+        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
+    }
+    
+    if (do_subcycling == 1 && lev == 0)
+    {
         current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
         current_store[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
         current_store[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
-    }
-
-    if (do_dive_cleaning || plot_rho){
-        rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
     }
 
     if (do_dive_cleaning)
@@ -631,6 +660,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     else
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
+        rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
 #endif
 
@@ -678,8 +708,14 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
 
+        const auto& cperiod = Geom(lev).periodicity();
+        current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
+        current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
+        current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
+
         if (do_dive_cleaning || plot_rho){
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
         if (do_dive_cleaning)
         {
@@ -689,6 +725,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         else
         {
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+            rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
         }
 #endif
     }
@@ -808,6 +845,26 @@ WarpX::ComputeDivB (MultiFab& divB, int dcomp,
 }
 
 void
+WarpX::ComputeDivB (MultiFab& divB, int dcomp,
+                    const std::array<const MultiFab*, 3>& B,
+                    const std::array<Real,3>& dx, int ngrow)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divB, true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.growntilebox(ngrow);
+        WRPX_COMPUTE_DIVB(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divB[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*B[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*B[2])[mfi]),
+                           dx.data());
+    }
+}
+
+void
 WarpX::ComputeDivE (MultiFab& divE, int dcomp,
                     const std::array<const MultiFab*, 3>& E,
                     const std::array<Real,3>& dx)
@@ -818,6 +875,26 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
     for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
+        WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
+                           BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
+                           BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[1])[mfi]),
+                           BL_TO_FORTRAN_ANYD((*E[2])[mfi]),
+                           dx.data());
+    }
+}
+
+void
+WarpX::ComputeDivE (MultiFab& divE, int dcomp,
+                    const std::array<const MultiFab*, 3>& E,
+                    const std::array<Real,3>& dx, int ngrow)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(divE, true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.growntilebox(ngrow);
         WRPX_COMPUTE_DIVE(bx.loVect(), bx.hiVect(),
                            BL_TO_FORTRAN_N_ANYD(divE[mfi],dcomp),
                            BL_TO_FORTRAN_ANYD((*E[0])[mfi]),
