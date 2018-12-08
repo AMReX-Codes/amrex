@@ -121,7 +121,7 @@ AMReX provides a number of memory pools.
 
     \end{center}
 
-``Arena`` object returned by these arena functions provides
+:cpp:`Arena` object returned by these arena functions provides
 
 .. highlight:: c++
 
@@ -130,14 +130,14 @@ AMReX provides a number of memory pools.
    void* alloc (std::size_t sz);
    void free (void* p);
 
-``The_Arena()`` is used for memory allocation of data in ``BaseFab``.
-Therefore the data in a ``MultiFab`` are in unified memory and they
-are accessible from both CPU host and GPU device.  This allows
-application codes to develop their GPU capability gradually.
-``The_Managed_Arena()`` is also a memory pool of unified memory, but
-it is separated from ``The_Arena()`` for performance reason.  If you
-want to print out the current memory usage by the arenas, you can call
-``amrex::Arena::PrintUsage()``.
+:cpp:`The_Arena()` is used for memory allocation of data in
+:cpp:`BaseFab`.  Therefore the data in a :cpp:`MultiFab` are in
+unified memory and they are accessible from both CPU host and GPU
+device.  This allows application codes to develop their GPU capability
+gradually.  :cpp:`The_Managed_Arena()` is also a memory pool of
+unified memory, but it is separated from :cpp:`The_Arena()` for
+performance reason.  If you want to print out the current memory usage
+by the arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
 
 .. ===================================================================
 
@@ -146,12 +146,12 @@ want to print out the current memory usage by the arenas, you can call
 Kernel Launch
 =============
 
-AMReX uses ``MFIter`` to iterate over a ``MultiFab``.  Inside the
-loop, we call functions to work on ``FArrayBox`` objects
-(see :ref:`sec:basics:mfiter`).  With GPU, we launch kernels inside
-``MFIter`` loop.  A tutorial example can be found in
+AMReX uses :cpp:`MFIter` to iterate over a :cpp:`MultiFab`.  Inside
+the loop, we call functions to work on :cpp:`FArrayBox` objects (see
+:ref:`sec:basics:mfiter`).  With GPU, we launch kernels inside
+:cpp:`MFIter` loop.  A tutorial example can be found in
 ``Tutorials/GPU/Launch``.  The part launching a CUDA C++ kernel is
-shown below. 
+shown below.
 
 .. highlight:: c++
 
@@ -168,22 +168,23 @@ shown below.
     }
 
 The code above works whether it is compiled for GPU or CPU.  We use
-``TilingIfNotGPU()`` that returns ``false`` in the case of GPU to turn
-off tiling so that GPU kernels have more works.  When tiling is off,
-``tilebox()`` returns the valid box of the ``FArrayBox`` for that
-iteration.  ``MultiFab::fabPtr`` function takes ``MFIter`` and returns
-a managed pointer that is subsequently captured by an extended C++
-lambda function produced by the ``AMREX_LAUNCH_DEVICE_LAMBDA`` macro.
-The launch macro usually takes three arguments.  In this example, the
-first argument is a ``Box`` specifying the whole region of the kernel.
-The second argument is a ``Box`` variable that specifies the region a
-thread works on.  Note that the second argument is the name of a local
-variable to the thread defined by the macro, not an existing variable.
-The third argument is a block of codes delimited by a pair of curly
-braces.  In that block, we call a GPU device function
-``plusone_cudacpp`` with captured variable ``fab``.  In CUDA, an
-extended lambda function can only capture by value, not reference.
-That's why we capture a pointer to ``FArrayBox``.
+:cpp:`TilingIfNotGPU()` that returns ``false`` in the case of GPU to
+turn off tiling so that GPU kernels have more works.  When tiling is
+off, :cpp:`tilebox()` returns the valid box of the :cpp:`FArrayBox`
+for that iteration.  :cpp:`MultiFab::fabPtr` function takes
+:cpp:`MFIter` and returns a managed pointer that is subsequently
+captured by an extended C++ lambda function produced by the
+``AMREX_LAUNCH_DEVICE_LAMBDA`` macro.  The launch macro usually takes
+three arguments.  In this example, the first argument is a :cpp:`Box`
+specifying the whole region of the kernel.  The second argument is a
+:cpp:`Box` variable that specifies the region a thread works on.  Note
+that the second argument is the name of a local variable to the thread
+defined by the macro, not an existing variable.  The third argument is
+a block of codes delimited by a pair of curly braces.  In that block,
+we call a GPU device function ``plusone_cudacpp`` with captured
+variable ``fab``.  In CUDA, an extended lambda function can only
+capture by value, not reference.  That's why we capture a pointer to
+:cpp:`FArrayBox`.
 
 We can also call CUDA Fortran device functions in the code block for
 the launch macro like below.
@@ -203,7 +204,7 @@ the launch macro like below.
         });
     }
 
-Because ``Box`` and ``FArrayBox`` are C++ classes not understood by
+Because :cpp:`Box` and :cpp:`FArrayBox` are C++ classes not understood by
 Fortran, we use some helper macros to pass them as Fortran data types
 (see :ref:`sec:basics:fortran`).
 
@@ -223,22 +224,22 @@ function we use OpenACC to offload work to GPU.
                     BL_TO_FORTRAN_ANYD(fab));
     }
 
-Note that here we use ``MultiFab::operator[]`` to get a reference to
-``FArrayBox`` as what we usually do for CPU codes, rather using
-``MultiFab::fabPtr`` to get a pointer for the CUDA examples we just
+Note that here we use :cpp:`MultiFab::operator[]` to get a reference
+to :cpp:`FArrayBox` as what we usually do for CPU codes, rather using
+:cpp:`MultiFab::fabPtr` to get a pointer for the CUDA examples we just
 showed above.  The reason for this is performance.  Function
 ``plusone_acc`` is a CPU host function.  The reference we get from
-``operator[]`` is a reference to a ``FArrayBox`` in host memory even
-though its data pointer inside the object points to unified memory,
-whereas the pointer we get from ``fatPtr`` is a manged memory pointer.
-Because ``BL_TO_FORTRAN_ANYD`` in this case expands to the CPU version
-of some ``FArrayBox`` member functions (unlike GPU functions in the
-CUDA Fortran example above), having the metadata (i.e., ``Box``, the
-number of components and the data pointer itself) can minimize
-unnecessary data movement.  Since the data pointer passed to
-``plusone_acc`` as Fortran array by the ``BL_TO_FORTRAN_AND`` macro
-points to unified memory, we can take advantage of that by declaring
-it as OpenACC ``deviceptr``.
+:cpp:`operator[]` is a reference to a :cpp:`FArrayBox` in host memory
+even though its data pointer inside the object points to unified
+memory, whereas the pointer we get from :cpp:`fatPtr` is a manged
+memory pointer.  Because ``BL_TO_FORTRAN_ANYD`` in this case expands
+to the CPU version of some :cpp:`FArrayBox` member functions (unlike
+GPU functions in the CUDA Fortran example above), having the metadata
+(i.e., :cpp:`Box`, the number of components and the data pointer
+itself) can minimize unnecessary data movement.  Since the data
+pointer passed to ``plusone_acc`` as Fortran array by the
+``BL_TO_FORTRAN_AND`` macro points to unified memory, we can take
+advantage of that by declaring it as OpenACC ``deviceptr``.
 
 See the source codes in ``Tutorials/GPU/Launch/`` for more details on
 the kernels.

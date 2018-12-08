@@ -1641,8 +1641,8 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
 .. _sec:basics:fortran:
 
-Calling Fortran or C
-====================
+Fortran, C or C++ Kernels
+=========================
 
 In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
@@ -1651,7 +1651,9 @@ the work region is specified by a :cpp:`Box`.  When tiling is used, the work
 region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
 :cpp:`FArrayBoxes`, even though it is supposed to work on a tile region of the
-arrays. To C++, these kernel functions are C functions, whose function
+arrays.  Fortran is often used for writing these kernels because of its
+native multi-dimensional array support.  To C++, these kernel
+functions are C functions, whose function 
 signatures are typically declared in a header file named ``*_f.H`` or
 ``*_F.H``. We recommend the users to follow this convention.  Examples of these
 function declarations are as follows.
@@ -1858,6 +1860,45 @@ details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
 these limitations, it is recommended to use the type check tool and
 report issues to us.
 
+Writing kernels in C++ is also an option.  AMReX provides
+multi-dimensional array type of syntax.  Below is an example.
+
+.. highlight:: c++
+
+::
+
+    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2,
+    {
+        const auto len = length(bx);
+        const auto lo  = lbound(bx);
+        const auto dst = fab1.view(lo);
+        const auto src = fab2.view(lo);
+
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k))
+                }
+            }
+        }
+    }
+
+    for (MFIter mfi(mf1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.tilebox();
+        f(box, mf1[mfi], mf2[mfi]);
+    }
+
+Here, we pass a :cpp:`Box` and two :cpp:`FArrayBoxes` to a C++ kernel
+function.  In the function, we use function :cpp:`amrex::length` to
+get the length of the loops and function :cpp:`amrex::lbound` to get
+the lower end of the :cpp:`Box`.  Both functions' return type is
+:cpp:`amrex::Dim3`, a Plain Old Data type containing three integers.
+Function :cpp:`FArrayBox::view` returns `FabView<FArrayBox>` that can
+be used to access the data.  Note that the view is shifted such that
+index 0 points to the lower end of the :cpp:`Box`.  To obtain the
+global index, we can compute with say ``i+lo.x``.  
 
 Ghost Cells
 ===========
