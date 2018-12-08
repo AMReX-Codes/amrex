@@ -194,9 +194,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
                 }
             }
         }
-        
-        RemoveDuplicates(local_neighbors);
-        RemoveDuplicates(neighbor_procs);
     }
     else
     {
@@ -214,6 +211,9 @@ NeighborParticleContainer<NStructReal, NStructInt>
             }
         }
     }
+
+    RemoveDuplicates(local_neighbors);
+    RemoveDuplicates(neighbor_procs);
 }
 
 template <int NStructReal, int NStructInt>
