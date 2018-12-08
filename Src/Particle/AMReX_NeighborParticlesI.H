@@ -213,7 +213,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
 
     RemoveDuplicates(local_neighbors);
-    RemoveDuplicates(neighbor_procs);
+    RemoveDuplicates(neighbor_procs);    
 }
 
 template <int NStructReal, int NStructInt>
@@ -238,12 +238,13 @@ NeighborParticleContainer<NStructReal, NStructInt>
 template <int NStructReal, int NStructInt>
 void 
 NeighborParticleContainer<NStructReal, NStructInt>
-::GetCommTagsBox(Vector<NeighborCommTag>& tags, const int src_lev, Box box)
+::GetCommTagsBox(Vector<NeighborCommTag>& tags, const int src_lev, const Box& in_box)
 {
     std::vector< std::pair<int, Box> > isects;
-    Box tbx;    
+    Box tbx;
 
     for (int lev = 0; lev < this->numLevels(); ++lev) {
+        Box box = in_box;
         const IntVect& ref_fac = computeRefFac(src_lev, lev); 
         if (ref_fac < IntVect::TheZeroVector())
         {
@@ -253,21 +254,24 @@ NeighborParticleContainer<NStructReal, NStructInt>
         {
             box.refine(ref_fac);
         }
+        box.grow(computeRefFac(0, lev)*num_neighbor_cells);
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
         const BoxArray& ba = this->ParticleBoxArray(lev);
 
         for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
         {
+            const Box& pbox = box + (*pit);
             bool first_only = false;
-            ba.intersections(box+(*pit), isects, first_only, num_neighbor_cells);
+            ba.intersections(pbox, isects, first_only, 0);
             for (const auto& isec : isects) {
-                for (IntVect iv = box.smallEnd(); iv <= box.bigEnd(); box.next(iv)) {
-                    const int grid = isec.first;
-                    const int proc = this->ParticleDistributionMap(lev)[grid];
-                    if (isec.second.contains(iv))
+                const int grid = isec.first;
+                const int proc = this->ParticleDistributionMap(lev)[grid];
+                for (IntVect iv = pbox.smallEnd(); iv <= pbox.bigEnd(); pbox.next(iv))
+                {
+                    if (ba[grid].contains(iv))
                     {
-                        int tile = getTileIndex(iv, isec.second,
+                        int tile = getTileIndex(iv, ba[grid],
                                                 this->do_tiling, this->tile_size, tbx);
                         tags.push_back(NeighborCommTag(proc, lev, grid, tile));
                     }
