@@ -109,7 +109,7 @@
 
 // Define macros for doing reductions.
 
-#if (defined(AMREX_USE_GPU) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#ifdef AMREX_USE_GPU
 #define AMREX_MFITER_REDUCE_SUM(var) mfi.add_reduce_value(var, amrex::MFIter::SUM)
 #define AMREX_MFITER_REDUCE_MIN(var) mfi.add_reduce_value(var, amrex::MFIter::MIN)
 #define AMREX_MFITER_REDUCE_MAX(var) mfi.add_reduce_value(var, amrex::MFIter::MAX)

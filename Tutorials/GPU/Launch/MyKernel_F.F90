@@ -1,0 +1,44 @@
+
+module my_kernel_module
+  use iso_c_binding
+  use amrex_fort_module, only : amrex_real
+  implicit none
+
+contains
+
+  AMREX_CUDA_FORT_DEVICE subroutine plusone_cudafort (lo, hi, dat, dlo, dhi) &
+       bind(c,name='plusone_cudafort')
+    integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    real(amrex_real), intent(inout) :: dat(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+
+    integer(c_int) :: i,j,k
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             dat(i,j,k) = dat(i,j,k) + 1.0_amrex_real
+          end do
+       end do
+    end do
+  end subroutine plusone_cudafort
+
+
+  subroutine plusone_acc (lo, hi, dat, dlo, dhi) &
+       bind(c,name='plusone_acc')
+    integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    real(amrex_real), intent(inout) :: dat(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+
+    integer(c_int) :: i,j,k
+
+    !$acc kernels deviceptr(dat)
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             dat(i,j,k) = dat(i,j,k) + 1.0_amrex_real
+          end do
+       end do
+    end do
+    !$acc end kernels
+  end subroutine plusone_acc
+
+end module my_kernel_module
