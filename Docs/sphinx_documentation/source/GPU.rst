@@ -141,6 +141,58 @@ by the arenas, you can call :cpp:`amrex::Arena::PrintUsage()`.
 
 .. ===================================================================
 
+.. _sec:gpu:classes:
+
+GPU Safe Classes and Functions
+==============================
+
+Some AMReX classes and functions can be used in device functions, but
+most do not.  Note that this is about using them on GPU, not about
+whether they use GPU.  For example, :cpp:`MultiFab::Copy` function
+cannot be called from GPU, but calling it from CPU will use GPU if
+AMReX is compiled with GPU support.  In this section, we discuss a
+few classes and functions that are useful for programming GPU.
+
+In the basic AMReX classes, :cpp:`Box`, :cpp:`IntVect` and
+:cpp:`IndexType` are classes for representing indices.  These classes
+and most of their member functions, including constructors and
+destructors, have both host and device versions.  They can be used in
+device code.  :cpp:`BaseFab<T>`, :cpp:`IArrayBox` and :cpp:`FArrayBox`
+have some GPU support.  They cannot be constructed in device code, but
+a pointer to them can be passed to GPU kernels from CPU code.  Many
+member functions of them (e.g., :cpp:`view`, :cpp:`dataPtr`,
+:cpp:`box`, :cpp:`nComp`, and :cpp:`setVal`) can be used in device
+code, if the pointer points to unified memory.  All :cpp:`BaseFab<T>`
+objects (including :cpp:`FArrayBox` derived from :cpp:`BaseFab`) in
+:cpp:`FabArray<FAB>` (including :cpp:`MultiFab`) are allocated in
+unified memory.  A :cpp:`BaseFab<T>` object created on the stack in
+CPU code cannot be used in GPU device code, because the object is in
+CPU memory.  However, a :cpp:`BaseFab` created with :cpp:`new` on the
+heap is GPU safe, because :cpp:`BaseFab` has its own overloaded
+`:cpp:`operator new` that allocates memory from :cpp:`The_Arena()`, a
+managed memory arena.  For example,
+
+.. highlight:: c++
+
+::
+
+    // We are in CPU code
+
+    FArrayBox cpu_fab(box,ncomp);
+    // FArrayBox* p_cpu_fab = &(cpu_fab) cannot be used in GPU device code!
+
+   FArrayBox* p_gpu_fab = new FArrayBox(box,ncomp);
+   // FArrayBox* p_gpu_fab can be used in GPU device code.
+
+:cpp:`Geometry` class is not a GPU safe class.  However, we often need
+to use geometry information such as cell size and physical coordinates
+in GPU kernels.  What we can do is extract its data into a GPU safe
+class :cpp:`GeometryData` with :cpp:`Geometry::data` function and pass
+it by value to GPU kernels.
+
+
+.. ===================================================================
+
 .. _sec:gpu:launch:
 
 Kernel Launch
@@ -241,6 +293,8 @@ pointer passed to ``plusone_acc`` as Fortran array by the
 ``BL_TO_FORTRAN_AND`` macro points to unified memory, we can take
 advantage of that by declaring it as OpenACC ``deviceptr``.
 
+.. summarize device vs. global and where kernels are launched
+
 See the source codes in ``Tutorials/GPU/Launch/`` for more details on
 the kernels.
 
@@ -254,10 +308,10 @@ the kernels.
 
 .. ===================================================================
 
-.. _sec:gpu:safeclasses:
+.. _sec:gpu:asyncfab:
 
-GPU Safe Classes
-================
+AsyncFab and AsyncArray
+=======================
 
 .. ===================================================================
 

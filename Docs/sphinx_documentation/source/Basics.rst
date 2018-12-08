@@ -283,7 +283,7 @@ IntVect
 -------
 
 :cpp:`IntVec` is a dimension-dependent class representing an integer vector in
-:cpp:`AMREX SPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
+:cpp:`AMREXSPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
 as follows,
 
 .. highlight:: c++
@@ -1641,8 +1641,8 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
 .. _sec:basics:fortran:
 
-Fortran, C or C++ Kernels
-=========================
+Fortran, C and C++ Kernels
+==========================
 
 In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
@@ -1895,10 +1895,16 @@ function.  In the function, we use function :cpp:`amrex::length` to
 get the length of the loops and function :cpp:`amrex::lbound` to get
 the lower end of the :cpp:`Box`.  Both functions' return type is
 :cpp:`amrex::Dim3`, a Plain Old Data type containing three integers.
-Function :cpp:`FArrayBox::view` returns `FabView<FArrayBox>` that can
-be used to access the data.  Note that the view is shifted such that
-index 0 points to the lower end of the :cpp:`Box`.  To obtain the
-global index, we can compute with say ``i+lo.x``.  
+Function :cpp:`FArrayBox::view` returns :cpp:`FabView<FArrayBox>` that
+can be used to access the data.  Note that the view is shifted such
+that index 0 points to the lower end of the :cpp:`Box`.  To obtain the
+global index, we can compute with say ``i+lo.x``.  We put
+``AMREX_PRAGMA_SIMD`` macro above the innermost loop to notify the
+compiler that it is safe to vectorize the loop.  The macro generates
+compiler dependent pragma, and their exact effect on the compiler is
+also compiler dependent.  It should be emphasized that using the
+``AMREX_PRAGMA_SIMD`` macro on loops that are not safe for
+vectorization is a mistake.
 
 Ghost Cells
 ===========
