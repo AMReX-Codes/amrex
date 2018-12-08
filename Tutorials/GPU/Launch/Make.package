@@ -1,0 +1,9 @@
+CEXE_sources += main.cpp
+
+CEXE_headers += MyKernel.H
+CEXE_sources += MyKernel.cpp
+
+CEXE_headers += MyKernel_F.H
+F90EXE_sources += MyKernel_F.F90
+
+

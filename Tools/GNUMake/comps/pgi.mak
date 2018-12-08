@@ -72,18 +72,6 @@ else ifeq ($(shell expr $(gcc_major_version) \>= 4), 1)
 endif
 CFLAGS   += -c99
 
-GENERIC_PGI_FLAGS =
-
-ifeq ($(USE_OMP),TRUE)
-  GENERIC_PGI_FLAGS += -mp=nonuma -Minfo=mp
-endif
-
-ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
-else
-  GENERIC_PGI_FLAGS += -noacc
-endif
-
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)
 

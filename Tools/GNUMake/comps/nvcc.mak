@@ -22,14 +22,10 @@ endif
 #
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using
-# OpenACC, then PGI is required.
+# OpenACC, we proabably need to use PGI.
 #
 
-ifeq ($(USE_ACC),TRUE)
-  NVCC_HOST_COMP ?= $(COMP)
-else
-  NVCC_HOST_COMP ?= $(AMREX_CCOMP)
-endif
+NVCC_HOST_COMP ?= $(AMREX_CCOMP)
 
 lowercase_nvcc_host_comp = $(shell echo $(NVCC_HOST_COMP) | tr A-Z a-z)
 
