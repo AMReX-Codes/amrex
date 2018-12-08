@@ -149,7 +149,7 @@ class NeighborParticleContainer
 
         friend std::ostream& operator<< (std::ostream& os, const NeighborCommTag& tag)
         {
-            os << tag.proc_id << " " << tag.grid_id << " " << tag.tile_id << " " << tag.level_id;
+            os << tag.proc_id << " " << tag.level_id << " " << tag.grid_id << " " << tag.tile_id;
             if (!os.good())
                 amrex::Error("operator<<(ostream&,Particle<NReal, NInt>&) failed");
             return os;
