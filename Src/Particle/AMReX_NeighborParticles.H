@@ -245,7 +245,7 @@ protected:
 
     void GetNeighborCommTags();
 
-    void GetCommTagsBox(Vector<NeighborCommTag>& tags, const int lev, Box box);
+    void GetCommTagsBox(Vector<NeighborCommTag>& tags, const int lev, const Box& in_box);
     
     void resizeContainers(const int lev);
     
