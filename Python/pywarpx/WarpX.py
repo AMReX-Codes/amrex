@@ -70,7 +70,7 @@ class WarpX(Bucket):
         argv = self.create_argv_list()
         with open(filename, 'w') as ff:
 
-            for k, v in kw.iteritems():
+            for k, v in kw.items():
                 ff.write('{0} = {1}\n'.format(k, v))
 
             for arg in argv:
