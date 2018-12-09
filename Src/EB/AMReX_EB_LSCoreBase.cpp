@@ -378,7 +378,8 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 // Constructs a box over which to look for EB facets. The Box size grows based
 // on the coarse-level level-set value. But it never grows larger than
 // max_eb_pad.
-Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail) {
+Box LSCoreBase::EBSearchBox(const Box & tilebox, const FArrayBox & ls_crse,
+                            const Geometry & geom_fine, bool & bail) {
 
     // Infinities don't work well with std::max, so just bail and construct the
     // maximum box.
@@ -414,7 +415,7 @@ Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fin
             bail = true;
         }
 
-    Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
     bx.grow(n_grow);
 
     return bx;
