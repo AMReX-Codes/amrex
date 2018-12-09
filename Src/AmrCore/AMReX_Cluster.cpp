@@ -444,7 +444,7 @@ Cluster::new_chop ()
        }
    }
 
-    return new Cluster(prt_it, nhi);
+    return this;
 }
 
 ClusterList::ClusterList ()
