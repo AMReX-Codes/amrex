@@ -31,7 +31,6 @@ void LSCore<F>::ClearLevel (int lev) {
     //ls_factory[lev].clear();
 }
 
-
 // Make a new level from scratch using provided BoxArray and
 // DistributionMapping. Only used during initialization. Overrides the pure
 // virtual function in AmrCore
@@ -42,6 +41,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     const int ncomp  = 1;
     const int nghost = 1;
 
+    Real strt_time = ParallelDescriptor::second();
 
     /****************************************************************************
      * Make sure EB geometry exists (build if necessary)                        *
@@ -60,23 +60,19 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         rebuild_eb[lev] = 0;
     }
 
-
     /****************************************************************************
      * Define Basic data MultiFabs                                              *
      ***************************************************************************/
 
     BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
 
-
     // Define MultiFab data (will store final level set for this level)
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
-
 
     // At this point, we consider _everywhere_ as valid. This is maintained for
     // legacy reasons. TODO: There might be a better way of doing things.
     level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
     level_set_valid[lev].setVal(1);
-
 
     /****************************************************************************
      * Construct LSFactory (does the actual level-set building on lev 0)        *
@@ -87,14 +83,12 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     int levelset_pad    = nghost;
     int levelset_eb_pad = eb_pad;
 
-
     // Basic search radius
     for (int i = lev - 1; i >= 0; i--){
         IntVect rr = refRatio(i);
         levelset_eb_pad *= std::max({AMREX_D_DECL(rr[0], rr[1], rr[2])});
     }
     if (levelset_eb_pad > max_eb_pad) levelset_eb_pad = max_eb_pad;
-
 
     ls_factory[lev] = std::unique_ptr<LSFactory>(
         new LSFactory(lev, 1, 1, levelset_pad, levelset_eb_pad, ba, geom[lev], dm)
@@ -103,12 +97,11 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     GShopLSFactory<F> ls_gshop(m_gshop, * ls_factory[lev]);
     std::unique_ptr<MultiFab> mf_impfunc = ls_gshop.fill_impfunc();
 
-
     /****************************************************************************
      * Fill the actual level-set MultiFabs (one for each level)                 *
      ***************************************************************************/
 
-    if (lev == 0){
+    if (lev == 0) {
 
         //_______________________________________________________________________
         // Compute level 0 using LSFactory
@@ -117,10 +110,11 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
                                       {eb_pad, eb_pad, eb_pad}, EBSupport::full);
 
-        ls_factory[lev]->intersection_ebf(eb_factory, * mf_impfunc);
-
         int ng = ls_factory[lev]->get_ls_pad();
+
+        ls_factory[lev]->intersection_ebf(eb_factory, * mf_impfunc);
         level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
+
     } else {
 
         //_______________________________________________________________________
@@ -154,9 +148,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                   bool bail      = false;
                   Box eb_search  = EBSearchBox(ls_tile, geom[lev], bail);
 
-
             if (bail) continue;
-
 
             int n_facets = 0;
             const auto & flag = flags[mfi];
@@ -203,4 +195,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     }
 
     level_set[lev].FillBoundary(geom[lev].periodicity());
+
+    Real end_time = ParallelDescriptor::second() - strt_time;
+    amrex::Print() << "** Time to build the level set at level " << lev << " " << end_time << std::endl;
 }
