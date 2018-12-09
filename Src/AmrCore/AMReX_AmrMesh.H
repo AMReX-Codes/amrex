@@ -181,11 +181,23 @@ protected:
     bool refine_grid_layout; // chop up grids to have the number of grids no less the number of procs
     bool check_input;
 
+    bool iterate_on_new_grids;
+    bool use_new_chop;
+
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
     void checkInput();
+
+     void SetIterateToFalse ()
+     {
+         iterate_on_new_grids = false;
+     }
+     void SetUseNewChop ()
+     {
+         use_new_chop = true;
+     }
 
 private:
   void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
