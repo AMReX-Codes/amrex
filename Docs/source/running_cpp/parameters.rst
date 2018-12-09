@@ -378,9 +378,8 @@ Numerics and algorithms
 
     .. warning::
 
-        The vectorized versions do not run on GPU. Use 
-		``algo.current_deposition=1`` or ``3`` when running
-		on GPU.
+        On GPU, use ``algo.current_deposition=0`` for Esirkepov
+	or ``3`` for direct deposition.
 
 * ``algo.charge_deposition`` (`integer`)
     The algorithm for the charge density deposition:
