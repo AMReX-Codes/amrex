@@ -443,6 +443,8 @@ Cluster::new_chop ()
           invalid_dir = dir;
        }
    }
+
+    return new Cluster(prt_it, nhi);
 }
 
 ClusterList::ClusterList ()
