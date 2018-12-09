@@ -202,7 +202,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                                                    const CutFab & bcent_tile,
                                                    const EBCellFlagFab & flag,
                                                    const RealVect & dx_eb,
-                                                   const Box & eb_search) 
+                                                   const Box & eb_search)
 {
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
@@ -600,7 +600,10 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(* ls_grid, true); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(* ls_grid, IntVect{AMREX_D_DECL(eb_grid_pad, eb_grid_pad,eb_grid_pad)});
+         mfi.isValid();
+         ++mfi)
+    {
         //_______________________________________________________________________
         // Fill grown tile box => fill ghost cells as well
         Box tile_box = mfi.growntilebox();

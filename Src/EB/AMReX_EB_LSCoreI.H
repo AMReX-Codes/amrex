@@ -112,7 +112,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 
         int ng = ls_factory[lev]->get_ls_pad();
 
-        ls_factory[lev]->intersection_ebf(eb_factory, * mf_impfunc);
+        ls_factory[lev]->fill_ebf_loc(eb_factory, * mf_impfunc);
         level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
 
     } else {
@@ -126,8 +126,6 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                       {max_eb_pad + 1, max_eb_pad + 1, max_eb_pad + 1},
                                       EBSupport::full);
 
-        // // Area fraction data
-        // std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
         // EB boundary-centre data
         const MultiCutFab & bndrycent = eb_factory.getBndryCent();
         const auto & flags = eb_factory.getMultiEBCellFlagFab();
@@ -143,10 +141,16 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(level_set[lev], true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(level_set[lev], IntVect{AMREX_D_DECL(levelset_eb_pad,
+                                                             levelset_eb_pad,
+                                                             levelset_eb_pad)});
+             mfi.isValid();
+             ++mfi)
+        {
             const auto & ls_tile = level_set[lev][mfi];
                   bool bail      = false;
-                  Box eb_search  = EBSearchBox(ls_tile, geom[lev], bail);
+                  Box tile_box   = mfi.tilebox();
+                  Box eb_search  = EBSearchBox(tile_box, ls_tile, geom[lev], bail);
 
             if (bail) continue;
 
@@ -170,9 +174,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                  BL_TO_FORTRAN_3D(norm_tile),
                                  BL_TO_FORTRAN_3D(bcent_tile),
                                  facet_list.dataPtr(), & facet_list_size,
-                                 geom[lev].CellSize()                               );
-
-                Box tile_box   = mfi.tilebox();
+                                 geom[lev].CellSize()                      );
 
                       auto & ls_tile_w = level_set[lev][mfi];
                       auto & v_tile    = eb_valid[mfi];
@@ -197,5 +199,6 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
     level_set[lev].FillBoundary(geom[lev].periodicity());
 
     Real end_time = ParallelDescriptor::second() - strt_time;
-    amrex::Print() << "** Time to build the level set at level " << lev << " " << end_time << std::endl;
+    amrex::Print() << "** Time to build the level set at level " << lev
+                   << " " << end_time << std::endl;
 }

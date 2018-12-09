@@ -118,7 +118,8 @@ protected:
 
     // Construct a box over which to search for eb facets using the coarser
     // level to inform how many ghost cells to fill
-    Box EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail);
+    Box EBSearchBox(const Box & box, const FArrayBox & ls_crse,
+                    const Geometry & geom_fine, bool & bail);
 
     // Get plotfile name
     std::string PlotFileName (int lev) const;
