@@ -444,6 +444,7 @@ Cluster::new_chop ()
        }
    }
 
+    amrex::Abort("Should never reach this point in Cluster::new_chop()");
     return this;
 }
 
