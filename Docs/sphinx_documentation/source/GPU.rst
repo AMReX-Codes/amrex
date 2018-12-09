@@ -190,7 +190,6 @@ in GPU kernels.  What we can do is extract its data into a GPU safe
 class :cpp:`GeometryData` with :cpp:`Geometry::data` function and pass
 it by value to GPU kernels.
 
-
 .. ===================================================================
 
 .. _sec:gpu:launch:
@@ -401,7 +400,16 @@ and how kernels are launched.
 Assertion and Error Check
 =========================
 
-.. AMREX_GPU_SAFE_CALL(), AMREX_GPU_ERROR_CHECK();
+To help debugging, we often use :cpp:`amrex::Assert` and
+:cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
+GPU kernels.  In CPU code, we can also call
+:cpp:`AMREX_GPU_ERROR_CHECK()` to check if there are any GPU errors at
+that point.  Because of asynchronicity, even if GPU kernels launched
+before that point contain a bug that will result in a CUDA error, the
+error may not be encountered when :cpp:`AMREX_GPU_ERROR_CHECK()` is
+called.  We can use :cpp:`Gpu::Device::synchronize()` or
+:cpp:`Gpu::Device::streamSynchroniz()` to synchronize the device or
+the CUDA stream, respectively.
 
 .. ===================================================================
 
@@ -410,26 +418,42 @@ Assertion and Error Check
 Reduction
 =========
 
-.. ===================================================================
-
-.. _sec:gpu:particle:
-
-Particle
-========
-
-.. ===================================================================
-
-.. _sec::gpu:mpi:
-
-CUDA Aware MPI
-==============
+AMReX provides some functions for performing reduction with GPU (e.g.,
+:cpp:`MultiFab::sum`, :cpp:`MultiFab::`max`, etc.).   Function
+templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
+:cpp:`amrex::ReduceMax` can be used to implement your own reduction
+functions for :cpp:`FabArray`\ s.
 
 .. ===================================================================
 
-.. .. .. _sec:gpu:limits:
+.. .. _sec:gpu:particle:
 
-.. Pitfalls and Limitations
-.. ========================
+.. Particle
+.. ========
 
-.. At most one gpu per mpi rank.  OpenMP, AMR development are underway
-.. cmake and build as library
+.. ===================================================================
+
+.. _sec:gpu:limits:
+
+Limitations
+===========
+
+GPU support in AMReX is still under development.  There are some know
+limitations.
+
+- By default, AMReX assumes the MPI library used is GPU aware.  The
+  communication buffers given to MPI functions are allocated in device
+  memory.
+
+- OpenMP is currently not compatible with building AMReX
+  with ``USE_CUDA=TRUE``.
+
+- CMake is not yet supported for building AMReX GPU support.
+
+- Many multi-level functions in AMReX have not been ported to GPU.
+
+- Linear solvers have not been ported to GPU.
+
+- Embedded boundary capability has not been ported to GPU.
+
+- Fortran interface of AMReX does not currently have GPU support.

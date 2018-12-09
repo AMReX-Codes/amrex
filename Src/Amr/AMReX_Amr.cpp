@@ -2016,8 +2016,14 @@ Amr::timeStep (int  level,
         }
 #ifdef USE_PERILLA
 	if(cnt){
+	    Perilla::clearTagMap();
+	    Perilla::clearMyTagMap();
+	    Perilla::genTags=true;
+	    Perilla::uTags=0;
+	    Perilla::pTagCnt.clear();
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
+            Perilla::communicateTags();
  	    Perilla::updateMetadata_done=1;
 	}
         delete metadataChanged;
@@ -2231,6 +2237,13 @@ Amr::coarseTimeStep (Real stop_time)
                     break;
 		}
             }else{
+		Perilla::syncProcesses();
+        	for(int g=0; g<flattenedGraphArray.size(); g++)
+        	{
+		    //cancel messages preposted previously
+		    flattenedGraphArray[g]->graphTeardown();
+		}
+		Perilla::syncProcesses();
 	        Perilla::updateMetadata_noticed=1;
 	        while(!Perilla::updateMetadata_done){
 		

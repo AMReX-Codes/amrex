@@ -26,6 +26,8 @@ namespace amrex{
 	static std::map<int,std::map<int,int>> pTagCnt;
 	static std::map<int,std::map<int,std::map<int,std::map<int,std::map<int,int>>>>> tagMap;
 	static std::map<int,std::map<int,std::map<int,std::map<int,int>>>> myTagMap;
+        static void clearTagMap();
+        static void clearMyTagMap();
 	static void communicateTags();
         static void registerId(int tid);
 	static int tid();
@@ -34,6 +36,7 @@ namespace amrex{
         static volatile int updateMetadata_noticed;
         static volatile int updateMetadata_done;
 	static Barrier * globalBarrier;
+	static void syncProcesses();
 	static void multifabBuildFabCon(RegionGraph* graph, const MultiFab& mf, const Periodicity& period);
 	static void serviceLocalRequests(RegionGraph *graph, int tg);
 	static void serviceRemoteRequests(RegionGraph *graph, int graphID, int nGraphs);
