@@ -190,7 +190,6 @@ in GPU kernels.  What we can do is extract its data into a GPU safe
 class :cpp:`GeometryData` with :cpp:`Geometry::data` function and pass
 it by value to GPU kernels.
 
-
 .. ===================================================================
 
 .. _sec:gpu:launch:
@@ -401,7 +400,16 @@ and how kernels are launched.
 Assertion and Error Check
 =========================
 
-.. AMREX_GPU_SAFE_CALL(), AMREX_GPU_ERROR_CHECK();
+To help debugging, we often use :cpp:`amrex::Assert` and
+:cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
+GPU kernels.  In CPU code, we can also call
+:cpp:`AMREX_GPU_ERROR_CHECK()` to check if there are any GPU errors at
+that point.  Because of asynchronicity, even if GPU kernels launched
+before that point contain a bug that will result in a CUDA error, the
+error may not be encountered when :cpp:`AMREX_GPU_ERROR_CHECK()` is
+called.  We can use :cpp:`Gpu::Device::synchronize()` or
+:cpp:`Gpu::Device::streamSynchroniz()` to synchronize the device or
+the CUDA stream, respectively.
 
 .. ===================================================================
 
@@ -410,12 +418,18 @@ Assertion and Error Check
 Reduction
 =========
 
+AMReX provides some functions for performing reduction with GPU (e.g.,
+:cpp:`MultiFab::sum`, :cpp:`MultiFab::`max`, etc.).   Function
+templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
+:cpp:`amrex::ReduceMax` can be used to implement your own reduction
+functions for :cpp:`FabArray`\ s.
+
 .. ===================================================================
 
-.. _sec:gpu:particle:
+.. .. _sec:gpu:particle:
 
-Particle
-========
+.. Particle
+.. ========
 
 .. ===================================================================
 
