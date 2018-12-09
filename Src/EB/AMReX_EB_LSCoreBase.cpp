@@ -94,7 +94,6 @@ void LSCoreBase::InitLSCoreBase() {
 
 }
 
-
 void LSCoreBase::LoadTagLevels () {
     // read in an array of "phierr", which is the tagging threshold in this
     // example, we tag values of "phi" which are greater than phierr for that
@@ -107,7 +106,6 @@ void LSCoreBase::LoadTagLevels () {
     }
 }
 
-
 void LSCoreBase::SetTagLevels (const Vector<Real> & m_phierr) {
     phierr = m_phierr;
 }
@@ -118,6 +116,15 @@ void LSCoreBase::Init () {
     if (restart_chkfile == "") {
         // start simulation from the beginning
         const Real time = 0.0;
+
+        // This tells the AmrMesh class not to iterate when creating the 
+        //    initial grid hierarchy
+        SetIterateToFalse();
+
+        // This tells the Cluster routine to use the new chopping
+        // routine which rejects cuts if they don't improve the efficiency
+        SetUseNewChop();
+
         InitFromScratch(time);
         AverageDown();
 
