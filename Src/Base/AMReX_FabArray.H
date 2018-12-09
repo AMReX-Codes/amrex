@@ -237,8 +237,6 @@ public:
 #endif
     }
 
-    Box getDomain () const { return m_factory->getDomain(); }
-
     /**
     * \brief Return true if the FabArray is well-defined.  That is,
     * if FABs are allocated for each Box in the BoxArray and the
