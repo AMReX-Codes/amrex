@@ -50,8 +50,8 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    Chapter8
    Chapter9
    Chapter10
-   Chapter11
    ChapterGPU
+   Chapter11
    Chapter12
    Chapter13
    Chapter14
