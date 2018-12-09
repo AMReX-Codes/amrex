@@ -39,6 +39,14 @@ int Perilla::tid(){//this function can be called after all threads already regis
     return tidTable[pthread_self()];
 }
 
+void Perilla::clearTagMap(){
+    Perilla::tagMap.clear();
+}
+
+void Perilla::clearMyTagMap(){
+    Perilla::myTagMap.clear();
+}
+
 void Perilla::communicateTags()
 {
     int myProc = ParallelDescriptor::MyProc();
@@ -73,7 +81,7 @@ void Perilla::communicateTags()
     {
 	if(p!=myProc)
 	{
-	    MPI_Irecv(&rTagCnt[p*2], 2, MPI_INT, p , 0, MPI_COMM_WORLD, &srrequest[p]);
+	    MPI_Irecv(&rTagCnt[p*2], 2, MPI_INT, p , 1000, MPI_COMM_WORLD, &srrequest[p]);
 	}
     }
 
@@ -96,7 +104,7 @@ void Perilla::communicateTags()
 	sTagCnt[it1->first*2] = tac;
 	sTagCnt[it1->first*2+1] = ng;
 	tags[it1->first] = new int[sTagCnt[it1->first*2]];
-	MPI_Isend(&sTagCnt[it1->first*2], 2, MPI_INT, it1->first, 0, MPI_COMM_WORLD, &ssrequest[it1->first]);
+	MPI_Isend(&sTagCnt[it1->first*2], 2, MPI_INT, it1->first, 1000, MPI_COMM_WORLD, &ssrequest[it1->first]);
 	proc_communicated[it1->first]=true;
     }
 
@@ -106,7 +114,7 @@ void Perilla::communicateTags()
 	    {
 		sTagCnt[p*2] = 0;
 		sTagCnt[p*2+1] = 0;
-		MPI_Isend(&sTagCnt[p*2], 2, MPI_INT, p, 0, MPI_COMM_WORLD, &ssrequest[p]);
+		MPI_Isend(&sTagCnt[p*2], 2, MPI_INT, p, 1000, MPI_COMM_WORLD, &ssrequest[p]);
 	    }
 
 
@@ -130,9 +138,8 @@ void Perilla::communicateTags()
 		    }
 	    BL_ASSERT(pTagCnt[it1->first][it2->first] == gtagc);
 	}
-	MPI_Isend(tags[it1->first], tac, MPI_INT, it1->first, 1, MPI_COMM_WORLD, &tsrequest[it1->first]);
+	MPI_Isend(tags[it1->first], tac, MPI_INT, it1->first, 1001, MPI_COMM_WORLD, &tsrequest[it1->first]);
     }
-
 
     MPI_Status status;
     for(int p=0; p<nPs; p++)
@@ -143,10 +150,11 @@ void Perilla::communicateTags()
 	    if(rTagCnt[p*2] > 0)
 	    {
 		rtags[p] = new int[rTagCnt[p*2]];
-		MPI_Irecv(rtags[p], rTagCnt[p*2], MPI_INT, p , 1, MPI_COMM_WORLD, &trrequest[p]);
+		MPI_Irecv(rtags[p], rTagCnt[p*2], MPI_INT, p , 1001, MPI_COMM_WORLD, &trrequest[p]);
 	    }
 	}
     }
+
 
     //      //MPI_Irecv(size) Wait
 
@@ -239,6 +247,10 @@ int Perilla::tagGen(int src, int dest, int channelID, int nFabs, int nChannels)
      */
 }
 #endif
+
+void Perilla::syncProcesses(){
+    MPI_Barrier(MPI_COMM_WORLD);
+}
 
 
 void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Periodicity& period)
@@ -1799,7 +1811,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph* > graphAr
 
     //nGraphs = graphArray.size();
     //if(tg==0)
-    //for(int g=0; g<nGraphs; g++)
+    //for(int g=0; g<graphArray.size(); g++)
     //{
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-1");
 	//graphArray[g]->graphTeardown(tg);
