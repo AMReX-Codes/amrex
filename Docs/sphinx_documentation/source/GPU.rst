@@ -293,25 +293,106 @@ pointer passed to ``plusone_acc`` as Fortran array by the
 ``BL_TO_FORTRAN_AND`` macro points to unified memory, we can take
 advantage of that by declaring it as OpenACC ``deviceptr``.
 
-.. summarize device vs. global and where kernels are launched
+In the three examples above, we have shown how to launch GPU kernels.
+In the CUDA C++ and Fortran cases, the kernel is launched with a C++
+template global function of AMReX (hidden in the launch macro),
+whereas for the OpenACC example, it is done with pragma in Fortran.
+More details on the examples can be found in the source codes at
+``Tutorials/GPU/Launch/``.  We also refer the readers to Chapter
+:ref:`Chap:Basics` for information about basic AMReX classes.
 
-See the source codes in ``Tutorials/GPU/Launch/`` for more details on
-the kernels.
+CUDA supports multiple streams and kernels.  For each iteration of
+:cpp:`MFIter`, AMReX uses a different stream (up to 16 streams in
+total) for the kernels in that iteration.  The kernels in the same
+stream are executed sequentially, but kernels from different streams
+may be run in parallel.  Note that, to CPU, CUDA kernel calls are
+asynchronous and they return before the kernel is finished on GPU.  So
+:cpp:`MFIter` finishes its iterations on CPU before GPU finishes its
+work.  To guarantee data coherence, there is an implicit CUDA device
+synchronization in the destructor of :cpp:`MFIter`.
 
-.. streams and mfiter
+.. _sec:gpu:example:
 
-.. inLaunchRegion
+An Example of Migrating to GPU
+==============================
 
-.. macro, cuda fortran and openacc
+The nature of GPU programming poses difficulty for a common pattern
+like below.
 
-.. refer back to Basic for calling C++ functions on FArrayBox
+.. highlight:: c++
 
-.. ===================================================================
+::
 
-.. _sec:gpu:asyncfab:
+   // Given MultiFab uin and uout
+   FArrayBox q;
+   for (MFIter mfi(uin); mfi.isValid(); ++mfi)
+   {
+       const Box& vbx = mfi.validbox();
+       const Box& gbx = amrex::grow(vbx,1);
+       q.resize(gbx);
 
-AsyncFab and AsyncArray
-=======================
+       // Do some work with uin[mfi] as input and q as output.
+       // The output region is gbx;
+       f1(gbx, q, uin[mfi]);
+
+       // Then do more work with q as input and uout[mfi] as output.
+       // The output region is vbx.
+       f2(vbx, uout[mfi], q);
+   }
+
+There are several issues of migrating the code above to GPU needed to
+been addressed.  Because functions ``f1`` and ``f2`` have different
+work regions and there are data dependency between the two, it is
+difficult to put them into a single GPU kernel.  So we will launch two
+separate kernels.
+
+As we have discussed in Section :ref:`sec:gpu:classes`, all
+:cpp:`FArrayBox`\ es in the two :cpp:`MultiFab`\ s are in unified
+memory.  But :cpp:`FArrayBox q` is in host memory.  Changing it to
+
+.. highlight:: c++
+
+::
+
+    FArrayBox* q = new FArrayBox;
+
+does not solve the problem completely because GPU kernel calls are
+asynchronous from CPU's point of view.  Therefore there is a race
+condition that GPU kernels in different iterations of :cpp:`MFIter`
+will compete the access to ``q``.  Moving the line into the body of
+:cpp:`MFIter` loop will make ``q`` a variable local to each iteration,
+but it has a new issue.  When do we delete :cpp:`q`?  To CPU, the
+resource of :cpp:`q` should be freed at the end of the scope otherwise
+there will be a memory leak.  But at the end of the CPU scope, GPU
+kernels might still need it.
+
+One way to fix this is put the temporary :cpp:`FArrayBox` objects in a
+:cpp:`MultiFab`.  Another way is to use :cpp:`Gpu:AsyncFab` designed
+for this kind of situation.  In the code below, we show how it is used
+and how kernels are launched.
+
+.. highlight:: c++
+
+::
+
+   for (MFIter mfi(uin); mfi.isValid(); ++mfi)
+   {
+       const Box& vbx = mfi.validbox();
+       const Box& gbx = amrex::grow(vbx,1);
+       Gpu::AsyncFab q(gbx);
+       FArrayBox const* uinfab  = uin.fabPtr();
+       FArrayBox      * uoutfab = uout.fabPtr();
+
+       AMREX_LAUNCH_DEVICE_LAMBDA ( gbx, tbx,
+       {
+           f1(tbx, q.fab(), *uinfab);
+       };
+
+       AMrEX_LAMBDA_DEVICE_LAMBDA ( vbx, tbx,
+       {
+           f2(tbx, *uoutfab, q.fab());
+       });
+   }
 
 .. ===================================================================
 
@@ -345,10 +426,10 @@ CUDA Aware MPI
 
 .. ===================================================================
 
-.. _sec:gpu:limits:
+.. .. .. _sec:gpu:limits:
 
-Pitfalls and Limitations
-========================
+.. Pitfalls and Limitations
+.. ========================
 
 .. At most one gpu per mpi rank.  OpenMP, AMR development are underway
 .. cmake and build as library
