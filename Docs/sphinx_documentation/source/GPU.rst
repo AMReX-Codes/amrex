@@ -433,17 +433,27 @@ functions for :cpp:`FabArray`\ s.
 
 .. ===================================================================
 
-.. _sec::gpu:mpi:
+.. _sec:gpu:limits:
 
-CUDA Aware MPI
-==============
+Limitations
+===========
 
-.. ===================================================================
+GPU support in AMReX is still under development.  There are some know
+limitations.
 
-.. .. .. _sec:gpu:limits:
+- By default, AMReX assumes the MPI library used is GPU aware.  The
+  communication buffers given to MPI functions are allocated in device
+  memory.
 
-.. Pitfalls and Limitations
-.. ========================
+- OpenMP is currently not compatible with building AMReX
+  with ``USE_CUDA=TRUE``.
 
-.. At most one gpu per mpi rank.  OpenMP, AMR development are underway
-.. cmake and build as library
+- CMake is not yet supported for building AMReX GPU support.
+
+- Many multi-level functions in AMReX have not been ported to GPU.
+
+- Linear solvers have not been ported to GPU.
+
+- Embedded boundary capability has not been ported to GPU.
+
+- Fortran interface of AMReX does not currently have GPU support.
