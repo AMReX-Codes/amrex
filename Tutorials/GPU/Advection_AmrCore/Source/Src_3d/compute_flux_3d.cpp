@@ -290,9 +290,9 @@ void combine_flux_x(Box const& bx,
             for (int i = 0; i < len.x; ++i) {
                 px(i,j,k) = ( (vx(i,j,k) < 0) ? 
                               px(i,j,k) - 0.5*dtdx[1] * ( 0.5*(vy(i  ,j+1,k  ) + vy(i  ,j,k)) * (pyz(i  ,j+1,k  )-pyz(i  ,j,k)))
-                            - px(i,j,k) - 0.5*dtdx[2] * ( 0.5*(vz(i  ,j  ,k+1) + vz(i  ,j,k)) * (pzy(i  ,j  ,k+1)-pzy(i  ,j,k))) :
+                                        - 0.5*dtdx[2] * ( 0.5*(vz(i  ,j  ,k+1) + vz(i  ,j,k)) * (pzy(i  ,j  ,k+1)-pzy(i  ,j,k))) :
                               px(i,j,k) - 0.5*dtdx[1] * ( 0.5*(vy(i-1,j+1,k  ) + vy(i-1,j,k)) * (pyz(i-1,j+1,k  )-pyz(i-1,j,k)))
-                            - px(i,j,k) - 0.5*dtdx[2] * ( 0.5*(vz(i-1,j  ,k+1) + vz(i-1,j,k)) * (pzy(i-1,j  ,k+1)-pzy(i-1,j,k))) );
+                                        - 0.5*dtdx[2] * ( 0.5*(vz(i-1,j  ,k+1) + vz(i-1,j,k)) * (pzy(i-1,j  ,k+1)-pzy(i-1,j,k))) );
 
                 fx(i,j,k) = vx(i,j,k)*px(i,j,k);
             }
@@ -326,9 +326,9 @@ void combine_flux_y(Box const& bx,
             for (int i = 0; i < len.x; ++i) {
                 py(i,j,k) = ( (vy(i,j,k) < 0) ? 
                               py(i,j,k) - 0.5*dtdx[0] * ( 0.5*(vx(i+1,j  ,k  ) + vx(i,j  ,k)) * (pxz(i+1,j  ,k  )-pxz(i,j  ,k)))
-                            - py(i,j,k) - 0.5*dtdx[2] * ( 0.5*(vz(i,  j  ,k+1) + vz(i,j  ,k)) * (pzx(i,  j  ,k+1)-pzx(i,j  ,k))) :
+                                        - 0.5*dtdx[2] * ( 0.5*(vz(i,  j  ,k+1) + vz(i,j  ,k)) * (pzx(i,  j  ,k+1)-pzx(i,j  ,k))) :
                               py(i,j,k) - 0.5*dtdx[0] * ( 0.5*(vx(i+1,j-1,k  ) + vx(i,j-1,k)) * (pxz(i+1,j-1,k  )-pxz(i,j-1,k)))
-                            - py(i,j,k) - 0.5*dtdx[2] * ( 0.5*(vz(i  ,j-1,k+1) + vz(i,j-1,k)) * (pzx(i  ,j-1,k+1)-pzx(i,j-1,k))) );
+                                        - 0.5*dtdx[2] * ( 0.5*(vz(i  ,j-1,k+1) + vz(i,j-1,k)) * (pzx(i  ,j-1,k+1)-pzx(i,j-1,k))) );
 
                 fy(i,j,k) = vy(i,j,k)*py(i,j,k);
             }
@@ -363,9 +363,9 @@ void combine_flux_z(Box const& bx,
             for (int i = 0; i < len.x; ++i) {
                 pz(i,j,k) = ( (vz(i,j,k) < 0) ? 
                               pz(i,j,k) - 0.5*dtdx[0] * ( 0.5*(vx(i+1,j  ,k  ) + vx(i,j,k  )) * (pxy(i+1,j  ,k  )-pxy(i,j,k  )))
-                            - pz(i,j,k) - 0.5*dtdx[1] * ( 0.5*(vy(i,  j+1,k  ) + vy(i,j,k  )) * (pyx(i,  j+1,k  )-pyx(i,j,k  ))) :
+                                        - 0.5*dtdx[1] * ( 0.5*(vy(i,  j+1,k  ) + vy(i,j,k  )) * (pyx(i,  j+1,k  )-pyx(i,j,k  ))) :
                               pz(i,j,k) - 0.5*dtdx[0] * ( 0.5*(vx(i+1,j  ,k-1) + vx(i,j,k-1)) * (pxy(i+1,j  ,k-1)-pxy(i,j,k-1)))
-                            - pz(i,j,k) - 0.5*dtdx[1] * ( 0.5*(vy(i  ,j+1,k-1) + vy(i,j,k-1)) * (pyx(i  ,j+1,k-1)-pyx(i,j,k-1))) );
+                                        - 0.5*dtdx[1] * ( 0.5*(vy(i  ,j+1,k-1) + vy(i,j,k-1)) * (pyx(i  ,j+1,k-1)-pyx(i,j,k-1))) );
 
                 fz(i,j,k) = vz(i,j,k)*pz(i,j,k);
             }
