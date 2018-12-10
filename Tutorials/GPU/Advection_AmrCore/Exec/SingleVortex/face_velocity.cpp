@@ -85,7 +85,7 @@ void get_face_velocity_z(Box const& bx,
                          const FArrayBox& psifab,
                          GeometryData const& geom)
 {
-    // In this case, just set z velocity to 1.
+    // Set z velocity to 1.
     zvelfab.setVal(1.0,bx,0);
 }
 
