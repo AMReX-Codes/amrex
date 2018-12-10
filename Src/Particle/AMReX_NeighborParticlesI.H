@@ -479,13 +479,14 @@ NeighborParticleContainer<NStructReal, NStructInt>
         int data_size = np * cdata_size;
         Vector<char>& buffer = send_data[kv.first.proc_id];
         size_t old_size = buffer.size();
-        size_t new_size = buffer.size() + 2*sizeof(int) + sizeof(int) + data_size;
+        size_t new_size = buffer.size() + 4*sizeof(int) + data_size;
         buffer.resize(new_size);
         char* dst = &buffer[old_size];
-        std::memcpy(dst, &(kv.first.grid_id), sizeof(int)); dst += sizeof(int);
-        std::memcpy(dst, &(kv.first.tile_id), sizeof(int)); dst += sizeof(int);
-        std::memcpy(dst, &data_size,          sizeof(int)); dst += sizeof(int);        
-        size_t buffer_offset = old_size + 2*sizeof(int) + sizeof(int);
+        std::memcpy(dst, &(kv.first.level_id), sizeof(int)); dst += sizeof(int);
+        std::memcpy(dst, &(kv.first.grid_id ), sizeof(int)); dst += sizeof(int);
+        std::memcpy(dst, &(kv.first.tile_id ), sizeof(int)); dst += sizeof(int);
+        std::memcpy(dst, &data_size,           sizeof(int)); dst += sizeof(int);        
+        size_t buffer_offset = old_size + 4*sizeof(int);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -830,17 +831,16 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
         ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
     }
 
-    const int lev = 0;
-    
     // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = &recvdata[offset];
-            int num_tiles, gid, tid, size, np;
+            int num_tiles, lev, gid, tid, size, np;
             std::memcpy(&num_tiles, buffer, sizeof(int)); buffer += sizeof(int);
             for (int j = 0; j < num_tiles; ++j) {
+                std::memcpy(&lev,  buffer, sizeof(int)); buffer += sizeof(int);
                 std::memcpy(&gid,  buffer, sizeof(int)); buffer += sizeof(int);
                 std::memcpy(&tid,  buffer, sizeof(int)); buffer += sizeof(int);
                 std::memcpy(&size, buffer, sizeof(int)); buffer += sizeof(int);
@@ -848,6 +848,8 @@ fillNeighborsMPI(bool reuse_rcv_counts) {
                 if (size == 0) continue;
 
                 np = size / cdata_size;
+
+                BL_ASSERT(size % cdata_size == 0);
                 
                 PairIndex dst_index(gid, tid);
                 size_t old_size = neighbors[lev][dst_index].size();
