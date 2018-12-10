@@ -396,7 +396,7 @@ Box
 
 A ``Box`` is an abstraction for defining discrete regions of
 :cpp:`AMREX_SPACEDIM`-dimensional indexing space. Boxes have an
-:cpp:`IndexType` and two :cpp:`IntVects` representing the lower and upper
+:cpp:`IndexType` and two :cpp:`IntVect`\ s representing the lower and upper
 corners. Boxes can exist in positive and negative indexing space. Typical ways
 of defining a :cpp:`Box` are
 
@@ -1037,7 +1037,7 @@ ways to define a MultiFab. For example,
       MultiFab mf(ba, dm, ncomp, ngrow);
 
 Here we define a :cpp:`MultiFab` with 4 components and 1 ghost cell. A MultiFab
-contains a number of :cpp:`FArrayBoxes` (see the section
+contains a number of :cpp:`FArrayBox`\ es (see the section
 on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
 (1 in this example). That is the :cpp:`Box` in the :cpp:`FArrayBox` is not
 exactly the same as in the :cpp:`BoxArray`.  If the :cpp:`BoxArray` has a
@@ -1121,7 +1121,7 @@ face averaged variables.
       MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
-Here all :cpp:`MultiFabs` use the same :cpp:`DistributionMapping`, but their
+Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
 :cpp:`BoxArrays` have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
@@ -1132,7 +1132,7 @@ fluxes are arrays with slightly different indices. For example, the
 :math:`x`-direction.
 
 The :cpp:`MultiFab` class provides many functions performing common arithmetic
-operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
+operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
 *same* :cpp:`BoxArray` and :cpp:`DistributionMap`.  For example,
 
 .. highlight:: c++
@@ -1157,7 +1157,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
 
 We refer the reader to ``amrex/Src/Base/AMReX_MultiFab.H`` and
 ``amrex/Src/Base/AMReX_FabArray.H`` for more details. It should be noted again
-it is a runtime error if the two :cpp:`MultiFabs` passed to functions like
+it is a runtime error if the two :cpp:`MultiFab`\ s  passed to functions like
 :cpp:`MultiFab::Copy` are not built with the *same* :cpp:`BoxArray` (including
 index type) and :cpp:`DistributionMapping`.
 
@@ -1650,7 +1650,7 @@ data. In each iteration, a kernel function is called to work on the data and
 the work region is specified by a :cpp:`Box`.  When tiling is used, the work
 region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
-:cpp:`FArrayBoxes`, even though it is supposed to work on a tile region of the
+:cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
 arrays.  Fortran is often used for writing these kernels because of its
 native multi-dimensional array support.  To C++, these kernel
 functions are C functions, whose function 
@@ -1771,7 +1771,7 @@ For example,
 
 Here for simplicity we have omitted passing the tile Box.
 
-Usually :cpp:`MultiFabs` have multiple components. Thus we often also need to
+Usually :cpp:`MultiFab`\ s  have multiple components. Thus we often also need to
 pass the number of component into Fortran functions. We can obtain the number
 by calling the :cpp:`MultiFab::nComp()` function, and pass it to Fortran as we
 have seen in the section on :ref:`sec:basics:mfiter`.  We can also use the
@@ -1890,7 +1890,7 @@ multi-dimensional array type of syntax.  Below is an example.
         f(box, mf1[mfi], mf2[mfi]);
     }
 
-Here, we pass a :cpp:`Box` and two :cpp:`FArrayBoxes` to a C++ kernel
+Here, we pass a :cpp:`Box` and two :cpp:`FArrayBox`\ es to a C++ kernel
 function.  In the function, we use function :cpp:`amrex::length` to
 get the length of the loops and function :cpp:`amrex::lbound` to get
 the lower end of the :cpp:`Box`.  Both functions' return type is

@@ -419,7 +419,7 @@ Reduction
 =========
 
 AMReX provides some functions for performing reduction with GPU (e.g.,
-:cpp:`MultiFab::sum`, :cpp:`MultiFab::`max`, etc.).   Function
+:cpp:`MultiFab::sum`, :cpp:`MultiFab::max`, etc.).   Function
 templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
 :cpp:`amrex::ReduceMax` can be used to implement your own reduction
 functions for :cpp:`FabArray`\ s.
