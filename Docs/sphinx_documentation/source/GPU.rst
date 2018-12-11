@@ -475,17 +475,10 @@ functions for :cpp:`FabArray`\ s.
 
 .. ===================================================================
 
-.. .. _sec:gpu:particle:
-
-.. Particle
-.. ========
-
-.. ===================================================================
-
-.. _sec:gpu:limits:
-
 Particle Support
 ================
+
+.. _sec:gpu:particle:
 
 AMReX's GPU particle support relies on Thrust, a parallel algorithms library maintained by
 Nvidia. Thrust provides a GPU-capable vector container that is otherwise similar to the one
@@ -504,9 +497,8 @@ For portability, we have provided a set of Vector classes that wrap around the T
 STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal :cpp:`amrex::Vector`.
 When ``USE_CUDA = TRUE``, they have different meanings. :cpp:`Gpu::HostVector` is a wrapper
 around :cpp:`thrust::host_vector`. :cpp:`Gpu::DeviceVector` is a wrapper around :cpp:`thrust::device_vector`,
-while :cpp:`Gpu::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory.
-These classes are useful when you have certain stages of an algorithm that you know will always
-execute on either the host or the device. 
+while :cpp:`Gpu::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory. These classes are useful when you have certain stages of an algorithm that you know will always
+execute on either the host or the device.
 
 AMReX's :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
 have changed, has been ported to work on the GPU as well. You can't call it from device code,
@@ -515,9 +507,12 @@ memory traffic. As with :cpp:`MultiFab` data, the MPI portion of the particle re
 up to take advantange of the Cuda-aware MPI implementations available on platforms such as
 ORNL's Summit and Summit-dev.
 
+.. ===================================================================
 
 Limitations
 ===========
+
+.. _sec:gpu:limits:
 
 GPU support in AMReX is still under development.  There are some know
 limitations.
