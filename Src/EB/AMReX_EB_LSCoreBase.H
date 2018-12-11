@@ -221,7 +221,7 @@ namespace MFUtil {
     };
 
 
-    template<typename T, template<typename> typename Cpy> // T can be either MultiFab or iMultiFab
+    template<typename T, template<typename> class Cpy> // T can be either MultiFab or iMultiFab
     T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in) {
 
         int ng = mf_in.nGrow();
@@ -235,7 +235,7 @@ namespace MFUtil {
     }
 
 
-    template<typename T, template<typename> typename Cpy> // T can be either MultiFab or iMultiFab
+    template<typename T, template<typename> class Cpy> // T can be either MultiFab or iMultiFab
     T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in,
                 const Periodicity & periodicity) {
 
