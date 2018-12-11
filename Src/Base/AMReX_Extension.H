@@ -61,6 +61,7 @@
 #endif /* simd */
 
 // force inline
+#ifdef AMREX_USE_FORCE_INLINE
 
 #if defined(__CUDA_ARCH__)
 #define AMREX_INLINE __forceinline__
@@ -89,7 +90,14 @@
 #else
 #define AMREX_INLINE inline
 
+#endif /* force inline */
+
+#else // just inline
+
+#define AMREX_INLINE inline
+
 #endif /* inline */
+
 
 #endif /* !BL_LANG_FORT */
 
