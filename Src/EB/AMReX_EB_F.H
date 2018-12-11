@@ -30,6 +30,15 @@ extern "C"
             const amrex_real * dx,      const amrex_real * dx_eb
         );
 
+    void amrex_eb_fill_levelset_loc(
+        const int * lo,              const int * hi,
+        const amrex_real * eb_list,  const int * l_eb,
+        int * valid,                 const int * v_lo,      const int * v_hi,
+        amrex_real * phi,            const int * p_lo,      const int * p_hi,
+        const amrex_real * ls_guess, const int * lsg_lo,    const int * lsg_hi,
+        const amrex_real * ls_thres, const amrex_real * dx, const amrex_real * dx_eb
+        );
+
     void amrex_eb_fill_levelset_bcs(
             amrex_real * phi, const int * philo, const int * phihi,
             int * valid,      const int * vlo,   const int * vhi,
