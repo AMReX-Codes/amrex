@@ -247,7 +247,7 @@ void flux_zy(Box const& bx,
     const auto len = length(bx);
     const auto lo  = lbound(bx);
 
-    const auto vx  = velx.view(lo);
+    const auto vy  = vely.view(lo);
     const auto vz  = velz.view(lo);
     const auto pz  = phiz.view(lo);
     const auto py  = phiy.view(lo);
@@ -256,9 +256,24 @@ void flux_zy(Box const& bx,
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
+
                 pzy(i,j,k) = ( (vz(i,j,k) < 0) ? 
-                               pz(i,j,k) - dtdx[1]/3.0 * ( 0.5*(vx(i,j+1,k  ) + vx(i,j,k  )) * (py(i,j+1,k  ) - py(i,j,k  ))) : 
-                               pz(i,j,k) - dtdx[1]/3.0 * ( 0.5*(vx(i,j+1,k-1) + vx(i,j,k-1)) * (py(i,j+1,k-1) - py(i,j,k-1))) );
+                               pz(i,j,k) - dtdx[1]/3.0 * ( 0.5*(vy(i,j+1,k  ) + vy(i,j,k  )) * (py(i,j+1,k  ) - py(i,j,k  ))) : 
+                               pz(i,j,k) - dtdx[1]/3.0 * ( 0.5*(vy(i,j+1,k-1) + vy(i,j,k-1)) * (py(i,j+1,k-1) - py(i,j,k-1))) );
+
+
+            if (i+lo.x == 28 && j+lo.y == 47 && k+lo.z == 32)
+            {
+                 std::cout << "tdtdx " << dtdx[1]/3.0 << std::endl;
+                 std::cout << "PYA " << py(i,j+1,k-1) << std::endl;
+                 std::cout << "PYB " << py(i,j,k-1) << std::endl;
+                 std::cout << "VA " << vy(i,j+1,k-1) << std::endl;
+                 std::cout << "VB " << vy(i,j,k-1) << std::endl;
+                 std::cout << "PZ "  << pz(i,j,k) << std::endl;
+                 std::cout << "PZY " << pzy(i,j,k) << std::endl;
+		 std::cout << "========" << std::endl;
+            }
+
             }
         }
     }
@@ -288,6 +303,14 @@ void combine_flux_x(Box const& bx,
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
+    if (i+lo.x == 28 && j+lo.y == 47 && k+lo.z == 32)
+    {
+        std::cout << "PX IN " << px(i,j,k) << std::endl;
+        std::cout << "FX IN " << fx(i,j,k) << std::endl;
+        std::cout << "PYZ IN " << pyz(i,j,k) << std::endl;
+        std::cout << "PZY IN " << pzy(i,j,k) << std::endl;
+    }
+
                 px(i,j,k) = ( (vx(i,j,k) < 0) ? 
                               px(i,j,k) - 0.5*dtdx[1] * ( 0.5*(vy(i  ,j+1,k  ) + vy(i  ,j,k)) * (pyz(i  ,j+1,k  )-pyz(i  ,j,k)))
                                         - 0.5*dtdx[2] * ( 0.5*(vz(i  ,j  ,k+1) + vz(i  ,j,k)) * (pzy(i  ,j  ,k+1)-pzy(i  ,j,k))) :
@@ -295,6 +318,17 @@ void combine_flux_x(Box const& bx,
                                         - 0.5*dtdx[2] * ( 0.5*(vz(i-1,j  ,k+1) + vz(i-1,j,k)) * (pzy(i-1,j  ,k+1)-pzy(i-1,j,k))) );
 
                 fx(i,j,k) = vx(i,j,k)*px(i,j,k);
+
+    if (i+lo.x == 28 && j+lo.y == 47 && k+lo.z == 32)
+    {
+
+        std::cout << "PX OUT " << px(i,j,k) << std::endl;
+        std::cout << "FX " << fx(i,j,k) << std::endl;
+        std::cout << "VX " << vx(i,j,k) << std::endl;
+        std::cout << "VY " << vy(i,j,k) << std::endl;
+        std::cout << "VZ " << vz(i,j,k) << std::endl;
+    }
+
             }
         }
     }

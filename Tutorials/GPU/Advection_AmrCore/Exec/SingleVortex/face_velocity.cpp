@@ -20,10 +20,10 @@ void get_face_velocity_psi(Box const& bx,
     const Real* AMREX_RESTRICT dx      = geom.CellSize(); 
 
     for     (int j = 0; j < len.y; ++j) {
-        Real y = dx[1]*(0.5 + j) + prob_lo[1]; 
+        Real y = dx[1]*(0.5 + j+lo.y) + prob_lo[1]; 
         AMREX_PRAGMA_SIMD
         for (int i = 0; i < len.x; ++i) {
-            Real x = dx[0]*(0.5 + i) + prob_lo[0];
+            Real x = dx[0]*(0.5 + i+lo.x) + prob_lo[0];
             psi(i,j,0) = pow(sin(M_PI*x), 2) * pow(sin(M_PI*y), 2)
                        * cos(M_PI*time/2.0) * 1.0/M_PI; 
         }
@@ -45,10 +45,10 @@ void get_face_velocity_x(Box const& bx,
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            Real y = dx[1] * (0.5 + j) + prob_lo[1];
+            Real y = dx[1] * (0.5 + j+lo.y) + prob_lo[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = dx[0] * i + prob_lo[0];
+                Real x = (dx[0] * (i+lo.x)) + prob_lo[0];
                 vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
             }
         }
@@ -70,11 +70,11 @@ void get_face_velocity_y(Box const& bx,
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            Real y = dx[1] * j + prob_lo[1];
+            Real y = (dx[1] * (j+lo.y)) + prob_lo[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = dx[0] * (0.5 + i) + prob_lo[0];
-                vy(i,j,k) = -( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx[0]); 
+                Real x = dx[0] * (0.5 + i+lo.x) + prob_lo[0];
+                vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx[0]); 
             }
         }
     }
