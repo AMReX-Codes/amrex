@@ -421,7 +421,7 @@ Cluster::new_chop ()
        int orig_mlen = m_len;
 
        // Define the new box "above" the cut
-       Cluster* newbox = new Cluster(prt_it, nhi);
+       std::unique_ptr<Cluster> newbox(new Cluster(prt_it, nhi));
        Real neweff = newbox->eff();
 
        // Replace the current box by the part of the box "below" the cut
@@ -433,7 +433,7 @@ Cluster::new_chop ()
           for (int i = 0; i < AMREX_SPACEDIM; i++)
               delete [] hist[i];
 
-          return new Cluster(prt_it, nhi);
+          return newbox.release();
 
        } else {
 
