@@ -499,6 +499,7 @@ void RegionGraph::graphTeardown()
     int tg= perilla::wid();
     int numfabs = numTasks;
 
+#if 0
     for(int f=0; f<numfabs; f++)
     {
 	if(WorkerThread::isMyRegion(tg,f))
@@ -593,10 +594,12 @@ void RegionGraph::graphTeardown()
 	    }
 	}
     }
+#endif
 
     if(ParallelDescriptor::NProcs() == 1) return;
 
 
+#if 0
 
     for(int f=0; f<numfabs; f++)
     {
@@ -650,6 +653,7 @@ void RegionGraph::graphTeardown()
 	    }
 	}
     }
+#endif
 
 
     if(tg == 0)
@@ -724,6 +728,7 @@ void RegionGraph::graphTeardown()
     //if(WorkerThread::isTeamMasterThread(tid)) commented out b/c its already call by single thread in a team
     //Perilla::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
 
+#if 0
     // Parallel Copy Reset on Local tg
     for(int f=0; f<numfabs; f++)
     {
@@ -794,7 +799,7 @@ void RegionGraph::graphTeardown()
 	    }
 	}
     }
-
+#endif
 }
 
 void RegionGraph::workerTeardown()

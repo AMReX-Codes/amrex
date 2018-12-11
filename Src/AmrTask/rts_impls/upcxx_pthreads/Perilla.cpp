@@ -17,7 +17,9 @@ using namespace perilla;
 using namespace upcxx;
 
 volatile int Perilla::numTeamsFinished = 0;
-volatile int Perilla::updatedMetadata = 0;
+volatile int Perilla::updateMetadata_request = 0;
+volatile int Perilla::updateMetadata_noticed = 0;
+volatile int Perilla::updateMetadata_done = 0;
 int Perilla::max_step=1;
 std::map<int,std::map<int,int>> Perilla::pTagCnt;
 int Perilla::uTags=0;
@@ -91,6 +93,14 @@ int Perilla::tid(){//this function can be called after all threads already regis
     return tidTable[pthread_self()];
 }
 
+void Perilla::clearTagMap(){
+    Perilla::tagMap.clear();
+}
+
+void Perilla::clearMyTagMap(){
+    Perilla::myTagMap.clear();
+}
+
 void Perilla::communicateTags()
 {
     int myProc = ParallelDescriptor::MyProc();
@@ -125,7 +135,7 @@ void Perilla::communicateTags()
     {
 	if(p!=myProc)
 	{
-	    MPI_Irecv(&rTagCnt[p*2], 2, MPI_INT, p , 0, MPI_COMM_WORLD, &srrequest[p]);
+	    MPI_Irecv(&rTagCnt[p*2], 2, MPI_INT, p , 1000, MPI_COMM_WORLD, &srrequest[p]);
 	}
     }
 
@@ -148,7 +158,7 @@ void Perilla::communicateTags()
 	sTagCnt[it1->first*2] = tac;
 	sTagCnt[it1->first*2+1] = ng;
 	tags[it1->first] = new int[sTagCnt[it1->first*2]];
-	MPI_Isend(&sTagCnt[it1->first*2], 2, MPI_INT, it1->first, 0, MPI_COMM_WORLD, &ssrequest[it1->first]);
+	MPI_Isend(&sTagCnt[it1->first*2], 2, MPI_INT, it1->first, 1000, MPI_COMM_WORLD, &ssrequest[it1->first]);
 	proc_communicated[it1->first]=true;
     }
 
@@ -158,7 +168,7 @@ void Perilla::communicateTags()
 	    {
 		sTagCnt[p*2] = 0;
 		sTagCnt[p*2+1] = 0;
-		MPI_Isend(&sTagCnt[p*2], 2, MPI_INT, p, 0, MPI_COMM_WORLD, &ssrequest[p]);
+		MPI_Isend(&sTagCnt[p*2], 2, MPI_INT, p, 1000, MPI_COMM_WORLD, &ssrequest[p]);
 	    }
 
 
@@ -182,7 +192,7 @@ void Perilla::communicateTags()
 		    }
 	    BL_ASSERT(pTagCnt[it1->first][it2->first] == gtagc);
 	}
-	MPI_Isend(tags[it1->first], tac, MPI_INT, it1->first, 1, MPI_COMM_WORLD, &tsrequest[it1->first]);
+	MPI_Isend(tags[it1->first], tac, MPI_INT, it1->first, 1001, MPI_COMM_WORLD, &tsrequest[it1->first]);
     }
 
 
@@ -195,7 +205,7 @@ void Perilla::communicateTags()
 	    if(rTagCnt[p*2] > 0)
 	    {
 		rtags[p] = new int[rTagCnt[p*2]];
-		MPI_Irecv(rtags[p], rTagCnt[p*2], MPI_INT, p , 1, MPI_COMM_WORLD, &trrequest[p]);
+		MPI_Irecv(rtags[p], rTagCnt[p*2], MPI_INT, p , 1001, MPI_COMM_WORLD, &trrequest[p]);
 	    }
 	}
     }
@@ -291,6 +301,11 @@ int Perilla::tagGen(int src, int dest, int channelID, int nFabs, int nChannels)
 #endif
 
 
+void Perilla::syncProcesses(){
+    upcxx::barrier();
+}
+
+
 void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Periodicity& period)
 {
     int np = ParallelDescriptor::NProcs();
@@ -307,15 +322,15 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
     send_cctc.reserve(n_snds_mf);
 
     for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_SndTags->begin(),
-	    m_End = TheFB.m_SndTags->end();
-	    m_it != m_End;
-	    ++m_it)
+            m_End = TheFB.m_SndTags->end();
+            m_it != m_End;
+            ++m_it)
     {
-	if(m_it->first != myProc)      // Not destined to me.
-	{
-	    send_pr.push_back(m_it->first);
-	    send_cctc.push_back(&(m_it->second));
-	}
+        if(m_it->first != myProc)      // Not destined to me.
+        {
+            send_pr.push_back(m_it->first);
+            send_cctc.push_back(&(m_it->second));
+        }
     }
 
     Vector<const FabArrayBase::CopyComTagsContainer*> recv_cctc;
@@ -323,528 +338,525 @@ void Perilla::multifabBuildFabCon(RegionGraph* rg, const MultiFab& mf, const Per
     recv_cctc.reserve(n_rcvs_mf);
 
     for (FabArrayBase::MapOfCopyComTagContainers::const_iterator m_it = TheFB.m_RcvTags->begin(),
-	    m_End = TheFB.m_RcvTags->end();
-	    m_it != m_End;
-	    ++m_it)
+            m_End = TheFB.m_RcvTags->end();
+            m_it != m_End;
+            ++m_it)
     {
-	if(m_it->first != myProc)      // I am not the source for this receipt
-	{
-	    recv_pr.push_back(m_it->first);
-	    recv_cctc.push_back(&(m_it->second));
-	}
+        if(m_it->first != myProc)      // I am not the source for this receipt
+        {
+            recv_pr.push_back(m_it->first);
+            recv_cctc.push_back(&(m_it->second));
+        }
     }
+
 #pragma omp parallel shared(rg, mf, numfabs, np, TheFB, recv_cctc, send_cctc)
     {
-	int tg = WorkerThread::perilla_wid();
-	int fg;
-	if(WorkerThread::perilla_isCommunicationThread())
-	{
-	    //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
-	    //mf->sMap.reserve(numfabs);
-	    //mf->rMap.reserve(numfabs);
-	    //std::cout<< "Allocating sMap and rMap" <<std::endl;
-	    rg->alloc_lMap(mf);
-	    rg->alloc_sMap(mf);
-	    rg->alloc_rMap(mf);
-	}
+        //int tg = omp_get_thread_num();
+        int fg;
+//        if(WorkerThread::perilla_isCommunicationThread())
+#pragma omp single
+        {
+            //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
+            //mf->sMap.reserve(numfabs);
+            //mf->rMap.reserve(numfabs);
+            //std::cout<< "Allocating sMap and rMap" <<std::endl;
+            rg->alloc_lMap(mf);
+            rg->alloc_sMap(mf);
+            rg->alloc_rMap(mf);
+        }
 #pragma omp barrier      
-	//if(tid==0)                              
-	{
-	    //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
-	    //mf->sMap.reserve(numfabs);
-	    //mf->rMap.reserve(numfabs);
-	    for(int f=0; f<numfabs; f++) //        !create local communication metadata for each fab
-	    {
-		if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
-		{
-		    rg->lMap[f]->l_con.nscpy = 0;
+        //if(tid==0)                              
+        {
+            //bool cc = !mf->is_nodal(); //  cc = multifab_cell_centered_q(mf)
+            //mf->sMap.reserve(numfabs);
+            //mf->rMap.reserve(numfabs);
+#pragma omp for
+            for(int f=0; f<numfabs; f++) //        !create local communication metadata for each fab
+            {
+//                if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+                {
+                    rg->lMap[f]->l_con.nscpy = 0;
 
-		    //for(int i=0; i<bxasc->l_con.ncpy; i++)
-		    for(int i=0; i<n_loc_mf; i++)
-		    {
-			const FabArrayBase::CopyComTag& tag = (*TheFB.m_LocTags)[i];
+                    //for(int i=0; i<bxasc->l_con.ncpy; i++)
+                    for(int i=0; i<n_loc_mf; i++)
+                    {
+                        const FabArrayBase::CopyComTag& tag = (*TheFB.m_LocTags)[i];
 
-			//std::cout << tag.srcIndex << " " << tag.dstIndex << " " <<tag.sbox.smallEnd() <<" "<< tag.sbox.bigEnd() << std::endl;
+                        //std::cout << tag.srcIndex << " " << tag.dstIndex << " " <<tag.sbox.smallEnd() <<" "<< tag.sbox.bigEnd() << std::endl;
 
-			BL_ASSERT(mf.distributionMap[tag.dstIndex] == myProc);
-			BL_ASSERT(mf.distributionMap[tag.srcIndex] == myProc);
-			//get(tag.dstIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
-			//if(f == local_index(mf,bxasc->l_con.cpy[i].ns)) //LocalIndex
-			if(mf.IndexArray()[f] == tag.srcIndex)
-			    rg->lMap[f]->l_con.nscpy++;
-			//if(f == local_index(mf,bxasc->l_con.cpy[i].nd)) //LocalIndex
-			if(mf.IndexArray()[f] == tag.dstIndex)
-			    rg->lMap[f]->l_con.ndcpy++;
-		    }
-		    /*
-		       if(rg->lMap[f]->l_con.nscpy+rg->lMap[f]->l_con.ndcpy != n_loc_mf)
-		       std::cout<< "Diff in Sum " << rg->lMap[f]->l_con.nscpy << " " <<rg->lMap[f]->l_con.ndcpy << " " << n_loc_mf <<std::endl;
-		       BL_ASSERT(rg->lMap[f]->l_con.nscpy+rg->lMap[f]->l_con.ndcpy == n_loc_mf);
-		     */
-		}
-	    }
-	}
+                        BL_ASSERT(mf.distributionMap[tag.dstIndex] == myProc);
+                        BL_ASSERT(mf.distributionMap[tag.srcIndex] == myProc);
+                        //get(tag.dstIndex).copy(get(tag.srcIndex),tag.box,scomp,tag.box,scomp,ncomp);
+                        //if(f == local_index(mf,bxasc->l_con.cpy[i].ns)) //LocalIndex
+                        if(mf.IndexArray()[f] == tag.srcIndex)
+                            rg->lMap[f]->l_con.nscpy++;
+                        //if(f == local_index(mf,bxasc->l_con.cpy[i].nd)) //LocalIndex
+                        if(mf.IndexArray()[f] == tag.dstIndex)
+                            rg->lMap[f]->l_con.ndcpy++;
+                    }
+                    /*
+                       if(rg->lMap[f]->l_con.nscpy+rg->lMap[f]->l_con.ndcpy != n_loc_mf)
+                       std::cout<< "Diff in Sum " << rg->lMap[f]->l_con.nscpy << " " <<rg->lMap[f]->l_con.ndcpy << " " << n_loc_mf <<std::endl;
+                       BL_ASSERT(rg->lMap[f]->l_con.nscpy+rg->lMap[f]->l_con.ndcpy == n_loc_mf);
+                     */
+                }
+            }
+        }
 #pragma omp barrier
-	//now we know how many copying segments each fab owns as source and destination allocate memory for metadata   
-	for(int f=0; f<numfabs; f++)
-	{
-	    //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);   /// need to check if computing correct ???????
-	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==1))
-	    if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
-	    {
-		//omp_init_lock(&(rg->lMap[f]->l_con.sLock));
-		//omp_init_lock(&(rg->lMap[f]->l_con.dLock));
-		//omp_init_lock(&(rg->lMap[f]->l_con.ghostLock));
+        //now we know how many copying segments each fab owns as source and destination allocate memory for metadata   
+#pragma omp for
+        for(int f=0; f<numfabs; f++)
+        {
+            //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);   /// need to check if computing correct ???????
+            //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==1))
+//            if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+            {
+                //omp_init_lock(&(rg->lMap[f]->l_con.sLock));
+                //omp_init_lock(&(rg->lMap[f]->l_con.dLock));
+                //omp_init_lock(&(rg->lMap[f]->l_con.ghostLock));
 
-		//std::cout<< "MF l_con nscpy " <<rg->lMap[f]->l_con.nscpy << " ndcpy " << rg->lMap[f]->l_con.ndcpy <<std::endl;
+                //std::cout<< "MF l_con nscpy " <<rg->lMap[f]->l_con.nscpy << " ndcpy " << rg->lMap[f]->l_con.ndcpy <<std::endl;
 
-		rg->lMap[f]->l_con.scpy = new LocalCopyDescriptor[rg->lMap[f]->l_con.nscpy];
-		rg->lMap[f]->l_con.dcpy = new LocalCopyDescriptor[rg->lMap[f]->l_con.ndcpy];
-		rg->lMap[f]->l_con.scpyCnt = 0;
-		rg->lMap[f]->l_con.dcpyCnt = 0;
-	    }
-	}
+                rg->lMap[f]->l_con.scpy = new LocalCopyDescriptor[rg->lMap[f]->l_con.nscpy];
+                rg->lMap[f]->l_con.dcpy = new LocalCopyDescriptor[rg->lMap[f]->l_con.ndcpy];
+                rg->lMap[f]->l_con.scpyCnt = 0;
+                rg->lMap[f]->l_con.dcpyCnt = 0;
+            }
+        }
 #pragma omp barrier
-	if(np > 1)
-	{
-	    for(int f=0; f<numfabs; f++)
-	    {
-		if(WorkerThread::perilla_isMasterWorkerThread() && WorkerThread::isMyRegion(tg,f))
-		{
-		    rg->lMap[f]->r_con.nrcv = 0;
-		    rg->lMap[f]->r_con.nsnd = 0;
-		    rg->lMap[f]->r_con.firingRuleCnt = 0;
+        if(np > 1)
+        {
+#pragma omp for
+            for(int f=0; f<numfabs; f++)
+            {
+//                if(WorkerThread::perilla_isMasterWorkerThread() && WorkerThread::isMyRegion(tg,f))
+                {
+                    rg->lMap[f]->r_con.nrcv = 0;
+                    rg->lMap[f]->r_con.nsnd = 0;
+                    rg->lMap[f]->r_con.firingRuleCnt = 0;
 
-		    //for(int i=0; i<bxasc->r_con.nsnd; i++)
-		    for(int i=0; i<n_snds_mf; i++)
-		    {
-			const FabArrayBase::CopyComTagsContainer& cctc = *send_cctc[i];
-			for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
-				it != cctc.end(); ++it)
-			{
-			    //if(f == local_index(mf,bxasc->r_con.snd[i].ns)) //LocalIndex
-			    if(mf.IndexArray()[f] == it->srcIndex)
-			    {
-				rg->lMap[f]->r_con.nsnd++;
-			    }
-			}
-		    }
-		    //for(int i=0; i<bxasc->r_con.nrcv; i++)
-		    for(int i=0; i<n_rcvs_mf; i++)
-		    {
-			const FabArrayBase::CopyComTagsContainer& cctc = *recv_cctc[i];
-			for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
-				it != cctc.end(); ++it)
-			{
-			    //if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
-			    if(mf.IndexArray()[f] == it->dstIndex)
-			    {
-				rg->lMap[f]->r_con.nrcv++;
-			    }
-			}
-		    }
-		    //rg->sMap[f]->r_con.sndLock = new omp_lock_t;
-		    //rg->rMap[f]->r_con.rcvLock = new omp_lock_t;
-		    //omp_init_lock(rg->sMap[f]->r_con.sndLock);
-		    //omp_init_lock(rg->rMap[f]->r_con.rcvLock);
-		    rg->lMap[f]->r_con.snd = new RemoteCommDescriptor[rg->lMap[f]->r_con.nsnd];
-		    rg->lMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->lMap[f]->r_con.nrcv];
-		}
-	    }
-	    if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-	    {
-		for(int f=0; f<numfabs; f++)
-		{
-		    rg->rMap[f]->r_con.nrcv = 0;
-		    rg->sMap[f]->r_con.nsnd = 0;
+                    //for(int i=0; i<bxasc->r_con.nsnd; i++)
+                    for(int i=0; i<n_snds_mf; i++)
+                    {
+                        const FabArrayBase::CopyComTagsContainer& cctc = *send_cctc[i];
+                        for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
+                                it != cctc.end(); ++it)
+                        {
+                            //if(f == local_index(mf,bxasc->r_con.snd[i].ns)) //LocalIndex
+                            if(mf.IndexArray()[f] == it->srcIndex)
+                            {
+                                rg->lMap[f]->r_con.nsnd++;
+                            }
+                        }
+                    }
+                    //for(int i=0; i<bxasc->r_con.nrcv; i++)
+                    for(int i=0; i<n_rcvs_mf; i++)
+                    {
+                        const FabArrayBase::CopyComTagsContainer& cctc = *recv_cctc[i];
+                        for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
+                                it != cctc.end(); ++it)
+                        {
+                            //if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
+                            if(mf.IndexArray()[f] == it->dstIndex)
+                            {
+                                rg->lMap[f]->r_con.nrcv++;
+                            }
+                        }
+                    }
+                    //rg->sMap[f]->r_con.sndLock = new omp_lock_t;
+                    //rg->rMap[f]->r_con.rcvLock = new omp_lock_t;
+                    //omp_init_lock(rg->sMap[f]->r_con.sndLock);
+                    //omp_init_lock(rg->rMap[f]->r_con.rcvLock);
+                    rg->lMap[f]->r_con.snd = new RemoteCommDescriptor[rg->lMap[f]->r_con.nsnd];
+                    rg->lMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->lMap[f]->r_con.nrcv];
+                }
+            }
+ //           if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
+            {
+#pragma omp for
+                for(int f=0; f<numfabs; f++)
+                {
+                    rg->rMap[f]->r_con.nrcv = 0;
+                    rg->sMap[f]->r_con.nsnd = 0;
 
-		    //for(int i=0; i<bxasc->r_con.nsnd; i++)
-		    for(int i=0; i<n_snds_mf; i++)
-		    {
-			const FabArrayBase::CopyComTagsContainer& cctc = *send_cctc[i];
-			for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
-				it != cctc.end(); ++it)
-			{
-			    //if(f == local_index(mf,bxasc->r_con.snd[i].ns)) //LocalIndex
-			    if(mf.IndexArray()[f] == it->srcIndex)
-			    {
-				rg->sMap[f]->r_con.nsnd++;
-			    }
-			}
-		    }
-		    //for(int i=0; i<bxasc->r_con.nrcv; i++)
-		    for(int i=0; i<n_rcvs_mf; i++)
-		    {
-			const FabArrayBase::CopyComTagsContainer& cctc = *recv_cctc[i];
-			for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
-				it != cctc.end(); ++it)
-			{
-			    //if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
-			    if(mf.IndexArray()[f] == it->dstIndex)
-			    {
-				rg->rMap[f]->r_con.nrcv++;
-			    }
-			}
-		    }
-		    //rg->sMap[f]->r_con.sndLock = new omp_lock_t;
-		    //rg->rMap[f]->r_con.rcvLock = new omp_lock_t;
-		    //omp_init_lock(rg->sMap[f]->r_con.sndLock);
-		    //omp_init_lock(rg->rMap[f]->r_con.rcvLock);
-		    rg->sMap[f]->r_con.snd = new RemoteCommDescriptor[rg->sMap[f]->r_con.nsnd];
-		    rg->rMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->rMap[f]->r_con.nrcv];
-		}
-	    }
-	}
+                    //for(int i=0; i<bxasc->r_con.nsnd; i++)
+                    for(int i=0; i<n_snds_mf; i++)
+                    {
+                        const FabArrayBase::CopyComTagsContainer& cctc = *send_cctc[i];
+                        for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
+                                it != cctc.end(); ++it)
+                        {
+                            //if(f == local_index(mf,bxasc->r_con.snd[i].ns)) //LocalIndex
+                            if(mf.IndexArray()[f] == it->srcIndex)
+                            {
+                                rg->sMap[f]->r_con.nsnd++;
+                            }
+                        }
+                    }
+                    //for(int i=0; i<bxasc->r_con.nrcv; i++)
+                    for(int i=0; i<n_rcvs_mf; i++)
+                    {
+                        const FabArrayBase::CopyComTagsContainer& cctc = *recv_cctc[i];
+                        for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
+                                it != cctc.end(); ++it)
+                        {
+                            //if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
+                            if(mf.IndexArray()[f] == it->dstIndex)
+                            {
+                                rg->rMap[f]->r_con.nrcv++;
+                            }
+                        }
+                    }
+                    //rg->sMap[f]->r_con.sndLock = new omp_lock_t;
+                    //rg->rMap[f]->r_con.rcvLock = new omp_lock_t;
+                    //omp_init_lock(rg->sMap[f]->r_con.sndLock);
+                    //omp_init_lock(rg->rMap[f]->r_con.rcvLock);
+                    rg->sMap[f]->r_con.snd = new RemoteCommDescriptor[rg->sMap[f]->r_con.nsnd];
+                    rg->rMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->rMap[f]->r_con.nrcv];
+                }
+            }
+        }
     } // omp parallel
     //std::cout<< "counting done " <<std::endl;
     //    !!touch data to bind pages to the NUMA node
 #pragma omp parallel shared(mf, numfabs, TheFB, recv_cctc, send_cctc)
     {
-	int tg = WorkerThread::perilla_wid();
+//        int tg = WorkerThread::perilla_wid();
 
-	//      std::cout<< "Barr 4- "<< tid <<" "<< tg << " " << WorkerThread::isTeamMasterThread(tid) << std::endl;
+        //      std::cout<< "Barr 4- "<< tid <<" "<< tg << " " << WorkerThread::isTeamMasterThread(tid) << std::endl;
 
-	//      std::cout<< "Barr 5" <<std::endl;
-	int fg, scnt, dcnt;
+        //      std::cout<< "Barr 5" <<std::endl;
+        int fg, scnt, dcnt;
 
-	for(int f=0; f<numfabs; f++)
-	{
-	    //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
-	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==1))
+#pragma omp for
+        for(int f=0; f<numfabs; f++)
+        {
+            //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
+            //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==1))
 
-	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==0))
-	    if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
-	    {
-		rg->lMap[f]->l_con.localBarrier = new Barrier(perilla::NUM_THREADS_PER_TEAM-1);
-		// !create local communication meta data for sources and destinations
-		scnt = -1;
-		dcnt = -1;
-		//for(int i=0; i<bxasc->l_con.ncpy; i++)
-		for(int i=0; i<n_loc_mf; i++)
-		{
-		    const FabArrayBase::CopyComTag& tag = (*TheFB.m_LocTags)[i];
-		    BL_ASSERT(mf.distributionMap[tag.dstIndex] == myProc);
-		    BL_ASSERT(mf.distributionMap[tag.srcIndex] == myProc);
+            //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==0))
+ //           if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+            {
+                rg->lMap[f]->l_con.localBarrier = new Barrier(perilla::NUM_THREADS_PER_TEAM-1);
+                // !create local communication meta data for sources and destinations
+                scnt = -1;
+                dcnt = -1;
+                //for(int i=0; i<bxasc->l_con.ncpy; i++)
+                for(int i=0; i<n_loc_mf; i++)
+                {
+                    const FabArrayBase::CopyComTag& tag = (*TheFB.m_LocTags)[i];
+                    BL_ASSERT(mf.distributionMap[tag.dstIndex] == myProc);
+                    BL_ASSERT(mf.distributionMap[tag.srcIndex] == myProc);
 
-		    //if(f == local_index(mf,bxasc->l_con.cpy[i].ns)) //LocalIndex
-		    if(mf.IndexArray()[f] == tag.srcIndex)
-		    {
-			scnt++;
-			//omp_init_lock(&(rg->lMap[f]->l_con.scpy[scnt].ghostLock));
-			rg->lMap[f]->l_con.scpy[scnt].ns = mf.localindex(tag.srcIndex); //local_index(mf,bxasc->l_con.cpy[i].ns); //LocalIndex
-			rg->lMap[f]->l_con.scpy[scnt].nd = mf.localindex(tag.dstIndex); //local_index(mf,bxasc->l_con.cpy[i].nd); //LocalIndex
-			rg->lMap[f]->l_con.scpy[scnt].sbx = tag.sbox; //bxasc->l_con.cpy[i].sbx;
-			rg->lMap[f]->l_con.scpy[scnt].dbx = tag.dbox; //bxasc->l_con.cpy[i].dbx;                    
-			// !create queues for ghost cells
-			//call queue_init(mf%fbs(f)%l_con%scpy(scnt)%pQueue)
-			//call queue_init(mf%fbs(f)%l_con%scpy(scnt)%recycleQueue)
+                    //if(f == local_index(mf,bxasc->l_con.cpy[i].ns)) //LocalIndex
+                    if(mf.IndexArray()[f] == tag.srcIndex)
+                    {
+                        scnt++;
+                        //omp_init_lock(&(rg->lMap[f]->l_con.scpy[scnt].ghostLock));
+                        rg->lMap[f]->l_con.scpy[scnt].ns = mf.localindex(tag.srcIndex); //local_index(mf,bxasc->l_con.cpy[i].ns); //LocalIndex
+                        rg->lMap[f]->l_con.scpy[scnt].nd = mf.localindex(tag.dstIndex); //local_index(mf,bxasc->l_con.cpy[i].nd); //LocalIndex
+                        rg->lMap[f]->l_con.scpy[scnt].sbx = tag.sbox; //bxasc->l_con.cpy[i].sbx;
+                        rg->lMap[f]->l_con.scpy[scnt].dbx = tag.dbox; //bxasc->l_con.cpy[i].dbx;                    
+                        // !create queues for ghost cells
+                        //call queue_init(mf%fbs(f)%l_con%scpy(scnt)%pQueue)
+                        //call queue_init(mf%fbs(f)%l_con%scpy(scnt)%recycleQueue)
 
-			int psize = tag.sbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
-			/*
-			   p => dataptr(mf%fbs(f), mf%fbs(f)%l_con%scpy(scnt)%sbx, 1, mf%nc)
-			   s1= size(p,1)
-			   s2= size(p,2)
-			   s3= size(p,3)
-			   s4= size(p,4)
-			   s1*s2*s3*s4
-			 */
-			for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			{
-			    Package *tmpPkg = new Package(psize);
-			    void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
-			    for(int j=0; j<psize; j++){
-				//tmpPkg->databuf[j] = 0;
-				((double*)local_ptr)[j]= 0;
-                            }
-			    rg->lMap[f]->l_con.scpy[scnt].pQueue.enqueue(tmpPkg);
-			}
-			for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			    rg->lMap[f]->l_con.scpy[scnt].recycleQueue.enqueue(rg->lMap[f]->l_con.scpy[scnt].pQueue.dequeue());
-		    }
-		    //if(f == local_index(mf,bxasc->l_con.cpy[i].nd)) //LocalIndex
-		    if(mf.IndexArray()[f] == tag.dstIndex)
-		    {
-			dcnt++;
-			rg->lMap[f]->l_con.dcpy[dcnt].ns = mf.localindex(tag.srcIndex); //local_index(mf,bxasc->l_con.cpy[i].ns); //LocalIndex
-			rg->lMap[f]->l_con.dcpy[dcnt].nd = mf.localindex(tag.dstIndex); //local_index(mf,bxasc->l_con.cpy[i].nd); //LocalIndex
-			rg->lMap[f]->l_con.dcpy[dcnt].sbx = tag.sbox; //bxasc->l_con.cpy[i].sbx;
-			rg->lMap[f]->l_con.dcpy[dcnt].dbx = tag.dbox; //bxasc->l_con.cpy[i].dbx;                    
-			//call queue_init(mf%fbs(f)%l_con%dcpy(dcnt)%pQueue)
-			//call queue_init(mf%fbs(f)%l_con%dcpy(dcnt)%recycleQueue)
-			int psize = tag.dbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
-			/*
-			   p => dataptr(mf%fbs(f), mf%fbs(f)%l_con%dcpy(dcnt)%dbx, 1, mf%nc)
-			   s1= size(p,1)
-			   s2= size(p,2)
-			   s3= size(p,3)
-			   s4= size(p,4)
-			   s1*s2*s3*s4
-			 */
-
-			for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			{
-			    Package *tmpPkg = new Package(psize);
-			    void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
-			    for(int j=0; j<psize; j++){
-				//tmpPkg->databuf[j] = 0;
-			        ((double*)local_ptr)[j] =0;
-			    }
-			    rg->lMap[f]->l_con.dcpy[dcnt].pQueue.enqueue(tmpPkg);
-			}
-			for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			    rg->lMap[f]->l_con.dcpy[dcnt].recycleQueue.enqueue(rg->lMap[f]->l_con.dcpy[dcnt].pQueue.dequeue());
-		    }
-		} // for(i<n_loc_mf)
-		//std::cout<< scnt << " " << dcnt << std::endl;
-	    }
-	}// for(f<numfabs)
+                        int psize = tag.sbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
+                        /*
+                           p => dataptr(mf%fbs(f), mf%fbs(f)%l_con%scpy(scnt)%sbx, 1, mf%nc)
+                           s1= size(p,1)
+                           s2= size(p,2)
+                           s3= size(p,3)
+                           s4= size(p,4)
+                           s1*s2*s3*s4
+                         */
+                        for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                        {
+                            Package *tmpPkg = new Package(psize);
+                            void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
+                            for(int j=0; j<psize; j++)
+                                ((double*)local_ptr)[j]= 0;
+                            rg->lMap[f]->l_con.scpy[scnt].pQueue.enqueue(tmpPkg);
+                        }
+                        for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                            rg->lMap[f]->l_con.scpy[scnt].recycleQueue.enqueue(rg->lMap[f]->l_con.scpy[scnt].pQueue.dequeue());
+                    }
+                    //if(f == local_index(mf,bxasc->l_con.cpy[i].nd)) //LocalIndex
+                    if(mf.IndexArray()[f] == tag.dstIndex)
+                    {
+                        dcnt++;
+                        rg->lMap[f]->l_con.dcpy[dcnt].ns = mf.localindex(tag.srcIndex); //local_index(mf,bxasc->l_con.cpy[i].ns); //LocalIndex
+                        rg->lMap[f]->l_con.dcpy[dcnt].nd = mf.localindex(tag.dstIndex); //local_index(mf,bxasc->l_con.cpy[i].nd); //LocalIndex
+                        rg->lMap[f]->l_con.dcpy[dcnt].sbx = tag.sbox; //bxasc->l_con.cpy[i].sbx;
+                        rg->lMap[f]->l_con.dcpy[dcnt].dbx = tag.dbox; //bxasc->l_con.cpy[i].dbx;                    
+                        //call queue_init(mf%fbs(f)%l_con%dcpy(dcnt)%pQueue)
+                        //call queue_init(mf%fbs(f)%l_con%dcpy(dcnt)%recycleQueue)
+                        int psize = tag.dbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
+                        /*
+                           p => dataptr(mf%fbs(f), mf%fbs(f)%l_con%dcpy(dcnt)%dbx, 1, mf%nc)
+                           s1= size(p,1)
+                           s2= size(p,2)
+                           s3= size(p,3)
+                           s4= size(p,4)
+                           s1*s2*s3*s4
+                         */
+                        for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                        {
+                            Package *tmpPkg = new Package(psize);
+                            void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
+                            for(int j=0; j<psize; j++)
+                                ((double*)local_ptr)[j] =0;
+                            rg->lMap[f]->l_con.dcpy[dcnt].pQueue.enqueue(tmpPkg);
+                        }
+                        for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                            rg->lMap[f]->l_con.dcpy[dcnt].recycleQueue.enqueue(rg->lMap[f]->l_con.dcpy[dcnt].pQueue.dequeue());
+                    }
+                } // for(i<n_loc_mf)
+                //std::cout<< scnt << " " << dcnt << std::endl;
+            }
+        }// for(f<numfabs)
 
 #pragma omp barrier       
 
-	if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-	    for(int f=0; f<numfabs; f++)
-	    {
-		for(int i=0; i<rg->lMap[f]->l_con.nscpy; i++)
-		    for(int j=0; j<rg->lMap[rg->lMap[f]->l_con.scpy[i].nd]->l_con.ndcpy; j++)
-			if(rg->lMap[f]->l_con.scpy[i].dbx == rg->lMap[rg->lMap[f]->l_con.scpy[i].nd]->l_con.dcpy[j].dbx)
-			    rg->lMap[f]->l_con.scpy[i].dPartner = j;
+ //       if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
+#pragma omp for
+            for(int f=0; f<numfabs; f++)
+            {
+                for(int i=0; i<rg->lMap[f]->l_con.nscpy; i++)
+                    for(int j=0; j<rg->lMap[rg->lMap[f]->l_con.scpy[i].nd]->l_con.ndcpy; j++)
+                        if(rg->lMap[f]->l_con.scpy[i].dbx == rg->lMap[rg->lMap[f]->l_con.scpy[i].nd]->l_con.dcpy[j].dbx)
+                            rg->lMap[f]->l_con.scpy[i].dPartner = j;
 
-		for(int i=0; i<rg->lMap[f]->l_con.ndcpy; i++)
-		    for(int j=0; j<rg->lMap[rg->lMap[f]->l_con.dcpy[i].ns]->l_con.nscpy; j++)
-			if(rg->lMap[f]->l_con.dcpy[i].dbx == rg->lMap[rg->lMap[f]->l_con.dcpy[i].ns]->l_con.scpy[j].dbx)
-			    rg->lMap[f]->l_con.dcpy[i].sPartner = j;
-	    }
+                for(int i=0; i<rg->lMap[f]->l_con.ndcpy; i++)
+                    for(int j=0; j<rg->lMap[rg->lMap[f]->l_con.dcpy[i].ns]->l_con.nscpy; j++)
+                        if(rg->lMap[f]->l_con.dcpy[i].dbx == rg->lMap[rg->lMap[f]->l_con.dcpy[i].ns]->l_con.scpy[j].dbx)
+                            rg->lMap[f]->l_con.dcpy[i].sPartner = j;
+            }
     }
     if(np == 1) return;
 
     //std::cout<< "local init done" <<std::endl;
 
-#pragma omp parallel shared(rg, mf, numfabs)
+//#pragma omp parallel shared(rg, mf, numfabs)
     {
-	int tg = WorkerThread::perilla_wid();
-	int fg, nsnd, nrcv;
+        int tg = WorkerThread::perilla_wid();
+        int fg, nsnd, nrcv;
 
-	for(int f=0; f<numfabs; f++)
-	{
-	    //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
-	    //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==0))
-	    if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
-	    {
-		//rg->lMap[f]->r_con.sndLock = new omp_lock_t;
-		//rg->lMap[f]->r_con.rcvLock = new omp_lock_t;
-		//omp_init_lock(rg->lMap[f]->r_con.sndLock);
-		//omp_init_lock(rg->lMap[f]->r_con.rcvLock);
-		//rg->lMap[f]->r_con.snd = new RemoteCommDescriptor[rg->lMap[f]->r_con.nsnd];
-		//rg->lMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->lMap[f]->r_con.nrcv];
-		nrcv= -1;
-		//for(int i=0; i<bxasc->r_con.nrcv; i++)
-		for(int i=0; i<n_rcvs_mf; i++)
-		{
-		    const FabArrayBase::CopyComTagsContainer& cctc = *recv_cctc[i];
-		    int pr = recv_pr[i];
-		    for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
-			    it != cctc.end(); ++it)
-		    {
-			//if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
-			if(mf.IndexArray()[f] == it->dstIndex)
-			{
-			    nrcv++;
-			    rg->lMap[f]->r_con.rcv[nrcv].ns = it->srcIndex; //bxasc->r_con.rcv[i].ns;
-			    //rg->lMap[f]->r_con.rcv[nrcv].lnd = ; //local_index(mf,bxasc->r_con.rcv[i].nd); // not used anywhere so deferred ---------????????
-			    //rg->lMap[f]->r_con.rcv[nrcv].lns = -1; //undefined
-			    rg->lMap[f]->r_con.rcv[nrcv].nd = it->dstIndex; //bxasc->r_con.rcv[i].nd;
-			    rg->lMap[f]->r_con.rcv[nrcv].lnd = mf.localindex(it->dstIndex);
-			    rg->lMap[f]->r_con.rcv[nrcv].lns = mf.localindex(it->srcIndex);
-			    rg->lMap[f]->r_con.rcv[nrcv].sbx = it->sbox; //bxasc->r_con.rcv[i].sbx;
-			    rg->lMap[f]->r_con.rcv[nrcv].dbx = it->dbox; //bxasc->r_con.rcv[i].dbx;
-			    rg->lMap[f]->r_con.rcv[nrcv].pr = pr; //bxasc->r_con.rcv[i].pr;
-			    rg->lMap[f]->r_con.rcv[nrcv].cnt = 0;
-			    //!create queues for ghost cells
-			    //call queue_init(mf%fbs(f)%r_con%rcv(nrcv)%pQueue)
-			    //call queue_init(mf%fbs(f)%r_con%rcv(nrcv)%recycleQueue)
-			    int psize = it->sbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
-			    /*
-			       p => dataptr(mf%fbs(f), mf%fbs(f)%r_con%rcv(nrcv)%dbx, 1, mf%nc)
-			       s1= size(p,1)
-			       s2= size(p,2)
-			       s3= size(p,3)
-			       s4= size(p,4)
-			       s1*s2*s3*s4
-			     */
-			    rg->lMap[f]->r_con.rcv[nrcv].sz = psize;
-			    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			    {
-				Package *tmpPkg = new Package(psize);
-			        void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
-				for(int j=0; j<psize; j++){
-				    //tmpPkg->databuf[j] = 0;
-				    ((double*)local_ptr)[j]=0;
-				}
-				rg->lMap[f]->r_con.rcv[nrcv].pQueue.enqueue(tmpPkg);
-			    }
-			    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-				rg->lMap[f]->r_con.rcv[nrcv].recycleQueue.enqueue(rg->lMap[f]->r_con.rcv[nrcv].pQueue.dequeue());
-			}
-		    }
-		} // for(i<n_rcvs_mf)
-		nsnd = -1;
-		//for(int i=0; i<bxasc->r_con.nsnd; i++)
-		for(int i=0; i<n_snds_mf; i++)
-		{
-		    const FabArrayBase::CopyComTagsContainer& cctc = *send_cctc[i];
-		    int pr = send_pr[i];
-		    for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
-			    it != cctc.end(); ++it)
-		    {
-			//if(f == local_index(mf,bxasc->r_con.snd[i].ns)) //LocalIndex
-			if(mf.IndexArray()[f] == it->srcIndex )
-			{
-			    nsnd++;
-			    rg->lMap[f]->r_con.snd[nsnd].ns = it->srcIndex; //bxasc->r_con.snd[i].ns;
-			    rg->lMap[f]->r_con.snd[nsnd].nd = it->dstIndex; //bxasc->r_con.snd[i].nd;
-			    //rg->lMap[f]->r_con.snd[nsnd].lns = ; //local_index(mf,bxasc->r_con.snd[i].ns); //not used anywhere so deferred ------?????????
-			    //rg->lMap[f]->r_con.snd[nsnd].lnd = -1; //undefined
-			    rg->lMap[f]->r_con.snd[nsnd].lns = mf.localindex(it->srcIndex);
-			    rg->lMap[f]->r_con.snd[nsnd].lnd = mf.localindex(it->dstIndex);
-			    rg->lMap[f]->r_con.snd[nsnd].sbx = it->sbox; //bxasc->r_con.snd[i].sbx;
-			    rg->lMap[f]->r_con.snd[nsnd].dbx = it->dbox; //bxasc->r_con.snd[i].dbx;
-			    rg->lMap[f]->r_con.snd[nsnd].pr = pr; //bxasc->r_con.snd[i].pr;
-			    rg->lMap[f]->r_con.snd[nsnd].cnt = 0;
-			    //!create queues for ghost cells            
-			    //call queue_init(mf%fbs(f)%r_con%snd(nsnd)%pQueue)
-			    //call queue_init(mf%fbs(f)%r_con%snd(nsnd)%recycleQueue)
-			    int psize = it->sbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
-			    /*
-			       p => dataptr(mf%fbs(f), mf%fbs(f)%r_con%snd(nsnd)%sbx, 1, mf%nc)
-			       s1= size(p,1)
-			       s2= size(p,2)
-			       s3= size(p,3)
-			       s4= size(p,4)
-			       s1*s2*s3*s4
-			     */
-			    rg->lMap[f]->r_con.snd[nsnd].sz = psize;
-			    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			    {
-				Package *tmpPkg = new Package(psize);
-			        void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
-				for(int j=0; j<psize; j++){
-				    //tmpPkg->databuf[j] = 0;
-				    ((double*)local_ptr)[j]=0;
-				}
-				rg->lMap[f]->r_con.snd[nsnd].pQueue.enqueue(tmpPkg);
-			    }
-			    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-				rg->lMap[f]->r_con.snd[nsnd].recycleQueue.enqueue(rg->lMap[f]->r_con.snd[nsnd].pQueue.dequeue());
+        for(int f=0; f<numfabs; f++)
+        {
+            //fg = f % (omp_get_num_threads()/perilla::NUM_THREADS_PER_TEAM);
+            //if((fg == tg) && ((tid%perilla::NUM_THREADS_PER_TEAM)==0))
+ //           if(WorkerThread::isMyRegion(tg,f) && WorkerThread::perilla_isMasterWorkerThread())
+            {
+                //rg->lMap[f]->r_con.sndLock = new omp_lock_t;
+                //rg->lMap[f]->r_con.rcvLock = new omp_lock_t;
+                //omp_init_lock(rg->lMap[f]->r_con.sndLock);
+                //omp_init_lock(rg->lMap[f]->r_con.rcvLock);
+                //rg->lMap[f]->r_con.snd = new RemoteCommDescriptor[rg->lMap[f]->r_con.nsnd];
+                //rg->lMap[f]->r_con.rcv = new RemoteCommDescriptor[rg->lMap[f]->r_con.nrcv];
+                nrcv= -1;
+                //for(int i=0; i<bxasc->r_con.nrcv; i++)
+                for(int i=0; i<n_rcvs_mf; i++)
+                {
+                    const FabArrayBase::CopyComTagsContainer& cctc = *recv_cctc[i];
+                    int pr = recv_pr[i];
+                    for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
+                            it != cctc.end(); ++it)
+                    {
+                        //if(f == local_index(mf,bxasc->r_con.rcv[i].nd)) //LocalIndex
+                        if(mf.IndexArray()[f] == it->dstIndex)
+                        {
+                            nrcv++;
+                            rg->lMap[f]->r_con.rcv[nrcv].ns = it->srcIndex; //bxasc->r_con.rcv[i].ns;
+                            //rg->lMap[f]->r_con.rcv[nrcv].lnd = ; //local_index(mf,bxasc->r_con.rcv[i].nd); // not used anywhere so deferred ---------????????
+                            //rg->lMap[f]->r_con.rcv[nrcv].lns = -1; //undefined
+                            rg->lMap[f]->r_con.rcv[nrcv].nd = it->dstIndex; //bxasc->r_con.rcv[i].nd;
+                            rg->lMap[f]->r_con.rcv[nrcv].lnd = mf.localindex(it->dstIndex);
+                            rg->lMap[f]->r_con.rcv[nrcv].lns = mf.localindex(it->srcIndex);
+                            rg->lMap[f]->r_con.rcv[nrcv].sbx = it->sbox; //bxasc->r_con.rcv[i].sbx;
+                            rg->lMap[f]->r_con.rcv[nrcv].dbx = it->dbox; //bxasc->r_con.rcv[i].dbx;
+                            rg->lMap[f]->r_con.rcv[nrcv].pr = pr; //bxasc->r_con.rcv[i].pr;
+                            rg->lMap[f]->r_con.rcv[nrcv].cnt = 0;
+                            //!create queues for ghost cells
+                            //call queue_init(mf%fbs(f)%r_con%rcv(nrcv)%pQueue)
+                            //call queue_init(mf%fbs(f)%r_con%rcv(nrcv)%recycleQueue)
+                            int psize = it->sbox.numPts() * mf.nComp(); //-----------------------------------------------------------????????????????
+                            /*
+                               p => dataptr(mf%fbs(f), mf%fbs(f)%r_con%rcv(nrcv)%dbx, 1, mf%nc)
+                               s1= size(p,1)
+                               s2= size(p,2)
+                               s3= size(p,3)
+                               s4= size(p,4)
+                               s1*s2*s3*s4
+                             */
+                            rg->lMap[f]->r_con.rcv[nrcv].sz = psize;
+                            for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                            {
+                                Package *tmpPkg = new Package(psize);
+                                void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
+                                for(int j=0; j<psize; j++)
+                                    ((double*)local_ptr)[j]=0;
+                                rg->lMap[f]->r_con.rcv[nrcv].pQueue.enqueue(tmpPkg);
+                            }
+                            for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                                rg->lMap[f]->r_con.rcv[nrcv].recycleQueue.enqueue(rg->lMap[f]->r_con.rcv[nrcv].pQueue.dequeue());
+                        }
+                    }
+                } // for(i<n_rcvs_mf)
+                nsnd = -1;
+                //for(int i=0; i<bxasc->r_con.nsnd; i++)
+                for(int i=0; i<n_snds_mf; i++)
+                {
+                    const FabArrayBase::CopyComTagsContainer& cctc = *send_cctc[i];
+                    int pr = send_pr[i];
+                    for (FabArrayBase::CopyComTagsContainer::const_iterator it = cctc.begin();
+                            it != cctc.end(); ++it)
+                    {
+                        //if(f == local_index(mf,bxasc->r_con.snd[i].ns)) //LocalIndex
+                        if(mf.IndexArray()[f] == it->srcIndex )
+                        {
+                            nsnd++;
+                            rg->lMap[f]->r_con.snd[nsnd].ns = it->srcIndex; //bxasc->r_con.snd[i].ns;
+                            rg->lMap[f]->r_con.snd[nsnd].nd = it->dstIndex; //bxasc->r_con.snd[i].nd;
+                            //rg->lMap[f]->r_con.snd[nsnd].lns = ; //local_index(mf,bxasc->r_con.snd[i].ns); //not used anywhere so deferred ------?????????
+                            //rg->lMap[f]->r_con.snd[nsnd].lnd = -1; //undefined
+                            rg->lMap[f]->r_con.snd[nsnd].lns = mf.localindex(it->srcIndex);
+                            rg->lMap[f]->r_con.snd[nsnd].lnd = mf.localindex(it->dstIndex);
+                            rg->lMap[f]->r_con.snd[nsnd].sbx = it->sbox; //bxasc->r_con.snd[i].sbx;
+                            rg->lMap[f]->r_con.snd[nsnd].dbx = it->dbox; //bxasc->r_con.snd[i].dbx;
+                            rg->lMap[f]->r_con.snd[nsnd].pr = pr; //bxasc->r_con.snd[i].pr;
+                            rg->lMap[f]->r_con.snd[nsnd].cnt = 0;
+                            //!create queues for ghost cells            
+                            //call queue_init(mf%fbs(f)%r_con%snd(nsnd)%pQueue)
+                            //call queue_init(mf%fbs(f)%r_con%snd(nsnd)%recycleQueue)
+                            int psize = it->sbox.numPts() * mf.nComp(); //---------------------------------------------------------------????????????????
+                            /*
+                               p => dataptr(mf%fbs(f), mf%fbs(f)%r_con%snd(nsnd)%sbx, 1, mf%nc)
+                               s1= size(p,1)
+                               s2= size(p,2)
+                               s3= size(p,3)
+                               s4= size(p,4)
+                               s1*s2*s3*s4
+                             */
+                            rg->lMap[f]->r_con.snd[nsnd].sz = psize;
+                            for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                            {
+                                Package *tmpPkg = new Package(psize);
+                                void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();                  
+                                for(int j=0; j<psize; j++)
+                                    ((double*)local_ptr)[j]=0;
+                                rg->lMap[f]->r_con.snd[nsnd].pQueue.enqueue(tmpPkg);
+                            }
+                            for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                                rg->lMap[f]->r_con.snd[nsnd].recycleQueue.enqueue(rg->lMap[f]->r_con.snd[nsnd].pQueue.dequeue());
 
-			    //std::cout<< "RQ f "<< f << " i "<< nsnd <<std::endl;
-			}
-		    }
-		} // for(i<n_snds_mf)
-		//std::cout<< "tid "<< tid << " f "<< f << " nfabs "<< numfabs <<std::endl;
-	    }// if(fg==tg...)
-	    //#pragma omp barrier
-	}//for(f<numfabs)
+                            //std::cout<< "RQ f "<< f << " i "<< nsnd <<std::endl;
+                        }
+                    }
+                } // for(i<n_snds_mf)
+                //std::cout<< "tid "<< tid << " f "<< f << " nfabs "<< numfabs <<std::endl;
+            }// if(fg==tg...)
+            //#pragma omp barrier
+        }//for(f<numfabs)
 
-	//std::cout<< "Barr 1 tid " << tid <<std::endl;
+        //std::cout<< "Barr 1 tid " << tid <<std::endl;
 
-#pragma omp barrier      //----------------------------------- Barrier ------------------------------------------      
-	//if(tid == 0)
-	if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
-	{
-	    for(int f=0; f<numfabs; f++)
-	    {
-		for(int i=0; i<rg->lMap[f]->r_con.nsnd; i++)
-		{
-		    rg->sMap[f]->r_con.snd[i].ns = rg->lMap[f]->r_con.snd[i].ns;
-		    rg->sMap[f]->r_con.snd[i].nd = rg->lMap[f]->r_con.snd[i].nd;
-		    rg->sMap[f]->r_con.snd[i].lns = rg->lMap[f]->r_con.snd[i].lns;
-		    rg->sMap[f]->r_con.snd[i].lnd = rg->lMap[f]->r_con.snd[i].lnd;
-		    rg->sMap[f]->r_con.snd[i].r_gid = rg->graphID-1;
-		    rg->sMap[f]->r_con.snd[i].r_grids = rg->numFabs;
-		    rg->sMap[f]->r_con.snd[i].sbx = rg->lMap[f]->r_con.snd[i].sbx;
-		    rg->sMap[f]->r_con.snd[i].dbx = rg->lMap[f]->r_con.snd[i].dbx;
-		    rg->sMap[f]->r_con.snd[i].pr = rg->lMap[f]->r_con.snd[i].pr;
-		    rg->sMap[f]->r_con.snd[i].sz = rg->lMap[f]->r_con.snd[i].sz;
-		    rg->sMap[f]->r_con.snd[i].cnt = 0;
-		    rg->lMap[f]->r_con.snd[i].cnt = 0;
+//#pragma omp barrier      //----------------------------------- Barrier ------------------------------------------      
 
-		    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-		    {
+        //if(tid == 0)
+ //       if(WorkerThread::perilla_isMasterWorkerThread() && tg==0)
+        {
+            for(int f=0; f<numfabs; f++)
+            {
+                for(int i=0; i<rg->lMap[f]->r_con.nsnd; i++)
+                {
+                    rg->sMap[f]->r_con.snd[i].ns = rg->lMap[f]->r_con.snd[i].ns;
+                    rg->sMap[f]->r_con.snd[i].nd = rg->lMap[f]->r_con.snd[i].nd;
+                    rg->sMap[f]->r_con.snd[i].lns = rg->lMap[f]->r_con.snd[i].lns;
+                    rg->sMap[f]->r_con.snd[i].lnd = rg->lMap[f]->r_con.snd[i].lnd;
+                    rg->sMap[f]->r_con.snd[i].r_gid = rg->graphID-1;
+                    rg->sMap[f]->r_con.snd[i].r_grids = rg->numFabs;
+                    rg->sMap[f]->r_con.snd[i].sbx = rg->lMap[f]->r_con.snd[i].sbx;
+                    rg->sMap[f]->r_con.snd[i].dbx = rg->lMap[f]->r_con.snd[i].dbx;
+                    rg->sMap[f]->r_con.snd[i].pr = rg->lMap[f]->r_con.snd[i].pr;
+                    rg->sMap[f]->r_con.snd[i].sz = rg->lMap[f]->r_con.snd[i].sz;
+                    rg->sMap[f]->r_con.snd[i].cnt = 0;
+                    rg->lMap[f]->r_con.snd[i].cnt = 0;
+
+                    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                    {
                         Package *tmpPkg = new Package(rg->lMap[f]->r_con.snd[i].sz);
-			void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
-			for(int j=0; j<rg->lMap[f]->r_con.snd[i].sz; j++){
-			    //tmpPkg->databuf[j] = 0;
-			    ((double*)local_ptr)[j]=0;
-			}
-			rg->sMap[f]->r_con.snd[i].pQueue.enqueue(tmpPkg);
-		    }
-		    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			rg->sMap[f]->r_con.snd[i].recycleQueue.enqueue(rg->sMap[f]->r_con.snd[i].pQueue.dequeue());
-		}
-		for(int i=0; i<rg->lMap[f]->r_con.nrcv; i++)
-		{
-		    rg->rMap[f]->r_con.rcv[i].ns = rg->lMap[f]->r_con.rcv[i].ns;
-		    rg->rMap[f]->r_con.rcv[i].nd = rg->lMap[f]->r_con.rcv[i].nd;
-		    rg->rMap[f]->r_con.rcv[i].lns = rg->lMap[f]->r_con.rcv[i].lns;
-		    rg->rMap[f]->r_con.rcv[i].lnd = rg->lMap[f]->r_con.rcv[i].lnd;
-		    rg->rMap[f]->r_con.rcv[i].r_gid = rg->graphID-1;
-		    rg->rMap[f]->r_con.rcv[i].r_grids = rg->numFabs;
-		    rg->rMap[f]->r_con.rcv[i].sbx = rg->lMap[f]->r_con.rcv[i].sbx;
-		    rg->rMap[f]->r_con.rcv[i].dbx = rg->lMap[f]->r_con.rcv[i].dbx;
-		    rg->rMap[f]->r_con.rcv[i].pr = rg->lMap[f]->r_con.rcv[i].pr;
-		    rg->rMap[f]->r_con.rcv[i].sz = rg->lMap[f]->r_con.rcv[i].sz;
-		    rg->rMap[f]->r_con.rcv[i].cnt = 0;
-		    rg->lMap[f]->r_con.rcv[i].cnt = 0;
+                        void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
+                        for(int j=0; j<rg->lMap[f]->r_con.snd[i].sz; j++)
+                            ((double*)local_ptr)[j]=0;
+                        rg->sMap[f]->r_con.snd[i].pQueue.enqueue(tmpPkg);
+                    }
+                    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                        rg->sMap[f]->r_con.snd[i].recycleQueue.enqueue(rg->sMap[f]->r_con.snd[i].pQueue.dequeue());
+                }
+                for(int i=0; i<rg->lMap[f]->r_con.nrcv; i++)
+                {
+                    rg->rMap[f]->r_con.rcv[i].ns = rg->lMap[f]->r_con.rcv[i].ns;
+                    rg->rMap[f]->r_con.rcv[i].nd = rg->lMap[f]->r_con.rcv[i].nd;
+                    rg->rMap[f]->r_con.rcv[i].lns = rg->lMap[f]->r_con.rcv[i].lns;
+                    rg->rMap[f]->r_con.rcv[i].lnd = rg->lMap[f]->r_con.rcv[i].lnd;
+                    rg->rMap[f]->r_con.rcv[i].r_gid = rg->graphID-1;
+                    rg->rMap[f]->r_con.rcv[i].r_grids = rg->numFabs;
+                    rg->rMap[f]->r_con.rcv[i].sbx = rg->lMap[f]->r_con.rcv[i].sbx;
+                    rg->rMap[f]->r_con.rcv[i].dbx = rg->lMap[f]->r_con.rcv[i].dbx;
+                    rg->rMap[f]->r_con.rcv[i].pr = rg->lMap[f]->r_con.rcv[i].pr;
+                    rg->rMap[f]->r_con.rcv[i].sz = rg->lMap[f]->r_con.rcv[i].sz;
+                    rg->rMap[f]->r_con.rcv[i].cnt = 0;
+                    rg->lMap[f]->r_con.rcv[i].cnt = 0;
 
-		    if(Perilla::genTags)
-		    {
-			try
-			{
-			    int rcv_pr = rg->rMap[f]->r_con.rcv[i].pr;
-			    int dstIndex = rg->rMap[f]->r_con.rcv[i].nd;
-			    int srcIndex = rg->rMap[f]->r_con.rcv[i].ns;
-			    int psize = rg->rMap[f]->r_con.rcv[i].sz;
-			    std::map<int,int>::iterator itr = tagMap[rcv_pr][rg->graphID-1][dstIndex][srcIndex].find(psize);
-			    if( itr != tagMap[rcv_pr][rg->graphID-1][dstIndex][srcIndex].end())
-			    {
-				//rg->rCopyMapHead->map[f]->r_con.rcv[dcnt].lnd = itr->second;
-			    }
-			    else
-			    {
-				tagMap[rcv_pr][rg->graphID-1][dstIndex][srcIndex][psize] = Perilla::uTags++;
-				//rg->rCopyMapHead->map[f]->r_con.rcv[dcnt].lnd = Perilla::uTags++;
-				std::map<int,int>::iterator itr2 = pTagCnt[rcv_pr].find(rg->graphID-1);
-				if(itr2 != pTagCnt[rcv_pr].end())
-				    pTagCnt[rcv_pr][rg->graphID-1] = pTagCnt[rcv_pr][rg->graphID-1] + 1;
-				else
-				    pTagCnt[rcv_pr][rg->graphID-1] = 1;
-			    }
-			}
-			catch(std::exception& e)
-			{
-			    std::cout <<"Inside tagGeneration gID "<< rg->graphID <<" "<< e.what() << '\n';
-			}
-		    }
-		    //tagMap[rcv_pr][rg->graphID][it->dstIndex][it->srcIndex] = pTagCnt[rcv_pr];                                  
+                    if(Perilla::genTags)
+                    {
+                        try
+                        {
+                            int rcv_pr = rg->rMap[f]->r_con.rcv[i].pr;
+                            int dstIndex = rg->rMap[f]->r_con.rcv[i].nd;
+                            int srcIndex = rg->rMap[f]->r_con.rcv[i].ns;
+                            int psize = rg->rMap[f]->r_con.rcv[i].sz;
+                            std::map<int,int>::iterator itr = tagMap[rcv_pr][rg->graphID-1][dstIndex][srcIndex].find(psize);
+                            if( itr != tagMap[rcv_pr][rg->graphID-1][dstIndex][srcIndex].end())
+                            {
+                                //rg->rCopyMapHead->map[f]->r_con.rcv[dcnt].lnd = itr->second;
+                            }
+                            else
+                            {
+                                tagMap[rcv_pr][rg->graphID-1][dstIndex][srcIndex][psize] = Perilla::uTags++;
+                                //rg->rCopyMapHead->map[f]->r_con.rcv[dcnt].lnd = Perilla::uTags++;
+                                std::map<int,int>::iterator itr2 = pTagCnt[rcv_pr].find(rg->graphID-1);
+                                if(itr2 != pTagCnt[rcv_pr].end())
+                                    pTagCnt[rcv_pr][rg->graphID-1] = pTagCnt[rcv_pr][rg->graphID-1] + 1;
+                                else
+                                    pTagCnt[rcv_pr][rg->graphID-1] = 1;
+                            }
+                        }
+                        catch(std::exception& e)
+                        {
+                            std::cout <<"Inside tagGeneration gID "<< rg->graphID <<" "<< e.what() << '\n';
+                        }
+                    }
+                    //tagMap[rcv_pr][rg->graphID][it->dstIndex][it->srcIndex] = pTagCnt[rcv_pr];                                  
 
-		    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-		    {
-			Package *tmpPkg = new Package(rg->lMap[f]->r_con.rcv[i].sz);
-			void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
-			for(int j=0; j<rg->lMap[f]->r_con.rcv[i].sz; j++){
-			    //tmpPkg->databuf[j] = 0;
-			    ((double*)local_ptr)[j]=0;
-			}
-			rg->rMap[f]->r_con.rcv[i].pQueue.enqueue(tmpPkg);
-		    }
-		    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
-			rg->rMap[f]->r_con.rcv[i].recycleQueue.enqueue(rg->rMap[f]->r_con.rcv[i].pQueue.dequeue());
-		}
-	    }
-	}// if(tid==0)
+                    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                    {
+                        Package *tmpPkg = new Package(rg->lMap[f]->r_con.rcv[i].sz);
+                        void* local_ptr= (static_cast<upcxx::global_ptr<void> >(tmpPkg->databuf)).local();
+                        for(int j=0; j<rg->lMap[f]->r_con.rcv[i].sz; j++)
+                            ((double*)local_ptr)[j]=0;
+                        rg->rMap[f]->r_con.rcv[i].pQueue.enqueue(tmpPkg);
+                    }
+                    for(int p=0; p<perilla::NUM_PREGENERATED_PACKAGES; p++)
+                        rg->rMap[f]->r_con.rcv[i].recycleQueue.enqueue(rg->rMap[f]->r_con.rcv[i].pQueue.dequeue());
+                }
+            }
+        }// if(tid==0)
 
     }// omp parallel    
 }// multifabBuildFabCon
+
 
 
 #if 0
@@ -1762,7 +1774,7 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, bo
 	}
 } // serviceMultipleGraphComm
 
-#if 0
+#if 1
 void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArray, bool cpyAcross, int tid)
 {
     int tg = WorkerThread::perilla_wid();
@@ -1778,7 +1790,7 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
     double numloops=0;
     double ltime,lstime,letime;
 
-    while(true)
+    //while(true)
     {	
 	for(int g=0; g<graphArray.size(); g++)
 	{
@@ -1797,25 +1809,25 @@ void Perilla::serviceMultipleGraphCommDynamic(std::vector<RegionGraph*> graphArr
                 }
 	    }
 	}
-	if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
-	{
-	    if(doublechecked) // double check if there are still something to send
-		break;
-	    else
-		doublechecked = true;
-	}
+	//if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+	//{
+	//    if(doublechecked) // double check if there are still something to send
+	//	break;
+	//    else
+	//	doublechecked = true;
+	//}
 	numloops++;
 	avgltime += ltime;
     } // while(true)
 
-    nGraphs = graphArray.size();
-    for(int g=0; g<nGraphs; g++)
-    {
+    //nGraphs = graphArray.size();
+    //for(int g=0; g<nGraphs; g++)
+    //{
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-1");
 	//graphArray[g]->graphTeardown(tg);
 	//graphArray[g]->workerTeardown(tg);
 	//ParallelDescriptor::Barrier("serviceMultipleGraph-2");
-    }
+    //}
 } // serviceMultipleGraphCommDynamic
 #endif
 
@@ -1823,6 +1835,15 @@ void Perilla::serviceMultipleGraphComm(RegionGraph graphArray[], int nGraphs, in
 {
     serviceMultipleGraphComm(graphArray,nGraphs,false,tid);
 } // serviceMultipleGraphComm
+
+void Perilla::flattenGraphHierarchy(std::vector<std::vector<RegionGraph*> > graphArrayHierarchy, std::vector<RegionGraph*> &graphArray){
+    int gCnt=0;
+    for(int l=0; l<graphArrayHierarchy.size(); l++) gCnt+= graphArrayHierarchy[l].size();
+    for(int l=0; l<graphArrayHierarchy.size(); l++)
+        for(int g=0; g<graphArrayHierarchy[l].size(); g++)
+            graphArray.push_back(graphArrayHierarchy[l][g]);
+}
+
 
 void Perilla::fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f)
 {
@@ -1916,7 +1937,7 @@ void Perilla::fillBoundaryPush(RegionGraph* graph, MultiFab* mf, int f)
 
 } // fillBoundaryPush
 
-void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
+void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f, bool singleT)
 {
 
     int nComp = mf->nComp();
@@ -1925,7 +1946,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 
     if(ntid==0)
 	pthread_mutex_lock(&(graph->lMap[f]->l_con.dLock));
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads    
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads    
 
     if(perilla::LAZY_PUSH)
     { }
@@ -1957,7 +1979,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 	} // if(UNPACKING_FINEGRAIN) - else
     } // if(LAZY_PUSH) - else
 
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     if(ntid==0)
     {
@@ -1972,7 +1995,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 		graph->lMap[f]->l_con.firingRuleCnt++;
 	pthread_mutex_unlock(&(graph->lMap[f]->l_con.dLock));
     }
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     int np = ParallelDescriptor::NProcs();
     if (np==1) return;
@@ -1982,7 +2006,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 	pthread_mutex_lock(&(graph->rMap[f]->r_con.rcvLock));
 	pthread_mutex_lock(&(graph->lMap[f]->r_con.rcvLock));
     }
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     for(int i=0; i<graph->lMap[f]->r_con.nrcv; i++)
 	if( (i%(perilla::NUM_THREADS_PER_TEAM-1)) == ntid)
@@ -1998,7 +2023,8 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
 	    rcvPackage->notified = false;
 	    graph->lMap[f]->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);
 	}
-    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
+    if(!singleT)
+        graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1); // Barrier to synchronize team threads
 
     if(ntid==0)
     {
@@ -2012,6 +2038,25 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f)
     }
 
 } // fillBoundaryPull
+
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf, bool singleT)
+  {
+    if(rgi.currentItr != 1)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPull(rg, &mf, f, singleT);
+  }
+
+  void Perilla::fillBoundaryPull(amrex::RGIter& rgi, amrex::MultiFab& mf, bool singleT)
+  {
+    if(rgi.currentItr != 1)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPull(rgi.itrGraph, &mf, f, singleT);
+  }
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -3480,10 +3525,6 @@ void Perilla::multifabCopyPushAsync(RegionGraph* destGraph, RegionGraph* srcGrap
     } // if(!(*mfDst == *mfSrc))      													      
 } // multifabCopyPushAsync
 
-void Perilla::multifabCopyPushAsync(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* mfDst, MultiFab* mfSrc, int f, bool singleT) 
-{
-    multifabCopyPushAsync(destGraph, srcGraph, mfDst, mfSrc, f, 1, 1, 1, 0, 0, singleT);
-} 
 
 void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* mfDst, MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
 {
@@ -4082,3 +4123,308 @@ void Perilla::resetRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray, 
     } // for(f<nfabs)
 
 }
+
+  void Perilla::fillBoundaryPush(amrex::RGIter& rgi, amrex::MultiFab& mf)
+  {
+    if(rgi.currentItr != rgi.totalItr)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPush(rgi.itrGraph, &mf, f);
+  }
+
+  void Perilla::fillBoundaryPush(amrex::RGIter& rgi, RegionGraph* rg, amrex::MultiFab& mf)
+  {
+    if(rgi.currentItr != rgi.totalItr)
+      return;
+
+    int f = rgi.currentRegion;
+    fillBoundaryPush(rg, &mf, f);
+  }
+
+void Perilla::multifabCopyPushAsync(RegionGraph* destGraph, RegionGraph* srcGraph, MultiFab* mfDst, MultiFab* mfSrc, int f, bool singleT)
+{
+    multifabCopyPushAsync(destGraph, srcGraph, mfDst, mfSrc, f, 1, 1, 1, 0, 0, singleT);
+}
+
+
+void Perilla::multifabCopyPush(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
+{
+
+    //double start_time_wtime = omp_get_wtime();
+
+    if(nc<1) cout <<"MULTIFAB_COPY_C: nc must be >= 1"<< endl;
+    if(mfDst->nComp() < (dstcomp-1)) cout <<"MULTIFAB_COPY_C: nc too large for dst multifab"<< endl;
+    if(mfSrc->nComp() < (srccomp-1)) cout <<"MULTIFAB_COPY_C: nc too large for src multifab"<< endl;
+
+    //mTeams = false; 
+
+//    if(np==1)
+      //multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,dstcomp,srccomp,nc,ng,ngsrc,singleT);
+/*    else if(mTeams)
+      {
+        if(WorkerThread::isLocPPTID(tid))
+          multifabCopyLocPush(destGraph,srcGraph,mfDst,mfSrc,f,tid,dstcomp,srccomp,nc,ng,ngsrc);
+        else
+          multifabCopyRmtPush(destGraph,srcGraph,mfDst,mfSrc,f,tid,dstcomp,srccomp,nc,ng,ngsrc);
+      }
+    else
+      multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,tid,dstcomp,srccomp,nc,ng,ngsrc,singleT);
+*/
+
+    multifabCopyPush_1Team(destGraph,srcGraph,mfDst,mfSrc,f,dstcomp,srccomp,nc,ng,ngsrc,singleT);
+    if(!singleT)
+      srcGraph->worker[perilla::wid()]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+
+    //double end_time_wtime = omp_get_wtime();
+    //if(ntid==0)
+      //Perilla::getPPPTimeSplit[2] += end_time_wtime - start_time_wtime;
+}
+
+  void Perilla::multifabCopyPush_1Team(RegionGraph* destGraph, RegionGraph* srcGraph, amrex::MultiFab* mfDst, amrex::MultiFab* mfSrc, int f, int dstcomp, int srccomp, int nc, int ng, int ngsrc, bool singleT)
+  {
+    int ntid = perilla::wtid();// - perilla::NUM_COMM_THREADS;
+    int tg = perilla::wid();
+    int myProc = amrex::ParallelDescriptor::MyProc();
+
+    if(true)//if(!(*mfDst == *mfSrc))
+      {
+        if(ng > mfDst->nGrow()) cout <<"MULTIFAB_COPY_C: ng > 0 not supported in parallel copy"<< endl;
+        if(ngsrc > mfSrc->nGrow()) cout <<"MULTIFAB_COPY_C: ngsrc > msrc%ng"<< endl;
+        FabCopyAssoc* cpSrc = srcGraph->task[f]->cpAsc_srcHead;
+
+        while(cpSrc != 0)
+          {
+            if(cpSrc->graphPartner == destGraph)
+              break;
+            cpSrc = cpSrc->next;
+          }
+        if(cpSrc == 0) cout <<"Metadata for across grid copy not found"<< endl;
+
+        if(singleT)
+          {
+            pthread_mutex_lock(&(cpSrc->l_con.sLock));
+            for(int i=0; i<cpSrc->l_con.nscpy; i++)
+              {
+                Package* sndPackage = cpSrc->l_con.scpy[i].recycleQueue.getFront(true);
+                mfSrc->m_fabs_v[f]->copyToMem(cpSrc->l_con.scpy[i].sbx,srccomp,nc,sndPackage->databuf);
+              }
+            for(int i=0;i<cpSrc->l_con.nscpy; i++)
+              cpSrc->l_con.scpy[i].pQueue.enqueue(cpSrc->l_con.scpy[i].recycleQueue.dequeue(true),true);
+            pthread_mutex_unlock(&(cpSrc->l_con.sLock));
+          }
+        else
+          {
+            if(ntid == 0)
+              pthread_mutex_lock(&(cpSrc->l_con.sLock));
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            //std::ofstream fout;
+            //fout.open(std::to_string(myProc)+ "_" + std::to_string(tid) + ".txt", std::fstream::app);
+            for(int i=0; i<cpSrc->l_con.nscpy; i++)
+              if((i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
+                {
+                  Package* sndPackage = cpSrc->l_con.scpy[i].recycleQueue.getFront(true);
+                  mfSrc->m_fabs_v[f]->copyToMem(cpSrc->l_con.scpy[i].sbx,srccomp,nc,sndPackage->databuf);
+                  /*
+                  for(int ii=0; ii < sndPackage->bufSize; ii++)
+                    if(sndPackage->databuf[ii] == 0)
+                      fout << "MFCPush loc zero at " << f << " i " << i << " ii " << ii << " sbx "<< cpSrc->l_con.scpy[i].sbx << std::endl;
+                  */
+                }
+
+            //fout.close();
+
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            if(ntid==0)
+              {
+                for(int i=0;i<cpSrc->l_con.nscpy; i++)
+                  cpSrc->l_con.scpy[i].pQueue.enqueue(cpSrc->l_con.scpy[i].recycleQueue.dequeue(true),true);
+                pthread_mutex_unlock(&(cpSrc->l_con.sLock));
+              }
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+          }
+
+        int np = amrex::ParallelDescriptor::NProcs();
+        if(np == 1)
+          return;
+
+        //if(myProc==26 && srcGraph->graphID==18  && ntid == 0)
+        //std::cout << "Notw its sgID 18,"<< f <<" turn lets see " << cpSrc->r_con.nsnd <<std::endl;
+
+        //if(myProc==28 && srcGraph->graphID==18  && ntid == 0)
+        //std::cout << "Notw its sgID 18,"<< f <<" turn lets see " << cpSrc->r_con.nsnd <<std::endl;
+
+        //if(srcGraph->graphID==18 && f ==316)   
+        //BL_ASSERT(cpSrc->r_con.nsnd == 177);
+        if(singleT)
+          {
+            pthread_mutex_lock(&(cpSrc->r_con.sndLock));
+            for(int i=0; i<cpSrc->r_con.nsnd; i++)
+              {
+                Package* sndPackage = cpSrc->r_con.snd[i].recycleQueue.dequeue(true);
+                mfSrc->m_fabs_v[f]->copyToMem(cpSrc->r_con.snd[i].sbx,srccomp,nc,sndPackage->databuf);
+                sndPackage->notified = false;
+                sndPackage->notified = false;
+                cpSrc->r_con.snd[i].pQueue.enqueue(sndPackage,true);
+              }
+
+            pthread_mutex_unlock(&(cpSrc->r_con.sndLock));
+
+            cpSrc->r_con.remotePushReady = true;
+            ///*
+            pthread_mutex_lock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
+            for(int i=0; i<cpSrc->r_con.nsnd; i++)
+              srcGraph->sCopyMapHead->map[f]->r_con.snd[i].pQueue.enqueue(srcGraph->sCopyMapHead->map[f]->r_con.snd[i].recycleQueue.dequeue(true),true);
+            pthread_mutex_unlock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
+          }
+        else
+          {
+            if(ntid == 0)
+              pthread_mutex_lock(&(cpSrc->r_con.sndLock));
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+
+            for(int i=0; i<cpSrc->r_con.nsnd; i++)
+              if((i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
+                {
+                  Package* sndPackage = cpSrc->r_con.snd[i].recycleQueue.dequeue(true);
+                  mfSrc->m_fabs_v[f]->copyToMem(cpSrc->r_con.snd[i].sbx,srccomp,nc,sndPackage->databuf);
+                  sndPackage->notified = false;
+                  sndPackage->notified = false;
+                  cpSrc->r_con.snd[i].pQueue.enqueue(sndPackage,true);
+                }
+
+            //fout.close();         
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+            if(ntid==0)
+              {
+                pthread_mutex_unlock(&(cpSrc->r_con.sndLock));
+                cpSrc->r_con.remotePushReady = true;
+                ///*
+                pthread_mutex_lock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
+                for(int i=0; i<cpSrc->r_con.nsnd; i++)
+                  srcGraph->sCopyMapHead->map[f]->r_con.snd[i].pQueue.enqueue(srcGraph->sCopyMapHead->map[f]->r_con.snd[i].recycleQueue.dequeue(true),true);
+                pthread_mutex_unlock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));
+                //*/
+              }
+            srcGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS);
+          }
+      } // if(!(*mfDst == *mfSrc))                                                                                                                    
+  } // multifabCopyPush
+
+
+
+  void Perilla::fillBoundaryPull_1Team(RegionGraph* graph, amrex::MultiFab& mf, int f)
+  {
+    int myProc = amrex::ParallelDescriptor::MyProc();
+    int mfi = mf.IndexArray()[f];
+
+    int nComp = mf.nComp();
+    int tg= perilla::wid();
+    int ntid = perilla::wtid();//-perilla::NUM_COMM_THREADS;
+
+    if(ntid==0)
+      pthread_mutex_lock(&(graph->lMap[f]->l_con.dLock));
+    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads    
+
+    if(perilla::LAZY_PUSH)
+      { }
+    else
+      {
+        if(perilla::UNPACKING_FINEGRAIN)
+          {}
+        else
+          {
+            for(int i=0; i<graph->lMap[f]->l_con.ndcpy; i++)
+              if( (i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
+                {
+                  Package *dPackage = graph->lMap[f]->l_con.dcpy[i].pQueue.getFront(true);
+                  /*
+                  for(int d=0; d<dPackage->bufSize; d++)
+                    if(dPackage->databuf[d] == 0)
+                      {
+                        //std::cout<< "in fbPull Reciving 0 for f "<< f <<std::endl;
+                        //BL_ASSERT(dPackage->databuf[d] != 0);
+                      }
+                  */
+                  /*
+                  if(f==0)
+                  //if(graph->lMap[f]->l_con.dcpy[i].dbx.smallEnd() == graph->lMap[f]->l_con.dcpy[i].dbx.bigEnd())
+                  //if(graph->lMap[f]->l_con.dcpy[i].dbx.smallEnd(0)==-1 && graph->lMap[f]->l_con.dcpy[i].dbx.smallEnd(1)==-1 && graph->lMap[f]->l_con.dcpy[i].dbx.smallEnd(2)==4)
+                      std::cout<< "Corner Pull for f "<< f << " data0 " <<dPackage->databuf[0]<< " size " <<dPackage->bufSize <<" se " <<graph->lMap[f]->l_con.dcpy[i].dbx.smallEnd()<<std::endl;
+                  */
+                  /*
+                  if(mfi==0)
+                    {
+                      std::cout<< "LPull " << i <<std::endl;
+                      for(int d=0; d<dPackage->bufSize; d++)
+                        std::cout << dPackage->databuf[d] << " ";
+                      std::cout << std::endl;
+                    }
+                  */
+                  mf.m_fabs_v[f]->copyFromMem(graph->lMap[f]->l_con.dcpy[i].dbx,0,nComp,dPackage->databuf);
+                }
+          } // if(UNPACKING_FINEGRAIN) - else
+      } // if(LAZY_PUSH) - else
+
+    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+
+    if(ntid==0)
+      {
+        for(int i=0; i<graph->lMap[f]->l_con.ndcpy; i++)
+          {
+            graph->lMap[f]->l_con.dcpy[i].recycleQueue.enqueue( graph->lMap[f]->l_con.dcpy[i].pQueue.dequeue(true),true );
+          }
+
+        graph->lMap[f]->l_con.firingRuleCnt = graph->lMap[f]->l_con.firingRuleCnt - graph->lMap[f]->l_con.ndcpy;
+
+
+        graph->lMap[f]->l_con.scpyCnt = 0;
+        for(int i=0; i<graph->lMap[f]->l_con.ndcpy; i++)
+          if(graph->lMap[f]->l_con.dcpy[i].pQueue.queueSize(true) >= 1)
+            {
+              graph->lMap[f]->l_con.firingRuleCnt++;
+            }
+
+        pthread_mutex_unlock(&(graph->lMap[f]->l_con.dLock));
+      }
+    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+
+    int np = amrex::ParallelDescriptor::NProcs();
+    if (np==1) return;
+    if(ntid==0)
+      {
+        pthread_mutex_lock(&(graph->rMap[f]->r_con.rcvLock));
+        pthread_mutex_lock(&(graph->lMap[f]->r_con.rcvLock));
+      }
+    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+
+    for(int i=0; i<graph->lMap[f]->r_con.nrcv; i++)
+      if( (i%(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS)) == ntid)
+        {
+          Package *rcvMetaPackage = graph->rMap[f]->r_con.rcv[i].pQueue.dequeue(true);
+          rcvMetaPackage->completed = false;
+          rcvMetaPackage->served = false;
+          rcvMetaPackage->request = 0;
+          graph->rMap[f]->r_con.rcv[i].recycleQueue.enqueue(rcvMetaPackage,true);
+          Package *rcvPackage = graph->lMap[f]->r_con.rcv[i].pQueue.dequeue(true);
+
+          mf.m_fabs_v[f]->copyFromMem(graph->lMap[f]->r_con.rcv[i].dbx,0,nComp,rcvPackage->databuf);
+          rcvPackage->completed = false;
+          rcvPackage->notified = false;
+          graph->lMap[f]->r_con.rcv[i].recycleQueue.enqueue(rcvPackage,true);
+        }
+    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+
+    if(ntid==0)
+      {
+        graph->lMap[f]->r_con.firingRuleCnt = graph->lMap[f]->r_con.firingRuleCnt - graph->lMap[f]->r_con.nrcv;
+        for(int i=0; i<graph->lMap[f]->r_con.nrcv; i++)
+          if(graph->lMap[f]->r_con.rcv[i].pQueue.queueSize(true) >= 1)
+            if(graph->lMap[f]->r_con.rcv[i].pQueue.getFront(true)->checkRequest())
+              graph->lMap[f]->r_con.firingRuleCnt++;
+        pthread_mutex_unlock(&(graph->lMap[f]->r_con.rcvLock));
+        pthread_mutex_unlock(&(graph->rMap[f]->r_con.rcvLock));
+      }
+    graph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
+  } // fillBoundaryPull
+

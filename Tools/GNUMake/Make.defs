@@ -154,10 +154,6 @@ else
   USE_CUDA_FAST_MATH := TRUE
 endif
 
-ifndef NO_DEVICE_LAUNCH
-  NO_DEVICE_LAUNCH = FALSE
-endif
-
 ifeq ($(USE_CUDA),TRUE)
   # Set the default CUDA architecture version.
   CUDA_ARCH ?= 60
@@ -477,7 +473,7 @@ ifeq ($(USE_CUDA),TRUE)
 
     CUDASuffix := .CUDA
 
-    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi))
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
       DEFINES += -DAMREX_DEVICE='attributes(device)'
       DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
@@ -489,7 +485,6 @@ ifeq ($(USE_CUDA),TRUE)
       DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
       DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
       DEFINES += -DAMREX_CUDA_FORT_HOST=""
-      DEFINES += -DAMREX_NO_DEVICE_LAUNCH
     endif
 
 else

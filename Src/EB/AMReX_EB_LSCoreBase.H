@@ -46,7 +46,7 @@ public:
     virtual ~LSCoreBase ();
 
     // Initializes multilevel data
-    void InitData ();
+    void InitData (bool a_use_phierr = false);
     void InitData (const Vector<Real> & m_phierr);
 
     // Make a new level using provided BoxArray and DistributionMapping and fill
@@ -118,7 +118,8 @@ protected:
 
     // Construct a box over which to search for eb facets using the coarser
     // level to inform how many ghost cells to fill
-    Box EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail);
+    Box EBSearchBox(const Box & box, const FArrayBox & ls_crse,
+                    const Geometry & geom_fine, bool & bail);
 
     // Get plotfile name
     std::string PlotFileName (int lev) const;
@@ -163,7 +164,7 @@ protected:
     // condition types at the lo/hi walls in each direction
     Vector<BCRec> bcs; // 1-component
 
-    bool use_phierr = true;
+    bool use_phierr = false;
     bool phierr_set = false;
     Vector<Real> phierr;
 

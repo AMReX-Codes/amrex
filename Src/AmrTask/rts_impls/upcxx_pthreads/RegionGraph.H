@@ -30,6 +30,10 @@ namespace amrex{
 		prev=0;
 		graphPartner=0;
 	    }
+            ~FabCopyAssoc()
+            {
+                if(next) delete next;
+            }
     };
 
     class pTileArray
@@ -43,7 +47,7 @@ namespace amrex{
 	    {
                 for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
                 tileBx.clear();
-                delete[] validBx;
+                //delete[] validBx;
 	    }
     };
 
@@ -73,10 +77,10 @@ namespace amrex{
 	    {
 		state.clear();
 		depTaskIDs.clear();
-		if(cpAsc_srcHead != 0)
-		    delete[] cpAsc_srcHead;
-		if(cpAsc_dstHead != 0)
-		    delete[] cpAsc_dstHead;
+		//if(cpAsc_srcHead != 0)
+		    //delete[] cpAsc_srcHead;
+		//if(cpAsc_dstHead != 0)
+		    //delete[] cpAsc_dstHead;
 	    }
     };
 
@@ -93,6 +97,16 @@ namespace amrex{
 	    RegionQueue* computedRegionQueue;
 	    RegionQueue* completedRegionQueue;
 	    Worker():init(false), barr(0), l_barr(0), totalTasks(0){}
+
+            ~Worker(){
+                delete barr;
+                delete l_barr;
+                delete fireableRegionQueue;
+                delete unfireableRegionQueue;
+                delete computedRegionQueue;
+                delete completedRegionQueue;
+            }
+
     };
 
     //template <class FAB>

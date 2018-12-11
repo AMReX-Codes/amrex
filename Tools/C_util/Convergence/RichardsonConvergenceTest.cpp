@@ -484,7 +484,7 @@ main (int   argc,
         printOrder = true;
       }
 
-      pout() << namesMedi[icomp] << "&    \t ";
+      amrex::Print() << namesMedi[icomp] << "&    \t ";
       amrex::Print() << setw(12)
                      << setprecision(6)
                      << setiosflags(ios::showpoint)
