@@ -374,14 +374,14 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       });
 
       FArrayBox const* local_jy_const_ptr = local_jy[thread_num].get();
-      FArrayBox* global_jy_ptr = cjx->fabPtr(pti);
+      FArrayBox* global_jy_ptr = cjy->fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tby, thread_bx,
       {
         global_jy_ptr->atomicAdd(*local_jy_const_ptr, thread_bx, thread_bx, 0, 0, 1);
       });
 
       FArrayBox const* local_jz_const_ptr = local_jz[thread_num].get();
-      FArrayBox* global_jz_ptr = cjx->fabPtr(pti);
+      FArrayBox* global_jz_ptr = cjz->fabPtr(pti);
       AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tbz, thread_bx,
       {
         global_jz_ptr->atomicAdd(*local_jz_const_ptr, thread_bx, thread_bx, 0, 0, 1);
