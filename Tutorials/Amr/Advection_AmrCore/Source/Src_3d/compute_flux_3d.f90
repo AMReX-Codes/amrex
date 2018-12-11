@@ -208,6 +208,17 @@ contains
                      - tdtdx(2) * (0.5d0*(vmac(i,j+1,k-1)+vmac(i,j,k-1)) * (phiy(i,j+1,k-1)-phiy(i,j,k-1)) )
              end if
 
+             if ((i .eq. 28) .and. (j .eq. 47) .and. (k .eq. 32)) then
+                 print *, "tdtdx(2) ", tdtdx(2)
+                 print *, "phiyA ", phiy(i,j+1,k-1)
+                 print *, "phiyB ", phiy(i,j  ,k-1)
+                 print *, "vA ", vmac(i,j+1,k-1)
+                 print *, "vB ", vmac(i,j,k-1)
+                 print *, "phiz ", phiz(i,j,k)
+                 print *, "phiz_y ", phiz_y(i,j,k)
+                 print *, "======="
+             end if
+
           end do
        end do
     end do
@@ -221,6 +232,13 @@ contains
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)+1
 
+             if ((i .eq. 28) .and. (j .eq. 47) .and. (k .eq. 32)) then
+                 print *, "phix Before ", phix(i,j,k)
+                 print *, "flxx Before ", flxx(i,j,k)
+                 print *, "phiy_z ", phiy_z(i,j,k)
+                 print *, "phiz_y ", phiz_y(i,j,k)
+             end if
+
              if (umac(i,j,k) .lt. 0.d0) then
                 phix(i,j,k) = phix(i,j,k) &
                      - hdtdx(2)*( 0.5d0*(vmac(i  ,j+1,k  )+vmac(i  ,j,k)) * (phiy_z(i  ,j+1,k  )-phiy_z(i  ,j,k)) ) &
@@ -233,6 +251,14 @@ contains
 
              ! compute final x-fluxes
              flxx(i,j,k) = umac(i,j,k)*phix(i,j,k)
+
+             if ((i .eq. 28) .and. (j .eq. 47) .and. (k .eq. 32)) then
+                 print *, "phix ", phix(i,j,k)
+                 print *, "flxx ", flxx(i,j,k) 
+                 print *, "vx   ", umac(i,j,k)
+                 print *, "vy   ", vmac(i,j,k)
+                 print *, "vz   ", wmac(i,j,k)
+             end if
 
           end do
        end do
