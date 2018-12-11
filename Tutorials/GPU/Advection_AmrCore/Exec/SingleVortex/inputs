@@ -1,4 +1,4 @@
-max_step  = 1
+max_step  = 100
 stop_time = 2.0
 
 # PROBLEM SIZE & GEOMETRY
@@ -27,8 +27,6 @@ adv.cfl            = 0.7     # cfl number for hyperbolic system
 			     # to satisfy CFL condition.
 
 adv.do_reflux = 1
-
-fabarray.mfiter_tile_size = 1024 1024 1024
 
 
 # Tagging
