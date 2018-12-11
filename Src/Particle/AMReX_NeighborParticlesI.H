@@ -327,8 +327,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
     
     for (int lev = 0; lev < this->numLevels(); ++lev) {
-        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
-        
         // First pass - each thread collects the NeighborIndexMaps it owes to other
         // grids / tiles / procs
 #ifdef _OPENMP
@@ -623,7 +621,6 @@ NeighborParticleContainer<NStructReal, NStructInt>
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const RealBox& prob_domain = this->Geom(lev).ProbDomain();
-        const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
         
         int num_threads = 1;
 #ifdef _OPENMP
@@ -643,7 +640,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 #endif
                 for (unsigned i = 0; i < num_tags; ++i) {
                     const NeighborCopyTag& tag = tags[i];
-                    const int who = dmap[tag.grid];
+                    const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
                     ParticleType p = particles[tag.src_index];
                     if (periodicity.isAnyPeriodic()) {
                         for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
