@@ -413,7 +413,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     
     
     {  // ---- data write
-        BL_PROFILE_VAR("H5Dwritedata", h5dwd);
+        BL_PROFILE_VAR("NCVarPut", h5dwd);
 
         MPI_Offset hs_procsize[1], hs_allprocsize[1], ch_offset[1];
         
@@ -480,7 +480,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         // ASim@lbl.gov 6/15/2017
         double dPlotFileTime00(ParallelDescriptor::second());
         
-        BL_PROFILE_VAR("H5DwriteGrids", h5dwg);
+        BL_PROFILE_VAR("NCVarPutGrids", h5dwg);
 #ifdef H5INDEP
         err = ncmpi_put_vara_double(vFile, dataset, ch_offset, hs_procsize, a_buffer.dataPtr());
 #else
