@@ -562,7 +562,6 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
     region_valid->setVal(0);
 
 
-
     /****************************************************************************
      *                                                                          *
      * Access EB Cut-Cell data:                                                 *
@@ -600,7 +599,7 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(* ls_grid, IntVect{AMREX_D_DECL(eb_grid_pad, eb_grid_pad,eb_grid_pad)});
+    for (MFIter mfi(* ls_grid, IntVect{AMREX_D_DECL(eb_grid_pad, eb_grid_pad, eb_grid_pad)});
          mfi.isValid();
          ++mfi)
     {
@@ -608,16 +607,21 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
         // Fill grown tile box => fill ghost cells as well
         Box tile_box = mfi.growntilebox();
 
+
         //_______________________________________________________________________
         // Construct search box over which to look for EB facets
-        Box eb_search = amrex::convert(mfi.tilebox(), IntVect{AMREX_D_DECL(0,0,0)});
+
         // mfi inherits from ls_grid which might not have the right refinement
+        Box eb_search = mfi.tilebox();
         eb_search.coarsen(ls_grid_ref);
         eb_search.refine(eb_grid_ref);
-        // Grow search box out from (correctly refined) tile box.
-        // NOTE: grow the tile box AT MOST by eb_grid_pad => ensures that
-        // EBFactory is defined for the whole search box
+
+        // Grow search box out from (correctly refined) tile box. NOTE: grow the
+        // tile box AT MOST by eb_grid_pad => ensures that EBFactory is defined
+        // for the whole search box
+        eb_search.enclosedCells(); // search box must be cell-centered
         eb_search.grow(eb_grid_pad);
+
 
         const auto & if_tile   = mf_impfunc[mfi];
         const auto & norm_tile = normal[mfi];
@@ -655,7 +659,7 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
 
             region_tile.setVal(1);
         } else {
-            ls_tile.setVal( min_dx * eb_grid_pad );
+            ls_tile.setVal( min_dx * eb_grid_pad, tile_box );
         }
 
         //_______________________________________________________________________
@@ -663,6 +667,14 @@ std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb
         Real ls_threshold = min_dx * eb_grid_pad;
         amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
                                     BL_TO_FORTRAN_3D(ls_tile));
+
+
+        //_______________________________________________________________________
+        // Validate level-set
+        amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
+                                   BL_TO_FORTRAN_3D(if_tile),
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile)   );
 
     }
     //ls_grid->FillBoundary(geom_ls.periodicity());
