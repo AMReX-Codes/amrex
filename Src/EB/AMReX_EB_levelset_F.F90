@@ -108,6 +108,97 @@ contains
     end subroutine amrex_eb_fill_levelset
 
 
+    !---------------------------------------------------------------------------!
+    !                                                                           !
+    !   pure subroutine FILL_LEVELSET_LOC                                       !
+    !                                                                           !
+    !   Purpose: given a list of EB-facets, fill the level-set MultiFab between !
+    !   `lo` and `hi` with the closets distance to the EB-facests. For all      !
+    !   `abs(ls_guess) > ls_thres `, level-set filling is aborted and the       !
+    !   level-set is set to +/- `ls_thres`. This avoid unnecessary filling far  !
+    !   from EB boundaries.                                                     !
+    !                                                                           !
+    !   Also fill a iMultiFab with 0's and 1's. 0 Indicating that the closest   !
+    !   distance was not the result of a projection onto a facet's plane, but   !
+    !   instead onto an edge/corner.                                            !
+    !                                                                           !
+    !   Comments: Distances are **signed** ( < 0 => inside an EB). Note that at !
+    !   this point the algorithm assumes an edge case lies inside an EB (i.e.   !
+    !   its distance is negative). These points are marked using valid = 0. We  !
+    !   recommend that the EB's implicit function is used to check these cases  !
+    !   (i.e. validate the level-set).                                          !
+    !                                                                           !
+    !---------------------------------------------------------------------------!
+
+    pure subroutine amrex_eb_fill_levelset_loc(lo,       hi,              &
+                                               eb_list,  l_eb,            &
+                                               valid,    v_lo,   v_hi,    &
+                                               phi,      p_lo,   p_hi,    &
+                                               ls_guess, lsg_lo, lsg_hi,  &
+                                               ls_thres, dx,     dx_eb  ) &
+                    bind(C, name="amrex_eb_fill_levelset_loc")
+
+      implicit none
+
+      ! ** define I/O dummy variables
+      integer,                       intent(in   ) :: l_eb
+      integer,      dimension(3),    intent(in   ) :: lo, hi, v_lo, v_hi, p_lo, p_hi, lsg_lo, lsg_hi
+      real(c_real), dimension(l_eb), intent(in   ) :: eb_list
+      real(c_real), dimension(3),    intent(in   ) :: dx, dx_eb
+      real(c_real),                  intent(in   ) :: ls_thres
+
+      real(c_real),  intent(  out) :: phi     (  p_lo(1):p_hi(1),     p_lo(2):p_hi(2),     p_lo(3):p_hi(3)  )
+      integer,       intent(  out) :: valid   (  v_lo(1):v_hi(1),     v_lo(2):v_hi(2),     v_lo(3):v_hi(3)  )
+      real(c_real),  intent(in   ) :: ls_guess(lsg_lo(1):lsg_hi(1), lsg_lo(2):lsg_hi(2), lsg_lo(3):lsg_hi(3))
+
+      ! ** define internal variables
+      !    pos_node:      position of the level-set MultiFab node (where level-set is evaluated)
+      !    levelset_node: value of the signed-distance function at pos_node
+      real(c_real), dimension(3) :: pos_node
+      real(c_real)               :: levelset_node
+      !    ii, jj, kk: loop index variables
+      !    valid_cell: .true. iff levelset_node is signed (if .false., levelset_node needs to be validated by IF)
+      integer      :: ii, jj, kk
+      logical      :: valid_cell
+      real(c_real) :: phi_th
+
+      phi_th = ls_thres
+      if (phi_th < 0) phi_th = huge(phi_th)
+
+      do kk = lo(3), hi(3)
+         do jj = lo(2), hi(2)
+            do ii = lo(1), hi(1)
+               if ( abs(ls_guess(ii, jj, kk)) .lt.  phi_th ) then
+
+                  pos_node = (/ ii*dx(1), jj*dx(2), kk*dx(3) /)
+                  call closest_dist ( levelset_node, valid_cell, eb_list, l_eb, dx_eb, pos_node)
+
+                  phi(ii, jj, kk) = levelset_node;
+
+                  if ( valid_cell ) then
+                     valid(ii, jj, kk) = 1
+                  else
+                     valid(ii, jj, kk) = 0
+                  end if
+
+               else if ( ls_guess(ii, jj, kk) .le. -phi_th ) then
+
+                  phi(ii, jj, kk) = - phi_th
+                  valid(ii, jj, kk) = 0
+
+               else if ( ls_guess(ii, jj, kk) .ge.  phi_th ) then
+
+                  phi(ii, jj, kk) = phi_th
+                  valid(ii, jj, kk) = 0
+
+               end if
+            end do
+         end do
+      end do
+
+    end subroutine amrex_eb_fill_levelset_loc
+
+
     pure subroutine amrex_eb_fill_levelset_bcs( phi,      philo, phihi, &
                                                 valid,    vlo,   vhi,   &
                                                 periodic, domlo, domhi, &
