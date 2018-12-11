@@ -209,8 +209,11 @@ void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMa
     SetBoxArray(lev, ba);
     SetDistributionMap(lev, dm);
 
-    MultiFab ls_regrid = MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost> (ba, dm, level_set[lev]);
-    iMultiFab valid_regrid = MFUtil::duplicate<iMultiFab, MFUtil::SymmetricGhost> (ba, dm, level_set_valid[lev]);
+    BoxArray ba_nd = amrex::convert(ba, IntVect{AMREX_D_DECL(1, 1, 1)});
+
+    MultiFab ls_regrid = MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost> (ba_nd, dm, level_set[lev]);
+    iMultiFab valid_regrid = MFUtil::duplicate<iMultiFab, MFUtil::SymmetricGhost>
+        (ba_nd, dm, level_set_valid[lev]);
 
     std::swap(ls_regrid, level_set[lev]);
     std::swap(valid_regrid, level_set_valid[lev]);
