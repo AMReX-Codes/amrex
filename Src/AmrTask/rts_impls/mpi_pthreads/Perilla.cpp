@@ -1411,7 +1411,7 @@ void Perilla::serviceLocalRequests(RegionGraph* rg, int tg)
 
 		    if(rg->lMap[f]->l_con.scpy[i].pQueue.queueSize()>0)
 		    {
-assert(doublechecked==false);
+			assert(doublechecked==false);
 			Package *sPackage = rg->lMap[f]->l_con.scpy[i].pQueue.dequeue();
 			if(perilla::LAZY_PUSH)
 			{
@@ -1943,12 +1943,12 @@ void Perilla::fillBoundaryPull(RegionGraph* graph, MultiFab* mf, int f, bool sin
 		{
 		    Package *dPackage = graph->lMap[f]->l_con.dcpy[i].pQueue.getFront(true);
 
-		    for(int d=0; d<dPackage->bufSize; d++)
+		    /*for(int d=0; d<dPackage->bufSize; d++)
 			if(dPackage->databuf[d] == 0)
 			{
 			    //std::cout<< "in fbPull Reciving 0 for f "<< f <<std::endl;
 			    //BL_ASSERT(dPackage->databuf[d] != 0);
-			}
+			}*/
 		    /*
 		       if(f==0)
 		    //if(graph->lMap[f]->l_con.dcpy[i].dbx.smallEnd() == graph->lMap[f]->l_con.dcpy[i].dbx.bigEnd())

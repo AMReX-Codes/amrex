@@ -310,6 +310,55 @@ asynchronous and they return before the kernel is finished on GPU.  So
 work.  To guarantee data coherence, there is an implicit CUDA device
 synchronization in the destructor of :cpp:`MFIter`.
 
+Launching kernels with the ``AMREX_LAUNCH_DEVICE_LAMBDA`` uses CUDA
+extended lamdba feature.  There are however some restrictions on
+extended lambdas we have to be aware.  For example, the enclosing
+function for the extended lamdba must not have private or protected
+access within its parent class, otherwise the code will not compile.
+In that case, we have to change the function to a public member of its
+parent class.  There is also a pitfall we *must* be aware.  If the
+extended lambda accesses a member of the enclosing class, the lambda
+function actually captures :cpp:`this` pointer by value and accesses
+variable via :cpp:`this->`.  If the object is not accessible on GPU,
+the code will not work as intended.  For example,
+
+.. highlight:: c++
+
+::
+
+    class MyClass {
+    public:
+        Box bx;
+        int m;
+        void f () {
+            AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+            {
+                printf("m = %d\n", m);
+            });
+        }
+    };
+
+Function ``f`` in the code above will not work unless :cpp:`MyClass`
+object is in unified memory.  To fix it, we can change it to
+
+.. highlight:: c++
+
+::
+
+    class MyClass {
+    public:
+        Box bx;
+        int m;
+        void f () {
+            int local_m = m;
+            AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+            {
+                printf("m = %d\n", local_m);
+            });
+        }
+    };
+
+
 .. _sec:gpu:example:
 
 An Example of Migrating to GPU
@@ -419,7 +468,7 @@ Reduction
 =========
 
 AMReX provides some functions for performing reduction with GPU (e.g.,
-:cpp:`MultiFab::sum`, :cpp:`MultiFab::`max`, etc.).   Function
+:cpp:`MultiFab::sum`, :cpp:`MultiFab::max`, etc.).   Function
 templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
 :cpp:`amrex::ReduceMax` can be used to implement your own reduction
 functions for :cpp:`FabArray`\ s.
