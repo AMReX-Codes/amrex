@@ -484,6 +484,38 @@ functions for :cpp:`FabArray`\ s.
 
 .. _sec:gpu:limits:
 
+Particle Support
+================
+
+AMReX's GPU particle support relies on Thrust, a parallel algorithms library maintained by
+Nvidia. Thrust provides a GPU-capable vector container that is otherwise similar to the one
+in the C++ Standard Template Library, along with associated sorting, searching, and prefix
+summing operations. Along with Cuda's unified memory, thrust forms the basis of our GPU support
+for particles.
+
+When compiled with ``USE_CUDA=TRUE``, AMReX places all its particle data in instances of
+``thrust::device_vector`` that have been configured using a custom memory allocator that
+wraps around ``cudaMallocManaged``. This means that the `dataPtr` associated with particle
+data can be passed in to GPU kernels, similar to way it would be passed in to a Fortran
+subroutine in typical AMReX CPU code. As with the mesh data, these kernels can be launched
+with a variety of approaches, including Cuda C / Fortran and OpenACC.
+
+For portability, we have provided a set of Vector classes that wrap around the Thrust and
+STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal `amrex::Vector`.
+When ``USE_CUDA = TRUE``, they have different meanings. `Gpu::HostVector` is a wrapper
+around `thrust::host_vector`. `Gpu::DeviceVector` is a wrapper around `thrust::device_vector`,
+while `Gpu::ManagedDeviceVector` is a `thrust::device_vector` that lives in managed memory.
+These classes are useful when you have certain stages of an algorithm that you know will always
+execute on either the host or the device. 
+
+AMReX's `Redistribute()`, which moves particles back to the proper grids after their positions
+have changed, has been ported to work on the GPU as well. You can't call it from device code,
+but you can call it on particles that reside on the device and it won't trigger any unified
+memory traffic. As with `MultiFab` data, the MPI portion of the particle redistribute is set
+up to take advantange of the Cuda-aware MPI implementations available on platforms such as
+ORNL's Summit and Summit-dev.
+
+
 Limitations
 ===========
 
