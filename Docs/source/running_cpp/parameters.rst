@@ -376,11 +376,10 @@ Numerics and algorithms
      - ``2``: Direct deposition, vectorized
      - ``3``: Direct deposition, non-optimized
 
-     .. warning ::
+    .. warning::
 
-        The vectorized Esirkepov deposition
-        (``algo.current_deposition=0``) is currently not functional in WarpX.
-        All the other methods (``1``, ``2`` and ``3``) are functional.
+        On GPU, use ``algo.current_deposition=0`` for Esirkepov
+	or ``3`` for direct deposition.
 
 * ``algo.charge_deposition`` (`integer`)
     The algorithm for the charge density deposition:
@@ -393,6 +392,10 @@ Numerics and algorithms
 
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
+    .. warning::
+
+        The vectorized version does not run on GPU. Use 
+		``algo.field_gather=1`` when running on GPU.
 
 * ``algo.particle_pusher`` (`integer`)
     The algorithm for the particle pusher:
@@ -469,6 +472,9 @@ Diagnostics and output
 * ``warpx.plot_crsepatch`` (`0` or `1`)
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
+
+* ``amr.plot_file`` (`string`)
+    Root for output file names. Supports sub-directories. Default `plotfiles/plt`
 
 Checkpoints and restart
 -----------------------
