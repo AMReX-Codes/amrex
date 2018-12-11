@@ -227,7 +227,6 @@ Adv::avgDown (int iteration)
     void
 Adv::avgDown (int state_indx, int iteration)
 {
-
     if(level < parent->finestLevel())
     {
         Adv& fine_lev = getLevel(level+1);

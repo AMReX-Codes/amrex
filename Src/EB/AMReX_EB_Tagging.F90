@@ -74,4 +74,44 @@ contains
 
   end subroutine amrex_eb_levelset_error
 
+
+  subroutine amrex_eb_volfrac_error(tag,   tag_lo,   tag_hi,   &
+                                    state, state_lo, state_hi, &
+                                    set,   clear,    tol,      &
+                                    lo,    hi,                 &
+                                    dx,    problo             )&
+    bind(C, name="amrex_eb_volfrac_error")
+
+    use amrex_fort_module, only : amrex_real
+
+    implicit none
+
+    integer,          dimension(3), intent(in   ) :: lo, hi, state_lo, state_hi, tag_lo, tag_hi
+    real(amrex_real), dimension(3), intent(in   ) :: problo, dx
+    integer,                        intent(in   ) :: set, clear
+    real(amrex_real),               intent(in   ) :: tol
+
+    real(amrex_real),               intent(in   ) :: state(state_lo(1):state_hi(1), &
+                                                           state_lo(2):state_hi(2), &
+                                                           state_lo(3):state_hi(3))
+    integer,                        intent(  out) :: tag(tag_lo(1):tag_hi(1), &
+                                                         tag_lo(2):tag_hi(2), &
+                                                         tag_lo(3):tag_hi(3))
+
+    integer  :: i, j, k
+
+    ! Tag on regions of high phi
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+             if (( state(i, j, k) .le. (1. - tol)).and.(state(i, j, k) .ge. tol)) tag(i, j, k) = set
+
+          enddo
+       enddo
+    enddo
+
+  end subroutine amrex_eb_volfrac_error
+
+
 end module amrex_eb_tagging_module

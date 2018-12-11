@@ -482,6 +482,7 @@ void RegionGraph::graphTeardown()
     int tg= perilla::wid();
     int numfabs = numTasks;
 
+#if 0
     for(int f=0; f<numfabs; f++)
     {
 	if(WorkerThread::isMyRegion(tg,f))
@@ -551,9 +552,11 @@ void RegionGraph::graphTeardown()
 	    }
 	}
     }
+#endif
 
     if(ParallelDescriptor::NProcs() == 1) return;
 
+#if 0
     for(int f=0; f<numfabs; f++)
     {
 	if(WorkerThread::isMyRegion(tg,f))
@@ -657,6 +660,7 @@ void RegionGraph::graphTeardown()
 	    cpSrc = cpSrc->next;
 	}
     }
+#endif
 
     //if(WorkerThread::isTeamMasterThread(tid)) commented out b/c its already call by single thread in a team
     //Perilla::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
@@ -729,6 +733,32 @@ void RegionGraph::workerTeardown()
 
 RegionGraph::~RegionGraph()
 {
+    delete[] okToReset;
+    for(int tg=0; tg<perilla::NUM_THREAD_TEAMS; tg++)delete worker[tg];
+    worker.clear();
+    for(int i=0; i<task.size(); i++) delete task[i];
+    task.clear();
+
+    if(sCopyMapHead != 0)
+      delete sCopyMapHead;
+    if(rCopyMapHead != 0)
+      delete rCopyMapHead;
+
+    for(int i=0; i<lMap.size(); i++) delete lMap[i];
+    for(int i=0; i<sMap.size(); i++) delete sMap[i];
+    for(int i=0; i<rMap.size(); i++) delete rMap[i];
+
+    lMap.clear();
+    sMap.clear();
+    rMap.clear();
+
+    //for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
+    //for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
+
+    fabTiles.clear();
+    fabTiles_gtbx.clear();
+
+#if 0
     lMap.clear();
     sMap.clear();
     rMap.clear();
@@ -747,5 +777,6 @@ RegionGraph::~RegionGraph()
     worker.clear();
     task.clear();
     delete[] okToReset;
+#endif
 }
 

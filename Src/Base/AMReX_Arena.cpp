@@ -105,8 +105,12 @@ Arena::PrintUsage ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
+#ifdef AMREX_USE_MPI
                 amrex::Print() << "[The         Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
+#else
+                amrex::Print() << "[The         Arena] space (kilobyte): " << min_kilobytes << "\n";
+#endif
             }
         }
         if (The_Device_Arena()) {
@@ -116,8 +120,12 @@ Arena::PrintUsage ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
+#ifdef AMREX_USE_MPI
                 amrex::Print() << "[The  Device Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
+#else
+                amrex::Print() << "[The  Device Arena] space (kilobyte): " << min_kilobytes << "\n";
+#endif
             }
         }
         if (The_Managed_Arena()) {
@@ -127,8 +135,12 @@ Arena::PrintUsage ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
+#ifdef AMREX_USE_MPI
                 amrex::Print() << "[The Managed Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
+#else
+                amrex::Print() << "[The Managed Arena] space (kilobyte): " << min_kilobytes << "\n";
+#endif
             }
         }
         if (The_Pinned_Arena()) {
@@ -138,8 +150,12 @@ Arena::PrintUsage ()
                 long max_kilobytes = min_kilobytes;
                 ParallelDescriptor::ReduceLongMin(min_kilobytes, IOProc);
                 ParallelDescriptor::ReduceLongMax(max_kilobytes, IOProc);
+#ifdef AMREX_USE_MPI
                 amrex::Print() << "[The  Pinned Arena] space (kilobyte) used spread across MPI: ["
                                << min_kilobytes << " ... " << max_kilobytes << "]\n";
+#else
+                amrex::Print() << "[The  Pinned Arena] space (kilobyte): " << min_kilobytes << "\n";
+#endif
             }
         }
     }

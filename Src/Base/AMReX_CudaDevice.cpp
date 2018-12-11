@@ -181,7 +181,11 @@ Device::Initialize ()
 #endif
 
     if (amrex::Verbose()) {
+#ifdef AMREX_USE_MPI
         amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
+#else
+        amrex::Print() << "CUDA initialized with 1 GPU\n";
+#endif
     }
 
     cudaProfilerStart();
