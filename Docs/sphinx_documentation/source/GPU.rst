@@ -14,10 +14,10 @@ Building with GNU Make
 ----------------------
 
 To build AMReX with GPU support, you add ``USE_CUDA=TRUE`` to your
-make file or as an command line argument.  AMReX itself does not
-require OpenACC and CUDA Fortran, but application codes can use them
+makefile or as a command line argument.  AMReX itself does not
+require OpenACC or CUDA Fortran, but application codes can use them
 if they are supported by the compiler.  For OpenACC support, you add
-``USE_ACC=TRUE``.  Only IBM and PGI support CUDA Fortran.  Thus for
+``USE_ACC=TRUE``.  Only IBM and PGI support CUDA Fortran.  Thus, for
 CUDA Fortran, you must use ``COMP=pgi`` or ``COMP=ibm``.  OpenMP is
 currently not supported when ``USE_CUDA=TRUE``.  The default host
 compiler for NVCC is GCC even if ``COMP`` is set to a different
@@ -147,13 +147,13 @@ GPU Safe Classes and Functions
 ==============================
 
 Some AMReX classes and functions can be used in device functions, but
-most do not.  Note that this is about using them on GPU, not about
-whether they use GPU.  For example, :cpp:`MultiFab::Copy` function
-cannot be called from GPU, but calling it from CPU will use GPU if
+most can not.  Note that this is about using them in device code, not about
+whether they utilize the GPU internally.  For example, the :cpp:`MultiFab::Copy`
+function cannot be called from device code, but calling it from CPU will use GPU if
 AMReX is compiled with GPU support.  In this section, we discuss a
-few classes and functions that are useful for programming GPU.
+few classes and functions that are useful for programming GPUs.
 
-In the basic AMReX classes, :cpp:`Box`, :cpp:`IntVect` and
+In AMReX, :cpp:`Box`, :cpp:`IntVect` and
 :cpp:`IndexType` are classes for representing indices.  These classes
 and most of their member functions, including constructors and
 destructors, have both host and device versions.  They can be used in
@@ -185,7 +185,7 @@ managed memory arena.  For example,
    // FArrayBox* p_gpu_fab can be used in GPU device code.
 
 :cpp:`Geometry` class is not a GPU safe class.  However, we often need
-to use geometry information such as cell size and physical coordinates
+to use geometric information such as cell size and physical coordinates
 in GPU kernels.  What we can do is extract its data into a GPU safe
 class :cpp:`GeometryData` with :cpp:`Geometry::data` function and pass
 it by value to GPU kernels.
@@ -199,8 +199,8 @@ Kernel Launch
 
 AMReX uses :cpp:`MFIter` to iterate over a :cpp:`MultiFab`.  Inside
 the loop, we call functions to work on :cpp:`FArrayBox` objects (see
-:ref:`sec:basics:mfiter`).  With GPU, we launch kernels inside
-:cpp:`MFIter` loop.  A tutorial example can be found in
+:ref:`sec:basics:mfiter`).  With GPU support enabled, we launch kernels inside
+the :cpp:`MFIter` loop.  A tutorial example can be found in
 ``Tutorials/GPU/Launch``.  The part launching a CUDA C++ kernel is
 shown below.
 
@@ -218,9 +218,9 @@ shown below.
         });
     }
 
-The code above works whether it is compiled for GPU or CPU.  We use
-:cpp:`TilingIfNotGPU()` that returns ``false`` in the case of GPU to
-turn off tiling so that GPU kernels have more works.  When tiling is
+The code above works whether it is compiled for GPUs or CPUs.  We use
+:cpp:`TilingIfNotGPU()` that returns ``false`` in the GPU case to
+turn off tiling so that GPU kernels have more compute work to do.  When tiling is
 off, :cpp:`tilebox()` returns the valid box of the :cpp:`FArrayBox`
 for that iteration.  :cpp:`MultiFab::fabPtr` function takes
 :cpp:`MFIter` and returns a managed pointer that is subsequently
@@ -294,7 +294,7 @@ advantage of that by declaring it as OpenACC ``deviceptr``.
 
 In the three examples above, we have shown how to launch GPU kernels.
 In the CUDA C++ and Fortran cases, the kernel is launched with a C++
-template global function of AMReX (hidden in the launch macro),
+template global function in AMReX (hidden in the launch macro),
 whereas for the OpenACC example, it is done with pragma in Fortran.
 More details on the examples can be found in the source codes at
 ``Tutorials/GPU/Launch/``.  We also refer the readers to Chapter
@@ -304,15 +304,15 @@ CUDA supports multiple streams and kernels.  For each iteration of
 :cpp:`MFIter`, AMReX uses a different stream (up to 16 streams in
 total) for the kernels in that iteration.  The kernels in the same
 stream are executed sequentially, but kernels from different streams
-may be run in parallel.  Note that, to CPU, CUDA kernel calls are
-asynchronous and they return before the kernel is finished on GPU.  So
-:cpp:`MFIter` finishes its iterations on CPU before GPU finishes its
-work.  To guarantee data coherence, there is an implicit CUDA device
+may be run in parallel.  Note that, to the CPU, CUDA kernel calls are
+asynchronous and they return before the kernel is finished on the GPU.
+So :cpp:`MFIter` finishes its iterations on the CPU before the GPU finishes
+its work.  To guarantee data coherence, there is an implicit CUDA device
 synchronization in the destructor of :cpp:`MFIter`.
 
-Launching kernels with the ``AMREX_LAUNCH_DEVICE_LAMBDA`` uses CUDA
-extended lamdba feature.  There are however some restrictions on
-extended lambdas we have to be aware.  For example, the enclosing
+Launching kernels with the ``AMREX_LAUNCH_DEVICE_LAMBDA`` uses the CUDA
+extended lamdba feature.  There are, however, some restrictions on
+extended lambdas the use must be aware of.  For example, the enclosing
 function for the extended lamdba must not have private or protected
 access within its parent class, otherwise the code will not compile.
 In that case, we have to change the function to a public member of its
@@ -338,7 +338,7 @@ the code will not work as intended.  For example,
         }
     };
 
-Function ``f`` in the code above will not work unless :cpp:`MyClass`
+The function ``f`` in the code above will not work unless :cpp:`MyClass`
 object is in unified memory.  To fix it, we can change it to
 
 .. highlight:: c++
@@ -364,8 +364,8 @@ object is in unified memory.  To fix it, we can change it to
 An Example of Migrating to GPU
 ==============================
 
-The nature of GPU programming poses difficulty for a common pattern
-like below.
+The nature of GPU programming poses difficulties for a common patterns
+like the one below.
 
 .. highlight:: c++
 
@@ -388,10 +388,10 @@ like below.
        f2(vbx, uout[mfi], q);
    }
 
-There are several issues of migrating the code above to GPU needed to
-been addressed.  Because functions ``f1`` and ``f2`` have different
-work regions and there are data dependency between the two, it is
-difficult to put them into a single GPU kernel.  So we will launch two
+There are several issues in migrating the code above to GPU that need to
+be addressed.  Because functions ``f1`` and ``f2`` have different
+work regions and there are data dependencies between the two, it is
+difficult to put them into a single GPU kernel.  So, we will launch two
 separate kernels.
 
 As we have discussed in Section :ref:`sec:gpu:classes`, all
@@ -407,10 +407,10 @@ memory.  But :cpp:`FArrayBox q` is in host memory.  Changing it to
 does not solve the problem completely because GPU kernel calls are
 asynchronous from CPU's point of view.  Therefore there is a race
 condition that GPU kernels in different iterations of :cpp:`MFIter`
-will compete the access to ``q``.  Moving the line into the body of
+will compete for access to ``q``.  Moving the line into the body of
 :cpp:`MFIter` loop will make ``q`` a variable local to each iteration,
-but it has a new issue.  When do we delete :cpp:`q`?  To CPU, the
-resource of :cpp:`q` should be freed at the end of the scope otherwise
+but it has a new issue.  When do we delete :cpp:`q`?  To the CPU, the
+resource of :cpp:`q` should be freed at the end of the scope, otherwise
 there will be a memory leak.  But at the end of the CPU scope, GPU
 kernels might still need it.
 
@@ -467,8 +467,8 @@ the CUDA stream, respectively.
 Reduction
 =========
 
-AMReX provides some functions for performing reduction with GPU (e.g.,
-:cpp:`MultiFab::sum`, :cpp:`MultiFab::max`, etc.).   Function
+AMReX provides some functions for performing reduction operations with on the GPU (e.g.,
+:cpp:`MultiFab::sum`, :cpp:`MultiFab::max`, etc.). Function
 templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
 :cpp:`amrex::ReduceMax` can be used to implement your own reduction
 functions for :cpp:`FabArray`\ s.
@@ -499,10 +499,10 @@ limitations.
 
 - CMake is not yet supported for building AMReX GPU support.
 
-- Many multi-level functions in AMReX have not been ported to GPU.
+- Many multi-level functions in AMReX have not been ported to GPUs.
 
-- Linear solvers have not been ported to GPU.
+- Linear solvers have not been ported to GPUs.
 
-- Embedded boundary capability has not been ported to GPU.
+- Embedded boundary capability has not been ported to GPUs.
 
-- Fortran interface of AMReX does not currently have GPU support.
+- The Fortran interface of AMReX does not currently have GPU support.
