@@ -409,7 +409,7 @@ needed.
 :cpp:`EBFArrayBoxFactory` is derived from :cpp:`FabFactory<FArrayBox>`.  
 :cpp:`MultiFab` constructors have an optional argument :cpp:`const
 FabFactory<FArrayBox>&`.  We can use :cpp:`EBFArrayBoxFactory` to
-build :cpp:`MultiFabs` that carry EB data.  Member function of
+build :cpp:`MultiFab`\ s that carry EB data.  Member function of
 :cpp:`FabArray` 
 
 .. highlight: c++

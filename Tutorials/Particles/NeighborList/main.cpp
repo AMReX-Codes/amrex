@@ -49,17 +49,15 @@ int main(int argc, char* argv[])
 
     myPC.InitParticles();
 
-    const int lev = 0;
-
     for (int i = 0; i < max_step; i++) {
         if (write_particles) myPC.writeParticles(i);
         
-        myPC.fillNeighbors(lev);
+        myPC.fillNeighbors();
 
         if (do_nl) { myPC.computeForcesNL(); } 
         else {       myPC.computeForces();   }
 
-        myPC.clearNeighbors(lev);
+        myPC.clearNeighbors();
 
         myPC.moveParticles(dt);
 

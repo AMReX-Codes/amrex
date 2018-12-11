@@ -8,29 +8,6 @@
 namespace amrex
 {
 
-struct Tag
-{
-    int lev;
-    int grid;
-    int tile;
-    
-    Tag (int a_lev, int a_grid, int a_tile)
-        : lev(a_lev), grid(a_grid), tile(a_tile)
-        {}
-    
-    bool operator==(const Tag& other) const
-    {
-        return ((lev == other.lev) and (grid == other.grid) and (tile == other.tile));
-    }
-    
-    bool operator!=(const Tag& other) const
-    {
-        return !operator==(other);
-    }
-    
-    friend std::ostream& operator<< (std::ostream& stream, const Tag& tag);        
-};
-    
 class NeighborListParticleContainer
     : public NeighborParticleContainer<2*BL_SPACEDIM, 0>
 {
@@ -78,26 +55,18 @@ public:
     /// Save the particle data in an ASCII format
     ///
     void writeParticles(int n);
-
+    
     void getNeighborParticles(const int nGrow);
     
 private:
 
-    Vector<Tag> getNeighborGrids(const ParticleType& p,
-                                 const Tag src,
-                                 const int nGrow);
-    
-    Vector<Tag> getNeighborGrids(const ParticleType& p,
-                                 const Tag src,
-                                 const IntVect& nGrow);
-    
     struct
     {
         bool operator()(const ParticleType& p1, const ParticleType& p2) const
         {
             return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
-                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                                 + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                 + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
                 <= cutoff*cutoff;
         }
     } CheckPair;
