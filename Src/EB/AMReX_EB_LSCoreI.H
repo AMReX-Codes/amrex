@@ -138,6 +138,16 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 
         // TODO: some of this might be shifted to the base class?
 
+#if (AMREX_SPACEDIM == 1)
+        Real min_dx = geom[lev].CellSize(0);
+#elif (AMREX_SPACEDIM == 2)
+        Real min_dx = std::min(geom[lev].CellSize(0), geom[lev].CellSize(1));
+#elif (AMREX_SPACEDIM == 3)
+        Real min_dx = std::min(geom[lev].CellSize(0),
+                               std::min(geom[lev].CellSize(1), geom[lev].CellSize(2)));
+#endif
+        Real ls_threshold = min_dx * levelset_eb_pad;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -181,27 +191,18 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                  facet_list.dataPtr(), & facet_list_size,
                                  geom[lev].CellSize()                      );
 
-                amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
-                                       facet_list.dataPtr(), & facet_list_size,
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile_w),
-                                       geom[lev].CellSize(), geom[lev].CellSize() );
+                amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
+                                           facet_list.dataPtr(), & facet_list_size,
+                                           BL_TO_FORTRAN_3D(v_tile),
+                                           BL_TO_FORTRAN_3D(ls_tile_w),
+                                           BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
+                                           geom[lev].CellSize(), geom[lev].CellSize() );
 
             }
 
 
             //_______________________________________________________________________
-            // Threshold local level-set
-#if (AMREX_SPACEDIM == 1)
-            Real min_dx = geom[lev].CellSize(0);
-#elif (AMREX_SPACEDIM == 2)
-            Real min_dx = std::min(geom[lev].CellSize(0), geom[lev].CellSize(1));
-#elif (AMREX_SPACEDIM == 3)
-            Real min_dx = std::min(geom[lev].CellSize(0),
-                                   std::min(geom[lev].CellSize(1), geom[lev].CellSize(2)));
-#endif
-
-            Real ls_threshold = min_dx * levelset_eb_pad;
+            // Enforce threshold of local level-set
             amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
                                         BL_TO_FORTRAN_3D(ls_tile_w));
 
