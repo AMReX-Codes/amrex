@@ -9,6 +9,32 @@ SENSEI uses an XML file to select and configure one or more back ends at run
 time. Run time selection of the back end via XML means one user can access
 Catalyst, another Libsim, yet another Python with no changes to the code.
 
+System Architecture
+-------------------
+
+.. _sensei_arch:
+.. figure:: https://data.kitware.com/api/v1/item/5c06cd538d777f2179d4aaca/download
+
+   SENSEI's in situ architecture enables use of a diverse of back ends which
+   can be selected at run time via an XML configuration file
+
+The three major architectural components in SENSEI are *data adaptors* which
+present simulation data in SENSEI's data model, *analysis adaptors* which
+present the back end data consumers to the simulation, and *bridge code* from
+which the simulation manages adaptors and periodically pushes data through the
+system. SENSEI comes equipped with a number of analysis adaptors enabling use
+of popular analysis and visualization libraries such as VisIt Libsim, ParaView
+Catalyst, Python, and ADIOS to name a few. AMReX contains SENSEI data adaptors
+and bridge code making it easy to use in AMReX based simulation codes.
+
+SENSEI provides a *configurable analysis adaptor* which uses an XML file to
+select and configure one or more back ends at run time. Run time selection of
+the back end via XML means one user can access Catalyst, another Libsim, yet
+another Python with no changes to the code.  This is depicted in figure
+:numref:`sensei_arch`. On the left side of the figure AMReX produces data, the
+bridge code pushes the data through the configurable analysis adaptor to the
+back end that was selected at run time.
+
 Compiling with GNU Make
 -----------------------
 For codes making use of AMReX's build system add the following variable to the
@@ -41,18 +67,109 @@ ParmParse Configuration
 -----------------------
 Once an AMReX code has been compiled with SENSEI features enabled, it will need
 to be enabled and configured at runtime. This is done using ParmParse input file.
-The following 3 ParmParse parameters are used:
+The supported parameters are described in the following table.
+
++-------------------------+------------------------------------------------------+---------+
+| parameter               | description                                          | default |
++=========================+======================================================+=========+
+| :code:`insitu.int`      | turns in situ processing on or off and controls how  |    0    |
+|                         | often data is processed.                             |         |
++-------------------------+------------------------------------------------------+---------+
+| :code:`insitu.start`    | controls when in situ processing starts.             |    0    |
++-------------------------+------------------------------------------------------+---------+
+| :code:`insitu.config`   | points to the SENSEI XML file which selects and      |         |
+|                         | configures the desired back end.                     |         |
++-------------------------+------------------------------------------------------+---------+
+| :code:`insitu.pin_mesh` | when 1 lower left corner of the mesh is pinned to    |    0    |
+|                         | 0.,0.,0.                                             |         |
++-------------------------+------------------------------------------------------+---------+
+
+A typical use case is to enabled SENSEI by setting :code:`insitu.int` to be
+greater than 1, and :code:`insitu.config` to point SENSEI to an XML file that
+selects and configures the desired back end.
 
 .. code-block:: python
 
    insitu.int = 2
-   insitu.start = 0
-   insitu.config = render_iso_catalyst_2d.xml
+   insitu.config = render_iso_catalyst.xml
 
-:code:`insitu.int` turns in situ processing on or off and controls how often
-data is processed. :code:`insitu.start` controls when in situ processing
-starts. :code:`insitu.config` points to the SENSEI XML file which selects and
-configures the desired back end.
+Back-end Selection and Configuration
+------------------------------------
+The back end is selected and configured at run time using the SENSEI XML file.
+The XML sets parameters specific to SENSEI and to the chosen back end. Many of
+the back ends have sophisticated configuration mechanisms which SENSEI makes
+use of.  For example the following XML configuration was used on NERSC's Cori
+with WarpX to render 10 iso surfaces, shown in figure :numref:`lpa_visit`, using
+VisIt Libsim.
+
+.. code-block:: xml
+
+   <sensei>
+     <analysis type="libsim" frequency="1" mode="batch"
+       session="beam_j_pin.session"
+       image-filename="beam_j_pin_%ts" image-width="1200" image-height="900"
+       image-format="png" enabled="1"/>
+   </sensei>
+
+The *session* attribute names a session file that contains VisIt specific
+runtime configuration. The session file is generated using VisIt GUI on a
+representative dataset. Usually this data set is generated in a low resolution
+run of the desired simulation.
+
+.. _lpa_visit:
+.. figure:: https://data.kitware.com/api/v1/item/5c06b4b18d777f2179d4784c/download
+
+   Rendering of 10 3D iso-surfaces of j using VisIt libsim. The upper left
+   quadrant has been clipped away to reveal innner structure.
+
+The same run and visualization was repeated using ParaView Catalyst, shown in
+figure :numref:`lpa_pv`, by providing the following XML configuration.
+
+.. code-block:: xml
+
+   <sensei>
+     <analysis type="catalyst" pipeline="pythonscript"
+       filename="beam_j.py" enabled="1" />
+   </sensei>
+
+Here the *filename* attribute is used to pass Catalyst a Catalyst specific
+configuration that was generated using the ParaView GUI on a representative
+dataset.
+
+.. _lpa_pv:
+.. figure:: https://data.kitware.com/api/v1/item/5c05b6388d777f2179d207ae/download
+
+   Rendering of 10 3D iso-surfaces of j using ParaView Catalyst. The upper left
+   quadrant has been clipped away to reveal innner structure.
+
+The renderings in these runs were configured using a representative dataset
+which was obtained by running the simulation for a few time steps at a lower
+spatial resolution.  When using VisIt Libsim the following XML configures the
+VTK writer to write the simulation data in VTK format. At the end of the run a
+:code:`.visit` file that VisIt can open will be generated.
+
+.. code-block:: xml
+
+   <sensei>
+     <analysis type="PosthocIO" mode="visit" writer="xml"
+        ghost_array_name="avtGhostZones" output_dir="./"
+        enabled="1">
+     </analysis>
+   </sensei>
+
+When using ParaView Catalyst the following XML configures the VTK writer to
+write the simulation data in VTK format. At the end of the run a :code:`.pvd`
+file that ParaView can open will be generated.
+
+.. code-block:: xml
+
+   <sensei>
+     <analysis type="PosthocIO" mode="paraview" writer="xml"
+        ghost_array_name="vtkGhostType" output_dir="./"
+        enabled="1">
+     </analysis>
+   </sensei>
+
 
 Obtaining SENSEI
 -----------------
@@ -71,13 +188,56 @@ such as VisIt and ParaView installed. The VM is the easiest way to test things
 out. It also can be used to see how installs were done and the environment
 configured.
 
+The SENSEI VM can be downloaded here_.
+
+.. _here: https://data.kitware.com/api/v1/file/5be656368d777f21799ee5a6/download
+
+The SENSEI VM uses modules to manage the build and run environment. Load the
+SENSEI modulefile for the back-end you wish to use. The following table
+describes the available installs and which back-ends are supported in each.
+
++-------------------------------+-------------------------------------+
+| modulefile                    | back-end(s)                         |
++===============================+=====================================+
+| sensei/2.1.1-catalyst-shared  | ParaView Catalyst, ADIOS, Python    |
++-------------------------------+-------------------------------------+
+| sensei/2.1.1-libsim-shared    | VisIt Libsim, ADIOS, Python         |
++-------------------------------+-------------------------------------+
+| sensei/2.1.1-vtk-shared       | VTK-m, ADIOS, Python                |
++-------------------------------+-------------------------------------+
+
 NERSC Cori
 ~~~~~~~~~~
 SENSEI is deployed at NERSC on Cori. The NERSC deployment includes the major
-back ends such as ParaView Catalyst, VisIt Libsim, and Python.
+back ends such as ADIOS, ParaView Catalyst, VisIt Libsim, and Python.
 
-2D laser plasma
-------------------------
+The SENSEI installs uses modules to manage the build and run environment. Load the
+SENSEI modulefile for the back-end you wish to use. The following table
+describes the available installs and which back-ends are supported in each.
+
++-------------------------------+-------------------------------------+
+| modulefile                    | back-end(s)                         |
++===============================+=====================================+
+| sensei/2.1.0-catalyst-shared  | ParaView Catalyst, ADIOS, Python    |
++-------------------------------+-------------------------------------+
+| sensei/2.1.0-libsim-shared    | VisIt Libsim, ADIOS, Python         |
++-------------------------------+-------------------------------------+
+| sensei/2.1.0-vtk-shared       | VTK-m, ADIOS, Python                |
++-------------------------------+-------------------------------------+
+
+
+To access the SENSEI modulefiles on cori first add the SENSEI install to the search path:
+
+.. code-block:: bash
+
+    module use /usr/common/software/sensei/modulefiles
+
+
+Examples
+===================
+
+2D LPA Example
+--------------
 
 * :download:`input file<./inputs.2d>`
 * :download:`xml file<./ez2d.xml>`

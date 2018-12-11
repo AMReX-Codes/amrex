@@ -1,0 +1,8 @@
+<sensei>
+  <!-- libsim options="-debug 1 -clobber_vlogs"  -->
+  <!-- visitdir="/usr/common/software/sensei/visit" -->
+  <analysis type="libsim" frequency="1" mode="batch"
+    session="ez2d.session"
+    image-filename="ez2d_%ts" image-width="1200" image-height="700"
+    image-format="png" enabled="1"/>
+</sensei>
