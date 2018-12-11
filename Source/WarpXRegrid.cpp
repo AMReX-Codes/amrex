@@ -40,7 +40,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
         
         // Fine patch
 
-        const auto& period = Geom(lev).periodicity();
         for (int idim=0; idim < 3; ++idim)
         {
             {
@@ -61,8 +60,8 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 const IntVect& ng = current_fp[lev][idim]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_fp[lev][idim]->boxArray(),
                                                                   dm, 1, ng));
+                // pmf->Redistribute(*current_fp[lev][idim], 0, 0, 1, ng);
                 current_fp[lev][idim] = std::move(pmf);
-                current_fp_owner_masks[lev][idim] = std::move(current_fp[lev][idim]->OwnerMask(period));
             }
             if (current_store[lev][idim])
             {
@@ -87,8 +86,8 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
             const IntVect& ng = rho_fp[lev]->nGrowVect();
             auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_fp[lev]->boxArray(),
                                                               dm, nc, ng));
+            // pmf->Redistribute(*rho_fp[lev], 0, 0, nc, ng);
             rho_fp[lev] = std::move(pmf);
-            rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
         }
 
         // Aux patch
@@ -121,7 +120,6 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
 
         // Coarse patch
         if (lev > 0) {
-            const auto& cperiod = Geom(lev-1).periodicity();
             for (int idim=0; idim < 3; ++idim)
             {
                 {
@@ -140,11 +138,10 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 }
                 {
                     const IntVect& ng = current_cp[lev][idim]->nGrowVect();
-                    auto pmf = std::unique_ptr<MultiFab>( new MultiFab(current_cp[lev][idim]->boxArray(),
-                                                                       dm, 1, ng));
+                    auto pmf = std::unique_ptr<MultiFab>(new MultiFab(current_cp[lev][idim]->boxArray(),
+                                                                      dm, 1, ng));
+                    // pmf->Redistribute(*current_cp[lev][idim], 0, 0, 1, ng);
                     current_cp[lev][idim] = std::move(pmf);
-                    current_cp_owner_masks[lev][idim] = std::move(
-                        current_cp[lev][idim]->OwnerMask(cperiod));
                 }
             }
 
@@ -161,8 +158,8 @@ WarpX::RemakeLevel (int lev, Real time, const BoxArray& ba, const DistributionMa
                 const IntVect& ng = rho_cp[lev]->nGrowVect();
                 auto pmf = std::unique_ptr<MultiFab>(new MultiFab(rho_cp[lev]->boxArray(),
                                                                   dm, nc, ng));
+                // pmf->Redistribute(*rho_cp[lev], 0, 0, nc, ng);
                 rho_cp[lev] = std::move(pmf);
-                rho_cp_owner_masks[lev] = std::move(rho_cp[lev]->OwnerMask(cperiod));
             }
         }
 

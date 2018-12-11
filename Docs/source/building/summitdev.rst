@@ -13,7 +13,7 @@ correct branch:
 
     git clone https://github.com/ECP-WarpX/WarpX.git
     cd WarpX
-    git checkout dev
+    git checkout gpu
     cd ..
 
     git clone https://bitbucket.org/berkeleylab/picsar.git
@@ -33,4 +33,4 @@ Then, use the following set of commands to compile:
 
     module load pgi
     module load cuda
-    make -j 4 USE_GPU=TRUE COMP=pgi
+    make

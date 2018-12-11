@@ -155,12 +155,6 @@ WarpX::EvolveEM (int numsteps)
             mypc->Redistribute();
         }
 
-	bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
-	if (to_sort) {
-	    amrex::Print() << "re-sorting particles \n";
-	    mypc->SortParticlesByCell();
-	}
-
         amrex::Print()<< "STEP " << step+1 << " ends." << " TIME = " << cur_time
                       << " DT = " << dt[0] << "\n";
         Real walltime_end_step = amrex::second();
@@ -498,9 +492,9 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-    for ( MFIter mfi(*Bx, TilingIfNotGPU()); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Bx,true); mfi.isValid(); ++mfi )
     {
         Real wt = amrex::second();
 
@@ -525,12 +519,8 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         if (cost) {
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
-            wt = (amrex::second() - wt) / cbx.d_numPts();\
-            FArrayBox* costfab = cost->fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( cbx, work_box,
-            {
-                costfab->plus(wt, work_box);
-            });
+            wt = (amrex::second() - wt) / cbx.d_numPts();
+            (*cost)[mfi].plus(wt, cbx);
         }
     }
 
@@ -540,9 +530,9 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-        for ( MFIter mfi(*pml_B[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*pml_B[0],true); mfi.isValid(); ++mfi )
         {
             const Box& tbx  = mfi.tilebox(Bx_nodal_flag);
             const Box& tby  = mfi.tilebox(By_nodal_flag);
@@ -627,9 +617,9 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
 
     // Loop through the grids, and over the tiles within each grid
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-    for ( MFIter mfi(*Ex, TilingIfNotGPU()); mfi.isValid(); ++mfi )
+    for ( MFIter mfi(*Ex,true); mfi.isValid(); ++mfi )
     {
         Real wt = amrex::second();
 
@@ -672,11 +662,7 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
             Box cbx = mfi.tilebox(IntVect{AMREX_D_DECL(0,0,0)});
             if (patch_type == PatchType::coarse) cbx.refine(rr);
             wt = (amrex::second() - wt) / cbx.d_numPts();
-            FArrayBox* costfab = cost->fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( cbx, work_box,
-            {
-                costfab->plus(wt, work_box);
-            });
+            (*cost)[mfi].plus(wt, cbx);
         }
     }
 
@@ -688,9 +674,9 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
         const auto& pml_F = (patch_type == PatchType::fine) ? pml[lev]->GetF_fp() : pml[lev]->GetF_cp();
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-        for ( MFIter mfi(*pml_E[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
         {
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);
@@ -789,9 +775,9 @@ WarpX::EvolveF (int lev, PatchType patch_type, Real dt, DtType dt_type)
         const auto& pml_E = (patch_type == PatchType::fine) ? pml[lev]->GetE_fp() : pml[lev]->GetE_cp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-        for ( MFIter mfi(*pml_F, TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*pml_F,true); mfi.isValid(); ++mfi )
         {
             const Box& bx = mfi.tilebox();
             WRPX_PUSH_PML_F(bx.loVect(), bx.hiVect(),
@@ -835,9 +821,9 @@ WarpX::DampPML (int lev, PatchType patch_type)
                                                               : pml[lev]->GetMultiSigmaBox_cp();
 
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-        for ( MFIter mfi(*pml_E[0], TilingIfNotGPU()); mfi.isValid(); ++mfi )
+        for ( MFIter mfi(*pml_E[0],true); mfi.isValid(); ++mfi )
         {
             const Box& tex  = mfi.tilebox(Ex_nodal_flag);
             const Box& tey  = mfi.tilebox(Ey_nodal_flag);

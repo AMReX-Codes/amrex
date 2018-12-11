@@ -61,10 +61,10 @@ public:
                          amrex::Real dt) override;
 
     virtual void PushPX(WarpXParIter& pti,
-	                amrex::Cuda::DeviceVector<amrex::Real>& xp,
-                        amrex::Cuda::DeviceVector<amrex::Real>& yp,
-                        amrex::Cuda::DeviceVector<amrex::Real>& zp,
-                        amrex::Cuda::DeviceVector<amrex::Real>& giv,
+	                amrex::Vector<amrex::Real>& xp,
+                        amrex::Vector<amrex::Real>& yp,
+                        amrex::Vector<amrex::Real>& zp,
+                        amrex::Vector<amrex::Real>& giv,
                         amrex::Real dt);
 
     virtual void PushP (int lev, amrex::Real dt,
@@ -80,10 +80,6 @@ public:
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
-    void AddPlasmaCPU (int lev, amrex::RealBox part_realbox);
-#ifdef AMREX_USE_GPU
-    void AddPlasmaGPU (int lev, amrex::RealBox part_realbox);
-#endif
 
     void MapParticletoBoostedFrame(amrex::Real& x, amrex::Real& y, amrex::Real& z, std::array<amrex::Real, 3>& u);
 
@@ -109,14 +105,9 @@ protected:
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
 
-    long NumParticlesToAdd (const amrex::Box& overlap_box,
-			    const amrex::RealBox& overlap_realbox,
-			    const amrex::RealBox& tile_real_box,
-			    const amrex::RealBox& particle_real_box);
-  
     int GetRefineFac(const amrex::Real x, const amrex::Real y, const amrex::Real z);
     std::unique_ptr<amrex::IArrayBox> m_refined_injection_mask = nullptr;
-
+    
 };
 
 #endif

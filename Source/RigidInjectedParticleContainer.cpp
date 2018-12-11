@@ -73,7 +73,7 @@ RigidInjectedParticleContainer::RemapParticles()
                 // Note that the particles are already in the boosted frame.
                 // This value is saved to advance the particles not injected yet
 
-                Cuda::DeviceVector<Real> xp, yp, zp;
+                Vector<Real> xp, yp, zp;
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
@@ -134,7 +134,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp;
+        Vector<Real> xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -205,10 +205,8 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               Cuda::DeviceVector<Real>& xp,
-                                       Cuda::DeviceVector<Real>& yp,
-                                       Cuda::DeviceVector<Real>& zp,
-                                       Cuda::DeviceVector<Real>& giv,
+	                               Vector<Real>& xp, Vector<Real>& yp, Vector<Real>& zp,
+                                       Vector<Real>& giv,
                                        Real dt)
 {
 
@@ -233,16 +231,15 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
     auto& uypold = attribs[PIdx::uyold];
     auto& uzpold = attribs[PIdx::uzold];
 
-    warpx_copy_attribs(&np, xp.dataPtr(), yp.dataPtr(), zp.dataPtr(),
-                       uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                       xpold.dataPtr(), ypold.dataPtr(), zpold.dataPtr(),
-                       uxpold.dataPtr(), uypold.dataPtr(), uzpold.dataPtr());
+    warpx_copy_attribs(&np, xp.data(), yp.data(), zp.data(),
+                       uxp.data(), uyp.data(), uzp.data(),
+                       xpold.data(), ypold.data(), zpold.data(),
+                       uxpold.data(), uypold.data(), uzpold.data());
 
 #endif
 
     // Save the position and momenta, making copies
-    Cuda::DeviceVector<Real> xp_save, yp_save, zp_save;
-    RealVector uxp_save, uyp_save, uzp_save;
+    Vector<Real> xp_save, yp_save, zp_save, uxp_save, uyp_save, uzp_save;
 
     if (!done_injecting_lev) {
         xp_save = xp;
@@ -268,12 +265,8 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
         }
     }
 
-    warpx_particle_pusher(&np,
-                          xp.dataPtr(),
-                          yp.dataPtr(),
-                          zp.dataPtr(),
-                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                          giv.dataPtr(),
+    warpx_particle_pusher(&np, xp.data(), yp.data(), zp.data(),
+                          uxp.data(), uyp.data(), uzp.data(), giv.data(),
                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                           &this->charge, &this->mass, &dt,
@@ -362,7 +355,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp, giv;
+        Vector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
@@ -411,12 +404,9 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             const int l_lower_order_in_v = true;
             long lvect_fieldgathe = 64;
             warpx_geteb_energy_conserving(
-                &np,
-                xp.dataPtr(),
-                yp.dataPtr(),
-                zp.dataPtr(),
-                Exp.dataPtr(),Eyp.dataPtr(),Ezp.dataPtr(),
-                Bxp.dataPtr(),Byp.dataPtr(),Bzp.dataPtr(),
+                &np, xp.data(), yp.data(), zp.data(),
+                Exp.data(),Eyp.data(),Ezp.data(),
+                Bxp.data(),Byp.data(),Bzp.data(),
                 ixyzmin_grid,
                 &xyzmin_grid[0], &xyzmin_grid[1], &xyzmin_grid[2],
                 &dx[0], &dx[1], &dx[2],
@@ -435,12 +425,8 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
             auto uyp_save = uyp;
             auto uzp_save = uzp;
 
-            warpx_particle_pusher_momenta(&np,
-                                          xp.dataPtr(),
-                                          yp.dataPtr(),
-                                          zp.dataPtr(),
-                                          uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                                          giv.dataPtr(),
+            warpx_particle_pusher_momenta(&np, xp.data(), yp.data(), zp.data(),
+                                          uxp.data(), uyp.data(), uzp.data(), giv.data(),
                                           Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                           Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                           &this->charge, &this->mass, &dt,

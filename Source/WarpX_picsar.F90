@@ -294,8 +294,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         jy,jy_nguards,jy_nvalid,            &
         jz,jz_nguards,jz_nvalid,            &
         np,xp,yp,zp,uxp,uyp,uzp,gaminv,w,q, &
-        xmin,zmin,dt,dx,dz,nox,noz,lvect,   &
-        current_depo_algo)
+        xmin,zmin,dt,dx,dz,nox,noz,lvect)
 #endif
 
   end subroutine warpx_current_deposition

@@ -69,8 +69,8 @@ MultiParticleContainer::ReadParameters ()
                 }
             }
         }
-	pp.query("use_fdtd_nci_corr", WarpX::use_fdtd_nci_corr);
-	pp.query("l_lower_order_in_v", WarpX::l_lower_order_in_v);
+	pp.query("use_fdtd_nci_corr", use_fdtd_nci_corr);
+	pp.query("l_lower_order_in_v", l_lower_order_in_v);
 	initialized = true;
     }
 }
@@ -258,14 +258,6 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 	rho->SumBoundary(gm.periodicity());
     }
     return rho;
-}
-
-void
-MultiParticleContainer::SortParticlesByCell ()
-{
-    for (auto& pc : allcontainers) {
-	pc->SortParticlesByCell();
-    }
 }
 
 void

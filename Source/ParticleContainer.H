@@ -139,8 +139,6 @@ public:
 
     void WriteHeader (std::ostream& os) const;
 
-    void SortParticlesByCell ();
-
     void Redistribute ();
 
     void RedistributeLocal (const int num_ghost);
@@ -161,6 +159,10 @@ public:
         }
         return r;
     }
+
+    int L_lower_order_in_v() {return l_lower_order_in_v;}
+
+    bool Use_fdtd_nci_corr() {return use_fdtd_nci_corr;}
 
     void GetLabFrameData(const std::string& snapshot_name,
                          const int i_lab, const int direction,
@@ -200,5 +202,9 @@ private:
 
     // runtime parameters
     int nspecies = 1;   // physical particles only. If WarpX::use_laser, nspecies+1 == allcontainers.size().
+
+    int l_lower_order_in_v = true;
+
+    bool use_fdtd_nci_corr = false;
 };
 #endif /*WARPX_ParticleContainer_H_*/
