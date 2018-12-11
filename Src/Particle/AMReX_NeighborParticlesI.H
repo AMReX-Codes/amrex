@@ -213,7 +213,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
     }
 
     RemoveDuplicates(local_neighbors);
-    RemoveDuplicates(neighbor_procs);    
+    RemoveDuplicates(neighbor_procs);
 }
 
 template <int NStructReal, int NStructInt>
@@ -254,7 +254,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
         {
             box.refine(ref_fac);
         }
-        box.grow(computeRefFac(0, lev)*num_neighbor_cells);
+        box.grow(computeRefFac(0, src_lev)*num_neighbor_cells);
         const Periodicity& periodicity = this->Geom(lev).periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
         const BoxArray& ba = this->ParticleBoxArray(lev);
@@ -366,8 +366,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
                         tag.src_index = i;
                         const int cache_index = cache.size();
                         cache.push_back(tag);
-                        
-                        const int who = dmap[tag.grid];
+
+                        const int who = this->ParticleDistributionMap(tag.level)[tag.grid];
                         NeighborIndexMap nim(tag.level, dst_index.first, dst_index.second, -1,
                                              lev, src_index.first, src_index.second, 
                                              cache_index, thread_num);
@@ -398,10 +398,10 @@ NeighborParticleContainer<NStructReal, NStructInt>
             PairIndex index(grid, tile);
             for (int i = 0; i < num_threads; ++i) {
                 local_map[lev][index].insert(local_map[lev][index].end(),
-                                        tmp_local_map[lev][index][i].begin(),
-                                        tmp_local_map[lev][index][i].end());
+                                             tmp_local_map[lev][index][i].begin(),
+                                             tmp_local_map[lev][index][i].end());
                 tmp_local_map[lev][index][i].erase(tmp_local_map[lev][index][i].begin(),
-                                              tmp_local_map[lev][index][i].end());
+                                                   tmp_local_map[lev][index][i].end());
             }
         }
     }
