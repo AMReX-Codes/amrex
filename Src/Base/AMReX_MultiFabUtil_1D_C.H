@@ -1,5 +1,11 @@
+#ifndef AMREX_MULTIFAB_UTIL_1D_C_H_
+#define AMREX_MULTIFAB_UTIL_1D_C_H_
 
-#include <AMReX_MultiFabUtil_C.H>
+#include <AMReX_Gpu.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_IArrayBox.H>
+#include <cmath>
 
 namespace amrex {
 
@@ -273,3 +279,4 @@ void amrex_compute_divergence (Box const& bx, FArrayBox& divufab, FArrayBox cons
 
 }
 
+#endif
