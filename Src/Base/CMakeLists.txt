@@ -116,7 +116,7 @@ add_sources( AMReX_FILCC_${DIM}D.F90 )
 add_sources( AMReX_MultiFabUtil_${DIM}D.cpp AMReX_MultiFabUtil_nd.cpp )
 add_sources( AMReX_MultiFabUtil_C.H )
 
-add_sources( AMReX_FilCC_${DIM}D_C.cpp )
+add_sources( AMReX_FilCC_${DIM}D_C.H )
 add_sources( AMReX_FilCC_C.H )
 
 add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_acc_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
