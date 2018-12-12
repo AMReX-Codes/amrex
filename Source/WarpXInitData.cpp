@@ -5,7 +5,6 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
-#include <WarpXWrappers.h>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -34,7 +33,7 @@ WarpX::InitData ()
 
     ComputePMLFactors();
 
-    if (warpx_use_fdtd_nci_corr()) {
+    if (WarpX::use_fdtd_nci_corr) {
         WarpX::InitNCICorrector();
     }
 
@@ -51,6 +50,7 @@ WarpX::InitData ()
     insitu_bridge = new amrex::AmrMeshInSituBridge;
     insitu_bridge->setEnabled(insitu_int > 0 ? 1 : 0);
     insitu_bridge->setConfig(insitu_config);
+    insitu_bridge->setPinMesh(insitu_pin_mesh);
     if (insitu_bridge->initialize())
     {
         amrex::ErrorStream()
@@ -153,7 +153,7 @@ WarpX::ComputePMLFactors ()
 void
 WarpX::InitNCICorrector ()
 {
-    if (warpx_use_fdtd_nci_corr())
+    if (WarpX::use_fdtd_nci_corr)
     {
         mypc->fdtd_nci_stencilz_ex.resize(max_level+1);
         mypc->fdtd_nci_stencilz_by.resize(max_level+1);
@@ -161,7 +161,6 @@ WarpX::InitNCICorrector ()
         {
             const Geometry& gm = Geom(lev);
             const Real* dx = gm.CellSize();
-            const int l_lower_order_in_v = warpx_l_lower_order_in_v();
             amrex::Real dz, cdtodz;
             if (AMREX_SPACEDIM == 3){
                 dz = dx[2];
@@ -172,7 +171,7 @@ WarpX::InitNCICorrector ()
             WRPX_PXR_NCI_CORR_INIT( (mypc->fdtd_nci_stencilz_ex)[lev].data(),
                                     (mypc->fdtd_nci_stencilz_by)[lev].data(),
                                     mypc->nstencilz_fdtd_nci_corr, cdtodz,
-                                    l_lower_order_in_v);
+                                    WarpX::l_lower_order_in_v);
         }
     }
 }

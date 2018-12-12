@@ -86,6 +86,9 @@ public:
     static long noy;
     static long noz;
 
+    static bool use_fdtd_nci_corr;
+    static int  l_lower_order_in_v;
+    
     static bool use_laser;
     static bool use_filter;
     static bool serialize_ics;
@@ -104,6 +107,8 @@ public:
 
     static bool do_dynamic_scheduling;
     static bool refine_plasma;
+
+    static int sort_int;
 
     // buffers
     static int n_field_gather_buffer;
@@ -139,9 +144,13 @@ public:
     void EvolveB (int lev, amrex::Real dt);
     void EvolveF (         amrex::Real dt, DtType dt_type);
     void EvolveF (int lev, amrex::Real dt, DtType dt_type);
+    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
+    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
 
     void DampPML ();
     void DampPML (int lev);
+    void DampPML (int lev, PatchType patch_type);
 
     void PushParticlesandDepose (int lev, amrex::Real cur_time);
     void PushParticlesandDepose (         amrex::Real cur_time);
@@ -248,11 +257,6 @@ private:
     void FillBoundaryE (int lev, PatchType patch_type);
     void FillBoundaryF (int lev, PatchType patch_type);
 
-    void EvolveB (int lev, PatchType patch_type, amrex::Real dt);
-    void EvolveE (int lev, PatchType patch_type, amrex::Real dt);
-    void EvolveF (int lev, PatchType patch_type, amrex::Real dt, DtType dt_type);
-    void DampPML (int lev, PatchType patch_type);
-
     void OneStep_nosub (amrex::Real t);
     void OneStep_sub1 (amrex::Real t);
 
@@ -350,9 +354,17 @@ private:
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx);
 
+    static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int ngrow);
+
     static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx);
+
+    static void ComputeDivE (amrex::MultiFab& divE, int dcomp,
+                             const std::array<const amrex::MultiFab*, 3>& B,
+                             const std::array<amrex::Real,3>& dx, int ngrow);
 
     void SyncCurrent (const std::array<const amrex::MultiFab*,3>& fine,
                       const std::array<      amrex::MultiFab*,3>& crse,
@@ -424,6 +436,13 @@ private:
     // If charge/current deposition buffers are used
     amrex::Vector<std::array< std::unique_ptr<amrex::MultiFab>, 3 > > current_buf;
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > charge_buf;
+
+    amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_fp_owner_masks;
+    amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_cp_owner_masks;
+    
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_fp_owner_masks;
+    amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_cp_owner_masks;
+
 
     // div E cleaning
     int do_dive_cleaning = 0;
@@ -582,6 +601,7 @@ private:
     int insitu_int;
     int insitu_start;
     std::string insitu_config;
+    int insitu_pin_mesh;
 };
 
 #endif

@@ -233,19 +233,6 @@ To access the SENSEI modulefiles on cori first add the SENSEI install to the sea
     module use /usr/common/software/sensei/modulefiles
 
 
-Examples
-===================
-
-2D LPA Example
---------------
-
-* :download:`input file<./inputs.2d>`
-* :download:`xml file<./ez2d.xml>`
-* :download:`session file<./ez2d.session>`
-* :E field screen shot at time step 40
-.. figure:: ez2d_00040.png
-   :alt: picture
-
 3D LPA Example
 --------------
 This section shows an example of using SENSEI and three different back ends on

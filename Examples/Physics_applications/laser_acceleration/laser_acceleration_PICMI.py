@@ -95,6 +95,20 @@ solver = picmi.ElectromagneticSolver(grid=grid, method='CKC', cfl=1.)
 
 
 ##########################
+# diagnostics
+##########################
+
+field_diag1 = picmi.FieldDiagnostic(grid = grid,
+                                    period = 100,
+                                    warpx_plot_raw_fields = 1,
+                                    warpx_plot_raw_fields_guards = 1,
+                                    warpx_plot_finepatch = 1,
+                                    warpx_plot_crsepatch = 1)
+
+part_diag1 = picmi.ParticleDiagnostic(period = 100,
+                                      species = [electrons])
+
+##########################
 # simulation setup
 ##########################
 
@@ -102,7 +116,6 @@ sim = picmi.Simulation(solver = solver,
                        max_steps = max_steps,
                        verbose = 1,
                        cfl = 1.0,
-                       warpx_plot_int = 100,
                        warpx_current_deposition_algo = 3,
                        warpx_charge_deposition_algo = 0,
                        warpx_field_gathering_algo = 0,
@@ -112,6 +125,8 @@ sim.add_species(electrons, layout=picmi.GriddedLayout(grid=grid, n_macroparticle
 
 sim.add_laser(laser, injection_method=laser_antenna)
 
+sim.add_diagnostic(field_diag1)
+sim.add_diagnostic(part_diag1)
 
 ##########################
 # simulation run
