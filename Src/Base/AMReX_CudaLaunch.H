@@ -530,10 +530,7 @@ namespace Cuda {
     void getGridSize (FabArrayBase const& fa, int ngrow, LayoutData<GridSize>& gs, int& ntotblocks);
 
     AMREX_GPU_HOST_DEVICE
-    Box getThreadBox (const Box& bx);
-
     inline
-    AMREX_GPU_HOST_DEVICE
     Box getThreadBox (const Box& bx, long offset)
     {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
@@ -550,15 +547,6 @@ namespace Cuda {
         return bx;
 #endif
     }
-
-//    AMREX_GPU_HOST_DEVICE
-//    Box getThreadBox (const Box& bx, const IntVect& typ);
-
-    AMREX_GPU_HOST_DEVICE
-    ComponentBox getThreadComponentBox (const Box& box, int ncomp);
-
-    AMREX_GPU_HOST_DEVICE
-    void getThreadIndex (long &index, long &size, const long num_particles);
 
 // ************************************************
 
