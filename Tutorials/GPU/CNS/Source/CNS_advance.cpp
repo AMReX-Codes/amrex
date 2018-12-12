@@ -1,5 +1,6 @@
 
-#include <CNS.H>
+#include "CNS.H"
+#include "CNS_hydro_K.H"
 #include "CNS_K.H"
 
 using namespace amrex;
