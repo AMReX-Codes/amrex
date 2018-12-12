@@ -30,6 +30,15 @@ extern "C"
             const amrex_real * dx,      const amrex_real * dx_eb
         );
 
+    void amrex_eb_fill_levelset_loc(
+        const int * lo,              const int * hi,
+        const amrex_real * eb_list,  const int * l_eb,
+        int * valid,                 const int * v_lo,      const int * v_hi,
+        amrex_real * phi,            const int * p_lo,      const int * p_hi,
+        const amrex_real * ls_guess, const int * lsg_lo,    const int * lsg_hi,
+        const amrex_real * ls_thres, const amrex_real * dx, const amrex_real * dx_eb
+        );
+
     void amrex_eb_fill_levelset_bcs(
             amrex_real * phi, const int * philo, const int * phihi,
             int * valid,      const int * vlo,   const int * vhi,
@@ -95,6 +104,11 @@ extern "C"
             const amrex_real * bcent, const int * blo, const int * bhi,
             amrex_real * list_out,    const int * lsize,
             const amrex_real * dx
+        );
+
+    void amrex_eb_threshold_levelset(
+            const int * lo,   const int * hi,     const amrex_real * threshold,
+            amrex_real * phi, const int * phi_lo, const int * phi_hi
         );
 
     void amrex_eb_validate_levelset(

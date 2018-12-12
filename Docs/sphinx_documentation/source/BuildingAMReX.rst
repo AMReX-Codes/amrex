@@ -155,26 +155,24 @@ setup in ``Make.unknown``. You can override the setup by having your own
 ``sites/Make.$(host_name)`` file, where variable ``host_name`` is your host
 name in the make system and can be found via ``make print-host_name``.  You can
 also have an ``amrex/Tools/GNUMake/Make.local`` file to override various
-variables. See ``amrex/Tools/GNUMake/Make.local.template`` for an example.
+variables. See ``amrex/Tools/GNUMake/Make.local.template`` for more examples of
+how to customize the build process.
 
 
 .. _sec:build:local:
 
-Specifying your own compiler / GCC on macOS
--------------------------------------------
+Specifying your own compiler
+----------------------------
 
-The ``amrex/Tools/GNUMake/Make.local`` file can also be used to specify your
-own compile commands by setting the valiables ``CXX``, ``CC``, ``FC``, and
-``F90``. This might be neccarry if your systems contains non-standard names for
-compiler commands.
+The ``amrex/Tools/GNUMake/Make.local`` file can also specify your own compile
+commands by setting the valiables ``CXX``, ``CC``, ``FC``, and ``F90``. This
+might be neccarry if your systems contains non-standard names for compiler
+commands.
 
-For example, macOS' Xcode ships with its own (woefully outdated) version of GCC
-(4.2.1). It is therefore recommended to install GCC using the `homebrew
-<https://brew.sh>`_ package manager. Running ``brew install gcc`` installs gcc
-with names reflecting the version number. If GCC 8.2 is installed, homebrew
-installs it as ``gcc-8``. AMReX can be built using ``gcc-8`` without MPI by
-using the following ``amrex/Tools/GNUMake/Make.local``:
-
+For example, the following ``amrex/Tools/GNUMake/Make.local`` builds AMReX
+using a specific compiler (in this case ``gcc-8``) without MPI. Whenever
+``USE_MPI``  is true, this confguration defaults to the appropriate
+``mpixxx`` command:
 ::
 
     ifeq ($(USE_MPI),TRUE)
@@ -192,11 +190,38 @@ using the following ``amrex/Tools/GNUMake/Make.local``:
 For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide access to
 the correct underlying compilers.
 
-Note that if you are building AMReX using homebrew's gcc, it is recommended
-that you use homebrew's mpich. Normally is it fine to simply install its
-binaries: ``brew install mpich``. But if you are experiencing problems, we
-suggest building mpich usinging homebrew's gcc: ``brew install mpich
---cc=gcc-8``.
+
+.. _sec:build:macos:
+
+GCC on macOS
+------------
+
+The example configuration above should also run on the latest macOS. On macOS
+the default cxx compiler is clang, whereas the default fortran compiler is
+gfortran. Sometimes it is good to avoid mixing compilers, in that case we can
+use the ``Make.local`` to force using GCC. However, macOS' Xcode ships with its
+own (woefully outdated) version of GCC (4.2.1). It is therefore recommended to
+install GCC using the `homebrew <https://brew.sh>`_ package manager. Running
+``brew install gcc`` installs gcc with names reflecting the version number. If
+GCC 8.2 is installed, homebrew installs it as ``gcc-8``. AMReX can be built
+using ``gcc-8`` (with and without MPI) by using the following
+``amrex/Tools/GNUMake/Make.local``:
+
+::
+
+    CXX = g++-8
+    CC  = gcc-8
+    FC  = gfortran-8
+    F90 = gfortran-8
+
+    INCLUDE_LOCATIONS += /usr/local/include
+
+The additional ``INCLUDE_LOCATIONS`` are installed using homebrew also. Note
+that if you are building AMReX using homebrew's gcc, it is recommended that you
+use homebrew's mpich. Normally is it fine to simply install its binaries:
+``brew install mpich``. But if you are experiencing problems, we suggest
+building mpich usinging homebrew's gcc: ``brew install mpich --cc=gcc-8``.
+
 
 .. _sec:build:lib:
 
@@ -340,7 +365,7 @@ below.
    | ALGOIM_INSTALL_DIR           |  Path to Algoim installation directory          |             | user-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | BLITZ_INSTALL_DIR            |  Path to Blitz installation directory           |             | user-defined    |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+   
+   +------------------------------+-------------------------------------------------+-------------+-----------------+
 .. raw:: latex
 
    \end{center}
@@ -366,7 +391,7 @@ The option ``ENABLE_3D_NODAL_MGML`` enables AMReX 3D nodal projection. This opti
 two external libraries: Blitz and Algoim. The user can provide the location of
 both libraries via ``BLITZ_INSTALL_DIR`` and ``ALGOIM_INSTALL_DIR``. However, if one or both of these
 options is not provided, AMReX will download and build Blitz and/or Algoim automatically.
-It should be noted that AMReX 2D nodal projection does not require the use of external libraries. 
+It should be noted that AMReX 2D nodal projection does not require the use of external libraries.
 
 
 .. _sec:build:cmake:config:

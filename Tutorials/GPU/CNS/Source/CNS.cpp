@@ -86,7 +86,7 @@ CNS::initData ()
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
-        FArrayBox* sfab = &(S_new[mfi]);
+        FArrayBox* sfab = S_new.fabPtr(mfi);
 
         AMREX_LAUNCH_DEVICE_LAMBDA ( box, tbox,
         {
@@ -372,7 +372,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        FArrayBox* sfab = &(State[mfi]);
+        FArrayBox* sfab = State.fabPtr(mfi);
         AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
         {
             cns_compute_temperature(tbx, *sfab);

@@ -66,9 +66,15 @@ public:
     // a cutting plane with certain optimal characteristics then
     // dividing the tagged points into clusters on either side of the
     // plane.  One cluster is returned as a new object the other
-    // is the modified calling object.
+    // is the modified calling object.  This is called by chop(eff)
     //
     Cluster* chop ();
+
+    // This version of chop has slightly different logic - in this case if a
+    // cut results in two boxes with the same grid efficiency as the original
+    // box then the cut is reverted and a cut in a different direction is chosen
+    // This is called by new_chop(eff)
+    Cluster* new_chop ();
     //
     // Constructs a list of cluster objects obtained by intersecting
     // this cluster with each box in bl.  The list is retruned in the
@@ -154,6 +160,11 @@ public:
     // Chop all clusters in list that have poor efficiency.
     //
     void chop (Real eff);
+    //
+    // Chop all clusters in list that have poor efficiency.
+    // This version calls new_chop() instead of chop()
+    //
+    void new_chop (Real eff);
     //
     // Intersect clusters with BoxDomain to insure cluster
     // boxes are interior to domain.

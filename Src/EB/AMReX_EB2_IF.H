@@ -16,6 +16,7 @@
 #include <AMReX_EB2_IF_Scale.H>
 #include <AMReX_EB2_IF_Sphere.H>
 #include <AMReX_EB2_IF_Torus.H>
+#include <AMReX_EB2_IF_Spline.H>
 #include <AMReX_EB2_IF_Translation.H>
 #include <AMReX_EB2_IF_Union.H>
 

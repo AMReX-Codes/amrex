@@ -12,7 +12,7 @@ using namespace amrex;
 int main(int argc, char* argv[])
 {    
     amrex::Initialize(argc,argv);
-    
+    { 
     const int nghost = 0;
     int ncells, max_grid_size, ncomp, nlevs, nppc;
 
@@ -94,7 +94,6 @@ int main(int argc, char* argv[])
     int num_particles = nppc * AMREX_D_TERM(ncells, * ncells, * ncells);
     bool serialize = false;
     int iseed = 451;
-    Real mass = 10.0;
     MyPC::ParticleInitData pdata = {1.0, 2.0, 3.0, 4.0, 5, 6.0,
                                     7.0, 8.0, 9.0, 10.0, 11.0,
                                     12.0, 13.0, 14, 15, 16};
@@ -120,13 +119,19 @@ int main(int argc, char* argv[])
     WriteMultiLevelPlotfile("plt00000", nlevs, amrex::GetVecOfConstPtrs(mf),
                             varnames, geom, time, level_steps, ref_ratio);
 
-    Vector<std::string> particle_varnames;
-    for (int i = 0; i < NStructReal + NStructInt + NArrayReal + NArrayInt; ++i)
+    Vector<std::string> particle_realnames;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i)
     {
-        particle_varnames.push_back("particle_component_" + std::to_string(i));
+        particle_realnames.push_back("particle_real_component_" + std::to_string(i));
+    }
+
+    Vector<std::string> particle_intnames;
+    for (int i = 0; i < NStructInt + NArrayInt; ++i)
+    {
+        particle_intnames.push_back("particle_int_component_" + std::to_string(i));
     }
     
-    myPC.Checkpoint("plt00000", "particle0", false, particle_varnames);
-    
+    myPC.Checkpoint("plt00000", "particle0", false, particle_realnames, particle_intnames);
+    }
     amrex::Finalize();
 }

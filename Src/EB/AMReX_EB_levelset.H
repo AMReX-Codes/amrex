@@ -61,6 +61,12 @@ class LSFactory {
         const RealVect dx_vect, dx_eb_vect;
 
         // Construct eb_facets list from eb_factory
+        static std::unique_ptr<Vector<Real>> eb_facets(const FArrayBox & norm_tile,
+                                                       const CutFab & bcent_tile,
+                                                       const EBCellFlagFab & flag,
+                                                       const RealVect & eb_dx,
+                                                       const Box & eb_search);
+
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
                                                 const BoxArray & ba, const DistributionMapping & dm);
@@ -83,6 +89,10 @@ class LSFactory {
         void invert();
 
         void set_data(const MultiFab & mf_ls);
+
+        // Fills MultiFab using local EB Factory
+        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                const MultiFab & mf_impfunc);
 
         std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                     const MultiFab & mf_impfunc);

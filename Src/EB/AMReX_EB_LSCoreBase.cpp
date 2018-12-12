@@ -54,6 +54,7 @@ void LSCoreBase::InitLSCoreBase() {
     int nlevs_max = max_level + 1;
 
     level_set.resize(nlevs_max);
+    level_set_valid.resize(nlevs_max);
 
     ls_factory.resize(nlevs_max);
     eb_levels.resize(nlevs_max);
@@ -93,7 +94,6 @@ void LSCoreBase::InitLSCoreBase() {
 
 }
 
-
 void LSCoreBase::LoadTagLevels () {
     // read in an array of "phierr", which is the tagging threshold in this
     // example, we tag values of "phi" which are greater than phierr for that
@@ -106,7 +106,6 @@ void LSCoreBase::LoadTagLevels () {
     }
 }
 
-
 void LSCoreBase::SetTagLevels (const Vector<Real> & m_phierr) {
     phierr = m_phierr;
 }
@@ -117,6 +116,15 @@ void LSCoreBase::Init () {
     if (restart_chkfile == "") {
         // start simulation from the beginning
         const Real time = 0.0;
+
+        // This tells the AmrMesh class not to iterate when creating the 
+        //    initial grid hierarchy
+        SetIterateToFalse();
+
+        // This tells the Cluster routine to use the new chopping
+        // routine which rejects cuts if they don't improve the efficiency
+        SetUseNewChop();
+
         InitFromScratch(time);
         AverageDown();
 
@@ -133,8 +141,10 @@ void LSCoreBase::Init () {
 }
 
 
-void LSCoreBase::InitData () {
-    LoadTagLevels();
+void LSCoreBase::InitData (bool a_use_phierr) {
+    use_phierr = a_use_phierr;
+    if (use_phierr)
+        LoadTagLevels();
     Init();
 }
 
@@ -157,12 +167,17 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
 
     FillCoarsePatch(lev, time, level_set[lev], 0, ncomp);
+
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_valid[lev].setVal(1);
 }
 
 
 // Remake an existing level using provided BoxArray and DistributionMapping and
-// fill with existing fine and coarse data.
-// overrides the pure virtual function in AmrCore
+// fill with existing fine and coarse data. Overrides the pure virtual function
+// in AmrCore
 void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
                                const DistributionMapping & dm) {
     const int ncomp  = level_set[lev].nComp();
@@ -174,14 +189,43 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
     FillPatch(lev, time, new_state, 0, ncomp);
 
     std::swap(new_state, level_set[lev]);
+
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_valid[lev].setVal(1);
 }
+
+
+void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMapping & dm){
+
+    bool ba_changed = ( ba != grids[lev] );
+    bool dm_changed = ( dm != dmap[lev] );
+
+    if (! (ba_changed || dm_changed))
+        return;
+
+
+    SetBoxArray(lev, ba);
+    SetDistributionMap(lev, dm);
+
+    BoxArray ba_nd = amrex::convert(ba, IntVect{AMREX_D_DECL(1, 1, 1)});
+
+    MultiFab ls_regrid = MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost> (ba_nd, dm, level_set[lev]);
+    iMultiFab valid_regrid = MFUtil::duplicate<iMultiFab, MFUtil::SymmetricGhost>
+        (ba_nd, dm, level_set_valid[lev]);
+
+    std::swap(ls_regrid, level_set[lev]);
+    std::swap(valid_regrid, level_set_valid[lev]);
+}
+
 
 
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
 
-    if (lev >= phierr.size()) return;
+    if (use_phierr && (lev >= phierr.size())) return;
 
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -189,7 +233,14 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     const Real * dx      = geom[lev].CellSize();
     const Real * prob_lo = geom[lev].ProbLo();
 
-    const MultiFab & state = level_set[lev];
+    MultiFab volfrac(grids[lev], dmap[lev], 1, 1);
+    const MultiFab * state = & level_set[lev];
+
+    if (! use_phierr) {
+        eb_levels[lev]->fillVolFrac( volfrac, geom[lev]);
+        state = & volfrac;
+    }
+
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -197,7 +248,7 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     {
         Vector<int>  itags;
 
-        for (MFIter mfi(state,true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(* state, true); mfi.isValid(); ++mfi) {
             const Box &    tilebox = mfi.tilebox();
                   TagBox & tagfab  = tags[mfi];
 
@@ -213,17 +264,30 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             const int * thi  = tilebox.hiVect();
 
             // tag cells for refinement
-            amrex_eb_state_error ( tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                   BL_TO_FORTRAN_3D(state[mfi]),
-                                   & tagval, & clearval,
-                                   AMREX_ARLIM_3D(tilebox.loVect()),
-                                   AMREX_ARLIM_3D(tilebox.hiVect()),
-                                   AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
-                                   & time, & phierr[lev]);
-            //
+            if (use_phierr) {
+                amrex_eb_levelset_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                          BL_TO_FORTRAN_3D((* state)[mfi]),
+                                          & tagval, & clearval,
+                                          BL_TO_FORTRAN_BOX(tilebox),
+                                          AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
+                                          & time, & phierr[lev]);
+
+            } else {
+
+                Real tol = 0.000001; // TODO: Fix magic numbers (after talking with ANN)
+                amrex_eb_volfrac_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                         BL_TO_FORTRAN_3D((*state)[mfi]),
+                                         & tagval, & clearval, & tol,
+                                         BL_TO_FORTRAN_BOX(tilebox),
+                                         AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo));
+            }
+
+            //___________________________________________________________________
             // Now update the tags in the TagBox in the tilebox region to be
             // equal to itags
             //
+            if (! use_phierr)
+                tagfab.buffer(8, 0); // TODO: Fix magic numbers (after talking with ANN)
             tagfab.tags_and_untags(itags, tilebox);
         }
     }
@@ -317,7 +381,30 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 // Constructs a box over which to look for EB facets. The Box size grows based
 // on the coarse-level level-set value. But it never grows larger than
 // max_eb_pad.
-Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fine, bool & bail) {
+Box LSCoreBase::EBSearchBox(const Box & tilebox, const FArrayBox & ls_crse,
+                            const Geometry & geom_fine, bool & bail) {
+
+    // Infinities don't work well with std::max, so just bail and construct the
+    // maximum box.
+    if (ls_crse.contains_inf()){
+        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(n_grow);
+
+        bail = true;
+        return bx;
+    }
+
+    // Something's gone wrong :( ... so just bail and construct the maximum box.
+    if (ls_crse.contains_nan()){
+        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(n_grow);
+
+        bail = true;
+        return bx;
+    }
+
 
     Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
 
@@ -331,7 +418,7 @@ Box LSCoreBase::EBSearchBox(const FArrayBox & ls_crse, const Geometry & geom_fin
             bail = true;
         }
 
-    Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
     bx.grow(n_grow);
 
     return bx;
@@ -356,7 +443,7 @@ Vector<MultiFab> LSCoreBase::PlotFileMF () const {
 
         amrex::average_node_to_cellcenter(r[i], 0, level_set[i], 0, 1);
     }
-    return r;
+    return std::move(r);
 }
 
 

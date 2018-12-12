@@ -77,6 +77,79 @@
         } \
     }
 
+// two fused launches
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        auto amrex_i_ec1 = amrex::Cuda::ExecutionConfig(TN1); \
+        auto amrex_i_ec2 = amrex::Cuda::ExecutionConfig(TN2); \
+        dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
+                                          amrex_i_ec2.numBlocks.x); \
+        amrex_i_nblocks.y = 2; \
+        amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            switch (blockIdx.y) { \
+            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+                        block1 \
+                    } \
+                    break; \
+            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+                        block2 \
+                    } \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+    } \
+    else { \
+        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            block2 \
+        } \
+    }
+
+// three fused launches
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        auto amrex_i_ec1 = amrex::Cuda::ExecutionConfig(TN1); \
+        auto amrex_i_ec2 = amrex::Cuda::ExecutionConfig(TN2); \
+        auto amrex_i_ec3 = amrex::Cuda::ExecutionConfig(TN3); \
+        dim3 amrex_i_nblocks = amrex::max(amrex::max(amrex_i_ec1.numBlocks.x, \
+                                                     amrex_i_ec2.numBlocks.x), \
+                                                     amrex_i_ec3.numBlocks.x); \
+        amrex_i_nblocks.y = 3; \
+        amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            switch (blockIdx.y) { \
+            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+                        block1 \
+                    } \
+                    break; \
+            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+                        block2 \
+                    } \
+                    break; \
+            case 2: for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+                        block3 \
+                    } \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+    } \
+    else { \
+        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            block2 \
+        } \
+        for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+            block3 \
+        } \
+    }
+
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     if (amrex::Gpu::inLaunchRegion()) \
     { \
@@ -91,6 +164,65 @@
     } \
     else { \
         amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE: cannot call device function from host"); \
+    }
+
+// two fused launches
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        auto amrex_i_ec1 = amrex::Cuda::ExecutionConfig(TN1); \
+        auto amrex_i_ec2 = amrex::Cuda::ExecutionConfig(TN2); \
+        dim3 amrex_i_nblocks = amrex::max(amrex_i_ec1.numBlocks.x, \
+                                          amrex_i_ec2.numBlocks.x); \
+        amrex_i_nblocks.y = 2; \
+        amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            switch (blockIdx.y) { \
+            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+                        block1 \
+                    } \
+                    break; \
+            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+                        block2 \
+                    } \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+    } \
+    else { \
+        amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
+    }
+
+// three fused launches
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    if (amrex::Gpu::inLaunchRegion()) \
+    { \
+        auto amrex_i_ec1 = amrex::Cuda::ExecutionConfig(TN1); \
+        auto amrex_i_ec2 = amrex::Cuda::ExecutionConfig(TN2); \
+        auto amrex_i_ec3 = amrex::Cuda::ExecutionConfig(TN3); \
+        dim3 amrex_i_nblocks = amrex::max(amrex::max(amrex_i_ec1.numBlocks.x, \
+                                                     amrex_i_ec2.numBlocks.x), \
+                                                     amrex_i_ec3.numBlocks.x); \
+        amrex_i_nblocks.y = 3; \
+        amrex::launch_global<<<amrex_i_nblocks, amrex_i_ec1.numThreads, 0, amrex::Cuda::Device::cudaStream()>>>( \
+        [=] AMREX_GPU_DEVICE () { \
+            switch (blockIdx.y) { \
+            case 0: for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+                        block1 \
+                    } \
+                    break; \
+            case 1: for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+                        block2 \
+                    } \
+            case 2: for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+                        block3 \
+                    } \
+            } \
+        }); \
+        AMREX_GPU_ERROR_CHECK(); \
+    } \
+    else { \
+        amrex::Abort("AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
     }
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
@@ -291,7 +423,32 @@
         } \
     }
 
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(TN1,TI1,block1,TN2,TI2,block2) \
+    { \
+        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            block2 \
+        } \
+    }
+
+#define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
+    { \
+        for (auto const TI1 : amrex::Cuda::Range(TN1)) { \
+            block1 \
+        } \
+        for (auto const TI2 : amrex::Cuda::Range(TN2)) { \
+            block2 \
+        } \
+        for (auto const TI3 : amrex::Cuda::Range(TN3)) { \
+            block3 \
+        } \
+    }
+
 #define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(__VA_ARGS__)
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_2(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_2(__VA_ARGS__)
+#define AMREX_CUDA_LAUNCH_DEVICE_LAMBDA_RANGE_3(...) AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_RANGE_3(__VA_ARGS__)
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE_LAMBDA_BOX(bbb,tbb,block) \
     { \

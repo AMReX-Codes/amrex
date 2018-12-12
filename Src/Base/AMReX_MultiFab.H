@@ -174,13 +174,6 @@ public:
     Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
 
     /**
-    * \brief Returns the maximum *absolute* value contained in
-    * component comp of the MultiFab in the intersection of the BoxArray
-    * and the valid regions of the MultiFab.
-    */
-    Real norm0 (int comp, const BoxArray& ba, int nghost = 0, bool local = false) const;
-
-    /**
     * \brief Returns the maximum *absolute* values contained in
     * each component of "comps" of the MultiFab.  No ghost cells are used.
     */
@@ -645,7 +638,12 @@ inline void GccPlacaterMF ()
 {
     std::allocator<MultiFab*> a1;
     std::allocator<MultiFab const*> a2;
+    std::allocator<FabArray<FArrayBox>*> a3;
+    std::allocator<FabArray<FArrayBox> const*> a4;
 }
+
+//  This is a special version of FillBoundary for warpx
+void FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period);
 
 }
 

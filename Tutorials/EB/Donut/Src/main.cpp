@@ -48,21 +48,21 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         areafrac  =   ebf.getAreaFrac();
         bndrycent = &(ebf.getBndryCent());
 
-        mfix_eb_to_polygon(dx, BL_TO_FORTRAN_BOX(bx),
-                           BL_TO_FORTRAN_3D(my_flag),
-                           BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
-                           BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
-                           BL_TO_FORTRAN_3D((* areafrac[1])[mfi]),
-                           BL_TO_FORTRAN_3D((* areafrac[2])[mfi]) );
+        eb_to_polygon(dx, BL_TO_FORTRAN_BOX(bx),
+                      BL_TO_FORTRAN_3D(my_flag),
+                      BL_TO_FORTRAN_3D((* bndrycent)[mfi]),
+                      BL_TO_FORTRAN_3D((* areafrac[0])[mfi]),
+                      BL_TO_FORTRAN_3D((* areafrac[1])[mfi]),
+                      BL_TO_FORTRAN_3D((* areafrac[2])[mfi]) );
     }
 
     int cpu = ParallelDescriptor::MyProc();
     int nProcs = ParallelDescriptor::NProcs();
 
-    mfix_write_eb_vtp(& cpu);
+    write_eb_vtp(& cpu);
 
     if(ParallelDescriptor::IOProcessor())
-        mfix_write_pvtp(& nProcs);
+        write_pvtp(& nProcs);
 
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
@@ -75,7 +75,7 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
         if (my_flag.getType(bx) == FabType::covered or
             my_flag.getType(bx) == FabType::regular) continue;
 
-        mfix_eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
+        eb_grid_coverage(& cpu, dx, BL_TO_FORTRAN_BOX(bx), BL_TO_FORTRAN_3D(my_flag));
     }
 }
 
