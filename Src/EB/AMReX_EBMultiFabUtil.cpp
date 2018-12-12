@@ -4,7 +4,7 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBMultiFabUtil_F.H>
-#include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_MultiFabUtil_C.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 
@@ -109,18 +109,10 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_f
         if (typ == FabType::regular || typ == FabType::covered)
         {
 #if (AMREX_SPACEDIM == 3)
-            BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(fine_fab,scomp),
-                 BL_TO_FORTRAN_N(crse_fab,0),
-                 ratio.getVect(),&ncomp);
+            amrex_avgdown(tbx, crse_fab, fine_fab, 0, scomp, ncomp, ratio);
 #else
-            BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(fine_fab,scomp),
-                 BL_TO_FORTRAN_N(crse_fab,0),
-                 BL_TO_FORTRAN(vol_fine[mfi]),
-                 ratio.getVect(),&ncomp);
+            amrex_avgdown_with_vol(tbx, crse_fab, fine_fab, vol_fine[mfi],
+                                   0, scomp, ncomp, ratio);
 #endif
         }
         else if (typ == FabType::singlevalued)
@@ -186,11 +178,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
 
                 if (typ == FabType::regular || typ == FabType::covered)
                 {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(fine_fab,scomp),
-                         BL_TO_FORTRAN_N(crse_fab,scomp),
-                         ratio.getVect(),&ncomp);
+                    amrex_avgdown(tbx,crse_fab,fine_fab,scomp,scomp,ncomp,ratio);
                 }
                 else
                 {
@@ -221,11 +209,7 @@ EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                 
                 if (typ == FabType::regular || typ == FabType::covered)
                 {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(fine_fab,scomp),
-                         BL_TO_FORTRAN_N(crse_fab,0),
-                         ratio.getVect(),&ncomp);
+                    amrex_avgdown(tbx,crse_fab,fine_fab,0,scomp,ncomp,ratio);
                 }
                 else if (typ == FabType::singlevalued)
                 {
@@ -284,12 +268,7 @@ void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
                
                     if(typ == FabType::regular || typ == FabType::covered) 
                     {    
-
-                        BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-                            (tbx.loVect(),tbx.hiVect(),
-                             BL_TO_FORTRAN((*fine[n])[mfi]),
-                             BL_TO_FORTRAN((*crse[n])[mfi]),
-                             ratio.getVect(),n, ncomp);
+                        amrex_avgdown_faces(tbx, (*crse[n])[mfi], (*fine[n])[mfi], 0, 0, ncomp, ratio, n);
                     }
                     else
                     {
@@ -414,7 +393,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             }
         }
 
-        const Real* dxinv = geom.InvCellSize();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -431,12 +410,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
             if (fabtyp == FabType::covered) {
                 divufab.setVal(0.0, bx, 0, 1);
             } else if (fabtyp == FabType::regular) {
-                amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
-                                          BL_TO_FORTRAN_ANYD(divufab),
-                                          AMREX_D_DECL(BL_TO_FORTRAN_ANYD(ufab),
-                                                       BL_TO_FORTRAN_ANYD(vfab),
-                                                       BL_TO_FORTRAN_ANYD(wfab)),
-                                          dxinv);
+                amrex_compute_divergence(bx,divufab,AMREX_D_DECL(ufab,vfab,wfab),dxinv);
             } else {
                 amrex_compute_eb_divergence(BL_TO_FORTRAN_BOX(bx),
                                             BL_TO_FORTRAN_ANYD(divufab),
@@ -452,7 +426,7 @@ void EB_computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPA
                                             AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*fcent[0])[mfi]),
                                                          BL_TO_FORTRAN_ANYD((*fcent[1])[mfi]),
                                                          BL_TO_FORTRAN_ANYD((*fcent[2])[mfi])),
-                                            dxinv);
+                                            dxinv.data());
             }
         }
     }
@@ -474,10 +448,6 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
         const auto& flags = factory.getMultiEBCellFlagFab();
         const auto& area = factory.getAreaFrac();
 
-	Real dx[3] = {1.0,1.0,1.0};
-	Real problo[3] = {0.,0.,0.};
-	int coord_type = 0;
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -493,13 +463,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
             if (fabtyp == FabType::covered) {
                 ccfab.setVal(0.0, bx, dcomp, 1);
             } else if (fabtyp == FabType::regular) {
-                BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-                    (bx.loVect(), bx.hiVect(),
-                     BL_TO_FORTRAN_N(ccfab,dcomp),
-                     AMREX_D_DECL(BL_TO_FORTRAN(xfab),
-                                  BL_TO_FORTRAN(yfab),
-                                  BL_TO_FORTRAN(zfab)),
-                     dx, problo, coord_type);
+                amrex_avg_fc_to_cc(bx,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp,GeometryData());
             } else {
                 amrex_eb_avg_fc_to_cc(BL_TO_FORTRAN_BOX(bx),
                                       BL_TO_FORTRAN_N_ANYD(ccfab,dcomp),

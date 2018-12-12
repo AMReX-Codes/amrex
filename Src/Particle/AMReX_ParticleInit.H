@@ -800,9 +800,13 @@ InitRandom (long                    icount,
     // We will enforce that the particles are within the containing_bx.  
     // If containing_bx is not passed in, it defaults to the full domain.
     if (!containing_bx.ok()) containing_bx = geom.ProbDomain();
-
+    
     // containing_bx is assumed to lie within the domain.
-    BL_ASSERT(geom.ProbDomain().contains(containing_bx));
+    if (!geom.ProbDomain().contains(containing_bx))
+    {
+        containing_bx.setLo(geom.ProbLo());
+        containing_bx.setHi(geom.ProbHi());
+    }
 
     const Real* xlo = containing_bx.lo();
     const Real* xhi = containing_bx.hi();

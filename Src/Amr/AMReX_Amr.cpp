@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <cstdio>
 #include <list>
@@ -1682,6 +1681,13 @@ Amr::restart (const std::string& filename)
        }
     }
 
+    // Save the number of steps taken so far. This mainly
+    // helps in the edge case where we end up not taking
+    // any timesteps before the run terminates, so that
+    // we know not to unnecessarily overwrite the old file.
+    last_checkpoint = level_steps[0];
+    last_plotfile = level_steps[0];
+
     for (int lev = 0; lev <= finest_level; ++lev)
     {
 	Box restart_domain(Geom(lev).Domain());
@@ -2010,6 +2016,11 @@ Amr::timeStep (int  level,
         }
 #ifdef USE_PERILLA
 	if(cnt){
+	    Perilla::clearTagMap();
+	    Perilla::clearMyTagMap();
+	    Perilla::genTags=true;
+	    Perilla::uTags=0;
+	    Perilla::pTagCnt.clear();
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
  	    Perilla::updateMetadata_done=1;
@@ -2207,7 +2218,9 @@ Amr::coarseTimeStep (Real stop_time)
 	    graphArray.resize(finest_level+1);
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
+	    Perilla::syncProcesses();
             Perilla::communicateTags();
+	    Perilla::syncProcesses();
         }
     }
     perilla::syncAllThreads();
@@ -2225,10 +2238,20 @@ Amr::coarseTimeStep (Real stop_time)
                     break;
 		}
             }else{
+		Perilla::syncProcesses();
+        	for(int g=0; g<flattenedGraphArray.size(); g++)
+        	{
+		    //cancel messages preposted previously
+		    flattenedGraphArray[g]->graphTeardown();
+		}
+		Perilla::syncProcesses();
 	        Perilla::updateMetadata_noticed=1;
 	        while(!Perilla::updateMetadata_done){
 		
 	        }
+	        Perilla::syncProcesses();
+                Perilla::communicateTags();
+	        Perilla::syncProcesses();
 	        Perilla::updateMetadata_request=0;
 	        Perilla::updateMetadata_noticed=0;
 	        Perilla::updateMetadata_done=0;
@@ -2443,8 +2466,10 @@ Amr::coarseTimeStep (Real stop_time)
       last_plotfile   = level_steps[0];
     }
 
-    if (to_checkpoint && write_plotfile_with_checkpoint)
+    if (to_checkpoint && write_plotfile_with_checkpoint) {
       to_plot = 1;
+      to_small_plot = 1;
+    }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)

@@ -19,6 +19,9 @@ public:
     const std::vector<amrex::Vector<amrex::MultiFab>*> &states,
     const std::vector<std::vector<std::string>> &arrayNames);
 
+  // force mesh origin to 0,0,0. off by default
+  void SetPinMesh(int val);
+
   // SENSEI API
   int GetNumberOfMeshes(unsigned int &numMeshes) override;
   int GetMeshName(unsigned int id, std::string &meshName) override;

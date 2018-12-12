@@ -1221,6 +1221,45 @@ void AllGatherBoxes (Vector<Box>& bxs);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 length (Box index_bounds, Box const& work_domain)
+    {
+        index_bounds.setType(work_domain.ixType());
+        index_bounds &= work_domain;
+        return length(index_bounds);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Box getThreadBox (Box index_bounds, Box const& work_domain)
+    {
+        index_bounds.setType(work_domain.ixType());
+        index_bounds &= work_domain;
+        return index_bounds;
+    }
+
+    // Returns a Box that covers all the argument Boxes in index
+    // space. The types are ignored. Thus, the arguments can have
+    // different index types, and the returned Box's index type has no
+    // meaning.
+    AMREX_INLINE
+    Box getIndexBounds (Box const& b1, Box const& b2)
+    {
+        Box b = b1;
+        b.setType(b2.ixType());
+        b.minBox(b2);
+        return b;
+    }
+    AMREX_INLINE
+    Box getIndexBounds (Box const& b1, Box const& b2, Box const& b3)
+    {
+        return getIndexBounds(getIndexBounds(b1,b2),b3);
+    }
+    AMREX_INLINE
+    Box getIndexBounds (Box const& b1)
+    {
+        return b1;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     IntVect getCell (Box const* boxes, int nboxes, long icell)
     {
         int ibox;

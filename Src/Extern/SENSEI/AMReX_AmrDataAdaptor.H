@@ -16,6 +16,9 @@ public:
   // set the source of the simulation data
   int SetDataSource(amrex::Amr *amr);
 
+  // force mesh origin to 0,0,0. Off by default
+  void SetPinMesh(int val);
+
   // SENSEI API
   int GetNumberOfMeshes(unsigned int &numMeshes) override;
   int GetMeshName(unsigned int id, std::string &meshName) override;

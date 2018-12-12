@@ -115,6 +115,10 @@ public:
              int        nghost = 0,
 	     bool       local = false) const;
     //
+    // Returns the sum in component comp
+    //
+    long sum (int comp, int nghost = 0, bool local = false) const;
+    //
     // Adds the scalar value val to the value of each cell in the
     // specified subregion of the iMultiFab.  The subregion consists
     // of the num_comp components starting at component comp.

@@ -128,11 +128,16 @@ namespace amrex
 
     inline void GccPlacater ()
     {
-        std::allocator<char> a1;
-        std::allocator<int> a2;
-        std::allocator<float> a3;
-        std::allocator<double> a4;
-        std::allocator<std::string> a5;
+        std::allocator<bool> a_b;
+        std::allocator<char> a_c;
+        std::allocator<int> a_i;
+        std::allocator<long> a_l;
+        std::allocator<unsigned char> a_uc;
+        std::allocator<unsigned int> a_ui;
+        std::allocator<unsigned long> a_ul;
+        std::allocator<float> a_f;
+        std::allocator<double> a_d;
+        std::allocator<std::string> a_s;
     }
 }
 

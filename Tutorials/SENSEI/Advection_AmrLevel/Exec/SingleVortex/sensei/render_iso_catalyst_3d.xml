@@ -1,0 +1,5 @@
+<sensei>
+  <!-- catalyst 3D -->
+  <analysis type="catalyst" pipeline="pythonscript"
+    filename="sensei/render_iso_catalyst_3d.py" enabled="1" />
+</sensei>

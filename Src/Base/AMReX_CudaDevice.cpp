@@ -168,6 +168,7 @@ Device::Initialize ()
     }
 
     AMREX_GPU_SAFE_CALL(cudaSetDevice(device_id));
+    AMREX_GPU_SAFE_CALL(cudaSetDeviceFlags(cudaDeviceMapHost));
 
 #ifdef AMREX_USE_ACC
     amrex_initialize_acc(device_id);
@@ -180,7 +181,11 @@ Device::Initialize ()
 #endif
 
     if (amrex::Verbose()) {
+#ifdef AMREX_USE_MPI
         amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
+#else
+        amrex::Print() << "CUDA initialized with 1 GPU\n";
+#endif
     }
 
     cudaProfilerStart();

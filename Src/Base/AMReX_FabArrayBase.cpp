@@ -236,12 +236,6 @@ FabArrayBase::CPC::bytes () const
     if (m_RcvTags)
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
 
-    if (m_SndVols)
-	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndVols);
-
-    if (m_RcvVols)
-	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvVols);
-
     return cnt;
 }
 
@@ -258,12 +252,6 @@ FabArrayBase::FB::bytes () const
 
     if (m_RcvTags)
 	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvTags);
-
-    if (m_SndVols)
-	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_SndVols);
-
-    if (m_RcvVols)
-	cnt += FabArrayBase::bytesOfMapOfCopyComTagContainers(*m_RcvVols);
 
     return cnt;
 }
@@ -294,7 +282,7 @@ FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
       m_srcba(srcfa.boxArray()), 
       m_dstba(dstfa.boxArray()),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
+      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_nuse(0)
 {
     this->define(m_dstba, dstfa.DistributionMap(), dstfa.IndexArray(), 
 		 m_srcba, srcfa.DistributionMap(), srcfa.IndexArray());
@@ -313,7 +301,7 @@ FabArrayBase::CPC::CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
       m_srcba(srcba), 
       m_dstba(dstba),
       m_threadsafe_loc(false), m_threadsafe_rcv(false),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
+      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_nuse(0)
 {
     this->define(dstba, dstdm, dstidx, srcba, srcdm, srcidx, myproc);
 }
@@ -323,8 +311,6 @@ FabArrayBase::CPC::~CPC ()
     delete m_LocTags;
     delete m_SndTags;
     delete m_RcvTags;
-    delete m_SndVols;
-    delete m_RcvVols;
 }
 
 void
@@ -342,8 +328,6 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
     m_LocTags = new CopyComTag::CopyComTagsContainer;
     m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
     m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
-    m_SndVols = new CopyComTag::MapOfCopyComTagContainers;
-    m_RcvVols = new CopyComTag::MapOfCopyComTagContainers;
 
     if (!(imap_dst.empty() && imap_src.empty())) 
     {
@@ -356,7 +340,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
 	const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
 
-	auto& send_tags = *m_SndVols;
+	auto& send_tags = *m_SndTags;
 	
 	for (int i = 0; i < nlocal_src; ++i)
 	{
@@ -382,7 +366,7 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	    }
 	}
 
-	auto& recv_tags = *m_RcvVols;
+	auto& recv_tags = *m_RcvTags;
 
 	BaseFab<int> localtouch, remotetouch;
 	bool check_local = false, check_remote = false;
@@ -459,33 +443,11 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 	for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
 	{
 	    CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	    CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
-	    
-            for (auto& kv : Vols)
+            for (auto& kv : Tags)
 	    {
-		const int key = kv.first;
-		std::vector<CopyComTag>& cctv = kv.second;
-		
+		std::vector<CopyComTag>& cctv = kv.second;		
 		// We need to fix the order so that the send and recv processes match.
 		std::sort(cctv.begin(), cctv.end());
-		
-		std::vector<CopyComTag> cctv_tags;
-		cctv_tags.reserve(cctv.size());
-		
-                for (auto const& tag : cctv)
-		{
-		    const Box& bx = tag.dbox;
-		    const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
-		    
-		    const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-                    for (auto const& tile : tilelist)
-		    {
-			cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
-						      tag.dstIndex, tag.srcIndex));
-		    }
-		}
-		
-		Tags[key].swap(cctv_tags);
 	    }
 	}    
     }
@@ -501,15 +463,13 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
       m_srcba(ba), 
       m_dstba(ba),
       m_threadsafe_loc(true), m_threadsafe_rcv(true),
-      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_SndVols(0), m_RcvVols(0), m_nuse(0)
+      m_LocTags(0), m_SndTags(0), m_RcvTags(0), m_nuse(0)
 {
     BL_ASSERT(ba.size() > 0);
 
     m_LocTags = new CopyComTag::CopyComTagsContainer;
     m_SndTags = new CopyComTag::MapOfCopyComTagContainers;
     m_RcvTags = new CopyComTag::MapOfCopyComTagContainers;
-    m_SndVols = new CopyComTag::MapOfCopyComTagContainers;
-    m_RcvVols = new CopyComTag::MapOfCopyComTagContainers;
 
     const int myproc = ParallelDescriptor::MyProc();
 
@@ -530,15 +490,8 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
             }
             else
             {
-                auto& Vols = (src_owner == myproc) ? (*m_SndVols)[dst_owner] : (*m_RcvVols)[src_owner];
                 auto& Tags = (src_owner == myproc) ? (*m_SndTags)[dst_owner] : (*m_RcvTags)[src_owner];
-
-                Vols.push_back(CopyComTag(bx, bx, i, i));
-
-                for (const Box& tbx :tilelist)
-                {
-                    Tags.push_back(CopyComTag(tbx, tbx, i, i));
-                }
+                Tags.push_back(CopyComTag(bx, bx, i, i));
             }
         }
     }
@@ -667,8 +620,6 @@ FabArrayBase::FB::FB (const FabArrayBase& fa, const IntVect& nghost,
       m_LocTags(new CopyComTag::CopyComTagsContainer),
       m_SndTags(new CopyComTag::MapOfCopyComTagContainers),
       m_RcvTags(new CopyComTag::MapOfCopyComTagContainers),
-      m_SndVols(new CopyComTag::MapOfCopyComTagContainers),
-      m_RcvVols(new CopyComTag::MapOfCopyComTagContainers),
       m_nuse(0)
 {
     BL_PROFILE("FabArrayBase::FB::FB()");
@@ -700,7 +651,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
     
-    auto& send_tags = *m_SndVols;
+    auto& send_tags = *m_SndTags;
     
     for (int i = 0; i < nlocal; ++i)
     {
@@ -728,7 +679,7 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
 	}
     }
 
-    auto& recv_tags = *m_RcvVols;
+    auto& recv_tags = *m_RcvTags;
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
@@ -812,23 +763,18 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
     {
 	CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
 
         Vector<int> to_be_deleted;
 	    
-        for (auto& kv : Vols)
+        for (auto& kv : Tags)
 	{
-            const int key = kv.first;
             std::vector<CopyComTag>& cctv = kv.second;
 		
 	    // We need to fix the order so that the send and recv processes match.
 	    std::sort(cctv.begin(), cctv.end());
 		
-	    std::vector<CopyComTag> cctv_tags;
-	    cctv_tags.reserve(cctv.size());
-
-            std::vector<CopyComTag> cctv_vols_cross;
-            cctv_vols_cross.reserve(cctv.size());
+            std::vector<CopyComTag> cctv_tags_cross;
+            cctv_tags_cross.reserve(cctv.size());
 
             for (auto const& tag : cctv)
             {
@@ -866,33 +812,20 @@ FabArrayBase::FB::define_fb(const FabArrayBase& fa)
                     {
                         if (m_cross)
                         {
-                            cctv_vols_cross.push_back(CopyComTag(cross_box, cross_box+d2s, 
+                            cctv_tags_cross.push_back(CopyComTag(cross_box, cross_box+d2s, 
                                                                  tag.dstIndex, tag.srcIndex));
                         }
-
-			const BoxList tilelist(cross_box, FabArrayBase::comm_tile_size);
-                        for (auto const& tile : tilelist)
-			{
-			    cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
-							  tag.dstIndex, tag.srcIndex));
-			}
 		    }
 		}
 	    }
 		
-	    if (cctv_tags.empty()) {
-                to_be_deleted.push_back(key);
-            } else {
-		Tags[key].swap(cctv_tags);
-	    }
-
-            if (!cctv_vols_cross.empty()) {
-                cctv.swap(cctv_vols_cross);
+            if (!cctv_tags_cross.empty()) {
+                cctv.swap(cctv_tags_cross);
             }
 	}
 
         for (int key : to_be_deleted) {
-            Vols.erase(key);
+            Tags.erase(key);
         }
     }
 }
@@ -915,7 +848,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     
     const std::vector<IntVect>& pshifts = m_period.shiftIntVect();
     
-    auto& send_tags = *m_SndVols;
+    auto& send_tags = *m_SndTags;
 
     Box pdomain = m_period.Domain();
     pdomain.convert(typ);
@@ -953,7 +886,7 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
 	}
     }
 
-    auto& recv_tags = *m_RcvVols;
+    auto& recv_tags = *m_RcvTags;
 
     BaseFab<int> localtouch, remotetouch;
     bool check_local = false, check_remote = false;
@@ -1047,33 +980,11 @@ FabArrayBase::FB::define_epo (const FabArrayBase& fa)
     for (int ipass = 0; ipass < 2; ++ipass) // pass 0: send; pass 1: recv
     {
 	CopyComTag::MapOfCopyComTagContainers & Tags = (ipass == 0) ? *m_SndTags : *m_RcvTags;
-	CopyComTag::MapOfCopyComTagContainers & Vols = (ipass == 0) ? *m_SndVols : *m_RcvVols;
-
-        for (auto& kv : Vols)
+        for (auto& kv : Tags)
 	{
-            const int key = kv.first;
 	    std::vector<CopyComTag>& cctv = kv.second;
-		
 	    // We need to fix the order so that the send and recv processes match.
 	    std::sort(cctv.begin(), cctv.end());
-		
-	    std::vector<CopyComTag> cctv_tags;
-	    cctv_tags.reserve(cctv.size());
-
-            for (auto const& tag : cctv)
-            {
-		const Box& bx = tag.dbox;
-		const IntVect& d2s = tag.sbox.smallEnd() - tag.dbox.smallEnd();
-		
-		const BoxList tilelist(bx, FabArrayBase::comm_tile_size);
-                for (auto const& tile : tilelist)
-                {
-		    cctv_tags.push_back(CopyComTag(tile, tile+d2s, 
-                                                  tag.dstIndex, tag.srcIndex));
-		}
-	    }
-
-            Tags[key].swap(cctv_tags);
 	}
     }
 }
@@ -1083,8 +994,6 @@ FabArrayBase::FB::~FB ()
     delete m_LocTags;
     delete m_SndTags;
     delete m_RcvTags;
-    delete m_SndVols;
-    delete m_RcvVols;
 }
 
 void

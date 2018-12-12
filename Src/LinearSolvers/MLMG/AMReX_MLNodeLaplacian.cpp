@@ -36,11 +36,7 @@ MLNodeLaplacian::MLNodeLaplacian (const Vector<Geometry>& a_geom,
                                   const LPInfo& a_info,
                                   const Vector<EBFArrayBoxFactory const*>& a_factory)
 {
-    Vector<FabFactory<FArrayBox> const*> _factory;
-    for (auto x : a_factory) {
-        _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
-    }
-    define(a_geom, a_grids, a_dmap, a_info, _factory);
+    define(a_geom, a_grids, a_dmap, a_info, a_factory);
 }
 #endif
 
@@ -99,6 +95,22 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     m_is_rz = Geometry::IsRZ();
 #endif
 }
+
+#ifdef AMREX_USE_EB
+void
+MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
+                         const Vector<BoxArray>& a_grids,
+                         const Vector<DistributionMapping>& a_dmap,
+                         const LPInfo& a_info,
+                         const Vector<EBFArrayBoxFactory const*>& a_factory)
+{
+    Vector<FabFactory<FArrayBox> const*> _factory;
+    for (auto x : a_factory) {
+        _factory.push_back(static_cast<FabFactory<FArrayBox> const*>(x));
+    }
+    define(a_geom, a_grids, a_dmap, a_info, _factory);
+}
+#endif
 
 void
 MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
@@ -1252,9 +1264,6 @@ void
 MLNodeLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLNodeLaplacian::prepareForSolve()");
-
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_amr_levels == 1 || m_coarsening_strategy != CoarseningStrategy::RAP,
-                                     "MLNodeLaplacian::prepareForSolve RAP TODO");
 
     MLNodeLinOp::prepareForSolve();
 

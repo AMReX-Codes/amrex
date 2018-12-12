@@ -1,6 +1,6 @@
 
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_MultiFabUtil_F.H>
+#include <AMReX_MultiFabUtil_C.H>
 #include <sstream>
 #include <iostream>
 
@@ -56,46 +56,55 @@ namespace {
 
 namespace amrex
 {
-    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp)
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp,
+         const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-            const Box& bx = mfi.tilebox();
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            FArrayBox const* ndfab = Gpu::notInLaunchRegion() ? &(nd[mfi]) : nd.fabPtr(mfi);
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_nd_to_cc(tbx, *ccfab, *ndfab, dcomp, scomp, ncomp);
+            });
         }
     }
 
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
+        const Vector<const MultiFab*>& edge, int ngrow)
     {
-	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
-	AMREX_ASSERT(edge[0]->nComp() == 1);
+        AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+        AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
+        AMREX_ASSERT(edge[0]->nComp() == 1);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* exfab = Gpu::notInLaunchRegion() ? &((*edge[0])[mfi]) : edge[0]->fabPtr(mfi);,
+                         FArrayBox const* eyfab = Gpu::notInLaunchRegion() ? &((*edge[1])[mfi]) : edge[1]->fabPtr(mfi);,
+                         FArrayBox const* ezfab = Gpu::notInLaunchRegion() ? &((*edge[2])[mfi]) : edge[2]->fabPtr(mfi););
 
-	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
-			BL_TO_FORTRAN((*edge[1])[mfi]),
-			BL_TO_FORTRAN((*edge[2])[mfi])));
-	}
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_eg_to_cc(tbx, *ccfab, AMREX_D_DECL(*exfab,*eyfab,*ezfab), dcomp);
+            });
+        }
     }
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+        const Vector<const MultiFab*>& fc, int ngrow)
     {
         average_face_to_cellcenter(cc, dcomp,
-                                   Array<MultiFab const*,AMREX_SPACEDIM>
-                                                  {AMREX_D_DECL(fc[0],fc[1],fc[2])});
+            Array<MultiFab const*,AMREX_SPACEDIM>{AMREX_D_DECL(fc[0],fc[1],fc[2])},
+            ngrow);
     }
 
     void average_face_to_cellcenter (MultiFab& cc, const Vector<const MultiFab*>& fc,
@@ -108,30 +117,27 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc)
+        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
     {
-	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	AMREX_ASSERT(fc[0]->nComp() == 1);
-
-	Real dx[3] = {1.0,1.0,1.0};
-	Real problo[3] = {0.,0.,0.};
-	int coord_type = 0;
+        AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
+        AMREX_ASSERT(fc[0]->nComp() == 1);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* fxfab = Gpu::notInLaunchRegion() ? &((*fc[0])[mfi]) : fc[0]->fabPtr(mfi);,
+                         FArrayBox const* fyfab = Gpu::notInLaunchRegion() ? &((*fc[1])[mfi]) : fc[1]->fabPtr(mfi);,
+                         FArrayBox const* fzfab = Gpu::notInLaunchRegion() ? &((*fc[2])[mfi]) : fc[2]->fabPtr(mfi););
 
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp, GeometryData());
+            });
+        }
     }
 
     void average_face_to_cellcenter (MultiFab& cc,
@@ -141,25 +147,24 @@ namespace amrex
 	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.tilebox();
+            FArrayBox* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* fxfab = Gpu::notInLaunchRegion() ? &((*fc[0])[mfi]) : fc[0]->fabPtr(mfi);,
+                         FArrayBox const* fyfab = Gpu::notInLaunchRegion() ? &((*fc[1])[mfi]) : fc[1]->fabPtr(mfi);,
+                         FArrayBox const* fzfab = Gpu::notInLaunchRegion() ? &((*fc[2])[mfi]) : fc[2]->fabPtr(mfi););
 
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0, gd);
+            });
+        }
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
@@ -177,36 +182,28 @@ namespace amrex
 	AMREX_ASSERT(cc.nGrow() >= 1);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData& gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const Box& xbx = mfi.nodaltilebox(0);
-#if (AMREX_SPACEDIM > 1)
-	    const Box& ybx = mfi.nodaltilebox(1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-	    const Box& zbx = mfi.nodaltilebox(2);
-#endif
+            AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                         const Box& ybx = mfi.nodaltilebox(1);,
+                         const Box& zbx = mfi.nodaltilebox(2););
+            const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
-	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
-		(xbx.loVect(), xbx.hiVect(),
-#if (AMREX_SPACEDIM > 1)
-		 ybx.loVect(), ybx.hiVect(),
-#endif
-#if (AMREX_SPACEDIM == 3)
-		 zbx.loVect(), zbx.hiVect(),
-#endif
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 dx, problo, coord_type);
+            AMREX_D_TERM(FArrayBox* fxfab = Gpu::notInLaunchRegion() ? &((*fc[0])[mfi]) : fc[0]->fabPtr(mfi);,
+                         FArrayBox* fyfab = Gpu::notInLaunchRegion() ? &((*fc[1])[mfi]) : fc[1]->fabPtr(mfi);,
+                         FArrayBox* fzfab = Gpu::notInLaunchRegion() ? &((*fc[2])[mfi]) : fc[2]->fabPtr(mfi););
+            FArrayBox const* ccfab = Gpu::notInLaunchRegion() ? &(cc[mfi]) : cc.fabPtr(mfi);
+            
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
+            {
+                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
+            });
 	}
     }
 
@@ -253,22 +250,21 @@ namespace amrex
 	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
-            const Box& tbx = mfi.tilebox();
+            const Box& bx = mfi.tilebox();
+            FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse_S_fine[mfi]) : crse_S_fine.fabPtr(mfi);
+            FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
+            FArrayBox const* finevolfab = Gpu::notInLaunchRegion() ? &(fvolume[mfi]) : fvolume.fabPtr(mfi);
 
-            //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
-            //        because the crse fab is a temporary which was made starting at comp 0, it is
-            //        not part of the actual crse multifab which came in.
-            BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                 BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                 BL_TO_FORTRAN(fvolume[mfi]),
-                 ratio.getVect(),&ncomp);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avgdown_with_vol(tbx,*crsefab,*finefab,*finevolfab,
+                                       0,scomp,ncomp,ratio);
+            });
 	}
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
@@ -304,18 +300,19 @@ namespace amrex
         MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_S_fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
-            const Box& tbx = mfi.growntilebox(nGrow);
+            const Box& bx = mfi.growntilebox(nGrow);
+            FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse_S_fine[mfi]) : crse_S_fine.fabPtr(mfi);
+            FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
 
-            BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
-                 BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
-                 ratio.getVect(),&ncomp);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+            });
         }
 
         S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
@@ -339,25 +336,25 @@ namespace amrex
         if (crse_S_fine_BA == S_crse.boxArray() and S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 //  NOTE: The tilebox is defined at the coarse level.
-                const Box& tbx = mfi.tilebox();
+                const Box& bx = mfi.tilebox();
+                FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(S_crse[mfi]) : S_crse.fabPtr(mfi);
+                FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
 
                 if (is_cell_centered) {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(S_crse[mfi],scomp),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown(tbx,*crsefab,*finefab,scomp,scomp,ncomp,ratio);
+                    });
                 } else {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
-                        (tbx.loVect(),tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(S_crse[mfi],scomp),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown_nodes(tbx,*crsefab,*finefab,scomp,scomp,ncomp,ratio);
+                    });
                 }
             }
         }
@@ -366,29 +363,29 @@ namespace amrex
             MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0, MFInfo(), FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 //  NOTE: The tilebox is defined at the coarse level.
-                const Box& tbx = mfi.tilebox();
+                const Box& bx = mfi.tilebox();
+                FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse_S_fine[mfi]) : crse_S_fine.fabPtr(mfi);
+                FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(S_fine[mfi]) : S_fine.fabPtr(mfi);
 
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
                 //        not part of the actual crse multifab which came in.
 
                 if (is_cell_centered) {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                    });
                 } else {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown_nodes(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                    });
                 }
             }
 
@@ -434,24 +431,25 @@ namespace amrex
         if (isMFIterSafe(*fine[0], *crse[0]))
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+                for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
                 {
-                    const Box& tbx = mfi.growntilebox(ngcrse);
+                    const Box& bx = mfi.growntilebox(ngcrse);
+                    FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &((*crse[n])[mfi]) : crse[n]->fabPtr(mfi);
+                    FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &((*fine[n])[mfi]) : fine[n]->fabPtr(mfi);
 
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-                        (tbx.loVect(),tbx.hiVect(),
-                         BL_TO_FORTRAN((*fine[n])[mfi]),
-                         BL_TO_FORTRAN((*crse[n])[mfi]),
-                         ratio.getVect(),n,ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown_faces(tbx, *crsefab, *finefab, 0, 0, 1, ratio, n);
+                    });
                 }
             }
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
+            Array<MultiFab,AMREX_SPACEDIM> ctmp;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
                 BoxArray cba = fine[idim]->boxArray();
@@ -478,18 +476,19 @@ namespace amrex
 	int ncomp = crse[0]->nComp();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
         for (int n=0; n<AMREX_SPACEDIM; ++n) {
-            for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*crse[n],TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.growntilebox(ngcrse);
+                const Box& bx = mfi.growntilebox(ngcrse);
+                FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &((*crse[n])[mfi]) : crse[n]->fabPtr(mfi);
+                FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &((*fine[n])[mfi]) : fine[n]->fabPtr(mfi);
 
-                BL_FORT_PROC_CALL(BL_AVGDOWN_EDGES,bl_avgdown_edges)
-                    (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN((*fine[n])[mfi]),
-                     BL_TO_FORTRAN((*crse[n])[mfi]),
-                     ratio.getVect(),n,ncomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown_edges(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, n);
+                });
             }
         }
     }
@@ -505,18 +504,19 @@ namespace amrex
 	int ncomp = crse.nComp();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
-            {
-                const Box& tbx = mfi.growntilebox(ngcrse);
+        for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.growntilebox(ngcrse);
+            FArrayBox* crsefab = Gpu::notInLaunchRegion() ? &(crse[mfi]) : crse.fabPtr(mfi);
+            FArrayBox const* finefab = Gpu::notInLaunchRegion() ? &(fine[mfi]) : fine.fabPtr(mfi);
 
-                BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
-                    (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN(fine[mfi]),
-                     BL_TO_FORTRAN(crse[mfi]),
-                     ratio.getVect(),&ncomp);
-            }
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avgdown_nodes(tbx,*crsefab,*finefab,0,0,ncomp,ratio);
+            });
+        }
     }
 
 
@@ -568,17 +568,42 @@ namespace amrex
 
         const int ncomp = imf.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box& tbx = mfi.growntilebox();
-            amrex_fort_int_to_real(BL_TO_FORTRAN_BOX(tbx), &ncomp,
-                                   BL_TO_FORTRAN_ANYD(mf[mfi]),
-                                   BL_TO_FORTRAN_ANYD(imf[mfi]));
+            const Box& gbx = mfi.growntilebox();
+            FArrayBox      * rfab = Gpu::notInLaunchRegion() ? &( mf[mfi]) :  mf.fabPtr(mfi);
+            IArrayBox const* ifab = Gpu::notInLaunchRegion() ? &(imf[mfi]) : imf.fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
+            {
+                amrex::cast(tbx, *rfab, *ifab, 0, 0, ncomp);
+            });
         }
 
         return mf;
+    }
+
+    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
+    {
+        FabArray<BaseFab<long> > lmf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
+
+        const int ncomp = imf.nComp();
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& gbx = mfi.growntilebox();
+            BaseFab<long>  * lfab = Gpu::notInLaunchRegion() ? &(lmf[mfi]) : lmf.fabPtr(mfi);
+            IArrayBox const* ifab = Gpu::notInLaunchRegion() ? &(imf[mfi]) : imf.fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
+            {
+                amrex::cast(tbx, *lfab, *ifab, 0, 0, ncomp);
+            });
+        }
+
+        return lmf;
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
@@ -589,36 +614,38 @@ namespace amrex
             AMREX_ASSERT(cc.nGrow() >= 1);
         }
 
-        const Real* dx  = geom.CellSize();
-        const Real* plo = geom.ProbLo();
+        const auto geomdata = geom.data();
 
         Vector<int> slice_to_full_ba_map;
         std::unique_ptr<MultiFab> slice = allocateSlice(dir, cc, ncomp, geom, coord, slice_to_full_ba_map);
 
-        int nf = cc.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(*slice, true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*slice, TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
+            FArrayBox* slice_fab = Gpu::notInLaunchRegion() ? &((*slice)[mfi]) : slice->fabPtr(mfi);
+            FArrayBox const* full_fab = Gpu::notInLaunchRegion() ? &(cc[full_gid]) : cc.fabPtr(full_gid);
 
             const Box& tile_box  = mfi.tilebox();
 
             if (interpolate)
             {
-                amrex_fill_slice_interp(BL_TO_FORTRAN_BOX(tile_box),
-                                        BL_TO_FORTRAN_ANYD(cc[full_gid]),
-                                        BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
-                                        &start_comp, &nf, &ncomp, &dir,
-                                        &coord, AMREX_ZFILL(plo), AMREX_ZFILL(dx));
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
+                {
+                    amrex_fill_slice_interp(thread_box, *slice_fab, *full_fab,
+                                            0, start_comp, ncomp,
+                                            dir, coord, geomdata);
+                });
             }
             else
             {
-                amrex_fill_slice(BL_TO_FORTRAN_BOX(tile_box),
-                                 BL_TO_FORTRAN_ANYD(cc[full_gid]),
-                                 BL_TO_FORTRAN_ANYD((*slice)[slice_gid]),
-                                 &start_comp, &nf, &ncomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tile_box, thread_box,
+                {
+                    slice_fab->copy(*full_fab, thread_box, start_comp, thread_box, 0, ncomp);
+                });
             }
         }
 
@@ -655,19 +682,22 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
-        const Real* dxinv = geom.InvCellSize();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(divu,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(divu,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(divu[mfi]),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*umac[0])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*umac[1])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*umac[2])[mfi])),
-                                      dxinv);
+            FArrayBox* divufab = Gpu::notInLaunchRegion() ? &(divu[mfi]) : divu.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* ufab = Gpu::notInLaunchRegion() ? &((*umac[0])[mfi]) : umac[0]->fabPtr(mfi);,
+                         FArrayBox const* vfab = Gpu::notInLaunchRegion() ? &((*umac[1])[mfi]) : umac[1]->fabPtr(mfi);,
+                         FArrayBox const* wfab = Gpu::notInLaunchRegion() ? &((*umac[2])[mfi]) : umac[2]->fabPtr(mfi););
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                amrex_compute_divergence(bx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+            });
         }
     }
 }

@@ -15,6 +15,11 @@ public:
     CutFab (const Box& b, int ncomps, bool alloc=true, bool shared=false)
         : FArrayBox(b, ncomps, alloc, shared) {}
 
+#ifdef AMREX_USE_GPU
+    CutFab (CutFab const& rhs, MakeType make_type)
+        : FArrayBox(rhs, make_type) {}
+#endif
+
     ~CutFab () = default;
 
     CutFab (CutFab&& rhs) noexcept = default;

@@ -49,6 +49,7 @@ public:
 #endif
 
     static void Initialize ();
+    static void PrintUsage ();
     static void Finalize ();
 
 protected:
