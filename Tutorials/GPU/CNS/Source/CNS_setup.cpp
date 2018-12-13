@@ -3,18 +3,6 @@
 
 using namespace amrex;
 
-void cns_bcfill_single (Box const& bx, FArrayBox& data,
-                        const int dcomp, const int numcomp,
-                        Geometry const& geom, const Real time,
-                        const Vector<BCRec>& bcr, const int bcomp,
-                        const int scomp);
-
-void cns_bcfill_group (Box const& bx, FArrayBox& data,
-                       const int dcomp, const int numcomp,
-                       Geometry const& geom, const Real time,
-                       const Vector<BCRec>& bcr, const int bcomp,
-                       const int scomp);
-
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
 
 static Box the_same_box (const Box& b) { return b; }

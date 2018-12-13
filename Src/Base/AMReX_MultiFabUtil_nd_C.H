@@ -1,10 +1,16 @@
+#ifndef AMREX_MULTIFAB_UTIL_ND_C_H_
+#define AMREX_MULTIFAB_UTIL_ND_C_H_
 
-#include <AMReX_MultiFabUtil_C.H>
+#include <AMReX_Gpu.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_FArrayBox.H>
+#include <AMReX_IArrayBox.H>
 #include <cmath>
 
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_fill_slice_interp (Box const& bx, FArrayBox & slicefab, FArrayBox const& fullfab,
                               int scomp, int fcomp, int ncomp,
                               int dir, Real coord, GeometryData const& gd)
@@ -62,3 +68,5 @@ void amrex_fill_slice_interp (Box const& bx, FArrayBox & slicefab, FArrayBox con
 }
 
 }
+
+#endif
