@@ -256,10 +256,18 @@ CoordSys::SetVolume (FArrayBox& vol,
     int coord = (int) c_sys;
     AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
+#if (AMREX_SPACEDIM == 3)
+    const Real dv = a_dx[0]*a_dx[1]*a_dx[2];
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    {
+        volfab->setVal(dv, tbx);
+    });
+#else
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setvol(tbx, *volfab, a_offset, a_dx, coord);
     });
+#endif
 }
 
 void
@@ -294,10 +302,17 @@ CoordSys::SetDLogA (FArrayBox& dloga,
     int coord = (int) c_sys;
     AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
+#if (AMREX_SPACEDIM == 3)
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    {
+        dlogafab->setVal(0.0, tbx);
+    });
+#else
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setdloga(tbx, *dlogafab, a_offset, a_dx, dir, coord);
     });
+#endif
 }
 
 FArrayBox*
@@ -333,10 +348,18 @@ CoordSys::SetFaceArea (FArrayBox& area,
     int coord = (int) c_sys;
     AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
+#if (AMREX_SPACEDIM == 3)
+    const Real da = (dir == 0) ? dx[1]*dx[2] : ((dir == 1) ? dx[0]*dx[2] : dx[0]*dx[1]);
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    {
+        areafab->setVal(da, tbx);
+    });
+#else
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setarea(tbx, *areafab, a_offset, a_dx, dir, coord);
     });
+#endif
 }
 
 void
