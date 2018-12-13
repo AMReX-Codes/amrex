@@ -2333,12 +2333,8 @@ BaseFab<T>::min (const Box& subbox, int comp) const
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
-#if defined(__CUDA_ARCH__)
                 T t = dp(i,j,k,0);
                 r = (r < t) ? r : t;
-#else
-                r = std::min(r, dp(i,j,k,0));
-#endif
             }
         }
     }
@@ -2366,12 +2362,8 @@ BaseFab<T>::max (const Box& subbox, int comp) const
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
-#if defined(__CUDA_ARCH__)
                 T t = dp(i,j,k,0);
                 r = (r > t) ? r : t;
-#else
-                r = std::max(r, dp(i,j,k,0));
-#endif
             }
         }
     }
@@ -2399,12 +2391,8 @@ BaseFab<T>::maxabs (const Box& subbox, int comp) const
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
-#if defined(__CUDA_ARCH__)
                 T t = std::abs(dp(i,j,k,0));
                 r = (r > t) ? r : t;
-#else
-                r = std::max(r, std::abs(dp(i,j,k,0)));
-#endif
             }
         }
     }
@@ -2450,7 +2438,9 @@ template <class T>
 IntVect
 BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
 {
-    AMREX_D_DECL(int imin = -10, jmin = -10, kmin = -10);
+    AMREX_D_DECL(int imin = std::numeric_limits<int>::lowest(),
+                     jmin = std::numeric_limits<int>::lowest(),
+                     kmin = std::numeric_limits<int>::lowest());
 
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2471,26 +2461,23 @@ BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
 
 template <class T>
 void
-BaseFab<T>::minIndex (const Box& subbox,
-                      Real& min_val,
-                      IntVect& min_idx,
-                      int comp) const
+BaseFab<T>::minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp) const
 {
-    const auto dp0 = this->stridedPtr(subbox,comp);
-    const auto len = subbox.length3d();
-    const auto& lo = subbox.loVect();
+    const auto len  = amrex::length(subbox);
+    const auto lo   = amrex::lbound(subbox);
+    const auto dp   = view(lo, comp);
 
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dp0(0,j,k);
-            for (int i = 0; i < len[0]; ++i) {
-                if (dp[i] < min_val) {
-                    min_val = dp[i];
-                    min_idx = IntVect(AMREX_D_DECL(i+lo[0],j+lo[1],k+lo[2]));
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                if (dp(i,j,k,0) < min_val) {
+                    min_val = dp(i,j,k,0);
+                    min_idx = IntVect(AMREX_D_DECL(i,j,k));
                 }
             }
         }
     }
+    AMREX_D_TERM(min_idx[0] += lo.x;, min_idx[1] += lo.y;, min_idx[2] += lo.z);
 }
 
 template <class T>
@@ -2528,26 +2515,23 @@ BaseFab<T>::maxIndex (const Box& subbox,
 
 template <class T>
 void
-BaseFab<T>::maxIndex (const Box& subbox,
-                      Real& max_val,
-                      IntVect& max_idx,
-                      int comp) const
+BaseFab<T>::maxIndex (const Box& subbox, Real& max_val, IntVect& max_idx, int comp) const
 {
-    const auto dp0 = this->stridedPtr(subbox,comp);
-    const auto len = subbox.length3d();
-    const auto& lo = subbox.loVect();
+    const auto len  = amrex::length(subbox);
+    const auto lo   = amrex::lbound(subbox);
+    const auto dp   = view(lo, comp);
 
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
-            T const* AMREX_RESTRICT dp = dp0(0,j,k);
-            for (int i = 0; i < len[0]; ++i) {
-                if (dp[i] > max_val) {
-                    max_val = dp[i];
-                    max_idx = IntVect(AMREX_D_DECL(i+lo[0],j+lo[1],k+lo[2]));
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                if (dp(i,j,k,0) > max_val) {
+                    max_val = dp(i,j,k,0);
+                    max_idx = IntVect(AMREX_D_DECL(i,j,k));
                 }
             }
         }
     }
+    AMREX_D_TERM(max_idx[0] += lo.x;, max_idx[1] += lo.y;, max_idx[2] += lo.z);
 }
 
 template <class T>
@@ -2900,7 +2884,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
                 T const * const AMREX_RESTRICT xpr = &(xp(0,j,k,n));
                 T const * const AMREX_RESTRICT ypr = &(yp(0,j,k,n));
                 for (int i = 0; i < len.x; ++i) {
-//                    r += xp(i,j,k,n) + yp(i,j,k,n);
+//                    r += xp(i,j,k,n) * yp(i,j,k,n);
                     r += xpr[i] * ypr[i];
                 }
             }

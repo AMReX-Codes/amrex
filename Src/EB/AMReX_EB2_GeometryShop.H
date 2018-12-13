@@ -115,13 +115,13 @@ GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
     const Real* AMREX_RESTRICT problo = geom.ProbLo();
     const Real* AMREX_RESTRICT dx = geom.CellSize();
 
-    const auto len = amrex::length(levelset.box());
-    const auto lo  = amrex::lbound(levelset.box());
-    const auto dp  = view(lo);
+    const Box& bx = levelset.box();
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = levelset.view(lo);
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD 
             for (int i = 0; i < len.x; ++i) {
                 RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo.x)*dx[0],
                                             problo[1]+(j+lo.y)*dx[1],
