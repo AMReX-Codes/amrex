@@ -22,7 +22,6 @@ namespace amrex {
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleTile
 {
-    using Real = double;
     using ParticleType = Particle<NStructReal, NStructInt>;
 
     using AoS = ArrayOfStructs<NStructReal, NStructInt>;

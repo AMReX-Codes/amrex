@@ -358,6 +358,8 @@ $(tmpEXETempDir)/%-cppd.h: %.H
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \
 	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\''    $@ ; \
+	               sed -i -e '\''s/AMREX_GPU_DEVICE/ /g'\'' $@ ; \
+	               sed -i -e '\''s/AMREX_GPU_HOST_DEVICE/ /g'\'' $@ ; \
 	               sed -i -e '\''s/\&/*/g'\'' $@'
 
 typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)

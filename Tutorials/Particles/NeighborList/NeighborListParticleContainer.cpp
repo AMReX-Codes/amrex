@@ -90,7 +90,7 @@ void NeighborListParticleContainer::computeForcesNL() {
 
     const int lev = 0;
 
-    buildNeighborList(lev, CheckPair);
+    buildNeighborList(CheckPair);
 
 #ifdef _OPENMP
 #pragma omp parallel
