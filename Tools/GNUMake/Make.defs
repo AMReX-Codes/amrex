@@ -189,6 +189,12 @@ else
   EBASE := main
 endif
 
+ifdef USE_FORCE_INLINE
+  USE_FORCE_INLINE := $(strip $(USE_FORCE_INLINE))
+else
+  USE_FORCE_INLINE := FALSE
+endif
+
 ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
 else
@@ -414,6 +420,10 @@ ifeq ($(USE_OMP),TRUE)
     CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
 else
     OMPSuffix	:=
+endif
+
+ifeq ($(USE_FORCE_INLINE),TRUE)
+    CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
 USE_GPU := FALSE
