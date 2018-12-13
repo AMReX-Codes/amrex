@@ -2218,9 +2218,11 @@ Amr::coarseTimeStep (Real stop_time)
 	    graphArray.resize(finest_level+1);
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
-	    Perilla::syncProcesses();
-            Perilla::communicateTags();
-	    Perilla::syncProcesses();
+	    if(ParallelDescriptor::NProcs()>1){
+  	        Perilla::syncProcesses();
+                Perilla::communicateTags();
+	        Perilla::syncProcesses();
+	    }
         }
     }
     perilla::syncAllThreads();
@@ -2249,9 +2251,11 @@ Amr::coarseTimeStep (Real stop_time)
 	        while(!Perilla::updateMetadata_done){
 		
 	        }
-	        Perilla::syncProcesses();
-                Perilla::communicateTags();
-	        Perilla::syncProcesses();
+	        if(ParallelDescriptor::NProcs()>1){
+	            Perilla::syncProcesses();
+                    Perilla::communicateTags();
+	            Perilla::syncProcesses();
+		}
 	        Perilla::updateMetadata_request=0;
 	        Perilla::updateMetadata_noticed=0;
 	        Perilla::updateMetadata_done=0;
