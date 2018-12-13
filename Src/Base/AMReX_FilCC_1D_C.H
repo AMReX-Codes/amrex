@@ -1,8 +1,14 @@
-#include <AMReX_FilCC_C.H>
+#ifndef AMREX_FILCC_1D_C_H_
+#define AMREX_FILCC_1D_C_H_
+
+#include <AMReX_FArrayBox.H>
+#include <AMReX_BCRec.H>
+#include <AMReX_Geometry.H>
 
 namespace amrex {
 
 AMREX_GPU_DEVICE
+inline
 void
 filcc_cell (const IntVect& iv, FArrayBox& dest_fab,
             const int dcomp, const int numcomp,
@@ -105,3 +111,6 @@ filcc_cell (const IntVect& iv, FArrayBox& dest_fab,
 }
 
 }
+
+#endif
+
