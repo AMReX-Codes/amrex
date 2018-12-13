@@ -2,7 +2,6 @@
 #define AMREX_MULTIFAB_UTIL_3D_C_H_
 
 #include <AMReX_Gpu.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 #include <cmath>
@@ -61,7 +60,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
                          FArrayBox const& fxfab, FArrayBox const& fyfab, FArrayBox const& fzfab,
-                         int cccomp, GeometryData const gd)
+                         int cccomp)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -86,7 +85,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box const& zbx,
                          FArrayBox& fxfab, FArrayBox& fyfab, FArrayBox& fzfab,
-                         FArrayBox const& ccfab, GeometryData const& gd)
+                         FArrayBox const& ccfab)
 {
     const auto lo = lbound(ndbx);
     const auto fx = fxfab.view(lo);
