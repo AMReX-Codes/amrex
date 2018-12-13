@@ -41,7 +41,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tsum = 0.0;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab);
                 }
                 sdata[threadIdx.x] = tsum;
@@ -105,7 +105,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tsum = 0.0;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab1, *fab2);
                 }
                 sdata[threadIdx.x] = tsum;
@@ -170,7 +170,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tsum = 0.0;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tsum += f(tbx, *fab1, *fab2, *fab3);
                 }
                 sdata[threadIdx.x] = tsum;
@@ -231,7 +231,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tmin = std::numeric_limits<value_type>::max();
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab);
                     tmin = amrex::min(tmin, local_tmin);
                 }
@@ -294,7 +294,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tmin = std::numeric_limits<value_type>::max();
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab1, *fab2);
                     tmin = amrex::min(tmin, local_tmin);
                 }
@@ -356,7 +356,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tmax = std::numeric_limits<value_type>::lowest();
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab);
                     tmax = amrex::max(tmax, local_tmax);
                 }
@@ -419,7 +419,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* sdata = gsm.dataPtr();
 
                 value_type tmax = std::numeric_limits<value_type>::lowest();
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab1, *fab2);
                     tmax = amrex::max(tmax, local_tmax);
                 }
@@ -480,7 +480,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
                 unsigned char* sdata = gsm.dataPtr();
 
                 bool tr = true;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr && f(tbx, *fab);
                 }
                 sdata[threadIdx.x] = tr;
@@ -542,7 +542,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 unsigned char* sdata = gsm.dataPtr();
 
                 bool tr = true;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr && f(tbx, *fab1, *fab2);
                 }
                 sdata[threadIdx.x] = tr;
@@ -602,7 +602,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
                 unsigned char* sdata = gsm.dataPtr();
 
                 bool tr = false;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr || f(tbx, *fab);
                 }
                 sdata[threadIdx.x] = tr;
@@ -664,7 +664,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 unsigned char* sdata = gsm.dataPtr();
 
                 bool tr = false;
-                for (auto const& tbx : Gpu::Range(bx)) {
+                for (auto const tbx : Gpu::Range(bx)) {
                     tr = tr || f(tbx, *fab1, *fab2);
                 }
                 sdata[threadIdx.x] = tr;
