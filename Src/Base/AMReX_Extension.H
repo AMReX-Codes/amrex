@@ -61,35 +61,42 @@
 #endif /* simd */
 
 // force inline
-
 #if defined(__CUDA_ARCH__)
-#define AMREX_INLINE __forceinline__
+#define AMREX_FORCE_INLINE __forceinline__
 
 #elif defined(__INTEL_COMPILER)
-#define AMREX_INLINE inline __attribute__((always_inline))
+#define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #elif defined(_CRAYC)
-#define AMREX_INLINE inline
+#define AMREX_FORCE_INLINE inline
 
 #elif defined(__PGI)
-#define AMREX_INLINE inline
+#define AMREX_FORCE_INLINE inline
 
 #elif defined(__NEC__)
-#define AMREX_INLINE inline
+#define AMREX_FORCE_INLINE inline
 
 #elif defined(__ibmxl__)
-#define AMREX_INLINE inline __attribute__((always_inline))
+#define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #elif defined(__clang__)
-#define AMREX_INLINE inline __attribute__((always_inline))
+#define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #elif defined(__GNUC__)
-#define AMREX_INLINE inline __attribute__((always_inline))
+#define AMREX_FORCE_INLINE inline __attribute__((always_inline))
 
 #else
-#define AMREX_INLINE inline
+#define AMREX_FORCE_INLINE inline
 
-#endif /* inline */
+#endif /* force inline */
+
+
+#ifdef AMREX_USE_FORCE_INLINE
+#define AMREX_INLINE AMREX_FORCE_INLINE
+#else
+#define AMREX_INLINE inline
+#endif
+
 
 #endif /* !BL_LANG_FORT */
 

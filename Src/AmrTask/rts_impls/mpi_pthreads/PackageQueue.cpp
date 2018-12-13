@@ -1,5 +1,10 @@
 #include <PackageQueue.H>
 #include <iostream>
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include <PerillaMemCheck.H>
+extern PerillaMemCheck memcheck;
+#endif
 
 Package::Package()
 {
@@ -12,11 +17,17 @@ Package::Package()
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
+#ifdef PERILLA_DEBUG
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+#endif
 }
 
 Package::~Package()
 {
     if(databuf) free(databuf);
+#ifdef PERILLA_DEBUG
+    memcheck.remove(memcheck.genKey(this));
+#endif
 }
 
 Package::Package(int size)
@@ -30,6 +41,9 @@ Package::Package(int size)
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
+#ifdef PERILLA_DEBUG
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+#endif
 }
 
 Package::Package(int src, int dest)
@@ -37,6 +51,9 @@ Package::Package(int src, int dest)
     bufSize = 0;
     source = src;
     destination = dest;
+#ifdef PERILLA_DEBUG
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+#endif
 }
 
 Package::Package(int src, int dest, int size)
@@ -52,6 +69,9 @@ Package::Package(int src, int dest, int size)
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
+#ifdef PERILLA_DEBUG
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+#endif
 }
 
 void Package::setPackageSource(int src)

@@ -3,6 +3,7 @@ CEXE_sources += RGIter.cpp
 CEXE_sources += RegionQueue.cpp
 CEXE_sources += WorkerThread.cpp
 CEXE_sources += AsyncMultiFabUtil.cpp
+CEXE_sources += PerillaMemCheck.cpp
 
 
 CEXE_headers += Barrier.H
@@ -14,6 +15,7 @@ CEXE_headers += RegionQueue.H
 CEXE_headers += RemoteConnection.H
 CEXE_headers += WorkerThread.H
 CEXE_headers += AsyncMultiFabUtil.H
+CEXE_headers += PerillaMemCheck.H
 
 
 
