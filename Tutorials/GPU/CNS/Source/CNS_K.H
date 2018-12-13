@@ -1,48 +1,75 @@
 #ifndef CNS_K_H_
 #define CNS_K_H_
 
+#include "CNS_index_macros.H"
 #include <AMReX_FArrayBox.H>
-#include <AMReX_Geometry.H>
+#include <limits>
+#include <cmath>
 
-AMREX_GPU_DEVICE
-void cns_initdata (amrex::Box const& bx, amrex::FArrayBox& state, amrex::GeometryData const& geomdata);
+#include "cns_prob.H"
 
 AMREX_GPU_HOST_DEVICE
-amrex::Real cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& state,
-                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx);
+inline
+amrex::Real
+cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
+           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto state = statefab.view(lo);
+    amrex::Real dt = std::numeric_limits<amrex::Real>::max();
+    const amrex::Real smallr = 1.e-19;
+    const amrex::Real smallp = 1.e-10;
+    const amrex::Real gamma = 1.4;
+
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                amrex::Real rho = state(i,j,k,URHO);
+                amrex::Real mx  = state(i,j,k,UMX);
+                amrex::Real my  = state(i,j,k,UMY);
+                amrex::Real mz  = state(i,j,k,UMY);
+                amrex::Real ei  = state(i,j,k,UEINT);
+                amrex::Real rhoinv = 1.0/amrex::max(rho,smallr);
+                amrex::Real vx = mx*rhoinv;
+                amrex::Real vy = my*rhoinv;
+                amrex::Real vz = mz*rhoinv;
+                amrex::Real p = amrex::max((gamma-1.0)*ei, smallp);
+                amrex::Real cs = std::sqrt(gamma*p*rhoinv);
+                amrex::Real dtx = dx[0]/(std::abs(vx)+cs);
+                amrex::Real dty = dx[1]/(std::abs(vy)+cs);
+                amrex::Real dtz = dx[2]/(std::abs(vz)+cs);
+                dt = amrex::min(dt,amrex::min(dtx,amrex::min(dty,dtz)));
+            }
+        }
+    }
+    
+    return dt;
+}
+
 
 AMREX_GPU_DEVICE
-void cns_compute_temperature (amrex::Box const& bx, amrex::FArrayBox& state);
+inline
+void
+cns_compute_temperature (amrex::Box const& bx, amrex::FArrayBox& statefab)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto u = statefab.view(lo);
 
-AMREX_GPU_DEVICE
-void cns_ctoprim (amrex::Box const& bx, amrex::FArrayBox const& u, amrex::FArrayBox& q);
-
-AMREX_GPU_DEVICE
-void cns_flux_to_dudt (amrex::Box const& bx, amrex::FArrayBox& dudt,
-                       AMREX_D_DECL(amrex::FArrayBox const& fx,
-                                    amrex::FArrayBox const& fy,
-                                    amrex::FArrayBox const& fz),
-                       amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxinv);
-
-AMREX_GPU_DEVICE
-void cns_slope_x (amrex::Box const& bx, amrex::FArrayBox& slope, amrex::FArrayBox const& q);
-
-AMREX_GPU_DEVICE
-void cns_slope_y (amrex::Box const& bx, amrex::FArrayBox& slope, amrex::FArrayBox const& q);
-
-AMREX_GPU_DEVICE
-void cns_slope_z (amrex::Box const& bx, amrex::FArrayBox& slope, amrex::FArrayBox const& q);
-
-AMREX_GPU_DEVICE
-void cns_riemann_x (amrex::Box const& bx, amrex::FArrayBox& flux,
-                    amrex::FArrayBox const& slope, amrex::FArrayBox const& q);
-
-AMREX_GPU_DEVICE
-void cns_riemann_y (amrex::Box const& bx, amrex::FArrayBox& flux,
-                    amrex::FArrayBox const& slope, amrex::FArrayBox const& q);
-
-AMREX_GPU_DEVICE
-void cns_riemann_z (amrex::Box const& bx, amrex::FArrayBox& flux,
-                    amrex::FArrayBox const& slope, amrex::FArrayBox const& q);
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                amrex::Real rhoinv = 1.0/u(i,j,k,URHO);
+                amrex::Real mx = u(i,j,k,UMX);
+                amrex::Real my = u(i,j,k,UMY);
+                amrex::Real mz = u(i,j,k,UMZ);
+                u(i,j,k,UEINT) = u(i,j,k,UEDEN) - 0.5 * rhoinv * (mx*mx+my*my+mz*mz);
+                u(i,j,k,UTEMP) = 0.0;
+            }
+        }
+    }
+}
 
 #endif
