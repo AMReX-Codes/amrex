@@ -62,59 +62,82 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                                       *a_num_particles_per_cell[2]);
     const Real scale_fac = dx[0]*dx[1]*dx[2]/num_ppc;
 
+    std::array<Real,PIdx::nattribs> attribs;
+    attribs.fill(0.0);    
+    
     for(MFIter mfi(*m_mask_ptr); mfi.isValid(); ++mfi)
-        {
-            const Box& tile_box  = mfi.tilebox();
-            const Real* plo = m_geom.ProbLo();
-            const int grid_id = mfi.index();
-            const int tile_id = mfi.LocalTileIndex();
-            auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
-            for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
-                for (int i_part=0; i_part<num_ppc;i_part++) {
-                    Real r[3];
-                    Real u[3];
-
-                    get_position_unit_cell(r, a_num_particles_per_cell, i_part);
-
-                    if (a_problem == 0) {
-                        get_gaussian_random_momentum(u, a_thermal_momentum_mean, a_thermal_momentum_std);
-                    }
-                    else if (a_problem == 1 ) {
-                        u[0] = 0.01;
-                        u[1] = 0.0;
-                        u[2] = 0.0;
-                    } else {
-                        amrex::Abort("problem type not valid");
-                    }
-
-                    Real x = plo[0] + (iv[0] + r[0])*dx[0];
-                    Real y = plo[1] + (iv[1] + r[1])*dx[1];
-                    Real z = plo[2] + (iv[2] + r[2])*dx[2];
-
-                    if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
-                        y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
-                        z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
-
-                    particles.x().push_back(x);
-                    particles.y().push_back(y);
-                    particles.z().push_back(z);
-
-                    particles.ux().push_back(u[0] * PhysConst::c);
-                    particles.uy().push_back(u[1] * PhysConst::c);
-                    particles.uz().push_back(u[2] * PhysConst::c);
-
-                    particles.w().push_back(a_density * scale_fac);
-
-                    particles.ex().push_back(0);
-                    particles.ey().push_back(0);
-                    particles.ez().push_back(0);
-                    particles.bx().push_back(0);
-                    particles.by().push_back(0);
-                    particles.bz().push_back(0);
-                    particles.ginv().push_back(0);
+    {
+        const Box& tile_box  = mfi.tilebox();
+        const Real* plo = m_geom.ProbLo();
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        const auto& pair_index = std::make_pair(grid_id, tile_id);
+        auto& particles = m_particles[pair_index];
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
+            for (int i_part=0; i_part<num_ppc;i_part++) {
+                Real r[3];
+                Real u[3];
+                
+                get_position_unit_cell(r, a_num_particles_per_cell, i_part);
+                
+                if (a_problem == 0) {
+                    get_gaussian_random_momentum(u, a_thermal_momentum_mean, a_thermal_momentum_std);
                 }
+                else if (a_problem == 1 ) {
+                    u[0] = 0.01;
+                    u[1] = 0.0;
+                    u[2] = 0.0;
+                } else {
+                    amrex::Abort("problem type not valid");
+                }
+                
+                Real x = plo[0] + (iv[0] + r[0])*dx[0];
+                Real y = plo[1] + (iv[1] + r[1])*dx[1];
+                Real z = plo[2] + (iv[2] + r[2])*dx[2];
+                
+                if (x >= a_bounds.hi(0) || x < a_bounds.lo(0) ||
+                    y >= a_bounds.hi(1) || y < a_bounds.lo(1) ||
+                    z >= a_bounds.hi(2) || z < a_bounds.lo(2) ) continue;
+                
+                ParticleType p;
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();                
+                p.pos(0) = x;
+                p.pos(1) = y;
+                p.pos(2) = z;
+
+                attribs[PIdx::ux] = u[0] * PhysConst::c;
+                attribs[PIdx::uy] = u[1] * PhysConst::c;
+                attribs[PIdx::uz] = u[2] * PhysConst::c;
+                attribs[PIdx::w ] = a_density * scale_fac;
+                
+                host_particles.push_back(p);
+                for (int kk = 0; kk < PIdx::nattribs; ++kk)
+                    host_attribs[kk].push_back(attribs[kk]);
+                
+                attribs[PIdx::ux] = u[0] * PhysConst::c;
+                attribs[PIdx::uy] = u[1] * PhysConst::c;
+                attribs[PIdx::uz] = u[2] * PhysConst::c;
+                attribs[PIdx::w ] = a_density * scale_fac;                                
             }
         }
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto old_size = particle_tile.GetArrayOfStructs().size();
+        auto new_size = old_size + host_particles.size();
+        particle_tile.resize(new_size);
+        
+        thrust::copy(host_particles.begin(),
+                     host_particles.end(),
+                     particle_tile.GetArrayOfStructs().begin() + old_size);
+        
+        for (int kk = 0; kk < PIdx::nattribs; ++kk)
+        {
+            thrust::copy(host_attribs[kk].begin(),
+                         host_attribs[kk].end(),
+                         particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
+        }
+    }
 }
 
 void ElectromagneticParticleContainer::PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
