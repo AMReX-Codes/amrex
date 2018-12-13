@@ -159,9 +159,7 @@ extern "C" {
     void amrex_mlndlap_restriction (const int* lo, const int* hi,
                                     amrex_real* crse, const int* clo, const int* chi,
                                     const amrex_real* fine, const int* flo, const int* fhi,
-                                    const int* dmsk, const int* dmlo, const int* dmhi,
-                                    const int* dlo, const int* dhi,
-                                    const void* bclo, const void* bchi);
+                                    const int* dmsk, const int* dmlo, const int* dmhi);
 
     void amrex_mlndlap_interpolation_ha (const int* clo, const int* chi,
                                       amrex_real* fine, const int* fflo, const int* ffhi,

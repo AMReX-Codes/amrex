@@ -1617,9 +1617,9 @@ contains
   end subroutine amrex_mlndlap_gauss_seidel_aa
 
 
-  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_restriction')
-    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi, domlo, domhi, bclo, bchi
+  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_restriction')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
@@ -2113,7 +2113,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_divu_fine_contrib
-
 
   subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
        ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
