@@ -133,10 +133,20 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         MultiFab normal(ba, dm, 3, max_eb_pad + 1);
         FillEBNormals(normal, eb_factory, geom[lev]);
 
-        iMultiFab eb_valid(ba, dm, 1, max_eb_pad +1);
+        iMultiFab eb_valid(ba, dm, 1, max_eb_pad + 1);
         eb_valid.setVal(0);
 
         // TODO: some of this might be shifted to the base class?
+
+#if (AMREX_SPACEDIM == 1)
+        Real min_dx = geom[lev].CellSize(0);
+#elif (AMREX_SPACEDIM == 2)
+        Real min_dx = std::min(geom[lev].CellSize(0), geom[lev].CellSize(1));
+#elif (AMREX_SPACEDIM == 3)
+        Real min_dx = std::min(geom[lev].CellSize(0),
+                               std::min(geom[lev].CellSize(1), geom[lev].CellSize(2)));
+#endif
+        Real ls_threshold = min_dx * levelset_eb_pad;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -164,6 +174,11 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
             int facet_list_size = 6 * n_facets;
             Vector<Real> facet_list(facet_list_size);
 
+
+                  auto & ls_tile_w = level_set[lev][mfi];
+                  auto & v_tile    = eb_valid[mfi];
+            const auto & if_tile   = (* mf_impfunc)[mfi];
+
             if (n_facets > 0) {
                 const auto & norm_tile = normal[mfi];
                 const auto & bcent_tile = bndrycent[mfi];
@@ -176,23 +191,29 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
                                  facet_list.dataPtr(), & facet_list_size,
                                  geom[lev].CellSize()                      );
 
-                      auto & ls_tile_w = level_set[lev][mfi];
-                      auto & v_tile    = eb_valid[mfi];
-                const auto & if_tile   = (* mf_impfunc)[mfi];
-
-                amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
-                                       facet_list.dataPtr(), & facet_list_size,
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile_w),
-                                       geom[lev].CellSize(), geom[lev].CellSize() );
-
-                const int ls_grid_ref = 1;
-                amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
-                                           BL_TO_FORTRAN_3D(if_tile),
+                amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
+                                           facet_list.dataPtr(), & facet_list_size,
                                            BL_TO_FORTRAN_3D(v_tile),
-                                           BL_TO_FORTRAN_3D(ls_tile_w)   );
+                                           BL_TO_FORTRAN_3D(ls_tile_w),
+                                           BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
+                                           geom[lev].CellSize(), geom[lev].CellSize() );
 
             }
+
+
+            //_______________________________________________________________________
+            // Enforce threshold of local level-set
+            amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
+                                        BL_TO_FORTRAN_3D(ls_tile_w));
+
+
+            //_______________________________________________________________________
+            // Validate level-set
+            const int ls_grid_ref = 1;
+            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
+                                       BL_TO_FORTRAN_3D(if_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile_w)   );
         }
     }
 

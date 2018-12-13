@@ -1265,9 +1265,6 @@ MLNodeLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLNodeLaplacian::prepareForSolve()");
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_amr_levels == 1 || m_coarsening_strategy != CoarseningStrategy::RAP,
-                                     "MLNodeLaplacian::prepareForSolve RAP TODO");
-
     MLNodeLinOp::prepareForSolve();
 
     buildMasks();

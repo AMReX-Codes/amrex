@@ -281,6 +281,7 @@ public:
 
     int finestLevel () const { return m_gdb->finestLevel(); }
     int maxLevel ()    const { return m_gdb->maxLevel(); }
+    int numLevels()    const { return finestLevel() + 1; } 
     
     int numLocalTilesAtLevel (int lev) const { return m_particles[lev].size(); }
 
