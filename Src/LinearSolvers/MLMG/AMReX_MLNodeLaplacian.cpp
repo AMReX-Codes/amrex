@@ -5,6 +5,10 @@
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
+#ifdef AMREX_USE_EB
 #ifdef USE_ALGOIM
 #include <AMReX_algoim_integrals.H>
 #endif
@@ -303,8 +307,11 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
         crhs.setVal(0.0);
         crhs.ParallelAdd(*frhs[ilev], cgeom.periodicity());
 
-        const Box& cccdom = cgeom.Domain();
-        const Box& cnddom = amrex::surroundingNodes(cccdom);
+        Box cnddom = amrex::surroundingNodes(cgeom.Domain());
+
+        if (m_coarsening_strategy != CoarseningStrategy::Sigma) 
+            cnddom.grow(1000); // hack to avoid masks being modified at Neuman boundary
+
         const Real* cdxinv = cgeom.InvCellSize();
         const iMultiFab& cdmsk = *m_dirichlet_mask[ilev][0];
         const iMultiFab& c_nd_mask = *m_nd_fine_mask[ilev];
@@ -342,6 +349,10 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                                               m_lobc.data(), m_hibc.data());
             }
         }
+
+        // Make sure to zero out the RHS on any nodes completely surrounded by covered cells
+        amrex::EB_set_covered((*rhs[ilev]),0.0);
+      
     }
 }
 
@@ -1289,8 +1300,6 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
-    const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
-
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
     if (need_parallel_copy) {
@@ -1314,9 +1323,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
             amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
                                       BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
                                       BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                      BL_TO_FORTRAN_BOX(nd_domain),
-                                      m_lobc.data(), m_hibc.data());
+                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]));
         }
         else
         {
@@ -1442,7 +1449,6 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     const Geometry& cgeom = m_geom[camrlev  ][0];
     const Box& c_cc_domain = cgeom.Domain();
-    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
 
@@ -1459,9 +1465,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
         amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
                                   BL_TO_FORTRAN_ANYD(cfine[mfi]),
                                   BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                  BL_TO_FORTRAN_BOX(c_nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
     }
 
     MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0);
@@ -2104,9 +2108,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
                                   BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
                                   BL_TO_FORTRAN_ANYD(fine_res[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                  BL_TO_FORTRAN_BOX(c_nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
     }
     res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());
 
