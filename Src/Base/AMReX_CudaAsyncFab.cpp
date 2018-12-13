@@ -72,12 +72,5 @@ AsyncFab::clear ()
     m_fab = nullptr;
 }
 
-AsyncFab::~AsyncFab ()
-{
-#ifndef __CUDA_ARCH__
-    clear();
-#endif
-}
-
 }
 }
