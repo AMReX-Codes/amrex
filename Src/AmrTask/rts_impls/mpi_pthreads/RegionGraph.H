@@ -10,6 +10,13 @@
 #include <AMReX_Box.H>
 #include <pthread.h>
 
+
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include "PerillaMemCheck.H"
+extern PerillaMemCheck memcheck;
+#endif
+
 namespace amrex{
 
     class RegionGraph;
@@ -44,7 +51,7 @@ namespace amrex{
 	    pTileArray(): numTiles(0), tileBx(0){}
             ~pTileArray()
             {   
-                for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
+                //for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
                 tileBx.clear();
                 //if(validBx) delete validBx;
             }
@@ -78,8 +85,8 @@ namespace amrex{
 		depTaskIDs.clear();
 		if(cpAsc_srcHead != 0)
 		    delete cpAsc_srcHead;
-		//if(cpAsc_dstHead != 0)
-		    //delete cpAsc_dstHead;
+		if(cpAsc_dstHead != 0)
+		    delete cpAsc_dstHead;
 	    }
     };
 
@@ -116,7 +123,11 @@ namespace amrex{
 	    CopyMap()
 		:
 		    next(0)
-	{}
+	{
+#ifdef PERILLA_DEBUG
+    	        memcheck.add(memcheck.genKey(this), (void*)this, "CopyMap");
+#endif
+	}
 
 	    void alloc_CopyMap(const MultiFab& mf)
 	    {
@@ -135,9 +146,16 @@ namespace amrex{
 	    }
 	    ~CopyMap()
 	    {
+                for (int i = 0; i < map.size(); ++i)
+                {
+		    delete map[i];
+                }
 		map.clear();
 		if(next !=0 )
 		    delete next;
+#ifdef PERILLA_DEBUG
+    	        memcheck.remove(memcheck.genKey(this));
+#endif
 	    }
     };
 
