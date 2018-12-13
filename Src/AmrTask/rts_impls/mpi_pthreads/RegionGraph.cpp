@@ -23,6 +23,10 @@ RegionGraph::RegionGraph(int numtasks)
     okToReset = new bool[perilla::NUM_THREAD_TEAMS];
     finishLock= PTHREAD_MUTEX_INITIALIZER;
     Initialize();
+#ifdef PERILLA_DEBUG
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+#endif
+
 }
 
 void RegionGraph::Initialize()
@@ -718,9 +722,7 @@ void RegionGraph::graphTeardown()
 			cpSrc->map[f]->r_con.snd[i].recycleQueue.enqueue(package);
 		    }
 		}
-
 	    }
-
 	    cpSrc = cpSrc->next;
 	}
     }
@@ -831,9 +833,12 @@ RegionGraph::~RegionGraph()
     sMap.clear();
     rMap.clear();
 
-    //for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
-    //for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
+    for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
+    for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
 
     fabTiles.clear();
     fabTiles_gtbx.clear();
+#ifdef PERILLA_DEBUG
+    memcheck.remove(memcheck.genKey(this));
+#endif
 }
