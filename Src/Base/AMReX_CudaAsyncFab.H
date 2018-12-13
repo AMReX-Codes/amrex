@@ -26,8 +26,14 @@ public:
 #else
     AsyncFab (AsyncFab const& rhs) = delete;
 #endif
+
     AMREX_GPU_HOST_DEVICE
-    ~AsyncFab ();
+    ~AsyncFab () {
+#ifndef __CUDA_ARCH__
+        clear();
+#endif
+    }
+
     void operator= (AsyncFab const&) = delete;
 
 // Not allowed because it contains cuda api calls   void resize (Box const& bx, int ncomp);

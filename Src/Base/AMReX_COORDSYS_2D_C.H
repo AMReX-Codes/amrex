@@ -1,13 +1,19 @@
+#ifndef AMREX_COORDSYS_2D_C_H_
+#define AMREX_COORDSYS_2D_C_H_
 
-#include <AMReX_COORDSYS_C.H>
+#include <AMReX_Gpu.H>
+#include <AMReX_Array.H>
+#include <AMReX_FArrayBox.H>
 #include <cmath>
 
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE
-void amrex_setvol (Box const& bx, FArrayBox& vol,
-                   GpuArray<Real,2> const& offset,
-                   GpuArray<Real,2> const& dx, const int coord)
+inline
+void
+amrex_setvol (Box const& bx, FArrayBox& vol,
+              GpuArray<Real,2> const& offset,
+              GpuArray<Real,2> const& dx, const int coord)
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -55,9 +61,11 @@ void amrex_setvol (Box const& bx, FArrayBox& vol,
 }
 
 AMREX_GPU_HOST_DEVICE
-void amrex_setarea (Box const& bx, FArrayBox& area,
-                    GpuArray<Real,2> const& offset,
-                    GpuArray<Real,2> const& dx, const int dir, const int coord)
+inline
+void
+amrex_setarea (Box const& bx, FArrayBox& area,
+               GpuArray<Real,2> const& offset,
+               GpuArray<Real,2> const& dx, const int dir, const int coord)
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -134,9 +142,11 @@ void amrex_setarea (Box const& bx, FArrayBox& area,
 }
 
 AMREX_GPU_HOST_DEVICE
-void amrex_setdloga (Box const& bx, FArrayBox& dloga,
-                     GpuArray<Real,2> const& offset,
-                     GpuArray<Real,2> const& dx, const int dir, const int coord)
+inline
+void
+amrex_setdloga (Box const& bx, FArrayBox& dloga,
+                GpuArray<Real,2> const& offset,
+                GpuArray<Real,2> const& dx, const int dir, const int coord)
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -202,3 +212,5 @@ void amrex_setdloga (Box const& bx, FArrayBox& dloga,
 }
 
 }
+
+#endif

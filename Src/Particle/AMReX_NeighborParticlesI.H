@@ -129,12 +129,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
 
     for (int lev = 0; lev < this->numLevels(); ++lev)
     {
-        // compute ref ratio relative to level 0
-        IntVect rr = computeRefFac(0, lev);
-
         BoxArray ba = this->ParticleBoxArray(lev);
-        ba.coarsen(rr);
-
         const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
         
         if (mask_ptr[lev] == nullptr ||
@@ -199,7 +194,8 @@ NeighborParticleContainer<NStructReal, NStructInt>
     {
         for (int lev = 0; lev < this->numLevels(); ++lev)
         {
-            for (MFIter mfi(*mask_ptr[lev], false); mfi.isValid(); ++mfi) {
+            for (MFIter mfi(*mask_ptr[lev],this->do_tiling ? this->tile_size : IntVect::TheZeroVector());
+                 mfi.isValid(); ++mfi) {
                 const Box& box = mfi.validbox();
                 Vector<NeighborCommTag> comm_tags;
                 GetCommTagsBox(comm_tags, lev, box);
@@ -403,7 +399,7 @@ NeighborParticleContainer<NStructReal, NStructInt>
             }
         }
     }
-        
+    
     // do the same for the remote neighbors
     typename std::map<NeighborCommTag, Vector<Vector<NeighborIndexMap> > >::iterator it;
 #ifdef _OPENMP
