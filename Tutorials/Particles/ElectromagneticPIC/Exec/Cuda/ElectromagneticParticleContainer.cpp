@@ -1,11 +1,3 @@
-#include <AMReX_Geometry.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_Utility.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_StructOfArrays.H>
-#include <AMReX_RedistributeStrategy.H>
-
 #include "ElectromagneticParticleContainer.H"
 #include "Constants.H"
 
@@ -48,27 +40,9 @@ ElectromagneticParticleContainer(const Geometry            & a_geom,
                                  const int                   a_species_id,
                                  const Real                  a_charge,
                                  const Real                  a_mass)
-    : m_ba(a_ba), m_geom(a_geom), m_dmap(a_dmap),
-      m_species_id(a_species_id), m_charge(a_charge), m_mass(a_mass)
-{
-    BL_PROFILE("ElectromagneticParticleContainer::ElectromagneticParticleContainer");
-
-    const int ng = 1;
-    m_mask_ptr.reset(new MultiFab(m_ba, m_dmap, 1, ng));
-    m_mask_ptr->setVal(-1);
-    for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi) {
-        const Box& box = mfi.tilebox();
-        const int grid_id = mfi.index();
-        m_mask_ptr->setVal(grid_id, box, 0, 1);
-    }
-    m_mask_ptr->FillBoundary(m_geom.periodicity());
-
-    #ifdef AMREX_USE_CUDA
-    m_redistribute_strategy.reset(new RedistributeStrategyGPU<Particles>() );
-    #else
-    m_redistribute_strategy.reset(new RedistributeStrategyCPU<Particles>() );
-    #endif
-}
+    : ParticleContainer<0, 0, PIdx::nattribs, 0>(a_geom, a_dmap, a_ba),
+    m_species_id(a_species_id), m_charge(a_charge), m_mass(a_mass)
+{}
 
 void
 ElectromagneticParticleContainer::

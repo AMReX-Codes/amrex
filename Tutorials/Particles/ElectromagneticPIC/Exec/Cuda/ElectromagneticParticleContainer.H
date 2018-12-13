@@ -1,12 +1,7 @@
 #ifndef ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
 #define ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
 
-#include <AMReX_Geometry.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_REAL.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_IntVect.H>
+#include <AMReX_Particles.H>
 
 struct PIdx
 {
