@@ -1,6 +1,5 @@
-#ifndef face_velocity_cpp
-#define face_velocity_cpp
 
+#include <face_velocity.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_REAL.H>
@@ -8,6 +7,7 @@
 
 using namespace amrex;
 
+AMREX_GPU_DEVICE
 void get_face_velocity_psi(Box const& bx,
                            const Real time,
                            FArrayBox& psifab,
@@ -30,6 +30,7 @@ void get_face_velocity_psi(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void get_face_velocity_x(Box const& bx,
                          FArrayBox& xvelfab,
                          const FArrayBox& psifab,
@@ -45,16 +46,15 @@ void get_face_velocity_x(Box const& bx,
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            Real y = dx[1] * (0.5 + j+lo.y) + prob_lo[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = (dx[0] * (i+lo.x)) + prob_lo[0];
                 vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
             }
         }
     }
 }
 
+AMREX_GPU_DEVICE
 void get_face_velocity_y(Box const& bx,
                          FArrayBox& yvelfab,
                          const FArrayBox& psifab,
@@ -70,16 +70,16 @@ void get_face_velocity_y(Box const& bx,
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
-            Real y = (dx[1] * (j+lo.y)) + prob_lo[1];
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                Real x = dx[0] * (0.5 + i+lo.x) + prob_lo[0];
                 vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx[0]); 
             }
         }
     }
 }
 
+
+AMREX_GPU_DEVICE
 void get_face_velocity_z(Box const& bx,
                          FArrayBox& zvelfab,
                          const FArrayBox& psifab,
@@ -89,5 +89,3 @@ void get_face_velocity_z(Box const& bx,
     zvelfab.setVal(1.0,bx,0);
 }
 
-
-#endif

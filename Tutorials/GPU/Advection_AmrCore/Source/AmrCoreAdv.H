@@ -65,6 +65,12 @@ public:
     // overrides the pure virtual function in AmrCore
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
+    // advance a single level for a single time step, updates flux registers
+    void Advance (int lev, amrex::Real time, amrex::Real dt_lev, int iteration, int ncycle);
+
+    // compute dt from CFL considerations
+    Real EstTimeStep (int lev, bool local=false) const;
+
 private:
 
     ////////////////
@@ -95,14 +101,8 @@ private:
     // includes a recursive call for finer levels
     void timeStep (int lev, amrex::Real time, int iteration);
 
-    // advance a single level for a single time step, updates flux registers
-    void Advance (int lev, amrex::Real time, amrex::Real dt_lev, int iteration, int ncycle);
-
     // a wrapper for EstTimeStep(0
     void ComputeDt ();
-
-    // compute dt from CFL considerations
-    Real EstTimeStep (int lev, bool local=false) const;
 
     // get plotfile name
     std::string PlotFileName (int lev) const;

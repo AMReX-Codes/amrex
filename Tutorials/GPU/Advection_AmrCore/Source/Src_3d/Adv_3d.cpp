@@ -1,11 +1,13 @@
 #ifndef _Adv_3d_cpp_
 #define _Adv_3d_cpp_
 
+#include <Adv_3d.H>
 #include <AmrCoreAdv_F.H>
 #include <AMReX_FArrayBox.H>
 
 using namespace amrex;
 
+AMREX_GPU_DEVICE
 void conservative(Box const& bx,
                   const FArrayBox& statein,
                   FArrayBox& stateout,
@@ -35,6 +37,7 @@ void conservative(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_scale_x(Box const& bx,
                     FArrayBox& fx,
                     const Real& dt,
@@ -53,6 +56,7 @@ void flux_scale_x(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_scale_y(Box const& bx,
                     FArrayBox& fy,
                     const Real& dt,
@@ -71,6 +75,7 @@ void flux_scale_y(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_scale_z(Box const& bx,
                     FArrayBox& fz,
                     const Real& dt,

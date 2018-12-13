@@ -6,6 +6,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
+#include <Kernels_3d.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -588,11 +589,9 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
     const auto dx = geom[lev].CellSizeArray();
     GpuArray<Real, AMREX_SPACEDIM> dtdx;
-    GpuArray<Real, AMREX_SPACEDIM> hdtdx;
-    GpuArray<Real, AMREX_SPACEDIM> tdtdx; 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
-        dtdx[i]  = dt_lev/(dx[i]);
+        dtdx[i] = dt_lev/(dx[i]);
     }
 
     const Real* prob_lo = geom[lev].ProbLo();
@@ -632,7 +631,6 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
         facevel [idim].define (ba.grow(1), S_new.DistributionMap(),             1, 0);
     }
 
-
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -640,27 +638,28 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
         // ======== GET FACE VELOCITY =========
 	for (MFIter mfi(S_new,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const FArrayBox& statein = Sborder[mfi];
-	    FArrayBox& stateout      =   S_new[mfi];
+	    const FArrayBox* statein = Sborder.fabPtr(mfi);
+	    FArrayBox* stateout      =   S_new.fabPtr(mfi);
 
-            AMREX_D_TERM(const Box& nbxx = mfi.nodaltilebox(0);,
-                         const Box& nbxy = mfi.nodaltilebox(1);,
-                         const Box& nbxz = mfi.nodaltilebox(2););
+            GpuArray<Box, AMREX_SPACEDIM> nbx;
+            AMREX_D_TERM(nbx[0] = mfi.nodaltilebox(0);,
+                         nbx[1] = mfi.nodaltilebox(1);,
+                         nbx[2] = mfi.nodaltilebox(2););
 
-            AMREX_D_TERM(const Box& nbxx_g = amrex::grow(mfi.nodaltilebox(0),1);,
-                         const Box& nbxy_g = amrex::grow(mfi.nodaltilebox(1),1);,
-                         const Box& nbxz_g = amrex::grow(mfi.nodaltilebox(2),1););
+            AMREX_D_TERM(const Box& ngbxx = amrex::grow(mfi.nodaltilebox(0),1);,
+                         const Box& ngbxy = amrex::grow(mfi.nodaltilebox(1),1);,
+                         const Box& ngbxz = amrex::grow(mfi.nodaltilebox(2),1););
 
-            FArrayBox* uface[BL_SPACEDIM];
-            AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
-                         uface[1] = &(facevel[1][mfi]);,
-                         uface[2] = &(facevel[2][mfi]););
+            GpuArray<FArrayBox*, AMREX_SPACEDIM> uface;
+            AMREX_D_TERM(uface[0] = facevel[0].fabPtr(mfi);,
+                         uface[1] = facevel[1].fabPtr(mfi);,
+                         uface[2] = facevel[2].fabPtr(mfi););
 
-            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(nbxx_g.smallEnd(0)-1, nbxy_g.smallEnd(0)-1),
-                                                         std::min(nbxx_g.smallEnd(1)-1, nbxy_g.smallEnd(0)-1),
+            const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(ngbxx.smallEnd(0)-1, ngbxy.smallEnd(0)-1),
+                                                         std::min(ngbxx.smallEnd(1)-1, ngbxy.smallEnd(0)-1),
                                                          0)),
-                                    IntVect(AMREX_D_DECL(std::max(nbxx_g.bigEnd(0),   nbxy_g.bigEnd(0)+1),
-                                                         std::max(nbxx_g.bigEnd(1)+1, nbxy_g.bigEnd(1)),
+                                    IntVect(AMREX_D_DECL(std::max(ngbxx.bigEnd(0),   ngbxy.bigEnd(0)+1),
+                                                         std::max(ngbxx.bigEnd(1)+1, ngbxy.bigEnd(1)),
                                                          0)));
 
             Gpu::AsyncFab psi(psibox, 1);
@@ -675,21 +674,21 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             AMREX_D_TERM(
-                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxx_g, tbx,
+                         AMREX_LAUNCH_DEVICE_LAMBDA(ngbxx, tbx,
                          {
                              get_face_velocity_x(tbx,
                                                  *uface[0], *psifab,
                                                  geomdata); 
                          });,
 
-                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxy_g, tbx,
+                         AMREX_LAUNCH_DEVICE_LAMBDA(ngbxy, tbx,
                          {
                              get_face_velocity_y(tbx,
                                                  *uface[1], *psifab,
                                                  geomdata);
                          });,
 
-                         AMREX_LAUNCH_DEVICE_LAMBDA(nbxz_g, tbx,
+                         AMREX_LAUNCH_DEVICE_LAMBDA(ngbxz, tbx,
                          {
                              get_face_velocity_z(tbx,
                                                  *uface[2], *psifab,
@@ -704,10 +703,10 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 	    const Box& bx = mfi.tilebox();
             const Box& gbx = amrex::grow(bx, 1);
 
-            FArrayBox* flux[BL_SPACEDIM];
-            AMREX_D_TERM(flux[0] = &(fluxcalc[0][mfi]);,
-                         flux[1] = &(fluxcalc[1][mfi]);,
-                         flux[2] = &(fluxcalc[2][mfi]););
+            GpuArray<FArrayBox*, AMREX_SPACEDIM> flux;
+            AMREX_D_TERM(flux[0] = fluxcalc[0].fabPtr(mfi);,
+                         flux[1] = fluxcalc[1].fabPtr(mfi);,
+                         flux[2] = fluxcalc[2].fabPtr(mfi););
 
             AMREX_D_TERM(const Box& dqbxx = amrex::grow(bx, IntVect{2, 1, 1});,
                          const Box& dqbxy = amrex::grow(bx, IntVect{1, 2, 1});,
@@ -727,17 +726,17 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxx, tbx,
             {
-                slopex2(tbx, statein, *slope2fab);
+                slopex2(tbx, *statein, *slope2fab);
             });
 
             AMREX_LAUNCH_DEVICE_LAMBDA(gbx, tbx,
             {
-                slopex4(tbx, statein, *slope2fab, *slope4fab);
+                slopex4(tbx, *statein, *slope2fab, *slope4fab);
             });
 
             AMREX_LAUNCH_DEVICE_LAMBDA(amrex::growLo(gbx, 0, -1), tbx,
             {
-                flux_x(tbx, statein, *uface[0], *phixfab, *slope4fab, dtdx); 
+                flux_x(tbx, *statein, *uface[0], *phixfab, *slope4fab, dtdx); 
             });
 
             // y -------------------------
@@ -746,17 +745,17 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxy, tbx,
             {
-                slopey2(tbx, statein, *slope2fab);
+                slopey2(tbx, *statein, *slope2fab);
             });
 
             AMREX_LAUNCH_DEVICE_LAMBDA(gbx, tbx,
             {
-                slopey4(tbx, statein, *slope2fab, *slope4fab);
+                slopey4(tbx, *statein, *slope2fab, *slope4fab);
             });
 
             AMREX_LAUNCH_DEVICE_LAMBDA(amrex::growLo(gbx, 1, -1), tbx,
             {
-                flux_y(tbx, statein, *uface[1], *phiyfab, *slope4fab, dtdx); 
+                flux_y(tbx, *statein, *uface[1], *phiyfab, *slope4fab, dtdx); 
             });
 
             // z -------------------------
@@ -765,17 +764,17 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxz, tbx,
             {
-                slopez2(tbx, statein, *slope2fab);
+                slopez2(tbx, *statein, *slope2fab);
             });
 
             AMREX_LAUNCH_DEVICE_LAMBDA(gbx, tbx,
             {
-                slopez4(tbx, statein, *slope2fab, *slope4fab);
+                slopez4(tbx, *statein, *slope2fab, *slope4fab);
             });
 
             AMREX_LAUNCH_DEVICE_LAMBDA(amrex::growLo(gbx, 2, -1), tbx,
             {
-                flux_z(tbx, statein, *uface[2], *phizfab, *slope4fab, dtdx); 
+                flux_z(tbx, *statein, *uface[2], *phizfab, *slope4fab, dtdx); 
             });
 
             slope2.clear();
@@ -880,6 +879,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                *flux[2], dtdx);
             });
 
+            // Flux has been updated. These temporaries are no longer needed.
             phix.clear();
             phiy.clear();
             phiz.clear();
@@ -890,14 +890,13 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             phiz_x.clear();
             phiz_y.clear();
 
-
             // compute new state (stateout) and scale fluxes based on face area.
             // ===========================
 
             // Do a conservative update 
             AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
             {
-                conservative(tbx, statein, stateout,
+                conservative(tbx, *statein, *stateout,
                              AMREX_D_DECL(*flux[0], *flux[1], *flux[2]), 
                              dtdx);
             });
@@ -920,12 +919,17 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                              flux_scale_z(tbx, *flux[2], dt_lev, dx);
                          });
                         );
+
+            GpuArray<FArrayBox*, AMREX_SPACEDIM> fluxout;
+            AMREX_D_TERM(fluxout[0] = fluxes[0].fabPtr(mfi);,
+                         fluxout[1] = fluxes[1].fabPtr(mfi);,
+                         fluxout[2] = fluxes[2].fabPtr(mfi););
            
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++) {
-                    AMREX_LAUNCH_DEVICE_LAMBDA(mfi.nodaltilebox(i), tbx,
+                    AMREX_LAUNCH_DEVICE_LAMBDA(nbx[i], tbx,
                     {
-                        fluxes[i][mfi].copy(*flux[i],tbx);
+                        fluxout[i]->copy(*flux[i],tbx);
                     });
                 }
             }
@@ -1036,10 +1040,10 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                          const Box& nbxy = mfi.nodaltilebox(1);,
                          const Box& nbxz = mfi.nodaltilebox(2););
 
-            FArrayBox* uface[BL_SPACEDIM];
-            AMREX_D_TERM(uface[0] = &(facevel[0][mfi]);,
-                         uface[1] = &(facevel[1][mfi]);,
-                         uface[2] = &(facevel[2][mfi]););
+            GpuArray<FArrayBox*, AMREX_SPACEDIM> uface;
+            AMREX_D_TERM(uface[0] = facevel[0].fabPtr(mfi);,
+                         uface[1] = facevel[1].fabPtr(mfi);,
+                         uface[2] = facevel[2].fabPtr(mfi););
 
 /*
             // Setup for size of psi FArrayBox in Fortran, for reference.

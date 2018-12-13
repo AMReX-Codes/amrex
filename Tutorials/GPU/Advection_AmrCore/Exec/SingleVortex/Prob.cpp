@@ -1,8 +1,7 @@
-#ifndef Prob_cpp
-#define Prob_cpp
 
 #include <AmrCoreAdv_F.H>
 
+#include <Prob.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -40,4 +39,3 @@ initdata(Box const& bx, FArrayBox& phifab, GeometryData const& geom)
     }
 }
 
-#endif
