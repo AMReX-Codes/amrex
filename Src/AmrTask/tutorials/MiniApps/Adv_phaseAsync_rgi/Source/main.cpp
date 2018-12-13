@@ -58,6 +58,7 @@ main (int   argc,
         if (amr.stepOfLastPlotFile() < amr.levelSteps(0)) {
             amr.writePlotFile();
         }
+        rts.Finalize();
     }
 
     Real dRunTime2 = ParallelDescriptor::second() - dRunTime1;
