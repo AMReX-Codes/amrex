@@ -181,6 +181,11 @@ public:
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
+    static GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () {
+        return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                             static_cast<int>(is_periodic[1]),
+                             static_cast<int>(is_periodic[2]))};
+    }
     //! What's period in specified direction?
     int period (int dir) const { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
