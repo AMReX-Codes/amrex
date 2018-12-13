@@ -463,7 +463,7 @@ EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
             if (fabtyp == FabType::covered) {
                 ccfab.setVal(0.0, bx, dcomp, 1);
             } else if (fabtyp == FabType::regular) {
-                amrex_avg_fc_to_cc(bx,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp,GeometryData());
+                amrex_avg_fc_to_cc(bx,ccfab,AMREX_D_DECL(xfab,yfab,zfab),dcomp);
             } else {
                 amrex_eb_avg_fc_to_cc(BL_TO_FORTRAN_BOX(bx),
                                       BL_TO_FORTRAN_N_ANYD(ccfab,dcomp),

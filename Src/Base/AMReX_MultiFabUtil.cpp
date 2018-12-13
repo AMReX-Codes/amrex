@@ -135,7 +135,11 @@ namespace amrex
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
+#if (AMREX_SPACEDIM == 1)
                 amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp, GeometryData());
+#else
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp);
+#endif
             });
         }
     }
@@ -162,7 +166,11 @@ namespace amrex
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
             {
+#if (AMREX_SPACEDIM == 1)
                 amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0, gd);
+#else
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0);
+#endif
             });
         }
     }
@@ -182,7 +190,9 @@ namespace amrex
 	AMREX_ASSERT(cc.nGrow() >= 1);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
+#if (AMREX_SPACEDIM == 1)
         const GeometryData& gd = geom.data();
+#endif
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -201,8 +211,13 @@ namespace amrex
             
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
             {
+#if (AMREX_SPACEDIM == 1)
                 amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
                                    AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
+#else
+                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab);
+#endif
             });
 	}
     }
