@@ -350,9 +350,10 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
             }
         }
 
+#if AMREX_USE_EB
         // Make sure to zero out the RHS on any nodes completely surrounded by covered cells
         amrex::EB_set_covered((*rhs[ilev]),0.0);
-      
+#endif
     }
 }
 
