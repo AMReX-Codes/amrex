@@ -10,6 +10,7 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
                          int cccomp, int ndcomp, int ncomp)
 {
@@ -32,6 +33,7 @@ void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
                          FArrayBox const& exfab, FArrayBox const& eyfab, FArrayBox const& ezfab,
                          int cccomp)
@@ -56,9 +58,10 @@ void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
                          FArrayBox const& fxfab, FArrayBox const& fyfab, FArrayBox const& fzfab,
-                         int cccomp, GeometryData const& gd)
+                         int cccomp, GeometryData const gd)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -80,6 +83,7 @@ void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box const& zbx,
                          FArrayBox& fxfab, FArrayBox& fyfab, FArrayBox& fzfab,
                          FArrayBox const& ccfab, GeometryData const& gd)
@@ -122,6 +126,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx, Box co
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
 {
@@ -209,6 +214,7 @@ void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
 {
@@ -290,6 +296,7 @@ void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                     int ccomp, int fcomp, int ncomp, IntVect const& ratio)
 {
@@ -327,6 +334,7 @@ void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                              FArrayBox const& finevolfab, int ccomp, int fcomp, int ncomp,
                              IntVect const& ratio)
@@ -366,6 +374,7 @@ void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const&
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                           int ccomp, int fcomp, int ncomp, IntVect const& ratio)
 {
@@ -394,6 +403,7 @@ void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
 }
 
 AMREX_GPU_HOST_DEVICE
+inline
 void amrex_compute_divergence (Box const& bx, FArrayBox& divufab,
                                FArrayBox const& ufab, FArrayBox const& vfab, FArrayBox const& wfab,
                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
