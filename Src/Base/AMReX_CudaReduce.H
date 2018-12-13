@@ -52,7 +52,7 @@ void warpReduceSum (T* data, int tid)
 }
 
 template <unsigned int blockSize, typename T>
-AMREX_GPU_DEVICE
+AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceSum (T* data, T& sum)
 {
     int tid = threadIdx.x;
@@ -113,7 +113,7 @@ void warpReduceMin (T* data, int tid)
 }
 
 template <unsigned int blockSize, typename T>
-AMREX_GPU_DEVICE
+AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceMin (T* data, T& dmin)
 {
     int tid = threadIdx.x;
@@ -174,7 +174,7 @@ void warpReduceMax (T* data, int tid)
 }
 
 template <unsigned int blockSize, typename T>
-AMREX_GPU_DEVICE
+AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceMax (T* data, T& dmax)
 {
     int tid = threadIdx.x;
@@ -235,7 +235,7 @@ void warpReduceAnd (T* data, int tid)
 }
 
 template <unsigned int blockSize, typename T>
-AMREX_GPU_DEVICE
+AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceAnd (T* data, T& r)
 {
     int tid = threadIdx.x;
@@ -296,7 +296,7 @@ void warpReduceOr (T* data, int tid)
 }
 
 template <unsigned int blockSize, typename T>
-AMREX_GPU_DEVICE
+AMREX_GPU_DEVICE AMREX_INLINE
 void blockReduceOr (T* data, T& r)
 {
     int tid = threadIdx.x;

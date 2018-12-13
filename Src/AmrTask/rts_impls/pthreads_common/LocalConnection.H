@@ -6,6 +6,13 @@
 #include <AMReX_Box.H>
 #include <pthread.h>
 
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include "PerillaMemCheck.H"
+extern PerillaMemCheck memcheck;
+#endif
+
+using namespace perilla;
 using namespace amrex;
 
 class LocalCopyDescriptor
@@ -21,8 +28,16 @@ class LocalCopyDescriptor
 	int sPartner, dPartner;
 	int dcpyCnt,scpyCnt;
 	pthread_mutex_t ghostLock;
-	LocalCopyDescriptor() : ns(-1), nd(-1), scpyCnt(0), dcpyCnt(0), sz(0), sPartner(-1), dPartner(-1), ghostLock(PTHREAD_MUTEX_INITIALIZER) {}
+	LocalCopyDescriptor() : ns(-1), nd(-1), scpyCnt(0), dcpyCnt(0), sz(0), sPartner(-1), dPartner(-1), ghostLock(PTHREAD_MUTEX_INITIALIZER)
+	{
+#ifdef PERILLA_DEBUG
+                memcheck.add(memcheck.genKey(this), (void*)this, "LocalCopyDescriptor");
+#endif
+	}
 	~LocalCopyDescriptor(){
+#ifdef PERILLA_DEBUG
+                memcheck.remove(memcheck.genKey(this));
+#endif
 	}
 };
 
