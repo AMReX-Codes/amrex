@@ -1,11 +1,12 @@
-#ifndef _slope_cpp_
-#define _slope_cpp_
 
+
+#include <slope_3d.H>
 #include <AMReX_Gpu.H>
 #include <AmrCoreAdv_F.H>
 
 using namespace amrex;
 
+AMREX_GPU_DEVICE
 void slopex2(Box const& bx,
             const FArrayBox &qfab,
             FArrayBox &dqfab)
@@ -25,12 +26,13 @@ void slopex2(Box const& bx,
                 Real dslop = 2.0 * ((std::abs(dlft) < std::abs(drgt)) ?
                                      std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
-                dq(i,j,k) = dsgn*std::min(dlim, std::abs(dcen));
+                dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
             }
         }
     }
 }
 
+AMREX_GPU_DEVICE
 void slopex4(Box const& bx,
              const FArrayBox &qfab,
              const FArrayBox &dqfab,
@@ -53,7 +55,7 @@ void slopex4(Box const& bx,
                                      std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
                 Real dq1 = 4.0/3.0*dcen - (1.0/6.0)*(dq(i+1,j,k) + dq(i-1,j,k));
-                dq4(i,j,k) = dsgn*std::min(dlim, std::abs(dq1));
+                dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
             }
         }
     }
@@ -61,6 +63,7 @@ void slopex4(Box const& bx,
 
 // ***********************************************************
 
+AMREX_GPU_DEVICE
 void slopey2(Box const& bx,
             const FArrayBox &qfab,
             FArrayBox &dqfab)
@@ -80,12 +83,13 @@ void slopey2(Box const& bx,
                 Real dslop = 2.0 * ((std::abs(dlft) < std::abs(drgt)) ?
                                      std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
-                dq(i,j,k) = dsgn*std::min(dlim, std::abs(dcen));
+                dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
             }
         }
     }
 }
 
+AMREX_GPU_DEVICE
 void slopey4(Box const& bx,
              const FArrayBox &qfab,
              const FArrayBox &dqfab,
@@ -108,7 +112,7 @@ void slopey4(Box const& bx,
                                      std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
                 Real dq1 = 4.0/3.0*dcen - (1.0/6.0)*(dq(i,j+1,k) + dq(i,j-1,k));
-                dq4(i,j,k) = dsgn*std::min(dlim, std::abs(dq1));
+                dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
             }
         }
     }
@@ -116,6 +120,7 @@ void slopey4(Box const& bx,
 
 // ***********************************************************
 
+AMREX_GPU_DEVICE
 void slopez2(Box const& bx,
             const FArrayBox &qfab,
             FArrayBox &dqfab)
@@ -135,12 +140,13 @@ void slopez2(Box const& bx,
                 Real dslop = 2.0 * ((std::abs(dlft) < std::abs(drgt)) ?
                                      std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
-                dq(i,j,k) = dsgn*std::min(dlim, std::abs(dcen));
+                dq(i,j,k) = dsgn*amrex::min(dlim, std::abs(dcen));
             }
         }
     }
 }
 
+AMREX_GPU_DEVICE
 void slopez4(Box const& bx,
              const FArrayBox &qfab,
              const FArrayBox &dqfab,
@@ -163,10 +169,9 @@ void slopez4(Box const& bx,
                                      std::abs(dlft) : std::abs(drgt));
                 Real dlim = (dlft*drgt >= 0.0) ? dslop : 0.0;
                 Real dq1 = 4.0/3.0*dcen - (1.0/6.0)*(dq(i,j,k+1) + dq(i,j,k-1));
-                dq4(i,j,k) = dsgn*std::min(dlim, std::abs(dq1));
+                dq4(i,j,k) = dsgn*amrex::min(dlim, std::abs(dq1));
             }
         }
     }
 }
 
-#endif

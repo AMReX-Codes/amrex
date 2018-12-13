@@ -1,16 +1,15 @@
-#ifndef _compute_flux_3d_cpp_
-#define _compute_flux_3d_cpp_
 
 #include <AmrCoreAdv_F.H>
 
 using namespace amrex;
 
+AMREX_GPU_DEVICE
 void flux_x(Box const& bx, 
             const FArrayBox& state,
             const FArrayBox& velx,
             FArrayBox& phix,
             const FArrayBox& slope,
-            GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+            const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -31,12 +30,13 @@ void flux_x(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_y(Box const& bx, 
             const FArrayBox& state,
             const FArrayBox& vely,
             FArrayBox& phiy,
             const FArrayBox& slope,
-            GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+            const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -57,12 +57,13 @@ void flux_y(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_z(Box const& bx, 
             const FArrayBox& state,
             const FArrayBox& velz,
             FArrayBox& phiz,
             const FArrayBox& slope,
-            GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+            const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -83,6 +84,7 @@ void flux_z(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_xy(Box const& bx,
              AMREX_D_DECL(const FArrayBox& velx, 
                           const FArrayBox& vely, 
@@ -91,7 +93,7 @@ void flux_xy(Box const& bx,
                           const FArrayBox& phiy,
                           const FArrayBox& phiz),
              FArrayBox& phix_y,
-             GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+             const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -113,6 +115,7 @@ void flux_xy(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_xz(Box const& bx, 
              AMREX_D_DECL(const FArrayBox& velx, 
                           const FArrayBox& vely, 
@@ -121,7 +124,7 @@ void flux_xz(Box const& bx,
                           const FArrayBox& phiy,
                           const FArrayBox& phiz),
              FArrayBox& phix_z,
-             GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+             const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -143,6 +146,7 @@ void flux_xz(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_yx(Box const& bx, 
              AMREX_D_DECL(const FArrayBox& velx, 
                           const FArrayBox& vely, 
@@ -151,7 +155,7 @@ void flux_yx(Box const& bx,
                           const FArrayBox& phiy,
                           const FArrayBox& phiz),
              FArrayBox& phiy_x,
-             GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+             const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -173,6 +177,7 @@ void flux_yx(Box const& bx,
     }
 };
 
+AMREX_GPU_DEVICE
 void flux_yz(Box const& bx,
              AMREX_D_DECL(const FArrayBox& velx,
                           const FArrayBox& vely,
@@ -181,7 +186,7 @@ void flux_yz(Box const& bx,
                           const FArrayBox& phiy,
                           const FArrayBox& phiz),
              FArrayBox& phiy_z,
-             GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+             const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -203,6 +208,7 @@ void flux_yz(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_zx(Box const& bx,
              AMREX_D_DECL(const FArrayBox& velx,
                           const FArrayBox& vely,
@@ -211,7 +217,7 @@ void flux_zx(Box const& bx,
                           const FArrayBox& phiy,
                           const FArrayBox& phiz),
              FArrayBox& phiz_x,
-             GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+             const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -233,6 +239,7 @@ void flux_zx(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void flux_zy(Box const& bx,
              AMREX_D_DECL(const FArrayBox& velx,
                           const FArrayBox& vely,
@@ -241,7 +248,7 @@ void flux_zy(Box const& bx,
                           const FArrayBox& phiy,
                           const FArrayBox& phiz),
              FArrayBox& phiz_y,
-             GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+             const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
 
     const auto len = length(bx);
@@ -266,6 +273,7 @@ void flux_zy(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void combine_flux_x(Box const& bx,
                     const FArrayBox& velx,
                     const FArrayBox& vely,
@@ -274,7 +282,7 @@ void combine_flux_x(Box const& bx,
                     const FArrayBox& phiy_z,
                     const FArrayBox& phiz_y,
                     FArrayBox& flxx,
-                    GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+                    const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -304,6 +312,7 @@ void combine_flux_x(Box const& bx,
     }
 }
 
+AMREX_GPU_DEVICE
 void combine_flux_y(Box const& bx,
                     const FArrayBox& velx,
                     const FArrayBox& vely,
@@ -312,7 +321,7 @@ void combine_flux_y(Box const& bx,
                     const FArrayBox& phix_z,
                     const FArrayBox& phiz_x,
                     FArrayBox& flxy,
-                    GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+                    const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -340,7 +349,7 @@ void combine_flux_y(Box const& bx,
     }
 }
 
-
+AMREX_GPU_DEVICE
 void combine_flux_z(Box const& bx,
                     const FArrayBox& velx,
                     const FArrayBox& vely,
@@ -349,7 +358,7 @@ void combine_flux_z(Box const& bx,
                     const FArrayBox& phix_y,
                     const FArrayBox& phiy_x,
                     FArrayBox& flxz,
-                    GpuArray<Real, AMREX_SPACEDIM>& dtdx)
+                    const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -377,5 +386,3 @@ void combine_flux_z(Box const& bx,
     }
 }
 
-
-#endif
