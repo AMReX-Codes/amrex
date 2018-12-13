@@ -30,6 +30,8 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
         inline const T& operator [] (int i) const { return arr[i]; }
         AMREX_GPU_HOST_DEVICE
+        inline T& operator [] (int i) { return arr[i]; }
+        AMREX_GPU_HOST_DEVICE
         inline const T* data() const { return arr; };
         AMREX_GPU_HOST_DEVICE
         inline std::size_t size() const { return N; };
