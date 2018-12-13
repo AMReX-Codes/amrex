@@ -7,7 +7,6 @@
 #include <AMReX_REAL.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_IntVect.H>
-#include <AMReX_RedistributeStrategy.H>
 
 #include <Particles.H>
 
@@ -70,7 +69,6 @@ protected:
 
     std::map<std::pair<int, int>, Particles> m_particles;
     std::unique_ptr<amrex::MultiFab> m_mask_ptr;
-    std::unique_ptr<amrex::RedistributeStrategyBase<Particles> > m_redistribute_strategy;
 };
 
 #endif
