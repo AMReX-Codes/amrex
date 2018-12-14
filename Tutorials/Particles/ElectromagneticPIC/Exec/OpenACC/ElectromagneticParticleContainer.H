@@ -1,15 +1,17 @@
 #ifndef ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
 #define ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
 
-#include <AMReX_Geometry.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_REAL.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_RedistributeStrategy.H>
+#include <AMReX_Particles.H>
 
-#include <Particles.H>
+struct PIdx
+{
+    enum {
+        x = 0,
+        y, z, ux, uy, uz, w, Ex, Ey, Ez, Bx, By, Bz, ginv,
+        nattribs
+    };
+};
+
 
 class ElectromagneticParticleContainer
 {
@@ -53,24 +55,12 @@ public:
 
     void EnforcePeriodicBCs();
 
-    void OK();
-
-    void Redistribute();
-
 protected:
 
     int m_species_id;
 
     amrex::Real m_charge;
     amrex::Real m_mass;
-
-    amrex::BoxArray m_ba;
-    amrex::Geometry m_geom;
-    amrex::DistributionMapping m_dmap;
-
-    std::map<std::pair<int, int>, Particles> m_particles;
-    std::unique_ptr<amrex::MultiFab> m_mask_ptr;
-    std::unique_ptr<amrex::RedistributeStrategyBase<Particles> > m_redistribute_strategy;
 };
 
 #endif
