@@ -1452,6 +1452,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     const Box& c_cc_domain = cgeom.Domain();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
+    const auto& stencil    =  m_stencil[camrlev+1][0];
 
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
@@ -1463,10 +1464,18 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     for (MFIter mfi(cfine, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                      BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        } else {
+            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        }
     }
 
     MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0);
@@ -1508,8 +1517,6 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
     if (!skip_fillboundary) {
         phi.FillBoundary(geom.periodicity());
     }
-
-//    int inhom = (bc_mode == BCMode::Inhomogeneous);
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
@@ -2095,6 +2102,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const DistributionMapping& fdm = fine_sol.DistributionMap();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
+    const auto& stencil    =  m_stencil[crse_amrlev+1][0];
 
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, 2), fdm, 1, 0);
 
@@ -2106,10 +2114,18 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     for (MFIter mfi(fine_res_for_coarse, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fine_res[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        } else {
+            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        }
     }
     res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());
 
