@@ -11,7 +11,7 @@ namespace amrex { namespace Cuda {
     {
         cudaError_t err = cudaGetLastError();
         if (cudaSuccess != err) {
-            std::string errStr(std::string("Cuda last error detected in file ") + file
+            std::string errStr(std::string("CUDA last error detected in file ") + file
                                + " line " + std::to_string(line)
                                + ": " + std::string(cudaGetErrorString(err)));
             amrex::Abort(errStr);
@@ -22,7 +22,7 @@ namespace amrex { namespace Cuda {
 #define AMREX_GPU_SAFE_CALL(call) { \
     cudaError_t amrex_i_err = call; \
     if (cudaSuccess != amrex_i_err) { \
-        std::string errStr(std::string("Cuda error in file ") + __FILE__ \
+        std::string errStr(std::string("CUDA error in file ") + __FILE__ \
                            + " line " + std::to_string(__LINE__) \
                            + " " + cudaGetErrorString(amrex_i_err)); \
         amrex::Abort(errStr); \
