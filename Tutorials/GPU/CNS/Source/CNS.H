@@ -36,7 +36,6 @@ public:
                             bool               dump_old = true) override;
 
     virtual std::string thePlotFileType () const override {
-//        return {"CartGrid-V2.0"};
         return {"HyperCLaw-V1.1"};
     }
 

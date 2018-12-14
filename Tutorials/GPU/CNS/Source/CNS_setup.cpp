@@ -99,16 +99,6 @@ CNS::variableSetUp ()
 {
     read_params();
 
-    // xxxxx
-
-#if 0
-    cns_init_fort(phys_bc.lo(), phys_bc.hi(),
-                  PhysBCType::interior, PhysBCType::inflow, PhysBCType::outflow,
-                  PhysBCType::symmetry, PhysBCType::slipwall, PhysBCType::noslipwall,
-                  ParallelDescriptor::MyProc(),
-                  Geometry::ProbLo(), Geometry::ProbHi());
-#endif
-
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
@@ -168,4 +158,5 @@ void
 CNS::variableCleanUp ()
 {
     desc_lst.clear();
+    derive_lst.clear();
 }
