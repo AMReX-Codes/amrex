@@ -40,7 +40,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    Introduction_Chapter
    GettingStarted_Chapter
    BuildingAMReX_Chapter
-   Basic_Chapter
+   Basics_Chapter
    Tutorials_Chapter
    AmrCore_Chapter
    AmrLevel_Chapter
