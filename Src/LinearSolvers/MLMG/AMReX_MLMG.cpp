@@ -433,7 +433,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
-            norm = rescor[amrlev][mglev_bottom].norm0();
+            Real norm = rescor[amrlev][mglev_bottom].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev  << " " << mglev_bottom 
                            << "       Norm after  smooth " << norm << "\n";
         }
