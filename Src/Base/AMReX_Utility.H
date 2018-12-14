@@ -318,19 +318,33 @@ namespace amrex
                                                std::chrono::steady_clock>::type;
     double second ();
 
-  template<class T> 
-  AMREX_GPU_HOST_DEVICE
-  AMREX_INLINE const T& min (const T& a, const T& b)
-  {
-    return (b < a) ? b : a;
-  }
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& min (const T& a, const T& b)
+    {
+        return (b < a) ? b : a;
+    }
 
-  template<class T>
-  AMREX_GPU_HOST_DEVICE
-  AMREX_INLINE const T& max (const T& a, const T& b)
-  {
-    return (a < b) ? b : a;
-  }
+    template <class T, class ... Ts>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& min (const T& a, const T& b, const Ts& ... c)
+    {
+        return min(min(a,b),c...);
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& max (const T& a, const T& b)
+    {
+        return (a < b) ? b : a;
+    }
+
+    template <class T, class ... Ts>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& max (const T& a, const T& b, const Ts& ... c)
+    {
+        return max(max(a,b),c...);
+    }
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
