@@ -41,7 +41,7 @@ amrex_setvol (Box const& bx, FArrayBox& vol,
     else
     {
         const Real pi = 3.1415926535897932;
-        AMREX_PRAGMA_SIMD;
+        AMREX_PRAGMA_SIMD
         for (int i = 0; i < len.x; ++i) {
             Real ri = offset[0] + dx[0]*(i+lo.x);
             Real ro = ri + dx[0];

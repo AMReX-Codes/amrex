@@ -3262,7 +3262,9 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
+#ifndef _OPENMP
                 AMREX_PRAGMA_SIMD
+#endif
                 for (int i = 0; i < len.x; ++i) {
 #ifndef __CUDA_ARCH__
 #ifdef _OPENMP
