@@ -21,7 +21,7 @@ else ifeq ($(which_computer), eagle)
     CFLAGS   += -xSKYLAKE-AVX512
     FFLAGS   += -xSKYLAKE-AVX512
     F90FLAGS += -xSKYLAKE-AVX512
-  else ifeq ($(COMP), gnu)
+  else ifeq ($(COMP), $(filter $(COMP),gnu gcc llvm))
     CXXFLAGS += -march=skylake-avx512 -mtune=skylake-avx512
     CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
     FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
