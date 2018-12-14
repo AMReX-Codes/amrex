@@ -112,22 +112,21 @@ template <class F>
 void
 GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
 {
-    const Real* problo = geom.ProbLo();
-    const Real* dx = geom.CellSize();
+    const Real* AMREX_RESTRICT problo = geom.ProbLo();
+    const Real* AMREX_RESTRICT dx = geom.CellSize();
 
-    const auto dp0 = levelset.stridedPtr();
     const Box& bx = levelset.box();
-    const auto len = bx.length3d();
-    const auto lo  = bx.loVect3d();
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = levelset.view(lo);
 
-    for         (int k = 0; k < len[2]; ++k) {
-        for     (int j = 0; j < len[1]; ++j) {
-            Real* AMREX_RESTRICT dp = dp0(0,j,k);
-            for (int i = 0; i < len[0]; ++i) {
-                RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo[0])*dx[0],
-                                            problo[1]+(j+lo[1])*dx[1],
-                                            problo[2]+(k+lo[2])*dx[2])};
-                dp[i] = m_f(xyz);
+    for         (int k = 0; k < len.z; ++k) {
+        for     (int j = 0; j < len.y; ++j) {
+            for (int i = 0; i < len.x; ++i) {
+                RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo.x)*dx[0],
+                                            problo[1]+(j+lo.y)*dx[1],
+                                            problo[2]+(k+lo.z)*dx[2])};
+                dp(i,j,k,0) = m_f(xyz);
             }
         }
     }

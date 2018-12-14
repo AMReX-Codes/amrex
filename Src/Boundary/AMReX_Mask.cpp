@@ -134,17 +134,18 @@ Mask::And (const Mask& src,
            int         destcomp,
            int         numcomp)
 {
-    const auto dp0 = this->stridedPtr(destbox,destcomp);
-    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
-    const auto len = destbox.length3d();
+    const auto len = amrex::length(destbox);
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const auto dp  =     view(dlo, destcomp);
+    const auto sp  = src.view(slo, srccomp);
 
     for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len[2]; ++k) {
-            for     (int j = 0; j < len[1]; ++j) {
-                value_type       * AMREX_RESTRICT dp = dp0(0,j,k,n);
-                value_type const * AMREX_RESTRICT sp = sp0(0,j,k,n);
-                for (int i = 0; i < len[0]; ++i) {
-                    dp[i] = dp[i] ? sp[0] : 0;
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,k,n) = dp(i,j,k,n) ? sp(i,j,k,n) : 0;
                 }
             }
         }
@@ -186,17 +187,18 @@ Mask::Or (const Mask& src,
           int         destcomp,
           int         numcomp)
 {
-    const auto dp0 = this->stridedPtr(destbox,destcomp);
-    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
-    const auto len = destbox.length3d();
+    const auto len = amrex::length(destbox);
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const auto dp  =     view(dlo, destcomp);
+    const auto sp  = src.view(slo, srccomp);
 
     for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len[2]; ++k) {
-            for     (int j = 0; j < len[1]; ++j) {
-                value_type       * AMREX_RESTRICT dp = dp0(0,j,k,n);
-                value_type const * AMREX_RESTRICT sp = sp0(0,j,k,n);
-                for (int i = 0; i < len[0]; ++i) {
-                    dp[i] = dp[i] ? 1: sp[0];
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,k,n) = dp(i,j,k,n) ? 1: sp(i,j,k,n);
                 }
             }
         }
