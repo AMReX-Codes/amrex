@@ -5,6 +5,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_INTERP_F.H>
+#include <AMReX_Interp_C.H>
 
 namespace amrex {
 
