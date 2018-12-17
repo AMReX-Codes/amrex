@@ -22,6 +22,6 @@ Ppack             += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.pack
 include $(Ppack)
 
 all: $(executable)
-     @echo SUCCESS
+	@echo SUCCESS
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
