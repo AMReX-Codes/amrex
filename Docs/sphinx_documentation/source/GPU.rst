@@ -575,6 +575,8 @@ to a Struct-of-Arrays representation, all without copying any particle data off 
    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
    {
        pti.GetPosition(xp, yp, zp);
+
+       < use xp, yp, zp... >
    }
            
 Finally, AMReX's :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
