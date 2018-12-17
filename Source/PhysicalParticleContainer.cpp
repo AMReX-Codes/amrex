@@ -666,14 +666,14 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
             auto new_size = old_size + host_particles.size();
 	    particle_tile.resize(new_size);
 
-	    thrust::copy(host_particles.begin(),
-			 host_particles.end(),
-			 particle_tile.GetArrayOfStructs().begin() + old_size);
+            Cuda::thrust_copy(host_particles.begin(),
+                              host_particles.end(),
+                              particle_tile.GetArrayOfStructs().begin() + old_size);
 
 	    for (int kk = 0; kk < PIdx::nattribs; ++kk) {
-	      thrust::copy(host_attribs[kk].begin(),
-			   host_attribs[kk].end(),
-			   particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
+                Cuda::thrust_copy(host_attribs[kk].begin(),
+                                  host_attribs[kk].end(),
+                                  particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
 	    }
 	    			 
             if (cost) {
