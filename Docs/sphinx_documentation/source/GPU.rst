@@ -491,13 +491,49 @@ When compiled with ``USE_CUDA=TRUE``, AMReX places all its particle data in inst
 wraps around ``cudaMallocManaged``. This means that the :cpp:`dataPtr` associated with particle
 data can be passed in to GPU kernels, similar to way it would be passed in to a Fortran
 subroutine in typical AMReX CPU code. As with the mesh data, these kernels can be launched
-with a variety of approaches, including Cuda C / Fortran and OpenACC.
+with a variety of approaches, including Cuda C / Fortran and OpenACC. An example Fortran subroutine
+offloaded via OpenACC might look like the following:
 
+.. highlight:: fortran
+
+   ::
+
+      subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
+
+      use em_particle_module, only : particle_t
+      use amrex_fort_module, only : amrex_real
+      implicit none
+   
+      integer,          intent(in), value  :: np
+      type(particle_t), intent(inout)      :: structs(np)
+      real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
+      real(amrex_real), intent(in), value  :: dt
+      
+      integer                              :: ip
+
+      !$acc parallel deviceptr(structs, uxp, uyp, uzp, gaminv)
+      !$acc loop gang vector
+      do ip = 1, np
+          structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
+          structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
+          structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
+      end do
+      !$acc end loop
+      !$acc end parallel
+
+      end subroutine push_position_boris
+      
+Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
+in managed memory. This instructs OpenACC to treat those variables as if they already live on
+the device, bypassing the usual copies. For a complete example of a particle code that has been ported
+to GPUs using OpenACC, please see `Tutorials/Particles/ElectromagneticPIC`. 
+      
 For portability, we have provided a set of Vector classes that wrap around the Thrust and
 STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal :cpp:`amrex::Vector`.
 When ``USE_CUDA = TRUE``, they have different meanings. :cpp:`Gpu::HostVector` is a wrapper
 around :cpp:`thrust::host_vector`. :cpp:`Gpu::DeviceVector` is a wrapper around :cpp:`thrust::device_vector`,
-while :cpp:`Gpu::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory. These classes are useful when you have certain stages of an algorithm that you know will always
+while :cpp:`Gpu::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory.
+These classes are useful when you have certain stages of an algorithm that you know will always
 execute on either the host or the device.
 
 AMReX's :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
