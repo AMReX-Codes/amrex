@@ -251,18 +251,18 @@ CoordSys::SetVolume (FArrayBox& vol,
     AMREX_ASSERT(region.cellCentered());
 
     FArrayBox* volfab = &vol;
-    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
-    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
-    int coord = (int) c_sys;
-    AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
+    GpuArray<Real,AMREX_SPACEDIM> a_dx{AMREX_D_DECL(dx[0], dx[1], dx[2])};
 
 #if (AMREX_SPACEDIM == 3)
+    AMREX_ASSERT(IsCartesian());
     const Real dv = a_dx[0]*a_dx[1]*a_dx[2];
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         volfab->setVal(dv, tbx);
     });
 #else
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setvol(tbx, *volfab, a_offset, a_dx, coord);
@@ -297,17 +297,17 @@ CoordSys::SetDLogA (FArrayBox& dloga,
     AMREX_ASSERT(region.cellCentered());
 
     FArrayBox* dlogafab = &dloga;
-    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
-    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
-    int coord = (int) c_sys;
-    AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
 #if (AMREX_SPACEDIM == 3)
+    AMREX_ASSERT(IsCartesian());
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         dlogafab->setVal(0.0, tbx);
     });
 #else
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
+    int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setdloga(tbx, *dlogafab, a_offset, a_dx, dir, coord);
@@ -343,18 +343,18 @@ CoordSys::SetFaceArea (FArrayBox& area,
     AMREX_ASSERT(ok);
 
     FArrayBox* areafab = &area;
-    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
-    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
-    int coord = (int) c_sys;
-    AMREX_ASSERT(coord == 0 || AMREX_SPACEDIM < 3);
 
 #if (AMREX_SPACEDIM == 3)
+    AMREX_ASSERT(IsCartesian());
     const Real da = (dir == 0) ? dx[1]*dx[2] : ((dir == 1) ? dx[0]*dx[2] : dx[0]*dx[1]);
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         areafab->setVal(da, tbx);
     });
 #else
+    GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
+    GpuArray<Real,AMREX_SPACEDIM> a_dx    {AMREX_D_DECL(    dx[0],    dx[1],    dx[2])};
+    int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
         amrex_setarea(tbx, *areafab, a_offset, a_dx, dir, coord);
