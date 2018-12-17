@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <set>
+#include <AMReX_Utility.H>
 #include <AMReX_MLLinOp.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Machine.H>
@@ -33,22 +34,6 @@ namespace {
     int flag_comm_cache = 0;
     int flag_use_mota = 0;
     int remap_nbh_lb = 1;
-
-    // hash combiner borrowed from Boost
-    template<typename T>
-    void hash_combine (uint64_t & seed, const T & val)
-    {
-        seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-    }
-
-    template<typename T>
-    uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF)
-    {
-        for (const auto & x: vec) {
-            hash_combine(seed, x);
-        }
-        return seed;
-    }
 
 #ifdef BL_USE_MPI
 
