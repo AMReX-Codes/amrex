@@ -13,12 +13,12 @@ struct PIdx
 };
 
 class EMParIter
-    : public amrex::ParIter<0,0,PIdx::nattribs>
+    : public amrex::ParIter<0,0,PIdx::nattribs,0>
 {
 public:
-    using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
+    using amrex::ParIter<0,0,PIdx::nattribs,0>::ParIter;
     
-    EMParIter (ContainerType& pc, int level);
+    //    EMParIter (ContainerType& pc, int level);
     
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
@@ -38,6 +38,7 @@ public:
 };
 
 class EMParticleContainer
+    : public amrex::ParticleContainer<0, 0, PIdx::nattribs, 0>
 {
 
 public:
