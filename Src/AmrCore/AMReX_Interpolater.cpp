@@ -293,6 +293,7 @@ CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
                                           const Geometry&  fine_geom,
                                           const Vector<BCRec>& bcr)
 {
+#if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(fine.box().contains(fine_region));
 
     const Box& crse_region = CoarseBox(fine_region,ratio);
@@ -320,6 +321,7 @@ CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
         amrex_cellconslin_unlim_interp(tbx, *finep, fine_comp, ncomp, *ucc_slopes_fab,
                                        *crsep, crse_comp, ratio);
     });
+#endif
 }
 
 void
