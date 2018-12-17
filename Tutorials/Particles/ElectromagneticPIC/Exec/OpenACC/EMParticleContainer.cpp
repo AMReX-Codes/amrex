@@ -35,11 +35,11 @@ namespace
 
 EMParticleContainer::
 EMParticleContainer(const Geometry            & a_geom,
-                                 const DistributionMapping & a_dmap,
-                                 const BoxArray            & a_ba,
-                                 const int                   a_species_id,
-                                 const Real                  a_charge,
-                                 const Real                  a_mass)
+                    const DistributionMapping & a_dmap,
+                    const BoxArray            & a_ba,
+                    const int                   a_species_id,
+                    const Real                  a_charge,
+                    const Real                  a_mass)
     : ParticleContainer<0, 0, PIdx::nattribs, 0>(a_geom, a_dmap, a_ba),
     m_species_id(a_species_id), m_charge(a_charge), m_mass(a_mass)
 {}
@@ -128,15 +128,15 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
         
-        thrust::copy(host_particles.begin(),
-                     host_particles.end(),
-                     particle_tile.GetArrayOfStructs().begin() + old_size);
+        thrust_copy(host_particles.begin(),
+                    host_particles.end(),
+                    particle_tile.GetArrayOfStructs().begin() + old_size);
         
         for (int kk = 0; kk < PIdx::nattribs; ++kk)
         {
-            thrust::copy(host_attribs[kk].begin(),
-                         host_attribs[kk].end(),
-                         particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
+            thrust_copy(host_attribs[kk].begin(),
+                        host_attribs[kk].end(),
+                        particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
         }
     }
 }
