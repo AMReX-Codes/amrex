@@ -188,7 +188,7 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, s
 ! vector schedule) to ensure that there is a private copy of the data
 ! per thread - see 2.9.10. If "private" was applied to the parallel
 ! construct then there would be a private copy per gang - see 2.5.10.
-!$acc parallel deviceptr(jx, jy, jz, structs, uxp, uyp, uzp, w, gaminv, dx, plo)
+!$acc parallel deviceptr(jx, jy, jz, structs, uxp, uyp, uzp, w, gaminv)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
@@ -352,7 +352,7 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
   izmin0 = 0
   izmax0 = 0
 
-!$acc parallel deviceptr(bxg, byg, bzg, structs, bx, by, bz, dx, plo)
+!$acc parallel deviceptr(bxg, byg, bzg, structs, bx, by, bz)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
@@ -486,7 +486,7 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
   izmin0 = 0
   izmax0 = 0
 
-!$acc parallel deviceptr(exg, eyg, ezg, structs, ex, ey, ez, dx, plo)
+!$acc parallel deviceptr(exg, eyg, ezg, structs, ex, ey, ez)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
