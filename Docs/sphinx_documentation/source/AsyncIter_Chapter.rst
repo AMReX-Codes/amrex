@@ -1,7 +1,7 @@
 .. _Chap:AsyncIter:
 
-Amr Task
-===============
+Asynchronous Iterators (AmrTask)
+================================
 
 ``amrex/Src/AmrTask`` implements a runtime system that can execute the workload within each coarse time step in an asynchronous fashion, thereby overlapping communication with computation.
 The runtime is defined in class RTS, which is a black box to the application developer.

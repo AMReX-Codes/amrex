@@ -19,17 +19,20 @@ cns.hi_bc       =  2   0   0
 
 cns.cfl = 0.3  # cfl number for hyperbolic system
 
+cns.refine_max_dengrad_lev = 10
+cns.refine_dengrad = 1.0e-2
+
 cns.v = 2
 amr.v = 1
 
 # REFINEMENT / REGRIDDING 
-amr.max_level       = 0       # maximum level number allowed
+amr.max_level       = 1       # maximum level number allowed
 amr.ref_ratio       = 2 2 2 2 # refinement ratio
 amr.regrid_int      = 2 2 2 2 # how often to regrid
 amr.blocking_factor = 16
 amr.max_grid_size   = 32
 amr.n_error_buf     = 0 0 0 0 # number of buffer cells in error est
-amr.grid_eff        = 0.99     # what constitutes an efficient grid
+amr.grid_eff        = 0.7     # what constitutes an efficient grid
 
 # CHECKPOINT FILES
 amr.checkpoint_files_output = 0
