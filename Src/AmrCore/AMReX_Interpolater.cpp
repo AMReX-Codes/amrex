@@ -305,7 +305,7 @@ CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
     FArrayBox* ucc_slopes_fab = ucc_slopes.fabPtr();
 
     FArrayBox const* crsep = &crse;
-    AMREX_ASSERT(Gpu::isManaged(crsep));
+    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
     {
@@ -313,7 +313,7 @@ CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
     });
 
     FArrayBox* finep = &fine;
-    AMREX_ASSERT(Gpu::isManaged(finep));
+    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
     {
