@@ -80,6 +80,19 @@ namespace {
         amrex::ExecOnFinalize(finalize_comm_cache);
     }
 #endif
+
+    Vector<int> get_subgroup_ranks ()
+    {
+        int rank_n = ParallelContext::NProcsSub();
+        Vector<int> lranks(rank_n);
+        for (int i = 0; i < rank_n; ++i) {
+            lranks[i] = i;
+        }
+
+        Vector<int> granks(rank_n);
+        ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
+        return granks;
+    }
 }
 
 MLLinOp::MLLinOp () {}
@@ -475,8 +488,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     bool cache_hit = false;
     uint64_t key = 0;
     if (flag_comm_cache) {
-        // TODO: add current group ranks to the hash in addition to new group ranks
-        key = hash_vector(newgrp_ranks);
+        key = hash_vector(newgrp_ranks, hash_vector(get_subgroup_ranks()));
         cache_hit = comm_cache.get(key, newcomm);
         if (cache_hit && flag_verbose_linop) {
             Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;

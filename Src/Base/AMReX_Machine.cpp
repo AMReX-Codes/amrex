@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cassert>
 #include <sstream>
+#include <map>
 #include <unordered_map>
 
 #include <AMReX_Print.H>
