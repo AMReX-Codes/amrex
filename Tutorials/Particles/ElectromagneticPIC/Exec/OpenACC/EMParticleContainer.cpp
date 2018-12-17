@@ -155,9 +155,7 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
 
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
+        auto& particles = ParticlesAt(lev, pti);
         const int np    = particles.numParticles();
 
 	FTOC(gather_magnetic_field)(np,
@@ -212,9 +210,7 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
+        auto& particles = ParticlesAt(lev, pti);
         const int np    = particles.numParticles();
 
 	FTOC(gather_magnetic_field)(np,
@@ -250,9 +246,7 @@ void EMParticleContainer::PushParticlePositions(Real dt)
     
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const int grid_id = pti.index();
-        const int tile_id = pti.index();
-        auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
+        auto& particles = ParticlesAt(lev, pti);
         const int np    = particles.numParticles();
 
         FTOC(set_gamma)(np,

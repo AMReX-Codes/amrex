@@ -448,6 +448,14 @@ public:
     ParticleTileType&       ParticlesAt (int lev, int grid, int tile)
         { return m_particles[lev].at(std::make_pair(grid, tile)); }
 
+    template <class Iterator>
+    const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const 
+        { return ParticlesAt(lev, iter.index(), iter.localTileIndex()); }
+
+    template <class Iterator>
+    ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
+        { return ParticlesAt(lev, iter.index(), iter.localTileIndex()); }
+    
     // 
     // Functions depending the layout of the data.  Use with caution.
     //
