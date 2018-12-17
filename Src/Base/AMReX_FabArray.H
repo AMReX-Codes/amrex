@@ -173,20 +173,6 @@ public:
 
     FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp);
 
-    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
-    FabArray (const BoxArray&            bxs,
-              const DistributionMapping& dm,
-              int                        nvar,
-              int                        ngrow,
-              const Vector<value_type*>& pval);
-
-    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
-    FabArray (const BoxArray&            bxs,
-              const DistributionMapping& dm,
-              int                        nvar,
-              const IntVect&             ngrow,
-              const Vector<value_type*>& pval);
-
     //! The destructor -- deletes all FABs in the array.
     virtual ~FabArray ();
 
@@ -1003,35 +989,6 @@ FabArray<FAB>::FabArray (const FabArray<FAB>& rhs, MakeType maketype, int scomp,
         amrex::Abort("FabArray: unknown MakeType");
     }
 }
-
-template <class FAB>
-template <class>
-FabArray<FAB>::FabArray (const BoxArray&            bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         int                        ngrow,
-                         const Vector<value_type*>& pval)
-    : FabArray<FAB>::FabArray(bxs,dm,nvar,IntVect(ngrow),pval)
-{}
-
-template <class FAB>
-template <class>
-FabArray<FAB>::FabArray (const BoxArray&            bxs,
-                         const DistributionMapping& dm,
-                         int                        nvar,
-                         const IntVect&             ngrow,
-                         const Vector<value_type*>& pval)
-    : m_factory(new DefaultFabFactory<FAB>()),
-      shmem()
-{
-    m_FA_stats.recordBuild();
-    define(bxs,dm,nvar,ngrow,MFInfo().SetAlloc(false), *m_factory);
-
-    for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-        setFab(mfi, new FAB(mfi.fabbox(),nvar,pval[mfi.LocalIndex()]));
-    }
-}
-
 
 template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
