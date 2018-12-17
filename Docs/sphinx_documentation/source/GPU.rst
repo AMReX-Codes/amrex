@@ -526,7 +526,7 @@ offloaded via OpenACC might look like the following:
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in managed memory. This instructs OpenACC to treat those variables as if they already live on
 the device, bypassing the usual copies. For a complete example of a particle code that has been ported
-to GPUs using OpenACC, please see `Tutorials/Particles/ElectromagneticPIC`. 
+to GPUs using OpenACC, please see :cpp:`Tutorials/Particles/ElectromagneticPIC`. 
       
 For portability, we have provided a set of Vector classes that wrap around the Thrust and
 STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal :cpp:`amrex::Vector`.
