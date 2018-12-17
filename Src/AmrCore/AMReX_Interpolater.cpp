@@ -265,13 +265,77 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                                 const IntVect&   ratio,
                                 const Geometry&  crse_geom,
                                 const Geometry&  fine_geom,
-                                Vector<BCRec>&    bcr,
+                                Vector<BCRec>&   bcr,
                                 int              actual_comp,
                                 int              actual_state)
 {
     BL_PROFILE("CellConservativeLinear::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
 
+    if (AMREX_SPACEDIM == 3 && do_linear_limiting == false) {
+        interp_unlimited(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,
+                         crse_geom,fine_geom,bcr);
+    } else {
+        interp_original(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,
+                        crse_geom,fine_geom,bcr,actual_comp,actual_state);
+    }
+}
+
+void
+CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
+                                          int              crse_comp,
+                                          FArrayBox&       fine,
+                                          int              fine_comp,
+                                          int              ncomp,
+                                          const Box&       fine_region,
+                                          const IntVect&   ratio,
+                                          const Geometry&  crse_geom,
+                                          const Geometry&  fine_geom,
+                                          const Vector<BCRec>& bcr)
+{
+    AMREX_ASSERT(fine.box().contains(fine_region));
+
+    const Box& crse_region = CoarseBox(fine_region,ratio);
+    const Box& cslope_bx = amrex::grow(crse_region,-1);
+
+    Gpu::AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
+    BCRec* bcrp = async_bcr.data();
+
+    Gpu::AsyncFab ucc_slopes(cslope_bx, ncomp*AMREX_SPACEDIM);
+    FArrayBox* ucc_slopes_fab = ucc_slopes.fabPtr();
+
+    FArrayBox const* crsep = &crse;
+    AMREX_ASSERT(Gpu::isManaged(crsep));
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+    {
+        amrex_cellconslin_unlim_slopes(tbx, *ucc_slopes_fab, *crsep, crse_comp, ncomp, bcrp);
+    });
+
+    FArrayBox* finep = &fine;
+    AMREX_ASSERT(Gpu::isManaged(finep));
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+    {
+        amrex_cellconslin_unlim_interp(tbx, *finep, fine_comp, ncomp, *ucc_slopes_fab,
+                                       *crsep, crse_comp, ratio);
+    });
+}
+
+void
+CellConservativeLinear::interp_original (const FArrayBox& crse,
+                                         int              crse_comp,
+                                         FArrayBox&       fine,
+                                         int              fine_comp,
+                                         int              ncomp,
+                                         const Box&       fine_region,
+                                         const IntVect&   ratio,
+                                         const Geometry&  crse_geom,
+                                         const Geometry&  fine_geom,
+                                         const Vector<BCRec>& bcr,
+                                         int              actual_comp,
+                                         int              actual_state)
+{
     //
     // Make box which is intersection of fine_region and domain of fine.
     //
@@ -292,10 +356,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //
     // Get coarse and fine edge-centered volume coordinates.
     //
-    Vector<Real> fvc[AMREX_SPACEDIM];
-    Vector<Real> cvc[AMREX_SPACEDIM];
-    int dir;
-    for (dir = 0; dir < AMREX_SPACEDIM; dir++)
+    Array<Vector<Real>,AMREX_SPACEDIM> fvc;
+    Array<Vector<Real>,AMREX_SPACEDIM> cvc;
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir)
     {
         fine_geom.GetEdgeVolCoord(fvc[dir],fine_version_of_cslope_bx,dir);
         crse_geom.GetEdgeVolCoord(cvc[dir],crse_bx,dir);
@@ -348,15 +411,15 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     int cvcbhi[AMREX_SPACEDIM];
     int fvcbhi[AMREX_SPACEDIM];
 
-    for (dir=0; dir<AMREX_SPACEDIM; dir++)
+    for (int dir=0; dir<AMREX_SPACEDIM; dir++)
     {
         cvcbhi[dir] = cvcblo[dir] + cvc[dir].size() - 1;
         fvcbhi[dir] = fvcblo[dir] + fvc[dir].size() - 1;
     }
 
     AMREX_D_TERM(Real* voffx = new Real[fvc[0].size()];,
-           Real* voffy = new Real[fvc[1].size()];,
-           Real* voffz = new Real[fvc[2].size()];);
+                 Real* voffy = new Real[fvc[1].size()];,
+                 Real* voffz = new Real[fvc[2].size()];);
 
     Vector<int> bc     = GetBCArray(bcr);
     const int* ratioV = ratio.getVect();
@@ -382,9 +445,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
                       AMREX_D_DECL(voffx,voffy,voffz),
                       alpha.dataPtr(),cmax.dataPtr(),cmin.dataPtr(),
                       &actual_comp,&actual_state);
-
-    AMREX_D_TERM(delete [] voffx;, delete [] voffy;, delete [] voffz;);
-
 }
 
 CellQuadratic::CellQuadratic (bool limit)

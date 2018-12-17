@@ -364,8 +364,8 @@ CoordSys::SetFaceArea (FArrayBox& area,
 
 void
 CoordSys::GetEdgeLoc (Vector<Real>& loc, 
-                      const Box&   region,
-                      int          dir) const 
+                      const Box&    region,
+                      int           dir) const
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());

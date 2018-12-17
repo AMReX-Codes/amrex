@@ -173,9 +173,6 @@ public:
 //  sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
 //  in all fine cells if,jf covering coarse cell ic,jc.
 //
-//  If do_linear_limiting = 0, the interpolation scheme is identical to
-//  the used in CellConservative for do_limited_slopes=1.
-//
 
 class CellConservativeLinear
     :
@@ -216,7 +213,42 @@ public:
                          int              actual_comp,
                          int              actual_state) override;
 
+    void interp_unlimited (const FArrayBox& crse,
+                           int              crse_comp,
+                           FArrayBox&       fine,
+                           int              fine_comp,
+                           int              ncomp,
+                           const Box&       fine_region,
+                           const IntVect&   ratio,
+                           const Geometry&  crse_geom,
+                           const Geometry&  fine_geom,
+                           const Vector<BCRec>& bcr);
+
+    // void interp_limited (const FArrayBox& crse,
+    //                      int              crse_comp,
+    //                      FArrayBox&       fine,
+    //                      int              fine_comp,
+    //                      int              ncomp,
+    //                      const Box&       fine_region,
+    //                      const IntVect&   ratio,
+    //                      const Geometry&  crse_geom,
+    //                      const Geometry&  fine_geom,
+    //                      const Vector<BCRec>& bcr);
+
 protected:
+
+    void interp_original (const FArrayBox& crse,
+                          int              crse_comp,
+                          FArrayBox&       fine,
+                          int              fine_comp,
+                          int              ncomp,
+                          const Box&       fine_region,
+                          const IntVect&   ratio,
+                          const Geometry&  crse_geom,
+                          const Geometry&  fine_geom,
+                          const Vector<BCRec>& bcr,
+                          int              actual_comp,
+                          int              actual_state);
 
     bool do_linear_limiting;
 };
