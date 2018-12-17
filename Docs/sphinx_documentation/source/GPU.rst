@@ -496,32 +496,32 @@ offloaded via OpenACC might look like the following:
 
 .. highlight:: fortran
 
-   ::
+::
 
-      subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
+   subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
 
-      use em_particle_module, only : particle_t
-      use amrex_fort_module, only : amrex_real
-      implicit none
+   use em_particle_module, only : particle_t
+   use amrex_fort_module, only : amrex_real
+   implicit none
    
-      integer,          intent(in), value  :: np
-      type(particle_t), intent(inout)      :: structs(np)
-      real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
-      real(amrex_real), intent(in), value  :: dt
+   integer,          intent(in), value  :: np
+   type(particle_t), intent(inout)      :: structs(np)
+   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
+   real(amrex_real), intent(in), value  :: dt
       
-      integer                              :: ip
+   integer                              :: ip
 
-      !$acc parallel deviceptr(structs, uxp, uyp, uzp, gaminv)
-      !$acc loop gang vector
-      do ip = 1, np
-          structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
-          structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
-          structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
-      end do
-      !$acc end loop
-      !$acc end parallel
+   !$acc parallel deviceptr(structs, uxp, uyp, uzp, gaminv)
+   !$acc loop gang vector
+   do ip = 1, np
+       structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
+       structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
+       structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
+   end do
+   !$acc end loop
+   !$acc end parallel
 
-      end subroutine push_position_boris
+   end subroutine push_position_boris
       
 Note the use of the :fortran:`!$acc parallel deviceptr` clause to specify which data has been placed
 in managed memory. This instructs OpenACC to treat those variables as if they already live on
