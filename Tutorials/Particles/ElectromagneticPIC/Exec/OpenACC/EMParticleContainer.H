@@ -6,8 +6,8 @@
 struct PIdx
 {
     enum {
-        x = 0,
-        y, z, ux, uy, uz, w, Ex, Ey, Ez, Bx, By, Bz, ginv,
+        ux = 0,
+        uy, uz, w, Ex, Ey, Ez, Bx, By, Bz, ginv,
         nattribs
     };
 };
