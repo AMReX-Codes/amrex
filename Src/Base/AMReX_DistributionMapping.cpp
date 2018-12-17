@@ -201,22 +201,10 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
     AMREX_ASSERT(nprocs <= ParallelContext::NProcsSub());
+
     Vector<long> bytes(ParallelContext::NProcsSub());
-
     long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
-
-    // TODO: replace with ParallelReduce::AllGather
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
-                    BLProfiler::NoTag());
-    MPI_Allgather(&thisbyte,
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  bytes.dataPtr(),
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  ParallelContext::CommunicatorSub());
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
-                    BLProfiler::NoTag());
+    ParallelAllGather::AllGather(thisbyte, bytes.dataPtr(), ParallelContext::CommunicatorSub());
 
     std::vector<LIpair> LIpairV;
 
@@ -261,21 +249,9 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 
     AMREX_ALWAYS_ASSERT(ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator());
 
-    Vector<long> bytes(ParallelDescriptor::NProcs());
-
+    Vector<long> bytes(ParallelContext::NProcsSub());
     long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
-
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
-                    BLProfiler::NoTag());
-    MPI_Allgather(&thisbyte,
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  bytes.dataPtr(),
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
-                    BLProfiler::NoTag());
+    ParallelAllGather::AllGather(thisbyte, bytes.dataPtr(), ParallelContext::CommunicatorSub());
 
     std::vector<LIpair> LIpairV;
     std::vector<LIpair> LIworker;
