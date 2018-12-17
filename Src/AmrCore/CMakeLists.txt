@@ -10,6 +10,8 @@ add_sources ( AMReX_Interpolater.H   AMReX_TagBox.H   AMReX_AmrMesh.H  )
 add_sources ( AMReX_FLUXREG_${DIM}D.F90  AMReX_FLUXREG_nd.F90  AMReX_INTERP_${DIM}D.F90 )
 add_sources ( AMReX_FLUXREG_F.H        AMReX_INTERP_F.H )
 
+add_sources ( AMReX_Interp_C.H AMReX_Interp_${DIM}D_C.H )
+
 add_sources ( AMReX_FillPatchUtil_${DIM}d.F90 )
 add_sources ( AMReX_FillPatchUtil_F.H )
 

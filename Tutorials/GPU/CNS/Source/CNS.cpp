@@ -1,6 +1,7 @@
 
 #include <CNS.H>
 #include <CNS_K.H>
+#include <CNS_tagging.H>
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
@@ -32,10 +33,7 @@ CNS::CNS (Amr&            papa,
     : AmrLevel(papa,lev,level_geom,bl,dm,time)
 {
     if (do_reflux && level > 0) {
-//        flux_reg.define(bl, papa.boxArray(level-1),
-//                        dm, papa.DistributionMap(level-1),
-//                        level_geom, papa.Geom(level-1),
-//                        papa.refRatio(level-1), level, NUM_STATE);
+        flux_reg.reset(new FluxRegister(grids,dmap,crse_ratio,level,NUM_STATE));
     }
 
     buildMetrics();
@@ -221,10 +219,9 @@ void
 CNS::post_timestep (int iteration)
 {
     if (do_reflux && level < parent->finestLevel()) {
+        MultiFab& S = get_new_data(State_Type);
         CNS& fine_level = getLevel(level+1);
-        MultiFab& S_crse = get_new_data(State_Type);
-        MultiFab& S_fine = fine_level.get_new_data(State_Type);
-//xxxxx        fine_level.flux_reg.Reflux(S_crse, *volfrac, S_fine, *fine_level.volfrac);
+        fine_level.flux_reg->Reflux(S, 1.0, 0, 0, NUM_STATE, geom);
     }
 
     if (level < parent->finestLevel()) {
@@ -285,6 +282,35 @@ void
 CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
 {
     BL_PROFILE("CNS::errorEst()");
+
+    if (level < refine_max_dengrad_lev)
+    {
+        int ng = 1;
+        const MultiFab& S_new = get_new_data(State_Type);
+        const Real cur_time = state[State_Type].curTime();
+        MultiFab rho(S_new.boxArray(), S_new.DistributionMap(), 1, 1);
+        FillPatch(*this, rho, rho.nGrow(), cur_time, State_Type, Density, 1, 0);
+
+        const char   tagval = TagBox::SET;
+//        const char clearval = TagBox::CLEAR;
+        const Real dengrad_threshold = refine_dengrad;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+
+            FArrayBox const* rhofab = rho.fabPtr(mfi);
+            TagBox * tag = tags.fabPtr(mfi);
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+            {
+                cns_tag_denerror(tbx, *tag, *rhofab, dengrad_threshold, tagval);
+            });
+        }
+    }
 }
 
 void
@@ -322,6 +348,17 @@ CNS::avgDown ()
     BL_PROFILE("CNS::avgDown()");
 
     if (level == parent->finestLevel()) return;
+
+    auto& fine_lev = getLevel(level+1);
+
+    MultiFab& S_crse =          get_new_data(State_Type);
+    MultiFab& S_fine = fine_lev.get_new_data(State_Type);
+
+    amrex::average_down(S_fine, S_crse, fine_lev.geom, geom,
+                        0, S_fine.nComp(), parent->refRatio(level));
+
+    const int nghost = 0;
+    computeTemp(S_crse, nghost);
 }
 
 void

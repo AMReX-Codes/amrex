@@ -168,4 +168,5 @@ void
 CNS::variableCleanUp ()
 {
     desc_lst.clear();
+    derive_lst.clear();
 }
