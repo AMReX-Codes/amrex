@@ -12,6 +12,30 @@ struct PIdx
     };
 };
 
+class EMParIter
+    : public amrex::ParIter<0,0,PIdx::nattribs>
+{
+public:
+    using amrex::ParIter<0,0,PIdx::nattribs>::ParIter;
+    
+    EMParIter (ContainerType& pc, int level);
+    
+    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
+        return GetStructOfArrays().GetRealData(); 
+    }
+    
+    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
+        return GetStructOfArrays().GetRealData(); 
+    }
+    
+    const RealVector& GetAttribs (int comp) const { 
+        return GetStructOfArrays().GetRealData(comp);
+    }
+    
+    RealVector& GetAttribs (int comp) { 
+        return GetStructOfArrays().GetRealData(comp);
+    }
+};
 
 class ElectromagneticParticleContainer
 {
@@ -52,8 +76,6 @@ public:
                              amrex::Real      dt);
 
     void PushParticlePositions(amrex::Real dt);
-
-    void EnforcePeriodicBCs();
 
 protected:
 
