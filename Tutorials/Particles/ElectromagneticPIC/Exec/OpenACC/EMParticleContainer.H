@@ -1,5 +1,5 @@
-#ifndef ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
-#define ELECTROMAGNETIC_PARTICLE_CONTAINER_H_
+#ifndef EM_PARTICLE_CONTAINER_H_
+#define EM_PARTICLE_CONTAINER_H_
 
 #include <AMReX_Particles.H>
 
@@ -37,18 +37,18 @@ public:
     }
 };
 
-class ElectromagneticParticleContainer
+class EMParticleContainer
 {
 
 public:
 
-    ElectromagneticParticleContainer (const amrex::Geometry            & a_geom,
-                                      const amrex::DistributionMapping & a_dmap,
-                                      const amrex::BoxArray            & a_ba,
-                                      const int                         a_species_id,
-                                      const amrex::Real                 a_charge,
-                                      const amrex::Real                 a_mass);
-
+    EMParticleContainer (const amrex::Geometry            & a_geom,
+                         const amrex::DistributionMapping & a_dmap,
+                         const amrex::BoxArray            & a_ba,
+                         const int                         a_species_id,
+                         const amrex::Real                 a_charge,
+                         const amrex::Real                 a_mass);
+    
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
                        const amrex::Real     a_thermal_momentum_std,
                        const amrex::Real     a_thermal_momentum_mean,

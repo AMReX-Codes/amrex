@@ -1,4 +1,4 @@
-#include "ElectromagneticParticleContainer.H"
+#include "EMParticleContainer.H"
 #include "Constants.H"
 
 #include "em_pic_F.H"
@@ -33,8 +33,8 @@ namespace
     }
 }
 
-ElectromagneticParticleContainer::
-ElectromagneticParticleContainer(const Geometry            & a_geom,
+EMParticleContainer::
+EMParticleContainer(const Geometry            & a_geom,
                                  const DistributionMapping & a_dmap,
                                  const BoxArray            & a_ba,
                                  const int                   a_species_id,
@@ -45,7 +45,7 @@ ElectromagneticParticleContainer(const Geometry            & a_geom,
 {}
 
 void
-ElectromagneticParticleContainer::
+EMParticleContainer::
 InitParticles(const IntVect& a_num_particles_per_cell,
               const Real     a_thermal_momentum_std,
               const Real     a_thermal_momentum_mean,
@@ -53,7 +53,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
               const RealBox& a_bounds,
               const int      a_problem)
 {
-    BL_PROFILE("ElectromagneticParticleContainer::InitParticles");
+    BL_PROFILE("EMParticleContainer::InitParticles");
     
     const Real* dx = m_geom.CellSize();
     
@@ -141,12 +141,12 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     }
 }
 
-void ElectromagneticParticleContainer::
+void EMParticleContainer::
 PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                        const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz,
                        MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
 {
-    BL_PROFILE("ElectromagneticParticleContainer::PushAndDeposeParticles");
+    BL_PROFILE("EMParticleContainer::PushAndDeposeParticles");
     
     const Real* dx  = m_geom.CellSize();
     const Real* plo = m_geom.ProbLo();
@@ -199,11 +199,11 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
     }
 }
 
-void ElectromagneticParticleContainer::
+void EMParticleContainer::
 PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz, Real dt)
 {   
-    BL_PROFILE("ElectromagneticParticleContainer::PushParticleMomenta");
+    BL_PROFILE("EMParticleContainer::PushParticleMomenta");
     
     const Real* dx  = m_geom.CellSize();
     const Real* plo = m_geom.ProbLo();
@@ -242,9 +242,9 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
     }
 }
 
-void ElectromagneticParticleContainer::PushParticlePositions(Real dt)
+void EMParticleContainer::PushParticlePositions(Real dt)
 {
-    BL_PROFILE("ElectromagneticParticleContainer::PushParticlePositions");
+    BL_PROFILE("EMParticleContainer::PushParticlePositions");
     
     for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
     {
