@@ -124,7 +124,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             }
         }
         
-        auto& particle_tile = ParticlesAt(lev, mfi);
+        auto& particles = GetParticles(lev);
+        auto& particle_tile = particles[std::make_pair(mfi.index(), mfi.LocalTileIndex())];
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);
