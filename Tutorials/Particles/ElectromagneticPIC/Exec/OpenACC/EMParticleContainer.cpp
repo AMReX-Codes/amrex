@@ -64,8 +64,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     
     std::array<Real,PIdx::nattribs> attribs;
     attribs.fill(0.0);    
-    
-    for(MFIter mfi(*m_mask_ptr); mfi.isValid(); ++mfi)
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
         const Real* plo = m_geom.ProbLo();
@@ -147,33 +147,33 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
                        MultiFab& jx, MultiFab& jy, MultiFab& jz, Real dt)
 {
     BL_PROFILE("EMParticleContainer::PushAndDeposeParticles");
-    
-    const Real* dx  = m_geom.CellSize();
-    const Real* plo = m_geom.ProbLo();
 
-    for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
+    const int lev = 0;
+    
+    const Real* dx  = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+
+    for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
         auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
-
-        if (np == 0) continue;
 
 	FTOC(gather_magnetic_field)(np,
                                     particles.x().data(),  particles.y().data(),  particles.z().data(),
                                     particles.bx().data(), particles.by().data(), particles.bz().data(),
-                                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                                    BL_TO_FORTRAN_3D(By[mfi]),
-                                    BL_TO_FORTRAN_3D(Bz[mfi]),
+                                    BL_TO_FORTRAN_3D(Bx[pti]),
+                                    BL_TO_FORTRAN_3D(By[pti]),
+                                    BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
 
 	FTOC(gather_electric_field)(np,
                                     particles.x().data(),  particles.y().data(),  particles.z().data(),
                                     particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                                    BL_TO_FORTRAN_3D(Ez[mfi]),
+                                    BL_TO_FORTRAN_3D(Ex[pti]),
+                                    BL_TO_FORTRAN_3D(Ey[pti]),
+                                    BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
 
         FTOC(push_momentum_boris)(np,
@@ -188,9 +188,9 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
                                   particles.ux().data(), particles.uy().data(), particles.uz().data(),
                                   particles.ginv().data(), dt);
         
-        FTOC(deposit_current)(BL_TO_FORTRAN_3D(jx[mfi]),
-                              BL_TO_FORTRAN_3D(jy[mfi]),
-                              BL_TO_FORTRAN_3D(jz[mfi]),
+        FTOC(deposit_current)(BL_TO_FORTRAN_3D(jx[pti]),
+                              BL_TO_FORTRAN_3D(jy[pti]),
+                              BL_TO_FORTRAN_3D(jz[pti]),
                               np,
                               particles.x().data(),  particles.y().data(),  particles.z().data(),
                               particles.ux().data(), particles.uy().data(), particles.uz().data(),
@@ -204,33 +204,33 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
                     const MultiFab& Bx, const MultiFab& By, const MultiFab& Bz, Real dt)
 {   
     BL_PROFILE("EMParticleContainer::PushParticleMomenta");
-    
-    const Real* dx  = m_geom.CellSize();
-    const Real* plo = m_geom.ProbLo();
 
-    for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
+    const int lev = 0;
+    
+    const Real* dx  = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+
+    for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
         auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
-
-        if (np == 0) continue;
 
 	FTOC(gather_magnetic_field)(np,
                                     particles.x().data(),  particles.y().data(),  particles.z().data(),
                                     particles.bx().data(), particles.by().data(), particles.bz().data(),
-                                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                                    BL_TO_FORTRAN_3D(By[mfi]),
-                                    BL_TO_FORTRAN_3D(Bz[mfi]),
+                                    BL_TO_FORTRAN_3D(Bx[pti]),
+                                    BL_TO_FORTRAN_3D(By[pti]),
+                                    BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
 
 	FTOC(gather_electric_field)(np,
                                     particles.x().data(),  particles.y().data(),  particles.z().data(),
                                     particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                                    BL_TO_FORTRAN_3D(Ez[mfi]),
+                                    BL_TO_FORTRAN_3D(Ex[pti]),
+                                    BL_TO_FORTRAN_3D(Ey[pti]),
+                                    BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
 
         FTOC(push_momentum_boris)(np,
@@ -245,15 +245,15 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 void EMParticleContainer::PushParticlePositions(Real dt)
 {
     BL_PROFILE("EMParticleContainer::PushParticlePositions");
+
+    const int lev = 0;
     
-    for (MFIter mfi(*m_mask_ptr, false); mfi.isValid(); ++mfi)
+    for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.index();
+        const int grid_id = pti.index();
+        const int tile_id = pti.index();
         auto& particles = m_particles[std::make_pair(grid_id, tile_id)];
         const int np    = particles.numParticles();
-
-        if (np == 0) continue;
 
         FTOC(set_gamma)(np,
                         particles.ux().data(), particles.uy().data(), particles.uz().data(),
