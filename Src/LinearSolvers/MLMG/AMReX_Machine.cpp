@@ -215,7 +215,6 @@ class NeighborhoodCache
     }
 };
 
-// TODO: make it work with BL_USE_MPI not defined
 class Machine
 {
   public:
@@ -229,6 +228,7 @@ class Machine
     // find a compact neighborhood of size rank_n in the current ParallelContext subgroup
     Vector<int> find_best_nbh (int nbh_rank_n, bool flag_local_ranks)
     {
+#ifdef BL_USE_MPI
         BL_PROFILE("Machine::find_best_nbh()");
 
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(initialized, "Must call machine::init() before neighborhoods will work!");
@@ -254,9 +254,9 @@ class Machine
                 AMREX_ASSERT(sg_g_ranks[i] >= 0 && sg_g_ranks[i] < node_ids.size());
                 sg_node_ids[i] = node_ids[sg_g_ranks[i]];
                 if (flag_local_ranks) {
-                    node_ranks[sg_node_ids[i]].push_back(sg_g_ranks[i]);
-                } else {
                     node_ranks[sg_node_ids[i]].push_back(i);
+                } else {
+                    node_ranks[sg_node_ids[i]].push_back(sg_g_ranks[i]);
                 }
             }
 
@@ -282,7 +282,6 @@ class Machine
                 Print() << "Rank 0's neighborhood: " << to_str(local_nbh) << ", score = " << score << std::endl;
             }
 
-#ifdef BL_USE_MPI
             // determine the best neighborhood among ranks
             DoubleInt my_score_with_id {score, rank_me}, min_score_with_id;
             MPI_Allreduce(&my_score_with_id, &min_score_with_id, 1, MPI_DOUBLE_INT, MPI_MINLOC, ParallelContext::CommunicatorSub());
@@ -294,10 +293,6 @@ class Machine
             MPI_Bcast(&local_nbh_size, 1, MPI_INT, winner_rank, ParallelContext::CommunicatorSub());
             local_nbh.resize(local_nbh_size);
             MPI_Bcast(local_nbh.data(), local_nbh.size(), MPI_INT, winner_rank, ParallelContext::CommunicatorSub()); 
-#else
-            double winner_score = score;
-            int    winner_rank  = rank_me;
-#endif
 
             std::sort(local_nbh.begin(), local_nbh.end());
             if (flag_verbose) {
@@ -321,6 +316,9 @@ class Machine
         }
 
         return result;
+#else
+        return Vector<int>(nbh_rank_n, 0);
+#endif
     }
 
   private:
@@ -342,23 +340,33 @@ class Machine
 
     void get_params ()
     {
-	ParmParse pp("machine");
-	pp.query("verbose", flag_verbose);
-	pp.query("very_verbose", flag_very_verbose);
+        ParmParse pp("machine");
+        pp.query("verbose", flag_verbose);
+        pp.query("very_verbose", flag_very_verbose);
+    }
+
+    std::string get_env_str (std::string env_key)
+    {
+        std::string result;
+        auto val_c_str = std::getenv(env_key.c_str());
+        if (val_c_str) {
+            result = std::string(val_c_str);
+        }
+        return result;
     }
 
     void get_machine_envs ()
     {
-        hostname   = std::string(std::getenv("HOSTNAME"));
-        nersc_host = std::string(std::getenv("NERSC_HOST"));
+        hostname   = get_env_str("HOSTNAME");
+        nersc_host = get_env_str("NERSC_HOST");
         flag_nersc_df = (nersc_host == "edison" ||
                          nersc_host == "cori" ||
                          nersc_host == "saul");
 
         if (flag_nersc_df) {
-            partition  = std::string(std::getenv("SLURM_JOB_PARTITION"));
-            node_list  = std::string(std::getenv("SLURM_NODELIST"));
-            topo_addr  = std::string(std::getenv("SLURM_TOPOLOGY_ADDR"));
+            partition  = get_env_str("SLURM_JOB_PARTITION");
+            node_list  = get_env_str("SLURM_NODELIST");
+            topo_addr  = get_env_str("SLURM_TOPOLOGY_ADDR");
 
             if (flag_verbose) {
                 Print() << "HOSTNAME = " << hostname << std::endl;
@@ -367,9 +375,6 @@ class Machine
                 Print() << "SLURM_NODELIST = " << node_list << std::endl;
                 Print() << "SLURM_TOPOLOGY_ADDR = " << topo_addr << std::endl;
             }
-        } else {
-            // TODO: implement support for other types of machines
-            std::abort();
         }
     }
 
@@ -403,9 +408,9 @@ class Machine
             AMREX_ASSERT(id_from_coord == result);
 #endif
         } else {
-            // TODO: implement support for other types of machines
-            std::abort();
+            result = 0;
         }
+
         return result;
     }
 
@@ -415,8 +420,10 @@ class Machine
     {
         int node_id = -1;
         Vector<int> ids(ParallelDescriptor::NProcs(), 0);
+#ifdef BL_USE_MPI
         node_id = get_my_node_id();
         ParallelAllGather::AllGather(node_id, ids.data(), ParallelContext::CommunicatorAll());
+#endif
         if (flag_verbose) {
             std::map<int, Vector<int>> node_ranks;
             for (int i = 0; i < ids.size(); ++i) {
