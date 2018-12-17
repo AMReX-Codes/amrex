@@ -175,8 +175,6 @@ void test_em_pic(const TestParams& parms)
         for (int i = 0; i < num_species; ++i)
         {
             particles[i]->Redistribute();
-            particles[i]->EnforcePeriodicBCs();
-            particles[i]->OK();
         }
         
         time += dt;

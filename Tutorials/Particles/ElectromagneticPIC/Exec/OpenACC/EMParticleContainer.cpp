@@ -54,8 +54,10 @@ InitParticles(const IntVect& a_num_particles_per_cell,
               const int      a_problem)
 {
     BL_PROFILE("EMParticleContainer::InitParticles");
-    
-    const Real* dx = m_geom.CellSize();
+
+    const int lev = 0;   
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
     
     const int num_ppc = AMREX_D_TERM( a_num_particles_per_cell[0],
                                       *a_num_particles_per_cell[1],
@@ -68,11 +70,10 @@ InitParticles(const IntVect& a_num_particles_per_cell,
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
-        const Real* plo = m_geom.ProbLo();
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        const auto& pair_index = std::make_pair(grid_id, tile_id);
-        auto& particles = m_particles[pair_index];
+
+        Cuda::HostVector<ParticleType> host_particles;
+        std::array<Cuda::HostVector<Real>, PIdx::nattribs> host_attribs;
+        
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
                 Real r[3];
@@ -123,7 +124,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
             }
         }
         
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particle_tile = ParticlesAt(lev, mfi);
         auto old_size = particle_tile.GetArrayOfStructs().size();
         auto new_size = old_size + host_particles.size();
         particle_tile.resize(new_size);

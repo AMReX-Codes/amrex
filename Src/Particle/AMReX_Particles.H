@@ -450,11 +450,11 @@ public:
 
     template <class Iterator>
     const ParticleTileType& ParticlesAt (int lev, const Iterator& iter) const 
-        { return ParticlesAt(lev, iter.index(), iter.localTileIndex()); }
+        { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
 
     template <class Iterator>
     ParticleTileType&       ParticlesAt (int lev, const Iterator& iter)
-        { return ParticlesAt(lev, iter.index(), iter.localTileIndex()); }
+        { return ParticlesAt(lev, iter.index(), iter.LocalTileIndex()); }
     
     // 
     // Functions depending the layout of the data.  Use with caution.
