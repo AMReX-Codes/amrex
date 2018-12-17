@@ -9,6 +9,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelReduce.H>
+#include <AMReX_Utility.H>
 
 using namespace amrex;
 
@@ -196,23 +197,6 @@ class NeighborhoodCache
 
   private:
     std::unordered_map<uint64_t, Vector<int>> cache;
-
-    // TODO: shared with CommCache in MLLinOp, find better spot for these
-    // hash combiner borrowed from Boost
-    template<typename T>
-    void hash_combine (uint64_t & seed, const T & val)
-    {
-        seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
-    }
-
-    template<typename T>
-    uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF)
-    {
-        for (const auto & x: vec) {
-            hash_combine(seed, x);
-        }
-        return seed;
-    }
 };
 
 class Machine

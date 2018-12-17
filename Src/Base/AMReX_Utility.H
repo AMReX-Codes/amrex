@@ -317,6 +317,9 @@ namespace amrex
                                                std::chrono::high_resolution_clock,
                                                std::chrono::steady_clock>::type;
     double second ();
+
+    template<typename T> void hash_combine (uint64_t & seed, const T & val);
+    template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF);
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
@@ -418,6 +421,24 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 extern "C" {
     void* amrex_malloc (std::size_t size);
     void amrex_free (void* p);
+}
+
+// hash combiner borrowed from Boost
+template<typename T>
+void
+amrex::hash_combine (uint64_t & seed, const T & val)
+{
+    seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+}
+
+template<typename T>
+uint64_t
+amrex::hash_vector (const Vector<T> & vec, uint64_t seed)
+{
+    for (const auto & x: vec) {
+        hash_combine(seed, x);
+    }
+    return seed;
 }
 
 #endif /*BL_UTILITY_H*/
