@@ -155,44 +155,51 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
 
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        auto& particles = ParticlesAt(lev, pti);
-        const int np    = particles.numParticles();
+        const int np  = pti.numParticles();
+        
+        auto& structs = pti.GetArrayOfStructs();
+        auto& attribs = pti.GetAttribs();
 
-	FTOC(gather_magnetic_field)(np,
-                                    particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                    particles.bx().data(), particles.by().data(), particles.bz().data(),
+        auto&  wp  = attribs[PIdx::w];
+        auto& uxp  = attribs[PIdx::ux];
+        auto& uyp  = attribs[PIdx::uy];
+        auto& uzp  = attribs[PIdx::uz];
+        auto& Exp  = attribs[PIdx::Ex];
+        auto& Eyp  = attribs[PIdx::Ey];
+        auto& Ezp  = attribs[PIdx::Ez];
+        auto& Bxp  = attribs[PIdx::Bx];
+        auto& Byp  = attribs[PIdx::By];
+        auto& Bzp  = attribs[PIdx::Bz];
+        auto& ginv = attribs[PIdx::ginv];
+        
+	FTOC(gather_magnetic_field)(np, structs.dataPtr(),
+                                    Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
-
-	FTOC(gather_electric_field)(np,
-                                    particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                    particles.ex().data(), particles.ey().data(), particles.ez().data(),
+        
+	FTOC(gather_electric_field)(np, structs.dataPtr(),
+                                    Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
                                     BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
-
-        FTOC(push_momentum_boris)(np,
-                                  particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                                  particles.ginv().data(),
-                                  particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                                  particles.bx().data(), particles.by().data(), particles.bz().data(),
+        
+        FTOC(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
+                                  Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                                  Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                   m_charge, m_mass, dt);
         
-        FTOC(push_position_boris)(np,
-                                  particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                  particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                                  particles.ginv().data(), dt);
+        FTOC(push_position_boris)(np, structs.dataPtr(),
+                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
         
         FTOC(deposit_current)(BL_TO_FORTRAN_3D(jx[pti]),
                               BL_TO_FORTRAN_3D(jy[pti]),
                               BL_TO_FORTRAN_3D(jz[pti]),
-                              np,
-                              particles.x().data(),  particles.y().data(),  particles.z().data(),
-                              particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                              particles.ginv().data(), particles.w().data(),
+                              np, structs.dataPtr(),
+                              uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
+                              ginv.dataPtr(), wp.dataPtr(),
                               m_charge, plo, dt, dx);
     }
 }
@@ -210,30 +217,39 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        auto& particles = ParticlesAt(lev, pti);
-        const int np    = particles.numParticles();
+        const int np  = pti.numParticles();
+        
+        auto& structs = pti.GetArrayOfStructs();
+        auto& attribs = pti.GetAttribs();
 
-	FTOC(gather_magnetic_field)(np,
-                                    particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                    particles.bx().data(), particles.by().data(), particles.bz().data(),
+        auto& uxp  = attribs[PIdx::ux];
+        auto& uyp  = attribs[PIdx::uy];
+        auto& uzp  = attribs[PIdx::uz];
+        auto& Exp  = attribs[PIdx::Ex];
+        auto& Eyp  = attribs[PIdx::Ey];
+        auto& Ezp  = attribs[PIdx::Ez];
+        auto& Bxp  = attribs[PIdx::Bx];
+        auto& Byp  = attribs[PIdx::By];
+        auto& Bzp  = attribs[PIdx::Bz];
+        auto& ginv = attribs[PIdx::ginv];
+
+	FTOC(gather_magnetic_field)(np, structs.dataPtr(),
+                                    Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
-
-	FTOC(gather_electric_field)(np,
-                                    particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                    particles.ex().data(), particles.ey().data(), particles.ez().data(),
+        
+	FTOC(gather_electric_field)(np, structs.dataPtr(),
+                                    Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
                                     BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
-
-        FTOC(push_momentum_boris)(np,
-                                  particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                                  particles.ginv().data(),
-                                  particles.ex().data(), particles.ey().data(), particles.ez().data(),
-                                  particles.bx().data(), particles.by().data(), particles.bz().data(),
+        
+        FTOC(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
+                                  Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
+                                  Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                   m_charge, m_mass, dt);
     }
 }
@@ -246,16 +262,19 @@ void EMParticleContainer::PushParticlePositions(Real dt)
     
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
-        auto& particles = ParticlesAt(lev, pti);
-        const int np    = particles.numParticles();
-
-        FTOC(set_gamma)(np,
-                        particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                        particles.ginv().data());
+        const int np  = pti.numParticles();
         
-        FTOC(push_position_boris)(np,
-                                  particles.x().data(),  particles.y().data(),  particles.z().data(),
-                                  particles.ux().data(), particles.uy().data(), particles.uz().data(),
-                                  particles.ginv().data(), dt);
+        auto& structs = pti.GetArrayOfStructs();
+
+        auto& attribs = pti.GetAttribs();
+        auto& uxp  = attribs[PIdx::ux];
+        auto& uyp  = attribs[PIdx::uy];
+        auto& uzp  = attribs[PIdx::uz];
+        auto& ginv = attribs[PIdx::ginv];
+
+        FTOC(set_gamma)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr());
+        
+        FTOC(push_position_boris)(np, structs.dataPtr(),
+                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
     }
 }
