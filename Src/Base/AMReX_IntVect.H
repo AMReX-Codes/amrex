@@ -752,7 +752,7 @@ Dim3 coarsen (Dim3 const& fine, IntVect const& ratio)
 #if (AMREX_SPACEDIM == 1)
     return {amrex::coarsen(fine.x,ratio[0]), fine.y, fine.z};
 #elif (AMREX_SPACEDIM == 2)
-    return {amrex::coarsen(fine.x,ratio[0]), amrex::coarsen(fine.y, ratio[1], fine.z};
+    return {amrex::coarsen(fine.x,ratio[0]), amrex::coarsen(fine.y, ratio[1]), fine.z};
 #else
     return {amrex::coarsen(fine.x, ratio[0]),
             amrex::coarsen(fine.y, ratio[1]),

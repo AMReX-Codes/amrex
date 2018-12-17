@@ -175,27 +175,33 @@ amrex_cellconslin_unlim_interp (Box const& bx, FArrayBox& finefab, const int fco
     const Real xtmp = 0.5*(xrinv-1.0);
     const Real ytmp = 0.5*(yrinv-1.0);
     const Real ztmp = 0.5*(xrinv-1.0);
-    
-    for             (int n = 0; n < ncomp; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            const int kk = k + lo.z;
-            const int kkc = amrex::coarsen(kk, ratio[2]);
-            const int koff = kk - kkc*ratio[2];
-            const Real zoff = koff*zrinv + ztmp;
-            const int kc = kkc - clo.z;
-            for     (int j = 0; j < len.y; ++j) {
-                const int jj = j + lo.y;
-                const int jjc = amrex::coarsen(jj, ratio[1]);
-                const int joff = jj - jjc*ratio[1];
-                const Real yoff = joff*yrinv + ytmp;
-                const int jc = jjc - clo.y;
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    const int ii = i + lo.x;
-                    const int iic = amrex::coarsen(ii, ratio[0]);
-                    const int ioff = ii - iic*ratio[0];
-                    const Real xoff = ioff*xrinv + xtmp;
-                    const int ic = iic - clo.x;
+
+
+    for (int k = 0; k < len.z; ++k) {
+        const int kk = k + lo.z;
+        const int kkc = amrex::coarsen(kk, ratio[2]);
+        const int koff = kk - kkc*ratio[2];
+        const Real zoff = koff*zrinv + ztmp;
+        const int kc = kkc - clo.z;
+        for (int j = 0; j < len.y; ++j) {
+            const int jj = j + lo.y;
+            const int jjc = amrex::coarsen(jj, ratio[1]);
+            const int joff = jj - jjc*ratio[1];
+            const Real yoff = joff*yrinv + ytmp;
+            const int jc = jjc - clo.y;
+#ifndef __CUDA_ARCH__
+            for (int n = 0; n < ncomp; ++n) {
+#endif
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                const int ii = i + lo.x;
+                const int iic = amrex::coarsen(ii, ratio[0]);
+                const int ioff = ii - iic*ratio[0];
+                const Real xoff = ioff*xrinv + xtmp;
+                const int ic = iic - clo.x;
+#ifdef __CUDA_ARCH__
+                for (int n = 0; n < ncomp; ++n) {
+#endif
                     fine(i,j,k,n) = crse(ic,jc,kc,n)
                         + xoff * slopes(ic,jc,kc,n)
                         + yoff * slopes(ic,jc,kc,n+ncomp)
