@@ -163,7 +163,7 @@ namespace amrex
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
                 ignore_unused(cc);
 #ifdef _OPENMP
-#pragma omp parallel if (cc)
+#pragma omp parallel if (cc && Gpu::notInLaunchRegion())
 #endif
                 {
                     Vector<BCRec> bcr(ncomp);
@@ -173,15 +173,17 @@ namespace amrex
                         int li = mfi.LocalIndex();
                         int gi = fpc.dst_idxs[li];
                         FArrayBox& dfab = mf[gi];
-                        const Box& dbx = fpc.dst_boxes[li];
+                        const Box& dbx = fpc.dst_boxes[li] & dfab.box();
 
                         amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
-
-                        mapper->interp(sfab,
+                        
+                        FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
+                        FArrayBox* dfabp = mf.fabPtr(gi);
+                        mapper->interp(*sfabp,
                                        0,
-                                       dfab,
+                                       *dfabp,
                                        dcomp,
                                        ncomp,
                                        dbx,
@@ -257,7 +259,7 @@ namespace amrex
 	int idummy1=0, idummy2=0;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
 	    Vector<BCRec> bcr(ncomp);
@@ -272,9 +274,11 @@ namespace amrex
 
                 pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                mapper->interp(sfab,
+                FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
+                FArrayBox* dfabp = mf.fabPtr(mfi);
+                mapper->interp(*sfabp,
                                0,
-                               dfab,
+                               *dfabp,
                                dcomp,
                                ncomp,
                                dbx,
@@ -338,7 +342,7 @@ namespace amrex
             const int use_limiter = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {
                 std::array<FArrayBox,AMREX_SPACEDIM> bfab;
