@@ -27,7 +27,10 @@ linop_maxorder = 2
 agglomeration = 1    # Do agglomeration on AMR Level 0?
 consolidation = 1    # Do consolidation?
 
+DistributionMapping.makesfc_use_weights = 1
 mg.verbose_linop = 1
 mg.comm_cache = 1
+mg.consolidation_ratio = 2
 mg.mota = 1
 mg.remap_nbh_lb = 1
+machine.verbose = 1
