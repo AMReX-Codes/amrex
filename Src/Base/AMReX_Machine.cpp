@@ -372,7 +372,9 @@ class Machine
             auto pos = topo_addr.find(tag);
             if (pos != std::string::npos) {
                 result = stoi(topo_addr.substr(pos + tag.size())); // assumes format ".*nid(\d+)"
-                Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
+                if (flag_verbose) {
+                    Print() << "Got node ID from SLURM_TOPOLOGY_ADDR: " << result << std::endl;
+                }
 #if BL_USE_MPI
             } else {
                 auto mpi_proc_name = get_mpi_processor_name();
@@ -380,7 +382,9 @@ class Machine
                 pos = mpi_proc_name.find(tag);
                 if (pos != std::string::npos) {
                     result = stoi(mpi_proc_name.substr(pos + tag.size())); // assumes format ".*nid(\d+)"
-                    Print() << "Got node ID from MPI_Get_processor_name(): " << result << std::endl;
+                    if (flag_verbose) {
+                        Print() << "Got node ID from MPI_Get_processor_name(): " << result << std::endl;
+                    }
                 }
 #endif
             }

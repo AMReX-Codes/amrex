@@ -515,10 +515,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
             Print() << "\b)" << std::endl;
         }
 
-        {
-            BL_PROFILE_VAR("MLLinOp::makeSubCommunicator()::MPI_Comm_create", blp_mpicommcreate);
-            MPI_Comm_create(m_default_comm, newgrp, &newcomm);
-        }
+        MPI_Comm_create(m_default_comm, newgrp, &newcomm);
 
         if (flag_comm_cache) {
             comm_cache.add(key, newcomm);
