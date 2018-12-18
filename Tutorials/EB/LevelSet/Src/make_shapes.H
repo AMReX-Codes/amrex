@@ -14,7 +14,19 @@
 #include <AMReX_EB2_IF_Intersection.H>
 #include <AMReX_EB2_IF_Translation.H>
 
+#include <AMReX_EB_LSCoreBase.H>
+
 using namespace amrex;
+
+
+/********************************************************************************
+ * ALIAS for the otherwise loooooooooong template parameter names:              *
+ *       WallsIF          : Implicit function for two planar walls              *
+ *       CylinderIF       : Implicit for a polynomial (which has been           *
+ *                          translated representing the cylinder walls          *
+ *       CappedCylinderIF : Implicit for a polynomial (e.g. cylinder walls)     *
+ *                          with planar caps on either end                      *
+ *******************************************************************************/
 
 using WallsIF = typename
     EB2::TranslationIF<
@@ -35,15 +47,16 @@ using CappedCylinderIF = typename
         CylinderIF
     >;
 
-void
-make_my_eb2(int lev, const BoxArray & grids, const DistributionMapping & dmap,
-            const Geometry & geom, LSFactory * level_set);
+
+void make_my_eb2(int n_lev, const BoxArray & grids, const DistributionMapping & dmap,
+                 const Geometry & geom, LSFactory * level_set, LSCoreBase *& ls_core);
 
 
 std::unique_ptr<CappedCylinderIF>
 make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & translation,
-                   int lev, const Geometry & geom, const DistributionMapping & dm,
-                   LSFactory * level_set);
+                       int lev, const Geometry & geom, const DistributionMapping & dm,
+                       LSFactory * level_set, LSCoreBase *& ls_core);
+
 
 std::unique_ptr<CylinderIF>
 make_poly_eb2_geom(int lev, int max_order, std::string field_prefix);

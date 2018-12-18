@@ -6,8 +6,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-#include <Particles.H>
-
 amrex::Real compute_dt(const amrex::Geometry& geom);
 
 void evolve_electric_field(amrex::MultiFab& Ex, amrex::MultiFab& Ey, amrex::MultiFab& Ez,

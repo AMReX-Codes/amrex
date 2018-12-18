@@ -64,8 +64,7 @@ contains
   end function amrex_coarsen_intvect
 
 
-
-  subroutine get_loop_bounds(blo, bhi, lo, hi) bind(c, name='get_loop_bounds')
+  subroutine amrex_get_loop_bounds(blo, bhi, lo, hi) bind(c, name='amrex_get_loop_bounds')
 
     implicit none
 
@@ -74,7 +73,7 @@ contains
 
     !$gpu
 
-#if (defined(AMREX_USE_GPU_PRAGMA) && !defined(AMREX_NO_DEVICE_LAUNCH))
+#ifdef AMREX_USE_GPU_PRAGMA
     ! Get our spatial index based on the CUDA thread index
 
     blo(1) = lo(1) + (threadIdx%x - 1) + blockDim%x * (blockIdx%x - 1)
@@ -94,9 +93,7 @@ contains
     bhi = hi
 #endif
 
-  end subroutine get_loop_bounds
-
-
+  end subroutine amrex_get_loop_bounds
 
   subroutine amrex_add(x, y)
 
@@ -113,7 +110,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   ! Note that the device versions of these
   ! functions are intentionally constructed
   ! by hand rather than scripted.
@@ -151,7 +148,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_subtract_device(x, y)
 
     implicit none
@@ -185,7 +182,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_max_device(x, y)
 
     implicit none
@@ -219,7 +216,7 @@ contains
 
 
 
-#ifdef AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA_FORTRAN
   attributes(device) subroutine amrex_min_device(x, y)
 
     implicit none

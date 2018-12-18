@@ -50,22 +50,35 @@ module amrex_mlnodelap_3d_module
   integer, private, parameter :: i_S_y2_z2 = 18
   integer, private, parameter :: n_Sintg = 18
 
-  integer, private, parameter :: i_c_x00 = 1
-  integer, private, parameter :: i_c_x10 = 2
-  integer, private, parameter :: i_c_x01 = 3
-  integer, private, parameter :: i_c_x11 = 4
-  integer, private, parameter :: i_c_y00 = 5
-  integer, private, parameter :: i_c_y10 = 6
-  integer, private, parameter :: i_c_y01 = 7
-  integer, private, parameter :: i_c_y11 = 8
-  integer, private, parameter :: i_c_z00 = 9
-  integer, private, parameter :: i_c_z10 = 10
-  integer, private, parameter :: i_c_z01 = 11
-  integer, private, parameter :: i_c_z11 = 12
-  integer, private, parameter :: n_conn = 12
+  integer, private, parameter :: i_c_xmym = 1
+  integer, private, parameter :: i_c_xmyb = 2
+  integer, private, parameter :: i_c_xmyp = 3
+  integer, private, parameter :: i_c_xbym = 4
+  integer, private, parameter :: i_c_xbyb = 5
+  integer, private, parameter :: i_c_xbyp = 6
+  integer, private, parameter :: i_c_xpym = 7
+  integer, private, parameter :: i_c_xpyb = 8
+  integer, private, parameter :: i_c_xpyp = 9
+  integer, private, parameter :: i_c_xmzm = 10
+  integer, private, parameter :: i_c_xmzb = 11
+  integer, private, parameter :: i_c_xmzp = 12
+  integer, private, parameter :: i_c_xbzm = 13
+  integer, private, parameter :: i_c_xbzb = 14
+  integer, private, parameter :: i_c_xbzp = 15
+  integer, private, parameter :: i_c_xpzm = 16
+  integer, private, parameter :: i_c_xpzb = 17
+  integer, private, parameter :: i_c_xpzp = 18
+  integer, private, parameter :: i_c_ymzm = 19
+  integer, private, parameter :: i_c_ymzb = 20
+  integer, private, parameter :: i_c_ymzp = 21
+  integer, private, parameter :: i_c_ybzm = 22
+  integer, private, parameter :: i_c_ybzb = 23
+  integer, private, parameter :: i_c_ybzp = 24
+  integer, private, parameter :: i_c_ypzm = 25
+  integer, private, parameter :: i_c_ypzb = 26
+  integer, private, parameter :: i_c_ypzp = 27
+  integer, private, parameter :: n_conn = 27
 #endif
-
-  
 
   private
   public :: &
@@ -1604,9 +1617,9 @@ contains
   end subroutine amrex_mlndlap_gauss_seidel_aa
 
 
-  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi, &
-       domlo, domhi, bclo, bchi) bind(c,name='amrex_mlndlap_restriction')
-    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi, domlo, domhi, bclo, bchi
+  subroutine amrex_mlndlap_restriction (lo, hi, crse, clo, chi, fine, flo, fhi, msk, mlo, mhi) &
+       bind(c,name='amrex_mlndlap_restriction')
+    integer, dimension(3), intent(in) :: lo, hi, clo, chi, flo, fhi, mlo, mhi
     real(amrex_real), intent(inout) :: crse(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3))
     real(amrex_real), intent(in   ) :: fine(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
@@ -2100,7 +2113,6 @@ contains
     end do
 
   end subroutine amrex_mlndlap_divu_fine_contrib
-
 
   subroutine amrex_mlndlap_divu_cf_contrib (lo, hi,  rhs, rlo, rhi, vel, vlo, vhi, dmsk, mlo, mhi, &
        ndmsk, nmlo, nmhi, ccmsk, cmlo, cmhi, fc, clo, chi, dxinv, ndlo, ndhi, bclo, bchi) &
@@ -2753,7 +2765,8 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
-             sten(i,j,k,ist_000) = -(sten(i-1,j,k,ist_p00) + sten(i,j,k,ist_p00) &
+             sten(i,j,k,ist_000) = -( &
+                    sten(i-1,j,k,ist_p00) + sten(i,j,k,ist_p00) &
                   + sten(i,j-1,k,ist_0p0) + sten(i,j,k,ist_0p0) &
                   + sten(i,j,k-1,ist_00p) + sten(i,j,k,ist_00p) &
                   + sten(i-1,j-1,k,ist_pp0) + sten(i,j-1,k,ist_pp0) &
@@ -2778,10 +2791,12 @@ contains
                   + abs(sten(i-1,j-1,k-1,ist_ppp)) + abs(sten(i,j-1,k-1,ist_ppp)) &
                   + abs(sten(i-1,j,k-1,ist_ppp)) + abs(sten(i,j,k-1,ist_ppp)) &
                   + abs(sten(i-1,j-1,k,ist_ppp)) + abs(sten(i,j-1,k,ist_ppp)) &
-                  + abs(sten(i-1,j,k,ist_ppp)) + abs(sten(i,j,k,ist_ppp)))
+                  + abs(sten(i-1,j,k,ist_ppp)) + abs(sten(i,j,k,ist_ppp)) + eps)
+
           end do
        end do
     end do
+
   end subroutine amrex_mlndlap_set_stencil_s0
 
 
@@ -2840,7 +2855,6 @@ contains
        end do
     end do
   end subroutine amrex_mlndlap_adotx_sten
-
 
   subroutine amrex_mlndlap_normalize_sten (lo, hi, x, xlo, xhi, &
        sten, slo, shi, msk, mlo, mhi) bind(c,name='amrex_mlndlap_normalize_sten')
@@ -2914,6 +2928,7 @@ contains
                         + sol(i+1,j-1,k+1) * sten(i  ,j-1,k  ,ist_ppp) &
                         + sol(i-1,j+1,k+1) * sten(i-1,j  ,k  ,ist_ppp) &
                         + sol(i+1,j+1,k+1) * sten(i  ,j  ,k  ,ist_ppp)
+
                    sol(i,j,k) = sol(i,j,k) + (rhs(i,j,k) - Ax) / sten(i,j,k,ist_000)
                 end if
              else
@@ -2922,8 +2937,8 @@ contains
           end do
        end do
     end do
-  end subroutine amrex_mlndlap_gauss_seidel_sten
 
+  end subroutine amrex_mlndlap_gauss_seidel_sten
 
   subroutine amrex_mlndlap_jacobi_sten (lo, hi, sol, slo, shi, Ax, alo, ahi, &
        rhs, rlo, rhi, sten, stlo, sthi, msk, mlo, mhi) &
@@ -3227,9 +3242,11 @@ contains
     real(amrex_real), intent(in   ) :: sten(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3),n_sten)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
+
     integer :: i,j,k,ii,jj,kk
     real(amrex_real) :: w1m, w1p, w2m ,w2p, wmm, wpm, wmp, wpp
     real(amrex_real) :: wmmm, wpmm, wmpm, wppm, wmmp, wpmp, wmpp, wppp
+    real(amrex_real) :: sten_lo, sten_hi
 
     do k = lo(3), hi(3)
        kk = 2*k
@@ -3242,47 +3259,117 @@ contains
 
                 crse(i,j,k) = fine(ii,jj,kk)
 
-                if (sten(ii-2,jj,kk,ist_p00).eq.0.d0 .and. sten(ii-1,jj,kk,ist_p00).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj,kk)
+                ! *******************************************************************************************************
+
+                ! sten_lo = abs(sten(ii-2,jj,kk,ist_p00))
+                ! sten_hi = abs(sten(ii-1,jj,kk,ist_p00))
+
+                sten_lo = abs(sten(ii-2,jj,kk,ist_p00)) + abs(sten(ii-2,jj,kk,ist_p0p)) + abs(sten(ii-2,jj,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii-2,jj,kk,ist_pp0)) + abs(sten(ii-2,jj-1,kk,ist_pp0)) 
+                sten_hi = abs(sten(ii-1,jj,kk,ist_p00)) + abs(sten(ii-1,jj,kk,ist_p0p)) + abs(sten(ii-1,jj,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii-1,jj,kk,ist_pp0)) + abs(sten(ii-1,jj-1,kk,ist_pp0)) 
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii-1,jj,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk)*abs(sten(ii-1,jj,kk,ist_p00)) &
-                        / (abs(sten(ii-2,jj,kk,ist_p00))+abs(sten(ii-1,jj,kk,ist_p00)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk) * sten_hi / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk,ist_p00).eq.0.d0 .and. sten(ii+1,jj,kk,ist_p00).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj,kk)
+                ! *******************************************************************************************************
+
+                ! sten_lo = abs(sten(ii  ,jj,kk,ist_p00))
+                ! sten_hi = abs(sten(ii+1,jj,kk,ist_p00))
+
+                sten_lo = abs(sten(ii  ,jj,kk,ist_p00)) + abs(sten(ii  ,jj,kk,ist_p0p)) + abs(sten(ii  ,jj  ,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii  ,jj,kk,ist_pp0)) + abs(sten(ii  ,jj-1,kk  ,ist_pp0)) 
+                sten_hi = abs(sten(ii+1,jj,kk,ist_p00)) + abs(sten(ii+1,jj,kk,ist_p0p)) + abs(sten(ii+1,jj  ,kk-1,ist_p0p)) &
+                                                        + abs(sten(ii+1,jj,kk,ist_pp0)) + abs(sten(ii+1,jj-1,kk  ,ist_pp0)) 
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii+1,jj,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk)*abs(sten(ii,jj,kk,ist_p00)) &
-                        / (abs(sten(ii,jj,kk,ist_p00))+abs(sten(ii+1,jj,kk,ist_p00))) 
+                   crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk) * sten_lo / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj-2,kk,ist_0p0).eq.0.d0 .and. sten(ii,jj-1,kk,ist_0p0).eq.0.d0) then
-                   crse(i,j,k) = crse(i,j,k) + 0.50*fine(ii,jj-1,kk)
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj-1,kk)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj-2,kk,ist_0p0)) + abs(sten(ii,jj-2,kk,ist_0pp)) + abs(sten(ii  ,jj-2,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj-2,kk,ist_pp0)) + abs(sten(ii-1,jj-2,kk  ,ist_pp0)) 
+                sten_hi = abs(sten(ii,jj-1,kk,ist_0p0)) + abs(sten(ii,jj-1,kk,ist_0pp)) + abs(sten(ii  ,jj-1,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj-1,kk,ist_pp0)) + abs(sten(ii-1,jj-1,kk  ,ist_pp0)) 
+
+                ! sten_lo = abs(sten(ii,jj-2,kk,ist_0p0))
+                ! sten_hi = abs(sten(ii,jj-1,kk,ist_0p0))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
+                   crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj-1,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk)*abs(sten(ii,jj-1,kk,ist_0p0)) &
-                        / (abs(sten(ii,jj-2,kk,ist_0p0))+abs(sten(ii,jj-1,kk,ist_0p0)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk) * sten_hi / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk,ist_0p0).eq.0.d0 .and. sten(ii,jj+1,kk,ist_0p0).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj+1,kk)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj  ,kk,ist_0p0)) + abs(sten(ii,jj  ,kk,ist_0pp)) + abs(sten(ii  ,jj  ,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj  ,kk,ist_pp0)) + abs(sten(ii-1,jj  ,kk  ,ist_pp0)) 
+                sten_hi = abs(sten(ii,jj+1,kk,ist_0p0)) + abs(sten(ii,jj+1,kk,ist_0pp)) + abs(sten(ii  ,jj+1,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj+1,kk,ist_pp0)) + abs(sten(ii-1,jj+1,kk  ,ist_pp0)) 
+
+                ! sten_lo = abs(sten(ii,jj  ,kk,ist_0p0))
+                ! sten_hi = abs(sten(ii,jj+1,kk,ist_0p0))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj+1,kk)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk)*abs(sten(ii,jj,kk,ist_0p0)) &
-                        / (abs(sten(ii,jj,kk,ist_0p0))+abs(sten(ii,jj+1,kk,ist_0p0)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk) * sten_lo / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk-2,ist_00p).eq.0.d0 .and. sten(ii,jj,kk-1,ist_00p).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj,kk-1)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj,kk-2,ist_00p)) + abs(sten(ii,jj,kk-2,ist_0pp)) + abs(sten(ii  ,jj-1,kk-2,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk-2,ist_p0p)) + abs(sten(ii-1,jj  ,kk-2,ist_p0p)) 
+                sten_hi = abs(sten(ii,jj,kk-1,ist_00p)) + abs(sten(ii,jj,kk-1,ist_0pp)) + abs(sten(ii  ,jj-1,kk-1,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk-1,ist_p0p)) + abs(sten(ii-1,jj  ,kk-1,ist_p0p)) 
+
+                ! sten_lo = abs(sten(ii,jj,kk-2,ist_00p))
+                ! sten_hi = abs(sten(ii,jj,kk-1,ist_00p))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj,kk-1)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk-1)*abs(sten(ii,jj,kk-1,ist_00p)) &
-                        / (abs(sten(ii,jj,kk-2,ist_00p))+abs(sten(ii,jj,kk-1,ist_00p)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk-1)*sten_hi / (sten_lo + sten_hi)
                 end if
 
-                if (sten(ii,jj,kk,ist_00p).eq.0.d0 .and. sten(ii,jj,kk+1,ist_00p).eq.0.d0) then
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj,kk+1)
+                ! *******************************************************************************************************
+
+                sten_lo = abs(sten(ii,jj,kk  ,ist_00p)) + abs(sten(ii,jj,kk  ,ist_0pp)) + abs(sten(ii  ,jj-1,kk  ,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk  ,ist_p0p)) + abs(sten(ii-1,jj  ,kk  ,ist_p0p)) 
+                sten_hi = abs(sten(ii,jj,kk+1,ist_00p)) + abs(sten(ii,jj,kk+1,ist_0pp)) + abs(sten(ii  ,jj-1,kk+1,ist_0pp)) &
+                                                        + abs(sten(ii,jj,kk+1,ist_p0p)) + abs(sten(ii-1,jj  ,kk+1,ist_p0p)) 
+
+                ! sten_lo = abs(sten(ii,jj,kk  ,ist_00p))
+                ! sten_hi = abs(sten(ii,jj,kk+1,ist_00p))
+
+                if (sten_lo .eq. 0.d0 .and. sten_hi .eq. 0.d0) then
                    crse(i,j,k) = crse(i,j,k) + 0.5d0*fine(ii,jj,kk+1)
                 else
-                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk+1)*abs(sten(ii,jj,kk,ist_00p)) &
-                        / (abs(sten(ii,jj,kk,ist_00p))+abs(sten(ii,jj,kk+1,ist_00p)))
+                   crse(i,j,k) = crse(i,j,k) + fine(ii,jj,kk+1)*sten_lo  / (sten_lo + sten_hi)
                 end if
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj-1,kk)
+                ! *******************************************************************************************************
 
                 ! keven
                 w1m = abs(sten(ii-2,jj-1,kk,ist_p00)) / (abs(sten(ii-2,jj-2,kk,ist_pp0)) &
@@ -3299,47 +3386,63 @@ contains
                 wpp = abs(sten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj-1,kk)*wpp/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii-1,jj-1,kk,ist_p00)) / (abs(sten(ii-1,jj-2,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii-1,jj-1,kk,ist_pp0)) + eps)
-                w1p = abs(sten(ii  ,jj-1,kk,ist_p00)) / (abs(sten(ii  ,jj-2,kk,ist_pp0)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj-1,kk)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii  ,jj-1,kk,ist_p00)) / (abs(sten(ii  ,jj-2,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps)
-                w2m = abs(sten(ii  ,jj-2,kk,ist_0p0)) / (abs(sten(ii-1,jj-2,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii  ,jj-2,kk,ist_pp0)) + eps)
-                w2p = abs(sten(ii  ,jj-1,kk,ist_0p0)) / (abs(sten(ii-1,jj-1,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps)
-                wmm = abs(sten(ii-1,jj-2,kk,ist_pp0)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii  ,jj-2,kk,ist_pp0)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii  ,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+                w1p = abs(sten(ii+1,jj-1,kk,ist_p00)) / (abs(sten(ii+1,jj-2,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii+1,jj-1,kk,ist_pp0)) + eps)
+                w2m = abs(sten(ii+1,jj-2,kk,ist_0p0)) / (abs(sten(ii  ,jj-2,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii+1,jj-2,kk,ist_pp0)) + eps) 
+                w2p = abs(sten(ii+1,jj-1,kk,ist_0p0)) / (abs(sten(ii  ,jj-1,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii+1,jj-1,kk,ist_pp0)) + eps)
+                wmm = abs(sten(ii  ,jj-2,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii+1,jj-2,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii  ,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii+1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj-1,kk)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii-2,jj  ,kk,ist_p00)) / (abs(sten(ii-2,jj-1,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii-2,jj  ,kk,ist_pp0)) + eps)
-                w1p = abs(sten(ii-1,jj  ,kk,ist_p00)) / (abs(sten(ii-1,jj-1,kk,ist_pp0)) &
+                ! *******************************************************************************************************
+                ! Adding fine(i-1,jj+1,kk)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii-2,jj+1,kk,ist_p00)) / (abs(sten(ii-2,jj  ,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii-2,jj+1,kk,ist_pp0)) + eps)
+                w1p = abs(sten(ii-1,jj+1,kk,ist_p00)) / (abs(sten(ii-1,jj  ,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii-1,jj+1,kk,ist_pp0)) + eps)
+                w2m = abs(sten(ii-1,jj  ,kk,ist_0p0)) / (abs(sten(ii-2,jj  ,kk,ist_pp0)) &
                      &                                  +abs(sten(ii-1,jj  ,kk,ist_pp0)) + eps)
-                w2m = abs(sten(ii-1,jj-1,kk,ist_0p0)) / (abs(sten(ii-2,jj-1,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii-1,jj-1,kk,ist_pp0)) + eps)
-                w2p = abs(sten(ii-1,jj  ,kk,ist_0p0)) / (abs(sten(ii-2,jj  ,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii-1,jj  ,kk,ist_pp0)) + eps)
-                wmm = abs(sten(ii-2,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii-2,jj  ,kk,ist_pp0)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii-1,jj  ,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+                w2p = abs(sten(ii-1,jj+1,kk,ist_0p0)) / (abs(sten(ii-2,jj+1,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii-1,jj+1,kk,ist_pp0)) + eps)
+                wmm = abs(sten(ii-2,jj  ,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii-1,jj  ,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii-2,jj+1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii-1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj+1,kk)*wpm/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii-1,jj  ,kk,ist_p00)) / (abs(sten(ii-1,jj-1,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii-1,jj  ,kk,ist_pp0)) + eps)
-                w1p = abs(sten(ii  ,jj  ,kk,ist_p00)) / (abs(sten(ii  ,jj-1,kk,ist_pp0)) &
+                ! *******************************************************************************************************
+                ! Adding fine(i+1,jj+1,kk)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii  ,jj+1,kk,ist_p00)) / (abs(sten(ii  ,jj+1,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps)
-                w2m = abs(sten(ii  ,jj-1,kk,ist_0p0)) / (abs(sten(ii-1,jj-1,kk,ist_pp0)) &
-                     &                                  +abs(sten(ii  ,jj-1,kk,ist_pp0)) + eps)
-                w2p = abs(sten(ii  ,jj  ,kk,ist_0p0)) / (abs(sten(ii-1,jj  ,kk,ist_pp0)) &
+                w1p = abs(sten(ii+1,jj+1,kk,ist_p00)) / (abs(sten(ii+1,jj+1,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii+1,jj  ,kk,ist_pp0)) + eps)
+                w2m = abs(sten(ii+1,jj  ,kk,ist_0p0)) / (abs(sten(ii+1,jj  ,kk,ist_pp0)) &
                      &                                  +abs(sten(ii  ,jj  ,kk,ist_pp0)) + eps)
-                wmm = abs(sten(ii-1,jj-1,kk,ist_pp0)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii  ,jj-1,kk,ist_pp0)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii-1,jj  ,kk,ist_pp0)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii  ,jj  ,kk,ist_pp0)) * (1.d0 + w1p + w2p)
+                w2p = abs(sten(ii+1,jj+1,kk,ist_0p0)) / (abs(sten(ii+1,jj+1,kk,ist_pp0)) &
+                     &                                  +abs(sten(ii  ,jj+1,kk,ist_pp0)) + eps)
+                wmm = abs(sten(ii  ,jj  ,kk,ist_pp0)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii+1,jj  ,kk,ist_pp0)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii  ,jj+1,kk,ist_pp0)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii+1,jj+1,kk,ist_pp0)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj+1,kk)*wmm/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj,kk-1)
+                ! *******************************************************************************************************
 
                 ! jeven
                 w1m = abs(sten(ii-2,jj,kk-1,ist_p00)) / (abs(sten(ii-2,jj,kk-2,ist_p0p)) &
@@ -3356,55 +3459,71 @@ contains
                 wpp = abs(sten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii-1,jj,kk-1,ist_p00)) / (abs(sten(ii-1,jj,kk-2,ist_p0p)) &
-                     &                                  +abs(sten(ii-1,jj,kk-1,ist_p0p)) + eps)
-                w1p = abs(sten(ii  ,jj,kk-1,ist_p00)) / (abs(sten(ii  ,jj,kk-2,ist_p0p)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj,kk-1)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii  ,jj,kk-1,ist_p00)) / (abs(sten(ii  ,jj,kk-2,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps)
-                w2m = abs(sten(ii  ,jj,kk-2,ist_00p)) / (abs(sten(ii-1,jj,kk-2,ist_p0p)) &
+                w1p = abs(sten(ii+1,jj,kk-1,ist_p00)) / (abs(sten(ii+1,jj,kk-2,ist_p0p)) &
+                     &                                  +abs(sten(ii+1,jj,kk-1,ist_p0p)) + eps)
+                w2m = abs(sten(ii+1,jj,kk-2,ist_00p)) / (abs(sten(ii+1,jj,kk-2,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk-2,ist_p0p)) + eps)
-                w2p = abs(sten(ii  ,jj,kk-1,ist_00p)) / (abs(sten(ii-1,jj,kk-1,ist_p0p)) &
+                w2p = abs(sten(ii+1,jj,kk-1,ist_00p)) / (abs(sten(ii+1,jj,kk-1,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps)
-                wmm = abs(sten(ii-1,jj,kk-2,ist_p0p)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii  ,jj,kk-2,ist_p0p)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii  ,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
+                wmm = abs(sten(ii  ,jj,kk-2,ist_p0p)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii+1,jj,kk-2,ist_p0p)) * (1.d0 + w1p + w2m) 
+                wmp = abs(sten(ii  ,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii+1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii-2,jj,kk  ,ist_p00)) / (abs(sten(ii-2,jj,kk-1,ist_p0p)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii-1,jj,kk+1)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii-2,jj,kk+1,ist_p00)) / (abs(sten(ii-2,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii-2,jj,kk  ,ist_p0p)) + eps)
-                w1p = abs(sten(ii-1,jj,kk  ,ist_p00)) / (abs(sten(ii-1,jj,kk-1,ist_p0p)) &
+                w1p = abs(sten(ii-1,jj,kk+1,ist_p00)) / (abs(sten(ii-1,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps)
-                w2m = abs(sten(ii-1,jj,kk-1,ist_00p)) / (abs(sten(ii-2,jj,kk-1,ist_p0p)) &
-                     &                                  +abs(sten(ii-1,jj,kk-1,ist_p0p)) + eps)
-                w2p = abs(sten(ii-1,jj,kk  ,ist_00p)) / (abs(sten(ii-2,jj,kk  ,ist_p0p)) &
+                w2m = abs(sten(ii-1,jj,kk  ,ist_00p)) / (abs(sten(ii-2,jj,kk  ,ist_p0p)) &
                      &                                  +abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps)
-                wmm = abs(sten(ii-2,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii-2,jj,kk  ,ist_p0p)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii-1,jj,kk  ,ist_p0p)) * (1.d0 + w1p + w2p)
+                w2p = abs(sten(ii-1,jj,kk+1,ist_00p)) / (abs(sten(ii-2,jj,kk+1,ist_p0p)) &
+                     &                                  +abs(sten(ii-1,jj,kk+1,ist_p0p)) + eps)
+                wmm = abs(sten(ii-2,jj,kk  ,ist_p0p)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii-1,jj,kk  ,ist_p0p)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii-2,jj,kk+1,ist_p0p)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii-1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii-1,jj,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii-1,jj,kk  ,ist_p00)) / (abs(sten(ii-1,jj,kk-1,ist_p0p)) &
-                     &                                  +abs(sten(ii-1,jj,kk  ,ist_p0p)) + eps)
-                w1p = abs(sten(ii  ,jj,kk  ,ist_p00)) / (abs(sten(ii  ,jj,kk-1,ist_p0p)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii+1,jj,kk+1)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii  ,jj,kk+1,ist_p00)) / (abs(sten(ii  ,jj,kk+1,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps)
-                w2m = abs(sten(ii  ,jj,kk-1,ist_00p)) / (abs(sten(ii-1,jj,kk-1,ist_p0p)) &
-                     &                                  +abs(sten(ii  ,jj,kk-1,ist_p0p)) + eps)
-                w2p = abs(sten(ii  ,jj,kk  ,ist_00p)) / (abs(sten(ii-1,jj,kk  ,ist_p0p)) &
+                w1p = abs(sten(ii+1,jj,kk+1,ist_p00)) / (abs(sten(ii+1,jj,kk+1,ist_p0p)) &
+                     &                                  +abs(sten(ii+1,jj,kk  ,ist_p0p)) + eps)
+                w2m = abs(sten(ii+1,jj,kk  ,ist_00p)) / (abs(sten(ii+1,jj,kk  ,ist_p0p)) &
                      &                                  +abs(sten(ii  ,jj,kk  ,ist_p0p)) + eps)
-                wmm = abs(sten(ii-1,jj,kk-1,ist_p0p)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii  ,jj,kk-1,ist_p0p)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii-1,jj,kk  ,ist_p0p)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii  ,jj,kk  ,ist_p0p)) * (1.d0 + w1p + w2p)
+                w2p = abs(sten(ii+1,jj,kk+1,ist_00p)) / (abs(sten(ii+1,jj,kk+1,ist_p0p)) &
+                     &                                  +abs(sten(ii  ,jj,kk+1,ist_p0p)) + eps)
+                wmm = abs(sten(ii  ,jj,kk  ,ist_p0p)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii+1,jj,kk  ,ist_p0p)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii  ,jj,kk+1,ist_p0p)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii+1,jj,kk+1,ist_p0p)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii+1,jj,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj-1,kk-1)
+                ! *******************************************************************************************************
 
                 ! ieven
                 w1m = abs(sten(ii,jj-2,kk-1,ist_0p0)) / (abs(sten(ii,jj-2,kk-2,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-2,kk-1,ist_0pp)) + eps)
-                w1p = abs(sten(ii,jj-1,kk-1,ist_0p0)) / (abs(sten(ii,jj-1,kk-2,ist_0pp)) &
-                     &                                  +abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps)
                 w2m = abs(sten(ii,jj-1,kk-2,ist_00p)) / (abs(sten(ii,jj-2,kk-2,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-1,kk-2,ist_0pp)) + eps)
+                w1p = abs(sten(ii,jj-1,kk-1,ist_0p0)) / (abs(sten(ii,jj-1,kk-2,ist_0pp)) &
+                     &                                  +abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps)
                 w2p = abs(sten(ii,jj-1,kk-1,ist_00p)) / (abs(sten(ii,jj-2,kk-1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps)
                 wmm = abs(sten(ii,jj-2,kk-2,ist_0pp)) * (1.d0 + w1m + w2m)
@@ -3413,47 +3532,64 @@ contains
                 wpp = abs(sten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk-1)*wpp/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii,jj-1,kk-1,ist_0p0)) / (abs(sten(ii,jj-1,kk-2,ist_0pp)) &
-                     &                                  +abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps)
-                w1p = abs(sten(ii,jj  ,kk-1,ist_0p0)) / (abs(sten(ii,jj  ,kk-2,ist_0pp)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj+1,kk-1)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii,jj  ,kk-1,ist_0p0)) / (abs(sten(ii,jj  ,kk-2,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps)
-                w2m = abs(sten(ii,jj  ,kk-2,ist_00p)) / (abs(sten(ii,jj-1,kk-2,ist_0pp)) &
+                w1p = abs(sten(ii,jj+1,kk-1,ist_0p0)) / (abs(sten(ii,jj+1,kk-2,ist_0pp)) &
+                     &                                  +abs(sten(ii,jj+1,kk-1,ist_0pp)) + eps)
+                w2m = abs(sten(ii,jj+1,kk-2,ist_00p)) / (abs(sten(ii,jj+1,kk-2,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk-2,ist_0pp)) + eps)
-                w2p = abs(sten(ii,jj  ,kk-1,ist_00p)) / (abs(sten(ii,jj-1,kk-1,ist_0pp)) &
+                w2p = abs(sten(ii,jj+1,kk-1,ist_00p)) / (abs(sten(ii,jj+1,kk-1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps)
-                wmm = abs(sten(ii,jj-1,kk-2,ist_0pp)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii,jj  ,kk-2,ist_0pp)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii,jj  ,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
+                wmm = abs(sten(ii,jj  ,kk-2,ist_0pp)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii,jj+1,kk-2,ist_0pp)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii,jj  ,kk-1,ist_0pp)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii,jj+1,kk-1,ist_0pp)) * (1.d0 + w1p + w2p)
+
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk-1)*wmp/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii,jj-2,kk  ,ist_0p0)) / (abs(sten(ii,jj-2,kk-1,ist_0pp)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj-1,kk+1)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii,jj-2,kk+1,ist_0p0)) / (abs(sten(ii,jj-2,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-2,kk  ,ist_0pp)) + eps)
-                w1p = abs(sten(ii,jj-1,kk  ,ist_0p0)) / (abs(sten(ii,jj-1,kk-1,ist_0pp)) &
+                w1p = abs(sten(ii,jj-1,kk+1,ist_0p0)) / (abs(sten(ii,jj-1,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps)
-                w2m = abs(sten(ii,jj-1,kk-1,ist_00p)) / (abs(sten(ii,jj-2,kk-1,ist_0pp)) &
-                     &                                  +abs(sten(ii,jj-1,kk-1,ist_0pp)) + eps)
-                w2p = abs(sten(ii,jj-1,kk  ,ist_00p)) / (abs(sten(ii,jj-2,kk  ,ist_0pp)) &
+                w2m = abs(sten(ii,jj-1,kk  ,ist_00p)) / (abs(sten(ii,jj-2,kk  ,ist_0pp)) &
                      &                                  +abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps)
-                wmm = abs(sten(ii,jj-2,kk-1,ist_0pp)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii,jj-2,kk  ,ist_0pp)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii,jj-1,kk  ,ist_0pp)) * (1.d0 + w1p + w2p)
+                w2p = abs(sten(ii,jj-1,kk+1,ist_00p)) / (abs(sten(ii,jj-2,kk+1,ist_0pp)) &
+                     &                                  +abs(sten(ii,jj-1,kk+1,ist_0pp)) + eps)
+                wmm = abs(sten(ii,jj-2,kk  ,ist_0pp)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii,jj-1,kk  ,ist_0pp)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii,jj-2,kk+1,ist_0pp)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii,jj-1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj-1,kk+1)*wpm/(wmm+wpm+wmp+wpp+eps)
 
-                w1m = abs(sten(ii,jj-1,kk  ,ist_0p0)) / (abs(sten(ii,jj-1,kk-1,ist_0pp)) &
-                     &                                  +abs(sten(ii,jj-1,kk  ,ist_0pp)) + eps)
-                w1p = abs(sten(ii,jj  ,kk  ,ist_0p0)) / (abs(sten(ii,jj  ,kk-1,ist_0pp)) &
+                ! *******************************************************************************************************
+                ! Adding fine(ii,jj+1,kk+1)
+                ! *******************************************************************************************************
+
+                w1m = abs(sten(ii,jj  ,kk+1,ist_0p0)) / (abs(sten(ii,jj  ,kk+1,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps)
-                w2m = abs(sten(ii,jj  ,kk-1,ist_00p)) / (abs(sten(ii,jj-1,kk-1,ist_0pp)) &
-                     &                                  +abs(sten(ii,jj  ,kk-1,ist_0pp)) + eps)
-                w2p = abs(sten(ii,jj  ,kk  ,ist_00p)) / (abs(sten(ii,jj-1,kk  ,ist_0pp)) &
+                w1p = abs(sten(ii,jj+1,kk+1,ist_0p0)) / (abs(sten(ii,jj+1,kk+1,ist_0pp)) &
+                     &                                  +abs(sten(ii,jj+1,kk  ,ist_0pp)) + eps)
+                w2m = abs(sten(ii,jj+1,kk  ,ist_00p)) / (abs(sten(ii,jj+1,kk  ,ist_0pp)) &
                      &                                  +abs(sten(ii,jj  ,kk  ,ist_0pp)) + eps)
-                wmm = abs(sten(ii,jj-1,kk-1,ist_0pp)) * (1.d0 + w1m + w2m)
-                wpm = abs(sten(ii,jj  ,kk-1,ist_0pp)) * (1.d0 + w1p + w2m)
-                wmp = abs(sten(ii,jj-1,kk  ,ist_0pp)) * (1.d0 + w1m + w2p)
-                wpp = abs(sten(ii,jj  ,kk  ,ist_0pp)) * (1.d0 + w1p + w2p)
+                w2p = abs(sten(ii,jj+1,kk+1,ist_00p)) / (abs(sten(ii,jj+1,kk+1,ist_0pp)) &
+                     &                                  +abs(sten(ii,jj  ,kk+1,ist_0pp)) + eps)
+                wmm = abs(sten(ii,jj  ,kk  ,ist_0pp)) * (1.d0 + w1m + w2m)
+                wpm = abs(sten(ii,jj+1,kk  ,ist_0pp)) * (1.d0 + w1p + w2m)
+                wmp = abs(sten(ii,jj  ,kk+1,ist_0pp)) * (1.d0 + w1m + w2p)
+                wpp = abs(sten(ii,jj+1,kk+1,ist_0pp)) * (1.d0 + w1p + w2p)
                 crse(i,j,k) = crse(i,j,k) + fine(ii,jj+1,kk+1)*wmm/(wmm+wpm+wmp+wpp+eps)
+
+                ! *******************************************************************************************************
+                ! Adding fine at corners
+                ! *******************************************************************************************************
 
                 wmmm = 1.d0 &
                      +   abs(sten(ii  ,jj+1,kk+1,ist_p00)) / &
@@ -3680,12 +3816,14 @@ contains
                 crse(i,j,k) = crse(i,j,k) + wppp*fine(ii-1,jj-1,kk-1)*sten(ii-1,jj-1,kk-1,ist_inv)
 
                 crse(i,j,k) = crse(i,j,k) * 0.125d0
+
              else
                 crse(i,j,k) = 0.d0
              end if
           end do
        end do
     end do
+
   end subroutine amrex_mlndlap_restriction_rap
 
 
@@ -3753,7 +3891,6 @@ contains
     end do
   end subroutine amrex_mlndlap_set_integral
 
-
   subroutine amrex_mlndlap_set_integral_eb (lo, hi, intg, glo, ghi, flag, flo, fhi, &
        vol, vlo, vhi, ax, axlo, axhi, ay, aylo, ayhi, az, azlo, azhi, bcen, blo, bhi) &
        bind(c,name='amrex_mlndlap_set_integral_eb')
@@ -3767,7 +3904,9 @@ contains
     real(amrex_real), intent(in   ) :: az  (azlo(1):azhi(1),azlo(2):azhi(2),azlo(3):azhi(3))
     real(amrex_real), intent(in   ) :: bcen( blo(1): bhi(1), blo(2): bhi(2), blo(3): bhi(3),3)
     integer         , intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3))
+
     call amrex_mlndlap_set_integral(lo, hi, intg, glo, ghi)
+
   end subroutine amrex_mlndlap_set_integral_eb
 
 
@@ -3786,80 +3925,241 @@ contains
     do       k = lo(3), hi(3)
        do    j = lo(2), hi(2)
           do i = lo(1), hi(1)
+
              if (is_covered_cell(flag(i,j,k))) then
                 conn(i,j,k,:) = 0.d0
              else if (is_regular_cell(flag(i,j,k)) .or. vol(i,j,k).ge.almostone) then
                 conn(i,j,k,:) = 1.d0
              else
-                conn(i,j,k,i_c_x00) = 0.5625d0*vol(i,j,k) &
-                     + 2.25d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_z) &
-                     &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
-                     + 9.d0*(intg(i,j,k,i_S_y_z) - intg(i,j,k,i_S_y2_z) &
-                     &      -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
 
-                conn(i,j,k,i_c_x10) = 1.125d0*vol(i,j,k) &
-                     + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
-                     + 18.d0*(intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2))
+                ! Scaled by 9
+                conn(i,j,k,i_c_xmym) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 9.d0*(intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y) &
+                     &      -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
 
-                conn(i,j,k,i_c_x01) = 1.125d0*vol(i,j,k) &
-                     + 4.5d0*(-intg(i,j,k,i_S_y) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
-                     + 18.d0*(intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2))
+                ! Scaled by 18
+                conn(i,j,k,i_c_xmyb) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
+                     + 18.d0*( intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2))
 
-                conn(i,j,k,i_c_x11) = 2.25d0*vol(i,j,k) &
-                     + 9.d0*(-intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
-                     + 36.d0*intg(i,j,k,i_S_y2_z2)
+                ! Scaled by 9
+                conn(i,j,k,i_c_xmyp) =  0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 9.d0*(-intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y) &
+                     &       -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
 
-                conn(i,j,k,i_c_y00) = 0.5625d0*vol(i,j,k) &
+                ! Scaled by 18
+                conn(i,j,k,i_c_xbym) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 18.d0*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
+
+                ! Scaled by 36
+                conn(i,j,k,i_c_xbyb) = 2.25d0*vol(i,j,k) &
+                     + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
+                     + 36.d0*intg(i,j,k,i_S_x2_y2)
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_xbyp) =  1.125d0*vol(i,j,k) &
+                     + 4.5d0*( intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_xpym) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_y) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 9.d0*(-intg(i,j,k,i_S_x_y ) - intg(i,j,k,i_S_x2_y) &
+                     &       +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_xpyb) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*( intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_xpyp) =  0.5625d0*vol(i,j,k) &
+                     + 2.25d0*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_y) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
+                     + 9.d0*( intg(i,j,k,i_S_x_y ) + intg(i,j,k,i_S_x2_y) &
+                     &       +intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_xmzm) = 0.5625d0*vol(i,j,k) &
                      + 2.25d0*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_z) &
                      &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
                      + 9.d0*(intg(i,j,k,i_S_x_z) - intg(i,j,k,i_S_x2_z) &
                      &      -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
 
-                conn(i,j,k,i_c_y10) = 1.125d0*vol(i,j,k) &
-                     + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
-                     + 18.d0*(intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2))
-
-                conn(i,j,k,i_c_y01) = 1.125d0*vol(i,j,k) &
+                ! Scaled by 18
+                conn(i,j,k,i_c_xmzb) = 1.125d0*vol(i,j,k) &
                      + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2)) &
                      + 18.d0*(intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2))
 
-                conn(i,j,k,i_c_y11) = 2.25d0*vol(i,j,k) &
+                ! Scaled by 9
+                conn(i,j,k,i_c_xmzp) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_x  ) + intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(-intg(i,j,k,i_S_x_z  ) + intg(i,j,k,i_S_x2_z) &
+                     &       -intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_xbzm) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2))
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_xbzb) = 2.25d0*vol(i,j,k) &
                      + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_z2)) &
                      + 36.d0*intg(i,j,k,i_S_x2_z2)
 
-                conn(i,j,k,i_c_z00) = 0.5625d0*vol(i,j,k) &
-                     + 2.25d0*(-intg(i,j,k,i_S_x) - intg(i,j,k,i_S_y) &
-                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
-                     + 9.d0*(intg(i,j,k,i_S_x_y) - intg(i,j,k,i_S_x2_y) &
-                     &      -intg(i,j,k,i_S_x_y2) + intg(i,j,k,i_S_x2_y2))
+                ! Scaled by 18
+                conn(i,j,k,i_c_xbzp) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_x2_z) - intg(i,j,k,i_S_x2_z2))
 
-                conn(i,j,k,i_c_z10) = 1.125d0*vol(i,j,k) &
-                     + 4.5d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_y2)) &
-                     + 18.d0*(intg(i,j,k,i_S_x2_y) - intg(i,j,k,i_S_x2_y2))
+                ! Scaled by 9
+                conn(i,j,k,i_c_xpzm) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*( intg(i,j,k,i_S_x ) - intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(-intg(i,j,k,i_S_x_z ) - intg(i,j,k,i_S_x2_z) &
+                     &       +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
 
-                conn(i,j,k,i_c_z01) = 1.125d0*vol(i,j,k) &
-                     + 4.5d0*(-intg(i,j,k,i_S_x) + intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
-                     + 18.d0*(intg(i,j,k,i_S_x_y2) - intg(i,j,k,i_S_x2_y2))
+                ! Scaled by 18
+                conn(i,j,k,i_c_xpzb) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*( intg(i,j,k,i_S_x   ) + intg(i,j,k,i_S_x2   ) - intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_x_z2) - intg(i,j,k,i_S_x2_z2))
 
-                conn(i,j,k,i_c_z11) = 2.25d0*vol(i,j,k) &
-                     + 9.d0*(-intg(i,j,k,i_S_x2) - intg(i,j,k,i_S_y2)) &
-                     + 36.d0*intg(i,j,k,i_S_x2_y2)
+                ! Scaled by 9
+                conn(i,j,k,i_c_xpzp) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*( intg(i,j,k,i_S_x ) + intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_x2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*( intg(i,j,k,i_S_x_z ) + intg(i,j,k,i_S_x2_z) &
+                     &       +intg(i,j,k,i_S_x_z2) + intg(i,j,k,i_S_x2_z2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_ymzm) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_y) - intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(intg(i,j,k,i_S_y_z) - intg(i,j,k,i_S_y2_z) &
+                     &      -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_ymzb) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_y) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_ymzp) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*(-intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(-intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z) &
+                     &       -intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_ybzm) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*(-intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 36
+                conn(i,j,k,i_c_ybzb) = 2.25d0*vol(i,j,k) &
+                     + 9.d0*(-intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
+                     + 36.d0*intg(i,j,k,i_S_y2_z2)
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_ybzp) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*( intg(i,j,k,i_S_z) - intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_y2_z) - intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_ypzm) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*( intg(i,j,k,i_S_y ) - intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*(-intg(i,j,k,i_S_y_z ) - intg(i,j,k,i_S_y2_z) &
+                     &       +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 18
+                conn(i,j,k,i_c_ypzb) = 1.125d0*vol(i,j,k) &
+                     + 4.5d0*( intg(i,j,k,i_S_y   ) + intg(i,j,k,i_S_y2) - intg(i,j,k,i_S_z2)) &
+                     + 18.d0*(-intg(i,j,k,i_S_y_z2) - intg(i,j,k,i_S_y2_z2))
+
+                ! Scaled by 9
+                conn(i,j,k,i_c_ypzp) = 0.5625d0*vol(i,j,k) &
+                     + 2.25d0*( intg(i,j,k,i_S_y ) + intg(i,j,k,i_S_z) &
+                     &         +intg(i,j,k,i_S_y2) + intg(i,j,k,i_S_z2)) &
+                     + 9.d0*( intg(i,j,k,i_S_y_z ) + intg(i,j,k,i_S_y2_z) &
+                     &       +intg(i,j,k,i_S_y_z2) + intg(i,j,k,i_S_y2_z2))
+
              end if
           end do
        end do
     end do
+
   end subroutine amrex_mlndlap_set_connection
 
-
-  subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sigma, glo, ghi, &
+  subroutine amrex_mlndlap_set_stencil_eb (lo, hi, sten, tlo, thi, sig, glo, ghi, &
        conn, clo, chi, dxinv) bind(c,name='amrex_mlndlap_set_stencil_eb')
     integer, dimension(3), intent(in) :: lo, hi, tlo, thi, glo, ghi, clo, chi
-    real(amrex_real), intent(inout) ::  sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),1)
-    real(amrex_real), intent(in   ) :: sigma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
-    real(amrex_real), intent(in   ) ::  conn(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),1)
+    real(amrex_real), intent(inout) :: sten(tlo(1):thi(1),tlo(2):thi(2),tlo(3):thi(3),n_sten)
+    real(amrex_real), intent(in   ) ::  sig(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3))
+    real(amrex_real), intent(in   ) :: conn(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),n_conn)
     real(amrex_real), intent(in) :: dxinv(3)
-  end subroutine amrex_mlndlap_set_stencil_eb
 
+    integer :: i,j,k
+    real(amrex_real) :: facx, facy, facz
+    
+    facx = (1.d0/36.d0)*dxinv(1)*dxinv(1)
+    facy = (1.d0/36.d0)*dxinv(2)*dxinv(2)
+    facz = (1.d0/36.d0)*dxinv(3)*dxinv(3)
+
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+             ! i+1,j,k
+             sten(i,j,k,ist_p00) = ( &
+                  sig(i,j  ,k  )*(4.d0*facx*conn(i,j  ,k  ,i_c_ymzm) - 2.d0*facy*conn(i,j  ,k  ,i_c_xbzm) - 2.d0*facz*conn(i,j  ,k  ,i_c_xbym) ) + &
+                  sig(i,j-1,k  )*(4.d0*facx*conn(i,j-1,k  ,i_c_ypzm) - 2.d0*facy*conn(i,j-1,k  ,i_c_xbzm) - 2.d0*facz*conn(i,j-1,k  ,i_c_xbyp) ) + &
+                  sig(i,j  ,k-1)*(4.d0*facx*conn(i,j  ,k-1,i_c_ymzp) - 2.d0*facy*conn(i,j  ,k-1,i_c_xbzp) - 2.d0*facz*conn(i,j  ,k-1,i_c_xbym) ) + &
+                  sig(i,j-1,k-1)*(4.d0*facx*conn(i,j-1,k-1,i_c_ypzp) - 2.d0*facy*conn(i,j-1,k-1,i_c_xbzp) - 2.d0*facz*conn(i,j-1,k-1,i_c_xbyp) ) )
+
+             ! i,j+1,k
+             sten(i,j,k,ist_0p0) = ( &
+                  sig(i  ,j,k  )*(-2.d0*facx*conn(i  ,j,k  ,i_c_ybzm) + 4.d0*facy*conn(i  ,j,k  ,i_c_xmzm) - 2.d0*facz*conn(i  ,j,k  ,i_c_xmyb) ) + &
+                  sig(i-1,j,k  )*(-2.d0*facx*conn(i-1,j,k  ,i_c_ybzm) + 4.d0*facy*conn(i-1,j,k  ,i_c_xpzm) - 2.d0*facz*conn(i-1,j,k  ,i_c_xpyb) ) + &
+                  sig(i  ,j,k-1)*(-2.d0*facx*conn(i  ,j,k-1,i_c_ybzp) + 4.d0*facy*conn(i  ,j,k-1,i_c_xmzp) - 2.d0*facz*conn(i  ,j,k-1,i_c_xmyb) ) + &
+                  sig(i-1,j,k-1)*(-2.d0*facx*conn(i-1,j,k-1,i_c_ybzp) + 4.d0*facy*conn(i-1,j,k-1,i_c_xpzp) - 2.d0*facz*conn(i-1,j,k-1,i_c_xpyb) ) )
+
+             ! i,j,k+1
+             sten(i,j,k,ist_00p) = ( &
+                  sig(i  ,j  ,k)*(-2.d0*facx*conn(i  ,j  ,k,i_c_ymzb) - 2.d0*facy*conn(i  ,j  ,k,i_c_xmzb) + 4.d0*facz*conn(i  ,j  ,k,i_c_xmym) ) + &
+                  sig(i-1,j  ,k)*(-2.d0*facx*conn(i-1,j  ,k,i_c_ymzb) - 2.d0*facy*conn(i-1,j  ,k,i_c_xpzb) + 4.d0*facz*conn(i-1,j  ,k,i_c_xpym) ) + &
+                  sig(i  ,j-1,k)*(-2.d0*facx*conn(i  ,j-1,k,i_c_ypzb) - 2.d0*facy*conn(i  ,j-1,k,i_c_xmzb) + 4.d0*facz*conn(i  ,j-1,k,i_c_xmyp) ) + &
+                  sig(i-1,j-1,k)*(-2.d0*facx*conn(i-1,j-1,k,i_c_ypzb) - 2.d0*facy*conn(i-1,j-1,k,i_c_xpzb) + 4.d0*facz*conn(i-1,j-1,k,i_c_xpyp) ) )
+
+             ! i+1,j+1,k
+             sten(i,j,k,ist_pp0) = ( &
+                  sig(i,j,k  )*(2.d0*facx*conn(i,j,k  ,i_c_ybzm) + 2.d0*facy*conn(i,j,k  ,i_c_xbzm) - facz*conn(i,j,k  ,i_c_xbyb) ) + &
+                  sig(i,j,k-1)*(2.d0*facx*conn(i,j,k-1,i_c_ybzp) + 2.d0*facy*conn(i,j,k-1,i_c_xbzp) - facz*conn(i,j,k-1,i_c_xbyb) ) )
+             
+             ! i+1,j,k+1
+             sten(i,j,k,ist_p0p) = ( &
+                  sig(i,j,k  )*(2.d0*facx*conn(i,j,k  ,i_c_ymzb) - facy*conn(i,j,k  ,i_c_xbzb) + 2.d0*facz*conn(i,j,k  ,i_c_xbym) ) + &
+                  sig(i,j-1,k)*(2.d0*facx*conn(i,j-1,k,i_c_ypzb) - facy*conn(i,j-1,k,i_c_xbzb) + 2.d0*facz*conn(i,j-1,k,i_c_xbyp) ) )
+
+             ! i,j+1,k+1
+             sten(i,j,k,ist_0pp) = ( &
+                  sig(i  ,j,k)*(-facx*conn(i  ,j,k,i_c_ybzb) + 2.d0*facy*conn(i  ,j,k,i_c_xmzb) + 2.d0*facz*conn(i  ,j,k,i_c_xmyb) ) + &
+                  sig(i-1,j,k)*(-facx*conn(i-1,j,k,i_c_ybzb) + 2.d0*facy*conn(i-1,j,k,i_c_xpzb) + 2.d0*facz*conn(i-1,j,k,i_c_xpyb) ) )
+
+             ! i+1,j+1,k+1
+             sten(i,j,k,ist_ppp) = sig(i,j,k) * (facx*conn(i,j,k,i_c_ybzb) + facy*conn(i,j,k,i_c_xbzb) + facz*conn(i,j,k,i_c_xbyb) ) 
+          end do
+       end do
+    end do
+
+  end subroutine amrex_mlndlap_set_stencil_eb
 
   subroutine amrex_mlndlap_divu_eb (lo, hi, rhs, rlo, rhi, vel, vlo, vhi, vfrac, flo, fhi, &
        intg, glo, ghi, msk, mlo, mhi, dxinv) &
@@ -3869,10 +4169,127 @@ contains
     real(amrex_real), intent(inout) :: rhs(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3))
     real(amrex_real), intent(in   ) :: vel(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),3)
     real(amrex_real), intent(in   ) :: vfrac(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
-    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),3)
+    real(amrex_real), intent(in   ) :: intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),n_Sintg)
     integer, intent(in) :: msk(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
-  end subroutine amrex_mlndlap_divu_eb
+    integer :: i,j,k
+    real(amrex_real) :: facx, facy, facz
 
+    facx = 0.25d0*dxinv(1)
+    facy = 0.25d0*dxinv(2)
+    facz = 0.25d0*dxinv(3)
+
+    do    k = lo(3), hi(3)
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (msk(i,j,k) .ne. dirichlet) then
+
+             rhs(i,j,k) = facx*( &
+                  &              vel(i-1,j-1,k  ,1)*(-vfrac(i-1,j-1,k  ) &
+                  &                                  -2.d0*intg(i-1,j-1,k  ,i_S_y) &
+                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_z) &
+                  &                                  +4.d0*intg(i-1,j-1,k  ,i_S_y_z)) &
+                  &             +vel(i  ,j-1,k  ,1)*( vfrac(i  ,j-1,k  ) &
+                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_y) &
+                  &                                  -2.d0*intg(i  ,j-1,k  ,i_S_z) &
+                  &                                  -4.d0*intg(i  ,j-1,k  ,i_S_y_z)) &
+                  &             +vel(i-1,j  ,k  ,1)*(-vfrac(i-1,j  ,k  ) &
+                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_y) &
+                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_z) &
+                  &                                  -4.d0*intg(i-1,j  ,k  ,i_S_y_z)) &
+                  &             +vel(i  ,j  ,k  ,1)*( vfrac(i  ,j  ,k  ) &
+                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_y) &
+                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_z) &
+                  &                                  +4.d0*intg(i  ,j  ,k  ,i_S_y_z)) &
+                  &             +vel(i-1,j-1,k-1,1)*(-vfrac(i-1,j-1,k-1) &
+                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_y) &
+                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_z) &
+                  &                                  -4.d0*intg(i-1,j-1,k-1,i_S_y_z)) &
+                  &             +vel(i  ,j-1,k-1,1)*( vfrac(i  ,j-1,k-1) &
+                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_y) &
+                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_z) &
+                  &                                  +4.d0*intg(i  ,j-1,k-1,i_S_y_z)) &
+                  &             +vel(i-1,j  ,k-1,1)*(-vfrac(i-1,j  ,k-1) &
+                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_y) &
+                  &                                  -2.d0*intg(i-1,j  ,k-1,i_S_z) &
+                  &                                  +4.d0*intg(i-1,j  ,k-1,i_S_y_z)) &
+                  &             +vel(i  ,j  ,k-1,1)*( vfrac(i  ,j  ,k-1) &
+                  &                                  -2.d0*intg(i  ,j  ,k-1,i_S_y) &
+                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_z) &
+                  &                                  -4.d0*intg(i  ,j  ,k-1,i_S_y_z)) ) &
+                  &     + facy*( &
+                  &              vel(i-1,j-1,k  ,2)*(-vfrac(i-1,j-1,k  ) &
+                  &                                  -2.d0*intg(i-1,j-1,k  ,i_S_x) &
+                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_z) &
+                  &                                  +4.d0*intg(i-1,j-1,k  ,i_S_x_z)) &
+                  &             +vel(i  ,j-1,k  ,2)*(-vfrac(i  ,j-1,k  ) &
+                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_x) &
+                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_z) &
+                  &                                  -4.d0*intg(i  ,j-1,k  ,i_S_x_z)) &
+                  &             +vel(i-1,j  ,k  ,2)*( vfrac(i-1,j  ,k  ) &
+                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_x) &
+                  &                                  -2.d0*intg(i-1,j  ,k  ,i_S_z) &
+                  &                                  -4.d0*intg(i-1,j  ,k  ,i_S_x_z)) &
+                  &             +vel(i  ,j  ,k  ,2)*( vfrac(i  ,j  ,k  ) &
+                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_x) &
+                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_z) &
+                  &                                  +4.d0*intg(i  ,j  ,k  ,i_S_x_z)) &
+                  &             +vel(i-1,j-1,k-1,2)*(-vfrac(i-1,j-1,k-1) &
+                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_x) &
+                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_z) &
+                  &                                  -4.d0*intg(i-1,j-1,k-1,i_S_x_z)) &
+                  &             +vel(i  ,j-1,k-1,2)*(-vfrac(i  ,j-1,k-1) &
+                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_x) &
+                  &                                  -2.d0*intg(i  ,j-1,k-1,i_S_z) &
+                  &                                  +4.d0*intg(i  ,j-1,k-1,i_S_x_z)) &
+                  &             +vel(i-1,j  ,k-1,2)*( vfrac(i-1,j  ,k-1) &
+                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_x) &
+                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_z) &
+                  &                                  +4.d0*intg(i-1,j  ,k-1,i_S_x_z)) &
+                  &             +vel(i  ,j  ,k-1,2)*( vfrac(i  ,j  ,k-1) &
+                  &                                  -2.d0*intg(i  ,j  ,k-1,i_S_x) &
+                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_z) &
+                  &                                  -4.d0*intg(i  ,j  ,k-1,i_S_x_z)) ) &
+                  &     + facz*( &
+                  &              vel(i-1,j-1,k  ,3)*( vfrac(i-1,j-1,k  ) &
+                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_x) &
+                  &                                  +2.d0*intg(i-1,j-1,k  ,i_S_y) &
+                  &                                  +4.d0*intg(i-1,j-1,k  ,i_S_x_y)) &
+                  &             +vel(i  ,j-1,k  ,3)*( vfrac(i  ,j-1,k  ) &
+                  &                                  -2.d0*intg(i  ,j-1,k  ,i_S_x) &
+                  &                                  +2.d0*intg(i  ,j-1,k  ,i_S_y) &
+                  &                                  -4.d0*intg(i  ,j-1,k  ,i_S_x_y)) &
+                  &             +vel(i-1,j  ,k  ,3)*( vfrac(i-1,j  ,k  ) &
+                  &                                  +2.d0*intg(i-1,j  ,k  ,i_S_x) &
+                  &                                  -2.d0*intg(i-1,j  ,k  ,i_S_y) &
+                  &                                  -4.d0*intg(i-1,j  ,k  ,i_S_x_y)) &
+                  &             +vel(i  ,j  ,k  ,3)*( vfrac(i  ,j  ,k  ) &
+                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_x) &
+                  &                                  -2.d0*intg(i  ,j  ,k  ,i_S_y) &
+                  &                                  +4.d0*intg(i  ,j  ,k  ,i_S_x_y)) &
+                  &             +vel(i-1,j-1,k-1,3)*(-vfrac(i-1,j-1,k-1) &
+                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_x) &
+                  &                                  -2.d0*intg(i-1,j-1,k-1,i_S_y) &
+                  &                                  -4.d0*intg(i-1,j-1,k-1,i_S_x_y)) &
+                  &             +vel(i  ,j-1,k-1,3)*(-vfrac(i  ,j-1,k-1) &
+                  &                                  +2.d0*intg(i  ,j-1,k-1,i_S_x) &
+                  &                                  -2.d0*intg(i  ,j-1,k-1,i_S_y) &
+                  &                                  +4.d0*intg(i  ,j-1,k-1,i_S_x_y)) &
+                  &             +vel(i-1,j  ,k-1,3)*(-vfrac(i-1,j  ,k-1) &
+                  &                                  -2.d0*intg(i-1,j  ,k-1,i_S_x) &
+                  &                                  +2.d0*intg(i-1,j  ,k-1,i_S_y) &
+                  &                                  +4.d0*intg(i-1,j  ,k-1,i_S_x_y)) &
+                  &             +vel(i  ,j  ,k-1,3)*(-vfrac(i  ,j  ,k-1) &
+                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_x) &
+                  &                                  +2.d0*intg(i  ,j  ,k-1,i_S_y) &
+                  &                                  -4.d0*intg(i  ,j  ,k-1,i_S_x_y)) )
+          else
+             rhs(i,j,k) = 0.d0
+          end if
+       end do
+    end do
+    end do
+
+  end subroutine amrex_mlndlap_divu_eb
 
   subroutine amrex_mlndlap_mknewu_eb (lo, hi, u, ulo, uhi, p, plo, phi, sig, slo, shi, &
        vfrac, vlo, vhi, intg, glo, ghi, dxinv) bind(c,name='amrex_mlndlap_mknewu_eb')
@@ -3882,7 +4299,53 @@ contains
     real(amrex_real), intent(in   ) ::   p(plo(1):phi(1),plo(2):phi(2),plo(3):phi(3))
     real(amrex_real), intent(in   ) :: sig(slo(1):shi(1),slo(2):shi(2),slo(3):shi(3))
     real(amrex_real), intent(in   )::vfrac(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3))
-    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),1)
+    real(amrex_real), intent(in   ) ::intg(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),n_Sintg)
+
+    integer :: i, j, k
+    real(amrex_real) :: dpdx, dpdy, dpdz, dpp_xy, dpp_xz, dpp_yz, dpp_xyz
+
+    do    k = lo(3), hi(3)
+    do    j = lo(2), hi(2)
+       do i = lo(1), hi(1)
+          if (vfrac(i,j,k) .eq. 0.d0) then
+             u(i,j,k,1) = 0.d0
+             u(i,j,k,2) = 0.d0
+             u(i,j,k,3) = 0.d0
+          else
+             dpdx = 0.25d0*(-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  ) &
+                            -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1))
+             dpdy = 0.25d0*(-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  ) &
+                            -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
+             dpdz = 0.25d0*(-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  ) &
+                            +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1))
+
+             dpp_xy = (p(i+1,j+1,k+1) - p(i,j+1,k+1) - p(i+1,j,k+1) + p(i,j,k+1) &
+                      +p(i+1,j+1,k  ) - p(i,j+1,k  ) - p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k)
+
+             dpp_xz = (p(i+1,j+1,k+1) - p(i,j+1,k+1) + p(i+1,j,k+1) - p(i,j,k+1) &
+                      -p(i+1,j+1,k  ) + p(i,j+1,k  ) - p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k)
+
+             dpp_yz = (p(i+1,j+1,k+1) + p(i,j+1,k+1) - p(i+1,j,k+1) - p(i,j,k+1) &
+                      -p(i+1,j+1,k  ) - p(i,j+1,k  ) + p(i+1,j,k  ) + p(i,j,k  ) ) / vfrac(i,j,k)
+
+             dpp_xyz = (p(i+1,j+1,k+1) - p(i,j+1,k+1) - p(i+1,j,k+1) + p(i,j,k+1) &
+                       -p(i+1,j+1,k  ) + p(i,j+1,k  ) + p(i+1,j,k  ) - p(i,j,k  ) ) / vfrac(i,j,k)
+
+             u(i,j,k,1) = u(i,j,k,1) - sig(i,j,k)*dxinv(1)*(dpdx + .5d0*intg(i,j,k,i_S_y  )*dpp_xy + &
+                                                                   .5d0*intg(i,j,k,i_S_z  )*dpp_xz + &
+                                                                        intg(i,j,k,i_S_y_z)*dpp_xyz )
+             u(i,j,k,2) = u(i,j,k,2) - sig(i,j,k)*dxinv(2)*(dpdy + .5d0*intg(i,j,k,i_S_x  )*dpp_xy + &
+                                                                   .5d0*intg(i,j,k,i_S_z  )*dpp_yz + &
+                                                                        intg(i,j,k,i_S_x_z)*dpp_xyz )
+             u(i,j,k,3) = u(i,j,k,3) - sig(i,j,k)*dxinv(3)*(dpdz + .5d0*intg(i,j,k,i_S_x  )*dpp_xz + &
+                                                                   .5d0*intg(i,j,k,i_S_y  )*dpp_yz + & 
+                                                                        intg(i,j,k,i_S_x_y)*dpp_xyz )
+
+          end if
+       end do
+    end do
+    end do
+
   end subroutine amrex_mlndlap_mknewu_eb
 
 #endif

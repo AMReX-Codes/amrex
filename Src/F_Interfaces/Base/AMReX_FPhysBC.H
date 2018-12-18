@@ -15,8 +15,7 @@ public:
     FPhysBC (fill_physbc_funptr_t fill, const Geometry* geom_) : fill_physbc(fill), geom(geom_) {}
 
     virtual ~FPhysBC () {}
-    virtual void FillBoundary (MultiFab& mf, int scomp, int ncomp, Real time) override;
-    using amrex::PhysBCFunctBase::FillBoundary;
+    virtual void FillBoundary (MultiFab& mf, int scomp, int ncomp, Real time, int bccomp) override;
 
 private:
     fill_physbc_funptr_t fill_physbc = nullptr;

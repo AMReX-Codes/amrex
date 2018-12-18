@@ -94,7 +94,10 @@ int DescriptorMap::Initialize(const DescriptorList &descriptors)
 // data adaptor's internal data
 struct AmrDataAdaptor::InternalsType
 {
+    InternalsType() : SimData(nullptr), PinMesh(0) {}
+
     amrex::Amr *SimData;
+    int PinMesh;
     amrex::InSituUtils::DescriptorMap SimMetadata;
     std::vector<vtkDataObject*> ManagedObjects;
 };
@@ -128,6 +131,12 @@ int AmrDataAdaptor::SetDataSource(amrex::Amr *amr)
     this->Internals->SimMetadata.Initialize(levels[0]->get_desc_lst());
 
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+void AmrDataAdaptor::SetPinMesh(int pinMesh)
+{
+    this->Internals->PinMesh = pinMesh;
 }
 
 //-----------------------------------------------------------------------------
@@ -182,6 +191,15 @@ int AmrDataAdaptor::GetMesh(const std::string &meshName,
     // origin
     const amrex::RealBox& pd = levels[0]->Geom().ProbDomain();
     double origin[3] = {AMREX_ARLIM(pd.lo())};
+
+    // PinMesh works around a bug in VisIt 2.13.2.
+    // force the origin to 0,0,0
+    if (this->Internals->PinMesh)
+    {
+        for (int i = 0; i < 3; ++i)
+            origin[i] = 0.0;
+    }
+
     amrMesh->SetOrigin(origin);
 
     long gid = 0;
@@ -237,6 +255,7 @@ int AmrDataAdaptor::GetMesh(const std::string &meshName,
 
             // new vtk uniform amrMesh, node centered
             vtkUniformGrid *ug = vtkUniformGrid::New();
+            ug->SetOrigin(origin);
             ug->SetSpacing(spacing);
             ug->SetExtent(nboxLo[0], nboxHi[0],
                 nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]);

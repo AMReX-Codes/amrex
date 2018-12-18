@@ -1,19 +1,34 @@
-ifneq ($(which_computer),$(filter $(which_computer),merlin anymachine))
+ifneq ($(which_computer),$(filter $(which_computer),peregrine eagle))
   $(error Unknown NREL computer, $(which_computer))
 endif
 
-os_type := $(shell uname)
-
+ifeq ($(which_computer), peregrine)
 # Use automatic CPU dispatch for max 
 # vectorization with Intel compilers
 # since Peregrine has haswell and
-# ivybridge nodes. We're leaving out the
-# really old sandybridge nodes here.
-ifeq ($(COMP), intel)
-  CXXFLAGS += -axCORE-AVX2,CORE-AVX-I
-  CFLAGS   += -axCORE-AVX2,CORE-AVX-I
-  FFLAGS   += -axCORE-AVX2,CORE-AVX-I
-  F90FLAGS += -axCORE-AVX2,CORE-AVX-I
+# ivybridge nodes.
+  ifeq ($(COMP), intel)
+    CXXFLAGS += -axCORE-AVX2,CORE-AVX-I
+    CFLAGS   += -axCORE-AVX2,CORE-AVX-I
+    FFLAGS   += -axCORE-AVX2,CORE-AVX-I
+    F90FLAGS += -axCORE-AVX2,CORE-AVX-I
+  endif
+else ifeq ($(which_computer), eagle)
+# Eagle is homogeneous at the moment
+# so we can be very specific about arch.
+# We are not accomodating older compilers
+# that will fail with these flags.
+  ifeq ($(COMP), intel)
+    CXXFLAGS += -xSKYLAKE-AVX512
+    CFLAGS   += -xSKYLAKE-AVX512
+    FFLAGS   += -xSKYLAKE-AVX512
+    F90FLAGS += -xSKYLAKE-AVX512
+  else ifeq ($(COMP), $(filter $(COMP),gnu gcc llvm))
+    CXXFLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+    CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
+    FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
+    F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+  endif
 endif
 
 ifeq ($(USE_MPI),TRUE)

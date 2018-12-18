@@ -35,10 +35,7 @@ extern "C"
          const amrex::Real dt);
 
     void FTOC(push_position_boris)
-        (const int np,
-         amrex::Real* xp,
-         amrex::Real* yp,
-         amrex::Real* zp,
+        (const int np, void* structs,
          const amrex::Real* uxp,
          const amrex::Real* uyp,
          const amrex::Real* uzp,
@@ -51,20 +48,10 @@ extern "C"
                          const amrex::Real* uzp,
                          amrex::Real* gaminv);
 
-    void FTOC(enforce_periodic)(const int np,
-                                amrex::Real* xp,
-                                amrex::Real* yp,
-                                amrex::Real* zp,
-                                const amrex::Real* plo,
-                                const amrex::Real* phi);
-
     void FTOC(deposit_current)(BL_FORT_FAB_ARG_3D(jx),
                                BL_FORT_FAB_ARG_3D(jy),
                                BL_FORT_FAB_ARG_3D(jz),
-                               const int np,
-                               const amrex::Real* x,
-                               const amrex::Real* y,
-                               const amrex::Real* z,
+                               const int np, const void* structs,
                                const amrex::Real* uxp,
                                const amrex::Real* uyp,
                                const amrex::Real* uzp,
@@ -75,10 +62,7 @@ extern "C"
                                const amrex::Real dt,
                                const amrex::Real* dx);
 
-    void FTOC(gather_magnetic_field)(const int np,
-                                     const amrex::Real* xp,
-                                     const amrex::Real* yp,
-                                     const amrex::Real* zp,
+    void FTOC(gather_magnetic_field)(const int np, const void* structs,
                                      amrex::Real* bx,
                                      amrex::Real* by,
                                      amrex::Real* bz,
@@ -88,10 +72,7 @@ extern "C"
                                      const amrex::Real* plo, const amrex::Real* dx);
 
 
-    void FTOC(gather_electric_field)(const int np,
-                                     const amrex::Real* xp,
-                                     const amrex::Real* yp,
-                                     const amrex::Real* zp,
+    void FTOC(gather_electric_field)(const int np, const void* structs,
                                      amrex::Real* ex,
                                      amrex::Real* ey,
                                      amrex::Real* ez,

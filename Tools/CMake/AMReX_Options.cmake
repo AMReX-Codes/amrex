@@ -108,9 +108,6 @@ print_option ( ENABLE_OMP )
 option( ENABLE_CUDA  "Enable CUDA" OFF)
 print_option( ENABLE_CUDA )
 
-option( ENABLE_CUDA_UM  "Enable CUDA" OFF)
-print_option( ENABLE_CUDA_UM )
-
 
 if ( USE_XSDK_DEFAULTS )
    set ( XSDK_PRECISION "DOUBLE" CACHE STRING "Precision:<SINGLE,DOUBLE>" )
@@ -175,6 +172,23 @@ endif ()
 
 option ( ENABLE_SENSEI_INSITU "Enable SENSEI in situ infrastructure" OFF )
 print_option ( ENABLE_SENSEI_INSITU )
+
+if (ENABLE_LINEAR_SOLVERS AND (DIM EQUAL 3) AND (NOT USE_XSDK_DEFAULTS) )
+   option(ENABLE_3D_NODAL_MLMG "Enable 3D nodal MLMG" OFF)
+   print_option(ENABLE_3D_NODAL_MLMG)
+else ()
+   set(ENABLE_3D_NODAL_MLMG OFF)
+endif ()
+
+#
+# This options are paths to external libraries installation directories
+#
+if (USE_XSDK_DEFAULTS)
+   set( ALGOIM_INSTALL_DIR "" CACHE PATH
+      "Path to Algoim installation directory")
+   set(  BLITZ_INSTALL_DIR "" CACHE PATH
+      "Path to Blitz installation directory")
+endif ()
 
 #
 # Compilation options

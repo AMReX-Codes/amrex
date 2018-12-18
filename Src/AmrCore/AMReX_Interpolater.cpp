@@ -5,6 +5,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_Interpolater.H>
 #include <AMReX_INTERP_F.H>
+#include <AMReX_Interp_C.H>
 
 namespace amrex {
 
@@ -29,12 +30,12 @@ Interpolater::~Interpolater () {}
 
 InterpolaterBoxCoarsener
 Interpolater::BoxCoarsener (const IntVect& ratio)
-{ 
+{
     return InterpolaterBoxCoarsener(this, ratio);
 }
 
 Box
-InterpolaterBoxCoarsener::doit (const Box& fine) const 
+InterpolaterBoxCoarsener::doit (const Box& fine) const
 {
     return mapper->CoarseBox(fine, ratio);
 }
@@ -302,9 +303,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //
     // alloc tmp space for slope calc.
     //
-    // In ucc_slopes and lcc_slopes , there is a slight abuse of 
+    // In ucc_slopes and lcc_slopes , there is a slight abuse of
     // the number of compenents argument
-    // --> there is a slope for each component in each coordinate 
+    // --> there is a slope for each component in each coordinate
     //     direction
     //
     FArrayBox ucc_slopes(cslope_bx,ncomp*AMREX_SPACEDIM);
@@ -330,7 +331,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
     Real* zslfac_dat = slope_factors.dataPtr(2);
 #endif
-    
+
     const int* flo    = fine.loVect();
     const int* fhi    = fine.hiVect();
     const int* clo    = crse.loVect();
@@ -438,7 +439,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     cslope_bx.grow(1);
     BL_ASSERT(crse.box().contains(cslope_bx));
     //
-    // Alloc temp space for coarse grid slopes: here we use 5 
+    // Alloc temp space for coarse grid slopes: here we use 5
     // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms
     //
     long t_long = cslope_bx.numPts();
@@ -457,7 +458,7 @@ CellQuadratic::interp (const FArrayBox& crse,
     int chi        = clo + cslope_vol - 1;
     c_len          = hislp - loslp + 1;
     //
-    // Alloc temp space for one strip of fine grid slopes: here we use 5 
+    // Alloc temp space for one strip of fine grid slopes: here we use 5
     // instead of AMREX_SPACEDIM because of the x^2, y^2 and xy terms.
     //
     int dir;
@@ -650,9 +651,9 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     //
     // alloc tmp space for slope calc.
     //
-    // In ucc_slopes and lcc_slopes , there is a slight abuse of 
+    // In ucc_slopes and lcc_slopes , there is a slight abuse of
     // the number of compenents argument
-    // --> there is a slope for each component in each coordinate 
+    // --> there is a slope for each component in each coordinate
     //     direction
     //
     FArrayBox ucc_slopes(cslope_bx,ncomp*AMREX_SPACEDIM);
@@ -678,7 +679,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     Real* lcc_zsldat = lcc_slopes.dataPtr(2*ncomp);
     Real* zslfac_dat = slope_factors.dataPtr(2);
 #endif
-    
+
     const int* flo    = fine.loVect();
     const int* fhi    = fine.hiVect();
     const int* clo    = crse.loVect();
@@ -797,7 +798,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
     Real* fdat       = fine.dataPtr(fine_comp);
     Real* state_dat  = fine_state.dataPtr(state_comp);
     const Real* cdat = crse.dataPtr(crse_comp);
-    
+
     const int* flo    = fine.loVect();
     const int* fhi    = fine.hiVect();
     const int* slo    = fine_state.loVect();
@@ -829,7 +830,7 @@ CellConservativeProtected::protect (const FArrayBox& crse,
                          bc.dataPtr());
 
 #endif /*(AMREX_SPACEDIM > 1)*/
- 
+
 }
 
 CellConservativeQuartic::~CellConservativeQuartic () {}
@@ -891,7 +892,7 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 
     Real* fdat       = fine.dataPtr(fine_comp);
     const Real* cdat = crse.dataPtr(crse_comp);
-    
+
     const int* flo    = fine.loVect();
     const int* fhi    = fine.hiVect();
     const int* clo    = crse.loVect();
@@ -913,13 +914,13 @@ CellConservativeQuartic::interp (const FArrayBox&  crse,
 
 #if (AMREX_SPACEDIM >= 2)
     ltmp = (cbhi[0]-cblo[0]+1)*ratio[1];
-    Vector<Real> ctmp(ltmp);    
-#endif    
+    Vector<Real> ctmp(ltmp);
+#endif
 
 #if (AMREX_SPACEDIM == 3)
     ltmp = (cbhi[0]-cblo[0]+1)*(cbhi[1]-cblo[1]+1)*ratio[2];
-    Vector<Real> ctmp2(ltmp);    
-#endif    
+    Vector<Real> ctmp2(ltmp);
+#endif
 
     amrex_quartinterp (fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
 		      fblo, fbhi, fb2lo, fb2hi,

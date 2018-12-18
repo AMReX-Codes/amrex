@@ -1,0 +1,13 @@
+Advection_AmrLevel: This tutorial contains an AMR advection code that advects a single 
+scalar field with a velocity field that is specified on faces.
+
+It is an AMReX based code designed to run in parallel using MPI/OMP.
+
+This example uses source code from the amrex/Src/Base, Boundary, AmrCore , and
+Amr directories.
+
+The directories Exec/SingleVortex and Exec/UniformVelocity each include 
+a makefile and a sample inputs file.  
+Plotfiles are generated that can be viewed with amrvis2d / amrvis3d
+(CCSE's native vis / spreadsheet tool, downloadable separately from ccse.lbl.gov)
+or with VisIt.
