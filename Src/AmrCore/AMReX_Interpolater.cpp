@@ -272,9 +272,9 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     BL_PROFILE("CellConservativeLinear::interp()");
     BL_ASSERT(bcr.size() >= ncomp);
 
-    if (AMREX_SPACEDIM == 3 && do_linear_limiting == false) {
-        interp_unlimited(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,
-                         crse_geom,fine_geom,bcr);
+    if (AMREX_SPACEDIM == 3) {
+        interp_new(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,
+                   crse_geom,fine_geom,bcr);
     } else {
         interp_original(crse,crse_comp,fine,fine_comp,ncomp,fine_region,ratio,
                         crse_geom,fine_geom,bcr,actual_comp,actual_state);
@@ -282,16 +282,16 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 }
 
 void
-CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
-                                          int              crse_comp,
-                                          FArrayBox&       fine,
-                                          int              fine_comp,
-                                          int              ncomp,
-                                          const Box&       fine_region,
-                                          const IntVect&   ratio,
-                                          const Geometry&  crse_geom,
-                                          const Geometry&  fine_geom,
-                                          const Vector<BCRec>& bcr)
+CellConservativeLinear::interp_new (const FArrayBox& crse,
+                                    int              crse_comp,
+                                    FArrayBox&       fine,
+                                    int              fine_comp,
+                                    int              ncomp,
+                                    const Box&       fine_region,
+                                    const IntVect&   ratio,
+                                    const Geometry&  crse_geom,
+                                    const Geometry&  fine_geom,
+                                    const Vector<BCRec>& bcr)
 {
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(fine.box().contains(fine_region));
@@ -302,25 +302,38 @@ CellConservativeLinear::interp_unlimited (const FArrayBox& crse,
     Gpu::AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
     BCRec* bcrp = async_bcr.data();
 
-    Gpu::AsyncFab ucc_slopes(cslope_bx, ncomp*AMREX_SPACEDIM);
-    FArrayBox* ucc_slopes_fab = ucc_slopes.fabPtr();
+    const int ntmp = do_linear_limiting ? ncomp*AMREX_SPACEDIM+3 : ncomp*(AMREX_SPACEDIM+2);
+    Gpu::AsyncFab as_ccfab(cslope_bx, ntmp);
+    FArrayBox* ccfab = as_ccfab.fabPtr();
 
     FArrayBox const* crsep = &crse;
     AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
-    {
-        amrex_cellconslin_unlim_slopes(tbx, *ucc_slopes_fab, *crsep, crse_comp, ncomp, bcrp);
-    });
-
     FArrayBox* finep = &fine;
     AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
 
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
-    {
-        amrex_cellconslin_unlim_interp(tbx, *finep, fine_comp, ncomp, *ucc_slopes_fab,
-                                       *crsep, crse_comp, ratio);
-    });
+    if (do_linear_limiting) {
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+        {
+            amrex::cellconslin_slopes_linlim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
+        });
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+        {
+            amrex::cellconslin_interp_linlim(tbx, *finep, fine_comp, ncomp, *ccfab,
+                                             *crsep, crse_comp, ratio);
+        });
+    } else {
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+        {
+            amrex::cellconslin_slopes_mmlim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
+        });
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+        {
+            amrex::cellconslin_interp_mmlim(tbx, *finep, fine_comp, ncomp, *ccfab,
+                                            *crsep, crse_comp, ratio);
+        });
+    }
+
 #endif
 }
 
