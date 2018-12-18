@@ -23,7 +23,7 @@ public:
 
     EBFArrayBoxFactory (const EB2::Level& a_level, const Geometry& a_geom,
                         const BoxArray& a_ba, const DistributionMapping& a_dm,
-                        const Vector<int>& a_ngrow, EBSupport a_support);    
+                        const Vector<int>& a_ngrow, EBSupport a_support);
     virtual ~EBFArrayBoxFactory () = default;
 
     EBFArrayBoxFactory (const EBFArrayBoxFactory&) = default;
@@ -37,6 +37,11 @@ public:
 
     virtual void destroy (FArrayBox* fab) const final;
 
+#ifdef AMREX_USE_GPU
+    virtual FArrayBox* createHostAlias (FArrayBox const& src) const final;
+    virtual void destroyHostAlias (FArrayBox* fab) const final;
+#endif
+
     virtual EBFArrayBoxFactory* clone () const final;
 
     const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const
@@ -47,6 +52,8 @@ public:
     const MultiCutFab& getCentroid () const { return m_ebdc->getCentroid(); }
 
     const MultiCutFab& getBndryCent () const { return m_ebdc->getBndryCent(); }
+
+    const MultiCutFab& getBndryNormal () const { return m_ebdc->getBndryNormal(); }
 
     const MultiCutFab& getBndryArea () const { return m_ebdc->getBndryArea(); }
 
@@ -64,7 +71,7 @@ public:
 
     const DistributionMapping& DistributionMap () const;
     const BoxArray& boxArray () const;
-   
+
 private:
 
     EBSupport m_support;
@@ -94,4 +101,3 @@ makeEBFabFactory (const EB2::IndexSpace*, const Geometry& a_geom,
 }
 
 #endif
-

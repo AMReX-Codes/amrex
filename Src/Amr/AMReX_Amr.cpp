@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <cstdio>
 #include <list>
@@ -1404,10 +1403,6 @@ Amr::FinalizeInit (Real              strt_time,
         printGridInfo(gridlog,0,finest_level);
     }
 
-#ifdef AMREX_USE_DEVICE
-    Device::start_profiler();
-#endif
-
     BL_COMM_PROFILE_NAMETAG("Amr::initialInit BOTTOM");
 }
 
@@ -1686,6 +1681,13 @@ Amr::restart (const std::string& filename)
        }
     }
 
+    // Save the number of steps taken so far. This mainly
+    // helps in the edge case where we end up not taking
+    // any timesteps before the run terminates, so that
+    // we know not to unnecessarily overwrite the old file.
+    last_checkpoint = level_steps[0];
+    last_plotfile = level_steps[0];
+
     for (int lev = 0; lev <= finest_level; ++lev)
     {
 	Box restart_domain(Geom(lev).Domain());
@@ -1945,12 +1947,35 @@ Amr::timeStep (int  level,
     {
         int lev_top = std::min(finest_level, max_level-1);
 
+#ifdef USE_PERILLA
+        int cnt=0;
+        bool *metadataChanged=new bool[finest_level+1];
+        for (int l=0; l <= finest_level; l++)
+            metadataChanged[l]=false;
+#endif
+
         for (int i(level); i <= lev_top; ++i)
         {
             const int old_finest = finest_level;
 
             if (okToRegrid(i))
             {
+#ifdef USE_PERILLA
+		//ask the communication thread to stop so that I can update the metadata
+                Perilla::updateMetadata_request=1;
+		while(!Perilla::updateMetadata_noticed){
+
+		}
+                //for (int k(i>0?i-1:0); k <= finest_level; ++k) {
+                for (int k=0; k <= finest_level; ++k) {
+                    if(metadataChanged[k]==false){
+                        graphArray[k].clear();
+                        getLevel(k).finalizePerilla(time);
+                        metadataChanged[k]=true;
+			cnt++;
+		    }
+		}
+#endif
                 regrid(i,time);
 
                 //
@@ -1989,6 +2014,19 @@ Amr::timeStep (int  level,
                 lev_top = std::min(finest_level, max_level - 1);
 	    }
         }
+#ifdef USE_PERILLA
+	if(cnt){
+	    Perilla::clearTagMap();
+	    Perilla::clearMyTagMap();
+	    Perilla::genTags=true;
+	    Perilla::uTags=0;
+	    Perilla::pTagCnt.clear();
+            for(int i=0; i<= finest_level; i++)
+                getLevel(i).initPerilla(cumtime);
+ 	    Perilla::updateMetadata_done=1;
+	}
+        delete metadataChanged;
+#endif
 
         if (max_level == 0 && loadbalance_level0_int > 0 && loadbalance_with_workestimates)
         {
@@ -2060,6 +2098,10 @@ Amr::timeStep (int  level,
 		dt_level[k] = dt_level[k-1] / n_cycle[k];
 	    }
 	}
+#ifdef USE_PERILLA
+//        getLevel(level).finalizePerilla(cumtime);
+//        getLevel(level).initPerilla(cumtime);
+#endif
     }
 
 #ifdef USE_PERILLA
@@ -2168,18 +2210,66 @@ Amr::coarseTimeStep (Real stop_time)
 #ifdef USE_PERILLA_PTHREADS
     if(perilla::isMasterThread()){
         Perilla::numTeamsFinished = 0;
+        Perilla::updateMetadata_request = 0;
+        Perilla::updateMetadata_noticed = 0;
+        Perilla::updateMetadata_done = 0;
         RegionGraph::graphCnt = 0;
         if(levelSteps(0)==0){
+	    graphArray.resize(finest_level+1);
             for(int i=0; i<= finest_level; i++)
                 getLevel(i).initPerilla(cumtime);
-                    Perilla::communicateTags(graphArray);
+	    if(ParallelDescriptor::NProcs()>1){
+  	        Perilla::syncProcesses();
+                Perilla::communicateTags();
+	        Perilla::syncProcesses();
+	    }
         }
     }
     perilla::syncAllThreads();
+    std::vector<RegionGraph*> flattenedGraphArray;
+    Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
 
     if(perilla::isCommunicationThread())
     {
-        Perilla::serviceMultipleGraphCommDynamic(graphArray,true,perilla::tid());
+        while(true){
+  	    if(!Perilla::updateMetadata_request){
+                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+		{
+	            flattenedGraphArray.clear();
+                    break;
+		}
+            }else{
+		Perilla::syncProcesses();
+        	for(int g=0; g<flattenedGraphArray.size(); g++)
+        	{
+		    //cancel messages preposted previously
+		    flattenedGraphArray[g]->graphTeardown();
+		}
+		Perilla::syncProcesses();
+	        Perilla::updateMetadata_noticed=1;
+	        while(!Perilla::updateMetadata_done){
+		
+	        }
+	        if(ParallelDescriptor::NProcs()>1){
+	            Perilla::syncProcesses();
+                    Perilla::communicateTags();
+	            Perilla::syncProcesses();
+		}
+	        Perilla::updateMetadata_request=0;
+	        Perilla::updateMetadata_noticed=0;
+	        Perilla::updateMetadata_done=0;
+	        flattenedGraphArray.clear();
+		Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
+	        Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
+
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+		{
+	            flattenedGraphArray.clear();
+                    break;
+		}
+ 	    }
+        }  
     }else{
         timeStep(0,cumtime,1,1,stop_time);
         if(perilla::isMasterWorkerThread()){
@@ -2192,9 +2282,10 @@ Amr::coarseTimeStep (Real stop_time)
     Perilla::numTeamsFinished = 0;
     RegionGraph::graphCnt = 0;
     if(levelSteps(0)==0){
+	graphArray.resize(finest_level+1);
         for(int i=0; i<= finest_level; i++)
             getLevel(i).initPerilla(cumtime);
-        Perilla::communicateTags(graphArray);
+        Perilla::communicateTags();
     }
 
 #pragma omp parallel
@@ -2213,15 +2304,16 @@ Amr::coarseTimeStep (Real stop_time)
     }
 #endif
 
-#ifdef USE_PERILLA_PTHREADS
+#ifdef USE_PERILLA
     perilla::syncAllThreads();
-#endif
     if(perilla::isMasterThread()){
         if(level_steps[0] == Perilla::max_step){
-            for(int i=0; i<= finest_level; i++)
+            for(int i=0; i<= finest_level; i++){
                 getLevel(i).finalizePerilla(cumtime);
+            }
         }
     }
+#endif
 
 #else
     //synchronous
@@ -2378,8 +2470,10 @@ Amr::coarseTimeStep (Real stop_time)
       last_plotfile   = level_steps[0];
     }
 
-    if (to_checkpoint && write_plotfile_with_checkpoint)
+    if (to_checkpoint && write_plotfile_with_checkpoint) {
       to_plot = 1;
+      to_small_plot = 1;
+    }
 
     if ((check_int > 0 && level_steps[0] % check_int == 0) || check_test == 1
 	|| to_checkpoint)
@@ -2415,6 +2509,8 @@ Amr::coarseTimeStep (Real stop_time)
           }
 	}
     }
+
+
 #ifdef USE_PERILLA_PTHREADS
     }
 #endif

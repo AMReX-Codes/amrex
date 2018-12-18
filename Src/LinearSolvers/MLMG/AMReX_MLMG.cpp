@@ -212,7 +212,7 @@ void MLMG::oneIter (int iter)
         }
     }
 
-    // coarest amr level
+    // coarsest amr level
     {
         // enforce solvability if appropriate
         if (linop.isSingular(0))
@@ -392,7 +392,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   DN: Norm before smooth " << norm << "\n";
         }
 
@@ -410,11 +410,13 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             Real norm = rescor[amrlev][mglev].norm0();
-            amrex::Print() << "   DN: Norm after  smooth " << norm << "\n";
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
+                           << "   DN: Norm after  smooth " << norm << "\n";
         }
 
         // res_crse = R(rescor_fine); this provides res/b to the level below
         linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
+
     }
 
     BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);
@@ -423,19 +425,32 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             Real norm = res[amrlev][mglev_bottom].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev_bottom << "\n"
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
     }
     else
     {
+        if (verbose >= 4)
+        {
+            Real norm = res[amrlev][mglev_bottom].norm0();
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom 
+                           << "       Norm before smooth " << norm << "\n";
+        }
         cor[amrlev][mglev_bottom]->setVal(0.0);
         bool skip_fillboundary = true;
         for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
                          skip_fillboundary);
             skip_fillboundary = false;
+        }
+        if (verbose >= 4)
+        {
+            computeResOfCorrection(amrlev, mglev_bottom);
+            Real norm = rescor[amrlev][mglev_bottom].norm0();
+            amrex::Print() << "AT LEVEL "  << amrlev  << " " << mglev_bottom 
+                           << "       Norm after  smooth " << norm << "\n";
         }
     }
     BL_PROFILE_VAR_STOP(blp_bottom);
@@ -450,7 +465,7 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev);
             Real norm = rescor[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
         }
         for (int i = 0; i < nu2; ++i) {
@@ -460,13 +475,13 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         {
             computeResOfCorrection(amrlev, mglev);
             Real norm = rescor[amrlev][mglev].norm0();
-            amrex::Print() << "AT LEVEL "                << mglev << "\n"
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
 }
 
-// FMG cycle on the coarest AMR level.
+// FMG cycle on the coarsest AMR level.
 // in:  Residual on the top MG level (i.e., 0)
 // out: Correction (cor) on all MG levels
 void
@@ -1084,6 +1099,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         const int nmglevs = linop.NMGLevels(alev);
         for (int mglev = 0; mglev < nmglevs; ++mglev)
         {
+               res[alev][mglev].setVal(0.0);
             rescor[alev][mglev].setVal(0.0);
         }
     }

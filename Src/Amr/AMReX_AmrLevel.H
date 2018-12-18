@@ -6,6 +6,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_LayoutData.H>
 #include <AMReX_Derive.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_Interpolater.H>
@@ -384,21 +385,21 @@ public:
     virtual void particle_redistribute (int lbase = 0, bool a_init = false) {;}
 #endif
 
-    static void FillPatch(AmrLevel& amrlevel,
-			  MultiFab& leveldata,
-			  int       boxGrow,
-			  Real      time,
-			  int       index,
-			  int       scomp,
-			  int       ncomp,
-	                  int       dcomp=0);
+    static void FillPatch (AmrLevel& amrlevel,
+                           MultiFab& leveldata,
+                           int       boxGrow,
+                           Real      time,
+                           int       index,
+                           int       scomp,
+                           int       ncomp,
+                           int       dcomp=0);
 
-    static void FillPatchAdd(AmrLevel& amrlevel,
-                             MultiFab& leveldata,
-                             int       boxGrow,
-                             Real      time,
-                             int       index,
-                             int       scomp,
+    static void FillPatchAdd (AmrLevel& amrlevel,
+                              MultiFab& leveldata,
+                              int       boxGrow,
+                              Real      time,
+                              int       index,
+                              int       scomp,
                              int       ncomp,
                              int       dcomp=0);
     
@@ -629,6 +630,9 @@ public:
     RegionGraph*                      csrcGraph;
     RegionGraph*                      fsrcGraph;
     RegionGraph*                      m_rg_crse_patch;
+    std::list<RegionGraph*>	      regionList;
+    std::list<MultiFab*>	      mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
 
 
 
@@ -774,7 +778,7 @@ class AsyncFillPatchIterator
                             int iter);
 
     void initFillPatch(int boxGrow,
-                       int time,
+                       Real time,
                        int index,
                        int scomp,
                        int ncomp,
@@ -796,7 +800,6 @@ class AsyncFillPatchIterator
                    int  ncomp,
                    int f,
                    unsigned char pushLevel,
-                   int tf,
                    bool singleT=false);
 
     void SendIntraLevel (RGIter& rgi,
@@ -870,7 +873,7 @@ class AsyncFillPatchIterator
     void Receive (RGIter* rgi,
                   MultiFab& dest,
                   int  boxGrow,
-                  Real time,
+                  const Real time,
                   int  state_indx,
                   int  scomp,
                   int  ncomp,
@@ -1011,9 +1014,13 @@ public:
   //PArray<MultiFab>                  raii;
     MultiFab*                         dmf;
     MultiFab*                         dmff;
+    std::list<RegionGraph*>           regionList;
+    std::list<MultiFab*>              mfList;
+    std::list<StateDataPhysBCFunct*>  stateDataList;
 
 
-    void completeRegionGraphs(int tg)
+
+    void completeRegionGraphs()
     { 
       //std::cout << "Completing RGs ";
       

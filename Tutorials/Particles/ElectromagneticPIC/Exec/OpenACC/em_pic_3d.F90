@@ -8,6 +8,23 @@ module constants
 
 end module
 
+module em_particle_module
+  use amrex_fort_module, only: amrex_real, amrex_particle_real
+  use iso_c_binding ,    only: c_int
+
+  implicit none
+  private
+
+  public  particle_t
+
+  type, bind(C)  :: particle_t
+     real(amrex_particle_real) :: pos(3)     !< Position
+     integer(c_int)            :: id         !< Particle id
+     integer(c_int)            :: cpu        !< Particle cpu
+  end type particle_t
+
+end module em_particle_module
+
 subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
      ex, ey, ez, bx, by, bz, q, m, dt)
 
@@ -75,30 +92,29 @@ subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
 end subroutine push_momentum_boris
 
 
-subroutine push_position_boris(np, xp, yp, zp, uxp, uyp, uzp, gaminv, dt)
+subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
 
+  use em_particle_module, only : particle_t
   use amrex_fort_module, only : amrex_real
   implicit none
-
+  
   integer,          intent(in), value  :: np
-  real(amrex_real), intent(inout)      :: xp(np), yp(np), zp(np)
+  type(particle_t), intent(inout)      :: structs(np)
   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in), value  :: dt
-
+  
   integer                              :: ip
-
-!$acc parallel deviceptr(xp, yp, zp, uxp, uyp, uzp, gaminv)
-!$acc loop gang vector
-   do ip = 1, np
-
-    xp(ip) = xp(ip) + uxp(ip)*gaminv(ip)*dt
-    yp(ip) = yp(ip) + uyp(ip)*gaminv(ip)*dt
-    zp(ip) = zp(ip) + uzp(ip)*gaminv(ip)*dt
-
+  
+  !$acc parallel deviceptr(structs, uxp, uyp, uzp, gaminv)
+  !$acc loop gang vector
+  do ip = 1, np
+     structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
   end do
-!$acc end loop
-!$acc end parallel
-
+  !$acc end loop
+  !$acc end parallel
+  
 end subroutine push_position_boris
 
 subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
@@ -114,65 +130,22 @@ subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
-
-!$acc parallel deviceptr(uxp, uyp, uzp, gaminv)
-!$acc loop gang vector
-  do ip = 1, np
-
-    usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
-    gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
-
+  
+  !$acc parallel deviceptr(uxp, uyp, uzp, gaminv)
+  !$acc loop gang vector
+  do ip = 1, np     
+     usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
+     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)     
   end do
-!$acc end loop
-!$acc end parallel
-
+  !$acc end loop
+  !$acc end parallel
+  
 end subroutine set_gamma
 
-subroutine enforce_periodic(np, xp, yp, zp, plo, phi)
-
-  use amrex_fort_module, only : amrex_real
-  implicit none
-
-  integer,          intent(in), value      :: np
-  real(amrex_real), intent(inout)   :: xp(np), yp(np), zp(np)
-  real(amrex_real), intent(in)      :: plo(3), phi(3)
-
-  integer                           :: ip
-  real(amrex_real)                  :: domain_size(3)
-
-  domain_size = phi - plo
-
-!$acc parallel deviceptr(xp, yp, zp, plo, phi)
-!$acc loop gang vector
-  do ip = 1, np
-
-     if (xp(ip) .gt. phi(1)) then
-        xp(ip) = xp(ip) - domain_size(1)
-     else if (xp(ip) .lt. plo(1)) then
-        xp(ip) = xp(ip) + domain_size(1)
-     end if
-
-     if (yp(ip) .gt. phi(2)) then
-        yp(ip) = yp(ip) - domain_size(2)
-     else if (yp(ip) .lt. plo(2)) then
-        yp(ip) = yp(ip) + domain_size(2)
-     end if
-
-     if (zp(ip) .gt. phi(3)) then
-        zp(ip) = zp(ip) - domain_size(3)
-     else if (zp(ip) .lt. plo(3)) then
-        zp(ip) = zp(ip) + domain_size(3)
-     end if
-
-  end do
-!$acc end loop
-!$acc end parallel
-
-end subroutine enforce_periodic
-
-subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, xp, yp, zp, &
+subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &
      uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
 
+  use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
   implicit none
@@ -184,7 +157,8 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, x
   real(amrex_real), intent(inout) :: jx(jxlo(1):jxhi(1), jxlo(2):jxhi(2), jxlo(3):jxhi(3))
   real(amrex_real), intent(inout) :: jy(jylo(1):jyhi(1), jylo(2):jyhi(2), jylo(3):jyhi(3))
   real(amrex_real), intent(inout) :: jz(jzlo(1):jzhi(1), jzlo(2):jzhi(2), jzlo(3):jzhi(3))
-  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np), uxp(np), uyp(np), uzp(np)
+  type(particle_t), intent(in)    :: structs(np)
+  real(amrex_real), intent(in)    :: uxp(np), uyp(np), uzp(np)
   real(amrex_real), intent(in)    :: w(np), gaminv(np)
   real(amrex_real), value         :: q, dt
   real(amrex_real), intent(in)    :: dx(3), plo(3)
@@ -214,14 +188,14 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, x
 ! vector schedule) to ensure that there is a private copy of the data
 ! per thread - see 2.9.10. If "private" was applied to the parallel
 ! construct then there would be a private copy per gang - see 2.5.10.
-!$acc parallel deviceptr(jxlo, jxhi, jylo, jyhi, jzlo, jzhi, jx, jy, jz, xp, yp, zp, uxp, uyp, uzp, w, gaminv, dx, plo)
+!$acc parallel deviceptr(jx, jy, jz, structs, uxp, uyp, uzp, w, gaminv)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
     ! --- computes position in grid units at (n+1)
-    x = (xp(ip)-plo(1))*dxi
-    y = (yp(ip)-plo(2))*dyi
-    z = (zp(ip)-plo(3))*dzi
+    x = (structs(ip)%pos(1)-plo(1))*dxi
+    y = (structs(ip)%pos(2)-plo(2))*dyi
+    z = (structs(ip)%pos(3)-plo(3))*dzi
 
     ! Computes velocity
     vx = uxp(ip)*gaminv(ip)
@@ -327,9 +301,10 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, x
 
 end subroutine deposit_current
 
-subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
+subroutine gather_magnetic_field(np, structs, bx, by, bz, &
      bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx)
 
+  use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
   implicit none
 
@@ -340,7 +315,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
   real(amrex_real), intent(in)    :: bxg(bxglo(1):bxghi(1), bxglo(2):bxghi(2), bxglo(3):bxghi(3))
   real(amrex_real), intent(in)    :: byg(byglo(1):byghi(1), byglo(2):byghi(2), byglo(3):byghi(3))
   real(amrex_real), intent(in)    :: bzg(bzglo(1):bzghi(1), bzglo(2):bzghi(2), bzglo(3):bzghi(3))
-  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
+  type(particle_t), intent(in)    :: structs(np)
   real(amrex_real), intent(inout) :: bx(np), by(np), bz(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
 
@@ -377,7 +352,7 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
   izmin0 = 0
   izmax0 = 0
 
-!$acc parallel deviceptr(bxglo, bxghi, byglo, byghi, bzglo, bzghi, bxg, byg, bzg, xp, yp, zp, bx, by, bz, dx, plo)
+!$acc parallel deviceptr(bxg, byg, bzg, structs, bx, by, bz)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
@@ -385,9 +360,9 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
      by(ip) = 0.d0
      bz(ip) = 0.d0
 
-     x = (xp(ip)-plo(1))*dxi
-     y = (yp(ip)-plo(2))*dyi
-     z = (zp(ip)-plo(3))*dzi
+     x = (structs(ip)%pos(1)-plo(1))*dxi
+     y = (structs(ip)%pos(2)-plo(2))*dyi
+     z = (structs(ip)%pos(3)-plo(3))*dzi
 
      ! Compute index of particle
      j  = floor(x)
@@ -459,9 +434,10 @@ subroutine gather_magnetic_field(np, xp, yp, zp, bx, by, bz, &
 
 end subroutine gather_magnetic_field
 
-subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
+subroutine gather_electric_field(np, structs, ex, ey, ez, &
      exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx)
 
+  use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
   implicit none
@@ -473,7 +449,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
   real(amrex_real), intent(in)    :: exg(exglo(1):exghi(1), exglo(2):exghi(2), exglo(3):exghi(3))
   real(amrex_real), intent(in)    :: eyg(eyglo(1):eyghi(1), eyglo(2):eyghi(2), eyglo(3):eyghi(3))
   real(amrex_real), intent(in)    :: ezg(ezglo(1):ezghi(1), ezglo(2):ezghi(2), ezglo(3):ezghi(3))
-  real(amrex_real), intent(in)    :: xp(np), yp(np), zp(np)
+  type(particle_t), intent(in)    :: structs(np)
   real(amrex_real), intent(inout) :: ex(np), ey(np), ez(np)
   real(amrex_real), intent(in)    :: dx(3), plo(3)
 
@@ -510,7 +486,7 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
   izmin0 = 0
   izmax0 = 0
 
-!$acc parallel deviceptr(exglo, exghi, eyglo, eyghi, ezglo, ezghi, exg, eyg, ezg, xp, yp, zp, ex, ey, ez, dx, plo)
+!$acc parallel deviceptr(exg, eyg, ezg, structs, ex, ey, ez)
 !$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
   do ip = 1, np
 
@@ -518,9 +494,9 @@ subroutine gather_electric_field(np, xp, yp, zp, ex, ey, ez, &
      ey(ip) = 0.d0
      ez(ip) = 0.d0
 
-     x = (xp(ip)-plo(1))*dxi
-     y = (yp(ip)-plo(2))*dyi
-     z = (zp(ip)-plo(3))*dzi
+     x = (structs(ip)%pos(1)-plo(1))*dxi
+     y = (structs(ip)%pos(2)-plo(2))*dyi
+     z = (structs(ip)%pos(3)-plo(3))*dzi
 
      ! Compute index of particle
      j  = floor(x)
@@ -592,7 +568,7 @@ end subroutine gather_electric_field
 subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
      by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz)
 
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in)    :: xlo(3),  xhi(3)
@@ -607,7 +583,7 @@ subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
 
   integer :: j,k,l
 
-!$acc parallel deviceptr(xlo,xhi,ex,by,bz,jx)
+!$acc parallel deviceptr(ex,by,bz,jx)
 !$acc loop gang vector collapse(3)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
@@ -627,7 +603,7 @@ subroutine push_electric_field_y(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
      jy, jylo, jyhi, mudt, dtsdx, dtsdz)
 
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in)    :: ylo(3), yhi(3)
@@ -642,7 +618,7 @@ subroutine push_electric_field_y(ylo, yhi, &
 
   integer :: j,k,l
 
-!$acc parallel deviceptr(ylo,yhi,ey,bx,bz,jy)
+!$acc parallel deviceptr(ey,bx,bz,jy)
 !$acc loop gang vector collapse(3)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
@@ -662,7 +638,7 @@ subroutine push_electric_field_z(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
      jz, jzlo, jzhi, mudt, dtsdx, dtsdy)
 
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in)    :: zlo(3), zhi(3)
@@ -678,7 +654,7 @@ subroutine push_electric_field_z(zlo, zhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(zlo,zhi,ez,bx,by,jz)
+!$acc parallel deviceptr(ez,bx,by,jz)
 !$acc loop gang vector collapse(3)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
@@ -697,7 +673,7 @@ end subroutine push_electric_field_z
 subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
      ez, ezlo, ezhi, dtsdy, dtsdz)
 
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in)    :: xlo(3), xhi(3)
@@ -711,7 +687,7 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(xlo,xhi,bx,ey,ez)
+!$acc parallel deviceptr(bx,ey,ez)
 !$acc loop gang vector collapse(3)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
@@ -729,7 +705,7 @@ end subroutine push_magnetic_field_x
 subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
      ez, ezlo, ezhi, dtsdx, dtsdz)
 
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in)    :: ylo(3), yhi(3)
@@ -743,7 +719,7 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(ylo,yhi,by,ex,ez)
+!$acc parallel deviceptr(by,ex,ez)
 !$acc loop gang vector collapse(3)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
@@ -761,7 +737,7 @@ end subroutine push_magnetic_field_y
 subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
      ey, eylo, eyhi, dtsdx, dtsdy)
 
-  use amrex_fort_module, only : amrex_real, get_loop_bounds
+  use amrex_fort_module, only : amrex_real
   implicit none
 
   integer,          intent(in)    :: zlo(3), zhi(3)
@@ -775,9 +751,7 @@ subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-  call get_loop_bounds(blo, bhi, zlo, zhi)
-
-!$acc parallel deviceptr(zlo,zhi,bz,ex,ey)
+!$acc parallel deviceptr(bz,ex,ey)
 !$acc loop gang vector collapse(3)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)

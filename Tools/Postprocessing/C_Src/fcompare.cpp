@@ -236,8 +236,8 @@ int main ( int argc, char* argv[] )
 
 		if ( norm == 0 )
 		{
-		    aerror[nv]       = max ( mfdiff.norm0(0,ng), aerror[nv] );
-		    rerror_den[nv]   = max ( mf1.norm0(0,ng),    rerror_den[nv] );
+		    aerror[nv]       = amrex::max ( mfdiff.norm0(0,ng), aerror[nv] );
+		    rerror_den[nv]   = amrex::max ( mf1.norm0(0,ng),    rerror_den[nv] );
 		}
 		else if ( norm == 1 )
 		{
@@ -307,10 +307,10 @@ int main ( int argc, char* argv[] )
 	       Real rerr = 0.0;
 
 	       if ( aerror[nv] > 0.0 )
-		   aerr = min ( max ( aerror[nv], 1e-99 ), 1e+98 );
+		   aerr = amrex::min ( amrex::max ( aerror[nv], 1e-99 ), 1e+98 );
 
 	       if ( rerror[nv] > 0.0 )
-		   rerr = min ( max ( rerror[nv], 1e-99 ), 1e+98 );
+		   rerr = amrex::min ( amrex::max ( rerror[nv], 1e-99 ), 1e+98 );
 
 	       Print() << scientific;
 	       Print() << " " << setw(22) << varNames1[nv] << "  "
@@ -324,7 +324,7 @@ int main ( int argc, char* argv[] )
 
 	// compute global error
 	for ( unsigned int nv = 0; nv < aerror.size(); ++nv )
-	    globalError = max (globalError, aerror[nv] );
+	    globalError = amrex::max (globalError, aerror[nv] );
 
     }
 

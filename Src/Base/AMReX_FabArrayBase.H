@@ -5,16 +5,13 @@
 #include <omp.h>
 #endif
 
-#ifdef BL_USE_UPCXX
-#include <AMReX_BLPgas.H>
-#endif
-
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
+#include <AMReX_Arena.H>
 
 namespace amrex {
 
@@ -23,6 +20,7 @@ class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
+template <typename FAB> class FabArray;
 class AmrTask;
 #ifdef USE_PERILLA
 class Perilla;
@@ -38,6 +36,8 @@ class FabArrayBase
     friend class Perilla;
     friend class RegionGraph;
 #endif
+
+    template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
 public:
 
@@ -166,10 +166,10 @@ public:
 	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
 	bool operator< (const CopyComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+                   (sbox.smallEnd() < rhs.sbox.smallEnd()
+		               || ((sbox.smallEnd() == rhs.sbox.smallEnd()) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
-                   (dbox.smallEnd() < rhs.dbox.smallEnd()
-		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
-                   (sbox.smallEnd() < rhs.sbox.smallEnd()))))))));
+                   (dbox.smallEnd() < rhs.dbox.smallEnd()))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -276,7 +276,6 @@ public:
     // The maximum number of components to copy() at a time.
     //
     static int MaxComp;
-#ifdef AMREX_USE_CUDA
     //
     // Whether to use CUDA-aware MPI.
     // If true, MPI buffers will be staged on the GPU and sent
@@ -284,7 +283,6 @@ public:
     // will be on the host.
     //
     static int use_cuda_aware_mpi;
-#endif
     //
     // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     //
@@ -298,8 +296,6 @@ public:
     //
     static void Initialize ();
     static void Finalize ();
-    bool IsInitialized() const;
-    void SetInitialized(bool binit);
     //
     // To maximize thread efficiency we now can decompose things like
     // intersections among boxes into smaller tiles. This sets
@@ -407,14 +403,6 @@ public:
                                    Vector<char*>&       send_data,
                                    Vector<MPI_Status>&  stats);
 
-#ifdef BL_USE_UPCXX
-    //! Block until all send requests complete
-    static void WaitForAsyncSends_PGAS (int                 N_snds,
-                                        Vector<char*>&       send_data,
-                                        upcxx::event*       send_event,
-                                        volatile int*       send_counter);
-#endif
-
 protected:
 
     void clear ();
@@ -481,8 +469,6 @@ protected:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        MapOfCopyComTagContainers* m_SndVols;
-        MapOfCopyComTagContainers* m_RcvVols;
 	//
 	int                 m_nuse;
 	//
@@ -507,6 +493,9 @@ protected:
     //
     // parallel copy or add
     //
+#ifdef AMREX_USE_CUDA
+public:
+#endif
     struct CPC
     {
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
@@ -538,8 +527,6 @@ protected:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        MapOfCopyComTagContainers* m_SndVols;
-        MapOfCopyComTagContainers* m_RcvVols;
 	//
         int         m_nuse;
 
@@ -550,6 +537,9 @@ protected:
 		     const Vector<int>& imap_src,
 		     int MyProc = ParallelDescriptor::MyProc());
     };
+#ifdef AMREX_USE_CUDA
+protected:
+#endif
     //
     typedef std::multimap<BDKey,FabArrayBase::CPC*> CPCache;
     typedef CPCache::iterator CPCacheIter;
@@ -619,17 +609,8 @@ protected:
 
 std::ostream& operator<< (std::ostream& os, const FabArrayBase::BDKey& id);
 
-    class FA_init
-    {
-    public:
-        FA_init ();
-        ~FA_init ();
-    private:
-        static int m_cnt;
-    };
+Arena* The_FA_Arena ();
 
 }
-
-static amrex::FA_init file_scope_FA_init_object;
 
 #endif

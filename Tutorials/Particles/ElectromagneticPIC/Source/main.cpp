@@ -4,7 +4,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
-#include "ElectromagneticParticleContainer.H"
+#include "EMParticleContainer.H"
 #include "Evolve.H"
 #include "NodalFlags.H"
 #include "Constants.H"
@@ -33,9 +33,9 @@ void test_em_pic(const TestParams& parms)
     BL_PROFILE("test_em_pic");
     BL_PROFILE_VAR_NS("evolve_time", blp_evolve);
     BL_PROFILE_VAR_NS("init_time", blp_init);
-
+    
     BL_PROFILE_VAR_START(blp_init);
-
+    
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
@@ -52,11 +52,11 @@ void test_em_pic(const TestParams& parms)
     for (int i = 0; i < BL_SPACEDIM; i++)
         is_per[i] = 1;
     Geometry geom(domain, &real_box, coord, is_per);
-
+    
     BoxArray ba(domain);
     ba.maxSize(parms.max_grid_size);
     DistributionMapping dm(ba);
-
+    
     const int ng = 1;
 
     MultiFab Bx(amrex::convert(ba, YeeGrid::Bx_nodal_flag), dm, 1, ng);
@@ -78,36 +78,37 @@ void test_em_pic(const TestParams& parms)
     amrex::Print() << "Initializing particles... ";
 
     int num_species;
-    Vector<ElectromagneticParticleContainer*> particles(2);
+    Vector<EMParticleContainer*> particles(2);
 
-    if (parms.problem_type == UniformPlasma) {
+    if (parms.problem_type == UniformPlasma)
+    {
         num_species = 2;
 
         RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                           AMREX_D_DECL( 20e-6, 20e-6, 20e-6));
-        ElectromagneticParticleContainer* electrons;
-        electrons = new ElectromagneticParticleContainer(geom, dm, ba,
-                                                   0, -PhysConst::q_e, PhysConst::m_e);
+        EMParticleContainer* electrons;
+        electrons = new EMParticleContainer(geom, dm, ba,
+                                                         0, -PhysConst::q_e, PhysConst::m_e);
         electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, real_box, parms.problem_type);
 
         RealBox H_ions_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                         AMREX_D_DECL( 20e-6,  20e-6,  20e-6));
-        ElectromagneticParticleContainer* H_ions;
-        H_ions = new ElectromagneticParticleContainer(geom, dm, ba,
+        EMParticleContainer* H_ions;
+        H_ions = new EMParticleContainer(geom, dm, ba,
                                                       1, PhysConst::q_e, PhysConst::m_p);
         H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, parms.problem_type);
 
         particles[0] = electrons;
         particles[1] = H_ions;
     }
-
-    else if (parms.problem_type == Langmuir) {
+    else if (parms.problem_type == Langmuir)
+    {
         num_species = 1;
 
         RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                           AMREX_D_DECL( 0.0,    20e-6,  20e-6));
-        ElectromagneticParticleContainer* electrons;
-        electrons = new ElectromagneticParticleContainer(geom, dm, ba,
+        EMParticleContainer* electrons;
+        electrons = new EMParticleContainer(geom, dm, ba,
                                                          0, -PhysConst::q_e, PhysConst::m_e);
         electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, parms.problem_type);
 
@@ -158,30 +159,31 @@ void test_em_pic(const TestParams& parms)
 
         evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
         fill_boundary_magnetic_field(Bx, By, Bz, geom);
-
+        
         evolve_electric_field(Ex, Ey, Ez, Bx, By, Bz, jx, jy, jz, geom, dt);
-
-        if (step == nsteps - 1) {
+        
+        if (step == nsteps - 1)
+        {
             evolve_magnetic_field(Ex, Ey, Ez, Bx, By, Bz, geom, 0.5*dt);
-            for (int i = 0; i < num_species; ++i) {
+            for (int i = 0; i < num_species; ++i)
+            {
                 particles[i]->PushParticleMomenta(Ex, Ey, Ez, Bx, By, Bz, 0.5*dt);
             }
             synchronized = true;
         }
 
-        for (int i = 0; i < num_species; ++i) {
+        for (int i = 0; i < num_species; ++i)
+        {
             particles[i]->Redistribute();
-            particles[i]->EnforcePeriodicBCs();
-            particles[i]->OK();
         }
-
+        
         time += dt;
     }
-
+    
     amrex::Print() << "Done. " << std::endl;
-
+    
     BL_PROFILE_VAR_STOP(blp_evolve);
-
+    
     if (parms.problem_type == Langmuir)
     {
         check_solution(jx, geom, time);
@@ -198,7 +200,7 @@ void test_em_pic(const TestParams& parms)
 
 void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
 {
-    BL_PROFILE("ElectromagneticParticleContainer::check_solution");
+    BL_PROFILE("check_solution");
 
     const Real* dx = geom.CellSize();
 

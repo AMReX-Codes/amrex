@@ -2,6 +2,7 @@
 #ifndef BL_AMREX_H
 #define BL_AMREX_H
 
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_Exception.H>
 
@@ -22,8 +23,35 @@
 
 namespace amrex
 {
+
     typedef void (*PTR_TO_VOID_FUNC)(void);
     typedef void (*ErrorHandler) (const char* msg);
+
+    namespace system
+    {
+#ifndef AMREX_DEBUG
+	constexpr bool NDebug = true;
+        constexpr bool  Debug = false;
+#else
+	constexpr bool NDebug = false;
+        constexpr bool  Debug = true;
+#endif
+
+	extern std::string exename;
+	
+	extern int verbose;
+
+        extern int signal_handling;
+        extern int call_addr2line;
+        extern int throw_exception;
+
+        extern int regtest_reduction;
+
+        extern std::ostream* osout;
+        extern std::ostream* oserr;
+        
+        extern ErrorHandler error_handler;
+    }
 
     std::string Version ();
 
@@ -50,14 +78,17 @@ namespace amrex
     void ExecOnInitialize (PTR_TO_VOID_FUNC);
 
     //! Print out message to cerr and exit via amrex::Abort().
+    AMREX_GPU_HOST_DEVICE
     void Error (const char * msg = 0);
     void Error (const std::string& msg);
 
     //! Print out warning message to cerr.
+    AMREX_GPU_HOST_DEVICE
     void Warning (const char * msg);
     void Warning (const std::string& msg);
 
     //! Print out message to cerr and exit via abort().
+    AMREX_GPU_HOST_DEVICE
     void Abort (const char * msg = 0);
     void Abort (const std::string& msg);
 
@@ -66,6 +97,7 @@ namespace amrex
     * via abort().  Intended for use by the BL_ASSERT() macro
     * in <AMReX_BLassert.H>.
     */
+    AMREX_GPU_HOST_DEVICE
     void Assert (const char* EX,
                  const char* file,
                  int         line,
@@ -94,39 +126,18 @@ namespace amrex
     int Verbose ();
     void SetVerbose (int v);
 
-    namespace system
-    {
-#ifndef AMREX_DEBUG
-	constexpr bool NDebug = true;
-        constexpr bool  Debug = false;
-#else
-	constexpr bool NDebug = false;
-        constexpr bool  Debug = true;
-#endif
-
-	extern std::string exename;
-	
-	extern int verbose;
-
-        extern int signal_handling;
-        extern int call_addr2line;
-        extern int throw_exception;
-
-        extern int regtest_reduction;
-
-        extern std::ostream* osout;
-        extern std::ostream* oserr;
-        
-        extern ErrorHandler error_handler;
-    }
-
     inline void GccPlacater ()
     {
-        std::allocator<char> a1;
-        std::allocator<int> a2;
-        std::allocator<float> a3;
-        std::allocator<double> a4;
-        std::allocator<std::string> a5;
+        std::allocator<bool> a_b;
+        std::allocator<char> a_c;
+        std::allocator<int> a_i;
+        std::allocator<long> a_l;
+        std::allocator<unsigned char> a_uc;
+        std::allocator<unsigned int> a_ui;
+        std::allocator<unsigned long> a_ul;
+        std::allocator<float> a_f;
+        std::allocator<double> a_d;
+        std::allocator<std::string> a_s;
     }
 }
 

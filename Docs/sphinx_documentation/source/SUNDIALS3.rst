@@ -6,7 +6,7 @@
 
 
 Compiling AMReX with Sundials version 3.X or later
-==================================================
+---------------------------------------------------
 
 The following steps describe how to compile an AMReX application with
 SUNDIALS_3.X support.  On Cray systems (e.g., Cori or Edison at NERSC), Cray provides
@@ -81,7 +81,7 @@ In order to use the Sundials 3.X version:
    are currently not supported.
 
 SUNDIALS 3.X Tutorials
-======================
+-------------------------
 
 AMReX provides six tutorials in the ``amrex/Tutorials/CVODE/SUNDIALS3_finterface`` directory.
 ``EX1`` is modeled after the CVODE Tutorial ``EX1`` showing use with AMReX.

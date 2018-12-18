@@ -11,7 +11,6 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
-#include <AMReX_BaseFab.H>
 
 namespace amrex
 {
@@ -60,7 +59,7 @@ struct BARef
     explicit BARef (std::istream& is);
     BARef (const BARef& rhs);
     BARef& operator= (const BARef& rhs) = delete;
-    
+
     ~BARef ();
 
     void define (const Box& bx);
@@ -91,14 +90,14 @@ struct BARef
     // Box hash stuff.
     //
     mutable Box bbox;
-    
+
     mutable IntVect crsn;
-    
+
     typedef std::unordered_map< IntVect, std::vector<int>, IntVect::shift_hasher > HashType;
     //using HashType = std::map< IntVect,std::vector<int> >;
 
     mutable HashType hash;
-    
+
     mutable bool has_hashmap = false;
 
     static int  numboxarrays;
@@ -107,7 +106,7 @@ struct BARef
     static long total_box_bytes_hwm;
     static long total_hash_bytes;
     static long total_hash_bytes_hwm;
-        
+
     static void Initialize ();
     static void Finalize ();
     static bool initialized;
@@ -238,7 +237,7 @@ public:
 
     //! The move constructor
     BoxArray (BoxArray&& rhs) noexcept;
-    
+
     //! The destructor.
     ~BoxArray ();
     /**
@@ -420,7 +419,7 @@ public:
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     Box minimalBox () const;
-    Box minimalBox (int& npts_avg_box) const;
+    Box minimalBox (long& npts_avg_box) const;
 
     /**
     * \brief True if the Box intersects with this BoxArray(+ghostcells).
@@ -439,13 +438,13 @@ public:
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, const IntVect& ng) const;
 
     //! intersect Box and BoxArray, then store the result in isects
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const; 
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
 
     //! intersect Box and BoxArray(+ghostcells), then store the result in isects
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
 			bool first_only, int ng) const;
 
-    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects, 
+    void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
 			bool first_only, const IntVect& ng) const;
 
     //! Return box - boxarray
@@ -504,7 +503,7 @@ private:
     bool      m_simple;
 
     //! The data -- a reference-counted pointer to a Ref.
-    std::shared_ptr<BARef> m_ref;    
+    std::shared_ptr<BARef> m_ref;
 };
 
 //! Write a BoxArray to an ostream in ASCII format.

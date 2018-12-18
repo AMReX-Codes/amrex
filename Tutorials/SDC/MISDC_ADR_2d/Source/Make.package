@@ -1,0 +1,10 @@
+CEXE_sources += main.cpp SDC_sweeper.cpp 
+
+CEXE_headers += myfunc.H
+FEXE_headers += myfunc_F.H
+
+f90EXE_sources += init_phi_2d.f90 
+f90EXE_sources += functions_2d.f90
+
+
+

@@ -1,4 +1,5 @@
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -168,6 +169,14 @@ FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
+#ifdef AMREX_USE_GPU
+FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type)
+    :
+    BaseFab<Real>(rhs,make_type)
+{
+}
+#endif
+
 FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
     :
     BaseFab<Real>(b,ncomp,p)
@@ -186,131 +195,28 @@ FArrayBox::initVal ()
 {
     if (init_snan) {
 #ifdef BL_USE_DOUBLE
+#if defined(AMREX_USE_GPU)
+
+//         double * p = dataPtr();
+//         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (truesize, i,
+//         {
+// #ifdef UINT64_MAX
+//             const uint64_t snan = UINT64_C(0x7ff0000080000001);
+// #else
+//             static_assert(sizeof(double) == sizeof(long long), "sizeof double != sizeof long long");
+//             const long long snan = 0x7ff0000080000001LL;
+// #endif
+//             double* pi = p + i;
+//             std::memcpy(pi, &snan, sizeof(double));
+//         });
+
+#else
 	amrex_array_init_snan(dataPtr(), truesize);
+#endif
 #endif
     } else if (do_initval) {
 	setVal(initval);
     }
-}
-
-bool 
-FArrayBox::contains_nan () const
-{
-    const Real* dp = dptr;
-    for (int i = 0; i < numpts*nvar; i++)
-        if (std::isnan(*dp++))
-            return true;
-    return false;
-}
-
-bool 
-FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (std::isnan(this->operator()(p,scomp+i)))
-                return true;
-        }
-    }
-    return false;
-}
-
-bool 
-FArrayBox::contains_nan (IntVect& where) const
-{
-    return contains_nan(domain, 0, nComp(), where);
-}
-
-bool 
-FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (std::isnan(this->operator()(p,scomp+i)))
-            {
-                where = p;
-
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool 
-FArrayBox::contains_inf () const
-{
-    const Real* dp = dptr;
-    for (int i = 0; i < numpts*nvar; i++)
-        if (std::isinf(*dp++))
-            return true;
-    return false;
-}
-
-bool 
-FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (std::isinf(this->operator()(p,scomp+i)))
-                return true;
-        }
-    }
-    return false;
-}
-
-bool 
-FArrayBox::contains_inf (IntVect& where) const
-{
-    return contains_inf(domain,0,nComp(),where);
-}
-
-bool 
-FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (std::isinf(this->operator()(p,scomp+i)))
-            {
-                where = p;
-
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 void

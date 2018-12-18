@@ -1,4 +1,5 @@
 cxxsources += AMReX_MemPool.cpp
+cxxsources += AMReX_BArena.cpp
 cxxsources += AMReX_CArena.cpp
 cxxsources += AMReX_Arena.cpp
 

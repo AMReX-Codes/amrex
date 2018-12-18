@@ -172,11 +172,12 @@ void
 Geometry::GetVolume (MultiFab&       vol) const
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(vol,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(vol,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	CoordSys::SetVolume(vol[mfi], mfi.growntilebox());
+        FArrayBox& fab = Cuda::inLaunchRegion() ? *vol.fabPtr(mfi) : vol[mfi];
+	CoordSys::SetVolume(fab, mfi.growntilebox());
     }
 }
 
@@ -199,11 +200,12 @@ Geometry::GetDLogA (MultiFab&       dloga,
 {
     dloga.define(grds,dm,1,ngrow,MFInfo(),FArrayBoxFactory());
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(dloga,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dloga,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	CoordSys::SetDLogA(dloga[mfi], mfi.growntilebox(), dir);
+        FArrayBox& fab = Cuda::inLaunchRegion() ? *dloga.fabPtr(mfi) : dloga[mfi];
+	CoordSys::SetDLogA(fab, mfi.growntilebox(), dir);
     }
 }
 #endif
@@ -227,11 +229,12 @@ Geometry::GetFaceArea (MultiFab&       area,
                        int             dir) const
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (!Cuda::inLaunchRegion())
 #endif
-    for (MFIter mfi(area,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(area,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-	CoordSys::SetFaceArea(area[mfi],mfi.growntilebox(),dir);
+        FArrayBox& fab = Cuda::inLaunchRegion() ? *area.fabPtr(mfi) : area[mfi];
+	CoordSys::SetFaceArea(fab,mfi.growntilebox(),dir);
     }
 }
 

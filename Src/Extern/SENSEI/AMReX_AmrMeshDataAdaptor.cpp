@@ -72,11 +72,14 @@ int MeshStateMap::Initialize(
 // data adaptor's internal data
 struct AmrMeshDataAdaptor::InternalsType
 {
-    InternalsType() : Mesh(nullptr), States(), StateMetadata() {}
+    InternalsType() : Mesh(nullptr), PinMesh(0),
+        States(), StateMetadata() {}
 
     amrex::AmrMesh *Mesh;
+    int PinMesh;
     std::vector<amrex::Vector<amrex::MultiFab> *> States;
     amrex::InSituUtils::MeshStateMap StateMetadata;
+    std::vector<vtkDataObject*> ManagedObjects;
 };
 
 //-----------------------------------------------------------------------------
@@ -107,6 +110,12 @@ int AmrMeshDataAdaptor::SetDataSource(amrex::AmrMesh *mesh,
     this->Internals->StateMetadata.Initialize(states, names);
 
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+void AmrMeshDataAdaptor::SetPinMesh(int pinMesh)
+{
+    this->Internals->PinMesh = pinMesh;
 }
 
 //-----------------------------------------------------------------------------
@@ -148,6 +157,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
     // initialize new vtk datasets
     vtkOverlappingAMR *amrMesh = vtkOverlappingAMR::New();
+    Internals->ManagedObjects.push_back(amrMesh);
     mesh = amrMesh;
 
     // num levels and blocks per level
@@ -160,6 +170,15 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
     // origin
     const amrex::RealBox& pd = this->Internals->Mesh->Geom(0).ProbDomain();
     double origin[3] = {AMREX_ARLIM(pd.lo())};
+
+    // PinMesh works around a bug in VisIt 2.13.2.
+    // force the origin to 0,0,0
+    if (this->Internals->PinMesh)
+    {
+        for (int i = 0; i < 3; ++i)
+            origin[i] = 0.0;
+    }
+
     amrMesh->SetOrigin(origin);
 
     long gid = 0;
@@ -178,7 +197,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
         amrMesh->SetSpacing(i, spacing);
 
         // refinement ratio
-        int cRefRatio = this->Internals->Mesh->refRatio(i)[0];
+        int cRefRatio = nLevels > 1 ? this->Internals->Mesh->refRatio(i)[0] : 1;
         amrMesh->SetRefinementRatio(i, cRefRatio);
 
         // loop over boxes
@@ -216,6 +235,7 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
 
             // new vtk uniform amrMesh, node centered
             vtkUniformGrid *ug = vtkUniformGrid::New();
+            ug->SetOrigin(origin);
             ug->SetSpacing(spacing);
             ug->SetExtent(nboxLo[0], nboxHi[0],
                 nboxLo[1], nboxHi[1], nboxLo[2], nboxHi[2]);
@@ -385,11 +405,14 @@ int AmrMeshDataAdaptor::AddGhostCellsArray(vtkDataObject* mesh,
             ga->Delete();
 
             // for debug can visualize the ghost cells
-            /*ga = vtkUnsignedCharArray::New();
+            // FIXME -- a bug in Catalyst ignores internal ghost zones
+            // when using the VTK writrer. Until that bug gets fixed, one
+            // can manually inject this copy using a PV Python filter
+            ga = vtkUnsignedCharArray::New();
             ga->SetName("GhostType");
             ga->SetArray(mask[j], nCells, 1);
             blockMesh->GetCellData()->AddArray(ga);
-            ga->Delete();*/
+            ga->Delete();
         }
     }
 
@@ -620,6 +643,13 @@ int AmrMeshDataAdaptor::ReleaseData()
     this->Internals->Mesh = nullptr;
     this->Internals->States.clear();
     this->Internals->StateMetadata.Clear();
+
+    // free up mesh objects we allocated
+    size_t n = this->Internals->ManagedObjects.size();
+    for (size_t i = 0; i < n; ++i)
+        this->Internals->ManagedObjects[i]->Delete();
+    this->Internals->ManagedObjects.clear();
+
     return 0;
 }
 

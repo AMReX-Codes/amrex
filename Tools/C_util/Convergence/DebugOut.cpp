@@ -101,6 +101,7 @@ void printBox(const Box* a_boxPtr)
 void 
 viewMF(const MultiFab* a_data)
 {
+#if 0
   Vector<string> names(a_data->nComp());
   for(int icomp = 0; icomp < a_data->nComp(); icomp++)
   {
@@ -115,6 +116,7 @@ viewMF(const MultiFab* a_data)
   string command = "visit -o " + filename + string("/Header");
   int ret = std::system(command.c_str());
   amrex::Print() << "data output to " << filename << ".  Visit was called and got return value " << ret << endl;
+#endif
 }
 
 

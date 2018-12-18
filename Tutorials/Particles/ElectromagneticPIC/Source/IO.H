@@ -5,7 +5,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
-
 void
 WritePlotFile (const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz,
