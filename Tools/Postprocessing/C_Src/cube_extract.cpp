@@ -9,14 +9,22 @@ int main ( int argc, char* argv[] )
     amrex::Initialize (argc, argv, false);
     
     {
-        const int lev = 0;
-        const string file = "plt00404";
+        if (argc < 3)
+        {
+            amrex::Print() << "Usage: " << argv[0] << " in_file out_file \n";
+            amrex::Abort();
+        }
+
+        const string in_file = argv[1];
+        const string out_file = argv[2];
+
         const int factor = 2;
+        const int lev = 0;
         
         DataServices::SetBatchMode();
-        
+
         Amrvis::FileType fileType(Amrvis::NEWPLT);
-        DataServices dataServices(file, fileType);
+        DataServices dataServices(in_file, fileType);        
         
         if ( !dataServices.AmrDataOk() )
             DataServices::Dispatch(DataServices::ExitRequest, NULL);
@@ -68,7 +76,7 @@ int main ( int argc, char* argv[] )
         
         extracted_mf.copy(mf, 0, 0, ncomp);
         
-        WriteSingleLevelPlotfile ("out00404", extracted_mf, varNames, extracted_geom, 0.0, 0);        
+        WriteSingleLevelPlotfile (out_file, extracted_mf, varNames, extracted_geom, 0.0, 0);        
     }
     
     amrex::Finalize ();
