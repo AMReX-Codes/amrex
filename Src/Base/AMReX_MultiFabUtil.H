@@ -139,6 +139,98 @@ namespace amrex
     //! filled.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom);
+
+
+    //! General collection of MultiFab utilities
+    namespace MFUtil {
+
+        //! Template class defining a copy operation where source and target are
+        //! grown by ng. Template parameter T must be either MultiFab or
+        //! iMultiFab
+        template<typename T>
+            struct SymmetricGhost {
+                static void copy (T & target, const T & source, int nc, int ng) {
+                    target.copy(source, 0, 0, nc, ng, ng);
+                }
+            };
+
+
+        //! Template class defining a copy operation where only the target is
+        //! grown by ng. Template parameter T must be either MultiFab or
+        //! iMultiFab
+        template<typename T> // T can be either MultiFab or iMultiFab
+            struct AsymmetricGhost {
+                static void copy (T & target, const T & source, int nc, int ng) {
+                    target.copy(source, 0, 0, nc, 0, ng);
+                }
+            };
+
+
+        //! Duplicate class T (which must be either of type MultiFab or
+        //! iMultiFab) using a new BoxArray and DistributionMapping. Data from
+        //! the source (mf_in) is copied using a ParallelCopy including ghost
+        //! cells.
+        template<typename T, template<typename> class Cpy>
+            T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in) {
+
+            int ng = mf_in.nGrow();
+            int nc = mf_in.nComp();
+
+            T mf_out(ba, dm, nc, ng);
+
+            Cpy<T>::copy(mf_out, mf_in, nc, ng);
+
+            return std::move(mf_out);
+        }
+
+
+        //! Duplicate class T (which must be either of type MultiFab or
+        //! iMultiFab) using a new BoxArray and DistributionMapping. Data from
+        //! the source (mf_in) is copied using a ParallelCopy without the ghost
+        //! cells. These are filled using a FillBoundary operation.
+        template<typename T, template<typename> class Cpy>
+            T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in,
+                        const Periodicity & periodicity) {
+
+            T mf_out = duplicate<T, Cpy>(ba, dm, mf_in);
+            mf_out.FillBoundary(periodicity);
+
+            return std::move(mf_out);
+        }
+
+
+        //! Convert class T_src (which must either be of type MultiFab or
+        //! iMultiFab) to type T_dest (which must also be of type MultiFab or
+        //! iMultiFab). This function is useful for convering iMultiFab MultiFab
+        //! or vice-versa.
+        template<typename T_src, typename T_dest>
+            std::unique_ptr<T_dest> convert(const T_src & mf_in) {
+
+            const BoxArray & ba            = mf_in.boxArray();
+            const DistributionMapping & dm = mf_in.DistributionMap();
+            int ncomp                = mf_in.nComp();
+            int ngrow                = mf_in.nGrow();
+
+            std::unique_ptr<T_dest> mf_out(new T_dest(ba, dm, ncomp, ngrow));
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+            for(MFIter mfi(mf_in, true); mfi.isValid(); ++ mfi) {
+                const IArrayBox & in_tile  =      mf_in[mfi];
+                FArrayBox & out_tile = (* mf_out)[mfi];
+
+                for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
+
+                    for(int i = 0; i < ncomp; i ++)
+                        out_tile(bit(), i) = in_tile(bit(), i);
+
+                }
+            }
+
+            return mf_out;
+        }
+    }
 }
 
 
