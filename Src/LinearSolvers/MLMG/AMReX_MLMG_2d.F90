@@ -64,23 +64,58 @@ contains
     
     integer :: i,j,n
 
+    ! ghost cells
     do n = 1, nc
-       do    j = clo(2), chi(2)
-          do i = clo(1), chi(1)-1
-             fine(2*i  ,2*j,n) = crse(i,j,n)
-             fine(2*i+1,2*j,n) = 0.5d0*(crse(i,j,n)+crse(i+1,j,n))
+       do    j = flo(2), fhi(2)
+          do i = flo(1), fhi(1)
+             fine(i,j,n) = 0.0
+             if (j .eq. flo(2) .or. j .eq. fhi(2) .or. i .eq. flo(1) .or. i .eq. fhi(1)) then
+                if (MOD(j,2) .ne. 0 .and. MOD(i,2) .ne. 0) then
+                   if (j .eq. fhi(2)) then
+                      print *, "Center: ", i , j
+                   end if
+                   fine(i,j,n) = 0.25*( &
+                        crse(i/2,j/2,n) + &
+                        crse(i/2 + 1, j/2, n) + &
+                        crse(i/2, j/2 + 1, n) + &
+                        crse(i/2 + 1, j/2 + 1, n))
+                else if (MOD(j,2) .ne. 0) then
+                   if (j .eq. fhi(2)) then
+                      print *, "Vertic: ", i , j
+                   end if
+                   ! Along a vertical coarse cell edge
+                   fine(i,j,n) =  &
+                        0.5*crse(i/2,j/2,n) + &
+                        0.5*crse(i/2,j/2+1,n) 
+                else if (MOD(i,2) .ne. 0) then
+                   ! print *, "Horiz: ", i , j, "i/2", i/2, "i/2+1", i/2+1
+                   ! Along a horizontal coarse cell edge
+                   fine(i,j,n) = 0.5*( &
+                        crse(i/2,j/2,n) + &
+                        crse(i/2,j/2+1,n))
+                end if
+             end if
           end do
-          fine(fhi(1),2*j,n) = crse(chi(1),j,n)
-          if (j < chi(2)) then
-             do i = clo(1), chi(1)-1
-                fine(2*i  ,2*j+1,n) = 0.5d0*(crse(i,j,n)+crse(i,j+1,n))
-                fine(2*i+1,2*j+1,n) = 0.25d0*(crse(i,j,n)+crse(i+1,j,n)+crse(i,j+1,n)+crse(i+1,j+1,n))
-             end do
-             fine(fhi(1),2*j+1,n) = 0.5d0*(crse(chi(1),j,n)+crse(chi(1),j+1,n))
-          end if
        end do
     end do
     
+!    do n = 1, nc
+!       do    j = clo(2), chi(2)
+!          do i = clo(1), chi(1)-1
+!             fine(2*i  ,2*j,n) = crse(i,j,n)
+!             fine(2*i+1,2*j,n) = 0.5d0*(crse(i,j,n)+crse(i+1,j,n))
+!          end do
+!          fine(fhi(1),2*j,n) = crse(chi(1),j,n)
+!          if (j < chi(2)) then
+!             do i = clo(1), chi(1)-1
+!                fine(2*i  ,2*j+1,n) = 0.5d0*(crse(i,j,n)+crse(i,j+1,n))
+!                fine(2*i+1,2*j+1,n) = 0.25d0*(crse(i,j,n)+crse(i+1,j,n)+crse(i,j+1,n)+crse(i+1,j+1,n))
+!             end do
+!             fine(fhi(1),2*j+1,n) = 0.5d0*(crse(chi(1),j,n)+crse(chi(1),j+1,n))
+!          end if
+!       end do
+!    end do
+
   end subroutine amrex_mlmg_lin_nd_interp
 
 
