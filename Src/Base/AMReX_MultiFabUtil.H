@@ -181,7 +181,7 @@ namespace amrex
 
             Cpy<T>::copy(mf_out, mf_in, nc, ng);
 
-            return std::move(mf_out);
+            return mf_out;
         }
 
 
@@ -198,7 +198,7 @@ namespace amrex
             T mf_out = duplicate<T, Cpy>(ba, dm, mf_in);
             mf_out.FillBoundary(periodicity);
 
-            return std::move(mf_out);
+            return mf_out;
         }
 
 
