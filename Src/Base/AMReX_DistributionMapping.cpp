@@ -1172,7 +1172,6 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	}
 	else   // We would like to do knapsack within the team workers
 	{
-            // TODO: do we need to do a local_to_global_rank translation?
 	    std::vector<long> local_wgts;
 	    for (int j = 0; j < Nbx; ++j) {
 		local_wgts.push_back(wgts[vi[j]]);
