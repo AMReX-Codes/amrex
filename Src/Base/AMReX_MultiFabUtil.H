@@ -168,8 +168,9 @@ namespace amrex
 
         //! Duplicate class T (which must be either of type MultiFab or
         //! iMultiFab) using a new BoxArray and DistributionMapping. Data from
-        //! the source (mf_in) is copied using a ParallelCopy including ghost
-        //! cells.
+        //! the source (mf_in) is copied using a ParallelCopy (ghost cells are
+        //! treated based on the Cpy class (which is either SymmetricGhost or
+        //! AsymmetricGhost)).
         template<typename T, template<typename> class Cpy>
             T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in) {
 
@@ -186,8 +187,10 @@ namespace amrex
 
         //! Duplicate class T (which must be either of type MultiFab or
         //! iMultiFab) using a new BoxArray and DistributionMapping. Data from
-        //! the source (mf_in) is copied using a ParallelCopy without the ghost
-        //! cells. These are filled using a FillBoundary operation.
+        //! the source (mf_in) is copied using a ParallelCopy (ghost cells are
+        //! treated based on the Cpy class (which is either SymmetricGhost or
+        //! AsymmetricGhost)). Following the copy operation, a FillBoundary
+        //! operation is called.
         template<typename T, template<typename> class Cpy>
             T duplicate(const BoxArray & ba, const DistributionMapping & dm, const T & mf_in,
                         const Periodicity & periodicity) {
