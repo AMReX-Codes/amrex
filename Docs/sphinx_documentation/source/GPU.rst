@@ -57,6 +57,11 @@ can run it and that will generate results like:
    [The  Pinned Arena] space (kilobyte): 8192
    AMReX (18.12-95-gf265b537f479-dirty) finalized
 
+Building with CMake
+-------------------
+
+CMake is currently unavailable when building with GPUs.
+
 .. ===================================================================
 
 .. _sec:gpu:namespace:
@@ -188,6 +193,7 @@ that are important for programming GPUs.
 
 GpuArray
 --------
+
 :cpp:`std::array` is used throughout AMReX, however its functions are not defined
 in device code. GpuArray is AMReX's built-in alternative. It uses a C array that
 can be passed to the device by value and has device functions for the :cpp:`[]`
@@ -197,14 +203,101 @@ GpuArray can be used whenever a fixed array of data needs to be passed to the GP
 Additional functions have been created to return GpuArray instead of `std::array`, 
 including `Box::CellSizeArray()`, `Box::InvCellSizeArray()` and `Box::length3d()`.
 
-Various Vectors
----------------
-HERE HERE HERE HERE
+ManagedVector
+-------------
 
-Get info from Particle section. (Mention primarily used for particles for now).
-Variable size vectors. Resize ONLY on the CPU. Accessed to fixed size data by
-passing pointer to data to device. Based on type, be careful when you do things
-to the vector. (Host, Device & Managed / how to use.)
+AMReX also provides a dynamic memory allocation object for GPU managed memory:
+:cpp:`Gpu::ManagedVector`.  This class behaves identically to an
+:cpp:`amrex::Vector`, (see :ref:`sec:basics:vecandarr`), except the vector's 
+allocator has been changed to allocate and deallocate its data in CUDA
+managed memory whenever ``USE_CUDA=TRUE``.
+
+While the data is managed and available on GPUs, the member functions of
+:cpp:`Gpu::ManagedVector` are not. To use the data on the GPU, it is
+necessary to pass the underlying data pointer to the GPU. The managed data
+pointer can be accessed using the :cpp:`data()` member function. 
+
+Be aware: resizing of dynamically allocated memory on the GPU is unsupported.
+All resizing of the vector should be done on the CPU, in a manner that avoids
+race conditions with concurrent GPU kernels. 
+
+CUDA's Thrust Vectors 
+---------------------
+
+CUDA's Thrust library can also be used to manage dynamically sized data sets.
+However, if Thrust is used directly in AMReX code, it will be unable to compile
+for cases when ``USE_CUDA=FALSE``.  To alleviate this issue, 
+:cpp:`thrust::host_vector` and :cpp:`thrust::device_vector` have been wrapped
+into the AMReX classes :cpp:`Gpu::HostVector` and :cpp:`Gpu::DeviceVector`,
+When ``USE_CUDA=FALSE``, these classes revert to AMReX's Vector class. When 
+``USE_CUDA=TRUE``, these classes become the corresponding Thrust vector.
+
+Just like with Thrust vectors, :cpp:`HostVector` and :cpp:`DeviceVector` cannot 
+be directly used on the device. For convenience, the :cpp:`dataPtr()` member
+function has been altered to implement :cpp:`thrust::raw_pointer_cast` and 
+return the raw data pointer which can be used to access the vector's underlying
+data on the GPU.
+
+It has proven useful to have a version of Thrust's :cpp:`device_vector` 
+that uses CUDA managed memory. This is provided by :cpp:`Gpu::ManagedDeviceVector`. 
+
+:cpp:`thrust::copy` is also commonly used in AMReX applications. It can be
+implemented portably using :cpp:`Gpu::thrust_copy`. 
+
+amrex::min and amrex::max
+-------------------------
+
+GPU versions of ``std::min`` and ``std::max`` are not provided in CUDA.
+So, AMReX provides a templated :cpp:`min` and :cpp:`max` with host and 
+device versions to allow functionality on GPUs. Invoke the explicitly 
+namespaced :cpp:`amrex::min(A, B)` or :cpp:`amrex::max(x, y)` to use the 
+GPU safe implementations. 
+
+
+MultiFab Reductions
+-------------------
+
+AMReX provides functions for performing standard reduction operations on 
+:cpp:`Multifabs`, including :cpp:`MultiFab::sum` and :cpp:`MultiFab::max`.
+When ``USE_CUDA=TRUE``, these functions automatically implement the 
+corresponding reductions on GPUs in a highly efficient manner.
+
+Function templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
+:cpp:`amrex::ReduceMax` can be used to implement user-defined reduction
+functions over :cpp:`MultiFab`\ s. These same templates are implemented 
+in the :cpp:`Multifab` functions, so they can be used as a reference to
+build a custom reduction. For example, the :cpp:`Multifab:dot` 
+implementation is reproduced here:
+
+.. highlight:: c++
+
+::
+
+    Real sm = amrex::ReduceSum(x, y, nghost,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& xfab, FArrayBox const& yfab) -> Real
+    {
+        return xfab.dot(bx,xcomp,yfab,bx,ycomp,numcomp);
+    });
+
+    if (!local) ParallelAllReduce::Sum(sm, ParallelContext::CommunicatorSub());
+
+    return sm;
+
+:cpp:`amrex::ReduceSum` takes two :cpp:`MultiFabs`, ``x`` and ``y`` and
+returns the sum of the value returned from the given lambda function.
+In this case, :cpp:`BaseFab::dot` is returned, yielding a sum of the
+dot product of each local pair of :cpp:`BaseFab` s. Finally, 
+:cpp:`ParallelAllReduce` is used to sum the dot products across all
+MPI ranks and return the total dot product of the two :cpp:`MultiFabs`.
+
+To implement a different reduction, replace the code block inside the
+lambda function with the operation that should be applied, being sure
+to return the value to be summed, minimized, or maximized.  The reduction
+templates have a few different interfaces to accomodate a variety of 
+reductions.  The :cpp:`amrex::ReduceSum` reduction template has varieties
+that take either one, two or three ::cpp:`MultiFab` s. 
+:cpp:`amrex::ReduceMin` and :cpp:`amrex::ReduceMax` can take either one
+or two.
 
 Box, IntVect and IndexType
 --------------------------
@@ -213,7 +306,7 @@ In AMReX, :cpp:`Box`, :cpp:`IntVect` and :cpp:`IndexType`
 are classes for representing indices.  These classes and most of 
 their member functions, including constructors and destructors,
 have both host and device versions.  They can be used in
-device code.  
+device code.
 
 Geometry
 --------
@@ -229,8 +322,8 @@ identical to :cpp:`Geometry`.
 One limitation of this strategy is that :cpp:`Geometry` cannot not be changed
 on the device. :cpp:`GeometryData` holds a disposable copy of the data that 
 does not synchronize with :cpp:`Geometry` after use. Therefore, only change 
-:cpp:`Geometry` on the CPU, outside MFIter loops with GPU kernels to avoid
-race conditions.
+:cpp:`Geometry` on the CPU and outside of MFIter loops with GPU kernels to
+avoid race conditions.
 
 BaseFab, FArrayBox and IArrayBox
 --------------------------------
@@ -264,10 +357,6 @@ a managed memory arena.  For example,
     FArrayBox* p_gpu_fab = new FArrayBox(box,ncomp);
     // FArrayBox* p_gpu_fab can be used in GPU device code.
 
-amrex::min and amrex::max
--------------------------
-ADD THIS IN!!!!
-
 .. ===================================================================
 
 .. _sec:gpu:launch:
@@ -275,12 +364,20 @@ ADD THIS IN!!!!
 Kernel Launch
 =============
 
-AMReX uses :cpp:`MFIter` to iterate over a :cpp:`MultiFab`.  Inside
-the loop, we call functions to work on :cpp:`FArrayBox` objects (see
-:ref:`sec:basics:mfiter`).  With GPU support enabled, kernels are launched
- inside the :cpp:`MFIter` loop.  A tutorial example can be found in
-``Tutorials/GPU/Launch``.  How to launch using each possible GPU language
-will be introduced:
+In this section, how to offload work to the GPU will be demonstrated.
+In the CUDA C++ and Fortran cases, the kernel is launched with a C++
+template global function in AMReX (hidden in an AMReX launch macro),
+whereas for the OpenACC example, it is done with pragmas in Fortran.
+More details on the examples can be found in the source codes at
+``Tutorials/GPU/Launch/``.  We also refer the readers to Chapter
+:ref:`Chap:Basics` for information about basic AMReX classes.
+
+It is also recommended to write your primary floating point operation 
+loops in C++ using AMReX's :cpp:`fabView` object. It converts 
+the 1D array into a simple to understand 3D loop structure, similar
+to Fortran with no loss in performance. The details can be found in
+:ref:`ADD REFERENCE HERE`.
+
 
 Launching a C++ function
 ------------------------
@@ -387,7 +484,7 @@ The corresponding OpenACC labelled loop in ``plusone_acc`` is:
 .. highlight:: fortran 
 
 ::
-    !pointer to fab managed data defined as "dat"
+    !dat = pointer to fab's managed data 
 
     !$acc kernels deviceptr(dat)
     do       k = lo(3), hi(3)
@@ -407,8 +504,7 @@ by using the ``deviceptr`` construct.
 Launching over a particle loop
 ------------------------------
 
-SIMILAR PARTICLE LAUNCH EXAMPLE HERE???
-In the three examples above, we have shown how to offload to the GPU.
+In the examples above, we have shown how to offload to the GPU.
 In the CUDA C++ and Fortran cases, the kernel is launched with a C++
 template global function in AMReX (hidden in the launch macro),
 whereas for the OpenACC example, it is done with pragma in Fortran.
@@ -435,8 +531,6 @@ kernels in that iteration.
 These  
 allows each :cpp:`FArrayBox` inside of a :cpp:`MultiFab` to be implemented.
 
-SECTION ON EXTENDED LAMBDA RESTRICTIONS
-
 Launching kernels with the ``AMREX_LAUNCH_DEVICE_LAMBDA`` uses the CUDA
 extended lamdba feature.  There are, however, some restrictions on
 extended lambdas the user must be aware of.  For example, the enclosing
@@ -457,13 +551,16 @@ the code will not work as intended.  For example,
     public:
         Box bx;
         int m;
-        void f () {
+        void f () { 
             AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
             {
                 printf("m = %d\n", m);
             });
         }
     };
+
+----- ADD COMMENTS TO THESE????
+----- ADD HOST_DEVICE_LAMBDA???
 
 The function ``f`` in the code above will not work unless :cpp:`MyClass`
 object is in unified memory.  To fix it, we can change it to
@@ -485,14 +582,16 @@ object is in unified memory.  To fix it, we can change it to
         }
     };
 
+------ OpenMP labelling 
+
 
 .. _sec:gpu:example:
 
 An Example of Migrating to GPU
 ==============================
 
-The nature of GPU programming poses difficulties for a common patterns
-like the one below.
+The nature of GPU programming poses difficulties for a number
+of common AMReX patterns, such as the one below:
 
 .. highlight:: c++
 
@@ -515,15 +614,18 @@ like the one below.
        f2(vbx, uout[mfi], q);
    }
 
-There are several issues in migrating the code above to GPU that need to
-be addressed.  Because functions ``f1`` and ``f2`` have different
-work regions and there are data dependencies between the two, it is
-difficult to put them into a single GPU kernel.  So, we will launch two
-separate kernels.
+There are several issues in migrating this code to GPUs that need to
+be addressed.  First, functions ``f1`` and ``f2`` have different
+work regions (``vbx`` and ``gbx``, respectively) and there are data
+dependencies between the two (``q``). This makes it difficult to put
+them into a single GPU kernel, so two separate kernels will be
+launched, one for each function.
 
 As we have discussed in Section :ref:`sec:gpu:classes`, all
-:cpp:`FArrayBox`\ es in the two :cpp:`MultiFab`\ s are in unified
-memory.  But :cpp:`FArrayBox q` is in host memory.  Changing it to
+:cpp:`FArrayBox`\ es in the two :cpp:`MultiFab`\ s, ::cpp::`uin`
+and :cpp:`uout` are in unified memory and avaiable on the GPUs.
+But :cpp:`FArrayBox q` is in host memory.  Creating ``q`` as a 
+managed object using the overloaded :cpp:`new` operator:
 
 .. highlight:: c++
 
@@ -532,19 +634,25 @@ memory.  But :cpp:`FArrayBox q` is in host memory.  Changing it to
     FArrayBox* q = new FArrayBox;
 
 does not solve the problem completely because GPU kernel calls are
-asynchronous from CPU's point of view.  Therefore there is a race
-condition that GPU kernels in different iterations of :cpp:`MFIter`
-will compete for access to ``q``.  Moving the line into the body of
-:cpp:`MFIter` loop will make ``q`` a variable local to each iteration,
-but it has a new issue.  When do we delete :cpp:`q`?  To the CPU, the
-resource of :cpp:`q` should be freed at the end of the scope, otherwise
-there will be a memory leak.  But at the end of the CPU scope, GPU
-kernels might still need it.
+asynchronous from CPU's point of view.  This creates a race
+condition: GPU kernels in different iterations of :cpp:`MFIter`
+will compete for access to ``q``.  One possible failure is a 
+segfault when :cpp:`resize` changes the size of the ``q`` object
+when the previous iteration of the loop is still using an old size.
+
+Moving the line into the body of :cpp:`MFIter` loop will make ``q`` 
+a variable local to each iteration, but it has a new issue.  When 
+do we delete :cpp:`q`?  To the CPU, the resource of :cpp:`q` 
+should be freed at the end of the scope, otherwise there will be 
+a memory leak.  But at the end of the CPU scope, GPU kernels might 
+still need it.
 
 One way to fix this is put the temporary :cpp:`FArrayBox` objects in a
-:cpp:`MultiFab`.  Another way is to use :cpp:`Gpu:AsyncFab` designed
-for this kind of situation.  In the code below, we show how it is used
-and how kernels are launched.
+:cpp:`MultiFab` defined outside the loop.  This creates a separate
+:cpp:`FArrayBox` for each loop iteration, eliminating the race
+condition.  Another way is to use :cpp:`Gpu::AsyncFab` designed for 
+this kind of situation.  The code below shows how :cpp:`Gpu::AsyncFab`
+is used and how this MFIter loop can be rewritten for GPUs. 
 
 .. highlight:: c++
 
@@ -552,53 +660,56 @@ and how kernels are launched.
 
    for (MFIter mfi(uin); mfi.isValid(); ++mfi)
    {
-       const Box& vbx = mfi.validbox();
-       const Box& gbx = amrex::grow(vbx,1);
-       Gpu::AsyncFab q(gbx);
-       FArrayBox const* uinfab  = uin.fabPtr();
-       FArrayBox      * uoutfab = uout.fabPtr();
+       const Box& vbx = mfi.validbox();              // f2 work domain
+       const Box& gbx = amrex::grow(vbx,1);          // f1 work domain
+       Gpu::AsyncFab q(gbx);                         // Local, GPU managed FArrayBox
+       FArrayBox const* uinfab  = uin.fabPtr();      // Managed GPU capturable
+       FArrayBox      * uoutfab = uout.fabPtr();     //   pointers to Multifab's FABs.
 
-       AMREX_LAUNCH_DEVICE_LAMBDA ( gbx, tbx,
+       AMREX_LAUNCH_DEVICE_LAMBDA ( gbx, tbx,        // f1 GPU launch 
        {
            f1(tbx, q.fab(), *uinfab);
        };
 
-       AMrEX_LAMBDA_DEVICE_LAMBDA ( vbx, tbx,
+       AMrEX_LAMBDA_DEVICE_LAMBDA ( vbx, tbx,        // f2 GPU launch 
        {
            f2(tbx, *uoutfab, q.fab());
        });
-   }
+   }                                                 // Implicit GPU barrier after
+                                                     //   all iters are launched.
 
 .. ===================================================================
 
 .. _sec:gpu:assertion:
 
-Assertion and Error Check
-=========================
+Assertions, Error Checking and Synchronization
+================================================
 
 To help debugging, we often use :cpp:`amrex::Assert` and
 :cpp:`amrex::Abort`.  These functions are GPU safe and can be used in
-GPU kernels.  In CPU code, we can also call
-:cpp:`AMREX_GPU_ERROR_CHECK()` to check if there are any GPU errors at
-that point.  Because of asynchronicity, even if GPU kernels launched
-before that point contain a bug that will result in a CUDA error, the
-error may not be encountered when :cpp:`AMREX_GPU_ERROR_CHECK()` is
-called.  We can use :cpp:`Gpu::Device::synchronize()` or
-:cpp:`Gpu::Device::streamSynchroniz()` to synchronize the device or
-the CUDA stream, respectively.
+GPU kernels.  However, implementing these functions requires additional
+GPU registers, which will reduce overall performance.  Therefore, it
+is preferred to implement such calls in debug mode only by wraping the
+calls using ``#ifdef AMREX_DEBUG``. 
 
-.. ===================================================================
+In CPU code, :cpp:`AMREX_GPU_ERROR_CHECK()` can be called
+to check the health of previous GPU launches.  This call
+looks up the return message from the most recently completed GPU
+launch and aborts if it was not successful. Many kernel
+launch macros as well as the :cpp:`MFIter` destructor include a call 
+to :cpp:`AMREX_CPU_ERROR_CHECK()`. This prevents additional launches
+from being called if a previous launch caused an error and ensures
+all GPU launches within an :cpp:`MFIter` loop completed successfully
+before continuing work.
 
-.. _sec:gpu:reduction:
-
-Reduction
-=========
-
-AMReX provides some functions for performing reduction operations with on the GPU (e.g.,
-:cpp:`MultiFab::sum`, :cpp:`MultiFab::max`, etc.). Function
-templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
-:cpp:`amrex::ReduceMax` can be used to implement your own reduction
-functions for :cpp:`FabArray`\ s.
+However, due to asynchronicity, determining the source of the error 
+can be difficult.  Even if GPU kernels launched earlier in the code 
+result in a CUDA error, the error may not be output at a nearby call to
+:cpp:`AMREX_GPU_ERROR_CHECK()` by the CPU.  When tracking down a CUDA
+launch error, :cpp:`Gpu::Device::synchronize()` and 
+:cpp:`Gpu::Device::streamSynchronize()` can be used to synchronize
+the device or the CUDA stream, respectively, and track down the specific
+launch that causes the error.
 
 .. ===================================================================
 
@@ -639,7 +750,7 @@ Performance Tips
 
 .. _sec:gpu:performance:
 
-It may be helpful to keep in mind these performance tips when working with AMReX for GPUs:
+Here are some helpful performance tips to keep in mind when working with AMReX for GPUs:
 
 *
 *

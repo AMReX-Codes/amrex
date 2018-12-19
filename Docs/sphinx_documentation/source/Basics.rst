@@ -23,6 +23,8 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
+.. _sec:basics:vecandarr:
+
 Vector and Array
 ================
 
@@ -1651,7 +1653,7 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 Fortran, C and C++ Kernels
 ==========================
 
-In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
+In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
 data. In each iteration, a kernel function is called to work on the data and
 the work region is specified by a :cpp:`Box`.  When tiling is used, the work
