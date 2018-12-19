@@ -306,6 +306,10 @@ CellConservativeLinear::interp_new (const FArrayBox& crse,
     Gpu::AsyncFab as_ccfab(cslope_bx, ntmp);
     FArrayBox* ccfab = as_ccfab.fabPtr();
 
+    const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio);
+    Gpu::AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
+    Real const* voff = async_voff.data();
+
     FArrayBox const* crsep = &crse;
     AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
 
@@ -317,20 +321,36 @@ CellConservativeLinear::interp_new (const FArrayBox& crse,
         {
             amrex::cellconslin_slopes_linlim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
         });
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
         {
-            amrex::cellconslin_interp_linlim(tbx, *finep, fine_comp, ncomp, *ccfab,
-                                             *crsep, crse_comp, ratio);
+            amrex::cellconslin_interp(tbx, *finep, fine_comp, ncomp, *ccfab, *crsep, crse_comp,
+                                      voff, ratio);
         });
     } else {
+        const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
+        Gpu::AsyncFab as_fafab(fslope_bx, ncomp);
+        FArrayBox* fafab = as_fafab.fabPtr();
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
         {
-            amrex::cellconslin_slopes_mmlim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
+            amrex::cellconslin_slopes_mclim(tbx, *ccfab, *crsep, crse_comp, ncomp, bcrp);
         });
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fslope_bx, tbx,
+        {
+            amrex::cellconslin_fine_alpha(tbx, *fafab, *ccfab, ncomp, voff, ratio);
+        });
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+        {
+            amrex::cellconslin_slopes_mmlim(tbx, *ccfab, *fafab, ncomp, ratio);
+        });
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
         {
-            amrex::cellconslin_interp_mmlim(tbx, *finep, fine_comp, ncomp, *ccfab,
-                                            *crsep, crse_comp, ratio);
+            amrex::cellconslin_interp(tbx, *finep, fine_comp, ncomp, *ccfab, *crsep, crse_comp,
+                                      voff, ratio);
         });
     }
 
