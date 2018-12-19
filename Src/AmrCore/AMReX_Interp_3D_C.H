@@ -3,9 +3,54 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_Vector.H>
 #include <cmath>
 
 namespace amrex {
+
+AMREX_GPU_HOST
+inline
+Vector<Real>
+ccinterp_compute_voff (Box const& cbx, IntVect const& ratio)
+{
+    const Box& fbx = amrex::refine(cbx,ratio);
+    const auto& flen = amrex::length(fbx);
+    const auto& flo = amrex::lbound(fbx);
+    const auto& fhi = amrex::ubound(fbx);
+    const int nxyz = AMREX_D_TERM(flen.x, + flen.y, + flen.z);
+    Vector<Real> voff(nxyz);
+    
+    const Real xrinv = 1./ratio[0];
+    const Real yrinv = 1./ratio[1];
+    const Real zrinv = 1./ratio[2];
+
+    const Real xtmp = 0.5*(xrinv-1.0);
+    const Real ytmp = 0.5*(yrinv-1.0);
+    const Real ztmp = 0.5*(zrinv-1.0);
+
+    Real* AMREX_RESTRICT xoff = &voff[0];
+    for (int i = flo.x; i <= fhi.x; ++i) {
+        const int ic = amrex::coarsen(i, ratio[0]);
+        const int ioff = i - ic*ratio[0];
+        xoff[i-flo.x] = ioff*xrinv + xtmp;
+    }
+
+    Real* AMREX_RESTRICT yoff = &voff[flen.x];
+    for (int j = flo.y; j <= fhi.y; ++j) {
+        const int jc = amrex::coarsen(j, ratio[1]);
+        const int joff = j - jc*ratio[1];
+        yoff[j-flo.y] = joff*yrinv + ytmp;
+    }
+
+    Real* AMREX_RESTRICT zoff = &voff[flen.x+flen.y];
+    for (int k = flo.z; k <= fhi.z; ++k) {
+        const int kc = amrex::coarsen(k, ratio[2]);
+        const int koff = k - kc*ratio[2];
+        zoff[k-flo.z] = koff*zrinv + ztmp;
+    }
+
+    return voff;
+}
 
 namespace {
 
@@ -233,9 +278,9 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
 }
 
 AMREX_GPU_HOST_DEVICE inline void
-cellconslin_interp_linlim (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
-                           FArrayBox const& slopesfab, FArrayBox const& crsefab, const int ccomp,
-                           IntVect const& ratio)
+cellconslin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
+                    FArrayBox const& slopesfab, FArrayBox const& crsefab, const int ccomp,
+                    Real const* AMREX_RESTRICT voff, IntVect const& ratio)
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
@@ -245,53 +290,34 @@ cellconslin_interp_linlim (Box const& bx, FArrayBox& finefab, const int fcomp, c
     const auto slopes = slopesfab.view(clo);
     const auto crse = crsefab.view(clo,ccomp);
 
-    const Real xrinv = 1./ratio[0];
-    const Real yrinv = 1./ratio[1];
-    const Real zrinv = 1./ratio[2];
+    Box vbox = slopesfab.box();
+    vbox.refine(ratio);
+    const auto vlo  = amrex::lbound(vbox);
+    const auto vlen = amrex::length(vbox);
+    Real const* AMREX_RESTRICT xoff = &voff[lo.x-vlo.x];
+    Real const* AMREX_RESTRICT yoff = &voff[lo.y-vlo.y+vlen.x];
+    Real const* AMREX_RESTRICT zoff = &voff[lo.z-vlo.z+vlen.x+vlen.y];
 
-    const Real xtmp = 0.5*(xrinv-1.0);
-    const Real ytmp = 0.5*(yrinv-1.0);
-    const Real ztmp = 0.5*(xrinv-1.0);
-
-
-    for (int k = 0; k < len.z; ++k) {
-        const int kk = k + lo.z;
-        const int kkc = amrex::coarsen(kk, ratio[2]);
-        const int koff = kk - kkc*ratio[2];
-        const Real zoff = koff*zrinv + ztmp;
-        const int kc = kkc - clo.z;
-        for (int j = 0; j < len.y; ++j) {
-            const int jj = j + lo.y;
-            const int jjc = amrex::coarsen(jj, ratio[1]);
-            const int joff = jj - jjc*ratio[1];
-            const Real yoff = joff*yrinv + ytmp;
-            const int jc = jjc - clo.y;
-#ifndef __CUDA_ARCH__
-            for (int n = 0; n < ncomp; ++n) {
-#endif
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                const int ii = i + lo.x;
-                const int iic = amrex::coarsen(ii, ratio[0]);
-                const int ioff = ii - iic*ratio[0];
-                const Real xoff = ioff*xrinv + xtmp;
-                const int ic = iic - clo.x;
-#ifdef __CUDA_ARCH__
-                for (int n = 0; n < ncomp; ++n) {
-#endif
+    for (int n = 0; n < ncomp; ++n) {
+        for (int k = 0; k < len.z; ++k) {
+            const int kc = amrex::coarsen(k+lo.z,ratio[2]) - clo.z;
+            for (int j = 0; j < len.y; ++j) {
+                const int jc = amrex::coarsen(j+lo.y,ratio[1]) - clo.y;
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    const int ic = amrex::coarsen(i+lo.x,ratio[0]) - clo.x;
                     fine(i,j,k,n) = crse(ic,jc,kc,n)
-                        + xoff * slopes(ic,jc,kc,n)
-                        + yoff * slopes(ic,jc,kc,n+ncomp)
-                        + zoff * slopes(ic,jc,kc,n+2*ncomp);
+                        + xoff[i] * slopes(ic,jc,kc,n)
+                        + yoff[j] * slopes(ic,jc,kc,n+ncomp)
+                        + zoff[k] * slopes(ic,jc,kc,n+2*ncomp);
                 }
             }
         }
     }
 }
 
-
 AMREX_GPU_HOST_DEVICE inline void
-cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab,
+cellconslin_slopes_mclim (Box const& bx, FArrayBox& ccfab,
                           FArrayBox const& ufab, const int icomp, const int ncomp,
                           BCRec const* AMREX_RESTRICT bcr)
 {
@@ -308,7 +334,6 @@ cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab,
     const auto shi = amrex::ubound(sbox);
     const auto slen = amrex::length(sbox);
 
-
     for             (int n = 0; n < ncomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -323,8 +348,8 @@ cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab,
                             }
                         }
                     }
-                    mm(i,j,k,n      ) = cmn;
-                    mm(i,j,k,n+ncomp) = cmx;
+                    mm(i,j,k,n      ) = cmn - u(i,j,k,n);
+                    mm(i,j,k,n+ncomp) = cmx - u(i,j,k,n);
                 }
             }
         }
@@ -359,59 +384,78 @@ cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab,
 }
 
 AMREX_GPU_HOST_DEVICE inline void
-cellconslin_interp_mmlim (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
-                          FArrayBox const& ccfab, FArrayBox const& crsefab, const int ccomp,
-                          IntVect const& ratio)
+cellconslin_fine_alpha (Box const& bx, FArrayBox& alphafab, FArrayBox const& ccfab, const int ncomp,
+                        Real const* AMREX_RESTRICT voff, IntVect const& ratio)
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
-    const auto fine = finefab.view(lo,fcomp);
+    const auto alpha = alphafab.view(lo);
 
-    const auto clo = amrex::coarsen(lo,ratio);
+    const auto clo = amrex::coarsen(lo, ratio);
     const auto slopes = ccfab.view(clo);
-    const auto mm     = ccfab.view(clo,ncomp*3);  // min and max
+    const auto mm     = ccfab.view(clo,ncomp*3); // min and max
 
-    const auto crse = crsefab.view(clo,ccomp);
+    const Box& alpha_box = alphafab.box();
+    const auto vlo  = amrex::lbound(alpha_box);
+    const auto vlen = amrex::length(alpha_box);
+    Real const* AMREX_RESTRICT xoff = &voff[lo.x-vlo.x];
+    Real const* AMREX_RESTRICT yoff = &voff[lo.y-vlo.y+vlen.x];
+    Real const* AMREX_RESTRICT zoff = &voff[lo.z-vlo.z+vlen.x+vlen.y];
 
-    const Real xrinv = 1./ratio[0];
-    const Real yrinv = 1./ratio[1];
-    const Real zrinv = 1./ratio[2];
+    for (int n = 0; n < ncomp; ++n) {
+        for (int k = 0; k < len.z; ++k) {
+            const int kc = amrex::coarsen(k+lo.z,ratio[2]) - clo.z;
+            for (int j = 0; j < len.y; ++j) {
+                const int jc = amrex::coarsen(j+lo.y,ratio[1]) - clo.y;
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    const int ic = amrex::coarsen(i+lo.x,ratio[0]) - clo.x;
+                    const Real dummy_fine = xoff[i]*slopes(ic,jc,kc,n)
+                        +                   yoff[j]*slopes(ic,jc,kc,n+ncomp)
+                        +                   zoff[k]*slopes(ic,jc,kc,n+ncomp*2);
 
-    const Real xtmp = 0.5*(xrinv-1.0);
-    const Real ytmp = 0.5*(yrinv-1.0);
-    const Real ztmp = 0.5*(xrinv-1.0);
+                    if (dummy_fine > mm(ic,jc,kc,n+ncomp) && dummy_fine != 0.0) {
+                        alpha(i,j,k,n) = mm(ic,jc,kc,n+ncomp) / dummy_fine;
+                    } else if (dummy_fine < mm(ic,jc,kc,n) && dummy_fine != 0.0) {
+                        alpha(i,j,k,n) = mm(ic,jc,kc,n) / dummy_fine;
+                    } else {
+                        alpha(i,j,k,n) = 1.0;
+                    }
+                }
+            }
+        }
+    }
+}
 
+AMREX_GPU_HOST_DEVICE inline void
+cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab, FArrayBox const& alphafab,
+                          const int ncomp, IntVect const& ratio)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto slopes = ccfab.view(lo);
 
-    for (int k = 0; k < len.z; ++k) {
-        const int kk = k + lo.z;
-        const int kkc = amrex::coarsen(kk, ratio[2]);
-        const int koff = kk - kkc*ratio[2];
-        const Real zoff = koff*zrinv + ztmp;
-        const int kc = kkc - clo.z;
-        for (int j = 0; j < len.y; ++j) {
-            const int jj = j + lo.y;
-            const int jjc = amrex::coarsen(jj, ratio[1]);
-            const int joff = jj - jjc*ratio[1];
-            const Real yoff = joff*yrinv + ytmp;
-            const int jc = jjc - clo.y;
-#ifndef __CUDA_ARCH__
-            for (int n = 0; n < ncomp; ++n) {
-#endif
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                const int ii = i + lo.x;
-                const int iic = amrex::coarsen(ii, ratio[0]);
-                const int ioff = ii - iic*ratio[0];
-                const Real xoff = ioff*xrinv + xtmp;
-                const int ic = iic - clo.x;
-#ifdef __CUDA_ARCH__
-                for (int n = 0; n < ncomp; ++n) {
-#endif
-                    fine(i,j,k,n) = crse(ic,jc,kc,n) + xoff * slopes(ic,jc,kc,n)
-                        +                              yoff * slopes(ic,jc,kc,n+ncomp)
-                        +                              zoff * slopes(ic,jc,kc,n+2*ncomp);
-                    fine(i,j,k,n) = amrex::max(fine(i,j,k,n),mm(ic,jc,kc,n));
-                    fine(i,j,k,n) = amrex::min(fine(i,j,k,n),mm(ic,jc,kc,n+ncomp));
+    const auto flo = amrex::refine(lo,ratio);
+    const auto alpha = alphafab.view(flo);
+
+    for (int n = 0; n < ncomp; ++n) {
+        for (int k = 0; k < len.z; ++k) {
+            const int kk = k*ratio[2];
+            for (int j = 0; j < len.y; ++j) {
+                const int jj = j*ratio[1];
+                for (int i = 0; i < len.x; ++i) {
+                    const int ii = i*ratio[0];
+                    Real a = 1.0;
+                    for (int koff = 0; koff < 2; ++koff) {
+                        for (int joff = 0; joff < 2; ++joff) {
+                            for (int ioff = 0; ioff < 2; ++ioff) {
+                                a = amrex::min(a, alpha(ii+ioff,jj+joff,kk+koff,n));
+                            }
+                        }
+                    }
+                    slopes(i,j,k,n        ) *= a;
+                    slopes(i,j,k,n+ncomp  ) *= a;
+                    slopes(i,j,k,n+ncomp*2) *= a;
                 }
             }
         }
