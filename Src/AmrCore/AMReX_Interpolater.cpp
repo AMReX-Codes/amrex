@@ -302,7 +302,16 @@ CellConservativeLinear::interp_new (const FArrayBox& crse,
     Gpu::AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
     BCRec* bcrp = async_bcr.data();
 
-    const int ntmp = do_linear_limiting ? ncomp*AMREX_SPACEDIM+3 : ncomp*(AMREX_SPACEDIM+2);
+    // component of ccfab : slopes for first compoent for x-direction
+    //                      slopes for second component for x-direction
+    //                      ...
+    //                      slopes for last component for x-direction
+    //                      slopes for y-direction
+    //                      slopes for z-drction
+    // then followed by
+    //      lin_lim = true : factors (one for all components) for x, y and z-direction
+    //      lin_lim = false: min for every component followed by max for every component
+    const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
     Gpu::AsyncFab as_ccfab(cslope_bx, ntmp);
     FArrayBox* ccfab = as_ccfab.fabPtr();
 

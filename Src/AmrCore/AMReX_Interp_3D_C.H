@@ -29,6 +29,7 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio)
     const Real ztmp = 0.5*(zrinv-1.0);
 
     Real* AMREX_RESTRICT xoff = &voff[0];
+    AMREX_PRAGMA_SIMD
     for (int i = flo.x; i <= fhi.x; ++i) {
         const int ic = amrex::coarsen(i, ratio[0]);
         const int ioff = i - ic*ratio[0];
@@ -36,6 +37,7 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio)
     }
 
     Real* AMREX_RESTRICT yoff = &voff[flen.x];
+    AMREX_PRAGMA_SIMD
     for (int j = flo.y; j <= fhi.y; ++j) {
         const int jc = amrex::coarsen(j, ratio[1]);
         const int joff = j - jc*ratio[1];
@@ -43,6 +45,7 @@ ccinterp_compute_voff (Box const& cbx, IntVect const& ratio)
     }
 
     Real* AMREX_RESTRICT zoff = &voff[flen.x+flen.y];
+    AMREX_PRAGMA_SIMD
     for (int k = flo.z; k <= fhi.z; ++k) {
         const int kc = amrex::coarsen(k, ratio[2]);
         const int koff = k - kc*ratio[2];
@@ -209,8 +212,8 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
     const auto sf     = ccfab.view(lo,ncomp*3);  // slope factor
 
     const auto& sbox = ccfab.box();
-    const auto slo = amrex::lbound(sbox);
-    const auto shi = amrex::ubound(sbox);
+    const auto slo  = amrex::lbound(sbox);
+    const auto shi  = amrex::ubound(sbox);
     const auto slen = amrex::length(sbox);
 
     for         (int k = 0; k < len.z; ++k) {
@@ -330,8 +333,8 @@ cellconslin_slopes_mclim (Box const& bx, FArrayBox& ccfab,
     const auto mm     = ccfab.view(lo,ncomp*3);  // min and max
 
     const auto& sbox = ccfab.box();
-    const auto slo = amrex::lbound(sbox);
-    const auto shi = amrex::ubound(sbox);
+    const auto slo  = amrex::lbound(sbox);
+    const auto shi  = amrex::ubound(sbox);
     const auto slen = amrex::length(sbox);
 
     for             (int n = 0; n < ncomp; ++n) {
@@ -339,7 +342,7 @@ cellconslin_slopes_mclim (Box const& bx, FArrayBox& ccfab,
             for     (int j = 0; j < len.y; ++j) {
                 for (int i = 0; i < len.x; ++i) {
                     Real cmn = u(i,j,k,n);
-                    Real cmx = u(i,j,k,n);
+                    Real cmx = cmn;
                     for         (int koff = -1; koff <= 1; ++koff) {
                         for     (int joff = -1; joff <= 1; ++joff) {
                             for (int ioff = -1; ioff <= 1; ++ioff) {
@@ -446,9 +449,9 @@ cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab, FArrayBox const& alph
                 for (int i = 0; i < len.x; ++i) {
                     const int ii = i*ratio[0];
                     Real a = 1.0;
-                    for (int koff = 0; koff < 2; ++koff) {
-                        for (int joff = 0; joff < 2; ++joff) {
-                            for (int ioff = 0; ioff < 2; ++ioff) {
+                    for         (int koff = 0; koff < ratio[2]; ++koff) {
+                        for     (int joff = 0; joff < ratio[1]; ++joff) {
+                            for (int ioff = 0; ioff < ratio[0]; ++ioff) {
                                 a = amrex::min(a, alpha(ii+ioff,jj+joff,kk+koff,n));
                             }
                         }
