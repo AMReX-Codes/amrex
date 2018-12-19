@@ -57,6 +57,12 @@
 #include <Perilla.H>
 #ifdef USE_PERILLA_PTHREADS
     pthread_mutex_t teamFinishLock=PTHREAD_MUTEX_INITIALIZER;
+#ifdef PERILLA_USE_UPCXX
+extern struct rMsgMap_t{
+    std::map< int, std::map< int,  std::list< Package* > > > map;
+    pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
+}rMsgMap;
+#endif
 #endif
 #endif
 
@@ -2246,6 +2252,17 @@ Amr::coarseTimeStep (Real stop_time)
 		    //cancel messages preposted previously
 		    flattenedGraphArray[g]->graphTeardown();
 		}
+#ifdef PERILLA_USE_UPCXX
+                for(int i=0; i<rMsgMap.map.size(); i++){
+                    for(int j=0; j<rMsgMap.map[i].size(); j++){
+			while(rMsgMap.map[i][j].size()>0){
+                            Package* p= rMsgMap.map[i][j].front();
+                            rMsgMap.map[i][j].pop_front();
+                            //delete p;
+			}
+                    }
+                }
+#endif
 		Perilla::syncProcesses();
 	        Perilla::updateMetadata_noticed=1;
 	        while(!Perilla::updateMetadata_done){

@@ -29,10 +29,12 @@ namespace amrex{
 		next=0;
 		prev=0;
 		graphPartner=0;
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 	    }
             ~FabCopyAssoc()
             {
                 if(next) delete next;
+        memcheck.remove(memcheck.genKey(this));
             }
     };
 
@@ -45,7 +47,7 @@ namespace amrex{
 	    pTileArray(): numTiles(0), tileBx(0){}
 	    ~pTileArray()
 	    {
-                for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
+                //for(int i=0; i<tileBx.size(); i++) delete tileBx[i];
                 tileBx.clear();
                 //delete[] validBx;
 	    }
@@ -71,16 +73,18 @@ namespace amrex{
 		numDepTasksCompleted = 0;
 		cpAsc_srcHead=0;
 		cpAsc_dstHead=0;
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 	    }
 
 	    ~Task()
 	    {
 		state.clear();
 		depTaskIDs.clear();
-		//if(cpAsc_srcHead != 0)
-		    //delete[] cpAsc_srcHead;
-		//if(cpAsc_dstHead != 0)
-		    //delete[] cpAsc_dstHead;
+		if(cpAsc_srcHead != 0)
+		    delete cpAsc_srcHead;
+		if(cpAsc_dstHead != 0)
+		    delete cpAsc_dstHead;
+        memcheck.remove(memcheck.genKey(this));
 	    }
     };
 
@@ -118,7 +122,9 @@ namespace amrex{
 	    CopyMap()
 		:
 		    next(0)
-	{}
+	{
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+}
 
 	    void alloc_CopyMap(const MultiFab& mf)
 	    {
@@ -137,9 +143,14 @@ namespace amrex{
 	    }
 	    ~CopyMap()
 	    {
+                for (int i = 0; i < map.size(); ++i)
+                {
+                    delete map[i];
+                }
 		map.clear();
 		if(next !=0 )
 		    delete next;
+        memcheck.remove(memcheck.genKey(this));
 	    }
     };
 
@@ -300,8 +311,6 @@ namespace amrex{
                     fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
                 }
             }
-
-
 
 	    ~RegionGraph();
     };
