@@ -235,7 +235,7 @@ void MLMG::oneIter (int iter)
         // (Fine AMR correction) = I(Coarse AMR correction)
         interpCorrection(alev);
 
-        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 0);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 1);
 
         if (alev != finest_amr_lev) {
 	  MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, ncomp, 0);
@@ -319,7 +319,8 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
-    if (linop.isCellCentered()) {
+    if (linop.isCellCentered()
+	) {
         const int amrrr = linop.AMRRefRatio(calev);
 #ifdef AMREX_USE_EB
         amrex::EB_average_down(fine_res, crse_res, 0, ncomp, amrrr);
@@ -479,7 +480,7 @@ MLMG::mgFcycle ()
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
         // res = rescor; this provides b to the vcycle below
-        MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,ncomp,0);
+        MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,ncomp,1);
 
         // save cor; do v-cycle; add the saved to cor
         std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
@@ -506,7 +507,7 @@ MLMG::interpCorrection (int alev)
 
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
-    const int ng = linop.isCellCentered() ? 1 : 0;
+    const int ng = 1; //linop.isCellCentered() ? 1 : 0;
     MultiFab cfine(ba, fine_cor.DistributionMap(), ncomp, ng);
     cfine.setVal(0.0);
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
@@ -573,14 +574,16 @@ MLMG::interpCorrection (int alev)
             {
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
-                const Box& tmpbx = amrex::refine(cbx,2);
+                Box tmpbx = amrex::refine(cbx,2);
+		tmpbx.grow(1);
                 tmpfab.resize(tmpbx,ncomp);
+		
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
                                          BL_TO_FORTRAN_ANYD(cfine[mfi]),
 					 &ncomp);
-                fine_cor[mfi].copy(tmpfab, fbx, 0, fbx, 0, ncomp);
+                fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
             }
         }
     }
@@ -614,7 +617,7 @@ MLMG::interpCorrection (int alev, int mglev)
     {
         BoxArray cba = fine_cor.boxArray();
         cba.coarsen(refratio);
-        const int ng = linop.isCellCentered() ? crse_cor.nGrow() : 0;
+        const int ng = 1; //linop.isCellCentered() ? crse_cor.nGrow() : 0;
         cfine.define(cba, fine_cor.DistributionMap(), ncomp, ng);
         cfine.setVal(0.0);
         cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
@@ -629,7 +632,8 @@ MLMG::interpCorrection (int alev, int mglev)
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 #endif
 
-    if (linop.isCellCentered())
+    if (linop.isCellCentered()
+	)
     {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -860,7 +864,8 @@ MLMG::ResNormInf (int alev, bool local)
     Real norm = 0.0;
     MultiFab* pmf = &(res[alev][mglev]);
 #ifdef AMREX_USE_EB
-    if (linop.isCellCentered() && scratch[alev]) {
+    if (linop.isCellCentered()
+	&& scratch[alev]) {
         pmf = scratch[alev].get();
         MultiFab::Copy(*pmf, res[alev][mglev], 0, 0, ncomp, 0);
         auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
@@ -909,7 +914,8 @@ MLMG::MLRhsNormInf (bool local)
     {
         MultiFab* pmf = &(rhs[alev]);
 #ifdef AMREX_USE_EB
-        if (linop.isCellCentered() && scratch[alev]) {
+        if (linop.isCellCentered()
+	    && scratch[alev]) {
             pmf = scratch[alev].get();
             MultiFab::Copy(*pmf, rhs[alev], 0, 0, ncomp, 0);
             auto factory = dynamic_cast<EBFArrayBoxFactory const*>(linop.Factory(alev));
@@ -969,7 +975,8 @@ MLMG::buildFineMask ()
         }
     }
 
-    if (!linop.isCellCentered()) {
+    if (!linop.isCellCentered()
+	) {
         for (int alev = 0; alev < finest_amr_lev; ++alev) {
             linop.fixUpResidualMask(alev, *fine_mask[alev]);
         }
@@ -1058,7 +1065,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         makeSolvable();
     }
 
-    int ng = linop.isCellCentered() ? 0 : 1;
+    int ng = 1; //linop.isCellCentered() ? 0 : 1;
     if (!solve_called) {
         linop.make(res, ncomp, ng);
         linop.make(rescor, ncomp, ng);
@@ -1124,7 +1131,8 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     {
         scratch.resize(namrlevs);
 #ifdef AMREX_USE_EB
-        if (linop.isCellCentered()) {
+        if (linop.isCellCentered()
+	    ) {
             for (int alev=0; alev < namrlevs; ++alev) {
                 if (rhs[alev].hasEBFabFactory()) {
                     scratch[alev].reset(new MultiFab(rhs[alev].boxArray(),
@@ -1195,7 +1203,8 @@ void
 MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
                  Location a_loc)
 {
-    if (!linop.isCellCentered())
+    if (!linop.isCellCentered()
+	)
        amrex::Abort("Calling wrong getFluxes for nodal solver");
 
     AMREX_ASSERT(sol.size() == a_flux.size());
@@ -1209,7 +1218,8 @@ MLMG::getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
 {
     BL_PROFILE("MLMG::getFluxes()");
 
-    if (!linop.isCellCentered())
+    if (!linop.isCellCentered()
+	)
        amrex::Abort("Calling wrong getFluxes for nodal solver");
 
     linop.getFluxes(a_flux, a_sol, a_loc);
@@ -1227,7 +1237,8 @@ MLMG::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_so
 {
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
-    if (linop.isCellCentered())
+    if (linop.isCellCentered()
+	)
     {
         Vector<Array<MultiFab,AMREX_SPACEDIM> > ffluxes(namrlevs);
         for (int alev = 0; alev < namrlevs; ++alev) {
@@ -1306,7 +1317,8 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *a_res[alev], *sol[alev], *prhs,
                          *a_res[alev+1], *sol[alev+1], *a_rhs[alev+1]);
-            if (linop.isCellCentered()) {
+            if (linop.isCellCentered()
+		) {
 #ifdef AMREX_USE_EB
                 amrex::EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
 #else
@@ -1370,7 +1382,8 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *out[alev], *in[alev], rh[alev],
                          *out[alev+1], *in[alev+1], rh[alev+1]);
-            if (linop.isCellCentered()) {
+            if (linop.isCellCentered()
+		) {
 #ifdef AMREX_USE_EB
                 amrex::EB_average_down(*out[alev+1], *out[alev], 0, out[alev]->nComp(), amrrr[alev]);
 #else
@@ -1398,7 +1411,8 @@ MLMG::averageDownAndSync ()
 
     int ncomp = linop.getNComp();
 
-    if (linop.isCellCentered())
+    if (linop.isCellCentered()
+	)
     {
         for (int falev = finest_amr_lev; falev > 0; --falev)
         {
@@ -1432,7 +1446,8 @@ MLMG::computeVolInv ()
 {
     if (solve_called) return;
 
-    if (linop.isCellCentered())
+    if (linop.isCellCentered()
+	)
     { 
         Real temp1, temp2;    
         volinv.resize(namrlevs);
@@ -1487,7 +1502,8 @@ MLMG::makeSolvable ()
 {
     const int ncomp = linop.getNComp();
 
-    if (linop.isCellCentered())
+    if (linop.isCellCentered()
+	)
     {
         Vector<Real> offset(ncomp);
 #ifdef AMREX_USE_EB
@@ -1540,7 +1556,8 @@ MLMG::makeSolvable (int amrlev, int mglev, MultiFab& mf)
 {
     const int ncomp = linop.getNComp();
     
-    if (linop.isCellCentered())
+    if (linop.isCellCentered()
+	)
     {
         Vector<Real> offset(ncomp);
 #ifdef AMREX_USE_EB
