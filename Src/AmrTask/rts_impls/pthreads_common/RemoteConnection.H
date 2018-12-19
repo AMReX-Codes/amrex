@@ -76,6 +76,7 @@ public:
     rcvLock(PTHREAD_MUTEX_INITIALIZER),
     ghostLock(PTHREAD_MUTEX_INITIALIZER)
   {
+//    	        memcheck.add(memcheck.genKey(this), (void*)this, "RemoteCommDescriptor");
   }
 
   ~RemoteConnection()
@@ -84,6 +85,7 @@ public:
       delete[] snd;
     if(rcv)
       delete[] rcv;
+//    	        memcheck.remove(memcheck.genKey(this));
   }
 };
 
