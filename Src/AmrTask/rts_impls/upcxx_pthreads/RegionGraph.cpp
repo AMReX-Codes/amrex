@@ -610,7 +610,7 @@ void RegionGraph::graphTeardown()
 	}
     }
 
-    //if(tg == 0)
+    if(tg == 0)
     {
 	CopyMap* cpDst = rCopyMapHead;
 	while(cpDst != 0)
@@ -660,7 +660,6 @@ void RegionGraph::graphTeardown()
 	    cpSrc = cpSrc->next;
 	}
     }
-#endif
 
     //if(WorkerThread::isTeamMasterThread(tid)) commented out b/c its already call by single thread in a team
     //Perilla::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
@@ -703,6 +702,7 @@ void RegionGraph::graphTeardown()
 	    for(int i=0; i< rMap[f]->r_con.nrcv; i++)
 		while( rMap[f]->r_con.rcv[i].pQueue.queueSize() >= 1)
 		{
+cout<<"AAAAAAAAAAAAAAAAAAA"<<endl;
 		    package =  rMap[f]->r_con.rcv[i].pQueue.dequeue();
 		    package->completed = false;
 		    package->served = false;
@@ -719,9 +719,11 @@ void RegionGraph::graphTeardown()
 		    package->notified = false;
 		    package->request = 0;
 		    sMap[f]->r_con.snd[i].recycleQueue.enqueue(package);
+cout<<"BBBBBBBBBBBBBBBBBBBBBBBB"<<endl;
 		}
 	}
     }
+#endif
 }
 
 void RegionGraph::workerTeardown()
@@ -752,8 +754,8 @@ RegionGraph::~RegionGraph()
     sMap.clear();
     rMap.clear();
 
-    //for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
-    //for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
+    for(int i=0; i<fabTiles.size(); i++) delete fabTiles[i];
+    for(int i=0; i<fabTiles_gtbx.size(); i++) delete fabTiles_gtbx[i];
 
     fabTiles.clear();
     fabTiles_gtbx.clear();

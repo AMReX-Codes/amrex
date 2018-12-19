@@ -143,3 +143,45 @@ void average_down_pull (RGIter& rgi, MultiFab* S_fine, MultiFab* S_crse, RegionG
     Perilla::multifabCopyPull(RG_crse, RG_fine, S_crse, S_fine, f, scomp, 0, ncomp, 0, 0, false);
 }
 
+
+#if 0
+#include "PerillaMemCheck.H"
+
+void PerillaMemCheck::add(string key, void* obj, string classname)
+{
+    lock.lock();
+    if(objMap.find(key) == objMap.end())
+    {
+        objMap[key]= obj;
+	printf("Adding an object\n");
+    }
+    else{
+        printf("Reinsert an object\n");
+        exit(0);
+    }
+    lock.unlock();
+}
+
+
+void PerillaMemCheck::remove(string key){
+    lock.lock();
+    if(objMap.find(key) != objMap.end())
+    {
+        objMap.erase(key);
+	printf("Removing an object\n");
+    }
+    else{
+        printf("Object not found\n");
+        exit(0);
+    }
+
+    lock.unlock();
+}
+void PerillaMemCheck::report(){
+    if(objMap.size()) {
+        printf("Memory leak found\n");
+    }else printf("all packages deallocated\n");
+}
+
+
+#endif

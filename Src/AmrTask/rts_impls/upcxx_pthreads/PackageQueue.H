@@ -11,13 +11,13 @@ class Package
 private:
   int source, destination;
 public:
-  void *databuf;
-  //upcxx::global_ptr<double> databuf;
-  int bufSize;
+  //void *databuf;
+  upcxx::global_ptr<double> databuf;
+  volatile int bufSize;
   pthread_mutex_t packageLock;
-  bool completed; //message transfer is done
-  bool served; //message transfer request has been served but may have not completed
-  bool notified;
+  volatile bool completed; //message transfer is done
+  volatile bool served; //message transfer request has been served but may have not completed
+  volatile bool notified;
   CommRequest *request; //!for inter-process communication 
   Package();
   ~Package();
