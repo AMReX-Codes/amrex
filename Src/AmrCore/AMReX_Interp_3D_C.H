@@ -11,13 +11,14 @@ namespace amrex {
 AMREX_GPU_HOST
 inline
 Vector<Real>
-ccinterp_compute_voff (Box const& cbx, IntVect const& ratio)
+ccinterp_compute_voff (Box const& cbx, IntVect const& ratio, Geometry const& cgeom,
+                       Geometry const& fgeom)
 {
     const Box& fbx = amrex::refine(cbx,ratio);
     const auto& flen = amrex::length(fbx);
     const auto& flo = amrex::lbound(fbx);
     const auto& fhi = amrex::ubound(fbx);
-    const int nxyz = AMREX_D_TERM(flen.x, + flen.y, + flen.z);
+    const int nxyz = flen.x + flen.y + flen.z;
     Vector<Real> voff(nxyz);
     
     const Real xrinv = 1./ratio[0];
@@ -209,7 +210,7 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
     const auto u = ufab.view(lo,icomp);
 
     const auto slopes = ccfab.view(lo,0);
-    const auto sf     = ccfab.view(lo,ncomp*3);  // slope factor
+    const auto sf     = ccfab.view(lo,ncomp*AMREX_SPACEDIM);  // slope factor
 
     const auto& sbox = ccfab.box();
     const auto slo  = amrex::lbound(sbox);
@@ -330,7 +331,7 @@ cellconslin_slopes_mclim (Box const& bx, FArrayBox& ccfab,
     const auto u = ufab.view(lo,icomp);
 
     const auto slopes = ccfab.view(lo,0);
-    const auto mm     = ccfab.view(lo,ncomp*3);  // min and max
+    const auto mm     = ccfab.view(lo,ncomp*AMREX_SPACEDIM);  // min and max
 
     const auto& sbox = ccfab.box();
     const auto slo  = amrex::lbound(sbox);
@@ -396,7 +397,7 @@ cellconslin_fine_alpha (Box const& bx, FArrayBox& alphafab, FArrayBox const& ccf
 
     const auto clo = amrex::coarsen(lo, ratio);
     const auto slopes = ccfab.view(clo);
-    const auto mm     = ccfab.view(clo,ncomp*3); // min and max
+    const auto mm     = ccfab.view(clo,ncomp*AMREX_SPACEDIM); // min and max
 
     const Box& alpha_box = alphafab.box();
     const auto vlo  = amrex::lbound(alpha_box);

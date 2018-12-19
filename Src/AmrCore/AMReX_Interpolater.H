@@ -209,35 +209,11 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Vector<BCRec>&    bcr,
-                         int              actual_comp,
-                         int              actual_state) override;
-
-    void interp_new (const FArrayBox& crse,
-                     int              crse_comp,
-                     FArrayBox&       fine,
-                     int              fine_comp,
-                     int              ncomp,
-                     const Box&       fine_region,
-                     const IntVect&   ratio,
-                     const Geometry&  crse_geom,
-                     const Geometry&  fine_geom,
-                     const Vector<BCRec>& bcr);
+                         Vector<BCRec>&   bcr,
+                         int              /*actual_comp*/,
+                         int              /*actual_state*/) override;
 
 protected:
-
-    void interp_original (const FArrayBox& crse,
-                          int              crse_comp,
-                          FArrayBox&       fine,
-                          int              fine_comp,
-                          int              ncomp,
-                          const Box&       fine_region,
-                          const IntVect&   ratio,
-                          const Geometry&  crse_geom,
-                          const Geometry&  fine_geom,
-                          const Vector<BCRec>& bcr,
-                          int              actual_comp,
-                          int              actual_state);
 
     bool do_linear_limiting;
 };
