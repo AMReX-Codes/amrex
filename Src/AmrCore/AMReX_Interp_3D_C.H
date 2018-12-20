@@ -290,7 +290,7 @@ cellconslin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const in
     const auto lo  = amrex::lbound(bx);
     const auto fine = finefab.view(lo,fcomp);
 
-    const auto clo = amrex::coarsen(lo,ratio);
+    const auto clo = amrex::lbound(slopesfab.box());
     const auto slopes = slopesfab.view(clo);
     const auto crse = crsefab.view(clo,ccomp);
 
@@ -395,7 +395,7 @@ cellconslin_fine_alpha (Box const& bx, FArrayBox& alphafab, FArrayBox const& ccf
     const auto lo  = amrex::lbound(bx);
     const auto alpha = alphafab.view(lo);
 
-    const auto clo = amrex::coarsen(lo, ratio);
+    const auto clo = amrex::lbound(ccfab.box());
     const auto slopes = ccfab.view(clo);
     const auto mm     = ccfab.view(clo,ncomp*AMREX_SPACEDIM); // min and max
 
