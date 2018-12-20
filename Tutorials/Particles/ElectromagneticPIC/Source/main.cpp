@@ -4,7 +4,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
-#include "ElectromagneticParticleContainer.H"
+#include "EMParticleContainer.H"
 #include "Evolve.H"
 #include "NodalFlags.H"
 #include "Constants.H"
@@ -78,7 +78,7 @@ void test_em_pic(const TestParams& parms)
     amrex::Print() << "Initializing particles... ";
 
     int num_species;
-    Vector<ElectromagneticParticleContainer*> particles(2);
+    Vector<EMParticleContainer*> particles(2);
 
     if (parms.problem_type == UniformPlasma)
     {
@@ -86,15 +86,15 @@ void test_em_pic(const TestParams& parms)
 
         RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                           AMREX_D_DECL( 20e-6, 20e-6, 20e-6));
-        ElectromagneticParticleContainer* electrons;
-        electrons = new ElectromagneticParticleContainer(geom, dm, ba,
+        EMParticleContainer* electrons;
+        electrons = new EMParticleContainer(geom, dm, ba,
                                                          0, -PhysConst::q_e, PhysConst::m_e);
         electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, real_box, parms.problem_type);
 
         RealBox H_ions_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                         AMREX_D_DECL( 20e-6,  20e-6,  20e-6));
-        ElectromagneticParticleContainer* H_ions;
-        H_ions = new ElectromagneticParticleContainer(geom, dm, ba,
+        EMParticleContainer* H_ions;
+        H_ions = new EMParticleContainer(geom, dm, ba,
                                                       1, PhysConst::q_e, PhysConst::m_p);
         H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, parms.problem_type);
 
@@ -107,8 +107,8 @@ void test_em_pic(const TestParams& parms)
 
         RealBox electron_bounds = RealBox(AMREX_D_DECL(-20e-6, -20e-6, -20e-6),
                                           AMREX_D_DECL( 0.0,    20e-6,  20e-6));
-        ElectromagneticParticleContainer* electrons;
-        electrons = new ElectromagneticParticleContainer(geom, dm, ba,
+        EMParticleContainer* electrons;
+        electrons = new EMParticleContainer(geom, dm, ba,
                                                          0, -PhysConst::q_e, PhysConst::m_e);
         electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, parms.problem_type);
 
@@ -175,8 +175,6 @@ void test_em_pic(const TestParams& parms)
         for (int i = 0; i < num_species; ++i)
         {
             particles[i]->Redistribute();
-            particles[i]->EnforcePeriodicBCs();
-            particles[i]->OK();
         }
         
         time += dt;
@@ -202,7 +200,7 @@ void test_em_pic(const TestParams& parms)
 
 void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
 {
-    BL_PROFILE("ElectromagneticParticleContainer::check_solution");
+    BL_PROFILE("check_solution");
 
     const Real* dx = geom.CellSize();
 
