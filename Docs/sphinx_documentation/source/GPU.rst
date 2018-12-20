@@ -342,8 +342,8 @@ derived from :cpp:`BaseFab`. A :cpp:`BaseFab<T>` object created
 on the stack in CPU code cannot be used in GPU device code, because
 the object is in CPU memory.  However, a :cpp:`BaseFab` created with
 :cpp:`new` on the heap is GPU safe, because :cpp:`BaseFab` has its own
-overloaded `:cpp:`operator new` that allocates memory from :cpp:`The_Arena()`,
-a managed memory arena.  For example,
+overloaded `:cpp:`operator new` that allocates memory from
+:cpp:`The_Arena()`, a managed memory arena.  For example,
 
 .. highlight:: c++
 
@@ -373,9 +373,9 @@ More details on the examples can be found in the source codes at
 :ref:`Chap:Basics` for information about basic AMReX classes.
 
 It is also recommended to write your primary floating point operation 
-loops in C++ using AMReX's :cpp:`fabView` object. It converts 
+kernels in C++ using AMReX's :cpp:`FabView` object syntax. It converts 
 the 1D array into a simple to understand 3D loop structure, similar
-to Fortran with no loss in performance. The details can be found in
+to Fortran while maintaining performance. The details can be found in
 :ref:`ADD REFERENCE HERE`.
 
 
@@ -501,43 +501,38 @@ Since the data pointer passed to ``plusone_acc`` points to
 unified memory, OpenACC is told the data is available on the device
 by using the ``deviceptr`` construct.
 
-Launching over a particle loop
-------------------------------
+Launching over a number of elements 
+-----------------------------------
 
-In the examples above, we have shown how to offload to the GPU.
-In the CUDA C++ and Fortran cases, the kernel is launched with a C++
-template global function in AMReX (hidden in the launch macro),
-whereas for the OpenACC example, it is done with pragma in Fortran.
-More details on the examples can be found in the source codes at
-``Tutorials/GPU/Launch/``.  We also refer the readers to Chapter
-:ref:`Chap:Basics` for information about basic AMReX classes.
+VECTOR LOOP EXAMPLE
 
 Kernel launch details
 ---------------------
 
 CUDA kernel calls are asynchronous and they return before the kernel 
 is finished on the GPU. So :cpp:`MFIter` finishes its iterations on
-the CPU before the GPU finishes its work. To guarantee data coherence,
+the CPU before the GPU finishes its work.  To guarantee consistency,
 there is an implicit CUDA device synchronization (a CUDA barrier) in 
-the destructor of :cpp:`MFIter`. This makes each iteration of 
-:cpp:`MFIter` independent, but potentially concurrent.
+the destructor of :cpp:`MFIter`.  This ensures that all GPU work
+inside of an :cpp:`MFIter` loop will complete before code outside of
+the loop is executed.
 
-CUDA supports multiple streams and kernels. The kernels in the 
-same stream are executed sequentially, but kernels from different streams
-may be run in parallel.  For each iteration of :cpp:`MFIter`, AMReX 
-uses a different CUDA stream (up to 16 streams in total) for the 
-kernels in that iteration. 
-
-These  
-allows each :cpp:`FArrayBox` inside of a :cpp:`MultiFab` to be implemented.
+CUDA supports multiple streams and kernels. Kernels launched in the 
+same stream are executed sequentially, but different streams of kernel
+launches may be run in parallel.  For each iteration of :cpp:`MFIter`, 
+AMReX uses a different CUDA stream (up to 16 streams in total) for the 
+kernels in that iteration.  This allows each iteration of an :cpp:`MFIter`
+loop to run indepenently and maximize the use of GPU resources while
+writting clean, readable :cpp:`MFIter` loops.
 
 Launching kernels with the ``AMREX_LAUNCH_DEVICE_LAMBDA`` uses the CUDA
-extended lamdba feature.  There are, however, some restrictions on
-extended lambdas the user must be aware of.  For example, the enclosing
-function for the extended lamdba must not have private or protected
-access within its parent class, otherwise the code will not compile.
-In that case, we have to change the function to a public member of its
-parent class.  There is also a pitfall we *must* be aware.  If the
+extended lamdba feature.  Extended lambdas have some restrictions the user
+must understand.  For example, the function enclosing the extended
+lamdba must not have private or protected access within its parent class, 
+otherwise the code will not compile.  This can be fixed by changing the
+access of the enclosing function to public. 
+
+Another pitfall that *must* be considered: if the
 extended lambda accesses a member of the enclosing class, the lambda
 function actually captures :cpp:`this` pointer by value and accesses
 variable via :cpp:`this->`.  If the object is not accessible on GPU,
@@ -550,20 +545,19 @@ the code will not work as intended.  For example,
     class MyClass {
     public:
         Box bx;
-        int m;
+        int m;                           // Unmanaged integer created on the host.
         void f () { 
             AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
             {
-                printf("m = %d\n", m);
+                printf("m = %d\n", m);   // Failed attempt to use m on the GPU.
             });
         }
     };
 
------ ADD COMMENTS TO THESE????
------ ADD HOST_DEVICE_LAMBDA???
-
 The function ``f`` in the code above will not work unless :cpp:`MyClass`
-object is in unified memory.  To fix it, we can change it to
+object is in unified memory.  If it is undesirable to put the class into
+unified memory, a local copy of the information can be created for the
+lambda to capture. For example:
 
 .. highlight:: c++
 
@@ -574,16 +568,35 @@ object is in unified memory.  To fix it, we can change it to
         Box bx;
         int m;
         void f () {
-            int local_m = m;
+            int local_m = m;                  // Local temporary copy of m.
             AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
             {
-                printf("m = %d\n", local_m);
+                printf("m = %d\n", local_m);  // Lambda captures local_m by value.
             });
         }
     };
 
------- OpenMP labelling 
+Finally, AMReX's expected OpenMP strategy for GPUs is to utilize OpenMP in
+CPU regions to maintain multi-threaded parallelism on work that cannot be
+offloaded efficiently, while using CUDA independently in GPU regions:
+(MPI+OpenMP)+(MPI+CUDA).  This means OpenMP pragmas need to be maintained
+when ``USE_CUDA=FALSE`` and turned off in locations CUDA is implemented
+when ``USE_CUDA=TRUE``.
 
+This can currently be implemented in preparation for an OpenMP strategy and
+users are highly encouraged to do so now. This prevents having to track
+down and label the appropriate OpenMP regions in the future and
+clearly labels for readers that OpenMP and GPUs are not being used at the
+same time.  OpenMP pragmas can be turned off using the conditional pragma
+and :cpp:`Gpu::notInLaunchRegion()`, as shown below:
+
+.. highlight:: c++
+
+::
+
+    #ifdef _OPENMP
+    #pragma omp parallel if (Gpu::notInLaunchRegion())
+    #endif
 
 .. _sec:gpu:example:
 
