@@ -160,7 +160,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
                                << composite_norminf << ", "
                                << composite_norminf/max_norm << "\n";
             }
-            amrex::Abort("MLMG failed");
+            //amrex::Abort("MLMG failed");
         }
         timer[iter_time] = amrex::second() - iter_start_time;
     }
@@ -238,7 +238,7 @@ void MLMG::oneIter (int iter)
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 1);
 
         if (alev != finest_amr_lev) {
-	  MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, ncomp, 0);
+	  MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, ncomp, 1);
         }
 
         // Update fine AMR level correction
@@ -315,7 +315,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
-    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 0);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 1);
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
@@ -347,7 +347,7 @@ MLMG::computeResWithCrseCorFineCor (int falev)
     // fine_rescor = fine_res - L(fine_cor)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
-    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 0);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 1);
 }
 
 void
