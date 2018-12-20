@@ -25,7 +25,7 @@ void PerillaMemCheck::remove(string key){
 	rmCnt++;
     }
     else{
-        printf("MemCheck Error: Object not found\n");
+        printf("MemCheck Error: Object not found (%d Allocated vs %d Deleted)\n", addCnt, rmCnt);
         exit(0);
     }
 

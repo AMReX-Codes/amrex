@@ -1504,9 +1504,6 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			rMetaPackage->request = ParallelDescriptor::Arecv(rPackage->databuf,
 				rg->rMap[f]->r_con.rcv[i].sz,
 				rg->rMap[f]->r_con.rcv[i].pr, tag).req(); // tag == SeqNum in c++ ver
-
-			std::cout<< "myP "<< myProc<< " f "<< f << " i " << i << " Req Posted "<<rMetaPackage->request << std::endl;
-
 		    }
 		}
 		pthread_mutex_unlock(&(rg->lMap[f]->r_con.rcvLock));
