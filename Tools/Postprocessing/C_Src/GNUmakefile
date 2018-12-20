@@ -21,6 +21,7 @@ EBASE     = particle_compare
 #EBASE     = MultiFabToMatLab
 #EBASE     = PtwisePltTransform
 #EBASE     = PlotfileGradient
+#EBASE     = cube_extract
 
 # If NEEDS_f90_SRC=TRUE, look for ${EBASE}_nd.f90
 NEEDS_f90_SRC = FALSE

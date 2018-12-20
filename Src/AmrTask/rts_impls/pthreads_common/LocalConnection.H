@@ -31,12 +31,12 @@ class LocalCopyDescriptor
 	LocalCopyDescriptor() : ns(-1), nd(-1), scpyCnt(0), dcpyCnt(0), sz(0), sPartner(-1), dPartner(-1), ghostLock(PTHREAD_MUTEX_INITIALIZER)
 	{
 #ifdef PERILLA_DEBUG
-                memcheck.add(memcheck.genKey(this), (void*)this, "LocalCopyDescriptor");
+//                memcheck.add(memcheck.genKey(this), (void*)this, "LocalCopyDescriptor");
 #endif
 	}
 	~LocalCopyDescriptor(){
 #ifdef PERILLA_DEBUG
-                memcheck.remove(memcheck.genKey(this));
+//                memcheck.remove(memcheck.genKey(this));
 #endif
 	}
 };
@@ -52,13 +52,16 @@ class LocalConnection
 	Barrier *localBarrier;
 	LocalCopyDescriptor *scpy;
 	LocalCopyDescriptor *dcpy;
-	LocalConnection() : nscpy(0), ndcpy(0), firingRuleCnt(0), scpy(NULL), dcpy(NULL), scpyCnt(0), dcpyCnt(0), localBarrier(NULL),sLock(PTHREAD_MUTEX_INITIALIZER),dLock(PTHREAD_MUTEX_INITIALIZER),ghostLock(PTHREAD_MUTEX_INITIALIZER){}
+	LocalConnection() : nscpy(0), ndcpy(0), firingRuleCnt(0), scpy(NULL), dcpy(NULL), scpyCnt(0), dcpyCnt(0), localBarrier(NULL),sLock(PTHREAD_MUTEX_INITIALIZER),dLock(PTHREAD_MUTEX_INITIALIZER),ghostLock(PTHREAD_MUTEX_INITIALIZER){
+//                memcheck.add(memcheck.genKey(this), (void*)this, "LocalCopyDescriptor");
+}
 
 	~LocalConnection()
 	{
 	    if(localBarrier) free(localBarrier);
 	    if(scpy) delete [] scpy;
 	    if(dcpy) delete [] dcpy;
+//                memcheck.remove(memcheck.genKey(this));
 	}
 };
 #endif

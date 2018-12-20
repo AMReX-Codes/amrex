@@ -84,15 +84,6 @@ public:
      */
     MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp);
 
-    /**
-     * \brief Make an ALIAS MultiFab given an array of Real pointers.
-     */
-    MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, int ngrow,
-              const Vector<Real*>& p);
-
-    MultiFab (const BoxArray& ba, const DistributionMapping& dm, int ncomp, const IntVect& ngrow,
-              const Vector<Real*>& p);
-
     virtual ~MultiFab () override;
 
     MultiFab (MultiFab&& rhs) noexcept;

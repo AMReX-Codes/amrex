@@ -3262,7 +3262,12 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
-#ifndef _OPENMP
+#ifdef _OPENMP
+                T       * dp1d = &(dp(0,j,k,n));
+                T const * sp1d = &(sp(0,j,k,n));
+#else
+                T       * AMREX_RESTRICT dp1d = &(dp(0,j,k,n));
+                T const * AMREX_RESTRICT sp1d = &(sp(0,j,k,n));
                 AMREX_PRAGMA_SIMD
 #endif
                 for (int i = 0; i < len.x; ++i) {
@@ -3270,9 +3275,9 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src,
 #ifdef _OPENMP
 #pragma omp atomic update
 #endif
-                    dp(i,j,k,n) += sp(i,j,k,n);
+                    dp1d[i] += sp1d[i];
 #else
-                    amrex::Gpu::Atomic::Add(&dp(i,j,k,n), sp(i,j,k,n));
+                    amrex::Gpu::Atomic::Add(&(dp1d[i]), sp1d[i]);
 #endif
                 }
             }

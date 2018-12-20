@@ -77,21 +77,21 @@ namespace amrex
 	    }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	    for (MFIter mfi(*dmf,true); mfi.isValid(); ++mfi)
+	    for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	    {
 		const Box& bx = mfi.tilebox();
-		(*dmf)[mfi].linInterp((*smf[0])[mfi],
-				      scomp,
-				      (*smf[1])[mfi],
-				      scomp,
-				      stime[0],
-				      stime[1],
-				      time,
-				      bx,
-				      destcomp,
-				      ncomp);
+                FArrayBox* dfab = Gpu::notInLaunchRegion() ? &((*dmf)[mfi]) : dmf->fabPtr(mfi);
+                FArrayBox* sfab0 = Gpu::notInLaunchRegion() ? &((*smf[0])[mfi]) : smf[0]->fabPtr(mfi);
+                FArrayBox* sfab1 = Gpu::notInLaunchRegion() ? &((*smf[1])[mfi]) : smf[1]->fabPtr(mfi);
+                const Real t0 = stime[0];
+                const Real t1 = stime[1];
+
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    dfab->linInterp(*sfab0,scomp,*sfab1,scomp,t0,t1,time,tbx,destcomp,ncomp);
+                });
 	    }
 
 	    if (sameba)
