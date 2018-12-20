@@ -457,7 +457,7 @@ namespace amrex
 
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
-                        amrex_avgdown_faces(tbx, *crsefab, *finefab, 0, 0, 1, ratio, n);
+                        amrex_avgdown_faces(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, n);
                     });
                 }
             }

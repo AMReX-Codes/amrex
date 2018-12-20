@@ -114,6 +114,9 @@ void Package::generatePackage(int size)
     served = false;
     request = MPI_REQUEST_NULL;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
+#ifdef PERILLA_DEBUG
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+#endif
 }
 
 PackageQueue::PackageQueue()
