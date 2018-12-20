@@ -382,6 +382,72 @@ pcinterp_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int n
     }
 }
 
+namespace {
+    static constexpr int ix   = 0;
+    static constexpr int iy   = 1;
+    static constexpr int ixy  = 2;
+}
+
+AMREX_GPU_HOST_DEVICE inline void
+nodebilin_slopes (Box const& bx, FArrayBox& slopefab, FArrayBox const& ufab,
+                  const int icomp, const int ncomp, IntVect const& ratio)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto slope = slopefab.view(lo);
+    const auto u = ufab.view(lo,icomp);
+
+    const Real rx = 1.0/ratio[0];
+    const Real ry = 1.0/ratio[1];
+
+    for (int n = 0; n < ncomp; ++n) {
+        for     (int j = 0; j < len.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                Real dx0 = u(i+1,j,0,n) - u(i,j,0,n);
+                Real d0x = u(i,j+1,0,n) - u(i,j,0,n);
+                Real dx1 = u(i+1,j+1,0,n) - u(i,j+1,0,n);
+
+                slope(i,j,0,n+ncomp*ix ) = rx*dx0;
+                slope(i,j,0,n+ncomp*iy ) = ry*d0x;
+                slope(i,j,0,n+ncomp*ixy) = rx*ry*(dx1 - dx0);
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE inline void
+nodebilin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
+                  FArrayBox const& slopefab, FArrayBox const& crsefab, const int ccomp,
+                  IntVect const& ratio)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const Box& sbox = slopefab.box();
+    const auto clo = amrex::lbound(sbox);
+    const auto chi = amrex::ubound(sbox);
+    const auto slope = slopefab.view(clo);
+    const auto crse = crsefab.view(clo,ccomp);
+
+    for (int n = 0; n < ncomp; ++n) {
+        for (int j = 0; j < len.y; ++j) {
+            const int jc = amrex::min(amrex::coarsen(j+lo.y,ratio[1]),chi.y) - clo.y;
+            const Real fy = (j+lo.y) - (jc+clo.y)*ratio[1];
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                const int ic = amrex::min(amrex::coarsen(i+lo.x,ratio[0]),chi.x) - clo.x;
+                const Real fx = (i+lo.x) - (ic+clo.x)*ratio[0];
+                fine(i,j,0,n) = crse(ic,jc,0,n)
+                    + fx*slope(ic,jc,0,n+ncomp*ix)
+                    + fy*slope(ic,jc,0,n+ncomp*iy)
+                    + fx*fy*slope(ic,jc,0,n+ncomp*ixy);
+            }
+        }
+    }
+}
+
 }
 
 #endif
