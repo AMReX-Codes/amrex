@@ -359,6 +359,29 @@ cellconslin_slopes_mmlim (Box const& bx, FArrayBox& ccfab, FArrayBox const& alph
     }
 }
 
+AMREX_GPU_HOST_DEVICE inline void
+pcinterp_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
+                 FArrayBox const& crsefab, const int ccomp, IntVect const& ratio)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const auto clo = amrex::lbound(crsefab.box());
+    const auto crse = crsefab.view(clo,ccomp);
+
+    for (int n = 0; n < ncomp; ++n) {
+        for (int j = 0; j < len.y; ++j) {
+            const int jc = amrex::coarsen(j+lo.y,ratio[1]) - clo.y;
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len.x; ++i) {
+                const int ic = amrex::coarsen(i+lo.x,ratio[0]) - clo.x;
+                fine(i,j,0,n) = crse(ic,jc,0,n);
+            }
+        }
+    }
+}
+
 }
 
 #endif
