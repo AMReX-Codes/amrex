@@ -10,8 +10,15 @@
 namespace amrex {
 
 //
-// Note that in 1D, CellQuadratic
-// interpolation are turned off in a hardwired way.
+// PCInterp, NodeBilinear, and CellConservativeLinear are supported for all dimensions on cpu and gpu.
+//
+// CellConsertiveProtected only works in 2D and 3D on cpu.
+//
+// CellBilinear only works in 1D and 2D on cpu.
+//
+// CellQuadratic only works in 2D on cpu.
+//
+// CellConvervativeQuartic only works with ref ratio of 2 on cpu
 //
 
 //
