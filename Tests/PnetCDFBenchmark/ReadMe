@@ -1,0 +1,16 @@
+This benchmark is translated from the HDF5 benchmark. It store the plot file in NetCDF format using the PnetCDF library.
+
+The usage and options is exactly the same as the HDF5 benchmark. Run the benchmark program with a input file containing the configuration. inputs is an example input file.
+
+To build the benchmark:
+    First, edit the GNUmakefile:
+        set variable "PNETCDF_HOME" to the install directory of PnetCDF library
+    Then, simply run make
+
+To run the benchmark:
+    ./<benchmark> inputs
+
+Note:
+    open MP in GNUmakefile should remain disabled since PnetCDF does not officialy support open MP.
+
+Example result:
