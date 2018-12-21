@@ -21,6 +21,8 @@ int       CNS::do_reflux = 1;
 int       CNS::refine_max_dengrad_lev   = -1;
 Real      CNS::refine_dengrad           = 1.0e10;
 
+Real      CNS::gravity = 0.0;
+
 CNS::CNS ()
 {}
 
@@ -340,6 +342,8 @@ CNS::read_params ()
 
     pp.query("refine_max_dengrad_lev", refine_max_dengrad_lev);
     pp.query("refine_dengrad", refine_dengrad);
+
+    pp.query("gravity", gravity);
 }
 
 void
