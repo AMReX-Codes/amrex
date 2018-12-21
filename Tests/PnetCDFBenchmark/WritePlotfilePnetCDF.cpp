@@ -129,6 +129,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         ParallelDescriptor::ReduceRealMax(dPlotFileTime714);
         if(ParallelDescriptor::IOProcessor()) {
           std::cout << "Write_NCHEADER_time_1_2_0 = " << dPlotFileTime714 << "  seconds." << std::endl;
+          std::cout << "#%$: ncmpi_create_time: " << dPlotFileTime714 << std::endl;
         }
 
         std::map<std::string, int>  vMInt;
@@ -177,6 +178,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         if( ParallelDescriptor::IOProcessor() )
         {
             std::cout << "Write_NCATT_time_1_3 = " << dPlotFileTime716 << "  seconds." << std::endl;
+            std::cout << "#%$: file_init_att_time: " << dPlotFileTime716 + dPlotFileTime716 << std::endl;
         }
         
     } else {
@@ -198,6 +200,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     ParallelDescriptor::ReduceRealMax(dPlotFileTime72);
     if(ParallelDescriptor::IOProcessor()) {
         std::cout << "Write_NCINIT_time_1 = " << dPlotFileTime72 << "  seconds." << std::endl;
+        std::cout << "#%$: create_open_time: " << dPlotFileTime72 << std::endl;
     }
         
     char levelName[10];
@@ -230,6 +233,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     ParallelDescriptor::ReduceRealMax(dPlotFileTime74);
     if(ParallelDescriptor::IOProcessor()) {
         std::cout << "Write_NCATT_time_2 = " << dPlotFileTime74 << "  seconds." << std::endl;
+        std::cout << "#%$: write_att_time: " << dPlotFileTime74 << std::endl;
     }
     
     // ---- "boxes" and "Processors" data
@@ -276,6 +280,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     ParallelDescriptor::ReduceRealMax(dPlotFileTime76);
     if(ParallelDescriptor::IOProcessor()) {
         std::cout << "Write_NCATT_time_3 = " << dPlotFileTime76 << "  seconds." << std::endl;
+        std::cout << "#%$: def_meta_var_dim_time: " << dPlotFileTime76 << std::endl;
     }
     
     // ---- create a boxarray sorted by rank
@@ -392,8 +397,6 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     }
 
     err = ncmpi_end_indep_data(vFile); ERR
-
-    err = ncmpi_redef(vFile); ERR
     
     // ASim@lbl.gov 6/15/2017
     double dPlotFileTime77(ParallelDescriptor::second());
@@ -401,6 +404,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     ParallelDescriptor::ReduceRealMax(dPlotFileTime78);
     if(ParallelDescriptor::IOProcessor()) {
         std::cout << "Write_NCVAR_time_4 = " << dPlotFileTime78 << "  seconds." << std::endl;
+        std::cout << "#%$: write_meta_var_time: " << dPlotFileTime78 << std::endl;
     }
     
     // ASim@lbl.gov 6/15/2017
@@ -409,9 +413,11 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     ParallelDescriptor::ReduceRealMax(dPlotFileTime86);
     if(ParallelDescriptor::IOProcessor()) {
         std::cout << "Write_NCATT_time = " << dPlotFileTime86 << "  seconds." << std::endl;
+        std::cout << "#%$: write_all_meta_time: " << dPlotFileTime86 << std::endl;
     }
     
-    
+    err = ncmpi_redef(vFile); ERR
+
     {  // ---- data write
         BL_PROFILE_VAR("NCVarPut", h5dwd);
 
@@ -470,6 +476,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         ParallelDescriptor::ReduceRealMax(dPlotFileTime781);
         if(ParallelDescriptor::IOProcessor()) {
             std::cout << "Write_NCATT_time_5 = " << dPlotFileTime781 << "  seconds." << std::endl;
+            std::cout << "#%$: def_data_var_time: " << dPlotFileTime781 << std::endl;
         }
 
 #ifdef H5INDEP
@@ -503,6 +510,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         if(ParallelDescriptor::IOProcessor()) {
             std::cout << "Write_NCVARPUT_time = " << dPlotFileTime22 << "  seconds." << std::endl;
             std::cout << "Write_NCVARPUT_time_since = " << ParallelDescriptor::second() << std::endl;
+            std::cout << "#%$: write_data_time: " << dPlotFileTime22 << std::endl;
         }
         
     	// ASim@lbl.gov 6/15/2017 for closing collective io
@@ -526,6 +534,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     if(ParallelDescriptor::IOProcessor()) {
         std::cout << "Write_NC_time_7_closing = " << dPlotFileTime792 << "  seconds." << std::endl;
         std::cout << "Write_PNETCDF_time = " << dPlotFileTime82 << "  seconds." << std::endl;
+        std::cout << "#%$: write_file_total_time: " << dPlotFileTime82 << std::endl;
     }    
 
 }
