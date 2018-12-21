@@ -68,30 +68,21 @@ contains
     do n = 1, nc
        do    j = flo(2), fhi(2)
           do i = flo(1), fhi(1)
-             if (MOD(j,2) .ne. 0 .and. MOD(i,2) .ne. 0) then
-                !if (j .eq. fhi(2)) then
-                !   print *, "Center: ", i , j
-                !end if
+             if (MOD(j,2) .ne. 0 .and. MOD(i,2) .ne. 0) then ! Fine node at center of cell
                 fine(i,j,n) = 0.25d0*( &
                      crse(i/2,j/2,n) + &
                      crse(i/2 + 1, j/2, n) + &
                      crse(i/2, j/2 + 1, n) + &
                      crse(i/2 + 1, j/2 + 1, n))
-             else if (MOD(j,2) .ne. 0) then 
-                !if (j .eq. fhi(2)) then
-                !   print *, "Vertic: ", i , j
-                !end if
-                ! Along a vertical coarse cell edge
+             else if (MOD(j,2) .ne. 0) then ! Fine node along a vertical cell edge
                 fine(i,j,n) = 0.5d0*( &
                      crse(i/2,j/2,n) + &
                      crse(i/2,j/2+1,n)) 
-             else if (MOD(i,2) .ne. 0) then
-                ! print *, "Horiz: ", i , j, "i/2", i/2, "i/2+1", i/2+1
-                ! Along a horizontal coarse cell edge
+             else if (MOD(i,2) .ne. 0) then ! Fine node along a horizontal cell edge
                 fine(i,j,n) = 0.5d0*( &
                      crse(i/2,j/2,n) + &
                      crse(i/2+1,j/2,n))
-             else
+             else ! Fine node coincident with coarse node
                 fine(i,j,n) = crse(i/2,j/2,n)
              end if
           end do
@@ -112,6 +103,7 @@ contains
 !             end do
 !             fine(fhi(1),2*j+1,n) = 0.5d0*(crse(chi(1),j,n)+crse(chi(1),j+1,n))
 !          end if
+!
 !       end do
 !    end do
 
