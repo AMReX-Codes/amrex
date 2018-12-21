@@ -20,6 +20,7 @@ class MFGhostIter;
 class Geometry;
 class FArrayBox;
 template <typename FAB> class FabFactory;
+template <typename FAB> class FabArray;
 class AmrTask;
 #ifdef USE_PERILLA
 class Perilla;
@@ -35,6 +36,8 @@ class FabArrayBase
     friend class Perilla;
     friend class RegionGraph;
 #endif
+
+    template <class FAB> friend void FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period);
 
 public:
 
@@ -163,10 +166,10 @@ public:
 	    : dbox(db), sbox(sb), dstIndex(didx), srcIndex(sidx) {}
 	bool operator< (const CopyComTag& rhs) const {
 	    return (srcIndex < rhs.srcIndex) || ((srcIndex == rhs.srcIndex) && (
+                   (sbox.smallEnd() < rhs.sbox.smallEnd()
+		               || ((sbox.smallEnd() == rhs.sbox.smallEnd()) && (
                    (dstIndex < rhs.dstIndex) || ((dstIndex == rhs.dstIndex) && (
-                   (dbox.smallEnd() < rhs.dbox.smallEnd()
-		               || ((dbox.smallEnd() == rhs.dbox.smallEnd()) && (
-                   (sbox.smallEnd() < rhs.sbox.smallEnd()))))))));
+                   (dbox.smallEnd() < rhs.dbox.smallEnd()))))))));
 	}
         //
         // Some typedefs & helper functions used throughout the code.
@@ -466,8 +469,6 @@ protected:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        MapOfCopyComTagContainers* m_SndVols;
-        MapOfCopyComTagContainers* m_RcvVols;
 	//
 	int                 m_nuse;
 	//
@@ -526,8 +527,6 @@ public:
         CopyComTagsContainer*      m_LocTags;
         MapOfCopyComTagContainers* m_SndTags;
         MapOfCopyComTagContainers* m_RcvTags;
-        MapOfCopyComTagContainers* m_SndVols;
-        MapOfCopyComTagContainers* m_RcvVols;
 	//
         int         m_nuse;
 

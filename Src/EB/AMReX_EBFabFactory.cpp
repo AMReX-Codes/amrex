@@ -28,7 +28,7 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
 {
     if (m_support == EBSupport::none)
     {
-        return new FArrayBox(box, ncomps, info.alloc, info.shared);        
+        return new FArrayBox(box, ncomps, info.alloc, info.shared);
     }
     else
     {
@@ -50,6 +50,35 @@ EBFArrayBoxFactory::destroy (FArrayBox* fab) const
         delete p;
     }
 }
+
+#ifdef AMREX_USE_GPU
+FArrayBox*
+EBFArrayBoxFactory::createHostAlias (const FArrayBox& src) const
+{
+    if (m_support == EBSupport::none)
+    {
+        return ::new FArrayBox(src, amrex::make_alias);
+    }
+    else
+    {
+        return ::new EBFArrayBox(static_cast<EBFArrayBox const&>(src), amrex::make_alias);
+    }
+}
+
+void
+EBFArrayBoxFactory::destroyHostAlias (FArrayBox* fab) const
+{
+    if (m_support == EBSupport::none)
+    {
+        ::delete fab;
+    }
+    else
+    {
+        EBFArrayBox* p = static_cast<EBFArrayBox*>(fab);
+        ::delete p;
+    }
+}
+#endif
 
 EBFArrayBoxFactory*
 EBFArrayBoxFactory::clone () const
@@ -85,7 +114,7 @@ EBFArrayBoxFactory::boxArray () const
 {
     return m_ebdc->getVolFrac().boxArray();
 }
-        
+
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const Geometry& a_geom,
                   const BoxArray& a_ba,

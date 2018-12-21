@@ -35,6 +35,8 @@ private:
     int max_coarsening_level = 30;
     bool use_hypre = false;
 
+    int cylinder_direction = 0;
+
     bool sigma = false;  // only for all_regular, we can set it to true
 
     amrex::Vector<amrex::Geometry> geom;

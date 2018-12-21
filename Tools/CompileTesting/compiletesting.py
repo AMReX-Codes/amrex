@@ -44,7 +44,7 @@ def compiletesting(arg_string):
                      'Tutorials/Particles/LoadBalance',
                      'Tutorials/Particles/NeighborList',
                      'OldTutorials/DataServicesTest0',
-                     'OldTutorials/MultiColor_C',
+#                     'OldTutorials/MultiColor_C',
                      'OldTutorials/MultiFabTests_C',
                      'OldTutorials/MultiGrid_C',
                      'OldTutorials/Tiling_C',

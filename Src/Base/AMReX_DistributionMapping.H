@@ -19,7 +19,7 @@ class BoxArray;
 class MultiFab;
 template <typename T> class FabArray;
 class FabArrayBase;
-    
+
 /**
 * \brief Calculates the distribution of FABs to MPI processes.
 *
@@ -115,7 +115,7 @@ class DistributionMapping
     static void SFC_Threshold (int n);
 
     static int SFC_Threshold ();
- 
+
     //! Are the distributions equal?
     bool operator== (const DistributionMapping& rhs) const;
 
@@ -162,7 +162,7 @@ private:
 
     const Vector<int>& getIndexArray ();
     const std::vector<bool>& getOwnerShip ();
-    
+
     //! Ways to create the processor map.
     void RoundRobinProcessorMap (const BoxArray& boxes, int nprocs);
     void KnapSackProcessorMap   (const BoxArray& boxes, int nprocs);
@@ -244,7 +244,7 @@ private:
 	//! dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
         void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
-        
+
         Vector<int> m_pmap; // index array for all boxes
         Vector<int> m_index_array;  // index array for local boxes owned by the team
         std::vector<bool> m_ownership; // true ownership

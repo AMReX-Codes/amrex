@@ -158,9 +158,6 @@ public:
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
-    //! Return a unique index associated with the current box and/or tile.
-    int uniqueIndex () const {return LocalTileIndex() + numLocalTiles() * LocalIndex();}
-
 #ifdef AMREX_USE_GPU
     //! Maintain a list of values to reduce.
     template<typename T>

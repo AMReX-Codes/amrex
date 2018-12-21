@@ -61,12 +61,20 @@ if (ENABLE_EB)
    include (EB/CMakeLists.txt)
 endif ()
 
-if (ENABLE_PROFPARSER OR ENABLE_AMRDATA)
-   include (Extern/CMakeLists.txt)
+if (ENABLE_AMRDATA)
+   include(Extern/amrdata/CMakeLists.txt)
+endif()
+
+if (ENABLE_PROFPARSER)
+   include(Extern/ProfParser/CMakeLists.txt)
 endif ()
 
 if (ENABLE_LINEAR_SOLVERS)
-   include (LinearSolvers/CMakeLists.txt)
+   include(LinearSolvers/CMakeLists.txt)
+endif ()
+
+if (ENABLE_3D_NODAL_MLMG)
+   include(Extern/Algoim/CMakeLists.txt)
 endif ()
 
 if (ENABLE_FORTRAN_INTERFACES) 
@@ -80,6 +88,7 @@ endif ()
 if (ENABLE_SENSEI_INSITU)
    include (Extern/SENSEI/CMakeLists.txt)
 endif ()
+
 
 #
 # Here we generate AMReX_BuildInfo.cpp

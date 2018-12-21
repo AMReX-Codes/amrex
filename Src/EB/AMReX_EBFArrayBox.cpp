@@ -19,6 +19,15 @@ EBFArrayBox::EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps
     m_type = ebflag.getType(sect);
 }
 
+#ifdef AMREX_USE_GPU
+EBFArrayBox::EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type)
+    : FArrayBox(rhs, make_type)
+{
+    m_type = rhs.m_type; // xxxxx TODO gpu
+    m_ebcellflag = rhs.m_ebcellflag;
+}
+#endif
+
 EBFArrayBox::~EBFArrayBox ()
 {
 
