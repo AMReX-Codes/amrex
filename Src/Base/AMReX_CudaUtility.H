@@ -3,7 +3,10 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_CudaDevice.H>
+#include <AMReX_Extension.H>
+#include <AMReX_REAL.H>
 #include <iostream>
+#include <cmath>
 
 namespace amrex {
 namespace Cuda {
@@ -57,8 +60,8 @@ namespace Cuda {
 #ifdef AMREX_USE_CUDA
         namespace detail {
 
-            AMREX_GPU_DEVICE
-            inline float atomicMax(float* address, float val)
+            AMREX_GPU_DEVICE AMREX_INLINE
+            float atomicMax(float* address, float val)
             {
                 int* address_as_i = (int*) address;
                 int old = *address_as_i, assumed;
@@ -70,8 +73,8 @@ namespace Cuda {
                 return __int_as_float(old);
             }
             
-            AMREX_GPU_DEVICE
-            inline double atomicMax(double* address, double val)
+            AMREX_GPU_DEVICE AMREX_INLINE
+            double atomicMax(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
                     (unsigned long long int*) address;
@@ -84,8 +87,8 @@ namespace Cuda {
                 return __longlong_as_double(old);
             }
 
-            AMREX_GPU_DEVICE
-            inline float atomicMin(float* address, float val)
+            AMREX_GPU_DEVICE AMREX_INLINE
+            float atomicMin(float* address, float val)
             {
                 int* address_as_i = (int*) address;
                 int old = *address_as_i, assumed;
@@ -97,8 +100,8 @@ namespace Cuda {
                 return __int_as_float(old);
             }
 
-            AMREX_GPU_DEVICE
-            inline double atomicMin(double* address, double val)
+            AMREX_GPU_DEVICE AMREX_INLINE
+            double atomicMin(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
                     (unsigned long long int*) address;
@@ -114,7 +117,7 @@ namespace Cuda {
 #endif  // AMREX_USE_CUDA
 
         template<class T>
-        AMREX_GPU_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE AMREX_INLINE
         void Add (T* sum, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -125,7 +128,7 @@ namespace Cuda {
         }
         
         template<class T>
-        AMREX_GPU_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE AMREX_INLINE
         void Min (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -136,7 +139,7 @@ namespace Cuda {
         }
         
         template<class T>
-        AMREX_GPU_HOST_DEVICE
+        AMREX_GPU_HOST_DEVICE AMREX_INLINE
         void Max (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -146,13 +149,44 @@ namespace Cuda {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        void Or (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicOr(m, value);
+#else
+            *m = (*m) || value; 
+#endif
+        }
+
     } // namespace Atomic
 
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    bool isnan(T m)
+    {
+#if defined(__CUDA_ARCH__)
+        return isnan(m);
+#else
+        return std::isnan(m);
+#endif
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    bool isinf(T m)
+    {
+#ifdef __CUDA_ARCH__
+        return isinf(m);
+#else
+        return std::isinf(m);
+#endif
+    }
 
     class StreamIter
     {
     public:
-        StreamIter (const int n, bool is_thread_safe);
+        StreamIter (const int n, bool is_thread_safe=true);
         ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
@@ -181,6 +215,9 @@ namespace Cuda {
 #if AMREX_USE_CUDA
 std::ostream& operator<< (std::ostream& os, const dim3& d);
 #endif
+
+using Cuda::isnan;
+using Cuda::isinf;
 
 } // namespace amrex
 

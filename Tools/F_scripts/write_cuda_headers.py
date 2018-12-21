@@ -570,16 +570,16 @@ def convert_cxx(outdir, cxx_files, cpp, defines):
                 hout.write("    dim3 {}numBlocks, {}numThreads;\n".format(func_name, func_name))
                 hout.write("    amrex::Cuda::Device::grid_stride_threads_and_blocks({}numBlocks, {}numThreads);\n".format(func_name, func_name))
                 hout.write("#if ((__CUDACC_VER_MAJOR__ > 9) || (__CUDACC_VER_MAJOR__ == 9 && __CUDACC_VER_MINOR__ >= 1))\n" \
-                           "    CudaAPICheck(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
+                           "    AMREX_GPU_SAFE_CALL(cudaFuncSetAttribute(&cuda_{}, cudaFuncAttributePreferredSharedMemoryCarveout, 0));\n" \
                            "#endif\n".format(func_name))
                 hout.write("    cuda_{}<<<{}numBlocks, {}numThreads, 0, amrex::Cuda::Device::cudaStream()>>>\n    ({});\n".format(func_name, func_name, func_name, args))
 
                 # Catch errors in the launch configuration.
 
-                hout.write("    CudaAPICheck(cudaGetLastError());\n")
+                hout.write("    AMREX_GPU_SAFE_CALL(cudaGetLastError());\n")
 
                 if 'AMREX_DEBUG' in defines:
-                    hout.write("CudaAPICheck(cudaDeviceSynchronize());\n")
+                    hout.write("AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());\n")
 
                 # For the host launch, we need to replace certain macros.
                 host_args = args

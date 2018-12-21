@@ -45,6 +45,14 @@ def doit(defines, undefines, comp, allow_diff_comp, use_omp):
         print("#ifndef __llvm__")
         print('static_assert(false,"libamrex was built with Clang/LLVM");')
         print("#endif")
+    elif comp == "nec":
+        print("#ifndef __NEC__")
+        print('static_assert(false,"libamrex was built with NEC");')
+        print("#endif")
+    elif comp == "ibm":
+        print("#ifndef __ibmxl__")
+        print('static_assert(false,"libamrex was built with IBM");')
+        print("#endif")
     else:
         sys.exit("ERROR: unknown compiler "+comp+" to mkconfig.py")
 
@@ -72,7 +80,7 @@ if __name__ == "__main__":
                         default="")
     parser.add_argument("--comp",
                         help="compiler",
-                        choices=["gnu","intel","cray","pgi","llvm","nag"])
+                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm"])
     parser.add_argument("--allow-different-compiler",
                         help="allow an application to use a different compiler than the one used to build libamrex",
                         choices=["TRUE","FALSE"])

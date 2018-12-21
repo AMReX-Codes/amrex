@@ -22,16 +22,16 @@ void do_react(const int* lo, const int* hi,
   user_data->num_cells = size_state;
   user_data->num_eqs_per_cell = neqs;
 
-  realtype reltol=1.0e-4, time=0.0e0, tout;
+  realtype reltol=1.0e-4, start_time=0.0e0, end_time=0.0e0, tout=0.0e0;
 
   realtype abstol_values[size_flat];
-  realtype state_y[size_flat];  
+  realtype state_y[size_flat];
 
   cuSolver_method LinearSolverMethod = QR;
   const int jac_number_nonzero = 8;
   int csr_row_count[neqs+1] = {1, 4, 7, 9};
   int csr_col_index[jac_number_nonzero] = {1, 2, 3, 1, 2, 3, 2, 3};
-  
+
   N_Vector y = NULL, yout=NULL;
   N_Vector abstol = NULL;
   void* cvode_mem = NULL;
@@ -63,20 +63,34 @@ void do_react(const int* lo, const int* hi,
   // Initialize CVODE
   cvode_mem = CVodeCreate(CV_BDF);
   flag = CVodeSetUserData(cvode_mem, static_cast<void*>(user_data));
-  flag = CVodeInit(cvode_mem, fun_rhs, time, y);
+  flag = CVodeInit(cvode_mem, fun_rhs, start_time, y);
   flag = CVodeSVtolerances(cvode_mem, reltol, abstol);
   flag = CVodeSetMaxNumSteps(cvode_mem, 150000);
 
   // Initialize cuSolver Linear Solver
-  flag = cv_cuSolver_SetLinearSolver(cvode_mem, LinearSolverMethod);
+  flag = cv_cuSolver_SetLinearSolver(cvode_mem, LinearSolverMethod, 1==1, 0);
   flag = cv_cuSolver_CSR_SetSizes(cvode_mem, neqs, jac_number_nonzero, size_state);
   flag = cv_cuSolver_SetJacFun(cvode_mem, &fun_csr_jac);
   flag = cv_cuSolver_SystemInitialize(cvode_mem, &csr_row_count[0], &csr_col_index[0]);
 
-  // Do Integration
-  time = time + static_cast<realtype>(dt);
-  flag = CVode(cvode_mem, time, yout, &tout, CV_NORMAL);
+  // Do Integration to dt/2
+  end_time = start_time + static_cast<realtype>(dt*0.5);
+  std::cout << "Reinitializing CVODE ..." << std::endl;
+  CVodeReInit(cvode_mem, start_time, y);
+  std::cout << "Integrating to dt/2 ..." << std::endl;
+  flag = CVode(cvode_mem, end_time, yout, &tout, CV_NORMAL);
   if (flag != CV_SUCCESS) amrex::Abort("Failed integration");
+  else std::cout << "Integrated to dt/2 ..." << std::endl;
+
+  // Do Integration to dt
+  start_time = tout;
+  end_time = start_time + static_cast<realtype>(dt*0.5);
+  std::cout << "Reinitializing CVODE ..." << std::endl;
+  CVodeReInit(cvode_mem, start_time, yout);
+  std::cout << "Integrating to dt ..." << std::endl;
+  flag = CVode(cvode_mem, end_time, yout, &tout, CV_NORMAL);
+  if (flag != CV_SUCCESS) amrex::Abort("Failed integration");
+  else std::cout << "Integrated to dt ..." << std::endl;
 
   // Save Final State
   get_nvector_cuda(yout, state_y, size_flat);
@@ -113,7 +127,7 @@ static void set_nvector_cuda(N_Vector vec, realtype* data, sunindextype size)
 
 static void get_nvector_cuda(N_Vector vec, realtype* data, sunindextype size)
 {
-  N_VCopyFromDevice_Cuda(vec);  
+  N_VCopyFromDevice_Cuda(vec);
   realtype* vec_host_ptr = N_VGetHostArrayPointer_Cuda(vec);
   for (sunindextype i = 0; i < size; i++) {
     data[i] = vec_host_ptr[i];
@@ -189,7 +203,7 @@ int fun_csr_jac(realtype t, N_Vector y, N_Vector fy,
   std::cout << "Got CUDA Synchronize return message of: ";
   std::cout << cudaGetErrorString(cuda_status) << std::endl;
 #endif
-  
+
   assert(cuda_status == cudaSuccess);
   return 0;
 }
@@ -200,7 +214,7 @@ __global__ static void fun_csr_jac_kernel(realtype t, realtype* y, realtype* fy,
 					  const int size, const int nnz, const int nbatched)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  
+
   if (tid < nbatched) {
     int jac_offset = tid * nnz;
     int y_offset = tid * size;
@@ -216,5 +230,5 @@ __global__ static void fun_csr_jac_kernel(realtype t, realtype* y, realtype* fy,
     csr_jac_cell[4] = -csr_jac_cell[1]-csr_jac_cell[6];
     csr_jac_cell[5] = -csr_jac_cell[2];
     csr_jac_cell[7] = 0.0e0;
-  }    
+  }
 }
