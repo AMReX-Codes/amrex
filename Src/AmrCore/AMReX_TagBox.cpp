@@ -646,7 +646,8 @@ TagBoxArray::coarsen (const IntVect & ratio)
 #endif
     for (MFIter mfi(*this,flags); mfi.isValid(); ++mfi)
     {
-	(*this)[mfi].coarsen(ratio,isOwner(mfi.LocalIndex()));
+        this->fabPtr(mfi)->coarsen(ratio,isOwner(mfi.LocalIndex()));
+        (*this)[mfi].coarsen(ratio,false);
     }
 
     boxarray.growcoarsen(n_grow[0],ratio);
