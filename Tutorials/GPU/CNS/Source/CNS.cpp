@@ -347,6 +347,8 @@ CNS::read_params ()
     pp.query("gravity", gravity);
 
     pp.query("eos_gamma", Parm::eos_gamma);
+
+    Parm::Initialize();
 }
 
 void

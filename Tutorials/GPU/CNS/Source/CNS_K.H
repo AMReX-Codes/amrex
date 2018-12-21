@@ -64,7 +64,7 @@ cns_compute_temperature (amrex::Box const& bx, amrex::FArrayBox& statefab)
                 amrex::Real my = u(i,j,k,UMY);
                 amrex::Real mz = u(i,j,k,UMZ);
                 u(i,j,k,UEINT) = u(i,j,k,UEDEN) - 0.5 * rhoinv * (mx*mx+my*my+mz*mz);
-                u(i,j,k,UTEMP) = 0.0;
+                u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (1.0/Parm::cv);
             }
         }
     }
