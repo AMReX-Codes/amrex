@@ -1037,10 +1037,10 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     for (int alev = 0; alev < namrlevs; ++alev)
     {
         if (!solve_called) {
-            rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, 0,
+            rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, 1,
                              MFInfo(), *linop.Factory(alev));
         }
-        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, 0);
+        MultiFab::Copy(rhs[alev], *a_rhs[alev], 0, 0, ncomp, 1);
         linop.applyMetricTerm(alev, 0, rhs[alev]);
 
 #ifdef AMREX_USE_EB
