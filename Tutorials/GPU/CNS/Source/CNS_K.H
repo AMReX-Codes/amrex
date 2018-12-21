@@ -7,6 +7,7 @@
 #include <cmath>
 
 #include "cns_prob.H"
+#include "CNS_parm.H"
 
 AMREX_GPU_HOST_DEVICE
 inline
@@ -18,9 +19,6 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
     const auto lo  = amrex::lbound(bx);
     const auto state = statefab.view(lo);
     amrex::Real dt = std::numeric_limits<amrex::Real>::max();
-    const amrex::Real smallr = 1.e-19;
-    const amrex::Real smallp = 1.e-10;
-    const amrex::Real gamma = 1.4;
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
@@ -30,12 +28,12 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
                 amrex::Real my  = state(i,j,k,UMY);
                 amrex::Real mz  = state(i,j,k,UMY);
                 amrex::Real ei  = state(i,j,k,UEINT);
-                amrex::Real rhoinv = 1.0/amrex::max(rho,smallr);
+                amrex::Real rhoinv = 1.0/amrex::max(rho,Parm::smallr);
                 amrex::Real vx = mx*rhoinv;
                 amrex::Real vy = my*rhoinv;
                 amrex::Real vz = mz*rhoinv;
-                amrex::Real p = amrex::max((gamma-1.0)*ei, smallp);
-                amrex::Real cs = std::sqrt(gamma*p*rhoinv);
+                amrex::Real p = amrex::max((Parm::eos_gamma-1.0)*ei, Parm::smallp);
+                amrex::Real cs = std::sqrt(Parm::eos_gamma*p*rhoinv);
                 amrex::Real dtx = dx[0]/(std::abs(vx)+cs);
                 amrex::Real dty = dx[1]/(std::abs(vy)+cs);
                 amrex::Real dtz = dx[2]/(std::abs(vz)+cs);

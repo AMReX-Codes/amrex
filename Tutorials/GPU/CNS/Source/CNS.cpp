@@ -2,6 +2,7 @@
 #include <CNS.H>
 #include <CNS_K.H>
 #include <CNS_tagging.H>
+#include <CNS_parm.H>
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParmParse.H>
@@ -344,6 +345,8 @@ CNS::read_params ()
     pp.query("refine_dengrad", refine_dengrad);
 
     pp.query("gravity", gravity);
+
+    pp.query("eos_gamma", Parm::eos_gamma);
 }
 
 void
