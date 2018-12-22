@@ -114,6 +114,8 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
             slopes(i,0,0,n) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
             if (cen != 0.0) {
                 sf(i,0,0,0) = amrex::min(sf(i,0,0,0), slopes(i,0,0,n)/cen);
+            } else {
+                sf(i,0,0,0) = 0.0;
             }
         }
     }
