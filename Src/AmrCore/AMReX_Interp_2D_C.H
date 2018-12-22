@@ -177,6 +177,8 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
                 slopes(i,j,0,n) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
                 if (cen != 0.0) {
                     sf(i,j,0,0) = amrex::min(sf(i,j,0,0), slopes(i,j,0,n)/cen);
+                } else {
+                    sf(i,j,0,0) = 0.0;
                 }
 
                 cen  = slopes(i,j,0,n+ncomp);
@@ -186,6 +188,8 @@ cellconslin_slopes_linlim (Box const& bx, FArrayBox& ccfab,
                 slopes(i,j,0,n+ncomp) = std::copysign(1.0,cen)*amrex::min(slp,std::abs(cen));
                 if (cen != 0.0) {
                     sf(i,j,0,1) = amrex::min(sf(i,j,0,1), slopes(i,j,0,n+ncomp)/cen);
+                } else {
+                    sf(i,j,0,1) = 0.0;
                 }
             }
         }
