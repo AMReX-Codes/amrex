@@ -53,12 +53,6 @@ void main_main ()
         {
             data[iter] = data[iter] + 1;
         });
-
-        for (int i=0; i<size; ++i)
-        {  
-            if (ones[i] != 1)
-               std::cout << "Nope";
-        } 
     }
 
 #ifdef AMREX_USE_CUDA_FORTRAN
