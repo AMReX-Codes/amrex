@@ -74,90 +74,55 @@ contains
     real(amrex_real), intent(inout) :: fine(fdlo(1):fdhi(1),fdlo(2):fdhi(2),fdlo(3):fdhi(3),nc)
     real(amrex_real), intent(in   ) :: crse(cdlo(1):cdhi(1),cdlo(2):cdhi(2),cdlo(3):cdhi(3),nc)
     
-    integer :: i,j,k,n,ii,jj,kk
+    integer :: i,j,k,n
 
+    
     do n = 1, nc
-       do k = clo(3), chi(3)-1
-          kk = k*2
-          do j = clo(2), chi(2)-1
-             jj = j*2
-             do i = clo(1), chi(1)-1
-                ii = i*2
-                fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-                fine(ii+1,jj  ,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n))
-                fine(ii  ,jj+1,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j+1,k  ,n))
-                fine(ii+1,jj+1,kk  ,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n) &
-                     &                         +crse(i,j+1,k  ,n)+crse(i+1,j+1,k  ,n))
-                fine(ii  ,jj  ,kk+1,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j  ,k+1,n))
-                fine(ii+1,jj  ,kk+1,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n) &
-                     &                         +crse(i,j  ,k+1,n)+crse(i+1,j  ,k+1,n))
-                fine(ii  ,jj+1,kk+1,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i  ,j+1,k  ,n) &
-                     &                         +crse(i,j  ,k+1,n)+crse(i  ,j+1,k+1,n))
-                fine(ii+1,jj+1,kk+1,n) = 0.125d0*(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n) &
-                     &                         +crse(i,j+1,k  ,n)+crse(i+1,j+1,k  ,n) &
-                     &                         +crse(i,j  ,k+1,n)+crse(i+1,j  ,k+1,n) &
-                     &                         +crse(i,j+1,k+1,n)+crse(i+1,j+1,k+1,n))
+       do       k = flo(3), fhi(3)
+          do    j = flo(2), fhi(2)
+             do i = flo(1), fhi(1)
+                if (MOD(j,2) .ne. 0 .and. MOD(i,2) .ne. 0 .and. MOD(k,2) .ne. 0) then 
+                   ! Fine node at center of cell
+                   fine(i,j,k,n) = 0.125d0*( &
+                        crse(i/2,  j/2,  k/2,n) + crse(i/2,  j/2,  k/2+1,n) + &
+                        crse(i/2,  j/2+1,k/2,n) + crse(i/2,  j/2+1,k/2+1,n) + &
+                        crse(i/2+1,j/2,  k/2,n) + crse(i/2+1,j/2,  k/2+1,n) + &
+                        crse(i/2+1,j/2+1,k/2,n) + crse(i/2+1,j/2+1,k/2+1,n))
+                else if (MOD(j,2) .ne. 0 .and. MOD(k,2) .ne. 0) then 
+                   ! Node on a Y-Z face
+                   fine(i,j,k,n) = 0.25d0*( &
+                        crse(i/2,  j/2,  k/2,n) + crse(i/2,  j/2,  k/2+1,n) + &
+                        crse(i/2,  j/2+1,k/2,n) + crse(i/2,  j/2+1,k/2+1,n))
+                else if (MOD(k,2) .ne. 0 .and. MOD(i,2) .ne. 0) then 
+                   ! Node on a Z-X face
+                   fine(i,j,k,n) = 0.25d0*( &
+                        crse(i/2,  j/2,k/2,n) + crse(i/2,  j/2,k/2+1,n) + &
+                        crse(i/2+1,j/2,k/2,n) + crse(i/2+1,j/2,k/2+1,n))
+                else if (MOD(i,2) .ne. 0 .and. MOD(j,2) .ne. 0) then 
+                   ! Node on a Z-X face
+                   fine(i,j,k,n) = 0.25d0*( &
+                        crse(i/2  ,j/2,k/2,n) + crse(i/2  ,j/2+1,k/2,n) + &
+                        crse(i/2+1,j/2,k/2,n) + crse(i/2+1,j/2+1,k/2,n))
+                else if (MOD(i,2) .ne. 0) then
+                   ! Node on X line
+                   fine(i,j,k,n) = 0.5d0*( &
+                        crse(i/2,j/2,k/2,n) + crse(i/2+1,j/2,k/2,n))
+                else if (MOD(j,2) .ne. 0) then
+                   ! Node on Y line
+                   fine(i,j,k,n) = 0.5d0*( &
+                        crse(i/2,j/2,k/2,n) + crse(i/2,j/2+1,k/2,n))
+                else if (MOD(k,2) .ne. 0) then
+                   ! Node on Z line
+                   fine(i,j,k,n) = 0.5d0*( &
+                        crse(i/2,j/2,k/2,n) + crse(i/2,j/2,k/2+1,n))
+                else
+                   ! Node coincident with coarse node
+                   fine(i,j,k,n) = crse(i/2,j/2,k/2,n)
+                end if
              end do
-             i = chi(1)
-             ii = i*2
-             fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-             fine(ii  ,jj+1,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j+1,k  ,n))
-             fine(ii  ,jj  ,kk+1,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j  ,k+1,n))
-             fine(ii  ,jj+1,kk+1,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i  ,j+1,k  ,n) &
-                  &                         +crse(i,j  ,k+1,n)+crse(i  ,j+1,k+1,n))
           end do
-
-          j = chi(2)
-          jj = j*2
-          do i = clo(1), chi(1)-1
-             ii = i*2
-             fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-             fine(ii+1,jj  ,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n))
-             fine(ii  ,jj  ,kk+1,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j  ,k+1,n))
-             fine(ii+1,jj  ,kk+1,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n) &
-                  &                         +crse(i,j  ,k+1,n)+crse(i+1,j  ,k+1,n))
-          end do
-          i = chi(1)
-          ii = i*2
-          fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-          fine(ii  ,jj  ,kk+1,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j  ,k+1,n))
        end do
     end do
-
-    k = chi(3)
-    kk = k*2
-    do n = 1, nc
-       do j = clo(2), chi(2)-1
-          jj = j*2
-          do i = clo(1), chi(1)-1
-             ii = i*2
-             fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-             fine(ii+1,jj  ,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n))
-             fine(ii  ,jj+1,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i  ,j+1,k  ,n))
-             fine(ii+1,jj+1,kk  ,n) = 0.25d0 *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n) &
-                  &                         +crse(i,j+1,k ,n )+crse(i+1,j+1,k ,n ))
-          end do
-          i = chi(1)
-          ii = i*2
-          fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-          fine(ii  ,jj+1,kk  ,n) = 0.5d0  *(crse(i,j  ,k ,n )+crse(i  ,j+1,k ,n ))
-       end do
-    end do
-    
-    j = chi(2)
-    jj = j*2
-    
-    do n = 1, nc
-       do i = clo(1), chi(1)-1
-          ii = i*2
-          fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-          fine(ii+1,jj  ,kk  ,n) = 0.5d0  *(crse(i,j  ,k  ,n)+crse(i+1,j  ,k  ,n))
-       end do
-       i = chi(1)
-       ii = i*2
-       fine(ii  ,jj  ,kk  ,n) = crse(i,j,k,n)
-    end do
-
   end subroutine amrex_mlmg_lin_nd_interp
 
 
