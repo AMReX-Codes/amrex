@@ -53,6 +53,8 @@ void main_main ()
         {
             data[iter] = data[iter] + 1;
         });
+
+        Gpu::Device::synchronize();
     }
 
 #ifdef AMREX_USE_CUDA_FORTRAN
