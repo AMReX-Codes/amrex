@@ -144,6 +144,18 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         {
             cns_flux_to_dudt(tbx, *dsdtfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dxinv);
         });
+
+        if (gravity != 0.0) {
+            const Real g = gravity;
+            const int irho = Density;
+            const int imz = Zmom;
+            const int irhoE = Eden;
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                dsdtfab->saxpy(g, *sfab, tbx, tbx, irho, imz, 1);
+                dsdtfab->saxpy(g, *dsdtfab, tbx, tbx, imz, irhoE, 1);
+            });
+        }
     }
 
     if (fr_as_crse) {
