@@ -127,7 +127,7 @@ public:
     // Increment flux correction with fine data.
     //
     ///in this version the area is assumed to muliplied into the flux (if not, use scale to fix)
-  void FineAdd (const MultiFab& mflx,
+    void FineAdd (const MultiFab& mflx,
                   int             dir, 
                   int             srccomp,
                   int             destcomp,
@@ -169,10 +169,10 @@ public:
     // Set flux correction data for a fine box (given by boxno) to a given value.
     //
     void FineSetVal (int              dir,
-                  int              boxno,
-                  int              destcomp,
-                  int              numcomp,
-                  Real             val);
+                     int              boxno,
+                     int              destcomp,
+                     int              numcomp,
+                     Real             val);
     //
     // Apply flux correction.  Note that this takes the coarse Geometry.
     //
