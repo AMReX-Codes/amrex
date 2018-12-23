@@ -9,6 +9,8 @@ CEXE_headers += AMReX_Interp_C.H AMReX_Interp_$(DIM)D_C.H
 FEXE_headers += AMReX_FLUXREG_F.H AMReX_INTERP_F.H
 F90EXE_sources += AMReX_FLUXREG_$(DIM)D.F90 AMReX_FLUXREG_nd.F90 AMReX_INTERP_$(DIM)D.F90
 
+CEXE_headers += AMReX_FluxReg_$(DIM)D_C.H AMReX_FluxReg_C.H
+
 FEXE_headers += AMReX_FillPatchUtil_F.H
 F90EXE_sources += AMReX_FillPatchUtil_$(DIM)d.F90
 
