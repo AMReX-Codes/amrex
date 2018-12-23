@@ -1661,11 +1661,10 @@ region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
 :cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
 arrays.  Fortran is often used for writing these kernels because of its
-native multi-dimensional array support.  To C++, these kernel
-functions are C functions, whose function 
-signatures are typically declared in a header file named ``*_f.H`` or
-``*_F.H``. We recommend the users to follow this convention.  Examples of these
-function declarations are as follows.
+native multi-dimensional array support.  To C++, these kernel functions are 
+C functions, whose function signatures are typically declared in a header file
+named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
+Examples of these function declarations are as follows.
 
 .. highlight:: c++
 
@@ -1869,10 +1868,11 @@ details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
 these limitations, it is recommended to use the type check tool and
 report issues to us.
 
+.. _sec:basics:cppkernel:
+
 Writing kernels in C++ is also an option.  AMReX provides a
 multi-dimensional array type of syntax, similar to Fortran,
-that is readable and easy to implement.
-An example is given below: 
+that is readable and easy to implement. An example is given below: 
 
 .. highlight:: c++
 
@@ -1901,29 +1901,21 @@ An example is given below:
         f(box, mf1[mfi], mf2[mfi]);
     }
 
-A tile box and two :cpp:`FArrayBox`\ es are passed to a C++ kernel 
+A :cpp:`Box` and two :cpp:`FArrayBox`\ es are passed to a C++ kernel 
 function.  In the function, :cpp:`amrex::length` is called to calculate
-and store the three-dimensional length of the loops. :cpp:`amrex::lbound`
-is called to get the lower end of the :cpp:`Box`.  Both  functions' 
-return type is :cpp:`amrex::Dim3`, a Plain Old Data type containing 
-three integers.  The result of :cpp:`amrex::lbound` is then
-passed to :cpp:`FArrayBox::view` to create a :cpp:`FabView<FArrayBox>`
-that can be used to access the data.
+and store the three-dimensional length of the loops based on the size
+of ``bx``. :cpp:`amrex::lbound` is called to get the lower bound of 
+the :cpp:`Box`.  Both functions' return type is :cpp:`amrex::Dim3`, a 
+Plain Old Data type containing three integers.  The result of 
+:cpp:`amrex::lbound` is then passed to :cpp:`FArrayBox::view` to 
+create a :cpp:`FabView<FArrayBox>` that can be used to access the data.
 
 :cpp:`FabView<FArrayBox>` is an AMReX class that contains a pointer to the
-underlying data as well as a :cpp:`operator()` that translates the three
-dimensional coordinates to the appropriate location in the one-dimensional
-arry. 
-
-operator(). 
-
-One and two dimensional version is identical.
-If using multiple boxes.
-
-Note that the view is shifted such that index 0 points to the lower 
-end of the :cpp:`Box`.  To obtain the global index, the values needs to
-shifted back using the appropriate :cpp:`lo` In the case of the example
-above, the global indices are: ``(i+lo.x, j+lo.y, k+lo.z)``.  
+appropriate place in the global :cpp:`FArrayBox` as well as an 
+:cpp:`operator()` that translates the three dimensional coordinates to 
+the appropriate location in the one-dimensional array.  It also translates
+between the global domain contained in the :cpp:`FArrayBox` and the local
+work space defined by the :cpp:`lo` array.   
 
 We put ``AMREX_PRAGMA_SIMD`` macro above the innermost loop to notify
 the compiler that it is safe to vectorize the loop.  This should be done
@@ -1934,6 +1926,15 @@ also compiler dependent.  It should be emphasized that using the
 will lead to a variety of errors, so if unsure about the loop, test and
 verify before adding the macro.
 
+Note that the view is shifted such that index 0 points to the lower 
+end of the :cpp:`Box`.  To obtain the global index, the values needs to
+shifted back using the appropriate :cpp:`lo`. In the case of the example
+above, the global indices are: ``(i+lo.x, j+lo.y, k+lo.z)``. 
+
+Also: be careful to use the appropriate :cpp:`lo` array for each 
+:cpp:`FabView` object. If the loop works on two different global ranges,
+each :cpp:`FabView` object must be created with the corresponding 
+:cpp:`lo` to obtain the correct data pointers.
 
 Ghost Cells
 ===========

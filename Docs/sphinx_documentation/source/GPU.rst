@@ -172,14 +172,14 @@ AMReX GPU work takes place inside of MFIter and particle loops.
 Therefore, there are two ways classes and functions have been modified 
 to interact with the GPU: 
 
-1) A small number of functions used within these loops are labelled using
+#. A small number of functions used within these loops are labelled using
 ``AMREX_GPU_DEVICE`` and can be called on the device. This includes member 
 functions, such as :cpp:`IntVect::type()`, as well as non-member functions,
 such as :cpp:`amrex::min` and `amrex::max`. In specialized cases,
 classes are labeled such that the object can be constructed, destructed 
 and its functions can be implemented on the device, including ``IntVect``.
 
-2) Functions that contain MFIter or particle loops have been rewritten
+#. Functions that contain MFIter or particle loops have been rewritten
 to contain device launches. For example, the :cpp:`FillBoundary`
 function cannot be called from device code, but calling it from
 CPU will launch GPU kernels if AMReX is compiled with GPU support. 
@@ -376,8 +376,7 @@ It is also recommended to write your primary floating point operation
 kernels in C++ using AMReX's :cpp:`FabView` object syntax. It converts 
 the 1D array into a simple to understand 3D loop structure, similar
 to Fortran while maintaining performance. The details can be found in
-:ref:`ADD REFERENCE HERE`.
-
+:ref:`C++ Kernel <sec:basics:cppkernel>`.
 
 Launching a C++ function
 ------------------------
@@ -484,6 +483,7 @@ The corresponding OpenACC labelled loop in ``plusone_acc`` is:
 .. highlight:: fortran 
 
 ::
+
     !dat = pointer to fab's managed data 
 
     !$acc kernels deviceptr(dat)
@@ -501,10 +501,51 @@ Since the data pointer passed to ``plusone_acc`` points to
 unified memory, OpenACC is told the data is available on the device
 by using the ``deviceptr`` construct.
 
-Launching over a number of elements 
------------------------------------
+Launching an generic loop
+-------------------------
 
-VECTOR LOOP EXAMPLE
+The previous examples showed how the ``AMREX_LAUNCH_DEVICE_LAMBDA``
+macro can be used to launch threads that work across cells in a
+:cpp:`FArrayBox` inside of an :cpp:`MFIter` loop. However, the macro
+is also capable of launching for a specified number of iterations
+that will be split across GPU threads. For example, launching over
+the number of elements in a vector is an example given in 
+``Tutorials/GPU/Launch`` and is reproduced here: 
+
+.. highlight:: c++
+
+    {
+        int size = 100;
+        amrex::Gpu::ManagedVector<int> ones(size, 0);
+        const auto data = ones.dataPtr();
+        AMREX_LAUNCH_DEVICE_LAMBDA(size, iter,
+        {
+            data[iter] = data[iter] + 1;
+        });
+
+        Gpu::Device::synchronize();
+    }
+
+
+A :cpp:`ManagedVector` is created that can be worked on from 
+both the CPU and GPU.  A copy of the underlying data pointer is
+created, so it can be captured and passed into the lambda function.
+The ``AMREX_LAUNCH_DEVICE_LAMBDA`` launch macro is used and again 
+it takes three arguments: the size of the vector as a :cpp:`long`,
+a name for the loop iterator and a lambda function to perform on
+each iteration.
+
+This form of the macro can be used to create any standard, singly 
+incremented loop on a GPU, not just over a vector.  This macro
+can also work on any contiguous subsets of a data set by passing
+a pointer that points to the beginning of the subset and the size
+of the subset.
+
+Users must also be aware that there is no automatic device 
+synchronize, as these launches do not have to occur inside of an 
+:cpp:`MFIter` loop.  Add :cpp:`Gpu::Device::synchronize()` where
+necessary to ensure GPU and CPU resources to do alter the same
+data simultaneously. 
 
 Kernel launch details
 ---------------------
@@ -734,16 +775,16 @@ Particle Support
 AMReX's GPU particle support relies on Thrust, a parallel algorithms library maintained by
 Nvidia. Thrust provides a GPU-capable vector container that is otherwise similar to the one
 in the C++ Standard Template Library, along with associated sorting, searching, and prefix
-summing operations. Along with Cuda's unified memory, thrust forms the basis of our GPU support
-for particles. 
+summing operations. Combined with Cuda's unified memory, Thrust forms the basis of AMReX's
+GPU support for particles. 
 
 When compiled with ``USE_CUDA=TRUE``, AMReX places all its particle data in instances of
-``thrust::device_vector`` that have been configured using a custom memory allocator that
-wraps around ``cudaMallocManaged``. This means that the :cpp:`dataPtr` associated with particle
-data can be passed in to GPU kernels, similar to way it would be passed in to a Fortran
-subroutine in typical AMReX CPU code. As with the mesh data, these kernels can be launched
-with a variety of approaches, including Cuda C / Fortran and OpenACC. An example Fortran subroutine
-offloaded via OpenACC might look like the following:
+``thrust::device_vector`` that have been configured using a custom memory allocator using 
+``cudaMallocManaged``. This means that the :cpp:`dataPtr` associated with particle data 
+is managed and can be passed into GPU kernels, similar to the way it would be passed into
+a Fortran subroutine in typical AMReX CPU code. As with the mesh data, these kernels can
+be launched with a variety of approaches, including Cuda C / Fortran and OpenACC. An example
+Fortran particle subroutine offloaded via OpenACC might look like the following:
 
 .. highlight:: fortran
 
@@ -784,7 +825,7 @@ STL vectors. When ``USE_CUDA = FALSE``, these classes reduce to the normal :cpp:
 When ``USE_CUDA = TRUE``, they have different meanings. :cpp:`Cuda::HostVector` is a wrapper
 around :cpp:`thrust::host_vector`. :cpp:`Cuda::DeviceVector` is a wrapper around :cpp:`thrust::device_vector`,
 while :cpp:`Cuda::ManagedDeviceVector` is a :cpp:`thrust::device_vector` that lives in managed memory.
-These classes are useful when you have certain stages of an algorithm that you know will always
+These classes are useful when there are certain stages of an algorithm that will always
 execute on either the host or the device. For example, the following code generates particles on
 the CPU and copies them over to the GPU in one batch per tile:
 
@@ -831,8 +872,8 @@ to a Struct-of-Arrays representation, all without copying any particle data off 
    }
            
 Finally, AMReX's :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
-have changed, has been ported to work on the GPU as well. You can't call it from device code,
-but you can call it on particles that reside on the device and it won't trigger any unified
+have changed, has been ported to work on the GPU as well. It cannot be called from device code,
+but it can be called on particles that reside on the device and it won't trigger any unified
 memory traffic. As with :cpp:`MultiFab` data, the MPI portion of the particle redistribute is set
 up to take advantange of the Cuda-aware MPI implementations available on platforms such as
 ORNL's Summit and Summit-dev.
