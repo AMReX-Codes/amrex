@@ -514,6 +514,8 @@ the number of elements in a vector is an example given in
 
 .. highlight:: c++
 
+::
+
     {
         int size = 100;
         amrex::Gpu::ManagedVector<int> ones(size, 0);
