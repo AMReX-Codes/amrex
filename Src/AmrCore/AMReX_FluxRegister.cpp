@@ -2,6 +2,7 @@
 #include <AMReX_BArena.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FLUXREG_F.H>
+#include <AMReX_FluxReg_C.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
@@ -246,18 +247,23 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
                 MFInfo(), mflx.Factory());
 
 #ifdef _OPENMP
-#pragma omp parallel
-#endif    
-    for (MFIter mfi(mflx,true); mfi.isValid(); ++mfi)
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.tilebox();
-	
-        mf[mfi].copy(mflx[mfi],bx,srccomp,bx,0,numcomp);
+        FArrayBox      * dfab =   mf.fabPtr(mfi);
+        FArrayBox const* sfab = mflx.fabPtr(mfi);
+        FArrayBox const* afab = area.fabPtr(mfi);
 
-        mf[mfi].mult(mult,bx,0,numcomp);
-
-        for (int i = 0; i < numcomp; i++)
-            mf[mfi].mult(area[mfi],bx,bx,0,i,1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            dfab->copy(*sfab, tbx, srccomp, tbx, 0, numcomp);
+            dfab->mult(mult, tbx, 0, numcomp);
+            for (int i = 0; i < numcomp; ++i) {
+                dfab->mult(*afab, tbx, tbx, 0, i, 1);
+            }
+        });
     }
 
     for (int pass = 0; pass < 2; pass++)
@@ -296,12 +302,13 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        Real            mult)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FineAdd(mflx[mfi],dir,k,srccomp,destcomp,numcomp,mult);
+        FArrayBox const* flxfab = mflx.fabPtr(mfi);
+        FineAdd(*flxfab,dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -315,12 +322,14 @@ FluxRegister::FineAdd (const MultiFab& mflx,
                        Real            mult)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mflx); mfi.isValid(); ++mfi)
     {
         const int k = mfi.index();
-        FineAdd(mflx[mfi],area[k],dir,k,srccomp,destcomp,numcomp,mult);
+        FArrayBox const* flxfab = mflx.fabPtr(mfi);
+        FArrayBox const* areafab = area.fabPtr(mfi);
+        FineAdd(*flxfab,*areafab,dir,k,srccomp,destcomp,numcomp,mult);
     }
 }
 
@@ -333,6 +342,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
+    // xxxxx gpu todo
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
@@ -377,6 +387,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
+    // xxxxx gpu todo
+
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
@@ -418,11 +430,13 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
 void
 FluxRegister::FineSetVal (int              dir,
-                       int              boxno,
-                       int              destcomp,
-                       int              numcomp,
-                       Real             val)
+                          int              boxno,
+                          int              destcomp,
+                          int              numcomp,
+                          Real             val)
 {
+    // This routine used by FLASH does NOT run on gpu for safety.
+
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
@@ -443,6 +457,7 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      int             nc,
 		      const Geometry& geom)
 {
+    // xxxxx gpu todo
     BL_PROFILE("FluxRegister::Reflux()");
 
     for (OrientationIter fi; fi; ++fi)
@@ -458,9 +473,9 @@ FluxRegister::Reflux (MultiFab&       mf,
 	bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
 
@@ -504,6 +519,8 @@ FluxRegister::Reflux (MultiFab&       mf,
 void
 FluxRegister::ClearInternalBorders (const Geometry& geom)
 {
+    // xxxxx gpu todo
+
     int nc = this->nComp();
     const Box& domain = geom.Domain();
     
@@ -520,7 +537,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-	{
+        {
 	    for (FabSetIter fsi(frlo); fsi.isValid(); ++fsi) {
 		const Box& bx = fsi.validbox();
 		const std::vector< std::pair<int,Box> >& isects = bahi.intersections(bx);
@@ -536,7 +553,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
 			    frlo[fsi].setVal(0.0, bx2, 0, nc);
 			}		      
 		    }
-		}
+                }
 	    }
 	    
 	    for (FabSetIter fsi(frhi); fsi.isValid(); ++fsi) {
@@ -565,6 +582,8 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                              Real scale, int srccomp, int destcomp, int numcomp,
                              const Geometry& crse_geom)
 {
+    // xxxxx gpu todo
+
     BL_PROFILE("FluxRegister::OverwriteFlux()");
 
     const auto& cperiod = crse_geom.periodicity();
@@ -619,9 +638,9 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
         bndry[hi_face].plusTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_flux,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_flux,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             amrex_froverwrite_cfb(BL_TO_FORTRAN_BOX(bx),

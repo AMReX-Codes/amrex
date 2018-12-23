@@ -105,7 +105,8 @@ public:
     //
     //  Add coarse fluxes to the flux register.
     //  This is different from CrseInit with FluxRegister::ADD.
-    //  This is used for cases in which the grids covered by fine do not have fluxes computed.
+    //  This is used for cases in which the grids covered by fine
+    //  do not have fluxes computed (e.g., FLASH).
     //
     void CrseAdd (const MultiFab& mflx,
                   const MultiFab& area,
@@ -167,6 +168,7 @@ public:
                   Real             mult);
     //
     // Set flux correction data for a fine box (given by boxno) to a given value.
+    // This routine used by FLASH does NOT run on gpu for safety.
     //
     void FineSetVal (int              dir,
                      int              boxno,
