@@ -1,3 +1,17 @@
+/* This file is translated form Tests/HDF5Benchmark/WritePlotfileHDF5.cpp
+ * A HDF5 variable maps to a NetCDF variable of the same size
+ * A HDF attribute maps to a NetCDF attribute 
+ * A HDF5 data space is mapped to a set of NetCDF dimensions representing every dimension of the data space
+ * PnetCDF does not support composite datatype in attributes and variables. Luckily, all composite datatype 
+ * used in this benchmark are sinmply repetiion of a single elementary datatype. We simply add one dimension 
+ * to the variable to accomodate multiple values per cell.
+ * Since NetCDF classic format does not have the concept of groups, groups are represented by appending the 
+ * group name to the name of all member objects similar to a path. For example: variable X under group Y will 
+ * be represented by a global variable called Y/X
+ * PnetCDF have data and define mode. Objects can only be created in define mode and variable can only be 
+ * accessed in data mode. We follow the flow of the HDF5 benchmark and switch mode as we need.
+ */
+
 #include <WritePlotfilePnetCDF.H>
 
 #include <AMReX_BLProfiler.H>
@@ -21,6 +35,11 @@ using namespace amrex;
 
 namespace {
     
+    /* Write std amp content as NetCDF attributes
+     * m_int: IN: integer attributes 
+     * m_real: IN: double attributes 
+     * m_string: IN: string attributes 
+     */
     int VWriteToLocation(int ncid, 
                             std::string prefix,
                             std::map<std::string, int>  &m_int,
@@ -30,21 +49,24 @@ namespace {
         int err, status = NC_NOERR;
         std::string attname;
     
+        // Write integer attribute
         for (std::map<std::string, int>::const_iterator p = m_int.begin(); p!= m_int.end(); ++p){
             attname = prefix + p->first;
             std::replace(attname.begin(), attname.end(), '/', '_'); 
             err = ncmpi_put_att_int(ncid, NC_GLOBAL, attname.c_str(), NC_INT, 1, &(p->second)); ERR
         }
 
+        // Write real valued attribute
         for (std::map<std::string, double>::const_iterator p = m_real.begin(); p!= m_real.end(); ++p){
             double val;
 
             attname = std::string(prefix) + p->first;
             std::replace(attname.begin(), attname.end(), '/', '_'); 
-            val = (double)(p->second);
+            val = (double)(p->second);  // NetCDF has no specific datatype for Real, so we cast it as double
             err = ncmpi_put_att_double(ncid, NC_GLOBAL, attname.c_str(), NC_DOUBLE, 1, &(val)); ERR
         }
 
+        // Write string attribute
         for (std::map<std::string, std::string>::const_iterator p = m_string.begin(); p!= m_string.end(); ++p){
             attname = std::string(prefix) + p->first;
             std::replace(attname.begin(), attname.end(), '/', '_'); 
@@ -55,6 +77,8 @@ namespace {
     }
 }
 
+/* Write NetCDF formated plot file
+ */
 void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
                                   int nlevels,
 				  const Vector<const MultiFab*> &mf,
@@ -114,8 +138,10 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
     std::string vGroupName = "_";
     int vFile;
     
+    // Write one level at a time
     for (int level = 0; level < nlevels; ++level) {
 
+    // Create the file only whne it is the first level, otherwise, open existing file
     if ( level == 0 ) {
         std::string filedescriptor("VanillaAMRFileType");
 
@@ -334,8 +360,10 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         totalOffset += procBufferSize[proc];
     }
 
+    // Some metadata are stored in small variables, enter ddata mode to write variables
     err = ncmpi_enddef(vFile); ERR
 
+    // Since only part of the processes write the variable, we use independent mode
     err = ncmpi_begin_indep_data(vFile); ERR
     
     if(ParallelDescriptor::IOProcessor()) {
@@ -396,6 +424,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         */
     }
 
+    // Back to collective mode
     err = ncmpi_end_indep_data(vFile); ERR
     
     // ASim@lbl.gov 6/15/2017
@@ -416,6 +445,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         std::cout << "#%$: write_all_meta_time: " << dPlotFileTime86 << std::endl;
     }
     
+    // Now it's time for the main data, we enter define mode to define variable for the main data
     err = ncmpi_redef(vFile); ERR
 
     {  // ---- data write
@@ -434,7 +464,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         err = ncmpi_def_dim(vFile, "dataspace", hs_allprocsize[0], dataspacedimmids); ERR
         int dataset;
         err = ncmpi_def_var(vFile, (gL + "_" + dataname).c_str(), NC_DOUBLE, 1, dataspacedimmids, &dataset); ERR
-        err = ncmpi_enddef(vFile); ERR
+        err = ncmpi_enddef(vFile); ERR  // Switch to data mode for writing the main data
 
         // ASim@lbl.gov CollectiveMetaData
 	// commented out 10/3/2017
@@ -480,6 +510,7 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         }
 
 #ifdef H5INDEP
+        // Switch to independent mode if we are writing independnetly
         err = ncmpi_begin_indep_data(vFile); ERR
 #else
 #endif
@@ -488,6 +519,8 @@ void WriteMultiLevelPlotfilePNETCDF (const std::string &plotfilename,
         double dPlotFileTime00(ParallelDescriptor::second());
         
         BL_PROFILE_VAR("NCVarPutGrids", h5dwg);
+
+        // Write main data, PnetCDF has different sset of API for independnent and collective operation
 #ifdef H5INDEP
         err = ncmpi_put_vara_double(vFile, dataset, ch_offset, hs_procsize, a_buffer.dataPtr());
 #else
