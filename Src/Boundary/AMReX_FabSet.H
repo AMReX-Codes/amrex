@@ -37,6 +37,7 @@ class FabSetIter;
 class FabSet
 {
     friend class FabSetIter;
+    friend class FluxRegister;
 public:
     //
     // The default constructor -- you must later call define().

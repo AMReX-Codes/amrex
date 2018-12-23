@@ -105,12 +105,27 @@ FluxRegister::SumReg (int comp) const
         const FabSet& lofabs = bndry[Orientation(dir,Orientation::low) ];
         const FabSet& hifabs = bndry[Orientation(dir,Orientation::high)];
 
+#ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion())
+        {
+            sum += amrex::ReduceSum(lofabs.m_mf, hifabs.m_mf, 0,
+                   [] AMREX_GPU_HOST_DEVICE (Box const& tbx,
+                                             FArrayBox const& lofab,
+                                             FArrayBox const& hifab) -> Real
+                   {
+                       return lofab.sum(tbx,0) - hifab.sum(tbx,0);
+                   });
+        }
+        else
+#endif
+        {
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:sum)
 #endif
-        for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
-        {
-            sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
+            for (FabSetIter fsi(lofabs); fsi.isValid(); ++fsi)
+            {
+                sum += (lofabs[fsi].sum(comp) - hifabs[fsi].sum(comp));
+            }
         }
     }
 
@@ -139,19 +154,23 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                 MFInfo(), mflx.Factory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif    
-    for (MFIter mfi(mflx,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.tilebox();
-	
-        const FArrayBox& mflxFAB = mflx[mfi];
-        mf[mfi].copy(mflxFAB,bx,srccomp,bx,0,numcomp);
+        FArrayBox      * dfab =   mf.fabPtr(mfi);
+        FArrayBox const* sfab = mflx.fabPtr(mfi);
+        FArrayBox const* afab = area.fabPtr(mfi);
 
-        mf[mfi].mult(mult,bx,0,numcomp);
-
-        for (int i = 0; i < numcomp; i++)
-            mf[mfi].mult(area[mfi],bx,bx,0,i,1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            dfab->copy(*sfab, tbx, srccomp, tbx, 0, numcomp);
+            dfab->mult(mult, tbx, 0, numcomp);
+            for (int i = 0; i < numcomp; ++i) {
+                dfab->mult(*afab, tbx, tbx, 0, i, 1);
+            }
+        });
     }
 
     for (int pass = 0; pass < 2; pass++)
@@ -171,10 +190,18 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             fs.copyFrom(mf,0,0,0,numcomp);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
-                bndry[face][mfi].plus(fs[mfi],0,destcomp,numcomp);
+            {
+                const Box& bx = mfi.validbox();
+                FArrayBox const* sfab =          fs.fabPtr(mfi);
+                FArrayBox      * dfab = bndry[face].fabPtr(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    dfab->plus(*sfab, tbx, tbx, 0, destcomp, numcomp);
+                });
+            }
         }
     }
 }
