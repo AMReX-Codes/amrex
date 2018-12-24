@@ -21,10 +21,13 @@ class LSFactory {
     private:
 
         // MultiFab pointers storing level-set data
-        //    -> ls_phi:   nodal MultiFab storing signed distance function to the nearest wall
-        //    -> ls_valid: cell-centered iMultiFab storing integer flags assuming the following values:
+        //    -> ls_phi: nodal MultiFab storing signed distance function to the
+        //               nearest wall
+        //    -> ls_valid: cell-centered iMultiFab storing integer flags
+        //                 assuming the following values:
         //         -1 : not all nodes around cell have been initialized
-        //          0 : none of the cell's neighbours contain negative vlaues of ls_phi on its nodes
+        //          0 : none of the cell's neighbours contain negative vlaues of
+        //              ls_phi on its nodes
         //          1 : the cell is in the neighbourhood of phi < 0
 
         std::unique_ptr<MultiFab>  ls_grid;
@@ -49,6 +52,9 @@ class LSFactory {
         // Padding of the leve-set and EB grids:
         const int ls_grid_pad, eb_grid_pad;
 
+        // Tiling for local level-set filling
+        int eb_tile_size;
+
         // Baseline BoxArray and Geometry from which refined quantities are
         // derived. These are mainly kept around for the copy constructor.
         BoxArray base_ba;
@@ -58,7 +64,15 @@ class LSFactory {
         const RealVect dx_vect, dx_eb_vect;
 
         // Construct eb_facets list from eb_factory
+        static std::unique_ptr<Vector<Real>> eb_facets(const FArrayBox & norm_tile,
+                                                       const CutFab & bcent_tile,
+                                                       const EBCellFlagFab & flag,
+                                                       const RealVect & eb_dx,
+                                                       const Box & eb_search);
+
         std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
+        std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
+                                                const BoxArray & ba, const DistributionMapping & dm);
 
         void update_ba(const BoxArray & new_ba, const DistributionMapping & dm);
         void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
@@ -69,7 +83,8 @@ class LSFactory {
 
     public:
         LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
-                  const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
+                  const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm,
+                  int eb_tile_size = 32);
         LSFactory(const LSFactory & other);
         ~LSFactory();
 
@@ -78,6 +93,36 @@ class LSFactory {
         void invert();
 
         void set_data(const MultiFab & mf_ls);
+
+
+        /************************************************************************
+         *                                                                      *
+         * Utilities that fill the level-set MultiFab using local EB Factory    *
+         * NOTE: returns an iMultiFab flagging "valid" data                     *
+         *                                                                      *
+         ***********************************************************************/
+
+        static void fill_data_loc (MultiFab & data, iMultiFab & valid,
+                                   const EBFArrayBoxFactory & eb_factory,
+                                   const MultiFab & eb_impfunc,
+                                   int ebt_size, int ls_ref, int eb_ref,
+                                   const Geometry & geom, const Geometry & geom_eb);
+
+        static void fill_data_loc (MultiFab & data, iMultiFab & valid,
+                                   const EBFArrayBoxFactory & eb_factory,
+                                   const MultiFab & eb_impfunc,
+                                   const IntVect & ebt_size, int ls_ref, int eb_ref,
+                                   const Geometry & geom, const Geometry & geom_eb);
+
+
+        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                const MultiFab & mf_impfunc);
+        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                const MultiFab & mf_impfunc,
+                                                int ebt_size);
+        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                const MultiFab & mf_impfunc,
+                                                const IntVect & ebt_size);
 
         std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                     const MultiFab & mf_impfunc);

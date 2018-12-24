@@ -1,8 +1,8 @@
 #ifdef USE_PERILLA
 
 #include <AMReX_MultiFabUtil.H>
+#include <AMReX_MultiFabUtil_C.H>
 #include <AMReX_MultiFabUtil_Perilla.H>
-#include <AMReX_MultiFabUtil_F.H>
 
 #include <Perilla.H>
 #include <RegionGraph.H>
@@ -41,12 +41,7 @@ namespace amrex
 	    {
 	      const Box& tbx = *(RG_fine->fabTiles[f]->tileBx[t]);
 	      
-	
-	      BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-		(tbx.loVect(), tbx.hiVect(),
-		 BL_TO_FORTRAN_N(S_fine[lfi],scomp),
-		 BL_TO_FORTRAN_N(crse_S_fine[lfi],0),
-		 ratio.getVect(),&ncomp);
+              amrex_avgdown(tbx,crse_S_fine[lfi],S_fine[lfi],0,scomp,ncomp,ratio);
 	    }
 	RG_fine->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-perilla::NUM_COMM_THREADS); // Barrier to synchronize team threads
 	
@@ -121,15 +116,8 @@ namespace amrex
 	int lfi = crse_S_fine.IndexArray()[f];
  	const Box& tbx = crse_S_fine[ lfi ].box();
 	
-	//  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
-	//        because the crse fab is a temporary which was made starting at comp 0, it is
-	//        not part of the actual crse multifab which came in.
-	BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
-	  (tbx.loVect(), tbx.hiVect(),
-	   BL_TO_FORTRAN_N(S_fine[lfi],scomp),
-	   BL_TO_FORTRAN_N(crse_S_fine[lfi],0),
-	   BL_TO_FORTRAN(fvolume[lfi]),
-	   ratio.getVect(),&ncomp);
+        amrex_avgdown_with_vol(tbx,crse_S_fine[lfi],S_fine[lfi],fvolume[lfi],
+                               0,scomp,ncomp,ratio);
 	//}
 
 	Perilla::multifabCopyPush( RG_crse, RG_fine, &S_crse, &crse_S_fine, f, scomp, 0, ncomp, 0, 0, false);

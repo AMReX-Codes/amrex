@@ -31,13 +31,16 @@ GFab::buildTypes (EBCellFlagFab& celltype)
 MultiFab
 MultiGFab::getLevelSet ()
 {
-    Vector<Real*> p;
-    p.reserve(local_size());
+    MultiFab r(amrex::convert(boxArray(),IntVect::TheNodeVector()),
+               DistributionMap(), 1, GFab::ng, MFInfo().SetAlloc(false));
+
     for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-        p.push_back((*this)[mfi].getLevelSet().dataPtr());
+        auto& fab = (*this)[mfi].getLevelSet();
+        FArrayBox* p = new FArrayBox(fab.box(),1,fab.dataPtr());
+        r.setFab(mfi,p);
     }
-    return MultiFab(amrex::convert(boxArray(),IntVect::TheNodeVector()),
-                    DistributionMap(), 1, IntVect(GFab::ng), p);
+
+    return r;
 }
 
 }}

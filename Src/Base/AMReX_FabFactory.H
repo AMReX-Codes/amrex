@@ -4,6 +4,7 @@
 
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
+#include <AMReX_MakeType.H>
 
 namespace amrex
 {
@@ -42,6 +43,10 @@ public:
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     virtual void destroy (FAB* fab) const = 0;
     virtual FabFactory<FAB>* clone () const = 0;
+#ifdef AMREX_USE_GPU
+    virtual FAB* createHostAlias (FAB const& src) const = 0;
+    virtual void destroyHostAlias (FAB* fab) const = 0;
+#endif
 };
 
 template <class FAB>
@@ -58,6 +63,18 @@ public:
     {
         delete fab;
     }
+
+#ifdef AMREX_USE_GPU
+    virtual FAB* createHostAlias (FAB const& src) const override
+    {
+        return ::new FAB(src, amrex::make_alias);
+    }
+
+    virtual void destroyHostAlias (FAB* fab) const override
+    {
+        ::delete fab;
+    }
+#endif
 
     virtual DefaultFabFactory<FAB>* clone () const override {
         return new DefaultFabFactory<FAB>();

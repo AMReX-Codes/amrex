@@ -52,7 +52,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
     FC  := mpifort
     F90 := mpifort
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
 
   endif
 

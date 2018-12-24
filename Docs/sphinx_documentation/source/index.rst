@@ -38,20 +38,23 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    :caption: Contents:
 
    Introduction
-   Chapter2
-   Chapter3
-   Chapter4
-   Chapter5
-   Chapter6
-   Chapter6a
-   Chapter7
-   Chapter8
-   Chapter9
-   Chapter10
-   Chapter11
-   Chapter12
-   Chapter13
-   Chapter14
+   GettingStarted_Chapter
+   BuildingAMReX_Chapter
+   Basics_Chapter
+   Tutorials_Chapter
+   AmrCore_Chapter
+   AmrLevel_Chapter
+   AsyncIter_Chapter
+   IO_Chapter
+   LinearSolvers_Chapter
+   Particle_Chapter
+   Fortran_Chapter
+   EB_Chapter
+   GPU_Chapter
+   Visualization_Chapter
+   AMReX_Profiling_Tools_Chapter
+   External_Profiling_Tools_Chapter
+   External_Frameworks_Chapter
 
 Indices and tables
 ==================

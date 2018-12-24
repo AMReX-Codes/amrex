@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <set>
 #include <vector>
+#include <mutex>
 
 #include <AMReX_Arena.H>
 
@@ -27,6 +28,9 @@ public:
     * If hunk_size == 0 we use DefaultHunkSize as specified below.
     */
     CArena (std::size_t hunk_size = 0);
+
+    CArena (const CArena& rhs) = delete;
+    CArena& operator= (const CArena& rhs) = delete;
     
     //! The destructor.
     virtual ~CArena () override;
@@ -39,11 +43,6 @@ public:
     * into largest possible chunk.
     */
     virtual void free (void* ap) override;
-
-#ifdef AMREX_USE_GPU
-    virtual void* alloc_device (std::size_t nbytes) override;
-    virtual void free_device (void* ap) override;
-#endif
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const;
@@ -124,10 +123,7 @@ protected:
     //! The amount of heap space currently allocated.
     std::size_t m_used;
 
-private:
-    //! Disallowed.
-    CArena (const CArena& rhs);
-    CArena& operator= (const CArena& rhs);
+    std::mutex carena_mutex;
 };
 
 }

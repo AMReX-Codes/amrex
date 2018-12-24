@@ -29,26 +29,38 @@ class BoxArray;
 struct GeometryData
 {
  //! Returns the cellsize for each coordinate direction.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Real* CellSize () const { return dx; }
+    //
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real CellSize (int dir) const { return dx[dir]; }
  //! Returns the lo end of the problem domain in each dimension.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Real* ProbLo () const { return prob_domain.lo(); }
+    //
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real ProbLo (int dir) const { return prob_domain.lo(dir); }
  //! Returns the hi end of the problem domain in each dimension.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Real* ProbHi () const { return prob_domain.hi(); }
+    //
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Real ProbHi (int dir) const { return prob_domain.hi(dir); }
  //! Returns our rectangular domain.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     const Box& Domain () const { return domain; }
  //! Returns whether the domain is periodic in the given direction.
-    AMREX_GPU_HOST_DEVICE
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int isPeriodic (const int i) const { return is_periodic[i]; }
+ // Coordinates type
+    int Coord () const { return coord; }
 
 public:
     RealBox prob_domain;
     Box domain;
     Real dx[AMREX_SPACEDIM];
     int is_periodic[AMREX_SPACEDIM];
+    int coord;
 };
 
 class Geometry
@@ -72,8 +84,9 @@ public:
 
     // Returns non-static copy of geometry's stored data.
     GeometryData data() const {
-      return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
-	  {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])}};
+        return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
+            {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
+                static_cast<int>(c_sys) };
     }
 
     static void Finalize ();
@@ -84,9 +97,9 @@ public:
     //! Returns the problem domain.
     static const RealBox& ProbDomain () { return prob_domain; }
     //! Sets the problem domain.
-    static void ProbDomain (const RealBox& rb) 
-    { 
-        prob_domain = rb; 
+    static void ProbDomain (const RealBox& rb)
+    {
+        prob_domain = rb;
         SetOffset(rb.lo());
     }
     //! Returns the lo end of the problem domain in each dimension.
@@ -97,6 +110,15 @@ public:
     static Real ProbLo (int dir) { return prob_domain.lo(dir); }
     //! Returns the hi end of the problem domain in specified direction.
     static Real ProbHi (int dir) { return prob_domain.hi(dir); }
+
+    static GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () {
+        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+    }
+
+    static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () {
+        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+    }
+
     //! Returns the overall size of the domain by multiplying the ProbLength's together
     static Real ProbSize ()
     {
@@ -159,6 +181,11 @@ public:
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
+    static GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () {
+        return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
+                             static_cast<int>(is_periodic[1]),
+                             static_cast<int>(is_periodic[2]))};
+    }
     //! What's period in specified direction?
     int period (int dir) const { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
@@ -184,7 +211,7 @@ public:
     * this as a special case if there is some periodicity.
     */
     void periodicShift (const Box&      target,
-                        const Box&      src, 
+                        const Box&      src,
                         Vector<IntVect>& out) const;
 
     // Return domain box with non-periodic directions grown by ngrow.
