@@ -60,8 +60,15 @@
 #ifdef PERILLA_USE_UPCXX
 extern struct rMsgMap_t{
     std::map< int, std::map< int,  std::list< Package* > > > map;
+    volatile int size=0;
     pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
 }rMsgMap;
+extern struct sMsgMap_t{
+    std::map< int, std::map< int,  std::list< Package* > > > map;
+    volatile int size=0;
+    pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
+}sMsgMap;
+
 #endif
 #endif
 #endif
@@ -2022,14 +2029,18 @@ Amr::timeStep (int  level,
         }
 #ifdef USE_PERILLA
 	if(cnt){
-	    Perilla::clearTagMap();
-	    Perilla::clearMyTagMap();
-	    Perilla::genTags=true;
-	    Perilla::uTags=0;
-	    Perilla::pTagCnt.clear();
-            for(int i=0; i<= finest_level; i++)
+	        if(ParallelDescriptor::NProcs()>1){
+	           Perilla::clearTagMap();
+	           Perilla::clearMyTagMap();
+	           Perilla::genTags=true;
+	            Perilla::uTags=0;
+	            Perilla::pTagCnt.clear();
+		}
+	memcheck.report();
+            for(int i=0; i<= finest_level; i++){
                 getLevel(i).initPerilla(cumtime);
- 	    Perilla::updateMetadata_done=1;
+ 	        Perilla::updateMetadata_done++;
+	    }
 	}
         delete metadataChanged;
 #endif
@@ -2237,52 +2248,60 @@ Amr::coarseTimeStep (Real stop_time)
 
     if(perilla::isCommunicationThread())
     {
+	bool doublechecked=false;
         while(true){
-  	    if(!Perilla::updateMetadata_request){
+   	    if(!Perilla::updateMetadata_request){
                 Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
 		{
+                    Perilla::syncProcesses();
 	            flattenedGraphArray.clear();
+                    Perilla::syncProcesses();
                     break;
 		}
             }else{
-		Perilla::syncProcesses();
+	        Perilla::syncProcesses();
         	for(int g=0; g<flattenedGraphArray.size(); g++)
-        	{
-		    //cancel messages preposted previously
-		    flattenedGraphArray[g]->graphTeardown();
+          	{
+		       //cancel messages preposted previously
+		       flattenedGraphArray[g]->graphTeardown();
 		}
 #ifdef PERILLA_USE_UPCXX
-                for(int i=0; i<rMsgMap.map.size(); i++){
-                    for(int j=0; j<rMsgMap.map[i].size(); j++){
-			while(rMsgMap.map[i][j].size()>0){
-                            Package* p= rMsgMap.map[i][j].front();
-                            rMsgMap.map[i][j].pop_front();
-                            //delete p;
-			}
+                    pthread_mutex_lock(&(rMsgMap.lock));
+                    for(int i=0; i<rMsgMap.map.size(); i++){
+                        for(int j=0; j<rMsgMap.map[i].size(); j++){
+                            while(rMsgMap.map[i][j].size()>0){
+                               rMsgMap.map[i][j].pop_front();
+                               rMsgMap.size--;
+                            }
+                        }
                     }
-                }
+                    pthread_mutex_unlock(&(rMsgMap.lock));
+                    while(sMsgMap.size>0){
+                    }
 #endif
-		Perilla::syncProcesses();
+	        Perilla::syncProcesses();
 	        Perilla::updateMetadata_noticed=1;
-	        while(!Perilla::updateMetadata_done){
+	        while(Perilla::updateMetadata_done!= (max_level+1)){
 		
 	        }
-	        if(ParallelDescriptor::NProcs()>1){
+	        Perilla::updateMetadata_request=0;
+	        Perilla::updateMetadata_noticed=0;
+	        Perilla::updateMetadata_done=0;
+                if(ParallelDescriptor::NProcs()>1){
 	            Perilla::syncProcesses();
                     Perilla::communicateTags();
 	            Perilla::syncProcesses();
 		}
-	        Perilla::updateMetadata_request=0;
-	        Perilla::updateMetadata_noticed=0;
-	        Perilla::updateMetadata_done=0;
 	        flattenedGraphArray.clear();
 		Perilla::flattenGraphHierarchy(graphArray, flattenedGraphArray);
 	        Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
 
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
 		{
-	            flattenedGraphArray.clear();
+	 	    Perilla::syncProcesses();
+  	            flattenedGraphArray.clear();
+	 	    Perilla::syncProcesses();
                     break;
 		}
  	    }
