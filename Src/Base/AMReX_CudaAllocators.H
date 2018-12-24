@@ -43,8 +43,8 @@ namespace amrex {
             }
 
             const int device = Cuda::Device::deviceId();
-            CudaAPICheck(cudaMemAdvise(result, n*sizeof(T), 
-                                       cudaMemAdviseSetPreferredLocation, device));
+            AMREX_GPU_SAFE_CALL(cudaMemAdvise(result, n*sizeof(T), 
+                                              cudaMemAdviseSetPreferredLocation, device));
 
             return result;
         }

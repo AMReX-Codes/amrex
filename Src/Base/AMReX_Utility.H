@@ -317,6 +317,34 @@ namespace amrex
                                                std::chrono::high_resolution_clock,
                                                std::chrono::steady_clock>::type;
     double second ();
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& min (const T& a, const T& b)
+    {
+        return (b < a) ? b : a;
+    }
+
+    template <class T, class ... Ts>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& min (const T& a, const T& b, const Ts& ... c)
+    {
+        return min(min(a,b),c...);
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& max (const T& a, const T& b)
+    {
+        return (a < b) ? b : a;
+    }
+
+    template <class T, class ... Ts>
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE const T& max (const T& a, const T& b, const Ts& ... c)
+    {
+        return max(max(a,b),c...);
+    }
 }
 
 template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm)
@@ -413,7 +441,6 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
-
 
 extern "C" {
     void* amrex_malloc (std::size_t size);

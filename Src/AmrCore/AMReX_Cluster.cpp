@@ -336,6 +336,118 @@ Cluster::chop ()
     return new Cluster(prt_it, nhi);
 }
 
+Cluster*
+Cluster::new_chop ()
+{
+    BL_ASSERT(m_len > 1);
+    BL_ASSERT(!(m_ar == 0));
+
+    const int* lo       = m_bx.loVect();
+    const int* hi       = m_bx.hiVect();
+    IntVect m_bx_length = m_bx.size();
+    const int* len      = m_bx_length.getVect();
+    //
+    // Compute histogram.
+    //
+    int* hist[AMREX_SPACEDIM];
+    for (int n = 0; n < AMREX_SPACEDIM; n++)
+    {
+        hist[n] = new int[len[n]];
+        for (int i = 0; i < len[n]; i++)
+            hist[n][i] = 0;
+    }
+    for (int n = 0; n < m_len; n++)
+    {
+        const int* p = m_ar[n].getVect();
+        AMREX_D_TERM( hist[0][p[0]-lo[0]]++;,
+             hist[1][p[1]-lo[1]]++;,
+             hist[2][p[2]-lo[2]]++; )
+   }
+
+    int invalid_dir = -1;
+    for (int n_try = 0; n_try < 2; n_try++)
+    {
+       //
+       // Find cutpoint and cutstatus in each index direction.
+       //
+       CutStatus mincut = InvalidCut;
+       CutStatus status[AMREX_SPACEDIM];
+       IntVect cut;
+       for (int n = 0; n < AMREX_SPACEDIM; n++)
+       {
+           if (n != invalid_dir)
+           {
+              cut[n] = FindCut(hist[n], lo[n], hi[n], status[n]);
+              if (status[n] < mincut)
+              {
+                  mincut = status[n];
+              }
+           }
+       }
+       BL_ASSERT(mincut != InvalidCut);
+       //
+       // Select best cutpoint and direction.
+       //
+       int dir = -1;
+       for (int n = 0, minlen = -1; n < AMREX_SPACEDIM; n++)
+       {
+           if (status[n] == mincut)
+           {
+               int mincutlen = std::min(cut[n]-lo[n],hi[n]-cut[n]);
+               if (mincutlen >= minlen)
+               {
+                   dir = n;
+                   minlen = mincutlen;
+               }
+           }
+       }
+       BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM);
+   
+       int nlo = 0;
+       for (int i = lo[dir]; i < cut[dir]; i++)
+           nlo += hist[dir][i-lo[dir]];
+
+       BL_ASSERT(nlo > 0 && nlo < m_len);
+
+       int nhi = m_len - nlo;
+
+       IntVect* prt_it = std::partition(m_ar, m_ar+m_len, Cut(cut,dir));
+
+       BL_ASSERT((prt_it-m_ar) == nlo);
+       BL_ASSERT(((m_ar+m_len)-prt_it) == nhi);
+
+       // These refer to the box that was originally passed in
+       Real oldeff = eff();
+       int orig_mlen = m_len;
+
+       // Define the new box "above" the cut
+       std::unique_ptr<Cluster> newbox(new Cluster(prt_it, nhi));
+       Real neweff = newbox->eff();
+
+       // Replace the current box by the part of the box "below" the cut
+       m_len = nlo;
+       minBox();
+   
+       if ( (eff() > oldeff) || (neweff > oldeff) || n_try > 0)
+       {
+          for (int i = 0; i < AMREX_SPACEDIM; i++)
+              delete [] hist[i];
+
+          return newbox.release();
+
+       } else {
+
+          // Restore the original box and try again, cutting in a different direction
+          m_len = orig_mlen;
+          minBox();
+          invalid_dir = dir;
+       }
+   }
+
+    amrex::Abort("Should never reach this point in Cluster::new_chop()");
+    return this;
+}
+
 ClusterList::ClusterList ()
     :
     lst()
@@ -421,11 +533,29 @@ ClusterList::boxList (BoxList& blst) const
 void
 ClusterList::chop (Real eff)
 {
+
     for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
     {
         if ((*cli)->eff() < eff)
         {
             lst.push_back((*cli)->chop());
+        }
+        else
+        {
+            ++cli;
+        }
+    }
+}
+
+void
+ClusterList::new_chop (Real eff)
+{
+
+    for (std::list<Cluster*>::iterator cli = lst.begin(); cli != lst.end(); )
+    {
+        if ((*cli)->eff() < eff)
+        {
+            lst.push_back((*cli)->new_chop());
         }
         else
         {

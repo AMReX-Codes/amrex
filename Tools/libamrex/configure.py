@@ -37,7 +37,7 @@ def configure(argv):
                         default="no")
     parser.add_argument("--comp",
                         help="Compiler [default=gnu]",
-                        choices=["gnu","intel","cray","pgi","llvm","nag"],
+                        choices=["gnu","intel","cray","pgi","llvm","nag","nec","ibm"],
                         default="gnu")
     parser.add_argument("--debug",
                         help="Debug build [default=no]",

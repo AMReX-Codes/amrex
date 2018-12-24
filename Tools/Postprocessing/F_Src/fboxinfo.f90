@@ -99,10 +99,10 @@ program fboxinfo
 
 
      ! output the number of boxes at each level
-1000 format(1x,"level ", i3, ": number of boxes = ", i5, ", volume = ", f6.2, "%")
-1001 format(1x,"      ", 1x, "  maximum zones =   ", i5)
-1002 format(1x,"      ", 1x, "  maximum zones =   ", i5, " x ", i5)
-1003 format(1x,"      ", 1x, "  maximum zones =   ", i5, " x ", i5, " x " i5)
+1000 format(1x,"level ", i3, ": number of boxes = ", i6, ", volume = ", f6.2, "%")
+1001 format(1x,"      ", 1x, "  maximum zones =   ", i7)
+1002 format(1x,"      ", 1x, "  maximum zones =   ", i7, " x ", i7)
+1003 format(1x,"      ", 1x, "  maximum zones =   ", i7, " x ", i7, " x " i7)
 
      if (levels) then
         print *, pf%flevel

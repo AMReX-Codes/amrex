@@ -45,7 +45,7 @@ main (int   argc,
 
         amr.init(strt_time,stop_time);
 
-        PerillaRTS rts;
+        RTS rts;
         rts.Init(ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs());
         rts.Iterate(&amr, max_step, stop_time); //run coarseTimeSteps on the amr object 
 

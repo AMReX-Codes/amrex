@@ -72,9 +72,11 @@ int MeshStateMap::Initialize(
 // data adaptor's internal data
 struct AmrMeshDataAdaptor::InternalsType
 {
-    InternalsType() : Mesh(nullptr), States(), StateMetadata() {}
+    InternalsType() : Mesh(nullptr), PinMesh(0),
+        States(), StateMetadata() {}
 
     amrex::AmrMesh *Mesh;
+    int PinMesh;
     std::vector<amrex::Vector<amrex::MultiFab> *> States;
     amrex::InSituUtils::MeshStateMap StateMetadata;
     std::vector<vtkDataObject*> ManagedObjects;
@@ -108,6 +110,12 @@ int AmrMeshDataAdaptor::SetDataSource(amrex::AmrMesh *mesh,
     this->Internals->StateMetadata.Initialize(states, names);
 
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+void AmrMeshDataAdaptor::SetPinMesh(int pinMesh)
+{
+    this->Internals->PinMesh = pinMesh;
 }
 
 //-----------------------------------------------------------------------------
@@ -162,6 +170,15 @@ int AmrMeshDataAdaptor::GetMesh(const std::string &meshName,
     // origin
     const amrex::RealBox& pd = this->Internals->Mesh->Geom(0).ProbDomain();
     double origin[3] = {AMREX_ARLIM(pd.lo())};
+
+    // PinMesh works around a bug in VisIt 2.13.2.
+    // force the origin to 0,0,0
+    if (this->Internals->PinMesh)
+    {
+        for (int i = 0; i < 3; ++i)
+            origin[i] = 0.0;
+    }
+
     amrMesh->SetOrigin(origin);
 
     long gid = 0;

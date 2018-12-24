@@ -23,6 +23,8 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
+.. _sec:basics:vecandarr:
+
 Vector and Array
 ================
 
@@ -233,6 +235,13 @@ parameter is :cpp:`false`.  In the second version, one can pass a
 function that adds ParmParse parameters to the database instead of
 reading from command line or input file.
 
+Because many AMReX classes and functions (including destructors
+inserted by the compiler) do not function properly after
+:cpp:`amrex:Finalize` is called, it's best to put the codes between
+:cpp:`amrex::Initialize` and :cpp:`amrex::Finalize` into its scope
+(e.g., a pair of curly braces or a separate function) to make sure
+resources are properly freed.
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
@@ -283,7 +292,7 @@ IntVect
 -------
 
 :cpp:`IntVec` is a dimension-dependent class representing an integer vector in
-:cpp:`AMREX SPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
+:cpp:`AMREXSPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
 as follows,
 
 .. highlight:: c++
@@ -396,7 +405,7 @@ Box
 
 A ``Box`` is an abstraction for defining discrete regions of
 :cpp:`AMREX_SPACEDIM`-dimensional indexing space. Boxes have an
-:cpp:`IndexType` and two :cpp:`IntVects` representing the lower and upper
+:cpp:`IndexType` and two :cpp:`IntVect`\ s representing the lower and upper
 corners. Boxes can exist in positive and negative indexing space. Typical ways
 of defining a :cpp:`Box` are
 
@@ -1037,7 +1046,7 @@ ways to define a MultiFab. For example,
       MultiFab mf(ba, dm, ncomp, ngrow);
 
 Here we define a :cpp:`MultiFab` with 4 components and 1 ghost cell. A MultiFab
-contains a number of :cpp:`FArrayBoxes` (see the section
+contains a number of :cpp:`FArrayBox`\ es (see the section
 on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
 (1 in this example). That is the :cpp:`Box` in the :cpp:`FArrayBox` is not
 exactly the same as in the :cpp:`BoxArray`.  If the :cpp:`BoxArray` has a
@@ -1121,7 +1130,7 @@ face averaged variables.
       MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
-Here all :cpp:`MultiFabs` use the same :cpp:`DistributionMapping`, but their
+Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
 :cpp:`BoxArrays` have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
@@ -1132,7 +1141,7 @@ fluxes are arrays with slightly different indices. For example, the
 :math:`x`-direction.
 
 The :cpp:`MultiFab` class provides many functions performing common arithmetic
-operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
+operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
 *same* :cpp:`BoxArray` and :cpp:`DistributionMap`.  For example,
 
 .. highlight:: c++
@@ -1157,7 +1166,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
 
 We refer the reader to ``amrex/Src/Base/AMReX_MultiFab.H`` and
 ``amrex/Src/Base/AMReX_FabArray.H`` for more details. It should be noted again
-it is a runtime error if the two :cpp:`MultiFabs` passed to functions like
+it is a runtime error if the two :cpp:`MultiFab`\ s  passed to functions like
 :cpp:`MultiFab::Copy` are not built with the *same* :cpp:`BoxArray` (including
 index type) and :cpp:`DistributionMapping`.
 
@@ -1641,20 +1650,21 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
 .. _sec:basics:fortran:
 
-Calling Fortran or C
-====================
+Fortran, C and C++ Kernels
+==========================
 
-In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
+In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
 data. In each iteration, a kernel function is called to work on the data and
 the work region is specified by a :cpp:`Box`.  When tiling is used, the work
 region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
-:cpp:`FArrayBoxes`, even though it is supposed to work on a tile region of the
-arrays. To C++, these kernel functions are C functions, whose function
-signatures are typically declared in a header file named ``*_f.H`` or
-``*_F.H``. We recommend the users to follow this convention.  Examples of these
-function declarations are as follows.
+:cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
+arrays.  Fortran is often used for writing these kernels because of its
+native multi-dimensional array support.  To C++, these kernel functions are 
+C functions, whose function signatures are typically declared in a header file
+named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
+Examples of these function declarations are as follows.
 
 .. highlight:: c++
 
@@ -1769,7 +1779,7 @@ For example,
 
 Here for simplicity we have omitted passing the tile Box.
 
-Usually :cpp:`MultiFabs` have multiple components. Thus we often also need to
+Usually :cpp:`MultiFab`\ s  have multiple components. Thus we often also need to
 pass the number of component into Fortran functions. We can obtain the number
 by calling the :cpp:`MultiFab::nComp()` function, and pass it to Fortran as we
 have seen in the section on :ref:`sec:basics:mfiter`.  We can also use the
@@ -1858,6 +1868,73 @@ details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
 these limitations, it is recommended to use the type check tool and
 report issues to us.
 
+.. _sec:basics:cppkernel:
+
+Writing kernels in C++ is also an option.  AMReX provides a
+multi-dimensional array type of syntax, similar to Fortran,
+that is readable and easy to implement. An example is given below: 
+
+.. highlight:: c++
+
+::
+
+    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2)
+    {
+        const auto len = length(bx);
+        const auto lo  = lbound(bx);
+        const auto dst = fab1.view(lo);
+        const auto src = fab2.view(lo);
+
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k))
+                }
+            }
+        }
+    }
+
+    for (MFIter mfi(mf1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.tilebox();
+        f(box, mf1[mfi], mf2[mfi]);
+    }
+
+A :cpp:`Box` and two :cpp:`FArrayBox`\ es are passed to a C++ kernel 
+function.  In the function, :cpp:`amrex::length` is called to calculate
+and store the three-dimensional length of the loops based on the size
+of ``bx``. :cpp:`amrex::lbound` is called to get the lower bound of 
+the :cpp:`Box`.  Both functions' return type is :cpp:`amrex::Dim3`, a 
+Plain Old Data type containing three integers.  The result of 
+:cpp:`amrex::lbound` is then passed to :cpp:`FArrayBox::view` to 
+create a :cpp:`FabView<FArrayBox>` that can be used to access the data.
+
+:cpp:`FabView<FArrayBox>` is an AMReX class that contains a pointer to the
+appropriate place in the global :cpp:`FArrayBox` as well as an 
+:cpp:`operator()` that translates the three dimensional coordinates to 
+the appropriate location in the one-dimensional array.  It also translates
+between the global domain contained in the :cpp:`FArrayBox` and the local
+work space defined by the :cpp:`lo` array.   
+
+We put ``AMREX_PRAGMA_SIMD`` macro above the innermost loop to notify
+the compiler that it is safe to vectorize the loop.  This should be done
+whenever possible to achieve the best performacne. The macro generates
+a compiler dependent pragma and their exact effect on the compiler is
+also compiler dependent.  It should be emphasized that using the
+``AMREX_PRAGMA_SIMD`` macro on loops that are not safe for vectorization
+will lead to a variety of errors, so if unsure about the loop, test and
+verify before adding the macro.
+
+Note that the view is shifted such that index 0 points to the lower 
+end of the :cpp:`Box`.  To obtain the global index, the values needs to
+shifted back using the appropriate :cpp:`lo`. In the case of the example
+above, the global indices are: ``(i+lo.x, j+lo.y, k+lo.z)``. 
+
+Also: be careful to use the appropriate :cpp:`lo` array for each 
+:cpp:`FabView` object. If the loop works on two different global ranges,
+each :cpp:`FabView` object must be created with the corresponding 
+:cpp:`lo` to obtain the correct data pointers.
 
 Ghost Cells
 ===========

@@ -44,7 +44,7 @@ endif
 
 ########################################################################
 
-CXXFLAGS += -std=c++11
+CXXFLAGS += -std=c++14
 CFLAGS   += -std=c99
 
 FFLAGS   += -ffixed-line-length-none -fno-range-check -fno-second-underscore -J$(fmoddir) -I $(fmoddir)

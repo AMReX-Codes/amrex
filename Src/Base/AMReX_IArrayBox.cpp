@@ -64,6 +64,14 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
+#ifdef AMREX_USE_GPU
+IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type)
+    :
+    BaseFab<int>(rhs,make_type)
+{
+}
+#endif
+
 IArrayBox&
 IArrayBox::operator= (const int& v)
 {
@@ -82,6 +90,7 @@ IArrayBox::resize (const Box& b,
     }
 }
 
+#if 0
 int
 IArrayBox::norm (int p,
                  int comp,
@@ -99,5 +108,6 @@ IArrayBox::norm (const Box& subbox,
     BL_ASSERT(p >= 0);
     return BaseFab<int>::norm(subbox,p,comp,ncomp);
 }
+#endif
 
 }

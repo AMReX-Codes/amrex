@@ -291,7 +291,9 @@ call :cpp:`setMaxCoarseningLevel(0)` on the :cpp:`LPInfo` object
 passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
 residual correction form of the original problem.  To use HYPRE, one
-must include ``amrex/Src/Extern/HYPRE`` in the build system.
+must include ``amrex/Src/Extern/HYPRE`` in the build system. For an
+example of using HYPRE, we refer the reader to
+``Tutorials/LinearSolvers/ABecLaplacian_C``.
 
 Embedded Boundaries
 ===================

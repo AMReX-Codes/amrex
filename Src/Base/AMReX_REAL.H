@@ -1,7 +1,7 @@
 #ifndef AMREX_REAL_H_
 #define AMREX_REAL_H_
 
-#include <AMReX_RESTRICT.H>
+#include <AMReX_Extension.H>
 
 #ifdef BL_USE_FLOAT
 #  undef BL_USE_DOUBLE

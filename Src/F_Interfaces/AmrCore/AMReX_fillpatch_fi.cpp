@@ -52,7 +52,7 @@ extern "C"
         FPhysBC pbc(fill, geom);
 	amrex::FillPatchSingleLevel(*mf, time, Vector<MultiFab*>{smf, smf+ns}, 
 				    Vector<Real>{stime, stime+ns},
-				    scomp, dcomp, ncomp, *geom, pbc);
+				    scomp, dcomp, ncomp, *geom, pbc, 0);
     }
 
     void amrex_fi_fillpatch_two (MultiFab* mf, Real time,
@@ -66,9 +66,8 @@ extern "C"
 				 int* lo_bc[], int* hi_bc[],
                                  INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
-	Vector<BCRec> bcs;
-	// skip first scomp components
-	for (int i = scomp; i < scomp+ncomp; ++i) {
+	Vector<BCRec> bcs(ncomp);
+	for (int i = 0; i < ncomp; ++i) {
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
 	}
 
@@ -79,9 +78,9 @@ extern "C"
 				  Vector<MultiFab*>{fmf, fmf+nf}, Vector<Real>{ft, ft+nf},
 				  scomp, dcomp, ncomp,
 				  *cgeom, *fgeom,
-				  cbc, fbc,
+				  cbc, 0, fbc, 0,
 				  IntVect{AMREX_D_DECL(rr,rr,rr)},
-				  interp[interp_id], bcs,
+				  interp[interp_id], bcs, 0,
                                   FIInterpHook(pre_interp),
                                   FIInterpHook(post_interp));
     }
@@ -95,9 +94,8 @@ extern "C"
                                    int* lo_bc[], int* hi_bc[],
                                    INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
     {
-	Vector<BCRec> bcs;
-        // skip first scomp components
-	for (int i = scomp; i < scomp+ncomp; ++i) {
+	Vector<BCRec> bcs(ncomp);
+	for (int i = 0; i < ncomp; ++i) {
 	    bcs.emplace_back(lo_bc[i], hi_bc[i]);
 	}
 
@@ -106,9 +104,9 @@ extern "C"
         amrex::InterpFromCoarseLevel(*mf, time, *cmf, 
                                      scomp, dcomp, ncomp,
                                      *cgeom, *fgeom,
-                                     cbc, fbc,
+                                     cbc, 0, fbc, 0,
                                      IntVect{AMREX_D_DECL(rr,rr,rr)},
-                                     interp[interp_id], bcs,
+                                     interp[interp_id], bcs, 0,
                                      FIInterpHook(pre_interp),
                                      FIInterpHook(post_interp));
     }

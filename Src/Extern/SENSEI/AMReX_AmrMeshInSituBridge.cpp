@@ -31,6 +31,7 @@ AmrMeshInSituBridge::update(unsigned int step, double time,
         amrex::AmrMeshDataAdaptor *data_adaptor = amrex::AmrMeshDataAdaptor::New();
         if (comm != MPI_COMM_NULL)
             data_adaptor->SetCommunicator(comm);
+        data_adaptor->SetPinMesh(pinMesh);
         data_adaptor->SetDataSource(mesh, states, names);
         data_adaptor->SetDataTime(time);
         data_adaptor->SetDataTimeStep(step);

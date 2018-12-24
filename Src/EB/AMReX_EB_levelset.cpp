@@ -10,21 +10,27 @@
 #include <AMReX_MultiCutFab.H>
 #include "AMReX_BoxIterator.H"
 #include <AMReX_EBCellFlag.H>
+
 #include <AMReX_EB_F.H>
+#include <AMReX_EB_utils.H>
 
 #include <AMReX_EB2.H>
 
 namespace amrex {
 
 LSFactory::LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
-                     const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm)
-    : amr_lev(lev), ls_grid_ref(ls_ref), eb_grid_ref(eb_ref), ls_grid_pad(ls_pad), eb_grid_pad(eb_pad),
-    dx_vect(AMREX_D_DECL(geom.CellSize()[0]/ls_ref,
-                         geom.CellSize()[1]/ls_ref,
-                         geom.CellSize()[2]/ls_ref)),
-    dx_eb_vect(AMREX_D_DECL(geom.CellSize()[0]/eb_ref,
-                            geom.CellSize()[1]/eb_ref,
-                            geom.CellSize()[2]/eb_ref))
+                     const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm,
+                     int eb_tile_size)
+    : amr_lev(lev),
+      ls_grid_ref(ls_ref), eb_grid_ref(eb_ref),
+      ls_grid_pad(ls_pad), eb_grid_pad(eb_pad),
+      dx_vect(AMREX_D_DECL(geom.CellSize()[0]/ls_ref,
+                           geom.CellSize()[1]/ls_ref,
+                           geom.CellSize()[2]/ls_ref)),
+      dx_eb_vect(AMREX_D_DECL(geom.CellSize()[0]/eb_ref,
+                              geom.CellSize()[1]/eb_ref,
+                              geom.CellSize()[2]/eb_ref)),
+      eb_tile_size(eb_tile_size)
 {
     // Init geometry over which the level set and EB are defined
     init_geom(ba, geom, dm);
@@ -196,7 +202,52 @@ void LSFactory::fill_valid(){
 
 
 
+std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
+                                                   const CutFab & bcent_tile,
+                                                   const EBCellFlagFab & flag,
+                                                   const RealVect & dx_eb,
+                                                   const Box & eb_search)
+{
+    // 1-D list of eb-facet data. Format:
+    // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
+    //   ^                 ^
+    //   |                 +---- {nx, ny, nz} is the normal vector pointing _towards_ the facet
+    //   +-----------------------{px, py, pz} is the position vector of the facet centre
+    std::unique_ptr<Vector<Real>> facet_list;
+
+    int n_facets = 0;
+    // Need to count number of eb-facets (in order to allocate facet_list)
+    amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
+                          BL_TO_FORTRAN_3D(flag),
+                          & n_facets);
+
+    int facet_list_size = 6 * n_facets;
+    facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(facet_list_size));
+
+    if (n_facets > 0) {
+        int c_facets = 0;
+        amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
+                         BL_TO_FORTRAN_3D(flag),
+                         BL_TO_FORTRAN_3D(norm_tile),
+                         BL_TO_FORTRAN_3D(bcent_tile),
+                         facet_list->dataPtr(), & facet_list_size,
+                         dx_eb.dataPtr()                           );
+    }
+
+    return facet_list;
+}
+
+
+
 std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory) {
+    return eb_facets(eb_factory, eb_ba, ls_dm);
+}
+
+
+
+std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb_factory,
+                                                   const BoxArray & ba,
+                                                   const DistributionMapping & dm) {
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
     //   ^                 ^
@@ -211,55 +262,24 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     *                                                                          *
     ****************************************************************************/
 
-    MultiFab dummy(eb_ba, ls_dm, 1, eb_grid_pad, MFInfo(), eb_factory);
-    // Area fraction data
-    std::array<const MultiCutFab*, AMREX_SPACEDIM> areafrac = eb_factory.getAreaFrac();
+    MultiFab dummy(ba, dm, 1, eb_grid_pad, MFInfo(), eb_factory);
     // EB boundary-centre data
     const MultiCutFab * bndrycent = & eb_factory.getBndryCent();
+    // EB flags (tests if contains facets)
+    const auto& flags = eb_factory.getMultiEBCellFlagFab();
 
 
    /****************************************************************************
     *                                                                          *
-    * Compute normals data (which are stored on MultiFab over the eb_ba Grid)  *
+    * Compute normals data (which are stored on MultiFab over the ba Grid)     *
     *                                                                          *
     ****************************************************************************/
 
-    MultiFab normal(eb_ba, ls_dm, 3, eb_grid_pad);
+    MultiFab normal(ba, dm, 3, eb_grid_pad);
+    FillEBNormals(normal, eb_factory, geom_eb);
 
     // while computing normals, count EB-facets
     int n_facets = 0;
-
-    const auto& flags = eb_factory.getMultiEBCellFlagFab();
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
-        Box tile_box = mfi.growntilebox();
-        const int * lo = tile_box.loVect();
-        const int * hi = tile_box.hiVect();
-
-        const auto & flag = flags[mfi];
-
-        //if (flag.getType(amrex::grow(tile_box,1)) == FabType::singlevalued)
-        if (flag.getType(tile_box) == FabType::singlevalued) {
-            // Target for compute_normals(...)
-            auto & norm_tile = normal[mfi];
-            // Area fractions in x, y, and z directions
-            const auto & af_x_tile = (* areafrac[0])[mfi];
-            const auto & af_y_tile = (* areafrac[1])[mfi];
-            const auto & af_z_tile = (* areafrac[2])[mfi];
-
-            amrex_eb_compute_normals(lo, hi,
-                                     BL_TO_FORTRAN_3D(flag),
-                                     BL_TO_FORTRAN_3D(norm_tile),
-                                     BL_TO_FORTRAN_3D(af_x_tile),
-                                     BL_TO_FORTRAN_3D(af_y_tile),
-                                     BL_TO_FORTRAN_3D(af_z_tile)  );
-        }
-    }
-
-    normal.FillBoundary(geom_eb.periodicity());
 
 
    /****************************************************************************
@@ -271,7 +291,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     *                                                                          *
     ****************************************************************************/
 
-    for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
+    for(MFIter mfi(dummy); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
         const int * lo = tile_box.loVect();
         const int * hi = tile_box.hiVect();
@@ -285,7 +305,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
     facet_list = std::unique_ptr<Vector<Real>>(new Vector<Real>(6 * n_facets));
 
     int c_facets = 0;
-    for(MFIter mfi(dummy, true); mfi.isValid(); ++mfi) {
+    for(MFIter mfi(dummy); mfi.isValid(); ++mfi) {
         Box tile_box = mfi.growntilebox();
 
         const auto & flag = flags[mfi];
@@ -305,8 +325,10 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const EBFArrayBoxFactory & eb
                              dx_eb_vect.dataPtr()                               );
             }
     }
+
     return facet_list;
 }
+
 
 
 void LSFactory::update_intersection(const MultiFab & ls_in, const iMultiFab & valid_in) {
@@ -458,11 +480,16 @@ std::unique_ptr<MultiFab> LSFactory::coarsen_data() const {
     std::unique_ptr<MultiFab> ls_crse = std::unique_ptr<MultiFab>(new MultiFab);
     const MultiFab * ls_fine = ls_grid.get(); // Pointer to fine level-set MultiFab
 
-    const BoxArray & ls_fine_ba = ls_fine->boxArray();
-    BoxArray crse_ba = ls_fine_ba; // Coarse nodal level-set BoxArray (amrex::average_down requires coarse BA)
+    // Coarse nodal level-set BoxArray (amrex::average_down requires coarse BA)
+    BoxArray crse_ba = ls_fine->boxArray();
     crse_ba.coarsen(ls_grid_ref);
-    ls_crse->define(crse_ba, ls_fine->DistributionMap(), ls_fine->nComp(), ls_fine->nGrow());
-    amrex::average_down(* ls_fine, * ls_crse, 0, 1, ls_grid_ref);
+    int ng_crse = ls_fine->nGrow() / ls_grid_ref;
+
+    IntVect ratio = IntVect{AMREX_D_DECL(ls_grid_ref, ls_grid_ref, ls_grid_ref)};
+    ls_crse->define(crse_ba, ls_fine->DistributionMap(), ls_fine->nComp(), ng_crse);
+    // Don't use average_down, average_down_nodal fills ghost cells
+    // amrex::average_down(* ls_fine, * ls_crse, 0, 1, ls_grid_ref);
+    amrex::average_down_nodal(* ls_fine, * ls_crse, ratio, ng_crse );
 
     // Do this in the write plot file function
     // Now map the nodal MultiFab to the cell-centered MultiFab:
@@ -482,13 +509,15 @@ void LSFactory::regrid(const BoxArray & ba, const DistributionMapping & dm)
     update_ba(ba, dm);
 
     int ng = ls_grid_pad;
-    std::unique_ptr<MultiFab> ls_grid_new = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
+    std::unique_ptr<MultiFab> ls_grid_new
+        = std::unique_ptr<MultiFab>(new MultiFab(ls_ba, dm, 1, ng));
 
     ls_grid_new->copy(* ls_grid, 0, 0, 1, ng, ng);
     ls_grid_new->FillBoundary(geom_ls.periodicity());
     ls_grid = std::move(ls_grid_new);
 
-    std::unique_ptr<iMultiFab> ls_valid_new = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
+    std::unique_ptr<iMultiFab> ls_valid_new
+        = std::unique_ptr<iMultiFab>(new iMultiFab(ls_ba, dm, 1,ng));
 
     ls_valid_new->copy(* ls_valid, 0, 0, 1, ng, ng);
     ls_valid_new->FillBoundary(geom_ls.periodicity());
@@ -518,6 +547,240 @@ void LSFactory::set_data(const MultiFab & mf_ls){
     ls_grid->FillBoundary(geom_ls.periodicity());
 
     fill_valid();
+}
+
+
+
+void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
+                               const EBFArrayBoxFactory & eb_factory,
+                               const MultiFab & eb_impfunc,
+                               int ebt_size, int ls_ref, int eb_ref,
+                               const Geometry & geom, const Geometry & geom_eb) {
+
+    LSFactory::fill_data_loc(data, valid, eb_factory, eb_impfunc,
+                             IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)},
+                             ls_ref, eb_ref, geom, geom_eb);
+}
+
+
+
+void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
+                               const EBFArrayBoxFactory & eb_factory,
+                               const MultiFab & eb_impfunc,
+                               const IntVect & ebt_size, int ls_ref, int eb_ref,
+                               const Geometry & geom, const Geometry & geom_eb) {
+
+    /****************************************************************************
+     *                                                                          *
+     * Sets: `data` MultiFab containing level-set and a `valid` indicating that *
+     * the corresponding cell in `data` as been filled by a valid (i.e. the     *
+     * value of the level-set was informed by nearby EB facets) level-set       *
+     * function                                                                 *
+     *                                                                          *
+     ***************************************************************************/
+
+    RealVect dx(AMREX_D_DECL(geom.CellSize()[0],
+                             geom.CellSize()[1],
+                             geom.CellSize()[2]));
+
+    RealVect dx_eb(AMREX_D_DECL(geom_eb.CellSize()[0],
+                                geom_eb.CellSize()[1],
+                                geom_eb.CellSize()[2]));
+
+    // Don't use the ls_grid_pad for the eb_padding (goes wrong!)
+    //const int eb_pad = data.nGrow() + 1;
+    const int ls_pad = data.nGrow();
+
+    // Doesn't work with iMultiFabs
+    //BL_ASSERT(isMFIterSafe(data, valid));
+
+    const BoxArray & ls_ba            = data.boxArray();
+    const BoxArray & eb_ba            = eb_factory.boxArray();
+    const DistributionMapping & ls_dm = data.DistributionMap();
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Access EB Cut-Cell data:                                                 *
+     *                                                                          *
+     ***************************************************************************/
+
+    const MultiCutFab & bndrycent = eb_factory.getBndryCent();
+    const auto & flags = eb_factory.getMultiEBCellFlagFab();
+
+    // make sure to use the EB-factory's ngrow for the eb-padding;
+    const int eb_pad = flags.nGrow();
+
+    /****************************************************************************
+     *                                                                          *
+     * Compute normals data (which are stored on MultiFab over the EB Grid)     *
+     *                                                                          *
+     ***************************************************************************/
+
+    MultiFab normal(eb_ba, ls_dm, 3, eb_pad); //deliberately use levelset DM
+    FillEBNormals(normal, eb_factory, geom_eb);
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Fill local MultiFab with eb_factory's level-set data. Note the role of   *
+     * the temporary eb_valid iMultiFab:                                        *
+     *  -> eb_valid = 1 if the corresponding eb_ls location could be projected  *
+     *                  onto the eb-facets => level-set sign is OK              *
+     *  -> eb_valid = 0 if eb_ls is the fall-back (euclidian) distance to the   *
+     *                  nearest eb-facet => the sign needs to be checked        *
+     *                                                                          *
+     ***************************************************************************/
+
+    iMultiFab eb_valid(ls_ba, ls_dm, 1, ls_pad);
+    eb_valid.setVal(0);
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Identify the shortest length scale (used to compute the minimum distance *
+     * to nearest un-detected EB facet)                                         *
+     *                                                                          *
+     ***************************************************************************/
+
+#if (AMREX_SPACEDIM == 1)
+    const Real min_dx = dx_eb[0];
+    const int min_ebt = ebt_size[0];
+#elif (AMREX_SPACEDIM == 2)
+    const Real min_dx = std::min(dx_eb[0], dx_eb[1]);
+    const int min_ebt = std::min(ebt_size[0], ebt_size[1]);
+#elif (AMREX_SPACEDIM == 3)
+    const Real min_dx = std::min(dx_eb[0], std::min(dx_eb[1], dx_eb[2]));
+    const int min_ebt = std::min(ebt_size[0], std::min(ebt_size[1], ebt_size[2]));
+#endif
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Loop over EB tile boxes (ebt) and 1. search for EB facets, the 2. find   *
+     * least minimum (thresholded) distance to B facets.                        *
+     *                                                                          *
+     ***************************************************************************/
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(data, ebt_size); mfi.isValid(); ++mfi)
+    {
+        //_______________________________________________________________________
+        // Fill grown tile box => fill ghost cells as well
+        Box tile_box = mfi.growntilebox();
+
+        //_______________________________________________________________________
+        // Construct search box over which to look for EB facets
+
+        // mfi inherits from ls_grid which might not have the right refinement
+        Box eb_search = mfi.tilebox();
+        eb_search.coarsen(ls_ref);
+        eb_search.refine(eb_ref);
+
+        // Grow search box out from (correctly refined) tile box. NOTE: grow the
+        // tile box AT MOST by eb_grid_pad => ensures that EBFactory is defined
+        // for the whole search box
+        eb_search.enclosedCells(); // search box must be cell-centered
+        eb_search.grow(eb_pad);
+
+        const auto & flag       = flags[mfi];
+        const auto & if_tile    = eb_impfunc[mfi];
+        const auto & norm_tile  = normal[mfi];
+        const auto & bcent_tile = bndrycent[mfi];
+
+        auto & v_tile      = eb_valid[mfi];
+        auto & ls_tile     = data[mfi];
+        auto & region_tile = valid[mfi];
+
+        //_______________________________________________________________________
+        // Construct EB facets
+        std::unique_ptr<Vector<Real>> facets = eb_facets(norm_tile, bcent_tile, flag,
+                                                         dx_eb, eb_search);
+        int len_facets = facets->size();
+
+
+        //_______________________________________________________________________
+        // Fill local level-set
+        if (len_facets > 0) {
+
+            amrex_eb_fill_levelset(BL_TO_FORTRAN_BOX(tile_box),
+                                   facets->dataPtr(), & len_facets,
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile),
+                                   dx.dataPtr(), dx_eb.dataPtr() );
+
+            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
+                                       BL_TO_FORTRAN_3D(if_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile)   );
+
+            region_tile.setVal(1);
+        } else {
+            ls_tile.setVal( min_dx * min_ebt, tile_box );
+        }
+
+        //_______________________________________________________________________
+        // Threshold local level-set
+        Real ls_threshold = min_dx * min_ebt;
+        amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
+                                    BL_TO_FORTRAN_3D(ls_tile));
+
+
+        //_______________________________________________________________________
+        // Validate level-set
+        amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
+                                   BL_TO_FORTRAN_3D(if_tile),
+                                   BL_TO_FORTRAN_3D(v_tile),
+                                   BL_TO_FORTRAN_3D(ls_tile)   );
+
+    }
+}
+
+
+
+std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                   const MultiFab & mf_impfunc) {
+    return fill_ebf_loc(eb_factory, mf_impfunc, eb_grid_pad);
+}
+
+
+
+std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                   const MultiFab & mf_impfunc,
+                                                   int ebt_size) {
+    return fill_ebf_loc(eb_factory, mf_impfunc,
+                        IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)});
+}
+
+
+
+std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
+                                                   const MultiFab & mf_impfunc,
+                                                   const IntVect & ebt_size) {
+
+    /****************************************************************************
+     *                                                                          *
+     * Returns: iMultiFab indicating region that has been filled by a valid     *
+     * level-set function (i.e. the value of the level-set was informed by      *
+     * nearby EB facets)                                                        *
+     *                                                                          *
+     ***************************************************************************/
+
+    std::unique_ptr<iMultiFab> region_valid = std::unique_ptr<iMultiFab>(new iMultiFab);
+    region_valid->define(ls_ba, ls_dm, 1, ls_grid_pad);
+    region_valid->setVal(0);
+
+
+    LSFactory::fill_data_loc(* ls_grid, * region_valid, eb_factory, mf_impfunc,
+                             ebt_size, ls_grid_ref, eb_grid_ref, geom_ls, geom_eb);
+
+
+    //ls_grid->FillBoundary(geom_ls.periodicity());
+    fill_valid();
+
+    return region_valid;
 }
 
 
@@ -580,9 +843,9 @@ std::unique_ptr<iMultiFab> LSFactory::intersection_ebf(const EBFArrayBoxFactory 
 
     }
 
-   /****************************************************************************
-    * Set and validate boundary values of eb_ls                                *
-    ****************************************************************************/
+    /****************************************************************************
+     * Set and validate boundary values of eb_ls                                *
+     ***************************************************************************/
 
     // Simulation domain
     Box domain = Box(geom_ls.Domain());

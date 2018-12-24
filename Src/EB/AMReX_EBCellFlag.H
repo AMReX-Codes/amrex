@@ -20,6 +20,7 @@ public:
     EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
     EBCellFlag& operator= (uint32_t i) { flag = i; return *this; }
 
+    AMREX_GPU_HOST_DEVICE
     EBCellFlag& operator+= (const EBCellFlag& /* rhs */) {
         amrex::Abort("EBCellFlag::operator+= not supported");
         return *this;
