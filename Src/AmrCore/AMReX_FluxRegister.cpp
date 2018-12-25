@@ -342,39 +342,39 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
-    // xxxxx gpu todo
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    const Box&  flxbox = flux.box();
-    const int*  flo    = flxbox.loVect();
-    const int*  fhi    = flxbox.hiVect();
-    const Real* flxdat = flux.dataPtr(srccomp);
-
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
-
-#ifdef AMREX_DEBUG
-    Box cbox = amrex::coarsen(flux.box(),ratio);
-    BL_ASSERT(cbox.contains(loreg.box()));
-#endif
-    const int* rlo = loreg.box().loVect();
-    const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(destcomp);
-    amrex_frfineadd(lodat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-                   flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                   &numcomp,&dir,ratio.getVect(),&mult);
-
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
+    const Box& lobox = loreg.box();
+    const Box& hibox = hireg.box();
 
-#ifdef AMREX_DEBUG
-    BL_ASSERT(cbox.contains(hireg.box()));
-#endif
-    rlo = hireg.box().loVect();
-    rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(destcomp);
-    amrex_frfineadd(hidat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-                   flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                   &numcomp,&dir,ratio.getVect(),&mult);
+    FArrayBox const* pflux = &flux;
+    if (Gpu::isDevicePtr(pflux))
+    {
+        FArrayBox* ploreg = bndry[Orientation(dir,Orientation::low)].fabPtr(boxno);
+        FArrayBox* phireg = bndry[Orientation(dir,Orientation::high)].fabPtr(boxno);
+        const IntVect local_ratio = ratio;
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+        ( lobox, tlobx,
+          {
+              fluxreg_fineadd(tlobx, *ploreg, destcomp, *pflux, srccomp,
+                              numcomp, dir, local_ratio, mult);
+          },
+          hibox, thibx,
+          {
+              fluxreg_fineadd(thibx, *phireg, destcomp, *pflux, srccomp,
+                              numcomp, dir, local_ratio, mult);
+          });
+    }
+    else
+    {
+        fluxreg_fineadd(lobox, loreg, destcomp, flux, srccomp,
+                        numcomp, dir, ratio, mult);
+        fluxreg_fineadd(hibox, hireg, destcomp, flux, srccomp,
+                        numcomp, dir, ratio, mult);
+    }
 }
 
 void
@@ -387,45 +387,42 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              numcomp,
                        Real             mult)
 {
-    // xxxxx gpu todo
-
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    const Real* area_dat = area.dataPtr();
-    const int*  alo      = area.loVect();
-    const int*  ahi      = area.hiVect();
-    const Box&  flxbox   = flux.box();
-    const int*  flo      = flxbox.loVect();
-    const int*  fhi      = flxbox.hiVect();
-    const Real* flxdat   = flux.dataPtr(srccomp);
-
     FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
-
-#ifdef AMREX_DEBUG
-    Box cbox = amrex::coarsen(flux.box(),ratio);
-    BL_ASSERT(cbox.contains(loreg.box()));
-#endif
-    const int* rlo = loreg.box().loVect();
-    const int* rhi = loreg.box().hiVect();
-    Real* lodat = loreg.dataPtr(destcomp);
-    amrex_frfaadd(lodat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-                 flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                 area_dat,AMREX_ARLIM(alo),AMREX_ARLIM(ahi),
-                 &numcomp,&dir,ratio.getVect(),&mult);
-
     FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
+    const Box& lobox = loreg.box();
+    const Box& hibox = hireg.box();
 
-#ifdef AMREX_DEBUG
-    BL_ASSERT(cbox.contains(hireg.box()));
-#endif
-    rlo = hireg.box().loVect();
-    rhi = hireg.box().hiVect();
-    Real* hidat = hireg.dataPtr(destcomp);
-    amrex_frfaadd(hidat,AMREX_ARLIM(rlo),AMREX_ARLIM(rhi),
-                 flxdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),
-                 area_dat,AMREX_ARLIM(alo),AMREX_ARLIM(ahi),
-                 &numcomp,&dir,ratio.getVect(),&mult);
+    FArrayBox const* pflux = &flux;
+    FArrayBox const* parea = &area;
+    if (Gpu::isDevicePtr(pflux) && Gpu::isDevicePtr(parea))
+    {
+        FArrayBox* ploreg = bndry[Orientation(dir,Orientation::low)].fabPtr(boxno);
+        FArrayBox* phireg = bndry[Orientation(dir,Orientation::high)].fabPtr(boxno);
+        const IntVect local_ratio = ratio;
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA
+        ( lobox, tlobx,
+          {
+              fluxreg_fineareaadd(tlobx, *ploreg, destcomp,
+                                  *parea, *pflux, srccomp,
+                                  numcomp, dir, local_ratio, mult);
+          },
+          hibox, thibx,
+          {
+              fluxreg_fineareaadd(thibx, *phireg, destcomp,
+                                  *parea, *pflux, srccomp,
+                                  numcomp, dir, local_ratio, mult);
+          });
+    }
+    else
+    {
+        fluxreg_fineareaadd(lobox, loreg, destcomp, area, flux, srccomp,
+                            numcomp, dir, ratio, mult);
+        fluxreg_fineareaadd(hibox, hireg, destcomp, area, flux, srccomp,
+                            numcomp, dir, ratio, mult);
+    }
 }
 
 void
@@ -457,14 +454,12 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      int             nc,
 		      const Geometry& geom)
 {
-    // xxxxx gpu todo
     BL_PROFILE("FluxRegister::Reflux()");
 
     for (OrientationIter fi; fi; ++fi)
     {
 	const Orientation& face = fi();
 	int idir = face.coordDir();
-	int islo = face.isLow();
 
         MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
                       mf.DistributionMap(), nc, 0, MFInfo(), mf.Factory());
@@ -478,22 +473,13 @@ FluxRegister::Reflux (MultiFab&       mf,
 	for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = mfi.tilebox();
-
-	    FArrayBox& sfab = mf[mfi];
-	    const Box& sbox = sfab.box();
-
-	    const FArrayBox& ffab = flux[mfi];
-	    const Box& fbox = ffab.box();
-	    
-	    const FArrayBox& vfab = volume[mfi];
-	    const Box& vbox = vfab.box();
-
-	    amrex_frreflux(bx.loVect(), bx.hiVect(),
-			  sfab.dataPtr(dcomp), sbox.loVect(), sbox.hiVect(),
-			  ffab.dataPtr(     ), fbox.loVect(), fbox.hiVect(),
-			  vfab.dataPtr(     ), vfab.loVect(), vbox.hiVect(),
-			  &nc, &scale, &idir, &islo);
-			  
+            FArrayBox* sfab = mf.fabPtr(mfi);
+            FArrayBox const* ffab = flux.fabPtr(mfi);
+            FArrayBox const* vfab = volume.fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                fluxreg_reflux(tbx, *sfab, dcomp, *ffab, *vfab, nc, scale, face);
+            });
 	}
     }
 }
