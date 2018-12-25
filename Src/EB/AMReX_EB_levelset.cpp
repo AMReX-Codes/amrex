@@ -672,6 +672,15 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
         Box tile_box = mfi.growntilebox();
 
         //_______________________________________________________________________
+        // Don't do anything for the current tile if EB facets are ill-defined
+        if (! bndrycent.ok(mfi)){
+            auto & ls_tile = data[mfi];
+            ls_tile.setVal( min_dx * min_ebt, tile_box );
+
+            continue;
+        }
+
+        //_______________________________________________________________________
         // Construct search box over which to look for EB facets
 
         // mfi inherits from ls_grid which might not have the right refinement
