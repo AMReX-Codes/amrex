@@ -131,7 +131,7 @@ fluxreg_reflux (Box const& bx, FArrayBox& sfab, const int scomp,
             for (int n = 0; n < ncomp; ++n) {
                 for     (int j = 0; j < len.y; ++j) {
                     for (int i = 0; i < len.x; ++i) {
-                        s(i,j,0,n) += -mult*f(i+1,j,0,n)/v(i,j,0);
+                        s(i,j,0,n) += -mult*(f(i+1,j,0,n)/v(i,j,0));
                     }
                 }
             }
@@ -142,7 +142,7 @@ fluxreg_reflux (Box const& bx, FArrayBox& sfab, const int scomp,
             for (int n = 0; n < ncomp; ++n) {
                 for     (int j = 0; j < len.y; ++j) {
                     for (int i = 0; i < len.x; ++i) {
-                        s(i,j,0,n) += -mult*f(i,j+1,0,n)/v(i,j,0);
+                        s(i,j,0,n) += -mult*(f(i,j+1,0,n)/v(i,j,0));
                     }
                 }
             }
@@ -153,7 +153,7 @@ fluxreg_reflux (Box const& bx, FArrayBox& sfab, const int scomp,
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = 0; j < len.y; ++j) {
                 for (int i = 0; i < len.x; ++i) {
-                    s(i,j,0,n) += mult*f(i,j,0,n)/v(i,j,0);
+                    s(i,j,0,n) += mult*(f(i,j,0,n)/v(i,j,0));
                 }
             }
         }
