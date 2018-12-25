@@ -7,7 +7,7 @@ namespace amrex {
 
 //
 // Add fine grid flux to flux register.  Flux array is a fine grid
-// edge based object, Register is a coarse grid edge based object.      
+// edge based object, Register is a coarse grid edge based object.
 // It is assumed that the coarsened flux region contains the register
 // region.
 //
@@ -88,7 +88,7 @@ fluxreg_fineadd (Box const& bx, FArrayBox& regfab, const int rcomp,
 
 //
 // Add fine grid flux times area to flux register.  Flux array is a fine grid
-// edge based object, Register is a coarse grid edge based object.      
+// edge based object, Register is a coarse grid edge based object.
 // It is assumed that the coarsened flux region contains the register
 // region.
 //
