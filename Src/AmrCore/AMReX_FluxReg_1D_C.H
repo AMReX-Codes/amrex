@@ -18,10 +18,10 @@ fluxreg_fineadd (Box const& bx, FArrayBox& regfab, const int rcomp,
 {
     const auto lo  = amrex::lbound(bx);
     const auto hi  = amrex::ubound(bx);
-    const auto reg = regfab.view(lo);
+    const auto reg = regfab.view(lo,rcomp);
 
     const auto flo = amrex::lbound(flxfab.box());
-    const auto flx = flxfab.view(flo);
+    const auto flx = flxfab.view(flo,fcomp);
 
     const int ic = lo.x;
     const int i = ic*ratio[0];
@@ -44,10 +44,10 @@ fluxreg_fineareaadd (Box const& bx, FArrayBox& regfab, const int rcomp,
 {
     const auto lo  = amrex::lbound(bx);
     const auto hi  = amrex::ubound(bx);
-    const auto reg = regfab.view(lo);
+    const auto reg = regfab.view(lo,rcomp);
 
     const auto flo = amrex::lbound(flxfab.box());
-    const auto flx = flxfab.view(flo);
+    const auto flx = flxfab.view(flo,fcomp);
     const auto area = areafab.view(flo);
 
     const int ic = lo.x;
