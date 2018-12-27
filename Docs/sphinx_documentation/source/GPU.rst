@@ -543,11 +543,16 @@ can also work on any contiguous subsets of a data set by passing
 a pointer that points to the beginning of the subset and the size
 of the subset.
 
-Users must also be aware that there is no automatic device 
-synchronize, as these launches do not have to occur inside of an 
-:cpp:`MFIter` loop.  Add :cpp:`Gpu::Device::synchronize()` where
-necessary to ensure GPU and CPU resources to do alter the same
-data simultaneously. 
+Users must be aware that there is no automatic device synchronize,
+as these launches do not have to occur inside of an :cpp:`MFIter`
+loop.  Add :cpp:`Gpu::Device::synchronize()` where necessary to
+ensure GPU and CPU resources do not alter the same data 
+simultaneously.  Lack of automatic GPU stream incremenation is 
+another consequence of being outside an :cpp:`MFIter` loop. Users
+must be aware that if this generic launch is inside a 
+non-:cpp:`MFIter` loop all launches will be placed in the default
+stream, leading to a synchronous implementation of the launches. 
+
 
 Kernel launch details
 ---------------------
