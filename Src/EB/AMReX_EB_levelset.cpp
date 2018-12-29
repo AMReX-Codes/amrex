@@ -681,7 +681,14 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
             auto & ls_tile = data[mfi];
             ls_tile.setVal( min_dx * min_ebt, tile_box );
 
-            // TODO: correct sign
+            // Ensure that tile-wise assignment is validated
+            const auto & if_tile = eb_impfunc[mfi];
+                  auto & v_tile  = eb_valid[mfi];
+
+            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
+                                       BL_TO_FORTRAN_3D(if_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile)   );
 
             continue;
         }
@@ -726,11 +733,6 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
                                    BL_TO_FORTRAN_3D(ls_tile),
                                    dx.dataPtr(), dx_eb.dataPtr() );
 
-            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
-                                       BL_TO_FORTRAN_3D(if_tile),
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile)   );
-
             region_tile.setVal(1);
         } else {
             ls_tile.setVal( min_dx * min_ebt, tile_box );
@@ -744,7 +746,7 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
 
 
         //_______________________________________________________________________
-        // Validate level-set
+        // Validate level-set (here so that tile-wise assignment is still validated)
         amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_ref,
                                    BL_TO_FORTRAN_3D(if_tile),
                                    BL_TO_FORTRAN_3D(v_tile),
