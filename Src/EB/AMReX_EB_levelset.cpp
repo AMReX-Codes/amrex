@@ -204,7 +204,7 @@ void LSFactory::fill_valid(){
 
 std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                                                    const CutFab & bcent_tile,
-                                                   const EBCellFlagFab & flag,
+                                                   const EBCellFlagFab & flag_tile,
                                                    const RealVect & dx_eb,
                                                    const Box & eb_search)
 {
@@ -218,7 +218,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
     int n_facets = 0;
     // Need to count number of eb-facets (in order to allocate facet_list)
     amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
-                          BL_TO_FORTRAN_3D(flag),
+                          BL_TO_FORTRAN_3D(flag_tile),
                           & n_facets);
 
     int facet_list_size = 6 * n_facets;
@@ -227,7 +227,7 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
     if (n_facets > 0) {
         int c_facets = 0;
         amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
-                         BL_TO_FORTRAN_3D(flag),
+                         BL_TO_FORTRAN_3D(flag_tile),
                          BL_TO_FORTRAN_3D(norm_tile),
                          BL_TO_FORTRAN_3D(bcent_tile),
                          facet_list->dataPtr(), & facet_list_size,
@@ -696,7 +696,7 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
 
         const auto & flag       = flags[mfi];
         const auto & if_tile    = eb_impfunc[mfi];
-        const auto & norm_tile  = normal[mfi];
+        const auto & nom_tile  = normal[mfi];
         const auto & bcent_tile = bndrycent[mfi];
 
         auto & v_tile      = eb_valid[mfi];
