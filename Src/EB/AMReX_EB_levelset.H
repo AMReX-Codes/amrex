@@ -63,10 +63,16 @@ class LSFactory {
         // Cell size of the refined grids
         const RealVect dx_vect, dx_eb_vect;
 
-        // Construct eb_facets list from eb_factory
+        //! Construct eb_facets list from eb_factory. The facet list is a 1-D
+        //! list of facet bcent positions, followed by normals => N facets would
+        //! be stored in a Vector<Real> of length 6*N. Only facets that fall
+        //! within the Box `eb_search` are included in the list. The RealVect
+        //! `eb_dx` provides the discretization of the EB data. NOTE:
+        //! `be_search` must be contained in the `norm_tile`, `bcent_tile` and
+        //! `flag_tile`.
         static std::unique_ptr<Vector<Real>> eb_facets(const FArrayBox & norm_tile,
                                                        const CutFab & bcent_tile,
-                                                       const EBCellFlagFab & flag,
+                                                       const EBCellFlagFab & flag_tile,
                                                        const RealVect & eb_dx,
                                                        const Box & eb_search);
 
