@@ -135,11 +135,19 @@ class LSFactory {
                                    const Geometry & geom, const Geometry & geom_eb);
 
 
+        //! Fills (overwrites) level-set data locally. The local EB search
+        //! radius is managed by LSFactory.
         std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
                                             const MultiFab & mf_impfunc);
+        //! Fills (overwrites) level-set data locally. The local EB search
+        //! radius is specified by the user corresponding to a cube with
+        //! edge-length = `ebt_size`
         std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
                                             const MultiFab & mf_impfunc,
                                             int ebt_size);
+        //! Fills (overwrites) level-set data locally. The local EB search
+        //! radius is specified by the user corresponding to a box with edge
+        //! lengths given by the IntVect `ebt_size`
         std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
                                             const MultiFab & mf_impfunc,
                                             const IntVect & ebt_size);
