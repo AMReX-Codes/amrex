@@ -755,25 +755,25 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
-                                                   const MultiFab & mf_impfunc) {
-    return fill_ebf_loc(eb_factory, mf_impfunc, eb_grid_pad);
+std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_factory,
+                                               const MultiFab & mf_impfunc) {
+    return fill_loc(eb_factory, mf_impfunc, eb_grid_pad);
 }
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
-                                                   const MultiFab & mf_impfunc,
-                                                   int ebt_size) {
-    return fill_ebf_loc(eb_factory, mf_impfunc,
-                        IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)});
+std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_factory,
+                                               const MultiFab & mf_impfunc,
+                                               int ebt_size) {
+    return fill_loc(eb_factory, mf_impfunc,
+                    IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)});
 }
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
-                                                   const MultiFab & mf_impfunc,
-                                                   const IntVect & ebt_size) {
+std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_factory,
+                                               const MultiFab & mf_impfunc,
+                                               const IntVect & ebt_size) {
 
     /****************************************************************************
      *                                                                          *

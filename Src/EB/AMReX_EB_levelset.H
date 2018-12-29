@@ -135,14 +135,14 @@ class LSFactory {
                                    const Geometry & geom, const Geometry & geom_eb);
 
 
-        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
-                                                const MultiFab & mf_impfunc);
-        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
-                                                const MultiFab & mf_impfunc,
-                                                int ebt_size);
-        std::unique_ptr<iMultiFab> fill_ebf_loc(const EBFArrayBoxFactory & eb_factory,
-                                                const MultiFab & mf_impfunc,
-                                                const IntVect & ebt_size);
+        std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
+                                            const MultiFab & mf_impfunc);
+        std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
+                                            const MultiFab & mf_impfunc,
+                                            int ebt_size);
+        std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
+                                            const MultiFab & mf_impfunc,
+                                            const IntVect & ebt_size);
 
         std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                     const MultiFab & mf_impfunc);
