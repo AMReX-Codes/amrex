@@ -208,6 +208,8 @@ std::unique_ptr<Vector<Real>> LSFactory::eb_facets(const FArrayBox & norm_tile,
                                                    const RealVect & dx_eb,
                                                    const Box & eb_search)
 {
+    BL_PROFILE("LSFactory::eb_facets(tile)")
+
     // 1-D list of eb-facet data. Format:
     // { px_1, py_1, pz_1, nx_1, ny_1, nz_1, px_2, py_2, ... , nz_N }
     //   ^                 ^
@@ -677,6 +679,8 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
             auto & ls_tile = data[mfi];
             ls_tile.setVal( min_dx * min_ebt, tile_box );
 
+            // TODO: correct sign
+
             continue;
         }
 
@@ -696,7 +700,7 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
 
         const auto & flag       = flags[mfi];
         const auto & if_tile    = eb_impfunc[mfi];
-        const auto & nom_tile  = normal[mfi];
+        const auto & norm_tile  = normal[mfi];
         const auto & bcent_tile = bndrycent[mfi];
 
         auto & v_tile      = eb_valid[mfi];
