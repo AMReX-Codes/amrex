@@ -90,8 +90,7 @@ class LSFactory {
 
         /************************************************************************
          *                                                                      *
-         * Utilities that fill the level-set MultiFab using local EB Factory    *
-         * NOTE: returns an iMultiFab flagging "valid" data                     *
+         * Utility to gather local EB facets                                    *
          *                                                                      *
          ***********************************************************************/
 
@@ -109,12 +108,26 @@ class LSFactory {
                                                        const Box & eb_search);
 
 
+        /************************************************************************
+         *                                                                      *
+         * Utilities that fill the level-set MultiFab using local EB Factory    *
+         * NOTE: returns an iMultiFab flagging "valid" data                     *
+         *                                                                      *
+         ***********************************************************************/
+
+        //! Fills (overwrites) level-set data locally. Same as `fill_data_loc`
+        //! but with cubic EB search box.
         static void fill_data_loc (MultiFab & data, iMultiFab & valid,
                                    const EBFArrayBoxFactory & eb_factory,
                                    const MultiFab & eb_impfunc,
                                    int ebt_size, int ls_ref, int eb_ref,
                                    const Geometry & geom, const Geometry & geom_eb);
 
+        //! Fills (overwrites) level-set data locally. Also fills iMultiFab
+        //! tagging cells which are nearby to EB surface. Only EB facets in a
+        //! box size of `ebt_size` are considered. Any EB facets that are
+        //! outside this box are ignored => the min/max value of the level-set
+        //! are +/- `min(ebt_size[:]*geom_eb.CellSize(:))`.
         static void fill_data_loc (MultiFab & data, iMultiFab & valid,
                                    const EBFArrayBoxFactory & eb_factory,
                                    const MultiFab & eb_impfunc,
