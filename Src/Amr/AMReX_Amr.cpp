@@ -2029,14 +2029,14 @@ Amr::timeStep (int  level,
         }
 #ifdef USE_PERILLA
 	if(cnt){
-	        if(ParallelDescriptor::NProcs()>1){
-	           Perilla::clearTagMap();
-	           Perilla::clearMyTagMap();
-	           Perilla::genTags=true;
-	            Perilla::uTags=0;
-	            Perilla::pTagCnt.clear();
-		}
-	memcheck.report();
+memcheck.report();
+	    if(ParallelDescriptor::NProcs()>1){
+	        Perilla::clearTagMap();
+	        Perilla::clearMyTagMap();
+	        Perilla::genTags=true;
+	        Perilla::uTags=0;
+	        Perilla::pTagCnt.clear();
+            }
             for(int i=0; i<= finest_level; i++){
                 getLevel(i).initPerilla(cumtime);
  	        Perilla::updateMetadata_done++;
