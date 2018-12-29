@@ -572,6 +572,8 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
                                const IntVect & ebt_size, int ls_ref, int eb_ref,
                                const Geometry & geom, const Geometry & geom_eb) {
 
+    BL_PROFILE("LSFactory::fill_data_loc()")
+
     /****************************************************************************
      *                                                                          *
      * Sets: `data` MultiFab containing level-set and a `valid` indicating that *
