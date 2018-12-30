@@ -127,7 +127,7 @@ class LSFactory {
         //! tagging cells which are nearby to EB surface. Only EB facets in a
         //! box size of `ebt_size` are considered. Any EB facets that are
         //! outside this box are ignored => the min/max value of the level-set
-        //! are +/- `min(ebt_size[:]*geom_eb.CellSize(:))`.
+        //! are +/- `eb_pad * min(geom_eb.CellSize(:))`.
         static void fill_data (MultiFab & data, iMultiFab & valid,
                                const EBFArrayBoxFactory & eb_factory,
                                const MultiFab & eb_impfunc,
@@ -173,8 +173,8 @@ class LSFactory {
         std::unique_ptr<iMultiFab> intersection_impfunc(const MultiFab & mf_impfunc);
         std::unique_ptr<iMultiFab> union_impfunc(const MultiFab & mf_impfunc);
 
-        // Unpdate internal `ls_phi` and `ls_valid` based on the min of
-        // `ls_phi` and `ls_in`
+        // Update internal `ls_phi` and `ls_valid` based on the min of `ls_phi`
+        // and `ls_in`
         void update_intersection(const MultiFab & ls_in, const iMultiFab & valid_in);
         void update_union(const MultiFab & ls_in, const iMultiFab & valid_in);
 

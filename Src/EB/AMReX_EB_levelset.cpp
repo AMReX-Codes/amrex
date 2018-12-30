@@ -649,13 +649,10 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
 #if (AMREX_SPACEDIM == 1)
     const Real min_dx = dx_eb[0];
-    const int min_ebt = ebt_size[0];
 #elif (AMREX_SPACEDIM == 2)
     const Real min_dx = std::min(dx_eb[0], dx_eb[1]);
-    const int min_ebt = std::min(ebt_size[0], ebt_size[1]);
 #elif (AMREX_SPACEDIM == 3)
     const Real min_dx = std::min(dx_eb[0], std::min(dx_eb[1], dx_eb[2]));
-    const int min_ebt = std::min(ebt_size[0], std::min(ebt_size[1], ebt_size[2]));
 #endif
 
 
@@ -669,17 +666,18 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(data, ebt_size); mfi.isValid(); ++mfi)
+    for (MFIter mfi(data, ebt_size * std::max(1, ls_ref/eb_ref)); mfi.isValid(); ++mfi)
     {
         //_______________________________________________________________________
         // Fill grown tile box => fill ghost cells as well
         Box tile_box = mfi.growntilebox();
 
+
         //_______________________________________________________________________
         // Don't do anything for the current tile if EB facets are ill-defined
         if (! bndrycent.ok(mfi)){
             auto & ls_tile = data[mfi];
-            ls_tile.setVal( min_dx * min_ebt, tile_box );
+            ls_tile.setVal( min_dx * eb_pad , tile_box );
 
             // Ensure that tile-wise assignment is validated
             const auto & if_tile = eb_impfunc[mfi];
@@ -692,6 +690,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
             continue;
         }
+
 
         //_______________________________________________________________________
         // Construct search box over which to look for EB facets
@@ -716,6 +715,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         auto & ls_tile     = data[mfi];
         auto & region_tile = valid[mfi];
 
+
         //_______________________________________________________________________
         // Construct EB facets
         std::unique_ptr<Vector<Real>> facets = eb_facets(norm_tile, bcent_tile, flag,
@@ -735,12 +735,15 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
             region_tile.setVal(1);
         } else {
-            ls_tile.setVal( min_dx * min_ebt, tile_box );
+            ls_tile.setVal( min_dx * ( eb_pad + 1 ) , tile_box );
         }
+
 
         //_______________________________________________________________________
         // Threshold local level-set
-        Real ls_threshold = min_dx * min_ebt;
+        Real ls_threshold = min_dx * (eb_pad+1); //eb_pad => we know that any EB
+                                                 //is _at least_ eb_pad away from
+                                                 //the edge of the eb search box
         amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
                                     BL_TO_FORTRAN_3D(ls_tile));
 
@@ -751,7 +754,6 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                                    BL_TO_FORTRAN_3D(if_tile),
                                    BL_TO_FORTRAN_3D(v_tile),
                                    BL_TO_FORTRAN_3D(ls_tile)   );
-
     }
 }
 
@@ -759,7 +761,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
 std::unique_ptr<iMultiFab> LSFactory::fill(const EBFArrayBoxFactory & eb_factory,
                                            const MultiFab & mf_impfunc) {
-    return fill(eb_factory, mf_impfunc, eb_grid_pad);
+    return fill(eb_factory, mf_impfunc, eb_tile_size);
 }
 
 
