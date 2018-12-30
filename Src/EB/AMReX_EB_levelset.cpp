@@ -553,26 +553,26 @@ void LSFactory::set_data(const MultiFab & mf_ls){
 
 
 
-void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
-                               const EBFArrayBoxFactory & eb_factory,
-                               const MultiFab & eb_impfunc,
-                               int ebt_size, int ls_ref, int eb_ref,
-                               const Geometry & geom, const Geometry & geom_eb) {
+void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
+                           const EBFArrayBoxFactory & eb_factory,
+                           const MultiFab & eb_impfunc,
+                           int ebt_size, int ls_ref, int eb_ref,
+                           const Geometry & geom, const Geometry & geom_eb) {
 
-    LSFactory::fill_data_loc(data, valid, eb_factory, eb_impfunc,
-                             IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)},
-                             ls_ref, eb_ref, geom, geom_eb);
+    LSFactory::fill_data(data, valid, eb_factory, eb_impfunc,
+                         IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)},
+                         ls_ref, eb_ref, geom, geom_eb);
 }
 
 
 
-void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
-                               const EBFArrayBoxFactory & eb_factory,
-                               const MultiFab & eb_impfunc,
-                               const IntVect & ebt_size, int ls_ref, int eb_ref,
-                               const Geometry & geom, const Geometry & geom_eb) {
+void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
+                           const EBFArrayBoxFactory & eb_factory,
+                           const MultiFab & eb_impfunc,
+                           const IntVect & ebt_size, int ls_ref, int eb_ref,
+                           const Geometry & geom, const Geometry & geom_eb) {
 
-    BL_PROFILE("LSFactory::fill_data_loc()")
+    BL_PROFILE("LSFactory::fill_data()")
 
     /****************************************************************************
      *                                                                          *
@@ -757,25 +757,25 @@ void LSFactory::fill_data_loc (MultiFab & data, iMultiFab & valid,
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_factory,
-                                               const MultiFab & mf_impfunc) {
-    return fill_loc(eb_factory, mf_impfunc, eb_grid_pad);
+std::unique_ptr<iMultiFab> LSFactory::fill(const EBFArrayBoxFactory & eb_factory,
+                                           const MultiFab & mf_impfunc) {
+    return fill(eb_factory, mf_impfunc, eb_grid_pad);
 }
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_factory,
-                                               const MultiFab & mf_impfunc,
-                                               int ebt_size) {
-    return fill_loc(eb_factory, mf_impfunc,
-                    IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)});
+std::unique_ptr<iMultiFab> LSFactory::fill(const EBFArrayBoxFactory & eb_factory,
+                                           const MultiFab & mf_impfunc,
+                                           int ebt_size) {
+    return fill(eb_factory, mf_impfunc,
+                IntVect{AMREX_D_DECL(ebt_size, ebt_size, ebt_size)});
 }
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_factory,
-                                               const MultiFab & mf_impfunc,
-                                               const IntVect & ebt_size) {
+std::unique_ptr<iMultiFab> LSFactory::fill(const EBFArrayBoxFactory & eb_factory,
+                                           const MultiFab & mf_impfunc,
+                                           const IntVect & ebt_size) {
 
     /****************************************************************************
      *                                                                          *
@@ -790,11 +790,10 @@ std::unique_ptr<iMultiFab> LSFactory::fill_loc(const EBFArrayBoxFactory & eb_fac
     region_valid->setVal(0);
 
 
-    LSFactory::fill_data_loc(* ls_grid, * region_valid, eb_factory, mf_impfunc,
-                             ebt_size, ls_grid_ref, eb_grid_ref, geom_ls, geom_eb);
+    LSFactory::fill_data(* ls_grid, * region_valid, eb_factory, mf_impfunc,
+                         ebt_size, ls_grid_ref, eb_grid_ref, geom_ls, geom_eb);
 
 
-    //ls_grid->FillBoundary(geom_ls.periodicity());
     fill_valid();
 
     return region_valid;
