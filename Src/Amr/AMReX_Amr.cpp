@@ -2343,7 +2343,7 @@ Amr::coarseTimeStep (Real stop_time)
 #ifdef USE_PERILLA
     perilla::syncAllThreads();
     if(perilla::isMasterThread()){
-        if(level_steps[0] == Perilla::max_step){
+        if(!okToContinue() || (level_steps[0] == Perilla::max_step) || (stop_time -(dt_level[0] + cumTime())<=0)){
             for(int i=0; i<= finest_level; i++){
                 getLevel(i).finalizePerilla(cumtime);
             }
@@ -2367,6 +2367,7 @@ Amr::coarseTimeStep (Real stop_time)
     cumtime += dt_level[0];
 
     amr_level[0]->postCoarseTimeStep(cumtime);
+
 
     if (verbose > 0)
     {
