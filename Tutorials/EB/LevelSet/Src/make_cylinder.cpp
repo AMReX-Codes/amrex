@@ -120,7 +120,7 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     //ls_walls.intersection_ebf(eb_factory_cylinder, * cylinder_mf_impfunc);
     //level_set->update_union(* ls_walls.get_data(), * flag_valid);
     //level_set->intersection_ebf(eb_factory_cylinder, * cylinder_mf_impfunc);
-    level_set->fill_loc(eb_factory_cylinder, * cylinder_mf_impfunc);
+    level_set->fill(eb_factory_cylinder, * cylinder_mf_impfunc);
 
     std::unique_ptr<CappedCylinderIF> ret = std::unique_ptr<CappedCylinderIF>(
         new CappedCylinderIF(EB2::TranslationIF<EB2::UnionIF<EB2::PlaneIF,EB2::PlaneIF>>(walls_if),

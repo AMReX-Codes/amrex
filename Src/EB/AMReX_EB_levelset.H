@@ -117,40 +117,54 @@ class LSFactory {
 
         //! Fills (overwrites) level-set data locally. Same as `fill_data_loc`
         //! but with cubic EB search box.
-        static void fill_data_loc (MultiFab & data, iMultiFab & valid,
-                                   const EBFArrayBoxFactory & eb_factory,
-                                   const MultiFab & eb_impfunc,
-                                   int ebt_size, int ls_ref, int eb_ref,
-                                   const Geometry & geom, const Geometry & geom_eb);
+        static void fill_data (MultiFab & data, iMultiFab & valid,
+                               const EBFArrayBoxFactory & eb_factory,
+                               const MultiFab & eb_impfunc,
+                               int ebt_size, int ls_ref, int eb_ref,
+                               const Geometry & geom, const Geometry & geom_eb);
 
         //! Fills (overwrites) level-set data locally. Also fills iMultiFab
         //! tagging cells which are nearby to EB surface. Only EB facets in a
         //! box size of `ebt_size` are considered. Any EB facets that are
         //! outside this box are ignored => the min/max value of the level-set
         //! are +/- `min(ebt_size[:]*geom_eb.CellSize(:))`.
-        static void fill_data_loc (MultiFab & data, iMultiFab & valid,
-                                   const EBFArrayBoxFactory & eb_factory,
-                                   const MultiFab & eb_impfunc,
-                                   const IntVect & ebt_size, int ls_ref, int eb_ref,
-                                   const Geometry & geom, const Geometry & geom_eb);
+        static void fill_data (MultiFab & data, iMultiFab & valid,
+                               const EBFArrayBoxFactory & eb_factory,
+                               const MultiFab & eb_impfunc,
+                               const IntVect & ebt_size, int ls_ref, int eb_ref,
+                               const Geometry & geom, const Geometry & geom_eb);
 
+
+        /************************************************************************
+         *                                                                      *
+         * Public member functions to update level-set data                     *
+         *                                                                      *
+         ***********************************************************************/
 
         //! Fills (overwrites) level-set data locally. The local EB search
-        //! radius is managed by LSFactory.
-        std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
-                                            const MultiFab & mf_impfunc);
+        //! radius is managed by LSFactory. Returns: iMultiFab indicating region
+        //! that has been filled by a valid level-set function (i.e. the value
+        //! of the level-set was informed by nearby EB facets)
+        std::unique_ptr<iMultiFab> fill(const EBFArrayBoxFactory & eb_factory,
+                                        const MultiFab & mf_impfunc);
+
         //! Fills (overwrites) level-set data locally. The local EB search
         //! radius is specified by the user corresponding to a cube with
-        //! edge-length = `ebt_size`
-        std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
-                                            const MultiFab & mf_impfunc,
-                                            int ebt_size);
+        //! edge-length = `ebt_size`. Returns: iMultiFab indicating region
+        //! that has been filled by a valid level-set function (i.e. the value
+        //! of the level-set was informed by nearby EB facets)
+        std::unique_ptr<iMultiFab> fill(const EBFArrayBoxFactory & eb_factory,
+                                        const MultiFab & mf_impfunc,
+                                        int ebt_size);
+
         //! Fills (overwrites) level-set data locally. The local EB search
         //! radius is specified by the user corresponding to a box with edge
-        //! lengths given by the IntVect `ebt_size`
-        std::unique_ptr<iMultiFab> fill_loc(const EBFArrayBoxFactory & eb_factory,
-                                            const MultiFab & mf_impfunc,
-                                            const IntVect & ebt_size);
+        //! lengths given by the IntVect `ebt_size`. Returns: iMultiFab indicating region
+        //! that has been filled by a valid level-set function (i.e. the value
+        //! of the level-set was informed by nearby EB facets)
+        std::unique_ptr<iMultiFab> fill(const EBFArrayBoxFactory & eb_factory,
+                                        const MultiFab & mf_impfunc,
+                                        const IntVect & ebt_size);
 
         std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
                                                     const MultiFab & mf_impfunc);

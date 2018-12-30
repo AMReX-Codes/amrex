@@ -112,7 +112,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
 
         int ng = ls_factory[lev]->get_ls_pad();
 
-        ls_factory[lev]->fill_loc(eb_factory, * mf_impfunc, levelset_eb_pad);
+        ls_factory[lev]->fill(eb_factory, * mf_impfunc, levelset_eb_pad);
         level_set[lev].copy(* ls_factory[lev]->get_data(), 0, 0, 1, ng, ng);
 
     } else {
