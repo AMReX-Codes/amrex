@@ -286,13 +286,35 @@ class LSUtility {
     //! `geom`, and CellSize matching the LSFactory `level_set` EB resolution.
     //! This is particularly useful for building EBFArrayBoxFactory objects
     //! whose Geometry is what's expected by the LSFactory's filling routines.
-    static Geometry make_eb_geometry(const LSFactory & level_set, const Geometry& geom){
+    static Geometry make_eb_geometry(const LSFactory & level_set, const Geometry & geom){
         // Set up refined geometry
         Box dom_eb = geom.Domain();
         dom_eb.refine(level_set.get_eb_ref());
         Geometry geom_eb(dom_eb);
 
         return geom_eb;
+    }
+
+
+
+    //! Returns the minimum eb_pad (EB ghost cells) to ensure that the level-set
+    //! is able to resolve a length scale of at least `min_resolution`.
+
+    static int min_eb_pad (Real min_resolution, const Geometry & geom_eb) {
+
+        RealVect dx_eb(AMREX_D_DECL(geom_eb.CellSize()[0],
+                                    geom_eb.CellSize()[1],
+                                    geom_eb.CellSize()[2]));
+
+#if (AMREX_SPACEDIM == 1)
+        const Real min_dx = dx_eb[0];
+#elif (AMREX_SPACEDIM == 2)
+        const Real min_dx = std::min(dx_eb[0], dx_eb[1]);
+#elif (AMREX_SPACEDIM == 3)
+        const Real min_dx = std::min(dx_eb[0], std::min(dx_eb[1], dx_eb[2]));
+#endif
+
+        return min_resolution/min_dx;
     }
 
 

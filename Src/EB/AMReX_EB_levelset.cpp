@@ -592,7 +592,6 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
                                 geom_eb.CellSize()[2]));
 
     // Don't use the ls_grid_pad for the eb_padding (goes wrong!)
-    //const int eb_pad = data.nGrow() + 1;
     const int ls_pad = data.nGrow();
 
     // Doesn't work with iMultiFabs
