@@ -214,6 +214,9 @@ class LSFactory {
 
 
 
+//! Template class that handles filling implicit functions from GeometryShop.
+//! The implicit function is filled into a MultiFab with the same CellSize,
+//! BoxArray, DistributionMapping, and number of ghost cells as the LSFactory.
 template <class F>
 class GShopLSFactory {
     private:
@@ -232,6 +235,10 @@ class GShopLSFactory {
               m_ls_pad(level_set.get_ls_pad())
         {}
 
+        //! Fill MultiFab (with the same CellSize, BoxArray,
+        //! DistributionMapping, and number of ghost cells as the LSFactory)
+        //! with the implicit function values. The filled MultiFab is returned
+        //! as a std::unique_ptr<MultiFab>.
         std::unique_ptr<MultiFab> fill_impfunc() {
             std::unique_ptr<MultiFab> mf_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
             mf_impfunc->define(m_ls_ba, m_ls_dm, 1, m_ls_pad);
@@ -250,42 +257,61 @@ class GShopLSFactory {
 
 
 
+//! Collection of static functions that help with the construction of LSFactory
+//! objects.
 class LSUtility {
     public:
-        static Geometry make_ls_geometry(const LSFactory & level_set, const Geometry& geom){
-            // Set up refined geometry
-            Box dom_ls = geom.Domain();
-            dom_ls.refine(level_set.get_ls_ref());
-            Geometry geom_ls(dom_ls);
-
-            return geom_ls;
-        }
-
-        static Geometry make_eb_geometry(const LSFactory & level_set, const Geometry& geom){
-            // Set up refined geometry
-            Box dom_eb = geom.Domain();
-            dom_eb.refine(level_set.get_eb_ref());
-            Geometry geom_eb(dom_eb);
-
-            return geom_eb;
-        }
 
 
-        static void PrintFlagType(const Box & tile_box, const EBCellFlagFab & flag){
+    /****************************************************************************
+     *                                                                          *
+     * Utility functions for creating geometry objects with the correct Domain  *
+     * and CellSize as requires by the LSFactory object.                        *
+     *                                                                          *
+     ***************************************************************************/
 
-            if(flag.getType(tile_box) == FabType::covered)
-                amrex::Print() << "flag covered" << std::endl;
-            else if(flag.getType(tile_box) == FabType::regular)
-                amrex::Print() << "flag regular" << std::endl;
-            else if(flag.getType(tile_box) == FabType::singlevalued)
-                amrex::Print() << "flag singlevalued" << std::endl;
-            else if(flag.getType(tile_box) == FabType::multivalued)
-                amrex::Print() << "flag multivalued" << std::endl;
-            else if(flag.getType(tile_box) == FabType::undefined)
-                amrex::Print() << "flag undefined" << std::endl;
-            else
-                amrex::Print() << "flag ill-formed" << std::endl;
-        }
+    //! Construct geometry with the Domain (Box) inherited from the Geometry
+    //! `geom`, and CellSize matching the LSFactory `level_set` resolution.
+    static Geometry make_ls_geometry(const LSFactory & level_set, const Geometry & geom){
+        // Set up refined geometry
+        Box dom_ls = geom.Domain();
+        dom_ls.refine(level_set.get_ls_ref());
+        Geometry geom_ls(dom_ls);
+
+        return geom_ls;
+    }
+
+
+    //! Construct geometry with the Domain (Box) inherited from the Geometry
+    //! `geom`, and CellSize matching the LSFactory `level_set` EB resolution.
+    //! This is particularly useful for building EBFArrayBoxFactory objects
+    //! whose Geometry is what's expected by the LSFactory's filling routines.
+    static Geometry make_eb_geometry(const LSFactory & level_set, const Geometry& geom){
+        // Set up refined geometry
+        Box dom_eb = geom.Domain();
+        dom_eb.refine(level_set.get_eb_ref());
+        Geometry geom_eb(dom_eb);
+
+        return geom_eb;
+    }
+
+
+    //! Debug utility to help interrogate runtime flag types.
+    static void PrintFlagType(const Box & tile_box, const EBCellFlagFab & flag){
+
+        if(flag.getType(tile_box) == FabType::covered)
+            amrex::Print() << "flag covered" << std::endl;
+        else if(flag.getType(tile_box) == FabType::regular)
+            amrex::Print() << "flag regular" << std::endl;
+        else if(flag.getType(tile_box) == FabType::singlevalued)
+            amrex::Print() << "flag singlevalued" << std::endl;
+        else if(flag.getType(tile_box) == FabType::multivalued)
+            amrex::Print() << "flag multivalued" << std::endl;
+        else if(flag.getType(tile_box) == FabType::undefined)
+            amrex::Print() << "flag undefined" << std::endl;
+        else
+            amrex::Print() << "flag ill-formed" << std::endl;
+    }
 };
 
 
