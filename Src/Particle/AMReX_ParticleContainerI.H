@@ -816,6 +816,71 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
 }
 
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+clearParticles()
+{
+    BL_PROFILE("ParticleContainer::clearParticles()");
+    
+    for (int lev = 0; lev < static_cast<int>(m_particles.size()); ++lev)
+    {
+        for (auto& kv : m_particles[lev]) 
+        {
+            kv.second.resize(0);
+        }
+    }
+}
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+copyParticles(const ParticleContainerType& other)
+{
+    BL_PROFILE("ParticleContainer::copyParticles");
+
+    clearParticles();
+    
+    for (int lev = 0; lev < other.numLevels(); ++lev)
+    {
+        const auto& plevel_other = other.GetParticles(lev);
+        auto& plevel = GetParticles(lev);
+        for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+            const auto& tile_other = plevel_other.at(index);
+
+            if (tile_other.numParticles() == 0) continue;
+            
+            const auto& aos_other = tile_other.GetArrayOfStructs();
+            for (const auto& particle_struct : aos_other)
+            {
+                plevel[index].push_back(particle_struct);
+            }
+
+            const auto& soa_other = tile_other.GetStructOfArrays();
+            for (int j = 0; j < NArrayReal; ++j)
+            {
+                auto& rdata = soa_other.GetRealData(j);
+                for(const auto& real_attrib : rdata)
+                {
+                    plevel[index].push_back_real(j, real_attrib);
+                }                
+            }
+            for (int j = 0; j < NArrayInt; ++j)
+            {
+                auto& idata = soa_other.GetIntData(j);
+                for(const auto& int_attrib : idata)
+                {
+                    plevel[index].push_back_int(j, int_attrib);
+                }
+            }
+        }
+    }
+    
+    Redistribute();
+}
+
 //
 // This redistributes valid particles and discards invalid ones.
 //

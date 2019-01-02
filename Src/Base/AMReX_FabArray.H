@@ -232,34 +232,44 @@ public:
     bool ok () const;
 
     //! Return a constant reference to the FAB associated with mfi.
-    const FAB& operator[] (const MFIter& mfi) const;
+    const FAB& operator[] (const MFIter& mfi) const { return *(this->fabHostPtr(mfi)); }
 
     //! Return a constant reference to the FAB associated with mfi.
-    const FAB& get (const MFIter& mfi) const { return this->operator[](mfi); }
+    const FAB& get (const MFIter& mfi) const { return *(this->fabHostPtr(mfi)); }
 
     //! Returns a reference to the FAB associated mfi.
-    FAB& operator[] (const MFIter& mfi);
+    FAB& operator[] (const MFIter& mfi) { return *(this->fabHostPtr(mfi)); }
 
     //! Returns a reference to the FAB associated mfi.
-    FAB& get (const MFIter& mfi) { return this->operator[](mfi); }
+    FAB& get (const MFIter& mfi) { return *(this->fabHostPtr(mfi)); }
 
     //! Return a constant reference to the FAB associated with the Kth element.
-    const FAB& operator[] (int K) const;
+    const FAB& operator[] (int K) const { return *(this->fabHostPtr(K)); }
 
     //! Return a constant reference to the FAB associated with the Kth element.
-    const FAB& get (int K) const { return this->operator[](K); }
+    const FAB& get (int K) const { return *(this->fabHostPtr(K)); }
 
     //! Return a reference to the FAB associated with the Kth element.
-    FAB& operator[] (int K);
+    FAB& operator[] (int K) { return *(this->fabHostPtr(K)); }
 
     //! Return a reference to the FAB associated with the Kth element.
-    FAB& get (int K)  { return this->operator[](K); }
+    FAB& get (int K) { return *(this->fabHostPtr(K)); }
 
     // Return pointer to FAB 
     FAB      * fabPtr (const MFIter& mfi);
     FAB const* fabPtr (const MFIter& mfi) const;
     FAB      * fabPtr (int K);
     FAB const* fabPtr (int K) const;
+
+    FAB      * fabHostPtr (const MFIter& mfi);
+    FAB const* fabHostPtr (const MFIter& mfi) const;
+    FAB      * fabHostPtr (int K);
+    FAB const* fabHostPtr (int K) const;
+
+    FAB      * fabDevicePtr (const MFIter& mfi);
+    FAB const* fabDevicePtr (const MFIter& mfi) const;
+    FAB      * fabDevicePtr (int K);
+    FAB const* fabDevicePtr (int K) const;
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
@@ -784,54 +794,90 @@ FabArray<FAB>::defined (const MFIter& mfi) const
 }
 
 template <class FAB>
-const FAB&
-FabArray<FAB>::operator[] (const MFIter& mfi) const
+FAB*
+FabArray<FAB>::fabDevicePtr (const MFIter& mfi)
+{
+    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    return m_fabs_v[mfi.LocalIndex()];
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabDevicePtr (const MFIter& mfi) const
+{
+    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
+    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    return m_fabs_v[mfi.LocalIndex()];
+}
+
+template <class FAB>
+FAB*
+FabArray<FAB>::fabDevicePtr (int K)
+{
+    int li = localindex(K);
+    BL_ASSERT(li >=0 && li < indexArray.size());
+    return m_fabs_v[li];
+}
+
+template <class FAB>
+FAB const*
+FabArray<FAB>::fabDevicePtr (int K) const
+{
+    int li = localindex(K);
+    BL_ASSERT(li >=0 && li < indexArray.size());
+    return m_fabs_v[li];
+}
+
+template <class FAB>
+FAB*
+FabArray<FAB>::fabHostPtr (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
 #if AMREX_USE_GPU
-    return *m_host_fabs_v[mfi.LocalIndex()];
+    return m_host_fabs_v[mfi.LocalIndex()];
 #else
-    return *m_fabs_v[mfi.LocalIndex()];
+    return m_fabs_v[mfi.LocalIndex()];
 #endif
 }
 
 template <class FAB>
-FAB&
-FabArray<FAB>::operator[] (const MFIter& mfi)
+FAB const*
+FabArray<FAB>::fabHostPtr (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
 #if AMREX_USE_GPU
-    return *m_host_fabs_v[mfi.LocalIndex()];
+    return m_host_fabs_v[mfi.LocalIndex()];
 #else
-    return *m_fabs_v[mfi.LocalIndex()];
+    return m_fabs_v[mfi.LocalIndex()];
 #endif
 }
 
 template <class FAB>
-const FAB&
-FabArray<FAB>::operator[] (int K) const
+FAB*
+FabArray<FAB>::fabHostPtr (int K)
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
 #if AMREX_USE_GPU
-    return *m_host_fabs_v[li];
+    return m_host_fabs_v[li];
 #else
-    return *m_fabs_v[li];
+    return m_fabs_v[li];
 #endif
 }
 
 template <class FAB>
-FAB&
-FabArray<FAB>::operator[] (int K)
+FAB const*
+FabArray<FAB>::fabHostPtr (int K) const
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
 #if AMREX_USE_GPU
-    return *m_host_fabs_v[li];
+    return m_host_fabs_v[li];
 #else
-    return *m_fabs_v[li];
+    return m_fabs_v[li];
 #endif
 }
 
@@ -839,36 +885,44 @@ template <class FAB>
 FAB*
 FabArray<FAB>::fabPtr (const MFIter& mfi)
 {
-    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    return m_fabs_v[mfi.LocalIndex()];
+#if AMREX_USE_GPU
+    return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(mfi) : this->fabHostPtr(mfi);
+#else
+    return this->fabHostPtr(mfi);
+#endif
 }
 
 template <class FAB>
 FAB const*
 FabArray<FAB>::fabPtr (const MFIter& mfi) const
 {
-    BL_ASSERT(mfi.LocalIndex() < indexArray.size());
-    BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    return m_fabs_v[mfi.LocalIndex()];
+#if AMREX_USE_GPU
+    return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(mfi) : this->fabHostPtr(mfi);
+#else
+    return this->fabHostPtr(mfi);
+#endif
 }
 
 template <class FAB>
 FAB*
 FabArray<FAB>::fabPtr (int K)
 {
-    int li = localindex(K);
-    BL_ASSERT(li >=0 && li < indexArray.size());
-    return m_fabs_v[li];
+#if AMREX_USE_GPU
+    return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(K) : this->fabHostPtr(K);
+#else
+    return this->fabHostPtr(K);
+#endif
 }
 
 template <class FAB>
 FAB const*
 FabArray<FAB>::fabPtr (int K) const
 {
-    int li = localindex(K);
-    BL_ASSERT(li >=0 && li < indexArray.size());
-    return m_fabs_v[li];
+#if AMREX_USE_GPU
+    return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(K) : this->fabHostPtr(K);
+#else
+    return this->fabHostPtr(K);
+#endif
 }
 
 template <class FAB>
@@ -1484,7 +1538,7 @@ FabArray<FAB>::setVal (value_type val,
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
-        FAB* fab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
+        FAB* fab = this->fabPtr(fai);
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
@@ -1527,7 +1581,7 @@ FabArray<FAB>::setVal (value_type val,
         Box b = fai.growntilebox(nghost) & region;
 
         if (b.ok()) {
-            FAB* fab = Gpu::notInLaunchRegion() ? &(get(fai)) : this->fabPtr(fai);
+            FAB* fab = this->fabPtr(fai);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {

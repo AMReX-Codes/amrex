@@ -170,9 +170,10 @@ public:
     //! Local copy function
     static void Copy (BndryRegister& dst, const BndryRegister& src);
 
-protected:
     //! Used by the copy constructor and assignment operator.
     void init (const BndryRegister& src);
+
+protected:
 
     //! The data.
     FabSet    bndry[2*AMREX_SPACEDIM];

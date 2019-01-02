@@ -11,7 +11,7 @@ The goal of this tutorial is to incorporate the MxUI/MUI (Multiscale Universal I
 
 In this tutorial, two different C++ codes are built separately. Each has different spatial dimensions: one is built in 3D (``AMREX_SPACEDIM = 3``), and the other in 2D (``AMREX_SPACEDIM = 2``). Each code is compiled separately within their respective "exec" directories ``Exec_01`` & ``Exec_02``}, after which the two executables are run together using the following command, specifying the number of MPI processes to designate to each executable:
 
-.. highlight:: c++
+.. highlight:: console 
 
 ::
 
