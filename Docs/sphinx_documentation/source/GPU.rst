@@ -4,7 +4,6 @@
 .. role:: fortran(code)
    :language: fortran
 
-
 .. _sec:gpu:build:
 
 Building GPU Support
@@ -172,14 +171,14 @@ AMReX GPU work takes place inside of MFIter and particle loops.
 Therefore, there are two ways classes and functions have been modified 
 to interact with the GPU: 
 
-#. A small number of functions used within these loops are labelled using
+1. A small number of functions used within these loops are labelled using
 ``AMREX_GPU_DEVICE`` and can be called on the device. This includes member 
 functions, such as :cpp:`IntVect::type()`, as well as non-member functions,
 such as :cpp:`amrex::min` and `amrex::max`. In specialized cases,
 classes are labeled such that the object can be constructed, destructed 
 and its functions can be implemented on the device, including ``IntVect``.
 
-#. Functions that contain MFIter or particle loops have been rewritten
+2. Functions that contain MFIter or particle loops have been rewritten
 to contain device launches. For example, the :cpp:`FillBoundary`
 function cannot be called from device code, but calling it from
 CPU will launch GPU kernels if AMReX is compiled with GPU support. 
@@ -543,11 +542,16 @@ can also work on any contiguous subsets of a data set by passing
 a pointer that points to the beginning of the subset and the size
 of the subset.
 
-Users must also be aware that there is no automatic device 
-synchronize, as these launches do not have to occur inside of an 
-:cpp:`MFIter` loop.  Add :cpp:`Gpu::Device::synchronize()` where
-necessary to ensure GPU and CPU resources to do alter the same
-data simultaneously. 
+Users must be aware that there is no automatic device synchronize,
+as these launches do not have to occur inside of an :cpp:`MFIter`
+loop.  Add :cpp:`Gpu::Device::synchronize()` where necessary to
+ensure GPU and CPU resources do not alter the same data 
+simultaneously.  Lack of automatic GPU stream incremenation is 
+another consequence of being outside an :cpp:`MFIter` loop. Users
+must be aware that if this generic launch is inside a 
+non-:cpp:`MFIter` loop all launches will be placed in the default
+stream, leading to a synchronous implementation of the launches. 
+
 
 Kernel launch details
 ---------------------
