@@ -1,3 +1,12 @@
+# 19.01
+
+  -- Documentation and Tutorials on GPU
+
+  -- EB implicit function using spline
+
+  -- FabArray::fabPtr() function takes MFIter and returns a device
+     pointer to BaseFab.
+
 # 18.12
 
   -- More GPU supports

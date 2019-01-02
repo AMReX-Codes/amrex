@@ -16,6 +16,7 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/Amr/Make.package
 include $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads/perilla.mak
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/pthreads_common/perilla.mak
 include $(AMREX_HOME)/Src/AmrTask/rts_impls/upcxx_pthreads/Make.package
 
 Bdirs 	:= Source Source/Src_nd Source/Src_$(DIM)d
