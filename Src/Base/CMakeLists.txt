@@ -128,6 +128,8 @@ add_sources( AMReX_io_mod.F90 )
 
 add_sources( AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 
+# Machine model
+add_sources ( AMReX_Machine.H AMReX_Machine.cpp )
 
 # LAZY mode not supported in CMake yet
 # ifeq ($(LAZY),TRUE)
