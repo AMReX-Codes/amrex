@@ -1,6 +1,8 @@
 #ifndef AMREX_MACHINE_H
 #define AMREX_MACHINE_H
 
+#include <AMReX_Vector.H>
+
 namespace amrex {
 namespace machine {
 

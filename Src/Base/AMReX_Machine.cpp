@@ -11,6 +11,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelReduce.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Machine.H>
 
 using namespace amrex;
 
