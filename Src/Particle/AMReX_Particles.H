@@ -139,7 +139,8 @@ public:
 #else
     RealDescriptor ParticleRealDescriptor = FPC::NativeRealDescriptor();
 #endif
-    
+
+    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleTileType = ParticleTile<NStructReal, NStructInt, NArrayReal, NArrayInt>;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
@@ -405,6 +406,17 @@ public:
     //
     void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
+    //
+    // Clear all the particles in this container. This does not free memory.
+    //
+    void clearParticles();
+
+    //
+    // Copy particles from other to this ParticleContainer. Will clear all the
+    // particles from this container first.
+    //
+    void copyParticles(const ParticleContainerType& other);
+    
     void WriteParticleRealData (void* data, size_t size,
                                 std::ostream& os, const RealDescriptor& rd) const;
 
