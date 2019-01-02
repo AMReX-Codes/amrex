@@ -319,8 +319,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
-    if (linop.isCellCentered()
-	) {
+    if (linop.isCellCentered()) {
         const int amrrr = linop.AMRRefRatio(calev);
 #ifdef AMREX_USE_EB
         amrex::EB_average_down(fine_res, crse_res, 0, ncomp, amrrr);
@@ -530,7 +529,7 @@ MLMG::interpCorrection (int alev)
 
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
-    const int ng = 1; //linop.isCellCentered() ? 1 : 0;
+    const int ng = 1;
     MultiFab cfine(ba, fine_cor.DistributionMap(), ncomp, ng);
     cfine.setVal(0.0);
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
@@ -640,7 +639,7 @@ MLMG::interpCorrection (int alev, int mglev)
     {
         BoxArray cba = fine_cor.boxArray();
         cba.coarsen(refratio);
-        const int ng = 1; //linop.isCellCentered() ? crse_cor.nGrow() : 0;
+        const int ng = 1;
         cfine.define(cba, fine_cor.DistributionMap(), ncomp, ng);
         cfine.setVal(0.0);
         cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
@@ -1088,7 +1087,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         makeSolvable();
     }
 
-    int ng = 1; //linop.isCellCentered() ? 0 : 1;
+    int ng = 1;
     if (!solve_called) {
         linop.make(res, ncomp, ng);
         linop.make(rescor, ncomp, ng);
