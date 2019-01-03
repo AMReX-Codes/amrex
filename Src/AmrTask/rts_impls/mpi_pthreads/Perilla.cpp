@@ -4202,7 +4202,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 		    {
 			if(graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.queueSize(true) == 0) //!no message has been received or all received messages have been claimed
 			{
-			    nextsReq = true;
+			    nextrReq = true;
 			}
 			else
 			{			    
@@ -4210,12 +4210,12 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			    // Also check the recycle queue because when rear is completed it may cause unlimited recv posts
 			    if(rearPackage->completed && graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.queueSize() > 1) //!latest receive request has been completed
 			    {
-				nextsReq = true;
+				nextrReq = true;
 			    }
 			    else //!expected message is still on the way
-				nextsReq = false;
+				nextrReq = false;
 			}
-			if(nextsReq) //!take a message from recycle pool and post a receive
+			if(nextrReq) //!take a message from recycle pool and post a receive
 			{
 			    //!create a package to keep track of receive requests
 

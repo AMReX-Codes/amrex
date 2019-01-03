@@ -142,7 +142,7 @@ public:
             Vector<BCRec> bcrs(ncomp);
             for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
-                FArrayBox* dest = Gpu::notInLaunchRegion() ? &(mf[mfi]) : mf.fabPtr(mfi);
+                FArrayBox* dest = mf.fabPtr(mfi);
                 const Box& bx = mfi.fabbox();
                 
                 // if there are cells not in the valid + periodic grown box
