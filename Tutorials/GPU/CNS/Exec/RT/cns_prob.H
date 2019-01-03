@@ -4,6 +4,8 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include "CNS_index_macros.H"
+#include "CNS_parm.H"
+#include "cns_prob_parm.H"
 
 AMREX_GPU_DEVICE
 inline
@@ -18,16 +20,11 @@ cns_initdata (amrex::Box const& bx, amrex::FArrayBox& statefab, amrex::GeometryD
     const amrex::Real* dx      = geomdata.CellSize();
 
     constexpr amrex::Real pi = 3.14159265358979323846264338327950288;
-    const amrex::Real gamma = 1.4;
     const amrex::Real splitx = 0.5*(prob_lo[0]+prob_hi[0]);
     const amrex::Real splity = 0.5*(prob_lo[1]+prob_hi[1]);
     const amrex::Real splitz = 0.5*(prob_lo[2]+prob_hi[2]);
     const amrex::Real L_x = prob_hi[0] - prob_lo[0];
-    const amrex::Real rho_1 = 0.5;
-    const amrex::Real rho_2 = 2.0;
-    const amrex::Real p0_base = 5.0;
-    const amrex::Real presmid = p0_base - rho_1*splitz;
-    
+    const amrex::Real presmid = ProbParm::p0_base - ProbParm::rho_1*splitz;
 
     for         (int k = 0; k < len.z; ++k) {
         const amrex::Real z = prob_lo[2] + (k+lo.z+0.5)*dx[2];
@@ -39,15 +36,15 @@ cns_initdata (amrex::Box const& bx, amrex::FArrayBox& statefab, amrex::GeometryD
 
                 amrex::Real Pt;
                 if (z < splitz) {
-                    Pt = p0_base - rho_1*z;
+                    Pt = ProbParm::p0_base - ProbParm::rho_1*z;
                 } else {
-                    Pt = presmid - rho_2*(z-splitz);
+                    Pt = presmid - ProbParm::rho_2*(z-splitz);
                 }
-                const amrex::Real rhoet = Pt/(gamma-1.0);
+                const amrex::Real rhoet = Pt/(Parm::eos_gamma-1.0);
 
                 const Real r2d = amrex::min(std::hypot((x-splitx),(y-splity)), 0.5*L_x);
                 const Real pertheight = 0.5 - 0.01*std::cos(2.0*pi*r2d/L_x);
-                const Real rhot = rho_1 + ((rho_2-rho_1)/2.0)*(1.0+std::tanh((z-pertheight)/0.005));
+                const Real rhot = ProbParm::rho_1 + ((ProbParm::rho_2-ProbParm::rho_1)/2.0)*(1.0+std::tanh((z-pertheight)/0.005));
 
                 state(i,j,k,URHO ) = rhot;
                 state(i,j,k,UMX  ) = 0.0;

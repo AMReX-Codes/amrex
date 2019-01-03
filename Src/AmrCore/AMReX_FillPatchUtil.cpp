@@ -82,9 +82,9 @@ namespace amrex
 	    for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	    {
 		const Box& bx = mfi.tilebox();
-                FArrayBox* dfab = Gpu::notInLaunchRegion() ? &((*dmf)[mfi]) : dmf->fabPtr(mfi);
-                FArrayBox* sfab0 = Gpu::notInLaunchRegion() ? &((*smf[0])[mfi]) : smf[0]->fabPtr(mfi);
-                FArrayBox* sfab1 = Gpu::notInLaunchRegion() ? &((*smf[1])[mfi]) : smf[1]->fabPtr(mfi);
+                FArrayBox* dfab = dmf->fabPtr(mfi);
+                FArrayBox* sfab0 = smf[0]->fabPtr(mfi);
+                FArrayBox* sfab1 = smf[1]->fabPtr(mfi);
                 const Real t0 = stime[0];
                 const Real t1 = stime[1];
 
