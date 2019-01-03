@@ -83,7 +83,7 @@ void make_my_eb2(int n_lev, const BoxArray & grids, const DistributionMapping & 
                                       {eb_pad, eb_pad, eb_pad}, EBSupport::full);
 
         //Fill Level-set using eb_factory
-        level_set->intersection_ebf(eb_factory, * cylinder_mf_impfunc);
+        level_set->Intersect(eb_factory, * cylinder_mf_impfunc);
 
         ls_core = new LSCore<CylinderIF>(gshop);
 
