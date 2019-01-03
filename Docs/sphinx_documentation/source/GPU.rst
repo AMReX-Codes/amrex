@@ -233,8 +233,8 @@ Memory Allocation
 
 To provide portability and improve memory allocation performance,
 AMReX provides a number of memory pools.  When compiled without
-CUDA, all :cpp:`Arena` s implement standard :cpp:`new` and 
-:cpp:`delete` operators. Without CUDA, the :cpp:`Arena` s each 
+CUDA, all :cpp:`Arena`\ s implement standard :cpp:`new` and 
+:cpp:`delete` operators. Without CUDA, the :cpp:`Arena`\ s each 
 allocate with a specific type of GPU memory:
 
 .. raw:: latex
@@ -291,10 +291,10 @@ AMReX GPU work takes place inside of MFIter and particle loops.
 Therefore, there are two ways classes and functions have been modified 
 to interact with the GPU: 
 
-1. A small number of functions used within these loops are labelled using
-``AMREX_GPU_DEVICE`` and can be called on the device. This includes member 
+1. A number of functions used within these loops are labelled using
+``AMREX_GPU_HOST_DEVICE`` and can be called on the device. This includes member 
 functions, such as :cpp:`IntVect::type()`, as well as non-member functions,
-such as :cpp:`amrex::min` and `amrex::max`. In specialized cases,
+such as :cpp:`amrex::min` and :cpp:`amrex::max`. In specialized cases,
 classes are labeled such that the object can be constructed, destructed 
 and its functions can be implemented on the device, including ``IntVect``.
 
@@ -317,10 +317,10 @@ GpuArray
 in device code. GpuArray is AMReX's built-in alternative. It uses a C array that
 can be passed to the device by value and has device functions for the :cpp:`[]`
 operator, :cpp:`size()` and :cpp:`data()` that returns a pointer to the C array.
-GpuArray can be used whenever a fixed array of data needs to be passed to the GPU.
+GpuArray can be used whenever a fixed size array of data needs to be passed to the GPU.
 
-Additional functions have been created to return GpuArray instead of `std::array`, 
-including `Box::CellSizeArray()`, `Box::InvCellSizeArray()` and `Box::length3d()`.
+Additional functions have been created to return GpuArray instead of :cpp:`std::array`, 
+including :cpp:`GeometryData::CellSizeArray()`, :cpp:`GeometryData::InvCellSizeArray()` and :cpp:`Box::length3d()`.
 
 ManagedVector
 -------------
@@ -377,15 +377,15 @@ MultiFab Reductions
 -------------------
 
 AMReX provides functions for performing standard reduction operations on 
-:cpp:`Multifabs`, including :cpp:`MultiFab::sum` and :cpp:`MultiFab::max`.
+:cpp:`MultiFabs`, including :cpp:`MultiFab::sum` and :cpp:`MultiFab::max`.
 When ``USE_CUDA=TRUE``, these functions automatically implement the 
 corresponding reductions on GPUs in a highly efficient manner.
 
 Function templates :cpp:`amrex::ReduceSum`, :cpp:`amrex::ReduceMin` and
 :cpp:`amrex::ReduceMax` can be used to implement user-defined reduction
 functions over :cpp:`MultiFab`\ s. These same templates are implemented 
-in the :cpp:`Multifab` functions, so they can be used as a reference to
-build a custom reduction. For example, the :cpp:`Multifab:dot` 
+in the :cpp:`MultiFab` functions, so they can be used as a reference to
+build a custom reduction. For example, the :cpp:`MultiFab:Dot` 
 implementation is reproduced here:
 
 .. highlight:: c++
@@ -402,19 +402,20 @@ implementation is reproduced here:
 
     return sm;
 
-:cpp:`amrex::ReduceSum` takes two :cpp:`MultiFabs`, ``x`` and ``y`` and
+:cpp:`amrex::ReduceSum` takes two :cpp:`MultiFab`\ s, ``x`` and ``y`` and
 returns the sum of the value returned from the given lambda function.
 In this case, :cpp:`BaseFab::dot` is returned, yielding a sum of the
-dot product of each local pair of :cpp:`BaseFab` s. Finally, 
+dot product of each local pair of :cpp:`BaseFab`\ s. Finally, 
 :cpp:`ParallelAllReduce` is used to sum the dot products across all
-MPI ranks and return the total dot product of the two :cpp:`MultiFabs`.
+MPI ranks and return the total dot product of the two
+:cpp:`MultiFab`\ s.
 
 To implement a different reduction, replace the code block inside the
 lambda function with the operation that should be applied, being sure
 to return the value to be summed, minimized, or maximized.  The reduction
 templates have a few different interfaces to accomodate a variety of 
 reductions.  The :cpp:`amrex::ReduceSum` reduction template has varieties
-that take either one, two or three ::cpp:`MultiFab` s. 
+that take either one, two or three ::cpp:`MultiFab`\ s. 
 :cpp:`amrex::ReduceMin` and :cpp:`amrex::ReduceMax` can take either one
 or two.
 
@@ -438,7 +439,7 @@ is called :cpp:`GeometryData`, which is created by calling
 :cpp:`Geometry::data()`. The accessor functions of :cpp:`GeometryData` are
 identical to :cpp:`Geometry`.
 
-One limitation of this strategy is that :cpp:`Geometry` cannot not be changed
+One limitation of this strategy is that :cpp:`Geometry` cannot be changed
 on the device. :cpp:`GeometryData` holds a disposable copy of the data that 
 does not synchronize with :cpp:`Geometry` after use. Therefore, only change 
 :cpp:`Geometry` on the CPU and outside of MFIter loops with GPU kernels to
@@ -456,12 +457,12 @@ functions include :cpp:`view`, :cpp:`dataPtr`, :cpp:`box`,
 :cpp:`nComp`, and :cpp:`setVal`.
 
 All :cpp:`BaseFab<T>` objects in :cpp:`FabArray<FAB>` are allocated in
-unifed memory, including :cpp:`MultiFab` and :cpp:`FArrayBox` which are
+unified memory, including :cpp:`IArrayBox` and :cpp:`FArrayBox`, which are
 derived from :cpp:`BaseFab`. A :cpp:`BaseFab<T>` object created 
 on the stack in CPU code cannot be used in GPU device code, because
 the object is in CPU memory.  However, a :cpp:`BaseFab` created with
 :cpp:`new` on the heap is GPU safe, because :cpp:`BaseFab` has its own
-overloaded `:cpp:`operator new` that allocates memory from
+overloaded :cpp:`operator new` that allocates memory from
 :cpp:`The_Arena()`, a managed memory arena.  For example,
 
 .. highlight:: c++
@@ -581,7 +582,7 @@ function we use OpenACC to offload work to GPU.
                     BL_TO_FORTRAN_ANYD(fab));
     }
 
-Note that here:cpp:`MultiFab::operator[]` is used to get a reference
+Note that here :cpp:`MultiFab::operator[]` is used to get a reference
 to :cpp:`FArrayBox` rather than :cpp:`MultiFab::fabPtr` to get
 a pointer, as was done in the CUDA examples.  Using the reference is 
 optimal for performance when passing pointers to kernels is not 
@@ -802,7 +803,7 @@ them into a single GPU kernel, so two separate kernels will be
 launched, one for each function.
 
 As we have discussed in Section :ref:`sec:gpu:classes`, all
-:cpp:`FArrayBox`\ es in the two :cpp:`MultiFab`\ s, ::cpp::`uin`
+:cpp:`FArrayBox`\ es in the two :cpp:`MultiFab`\ s, :cpp:`uin`
 and :cpp:`uout` are in unified memory and avaiable on the GPUs.
 But :cpp:`FArrayBox q` is in host memory.  Creating ``q`` as a 
 managed object using the overloaded :cpp:`new` operator:
@@ -844,7 +845,7 @@ is used and how this MFIter loop can be rewritten for GPUs.
        const Box& gbx = amrex::grow(vbx,1);          // f1 work domain
        Gpu::AsyncFab q(gbx);                         // Local, GPU managed FArrayBox
        FArrayBox const* uinfab  = uin.fabPtr();      // Managed GPU capturable
-       FArrayBox      * uoutfab = uout.fabPtr();     //   pointers to Multifab's FABs.
+       FArrayBox      * uoutfab = uout.fabPtr();     //   pointers to MultiFab's FABs.
 
        AMREX_LAUNCH_DEVICE_LAMBDA ( gbx, tbx,        // f1 GPU launch 
        {
@@ -877,7 +878,7 @@ to check the health of previous GPU launches.  This call
 looks up the return message from the most recently completed GPU
 launch and aborts if it was not successful. Many kernel
 launch macros as well as the :cpp:`MFIter` destructor include a call 
-to :cpp:`AMREX_CPU_ERROR_CHECK()`. This prevents additional launches
+to :cpp:`AMREX_GPU_ERROR_CHECK()`. This prevents additional launches
 from being called if a previous launch caused an error and ensures
 all GPU launches within an :cpp:`MFIter` loop completed successfully
 before continuing work.
@@ -1011,7 +1012,7 @@ Profiling with GPUs
 
 When profiling for GPUs, AMReX recommends ``nvprof``, NVIDIA's visual
 profiler.  ``nvprof`` returns data on how long each kernel launch lasted on
-the GPU, ithe number of threads and registers used, the occupancy of the GPU
+the GPU, the number of threads and registers used, the occupancy of the GPU
 and recommendations for improving the code.  For more information on how to
 use ``nvprof``, see NVIDIA's User's Guide as well as the help webpages of
 your favorite supercomputing facility that uses NVIDIA GPUs.
