@@ -36,7 +36,7 @@
 .. _ss:amrcore:
 
 AmrCore Source Code: Details
-===================
+============================
 
 Here we provide more information about the source code in ``amrex/Src/AmrCore.``
 
@@ -302,7 +302,7 @@ Example: Advection_AmrCore
 ==========================
 
 The Advection Equation
---------------
+----------------------
 
 We seek to solve the advection equation on a multi-level, adaptive grid structure:
 
