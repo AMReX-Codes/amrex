@@ -25,6 +25,9 @@ public:
 
     enum class BottomSolver : int { smoother, bicgstab, cg, hypre, petsc };
 
+    static void Initialize (); // called in amrex::Initialize()
+    static void Finalize ();
+
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 

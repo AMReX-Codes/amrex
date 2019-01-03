@@ -7,6 +7,7 @@ namespace amrex {
 namespace machine {
 
 void Initialize (); // called in amrex::Initialize()
+void Finalize ();
 
 // find the best topologically close neighborhood of ranks
 // returns a vector of global or local rank IDs based on flag_local_ranks

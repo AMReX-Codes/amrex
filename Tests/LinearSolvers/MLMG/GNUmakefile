@@ -14,6 +14,8 @@ PROFILE ?= FALSE
 COMM_PROFILE ?= FALSE
 TRACE_PROFILE ?= FALSE
 
+DEFINES += -DAMREX_SOFT_PERF_COUNTERS
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package

@@ -77,7 +77,7 @@ int main (int argc, char* argv[])
         solve_with_mlmg (geom, ref_ratio, soln, alpha, beta, rhs, exact);
 
 #ifdef AMREX_SOFT_PERF_COUNTERS
-        amrex::perf::counters.print();
+        MLCellLinOp::perf_counters.print();
 #endif
 
         write_plotfile (geom, ref_ratio, soln, exact, alpha, beta, rhs);

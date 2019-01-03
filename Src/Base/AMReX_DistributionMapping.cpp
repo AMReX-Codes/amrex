@@ -1476,7 +1476,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 }
 
 std::vector<std::vector<int> >
-DistributionMapping::makeSFC (const BoxArray& ba)
+DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
 {
     std::vector<SFCToken> tokens;
 
@@ -1490,7 +1490,7 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     for (int i = 0; i < N; ++i)
     {
 	const Box& bx = ba[i];
-        const auto & bx_vol = bx.volume();
+        const auto & bx_vol = (use_box_vol ? bx.volume() : 1);
         tokens.push_back(SFCToken(i,bx.smallEnd(),bx_vol));
         vol_sum += bx_vol;
 

@@ -36,18 +36,16 @@ namespace {
     int remap_nbh_lb = 1;
 
 #ifdef BL_USE_MPI
-
     class CommCache
     {
       public:
-        CommCache ();
-        ~CommCache () = default;
+        CommCache () = default;
         CommCache (const CommCache&) = delete;
         CommCache (CommCache&&) = delete;
         void operator= (const CommCache&) = delete;
         void operator= (CommCache&&) = delete;
 
-        void free_all () {
+        ~CommCache () {
             for (auto & p : cache) {
                 if (p.second != MPI_COMM_NULL) {
                     MPI_Comm_free(&p.second);
@@ -70,15 +68,7 @@ namespace {
         std::unordered_map<size_t, MPI_Comm> cache;
     };
 
-    CommCache comm_cache;
-
-    void finalize_comm_cache() {
-        comm_cache.free_all();
-    }
-
-    CommCache::CommCache () {
-        amrex::ExecOnFinalize(finalize_comm_cache);
-    }
+    std::unique_ptr<CommCache> comm_cache;
 #endif
 
     Vector<int> get_subgroup_ranks ()
@@ -93,6 +83,20 @@ namespace {
         ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
         return granks;
     }
+}
+
+// static member function
+void MLLinOp::Initialize () {
+#ifdef BL_USE_MPI
+    comm_cache.reset(new CommCache());
+#endif
+}
+
+// static member function
+void MLLinOp::Finalize () {
+#ifdef BL_USE_MPI
+    comm_cache.reset();
+#endif
 }
 
 MLLinOp::MLLinOp () {}
@@ -489,7 +493,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     uint64_t key = 0;
     if (flag_comm_cache) {
         key = hash_vector(newgrp_ranks, hash_vector(get_subgroup_ranks()));
-        cache_hit = comm_cache.get(key, newcomm);
+        cache_hit = comm_cache->get(key, newcomm);
         if (cache_hit && flag_verbose_linop) {
             Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;
         }
@@ -518,7 +522,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
         MPI_Comm_create(m_default_comm, newgrp, &newcomm);
 
         if (flag_comm_cache) {
-            comm_cache.add(key, newcomm);
+            comm_cache->add(key, newcomm);
         } else {
             m_raii_comm.reset(new CommContainer(newcomm));
         }

@@ -204,11 +204,10 @@ class NeighborhoodCache
 class Machine
 {
   public:
-    void init () {
+    Machine () {
         get_params();
         get_machine_envs();
         node_ids = get_node_ids();
-        initialized = true;
     }
 
     // find a compact neighborhood of size rank_n in the current ParallelContext subgroup
@@ -216,8 +215,6 @@ class Machine
     {
 #ifdef BL_USE_MPI
         BL_PROFILE("Machine::find_best_nbh()");
-
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(initialized, "Must call machine::init() before neighborhoods will work!");
 
         auto sg_g_ranks = get_subgroup_ranks();
         auto sg_rank_n = sg_g_ranks.size();
@@ -315,7 +312,6 @@ class Machine
     std::string node_list;
     std::string topo_addr;
 
-    bool initialized = false;
     int flag_verbose = 0;
     int flag_very_verbose = 0;
     bool flag_nersc_df;
@@ -566,16 +562,25 @@ class Machine
     }
 };
 
-Machine the_machine;
+std::unique_ptr<Machine> the_machine;
 
 }
 
 namespace amrex {
 namespace machine {
 
-void Initialize () { the_machine.init(); }
+void Initialize () {
+    the_machine.reset(new Machine());
+    amrex::ExecOnFinalize(machine::Finalize);
+}
+
+void Finalize () {
+    the_machine.reset();
+}
+
 Vector<int> find_best_nbh (int rank_n, bool flag_local_ranks) {
-    return the_machine.find_best_nbh(rank_n, flag_local_ranks);
+    AMREX_ASSERT(the_machine);
+    return the_machine->find_best_nbh(rank_n, flag_local_ranks);
 }
 
 }}
