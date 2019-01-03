@@ -587,12 +587,14 @@ IntVect::linearIn(void* a_buffer )
 }
 
 //! Returns p + s.
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect operator+ (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 //! Returns -p + s.
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 AMREX_GPU_HOST_DEVICE
 IntVect operator- (int s, const IntVect& p)
@@ -600,16 +602,18 @@ IntVect operator- (int s, const IntVect& p)
     return IntVect(AMREX_D_DECL(s - p[0], s - p[1], s - p[2]));
 }
 //! Returns p * s.
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect operator* (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
-    /**
-    * \brief Returns the IntVect that is the component-wise minimum of two
-    * argument IntVects.
-    */
+/**
+ * \brief Returns the IntVect that is the component-wise minimum of two
+ * argument IntVects.
+ */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 min (const IntVect& p1,
@@ -620,10 +624,11 @@ min (const IntVect& p1,
     return p;
 }
 
-    /**
-    * \brief Returns the IntVect that is the component-wise maximum of two
-    * argument IntVects.
-    */
+/**
+ * \brief Returns the IntVect that is the component-wise maximum of two
+ * argument IntVects.
+ */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 max (const IntVect& p1,
@@ -639,6 +644,7 @@ max (const IntVect& p1,
     * eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
     * directions are zero based.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 BASISV (int dir)
@@ -653,6 +659,7 @@ BASISV (int dir)
     * \brief Returns a IntVect obtained by multiplying each of the
     * components of this IntVect by s.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 scale (const IntVect& p, int s)
@@ -665,6 +672,7 @@ scale (const IntVect& p, int s)
     * plane which passes through ref_ix and normal to the
     * coordinate direction idir.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 reflect (const IntVect& a,
@@ -681,6 +689,7 @@ reflect (const IntVect& a,
     * \brief Returns IntVect obtained by adding s to each of the
     * components of this IntVect.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 diagShift (const IntVect& p, int s)
@@ -692,6 +701,7 @@ diagShift (const IntVect& p, int s)
     * \brief Returns an IntVect that is the component-wise integer
     * projection of p by s.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 coarsen (const IntVect& p,
@@ -707,6 +717,7 @@ coarsen (const IntVect& p,
     * \brief Returns an IntVect which is the component-wise integer
     * projection of IntVect p1 by IntVect p2.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 coarsen (const IntVect& p1,
@@ -726,6 +737,26 @@ Dim3 refine (Dim3 const& coarse, IntVect const& ratio)
     return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z};
 #else
     return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z*ratio[2]};
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+int coarsen (int i, int ratio)
+{
+    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Dim3 coarsen (Dim3 const& fine, IntVect const& ratio)
+{
+#if (AMREX_SPACEDIM == 1)
+    return {amrex::coarsen(fine.x,ratio[0]), fine.y, fine.z};
+#elif (AMREX_SPACEDIM == 2)
+    return {amrex::coarsen(fine.x,ratio[0]), amrex::coarsen(fine.y, ratio[1]), fine.z};
+#else
+    return {amrex::coarsen(fine.x, ratio[0]),
+            amrex::coarsen(fine.y, ratio[1]),
+            amrex::coarsen(fine.z, ratio[2])};
 #endif
 }
 

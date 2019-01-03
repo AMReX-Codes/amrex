@@ -4,6 +4,126 @@
 .. role:: fortran(code)
    :language: fortran
 
+.. _sec:gpu:overview:
+
+Overview of AMReX GPU Strategy
+==============================
+
+AMReX's GPU strategy focuses on providing performant GPU support
+with minimal changes and maximum flexibility.  This allows 
+application teams to get running on GPUs quickly while allowing
+long term perfomance tuning and programming model selection.  AMReX
+uses CUDA for GPUs, but application teams can use CUDA, CUDA 
+Fortran, OpenACC or OpenMP in their individual codes.
+
+When running AMReX on a CPU system, the parallelization strategy is a
+combination of MPI and OpenMP using tiling, as detailed in
+:ref:`sec:basics:mfiter:tiling`. However, cache blocking and data
+locality are not the primary considerations when writing optimal code
+on GPUs.  Instead, efficient use of the GPU's resources is the primary
+concern.  Improving resource efficiency allows a larger percentage of
+GPU threads to work simultaneously, increasing effective parallelism and
+decreasing the time to solution. 
+
+The GPU strategy that has shown to best match AMReX's mesh and particle
+implementations is ``MPI+OpenMP`` for CPUs and ``MPI+CUDA`` for GPUs:
+``(MPI+OpenMP) + (MPI+CUDA)``. Presented here is an overview of important
+features of AMReX's GPU strategy. Additional information that is required
+for creating GPU applications is detailed throughout the rest of this
+chapter: 
+
+- To ensure data consistency, each MPI rank offloads its work to a single
+  GPU.  This ensures each kernel works on a GPU where the associated data 
+  is consistently located and minimizes communication between GPUs. 
+  ``(MPI ranks == Number of GPUs)`` 
+
+- Calculations that can be offloaded efficiently to GPUs use CUDA threads
+  to parallelize over a valid box at a time.  This is done by using a lot
+  of CUDA threads that only work on a few cells each. This work
+  distribution is illustrated in :numref:`fig:gpu:threads`.
+  (Note: OpenMP is currently incompatible with AMReX builds using CUDA.
+  This feature is under development, although most applications will 
+  have no need for this feature when initially converting to GPUs.)
+
+.. |a| image:: ./GPU/gpu_2.png
+       :width: 100%
+
+.. |b| image:: ./GPU/gpu_3.png
+       :width: 100%
+
+.. _fig:gpu:threads:
+
+.. table:: Comparison of OpenMP and CUDA work distribution. Pictures provided by Mike Zingale and the CASTRO team.
+
+   +-----------------------------------------------------+------------------------------------------------------+
+   |                        |a|                          |                        |b|                           |
+   +-----------------------------------------------------+------------------------------------------------------+
+   | | OpenMP tiled box.                                 | | CUDA threaded box.                                 |
+   | | OpenMP threads break down the valid box           | | Each CUDA thread works on a few cells of the       |
+   |   into two large boxes (blue and orange).           |   valid box. This example uses one cell per          |
+   |   The lo and hi of one tiled box are marked.        |   thread, each thread using a box with lo = hi.      |
+   +-----------------------------------------------------+------------------------------------------------------+
+
+- C++ macros and CUDA extended lambdas are used to provide performance
+  portability while making the code as understandable as possible to
+  science-focused code teams.
+
+- AMReX's data movement plan is to initialize mesh and particle data
+  structures, move them to the GPU and leave them in GPU memory space 
+  as much as possible.  This strategy lends itself to AMReX 
+  applications readily; the mesh and particle data should be able 
+  to stay on the GPU except when performing redistribution and I/O 
+  operations.  Application teams should strive to this data 
+  management strategy as much as possible to achieve good GPU performance.
+
+- AMReX utilizes CUDA managed memory to automatically handle memory 
+  movement for mesh and particle data.  Simple data structures, such
+  as :cpp:`IntVect`\s can be passed by value and temporaries, such as
+  :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
+  data movement for the user.  Tests have shown CUDA managed memory
+  to be efficient and reliable, especially when applications remove
+  any unnecessary data accesses.
+
+- AMReX's GPU strategy is focused on launching GPU kernels inside 
+  :cpp:`MFIter` loops.  By performing GPU work within :cpp:`MFIter`
+  loops, GPU work is isolated to independent data sets on simple AMReX data
+  objects, providing consistency and safety that matches AMReX's coding
+  methodology.
+
+- AMReX further parallelizes GPU applications by utilizing CUDA streams.
+  A CUDA stream is a list of GPU kernel launches that is ran on the GPU 
+  sequentially.  Kernel launches placed in different CUDA streams can be ran
+  simultaneously on the GPU, given enough computing resources are available.
+  AMReX places each iteration of :cpp:`MFIter` loops on separate streams,
+  allowing each independent iteration to be ran simultaneously and maximize
+  available GPU resources.
+
+  The AMReX implementation of CUDA streams is illustrated in :numref:`fig:gpu:streams`.
+  The CPU runs the first iteration of the MFIter loop (blue), which contains three
+  GPU kernels.  The kernels begin immediately in GPU Stream 1 and run in the same
+  order they were added. The second (red) and third (green) iterations are similarly
+  launched in Streams 2 and 3. The fourth (orange) and fifth (purple) iterations
+  require more GPU resources than remain, so they have to wait until resources are
+  freed before beginning. Meanwhile, after all the loop iterations are launched, the
+  CPU reaches a synchronize in the MFIter's destructor and waits for all GPU launches
+  to complete before continuing. 
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig:gpu:streams:
+
+.. figure:: ./GPU/Streams.png
+
+   Timeline illustration of GPU streams. Illustrates the case of an
+   MFIter loop of five iterations with three GPU kernels each being
+   ran with three GPU streams.
+
+.. raw:: latex
+
+   \end{center}
+
 .. _sec:gpu:build:
 
 Building GPU Support
@@ -884,12 +1004,61 @@ memory traffic. As with :cpp:`MultiFab` data, the MPI portion of the particle re
 up to take advantange of the Cuda-aware MPI implementations available on platforms such as
 ORNL's Summit and Summit-dev.
 
+Profiling with GPUs
+===================
+
+.. _sec:gpu:profiling:
+
+When profiling for GPUs, AMReX recommends ``nvprof``, NVIDIA's visual
+profiler.  ``nvprof`` returns data on how long each kernel launch lasted on
+the GPU, ithe number of threads and registers used, the occupancy of the GPU
+and recommendations for improving the code.  For more information on how to
+use ``nvprof``, see NVIDIA's User's Guide as well as the help webpages of
+your favorite supercomputing facility that uses NVIDIA GPUs.
+
+AMReX's internal profilers currently cannot hook into profiling information
+on the GPU and an efficient way to time and retrieve that information is
+being explored. In the meantime, AMReX's timers can be used to report some
+generic timers that are useful in categorizing an application. 
+
+Due to the asynchonous launching of GPU kernels, any AMReX timers inside of 
+asynchronous regions or inside GPU kernels will not measure useful 
+information.  However, since the :cpp:`MFIter` synchronizes when being 
+destroyed, any timer wrapped around an :cpp:`MFIter` loop will yield a
+consistent timing of the entire set of GPU launches contained within. For
+example:
+
+.. highlight:: cpp
+
+::
+
+    BL_PROFILE_VAR("MFIter: Init", mfinit);     // Profiling start
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        const GeometryData& geomdata = geom.data();
+        FArrayBox* phiNew = phi_new.fabPtr(mfi);
+
+        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
+        {
+            init_phi(BL_TO_FORTRAN_BOX(tbx),
+                     BL_TO_FORTRAN_ANYD(*phiNew),
+                     geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
+        });
+
+    }
+    BL_PROFILE_STOP(mfinit);                    // Profiling sstop
+
+For now, this is the best way to profile GPU codes using ``TinyProfiler``. 
+If you require further profiling detail, use ``nvprof``.
+
 Performance Tips
 ================
 
 .. _sec:gpu:performance:
 
-Here are some helpful performance tips to keep in mind when working with AMReX for GPUs:
+Here are some helpful performance tips to keep in mind when working with
+AMReX for GPUs:
 
 *
 *
