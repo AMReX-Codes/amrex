@@ -855,7 +855,9 @@ MLCellLinOp::update ()
     if (MLLinOp::needsUpdate()) MLLinOp::update();
 }
 
+#ifdef AMREX_SOFT_PERF_COUNTERS
 // perf_counters
 MLCellLinOp::Counters MLCellLinOp::perf_counters;
+#endif
 
 }
