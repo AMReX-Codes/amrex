@@ -56,6 +56,9 @@ public:
 
     enum struct Location { FaceCenter, FaceCentroid, CellCenter, CellCentroid };
 
+    static void Initialize ();
+    static void Finalize ();
+
     MLLinOp ();
     virtual ~MLLinOp ();
 

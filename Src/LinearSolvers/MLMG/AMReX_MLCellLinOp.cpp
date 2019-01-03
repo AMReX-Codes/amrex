@@ -297,7 +297,7 @@ MLCellLinOp::restriction (int, int, MultiFab& crse, MultiFab& fine) const
 {
     const int ncomp = getNComp();
 #ifdef AMREX_SOFT_PERF_COUNTERS
-    perf::counters.restrict(crse);
+    perf_counters.restrict(crse);
 #endif
     amrex::average_down(fine, crse, 0, ncomp, 2);
 }
@@ -306,7 +306,7 @@ void
 MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
 #ifdef AMREX_SOFT_PERF_COUNTERS
-    perf::counters.interpolate(fine);
+    perf_counters.interpolate(fine);
 #endif
 #ifdef _OPENMP
 #pragma omp parallel
@@ -343,7 +343,7 @@ MLCellLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode b
     BL_PROFILE("MLCellLinOp::apply()");
     applyBC(amrlev, mglev, in, bc_mode, s_mode, bndry);
 #ifdef AMREX_SOFT_PERF_COUNTERS
-    perf::counters.apply(out);
+    perf_counters.apply(out);
 #endif
     Fapply(amrlev, mglev, out, in);
 }
@@ -358,7 +358,7 @@ MLCellLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Solution,
                 nullptr, skip_fillboundary);
 #ifdef AMREX_SOFT_PERF_COUNTERS
-        perf::counters.smooth(sol);
+        perf_counters.smooth(sol);
 #endif
         Fsmooth(amrlev, mglev, sol, rhs, redblack);
         skip_fillboundary = false;
@@ -855,11 +855,7 @@ MLCellLinOp::update ()
     if (MLLinOp::needsUpdate()) MLLinOp::update();
 }
 
-#ifdef AMREX_SOFT_PERF_COUNTERS
-// software counters for performance analysis
-namespace perf {
-Counters counters;
-}
-#endif
+// perf_counters
+MLCellLinOp::Counters MLCellLinOp::perf_counters;
 
 }
