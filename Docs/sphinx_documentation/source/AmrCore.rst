@@ -33,107 +33,12 @@
 
    \end{center}
 
-The Advection Equation
-======================
-
-We seek to solve the advection equation on a multi-level, adaptive grid structure:
-
-.. math:: \frac{\partial\phi}{\partial t} = -\nabla\cdot(\phi{\bf U}).
-
-The velocity field is a specified divergence-free (so the flow field is incompressible)
-function of space and time. The initial scalar field is a
-Gaussian profile. To integrate these equations on a given level, we use a simple conservative update,
-
-.. math:: \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} + \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},
-
-where the velocities on faces are prescribed functions of space and time, and the scalars on faces
-are computed using a Godunov advection integration scheme. The fluxes in this case are the face-centered,
-time-centered “:math:`\phi u`” and “:math:`\phi v`” terms.
-
-We use a subcycling-in-time approach where finer levels are advanced with smaller
-time steps than coarser levels, and then synchronization is later performed between levels.
-More specifically, the multi-level procedure can most
-easily be thought of as a recursive algorithm in which, to advance level :math:`\ell`,
-:math:`0\le\ell\le\ell_{\rm max}`, the following steps are taken:
-
--  Advance level :math:`\ell` in time by one time step, :math:`\Delta t^{\ell}`, as if it is
-   the only level. If :math:`\ell>0`, obtain boundary data (i.e. fill the level :math:`\ell` ghost cells)
-   using space- and time-interpolated data from the grids at :math:`\ell-1` where appropriate.
-
--  If :math:`\ell<\ell_{\rm max}`
-
-   -  Advance level :math:`(\ell+1)` for :math:`r` time steps with :math:`\Delta t^{\ell+1} = \frac{1}{r}\Delta t^{\ell}`.
-
-   -  Synchronize the data between levels :math:`\ell` and :math:`\ell+1`.
-
-.. raw:: latex
-
-   \begin{center}
-
-.. _fig:subcycling:
-
-.. figure:: ./AmrCore/figs/subcycling.png
-   :width: 4in
-
-   Schematic of subcycling-in-time algorithm.
-
-.. raw:: latex
-
-   \end{center}
-
-Specifically, for a 3-level simulation, depicted graphically in the figure
-showing the :ref:`fig:subcycling` above:
-
-#. Integrate :math:`\ell=0` over :math:`\Delta t`.
-
-#. Integrate :math:`\ell=1` over :math:`\Delta t/2`.
-
-#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
-
-#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
-
-#. Synchronize levels :math:`\ell=1,2`.
-
-#. Integrate :math:`\ell=1` over :math:`\Delta t/2`.
-
-#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
-
-#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
-
-#. Synchronize levels :math:`\ell=1,2`.
-
-#. Synchronize levels :math:`\ell=0,1`.
-
-
-
-For the scalar field, we keep track volume and time-weighted fluxes at coarse-fine interfaces.
-We accumulate area and time-weighted fluxes in :cpp:`FluxRegister` objects, which can be
-thought of as special boundary FABsets associated with coarse-fine interfaces.
-Since the fluxes are area and time-weighted (and sign-weighted, depending on whether they
-come from the coarse or fine level), the flux registers essentially store the extent by
-which the solution does not maintain conservation. Conservation only happens if the
-sum of the (area and time-weighted) fine fluxes equals the coarse flux, which in general
-is not true.
-
-The idea behind the level :math:`\ell/(\ell+1)` synchronization step is to correct for sources of
-mismatch in the composite solution:
-
-#. The data at level :math:`\ell` that underlie the level :math:`\ell+1` data are not synchronized with the level :math:`\ell+1` data.
-   This is simply corrected by overwriting covered coarse cells to be the average of the overlying fine cells.
-
-#. The area and time-weighted fluxes from the level :math:`\ell` faces and the level :math:`\ell+1` faces
-   do not agree at the :math:`\ell/(\ell+1)` interface, resulting in a loss of conservation.
-   The remedy is to modify the solution in the coarse cells immediately next to the coarse-fine interface
-   to account for the mismatch stored in the flux register (computed by taking the coarse-level divergence of the
-   flux register data).
-
-
 .. _ss:amrcore:
 
-AmrCore Source Code
+AmrCore Source Code: Details
 ===================
 
-Here we provide a high-level overview of the source code in ``amrex/Src/AmrCore.``
+Here we provide more information about the source code in ``amrex/Src/AmrCore.``
 
 AmrMesh and AmrCore
 -------------------
@@ -299,16 +204,22 @@ Note that at the coarsest level,
 the interior and domain boundary (which can be periodic or prescribed based on physical considerations)
 need to be filled. At the non-coarsest level, the ghost cells can also be interior or domain,
 but can also be at coarse-fine interfaces away from the domain boundary.
-AMReX_FillPatchUtil.cpp/H contains two primary functions of interest.
+:cpp:`AMReX_FillPatchUtil.cpp/H` contains two primary functions of interest.
 
 #. :cpp:`FillPatchSingleLevel()` fills a :cpp:`MultiFab` and its ghost region at a single level of
    refinement. The routine is flexible enough to interpolate in time between two MultiFabs
    associated with different times.
 
-#. :cpp:`FillPatchTwoLevels()` fills a MultiFab and its ghost region at a single level of
+#. :cpp:`FillPatchTwoLevels()` fills a :cpp:`MultiFab` and its ghost region at a single level of
    refinement, assuming there is an underlying coarse level. This routine is flexible enough to interpolate
    the coarser level in time first using :cpp:`FillPatchSingleLevel()`.
 
+Note that :cpp:`FillPatchSingleLevel()` and :cpp:`FillPatchTwoLevels()` call the
+single-level routines :cpp:`MultiFab::FillBoundary` and :cpp:`FillDomainBoundary()`
+to fill interior, periodic, and physical boundary ghost cells.  In principle, you can
+write a single-level application that calls :cpp:`FillPatchSingleLevel()` instead
+of using :cpp:`MultiFab::FillBoundary` and :cpp:`FillDomainBoundary()`.
+   
 A :cpp:`FillPatchUtil` uses an :cpp:`Interpolator`. This is largely hidden from application codes.
 AMReX_Interpolater.cpp/H contains the virtual base class :cpp:`Interpolater`, which provides
 an interface for coarse-to-fine spatial interpolation operators. The fillpatch routines described
@@ -389,6 +300,100 @@ the class :cpp:`ParGDBBase` (in ``amrex/Src/Particle/AMReX_ParGDB``).
 
 Example: Advection_AmrCore
 ==========================
+
+The Advection Equation
+--------------
+
+We seek to solve the advection equation on a multi-level, adaptive grid structure:
+
+.. math:: \frac{\partial\phi}{\partial t} = -\nabla\cdot(\phi{\bf U}).
+
+The velocity field is a specified divergence-free (so the flow field is incompressible)
+function of space and time. The initial scalar field is a
+Gaussian profile. To integrate these equations on a given level, we use a simple conservative update,
+
+.. math:: \frac{\phi_{i,\,j}^{n+1}-\phi_{i,\,j}^n}{\Delta t} = \frac{(\phi u)_{i+^1\!/_2,\,j}^{n+^1\!/_2}-(\phi u)_{i-^1\!/_2,\,j}^{n+^1\!/_2}}{\Delta x} + \frac{(\phi v)_{i,\,j+^1\!/_2}^{n+^1\!/_2} - (\phi v)_{i,\,j-^1\!/_2}^{n+^1\!/_2}}{\Delta y},
+
+where the velocities on faces are prescribed functions of space and time, and the scalars on faces
+are computed using a Godunov advection integration scheme. The fluxes in this case are the face-centered,
+time-centered “:math:`\phi u`” and “:math:`\phi v`” terms.
+
+We use a subcycling-in-time approach where finer levels are advanced with smaller
+time steps than coarser levels, and then synchronization is later performed between levels.
+More specifically, the multi-level procedure can most
+easily be thought of as a recursive algorithm in which, to advance level :math:`\ell`,
+:math:`0\le\ell\le\ell_{\rm max}`, the following steps are taken:
+
+-  Advance level :math:`\ell` in time by one time step, :math:`\Delta t^{\ell}`, as if it is
+   the only level. If :math:`\ell>0`, obtain boundary data (i.e. fill the level :math:`\ell` ghost cells)
+   using space- and time-interpolated data from the grids at :math:`\ell-1` where appropriate.
+
+-  If :math:`\ell<\ell_{\rm max}`
+
+   -  Advance level :math:`(\ell+1)` for :math:`r` time steps with :math:`\Delta t^{\ell+1} = \frac{1}{r}\Delta t^{\ell}`.
+
+   -  Synchronize the data between levels :math:`\ell` and :math:`\ell+1`.
+
+.. raw:: latex
+
+   \begin{center}
+
+.. _fig:subcycling:
+
+.. figure:: ./AmrCore/figs/subcycling.png
+   :width: 4in
+
+   Schematic of subcycling-in-time algorithm.
+
+.. raw:: latex
+
+   \end{center}
+
+Specifically, for a 3-level simulation, depicted graphically in the figure
+showing the :ref:`fig:subcycling` above:
+
+#. Integrate :math:`\ell=0` over :math:`\Delta t`.
+
+#. Integrate :math:`\ell=1` over :math:`\Delta t/2`.
+
+#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
+
+#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
+
+#. Synchronize levels :math:`\ell=1,2`.
+
+#. Integrate :math:`\ell=1` over :math:`\Delta t/2`.
+
+#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
+
+#. Integrate :math:`\ell=2` over :math:`\Delta t/4`.
+
+#. Synchronize levels :math:`\ell=1,2`.
+
+#. Synchronize levels :math:`\ell=0,1`.
+
+
+
+For the scalar field, we keep track volume and time-weighted fluxes at coarse-fine interfaces.
+We accumulate area and time-weighted fluxes in :cpp:`FluxRegister` objects, which can be
+thought of as special boundary FABsets associated with coarse-fine interfaces.
+Since the fluxes are area and time-weighted (and sign-weighted, depending on whether they
+come from the coarse or fine level), the flux registers essentially store the extent by
+which the solution does not maintain conservation. Conservation only happens if the
+sum of the (area and time-weighted) fine fluxes equals the coarse flux, which in general
+is not true.
+
+The idea behind the level :math:`\ell/(\ell+1)` synchronization step is to correct for sources of
+mismatch in the composite solution:
+
+#. The data at level :math:`\ell` that underlie the level :math:`\ell+1` data are not synchronized with the level :math:`\ell+1` data.
+   This is simply corrected by overwriting covered coarse cells to be the average of the overlying fine cells.
+
+#. The area and time-weighted fluxes from the level :math:`\ell` faces and the level :math:`\ell+1` faces
+   do not agree at the :math:`\ell/(\ell+1)` interface, resulting in a loss of conservation.
+   The remedy is to modify the solution in the coarse cells immediately next to the coarse-fine interface
+   to account for the mismatch stored in the flux register (computed by taking the coarse-level divergence of the
+   flux register data).
 
 Code Structure
 --------------
