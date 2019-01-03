@@ -364,8 +364,8 @@ CoordSys::SetFaceArea (FArrayBox& area,
 
 void
 CoordSys::GetEdgeLoc (Vector<Real>& loc, 
-                      const Box&   region,
-                      int          dir) const 
+                      const Box&    region,
+                      int           dir) const
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
@@ -374,6 +374,7 @@ CoordSys::GetEdgeLoc (Vector<Real>& loc,
     int len       = hi[dir] - lo[dir] + 2;
     Real off      = offset[dir] + dx[dir]*lo[dir];
     loc.resize(len);
+    AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
         loc[i] = off + dx[dir]*i;
@@ -392,6 +393,7 @@ CoordSys::GetCellLoc (Vector<Real>& loc,
     int len       = hi[dir] - lo[dir] + 1;
     Real off = offset[dir] + dx[dir]*(0.5 + (Real)lo[dir]);
     loc.resize(len);
+    AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
         loc[i] = off + dx[dir]*i;
@@ -415,6 +417,7 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
     if (dir == 0 && c_sys == RZ)
     {
         int len = vc.size();
+        AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
             Real r = vc[i];
@@ -425,8 +428,8 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
     {
         if(dir == 0 && c_sys == SPHERICAL) {
             int len = vc.size();
-            int i;
-            for (i = 0; i < len; i++) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++) {
                 Real r = vc[i];
                 vc[i] = 0.3*r*r*r;
             }
@@ -452,6 +455,7 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
     if (dir == 0 && c_sys == RZ)
     {
         int len = vc.size();
+        AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
             Real r = vc[i];
@@ -462,8 +466,8 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
     {
         if(dir == 0 && c_sys == SPHERICAL) {
             int len = vc.size();
-            int i;
-            for (i = 0; i < len; i++) {
+            AMREX_PRAGMA_SIMD
+            for (int i = 0; i < len; i++) {
                 Real r = vc[i];
                 vc[i] = 0.3*r*r*r;
             }

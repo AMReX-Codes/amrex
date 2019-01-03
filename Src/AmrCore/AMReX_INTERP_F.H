@@ -55,33 +55,6 @@ extern "C"
                          AMREX_D_DECL(const amrex_real* cvcx,const amrex_real* cvcy, const amrex_real* cvcz),
                          const int* actual_comp, const int* actual_state);
 
-    void amrex_linccinterp (amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
-                           const int* fblo, const int* fbhi,
-                           AMREX_ARLIM_P(fvcblo), AMREX_ARLIM_P(fvcbhi),
-                           const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
-                           AMREX_ARLIM_P(cvcblo), AMREX_ARLIM_P(cvcbhi),
-                           amrex_real* ucc_xslopes, amrex_real* lcc_xslopes,
-                           amrex_real* xslope_factors,
-#if (AMREX_SPACEDIM>=2)
-                           amrex_real* ucc_yslopes, amrex_real* lcc_yslopes,
-                           amrex_real* yslope_factors,
-#endif
-#if (AMREX_SPACEDIM==3)
-                           amrex_real* ucc_zslopes, amrex_real* lcc_zslopes,
-                           amrex_real* zslope_factors,
-#endif
-                           AMREX_ARLIM_P(csblo), AMREX_ARLIM_P(csbhi),
-                           const int* csblo, const int* csbhi,
-                           const int* nvar,
-                           AMREX_D_DECL(const int* lrx,const int* lry,const int* lrz),
-                           const int* bc, 
-                           const int* lim_slope, const int* lim_limit,
-                           AMREX_D_DECL(const amrex_real* fvcx,const amrex_real* fvcy, const amrex_real* fvcz),
-                           AMREX_D_DECL(const amrex_real* cvcx,const amrex_real* cvcy, const amrex_real* cvcz),
-                           AMREX_D_DECL(const amrex_real* voffx,const amrex_real* voffy, const amrex_real* voffz),
-                           amrex_real* alpha, amrex_real* cmax, amrex_real* cmin,
-                           const int* actual_comp, const int* actual_state);
-
     void amrex_cqinterp (amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
                         AMREX_ARLIM_P(fblo), AMREX_ARLIM_P(fbhi),
                         const int* nvar,

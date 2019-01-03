@@ -29,11 +29,13 @@ std::map<int, std::map<int, std::map<int, std::map<int, int> > > > Perilla::myTa
 
 struct sMsgMap_t{
     std::map< int, std::map< int,  std::list< Package* > > > map; 
+    volatile int size=0;
     pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
 }sMsgMap;
 
 struct rMsgMap_t{
     std::map< int, std::map< int,  std::list< Package* > > > map; 
+    volatile int size=0;
     pthread_mutex_t lock= PTHREAD_MUTEX_INITIALIZER;
 }rMsgMap;
 
@@ -65,9 +67,11 @@ struct pendingGetList_t{
             if(rMsgMap.map.find(src) != rMsgMap.map.end()){
 	        if(rMsgMap.map[src].find(tag) != rMsgMap.map[src].end()){
                    if(rMsgMap.map[src][tag].size() >0){
+                       rMsgMap.map[src][tag].front()->tag= tag;
                        localbuf= (rMsgMap.map[src][tag].front()->databuf).local(); //(double*) (static_cast<upcxx::global_ptr<void> > (rMsgMap.map[src][tag].front()->databuf).local());
                        *(rMsgMap.map[src][tag].front()->request)= upcxx::rget((*it)->sbuf, localbuf, (*it)->size);
                        rMsgMap.map[src][tag].pop_front();
+                       rMsgMap.size--;
                        std::list< getReq_t* >::iterator it1= it;
                        it++;
 		       delete (*it);
@@ -1532,17 +1536,20 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 	    {
 		for(int i=0; i<rg->lMap[f]->r_con.nrcv; i++)
 		{
+                    if(rg->rMap[f]->r_con.rcv[i].recycleQueue.queueSize()<=1){nextrReq = false;
+                    }else{
 		    if(rg->rMap[f]->r_con.rcv[i].pQueue.queueSize(true) == 0) //!no message has been received or all received messages have been claimed
-			nextsReq = true;
+			nextrReq = true;
 		    else
 		    {
 			Package *rearPackage = rg->rMap[f]->r_con.rcv[i].pQueue.getRear(true);//!CHECK THIS POINT LATER
 			if(rearPackage->completed) //!latest receive request has been completed
-			    nextsReq = true;
+			    nextrReq = true;
 			else //!expected message is still on the way
-			    nextsReq = false;
+			    nextrReq = false;
 		    }
-		    if(nextsReq) //!take a message from recycle pool and post a receive
+		    }
+		    if(nextrReq) //!take a message from recycle pool and post a receive
 		    {
 			int ns = rg->rMap[f]->r_con.rcv[i].ns;
 			int nd = rg->rMap[f]->r_con.rcv[i].nd;
@@ -1555,10 +1562,12 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			int tag = tagMap[rg->rMap[f]->r_con.rcv[i].pr][graphID][nd][ns][rg->rMap[f]->r_con.rcv[i].sz];
 
 			rPackage->request = new future<>;
+			rPackage->tag = tag;
 			rg->lMap[f]->r_con.rcv[i].pQueue.enqueue(rPackage,true);   //!this is not done yet
 			rg->rMap[f]->r_con.rcv[i].pQueue.enqueue(rMetaPackage,true);   //!this is not done yet
 			pthread_mutex_lock(&(rMsgMap.lock));
 			rMsgMap.map[rg->rMap[f]->r_con.rcv[i].pr][tag].push_back(rPackage);
+                        rMsgMap.size++;
 			pthread_mutex_unlock(&(rMsgMap.lock));
 		    }
 		}
@@ -1591,9 +1600,10 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 		    int tag = Perilla::myTagMap[r_gid][nd][ns][rg->sMap[f]->r_con.snd[i].sz];
 		    int src= upcxx::rank_me();
 		    //register send request so that the receiver can send back confirmation upon pull completion
-                    sPackage->request = new future<>;
+                    sPackage->completed = false;
                     pthread_mutex_lock(&(sMsgMap.lock));
                     sMsgMap.map[rg->sMap[f]->r_con.snd[i].pr][tag].push_back(sPackage);
+                    sMsgMap.size++;
                     pthread_mutex_unlock(&(sMsgMap.lock));
 		    int size= rg->sMap[f]->r_con.snd[i].sz;
 		    upcxx::global_ptr<double> sbuf= sPackage->databuf; //static_cast<upcxx::global_ptr<double> >((double*)sPackage->databuf);
@@ -1611,6 +1621,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 				     localbuf= (rMsgMap.map[src][tag].front()->databuf).local(); //(double*) static_cast<upcxx::global_ptr<void> > (rMsgMap.map[src][tag].front()->databuf).local(); 
 			    	     *(rMsgMap.map[src][tag].front()->request)= upcxx::rget(sbuf, localbuf, size);
 			             rMsgMap.map[src][tag].pop_front();
+                                     rMsgMap.size--;
 		                 }
 			  } 
                           pthread_mutex_unlock(&(rMsgMap.lock));
@@ -1650,15 +1661,16 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
                               int nd =  rg->lMap[f]->r_con.rcv[i].nd;
                               int lnd =  rg->lMap[f]->r_con.rcv[i].lnd;
                               int r_grids =  rg->lMap[f]->r_con.rcv[i].r_grids;
-                              int tag = tagMap[ rg->lMap[f]->r_con.rcv[i].pr][graphID][nd][ns][ rg->lMap[f]->r_con.rcv[i].sz];
+                              int tag = rearPackage->tag;
+                              //int tag = tagMap[ rg->lMap[f]->r_con.rcv[i].pr][graphID][nd][ns][ rg->lMap[f]->r_con.rcv[i].sz];
                               int dst = upcxx::rank_me();
                               int src=  rg->lMap[f]->r_con.rcv[i].pr;
                                 upcxx::rpc(src,
                                     [=](){
                                         pthread_mutex_lock(&(sMsgMap.lock));
-                                        upcxx::future<> *ft= sMsgMap.map[dst][tag].front()->request;
-                                        delete ft;//so that sender know
+                                        sMsgMap.map[dst][tag].front()->completed=true;
                                         sMsgMap.map[dst][tag].pop_front();
+		                        sMsgMap.size--;
                                         pthread_mutex_unlock(&(sMsgMap.lock));
                                     }
                                 );
@@ -1684,7 +1696,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 	    if(rg->sMap[f]->r_con.snd[i].pQueue.queueSize(true) > 0)
 	    {
 		Package *frontPackage = rg->sMap[f]->r_con.snd[i].pQueue.getFront(true);
-		if(frontPackage->served && !frontPackage->completed) //!latest receive request has NOT been completed
+		if(frontPackage->served) //!latest receive request has NOT been completed
 		{
 		    bool flag = false;
 		    int ret_flag;
@@ -1695,6 +1707,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			frontPackage->completed = false;
 			frontPackage->served = false;
 			frontPackage->request = 0;
+			frontPackage->tag = 0;
 			frontPackage->notified = false;
 			rg->sMap[f]->r_con.snd[i].recycleQueue.enqueue(frontPackage,true);
 			pthread_mutex_unlock(&(rg->sMap[f]->r_con.sndLock));
@@ -1704,6 +1717,8 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 			frontPackage->completed = false;
 			frontPackage->served = false;
 			frontPackage->request = 0;
+                        frontPackage->notified = false;
+			frontPackage->tag = 0;
 			rg->lMap[f]->r_con.snd[i].recycleQueue.enqueue(frontPackage,true);
 			pthread_mutex_unlock(&(rg->lMap[f]->r_con.sndLock));			
 		    }
@@ -3779,22 +3794,25 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 		{
 		    for(int i=0; i<cpDst->r_con.nrcv; i++)
 		    {
+                        if(graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.queueSize()<=1)nextrReq = false;
+			else{
 			if(graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.queueSize(true) == 0) //!no preposted message or all received messages have been claimed
 			{
-			    nextsReq = true;
+			    nextrReq = true;
 			}
 			else
 			{			    
 //			    Package *rearPackage = cpDst->r_con.rcv[i].pQueue.getRear(true); //serviceRemoteGridCopyRequests graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.getRear(true);
 			    // Also check the recycle queue because when rear is completed it may cause unlimited recv posts
-			    if(graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.getRear(true)->completed && graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.queueSize() > 1) //!latest receive request has been completed
+			    if(graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.getRear(true)->completed) //!latest receive request has been completed
 			    {
-				nextsReq = true;
+				nextrReq = true;
 			    }
 			    else //!expected message is still on the way
-				nextsReq = false;
+				nextrReq = false;
 			}
-			if(nextsReq) //!take a message from recycle pool and post a receive
+			}
+			if(nextrReq) //!take a message from recycle pool and post a receive
 			{
 			    //!create a package to keep track of receive requests
 			    Package *rMetaPackage = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].recycleQueue.dequeue(true);
@@ -3807,11 +3825,13 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			    int tag = tagMap[graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr][g][nd][ns][graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].sz];
 
                             rPackage->request = new future<>;
+			    rPackage->tag = tag;
 			    cpDst->r_con.rcv[i].pQueue.enqueue(rPackage,true);   //!this is not done yet
 			    graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.enqueue(rMetaPackage,true);   //!this is not done yet	 
 
                             pthread_mutex_lock(&(rMsgMap.lock));
                             rMsgMap.map[graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr][tag].push_back(rPackage);
+                            rMsgMap.size++;
                             pthread_mutex_unlock(&(rMsgMap.lock));
 			}						
 		    } // for (i<i<cpDst->r_con.nrcv)
@@ -3857,6 +3877,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                         //sPackage->request = new future<>;
                         pthread_mutex_lock(&(sMsgMap.lock));
                         sMsgMap.map[dst][tag].push_back(sMetaPackage);
+                        sMsgMap.size++;
                         pthread_mutex_unlock(&(sMsgMap.lock));
                         upcxx::global_ptr<double> sbuf= sPackage->databuf; //static_cast<upcxx::global_ptr<double> >((double*)sPackage->databuf);
 
@@ -3871,9 +3892,11 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                                          if(rMsgMap.map[src][tag].size() >0){
                                              posted_recv=true;
                                              localbuf= (rMsgMap.map[src][tag].front()->databuf).local();//(double*) (static_cast<upcxx::global_ptr<void> > (rMsgMap.map[src][tag].front()->databuf).local());
+   	                                     rMsgMap.map[src][tag].front()->tag= tag;
 					     if(localbuf){
                                                  *(rMsgMap.map[src][tag].front()->request)= upcxx::rget(sbuf, localbuf, size);
                                                  rMsgMap.map[src][tag].pop_front();
+			                         rMsgMap.size--;
 				             }
                                          }
                                 }
@@ -3916,7 +3939,8 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
                               int nd = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].nd;
                               int lnd = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].lnd;
                               int r_grids = graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].r_grids;
-                              int tag = tagMap[graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr][g][nd][ns][graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].sz];
+                              int tag = rearPackage->tag;
+                              //int tag = tagMap[graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr][g][nd][ns][graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].sz];
 			      int dst = upcxx::rank_me();
                               int src= graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pr; 
 		                upcxx::rpc(src,
@@ -3926,13 +3950,15 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 				        //delete ft;//so that sender know
 					sMsgMap.map[dst][tag].front()->completed = true;
                                         sMsgMap.map[dst][tag].pop_front();
+		                        sMsgMap.size--;
                                         pthread_mutex_unlock(&(sMsgMap.lock));
                                     }
                                 );
 
 				delete rearPackage->request;
 				rearPackage->completeRequest();				
-				cpDst->r_con.rcv[i].pQueue.getRear()->completeRequest();
+				//cpDst->r_con.rcv[i].pQueue.getRear()->completeRequest();
+                                graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.getRear()->completeRequest();
 
 				if(graphArray[g]->rCopyMapHead->map[f]->r_con.rcv[i].pQueue.queueSize(true) == 1)
 				{
@@ -3970,6 +3996,7 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			    frontPackage->completed = false;
 			    frontPackage->served = false;
 			    frontPackage->request = 0;
+			    frontPackage->tag = 0;
 			    frontPackage->notified = false;
 			    graphArray[g]->sCopyMapHead->map[f]->r_con.snd[i].recycleQueue.enqueue(frontPackage,true);
 			    pthread_mutex_unlock(&(graphArray[g]->sCopyMapHead->map[f]->r_con.sndLock));
@@ -3978,6 +4005,8 @@ void Perilla::serviceRemoteGridCopyRequests(std::vector<RegionGraph*> graphArray
 			    frontPackage->completed = false;
 			    frontPackage->served = false;
 			    frontPackage->request = 0;
+                            frontPackage->notified = false;
+			    frontPackage->tag = 0;
 			    cpSrc->r_con.snd[i].recycleQueue.enqueue(frontPackage,true);
 			    pthread_mutex_unlock(&(cpSrc->r_con.sndLock));			
 			}
