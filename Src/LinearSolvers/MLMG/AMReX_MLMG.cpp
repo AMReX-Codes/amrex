@@ -414,6 +414,13 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
                            << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
+        if (verbose >= 4)
+        {
+            computeResOfCorrection(amrlev, mglev_bottom);
+            Real norm = rescor[amrlev][mglev_bottom].norm0();
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+                           << "   UP: Norm after  bottom " << norm << "\n";
+        }
     }
     else
     {
@@ -851,9 +858,12 @@ MLMG::actualBottomSolve ()
             const Real cg_rtol = bottom_reltol;
             const Real cg_atol = -1.0;
             int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
-            if (ret != 0 && verbose >= 1) {
+            if (ret != 0 && verbose > 1) {
                 amrex::Print() << "MLMG: Bottom solve failed.\n";
             }
+            // If the MLMG solve failed then set the correction to zero 
+            if (ret != 0)
+                cor[amrlev][mglev]->setVal(0.0);
             const int n = ret==0 ? nub : nuf;
             for (int i = 0; i < n; ++i) {
                 linop.smooth(amrlev, mglev, x, b);

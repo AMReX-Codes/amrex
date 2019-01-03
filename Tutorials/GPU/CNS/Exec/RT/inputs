@@ -1,8 +1,7 @@
 amrex.fpe_trap_invalid=1
 
 max_step  = 100000
-#stop_time = 2.5  # for gamm = 5/3
-stop_time = 1.8  # for gamma = 4/3
+stop_time = 1.9
 
 geometry.is_periodic = 1 1 0
 geometry.coord_sys   = 0  # 0 => cart, 1 => RZ  2=>spherical
@@ -19,6 +18,7 @@ cns.lo_bc       =  0   0   4
 cns.hi_bc       =  0   0   4
 
 cns.gravity = -1.0
+cns.eos_gamma = 1.6666666666
 
 cns.cfl = 0.3  # cfl number for hyperbolic system
 

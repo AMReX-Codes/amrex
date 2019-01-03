@@ -229,7 +229,7 @@ writePlotFile (const char*               name,
                const Vector<std::string>& names)
 {
 
-    double dPlotFileTime0(ParallelDescriptor::second());
+    Real dPlotFileTime0(ParallelDescriptor::second());
     //std::string pltfile = Concatenate(root, num);
     std::string pltfile(name);
 
@@ -281,8 +281,8 @@ writePlotFile (const char*               name,
             amrex::Error("Amr::writePlotFile() failed");
     }
 
-    double dPlotFileTime1(ParallelDescriptor::second());
-    double dPlotFileTime(dPlotFileTime1 - dPlotFileTime0);
+    Real dPlotFileTime1(ParallelDescriptor::second());
+    Real dPlotFileTime(dPlotFileTime1 - dPlotFileTime0);
     ParallelDescriptor::ReduceRealMax(dPlotFileTime);
     if(ParallelDescriptor::IOProcessor()) {
       std::cout << "Write plotfile time = " << dPlotFileTime << "  seconds." << std::endl;
