@@ -5,7 +5,6 @@
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_MLMG_F.H>
 #include <AMReX_MLABecLaplacian.H>
-#include <AMReX_MLLinOp.H>
 
 #ifdef AMREX_USE_PETSC
 #include <petscksp.h>
@@ -40,22 +39,6 @@
 //     smooth()            : L(cor) = res. cor.FillBoundary() will be called.
 
 namespace amrex {
-
-// static member function
-void MLMG::Initialize ()
-{
-    MLLinOp::Initialize();
-    amrex::ExecOnFinalize(MLMG::Finalize);
-}
-
-// static member function
-void MLMG::Finalize ()
-{
-    MLLinOp::Finalize();
-#ifdef AMREX_SOFT_PERF_COUNTERS
-    MLCellLinOp::perf_counters.reset();
-#endif
-}
 
 MLMG::MLMG (MLLinOp& a_lp)
     : linop(a_lp),

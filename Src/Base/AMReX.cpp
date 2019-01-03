@@ -21,7 +21,6 @@
 #include <AMReX_Gpu.H>
 
 #include <AMReX_Machine.H>
-#include <AMReX_MLMG.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -537,7 +536,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     BL_PROFILE_INITPARAMS();
 #endif
     machine::Initialize();
-    MLMG::Initialize();
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {

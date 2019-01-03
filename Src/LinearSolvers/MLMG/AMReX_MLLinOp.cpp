@@ -5,6 +5,7 @@
 #include <set>
 #include <AMReX_Utility.H>
 #include <AMReX_MLLinOp.H>
+#include <AMReX_MLCellLinOp.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Machine.H>
 
@@ -25,7 +26,7 @@ constexpr int MLLinOp::mg_box_min_width;
 
 namespace {
     // experimental features
-    bool initialized = false;
+    bool initialized = false; // track initialization of static state
     int consolidation_threshold = -1;
     int consolidation_ratio = 2;
     int consolidation_strategy = 3;
@@ -86,16 +87,33 @@ namespace {
 }
 
 // static member function
-void MLLinOp::Initialize () {
+void MLLinOp::Initialize ()
+{
+    ParmParse pp("mg");
+    pp.query("consolidation_threshold", consolidation_threshold);
+    pp.query("consolidation_ratio", consolidation_ratio);
+    pp.query("consolidation_strategy", consolidation_strategy);
+    pp.query("verbose_linop", flag_verbose_linop);
+    pp.query("comm_cache", flag_comm_cache);
+    pp.query("mota", flag_use_mota);
+    pp.query("remap_nbh_lb", remap_nbh_lb);
+
 #ifdef BL_USE_MPI
     comm_cache.reset(new CommCache());
 #endif
+    amrex::ExecOnFinalize(MLLinOp::Finalize);
+    initialized = true;
 }
 
 // static member function
-void MLLinOp::Finalize () {
+void MLLinOp::Finalize ()
+{
+    initialized = false;
 #ifdef BL_USE_MPI
     comm_cache.reset();
+#endif
+#ifdef AMREX_SOFT_PERF_COUNTERS
+    MLCellLinOp::perf_counters.reset();
 #endif
 }
 
@@ -113,15 +131,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLLinOp::define()");
 
     if (!initialized) {
-	ParmParse pp("mg");
-	pp.query("consolidation_threshold", consolidation_threshold);
-	pp.query("consolidation_ratio", consolidation_ratio);
-	pp.query("consolidation_strategy", consolidation_strategy);
-	pp.query("verbose_linop", flag_verbose_linop);
-	pp.query("comm_cache", flag_comm_cache);
-	pp.query("mota", flag_use_mota);
-	pp.query("remap_nbh_lb", remap_nbh_lb);
-	initialized = true;
+        Initialize();
     }
 
     info = a_info;
@@ -492,6 +502,7 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     bool cache_hit = false;
     uint64_t key = 0;
     if (flag_comm_cache) {
+        AMREX_ASSERT(comm_cache);
         key = hash_vector(newgrp_ranks, hash_vector(get_subgroup_ranks()));
         cache_hit = comm_cache->get(key, newcomm);
         if (cache_hit && flag_verbose_linop) {
