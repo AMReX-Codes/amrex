@@ -7,7 +7,7 @@
 Tutorials/Particles
 ==========================
 
-There are two tutorials in amrex/Tutorials/Particles that demonstrate the basic usage of 
+There are several tutorials in amrex/Tutorials/Particles that demonstrate the basic usage of 
 AMReX's particle data structures. 
 
 **ElectrostaticPIC**
@@ -29,6 +29,10 @@ real components to store the particle weight, velocity, and the electric field i
 to the particle position. To see how to set up such a particle container, see 
 :cpp:`ElectrostaticParticleContainer.H`.
 
+**ElectromagneticPIC**
+-----------------------
+
+     
 **NeighborList**
 ----------------
 
@@ -44,4 +48,13 @@ The particles in this example store velocity and acceleration in addition to the
 components. They are initially placed at cell centers and given random velocities. When a 
 particle reaches the domain boundary, it is specularly reflected back into the domain. To 
 see how the particle data structures are set up, see :cpp:`NeighborListParticleContainer.cpp`.
+
+The file called `inputs` can be used to run this tutorial with a single level, and `inputs.mr`
+sets up a run with static mesh refinement.
+
+**CellSortedParticles**
+-----------------------
+
+
+
 
