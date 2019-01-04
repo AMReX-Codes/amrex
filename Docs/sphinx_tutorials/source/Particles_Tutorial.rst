@@ -32,6 +32,17 @@ to the particle position. To see how to set up such a particle container, see
 **ElectromagneticPIC**
 -----------------------
 
+This tutorial shows how to perform an electromagnetic particle-in-cell calculation
+using AMReX. Essentially, this is a mini-app version of the WarpX application code.
+The electric fields, magnetic fields, and current densities are stored using the
+staggered Yee grid, and it solves Maxwell's Equations using the finite-difference
+time domain method.
+
+This tutorial also demonstrates how to offload calculations involving particle data
+onto the GPU using OpenACC. To compile with GPU support, use the pgi compiler, and set
+:cpp:`USE_ACC = TRUE`, :cpp:`USE_CUDA = TRUE`, :cpp:`USE_OMP = FALSE`. 
+
+Currently, this tutorial does not use mesh refinement. 
      
 **NeighborList**
 ----------------
@@ -49,11 +60,17 @@ components. They are initially placed at cell centers and given random velocitie
 particle reaches the domain boundary, it is specularly reflected back into the domain. To 
 see how the particle data structures are set up, see :cpp:`NeighborListParticleContainer.cpp`.
 
-The file called `inputs` can be used to run this tutorial with a single level, and `inputs.mr`
-sets up a run with static mesh refinement.
+The file called :cpp:`inputs` can be used to run this tutorial with a single level, and
+:cpp:`inputs.mr` sets up a run with static mesh refinement.
 
 **CellSortedParticles**
 -----------------------
+
+
+
+**LoadBalance**
+---------------
+
 
 
 
