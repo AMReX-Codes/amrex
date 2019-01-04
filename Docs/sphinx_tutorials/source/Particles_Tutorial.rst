@@ -42,6 +42,12 @@ This tutorial also demonstrates how to offload calculations involving particle d
 onto the GPU using OpenACC. To compile with GPU support, use the pgi compiler, and set
 :cpp:`USE_ACC = TRUE`, :cpp:`USE_CUDA = TRUE`, :cpp:`USE_OMP = FALSE`. 
 
+You can choose between two problem types by toggling the :cpp:`problem_type` parameter
+in the provided inputs file. Choosing the uniform plasma setup provides a nearly
+perfectly load balanced problem setup that is useful for performance testing. Choosing
+the Langmuir wave problem will automatically compare the simulated fields to the exact
+solution.
+     
 Currently, this tutorial does not use mesh refinement. 
      
 **NeighborList**
@@ -66,10 +72,6 @@ The file called :cpp:`inputs` can be used to run this tutorial with a single lev
 **CellSortedParticles**
 -----------------------
 
-
-
-**LoadBalance**
----------------
 
 
 
