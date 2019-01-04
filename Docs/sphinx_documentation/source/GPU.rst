@@ -997,6 +997,12 @@ to a Struct-of-Arrays representation, all without copying any particle data off 
        < use xp, yp, zp... >
    }
            
+Note that the above code will cause problems if multiple streams are used to launch kernels inside the
+particle iterator loop. This is because the temporary variables :cpp:`xp`, :cpp:`yp`, and :cpp:`zp` are
+shared between different iterations. However, if all the kernel launches happen on the default stream,
+so that the kernels are guaranteed to complete in order, then the above approach will give the
+expected results.
+
 Finally, AMReX's :cpp:`Redistribute()`, which moves particles back to the proper grids after their positions
 have changed, has been ported to work on the GPU as well. It cannot be called from device code,
 but it can be called on particles that reside on the device and it won't trigger any unified
