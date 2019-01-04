@@ -1047,7 +1047,7 @@ example:
         });
 
     }
-    BL_PROFILE_STOP(mfinit);                    // Profiling sstop
+    BL_PROFILE_STOP(mfinit);                    // Profiling stop
 
 For now, this is the best way to profile GPU codes using ``TinyProfiler``. 
 If you require further profiling detail, use ``nvprof``.
