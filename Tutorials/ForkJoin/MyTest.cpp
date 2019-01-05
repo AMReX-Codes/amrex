@@ -57,8 +57,9 @@ void
 MyTest::runTest ()
 {
     BL_ASSERT(n_tasks > 0);
-    ForkJoin fj(n_tasks,outdir);
+    ForkJoin fj(n_tasks);
     fj.SetVerbose(fj_verbose);
+    fj.set_task_output_dir(outdir);
 
     int ng=data_single.nGrow();
     fj.reg_mf(data_split,"data_split",ForkJoin::Strategy::split,ForkJoin::Intent::in,{ng,ng,ng});
