@@ -578,8 +578,7 @@ public:
     /**
     * \brief As above, except the destination Box and the source Box
     * are taken to be the entire domain of the destination.   A copy
-    * of the intersecting region is performed.  Note that the actual
-    * copy is made by the function performCopy() of this
+    * of the intersecting region is performed.
     * class.
     */
     AMREX_GPU_HOST_DEVICE
@@ -591,8 +590,7 @@ public:
     * \brief As above, except that the destination Box is specified,
     * but the source Box is taken to the equal to the source
     * Box, and all components of the destination BaseFab are
-    * copied.  Note that the actual copy is made by the
-    * function performCopy of this class.
+    * copied.
     */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
@@ -615,9 +613,9 @@ public:
     AMREX_GPU_HOST_DEVICE
     //! Add from raw memory to the dstbox of this Fab and return the number of bytes copied
     std::size_t addFromMem (const Box&  dstbox,
-                             int         dstcomp,
-                             int         numcomp,
-                             const void* src);
+                            int         dstcomp,
+                            int         numcomp,
+                            const void* src);
 
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
@@ -632,16 +630,14 @@ public:
     * There is no effect upon the array memory.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& shift (int idir,
-                       int n_cell);
+    BaseFab<T>& shift (int idir, int n_cell);
     /**
     * \brief Perform shifts upon the domain of the BaseFab.  They are
     * completely analogous to the corresponding Box functions.
     * There is no effect upon the array memory.
     */
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& shiftHalf (int dir,
-                           int num_halfs);
+    BaseFab<T>& shiftHalf (int dir, int num_halfs);
     /**
     * \brief Perform shifts upon the domain of the BaseFab. They are
     * completely analogous to the corresponding Box functions.
@@ -1339,15 +1335,6 @@ protected:
     //! Allocates memory for the BaseFab<T>.
     void define ();
 
-    //! The function called by BaseFab copy operations.
-    AMREX_GPU_HOST_DEVICE
-    void performCopy (const BaseFab<T>& src,
-                      const Box&        srcbox,
-                      int               srccomp,
-                      const Box&        destbox,
-                      int               destcomp,
-                      int               numcomp);
-
 #ifdef USE_PERILLA
 public:
     LocalConnection l_con;
@@ -1973,40 +1960,6 @@ BaseFab<T>::clear ()
 
 	this->dptr = 0;
 	this->truesize = 0;
-    }
-}
-
-template <class T>
-void
-BaseFab<T>::performCopy (const BaseFab<T>& src,
-                         const Box&        srcbox,
-                         int               srccomp,
-                         const Box&        destbox,
-                         int               destcomp,
-                         int               numcomp)
-{
-    BL_ASSERT(destbox.ok());
-    BL_ASSERT(src.box().contains(srcbox));
-    BL_ASSERT(box().contains(destbox));
-    BL_ASSERT(destbox.sameSize(srcbox));
-    BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
-    BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
-
-    const auto len = amrex::length(destbox);
-    const auto dlo = amrex::lbound(destbox);
-    const auto slo = amrex::lbound(srcbox);
-    const auto dp  =     view(dlo, destcomp);
-    const auto sp  = src.view(slo, srccomp);
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = sp(i,j,k,n);
-                }
-            }
-        }
     }
 }
 
