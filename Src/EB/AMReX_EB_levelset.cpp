@@ -631,7 +631,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
      ***************************************************************************/
 
     MultiFab normal(eb_ba, ls_dm, 3, eb_pad); //deliberately use levelset DM
-    FillEBNormals(normal, eb_factory, geom_eb);
+    amrex::FillEBNormals(normal, eb_factory, geom_eb);
 
 
     /****************************************************************************
@@ -763,16 +763,21 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
 
 void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
-                           const MultiFab & mf_impfunc) {
+                           const MultiFab & mf_impfunc,
+                           int eb_pad, const Geometry & eb_geom) {
 
     /****************************************************************************
      *                                                                          *
      * Set valid (Here: "valid" region defined as all nodes because IF is       *
-     * defined everywhere)                                                      *
+     * defined everywhere, unless we are using the threshold eb_pad*eb_dx)      *
      *                                                                          *
      ***************************************************************************/
 
-    valid.setVal(1);
+    if (eb_pad <= 0) {
+        valid.setVal(1);
+    } else {
+        valid.setVal(0);
+    }
 
 
     /****************************************************************************
@@ -788,15 +793,57 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(mf_impfunc, true); mfi.isValid(); ++ mfi){
+    for (MFIter mfi(mf_impfunc, true); mfi.isValid(); ++ mfi) {
         const FArrayBox & in_fab  = mf_impfunc[mfi];
               FArrayBox & out_fab = data[mfi];
 
         // NOTE: growntilebox => flip also the ghost cells. They don't get
         // flipped twice because we don't call FillBoundary.
-        for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++bit)
+        for (BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit)
             out_fab(bit(), 0) = - in_fab(bit(), 0);
     }
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Threshold local level-set:  eb_pad => we know that any EB is _at least_  *
+     * eb_pad away from the edge of the current tile box (consistent with EB-   *
+     * based level-set filling).                                                *
+     *                                                                          *
+     ***************************************************************************/
+
+    if (eb_pad > 0) {
+        const Real min_dx = LSUtility::min_dx(eb_geom);
+        const Real ls_threshold = min_dx * (eb_pad+1);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for (MFIter mfi(data, true); mfi.isValid(); ++ mfi) {
+
+            FArrayBox & ls_tile = data[mfi];
+            IArrayBox &  v_tile = valid[mfi];
+
+            //___________________________________________________________________
+            // Apply threshold to grown tile box => fill ghost cells as well
+            Box tile_box = mfi.growntilebox();
+
+            amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
+                                        BL_TO_FORTRAN_3D(ls_tile));
+
+
+            //___________________________________________________________________
+            // Set valid to 1 whenever the box contains values within
+            // +/- ls_threshold
+            for (BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
+                if (std::abs(ls_tile(bit(), 0)) <= ls_threshold) {
+                    v_tile.setVal(1, tile_box);
+                    break;
+                }
+            }
+        }
+    }
+
 }
 
 
@@ -845,7 +892,8 @@ std::unique_ptr<iMultiFab> LSFactory::Fill(const EBFArrayBoxFactory & eb_factory
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::Fill(const MultiFab & mf_impfunc) {
+std::unique_ptr<iMultiFab> LSFactory::Fill(const MultiFab & mf_impfunc,
+                                           bool apply_threshold) {
 
     /****************************************************************************
      *                                                                          *
@@ -860,7 +908,12 @@ std::unique_ptr<iMultiFab> LSFactory::Fill(const MultiFab & mf_impfunc) {
     region_valid->setVal(0);
 
 
-    LSFactory::fill_data(* ls_grid, * region_valid, mf_impfunc);
+    int ls_threshold_pad = -1;
+    if (apply_threshold)
+        ls_threshold_pad = eb_grid_pad;
+
+    LSFactory::fill_data(* ls_grid, * region_valid, mf_impfunc,
+                         ls_threshold_pad, geom_eb);
 
     fill_valid();
 
@@ -922,7 +975,8 @@ std::unique_ptr<iMultiFab> LSFactory::Intersect(const EBFArrayBoxFactory & eb_fa
 
 
 
-std::unique_ptr<iMultiFab> LSFactory::Intersect(const MultiFab & mf_impfunc) {
+std::unique_ptr<iMultiFab> LSFactory::Intersect(const MultiFab & mf_impfunc,
+                                                bool apply_threshold) {
 
     /****************************************************************************
      *                                                                          *
@@ -939,8 +993,13 @@ std::unique_ptr<iMultiFab> LSFactory::Intersect(const MultiFab & mf_impfunc) {
     // Local MultiFab storing level-set data for this eb_factory
     MultiFab  if_ls(ls_ba, ls_dm, 1, ls_grid_pad);
 
+
+    int ls_threshold_pad = -1;
+    if (apply_threshold)
+        ls_threshold_pad = eb_grid_pad;
+
     // Fill local MultiFab with implicit-function data
-    LSFactory::fill_data(if_ls, * region_valid, mf_impfunc);
+    LSFactory::fill_data(if_ls, * region_valid, mf_impfunc, ls_threshold_pad, geom_eb);
 
 
     // Update LSFactory using local (corrected) implicit function MultiFab
@@ -1109,7 +1168,8 @@ std::unique_ptr<iMultiFab> LSFactory::Union(const EBFArrayBoxFactory & eb_factor
 }
 
 
-std::unique_ptr<iMultiFab> LSFactory::Union(const MultiFab & mf_impfunc) {
+std::unique_ptr<iMultiFab> LSFactory::Union(const MultiFab & mf_impfunc,
+                                            bool apply_threshold) {
 
     /****************************************************************************
      *                                                                          *
@@ -1126,8 +1186,13 @@ std::unique_ptr<iMultiFab> LSFactory::Union(const MultiFab & mf_impfunc) {
     // Local MultiFab storing level-set data for this eb_factory
     MultiFab  if_ls(ls_ba, ls_dm, 1, ls_grid_pad);
 
+
+    int ls_threshold_pad = -1;
+    if (apply_threshold)
+        ls_threshold_pad = eb_grid_pad;
+
     // Fill local MultiFab with implicit-function data
-    LSFactory::fill_data(if_ls, * region_valid, mf_impfunc);
+    LSFactory::fill_data(if_ls, * region_valid, mf_impfunc, ls_threshold_pad, geom_eb);
 
 
     // Update LSFactory using local (corrected) implicit function MultiFab
