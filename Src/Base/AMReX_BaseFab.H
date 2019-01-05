@@ -71,6 +71,24 @@ struct FabView
     }
 };
 
+struct SrcComp {
+    AMREX_GPU_HOST_DEVICE
+    explicit SrcComp (int ai) : i(ai) {}
+    int i;
+};
+
+struct DestComp {
+    AMREX_GPU_HOST_DEVICE
+    explicit DestComp (int ai) : i(ai) {}
+    int i;
+};
+
+struct NumComps {
+    AMREX_GPU_HOST_DEVICE
+    explicit NumComps (int an) : n(an) {}
+    int n;
+};
+
 template <typename T>
 struct BaseFabData : public Gpu::Managed
 {
@@ -515,22 +533,13 @@ public:
     * to be set.
     */
     AMREX_GPU_HOST_DEVICE
-    void setVal (T          x,
-                 const Box& bx,
-                 int        nstart,
-                 int        ncomp);
+    void setVal (T x, const Box& bx, int nstart, int ncomp);
     //! Same as above, except the number of modified components is one. N is the component to be modified.
     AMREX_GPU_HOST_DEVICE
-    void setVal (T          x,
-                 const Box& bx,
-                 int        N = 0);
+    void setVal (T x, const Box& bx, int N = 0);
     //! Same as above, except the sub-box defaults to the entire domain.
     AMREX_GPU_HOST_DEVICE
-    void setVal (T   x,
-                 int N);
-    //! Same as above, except all components are set.
-    AMREX_GPU_HOST_DEVICE
-    void setVal (T x);
+    void setVal (T x, int N);
 
     AMREX_GPU_HOST_DEVICE
     void setValIfNot (T x, const Box& bx, const BaseFab<int>& mask, int nstart, int ncomp);
@@ -540,10 +549,8 @@ public:
     * setVal above, except that instead of setting values on the
     * Box b, values are set on the complement of b in the domain.
     */
-    void setComplement (T          x,
-                        const Box& b,
-                        int        ns,
-                        int        num);
+    void setComplement (T x, const Box& b, int ns, int num);
+
     /**
     * \brief The copy functions copy the contents of one BaseFab into
     * another.  The destination BaseFab is always the object which
@@ -557,10 +564,8 @@ public:
     * functions to allow a copy between differing boxes. The user
     * also specifies how many components are copied, starting at
     * component srccomp in src and stored starting at component
-    * destcomp. Note that the actual copy is made by the
-    * function performCopy of this class.  The results are
-    * UNDEFINED if the src and dest are the same and the srcbox and
-    * destbox overlap.
+    * destcomp. The results are UNDEFINED if the src and dest are the
+    * same and the srcbox and destbox overlap.
     */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
@@ -592,15 +597,6 @@ public:
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src,
                       const Box&        destbox);
-
-    /**
-    * As above, except that the destbox defaults to the entire domain
-    * of the destination BaseFab, and all components are copied.
-    * Note that the actual copy is made by the function
-    * performCopy() of this class.
-    */
-    AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& copy (const BaseFab<T>& src);
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
     AMREX_GPU_HOST_DEVICE
@@ -1297,6 +1293,48 @@ public:
     template <class F> // AMREX_GPU_HOST_DEVICE
     void Transform (const Box& b, int c, int nc, T const* src, F f);
 
+    //
+    // New interfaces
+    //
+
+    // Set value on the whole domain and all components
+    AMREX_GPU_HOST_DEVICE
+    void setVal (T val);
+    // 
+    // Do nothing if bx is empty.  Error if bx is not contained by the domain
+    AMREX_GPU_HOST_DEVICE
+    void setVal (T val, const Box& bx, DestComp dcomp, NumComps ncomp);
+
+    AMREX_GPU_HOST_DEVICE
+    void setValIf (T val, const BaseFab<int>& mask);
+    //
+    // Do nothing if bx is empty.  Error if bx is not contained by the domain
+    AMREX_GPU_HOST_DEVICE
+    void setValIf (T val, const Box& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp);
+
+    AMREX_GPU_HOST_DEVICE
+    void setValIfNot (T val, const BaseFab<int>& mask);
+    //
+    // Do nothing if bx is empty.  Error if bx is not contained by the domain
+    AMREX_GPU_HOST_DEVICE
+    void setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp);
+
+    // setVal on the complement of bx in the fab's domain
+    void setComplement (T val, const Box& bx, DestComp dcomp, NumComps ncomp);
+
+    // copy is performed on the intersection of dest and src fabs.
+    // All components of dest fab are copied. src fab must have enough
+    // components (more is OK).
+    AMREX_GPU_HOST_DEVICE
+    BaseFab<T>& copy (const BaseFab<T>& src);
+    //
+    // Error if bx is not contained by the dest fab's domain.
+    // Do nothing if bx does not intersect with src fab.
+    AMREX_GPU_HOST_DEVICE
+    BaseFab<T>& copy (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp);
+
+
+
 protected:
     //! Allocates memory for the BaseFab<T>.
     void define ();
@@ -1309,13 +1347,6 @@ protected:
                       const Box&        destbox,
                       int               destcomp,
                       int               numcomp);
-
-    //! This function is called by the BaseFab setVal operations.
-    AMREX_GPU_HOST_DEVICE
-    void performSetVal (T          x,
-                        const Box& bx,
-                        int        nstart,
-                        int        numcomp);
 
 #ifdef USE_PERILLA
 public:
@@ -1655,60 +1686,30 @@ BaseFab<T>::shiftHalf (int idir,
 
 template <class T>
 void
-BaseFab<T>::setVal (T val)
+BaseFab<T>::setVal (T x, const Box& bx, int n)
 {
-    performSetVal(val,box(), 0, this->nvar);
+    setVal(x, bx, DestComp{n}, NumComps{1});
 }
 
 template <class T>
 void
-BaseFab<T>::setVal (T          x,
-                    const Box& bx,
-                    int        n)
+BaseFab<T>::setVal (T x, int n)
 {
-    performSetVal(x,bx,n,1);
+    setVal(x, this->domain, DestComp{n}, NumComps{1});
 }
 
 template <class T>
 void
-BaseFab<T>::setVal (T   x,
-                    int n)
+BaseFab<T>::setVal (T x, const Box& bx, int dcomp, int ncomp)
 {
-    performSetVal(x,this->domain,n,1);
-}
-
-template <class T>
-void
-BaseFab<T>::setVal (T          x,
-                    const Box& b,
-                    int        ns,
-                    int        num)
-{
-    performSetVal(x,b,ns,num);
+    setVal(x, bx, DestComp{dcomp}, NumComps{ncomp});
 }
 
 template <class T>
 void
 BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, int ns, int num)
 {
-    AMREX_ASSERT(this->domain.contains(bx));
-    AMREX_ASSERT(ns >= 0 && ns + num <= this->nvar);
-
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dp  = view(lo, ns);
-    const auto mp  = mask.view(lo);
-
-    for (int n = 0; n < num; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    if (!mp(i,j,k,0)) { dp(i,j,k,n) = val; }
-                }
-            }
-        }
-    }
+    setValIfNot(val, bx, mask, DestComp{ns}, NumComps{num});
 }
 
 template <class T>
@@ -1726,50 +1727,40 @@ BaseFab<T>::copy (const BaseFab<T>& src,
     AMREX_ASSERT(this->domain.contains(destbox));
     AMREX_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     AMREX_ASSERT(destcomp >= 0 && destcomp+numcomp <= this->nvar);
-    performCopy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+
+    const auto len = amrex::length(destbox);
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const auto dp  =     view(dlo, destcomp);
+    const auto sp  = src.view(slo, srccomp);
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,k,n) = sp(i,j,k,n);
+                }
+            }
+        }
+    }
+
     return *this;
 }
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::copy (const BaseFab<T>& src)
+BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox)
 {
-    AMREX_ASSERT(this->nvar <= src.nvar);
-    AMREX_ASSERT(this->domain.sameType(src.domain));
-    Box overlap(this->domain);
-    overlap &= src.domain;
-    if (overlap.ok())
-        performCopy(src,overlap,0,overlap,0,this->nvar);
+    copy(src, destbox, SrcComp{0}, DestComp{0}, this->nvar);
     return *this;
 }
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::copy (const BaseFab<T>& src,
-                  const Box&        destbox)
+BaseFab<T>::copy (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp)
 {
-    AMREX_ASSERT(this->nvar <= src.nvar);
-    AMREX_ASSERT(this->domain.contains(destbox));
-    Box overlap(destbox);
-    overlap &= src.domain;
-    if (overlap.ok())
-        performCopy(src,overlap,0,overlap,0,this->nvar);
-    return *this;
-}
-
-template <class T>
-BaseFab<T>&
-BaseFab<T>::copy (const BaseFab<T>& src,
-                  int               srccomp,
-                  int               destcomp,
-                  int               numcomp)
-{
-    AMREX_ASSERT(srccomp >= 0 && srccomp + numcomp <= src.nvar);
-    AMREX_ASSERT(destcomp >= 0 && destcomp + numcomp <= this->nvar);
-    Box overlap(this->domain);
-    overlap &= src.domain;
-    if (overlap.ok())
-        performCopy(src,overlap,srccomp,overlap,destcomp,numcomp);
+    copy(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
     return *this;
 }
 
@@ -2020,34 +2011,6 @@ BaseFab<T>::performCopy (const BaseFab<T>& src,
 }
 
 template <class T>
-void
-BaseFab<T>::performSetVal (T          val,
-                           const Box& bx,
-                           int        ns,
-                           int        num)
-{
-    if (!bx.ok()) return;
-
-    AMREX_ASSERT(this->domain.contains(bx));
-    AMREX_ASSERT(ns >= 0 && ns + num <= this->nvar);
-
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dp  = view(lo, ns);
-
-    for (int n = 0; n < num; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dp(i,j,k,n) = val;
-                }
-            }
-        }
-    }
-}
-
-template <class T>
 std::size_t
 BaseFab<T>::copyToMem (const Box& srcbox,
                        int        srccomp,
@@ -2163,15 +2126,9 @@ BaseFab<T>::addFromMem (const Box&  dstbox,
 
 template <class T>
 void
-BaseFab<T>::setComplement (T          x,
-                           const Box& b,
-                           int        ns,
-                           int        num)
+BaseFab<T>::setComplement (T x, const Box& b, int ns, int num)
 {
-    BoxList b_lst = amrex::boxDiff(this->domain,b);
-    for (BoxList::iterator bli = b_lst.begin(), End = b_lst.end(); bli != End; ++bli) {
-        performSetVal(x, *bli, ns, num);
-    }
+    setComplement(x, b, DestComp{ns}, NumComps{num});
 }
 
 template <class T>
@@ -3712,6 +3669,154 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
     copy(f1);
   }
   return *this;
+}
+
+//
+// New interfaces
+//
+
+template <class T>
+void
+BaseFab<T>::setVal (T val)
+{
+    setVal(val, this->domain, DestComp{0}, NumComps{this->nvar});
+}
+
+template <class T>
+void
+BaseFab<T>::setVal (T x, const Box& bx, DestComp dcomp, NumComps ncomp)
+{
+    if (!bx.ok()) return;
+
+    AMREX_ASSERT(this->domain.contains(bx));
+    AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
+
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = view(lo, dcomp.i);
+
+    for (int n = 0; n < ncomp.n; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,k,n) = x;
+                }
+            }
+        }
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::setValIf (T val, const BaseFab<int>& mask)
+{
+    setValIf(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
+}
+
+template <class T>
+void
+BaseFab<T>::setValIf (T val, const Box& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp)
+{
+    AMREX_ASSERT(this->domain.contains(bx));
+    AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
+
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = view(lo, dcomp.i);
+    const auto mp  = mask.view(lo);
+
+    for (int n = 0; n < ncomp.n; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    if (mp(i,j,k,0)) { dp(i,j,k,n) = val; }
+                }
+            }
+        }
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::setValIfNot (T val, const BaseFab<int>& mask)
+{
+    setValIfNot(val, this->domain, mask, DestComp{0}, NumComps{this->nvar});
+}
+
+template <class T>
+void
+BaseFab<T>::setValIfNot (T val, const Box& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp)
+{
+    AMREX_ASSERT(this->domain.contains(bx));
+    AMREX_ASSERT(dcomp.i >= 0 && dcomp.i + ncomp.n <= this->nvar);
+
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto dp  = view(lo, dcomp.i);
+    const auto mp  = mask.view(lo);
+
+    for (int n = 0; n < ncomp.n; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    if (!mp(i,j,k,0)) { dp(i,j,k,n) = val; }
+                }
+            }
+        }
+    }
+}
+
+template <class T>
+void
+BaseFab<T>::setComplement (T x, const Box& bx, DestComp dcomp, NumComps ncomp)
+{
+    const BoxList b_lst = amrex::boxDiff(this->domain,bx);
+    for (auto const& b : b_lst) {
+        setVal(x, b, dcomp, ncomp);
+    }
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src)
+{
+    copy(src, this->domain, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
+    return *this;
+}
+
+template <class T>
+BaseFab<T>&
+BaseFab<T>::copy (const BaseFab<T>& src, const Box& bx,
+                  SrcComp scomp, DestComp dcomp, NumComps ncomp)
+{
+    AMREX_ASSERT(this->domain.sameType(src.domain));
+    AMREX_ASSERT(this->domain.contains(bx));
+    AMREX_ASSERT(scomp.i >= 0 && scomp.i+ncomp.n <= src.nvar);
+    AMREX_ASSERT(dcomp.i >= 0 && dcomp.i+ncomp.n <= this->nvar);
+
+    const Box overlap = bx & src.domain;
+    if (overlap.ok()) {
+        const auto len = amrex::length(overlap);
+        const auto  lo = amrex::lbound(overlap);
+        const auto dp  =     view(lo, dcomp.i);
+        const auto sp  = src.view(lo, scomp.i);
+        
+        for (int n = 0; n < ncomp.n; ++n) {
+            for         (int k = 0; k < len.z; ++k) {
+                for     (int j = 0; j < len.y; ++j) {
+                    AMREX_PRAGMA_SIMD
+                        for (int i = 0; i < len.x; ++i) {
+                            dp(i,j,k,n) = sp(i,j,k,n);
+                        }
+                }
+            }
+        }
+    }
+
+    return *this;
 }
 
 }

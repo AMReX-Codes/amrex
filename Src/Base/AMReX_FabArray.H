@@ -1542,7 +1542,7 @@ FabArray<FAB>::setVal (value_type val,
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
-            fab->setVal(val, tbx, comp, ncomp);
+            fab->setVal(val, tbx, DestComp{comp}, NumComps{ncomp});
         });
     }
 }
