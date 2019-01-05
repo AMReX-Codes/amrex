@@ -74,8 +74,8 @@ The file called :cpp:`inputs` can be used to run this tutorial with a single lev
 
 Sometimes, it's useful to sort particles at a finer granularity than grids or tiles. In this
 Tutorial, each cell contains a list of particle indices that tell you which particles belong to
-that cell. This is useful, for example, in DSMC calculations, where you want to interact particles
-that are in the same cell as each other. Every time the particles move, we check to see
+that cell. This is useful, for example, in Direct Simulation Monte Carlo calculations, where you want to
+potentially interact particles that are in the same cell as each other. Every time the particles move, we check to see
 whether it's still in the same cell or not. If it isn't, we mark the particle as unsorted. We then
 call Redistribute() as normal, and then insert the unsorted particles into the proper cells. Care is
 taken so that, if the Redistribute call changes the order of the particles in the Container, the indices
