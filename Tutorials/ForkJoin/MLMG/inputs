@@ -1,0 +1,7 @@
+ntasks = 4
+ncomp = 12
+
+n_cell = 64
+max_grid_size = 32
+
+verbose = 1
