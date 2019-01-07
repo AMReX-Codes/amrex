@@ -627,9 +627,11 @@ necessary number for the application.
 Filling Level-Sets without :cpp:`LSFactory`
 -------------------------------------------
 
-The static function :cpp:`amrex::LSFactory::fill_data` fills a :cpp:`MultiFab`
-with the nodal level-set values and another :cpp:`iMultiFab` with integer tags
-that are 1 whenever a node is near the EB surface.
+The static function :cpp:`amrex::LSFactory::fill_data` (defined in
+`Src/EB/AMReX_EB_levelset.cpp`) fills a :cpp:`MultiFab` with the nodal level-set
+values and another :cpp:`iMultiFab` with integer tags that are 1 whenever a node
+is near the EB surface. It is then left up to the application to manage the
+level-set :cpp:`MultiFab`.
 
 AMReX defines its embedded surfaces using implicit functions (see above).
 Normally these implicit functions are usually *not* signed distance functions
@@ -653,9 +655,91 @@ so then the function call
 
 ::
 
-   amrex::LSFactory::fill_data(* ls_grid, * region_valid, mf_impfunc,
-                               2, geom_eb);
+   // Fill implicit function
+   GShopLSFactory<EB2::CylinderIF> cylinder_lsgs(cylinder_ghsop, geom, ba, dm, 0);
+   std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_lsgs.fill_impfunc();
 
+   
+   MultiFab ls_grid(ba, dm, 1, 0);
+   iMultiFab ls_valid(ba, dm, 1, 0);
+   amrex::LSFactory::fill_data(ls_grid, ls_valid, mf_impfunc, 2, geom_eb);
+
+fills a :cpp:`MultiFab ls_grid` with level-set data given the implicit function
+stored in the :cpp:`MultiFab mf_impfunc`, and a threshold of
+:cpp:`2*geom_eb.CellSize()`. The helper class :cpp:`GShopLSFactory` converts EB2
+implicit functions to :cpp:`MultiFabs` (defined in
+`Src/EB/AMReX_EB_levelset.H`).
+
+The much more interesting application of :cpp:`amrex::LSFactory::fill_data` is filling a level-set given a :cpp:`EBFArrayBoxFactory`:
+
+.. highlight:: c++
+
+::
+
+   static void fill_data (MultiFab & data, iMultiFab & valid,
+                          const EBFArrayBoxFactory & eb_factory,
+                          const MultiFab & eb_impfunc,
+                          const IntVect & ebt_size, int ls_ref, int eb_ref,
+                          const Geometry & geom, const Geometry & geom_eb);
+
+which fills the :cpp:`MultiFab data` with level-set data from the
+:cpp:`EBFArrayBoxFactory eb_factory`. Here the user must still supply the EB
+implicit function using the :cpp:`MultiFab eb_impfunc`, as this is used to
+determine the inside/outside when no EB facets can be found, or in special
+edge-cases. The user also needs to specify the tile size (:cpp:`IntVect
+ebt_size`), the level-set and EB refinement (i.e. the grid over which `data` is
+defined is refined by a factor of :cpp:`ls_ref/eb_ref` compared to the
+:cpp:`eb_factory` 's grid), and the Geometries :cpp:`geom` and :cpp:`geom_eb`
+corresponding to the grids of :cpp:`data` and :cpp:`eb_factory` respectively.
+
+When filling :cpp:`data`, a tile-size of `ebt_size` is used. Only EB facets
+within a tile (plus the :cpp:`eb_factory` 's ghost cells) are considered. Hence,
+chosing an appropriately small :cpp:`ebt_size` can significantly increase
+performance.
+
+Hence the following fills a level-set with a cylinder EB (like that shown in
+Fig. :numref:`fig::local_levelset`).
+
+.. highlight:: c++
+
+::
+
+   // Define nGrow of level-set and EB
+   int ls_pad = 1;
+   int eb_pad = 2;
+
+   // Define EB
+   EB2::CylinderIF cylinder(radius, centre, true);
+   EB2::GeometryShop<EB2::CylinderIF> cylinder_gshop(cylinder);
+   
+   // Build EB
+   EB2::Build(cylinder_gshop, eb_geom, max_level, max_level);
+   const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+   const EB2::Level &      cylinder_lev  = cylinder_ebis.getLevel(geom);
+
+   // Build EB factory
+   EBFArrayBoxFactory eb_factory(cylinder_lev, geom, ba, dm, {eb_pad, eb_pad, eb_pad});
+
+   // Fill implicit function
+   GShopLSFactory<EB2::CylinderIF> cylinder_lsgs(cylinder_ghsop, geom, ba, dm, ls_pad);
+   std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_lsgs.fill_impfunc();
+
+   // Fill level-set
+   MultiFab ls_grid(ba, dm, 1, ls_pad);
+   iMultiFab ls_valid(ba, dm, 1, ls_pad);
+   LSFactory::fill_data(ls_grid, ls_valid, eb_factory, * cylinder_mf_impfunc,
+                        ebt_size, 1, 1, geom, geom);
+
+Note that in theory the :cpp:`EBFArrayBoxFactory eb_factory` could be defined on
+a different resolution as the the :cpp:`BoxArray ba`. In this case, the
+appropriate refinements and geometries must be specified. Also note that the
+thresholding behaviour (due to :cpp:`eb_pad`, is specified via the
+:cpp:`EBFArrayBoxFactory` constructor. The implicit function MultiFab needs to
+have the same grids as `data`.
+
+Since this relies on the interplay of many different parameters, a number of
+utility functions and helper classes have been created. These are discussed in
+the subsequent section.
 
 
 Using :cpp:`LSFactory`
@@ -664,6 +748,10 @@ Using :cpp:`LSFactory`
 
 Using :cpp:`LSCore`
 -------------------
+
+
+Utility Functions
+-----------------
 
 
 Linear Solvers
