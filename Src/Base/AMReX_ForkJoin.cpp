@@ -43,14 +43,12 @@ get_frame_id_vec ()
 
 namespace amrex {
 
-    ForkJoin::ForkJoin (const Vector<int> &task_rank_n,
-                        const std::string &task_output_dir_in)
+ForkJoin::ForkJoin (const Vector<int> &task_rank_n)
 {
-    init(task_rank_n,task_output_dir_in);
+    init(task_rank_n);
 }
 
-ForkJoin::ForkJoin (const Vector<double> &task_rank_pct,
-                    const std::string    &task_output_dir_in)
+ForkJoin::ForkJoin (const Vector<double> &task_rank_pct)
 {
     auto rank_n = ParallelContext::NProcsSub(); // number of ranks in current frame
     auto ntasks = task_rank_pct.size();
@@ -64,12 +62,11 @@ ForkJoin::ForkJoin (const Vector<double> &task_rank_pct,
         prev = cur;
     }
 
-    init(task_rank_n,task_output_dir_in);
+    init(task_rank_n);
 }
 
 void
-ForkJoin::init(const Vector<int> &task_rank_n,
-               const std::string &task_output_dir_in)
+ForkJoin::init(const Vector<int> &task_rank_n)
 {
     ParmParse pp("forkjoin");
     pp.query("verbose", flag_verbose);
@@ -93,11 +90,6 @@ ForkJoin::init(const Vector<int> &task_rank_n,
     split_bounds[0] = 0;
     for (int i = 0; i < task_n; ++i) {
         split_bounds[i + 1] = split_bounds[i] + task_rank_n[i];
-    }
-
-    task_output_dir = task_output_dir_in;
-    if (!amrex::FileExists(task_output_dir)) {
-        amrex::UtilCreateDirectory(task_output_dir,0755,flag_verbose);
     }
 
     if (flag_verbose) {
@@ -160,15 +152,9 @@ ForkJoin::modify_split (const std::string &name, int idx, Vector<ComponentSet> c
 ForkJoin::ComponentSet
 ForkJoin::ComponentBounds(const std::string& name, int idx) const
 {
-    ComponentSet ret(-1,-1);
-    for (auto &p : data) { // for each name
-        if (p.first == name) {
-            BL_ASSERT(idx>=0 && idx<p.second.size());
-            const auto &comp_split = p.second[idx].comp_split;
-            ret = comp_split[task_me];
-        }
-    }
-    return ret;
+    const auto & mffork_vec = data.at(name);
+    BL_ASSERT(idx >= 0 && idx < mffork_vec.size());
+    return mffork_vec[idx].comp_split[task_me];
 }
 
 void
@@ -345,20 +331,39 @@ ForkJoin::split_tasks ()
     return new_comm;
 }
 
-std::string
-ForkJoin::get_fresh_io_filename ()
+void ForkJoin::create_task_output_dir ()
 {
-    // build base filename
-    std::string result_base = task_output_dir;
-    result_base += "/T-" + str_join(get_frame_id_vec(), "-");
-    result_base += ".R-" + std::to_string(ParallelContext::MyProcSub());
+    if (task_output_dir != "" && !amrex::FileExists(task_output_dir)) {
+        if (flag_verbose) {
+            Print() << "Creating task_output_dir: " << task_output_dir << std::endl;
+        }
+        if (ParallelContext::IOProcessorSub()) {
+            amrex::UtilCreateDirectory(task_output_dir, 0755, flag_verbose);
+        }
+    }
+}
 
-    // concatenate an integer to the end to make unique
-    std::string result;
-    int i = 0;
-    do {
-        result = result_base + ".I-" + std::to_string(i++) + ".out";
-    } while (file_exists(result));
+std::string
+ForkJoin::get_io_filename (bool flag_unique)
+{
+    std::string result = "";
+
+    if (task_output_dir != "") {
+        // build base filename
+        std::string result_base = task_output_dir;
+        result_base += "/T-" + str_join(get_frame_id_vec(), "-");
+        result_base += ".R-" + std::to_string(ParallelContext::MyProcSub());
+
+        if (flag_unique) {
+            // concatenate an integer to the end to make unique
+            int i = 0;
+            do {
+                result = result_base + ".I-" + std::to_string(i++) + ".out";
+            } while (file_exists(result));
+        } else {
+            result = result_base + ".out";
+        }
+    }
 
     return result;
 }
