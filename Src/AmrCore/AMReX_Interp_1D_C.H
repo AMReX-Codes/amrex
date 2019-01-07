@@ -278,6 +278,51 @@ pcinterp_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int n
     }
 }
 
+AMREX_GPU_HOST_DEVICE inline void
+nodebilin_slopes (Box const& bx, FArrayBox& slopefab, FArrayBox const& ufab,
+                  const int icomp, const int ncomp, IntVect const& ratio)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto slope = slopefab.view(lo);
+    const auto u = ufab.view(lo,icomp);
+
+    const Real rx = 1.0/ratio[0];
+
+    for (int n = 0; n < ncomp; ++n) {
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len.x; ++i) {
+            Real dx0 = u(i+1,0,0,n) - u(i,0,0,n);
+            slope(i,0,0,n) = rx*dx0;
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE inline void
+nodebilin_interp (Box const& bx, FArrayBox& finefab, const int fcomp, const int ncomp,
+                  FArrayBox const& slopefab, FArrayBox const& crsefab, const int ccomp,
+                  IntVect const& ratio)
+{
+    const auto len = amrex::length(bx);
+    const auto lo  = amrex::lbound(bx);
+    const auto fine = finefab.view(lo,fcomp);
+
+    const Box& sbox = slopefab.box();
+    const auto clo = amrex::lbound(sbox);
+    const auto chi = amrex::ubound(sbox);
+    const auto slope = slopefab.view(clo);
+    const auto crse = crsefab.view(clo,ccomp);
+
+    for (int n = 0; n < ncomp; ++n) {
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len.x; ++i) {
+            const int ic = amrex::min(amrex::coarsen(i+lo.x,ratio[0]),chi.x) - clo.x;
+            const Real fx = (i+lo.x) - (ic+clo.x)*ratio[0];
+            fine(i,0,0,n) = crse(ic,0,0,n) + fx*slope(ic,0,0,0);
+        }
+    }
+}
+
 }
 
 #endif
