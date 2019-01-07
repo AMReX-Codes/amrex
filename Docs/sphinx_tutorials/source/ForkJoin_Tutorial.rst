@@ -4,9 +4,8 @@
 .. role:: fortran(code)
    :language: fortran
 
-******************
 Tutorials/Forkjoin
-******************
+==================
 
 There are two examples in the Tutorials/ForkJoin directory.
 
@@ -18,7 +17,7 @@ including nested fork-joins, heterogeneous tasks, reusing ``ForkJoin``
 objects, and customized MultiFab component splitting.
 
 **General Concepts**
-====================
+--------------------
 
 An AMReX program consists of a set of MPI ranks cooperating together on
 distributed data.
@@ -32,7 +31,7 @@ an independent task to compute in parallel with each other.
 After all of the forked child tasks complete, they synchronize
 (i.e. `join`), and the parent task continues execution as before.
 
-.. figure:: fork_join_tasks.png
+.. figure:: figs/fork_join_tasks.png
    :scale: 50 %
    :alt: Fork-Join Tasks
 
@@ -47,7 +46,7 @@ This approach enables heterogeneous computation and reduces the strong
 scaling penalty for operations with less inherent parallelism or with
 large communication overheads.
 
-.. figure:: nested_fork_join_tasks.png
+.. figure:: figs/nested_fork_join_tasks.png
    :scale: 50 %
    :alt: Nested Fork-Join Tasks
 
@@ -64,7 +63,7 @@ When the program starts, all of the ranks in the MPI communicator are
 in the root task.
 
 **ForkJoin/Simple**
-===================
+-------------------
 
 The main function in this tutorial is in ``MyTest.cpp:runTest()``.
 It does the following things:
@@ -81,6 +80,10 @@ the number (or percent) of ranks to include in each of the subtasks.
 There are member functions of the ``ForkJoin`` object to set each of
 these behaviors.
 Both of these calls may be omitted to accept default values.
+Since the forked tasks run in parallel, their output to stdout
+is interleaved and may be difficult to read.
+By specifying a task output directory, the output from each task
+is written to its own file (in addition to stdout).
 
 3. Register three MultiFab data structures:
 The ``ForkJoin`` object needs to know what data will be utilized within the
@@ -94,12 +97,16 @@ in only a ``single`` subtask.
 forked subtasks, and controls whether the data is copied in and/or out
 of the subtask from the calling task.
 
-.. figure:: mf_remap_hires.png
+.. figure:: figs/mf_remap_hires.png
    :scale: 50 %
    :alt: Examples of how to register MultiFabs
 
    Examples of how a MultiFab can be registered for a fork-join operation
    with varying Strategy and Intent.
+
+During registration, the number of ghost cells in each dimension is
+also specified, along with the ID of the owner task in the case that
+``Strategy == single``.
 
 4. Invoke the fork_join operation by calling ``myFunction`` in every task:
 The fork_join function launches the passed function (or lambda) on
@@ -111,6 +118,38 @@ component bounds of a registered MultiFab.
 The tutorial's ``myFunction`` demonstrates these capabilities.
 
 **ForkJoin/MLMG**
-=================
+-----------------
 
+This tutorial demonstrates some more advanced fork-join usage:
 
+1. Nested fork-join: ``top_fork()`` invokes the first level fork-join,
+   which assigns one rank to the task 0 and the rest of the ranks to task 1
+   via the constructor: ``ForkJoin fj(Vector<int> {1, proc_n - 1});``.
+   Task 1 then calls ``fork_solve()``, which further forks the task
+   into sub-tasks.
+
+2. Passing a lambda function to ``ForkJoin::fork_join()`` and heterogeneous tasking:
+   In ``top_fork()``, we pass a lambda that takes the ForkJoin object
+   reference as an argument.
+   The ForkJoin object can be queried for the task ID, which is used to
+   dispatch to different tasks for heterogeneous task execution.
+
+3. Custom component splitting: if a MultiFab is registered with
+   ``Strategy == split``, then all the components of the MultiFab are
+   split as evenly as possible across the tasks.
+   In some cases, it may be desirable to either omit some components
+   entirely or split the components in an uneven fashion.
+   In ``fork_solve``, we demonstrate how to specify a custom component
+   split across the tasks by using the ``modify_split`` member function
+   of the ForkJoin object after a MultiFab has been registered.
+   The ``modify_split`` function takes a ``Vector`` of ``ComponentSet``
+   objects, each specifying the custom range of components to be passed
+   to the task.
+
+4. Reusing ForkJoin objects: if several successive fork-join operations
+   are required with the same subranks and MultiFab access pattern,
+   we can reuse the ForkJoin object across multiple invocations.
+   Reusing the ForkJoin object avoids unnecessary overhead of recreating
+   the forked data structures and metadata associated with the operation.
+   The ``fork_solve()`` function demonstrates this capability by invoking
+   ``fork_join()`` for two iterations.
