@@ -66,11 +66,7 @@ MyTest::runTest ()
     fj.reg_mf(data_single,"data_single",ForkJoin::Strategy::single,ForkJoin::Intent::in,{ng,ng,ng},n_tasks-1);
     fj.reg_mf(data_all,"data_all",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in,{ng,ng,ng});
 
-    fj.fork_join(
-        [] (ForkJoin &f) {
-            myFunction(f);
-        }
-        );
+    fj.fork_join(myFunction);
 }
 
 void
