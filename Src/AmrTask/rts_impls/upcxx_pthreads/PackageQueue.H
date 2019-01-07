@@ -18,6 +18,7 @@ public:
   volatile bool completed; //message transfer is done
   volatile bool served; //message transfer request has been served but may have not completed
   volatile bool notified;
+  int tag;
   CommRequest *request; //!for inter-process communication 
   Package();
   ~Package();

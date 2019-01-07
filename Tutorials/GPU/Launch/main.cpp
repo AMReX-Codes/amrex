@@ -44,6 +44,19 @@ void main_main ()
         });
     }
 
+    // launch C++ kernel on vector to add 1
+    {
+        int size = 100;
+        amrex::Gpu::ManagedVector<int> ones(size, 0); 
+        const auto data = ones.dataPtr();
+        AMREX_LAUNCH_DEVICE_LAMBDA(size, iter,
+        {
+            data[iter] = data[iter] + 1;
+        });
+
+        Gpu::Device::synchronize();
+    }
+
 #ifdef AMREX_USE_CUDA_FORTRAN
     // launch CUDA Fortran kernel to add 1 if supported
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -70,4 +83,5 @@ void main_main ()
                     BL_TO_FORTRAN_ANYD(fab));
     }
 #endif
+
 }

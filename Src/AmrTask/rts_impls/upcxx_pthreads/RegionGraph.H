@@ -29,12 +29,10 @@ namespace amrex{
 		next=0;
 		prev=0;
 		graphPartner=0;
-    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 	    }
             ~FabCopyAssoc()
             {
                 if(next) delete next;
-        memcheck.remove(memcheck.genKey(this));
             }
     };
 
@@ -73,7 +71,6 @@ namespace amrex{
 		numDepTasksCompleted = 0;
 		cpAsc_srcHead=0;
 		cpAsc_dstHead=0;
-    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 	    }
 
 	    ~Task()
@@ -84,7 +81,6 @@ namespace amrex{
 		    delete cpAsc_srcHead;
 		if(cpAsc_dstHead != 0)
 		    delete cpAsc_dstHead;
-        memcheck.remove(memcheck.genKey(this));
 	    }
     };
 
@@ -123,7 +119,6 @@ namespace amrex{
 		:
 		    next(0)
 	{
-    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 }
 
 	    void alloc_CopyMap(const MultiFab& mf)
@@ -150,7 +145,6 @@ namespace amrex{
 		map.clear();
 		if(next !=0 )
 		    delete next;
-        memcheck.remove(memcheck.genKey(this));
 	    }
     };
 

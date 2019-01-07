@@ -106,8 +106,8 @@ MultiFab::Add (MultiFab&       dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox const* srcFab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-        FArrayBox      * dstFab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+        FArrayBox const* srcFab = src.fabPtr(mfi);
+        FArrayBox      * dstFab = dst.fabPtr(mfi);
 
         if (bx.ok())
         {
@@ -150,8 +150,8 @@ MultiFab::Copy (MultiFab&       dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox const* srcFab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-        FArrayBox      * dstFab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+        FArrayBox const* srcFab = src.fabPtr(mfi);
+        FArrayBox      * dstFab = dst.fabPtr(mfi);
 
         if (bx.ok())
         {
@@ -221,8 +221,8 @@ MultiFab::Subtract (MultiFab&       dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox const* srcFab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-        FArrayBox      * dstFab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+        FArrayBox const* srcFab = src.fabPtr(mfi);
+        FArrayBox      * dstFab = dst.fabPtr(mfi);
 
         if (bx.ok())
         {
@@ -265,8 +265,8 @@ MultiFab::Multiply (MultiFab&       dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox const* srcFab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-        FArrayBox      * dstFab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+        FArrayBox const* srcFab = src.fabPtr(mfi);
+        FArrayBox      * dstFab = dst.fabPtr(mfi);
 
         if (bx.ok())
         {
@@ -309,8 +309,8 @@ MultiFab::Divide (MultiFab&       dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox const* srcFab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-        FArrayBox      * dstFab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+        FArrayBox const* srcFab = src.fabPtr(mfi);
+        FArrayBox      * dstFab = dst.fabPtr(mfi);
 
         if (bx.ok())
         {
@@ -345,8 +345,8 @@ MultiFab::Saxpy (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok()) {
-            FArrayBox const* sfab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-            FArrayBox      * dfab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+            FArrayBox const* sfab = src.fabPtr(mfi);
+            FArrayBox      * dfab = dst.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
@@ -379,8 +379,8 @@ MultiFab::Xpay (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok()) {
-            FArrayBox const* sfab = Gpu::notInLaunchRegion() ? &(src[mfi]) : src.fabPtr(mfi);
-            FArrayBox      * dfab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+            FArrayBox const* sfab = src.fabPtr(mfi);
+            FArrayBox      * dfab = dst.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
@@ -418,9 +418,9 @@ MultiFab::LinComb (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	
         if (bx.ok()) {
-            FArrayBox const* xfab = Gpu::notInLaunchRegion() ? &(x  [mfi]) :   x.fabPtr(mfi);
-            FArrayBox const* yfab = Gpu::notInLaunchRegion() ? &(y  [mfi]) :   y.fabPtr(mfi);
-            FArrayBox      * dfab = Gpu::notInLaunchRegion() ? &(dst[mfi]) : dst.fabPtr(mfi);
+            FArrayBox const* xfab =   x.fabPtr(mfi);
+            FArrayBox const* yfab =   y.fabPtr(mfi);
+            FArrayBox      * dfab = dst.fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
                 dfab->linComb(*xfab,tbx,xcomp,*yfab,tbx,ycomp,a,b,tbx,dstcomp,numcomp);
@@ -455,9 +455,9 @@ MultiFab::AddProduct (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	
         if (bx.ok()) {
-            FArrayBox const* s1fab = Gpu::notInLaunchRegion() ? &(src1[mfi]) : src1.fabPtr(mfi);
-            FArrayBox const* s2fab = Gpu::notInLaunchRegion() ? &(src2[mfi]) : src2.fabPtr(mfi);
-            FArrayBox      *  dfab = Gpu::notInLaunchRegion() ? &(dst [mfi]) :  dst.fabPtr(mfi);
+            FArrayBox const* s1fab = src1.fabPtr(mfi);
+            FArrayBox const* s2fab = src2.fabPtr(mfi);
+            FArrayBox      *  dfab =  dst.fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
             {
@@ -645,7 +645,7 @@ MultiFab::initVal ()
 #endif
     for (MFIter mfi(*this, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &((*this)[mfi]) : this->fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
 	fab->initVal();
     }
 }
@@ -840,7 +840,7 @@ MultiFab::minIndex (int comp,
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            const FArrayBox* fab = this->fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
@@ -856,7 +856,7 @@ MultiFab::minIndex (int comp,
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            const FArrayBox* fab = this->fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
@@ -931,7 +931,7 @@ MultiFab::maxIndex (int comp,
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            const FArrayBox* fab = this->fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
@@ -947,7 +947,7 @@ MultiFab::maxIndex (int comp,
 	for (MFIter mfi(*this); mfi.isValid(); ++mfi)
 	{
 	    const Box& bx = amrex::grow(mfi.validbox(),nghost);
-            const FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            const FArrayBox* fab = this->fabPtr(mfi);
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
@@ -1189,7 +1189,7 @@ MultiFab::plus (Real val,
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->plus(val, tbx, comp, num_comp);
@@ -1214,7 +1214,7 @@ MultiFab::plus (Real       val,
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& b = mfi.growntilebox(nghost) & region;
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
         if (b.ok()) {
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
@@ -1249,7 +1249,7 @@ MultiFab::mult (Real val,
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->mult(val, tbx, comp, num_comp);
@@ -1276,7 +1276,7 @@ MultiFab::mult (Real       val,
         const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok()) {
-            FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            FArrayBox* fab = this->fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->mult(val, tbx, comp, num_comp);
@@ -1301,7 +1301,7 @@ MultiFab::invert (Real numerator,
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->invert(numerator, tbx, comp, num_comp);
@@ -1328,7 +1328,7 @@ MultiFab::invert (Real       numerator,
         const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok()) {
-            FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            FArrayBox* fab = this->fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->invert(numerator, tbx, comp, num_comp);
@@ -1351,7 +1351,7 @@ MultiFab::negate (int comp,
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->negate(tbx, comp, num_comp);
@@ -1376,7 +1376,7 @@ MultiFab::negate (const Box& region,
         const Box& b = mfi.growntilebox(nghost) & region;
 
         if (b.ok()) {
-            FArrayBox* fab = Gpu::notInLaunchRegion() ? &(get(mfi)) : this->fabPtr(mfi);
+            FArrayBox* fab = this->fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA( b, tbx,
             {
                 fab->negate(tbx, comp, num_comp);
@@ -1549,8 +1549,8 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
     for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox* fab = Gpu::notInLaunchRegion() ? &(*this)[mfi] : this->fabPtr(mfi);
-        IArrayBox const* ifab = Gpu::notInLaunchRegion() ? &(msk[mfi]) : msk.fabPtr(mfi);
+        FArrayBox* fab = this->fabPtr(mfi);
+        IArrayBox const* ifab = msk.fabPtr(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
         {
             fab->setValIfNot(0.0, tbx, *ifab, 0, ncomp);

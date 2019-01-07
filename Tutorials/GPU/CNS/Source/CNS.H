@@ -156,6 +156,8 @@ protected:
 
     static int refine_max_dengrad_lev;
     static amrex::Real refine_dengrad;
+
+    static amrex::Real gravity;
 };
 
 void cns_bcfill (amrex::Box const& bx, amrex::FArrayBox& data,

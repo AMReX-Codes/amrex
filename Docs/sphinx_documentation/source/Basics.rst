@@ -23,6 +23,8 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
+.. _sec:basics:vecandarr:
+
 Vector and Array
 ================
 
@@ -1651,7 +1653,7 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 Fortran, C and C++ Kernels
 ==========================
 
-In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
+In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
 data. In each iteration, a kernel function is called to work on the data and
 the work region is specified by a :cpp:`Box`.  When tiling is used, the work
@@ -1659,11 +1661,10 @@ region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
 :cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
 arrays.  Fortran is often used for writing these kernels because of its
-native multi-dimensional array support.  To C++, these kernel
-functions are C functions, whose function 
-signatures are typically declared in a header file named ``*_f.H`` or
-``*_F.H``. We recommend the users to follow this convention.  Examples of these
-function declarations are as follows.
+native multi-dimensional array support.  To C++, these kernel functions are 
+C functions, whose function signatures are typically declared in a header file
+named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
+Examples of these function declarations are as follows.
 
 .. highlight:: c++
 
@@ -1867,14 +1868,17 @@ details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
 these limitations, it is recommended to use the type check tool and
 report issues to us.
 
-Writing kernels in C++ is also an option.  AMReX provides
-multi-dimensional array type of syntax.  Below is an example.
+.. _sec:basics:cppkernel:
+
+Writing kernels in C++ is also an option.  AMReX provides a
+multi-dimensional array type of syntax, similar to Fortran,
+that is readable and easy to implement. An example is given below: 
 
 .. highlight:: c++
 
 ::
 
-    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2,
+    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2)
     {
         const auto len = length(bx);
         const auto lo  = lbound(bx);
@@ -1897,21 +1901,40 @@ multi-dimensional array type of syntax.  Below is an example.
         f(box, mf1[mfi], mf2[mfi]);
     }
 
-Here, we pass a :cpp:`Box` and two :cpp:`FArrayBox`\ es to a C++ kernel
-function.  In the function, we use function :cpp:`amrex::length` to
-get the length of the loops and function :cpp:`amrex::lbound` to get
-the lower end of the :cpp:`Box`.  Both functions' return type is
-:cpp:`amrex::Dim3`, a Plain Old Data type containing three integers.
-Function :cpp:`FArrayBox::view` returns :cpp:`FabView<FArrayBox>` that
-can be used to access the data.  Note that the view is shifted such
-that index 0 points to the lower end of the :cpp:`Box`.  To obtain the
-global index, we can compute with say ``i+lo.x``.  We put
-``AMREX_PRAGMA_SIMD`` macro above the innermost loop to notify the
-compiler that it is safe to vectorize the loop.  The macro generates
-compiler dependent pragma, and their exact effect on the compiler is
+A :cpp:`Box` and two :cpp:`FArrayBox`\ es are passed to a C++ kernel 
+function.  In the function, :cpp:`amrex::length` is called to calculate
+and store the three-dimensional length of the loops based on the size
+of ``bx``. :cpp:`amrex::lbound` is called to get the lower bound of 
+the :cpp:`Box`.  Both functions' return type is :cpp:`amrex::Dim3`, a 
+Plain Old Data type containing three integers.  The result of 
+:cpp:`amrex::lbound` is then passed to :cpp:`FArrayBox::view` to 
+create a :cpp:`FabView<FArrayBox>` that can be used to access the data.
+
+:cpp:`FabView<FArrayBox>` is an AMReX class that contains a pointer to the
+appropriate place in the global :cpp:`FArrayBox` as well as an 
+:cpp:`operator()` that translates the three dimensional coordinates to 
+the appropriate location in the one-dimensional array.  It also translates
+between the global domain contained in the :cpp:`FArrayBox` and the local
+work space defined by the :cpp:`lo` array.   
+
+We put ``AMREX_PRAGMA_SIMD`` macro above the innermost loop to notify
+the compiler that it is safe to vectorize the loop.  This should be done
+whenever possible to achieve the best performacne. The macro generates
+a compiler dependent pragma and their exact effect on the compiler is
 also compiler dependent.  It should be emphasized that using the
-``AMREX_PRAGMA_SIMD`` macro on loops that are not safe for
-vectorization is a mistake.
+``AMREX_PRAGMA_SIMD`` macro on loops that are not safe for vectorization
+will lead to a variety of errors, so if unsure about the loop, test and
+verify before adding the macro.
+
+Note that the view is shifted such that index 0 points to the lower 
+end of the :cpp:`Box`.  To obtain the global index, the values needs to
+shifted back using the appropriate :cpp:`lo`. In the case of the example
+above, the global indices are: ``(i+lo.x, j+lo.y, k+lo.z)``. 
+
+Also: be careful to use the appropriate :cpp:`lo` array for each 
+:cpp:`FabView` object. If the loop works on two different global ranges,
+each :cpp:`FabView` object must be created with the corresponding 
+:cpp:`lo` to obtain the correct data pointers.
 
 Ghost Cells
 ===========
