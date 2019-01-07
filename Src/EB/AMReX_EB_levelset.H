@@ -21,8 +21,8 @@ class LSFactory {
     private:
 
         // MultiFab pointers storing level-set data
-        //    -> ls_phi: nodal MultiFab storing signed distance function to the
-        //               nearest wall
+        //    -> ls_grid: nodal MultiFab storing signed distance function to the
+        //                nearest wall
         //    -> ls_valid: cell-centered iMultiFab storing integer flags
         //                 assuming the following values:
         //         -1 : not all nodes around cell have been initialized
@@ -62,10 +62,6 @@ class LSFactory {
 
         // Cell size of the refined grids
         const RealVect dx_vect, dx_eb_vect;
-
-        // std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
-        // std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
-        //                                         const BoxArray & ba, const DistributionMapping & dm);
 
         //! Updates internal BoxArray and DistributionMapping given a
         //! "reference" BoxArray at a coarser level. Uses `ls_grid_ref` and
@@ -122,7 +118,7 @@ class LSFactory {
          ***********************************************************************/
 
         //! Fills level-set MultiFab `data` locally from EBFArrayBoxFactory
-        //! `eb_factory`. Same as `fill_data_loc` but with cubic EB search box.
+        //! `eb_factory`. Same as `fill_data` but with cubic EB search box.
         static void fill_data (MultiFab & data, iMultiFab & valid,
                                const EBFArrayBoxFactory & eb_factory,
                                const MultiFab & eb_impfunc,
@@ -233,31 +229,44 @@ class LSFactory {
         std::unique_ptr<iMultiFab> Union(const MultiFab & mf_impfunc,
                                          bool apply_threshold = false);
 
-        // std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
-        //                                             const MultiFab & mf_impfunc);
-        // std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
-        //                                      const MultiFab & mf_impfunc);
-        // std::unique_ptr<iMultiFab> intersection_impfunc(const MultiFab & mf_impfunc);
-        // std::unique_ptr<iMultiFab> union_impfunc(const MultiFab & mf_impfunc);
-
-        // Update internal `ls_phi` and `ls_valid` based on the min of `ls_phi`
-        // and `ls_in`
+        //! Update internal `ls_grid`` and `ls_valid` taking the min of
+        //! `ls_grid` and `ls_in`
         void update_intersection(const MultiFab & ls_in, const iMultiFab & valid_in);
+
+        //! Update internal `ls_grid`` and `ls_valid` taking the max of
+        //! `ls_grid` and `ls_in`
         void update_union(const MultiFab & ls_in, const iMultiFab & valid_in);
 
-        // Return level-set data
+        //! Return mutable pointer to level-set data
+              MultiFab *  get_data()       {return ls_grid.get();};
+        //! Return constant pointer to level-set data
         const MultiFab *  get_data() const {return ls_grid.get();};
+        //! Return constant pointer to level-set data
         const iMultiFab * get_valid() const {return ls_valid.get();};
 
-        // Copy level-set data
+        //! Copy level-set data into a new MultiFab with BoxArray matching the
+        //! LSFactory `ls_ba`, and DistributionMapping `dm`. Returns a
+        //! unique_ptr to the new MultiFab.
         std::unique_ptr<MultiFab>  copy_data(const DistributionMapping & dm) const;
+
+        //! Copy level-set valid tags into a new iMultiFab with BoxArray
+        //! matching the LSFactory `ls_ba`, and DistributionMapping `dm`.
+        //! Returns a unique_ptr to the new iMultiFab.
         std::unique_ptr<iMultiFab> copy_valid(const DistributionMapping & dm) const;
+
+        //! Coarsen level-set data by a coarsening ration of `ls_grid_ref`. The
+        //! coarsened data is saved into a new MultiFab with coarsened version
+        //! of the LSFactory BoxArray `ls_ba`, and DistributionMapping `dm_ls`.
+        //! Returns a unique_ptr to the new MultiFab.
         std::unique_ptr<MultiFab>  coarsen_data() const;
 
-        // Return grid parameters
+        //! Return level-set refinement
         int get_ls_ref() const {return ls_grid_ref;};
+        //! Return level-set ghost cells (in units of the refined grid)
         int get_ls_pad() const {return ls_grid_pad;};
+        //! Return EB grid refinement
         int get_eb_ref() const {return eb_grid_ref;};
+        //! Return EB-grid ghost cells (in units of the refined eb-grid)
         int get_eb_pad() const {return eb_grid_pad;};
 
         // Return AMR level
@@ -300,6 +309,11 @@ class GShopLSFactory {
               m_ls_ba(level_set.get_ls_ba()),
               m_ls_dm(level_set.get_dm()),
               m_ls_pad(level_set.get_ls_pad())
+        {}
+
+        GShopLSFactory (const EB2::GeometryShop<F> & gshop, const Geometry & geom,
+                        const BoxArray & ba, const DistributionMapping & dm, int ls_pad)
+            :m_gshop(gshop), m_geom(geom), m_ls_ba(ba), m_ls_dm(dm), m_ls_pad(ls_pad)
         {}
 
         //! Fill MultiFab (with the same CellSize, BoxArray,
