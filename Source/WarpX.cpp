@@ -708,7 +708,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
         current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
 
-        const auto& cperiod = Geom(lev).periodicity();
+        const auto& cperiod = Geom(lev-1).periodicity();
         current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
         current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
         current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
