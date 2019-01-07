@@ -246,6 +246,7 @@ class LSFactory {
         void update_union(const MultiFab & ls_in, const iMultiFab & valid_in);
 
         // Return level-set data
+              MultiFab *  get_data()       {return ls_grid.get();};
         const MultiFab *  get_data() const {return ls_grid.get();};
         const iMultiFab * get_valid() const {return ls_valid.get();};
 
