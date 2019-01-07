@@ -2,6 +2,7 @@
 #define CNS_HYDRO_K_H_
 
 #include "CNS_index_macros.H"
+#include "CNS_parm.H"
 #include <AMReX_FArrayBox.H>
 #include <cmath>
 
@@ -15,15 +16,11 @@ cns_ctoprim (amrex::Box const& bx, amrex::FArrayBox const& ufab, amrex::FArrayBo
     const auto u = ufab.view(lo);
     const auto q = qfab.view(lo);
 
-    const amrex::Real smallr = 1.e-19;
-    const amrex::Real smallp = 1.e-10;
-    const amrex::Real gamma = 1.4;
-
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = 0; i < len.x; ++i) {
-                amrex::Real rho = amrex::max(u(i,j,k,URHO),smallr);
+                amrex::Real rho = amrex::max(u(i,j,k,URHO),Parm::smallr);
                 amrex::Real rhoinv = 1.0/rho;
                 amrex::Real ux = u(i,j,k,UMX)*rhoinv;
                 amrex::Real uy = u(i,j,k,UMY)*rhoinv;
@@ -31,7 +28,7 @@ cns_ctoprim (amrex::Box const& bx, amrex::FArrayBox const& ufab, amrex::FArrayBo
                 amrex::Real kineng = 0.5*rho*(ux*ux+uy*uy+uz*uz);
                 amrex::Real ei = u(i,j,k,UEDEN) - kineng;
                 if (ei <= 0.0) ei = u(i,j,k,UEINT);
-                amrex::Real p = amrex::max((gamma-1.0)*ei,smallp);
+                amrex::Real p = amrex::max((Parm::eos_gamma-1.0)*ei,Parm::smallp);
                 ei *= rhoinv;
 
                 q(i,j,k,QRHO) = rho;
@@ -40,7 +37,7 @@ cns_ctoprim (amrex::Box const& bx, amrex::FArrayBox const& ufab, amrex::FArrayBo
                 q(i,j,k,QW) = uz;
                 q(i,j,k,QEINT) = ei;
                 q(i,j,k,QPRES) = p;
-                q(i,j,k,QCS) = std::sqrt(gamma*p*rhoinv);
+                q(i,j,k,QCS) = std::sqrt(Parm::eos_gamma*p*rhoinv);
                 q(i,j,k,QTEMP) = 0.0;
             }
         }
@@ -385,32 +382,29 @@ cns_riemann_x (amrex::Box const& bx, amrex::FArrayBox& fluxfab, amrex::FArrayBox
     const auto dq = dqfab.view(lo);
     const auto  q =  qfab.view(lo);
 
-    const amrex::Real smallr = 1.e-19;
-    const amrex::Real smallp = 1.e-10;
-    const amrex::Real gamma = 1.4;
-
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
                 amrex::Real cspeed = q(i-1,j,k,QCS);
                 amrex::Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,0)+dq(i-1,j,k,2))/cspeed + dq(i-1,j,k,1));
-                rl = amrex::max(rl, smallr);
+                rl = amrex::max(rl, Parm::smallr);
                 amrex::Real ul = q(i-1,j,k,QU) + 0.5 * ( (dq(i-1,j,k,2)-dq(i-1,j,k,0))/q(i-1,j,k,QRHO));
                 amrex::Real pl = q(i-1,j,k,QPRES) + 0.5 *  (dq(i-1,j,k,0)+dq(i-1,j,k,2))*cspeed;
-                pl = amrex::max(pl, smallp);
+                pl = amrex::max(pl, Parm::smallp);
                 amrex::Real ut1l = q(i-1,j,k,QV) + 0.5 * dq(i-1,j,k,3);
                 amrex::Real ut2l = q(i-1,j,k,QW) + 0.5 * dq(i-1,j,k,4);
              
                 cspeed = q(i,j,k,QCS);
                 amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = amrex::max(rr, smallr);
+                rr = amrex::max(rr, Parm::smallr);
                 amrex::Real ur = q(i,j,k,QU) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
                 amrex::Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = amrex::max(pr, smallp);
+                pr = amrex::max(pr, Parm::smallp);
                 amrex::Real ut1r = q(i,j,k,QV) - 0.5 * dq(i,j,k,3);
                 amrex::Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
-                riemann(gamma, smallp, smallr, rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
+                riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
+                        rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
                         fx(i,j,k,URHO), fx(i,j,k,UMX), fx(i,j,k,UMY), fx(i,j,k,UMZ), fx(i,j,k,UEDEN));
             }
         }
@@ -429,32 +423,29 @@ cns_riemann_y (amrex::Box const& bx, amrex::FArrayBox& fluxfab, amrex::FArrayBox
     const auto dq = dqfab.view(lo);
     const auto  q =  qfab.view(lo);
 
-    const amrex::Real smallr = 1.e-19;
-    const amrex::Real smallp = 1.e-10;
-    const amrex::Real gamma = 1.4;
-
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
                 amrex::Real cspeed = q(i,j-1,k,QCS);
                 amrex::Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,0)+dq(i,j-1,k,2))/cspeed + dq(i,j-1,k,1));
-                rl = amrex::max(rl, smallr);
+                rl = amrex::max(rl, Parm::smallr);
                 amrex::Real ul = q(i,j-1,k,QV) + 0.5 * ( (dq(i,j-1,k,2)-dq(i,j-1,k,0))/q(i,j-1,k,QRHO));
                 amrex::Real pl = q(i,j-1,k,QPRES) + 0.5 *  (dq(i,j-1,k,0)+dq(i,j-1,k,2))*cspeed;
-                pl = amrex::max(pl, smallp);
+                pl = amrex::max(pl, Parm::smallp);
                 amrex::Real ut1l = q(i,j-1,k,QU) + 0.5 * dq(i,j-1,k,3);
                 amrex::Real ut2l = q(i,j-1,k,QW) + 0.5 * dq(i,j-1,k,4);
 
                 cspeed = q(i,j,k,QCS);
                 amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = amrex::max(rr, smallr);
+                rr = amrex::max(rr, Parm::smallr);
                 amrex::Real ur = q(i,j,k,QV) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
                 amrex::Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = amrex::max(pr, smallp);
+                pr = amrex::max(pr, Parm::smallp);
                 amrex::Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
                 amrex::Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
-                riemann(gamma, smallp, smallr, rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
+                riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
+                        rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
                         fy(i,j,k,URHO), fy(i,j,k,UMY), fy(i,j,k,UMX), fy(i,j,k,UMZ), fy(i,j,k,UEDEN));
             }
         }
@@ -471,32 +462,29 @@ void cns_riemann_z (amrex::Box const& bx, amrex::FArrayBox& fluxfab, amrex::FArr
     const auto dq = dqfab.view(lo);
     const auto  q =  qfab.view(lo);
 
-    const amrex::Real smallr = 1.e-19;
-    const amrex::Real smallp = 1.e-10;
-    const amrex::Real gamma = 1.4;
-
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
                 amrex::Real cspeed = q(i,j,k-1,QCS);
                 amrex::Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,0)+dq(i,j,k-1,2))/cspeed + dq(i,j,k-1,1));
-                rl = amrex::max(rl, smallr);
+                rl = amrex::max(rl, Parm::smallr);
                 amrex::Real ul = q(i,j,k-1,QW) + 0.5 * ( (dq(i,j,k-1,2)-dq(i,j,k-1,0))/q(i,j,k-1,QRHO));
                 amrex::Real pl = q(i,j,k-1,QPRES) + 0.5 *  (dq(i,j,k-1,0)+dq(i,j,k-1,2))*cspeed;
-                pl = amrex::max(pl, smallp);
+                pl = amrex::max(pl, Parm::smallp);
                 amrex::Real ut1l = q(i,j,k-1,QU) + 0.5 * dq(i,j,k-1,3);
                 amrex::Real ut2l = q(i,j,k-1,QV) + 0.5 * dq(i,j,k-1,4);
                 
                 cspeed = q(i,j,k,QCS);
                 amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = amrex::max(rr, smallr);
+                rr = amrex::max(rr, Parm::smallr);
                 amrex::Real ur = q(i,j,k,QW) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
                 amrex::Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = amrex::max(pr, smallp);
+                pr = amrex::max(pr, Parm::smallp);
                 amrex::Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
                 amrex::Real ut2r = q(i,j,k,QV) - 0.5 * dq(i,j,k,4);
                 
-                riemann(gamma, smallp, smallr, rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
+                riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
+                        rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
                         fz(i,j,k,URHO), fz(i,j,k,UMZ), fz(i,j,k,UMX), fz(i,j,k,UMY), fz(i,j,k,UEDEN));
             }
         }
