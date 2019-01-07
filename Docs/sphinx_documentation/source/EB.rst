@@ -713,7 +713,7 @@ Fig. :numref:`fig::local_levelset`).
    EB2::GeometryShop<EB2::CylinderIF> cylinder_gshop(cylinder);
    
    // Build EB
-   EB2::Build(cylinder_gshop, eb_geom, max_level, max_level);
+   EB2::Build(cylinder_gshop, geom, max_level, max_level);
    const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
    const EB2::Level &      cylinder_lev  = cylinder_ebis.getLevel(geom);
 
@@ -745,13 +745,100 @@ the subsequent section.
 Using :cpp:`LSFactory`
 ----------------------
 
+In the previous section, we've seen that the level-set and EB grids can exist on
+different levels of refinement. The practical reason behind this is that
+sometimes we want to capture interactions that are very sensitive close to EBs,
+but this can sometimes be difficult to keep track off. Hence the
+:cpp:`LSFactory` can be helpful int taking care of all of these parameters.
 
-Using :cpp:`LSCore`
--------------------
+The basic principle of the :cpp:`LSFactory` (defined in
+`Src/EB/AMReX_EB_levelset.H`) is that it is created relative to some reference
+:cpp:`BoxArray ba`, :cpp:`Geometry geom`, and :cpp:`DistributionMapping dm`. The
+user then specifies refinement factors :cpp:`ls_ref` of the level-set data and
+:cpp:`eb_ref` of the EB grid. Calling the constructor:
+
+.. highlight:: c++
+
+::
+
+   LSFactory(int lev, int ls_ref, int eb_ref, int ls_pad, int eb_pad,
+             const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm,
+             int eb_tile_size = 32);
+
+Then creates all appropriate grids and geometries. Note that we can also specify
+the tile size used in the `LSFactory::fill_data` function.
+
+When a :cpp:`LSFacotry` is first created, it is set to :fortran:`huge(amrex_real)`. Ie. there are no surfaces, and so the level-set value is effectively infinite. It can then be filled just like in the previous section:
+
+.. highlight:: c++
+
+::
+
+   // Define refinement of level-set and EB
+   int ls_ref = 4;
+   int eb_ref = 1;
+
+   // Define nGrow of level-set and EB
+   int ls_pad = 1;
+   int eb_pad = 2;
+
+   // Define EB
+   EB2::CylinderIF cylinder(radius, centre, true);
+   EB2::GeometryShop<EB2::CylinderIF> cylinder_gshop(cylinder);
+
+   // Build level-set factory
+   LSFactory level_set(0, ls_ref, eb_ref, ls_pad, eb_pad, ba, geom, dm);
+
+   // Build EB
+   const Geometry & eb_geom = level_set.get_eb_geom()
+   EB2::Build(cylinder_gshop, eb_geom, max_level, max_level);
+
+   const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+   const EB2::Level &      cylinder_lev  = cylinder_ebis.getLevel(eb_geom);
+
+   // Build EB factory
+   EBFArrayBoxFactory eb_factory(cylinder_lev, eb_geom, level_set.get_eb_ba(), dm,
+                                 {level_set.get_eb_pad(), level_set.get_eb_pad(),
+                                  level_set.get_eb_pad()});
+
+   // Fill level-set (factory)
+   GShopLSFactory<EB2::CylinderIF> cylinder_lsgs(cylinder_ghsop, level_set);
+   std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_lsgs.fill_impfunc();
+   level_set.Fill(eb_factory, * cylinder_mf_impfunc);
+
+where the level-set data can now be accessed using:
+
+.. highlight:: c++
+
+::
+
+   const MultiFab * level_set_data = level_set.get_data();
+
+or alternatively a copy of the data can be generated using:
+
+.. highlight:: c++
+
+::
+
+   std::unique_ptr<MultiFab> level_set_data = level_set.copy_data();
+
+Both of the data above are on grids what have been refined by :cpp:`ls_ref`
+(with respect to the :cpp:`BoxArray ba`). In order to get a copy of the
+level-set data at the coarseness of the original grids, use:
+
+.. highlight:: c++
+
+::
+
+   std::unique_ptr<MultiFab> level_set_data_crse = level_set.coarsen_data();
 
 
-Utility Functions
------------------
+.. Using :cpp:`LSCore`
+.. -------------------
+
+
+.. Utility Functions
+.. -----------------
 
 
 Linear Solvers
