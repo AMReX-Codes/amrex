@@ -28,12 +28,12 @@ class ForkJoin
         int hi; // exclusive bound
     };
 
-    ForkJoin (const Vector<int> &task_rank_n, const std::string &a_task_output_dir = "");
+    ForkJoin (const Vector<int> &task_rank_n);
 
-    ForkJoin (const Vector<double> &task_rank_pct, const std::string &a_task_output_dir = "");
+    ForkJoin (const Vector<double> &task_rank_pct);
 
-    ForkJoin (int ntasks, const std::string& a_task_output_dir = "")
-        : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks), a_task_output_dir ) { }
+    ForkJoin (int ntasks)
+        : ForkJoin( Vector<double>(ntasks, 1.0 / ntasks) ) { }
 
     int NTasks () const { return split_bounds.size() - 1; }
 
@@ -109,6 +109,11 @@ class ForkJoin
         return result;
     }
 
+    void set_task_output_dir (const std::string & dir)
+    {
+        task_output_dir = dir;
+    }
+
     static void set_task_output_file (const std::string & filename)
     {
         ParallelContext::set_last_frame_ofs(filename);
@@ -118,10 +123,11 @@ class ForkJoin
     void fork_join (const F &fn)
     {
         const int io_rank = 0; // team's sub-rank 0 does IO
+        create_task_output_dir();
         MPI_Comm task_comm = split_tasks();
         copy_data_to_tasks(); // move data to local tasks
         ParallelContext::push(task_comm, task_me, io_rank);
-        set_task_output_file(get_fresh_io_filename());
+        set_task_output_file(get_io_filename());
         fn(*this);
         ParallelContext::pop();
 #ifdef BL_USE_MPI
@@ -159,9 +165,9 @@ class ForkJoin
     std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
     bool flag_verbose = false; // for debugging
-    std::string task_output_dir;
+    std::string task_output_dir = ""; // where to write task output
 
-    void init(const Vector<int> &task_rank_n, const std::string &task_output_dir);
+    void init(const Vector<int> &task_rank_n);
 
     // multiple MultiFabs may share the same box array
     // only compute the DM once per unique (box array, task) pair and cache it
@@ -180,8 +186,11 @@ class ForkJoin
     // split top frame of stack
     MPI_Comm split_tasks ();
 
+    // create the task output directory
+    void create_task_output_dir ();
+
     // unique output file for this sub-task
-    std::string get_fresh_io_filename ();
+    std::string get_io_filename (bool flag_unique = false);
 };
 
 }
