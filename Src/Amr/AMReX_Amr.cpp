@@ -2029,7 +2029,6 @@ Amr::timeStep (int  level,
         }
 #ifdef USE_PERILLA
 	if(cnt){
-memcheck.report();
 	    if(ParallelDescriptor::NProcs()>1){
 	        Perilla::clearTagMap();
 	        Perilla::clearMyTagMap();
@@ -2039,8 +2038,8 @@ memcheck.report();
             }
             for(int i=0; i<= finest_level; i++){
                 getLevel(i).initPerilla(cumtime);
- 	        Perilla::updateMetadata_done++;
 	    }
+ 	    Perilla::updateMetadata_done++;
 	}
         delete metadataChanged;
 #endif
@@ -2255,6 +2254,8 @@ Amr::coarseTimeStep (Real stop_time)
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
 		{
                     Perilla::syncProcesses();
+    		    for(int g=0; g<flattenedGraphArray.size(); g++)
+	    		flattenedGraphArray[g]->graphTeardown();
 	            flattenedGraphArray.clear();
                     Perilla::syncProcesses();
                     break;
@@ -2282,7 +2283,7 @@ Amr::coarseTimeStep (Real stop_time)
 #endif
 	        Perilla::syncProcesses();
 	        Perilla::updateMetadata_noticed=1;
-	        while(Perilla::updateMetadata_done!= (max_level+1)){
+	        while(Perilla::updateMetadata_done==0){//!= (max_level+1)){
 		
 	        }
 	        Perilla::updateMetadata_request=0;
