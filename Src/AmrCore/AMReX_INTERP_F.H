@@ -7,14 +7,6 @@
 extern "C"
 {
 #endif
-    void amrex_nbinterp (const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
-                        AMREX_ARLIM_P(cblo), AMREX_ARLIM_P(cbhi),
-                        amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
-                        AMREX_ARLIM_P(fblo), AMREX_ARLIM_P(fbhi),
-                        AMREX_D_DECL(const int* lrx,const int* lry,const int* lrz),
-                        const int* nvar, amrex_real* slope, const int* num_slope,
-                        const int* actual_comp, const int* actual_state);
-      
     void amrex_cbinterp (const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
                         AMREX_ARLIM_P(cblo), AMREX_ARLIM_P(cbhi),
                         amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
@@ -23,37 +15,6 @@ extern "C"
                         const int* nvar, amrex_real* slope, const int* num_slope,
                         amrex_real* strip, const int* strip_lo, const int* strip_hi,
                         const int* actual_comp, const int* actual_state);
-
-    void amrex_ccinterp (amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
-                        AMREX_ARLIM_P(fblo), AMREX_ARLIM_P(fbhi),
-                        const int* nvar,
-                        AMREX_D_DECL(const int* lrx,const int* lry,const int* lrz),
-                        const amrex_real* crse, const int* clo, const int* chi,
-                        AMREX_ARLIM_P(cblo), AMREX_ARLIM_P(cbhi),
-                        const int* fslo, const int* fshi,
-                        amrex_real* cslope, const int* clen,
-                        amrex_real* fslope, amrex_real* fdat, const int* flen,
-                        amrex_real* voff,
-                        const int* bc, const int* lim_slope,
-                        AMREX_D_DECL(const amrex_real* fvcx,const amrex_real* fvcy, const amrex_real* fvcz),
-                        AMREX_D_DECL(const amrex_real* cvcx,const amrex_real* cvcy, const amrex_real* cvcz),
-                        amrex_real* cmax, amrex_real* cmin, amrex_real* alpha,
-                        const int* actual_comp, const int* actual_state);
-
-    void amrex_ccinterp2 (amrex_real* fine, const int* flo, const int* fhi,
-                         AMREX_ARLIM_P(fblo), AMREX_ARLIM_P(fbhi),
-                         const int* nvar,
-                         AMREX_D_DECL(const int* lrx,const int* lry,const int* lrz),
-                         const amrex_real* crse, const int* clo, const int* chi,
-                         AMREX_ARLIM_P(cblo), AMREX_ARLIM_P(cbhi),
-                         const int* fslo, const int* fshi,
-                         amrex_real* cslope, const int* clen,
-                         amrex_real* fslope, amrex_real* fdat, const int* flen,
-                         amrex_real* voff,
-                         const int* bc, const int* lim_slope,
-                         AMREX_D_DECL(const amrex_real* fvcx,const amrex_real* fvcy, const amrex_real* fvcz),
-                         AMREX_D_DECL(const amrex_real* cvcx,const amrex_real* cvcy, const amrex_real* cvcz),
-                         const int* actual_comp, const int* actual_state);
 
     void amrex_cqinterp (amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
                         AMREX_ARLIM_P(fblo), AMREX_ARLIM_P(fbhi),
