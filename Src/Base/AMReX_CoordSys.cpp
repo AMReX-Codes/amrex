@@ -7,11 +7,10 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#if (AMREX_SPACEDIM==2)
 namespace {
-    constexpr double RZFACTOR = 2*3.14159265358979323846264338327950288;
+    constexpr double  TWOPI = 2.*3.14159265358979323846264338327950288;
+    constexpr double FOURPI = 4.*3.14159265358979323846264338327950288;
 }
-#endif
 
 namespace amrex {
 
@@ -364,8 +363,8 @@ CoordSys::SetFaceArea (FArrayBox& area,
 
 void
 CoordSys::GetEdgeLoc (Vector<Real>& loc, 
-                      const Box&   region,
-                      int          dir) const 
+                      const Box&    region,
+                      int           dir) const
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
@@ -374,6 +373,7 @@ CoordSys::GetEdgeLoc (Vector<Real>& loc,
     int len       = hi[dir] - lo[dir] + 2;
     Real off      = offset[dir] + dx[dir]*lo[dir];
     loc.resize(len);
+    AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
         loc[i] = off + dx[dir]*i;
@@ -392,6 +392,7 @@ CoordSys::GetCellLoc (Vector<Real>& loc,
     int len       = hi[dir] - lo[dir] + 1;
     Real off = offset[dir] + dx[dir]*(0.5 + (Real)lo[dir]);
     loc.resize(len);
+    AMREX_PRAGMA_SIMD
     for (int i = 0; i < len; i++)
     {
         loc[i] = off + dx[dir]*i;
@@ -415,21 +416,21 @@ CoordSys::GetEdgeVolCoord (Vector<Real>& vc,
     if (dir == 0 && c_sys == RZ)
     {
         int len = vc.size();
+        AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
             Real r = vc[i];
             vc[i] = 0.5*r*r;
         }
     }
-    else
+#elif (AMREX_SPACEDIM == 1)
+    if (c_sys == SPHERICAL)
     {
-        if(dir == 0 && c_sys == SPHERICAL) {
-            int len = vc.size();
-            int i;
-            for (i = 0; i < len; i++) {
-                Real r = vc[i];
-                vc[i] = 0.3*r*r*r;
-            }
+        int len = vc.size();
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len; i++) {
+            Real r = vc[i];
+            vc[i] = FOURPI/3.*r*r*r;
         }
     }
 #endif    
@@ -452,21 +453,20 @@ CoordSys::GetCellVolCoord (Vector<Real>& vc,
     if (dir == 0 && c_sys == RZ)
     {
         int len = vc.size();
+        AMREX_PRAGMA_SIMD
         for (int i = 0; i < len; i++)
         {
             Real r = vc[i];
             vc[i] = 0.5*r*r;
         }
     }
-    else
-    {
-        if(dir == 0 && c_sys == SPHERICAL) {
-            int len = vc.size();
-            int i;
-            for (i = 0; i < len; i++) {
-                Real r = vc[i];
-                vc[i] = 0.3*r*r*r;
-            }
+#elif (AMREX_SPACEDIM == 1)
+    if (c_sys == SPHERICAL) {
+        int len = vc.size();
+        AMREX_PRAGMA_SIMD
+        for (int i = 0; i < len; i++) {
+            Real r = vc[i];
+            vc[i] = FOURPI/3.*r*r*r;
         }
     }
 #endif    
@@ -538,7 +538,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
                       *(xhi[2]-xlo[2]));
 #if (AMREX_SPACEDIM==2)
     case RZ:
-        return (0.5*RZFACTOR)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
+        return (0.5*TWOPI)*(xhi[1]-xlo[1])*(xhi[0]*xhi[0]-xlo[0]*xlo[0]);
 #endif
     default:
         AMREX_ASSERT(0);
@@ -564,8 +564,8 @@ CoordSys::AreaLo (const IntVect& point,
         LoNode(point,xlo);
         switch (dir)
         {
-        case 0: return RZFACTOR*dx[1]*xlo[0];
-        case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*(0.5*RZFACTOR);
+        case 0: return TWOPI*dx[1]*xlo[0];
+        case 1: return ((xlo[0]+dx[0])*(xlo[0]+dx[0])-xlo[0]*xlo[0])*(0.5*TWOPI);
         }
     default:
         AMREX_ASSERT(0);
@@ -600,8 +600,8 @@ CoordSys::AreaHi (const IntVect& point,
         HiNode(point,xhi);
         switch (dir)
         {
-        case 0: return RZFACTOR*dx[1]*xhi[0];
-        case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*(RZFACTOR*0.5);
+        case 0: return TWOPI*dx[1]*xhi[0];
+        case 1: return (xhi[0]*xhi[0]-(xhi[0]-dx[0])*(xhi[0]-dx[0]))*(TWOPI*0.5);
         }
     default:
         AMREX_ASSERT(0);

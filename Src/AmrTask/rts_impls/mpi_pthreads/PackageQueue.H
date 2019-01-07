@@ -13,9 +13,9 @@ public:
   double *databuf;
   int bufSize;
   pthread_mutex_t packageLock;
-  bool completed; //message transfer is done
-  bool served; //message transfer request has been served but may have not completed
-  bool notified;
+  volatile bool completed; //message transfer is done
+  volatile bool served; //message transfer request has been served but may have not completed
+  volatile bool notified;
   MPI_Request request; //!for MPI
   Package();
   ~Package();
@@ -34,10 +34,10 @@ class PackageQueue
 {
 private:
   Package *buffer[perilla::MSG_QUEUE_DEFAULT_MAXSIZE];
-  int n;
-  int front;
-  int rear;
-  int prear;
+  volatile int n;
+  volatile int front;
+  volatile int rear;
+  volatile int prear;
   int max_size;
 public:  
   pthread_mutex_t queueLock;

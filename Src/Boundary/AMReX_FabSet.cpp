@@ -28,10 +28,16 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
-	    (*this)[fsi].copy(src[fsi], scomp, dcomp, ncomp);
+            const Box& bx = fsi.validbox();
+            FArrayBox const* srcfab =   src.fabPtr(fsi);
+            FArrayBox      * dstfab = this->fabPtr(fsi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                dstfab->copy(*srcfab, tbx, scomp, tbx, dcomp, ncomp);
+            });
 	}
     } else {
 	m_mf.copy(src.m_mf,scomp,dcomp,ncomp);
@@ -53,10 +59,16 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 {
     if (boxArray() == src.boxArray() && DistributionMap() == src.DistributionMap()) {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
-	    (*this)[fsi].plus(src[fsi], scomp, dcomp, ncomp);
+            const Box& bx = fsi.validbox();
+            FArrayBox const* srcfab =   src.fabPtr(fsi);
+            FArrayBox      * dstfab = this->fabPtr(fsi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                dstfab->plus(*srcfab, tbx, tbx, scomp, dcomp, ncomp);
+            });
 	}
     } else {
 	amrex::Abort("FabSet::plusFrom: parallel plusFrom not supported");
@@ -92,11 +104,17 @@ FabSet::plusTo (MultiFab& dest, int ngrow, int scomp, int dcomp, int ncomp,
 void
 FabSet::setVal (Real val)
 {
+    const int ncomp = nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
-	(this->m_mf)[fsi].setVal(val);
+        const Box& bx = fsi.validbox();
+        FArrayBox* fab = this->fabPtr(fsi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            fab->setVal(val, tbx, 0, ncomp);
+        });
     }
 }
 
@@ -104,11 +122,15 @@ void
 FabSet::setVal (Real val, int comp, int num_comp)
 {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
-	FArrayBox& fab = (this->m_mf)[fsi];
-	fab.setVal(val, fab.box(), comp, num_comp);
+        const Box& bx = fsi.validbox();
+        FArrayBox* fab = this->fabPtr(fsi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            fab->setVal(val, tbx, comp, num_comp);
+        });
     }
 }
 
@@ -120,15 +142,18 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
     BL_ASSERT(size() == src.size());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-	const FArrayBox& srcfab = src[fsi];
-	FArrayBox& dstfab = (*this)[fsi];
-	BL_ASSERT(srcfab.box() == dstfab.box());
-	dstfab.mult(a, dcomp, ncomp);
-	dstfab.saxpy(b, srcfab, srcfab.box(), dstfab.box(), scomp, dcomp, ncomp);
+        const Box& bx = fsi.validbox();
+        FArrayBox const* srcfab =   src.fabPtr(fsi);
+        FArrayBox      * dstfab = this->fabPtr(fsi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            dstfab->mult(a, tbx, dcomp, ncomp);
+            dstfab->saxpy(b, *srcfab, tbx, tbx, scomp, dcomp, ncomp);
+        });
     }
     return *this;
 }
@@ -150,28 +175,38 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     MultiFab bdryb(boxArray(),DistributionMap(),ncomp,0,MFInfo(),FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(bdrya); mfi.isValid(); ++mfi) // tiling is not safe for this BoxArray
     {
-        bdrya[mfi].setVal(1.e200);
-        bdryb[mfi].setVal(1.e200);
+        const Box& bx = mfi.validbox();
+        FArrayBox* afab = bdrya.fabPtr(mfi);
+        FArrayBox* bfab = bdryb.fabPtr(mfi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            afab->setVal(1.e200, tbx, 0, ncomp);
+            bfab->setVal(1.e200, tbx, 0, ncomp);
+        });
     }
 
     bdrya.copy(mfa,a_comp,0,ncomp,ngrow,0);
     bdryb.copy(mfb,b_comp,0,ncomp,ngrow,0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
-	const FArrayBox& afab = bdrya[fsi];
-	const FArrayBox& bfab = bdryb[fsi];
-	FArrayBox& dfab = (*this)[fsi];
-	dfab.linComb(afab, afab.box(), a_comp,
-		     bfab, bfab.box(), b_comp,
-		     a, b, dfab.box(), dcomp, ncomp);
+        const Box& bx = fsi.validbox();
+        FArrayBox const* afab = bdrya.fabPtr(fsi);
+        FArrayBox const* bfab = bdryb.fabPtr(fsi);
+        FArrayBox* dfab = this->fabPtr(fsi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            dfab->linComb(*afab, tbx, 0,
+                          *bfab, tbx, 0,
+                          a, b, tbx, dcomp, ncomp);
+        });
     }
 
     return *this;
@@ -199,10 +234,16 @@ FabSet::Copy (FabSet& dst, const FabSet& src)
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
     int ncomp = dst.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {
-	dst[fsi].copy(src[fsi], 0, 0, ncomp);
+        const Box& bx = fsi.validbox();
+        FArrayBox const* srcfab = src.fabPtr(fsi);
+        FArrayBox      * dstfab = dst.fabPtr(fsi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            dstfab->copy(*srcfab, tbx, 0, tbx, 0, ncomp);
+        });
     }
 }
 
