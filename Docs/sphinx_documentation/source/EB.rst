@@ -554,6 +554,206 @@ and getting neighbor information.  For example
     end do     
     end do     
 
+
+
+.. _sec:EB:LevelSet:
+
+Level Sets
+==========
+
+In order to speed up direct interactions with embedded boundaries, AMReX also
+provides a way to construct level-sets representing the signed distance function
+from the closest EB surface. In our implementation, the level-set data is stored
+as a 1-component nodal :cpp:`MultiFab` (cf. :ref:`sec:basics:multifab`) where
+each node stores its closest distance to the EB. The subroutine
+:fortran:`amrex_eb_interp_levelset` (in `/Scr/EB/AMREX_EB_levelset_F.F90`)
+interpolates the level-set :math:`\phi(\mathbf{r})` to any position
+:math:`\mathbf{r}` from the pre-computed level-set :cpp:`MultiFab`. Likewise the
+subroutine :fortran:`amrex_eb_normal_levelset` interpolated the normal
+:math:`\mathbf{\hat{n}}(\mathbf{r})` at any position from the derivative of the
+level-set function :math:`\mathbf{\hat{n}}(\mathbf{r}) = \nabla
+\phi(\mathrm{r})`. **Note** that since the normal is computed by taking the
+derivative of the interpolation function, it is discontinuous at positions
+corresponding to the nodal points of the level-set :cpp:`MultiFab` (i.e.
+:math:`\mathbf{r} = (i, j, k) \cdot h`).
+
+AMReX provides collection of functions and subroutines to fill single and
+multi-level level-set data. For convenience, the :cpp:`amrex::LSFactory` helps
+manage the level-set data for a single AMR level. And :cpp:`amrex::LSCore`
+manages multi-level level-set data. These are described in further detail below.
+
+
+A Note on Filling Level-Sets from :cpp:`EBFArrayBoxFactory`
+-----------------------------------------------------------
+
+The data stored in a :cpp:`EBFArrayBoxFactory`, represents the embedded boundary
+as a discrete collection of volume fraction, and area fractions over a grid.
+Here this is further simplified by thinking of the EB as a collection of planar
+facets. This means that for any given node in a grid, the nearest EB facet might
+be in another grid. Hence if the :cpp:`EBFArrayBoxFactory` has :cpp:`n_pad`
+ghost cells, then for any given grid, there could be EB facets that are
+:cpp:`n_pad + 1` cells away, and we would *not* "see". In other words, if the
+:cpp:`EBFArrayBoxFactory` is defined on a grid with spacing :math:`h`, then, and
+we do not have any EB facets in the current grid, then any node within that grid
+is *at least* :math:`(\mathrm{n_{pad}}+1)h` away from the nearest EB surface.
+
+Hence, when filling a level-set, it will "max-out" at
+:math:`\pm(\mathrm{n_{pad}}+1)h`. Hence it is recommended to think of this kind
+of level-set function as the point being "at least" :math:`\phi(\mathbf{r})`
+from the EB surface.
+
+.. _fig::local_levelset:
+
+.. figure:: ./EB/loc_ls_ex.png
+   :width: 50.0%
+
+   : Example of a "local" level-set representing a cylinder. The level-set
+   function is a (linear) signed distance function near the EB-surface, and it
+   plateaus further away from it.
+
+Figure :numref:`fig::local_levelset` shows an example of such a local level-set
+description. Only cells that are within :math:`\pm(\mathrm{n_{pad}}+1)h` of the
+EB surface are filled with a level-set. The rest is filled with lower (upper)
+bound. If the goal is capture interactions between the EB surface and a point
+somewhere else, this approach usually suffices as we only need to know if we are
+"far enough" from the EB in most applications.
+
+Since finding the closest distance between a point and an arbitrary surface is
+computationally expensive, we advice that :cpp:`n_pad` is chosen as the smallest
+necessary number for the application.
+
+
+
+Filling Level-Sets without :cpp:`LSFactory`
+-------------------------------------------
+
+The static function :cpp:`amrex::LSFactory::fill_data` (defined in
+`Src/EB/AMReX_EB_levelset.cpp`) fills a :cpp:`MultiFab` with the nodal level-set
+values and another :cpp:`iMultiFab` with integer tags that are 1 whenever a node
+is near the EB surface. It is then left up to the application to manage the
+level-set :cpp:`MultiFab`.
+
+AMReX defines its embedded surfaces using implicit functions (see above).
+Normally these implicit functions are usually *not* signed distance functions
+(i.e. their value at :math:`\mathbf{r}` is not the minimal distance to the EB
+surface). However, in rare cases such as the :cpp:`EB2::PlaneIF`, it is. In this
+case, the most straight-forward way to fill a level-set. If an signed-distance
+implicit function is know, and stored as a :cpp:`MultiFab mf_impfunc`, then we
+can use
+
+.. highlight:: c++
+
+::
+
+   static void fill_data (MultiFab & data, iMultiFab & valid,
+                          const MultiFab & mf_impfunc,
+                          int eb_pad, const Geometry & eb_geom);
+
+so then the function call
+
+.. highlight:: c++
+
+::
+
+   // Fill implicit function
+   GShopLSFactory<EB2::CylinderIF> cylinder_lsgs(cylinder_ghsop, geom, ba, dm, 0);
+   std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_lsgs.fill_impfunc();
+
+   
+   MultiFab ls_grid(ba, dm, 1, 0);
+   iMultiFab ls_valid(ba, dm, 1, 0);
+   amrex::LSFactory::fill_data(ls_grid, ls_valid, mf_impfunc, 2, geom_eb);
+
+fills a :cpp:`MultiFab ls_grid` with level-set data given the implicit function
+stored in the :cpp:`MultiFab mf_impfunc`, and a threshold of
+:cpp:`2*geom_eb.CellSize()`. The helper class :cpp:`GShopLSFactory` converts EB2
+implicit functions to :cpp:`MultiFabs` (defined in
+`Src/EB/AMReX_EB_levelset.H`).
+
+The much more interesting application of :cpp:`amrex::LSFactory::fill_data` is filling a level-set given a :cpp:`EBFArrayBoxFactory`:
+
+.. highlight:: c++
+
+::
+
+   static void fill_data (MultiFab & data, iMultiFab & valid,
+                          const EBFArrayBoxFactory & eb_factory,
+                          const MultiFab & eb_impfunc,
+                          const IntVect & ebt_size, int ls_ref, int eb_ref,
+                          const Geometry & geom, const Geometry & geom_eb);
+
+which fills the :cpp:`MultiFab data` with level-set data from the
+:cpp:`EBFArrayBoxFactory eb_factory`. Here the user must still supply the EB
+implicit function using the :cpp:`MultiFab eb_impfunc`, as this is used to
+determine the inside/outside when no EB facets can be found, or in special
+edge-cases. The user also needs to specify the tile size (:cpp:`IntVect
+ebt_size`), the level-set and EB refinement (i.e. the grid over which `data` is
+defined is refined by a factor of :cpp:`ls_ref/eb_ref` compared to the
+:cpp:`eb_factory` 's grid), and the Geometries :cpp:`geom` and :cpp:`geom_eb`
+corresponding to the grids of :cpp:`data` and :cpp:`eb_factory` respectively.
+
+When filling :cpp:`data`, a tile-size of `ebt_size` is used. Only EB facets
+within a tile (plus the :cpp:`eb_factory` 's ghost cells) are considered. Hence,
+chosing an appropriately small :cpp:`ebt_size` can significantly increase
+performance.
+
+Hence the following fills a level-set with a cylinder EB (like that shown in
+Fig. :numref:`fig::local_levelset`).
+
+.. highlight:: c++
+
+::
+
+   // Define nGrow of level-set and EB
+   int ls_pad = 1;
+   int eb_pad = 2;
+
+   // Define EB
+   EB2::CylinderIF cylinder(radius, centre, true);
+   EB2::GeometryShop<EB2::CylinderIF> cylinder_gshop(cylinder);
+   
+   // Build EB
+   EB2::Build(cylinder_gshop, eb_geom, max_level, max_level);
+   const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+   const EB2::Level &      cylinder_lev  = cylinder_ebis.getLevel(geom);
+
+   // Build EB factory
+   EBFArrayBoxFactory eb_factory(cylinder_lev, geom, ba, dm, {eb_pad, eb_pad, eb_pad});
+
+   // Fill implicit function
+   GShopLSFactory<EB2::CylinderIF> cylinder_lsgs(cylinder_ghsop, geom, ba, dm, ls_pad);
+   std::unique_ptr<MultiFab> cylinder_mf_impfunc = cylinder_lsgs.fill_impfunc();
+
+   // Fill level-set
+   MultiFab ls_grid(ba, dm, 1, ls_pad);
+   iMultiFab ls_valid(ba, dm, 1, ls_pad);
+   LSFactory::fill_data(ls_grid, ls_valid, eb_factory, * cylinder_mf_impfunc,
+                        ebt_size, 1, 1, geom, geom);
+
+Note that in theory the :cpp:`EBFArrayBoxFactory eb_factory` could be defined on
+a different resolution as the the :cpp:`BoxArray ba`. In this case, the
+appropriate refinements and geometries must be specified. Also note that the
+thresholding behaviour (due to :cpp:`eb_pad`, is specified via the
+:cpp:`EBFArrayBoxFactory` constructor. The implicit function MultiFab needs to
+have the same grids as `data`.
+
+Since this relies on the interplay of many different parameters, a number of
+utility functions and helper classes have been created. These are discussed in
+the subsequent section.
+
+
+Using :cpp:`LSFactory`
+----------------------
+
+
+Using :cpp:`LSCore`
+-------------------
+
+
+Utility Functions
+-----------------
+
+
 Linear Solvers
 ==============
 
@@ -579,8 +779,12 @@ To use cell-centered solver for EB, one builds linear operator
 The usage of this EB specified class is essentially the same as
 :cpp:`MLABecLaplacian`.
 
+
+
 Tutorials
 =========
 
 ``amrex/Tutorials/EB/CNS`` is an AMR code for solving compressible
 Navier-Stokes equations with the embedded boundary approach.
+
+

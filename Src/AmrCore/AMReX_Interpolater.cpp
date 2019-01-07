@@ -10,8 +10,15 @@
 namespace amrex {
 
 //
-// Note that in 1D, CellQuadratic
-// interpolation are turned off in a hardwired way.
+// PCInterp, NodeBilinear, and CellConservativeLinear are supported for all dimensions on cpu and gpu.
+//
+// CellConsertiveProtected only works in 2D and 3D on cpu.
+//
+// CellBilinear only works in 1D and 2D on cpu.
+//
+// CellQuadratic only works in 2D on cpu.
+//
+// CellConvervativeQuartic only works with ref ratio of 2 on cpu
 //
 
 //
@@ -99,33 +106,31 @@ NodeBilinear::interp (const FArrayBox&  crse,
                       const Geometry& /*crse_geom */,
                       const Geometry& /*fine_geom */,
                       Vector<BCRec>&   /*bcr*/,
-                      int               actual_comp,
-                      int               actual_state)
+                      int               /*actual_comp*/,
+                      int               /*actual_state*/)
 {
     BL_PROFILE("NodeBilinear::interp()");
-    //
-    // Set up to call FORTRAN.
-    //
-    const int* clo = crse.box().loVect();
-    const int* chi = crse.box().hiVect();
-    const int* flo = fine.loVect();
-    const int* fhi = fine.hiVect();
-    const int* lo  = fine_region.loVect();
-    const int* hi  = fine_region.hiVect();
-    int num_slope  = AMREX_D_TERM(2,*2,*2)-1;
-    int len0       = crse.box().length(0);
-    int slp_len    = num_slope*len0;
 
-    Vector<Real> strip(slp_len);
+    int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
+    const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
+    Gpu::AsyncFab as_slopefab(cslope_bx, num_slope);
+    FArrayBox* slopefab = as_slopefab.fabPtr();
 
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    Real*       fdat  = fine.dataPtr(fine_comp);
-    const int* ratioV = ratio.getVect();
+    FArrayBox const* crsep = &crse;
+    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
 
-    amrex_nbinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),AMREX_ARLIM(clo),AMREX_ARLIM(chi),
-                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),AMREX_ARLIM(lo),AMREX_ARLIM(hi),
-                   AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),&ncomp,
-                   strip.dataPtr(),&num_slope,&actual_comp,&actual_state);
+    FArrayBox* finep = &fine;
+    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
+    {
+        amrex::nodebilin_slopes(tbx, *slopefab, *crsep, crse_comp, ncomp, ratio);
+    });
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+    {
+        amrex::nodebilin_interp(tbx, *finep, fine_comp, ncomp, *slopefab, *crsep, crse_comp, ratio);
+    });
 }
 
 CellBilinear::~CellBilinear () {}
@@ -496,46 +501,21 @@ PCInterp::interp (const FArrayBox& crse,
                   const Geometry& /*crse_geom*/,
                   const Geometry& /*fine_geom*/,
                   Vector<BCRec>&   /*bcr*/,
-                  int               actual_comp,
-                  int               actual_state)
+                  int               /*actual_comp*/,
+                  int               /*actual_state*/)
 {
     BL_PROFILE("PCInterp::interp()");
-    //
-    // Set up to call FORTRAN.
-    //
-    const int* clo  = crse.box().loVect();
-    const int* chi  = crse.box().hiVect();
-    const int* flo  = fine.loVect();
-    const int* fhi  = fine.hiVect();
-    const int* fblo = fine_region.loVect();
-    const int* fbhi = fine_region.hiVect();
 
-    Box cregion(amrex::coarsen(fine_region,ratio));
+    FArrayBox const* crsep = &crse;
+    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
 
-    const int* cblo = cregion.loVect();
-    const int* cbhi = cregion.hiVect();
+    FArrayBox* finep = &fine;
+    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
 
-    int long_dir;
-    int long_len = cregion.longside(long_dir);
-    int s_len    = long_len*ratio[long_dir];
-
-    Vector<Real> strip(s_len);
-
-    int strip_lo = ratio[long_dir] * cblo[long_dir];
-    int strip_hi = ratio[long_dir] * (cbhi[long_dir]+1) - 1;
-    //
-    // Convert long_dir to FORTRAN (1 based) index.
-    //
-    long_dir++;
-    const Real* cdat  = crse.dataPtr(crse_comp);
-    Real*       fdat  = fine.dataPtr(fine_comp);
-    const int* ratioV = ratio.getVect();
-
-    amrex_pcinterp (cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),cblo,cbhi,
-                   fdat,AMREX_ARLIM(flo),AMREX_ARLIM(fhi),fblo,fbhi,
-                   &long_dir,AMREX_D_DECL(&ratioV[0],&ratioV[1],&ratioV[2]),
-                   &ncomp,strip.dataPtr(),&strip_lo,&strip_hi,
-                   &actual_comp,&actual_state);
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
+    {
+        amrex::pcinterp_interp(tbx,*finep,fine_comp,ncomp,*crsep,crse_comp,ratio);
+    });
 }
 
 CellConservativeProtected::CellConservativeProtected () {}
