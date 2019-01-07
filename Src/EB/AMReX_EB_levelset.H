@@ -63,11 +63,17 @@ class LSFactory {
         // Cell size of the refined grids
         const RealVect dx_vect, dx_eb_vect;
 
-        std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
-        std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
-                                                const BoxArray & ba, const DistributionMapping & dm);
+        // std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory);
+        // std::unique_ptr<Vector<Real>> eb_facets(const EBFArrayBoxFactory & eb_factory,
+        //                                         const BoxArray & ba, const DistributionMapping & dm);
 
+        //! Updates internal BoxArray and DistributionMapping given a
+        //! "reference" BoxArray at a coarser level. Uses `ls_grid_ref` and
+        //! `eb_grid_ref` to construct refined versions of `ba`.
         void update_ba(const BoxArray & new_ba, const DistributionMapping & dm);
+
+        //! Initialize internal BoxArray, and Geometry objects given reference
+        //! BoxArray and Geometry (at a coarser level of refinement)
         void init_geom(const BoxArray & ba, const Geometry & geom, const DistributionMapping & dm);
 
         void fill_valid_kernel();
@@ -115,24 +121,38 @@ class LSFactory {
          *                                                                      *
          ***********************************************************************/
 
-        //! Fills (overwrites) level-set data locally. Same as `fill_data_loc`
-        //! but with cubic EB search box.
+        //! Fills level-set MultiFab `data` locally from EBFArrayBoxFactory
+        //! `eb_factory`. Same as `fill_data_loc` but with cubic EB search box.
         static void fill_data (MultiFab & data, iMultiFab & valid,
                                const EBFArrayBoxFactory & eb_factory,
                                const MultiFab & eb_impfunc,
                                int ebt_size, int ls_ref, int eb_ref,
                                const Geometry & geom, const Geometry & geom_eb);
 
-        //! Fills (overwrites) level-set data locally. Also fills iMultiFab
-        //! tagging cells which are nearby to EB surface. Only EB facets in a
-        //! box size of `ebt_size` are considered. Any EB facets that are
-        //! outside this box are ignored => the min/max value of the level-set
-        //! are +/- `eb_pad * min(geom_eb.CellSize(:))`.
+        //! Fills level-set MultiFab `data` locally from EBFArrayBoxFactory
+        //! `eb_factory`. Also fills iMultiFab tagging cells which are nearby to
+        //! EB surface. Only EB facets in a box size of `ebt_size` are
+        //! considered. Any EB facets that are outside this box are ignored =>
+        //! the min/max value of the level-set are +/- `eb_pad *
+        //! min(geom_eb.CellSize(:))`.
         static void fill_data (MultiFab & data, iMultiFab & valid,
                                const EBFArrayBoxFactory & eb_factory,
                                const MultiFab & eb_impfunc,
                                const IntVect & ebt_size, int ls_ref, int eb_ref,
                                const Geometry & geom, const Geometry & geom_eb);
+
+        //! Fills level-set MultiFab `data` from implicit function MultiFab
+        //! `mf_impfunc`. Also fills iMultiFab tagging cells whose values are
+        //! informed by nearby EB surfaces (in the case of implicit-function
+        //! filling without threshold, this covers the whole domain). This works
+        //! as long as the implicit function is a signed distance function. The
+        //! int `eb_pad` and Geometry object `geom_eb` can be used to specify a
+        //! level-set threshold (`eb_pad*min(geom_eb.CellSize(:))`) to make the
+        //! result compatible with Intersections and Unions with EB-filled
+        //! level-sets. No threshold is applied with `eb_pad < 0`
+        static void fill_data (MultiFab & data, iMultiFab & valid,
+                               const MultiFab & mf_impfunc,
+                               int eb_pad, const Geometry & eb_geom);
 
 
         /************************************************************************
@@ -142,36 +162,83 @@ class LSFactory {
          ***********************************************************************/
 
         //! Fills (overwrites) level-set data locally. The local EB search
-        //! radius is managed by LSFactory. Returns: iMultiFab indicating region
-        //! that has been filled by a valid level-set function (i.e. the value
-        //! of the level-set was informed by nearby EB facets)
-        std::unique_ptr<iMultiFab> fill(const EBFArrayBoxFactory & eb_factory,
+        //! radius is managed by LSFactory. EB search box is defaulted to
+        //! `LSFactory::eb_tile_size`. Level-set values are guaranteed to be
+        //! accurate up to `LSFactory::eb_grid_pad` cells. Returns: iMultiFab
+        //! indicating region that has been filled by a valid level-set function
+        //! (i.e. the value of the level-set was informed by nearby EB facets)
+        std::unique_ptr<iMultiFab> Fill(const EBFArrayBoxFactory & eb_factory,
                                         const MultiFab & mf_impfunc);
 
         //! Fills (overwrites) level-set data locally. The local EB search
         //! radius is specified by the user corresponding to a cube with
-        //! edge-length = `ebt_size`. Returns: iMultiFab indicating region
-        //! that has been filled by a valid level-set function (i.e. the value
-        //! of the level-set was informed by nearby EB facets)
-        std::unique_ptr<iMultiFab> fill(const EBFArrayBoxFactory & eb_factory,
+        //! edge-length = `ebt_size`. Level-set values are guaranteed to be
+        //! accurate up to `LSFactory::eb_grid_pad` cells. Returns: iMultiFab
+        //! indicating region that has been filled by a valid level-set function
+        //! (i.e. the value of the level-set was informed by nearby EB facets)
+        std::unique_ptr<iMultiFab> Fill(const EBFArrayBoxFactory & eb_factory,
                                         const MultiFab & mf_impfunc,
                                         int ebt_size);
 
         //! Fills (overwrites) level-set data locally. The local EB search
         //! radius is specified by the user corresponding to a box with edge
-        //! lengths given by the IntVect `ebt_size`. Returns: iMultiFab indicating region
-        //! that has been filled by a valid level-set function (i.e. the value
-        //! of the level-set was informed by nearby EB facets)
-        std::unique_ptr<iMultiFab> fill(const EBFArrayBoxFactory & eb_factory,
+        //! lengths given by the IntVect `ebt_size`. Level-set values are
+        //! guaranteed to be accurate up to `LSFactory::eb_grid_pad` cells.
+        //! Returns: iMultiFab indicating region that has been filled by a valid
+        //! level-set function (i.e. the value of the level-set was informed by
+        //! nearby EB facets)
+        std::unique_ptr<iMultiFab> Fill(const EBFArrayBoxFactory & eb_factory,
                                         const MultiFab & mf_impfunc,
                                         const IntVect & ebt_size);
 
-        std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
-                                                    const MultiFab & mf_impfunc);
-        std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
+        //! Fills (overwrites) level-set data locally. The level-set is given by
+        //! an implicit function which is defined on a MultiFab `mf_impfunc`,
+        //! which has the same resolution, and at least as many ghost-cells, as
+        //! the LSFactory. This can be guaranteed using the
+        //! LSUtility::GShopLSFactory. Requires that the implicit function is a
+        //! signed distance function. If `apply_threshold = true` level-set is
+        //! truncated to to a length scale corresponding to `eb_grid_pad` cells
+        //! (making it compatible with the EBFArrayBoxFactory version). Returns:
+        //! iMultiFab indicating region that has been filled by a valid
+        //! level-set function (i.e. the value of the level-set was informed by
+        //! nearby EB facets)
+        std::unique_ptr<iMultiFab> Fill(const MultiFab & mf_impfunc,
+                                        bool apply_threshold = false);
+
+        std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc);
-        std::unique_ptr<iMultiFab> intersection_impfunc(const MultiFab & mf_impfunc);
-        std::unique_ptr<iMultiFab> union_impfunc(const MultiFab & mf_impfunc);
+
+        std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
+                                             const MultiFab & mf_impfunc,
+                                             int ebt_size);
+
+        std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
+                                             const MultiFab & mf_impfunc,
+                                             const IntVect & ebt_size);
+
+        std::unique_ptr<iMultiFab> Intersect(const MultiFab & mf_impfunc,
+                                             bool apply_threshold = false);
+
+        std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
+                                         const MultiFab & mf_impfunc);
+
+        std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
+                                         const MultiFab & mf_impfunc,
+                                         int ebt_size);
+
+        std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
+                                         const MultiFab & mf_impfunc,
+                                         const IntVect & ebt_size);
+
+        std::unique_ptr<iMultiFab> Union(const MultiFab & mf_impfunc,
+                                         bool apply_threshold = false);
+
+        // std::unique_ptr<iMultiFab> intersection_ebf(const EBFArrayBoxFactory & eb_factory,
+        //                                             const MultiFab & mf_impfunc);
+        // std::unique_ptr<iMultiFab> union_ebf(const EBFArrayBoxFactory & eb_factory,
+        //                                      const MultiFab & mf_impfunc);
+        // std::unique_ptr<iMultiFab> intersection_impfunc(const MultiFab & mf_impfunc);
+        // std::unique_ptr<iMultiFab> union_impfunc(const MultiFab & mf_impfunc);
 
         // Update internal `ls_phi` and `ls_valid` based on the min of `ls_phi`
         // and `ls_in`
@@ -179,6 +246,7 @@ class LSFactory {
         void update_union(const MultiFab & ls_in, const iMultiFab & valid_in);
 
         // Return level-set data
+              MultiFab *  get_data()       {return ls_grid.get();};
         const MultiFab *  get_data() const {return ls_grid.get();};
         const iMultiFab * get_valid() const {return ls_valid.get();};
 
@@ -296,23 +364,28 @@ class LSUtility {
     }
 
 
+    //! Returns the min CellSize of the Geometry object `geom`.
+    static Real min_dx (const Geometry & geom) {
+
+        const Real * dx = geom.CellSize();
+
+#if (AMREX_SPACEDIM == 1)
+        const Real min_dx = dx[0];
+#elif (AMREX_SPACEDIM == 2)
+        const Real min_dx = std::min(dx[0], dx[1]);
+#elif (AMREX_SPACEDIM == 3)
+        const Real min_dx = std::min(dx[0], std::min(dx[1], dx[2]));
+#endif
+
+        return min_dx;
+    }
+
 
     //! Returns the minimum eb_pad (EB ghost cells) to ensure that the level-set
     //! is able to resolve a length scale of at least `min_resolution`.
-
     static int min_eb_pad (Real min_resolution, const Geometry & geom_eb) {
 
-        RealVect dx_eb(AMREX_D_DECL(geom_eb.CellSize()[0],
-                                    geom_eb.CellSize()[1],
-                                    geom_eb.CellSize()[2]));
-
-#if (AMREX_SPACEDIM == 1)
-        const Real min_dx = dx_eb[0];
-#elif (AMREX_SPACEDIM == 2)
-        const Real min_dx = std::min(dx_eb[0], dx_eb[1]);
-#elif (AMREX_SPACEDIM == 3)
-        const Real min_dx = std::min(dx_eb[0], std::min(dx_eb[1], dx_eb[2]));
-#endif
+        const Real min_dx = LSUtility::min_dx(geom_eb);
 
         return min_resolution/min_dx;
     }
