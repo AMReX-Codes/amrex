@@ -1,5 +1,6 @@
 #include <sstream>
 
+#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_VisMF.H>
@@ -20,11 +21,13 @@ namespace {
     Real sigma = 10.0;  // controls the size of jump
     Real w     = 0.05;  // contols the width of the jump
 
-    int  verbose = 0;
+    int  fj_verbose = 0;
+    int  mlmg_verbose = 0;
     Real tolerance_rel = 1.e-8;
     Real tolerance_abs = 0.0;
 
-    bool flag_test_modify_split = false;
+    int flag_modify_split = 0;
+    std::string task_output_dir = "";
 }
 
 extern "C"
@@ -62,13 +65,19 @@ int main(int argc, char* argv[])
             ParmParse pp;
 
             pp.query("ntasks", ntasks);
-            pp.query("verbose", verbose);
+            pp.query("fj_verbose", fj_verbose);
+            pp.query("mlmg_verbose", mlmg_verbose);
             pp.query("ncomp", ncomp);
+            pp.query("modify_split", flag_modify_split);
+            pp.query("task_output_dir", task_output_dir);
 
             int n_cell, max_grid_size;
             pp.get("n_cell", n_cell);
             pp.get("max_grid_size", max_grid_size);
 
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+               ParallelDescriptor::NProcs() >= ntasks + 1,
+               "Need at least ntasks + 1 ranks");
 
             Box domain(IntVect(AMREX_D_DECL(       0,       0,       0)),
                        IntVect(AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)));
@@ -105,7 +114,8 @@ int main(int argc, char* argv[])
         top_fork(soln, rhs, alpha, amrex::GetVecOfPtrs(beta), geom);
 
         VisMF::Write(soln, "soln");
-    }
+
+    } // MultiFab destructors called before amrex::Finalize()
 
     amrex::Finalize();
 }
@@ -148,10 +158,10 @@ void setup_coeffs(MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry
 void top_fork(MultiFab& soln, const MultiFab& rhs,
               const MultiFab& alpha, const Vector<MultiFab*>& beta, const Geometry& geom)
 {
-    // evenly split ranks among 2 tasks
-    ForkJoin fj(2);
-    fj.SetVerbose(verbose);
-    fj.set_task_output_dir("my_task_output");
+    auto proc_n = ParallelContext::NProcsSub();
+    ForkJoin fj(Vector<int> {1, proc_n - 1});
+    fj.SetVerbose(fj_verbose);
+    fj.set_task_output_dir(task_output_dir);
 
     // these multifabs go to task 0 only
     IntVect zg(0);
@@ -181,8 +191,8 @@ void fork_solve(MultiFab& soln, const MultiFab& rhs,
 {
     // evenly split ranks among ntasks tasks
     ForkJoin fj(ntasks);
-    fj.SetVerbose(verbose);
-    fj.set_task_output_dir("my_task_output");
+    fj.SetVerbose(fj_verbose);
+    fj.set_task_output_dir(task_output_dir);
 
     // register how to copy multifabs to/from tasks
     IntVect zg(0);
@@ -191,7 +201,7 @@ void fork_solve(MultiFab& soln, const MultiFab& rhs,
     fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in,  zg);
     fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out, zg);
 
-    if (flag_test_modify_split) {
+    if (flag_modify_split) {
         auto comp_n = soln.nComp();
         if (comp_n > ntasks) {
             amrex::Print() << "Doing a custom split where first component is ignored\n";
@@ -279,7 +289,7 @@ void single_component_solve(MultiFab& soln, const MultiFab& rhs,
     mlabec.setBCoeffs(0, {AMREX_D_DECL(beta[0], beta[1], beta[2])});
 
     MLMG mlmg(mlabec);
-    mlmg.setVerbose(verbose);
+    mlmg.setVerbose(mlmg_verbose);
     mlmg.solve({&soln}, {&rhs}, tolerance_rel, tolerance_abs);
 }
 
