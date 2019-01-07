@@ -690,7 +690,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         //
         if (lev > 0)
         {
-            EB_nd_aux.reset(new MultiFab(nba, dm, 6, ngE));
+            EB_nd_aux[lev].reset(new MultiFab(nba, dm, 6, ngE));
             Efield_aux[lev][0].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 0, 1));
             Efield_aux[lev][1].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 1, 1));
             Efield_aux[lev][2].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 2, 1));
@@ -842,6 +842,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     //
     if (do_dive_cleaning || plot_rho)
     {
+        const auto& period = Geom(lev).periodicity();
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
@@ -860,6 +861,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #ifdef WARPX_USE_PSATD
     else
     {
+        const auto& period = Geom(lev).periodicity();
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
