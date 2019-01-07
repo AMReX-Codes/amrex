@@ -311,6 +311,11 @@ class GShopLSFactory {
               m_ls_pad(level_set.get_ls_pad())
         {}
 
+        GShopLSFactory (const EB2::GeometryShop<F> & gshop, const Geometry & geom,
+                        const BoxArray & ba, const DistributionMapping & dm, int ls_pad)
+            :m_gshop(gshop), m_geom(geom), m_ls_ba(ba), m_ls_dm(dm), m_ls_pad(ls_pad)
+        {}
+
         //! Fill MultiFab (with the same CellSize, BoxArray,
         //! DistributionMapping, and number of ghost cells as the LSFactory)
         //! with the implicit function values. The filled MultiFab is returned
