@@ -13,7 +13,7 @@ plotfiles are generated that can be viewed with amrvis2d / amrvis3d
 or with VisIt.
 
 **Advection_AmrCore**
-----------------
+---------------------
 
 Advection_AmrCore: This tutorial contains an AMR advection code that advects
 a single scalar field with a velocity field that is specified on faces.
@@ -29,7 +29,7 @@ Notably, this example does not use source code from amrex/Src/Amr
 The directory Exec/SingleVortex includes a makefile and a sample inputs file.  
 
 **Advection_AmrLevel**
-----------------
+----------------------
 
 Advection_AmrLevel: This tutorial contains an AMR advection code that advects
 a single scalar field with a velocity field that is specified on faces.
@@ -53,7 +53,7 @@ It uses the Fortran interfaces of AMReX.
 The directory Exec/SingleVortex includes a makefile and a sample inputs file.  
 
 **Advection_octree_F**
-----------------
+----------------------
 
 This code advects a single scalar field with a velocity
 field that is specified on faces.
