@@ -70,16 +70,6 @@ extern "C"
                         AMREX_D_DECL(const amrex_real* cvcx,const amrex_real* cvcy, const amrex_real* cvcz),
                         const int* actual_comp, const int* actual_state);
 
-    void amrex_pcinterp (const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
-                        const int* cblo, const int* cbhi,
-                        amrex_real*  fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
-                        const int* fblo, const int* fbhi,
-                        const int* longdir,
-                        AMREX_D_DECL(const int* lrx,const int* lry,const int* lrz),
-                        const int* nvar, amrex_real* strip,
-                        const int* strip_lo, const int* strip_hi,
-                        const int* actual_comp, const int* actual_state);
-
     void amrex_protect_interp (      amrex_real* fine, AMREX_ARLIM_P(flo), AMREX_ARLIM_P(fhi),
                               const  int* fblo, const int* fbhi,
                               const amrex_real* crse, AMREX_ARLIM_P(clo), AMREX_ARLIM_P(chi),
