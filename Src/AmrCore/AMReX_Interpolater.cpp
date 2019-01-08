@@ -111,16 +111,15 @@ NodeBilinear::interp (const FArrayBox&  crse,
 {
     BL_PROFILE("NodeBilinear::interp()");
 
+    FArrayBox const* crsep = &crse;
+    FArrayBox* finep = &fine;
+
+    Gpu::SafeLaunchGuard lg(Gpu::isDevicePtr(crsep) && Gpu::isDevicePtr(finep));
+
     int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
     const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
     Gpu::AsyncFab as_slopefab(cslope_bx, num_slope);
     FArrayBox* slopefab = as_slopefab.fabPtr();
-
-    FArrayBox const* crsep = &crse;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
-
-    FArrayBox* finep = &fine;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
     {
@@ -279,6 +278,11 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     AMREX_ASSERT(fine.box().contains(fine_region));
 
+    FArrayBox const* crsep = &crse;
+    FArrayBox* finep = &fine;
+
+    Gpu::SafeLaunchGuard lg(Gpu::isDevicePtr(crsep) && Gpu::isDevicePtr(finep));
+
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
 
@@ -302,12 +306,6 @@ CellConservativeLinear::interp (const FArrayBox& crse,
 
     Gpu::AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
     Real const* voff = async_voff.data();
-
-    FArrayBox const* crsep = &crse;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
-
-    FArrayBox* finep = &fine;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
 
     if (do_linear_limiting) {
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
@@ -507,10 +505,9 @@ PCInterp::interp (const FArrayBox& crse,
     BL_PROFILE("PCInterp::interp()");
 
     FArrayBox const* crsep = &crse;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
-
     FArrayBox* finep = &fine;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
+
+    Gpu::SafeLaunchGuard lg(Gpu::isDevicePtr(crsep) && Gpu::isDevicePtr(finep));
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (fine_region, tbx,
     {
@@ -559,6 +556,11 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     AMREX_ASSERT(fine.box().contains(fine_region));
 
+    FArrayBox const* crsep = &crse;
+    FArrayBox* finep = &fine;
+
+    Gpu::SafeLaunchGuard lg(Gpu::isDevicePtr(crsep) && Gpu::isDevicePtr(finep));
+
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
 
@@ -581,12 +583,6 @@ CellConservativeProtected::interp (const FArrayBox& crse,
 
     Gpu::AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
     Real const* voff = async_voff.data();
-
-    FArrayBox const* crsep = &crse;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(crsep));
-
-    FArrayBox* finep = &fine;
-    AMREX_ASSERT(Gpu::notInLaunchRegion() || Gpu::isManaged(finep));
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
     {
