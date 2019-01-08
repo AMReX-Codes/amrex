@@ -2254,8 +2254,6 @@ Amr::coarseTimeStep (Real stop_time)
                 if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
 		{
                     Perilla::syncProcesses();
-    		    for(int g=0; g<flattenedGraphArray.size(); g++)
-	    		flattenedGraphArray[g]->graphTeardown();
 	            flattenedGraphArray.clear();
                     Perilla::syncProcesses();
                     break;

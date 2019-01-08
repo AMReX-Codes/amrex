@@ -1386,7 +1386,7 @@ void Perilla::serviceLocalRequests(RegionGraph* rg, int tg)
 		for(int i=0; i<rg->lMap[f]->l_con.nscpy; i++){
 		    if(rg->lMap[f]->l_con.scpy[i].pQueue.queueSize()>0)
 		    {
-	                pthread_mutex_trylock(&(rg->lMap[f]->l_con.sLock));
+	                pthread_mutex_lock(&(rg->lMap[f]->l_con.sLock));
 			assert(doublechecked==false);
 			Package *sPackage = rg->lMap[f]->l_con.scpy[i].pQueue.dequeue();
 			if(perilla::LAZY_PUSH)
@@ -1450,7 +1450,7 @@ void Perilla::serviceRemoteRequests(RegionGraph* rg, int graphID, int nGraphs)
 		    else
 		    {
 			Package *rearPackage = rg->rMap[f]->r_con.rcv[i].pQueue.getRear(true);//!CHECK THIS POINT LATER
-			if(rearPackage->completed) //!latest receive request has been completed
+			if(rearPackage->completed && rg->rMap[f]->r_con.rcv[i].pQueue.queueSize(true) == 1) //!latest receive request has been completed
 			    nextsReq = true;
 			else //!expected message is still on the way
 			    nextsReq = false;
@@ -2700,7 +2700,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
 
         if(singleT)
         {
-            pthread_mutex_lock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
+            //pthread_mutex_lock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
             pthread_mutex_lock(&(cpDst->r_con.rcvLock));
             for(int i=0; i<cpDst->r_con.nrcv; i++)
             {
@@ -2733,13 +2733,13 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
                         cpDst->r_con.firingRuleCnt++;
             //*/
             pthread_mutex_unlock(&(cpDst->r_con.rcvLock));
-            pthread_mutex_unlock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
+            //pthread_mutex_unlock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
         }
         else
         {
             if(ntid==0)
             {
-                pthread_mutex_lock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
+                //pthread_mutex_lock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
                 pthread_mutex_lock(&(cpDst->r_con.rcvLock));
             }
             destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
@@ -2765,7 +2765,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
                     */
 
                     //Package* rcvPackage = cpDst->r_con.rcv[i].pQueue.getFront(true);                               // corrected from recycleQ to pQ
-                    //mfDst->m_fabs_v[f]->copyFromMem(cpDst->r_con.rcv[i].dbx,dstcomp,nc,rcvPackage->databuf);
+                   // mfDst->m_fabs_v[f]->copyFromMem(cpDst->r_con.rcv[i].dbx,dstcomp,nc,rcvPackage->databuf);
 
                 }
             destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
@@ -2781,7 +2781,7 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, Mu
                             cpDst->r_con.firingRuleCnt++;
                 //*/
                 pthread_mutex_unlock(&(cpDst->r_con.rcvLock));
-                pthread_mutex_unlock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
+                //pthread_mutex_unlock(&(destGraph->rCopyMapHead->map[f]->r_con.rcvLock));
             }
             destGraph->worker[tg]->barr->sync(perilla::NUM_THREADS_PER_TEAM-1);
         }
