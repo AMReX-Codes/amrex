@@ -688,7 +688,12 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         //
         // The Aux patch (i.e., the full solution)
         //
-        if (lev > 0)
+        if (lev == 0)
+        {
+            EB_nd_aux[lev].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 0, 6));
+            // Efield_aux and Bfield_aux wil be created later
+        }
+        else
         {
             EB_nd_aux[lev].reset(new MultiFab(nba, dm, 6, ngE));
             Efield_aux[lev][0].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 0, 1));
