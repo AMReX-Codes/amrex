@@ -7,16 +7,20 @@
 #include <AMReX_REAL.H>
 #include <iostream>
 #include <cmath>
+#ifdef AMREX_USE_CUDA
+#include <cuda.h>
+#endif
 
 namespace amrex {
 namespace Cuda {
 
     inline bool isManaged (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue) && ptr_attr.isManaged;
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_IS_MANAGED;
+        unsigned int is_managed = 0;
+        void* data[] = { (void*)(&is_managed) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS && is_managed;
 #else
         return false;
 #endif
@@ -24,32 +28,39 @@ namespace Cuda {
 
     inline bool isDevicePtr (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue) && (ptr_attr.memoryType == cudaMemoryTypeDevice);
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
+        CUmemorytype mem_type = static_cast<CUmemorytype>(0);
+        void* data[] = { (void*)(&mem_type) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
 #else
         return false;
 #endif
     }
 
-    inline bool isHostPtr (void const* p) {
+    inline bool isPinnedPtr (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue) && (ptr_attr.memoryType == cudaMemoryTypeHost);
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
+        CUmemorytype mem_type = static_cast<CUmemorytype>(0);
+        void* data[] = { (void*)(&mem_type) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
 #else
         return false;
 #endif
     }
 
-    inline bool isCudaPtr (void const* p) {
+    inline bool isGpuPtr (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue);
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
+        CUmemorytype mem_type = static_cast<CUmemorytype>(0);
+        void* data[] = { (void*)(&mem_type) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS &&
+            (mem_type == CU_MEMORYTYPE_HOST   ||
+             mem_type == CU_MEMORYTYPE_DEVICE ||
+             mem_type == CU_MEMORYTYPE_ARRAY  ||
+             mem_type == CU_MEMORYTYPE_UNIFIED);
 #else
         return false;
 #endif

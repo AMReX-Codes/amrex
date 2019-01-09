@@ -53,7 +53,6 @@ Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_rel, Real a_tol_abs)
 {
-    BL_PROFILE_REGION("MLMG::solve()");
     BL_PROFILE("MLMG::solve()");
 
     if (bottom_solver == BottomSolver::hypre) {
@@ -357,21 +356,38 @@ MLMG::miniCycle (int amrlev)
     mgVcycle(amrlev, mglev);
 }
 
+namespace {
+
+void make_str_helper (std::ostringstream & oss) { }
+
+template <class T, class... Ts>
+void make_str_helper (std::ostringstream & oss, T x, Ts... xs) {
+    oss << x;
+    make_str_helper(oss, xs...);
+}
+
+template <class... Ts>
+std::string make_str (Ts... xs) {
+    std::ostringstream oss;
+    make_str_helper(oss, xs...);
+    return oss.str();
+}
+
+}
+
 // in   : Residual (res) 
 // out  : Correction (cor) from bottom to this function's local top
 void
 MLMG::mgVcycle (int amrlev, int mglev_top)
 {
     BL_PROFILE("MLMG::mgVcycle()");
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_up", blp_up);
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_bottom", blp_bottom);
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_down", blp_down);
 
     const int mglev_bottom = linop.NMGLevels(amrlev) - 1;
 
-    BL_PROFILE_VAR_START(blp_down);
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
+        std::string blp_mgv_down_lev_str = make_str("MLMG::mgVcycle_down::", mglev);
+        BL_PROFILE_VAR(blp_mgv_down_lev_str, blp_mgv_down_lev);
 
         if (verbose >= 4)
         {
@@ -402,9 +418,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
 
     }
-    BL_PROFILE_VAR_STOP(blp_down);
 
-    BL_PROFILE_VAR_START(blp_bottom);
+    BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);
     if (amrlev == 0)
     {
         if (verbose >= 4)
@@ -447,9 +462,10 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     }
     BL_PROFILE_VAR_STOP(blp_bottom);
 
-    BL_PROFILE_VAR_START(blp_up);
     for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
+        std::string blp_mgv_up_lev_str = make_str("MLMG::mgVcycle_up::", mglev);
+        BL_PROFILE_VAR(blp_mgv_up_lev_str, blp_mgv_up_lev);
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
@@ -470,7 +486,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
-    BL_PROFILE_VAR_STOP(blp_up);
 }
 
 // FMG cycle on the coarsest AMR level.
@@ -1461,7 +1476,6 @@ MLMG::computeVolInv ()
 
     if (linop.isCellCentered())
     { 
-        Real temp1, temp2;    
         volinv.resize(namrlevs);
         for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
             volinv[amrlev].resize(linop.NMGLevels(amrlev));
@@ -1491,6 +1505,7 @@ MLMG::computeVolInv ()
         f(0,mgbottom);
 
 #ifdef AMREX_USE_EB
+        Real temp1, temp2;
         if (rhs[0].hasEBFabFactory())
         {
             ParallelAllReduce::Sum<Real>({volinv[0][0], volinv[0][mgbottom]},
