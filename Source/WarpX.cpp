@@ -183,12 +183,6 @@ WarpX::WarpX ()
     rho_fp_owner_masks.resize(nlevs_max);
     rho_cp_owner_masks.resize(nlevs_max);
 
-    EB_nd_fp.resize(nlevs_max);
-    EB_nd_cp.resize(nlevs_max);
-    EB_nd_aux.resize(nlevs_max);
-    j_nd_fp.resize(nlevs_max);
-    j_nd_cp.resize(nlevs_max);
-
     pml.resize(nlevs_max);
 
 #ifdef WARPX_DO_ELECTROSTATIC
@@ -533,12 +527,6 @@ WarpX::ClearLevel (int lev)
         current_cp_owner_masks[lev][i].reset();
     }
 
-    EB_nd_fp[lev].reset();
-    EB_nd_cp[lev].reset();
-    EB_nd_aux[lev].reset();
-    j_nd_fp[lev].reset();
-    j_nd_cp[lev].reset();
-
     rho_fp_owner_masks[lev].reset();
     rho_cp_owner_masks[lev].reset();
 
@@ -653,205 +641,32 @@ void
 WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm,
                       const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho, int ngF)
 {
-    if (do_nodal)
-    {
-        //
-        // The fine patch
-        //
-        const BoxArray& nba = amrex::convert(ba,IntVect::TheNodeVector());
-        EB_nd_fp[lev].reset(new MultiFab(nba, dm, 6, ngE));
-        Efield_fp[lev][0].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 0, 1));
-        Efield_fp[lev][1].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 1, 1));
-        Efield_fp[lev][2].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 2, 1));
-        Bfield_fp[lev][0].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 3, 1));
-        Bfield_fp[lev][1].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 4, 1));
-        Bfield_fp[lev][2].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 5, 1));
-
-        j_nd_fp[lev].reset(new MultiFab(nba, dm, 3, ngJ));
-        current_fp[lev][0].reset(new MultiFab(*j_nd_fp[lev], amrex::make_alias, 0, 1));
-        current_fp[lev][1].reset(new MultiFab(*j_nd_fp[lev], amrex::make_alias, 1, 1));
-        current_fp[lev][2].reset(new MultiFab(*j_nd_fp[lev], amrex::make_alias, 2, 1));
-
-        const auto& period = Geom(lev).periodicity();
-        current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
-        current_fp_owner_masks[lev][1].reset(new iMultiFab(*current_fp_owner_masks[lev][0],
-                                                           amrex::make_alias, 1, 0));
-        current_fp_owner_masks[lev][2].reset(new iMultiFab(*current_fp_owner_masks[lev][0],
-                                                           amrex::make_alias, 1, 0));
-
-        if (do_subcycling == 1 && lev == 0)
-        {
-            // current_store
-            amrex::Abort("TODO: do_nodal = 1, current_store, do_subcycling = 1");
-        }
-
-        //
-        // The Aux patch (i.e., the full solution)
-        //
-        if (lev == 0)
-        {
-            EB_nd_aux[lev].reset(new MultiFab(*EB_nd_fp[lev], amrex::make_alias, 0, 6));
-            // Efield_aux and Bfield_aux wil be created later
-        }
-        else
-        {
-            EB_nd_aux[lev].reset(new MultiFab(nba, dm, 6, ngE));
-            Efield_aux[lev][0].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 0, 1));
-            Efield_aux[lev][1].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 1, 1));
-            Efield_aux[lev][2].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 2, 1));
-            Bfield_aux[lev][0].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 3, 1));
-            Bfield_aux[lev][1].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 4, 1));
-            Bfield_aux[lev][2].reset(new MultiFab(*EB_nd_aux[lev], amrex::make_alias, 5, 1));
-        }
-
-        //
-        // The coarse patch
-        //
-        if (lev > 0)
-        {
-            const BoxArray& cnba = amrex::coarsen(nba, refRatio(lev-1));
-            EB_nd_cp[lev].reset(new MultiFab(cnba, dm, 6, ngE));
-            Efield_cp[lev][0].reset(new MultiFab(*EB_nd_cp[lev], amrex::make_alias, 0, 1));
-            Efield_cp[lev][1].reset(new MultiFab(*EB_nd_cp[lev], amrex::make_alias, 1, 1));
-            Efield_cp[lev][2].reset(new MultiFab(*EB_nd_cp[lev], amrex::make_alias, 2, 1));
-            Bfield_cp[lev][0].reset(new MultiFab(*EB_nd_cp[lev], amrex::make_alias, 3, 1));
-            Bfield_cp[lev][1].reset(new MultiFab(*EB_nd_cp[lev], amrex::make_alias, 4, 1));
-            Bfield_cp[lev][2].reset(new MultiFab(*EB_nd_cp[lev], amrex::make_alias, 5, 1));
-
-            j_nd_cp[lev].reset(new MultiFab(cnba, dm, 3, ngJ));
-            current_cp[lev][0].reset(new MultiFab(*j_nd_cp[lev], amrex::make_alias, 0, 1));
-            current_cp[lev][1].reset(new MultiFab(*j_nd_cp[lev], amrex::make_alias, 1, 1));
-            current_cp[lev][2].reset(new MultiFab(*j_nd_cp[lev], amrex::make_alias, 2, 1));
-
-            const auto& cperiod = Geom(lev-1).periodicity();
-            current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
-            current_cp_owner_masks[lev][1].reset(new iMultiFab(*current_cp_owner_masks[lev][0],
-                                                               amrex::make_alias, 1, 0));
-            current_cp_owner_masks[lev][2].reset(new iMultiFab(*current_cp_owner_masks[lev][0],
-                                                               amrex::make_alias, 1, 0));
-        }
-
-        //
-        // copy of the coarse aux
-        //
-        if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
-        {
-            amrex::Abort("TODO: do_nodal = 1, field gather buffer and current deposition buffer");
-        }
-    }
-    else
-    {
-        //
-        // The fine patch
-        //
-        Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ngE));
-        Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ngE));
-        Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ngE));
-
-        Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ngE));
-        Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ngE));
-        Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ngE));
-
-        current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
-        current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
-        current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
-
-        const auto& period = Geom(lev).periodicity();
-        current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
-        current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
-        current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
-
-        //
-        // The Aux patch (i.e., the full solution)
-        //
-        if (lev > 0)
-        {
-            Bfield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ngE));
-            Bfield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ngE));
-            Bfield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ngE));
-
-            Efield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ngE));
-            Efield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ngE));
-            Efield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ngE));
-        }
-
-        //
-        // The coarse patch
-        //
-        if (lev > 0)
-        {
-            BoxArray cba = ba;
-            cba.coarsen(refRatio(lev-1));
-
-            // Create the MultiFabs for B
-            Bfield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
-            Bfield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
-            Bfield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
-
-            // Create the MultiFabs for E
-            Efield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
-            Efield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
-            Efield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
-
-            // Create the MultiFabs for the current
-            current_cp[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
-            current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
-            current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-
-            const auto& cperiod = Geom(lev-1).periodicity();
-            current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
-            current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
-            current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
-        }
-
-        //
-        // Copy of the coarse aux
-        //
-        if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
-        {
-            BoxArray cba = ba;
-            cba.coarsen(refRatio(lev-1));
-
-            if (n_field_gather_buffer > 0) {
-                // Create the MultiFabs for B
-                Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
-                Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
-                Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
-
-                // Create the MultiFabs for E
-                Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
-                Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
-                Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
-
-                gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
-                // Gather buffer masks have 1 ghost cell, because of the fact
-                // that particles may move by more than one cell when using subcycling.
-            }
-
-            if (n_current_deposition_buffer > 0) {
-                current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
-                current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
-                current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-                if (do_dive_cleaning) {
-                    charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
-                }
-                current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
-                // Current buffer masks have 1 ghost cell, because of the fact
-                // that particles may move by more than one cell when using subcycling.
-            }
-        }
-    }
-
     //
     // The fine patch
     //
+    Bfield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ngE));
+    Bfield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ngE));
+    Bfield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ngE));
+
+    Efield_fp[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ngE));
+    Efield_fp[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ngE));
+    Efield_fp[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ngE));
+
+    current_fp[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
+    current_fp[lev][1].reset( new MultiFab(amrex::convert(ba,jy_nodal_flag),dm,1,ngJ));
+    current_fp[lev][2].reset( new MultiFab(amrex::convert(ba,jz_nodal_flag),dm,1,ngJ));
+
+    const auto& period = Geom(lev).periodicity();
+    current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
+    current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
+    current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
+
     if (do_dive_cleaning || plot_rho)
     {
-        const auto& period = Geom(lev).periodicity();
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
-
+    
     if (do_subcycling == 1 && lev == 0)
     {
         current_store[lev][0].reset( new MultiFab(amrex::convert(ba,jx_nodal_flag),dm,1,ngJ));
@@ -866,7 +681,6 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #ifdef WARPX_USE_PSATD
     else
     {
-        const auto& period = Geom(lev).periodicity();
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));
         rho_fp_owner_masks[lev] = std::move(rho_fp[lev]->OwnerMask(period));
     }
@@ -882,14 +696,44 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             Bfield_aux[lev][idir].reset(new MultiFab(*Bfield_fp[lev][idir], amrex::make_alias, 0, 1));
         }
     }
+    else
+    {
+        Bfield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Bx_nodal_flag),dm,1,ngE));
+        Bfield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,By_nodal_flag),dm,1,ngE));
+        Bfield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Bz_nodal_flag),dm,1,ngE));
+
+        Efield_aux[lev][0].reset( new MultiFab(amrex::convert(ba,Ex_nodal_flag),dm,1,ngE));
+        Efield_aux[lev][1].reset( new MultiFab(amrex::convert(ba,Ey_nodal_flag),dm,1,ngE));
+        Efield_aux[lev][2].reset( new MultiFab(amrex::convert(ba,Ez_nodal_flag),dm,1,ngE));
+    }
 
     //
     // The coarse patch
     //
     if (lev > 0)
     {
-        const BoxArray& cba = amrex::coarsen(ba, refRatio(lev-1));
+        BoxArray cba = ba;
+        cba.coarsen(refRatio(lev-1));
+
+        // Create the MultiFabs for B
+        Bfield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
+        Bfield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
+        Bfield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+
+        // Create the MultiFabs for E
+        Efield_cp[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
+        Efield_cp[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
+        Efield_cp[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+
+        // Create the MultiFabs for the current
+        current_cp[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
+        current_cp[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
+        current_cp[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+
         const auto& cperiod = Geom(lev-1).periodicity();
+        current_cp_owner_masks[lev][0] = std::move(current_cp[lev][0]->OwnerMask(cperiod));
+        current_cp_owner_masks[lev][1] = std::move(current_cp[lev][1]->OwnerMask(cperiod));
+        current_cp_owner_masks[lev][2] = std::move(current_cp[lev][2]->OwnerMask(cperiod));
 
         if (do_dive_cleaning || plot_rho){
             rho_cp[lev].reset(new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
@@ -908,9 +752,48 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
 #endif
     }
 
+    //
+    // Copy of the coarse aux
+    //
+    if (lev > 0 && (n_field_gather_buffer > 0 || n_current_deposition_buffer > 0))
+    {
+        BoxArray cba = ba;
+        cba.coarsen(refRatio(lev-1));
+
+        if (n_field_gather_buffer > 0) {
+            // Create the MultiFabs for B
+            Bfield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Bx_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,By_nodal_flag),dm,1,ngE));
+            Bfield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Bz_nodal_flag),dm,1,ngE));
+
+            // Create the MultiFabs for E
+            Efield_cax[lev][0].reset( new MultiFab(amrex::convert(cba,Ex_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][1].reset( new MultiFab(amrex::convert(cba,Ey_nodal_flag),dm,1,ngE));
+            Efield_cax[lev][2].reset( new MultiFab(amrex::convert(cba,Ez_nodal_flag),dm,1,ngE));
+
+            gather_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            // Gather buffer masks have 1 ghost cell, because of the fact
+            // that particles may move by more than one cell when using subcycling.
+        }
+
+        if (n_current_deposition_buffer > 0) {
+            current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
+            current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
+            current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
+            if (do_dive_cleaning) {
+                charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
+            }
+            current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
+            // Current buffer masks have 1 ghost cell, because of the fact
+            // that particles may move by more than one cell when using subcycling.
+        }
+    }
+
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
+
+
 }
 
 std::array<Real,3>

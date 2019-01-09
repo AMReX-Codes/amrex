@@ -787,7 +787,9 @@ WarpX::WritePlotFile () const
             // j
             if (do_nodal)
             {
-                amrex::average_node_to_cellcenter(*mf[lev], dcomp, *j_nd_fp[lev], 0, 3);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *current_fp[lev][0], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *current_fp[lev][2], 0, 1);
             }
             else
             {
@@ -809,7 +811,9 @@ WarpX::WritePlotFile () const
             // E
             if (do_nodal)
             {
-                amrex::average_node_to_cellcenter(*mf[lev], dcomp, *EB_nd_aux[lev], 0, 3);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Efield_aux[lev][0], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Efield_aux[lev][2], 0, 1);
             }
             else
             {
@@ -831,7 +835,9 @@ WarpX::WritePlotFile () const
             // B
             if (do_nodal)
             {
-                amrex::average_node_to_cellcenter(*mf[lev], dcomp, *EB_nd_aux[lev], 3, 3);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Bfield_aux[lev][0], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Bfield_aux[lev][1], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Bfield_aux[lev][2], 0, 1);
             }
             else
             {
@@ -973,7 +979,9 @@ WarpX::WritePlotFile () const
             {
                 if (do_nodal)
                 {
-                    amrex::average_node_to_cellcenter(*mf[lev], dcomp, *EB_nd_fp[lev], 0, 3);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Efield_fp[lev][0], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Efield_fp[lev][2], 0, 1);
                 }
                 else
                 {
@@ -994,7 +1002,9 @@ WarpX::WritePlotFile () const
 
                 if (do_nodal)
                 {
-                    amrex::average_node_to_cellcenter(*mf[lev], dcomp, *EB_nd_fp[lev], 3, 3);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Bfield_fp[lev][0], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Bfield_fp[lev][1], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Bfield_fp[lev][2], 0, 1);
                 }
                 else
                 {

@@ -450,13 +450,6 @@ private:
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_fp_owner_masks;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_cp_owner_masks;
 
-    // nodal multifabs
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > EB_nd_fp;
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > EB_nd_cp;
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > EB_nd_aux;
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > j_nd_fp;
-    amrex::Vector<std::unique_ptr<amrex::MultiFab> > j_nd_cp;
-
     // div E cleaning
     int do_dive_cleaning = 0;
 
