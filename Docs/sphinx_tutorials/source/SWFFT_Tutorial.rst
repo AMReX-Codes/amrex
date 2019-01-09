@@ -14,7 +14,7 @@ is available at:
 
 https://xgitlab.cels.anl.gov/hacc/SWFFT
 
-Please refer to the AMReX documentation at https://amrex-codes.github.io/amrex/docs_html/SWFFT.html for a brief explanation of how the SWFFT redistributes data into pencil grids.
+Please refer to the AMReX documentation at :ref:`amrex_docs:swfftdoc` for a brief explanation of how the SWFFT redistributes data into pencil grids.
 
 AMReX contains two SWFFT tutorials, ``SWFFT_poisson`` and ``SWFFT_simple``:
 
