@@ -737,6 +737,8 @@ ifeq ($(USE_CUDA),TRUE)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
 
+    LIBRARIES += -lcuda
+
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64
         INCLUDE_LOCATIONS += $(MAKE_CUDA_PATH)/include
