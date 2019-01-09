@@ -1,8 +1,13 @@
 
 #include <cmath>
 #include <algorithm>
+#include <unordered_map>
+#include <set>
+#include <AMReX_Utility.H>
 #include <AMReX_MLLinOp.H>
+#include <AMReX_MLCellLinOp.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_Machine.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -21,9 +26,95 @@ constexpr int MLLinOp::mg_box_min_width;
 
 namespace {
     // experimental features
-    bool initialized = false;
+    bool initialized = false; // track initialization of static state
+    int consolidation_threshold = -1;
     int consolidation_ratio = 2;
     int consolidation_strategy = 3;
+
+    int flag_verbose_linop = 0;
+    int flag_comm_cache = 0;
+    int flag_use_mota = 0;
+    int remap_nbh_lb = 1;
+
+#ifdef BL_USE_MPI
+    class CommCache
+    {
+      public:
+        CommCache () = default;
+        CommCache (const CommCache&) = delete;
+        CommCache (CommCache&&) = delete;
+        void operator= (const CommCache&) = delete;
+        void operator= (CommCache&&) = delete;
+
+        ~CommCache () {
+            for (auto & p : cache) {
+                if (p.second != MPI_COMM_NULL) {
+                    MPI_Comm_free(&p.second);
+                }
+            }
+        }
+        void add (size_t key, MPI_Comm comm) {
+            AMREX_ASSERT(cache.count(key) == 0);
+            cache[key] = comm;
+        }
+        bool get (size_t key, MPI_Comm &comm) {
+            bool result = cache.count(key) > 0;
+            if (result) {
+                comm = cache.at(key);
+            }
+            return result;
+        }
+
+      private:
+        std::unordered_map<size_t, MPI_Comm> cache;
+    };
+
+    std::unique_ptr<CommCache> comm_cache;
+#endif
+
+    Vector<int> get_subgroup_ranks ()
+    {
+        int rank_n = ParallelContext::NProcsSub();
+        Vector<int> lranks(rank_n);
+        for (int i = 0; i < rank_n; ++i) {
+            lranks[i] = i;
+        }
+
+        Vector<int> granks(rank_n);
+        ParallelContext::local_to_global_rank(granks.data(), lranks.data(), rank_n);
+        return granks;
+    }
+}
+
+// static member function
+void MLLinOp::Initialize ()
+{
+    ParmParse pp("mg");
+    pp.query("consolidation_threshold", consolidation_threshold);
+    pp.query("consolidation_ratio", consolidation_ratio);
+    pp.query("consolidation_strategy", consolidation_strategy);
+    pp.query("verbose_linop", flag_verbose_linop);
+    pp.query("comm_cache", flag_comm_cache);
+    pp.query("mota", flag_use_mota);
+    pp.query("remap_nbh_lb", remap_nbh_lb);
+
+#ifdef BL_USE_MPI
+    comm_cache.reset(new CommCache());
+#endif
+    amrex::ExecOnFinalize(MLLinOp::Finalize);
+    initialized = true;
+}
+
+// static member function
+void MLLinOp::Finalize ()
+{
+    initialized = false;
+#ifdef BL_USE_MPI
+    comm_cache.reset();
+#endif
+#ifdef AMREX_SOFT_PERF_COUNTERS
+    MLCellLinOp::perf_counters.reset();
+#endif
 }
 
 MLLinOp::MLLinOp () {}
@@ -40,10 +131,7 @@ MLLinOp::define (const Vector<Geometry>& a_geom,
     BL_PROFILE("MLLinOp::define()");
 
     if (!initialized) {
-	ParmParse pp("mg");
-	pp.query("consolidation_ratio", consolidation_ratio);
-	pp.query("consolidation_strategy", consolidation_strategy);
-	initialized = true;
+        Initialize();
     }
 
     info = a_info;
@@ -158,6 +246,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     bool agged = false;
     bool coned = false;
+    int agg_lev, con_lev;
 
     if (info.do_agglomeration && aggable)
     {
@@ -237,6 +326,7 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
                 m_dmap[0].push_back(DistributionMapping());
                 agged = true;
+                agg_lev = last_coarsenableto_lev;
             }
 
             m_num_mg_levels[0] = m_grids[0].size();
@@ -245,12 +335,14 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
     else
     {
         int rr = mg_coarsen_ratio;
-        Real avg_npts, threshold_npts;
+        Real avg_npts;
         if (info.do_consolidation) {
             avg_npts = static_cast<Real>(a_grids[0].d_numPts()) / static_cast<Real>(ParallelContext::NProcsSub());
-            threshold_npts = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
-                                                            *info.con_grid_size,
-                                                            *info.con_grid_size));
+            if (consolidation_threshold == -1) {
+                consolidation_threshold = static_cast<Real>(AMREX_D_TERM(info.con_grid_size,
+                                                                         *info.con_grid_size,
+                                                                         *info.con_grid_size));
+            }
         }
         while (m_num_mg_levels[0] < info.max_coarsening_level + 1
                and a_geom[0].Domain().coarsenable(rr)
@@ -263,9 +355,10 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
             if (info.do_consolidation)
             {
-                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*threshold_npts)
+                if (avg_npts/(AMREX_D_TERM(rr,*rr,*rr)) < 0.999*consolidation_threshold)
                 {
                     coned = true;
+                    con_lev = m_dmap[0].size();
                     m_dmap[0].push_back(DistributionMapping());
                 }
                 else
@@ -292,6 +385,11 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
         makeConsolidatedDMap(m_grids[0], m_dmap[0], consolidation_ratio, consolidation_strategy);
     }
 
+    if (flag_use_mota && (agged || coned))
+    {
+        remapNeighborhoods(m_dmap[0]);
+    }
+
     if (info.do_agglomeration || info.do_consolidation)
     {
         m_bottom_comm = makeSubCommunicator(m_dmap[0].back());
@@ -303,6 +401,19 @@ MLLinOp::defineGrids (const Vector<Geometry>& a_geom,
 
     m_do_agglomeration = agged;
     m_do_consolidation = coned;
+
+    if (flag_verbose_linop) {
+        if (agged) {
+            Print() << "MLLinOp::defineGrids(): agglomerated AMR level 0 starting at MG level "
+                    << agg_lev << " of " << m_num_mg_levels[0] << std::endl;
+        } else if (coned) {
+            Print() << "MLLinOp::defineGrids(): consolidated AMR level 0 starting at MG level "
+                    << con_lev << " of " << m_num_mg_levels[0]
+                    << " (ratio = " << consolidation_ratio << ")" << std::endl;
+        } else {
+            Print() << "MLLinOp::defineGrids(): no agglomeration or consolidation of AMR level 0" << std::endl;
+        }
+    }
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -377,30 +488,59 @@ MLLinOp::makeSubCommunicator (const DistributionMapping& dm)
     BL_PROFILE("MLLinOp::makeSubCommunicator()");
 
 #ifdef BL_USE_MPI
-    MPI_Comm newcomm;
-    MPI_Group defgrp, newgrp;
-
-    MPI_Comm_group(m_default_comm, &defgrp);
 
     Vector<int> newgrp_ranks = dm.ProcessorMap();
     std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
     
-    if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
-        MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
-    } else {
-        Vector<int> local_newgrp_ranks(newgrp_ranks.size());
-        ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
-                                              newgrp_ranks.data(), newgrp_ranks.size());
-        MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+    if (flag_verbose_linop) {
+        Print() << "MLLinOp::makeSubCommunicator(): called for " << newgrp_ranks.size() << " ranks" << std::endl;
     }
 
-    MPI_Comm_create(m_default_comm, newgrp, &newcomm);   
-    m_raii_comm.reset(new CommContainer(newcomm));
+    MPI_Comm newcomm;
+    bool cache_hit = false;
+    uint64_t key = 0;
+    if (flag_comm_cache) {
+        AMREX_ASSERT(comm_cache);
+        key = hash_vector(newgrp_ranks, hash_vector(get_subgroup_ranks()));
+        cache_hit = comm_cache->get(key, newcomm);
+        if (cache_hit && flag_verbose_linop) {
+            Print() << "MLLinOp::makeSubCommunicator(): found subcomm in cache" << std::endl;
+        }
+    }
 
-    MPI_Group_free(&defgrp);
-    MPI_Group_free(&newgrp);
+    if (!flag_comm_cache || !cache_hit) {
+        MPI_Group defgrp, newgrp;
+        MPI_Comm_group(m_default_comm, &defgrp);
+        if (ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator()) {
+            MPI_Group_incl(defgrp, newgrp_ranks.size(), newgrp_ranks.data(), &newgrp);
+        } else {
+            Vector<int> local_newgrp_ranks(newgrp_ranks.size());
+            ParallelContext::global_to_local_rank(local_newgrp_ranks.data(),
+                                                  newgrp_ranks.data(), newgrp_ranks.size());
+            MPI_Group_incl(defgrp, local_newgrp_ranks.size(), local_newgrp_ranks.data(), &newgrp);
+        }
+
+        if (flag_verbose_linop) {
+            Print() << "MLLinOp::makeSubCommunicator(): MPI_Comm_create: (";
+            for (auto rank : newgrp_ranks) {
+                Print() << rank << ",";
+            }
+            Print() << "\b)" << std::endl;
+        }
+
+        MPI_Comm_create(m_default_comm, newgrp, &newcomm);
+
+        if (flag_comm_cache) {
+            comm_cache->add(key, newcomm);
+        } else {
+            m_raii_comm.reset(new CommContainer(newcomm));
+        }
+
+        MPI_Group_free(&defgrp);
+        MPI_Group_free(&newgrp);
+    }
 
     return newcomm;
 #else
@@ -486,6 +626,44 @@ MLLinOp::makeConsolidatedDMap (const Vector<BoxArray>& ba, Vector<DistributionMa
                 ParallelContext::local_to_global_rank(pmap_g.data(), pmap.data(), pmap.size());
                 dm[i].define(std::move(pmap_g));
             }
+        }
+    }
+}
+
+void
+MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
+{
+    BL_PROFILE("MLLinOp::remapNeighborhoods()");
+
+    if (flag_verbose_linop) {
+        Print() << "Remapping ranks to neighborhoods ..." << std::endl;
+    }
+
+    for (int j = 1; j < dms.size(); ++j)
+    {
+        const Vector<int> & pmap = dms[j].ProcessorMap();
+        std::set<int> g_ranks_set(pmap.begin(), pmap.end());
+        auto lev_rank_n = g_ranks_set.size();
+        if (lev_rank_n >= remap_nbh_lb && lev_rank_n < ParallelContext::NProcsSub())
+        {
+            // find best neighborhood with lev_rank_n ranks
+            auto nbh_g_ranks = machine::find_best_nbh(lev_rank_n);
+            AMREX_ASSERT(nbh_g_ranks.size() == lev_rank_n);
+
+            // construct mapping from original global rank to neighborhood global rank
+            int idx = 0;
+            std::unordered_map<int, int> rank_mapping;
+            for (auto orig_g_rank : g_ranks_set) {
+                AMREX_ASSERT(idx < nbh_g_ranks.size());
+                rank_mapping[orig_g_rank] = nbh_g_ranks[idx++];
+            }
+
+            // remap and create new DM
+            Vector<int> nbh_pmap(pmap.size());
+            for (int i = 0; i < pmap.size(); ++i) {
+                nbh_pmap[i] = rank_mapping.at(pmap[i]);
+            }
+            dms[j] = DistributionMapping(std::move(nbh_pmap));
         }
     }
 }
