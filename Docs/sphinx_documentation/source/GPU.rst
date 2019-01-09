@@ -92,10 +92,10 @@ chapter:
 
 - AMReX further parallelizes GPU applications by utilizing CUDA streams.
   A CUDA stream is a list of GPU kernel launches that is ran on the GPU 
-  sequentially.  Kernel launches placed in different CUDA streams can be ran
+  sequentially.  Kernel launches placed in different CUDA streams can be run
   simultaneously on the GPU, given enough computing resources are available.
   AMReX places each iteration of :cpp:`MFIter` loops on separate streams,
-  allowing each independent iteration to be ran simultaneously and maximize
+  allowing each independent iteration to be run simultaneously and maximize
   available GPU resources.
 
   The AMReX implementation of CUDA streams is illustrated in :numref:`fig:gpu:streams`.
