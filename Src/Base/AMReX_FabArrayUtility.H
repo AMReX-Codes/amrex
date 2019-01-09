@@ -166,6 +166,8 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
                 __syncthreads();
 
                 Gpu::blockReduceSum<AMREX_CUDA_MAX_THREADS>(sdata, *block_sum);
+
+                if (threadIdx.x == 0) Cuda::Atomic::Add(d_sm, *block_sum);
             });
         }
 
