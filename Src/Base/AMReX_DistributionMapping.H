@@ -156,7 +156,9 @@ class DistributionMapping
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
 
-    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
+    // if use_box_vol is true, weight boxes by their volume in Distribute
+    // otherwise, all boxes will be treated with equal weight
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, bool use_box_vol=true);
 
 private:
 
