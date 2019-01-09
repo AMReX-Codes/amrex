@@ -609,6 +609,7 @@ void RegionGraph::graphTeardown()
 	}
     }
 
+#if 0
     if(tg == 0)
     {
 	CopyMap* cpDst = rCopyMapHead;
@@ -659,6 +660,7 @@ void RegionGraph::graphTeardown()
 	    cpSrc = cpSrc->next;
 	}
     }
+#endif
 
     //if(WorkerThread::isTeamMasterThread(tid)) commented out b/c its already call by single thread in a team
     //Perilla::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
