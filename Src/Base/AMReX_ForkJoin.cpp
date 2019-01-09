@@ -105,18 +105,20 @@ ForkJoin::init(const Vector<int> &task_rank_n)
 
 void
 ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
-                  Strategy strategy, Intent intent, const IntVect ng, int owner)
+                  Strategy strategy, Intent intent, int owner)
 {
     if (idx >= data[name].size()) {
         data[name].resize(idx + 1);
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].empty(),
                                      "Can only register to a (name, index) pair once");
-    data[name][idx] = MFFork(&mf, strategy, intent, ng, owner);
+
+    IntVect ngrow = mf.nGrowVect(); // default use original MultiFab's grow cells
 
     // compute how components are copied to tasks
+    // default evenly split components across tasks
     int comp_n = mf.nComp(); // number of components in original
-    auto &comp_split = data[name][idx].comp_split;
+    Vector<ComponentSet> comp_split;
     comp_split.resize(NTasks());
     for (int i = 0; i < NTasks(); ++i) {
         if (strategy == Strategy::split) {
@@ -131,6 +133,22 @@ ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
             comp_split[i].hi = comp_n;
         }
     }
+
+    data[name][idx] = MFFork(&mf, strategy, intent, owner, ngrow, std::move(comp_split));
+}
+
+void
+ForkJoin::modify_ngrow (const std::string &name, int idx, IntVect ngrow)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.count(name) > 0 && data[name].size() > idx,
+                                     "(name, index) pair doesn't exist");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!flag_invoked,
+                                     "Can only specify grow cells before first forkjoin() invocation");
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ngrow[i] >= 0,
+                                         "ngrow[i] must be non-negative");
+    }
+    data[name][idx].ngrow = ngrow;
 }
 
 void
@@ -138,7 +156,7 @@ ForkJoin::modify_split (const std::string &name, int idx, Vector<ComponentSet> c
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.count(name) > 0 && data[name].size() > idx,
                                      "(name, index) pair doesn't exist");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data[name][idx].forked.size() == 0,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!flag_invoked,
                                      "Can only specify custom split before first forkjoin() invocation");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(comp_split.size() == NTasks(),
                                      "comp_split must be same length as number of tasks");
@@ -187,7 +205,7 @@ ForkJoin::copy_data_to_tasks ()
                         }
                         // look up the distribution mapping for this (box array, task) pair
                         const DistributionMapping &dm = get_dm(ba, i, orig.DistributionMap());
-                        forked.emplace_back(ba, dm, task_comp_n, mff.nGrow);
+                        forked.emplace_back(ba, dm, task_comp_n, mff.ngrow);
                     } else if (flag_verbose) {
                         amrex::Print() << "  Forked " << mf_name << "[" << idx << "] for task " << i
                                        << " already created" << std::endl;
@@ -201,7 +219,7 @@ ForkJoin::copy_data_to_tasks ()
                                            << comp_split[i].lo << ", " << comp_split[i].hi << ") into to task " << i << std::endl;
                         }
                         // parallel copy data into forked MF
-                        forked[i].Redistribute(orig, comp_split[i].lo, 0, task_comp_n, mff.nGrow);
+                        forked[i].Redistribute(orig, comp_split[i].lo, 0, task_comp_n, mff.ngrow);
                     }
 
                 } else {
@@ -243,7 +261,7 @@ ForkJoin::copy_data_from_tasks ()
                         }
                         int task_comp_n = comp_split[i].hi - comp_split[i].lo;
                         AMREX_ASSERT(forked[i].nComp() == task_comp_n);
-                        orig.Redistribute(forked[i], 0, comp_split[i].lo, task_comp_n, mff.nGrow);
+                        orig.Redistribute(forked[i], 0, comp_split[i].lo, task_comp_n, mff.ngrow);
                     }
                 } else { // mff.strategy == single or duplicate
                     // copy all components from owner_task
@@ -251,7 +269,7 @@ ForkJoin::copy_data_from_tasks ()
                         amrex::Print() << "Copying " << mf_name << " out from task " << mff.owner_task << " (whole)" << std::endl;
                     }
                     AMREX_ASSERT(forked[mff.owner_task].nComp() == orig.nComp());
-                    orig.Redistribute(forked[mff.owner_task], 0, 0, orig.nComp(), mff.nGrow);
+                    orig.Redistribute(forked[mff.owner_task], 0, 0, orig.nComp(), mff.ngrow);
                 }
             }
         }

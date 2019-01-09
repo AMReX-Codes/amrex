@@ -164,11 +164,10 @@ void top_fork(MultiFab& soln, const MultiFab& rhs,
     fj.set_task_output_dir(task_output_dir);
 
     // these multifabs go to task 0 only
-    IntVect zg(0);
-    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::single, ForkJoin::Intent::in , zg, 1);
-    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::single, ForkJoin::Intent::in , zg, 1);
-    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::single, ForkJoin::Intent::in , zg, 1);
-    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::single, ForkJoin::Intent::out, zg, 1);
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::single, ForkJoin::Intent::in , 1);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::single, ForkJoin::Intent::out, 1);
 
     // issue top-level fork-join
     fj.fork_join(
@@ -195,11 +194,10 @@ void fork_solve(MultiFab& soln, const MultiFab& rhs,
     fj.set_task_output_dir(task_output_dir);
 
     // register how to copy multifabs to/from tasks
-    IntVect zg(0);
-    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in,  zg);
-    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::split, ForkJoin::Intent::in,  zg);
-    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in,  zg);
-    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out, zg);
+    fj.reg_mf    (rhs  , "rhs"  , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (alpha, "alpha", ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf_vec(beta , "beta" , ForkJoin::Strategy::split, ForkJoin::Intent::in);
+    fj.reg_mf    (soln , "soln" , ForkJoin::Strategy::split, ForkJoin::Intent::out);
 
     if (flag_modify_split) {
         auto comp_n = soln.nComp();
@@ -213,12 +211,12 @@ void fork_solve(MultiFab& soln, const MultiFab& rhs,
                 comp_split[i].hi = 1 + (comp_n-1) * (i+1) / ntasks;
             }
 
-            fj.modify_split("rhs", 0, comp_split);
-            fj.modify_split("alpha", 0, comp_split);
+            fj.modify_split("rhs", comp_split);
+            fj.modify_split("alpha", comp_split);
             for (int i = 0; i < beta.size(); ++i) {
                 fj.modify_split("beta", i, comp_split);
             }
-            fj.modify_split("soln", 0, comp_split);
+            fj.modify_split("soln", comp_split);
         }
     }
 

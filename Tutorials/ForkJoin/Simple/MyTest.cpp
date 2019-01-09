@@ -61,10 +61,13 @@ MyTest::runTest ()
     fj.SetVerbose(fj_verbose);
     fj.set_task_output_dir(outdir);
 
-    int ng=data_single.nGrow();
-    fj.reg_mf(data_split,"data_split",ForkJoin::Strategy::split,ForkJoin::Intent::in,{ng,ng,ng});
-    fj.reg_mf(data_single,"data_single",ForkJoin::Strategy::single,ForkJoin::Intent::in,{ng,ng,ng},n_tasks-1);
-    fj.reg_mf(data_all,"data_all",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in,{ng,ng,ng});
+    fj.reg_mf(data_split,"data_split",ForkJoin::Strategy::split,ForkJoin::Intent::in);
+    fj.reg_mf(data_single,"data_single",ForkJoin::Strategy::single,ForkJoin::Intent::in,n_tasks-1);
+    fj.reg_mf(data_all,"data_all",ForkJoin::Strategy::duplicate,ForkJoin::Intent::in);
+
+    if (data_single.nGrow() > 0) {
+        fj.modify_ngrow("data_single", IntVect(data_single.nGrow() - 1)); // reduce grow cells by one
+    }
 
     fj.fork_join(myFunction);
 }
@@ -85,7 +88,7 @@ MyTest::readParameters ()
 
     int n_comp_single;
     pp.get("n_comp_single",n_comp_single);
-    
+
     int n_comp_all;
     pp.get("n_comp_all",n_comp_all);
 
@@ -98,7 +101,7 @@ MyTest::readParameters ()
     int n_grow = 1;
     DistributionMapping dmap(grids);
     data_split.define(grids,dmap,n_comp_split,n_grow);
-    data_single.define(grids,dmap,n_comp_single,n_grow);
+    data_single.define(grids,dmap,n_comp_single,n_grow+1);
     data_all.define(grids,dmap,n_comp_all,n_grow+1);
 
     pp.query("outdir",outdir);

@@ -38,7 +38,13 @@ def get_amrex_version():
 # ones.
 extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
-              'sphinx.ext.viewcode']
+              'sphinx.ext.viewcode',
+              'sphinx.ext.intersphinx']
+
+intersphinx_mapping = {
+    'amrex_tutorials': ('../../../sphinx_tutorials/build/html/',
+                       '../../sphinx_tutorials/build/html/objects.inv')
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['ytemplates']

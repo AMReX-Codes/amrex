@@ -1,3 +1,6 @@
+
+.. _amrex_tut_indx:
+
 AMReX Tutorials
 ===============
 
