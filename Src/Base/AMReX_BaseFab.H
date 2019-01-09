@@ -63,7 +63,7 @@ struct FabView
     int iend, jend, kend, nend;
 #endif
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE T& operator() (int i, int j, int k, int n=0) const {
+    AMREX_FORCE_INLINE T& operator() (int i, int j, int k, int n=0) const {
 #ifdef AMREX_DEBUG
         AMREX_ASSERT(i<iend && j<jend && k<kend && n<nend);
 #endif
