@@ -580,47 +580,12 @@ namespace amrex
 
     MultiFab ToMultiFab (const iMultiFab& imf)
     {
-        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow(),
-                    MFInfo(), FArrayBoxFactory());
-
-        const int ncomp = imf.nComp();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.growntilebox();
-            FArrayBox      * rfab =  mf.fabPtr(mfi);
-            IArrayBox const* ifab = imf.fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
-            {
-                amrex::cast(*rfab, *ifab, tbx, SrcComp{0}, DestComp{0}, NumComps{ncomp});
-            });
-        }
-
-        return mf;
+        return amrex::cast<MultiFab>(imf);
     }
 
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
     {
-        FabArray<BaseFab<long> > lmf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
-
-        const int ncomp = imf.nComp();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.growntilebox();
-            BaseFab<long>  * lfab = lmf.fabPtr(mfi);
-            IArrayBox const* ifab = imf.fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
-            {
-                amrex::cast(*lfab, *ifab, tbx, SrcComp{0}, DestComp{0}, NumComps{ncomp});
-            });
-        }
-
-        return lmf;
+        return amrex::cast<FabArray<BaseFab<long> > > (imf);
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
