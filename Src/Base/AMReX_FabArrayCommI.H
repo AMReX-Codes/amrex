@@ -709,12 +709,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		if (op == FabArrayBase::COPY) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
-                        dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
+                        dfab->copy(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
                     });
 		} else {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
-                        dfab->plus(*sfab, tbx, tbx, scomp, dcomp, ncomp);
+                        dfab->plus(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
                     });
                 }
 	    }
@@ -1387,12 +1387,12 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 		if (op == FabArrayBase::COPY) {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
-                        dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
+                        dfab->copy(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
                     });
 		} else {
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
                     {
-                        dfab->plus(*sfab, tbx, tbx, scomp, dcomp, ncomp);
+                        dfab->plus(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
                     });
 		}
 	    }
@@ -2197,7 +2197,7 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
                   FAB* dfab = this->fabPtr(fai);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
             {
-                dfab->copy(*sfab, tbx, scomp, tbx, dcomp, ncomp);
+                dfab->copy(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
             });
         }
 
