@@ -104,7 +104,8 @@ namespace amrex
                              const Geometry& cgeom, const Geometry& fgeom);
 
     //! Output state data for a single zone
-    void print_state (const MultiFab& mf, const IntVect& cell, const int n=-1);
+    void print_state (const MultiFab& mf, const IntVect& cell, const int n=-1,
+                      const IntVect& ng = IntVect::TheZeroVector());
 
     //! Write each fab individually
     void writeFabs (const MultiFab& mf, const std::string& name);

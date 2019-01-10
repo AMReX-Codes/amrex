@@ -117,7 +117,7 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
     {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
@@ -537,18 +537,18 @@ namespace amrex
     }
 
 
-    void print_state(const MultiFab& mf, const IntVect& cell, const int n)
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n, const IntVect& ng)
     {
-
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
       for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  if (mfi.validbox().contains(cell)) {
+      {
+          const Box& bx = amrex::grow(mfi.validbox(), ng);
+	  if (bx.contains(cell)) {
 	    if (n >= 0) {
-	      amrex::AllPrint().SetPrecision(17) << mf[mfi](cell, n) << std::endl;
+	      amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
+                                                 << ": " << mf[mfi](cell, n) << std::endl;
 	    } else {
 	      std::ostringstream ss;
 	      ss.precision(17);
@@ -558,11 +558,11 @@ namespace amrex
 		  ss << mf[mfi](cell,i) << ", ";
 		}
 	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << ss.str() << std::endl;
+	      amrex::AllPrint() << " At cell " << cell << " in Box " << bx
+                                << ": " << ss.str() << std::endl;
 	    }
 	  }
-	}
-
+      }
     }
 
     void writeFabs (const MultiFab& mf, const std::string& name)
