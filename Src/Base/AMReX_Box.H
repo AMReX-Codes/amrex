@@ -830,7 +830,7 @@ Box::enclosedCells ()
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 long
 Box::index (const IntVect& v) const
 {
@@ -845,7 +845,7 @@ Box::index (const IntVect& v) const
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 IntVect
 Box::atOffset (long offset) const
 {

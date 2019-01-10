@@ -79,6 +79,22 @@ public:
         h_data = nullptr;
     }
 
+    void copyToHost (T* h_p, std::size_t n) const
+    {
+        if (n == 0) return;
+#ifdef AMREX_USE_CUDA
+        if (d_data)
+        {
+            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(h_p, d_data, n*sizeof(T),
+                                                cudaMemcpyDeviceToHost, Device::cudaStream()));
+        }
+        else
+#endif
+        {
+            std::memcpy(h_p, h_data, n*sizeof(T));
+        }
+    }
+
 private:
     T* d_data = nullptr;
     T* h_data = nullptr;

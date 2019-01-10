@@ -1,7 +1,7 @@
 #
 # Utility classes
 #
-add_sources( AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H )
+add_sources( AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H )
 add_sources( AMReX.cpp AMReX_error_fi.cpp )
 
 add_sources( AMReX.H AMReX_Exception.H )
