@@ -42,7 +42,7 @@ public:
     * DO NOT CHANGE THIS BEHAVIOR!
     */
     AMREX_GPU_HOST_DEVICE
-    Box ()
+    constexpr Box ()
         : smallend(1),
           bigend(0),
           btype()
@@ -50,7 +50,7 @@ public:
 
     //! Construct cell-centered type Box.
     AMREX_GPU_HOST_DEVICE
-    Box (const IntVect& small, const IntVect& big)
+    constexpr Box (const IntVect& small, const IntVect& big)
         : smallend(small),
           bigend(big)
         {}

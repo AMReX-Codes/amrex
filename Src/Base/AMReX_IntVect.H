@@ -74,7 +74,7 @@ public:
     * \brief Construct an IntVect whose components are all zero.
     */
     AMREX_GPU_HOST_DEVICE
-    IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
+    constexpr IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
 
     /**
     * \brief Construct an IntVect given the specific values for its
@@ -82,11 +82,11 @@ public:
     * to take AMREX_SPACEDIM arguments.
     */
     AMREX_GPU_HOST_DEVICE 
-    IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
+    constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
     AMREX_GPU_HOST_DEVICE
-    explicit IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
+    explicit constexpr IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
 #endif
 
     /**
@@ -104,6 +104,8 @@ public:
     explicit IntVect (const Vector<int>& a) : vect{AMREX_D_DECL(a[0],a[1],a[2])} {
         BL_ASSERT(a.size() == AMREX_SPACEDIM);
     }
+
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
   ///
   /**
@@ -149,12 +151,11 @@ public:
     int maxDir(bool a_doAbsValue) const;
 
     //! Returns a reference to the i'th coordinate of the IntVect.
-    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
@@ -443,7 +444,7 @@ public:
     * It is provided as a convenient way to specify the zero vector.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheZeroVector () {
+    static constexpr IntVect TheZeroVector () {
         return IntVect(0);
     }
     /**
@@ -453,7 +454,7 @@ public:
     * It is provided as a convenient way to specify the unit vector.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheUnitVector () {
+    static constexpr IntVect TheUnitVector () {
         return IntVect(1);
     }
     /**
@@ -462,10 +463,10 @@ public:
     * the d-direction is set to one. 
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheDimensionVector (int d) {
-        IntVect r(0);
-        r[d] = 1;
-        return r;
+    static constexpr IntVect TheDimensionVector (int d) {
+        return  (d==0) ? IntVect(AMREX_D_DECL(1,0,0)) :
+               ((d==1) ? IntVect(AMREX_D_DECL(0,1,0)) :
+                         IntVect(AMREX_D_DECL(0,0,1)));
     }
     /**
     * \brief This static member function returns a reference to a constant IntVect
@@ -473,7 +474,7 @@ public:
     * It is provided as a convenience to our users when defining Boxes.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheNodeVector () {
+    static constexpr IntVect TheNodeVector () {
         return IntVect(1);
     }
     /** 
@@ -482,16 +483,16 @@ public:
     * It is provided as a convenience to our users when defining Boxes.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheCellVector () {
+    static constexpr IntVect TheCellVector () {
         return IntVect(0);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheMaxVector () {
+    static constexpr IntVect TheMaxVector () {
         return IntVect(std::numeric_limits<int>::max());
     }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheMinVector () {
+    static constexpr IntVect TheMinVector () {
         return IntVect(std::numeric_limits<int>::lowest());
     }
 
