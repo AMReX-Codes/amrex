@@ -121,11 +121,6 @@ endif ()
 option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option ( ENABLE_LINEAR_SOLVERS )
 
-############ To be removed #####################
-set ( ENABLE_FBASELIB "DEPRECATED" CACHE STRING "Build Fortran kernel (deprecated)" FORCE)
-print_option (ENABLE_FBASELIB)
-################################################
-
 option ( ENABLE_AMRDATA "Build data services" OFF)
 print_option ( ENABLE_AMRDATA )
 
