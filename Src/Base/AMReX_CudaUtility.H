@@ -71,7 +71,7 @@ namespace Cuda {
 #ifdef AMREX_USE_CUDA
         namespace detail {
 
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             float atomicMax(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -84,7 +84,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
             
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             double atomicMax(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -98,7 +98,7 @@ namespace Cuda {
                 return __longlong_as_double(old);
             }
 
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             float atomicMin(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -111,7 +111,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
 
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             double atomicMin(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -128,7 +128,7 @@ namespace Cuda {
 #endif  // AMREX_USE_CUDA
 
         template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (T* sum, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -137,9 +137,19 @@ namespace Cuda {
             *sum += value;
 #endif
         }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Add (long* sum, long value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicAdd((unsigned long long*)sum, static_cast<unsigned long long>(value));
+#else
+            *sum += value;
+#endif
+        }
         
         template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -148,9 +158,39 @@ namespace Cuda {
             *m = (*m) < value ? (*m) : value;
 #endif
         }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Min (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMin(m, value);
+#else
+            *m = (*m) < value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Min (unsigned int* m, unsigned int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMin(m, value);
+#else
+            *m = (*m) < value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Min (unsigned long long int* m, unsigned long long int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMin(m, value);
+#else
+            *m = (*m) < value ? (*m) : value;
+#endif
+        }
         
         template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -160,7 +200,37 @@ namespace Cuda {
 #endif
         }
 
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Max (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMax(m, value);
+#else
+            *m = (*m) > value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Max (unsigned int* m, unsigned int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMax(m, value);
+#else
+            *m = (*m) > value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Max (unsigned long long int* m, unsigned long long int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMax(m, value);
+#else
+            *m = (*m) > value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Or (int* m, int value)
         {
 #if defined(__CUDA_ARCH__)
@@ -170,10 +240,20 @@ namespace Cuda {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void And (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicAnd(m, value);
+#else
+            *m = (*m) && value; 
+#endif
+        }
+
     } // namespace Atomic
 
     template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan(T m)
     {
 #if defined(__CUDA_ARCH__)
@@ -184,7 +264,7 @@ namespace Cuda {
     }
 
     template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf(T m)
     {
 #ifdef __CUDA_ARCH__

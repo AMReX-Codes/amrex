@@ -221,6 +221,8 @@ CNS::post_regrid (int lbase, int new_finest)
 void
 CNS::post_timestep (int iteration)
 {
+    BL_PROFILE("post_timestep");
+
     if (do_reflux && level < parent->finestLevel()) {
         MultiFab& S = get_new_data(State_Type);
         CNS& fine_level = getLevel(level+1);
@@ -235,6 +237,8 @@ CNS::post_timestep (int iteration)
 void
 CNS::postCoarseTimeStep (Real time)
 {
+    BL_PROFILE("postCoarseTimeStep()");
+
     // This only computes sum on level 0
     if (verbose >= 2) {
         printTotal();
