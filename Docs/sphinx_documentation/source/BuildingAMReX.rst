@@ -327,10 +327,6 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_LINEAR_SOLVERS        |  Build AMReX linear solvers                     | ON          | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_LINEAR_SOLVERS_LEGACY |  Build AMReX linear solvers (legacy components) | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FBASELIB              |  Build (deprecated) Fortran kernel              | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_AMRDATA               |  Build data services                            | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_PARTICLES             |  Build particle classes                         | OFF         | ON OFF          |
@@ -368,11 +364,6 @@ below.
 .. raw:: latex
 
    \end{center}
-
-The option ``ENABLE_LINEAR_SOLVERS=ON`` triggers the inclusion of C++-based
-linear solvers in the build. Fortran-based linear solvers can be included as
-well by providing the option ``ENABLE_FBASELIB=ON`` in addition to
-``ENABLE_LINEAR_SOLVERS=ON``.
 
 The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
 assertions in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while
