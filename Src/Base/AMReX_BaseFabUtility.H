@@ -8,15 +8,15 @@ namespace amrex {
 template <class Tto, class Tfrom>
 AMREX_GPU_HOST_DEVICE
 void
-cast (Box const& bx, BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
-      int tfcomp, int ffcomp, int ncomp)
+cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
+      Box const& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp)
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
-    const auto tdata =   tofab.view(lo,tfcomp);
-    const auto fdata = fromfab.view(lo,ffcomp);
+    const auto tdata =   tofab.view(lo,dcomp.i);
+    const auto fdata = fromfab.view(lo,scomp.i);
 
-    for (int n = 0; n < ncomp; ++n) {
+    for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
                 AMREX_PRAGMA_SIMD

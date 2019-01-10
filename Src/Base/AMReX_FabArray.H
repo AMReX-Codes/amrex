@@ -1380,7 +1380,7 @@ FabArray<FAB>::setBndry (value_type val,
                     AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
                     {
                         const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
-                        fab->setVal(val, Box(iv,iv,fab->box().ixType()), strt_comp, ncomp);
+                        fab->setVal(val, Box(iv,iv,fab->box().ixType()), DestComp{strt_comp}, NumComps{ncomp});
                     });
                 }
             }
@@ -1443,7 +1443,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
                 AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
                 {
                     const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
-                    fab->setVal(val, Box(iv,iv,fab->box().ixType()), strt_comp, ncomp);
+                    fab->setVal(val, Box(iv,iv,fab->box().ixType()), DestComp{strt_comp}, NumComps{ncomp});
                 });
             }
         }
@@ -1542,7 +1542,7 @@ FabArray<FAB>::setVal (value_type val,
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
         {
-            fab->setVal(val, tbx, comp, ncomp);
+            fab->setVal(val, tbx, DestComp{comp}, NumComps{ncomp});
         });
     }
 }
@@ -1585,7 +1585,7 @@ FabArray<FAB>::setVal (value_type val,
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
             {
-                fab->setVal(val, tbx, comp, ncomp);
+                fab->setVal(val, tbx, DestComp{comp}, NumComps{ncomp});
             });
         }
     }

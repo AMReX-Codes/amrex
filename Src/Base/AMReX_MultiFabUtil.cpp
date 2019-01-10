@@ -594,7 +594,7 @@ namespace amrex
             IArrayBox const* ifab = imf.fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
             {
-                amrex::cast(tbx, *rfab, *ifab, 0, 0, ncomp);
+                amrex::cast(*rfab, *ifab, tbx, SrcComp{0}, DestComp{0}, NumComps{ncomp});
             });
         }
 
@@ -616,7 +616,7 @@ namespace amrex
             IArrayBox const* ifab = imf.fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
             {
-                amrex::cast(tbx, *lfab, *ifab, 0, 0, ncomp);
+                amrex::cast(*lfab, *ifab, tbx, SrcComp{0}, DestComp{0}, NumComps{ncomp});
             });
         }
 
