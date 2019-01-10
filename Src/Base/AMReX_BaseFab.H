@@ -1794,16 +1794,14 @@ template <class T>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, const Box& destbox)
 {
-    copy(src, destbox, SrcComp{0}, DestComp{0}, this->nvar);
-    return *this;
+    return this->copy(src, destbox, SrcComp{0}, DestComp{0}, NumComps{this->nvar});
 }
 
 template <class T>
 BaseFab<T>&
 BaseFab<T>::copy (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp)
 {
-    copy(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
-    return *this;
+    return copy(src, this->domain, SrcComp{srccomp}, DestComp{destcomp}, NumComps{numcomp});
 }
 
 template <class T>
