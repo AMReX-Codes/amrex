@@ -12,6 +12,7 @@
 
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_TagBox.H>
 #include <AMReX_AmrCore.H>
 
 #include <AMReX_EB_LSCore_F.H>
@@ -34,6 +35,21 @@ class LSCoreBase
     : public AmrCore
 {
 public:
+
+
+    /****************************************************************************
+     * Static utilities exposing LSCore's basic operations to classes managing  *
+     * their own grids.                                                         *
+     ***************************************************************************/
+
+    static void FillLevelSetTags( int lev, TagBoxArray & tags, const Vector<Real> & phierr,
+                                  const MultiFab & levelset_data, const Vector<Geometry> & geom );
+
+    static void FillVolfracTags( int lev, TagBoxArray & tags, int buffer,
+                                 const Vector<BoxArray> & grids,
+                                 const Vector<DistributionMapping> & dmap,
+                                 const EB2::Level & eb_lev, const Vector<Geometry> & geom );
+
 
     /****************************************************************************
      * public member functions                                                  *
@@ -73,7 +89,7 @@ public:
 
     // Tag all cells for refinement. Overrides the pure virtual function in
     // AmrCore
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
+    virtual void ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) override;
 
     // Write plotfile to disk
     void WritePlotFile () const;

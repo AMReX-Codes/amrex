@@ -28,7 +28,7 @@ public:
     enum CellIndex { CELL = 0, NODE = 1 };
     //! The default constructor
     AMREX_GPU_HOST_DEVICE
-    IndexType () : itype(0) {}
+    constexpr IndexType () : itype(0) {}
     //! Construct an IndexType identical to an IntVect.
     AMREX_GPU_HOST_DEVICE
     explicit IndexType (const IntVect& iv)
@@ -40,7 +40,7 @@ public:
     * to take AMREX_SPACEDIM arguments.
     */
     AMREX_GPU_HOST_DEVICE
-    IndexType (AMREX_D_DECL(CellIndex i, CellIndex j, CellIndex k))
+    constexpr IndexType (AMREX_D_DECL(CellIndex i, CellIndex j, CellIndex k))
         : itype(AMREX_D_TERM(i, | (j<<1), | (k<<2)))
         {}
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
@@ -108,7 +108,7 @@ public:
     * IndexType::CELL.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IndexType TheCellType () {
+    static constexpr IndexType TheCellType () {
         return IndexType(AMREX_D_DECL(IndexType::CELL,
                                       IndexType::CELL,
                                       IndexType::CELL));
@@ -120,7 +120,7 @@ public:
     * IndexType::NODE.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IndexType TheNodeType () {
+    static constexpr IndexType TheNodeType () {
         return IndexType(AMREX_D_DECL(IndexType::NODE,
                                       IndexType::NODE,
                                       IndexType::NODE));

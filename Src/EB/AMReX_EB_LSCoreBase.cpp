@@ -117,7 +117,7 @@ void LSCoreBase::Init () {
         // start simulation from the beginning
         const Real time = 0.0;
 
-        // This tells the AmrMesh class not to iterate when creating the 
+        // This tells the AmrMesh class not to iterate when creating the
         //    initial grid hierarchy
         SetIterateToFalse();
 
@@ -211,7 +211,8 @@ void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMa
 
     BoxArray ba_nd = amrex::convert(ba, IntVect{AMREX_D_DECL(1, 1, 1)});
 
-    MultiFab ls_regrid = MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost> (ba_nd, dm, level_set[lev]);
+    MultiFab ls_regrid = MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost>
+        (ba_nd, dm, level_set[lev]);
     iMultiFab valid_regrid = MFUtil::duplicate<iMultiFab, MFUtil::SymmetricGhost>
         (ba_nd, dm, level_set_valid[lev]);
 
@@ -220,12 +221,10 @@ void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMa
 }
 
 
+void LSCoreBase::FillLevelSetTags(int lev, TagBoxArray & tags, const Vector<Real> & phierr,
+                                  const MultiFab & levelset_data, const Vector<Geometry> & geom ) {
 
-// tag all cells for refinement
-// overrides the pure virtual function in AmrCore
-void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
-
-    if (use_phierr && (lev >= phierr.size())) return;
+    if (lev >= phierr.size()) return;
 
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -233,22 +232,14 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
     const Real * dx      = geom[lev].CellSize();
     const Real * prob_lo = geom[lev].ProbLo();
 
-    MultiFab volfrac(grids[lev], dmap[lev], 1, 1);
-    const MultiFab * state = & level_set[lev];
-
-    if (! use_phierr) {
-        eb_levels[lev]->fillVolFrac( volfrac, geom[lev]);
-        state = & volfrac;
-    }
-
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        Vector<int>  itags;
+        Vector<int> itags;
 
-        for (MFIter mfi(* state, true); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(levelset_data, true); mfi.isValid(); ++mfi) {
             const Box &    tilebox = mfi.tilebox();
                   TagBox & tagfab  = tags[mfi];
 
@@ -263,34 +254,92 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow) {
             const int * tlo  = tilebox.loVect();
             const int * thi  = tilebox.hiVect();
 
-            // tag cells for refinement
-            if (use_phierr) {
-                amrex_eb_levelset_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                          BL_TO_FORTRAN_3D((* state)[mfi]),
-                                          & tagval, & clearval,
-                                          BL_TO_FORTRAN_BOX(tilebox),
-                                          AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
-                                          & time, & phierr[lev]);
-
-            } else {
-
-                Real tol = 0.000001; // TODO: Fix magic numbers (after talking with ANN)
-                amrex_eb_volfrac_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                         BL_TO_FORTRAN_3D((*state)[mfi]),
-                                         & tagval, & clearval, & tol,
-                                         BL_TO_FORTRAN_BOX(tilebox),
-                                         AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo));
-            }
+            //-------------------------------------------------------------------
+            // Tag cells for refinement
+            Real time = 0; // Temporary storing "time" => not needed for level-set tagging
+            amrex_eb_levelset_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                      BL_TO_FORTRAN_3D(levelset_data[mfi]),
+                                      & tagval, & clearval,
+                                      BL_TO_FORTRAN_BOX(tilebox),
+                                      AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo),
+                                      & time, & phierr[lev]);
 
             //___________________________________________________________________
-            // Now update the tags in the TagBox in the tilebox region to be
-            // equal to itags
-            //
-            if (! use_phierr)
-                tagfab.buffer(8, 0); // TODO: Fix magic numbers (after talking with ANN)
+            // Update the tags in the TagBox in the tilebox region to be equal
+            // to itags
             tagfab.tags_and_untags(itags, tilebox);
         }
     }
+}
+
+
+
+void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
+                                 const Vector<BoxArray> & grids,
+                                 const Vector<DistributionMapping> & dmap,
+                                 const EB2::Level & eb_lev, const Vector<Geometry> & geom) {
+
+    const int clearval = TagBox::CLEAR;
+    const int   tagval = TagBox::SET;
+
+    const Real * dx      = geom[lev].CellSize();
+    const Real * prob_lo = geom[lev].ProbLo();
+
+    //Temporary storing volfrac data
+    MultiFab volfrac(grids[lev], dmap[lev], 1, 1);
+    eb_lev.fillVolFrac(volfrac, geom[lev]);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    {
+        Vector<int> itags;
+
+        for (MFIter mfi(volfrac, true); mfi.isValid(); ++mfi) {
+            const Box &    tilebox = mfi.tilebox();
+                  TagBox & tagfab  = tags[mfi];
+
+            // We cannot pass tagfab to Fortran because it is BaseFab<char>. So
+            // we are going to get a temporary integer array. set itags
+            // initially to 'untagged' everywhere we define itags over the
+            // tilebox region
+            tagfab.get_itags(itags, tilebox);
+
+            // data pointer and index space
+            int *       tptr = itags.dataPtr();
+            const int * tlo  = tilebox.loVect();
+            const int * thi  = tilebox.hiVect();
+
+            //___________________________________________________________________
+            // Tag cells for refinement
+            Real tol = 0.000001; // TODO: Fix magic numbers (after talking with ANN)
+            amrex_eb_volfrac_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
+                                     BL_TO_FORTRAN_3D(volfrac[mfi]),
+                                     & tagval, & clearval, & tol,
+                                     BL_TO_FORTRAN_BOX(tilebox),
+                                     AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo));
+
+            //___________________________________________________________________
+            // Update the tags in the TagBox in the tilebox region to be equal
+            // to itags after buffering
+            tagfab.buffer(buffer, 0);
+            tagfab.tags_and_untags(itags, tilebox);
+        }
+    }
+}
+
+
+
+// tag all cells for refinement
+// overrides the pure virtual function in AmrCore
+void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) {
+
+    if (use_phierr) {
+        LSCoreBase::FillLevelSetTags(lev, tags, phierr, level_set[lev], geom);
+    } else {
+        LSCoreBase::FillVolfracTags(lev, tags, 8, grids, dmap, * eb_levels[lev], geom);
+    }
+
 }
 
 
