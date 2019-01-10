@@ -27,12 +27,6 @@ class Perilla;
 class RegionGraph;
 #endif
 
-struct NumGhosts {
-    AMREX_GPU_HOST_DEVICE
-    explicit NumGhosts (int an) : n(an) {}
-    int n;
-};
-
 class FabArrayBase
 {
     friend class MFIter;
