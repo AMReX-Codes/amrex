@@ -539,30 +539,7 @@ namespace amrex
 
     void print_state(const MultiFab& mf, const IntVect& cell, const int n, const IntVect& ng)
     {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-      {
-          const Box& bx = amrex::grow(mfi.validbox(), ng);
-	  if (bx.contains(cell)) {
-	    if (n >= 0) {
-	      amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
-                                                 << ": " << mf[mfi](cell, n) << std::endl;
-	    } else {
-	      std::ostringstream ss;
-	      ss.precision(17);
-	      const int ncomp = mf.nComp();
-	      for (int i = 0; i < ncomp-1; ++i)
-		{
-		  ss << mf[mfi](cell,i) << ", ";
-		}
-	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << " At cell " << cell << " in Box " << bx
-                                << ": " << ss.str() << std::endl;
-	    }
-	  }
-      }
+        printCell(mf, cell, n, ng);
     }
 
     void writeFabs (const MultiFab& mf, const std::string& name)
