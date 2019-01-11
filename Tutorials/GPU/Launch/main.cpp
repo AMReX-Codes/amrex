@@ -86,4 +86,16 @@ void main_main ()
     }
 #endif
 
+#ifdef AMREX_OMP_OFFLOAD
+    // launch OpenOMP kernel to add 1 if supported
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        // Use operator[] to get a reference to fab.
+        // The reference points to host memory, but the data pointer inside is managed.
+        FArrayBox& fab = mf[mfi];
+        plusone_omp(BL_TO_FORTRAN_BOX(bx),
+                    BL_TO_FORTRAN_ANYD(fab));
+    }
+#endif
 }
