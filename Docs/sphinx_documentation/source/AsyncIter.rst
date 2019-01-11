@@ -40,10 +40,47 @@ Initially, an object of RGIter (i.e. rgi) is instantiated, taking vectors of Fil
 Based on these arguments, a task dependency graph spanning two AMR levels will be established. 
 Next, isValid() asks the runtime system for FABs that have received all dependent data.
 When there is such a FAB, the computations in the loop body can execute on the FAB's data.
-When the computations on a FAB finishes, the ++ operator is called.
+When the computations on a FAB finish, the ++ operator is called.
 We overload this operator to traverse to the next runnable FAB.
 
 Note: RGIter also supports data tiling.
 Specifically, we overload the ++ operator so that it will traverse data tiles in a FAB before it goes to next FAB if the tiling flag in the FAB is enabled.
 Instead of applying the computations in the loop body on the entire FAB, it executes them on a single tile at a time.
+
+
+Generated Task Graph Code
+=========================
+
+The real input to the runtime system is an AMR program containing task dependency graphs (or task graph for short).
+Thus, the code written with the above asynchronous iterators will be transformed into a task graph form.
+The definition of a task dependency graph is as follows.
+Each task of a graph performs some computations on an FArrayBox (FAB).
+Tasks are connected with each other via edges, denoting the dependency on data.
+A task can be executed when all data dependencies have been satisfied.
+The code snippet below queries runnable tasks of a task dependency graph named regionGraph.
+Note that each task dependency graph is more or less a wrapper of a MultiFab.
+In this example, a task of regionGraph computes the body code of the while loop to update the associated FAB.
+Each task of this graph receives data arrived at the runtime system and injects the data into the associated FAB.
+After updating FAB, it lets the runtime know about the change.
+The runtime system uses AMR domain knowledge to establish data dependencies among tasks, and thus it can answer which tasks are runnable and how to update neighbor FABs when a current FAB changes.
+
+.. highlight:: c++
+
+::
+
+    while(!regionGraph->isGraphEmpty())
+    {
+        f = regionGraph->getAnyFireableRegion();
+	multifabCopyPull(..., f, ...); //inject arrived dependent data into the fab, if any
+        syncWorkerThreads();
+	...//compute on the fab f of multifab associated with coarseRegionGraph
+        syncWorkerThreads();
+        multifabCopyPush(..., f, ...); //tell the runtime that data of Fab f changed
+        regionGraph->finalizeRegion(f)
+    }
+
+The process of learning the domain knowledge is as follows.
+At the beginning of the program, the runtime extracts the metadata needed for establishing data dependencies among tasks of the same graph or between two different graphs.
+Every time the AMR grid hierarchy changes (i.e. when a few or all AMR levels regrid), the runtime re-extracts the metadata to correct the task dependency graphs.
+Once the metadata extraction completes, the runtime system invokes the computation on AMR levels (e.g., timeStep, initTimeStep, and postTimeStep).
 

@@ -1,0 +1,10 @@
+ntasks = 4
+ncomp = 12
+modify_split = 1
+
+n_cell = 64
+max_grid_size = 32
+
+fj_verbose = 1
+mlmg_verbose = 0
+task_output_dir = task_output

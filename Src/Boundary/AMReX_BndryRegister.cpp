@@ -63,12 +63,21 @@ BndryRegister::init (const BndryRegister& src)
 
     for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
     {
-        bndry[i].define(src.bndry[i].boxArray(), src.DistributionMap(),
-			src.bndry[i].nComp());
+        const int ncomp = src.bndry[i].nComp();
+        bndry[i].define(src.bndry[i].boxArray(), src.DistributionMap(), ncomp);
 
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
-            bndry[i][mfi].copy(src.bndry[i][mfi]);
+            const Box& bx = mfi.validbox();
+            FArrayBox const* sfab = src.bndry[i].fabPtr(mfi);
+            FArrayBox      * dfab =     bndry[i].fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                dfab->copy(*sfab, tbx, 0, tbx, 0, ncomp);
+            });
         }
     }
 }
@@ -222,11 +231,19 @@ BndryRegister::operator+= (const BndryRegister& rhs)
 {
     BL_ASSERT(grids == rhs.grids);
     for (OrientationIter face; face; ++face) {
+        const auto f = face();
+        const int ncomp = bndry[f].nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (FabSetIter bfsi(rhs[face()]); bfsi.isValid(); ++bfsi) {
-	    bndry[face()][bfsi] += rhs[face()][bfsi];
+	for (FabSetIter bfsi(rhs[f]); bfsi.isValid(); ++bfsi) {
+            const Box& bx = bfsi.validbox();
+            FArrayBox const* sfab =   rhs[f].fabPtr(bfsi);
+            FArrayBox      * dfab = bndry[f].fabPtr(bfsi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                dfab->plus(*sfab, tbx, tbx, 0, 0, ncomp);
+            });
 	}
     }
     return *this;

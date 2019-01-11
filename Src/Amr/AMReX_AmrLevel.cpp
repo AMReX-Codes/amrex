@@ -1543,9 +1543,11 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	    
 	    amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
 	    
-	    mapper->interp(crseMF[mfi],
+            FArrayBox const* crsefab = crseMF.fabPtr(mfi);
+            FArrayBox* finefab = mf.fabPtr(mfi);
+	    mapper->interp(*crsefab,
 			   0,
-			   mf[mfi],
+			   *finefab,
 			   DComp,
 			   NComp,
 			   dbx,

@@ -7,16 +7,20 @@
 #include <AMReX_REAL.H>
 #include <iostream>
 #include <cmath>
+#ifdef AMREX_USE_CUDA
+#include <cuda.h>
+#endif
 
 namespace amrex {
 namespace Cuda {
 
     inline bool isManaged (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue) && ptr_attr.isManaged;
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_IS_MANAGED;
+        unsigned int is_managed = 0;
+        void* data[] = { (void*)(&is_managed) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS && is_managed;
 #else
         return false;
 #endif
@@ -24,32 +28,39 @@ namespace Cuda {
 
     inline bool isDevicePtr (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue) && (ptr_attr.memoryType == cudaMemoryTypeDevice);
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
+        CUmemorytype mem_type = static_cast<CUmemorytype>(0);
+        void* data[] = { (void*)(&mem_type) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_DEVICE;
 #else
         return false;
 #endif
     }
 
-    inline bool isHostPtr (void const* p) {
+    inline bool isPinnedPtr (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue) && (ptr_attr.memoryType == cudaMemoryTypeHost);
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
+        CUmemorytype mem_type = static_cast<CUmemorytype>(0);
+        void* data[] = { (void*)(&mem_type) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS && mem_type == CU_MEMORYTYPE_HOST;
 #else
         return false;
 #endif
     }
 
-    inline bool isCudaPtr (void const* p) {
+    inline bool isGpuPtr (void const* p) {
 #ifdef AMREX_USE_CUDA
-        cudaPointerAttributes ptr_attr;
-        cudaPointerGetAttributes(&ptr_attr, p);
-        cudaError_t err = cudaGetLastError();
-        return (err != cudaErrorInvalidValue);
+        CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
+        CUmemorytype mem_type = static_cast<CUmemorytype>(0);
+        void* data[] = { (void*)(&mem_type) };
+        CUresult r = cuPointerGetAttributes(1, &attrib, data, (CUdeviceptr)p);
+        return r == CUDA_SUCCESS &&
+            (mem_type == CU_MEMORYTYPE_HOST   ||
+             mem_type == CU_MEMORYTYPE_DEVICE ||
+             mem_type == CU_MEMORYTYPE_ARRAY  ||
+             mem_type == CU_MEMORYTYPE_UNIFIED);
 #else
         return false;
 #endif
@@ -60,7 +71,7 @@ namespace Cuda {
 #ifdef AMREX_USE_CUDA
         namespace detail {
 
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             float atomicMax(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -73,7 +84,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
             
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             double atomicMax(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -87,7 +98,7 @@ namespace Cuda {
                 return __longlong_as_double(old);
             }
 
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             float atomicMin(float* address, float val)
             {
                 int* address_as_i = (int*) address;
@@ -100,7 +111,7 @@ namespace Cuda {
                 return __int_as_float(old);
             }
 
-            AMREX_GPU_DEVICE AMREX_INLINE
+            AMREX_GPU_DEVICE AMREX_FORCE_INLINE
             double atomicMin(double* address, double val)
             {
                 unsigned long long int* address_as_ull = 
@@ -117,7 +128,7 @@ namespace Cuda {
 #endif  // AMREX_USE_CUDA
 
         template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Add (T* sum, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -126,9 +137,19 @@ namespace Cuda {
             *sum += value;
 #endif
         }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Add (long* sum, long value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicAdd((unsigned long long*)sum, static_cast<unsigned long long>(value));
+#else
+            *sum += value;
+#endif
+        }
         
         template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Min (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -137,9 +158,39 @@ namespace Cuda {
             *m = (*m) < value ? (*m) : value;
 #endif
         }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Min (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMin(m, value);
+#else
+            *m = (*m) < value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Min (unsigned int* m, unsigned int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMin(m, value);
+#else
+            *m = (*m) < value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Min (unsigned long long int* m, unsigned long long int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMin(m, value);
+#else
+            *m = (*m) < value ? (*m) : value;
+#endif
+        }
         
         template<class T>
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Max (T* m, T value)
         {
 #if defined(__CUDA_ARCH__)
@@ -149,7 +200,37 @@ namespace Cuda {
 #endif
         }
 
-        AMREX_GPU_HOST_DEVICE AMREX_INLINE
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Max (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMax(m, value);
+#else
+            *m = (*m) > value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Max (unsigned int* m, unsigned int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMax(m, value);
+#else
+            *m = (*m) > value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void Max (unsigned long long int* m, unsigned long long int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicMax(m, value);
+#else
+            *m = (*m) > value ? (*m) : value;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void Or (int* m, int value)
         {
 #if defined(__CUDA_ARCH__)
@@ -159,10 +240,20 @@ namespace Cuda {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        void And (int* m, int value)
+        {
+#if defined(__CUDA_ARCH__)
+            atomicAnd(m, value);
+#else
+            *m = (*m) && value; 
+#endif
+        }
+
     } // namespace Atomic
 
     template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan(T m)
     {
 #if defined(__CUDA_ARCH__)
@@ -173,7 +264,7 @@ namespace Cuda {
     }
 
     template <class T>
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf(T m)
     {
 #ifdef __CUDA_ARCH__
