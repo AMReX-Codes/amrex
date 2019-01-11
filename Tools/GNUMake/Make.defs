@@ -123,6 +123,10 @@ ifeq ($(USE_PMI), TRUE)
   DEFINES += -DAMREX_PMI
 endif
 
+ifeq ($(USE_OMP_OFFLOAD), TRUE)
+  DEFINES += -DAMREX_OMP_OFFLOAD
+endif
+
 ifdef USE_UPCXX
   USE_UPCXX := $(strip $(USE_UPCXX))
 else
