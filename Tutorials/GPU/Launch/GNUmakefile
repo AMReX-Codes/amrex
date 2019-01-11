@@ -4,14 +4,14 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = ibm
+COMP    = gcc
 
 USE_CUDA  = TRUE
 USE_ACC   = FALSE
+USE_OMP_OFFLOAD = FALSE
 
 USE_MPI   = FALSE
 USE_OMP   = FALSE
-USE_OMP_OFFLOAD = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
