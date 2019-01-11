@@ -330,6 +330,52 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
 
 
 
+// Constructs a box over which to look for EB facets. The Box size grows based
+// on the coarse-level level-set value. But it never grows larger than
+// max_eb_pad.
+Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
+                             const Geometry & geom_fine, const IntVect & max_grow, bool & bail) {
+
+    // Infinities don't work well with std::max, so just bail and construct the
+    // maximum box.
+    if (ls_crse.contains_inf()){
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(max_grow);
+
+        bail = true;
+        return bx;
+    }
+
+    // Something's gone wrong :( ... so just bail and construct the maximum box.
+    if (ls_crse.contains_nan()){
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(max_grow);
+
+        bail = true;
+        return bx;
+    }
+
+
+    Real max_ls = std::max(std::abs(ls_crse.max()), std::abs(ls_crse.min()));
+
+    IntVect n_grow_ls(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
+                                   geom_fine.InvCellSize(1)*max_ls,
+                                   geom_fine.InvCellSize(2)*max_ls));
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        if (n_grow_ls[i] > max_grow[i]) {
+            n_grow_ls[i] = max_grow[i];
+            bail = true;
+        }
+
+    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
+    bx.grow(n_grow_ls);
+
+    return bx;
+}
+
+
+
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) {
@@ -433,42 +479,8 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 Box LSCoreBase::EBSearchBox(const Box & tilebox, const FArrayBox & ls_crse,
                             const Geometry & geom_fine, bool & bail) {
 
-    // Infinities don't work well with std::max, so just bail and construct the
-    // maximum box.
-    if (ls_crse.contains_inf()){
-        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
-        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
-        bx.grow(n_grow);
-
-        bail = true;
-        return bx;
-    }
-
-    // Something's gone wrong :( ... so just bail and construct the maximum box.
-    if (ls_crse.contains_nan()){
-        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
-        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
-        bx.grow(n_grow);
-
-        bail = true;
-        return bx;
-    }
-
-
-    Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
-
-    IntVect n_grow(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
-                                geom_fine.InvCellSize(1)*max_ls,
-                                geom_fine.InvCellSize(2)*max_ls));
-
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-        if (n_grow[i] > max_eb_pad) {
-            n_grow[i] = max_eb_pad;
-            bail = true;
-        }
-
-    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
-    bx.grow(n_grow);
+    IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
+    Box bx = LSCoreBase::EBSearchBox(tilebox, ls_crse, geom_fine, n_grow, bail);
 
     return bx;
 }

@@ -50,6 +50,9 @@ public:
                                  const Vector<DistributionMapping> & dmap,
                                  const EB2::Level & eb_lev, const Vector<Geometry> & geom );
 
+    static Box EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
+                            const Geometry & geom_fine, const IntVect & max_grow, bool & bail);
+
 
     /****************************************************************************
      * public member functions                                                  *
