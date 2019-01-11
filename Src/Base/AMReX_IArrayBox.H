@@ -68,24 +68,6 @@ public:
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
                  int        N = 1);
-#if 0
-    /**
-    * \brief Compute the Lp-norm of this FAB using components
-    * (scomp : scomp+ncomp-1).  p < 0  -> ERROR.
-    * p = 0  -> infinity norm (max norm).
-    * p = 1  -> sum of ABS(FAB)
-    * p > 1  -> Lp-norm
-    */
-    int norm (int p     = 2,
-              int scomp = 0,
-              int ncomp = 1) const;
-
-    //! Same as above except only on given subbox.
-    int norm (const Box& subbox,
-              int        p     = 2,
-              int        scomp = 0,
-              int        ncomp = 1) const;
-#endif
 
     //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();

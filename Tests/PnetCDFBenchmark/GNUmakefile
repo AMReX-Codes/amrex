@@ -1,19 +1,19 @@
-AMREX_HOME ?= ../../../
+AMREX_HOME ?= ../../
 
 DEBUG	= TRUE
 DEBUG	= FALSE
 
-DIM	= 2
+DIM	= 3
 
-COMP    = gcc
-
-TINY_PROFILE = TRUE
-USE_PARTICLES = TRUE
+COMP    = gnu
 
 PRECISION = DOUBLE
 
 USE_MPI   = TRUE
+#USE_OMP   = TRUE
 USE_OMP   = FALSE
+
+TINY_PROFILE = TRUE
 
 ###################################################
 
@@ -26,3 +26,11 @@ include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+PNETCDF_HOME   = /home/khl7265/.local
+USE_PNETCDF = TRUE
+ifeq ($(USE_PNETCDF), TRUE)
+DEFINES += -DBL_PNETCDF
+INCLUDE_LOCATIONS += $(PNETCDF_HOME)/include
+LIBRARIES         += -lpnetcdf -L$(PNETCDF_HOME)/lib
+endif

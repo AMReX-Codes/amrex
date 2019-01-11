@@ -32,23 +32,6 @@ setBC (const Box&           bx,
     }
 }           
 
-void
-setBC (const Box&   bx,
-       const Box&   domain, 
-       const BCRec& bc_dom,
-       BCRec&       bcr)
-{
-    const int* bxlo = bx.loVect();
-    const int* bxhi = bx.hiVect();
-    const int* dlo  = domain.loVect();
-    const int* dhi  = domain.hiVect();
-    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
-    {
-        bcr.setLo(dir, ( bxlo[dir]<=dlo[dir] ? bc_dom.lo(dir) : BCType::int_dir ));
-        bcr.setHi(dir, ( bxhi[dir]>=dhi[dir] ? bc_dom.hi(dir) : BCType::int_dir ));
-    }
-}           
-
 std::ostream&
 operator<< (std::ostream& os,
             const BCRec&  b)

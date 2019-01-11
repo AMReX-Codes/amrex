@@ -24,6 +24,10 @@
 #include <cstring>
 #include <iomanip>
 
+namespace {
+int flag_verbose_mapper;
+}
+
 namespace amrex {
 
     bool initialized = false;
@@ -111,14 +115,16 @@ DistributionMapping::Initialize ()
     sfc_threshold    = 0;
     max_efficiency   = 0.9;
     node_size        = 0;
+    flag_verbose_mapper = 0;
 
     ParmParse pp("DistributionMapping");
 
-    pp.query("v"      ,          verbose);
-    pp.query("verbose",          verbose);
-    pp.query("efficiency",       max_efficiency);
-    pp.query("sfc_threshold",    sfc_threshold);
-    pp.query("node_size",        node_size);
+    pp.query("v"      ,             verbose);
+    pp.query("verbose",             verbose);
+    pp.query("efficiency",          max_efficiency);
+    pp.query("sfc_threshold",       sfc_threshold);
+    pp.query("node_size",           node_size);
+    pp.query("verbose_mapper",      flag_verbose_mapper);
 
     std::string theStrategy;
 
@@ -192,21 +198,10 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     BL_PROFILE("DistributionMapping::LeastUsedCPUs()");
 
     AMREX_ASSERT(nprocs <= ParallelContext::NProcsSub());
+
     Vector<long> bytes(ParallelContext::NProcsSub());
-
     long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
-
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
-                    BLProfiler::NoTag());
-    MPI_Allgather(&thisbyte,
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  bytes.dataPtr(),
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  ParallelContext::CommunicatorSub());
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
-                    BLProfiler::NoTag());
+    ParallelAllGather::AllGather(thisbyte, bytes.dataPtr(), ParallelContext::CommunicatorSub());
 
     std::vector<LIpair> LIpairV;
 
@@ -224,6 +219,13 @@ DistributionMapping::LeastUsedCPUs (int         nprocs,
     for (int i(0); i < nprocs; ++i)
     {
         result[i] = LIpairV[i].second;
+    }
+
+    if (flag_verbose_mapper) {
+        Print() << "LeastUsedCPUs:" << std::endl;
+        for (const auto &p : LIpairV) {
+            Print() << "  Rank " << p.second << " contains " << p.first << std::endl;
+        }
     }
 #else
     for (int i(0); i < nprocs; ++i)
@@ -244,21 +246,9 @@ DistributionMapping::LeastUsedTeams (Vector<int>        & rteam,
 
     AMREX_ALWAYS_ASSERT(ParallelContext::CommunicatorSub() == ParallelDescriptor::Communicator());
 
-    Vector<long> bytes(ParallelDescriptor::NProcs());
-
+    Vector<long> bytes(ParallelContext::NProcsSub());
     long thisbyte = amrex::TotalBytesAllocatedInFabs()/1024;
-
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::BeforeCall(),
-                    BLProfiler::NoTag());
-    MPI_Allgather(&thisbyte,
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  bytes.dataPtr(),
-                  1,
-                  ParallelDescriptor::Mpi_typemap<long>::type(),
-                  ParallelDescriptor::Communicator());
-    BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(long), BLProfiler::AfterCall(),
-                    BLProfiler::NoTag());
+    ParallelAllGather::AllGather(thisbyte, bytes.dataPtr(), ParallelContext::CommunicatorSub());
 
     std::vector<LIpair> LIpairV;
     std::vector<LIpair> LIworker;
@@ -397,6 +387,10 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
                                      int                 /* nprocs */,
                                      std::vector<LIpair>* LIpairV)
 {
+    if (flag_verbose_mapper) {
+        Print() << "DM: RoundRobinDoIt called..." << std::endl;
+    }
+
     int nprocs = ParallelContext::NProcsSub();
 
     // If team is not use, we are going to treat it as a special case in which
@@ -435,6 +429,10 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    int wid = (w[tid]++) % nworkers;
 	    int rank = tid*nworkers + wrkerord[tid][wid];
 	    m_ref->m_pmap[(*LIpairV)[i].second] = ParallelContext::local_to_global_rank(rank);
+            if (flag_verbose_mapper) {
+                Print() << "  Mapping box " << (*LIpairV)[i].second << " of size "
+                        << (*LIpairV)[i].first << " to rank " << rank << std::endl;
+            }
 	}
     }
     else
@@ -445,6 +443,9 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 	    int wid = (w[tid]++) % nworkers;
 	    int rank = tid*nworkers + wrkerord[tid][wid];
 	    m_ref->m_pmap[i] = ParallelContext::local_to_global_rank(rank);
+            if (flag_verbose_mapper) {
+                Print() << "  Mapping box " << i << " to rank " << rank << std::endl;
+            }
 	}
     }
 }
@@ -721,6 +722,10 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
                                    bool                     do_full_knapsack,
 				   int                      nmax)
 {
+    if (flag_verbose_mapper) {
+        Print() << "DM: KnapSackDoIt called..." << std::endl;
+    }
+
     BL_PROFILE("DistributionMapping::KnapSackDoIt()");
 
     int nprocs = ParallelContext::NProcsSub();
@@ -741,6 +746,15 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
     knapsack(wgts,nteams,vec,efficiency,do_full_knapsack,nmax);
 
+    if (flag_verbose_mapper) {
+        for (int i = 0; i < vec.size(); ++i) {
+            Print() << "  Bucket " << i << " contains boxes:" << std::endl;
+            for (int j = 0; j < vec[i].size(); ++j) {
+                Print() << "    " << vec[i][j] << std::endl;
+            }
+        }
+    }
+
     BL_ASSERT(static_cast<int>(vec.size()) == nteams);
 
     std::vector<LIpair> LIpairV;
@@ -760,6 +774,12 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
     }
 
     Sort(LIpairV, true);
+
+    if (flag_verbose_mapper) {
+        for (const auto &p : LIpairV) {
+            Print() << "  Bucket " << p.second << " total weight: " << p.first << std::endl;
+        }
+    }
 
     Vector<int> ord;
     Vector<Vector<int> > wrkerord;
@@ -782,6 +802,10 @@ DistributionMapping::KnapSackDoIt (const std::vector<long>& wgts,
 
 	const std::vector<int>& vi = vec[idx];
 	const int N = vi.size();
+
+        if (flag_verbose_mapper) {
+            Print() << "  Mapping bucket " << idx << " to rank " << tid << std::endl;
+        }
 
 	if (nteams == nprocs) {
 	    for (int j = 0; j < N; ++j)
@@ -917,6 +941,21 @@ Distribute (const std::vector<SFCToken>&     tokens,
             std::vector< std::vector<int> >& v)
 
 {
+    BL_PROFILE("DistributionMapping::Distribute()");
+
+    if (flag_verbose_mapper) {
+        Print() << "Distribute:" << std::endl;
+        Print() << "  volpercpu: " << volpercpu << std::endl;
+        Print() << "  Sorted SFC Tokens:" << std::endl;
+        int idx = 0;
+        for (const auto &t : tokens) {
+            Print() << "    " << idx++ << ": "
+                    << t.m_box << ": "
+                    << t.m_idx << ": "
+                    << t.m_vol << std::endl;
+        }
+    }
+
     BL_ASSERT(static_cast<int>(v.size()) == nprocs);
 
     int  K        = 0;
@@ -949,6 +988,26 @@ Distribute (const std::vector<SFCToken>&     tokens,
         }
     }
 
+    if (flag_verbose_mapper) {
+        Print() << "Distributed SFC Tokens:" << std::endl;
+        int idx = 0;
+        for (int i = 0; i < nprocs; ++i) {
+            Print() << "  Rank/Team " << i << ":" << std::endl;
+            Real rank_vol = 0;
+            for (const auto &box : v[i]) {
+                const auto &t = tokens[idx];
+                BL_ASSERT(box == t.m_box);
+                Print() << "    " << idx << ": "
+                        << t.m_box << ": "
+                        << t.m_idx << ": "
+                        << t.m_vol << std::endl;
+                rank_vol += t.m_vol;
+                idx++;
+            }
+            Print() << "    Total Rank Vol: " << rank_vol << std::endl;
+        }
+    }
+
 #ifdef AMREX_DEBUG
     int cnt = 0;
     for (int i = 0; i < nprocs; ++i) {
@@ -964,6 +1023,10 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           int                   /*   nprocs */,
                                           bool                     sort)
 {
+    if (flag_verbose_mapper) {
+        Print() << "DM: SFCProcessorMapDoIt called..." << std::endl;
+    }
+
     BL_PROFILE("DistributionMapping::SFCProcessorMapDoIt()");
 
     int nprocs = ParallelContext::NProcsSub();
@@ -983,6 +1046,11 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	}
     }
 #endif
+
+    if (flag_verbose_mapper) {
+        Print() << "  (nprocs, nteams, nworkers) = ("
+                << nprocs << ", " << nteams << ", " << nworkers << ")\n";
+    }
 
     std::vector<SFCToken> tokens;
 
@@ -1048,6 +1116,12 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 
     if (sort) Sort(LIpairV, true);
 
+    if (flag_verbose_mapper) {
+        for (const auto &p : LIpairV) {
+            Print() << "  Bucket " << p.second << " contains " << p.first << std::endl;
+        }
+    }
+
     // LIpairV has a size of nteams and LIpairV[] is pair whose first is weight
     // and second is an index into vec.  LIpairV is sorted by weight such that
     // LIpairV is the heaviest.
@@ -1085,6 +1159,10 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         const int ivec = LIpairV[i].second;       // index into vec
         const std::vector<int>& vi = vec[ivec];   // this vector contains boxes assigned to this team
 	const int Nbx = vi.size();                // # of boxes assigned to this team
+
+        if (flag_verbose_mapper) {
+            Print() << "Mapping bucket " << LIpairV[i].second << " to rank " << ord[i] << std::endl;
+        }
 
 	if (nteams == nprocs) { // In this case, team id is process id.
 	    for (int j = 0; j < Nbx; ++j)
@@ -1136,7 +1214,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
 	}
     }
 
-    if (verbose && ParallelDescriptor::IOProcessor())
+    if (verbose)
     {
         Real sum_wgt = 0, max_wgt = 0;
         for (int i = 0; i < nteams; ++i)
@@ -1398,7 +1476,7 @@ DistributionMapping::makeSFC (const MultiFab& weight, bool sort)
 }
 
 std::vector<std::vector<int> >
-DistributionMapping::makeSFC (const BoxArray& ba)
+DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol)
 {
     std::vector<SFCToken> tokens;
 
@@ -1408,10 +1486,13 @@ DistributionMapping::makeSFC (const BoxArray& ba)
 
     int maxijk = 0;
 
+    Real vol_sum = 0;
     for (int i = 0; i < N; ++i)
     {
 	const Box& bx = ba[i];
-        tokens.push_back(SFCToken(i,bx.smallEnd(),1.0));
+        const auto & bx_vol = (use_box_vol ? bx.volume() : 1);
+        tokens.push_back(SFCToken(i,bx.smallEnd(),bx_vol));
+        vol_sum += bx_vol;
 
         const SFCToken& token = tokens.back();
 
@@ -1433,7 +1514,8 @@ DistributionMapping::makeSFC (const BoxArray& ba)
     std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
 
     const int nprocs = ParallelContext::NProcsSub();
-    Real volper = static_cast<Real>(N)/static_cast<Real>(nprocs);
+    Real volper;
+    volper = vol_sum / nprocs;
 
     std::vector< std::vector<int> > r(nprocs);
     Distribute(tokens, nprocs, volper, r);

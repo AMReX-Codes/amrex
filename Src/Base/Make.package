@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H
 
 #
 # Utility classes.
@@ -211,6 +211,9 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
+# Machine model
+CEXE_headers += AMReX_Machine.H
+CEXE_sources += AMReX_Machine.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

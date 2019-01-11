@@ -34,7 +34,9 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_XSDK IF USE_XSDK_DEFAULTS )
 
    # Debug flag
-   add_amrex_define( AMREX_DEBUG NO_LEGACY IF DEBUG )
+   if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
+      add_amrex_define( AMREX_DEBUG NO_LEGACY )
+   endif ()
 
    # Base profiling options
    add_amrex_define( AMREX_PROFILING IF ENABLE_BASE_PROFILE )

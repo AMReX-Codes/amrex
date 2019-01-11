@@ -7,6 +7,8 @@
 .. role:: underline
     :class: underline
 
+.. _swfftdoc:	    
+	    
 SWFFT
 =======
 
