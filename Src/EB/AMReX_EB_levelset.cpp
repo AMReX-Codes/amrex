@@ -648,7 +648,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         // Don't do anything for the current tile if EB facets are ill-defined
         if (! bndrycent.ok(mfi)){
             auto & ls_tile = data[mfi];
-            ls_tile.setVal( min_dx * eb_pad , tile_box );
+            ls_tile.setVal( min_dx *( eb_pad + 1), tile_box );
 
             // Ensure that tile-wise assignment is validated
             const auto & if_tile = eb_impfunc[mfi];

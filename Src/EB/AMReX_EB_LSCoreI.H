@@ -64,7 +64,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
      * Define Basic data MultiFabs                                              *
      ***************************************************************************/
 
-    BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
+    BoxArray ba_nd = amrex::convert(ba, IntVect::TheUnitVector());
 
     // Define MultiFab data (will store final level set for this level)
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
@@ -124,12 +124,12 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         MakeNewLevelFromCoarse(lev, time, ba, dm);
 
         EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
-                                      {max_eb_pad + 1, max_eb_pad + 1, max_eb_pad + 1},
+                                      {levelset_eb_pad + 1, levelset_eb_pad + 1, levelset_eb_pad + 1},
                                       EBSupport::full);
 
         IntVect ebt_size{AMREX_D_DECL(levelset_eb_pad, levelset_eb_pad, levelset_eb_pad)};
         LSCoreBase::FillLevelSet(level_set[lev], level_set[lev], eb_factory, (* mf_impfunc),
-                                 ebt_size, max_eb_pad, geom[lev]);
+                                 ebt_size, levelset_eb_pad, geom[lev]);
     }
 
     Real end_time = ParallelDescriptor::second() - strt_time;
