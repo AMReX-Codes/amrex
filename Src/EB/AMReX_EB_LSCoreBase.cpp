@@ -28,16 +28,22 @@ namespace amrex {
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
 LSCoreBase::LSCoreBase () {
+
+    BL_PROFILE("LSCoreBase::LSCoreBase()");
+
     //NOTE: Geometry on all levels has been defined already.
 
     ReadParameters();
     InitLSCoreBase();
 }
+
 
 
 LSCoreBase::LSCoreBase(const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord)
     : AmrCore(rb, max_level_in, n_cell_in, coord)
 {
+    BL_PROFILE("LSCoreBase::LSCoreBase(RealBox)");
+
     //NOTE: Geometry on all levels has been defined already.
 
     ReadParameters();
@@ -45,13 +51,19 @@ LSCoreBase::LSCoreBase(const RealBox * rb, int max_level_in, const Vector<int> &
 }
 
 
-LSCoreBase::~LSCoreBase () {}
+
+LSCoreBase::~LSCoreBase () {
+    BL_PROFILE("LSCoreBase::~LSCoreBase()");
+}
+
 
 
 void LSCoreBase::InitLSCoreBase() {
 
     // No valid BoxArray and DistributionMapping have been defined.
     // But the arrays for them have been resized.
+
+    BL_PROFILE("LSCoreBase::InitLSCoreBase()");
 
     int nlevs_max = max_level + 1;
 
@@ -97,6 +109,9 @@ void LSCoreBase::InitLSCoreBase() {
 }
 
 void LSCoreBase::LoadTagLevels () {
+
+    BL_PROFILE("LSCoreBase::LoadTagLevels()");
+
     // read in an array of "phierr", which is the tagging threshold in this
     // example, we tag values of "phi" which are greater than phierr for that
     // particular level in subroutine state_error, you could use more elaborate
@@ -109,12 +124,18 @@ void LSCoreBase::LoadTagLevels () {
 }
 
 void LSCoreBase::SetTagLevels (const Vector<Real> & m_phierr) {
+
+    BL_PROFILE("LSCoreBase::SetTagLevels()");
+
     phierr = m_phierr;
 }
 
 
 // Initializes multilevel data
 void LSCoreBase::Init () {
+
+    BL_PROFILE("LSCoreBase::Init()");
+
     if (restart_chkfile == "") {
         // start simulation from the beginning
         const Real time = 0.0;
@@ -144,6 +165,9 @@ void LSCoreBase::Init () {
 
 
 void LSCoreBase::InitData (bool a_use_phierr) {
+
+    BL_PROFILE("LSCoreBase::InitData()");
+
     use_phierr = a_use_phierr;
     if (use_phierr)
         LoadTagLevels();
@@ -152,6 +176,9 @@ void LSCoreBase::InitData (bool a_use_phierr) {
 
 
 void LSCoreBase::InitData (const Vector<Real> & m_phierr) {
+
+    BL_PROFILE("LSCoreBase::InitData(phierr)");
+
     SetTagLevels(m_phierr);
     Init();
 }
@@ -162,6 +189,9 @@ void LSCoreBase::InitData (const Vector<Real> & m_phierr) {
 // AmrCore
 void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) {
+
+    BL_PROFILE("LSCoreBase::MakeNewLevelFromCoarse()");
+
     const int ncomp  = level_set[lev - 1].nComp();
     const int nghost = level_set[lev - 1].nGrow();
 
@@ -182,6 +212,9 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
 // in AmrCore
 void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
                                const DistributionMapping & dm) {
+
+    BL_PROFILE("LSCoreBase::RemakeLevel()");
+
     const int ncomp  = level_set[lev].nComp();
     const int nghost = level_set[lev].nGrow();
 
@@ -200,6 +233,8 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
 
 
 void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMapping & dm){
+
+    BL_PROFILE("LSCoreBase::UpdateGrids()");
 
     bool ba_changed = ( ba != grids[lev] );
     bool dm_changed = ( dm != dmap[lev] );
@@ -225,6 +260,8 @@ void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMa
 
 void LSCoreBase::FillLevelSetTags(int lev, TagBoxArray & tags, const Vector<Real> & phierr,
                                   const MultiFab & levelset_data, const Vector<Geometry> & geom ) {
+
+    BL_PROFILE("LSCoreBase::FillLevelSetTags()");
 
     if (lev >= phierr.size()) return;
 
@@ -280,6 +317,8 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
                                  const Vector<BoxArray> & grids,
                                  const Vector<DistributionMapping> & dmap,
                                  const EB2::Level & eb_lev, const Vector<Geometry> & geom) {
+
+    BL_PROFILE("LSCoreBase::FillVolfracTags()");
 
     const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
@@ -338,6 +377,8 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
 Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
                              const Geometry & geom_fine, const IntVect & max_grow, bool & bail) {
 
+    BL_PROFILE("LSCoreBase::EBSearchBox()");
+
     // Infinities don't work well with std::max, so just bail and construct the
     // maximum box.
     if (ls_crse.contains_inf()){
@@ -394,6 +435,8 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) {
 // Read some parameters from inputs file
 void LSCoreBase::ReadParameters () {
 
+    BL_PROFILE("LSCoreBase::ReadParameters()");
+
     /************************************************************************
      * Parse inputs                                                         *
      ***********************************************************************/
@@ -407,6 +450,9 @@ void LSCoreBase::ReadParameters () {
 
 // Set covered coarse cells to be the average of overlying fine cells
 void LSCoreBase::AverageDown () {
+
+    BL_PROFILE("LSCoreBase::AverageDown()");
+
     for (int lev = finest_level-1; lev >= 0; lev--) {
 
         amrex::average_down(level_set[lev + 1], level_set[lev],
@@ -419,6 +465,8 @@ void LSCoreBase::AverageDown () {
 // multiple levels
 void LSCoreBase::AverageDownTo (int crse_lev) {
 
+    BL_PROFILE("LSCoreBase::AverageDownTo()");
+
     amrex::average_down(level_set[crse_lev+1], level_set[crse_lev],
                         0, level_set[crse_lev].nComp(), refRatio(crse_lev));
 
@@ -429,6 +477,9 @@ void LSCoreBase::AverageDownTo (int crse_lev) {
 // cells works for single level and 2-level cases (fill fine grid ghost by
 // interpolating from coarse)
 void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp) {
+
+    BL_PROFILE("LSCoreBase::FillPatch()");
+
     if (lev == 0) {
 
         BndryFuncArray bfunc(amrex_eb_phifill);
@@ -459,6 +510,9 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 // Fill an entire multifab by interpolating from the coarser level. This comes
 // into play when a new level of refinement appears
 void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
+
+    BL_PROFILE("LSCoreBase::FillCoarsePatch()");
+
     BL_ASSERT(lev > 0);
 
     BndryFuncArray bfunc(amrex_eb_phifill);
@@ -493,6 +547,8 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                                const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
                                const IntVect & ebt_size, int eb_pad, const Geometry & geom ) {
 
+    BL_PROFILE("LSCoreBase::FillLevelSet()");
+
     // EB boundary-centre data
     const MultiCutFab & bndrycent = eb_factory.getBndryCent();
     const auto & flags = eb_factory.getMultiEBCellFlagFab();
@@ -511,7 +567,7 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
 
     // Level_set threshold
     Real min_dx       = LSUtility::min_dx(geom);
-    Real ls_threshold = min_dx * eb_pad;
+    Real ls_threshold = min_dx * (eb_pad + 1);
 
     const IntVect max_grow{eb_pad, eb_pad, eb_pad};
 
@@ -592,6 +648,9 @@ std::string LSCoreBase::PlotFileName (int lev) const {
 
 // Put together an array of multifabs for writing
 Vector<MultiFab> LSCoreBase::PlotFileMF () const {
+
+    BL_PROFILE("LSCoreBase::PlotFileMF()");
+
     Vector<MultiFab> r(max_level + 1);
     for (int i = 0; i < max_level + 1; i++) {
         const int ncomp  = level_set[i].nComp();
@@ -612,6 +671,9 @@ Vector<std::string> LSCoreBase::PlotFileVarNames () const {
 
 // Write plotfile to disk
 void LSCoreBase::WritePlotFile () const {
+
+    BL_PROFILE("LSCoreBase::WritePlotFile()");
+
     // Get plotfile name
     const std::string & plotfilename = PlotFileName(0);
 
@@ -638,6 +700,8 @@ void LSCoreBase::WritePlotFile () const {
 
 
 void LSCoreBase::WriteCheckpointFile () const {
+
+    BL_PROFILE("LSCoreBase::WriteCheckpointFile()");
 
     // chk00010            write a checkpoint file with this root directory
     // chk00010/Header     this contains information you need to save (e.g.,
@@ -710,6 +774,8 @@ void LSCoreBase::WriteCheckpointFile () const {
 
 
 void LSCoreBase::ReadCheckpointFile () {
+
+    BL_PROFILE("LSCoreBase::ReadCheckpointFile()");
 
     amrex::Print() << "Restart from checkpoint " << restart_chkfile << "\n";
 
