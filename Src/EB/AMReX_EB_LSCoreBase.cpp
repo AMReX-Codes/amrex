@@ -8,6 +8,8 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
+#include <AMReX_EB_utils.H>
+#include <AMReX_EB_F.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -330,6 +332,52 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
 
 
 
+// Constructs a box over which to look for EB facets. The Box size grows based
+// on the coarse-level level-set value. But it never grows larger than
+// max_eb_pad.
+Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
+                             const Geometry & geom_fine, const IntVect & max_grow, bool & bail) {
+
+    // Infinities don't work well with std::max, so just bail and construct the
+    // maximum box.
+    if (ls_crse.contains_inf()){
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(max_grow);
+
+        bail = true;
+        return bx;
+    }
+
+    // Something's gone wrong :( ... so just bail and construct the maximum box.
+    if (ls_crse.contains_nan()){
+        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        bx.grow(max_grow);
+
+        bail = true;
+        return bx;
+    }
+
+
+    Real max_ls = std::max(std::abs(ls_crse.max()), std::abs(ls_crse.min()));
+
+    IntVect n_grow_ls(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
+                                   geom_fine.InvCellSize(1)*max_ls,
+                                   geom_fine.InvCellSize(2)*max_ls));
+
+    for (int i = 0; i < AMREX_SPACEDIM; i++)
+        if (n_grow_ls[i] > max_grow[i]) {
+            n_grow_ls[i] = max_grow[i];
+            bail = true;
+        }
+
+    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
+    bx.grow(n_grow_ls);
+
+    return bx;
+}
+
+
+
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) {
@@ -433,44 +481,102 @@ void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, 
 Box LSCoreBase::EBSearchBox(const Box & tilebox, const FArrayBox & ls_crse,
                             const Geometry & geom_fine, bool & bail) {
 
-    // Infinities don't work well with std::max, so just bail and construct the
-    // maximum box.
-    if (ls_crse.contains_inf()){
-        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
-        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
-        bx.grow(n_grow);
-
-        bail = true;
-        return bx;
-    }
-
-    // Something's gone wrong :( ... so just bail and construct the maximum box.
-    if (ls_crse.contains_nan()){
-        IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
-        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
-        bx.grow(n_grow);
-
-        bail = true;
-        return bx;
-    }
-
-
-    Real max_ls = std::max(ls_crse.max(), std::abs(ls_crse.min()));
-
-    IntVect n_grow(AMREX_D_DECL(geom_fine.InvCellSize(0)*max_ls,
-                                geom_fine.InvCellSize(1)*max_ls,
-                                geom_fine.InvCellSize(2)*max_ls));
-
-    for (int i = 0; i < AMREX_SPACEDIM; i++)
-        if (n_grow[i] > max_eb_pad) {
-            n_grow[i] = max_eb_pad;
-            bail = true;
-        }
-
-    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
-    bx.grow(n_grow);
+    IntVect n_grow(AMREX_D_DECL(max_eb_pad, max_eb_pad, max_eb_pad));
+    Box bx = LSCoreBase::EBSearchBox(tilebox, ls_crse, geom_fine, n_grow, bail);
 
     return bx;
+}
+
+
+
+void LSCoreBase::FillLevelSet( MultiFab & level_set, iMultiFab & valid, const MultiFab & ls_crse,
+                               const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
+                               const IntVect & ebt_size, int eb_pad, const Geometry & geom ) {
+
+    // EB boundary-centre data
+    const MultiCutFab & bndrycent = eb_factory.getBndryCent();
+    const auto & flags = eb_factory.getMultiEBCellFlagFab();
+
+    const BoxArray & ba = level_set.boxArray();
+    const DistributionMapping & dm = level_set.DistributionMap();
+
+    // EB normal data
+    MultiFab normal(ba, dm, 3, eb_pad + 1);
+    FillEBNormals(normal, eb_factory, geom);
+
+    iMultiFab eb_valid(ba, dm, 1, eb_pad + 1);
+    eb_valid.setVal(0);
+
+    // Level_set threshold
+    Real min_dx       = LSUtility::min_dx(geom);
+    Real ls_threshold = min_dx * eb_pad;
+
+    const IntVect max_grow{eb_pad, eb_pad, eb_pad};
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(level_set, ebt_size); mfi.isValid(); ++mfi) {
+            const auto & ls_tile = level_set[mfi];
+                  bool bail      = false;
+                  Box tile_box   = mfi.tilebox();
+                  Box eb_search  = LSCoreBase::EBSearchBox(tile_box, ls_tile, geom, max_grow, bail);
+
+            if (bail) continue;
+
+            int n_facets = 0;
+            const auto & flag = flags[mfi];
+            // Need to count number of eb-facets (in order to allocate facet_list)
+            amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
+                                  BL_TO_FORTRAN_3D(flag),
+                                  & n_facets);
+
+            int facet_list_size = 6 * n_facets;
+            Vector<Real> facet_list(facet_list_size);
+
+
+                  auto & ls_tile_w = level_set[mfi];
+                  auto & v_tile    = eb_valid[mfi];
+            const auto & if_tile   = mf_impfunc[mfi];
+
+            if (n_facets > 0) {
+                const auto & norm_tile = normal[mfi];
+                const auto & bcent_tile = bndrycent[mfi];
+
+                int c_facets = 0;
+                amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
+                                 BL_TO_FORTRAN_3D(flag),
+                                 BL_TO_FORTRAN_3D(norm_tile),
+                                 BL_TO_FORTRAN_3D(bcent_tile),
+                                 facet_list.dataPtr(), & facet_list_size,
+                                 geom.CellSize()                          );
+
+                amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
+                                           facet_list.dataPtr(), & facet_list_size,
+                                           BL_TO_FORTRAN_3D(v_tile),
+                                           BL_TO_FORTRAN_3D(ls_tile_w),
+                                           BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
+                                           geom.CellSize(), geom.CellSize()         );
+
+            }
+
+
+            //_______________________________________________________________________
+            // Enforce threshold of local level-set
+            amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
+                                        BL_TO_FORTRAN_3D(ls_tile_w));
+
+
+            //_______________________________________________________________________
+            // Validate level-set
+            const int ls_grid_ref = 1;
+            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
+                                       BL_TO_FORTRAN_3D(if_tile),
+                                       BL_TO_FORTRAN_3D(v_tile),
+                                       BL_TO_FORTRAN_3D(ls_tile_w)   );
+        }
+
+    level_set.FillBoundary(geom.periodicity());
 }
 
 
