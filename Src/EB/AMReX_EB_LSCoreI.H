@@ -137,15 +137,7 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         eb_valid.setVal(0);
 
         // TODO: some of this might be shifted to the base class?
-
-#if (AMREX_SPACEDIM == 1)
-        Real min_dx = geom[lev].CellSize(0);
-#elif (AMREX_SPACEDIM == 2)
-        Real min_dx = std::min(geom[lev].CellSize(0), geom[lev].CellSize(1));
-#elif (AMREX_SPACEDIM == 3)
-        Real min_dx = std::min(geom[lev].CellSize(0),
-                               std::min(geom[lev].CellSize(1), geom[lev].CellSize(2)));
-#endif
+        Real min_dx       = LSUtility::min_dx(geom[lev]);
         Real ls_threshold = min_dx * levelset_eb_pad;
 
 #ifdef _OPENMP
