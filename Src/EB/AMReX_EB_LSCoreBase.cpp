@@ -165,7 +165,7 @@ void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & b
     const int ncomp  = level_set[lev - 1].nComp();
     const int nghost = level_set[lev - 1].nGrow();
 
-    BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
+    BoxArray ba_nd = amrex::convert(ba, IntVect::TheUnitVector());
     level_set[lev].define(ba_nd, dm, ncomp, nghost);
 
     FillCoarsePatch(lev, time, level_set[lev], 0, ncomp);
@@ -185,7 +185,7 @@ void LSCoreBase::RemakeLevel ( int lev, Real time, const BoxArray & ba,
     const int ncomp  = level_set[lev].nComp();
     const int nghost = level_set[lev].nGrow();
 
-    BoxArray ba_nd = amrex::convert(ba, IntVect{1, 1, 1});
+    BoxArray ba_nd = amrex::convert(ba, IntVect::TheUnitVector());
     MultiFab new_state(ba_nd, dm, ncomp, nghost);
 
     FillPatch(lev, time, new_state, 0, ncomp);
@@ -211,7 +211,7 @@ void LSCoreBase::UpdateGrids (int lev, const BoxArray & ba, const DistributionMa
     SetBoxArray(lev, ba);
     SetDistributionMap(lev, dm);
 
-    BoxArray ba_nd = amrex::convert(ba, IntVect{AMREX_D_DECL(1, 1, 1)});
+    BoxArray ba_nd = amrex::convert(ba, IntVect::TheUnitVector());
 
     MultiFab ls_regrid = MFUtil::duplicate<MultiFab, MFUtil::SymmetricGhost>
         (ba_nd, dm, level_set[lev]);
@@ -341,7 +341,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
     // Infinities don't work well with std::max, so just bail and construct the
     // maximum box.
     if (ls_crse.contains_inf()){
-        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        Box bx = amrex::convert(ls_crse.box(), IntVect::TheZeroVector());
         bx.grow(max_grow);
 
         bail = true;
@@ -350,7 +350,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
 
     // Something's gone wrong :( ... so just bail and construct the maximum box.
     if (ls_crse.contains_nan()){
-        Box bx = amrex::convert(ls_crse.box(), IntVect{0, 0, 0});
+        Box bx = amrex::convert(ls_crse.box(), IntVect::TheZeroVector());
         bx.grow(max_grow);
 
         bail = true;
@@ -370,7 +370,7 @@ Box LSCoreBase::EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
             bail = true;
         }
 
-    Box bx = amrex::convert(tilebox, IntVect{AMREX_D_DECL(0, 0, 0)});
+    Box bx = amrex::convert(tilebox, IntVect::TheZeroVector());
     bx.grow(n_grow_ls);
 
     return bx;
@@ -489,7 +489,7 @@ Box LSCoreBase::EBSearchBox(const Box & tilebox, const FArrayBox & ls_crse,
 
 
 
-void LSCoreBase::FillLevelSet( MultiFab & level_set, iMultiFab & valid, const MultiFab & ls_crse,
+void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                                const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
                                const IntVect & ebt_size, int eb_pad, const Geometry & geom ) {
 
@@ -497,14 +497,16 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, iMultiFab & valid, const Mu
     const MultiCutFab & bndrycent = eb_factory.getBndryCent();
     const auto & flags = eb_factory.getMultiEBCellFlagFab();
 
-    const BoxArray & ba = level_set.boxArray();
+    const BoxArray & ba_ls         = level_set.boxArray();
+    const BoxArray & ba_cc         = amrex::convert(ba_ls, IntVect::TheZeroVector());
+    const BoxArray & ba_nd         = amrex::convert(ba_ls, IntVect::TheUnitVector());
     const DistributionMapping & dm = level_set.DistributionMap();
 
     // EB normal data
-    MultiFab normal(ba, dm, 3, eb_pad + 1);
+    MultiFab normal(ba_cc, dm, 3, eb_pad + 1);
     FillEBNormals(normal, eb_factory, geom);
 
-    iMultiFab eb_valid(ba, dm, 1, eb_pad + 1);
+    iMultiFab eb_valid(ba_cc, dm, 1, eb_pad + 1);
     eb_valid.setVal(0);
 
     // Level_set threshold
@@ -517,7 +519,7 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, iMultiFab & valid, const Mu
 #pragma omp parallel
 #endif
     for (MFIter mfi(level_set, ebt_size); mfi.isValid(); ++mfi) {
-            const auto & ls_tile = level_set[mfi];
+            const auto & ls_tile = ls_crse[mfi];
                   bool bail      = false;
                   Box tile_box   = mfi.tilebox();
                   Box eb_search  = LSCoreBase::EBSearchBox(tile_box, ls_tile, geom, max_grow, bail);
