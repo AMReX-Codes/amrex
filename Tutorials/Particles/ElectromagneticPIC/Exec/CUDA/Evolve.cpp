@@ -2,6 +2,8 @@
 #include "NodalFlags.H"
 #include "Constants.H"
 #include "em_pic_F.H"
+#include "em_pic_K.H"
+#include <cmath>
 
 using namespace amrex;
 
@@ -26,7 +28,9 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
     const Real foo = (PhysConst::c*PhysConst::c) * dt;
 
     const Real* dx = geom.CellSize();
-    const std::array<Real,3> dtsdx_c2 {foo/dx[0], foo/dx[1], foo/dx[2]};
+    const Real dtsdx = foo/dx[0];
+    const Real dtsdy = foo/dx[1];
+    const Real dtsdz = foo/dx[2];
 
     for (MFIter mfi(Ex); mfi.isValid(); ++mfi)
     {
@@ -34,26 +38,33 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tby  = mfi.tilebox(YeeGrid::Ey_nodal_flag);
         const Box& tbz  = mfi.tilebox(YeeGrid::Ez_nodal_flag);
 
-        FTOC(push_electric_field_x)(BL_TO_FORTRAN_BOX(tbx),
-                                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                                    BL_TO_FORTRAN_3D(By[mfi]),
-                                    BL_TO_FORTRAN_3D(Bz[mfi]),
-                                    BL_TO_FORTRAN_3D(jx[mfi]),
-                                    mu_c2_dt, dtsdx_c2[1], dtsdx_c2[2]);
+        FArrayBox      * Exfab = Ex.fabPtr(mfi);
+        FArrayBox      * Eyfab = Ey.fabPtr(mfi);
+        FArrayBox      * Ezfab = Ez.fabPtr(mfi);
+        FArrayBox const* Bxfab = Bx.fabPtr(mfi);
+        FArrayBox const* Byfab = By.fabPtr(mfi);
+        FArrayBox const* Bzfab = Bz.fabPtr(mfi);
+        FArrayBox const* jxfab = jx.fabPtr(mfi);
+        FArrayBox const* jyfab = jy.fabPtr(mfi);
+        FArrayBox const* jzfab = jz.fabPtr(mfi);
 
-        FTOC(push_electric_field_y)(BL_TO_FORTRAN_BOX(tby),
-                                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                                    BL_TO_FORTRAN_3D(Bz[mfi]),
-                                    BL_TO_FORTRAN_3D(jy[mfi]),
-                                    mu_c2_dt, dtsdx_c2[0], dtsdx_c2[2]);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, b,
+        {
+            push_electric_field_x(b, *Exfab, *Bxfab, *Byfab, *Bzfab, *jxfab,
+                                  mu_c2_dt, dtsdy, dtsdz);
+        });
 
-        FTOC(push_electric_field_z)(BL_TO_FORTRAN_BOX(tbz),
-                                    BL_TO_FORTRAN_3D(Ez[mfi]),
-                                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                                    BL_TO_FORTRAN_3D(By[mfi]),
-                                    BL_TO_FORTRAN_3D(jz[mfi]),
-                                    mu_c2_dt, dtsdx_c2[0], dtsdx_c2[1]);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tby, b,
+        {
+            push_electric_field_y(b, *Eyfab, *Bxfab, *Byfab, *Bzfab, *jyfab,
+                                  mu_c2_dt, dtsdx, dtsdz);
+        });
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbz, b,
+        {
+            push_electric_field_y(b, *Ezfab, *Bxfab, *Byfab, *Bzfab, *jzfab,
+                                  mu_c2_dt, dtsdx, dtsdy);
+        });
     }
 }
 
@@ -118,16 +129,16 @@ void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
     test_box.setSmall(IntVect(AMREX_D_DECL(2, 2, 2)));
     test_box.setBig(IntVect(AMREX_D_DECL(30, 30, 30)));
 
-    Real max_error = 0.0;
-    for(MFIter mfi(jx); mfi.isValid(); ++mfi)
+    const amrex::Real u = 0.01;
+    const amrex::Real n0 = 1.e25;
+    const amrex::Real wp = std::sqrt(n0*PhysConst::q_e*PhysConst::q_e/(PhysConst::m_e*PhysConst::ep0));
+    const Real j_exact = -n0*PhysConst::q_e*PhysConst::c*u*std::cos(wp*time);
+
+    Real max_error = amrex::ReduceMax(jx, 0,
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& jxfab) -> Real
     {
-        Real fab_max_error;
-        const Box& tbx  = mfi.tilebox();
-        check_langmuir_solution(BL_TO_FORTRAN_BOX(tbx),
-                                BL_TO_FORTRAN_BOX(test_box),
-                                BL_TO_FORTRAN_3D(jx[mfi]), time, &fab_max_error);
-        max_error += fab_max_error;
-    }
+        return check_langmuir_solution(bx, test_box, jxfab, j_exact);
+    });
 
     ParallelDescriptor::ReduceRealMax(max_error);
 
