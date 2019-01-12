@@ -30,6 +30,23 @@ void main_main ()
     mf.setVal(0.0);
 
     // launch CUDA C++ kernel to add 1
+    // the gpu kernel works on one cell
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        // Tiling is off in case of gpu.
+        // In that case, tilebox simply return validbox
+        const Box& bx = mfi.tilebox();
+        // Get Array4 object
+        const auto fab = mf.array(mfi);
+        // loop over bx.
+        AMREX_FOR ( bx, i, j, k,
+        {
+            fab(i,j,k) += 1.;
+        });
+    }
+
+    // launch CUDA C++ kernel to add 1
+    // the gpu kernel works on a one-cell box
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         // Tiling is off in case of gpu.
@@ -55,7 +72,7 @@ void main_main ()
         // This only works on a contiguous chunk of memory.
         AMREX_LAUNCH_DEVICE_LAMBDA ( nitems, idx,
         {
-            p[idx] += 1;
+            p[idx] += 1.;
         });
     }
 

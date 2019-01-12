@@ -31,4 +31,10 @@
                                                         AMREX_WRONG_NUM_ARGS, \
                                                         AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
 
+
+#define AMREX_FOR(...)      AMREX_CUDA_DEVICE_FOR(__VA_ARGS__)
+#define AMREX_FOR_SIMD(...) AMREX_CUDA_DEVICE_FOR_SIMD(__VA_ARGS__)
+#define AMREX_HOST_DEVICE_FOR(...)      AMREX_CUDA_HOST_DEVICE_FOR(__VA_ARGS__)
+#define AMREX_HOST_DEVICE_FOR_SIMD(...) AMREX_CUDA_HOST_DEVICE_FOR_SIMD(__VA_ARGS__)
+
 #endif
