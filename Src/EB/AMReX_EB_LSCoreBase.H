@@ -54,7 +54,7 @@ public:
                             const Geometry & geom_fine, const IntVect & max_grow, bool & bail);
 
 
-    static void FillLevelSet( MultiFab & level_set, iMultiFab & valid, const MultiFab & ls_crse,
+    static void FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                               const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
                               const IntVect & ebt_size, int eb_pad, const Geometry & geom );
 

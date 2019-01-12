@@ -120,96 +120,17 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
         //_______________________________________________________________________
         // Build finer levels locally, using coarse level set
 
+        // Fills level-set[lev] with coarse data
         MakeNewLevelFromCoarse(lev, time, ba, dm);
 
         EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], ba, dm,
                                       {max_eb_pad + 1, max_eb_pad + 1, max_eb_pad + 1},
                                       EBSupport::full);
 
-        // EB boundary-centre data
-        const MultiCutFab & bndrycent = eb_factory.getBndryCent();
-        const auto & flags = eb_factory.getMultiEBCellFlagFab();
-
-        MultiFab normal(ba, dm, 3, max_eb_pad + 1);
-        FillEBNormals(normal, eb_factory, geom[lev]);
-
-        iMultiFab eb_valid(ba, dm, 1, max_eb_pad + 1);
-        eb_valid.setVal(0);
-
-        // TODO: some of this might be shifted to the base class?
-        Real min_dx       = LSUtility::min_dx(geom[lev]);
-        Real ls_threshold = min_dx * levelset_eb_pad;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(level_set[lev], IntVect{AMREX_D_DECL(levelset_eb_pad,
-                                                             levelset_eb_pad,
-                                                             levelset_eb_pad)});
-             mfi.isValid();
-             ++mfi)
-        {
-            const auto & ls_tile = level_set[lev][mfi];
-                  bool bail      = false;
-                  Box tile_box   = mfi.tilebox();
-                  Box eb_search  = EBSearchBox(tile_box, ls_tile, geom[lev], bail);
-
-            if (bail) continue;
-
-            int n_facets = 0;
-            const auto & flag = flags[mfi];
-            // Need to count number of eb-facets (in order to allocate facet_list)
-            amrex_eb_count_facets(BL_TO_FORTRAN_BOX(eb_search),
-                                  BL_TO_FORTRAN_3D(flag),
-                                  & n_facets);
-
-            int facet_list_size = 6 * n_facets;
-            Vector<Real> facet_list(facet_list_size);
-
-
-                  auto & ls_tile_w = level_set[lev][mfi];
-                  auto & v_tile    = eb_valid[mfi];
-            const auto & if_tile   = (* mf_impfunc)[mfi];
-
-            if (n_facets > 0) {
-                const auto & norm_tile = normal[mfi];
-                const auto & bcent_tile = bndrycent[mfi];
-
-                int c_facets = 0;
-                amrex_eb_as_list(BL_TO_FORTRAN_BOX(eb_search), & c_facets,
-                                 BL_TO_FORTRAN_3D(flag),
-                                 BL_TO_FORTRAN_3D(norm_tile),
-                                 BL_TO_FORTRAN_3D(bcent_tile),
-                                 facet_list.dataPtr(), & facet_list_size,
-                                 geom[lev].CellSize()                      );
-
-                amrex_eb_fill_levelset_loc(BL_TO_FORTRAN_BOX(tile_box),
-                                           facet_list.dataPtr(), & facet_list_size,
-                                           BL_TO_FORTRAN_3D(v_tile),
-                                           BL_TO_FORTRAN_3D(ls_tile_w),
-                                           BL_TO_FORTRAN_3D(ls_tile), & ls_threshold,
-                                           geom[lev].CellSize(), geom[lev].CellSize() );
-
-            }
-
-
-            //_______________________________________________________________________
-            // Enforce threshold of local level-set
-            amrex_eb_threshold_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_threshold,
-                                        BL_TO_FORTRAN_3D(ls_tile_w));
-
-
-            //_______________________________________________________________________
-            // Validate level-set
-            const int ls_grid_ref = 1;
-            amrex_eb_validate_levelset(BL_TO_FORTRAN_BOX(tile_box), & ls_grid_ref,
-                                       BL_TO_FORTRAN_3D(if_tile),
-                                       BL_TO_FORTRAN_3D(v_tile),
-                                       BL_TO_FORTRAN_3D(ls_tile_w)   );
-        }
+        IntVect ebt_size{AMREX_D_DECL(levelset_eb_pad, levelset_eb_pad, levelset_eb_pad)};
+        LSCoreBase::FillLevelSet(level_set[lev], level_set[lev], eb_factory, (* mf_impfunc),
+                                 ebt_size, max_eb_pad, geom[lev]);
     }
-
-    level_set[lev].FillBoundary(geom[lev].periodicity());
 
     Real end_time = ParallelDescriptor::second() - strt_time;
     amrex::Print() << "** Time to build the level set at level " << lev
