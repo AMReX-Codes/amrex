@@ -59,6 +59,9 @@ public:
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) override;
 
+    static const EB2::Level * BuildEBLevel (const EB2::GeometryShop<F> & gshop,
+                                            int lev, const Vector<Geometry> & geom );
+
 private:
 
     /****************************************************************************
