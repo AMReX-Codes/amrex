@@ -112,7 +112,7 @@ void LSFactory::update_ba(const BoxArray & new_ba, const DistributionMapping & d
     base_ba = new_ba;
 
     // Refined versions of both the cell-centered and nodal (phi)
-    const BoxArray & phi_ba = amrex::convert(new_ba, IntVect::TheNodeVector());
+    const BoxArray phi_ba = amrex::convert(new_ba, IntVect::TheNodeVector());
 
     ls_dm = dm;
 
