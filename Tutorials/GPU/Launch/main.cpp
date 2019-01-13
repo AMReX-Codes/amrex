@@ -38,10 +38,11 @@ void main_main ()
         const Box& bx = mfi.tilebox();
         // Get Array4 object
         Array4<Real> fab = mf.array(mfi);
-        // loop over bx.
-        AMREX_FOR ( bx, i, j, k,
+        // loop over bx and component.
+        AMREX_FOR_3D_SIMD ( bx, i, j, k,
         {
             fab(i,j,k) += 1.;
+            // or put this in a function taking (int,int,int,Array4<Real>&)
         });
     }
 
