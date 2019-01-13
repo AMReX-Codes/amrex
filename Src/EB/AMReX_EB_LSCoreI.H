@@ -31,6 +31,23 @@ void LSCore<F>::ClearLevel (int lev) {
     //ls_factory[lev].clear();
 }
 
+
+// Build a new EB level and return a pointer to this level
+template<class F>
+const EB2::Level * LSCore<F>::BuildEBLevel (const EB2::GeometryShop<F> & gshop,
+                                            int lev, const Vector<Geometry> & geom ) {
+    int max_crse_level = lev; // Important! this is needed to allow EBFactory to
+                              // be built on coarser levels (which is needed by
+                              // FillCoarsePatch)
+    int required_crse_lev = std::max(0, lev - 1);
+    //int required_crse_lev = lev;
+    EB2::Build(gshop, geom[lev], required_crse_lev, max_crse_level);
+    const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+
+    return & cylinder_ebis.getLevel(geom[lev]);
+}
+
+
 // Make a new level from scratch using provided BoxArray and
 // DistributionMapping. Only used during initialization. Overrides the pure
 // virtual function in AmrCore
@@ -48,14 +65,16 @@ void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba
      ***************************************************************************/
 
     if (rebuild_eb[lev] == 1) {
-        int max_crse_level = lev; // Important! this is needed to allow
-                                  // EBFactory to be built on coarser levels
-                                  // (which is needed by FillCoarsePatch)
-        int required_crse_lev = std::max(0, lev - 1);
-        //int required_crse_lev = lev;
-        EB2::Build(m_gshop, geom[lev], required_crse_lev, max_crse_level);
-        const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
-        eb_levels[lev] = & cylinder_ebis.getLevel(geom[lev]);
+        // int max_crse_level = lev; // Important! this is needed to allow
+        //                           // EBFactory to be built on coarser levels
+        //                           // (which is needed by FillCoarsePatch)
+        // int required_crse_lev = std::max(0, lev - 1);
+        // //int required_crse_lev = lev;
+        // EB2::Build(m_gshop, geom[lev], required_crse_lev, max_crse_level);
+        // const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+        // eb_levels[lev] = & cylinder_ebis.getLevel(geom[lev]);
+
+        eb_levels[lev] = LSCore<F>::BuildEBLevel(m_gshop, lev, geom);
 
         rebuild_eb[lev] = 0;
     }
