@@ -41,6 +41,8 @@ public:
     AMREX_GPU_HOST_DEVICE FArrayBox* fabPtr () const { return m_fab; }
     AMREX_GPU_HOST_DEVICE FArrayBox& fab () const { return *m_fab; }
 
+    Array4<Real> array () const;
+
     static void Initialize ();
     static void Finalize ();
 

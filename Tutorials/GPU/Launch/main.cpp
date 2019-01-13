@@ -37,7 +37,7 @@ void main_main ()
         // In that case, tilebox simply return validbox
         const Box& bx = mfi.tilebox();
         // Get Array4 object
-        const auto fab = mf.array(mfi);
+        Array4<Real> fab = mf.array(mfi);
         // loop over bx.
         AMREX_FOR ( bx, i, j, k,
         {
