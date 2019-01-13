@@ -313,8 +313,30 @@ class GShopLSFactory {
 
         GShopLSFactory (const EB2::GeometryShop<F> & gshop, const Geometry & geom,
                         const BoxArray & ba, const DistributionMapping & dm, int ls_pad)
-            :m_gshop(gshop), m_geom(geom), m_ls_ba(ba), m_ls_dm(dm), m_ls_pad(ls_pad)
-        {}
+            : m_gshop(gshop), m_geom(geom), m_ls_ba(ba), m_ls_dm(dm), m_ls_pad(ls_pad)
+        {
+            // Ensure that the inputted (refence) BoxArray is nodal
+            BoxArray ba_nd = amrex::convert(ba, IntVect::TheNodeVector());
+            m_ls_ba = ba_nd;
+        }
+
+        GShopLSFactory (const EB2::GeometryShop<F> & gshop, const Geometry & geom_crse,
+                        const BoxArray & ba_crse, const DistributionMapping & dm,
+                        int ls_pad, int ls_ref)
+            : m_gshop(gshop), m_ls_dm(dm), m_ls_pad(ls_pad)
+        {
+            // Set up refined geometry
+            Box dom = geom_crse.Domain();
+            dom.refine(ls_ref);
+            Geometry geom(dom);
+            m_geom = geom;
+
+            // Set up refined BoxArray. NOTE: ensure that the inputted (refence)
+            // BoxArray is nodal
+            BoxArray ba = amrex::convert(ba_crse, IntVect::TheNodeVector());
+            ba.refine(ls_ref);
+            m_ls_ba = ba;
+        }
 
         //! Fill MultiFab (with the same CellSize, BoxArray,
         //! DistributionMapping, and number of ghost cells as the LSFactory)
@@ -324,9 +346,9 @@ class GShopLSFactory {
             std::unique_ptr<MultiFab> mf_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
             mf_impfunc->define(m_ls_ba, m_ls_dm, 1, m_ls_pad);
 
-            #ifdef _OPENMP
-            #pragma omp parallel
-            #endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for(MFIter mfi(* mf_impfunc, true); mfi.isValid(); ++ mfi)
                 m_gshop.fillFab((* mf_impfunc)[mfi], m_geom);
 
