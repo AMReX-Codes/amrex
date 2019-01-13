@@ -13,6 +13,7 @@
 
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_Array.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
@@ -51,20 +52,6 @@ namespace amrex
 
     void BaseFab_Initialize ();
     void BaseFab_Finalize ();
-
-template <typename T>
-struct Array4
-{
-    T* p;
-    int jstride;
-    int kstride;
-    long nstride;
-    Dim3 lo;
-    AMREX_GPU_HOST_DEVICE
-    AMREX_FORCE_INLINE T& operator() (int i, int j, int k, int n=0) const {
-        return *(p + ((i-lo.x)+(j-lo.y)*jstride+(k-lo.z)*kstride+n*nstride));
-    }
-};
 
 template <typename T>
 struct FabView
@@ -353,18 +340,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
-    Array4<T const> array () const
-    {
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-        const auto len = amrex::length(this->domain);
-        return Array4<T const>{this->dptr,
-                               len.x, len.x*len.y, len.x*len.y*len.z,
-                               amrex::lbound(this->domain)};
-    }
-
-    AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE
-    Array4<T> array ()
+    Array4<T> array () const
     {
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto len = amrex::length(this->domain);
@@ -433,8 +409,8 @@ public:
     {
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto& len = this->domain.length3d();
-        long jstride = len[0];
-        long kstride = jstride*len[1];
+        int jstride = len[0];
+        int kstride = jstride*len[1];
         long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
         T const* p = this->dptr + ((slo[0]-dlo[0])
@@ -458,8 +434,8 @@ public:
     {
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto& len = this->domain.length3d();
-        long jstride = len[0];
-        long kstride = jstride*len[1];
+        int jstride = len[0];
+        int kstride = jstride*len[1];
         long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
         T* p = this->dptr + ((slo[0]-dlo[0])
@@ -484,8 +460,8 @@ public:
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto len = amrex::length(this->domain);
         const auto dlo = amrex::lbound(this->domain);
-        long jstride = len.x;
-        long kstride = jstride*len.y;
+        int jstride = len.x;
+        int kstride = jstride*len.y;
         long nstride = kstride*len.z;
         T const* p = this->dptr + ((slo.x-dlo.x)
                                 +  (slo.y-dlo.y)*jstride
@@ -509,8 +485,8 @@ public:
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto len = amrex::length(this->domain);
         const auto dlo = amrex::lbound(this->domain);
-        long jstride = len.x;
-        long kstride = jstride*len.y;
+        int jstride = len.x;
+        int kstride = jstride*len.y;
         long nstride = kstride*len.z;
         T* p = this->dptr + ((slo.x-dlo.x)
                           +  (slo.y-dlo.y)*jstride
