@@ -442,7 +442,7 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         int amrex_i_ncells = box.numPts();          \
-        const auto amrex_i_lo  = amrex::length(box); \
+        const auto amrex_i_lo  = amrex::lbound(box); \
         const auto amrex_i_len = amrex::length(box); \
         const auto amrex_i_ec = amrex::Cuda::ExecutionConfig(amrex_i_ncells); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
@@ -499,7 +499,7 @@
     if (amrex::Gpu::inLaunchRegion()) \
     { \
         int amrex_i_ncells = box.numPts();          \
-        const auto amrex_i_lo  = amrex::length(box); \
+        const auto amrex_i_lo  = amrex::lbound(box); \
         const auto amrex_i_len = amrex::length(box); \
         const auto amrex_i_ec = amrex::Cuda::ExecutionConfig(amrex_i_ncells); \
         amrex::launch_global<<<amrex_i_ec.numBlocks, amrex_i_ec.numThreads, amrex_i_ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>( \
