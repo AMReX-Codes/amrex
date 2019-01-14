@@ -29,7 +29,78 @@ void main_main ()
     MultiFab mf(ba,DistributionMapping{ba},1,0);
     mf.setVal(0.0);
 
-    // launch CUDA C++ kernel to add 1
+    // Multiple ways of kernel launch
+
+    // (1) C++, AMREX_FOR_3D
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        // Tiling is off in case of gpu.
+        // In that case, tilebox simply return validbox
+        const Box& bx = mfi.tilebox();
+        // Get Array4 object
+        Array4<Real> fab = mf.array(mfi);
+        // loop over bx
+        AMREX_FOR_3D ( bx, i, j, k,
+        {
+            fab(i,j,k) += 1.;
+            // or fab(i,j,k,0) += 1.;
+        });
+    }
+
+    // (2) C++, AMREX_FOR_4D
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        // Tiling is off in case of gpu.
+        // In that case, tilebox simply return validbox
+        const Box& bx = mfi.tilebox();
+        // Get Array4 object
+        Array4<Real> fab = mf.array(mfi);
+        int ncomp = mf.nComp();
+        // loop over bx and component.
+        AMREX_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            fab(i,j,k,n) += 1.;
+        });
+    }
+
+    // (3) C++, AMREX_FOR_1D
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        FArrayBox& fab = mf[mfi];
+        Real* p = fab.dataPtr();
+        const long nitems = fab.box().numPts() * mf.nComp();
+        // Enough threads are launched to work over nitems.
+        // This only works on a contiguous chunk of memory.
+        AMREX_FOR_1D ( nitems, idx,
+        {
+            p[idx] += 1.;
+        });
+    }
+
+    // (4) C++, AMREX_LAUNCH_DEVICE_LAMBDA, Capture Array4
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        // Tiling is off in case of gpu.
+        // In that case, tilebox simply return validbox
+        const Box& bx = mfi.tilebox();
+        // Get Array4 object
+        Array4<Real> fab = mf.array(mfi);
+        // Enough threads are launched to work over bx,
+        // and tbx is a thread's work box
+        AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+        {
+            // Array4<Real> fab is captured
+            const auto lo = amrex::lbound(tbx);
+            const auto hi = amrex::ubound(tbx);
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                fab(i,j,k) += 1.;
+            }}}
+        });
+    }
+
+    // (5) C++, AMREX_LAUNCH_DEVICE_LAMBDA, Capture FArrayBox
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         // Tiling is off in case of gpu.
@@ -37,30 +108,17 @@ void main_main ()
         const Box& bx = mfi.tilebox();
         // Use fabPtr function to get a managed pointer to fab
         FArrayBox* fab = mf.fabPtr(mfi);
-        // Enough threads are launched to cover bx, and tbx is a thread's work box
+        // Enough threads are launched to work over bx,
+        // and tbx is a thread's work box
         AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
         {
+            // FArrayBox* fab is captured
             plusone_cudacpp(tbx, *fab);
         });
     }
 
-    // launch CUDA C++ kernel to add 1
-    // This example shows how to launch kernels over a 1D iteration space.
-    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-    {
-        FArrayBox& fab = mf[mfi];
-        Real* p = fab.dataPtr();
-        const long nitems = fab.box().numPts() * mf.nComp();
-        // Enough threads are launched to work over nitems, and idx is item index for each thread.
-        // This only works on a contiguous chunk of memory.
-        AMREX_LAUNCH_DEVICE_LAMBDA ( nitems, idx,
-        {
-            p[idx] += 1;
-        });
-    }
-
 #ifdef AMREX_USE_CUDA_FORTRAN
-    // launch CUDA Fortran kernel to add 1 if supported
+    // (6) launch CUDA Fortran kernel to add 1 if supported
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -74,7 +132,7 @@ void main_main ()
 #endif
 
 #ifdef AMREX_USE_ACC
-    // launch OpenACC kernel to add 1 if supported
+    // (7) launch OpenACC kernel to add 1 if supported
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -87,7 +145,7 @@ void main_main ()
 #endif
 
 #ifdef AMREX_OMP_OFFLOAD
-    // launch OpenOMP kernel to add 1 if supported
+    // (8) launch OpenOMP kernel to add 1 if supported
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
