@@ -88,7 +88,8 @@ Known Limitations
 =================
 
 To realize enough task parallelism, the runtime system constructs a task dependency graph for the whole coarse time step and executes it asynchronously to the completion of the step.
-As a result, any request to regrid an AMR level must be forseen before the execution of a coarse time step.
+As a result, any request to regrid an AMR level must be foreseen before the execution of a coarse time step.
+If there is a regridding request during the graph execution, the runtime system simply ignores it.
 In the future we may relax this constraint in the programming model.
 However, such a support would come at a significant performance cost due to the required checkpointing and rollback activities.
 
