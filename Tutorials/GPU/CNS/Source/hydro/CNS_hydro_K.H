@@ -9,233 +9,163 @@
 AMREX_GPU_DEVICE
 inline
 void
-cns_ctoprim (amrex::Box const& bx, amrex::FArrayBox const& ufab, amrex::FArrayBox & qfab)
+cns_ctoprim (int i, int j, int k,
+             amrex::Array4<amrex::Real> const& u,
+             amrex::Array4<amrex::Real>& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto u = ufab.view(lo);
-    const auto q = qfab.view(lo);
+    amrex::Real rho = amrex::max(u(i,j,k,URHO),Parm::smallr);
+    amrex::Real rhoinv = 1.0/rho;
+    amrex::Real ux = u(i,j,k,UMX)*rhoinv;
+    amrex::Real uy = u(i,j,k,UMY)*rhoinv;
+    amrex::Real uz = u(i,j,k,UMZ)*rhoinv;
+    amrex::Real kineng = 0.5*rho*(ux*ux+uy*uy+uz*uz);
+    amrex::Real ei = u(i,j,k,UEDEN) - kineng;
+    if (ei <= 0.0) ei = u(i,j,k,UEINT);
+    amrex::Real p = amrex::max((Parm::eos_gamma-1.0)*ei,Parm::smallp);
+    ei *= rhoinv;
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                amrex::Real rho = amrex::max(u(i,j,k,URHO),Parm::smallr);
-                amrex::Real rhoinv = 1.0/rho;
-                amrex::Real ux = u(i,j,k,UMX)*rhoinv;
-                amrex::Real uy = u(i,j,k,UMY)*rhoinv;
-                amrex::Real uz = u(i,j,k,UMZ)*rhoinv;
-                amrex::Real kineng = 0.5*rho*(ux*ux+uy*uy+uz*uz);
-                amrex::Real ei = u(i,j,k,UEDEN) - kineng;
-                if (ei <= 0.0) ei = u(i,j,k,UEINT);
-                amrex::Real p = amrex::max((Parm::eos_gamma-1.0)*ei,Parm::smallp);
-                ei *= rhoinv;
-
-                q(i,j,k,QRHO) = rho;
-                q(i,j,k,QU) = ux;
-                q(i,j,k,QV) = uy;
-                q(i,j,k,QW) = uz;
-                q(i,j,k,QEINT) = ei;
-                q(i,j,k,QPRES) = p;
-                q(i,j,k,QCS) = std::sqrt(Parm::eos_gamma*p*rhoinv);
-                q(i,j,k,QTEMP) = 0.0;
-            }
-        }
-    }
+    q(i,j,k,QRHO) = rho;
+    q(i,j,k,QU) = ux;
+    q(i,j,k,QV) = uy;
+    q(i,j,k,QW) = uz;
+    q(i,j,k,QEINT) = ei;
+    q(i,j,k,QPRES) = p;
+    q(i,j,k,QCS) = std::sqrt(Parm::eos_gamma*p*rhoinv);
+    q(i,j,k,QTEMP) = 0.0;
 }
 
 AMREX_GPU_DEVICE
 inline
 void
-cns_flux_to_dudt (amrex::Box const& bx, amrex::FArrayBox& dudtfab,
-                  amrex::FArrayBox const& fxfab, amrex::FArrayBox const& fyfab, amrex::FArrayBox const& fzfab,
-                  amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& a_dxinv)
+cns_flux_to_dudt (int i, int j, int k, int n,
+                  amrex::Array4<amrex::Real> & dudt,
+                  amrex::Array4<amrex::Real> const& fx,
+                  amrex::Array4<amrex::Real> const& fy,
+                  amrex::Array4<amrex::Real> const& fz,
+                  amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxinv)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const int ncomp = dudtfab.nComp();
-    const auto dudt = dudtfab.view(lo);
-    const auto fx   =   fxfab.view(lo);
-    const auto fy   =   fyfab.view(lo);
-    const auto fz   =   fzfab.view(lo);
-    const amrex::Real dxinv = a_dxinv[0];
-    const amrex::Real dyinv = a_dxinv[1];
-    const amrex::Real dzinv = a_dxinv[2];
+    dudt(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
+        +           dxinv[1] * (fy(i,j,k,n) - fy(i,j+1,k,n))
+        +           dxinv[2] * (fz(i,j,k,n) - fz(i,j,k+1,n));
+}
 
-    for (int n = 0; n < NCONS; ++n) {
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
-                    dudt(i,j,k,n) = dxinv * (fx(i,j,k,n) - fx(i+1,j,k,n))
-                        +           dyinv * (fy(i,j,k,n) - fy(i,j+1,k,n))
-                        +           dzinv * (fz(i,j,k,n) - fz(i,j,k+1,n));
-                }
-            }
-        }
-    }
+namespace {
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+Real limiter (amrex::Real dlft, amrex::Real drgt)
+{
+    amrex::Real dcen = 0.5*(dlft+drgt);
+    amrex::Real dsgn = std::copysign(1.0, dcen);
+    amrex::Real slop = 2.0 * amrex::min(std::abs(dlft),std::abs(drgt));
+    amrex::Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
+    return dsgn * amrex::min(dlim,std::abs(dcen));
+}
+
 }
 
 AMREX_GPU_DEVICE
 inline
 void
-cns_slope_x (Box const& bx, FArrayBox& dqfab, FArrayBox const& qfab)
+cns_slope_x (int i, int j, int k,
+             amrex::Array4<amrex::Real>& dq,
+             amrex::Array4<amrex::Real> const& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dq = dqfab.view(lo);
-    const auto  q =  qfab.view(lo);
+    amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i-1,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU));
+    amrex::Real drgt = 0.5*(q(i+1,j,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU));
+    amrex::Real d0 = limiter(dlft, drgt);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                auto f = [] (amrex::Real dlft, amrex::Real drgt) -> amrex::Real {
-                    amrex::Real dcen = 0.5*(dlft+drgt);
-                    amrex::Real dsgn = std::copysign(1.0, dcen);
-                    amrex::Real slop = 2.0 * amrex::min(std::abs(dlft),std::abs(drgt));
-                    amrex::Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-                    amrex::Real d = dsgn * amrex::min(dlim,std::abs(dcen));
-                    return d;
-                };
+    amrex::Real cs2 = q(i,j,k,QCS)*q(i,j,k,QCS);
+    dlft = (q(i,j,k,QRHO)-q(i-1,j,k,QRHO)) - (q(i,j,k,QPRES) - q(i-1,j,k,QPRES))/cs2;
+    drgt = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO)) - (q(i+1,j,k,QPRES) - q(i,j,k,QPRES))/cs2;
+    amrex::Real d1 = limiter(dlft, drgt);
 
-                amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i-1,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU));
-                amrex::Real drgt = 0.5*(q(i+1,j,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU));
-                amrex::Real d0 = f(dlft, drgt);
+    dlft = 0.5*(q(i,j,k,QPRES)-q(i-1,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU));
+    drgt = 0.5*(q(i+1,j,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU));
+    amrex::Real d2 = limiter(dlft, drgt);
 
-                amrex::Real cs2 = q(i,j,k,QCS)*q(i,j,k,QCS);
-                dlft = (q(i,j,k,QRHO)-q(i-1,j,k,QRHO)) - (q(i,j,k,QPRES) - q(i-1,j,k,QPRES))/cs2;
-                drgt = (q(i+1,j,k,QRHO)-q(i,j,k,QRHO)) - (q(i+1,j,k,QPRES) - q(i,j,k,QPRES))/cs2;
-                amrex::Real d1 = f(dlft, drgt);
+    dlft = q(i,j,k,QV) - q(i-1,j,k,QV);
+    drgt = q(i+1,j,k,QV) - q(i,j,k,QV);
+    amrex::Real d3 = limiter(dlft, drgt);
 
-                dlft = 0.5*(q(i,j,k,QPRES)-q(i-1,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU));
-                drgt = 0.5*(q(i+1,j,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU));
-                amrex::Real d2 = f(dlft, drgt);
+    dlft = q(i,j,k,QW) - q(i-1,j,k,QW);
+    drgt = q(i+1,j,k,QW) - q(i,j,k,QW);
+    amrex::Real d4 = limiter(dlft, drgt);
 
-                dlft = q(i,j,k,QV) - q(i-1,j,k,QV);
-                drgt = q(i+1,j,k,QV) - q(i,j,k,QV);
-                amrex::Real d3 = f(dlft, drgt);
-
-                dlft = q(i,j,k,QW) - q(i-1,j,k,QW);
-                drgt = q(i+1,j,k,QW) - q(i,j,k,QW);
-                amrex::Real d4 = f(dlft, drgt);
-
-                dq(i,j,k,0) = d0;
-                dq(i,j,k,1) = d1;
-                dq(i,j,k,2) = d2;
-                dq(i,j,k,3) = d3;
-                dq(i,j,k,4) = d4;
-            }
-        }
-    }
+    dq(i,j,k,0) = d0;
+    dq(i,j,k,1) = d1;
+    dq(i,j,k,2) = d2;
+    dq(i,j,k,3) = d3;
+    dq(i,j,k,4) = d4;
 }
 
 AMREX_GPU_DEVICE
 inline
 void
-cns_slope_y (Box const& bx, FArrayBox& dqfab, FArrayBox const& qfab)
+cns_slope_y (int i, int j, int k,
+             amrex::Array4<amrex::Real>& dq,
+             amrex::Array4<amrex::Real> const& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dq = dqfab.view(lo);
-    const auto  q =  qfab.view(lo);
+    amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i,j-1,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV));
+    amrex::Real drgt = 0.5*(q(i,j+1,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV));
+    amrex::Real d0 = limiter(dlft, drgt);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                auto f = [] (amrex::Real dlft, amrex::Real drgt) -> amrex::Real {
-                    amrex::Real dcen = 0.5*(dlft+drgt);
-                    amrex::Real dsgn = std::copysign(1.0, dcen);
-                    amrex::Real slop = 2.0 * amrex::min(std::abs(dlft), std::abs(drgt));
-                    amrex::Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-                    amrex::Real d = dsgn * amrex::min(dlim, std::abs(dcen));
-                    return d;
-                };
+    amrex::Real cs2 = q(i,j,k,QCS)*q(i,j,k,QCS);
+    dlft = (q(i,j,k,QRHO)-q(i,j-1,k,QRHO)) - (q(i,j,k,QPRES) - q(i,j-1,k,QPRES))/cs2;
+    drgt = (q(i,j+1,k,QRHO)-q(i,j,k,QRHO)) - (q(i,j+1,k,QPRES) - q(i,j,k,QPRES))/cs2;
+    amrex::Real d1 = limiter(dlft, drgt);
 
-                amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i,j-1,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV));
-                amrex::Real drgt = 0.5*(q(i,j+1,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV));
-                amrex::Real d0 = f(dlft, drgt);
+    dlft = 0.5*(q(i,j,k,QPRES)-q(i,j-1,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV));
+    drgt = 0.5*(q(i,j+1,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV));
+    amrex::Real d2 = limiter(dlft, drgt);
 
-                amrex::Real cs2 = q(i,j,k,QCS)*q(i,j,k,QCS);
-                dlft = (q(i,j,k,QRHO)-q(i,j-1,k,QRHO)) - (q(i,j,k,QPRES) - q(i,j-1,k,QPRES))/cs2;
-                drgt = (q(i,j+1,k,QRHO)-q(i,j,k,QRHO)) - (q(i,j+1,k,QPRES) - q(i,j,k,QPRES))/cs2;
-                amrex::Real d1 = f(dlft, drgt);
+    dlft = q(i,j,k,QU) - q(i,j-1,k,QU);
+    drgt = q(i,j+1,k,QU) - q(i,j,k,QU);
+    amrex::Real d3 = limiter(dlft, drgt);
 
-                dlft = 0.5*(q(i,j,k,QPRES)-q(i,j-1,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV));
-                drgt = 0.5*(q(i,j+1,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV));
-                amrex::Real d2 = f(dlft, drgt);
+    dlft = q(i,j,k,QW) - q(i,j-1,k,QW);
+    drgt = q(i,j+1,k,QW) - q(i,j,k,QW);
+    amrex::Real d4 = limiter(dlft, drgt);
 
-                dlft = q(i,j,k,QU) - q(i,j-1,k,QU);
-                drgt = q(i,j+1,k,QU) - q(i,j,k,QU);
-                amrex::Real d3 = f(dlft, drgt);
-
-                dlft = q(i,j,k,QW) - q(i,j-1,k,QW);
-                drgt = q(i,j+1,k,QW) - q(i,j,k,QW);
-                amrex::Real d4 = f(dlft, drgt);
-
-                dq(i,j,k,0) = d0;
-                dq(i,j,k,1) = d1;
-                dq(i,j,k,2) = d2;
-                dq(i,j,k,3) = d3;
-                dq(i,j,k,4) = d4;
-            }
-        }
-    }
+    dq(i,j,k,0) = d0;
+    dq(i,j,k,1) = d1;
+    dq(i,j,k,2) = d2;
+    dq(i,j,k,3) = d3;
+    dq(i,j,k,4) = d4;
 }
 
 AMREX_GPU_DEVICE
 inline
 void
-cns_slope_z (Box const& bx, FArrayBox& dqfab, FArrayBox const& qfab)
+cns_slope_z (int i, int j, int k,
+             amrex::Array4<amrex::Real>& dq,
+             amrex::Array4<amrex::Real> const& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dq = dqfab.view(lo);
-    const auto  q =  qfab.view(lo);
+    amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i,j,k-1,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW));
+    amrex::Real drgt = 0.5*(q(i,j,k+1,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW));
+    amrex::Real d0 = limiter(dlft, drgt);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                auto f = [] (amrex::Real dlft, amrex::Real drgt) -> amrex::Real {
-                    amrex::Real dcen = 0.5*(dlft+drgt);
-                    amrex::Real dsgn = std::copysign(1.0, dcen);
-                    amrex::Real slop = 2.0 * amrex::min(std::abs(dlft), std::abs(drgt));
-                    amrex::Real dlim = (dlft*drgt >= 0.0) ? slop : 0.0;
-                    amrex::Real d = dsgn * amrex::min(dlim, std::abs(dcen));
-                    return d;
-                };
+    amrex::Real cs2 = q(i,j,k,QCS)*q(i,j,k,QCS);
+    dlft = (q(i,j,k,QRHO)-q(i,j,k-1,QRHO)) - (q(i,j,k,QPRES) - q(i,j,k-1,QPRES))/cs2;
+    drgt = (q(i,j,k+1,QRHO)-q(i,j,k,QRHO)) - (q(i,j,k+1,QPRES) - q(i,j,k,QPRES))/cs2;
+    amrex::Real d1 = limiter(dlft, drgt);
 
-                amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i,j,k-1,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW));
-                amrex::Real drgt = 0.5*(q(i,j,k+1,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW));
-                amrex::Real d0 = f(dlft, drgt);
+    dlft = 0.5*(q(i,j,k,QPRES)-q(i,j,k-1,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW));
+    drgt = 0.5*(q(i,j,k+1,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW));
+    amrex::Real d2 = limiter(dlft, drgt);
 
-                amrex::Real cs2 = q(i,j,k,QCS)*q(i,j,k,QCS);
-                dlft = (q(i,j,k,QRHO)-q(i,j,k-1,QRHO)) - (q(i,j,k,QPRES) - q(i,j,k-1,QPRES))/cs2;
-                drgt = (q(i,j,k+1,QRHO)-q(i,j,k,QRHO)) - (q(i,j,k+1,QPRES) - q(i,j,k,QPRES))/cs2;
-                amrex::Real d1 = f(dlft, drgt);
+    dlft = q(i,j,k,QU) - q(i,j,k-1,QU);
+    drgt = q(i,j,k+1,QU) - q(i,j,k,QU);
+    amrex::Real d3 = limiter(dlft, drgt);
 
-                dlft = 0.5*(q(i,j,k,QPRES)-q(i,j,k-1,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW));
-                drgt = 0.5*(q(i,j,k+1,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) + 0.5*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW));
-                amrex::Real d2 = f(dlft, drgt);
+    dlft = q(i,j,k,QV) - q(i,j,k-1,QV);
+    drgt = q(i,j,k+1,QV) - q(i,j,k,QV);
+    amrex::Real d4 = limiter(dlft, drgt);
 
-                dlft = q(i,j,k,QU) - q(i,j,k-1,QU);
-                drgt = q(i,j,k+1,QU) - q(i,j,k,QU);
-                amrex::Real d3 = f(dlft, drgt);
-
-                dlft = q(i,j,k,QV) - q(i,j,k-1,QV);
-                drgt = q(i,j,k+1,QV) - q(i,j,k,QV);
-                amrex::Real d4 = f(dlft, drgt);
-
-                dq(i,j,k,0) = d0;
-                dq(i,j,k,1) = d1;
-                dq(i,j,k,2) = d2;
-                dq(i,j,k,3) = d3;
-                dq(i,j,k,4) = d4;
-            }
-        }
-    }
+    dq(i,j,k,0) = d0;
+    dq(i,j,k,1) = d1;
+    dq(i,j,k,2) = d2;
+    dq(i,j,k,3) = d3;
+    dq(i,j,k,4) = d4;
 }
 
 namespace {
@@ -373,122 +303,94 @@ riemann (const amrex::Real gamma, const amrex::Real smallp, const amrex::Real sm
 AMREX_GPU_DEVICE
 inline
 void
-cns_riemann_x (amrex::Box const& bx, amrex::FArrayBox& fluxfab, amrex::FArrayBox const& dqfab,
-               amrex::FArrayBox const& qfab)
+cns_riemann_x (int i, int j, int k,
+               amrex::Array4<amrex::Real>& fx,
+               amrex::Array4<amrex::Real> const& dq,
+               amrex::Array4<amrex::Real> const& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto fx = fluxfab.view(lo);
-    const auto dq = dqfab.view(lo);
-    const auto  q =  qfab.view(lo);
+    amrex::Real cspeed = q(i-1,j,k,QCS);
+    amrex::Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,0)+dq(i-1,j,k,2))/cspeed + dq(i-1,j,k,1));
+    rl = amrex::max(rl, Parm::smallr);
+    amrex::Real ul = q(i-1,j,k,QU) + 0.5 * ( (dq(i-1,j,k,2)-dq(i-1,j,k,0))/q(i-1,j,k,QRHO));
+    amrex::Real pl = q(i-1,j,k,QPRES) + 0.5 *  (dq(i-1,j,k,0)+dq(i-1,j,k,2))*cspeed;
+    pl = amrex::max(pl, Parm::smallp);
+    amrex::Real ut1l = q(i-1,j,k,QV) + 0.5 * dq(i-1,j,k,3);
+    amrex::Real ut2l = q(i-1,j,k,QW) + 0.5 * dq(i-1,j,k,4);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
-                amrex::Real cspeed = q(i-1,j,k,QCS);
-                amrex::Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,0)+dq(i-1,j,k,2))/cspeed + dq(i-1,j,k,1));
-                rl = amrex::max(rl, Parm::smallr);
-                amrex::Real ul = q(i-1,j,k,QU) + 0.5 * ( (dq(i-1,j,k,2)-dq(i-1,j,k,0))/q(i-1,j,k,QRHO));
-                amrex::Real pl = q(i-1,j,k,QPRES) + 0.5 *  (dq(i-1,j,k,0)+dq(i-1,j,k,2))*cspeed;
-                pl = amrex::max(pl, Parm::smallp);
-                amrex::Real ut1l = q(i-1,j,k,QV) + 0.5 * dq(i-1,j,k,3);
-                amrex::Real ut2l = q(i-1,j,k,QW) + 0.5 * dq(i-1,j,k,4);
-             
-                cspeed = q(i,j,k,QCS);
-                amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = amrex::max(rr, Parm::smallr);
-                amrex::Real ur = q(i,j,k,QU) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
-                amrex::Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = amrex::max(pr, Parm::smallp);
-                amrex::Real ut1r = q(i,j,k,QV) - 0.5 * dq(i,j,k,3);
-                amrex::Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
+    cspeed = q(i,j,k,QCS);
+    amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
+    rr = amrex::max(rr, Parm::smallr);
+    amrex::Real ur = q(i,j,k,QU) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
+    amrex::Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
+    pr = amrex::max(pr, Parm::smallp);
+    amrex::Real ut1r = q(i,j,k,QV) - 0.5 * dq(i,j,k,3);
+    amrex::Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
-                riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
-                        rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
-                        fx(i,j,k,URHO), fx(i,j,k,UMX), fx(i,j,k,UMY), fx(i,j,k,UMZ), fx(i,j,k,UEDEN));
-            }
-        }
-    }
+    riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
+            rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
+            fx(i,j,k,URHO), fx(i,j,k,UMX), fx(i,j,k,UMY), fx(i,j,k,UMZ), fx(i,j,k,UEDEN));
 }
 
 AMREX_GPU_DEVICE
 inline
 void
-cns_riemann_y (amrex::Box const& bx, amrex::FArrayBox& fluxfab, amrex::FArrayBox const& dqfab,
-               amrex::FArrayBox const& qfab)
+cns_riemann_y (int i, int j, int k,
+               amrex::Array4<amrex::Real>& fy,
+               amrex::Array4<amrex::Real> const& dq,
+               amrex::Array4<amrex::Real> const& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto fy = fluxfab.view(lo);
-    const auto dq = dqfab.view(lo);
-    const auto  q =  qfab.view(lo);
+    amrex::Real cspeed = q(i,j-1,k,QCS);
+    amrex::Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,0)+dq(i,j-1,k,2))/cspeed + dq(i,j-1,k,1));
+    rl = amrex::max(rl, Parm::smallr);
+    amrex::Real ul = q(i,j-1,k,QV) + 0.5 * ( (dq(i,j-1,k,2)-dq(i,j-1,k,0))/q(i,j-1,k,QRHO));
+    amrex::Real pl = q(i,j-1,k,QPRES) + 0.5 *  (dq(i,j-1,k,0)+dq(i,j-1,k,2))*cspeed;
+    pl = amrex::max(pl, Parm::smallp);
+    amrex::Real ut1l = q(i,j-1,k,QU) + 0.5 * dq(i,j-1,k,3);
+    amrex::Real ut2l = q(i,j-1,k,QW) + 0.5 * dq(i,j-1,k,4);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
-                amrex::Real cspeed = q(i,j-1,k,QCS);
-                amrex::Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,0)+dq(i,j-1,k,2))/cspeed + dq(i,j-1,k,1));
-                rl = amrex::max(rl, Parm::smallr);
-                amrex::Real ul = q(i,j-1,k,QV) + 0.5 * ( (dq(i,j-1,k,2)-dq(i,j-1,k,0))/q(i,j-1,k,QRHO));
-                amrex::Real pl = q(i,j-1,k,QPRES) + 0.5 *  (dq(i,j-1,k,0)+dq(i,j-1,k,2))*cspeed;
-                pl = amrex::max(pl, Parm::smallp);
-                amrex::Real ut1l = q(i,j-1,k,QU) + 0.5 * dq(i,j-1,k,3);
-                amrex::Real ut2l = q(i,j-1,k,QW) + 0.5 * dq(i,j-1,k,4);
+    cspeed = q(i,j,k,QCS);
+    amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
+    rr = amrex::max(rr, Parm::smallr);
+    amrex::Real ur = q(i,j,k,QV) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
+    amrex::Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
+    pr = amrex::max(pr, Parm::smallp);
+    amrex::Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
+    amrex::Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
 
-                cspeed = q(i,j,k,QCS);
-                amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = amrex::max(rr, Parm::smallr);
-                amrex::Real ur = q(i,j,k,QV) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
-                amrex::Real pr = q(i,j,k,QPRES) - 0.5 * (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = amrex::max(pr, Parm::smallp);
-                amrex::Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
-                amrex::Real ut2r = q(i,j,k,QW) - 0.5 * dq(i,j,k,4);
-
-                riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
-                        rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
-                        fy(i,j,k,URHO), fy(i,j,k,UMY), fy(i,j,k,UMX), fy(i,j,k,UMZ), fy(i,j,k,UEDEN));
-            }
-        }
-    }
+    riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
+            rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
+            fy(i,j,k,URHO), fy(i,j,k,UMY), fy(i,j,k,UMX), fy(i,j,k,UMZ), fy(i,j,k,UEDEN));
 }
 
-AMREX_GPU_DEVICE inline
-void cns_riemann_z (amrex::Box const& bx, amrex::FArrayBox& fluxfab, amrex::FArrayBox const& dqfab,
-                    amrex::FArrayBox const& qfab)
+AMREX_GPU_DEVICE
+inline
+void
+cns_riemann_z (int i, int j, int k,
+               amrex::Array4<amrex::Real>& fz,
+               amrex::Array4<amrex::Real> const& dq,
+               amrex::Array4<amrex::Real> const& q)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto fz = fluxfab.view(lo);
-    const auto dq = dqfab.view(lo);
-    const auto  q =  qfab.view(lo);
+    amrex::Real cspeed = q(i,j,k-1,QCS);
+    amrex::Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,0)+dq(i,j,k-1,2))/cspeed + dq(i,j,k-1,1));
+    rl = amrex::max(rl, Parm::smallr);
+    amrex::Real ul = q(i,j,k-1,QW) + 0.5 * ( (dq(i,j,k-1,2)-dq(i,j,k-1,0))/q(i,j,k-1,QRHO));
+    amrex::Real pl = q(i,j,k-1,QPRES) + 0.5 *  (dq(i,j,k-1,0)+dq(i,j,k-1,2))*cspeed;
+    pl = amrex::max(pl, Parm::smallp);
+    amrex::Real ut1l = q(i,j,k-1,QU) + 0.5 * dq(i,j,k-1,3);
+    amrex::Real ut2l = q(i,j,k-1,QV) + 0.5 * dq(i,j,k-1,4);
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
-                amrex::Real cspeed = q(i,j,k-1,QCS);
-                amrex::Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,0)+dq(i,j,k-1,2))/cspeed + dq(i,j,k-1,1));
-                rl = amrex::max(rl, Parm::smallr);
-                amrex::Real ul = q(i,j,k-1,QW) + 0.5 * ( (dq(i,j,k-1,2)-dq(i,j,k-1,0))/q(i,j,k-1,QRHO));
-                amrex::Real pl = q(i,j,k-1,QPRES) + 0.5 *  (dq(i,j,k-1,0)+dq(i,j,k-1,2))*cspeed;
-                pl = amrex::max(pl, Parm::smallp);
-                amrex::Real ut1l = q(i,j,k-1,QU) + 0.5 * dq(i,j,k-1,3);
-                amrex::Real ut2l = q(i,j,k-1,QV) + 0.5 * dq(i,j,k-1,4);
-                
-                cspeed = q(i,j,k,QCS);
-                amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
-                rr = amrex::max(rr, Parm::smallr);
-                amrex::Real ur = q(i,j,k,QW) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
-                amrex::Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
-                pr = amrex::max(pr, Parm::smallp);
-                amrex::Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
-                amrex::Real ut2r = q(i,j,k,QV) - 0.5 * dq(i,j,k,4);
-                
-                riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
-                        rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
-                        fz(i,j,k,URHO), fz(i,j,k,UMZ), fz(i,j,k,UMX), fz(i,j,k,UMY), fz(i,j,k,UEDEN));
-            }
-        }
-    }
+    cspeed = q(i,j,k,QCS);
+    amrex::Real rr = q(i,j,k,QRHO) - 0.5 * ( (dq(i,j,k,0)+dq(i,j,k,2))/cspeed + dq(i,j,k,1));
+    rr = amrex::max(rr, Parm::smallr);
+    amrex::Real ur = q(i,j,k,QW) - 0.5 * ( (dq(i,j,k,2)-dq(i,j,k,0))/q(i,j,k,QRHO));
+    amrex::Real pr = q(i,j,k,QPRES) - 0.5 *  (dq(i,j,k,0)+dq(i,j,k,2))*cspeed;
+    pr = amrex::max(pr, Parm::smallp);
+    amrex::Real ut1r = q(i,j,k,QU) - 0.5 * dq(i,j,k,3);
+    amrex::Real ut2r = q(i,j,k,QV) - 0.5 * dq(i,j,k,4);
+
+    riemann(Parm::eos_gamma, Parm::smallp, Parm::smallr,
+            rl, ul, pl, ut1l, ut2l, rr, ur, pr, ut1r, ut2r,
+            fz(i,j,k,URHO), fz(i,j,k,UMZ), fz(i,j,k,UMX), fz(i,j,k,UMY), fz(i,j,k,UEDEN));
 }
 
 #endif

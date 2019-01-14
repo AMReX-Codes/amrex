@@ -20,6 +20,7 @@ public:
     void operator= (AsyncFabImpl const&) = delete;
 
     FArrayBox* fabPtr ();
+    FArrayBox& hostFab ();
 
     static void Initialize ();
     static void Finalize ();

@@ -13,6 +13,7 @@
 
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_Array.H>
 #include <AMReX_Box.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
@@ -56,8 +57,8 @@ template <typename T>
 struct FabView
 {
     T* p;
-    long jstride;
-    long kstride;
+    int jstride;
+    int kstride;
     long nstride;
 #ifdef AMREX_DEBUG
     int iend, jend, kend, nend;
@@ -93,20 +94,20 @@ template <typename T>
 struct BaseFabData : public Gpu::Managed
 {
     AMREX_GPU_HOST_DEVICE
-    BaseFabData (Box const& a_domain, IntVect const& a_dlen,
-                 int a_nvar, long a_numpts, long a_truesize,
-                 T* a_dptr, bool a_ptr_owner, bool a_shared_memory)
-        : domain(a_domain), dlen(a_dlen),
-          nvar(a_nvar), numpts(a_numpts), truesize(a_truesize),
-          dptr(a_dptr), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
+    BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
+                 IntVect const& a_dlen, long a_numpts, long a_truesize,
+                 bool a_ptr_owner, bool a_shared_memory)
+        : dptr(a_dptr), domain(a_domain), nvar(a_nvar),
+          dlen(a_dlen), numpts(a_numpts), truesize(a_truesize),
+          ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
         {}
     BaseFabData () = default;
+    T*      dptr;     // The data pointer.
     Box     domain;   // My index space.
-    IntVect dlen;     // Length of domain in each direction.
     int     nvar;     // Number components.
+    IntVect dlen;     // Length of domain in each direction.
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
-    T*      dptr;     // The data pointer.
     bool    ptr_owner;// Owner of T*?
     bool    shared_memory;  // Is the memory allocated in shared memory?
     void setOwner (bool b) { ptr_owner = b; }
@@ -339,6 +340,17 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
+    Array4<T> array () const
+    {
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+        const auto len = amrex::length(this->domain);
+        return Array4<T>{this->dptr,
+                         len.x, len.x*len.y, len.x*len.y*len.z,
+                         amrex::lbound(this->domain)};
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
     FabView<T const> view (int n = 0) const
     {
         return view(this->domain.loVect3d(),n);
@@ -395,9 +407,10 @@ public:
     AMREX_INLINE
     FabView<T const> view (const GpuArray<int,3>& slo, int n = 0) const
     {
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto& len = this->domain.length3d();
-        long jstride = len[0];
-        long kstride = jstride*len[1];
+        int jstride = len[0];
+        int kstride = jstride*len[1];
         long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
         T const* p = this->dptr + ((slo[0]-dlo[0])
@@ -419,9 +432,10 @@ public:
     AMREX_INLINE
     FabView<T> view (const GpuArray<int,3>& slo, int n = 0)
     {
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto& len = this->domain.length3d();
-        long jstride = len[0];
-        long kstride = jstride*len[1];
+        int jstride = len[0];
+        int kstride = jstride*len[1];
         long nstride = kstride*len[2];
         const auto& dlo = this->domain.loVect3d();
         T* p = this->dptr + ((slo[0]-dlo[0])
@@ -443,10 +457,11 @@ public:
     AMREX_INLINE
     FabView<T const> view (const Dim3& slo, int n = 0) const
     {
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto len = amrex::length(this->domain);
         const auto dlo = amrex::lbound(this->domain);
-        long jstride = len.x;
-        long kstride = jstride*len.y;
+        int jstride = len.x;
+        int kstride = jstride*len.y;
         long nstride = kstride*len.z;
         T const* p = this->dptr + ((slo.x-dlo.x)
                                 +  (slo.y-dlo.y)*jstride
@@ -467,10 +482,11 @@ public:
     AMREX_INLINE
     FabView<T> view (const Dim3& slo, int n = 0)
     {
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
         const auto len = amrex::length(this->domain);
         const auto dlo = amrex::lbound(this->domain);
-        long jstride = len.x;
-        long kstride = jstride*len.y;
+        int jstride = len.x;
+        int kstride = jstride*len.y;
         long nstride = kstride*len.z;
         T* p = this->dptr + ((slo.x-dlo.x)
                           +  (slo.y-dlo.y)*jstride
@@ -1833,14 +1849,9 @@ BaseFab<T>::define ()
 
 template <class T>
 BaseFab<T>::BaseFab ()
-    : BaseFabData<T>{Box(),
-                     IntVect(0),
-                     0,
-                     0L,
-                     0L,
-                     nullptr,
-                     false,
-                     false}
+    : BaseFabData<T>{nullptr, Box(), 0,
+                     IntVect(0), 0L, 0L,
+                     false, false}
 {}
 
 template <class T>
@@ -1848,28 +1859,18 @@ BaseFab<T>::BaseFab (const Box& bx,
                      int        n,
 		     bool       alloc,
 		     bool       shared)
-    : BaseFabData<T>{bx,
-                     bx.size(),
-                     n,
-                     bx.numPts(),
-                     0L,
-                     nullptr,
-                     false,
-                     shared}
+    : BaseFabData<T>{nullptr, bx, n,
+                     bx.size(), bx.numPts(), 0L,
+                     false, shared}
 {
     if (!this->shared_memory && alloc) define();
 }
 
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
-    : BaseFabData<T>{rhs.domain,
-                     rhs.dlen,
-                     ncomp,
-                     rhs.numpts,
-                     ncomp*rhs.numpts,
-                     const_cast<T*>(rhs.dataPtr(scomp)),
-                     false,
-                     false}
+    : BaseFabData<T>{const_cast<T*>(rhs.dataPtr(scomp)), rhs.domain, ncomp,
+                     rhs.dlen, rhs.numpts, ncomp*rhs.numpts,
+                     false, false}
 {
     AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
     if (make_type == amrex::make_deep_copy)
@@ -1911,14 +1912,9 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
 
 template<class T>
 BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
-    : BaseFabData<T>{bx,
-                     bx.size(),
-                     ncomp,
-                     bx.numPts(),
-                     bx.numPts()*ncomp,
-                     p,
-                     false,
-                     false}
+    : BaseFabData<T>{p, bx, ncomp,
+                     bx.size(), bx.numPts(), bx.numPts()*ncomp,
+                     false, false}
 {
 }
 
@@ -1930,14 +1926,9 @@ BaseFab<T>::~BaseFab ()
 
 template <class T>
 BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
-    : BaseFabData<T>{rhs.domain,
-                     rhs.dlen,
-                     rhs.nvar,
-                     rhs.numpts,
-                     rhs.truesize,
-                     rhs.dptr,
-                     rhs.ptr_owner,
-                     rhs.shared_memory}
+    : BaseFabData<T>{rhs.dptr, rhs.domain, rhs.nvar,
+                     rhs.dlen, rhs.numpts, rhs.truesize,
+                     rhs.ptr_owner, rhs.shared_memory}
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;

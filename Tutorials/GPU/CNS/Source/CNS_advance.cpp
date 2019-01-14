@@ -78,71 +78,74 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox const* sfab = S.fabPtr(mfi);
-        FArrayBox * dsdtfab = dSdt.fabPtr(mfi);
-        AMREX_D_TERM(FArrayBox* fxfab = fluxes[0].fabPtr(mfi);,
-                     FArrayBox* fyfab = fluxes[1].fabPtr(mfi);,
-                     FArrayBox* fzfab = fluxes[2].fabPtr(mfi););
+
+        const Array4<Real> sfab = S.array(mfi);
+        Array4<Real> dsdtfab = dSdt.array(mfi);
+        AMREX_D_TERM(Array4<Real> fxfab = fluxes[0].array(mfi);,
+                     Array4<Real> fyfab = fluxes[1].array(mfi);,
+                     Array4<Real> fzfab = fluxes[2].array(mfi););
 
         const Box& bxg2 = amrex::grow(bx,2);
         Gpu::AsyncFab q(bxg2, nprim);
+        Array4<Real> qfab = q.array();
 
-        AMREX_LAUNCH_DEVICE_LAMBDA ( bxg2, tbx,
+        AMREX_FOR_3D ( bxg2, i, j, k,
         {
-            cns_ctoprim(tbx, *sfab, q.fab());
+            cns_ctoprim(i, j, k, sfab, qfab);
         });
 
         const Box& bxg1 = amrex::grow(bx,1);
         Gpu::AsyncFab slope(bxg1,neqns);
+        Array4<Real> slopefab = slope.array();
 
         // x-direction
         int cdir = 0;
         const Box& xslpbx = amrex::grow(bx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( xslpbx, tbx,
+        AMREX_FOR_3D ( xslpbx, i, j, k,
         {
-            cns_slope_x(tbx, slope.fab(), q.fab());
+            cns_slope_x(i, j, k, slopefab, qfab);
         });
         const Box& xflxbx = amrex::surroundingNodes(bx,cdir);
-        AMREX_LAUNCH_DEVICE_LAMBDA (xflxbx, tbx,
+        AMREX_FOR_3D ( xflxbx, i, j, k,
         {
-            cns_riemann_x(tbx, *fxfab, slope.fab(), q.fab());
-            fxfab->setVal(0.0, tbx, neqns, (fxfab->nComp()-neqns));
+            cns_riemann_x(i, j, k, fxfab, slopefab, qfab);
+            for (int n = neqns; n < ncons; ++n) fxfab(i,j,k,n) = 0.0;
         });
 
         // y-direction
         cdir = 1;
         const Box& yslpbx = amrex::grow(bx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( yslpbx, tbx,
+        AMREX_FOR_3D ( yslpbx, i, j, k,
         {
-            cns_slope_y(tbx, slope.fab(), q.fab());
+            cns_slope_y(i, j, k, slopefab, qfab);
         });
         const Box& yflxbx = amrex::surroundingNodes(bx,cdir);
-        AMREX_LAUNCH_DEVICE_LAMBDA (yflxbx, tbx,
+        AMREX_FOR_3D ( yflxbx, i, j, k,
         {
-            cns_riemann_y(tbx, *fyfab, slope.fab(), q.fab());
-            fyfab->setVal(0.0, tbx, neqns, (fyfab->nComp()-neqns));
+            cns_riemann_y(i, j, k, fyfab, slopefab, qfab);
+            for (int n = neqns; n < ncons; ++n) fyfab(i,j,k,n) = 0.0;
         });
 
         // z-direction
         cdir = 2;
         const Box& zslpbx = amrex::grow(bx, cdir, 1);
-        AMREX_LAUNCH_DEVICE_LAMBDA ( zslpbx, tbx,
+        AMREX_FOR_3D ( zslpbx, i, j, k,
         {
-            cns_slope_z(tbx, slope.fab(), q.fab());
+            cns_slope_z(i, j, k, slopefab, qfab);
         });
         const Box& zflxbx = amrex::surroundingNodes(bx,cdir);
-        AMREX_LAUNCH_DEVICE_LAMBDA (zflxbx, tbx,
+        AMREX_FOR_3D ( zflxbx, i, j, k,
         {
-            cns_riemann_z(tbx, *fzfab, slope.fab(), q.fab());
-            fzfab->setVal(0.0, tbx, neqns, (fzfab->nComp()-neqns));
+            cns_riemann_z(i, j, k, fzfab, slopefab, qfab);
+            for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = 0.0;
         });
 
         q.clear(); // don't need them anymore
         slope.clear();
 
-        AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_FOR_4D ( bx, ncons, i, j, k, n,
         {
-            cns_flux_to_dudt(tbx, *dsdtfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dxinv);
+            cns_flux_to_dudt(i, j, k, n, dsdtfab, AMREX_D_DECL(fxfab,fyfab,fzfab), dxinv);
         });
 
         if (gravity != 0.0) {
@@ -150,10 +153,10 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             const int irho = Density;
             const int imz = Zmom;
             const int irhoE = Eden;
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            AMREX_FOR_3D ( bx, i, j, k,
             {
-                dsdtfab->saxpy(g, *sfab, tbx, tbx, irho, imz, 1);
-                dsdtfab->saxpy(g, *dsdtfab, tbx, tbx, imz, irhoE, 1);
+                dsdtfab(i,j,k,imz) += g * sfab(i,j,k,irho);
+                dsdtfab(i,j,k,irhoE) += g * sfab(i,j,k,imz);
             });
         }
     }
