@@ -7,6 +7,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
+#include <cmath>
 
 namespace amrex {
 
