@@ -154,7 +154,7 @@ MultiFab::Copy (MultiFab&       dst,
         {
             auto const srcFab = src.array(mfi);
             auto       dstFab = dst.array(mfi);
-            AMREX_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
             });
@@ -346,7 +346,7 @@ MultiFab::Saxpy (MultiFab&       dst,
         if (bx.ok()) {
             auto const sfab = src.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
             });
@@ -419,7 +419,7 @@ MultiFab::LinComb (MultiFab&       dst,
             auto const xfab =   x.array(mfi);
             auto const yfab =   y.array(mfi);
             auto       dfab = dst.array(mfi);
-            AMREX_FOR_4D ( bx, numcomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
             {
                 dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
             });

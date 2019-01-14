@@ -105,6 +105,17 @@ public:
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 dim3 () const {
+#if (AMREX_SPACEDIM == 1)
+        return Dim3{vect[0],0,0};
+#elif (AMREX_SPACEDIM == 2)
+        return Dim3{vect[0],vect[1],0};
+#else
+        return Dim3{vect[0],vect[1],vect[2]};
+#endif
+    }
+
   ///
   /**
      Sum of all components of this IntVect.
