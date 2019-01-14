@@ -84,3 +84,11 @@ At the beginning of the program, the runtime extracts the metadata needed for es
 Every time the AMR grid hierarchy changes (i.e. when a few or all AMR levels regrid), the runtime re-extracts the metadata to correct the task dependency graphs.
 Once the metadata extraction completes, the runtime system invokes the computation on AMR levels (e.g., timeStep, initTimeStep, and postTimeStep).
 
+Known Limitations
+=================
+
+To realize enough task parallelism, the runtime system constructs the task dependency graph for the whole coarse time step and executes it asynchronously to the completion of the step.
+As a result, any request to regrid an AMR level must be forseen before the execution of a coarse time step.
+We may relax this constraint in the future.
+However, such a support would come at a significant performance cost due to the required checkpointing and rollback activities.
+
