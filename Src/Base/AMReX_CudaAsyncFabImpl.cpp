@@ -176,6 +176,8 @@ AsyncFabImpl::~AsyncFabImpl () {}
 
 FArrayBox* AsyncFabImpl::fabPtr () { return m_cpu_fab_alias; }
 
+FArrayBox& AsyncFabImpl::hostFab () { return *m_cpu_fab_alias; }
+
 }}
 
 #endif
