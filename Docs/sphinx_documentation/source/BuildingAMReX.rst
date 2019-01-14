@@ -69,6 +69,9 @@ alternatively, in tcsh one can set
 
     setenv AMREX_HOME /path/to/amrex
 
+Note: when setting ``AMREX_HOME`` in the ``GNUmakefile``, be aware that ``~`` does
+not expand, so ``AMREX_HOME=~/amrex/`` will yield an error. 
+
 One must set the ``COMP`` variable to choose a compiler. Currently the list of
 supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
 also set the ``DIM`` variable to either 1, 2, or 3, depending on the dimensionality
