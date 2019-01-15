@@ -17,6 +17,27 @@ namespace amrex {
 
     using RealArray = Array<Real, AMREX_SPACEDIM>;
     using IntArray  = Array<int , AMREX_SPACEDIM>;
+
+    struct Dim3 { int x; int y; int z; };
+
+    template <typename T>
+    struct Array4
+    {
+        T* p;
+        int jstride;
+        int kstride;
+        long nstride;
+        Dim3 lo;
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T const& operator() (int i, int j, int k, int n=0) const {
+            return *(p + ((i-lo.x)+(j-lo.y)*jstride+(k-lo.z)*kstride+n*nstride));
+        }
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T& operator() (int i, int j, int k, int n=0) {
+            return *(p + ((i-lo.x)+(j-lo.y)*jstride+(k-lo.z)*kstride+n*nstride));
+        }
+    };
+
 }
 
 // If on GPUs, use a simple array wrapper that 

@@ -5,7 +5,7 @@
 #include <AMReX_Print.H>
 
 #include "myfunc.H"
-#include "myfunc_F.H"
+#include "mykernel.H"
 
 using namespace amrex;
 
@@ -86,29 +86,23 @@ void main_main ()
     MultiFab phi_old(ba, dm, Ncomp, Nghost);
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
+
     // =======================================
     // Initialize phi_new by calling a Fortran routine.
     // MFIter = MultiFab Iterator
     for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-        const GeometryData& geomdata = geom.data();
-        FArrayBox* phiNew = phi_new.fabPtr(mfi);
-
-        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
+        Array4<Real> phiNew = phi_new.array(mfi);
+        AMREX_FOR_3D ( vbx, i, j, k,
         {
-            init_phi(BL_TO_FORTRAN_BOX(tbx),
-                     BL_TO_FORTRAN_ANYD(*phiNew),
-                     geomdata.CellSize(), geomdata.ProbLo(), geomdata.ProbHi());
+            init_phi(i,j,k,phiNew,dx,prob_lo);
         });
-
     }
-    Gpu::Device::synchronize(); 
 
     // ========================================
-
-    // compute the time step
-    const Real* dx = geom.CellSize();
 
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
@@ -124,7 +118,7 @@ void main_main ()
     }
 
     // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
+    Array<MultiFab, AMREX_SPACEDIM> flux;
     for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
     {
         // flux(dir) has one component, zero ghost cells, and is nodal in direction dir

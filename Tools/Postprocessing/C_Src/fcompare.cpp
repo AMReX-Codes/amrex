@@ -35,6 +35,7 @@ int main ( int argc, char* argv[] )
     // Use "false" as third arguments to prevent AMReX
     // to check for an input file as first command line argument
     amrex::Initialize ( argc, argv, false );
+    {
 
     // This runs in serial for now
     if ( ParallelDescriptor::NProcs() > 1 )
@@ -342,6 +343,7 @@ int main ( int argc, char* argv[] )
 	exit (EXIT_FAILURE);
     }
 
+    }
     Finalize ();
 }
 

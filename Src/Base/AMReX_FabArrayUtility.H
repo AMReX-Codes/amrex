@@ -3,6 +3,7 @@
 
 #include <AMReX_FabArray.H>
 #include <AMReX_LayoutData.H>
+#include <AMReX_Print.H>
 #include <limits>
 
 namespace amrex {
@@ -665,6 +666,34 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 
     return r;
+}
+
+template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
+           const IntVect& ng = IntVect::TheZeroVector())
+{
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = amrex::grow(mfi.validbox(), ng);
+        if (bx.contains(cell)) {
+	    if (comp >= 0) {
+                amrex::AllPrint().SetPrecision(17) << " At cell " << cell << " in Box " << bx
+                                                   << ": " << mf[mfi](cell, comp) << std::endl;
+	    } else {
+                std::ostringstream ss;
+                ss.precision(17);
+                const int ncomp = mf.nComp();
+                for (int i = 0; i < ncomp-1; ++i)
+		{
+                    ss << mf[mfi](cell,i) << ", ";
+		}
+                ss << mf[mfi](cell,ncomp-1);
+                amrex::AllPrint() << " At cell " << cell << " in Box " << bx
+                                  << ": " << ss.str() << std::endl;
+	    }
+        }
+    }
 }
 
 }

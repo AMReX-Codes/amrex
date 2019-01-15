@@ -78,7 +78,7 @@ void test_em_pic(const TestParams& parms)
     amrex::Print() << "Initializing particles... ";
 
     int num_species;
-    Vector<EMParticleContainer*> particles(2);
+    Vector<std::unique_ptr<EMParticleContainer> > particles(2);
 
     if (parms.problem_type == UniformPlasma)
     {
@@ -98,8 +98,8 @@ void test_em_pic(const TestParams& parms)
                                                       1, PhysConst::q_e, PhysConst::m_p);
         H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, parms.problem_type);
 
-        particles[0] = electrons;
-        particles[1] = H_ions;
+        particles[0].reset(electrons);
+        particles[1].reset(H_ions);
     }
     else if (parms.problem_type == Langmuir)
     {
@@ -112,7 +112,7 @@ void test_em_pic(const TestParams& parms)
                                                          0, -PhysConst::q_e, PhysConst::m_e);
         electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, parms.problem_type);
 
-        particles[0] = electrons;
+        particles[0].reset(electrons);
     }
 
     amrex::Print() << "Done. " << std::endl;
@@ -228,6 +228,8 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
+    {
+
     amrex::InitRandom(451);
 
     ParmParse pp;
@@ -255,6 +257,8 @@ int main(int argc, char* argv[])
     }
 
     test_em_pic(parms);
+
+    }
 
     amrex::Finalize();
 }
