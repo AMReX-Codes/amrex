@@ -1345,11 +1345,13 @@ FabArray<FAB>::setBndry (value_type val,
                         ncells += b.numPts();
                     }
 
-                    FAB* fab = this->fabPtr(fai);
-                    AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
+                    auto fab = this->array(fai);
+                    AMREX_FOR_1D ( ncells, icell,
                     {
-                        const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
-                        fab->setVal(val, Box(iv,iv,fab->box().ixType()), DestComp{strt_comp}, NumComps{ncomp});
+                        const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
+                        for (int n = strt_comp; n < strt_comp+ncomp; ++n) {
+                            fab(cell.x,cell.y,cell.z,n) = val;
+                        }
                     });
                 }
             }
@@ -1408,11 +1410,13 @@ FabArray<FAB>::setDomainBndry (value_type val,
                     ncells += b.numPts();
                 }
 
-                FAB* fab = this->fabPtr(fai);
-                AMREX_LAUNCH_DEVICE_LAMBDA ( ncells, icell,
+                auto fab = this->array(fai);
+                AMREX_FOR_1D ( ncells, icell,
                 {
-                    const IntVect iv = amrex::getCell(pboxes, nboxes, icell);
-                    fab->setVal(val, Box(iv,iv,fab->box().ixType()), DestComp{strt_comp}, NumComps{ncomp});
+                    const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
+                    for (int n = strt_comp; n < strt_comp+ncomp; ++n) {
+                        fab(cell.x,cell.y,cell.z,n) = val;
+                    }
                 });
             }
         }
@@ -1507,11 +1511,10 @@ FabArray<FAB>::setVal (value_type val,
     for (MFIter fai(*this,TilingIfNotGPU()); fai.isValid(); ++fai)
     {
 	const Box& bx = fai.growntilebox(nghost);
-        FAB* fab = this->fabPtr(fai);
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx,tbx,
+        auto fab = this->array(fai);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            fab->setVal(val, tbx, DestComp{comp}, NumComps{ncomp});
+            fab(i,j,k,n+comp) = val;
         });
     }
 }
@@ -1550,11 +1553,10 @@ FabArray<FAB>::setVal (value_type val,
         Box b = fai.growntilebox(nghost) & region;
 
         if (b.ok()) {
-            FAB* fab = this->fabPtr(fai);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(b, tbx,
+            auto fab = this->array(fai);
+            AMREX_HOST_DEVICE_FOR_4D ( b, ncomp, i, j, k, n,
             {
-                fab->setVal(val, tbx, DestComp{comp}, NumComps{ncomp});
+                fab(i,j,k,n+comp) = val;
             });
         }
     }
