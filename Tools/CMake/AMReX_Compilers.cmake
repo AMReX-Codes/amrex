@@ -27,6 +27,14 @@ function ( set_amrex_compiler_flags )
 	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
       message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
    endif ()
+
+   #
+   # Exit if Cray compiler is in use -- Support for Cray is currently broken
+   # 
+   if ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray") OR
+         ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
+      message(FATAL_ERROR "Support for Cray compiler is currently broken")
+   endif()
   
    #
    # Set Fortran Flags only if not provided by user
@@ -113,31 +121,6 @@ function ( set_amrex_compiler_flags )
 	 >>>>
 	 )	  
    endif ()
-
-
-   # # C++ REQUIRED flags
-   # # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
-   # # add c++11 support manually in order to have transitive property
-   # if (NOT ENABLE_3D_NODAL_MLMG)
-   #    target_compile_options ( amrex
-   #       PUBLIC
-   #       $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
-   #       $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-   #       $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-   #       $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-   #       $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-   #       $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
-   # else ()
-   #    target_compile_options ( amrex
-   #       PUBLIC
-   #       $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
-   #       $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-   #       $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-   #       $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-   #       $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-   #       $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
-   # endif ()
-
    
    #
    # Floating-point exceptions flags only if enabled
