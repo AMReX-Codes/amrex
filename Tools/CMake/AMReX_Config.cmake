@@ -60,71 +60,52 @@ function (configure_amrex)
       PUBLIC "$<BUILD_INTERFACE:${AMREX_Fortran_MODULE_DIR}>" )
    
    #
-   # Setup MPI (CMake 3.11 allows to import MPI as an imported TARGET)
+   # Setup MPI (CMake >= 3.11 allows to import MPI as an imported TARGET)
+   # Check https://cliutils.gitlab.io/modern-cmake/chapters/packages/MPI.html
    #  
    if (ENABLE_MPI)
-      find_package (MPI REQUIRED)
+      find_package(MPI REQUIRED)
+      target_link_libraries(amrex PUBLIC MPI::MPI_CXX MPI::MPI_Fortran)   
+   endif ()
+   
+   #
+   # Setup OpenMP (CMake >= 3.9 allows to import MPI as an imported TARGET)
+   #
+   if (ENABLE_OMP)
+      find_package(OpenMP REQUIRED)
 
-      # Includes
-      target_include_directories ( amrex PUBLIC
-	 ${MPI_Fortran_INCLUDE_PATH} ${MPI_C_INCLUDE_PATH}
-	 ${MPI_CXX_INCLUDE_PATH} )
+      #
+      # This is to allow building on macOS -- This is not needed with CMake 3.12+
+      # Check https://cliutils.gitlab.io/modern-cmake/chapters/packages/OpenMP.html
+      #
+      if(${CMAKE_MINIMUM_REQUIRED_VERSION} VERSION_GREATER_EQUAL "3.12.0") 
+         message(AUTHOR_WARNING "Remove CMAke legacy support for OpenMP")
+      else()
+         if(NOT TARGET OpenMP::OpenMP_CXX)
+            find_package(Threads REQUIRED)
+            add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
+            set_property(TARGET OpenMP::OpenMP_CXX
+               PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+            # Only works if the same flag is passed to the linker; use CMake 3.9+ otherwise (Intel, AppleClang)
+            set_property(TARGET OpenMP::OpenMP_CXX
+               PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
+         endif()       
+      endif()
 
-      # Genex $<COMPILE_LANGUAGE:...> is broken for export. A fix
-      # is present in CMake 3.12
-      # target_include_directories ( amrex PUBLIC
-      # 	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_INCLUDE_PATH}>
-      # 	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_INCLUDE_PATH}>
-      # 	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_INCLUDE_PATH}>
-      # 	 )
-
-      
-      # Additional compiler flags
-      strip (MPI_C_COMPILE_FLAGS)
-      strip (MPI_CXX_COMPILE_FLAGS)
-      strip (MPI_Fortran_COMPILE_FLAGS)
-      target_compile_options ( amrex PUBLIC
-	 $<$<COMPILE_LANGUAGE:Fortran>:${MPI_Fortran_COMPILE_FLAGS}>
-	 $<$<COMPILE_LANGUAGE:C>:${MPI_C_COMPILE_FLAGS}>
-	 $<$<COMPILE_LANGUAGE:CXX>:${MPI_CXX_COMPILE_FLAGS}>
-	 )
-      
-      # Libraries to link to + linker flags
-      # CMake doc suggests not to use absolute paths for portability reasons
-      # (and we ignore it for now)
-      strip ( MPI_CXX_LINK_FLAGS )
-      target_link_libraries ( amrex PUBLIC ${MPI_CXX_LINK_FLAGS}
-	 ${MPI_Fortran_LIBRARIES} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+      # I don't think there's a specific Fortran library to link for pthreads
+      target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
       
    endif ()
 
    #
-   # Setup OpenMP
+   # Set compile features -- We just need to set C++ standard
    #
-   if (ENABLE_OMP)
-      find_package (OpenMP REQUIRED)
-
-      # Additional compiler flags
-      strip (OpenMP_C_FLAGS)
-      strip (OpenMP_CXX_FLAGS)
-      strip (OpenMP_Fortran_FLAGS)
-      target_compile_options ( amrex PUBLIC
-	 $<$<COMPILE_LANGUAGE:Fortran>:${OpenMP_Fortran_FLAGS}>
-	 $<$<COMPILE_LANGUAGE:C>:${OpenMP_C_FLAGS}>
-	 $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>
-	 )
-
-      # The openMP flags are required also during linking phase
-      # The NON-clean way of achiving this is by adding a flag to the linker
-      # as follows. Notice that in more recent version of CMake, openMP becomes
-      # an imported target, thus provinding a clean way to do this
-      strip (OpenMP_CXX_FLAGS)
-      target_link_libraries ( amrex PUBLIC ${OpenMP_CXX_FLAGS} )
+   if (ENABLE_3D_NODAL_MLMG)
+      target_compile_features(amrex PUBLIC cxx_std_14)
    else ()
-      # Cray compiler has OMP turned on by default
-      target_compile_options ( amrex PUBLIC $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )
-   endif()
-      
+      target_compile_features(amrex PUBLIC cxx_std_11)
+   endif ()
+   
    #
    # Add third party libraries
    #
