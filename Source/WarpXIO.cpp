@@ -782,13 +782,24 @@ WarpX::WritePlotFile () const
 	    mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
 	    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
-	    PackPlotDataPtrs(srcmf, current_fp[lev]);
 	    int dcomp = 0;
-	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+            
+            // j
+            if (do_nodal)
+            {
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *current_fp[lev][0], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *current_fp[lev][2], 0, 1);
+            }
+            else
+            {
+                PackPlotDataPtrs(srcmf, current_fp[lev]);
+                amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *current_fp[lev][1], 0, 1);
 #endif
+            }
             if (lev == 0)
             {
                 varnames.push_back("jx");
@@ -797,12 +808,22 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-	    PackPlotDataPtrs(srcmf, Efield_aux[lev]);
-	    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+            // E
+            if (do_nodal)
+            {
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Efield_aux[lev][0], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Efield_aux[lev][2], 0, 1);
+            }
+            else
+            {
+                PackPlotDataPtrs(srcmf, Efield_aux[lev]);
+                amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
 #endif
+            }
             if (lev == 0)
             {
                 varnames.push_back("Ex");
@@ -811,12 +832,22 @@ WarpX::WritePlotFile () const
             }
 	    dcomp += 3;
 
-	    PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-	    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+            // B
+            if (do_nodal)
+            {
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Bfield_aux[lev][0], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Bfield_aux[lev][1], 0, 1);
+                amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Bfield_aux[lev][2], 0, 1);
+            }
+            else
+            {
+                PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
+                amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-	    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-            MultiFab::Copy(*mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
+                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                MultiFab::Copy(*mf[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
+            }
             if (lev == 0)
             {
                 varnames.push_back("Bx");
@@ -897,6 +928,7 @@ WarpX::WritePlotFile () const
 
             if (plot_divb)
             {
+                if (do_nodal) amrex::Abort("TODO: do_nodal && plot_divb");
                 ComputeDivB(*mf[lev], dcomp,
                             {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()},
                             WarpX::CellSize(lev));
@@ -909,6 +941,7 @@ WarpX::WritePlotFile () const
 
             if (plot_dive)
             {
+                if (do_nodal) amrex::Abort("TODO: do_nodal && plot_dive");
                 const BoxArray& ba = amrex::convert(boxArray(lev),IntVect::TheUnitVector());
                 MultiFab dive(ba,DistributionMap(lev),1,0);
                 ComputeDivE(dive, 0,
@@ -944,12 +977,21 @@ WarpX::WritePlotFile () const
             
             if (plot_finepatch)
             {
-                PackPlotDataPtrs(srcmf, Efield_fp[lev]);
-                amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
+                if (do_nodal)
+                {
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Efield_fp[lev][0], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Efield_fp[lev][2], 0, 1);
+                }
+                else
+                {
+                    PackPlotDataPtrs(srcmf, Efield_fp[lev]);
+                    amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
+                    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
 #endif
+                }
                 if (lev == 0)
                 {
                     varnames.push_back("Ex_fp");
@@ -958,12 +1000,21 @@ WarpX::WritePlotFile () const
                 }
                 dcomp += 3;
 
-                PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
-                amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
+                if (do_nodal)
+                {
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp  , *Bfield_fp[lev][0], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+1, *Bfield_fp[lev][1], 0, 1);
+                    amrex::average_node_to_cellcenter(*mf[lev], dcomp+2, *Bfield_fp[lev][2], 0, 1);
+                }
+                else
+                {
+                    PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
+                    amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
-                MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
-                MultiFab::Copy(*mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
+                    MultiFab::Copy(*mf[lev], *mf[lev], dcomp+1, dcomp+2, 1, ngrow);
+                    MultiFab::Copy(*mf[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
+                }
                 if (lev == 0)
                 {
                     varnames.push_back("Bx_fp");
@@ -982,6 +1033,7 @@ WarpX::WritePlotFile () const
                 }
                 else
                 {
+                    if (do_nodal) amrex::Abort("TODO: do_nodal && plot_crsepatch");
                     std::array<std::unique_ptr<MultiFab>, 3> E = getInterpolatedE(lev);
                     PackPlotDataPtrs(srcmf, E);
                     amrex::average_edge_to_cellcenter(*mf[lev], dcomp, srcmf);
@@ -1005,6 +1057,7 @@ WarpX::WritePlotFile () const
                 }
                 else
                 {
+                    if (do_nodal) amrex::Abort("TODO: do_nodal && plot_crsepatch");
                     std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
                     PackPlotDataPtrs(srcmf, B);
                     amrex::average_face_to_cellcenter(*mf[lev], dcomp, srcmf);
@@ -1091,46 +1144,46 @@ WarpX::WritePlotFile () const
 
             // Plot fine patch
             if (plot_finepatch) {
-            if (plot_raw_fields_guards) {
-                VisMF::Write(*Efield_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_fp"));
-                VisMF::Write(*Efield_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_fp"));
-                VisMF::Write(*Efield_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_fp"));
-                VisMF::Write(*Bfield_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_fp"));
-                VisMF::Write(*Bfield_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_fp"));
-                VisMF::Write(*Bfield_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_fp"));
-                VisMF::Write(*current_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx_fp"));
-                VisMF::Write(*current_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy_fp"));
-                VisMF::Write(*current_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz_fp"));
-            } else {
-                const DistributionMapping& dm = DistributionMap(lev);
-                MultiFab Ex(Efield_fp[lev][0]->boxArray(), dm, 1, 0);
-                MultiFab Ey(Efield_fp[lev][1]->boxArray(), dm, 1, 0);
-                MultiFab Ez(Efield_fp[lev][2]->boxArray(), dm, 1, 0);
-                MultiFab Bx(Bfield_fp[lev][0]->boxArray(), dm, 1, 0);
-                MultiFab By(Bfield_fp[lev][1]->boxArray(), dm, 1, 0);
-                MultiFab Bz(Bfield_fp[lev][2]->boxArray(), dm, 1, 0);
-                MultiFab jx(current_fp[lev][0]->boxArray(), dm, 1, 0);
-                MultiFab jy(current_fp[lev][1]->boxArray(), dm, 1, 0);
-                MultiFab jz(current_fp[lev][2]->boxArray(), dm, 1, 0);
-                MultiFab::Copy(Ex, *Efield_fp[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(Ey, *Efield_fp[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(Ez, *Efield_fp[lev][2], 0, 0, 1, 0);
-                MultiFab::Copy(Bx, *Bfield_fp[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(By, *Bfield_fp[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(Bz, *Bfield_fp[lev][2], 0, 0, 1, 0);
-                MultiFab::Copy(jx, *current_fp[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(jy, *current_fp[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(jz, *current_fp[lev][2], 0, 0, 1, 0);
-                VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_fp"));
-                VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_fp"));
-                VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_fp"));
-                VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_fp"));
-                VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_fp"));
-                VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_fp"));
-                VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx_fp"));
-                VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy_fp"));
-                VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz_fp"));
-            }
+                if (plot_raw_fields_guards) {
+                    VisMF::Write(*Efield_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_fp"));
+                    VisMF::Write(*Efield_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_fp"));
+                    VisMF::Write(*Efield_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_fp"));
+                    VisMF::Write(*Bfield_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_fp"));
+                    VisMF::Write(*Bfield_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_fp"));
+                    VisMF::Write(*Bfield_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_fp"));
+                    VisMF::Write(*current_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx_fp"));
+                    VisMF::Write(*current_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy_fp"));
+                    VisMF::Write(*current_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz_fp"));
+                } else {
+                    const DistributionMapping& dm = DistributionMap(lev);
+                    MultiFab Ex(Efield_fp[lev][0]->boxArray(), dm, 1, 0);
+                    MultiFab Ey(Efield_fp[lev][1]->boxArray(), dm, 1, 0);
+                    MultiFab Ez(Efield_fp[lev][2]->boxArray(), dm, 1, 0);
+                    MultiFab Bx(Bfield_fp[lev][0]->boxArray(), dm, 1, 0);
+                    MultiFab By(Bfield_fp[lev][1]->boxArray(), dm, 1, 0);
+                    MultiFab Bz(Bfield_fp[lev][2]->boxArray(), dm, 1, 0);
+                    MultiFab jx(current_fp[lev][0]->boxArray(), dm, 1, 0);
+                    MultiFab jy(current_fp[lev][1]->boxArray(), dm, 1, 0);
+                    MultiFab jz(current_fp[lev][2]->boxArray(), dm, 1, 0);
+                    MultiFab::Copy(Ex, *Efield_fp[lev][0], 0, 0, 1, 0);
+                    MultiFab::Copy(Ey, *Efield_fp[lev][1], 0, 0, 1, 0);
+                    MultiFab::Copy(Ez, *Efield_fp[lev][2], 0, 0, 1, 0);
+                    MultiFab::Copy(Bx, *Bfield_fp[lev][0], 0, 0, 1, 0);
+                    MultiFab::Copy(By, *Bfield_fp[lev][1], 0, 0, 1, 0);
+                    MultiFab::Copy(Bz, *Bfield_fp[lev][2], 0, 0, 1, 0);
+                    MultiFab::Copy(jx, *current_fp[lev][0], 0, 0, 1, 0);
+                    MultiFab::Copy(jy, *current_fp[lev][1], 0, 0, 1, 0);
+                    MultiFab::Copy(jz, *current_fp[lev][2], 0, 0, 1, 0);
+                    VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_fp"));
+                    VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_fp"));
+                    VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_fp"));
+                    VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_fp"));
+                    VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_fp"));
+                    VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_fp"));
+                    VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx_fp"));
+                    VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy_fp"));
+                    VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz_fp"));
+                }
             }
 
             // Plot coarse patch

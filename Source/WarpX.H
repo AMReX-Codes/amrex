@@ -114,6 +114,9 @@ public:
     static int n_field_gather_buffer;
     static int n_current_deposition_buffer;
 
+    // do nodal
+    static int do_nodal;
+
     const amrex::MultiFab& getcurrent (int lev, int direction) {return *current_fp[lev][direction];}
     const amrex::MultiFab& getEfield  (int lev, int direction) {return *Efield_aux[lev][direction];}
     const amrex::MultiFab& getBfield  (int lev, int direction) {return *Bfield_aux[lev][direction];}
@@ -389,6 +392,10 @@ private:
         return gather_buffer_masks[lev].get();
     }
 
+    void AllocLevelMFs (int lev, const amrex::BoxArray& ba, const amrex::DistributionMapping& dm,
+                        const amrex::IntVect& ngE, const amrex::IntVect& ngJ,
+                        const amrex::IntVect& ngRho, int ngF);
+
     amrex::Vector<int> istep;      // which step?
     amrex::Vector<int> nsubsteps;  // how many substeps on each level?
 
@@ -442,7 +449,6 @@ private:
     
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_fp_owner_masks;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_cp_owner_masks;
-
 
     // div E cleaning
     int do_dive_cleaning = 0;

@@ -94,6 +94,8 @@ IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 int WarpX::n_field_gather_buffer = 0;
 int WarpX::n_current_deposition_buffer = -1;
 
+int WarpX::do_nodal = 0;
+
 WarpX* WarpX::m_instance = nullptr;
 
 
@@ -410,6 +412,19 @@ WarpX::ReadParameters ()
         pp.query("load_balance_knapsack_factor", load_balance_knapsack_factor);
 
         pp.query("do_dynamic_scheduling", do_dynamic_scheduling);
+
+        pp.query("do_nodal", do_nodal);
+        if (do_nodal) {
+            Bx_nodal_flag = IntVect::TheNodeVector();
+            By_nodal_flag = IntVect::TheNodeVector();
+            Bz_nodal_flag = IntVect::TheNodeVector();
+            Ex_nodal_flag = IntVect::TheNodeVector();
+            Ey_nodal_flag = IntVect::TheNodeVector();
+            Ez_nodal_flag = IntVect::TheNodeVector();
+            jx_nodal_flag = IntVect::TheNodeVector();
+            jy_nodal_flag = IntVect::TheNodeVector();
+            jz_nodal_flag = IntVect::TheNodeVector();
+        }
     }
 
     {
@@ -430,22 +445,22 @@ WarpX::ReadParameters ()
 	pp.query("particle_pusher", particle_pusher_algo);
 	std::string s_solver = "";
 	pp.query("maxwell_fdtd_solver", s_solver);
-    std::transform(s_solver.begin(),
-                   s_solver.end(),
-                   s_solver.begin(),
-                   ::tolower);
+        std::transform(s_solver.begin(),
+                       s_solver.end(),
+                       s_solver.begin(),
+                       ::tolower);
 	// if maxwell_fdtd_solver is specified, set the value
 	// of maxwell_fdtd_solver_id accordingly.
-      // Otherwise keep the default value maxwell_fdtd_solver_id=0
-      if (s_solver != "") {
-        if (s_solver == "yee") {
-            maxwell_fdtd_solver_id = 0;
-        } else if (s_solver == "ckc") {
-            maxwell_fdtd_solver_id = 1;
-        } else {
-            amrex::Abort("Unknown FDTD Solver type " + s_solver);
+        // Otherwise keep the default value maxwell_fdtd_solver_id=0
+        if (s_solver != "") {
+            if (s_solver == "yee") {
+                maxwell_fdtd_solver_id = 0;
+            } else if (s_solver == "ckc") {
+                maxwell_fdtd_solver_id = 1;
+            } else {
+                amrex::Abort("Unknown FDTD Solver type " + s_solver);
+            }
         }
-      }
     }
 
 #ifdef WARPX_USE_PSATD
@@ -619,6 +634,13 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     // CKC solver requires one additional guard cell
     if (maxwell_fdtd_solver_id == 1) ngF = std::max( ngF, 1 );
 
+    AllocLevelMFs(lev, ba, dm, ngE, ngJ, ngRho, ngF);
+}
+
+void
+WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm,
+                      const IntVect& ngE, const IntVect& ngJ, const IntVect& ngRho, int ngF)
+{
     //
     // The fine patch
     //
@@ -638,7 +660,7 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     current_fp_owner_masks[lev][0] = std::move(current_fp[lev][0]->OwnerMask(period));
     current_fp_owner_masks[lev][1] = std::move(current_fp[lev][1]->OwnerMask(period));
     current_fp_owner_masks[lev][2] = std::move(current_fp[lev][2]->OwnerMask(period));
-    
+
     if (do_dive_cleaning || plot_rho)
     {
         rho_fp[lev].reset(new MultiFab(amrex::convert(ba,IntVect::TheUnitVector()),dm,2,ngRho));    
@@ -770,6 +792,8 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
     if (load_balance_int > 0) {
         costs[lev].reset(new MultiFab(ba, dm, 1, 0));
     }
+
+
 }
 
 std::array<Real,3>
