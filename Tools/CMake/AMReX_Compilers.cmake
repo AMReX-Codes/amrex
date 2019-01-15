@@ -56,10 +56,10 @@ function ( set_amrex_compiler_flags )
          >>>>
          # PGI Debug
          $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -O0 -Mbounds -Mchkptr>>>>
+         -Mchkptr>>>>
          # PGI Release
          $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -gopt -fast>>>>
+         >>>>
          )            
    endif ()
 
@@ -79,7 +79,7 @@ function ( set_amrex_compiler_flags )
       -N 255 -h list=a>>
       # PGI 
       $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -extend>> )
+      -Mextend>> )
 
    #
    # Set C++ Flags only if not provided by user
@@ -107,36 +107,36 @@ function ( set_amrex_compiler_flags )
 	 >>>>
 	 # PGI Debug
 	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O0 -Mbounds>>>>
+	 -Mbounds>>>>
 	 # PGI Release
 	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -gopt -fast>>>>
+	 >>>>
 	 )	  
    endif ()
 
 
-   # C++ REQUIRED flags
-   # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
-   # add c++11 support manually in order to have transitive property
-   if (NOT ENABLE_3D_NODAL_MLMG)
-      target_compile_options ( amrex
-         PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
-         $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
-   else ()
-      target_compile_options ( amrex
-         PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
-         $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
-   endif ()
+   # # C++ REQUIRED flags
+   # # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
+   # # add c++11 support manually in order to have transitive property
+   # if (NOT ENABLE_3D_NODAL_MLMG)
+   #    target_compile_options ( amrex
+   #       PUBLIC
+   #       $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
+   #       $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+   #       $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+   #       $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+   #       $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+   #       $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+   # else ()
+   #    target_compile_options ( amrex
+   #       PUBLIC
+   #       $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
+   #       $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+   #       $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+   #       $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+   #       $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+   #       $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
+   # endif ()
 
    
    #
