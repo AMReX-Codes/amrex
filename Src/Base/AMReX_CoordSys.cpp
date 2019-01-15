@@ -243,30 +243,28 @@ CoordSys::GetVolume (FArrayBox& vol,
 }
 
 void
-CoordSys::SetVolume (FArrayBox& vol,
+CoordSys::SetVolume (FArrayBox& a_volfab,
                      const Box& region) const 
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
 
-    FArrayBox* volfab = &vol;
+    auto vol = a_volfab.array();
     GpuArray<Real,AMREX_SPACEDIM> a_dx{AMREX_D_DECL(dx[0], dx[1], dx[2])};
-
-    Gpu::LaunchSafeGuard lg(Gpu::isDevicePtr(volfab));
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
     const Real dv = a_dx[0]*a_dx[1]*a_dx[2];
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
     {
-        volfab->setVal(dv, tbx);
+        vol(i,j,k) = dv;
     });
 #else
     GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
     int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
-        amrex_setvol(tbx, *volfab, a_offset, a_dx, coord);
+        amrex_setvol(tbx, vol, a_offset, a_dx, coord);
     });
 #endif
 }
@@ -290,22 +288,20 @@ CoordSys::GetDLogA (const Box& region,
 }
 
 void
-CoordSys::SetDLogA (FArrayBox& dloga,
+CoordSys::SetDLogA (FArrayBox& a_dlogafab,
                     const Box& region,
                     int        dir) const
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(region.cellCentered());
 
-    FArrayBox* dlogafab = &dloga;
-
-    Gpu::LaunchSafeGuard lg(Gpu::isDevicePtr(dlogafab));
+    auto dloga = a_dlogafab.array();
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
     {
-        dlogafab->setVal(0.0, tbx);
+        dloga(i,j,k) = 0.;
     });
 #else
     GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
@@ -313,7 +309,7 @@ CoordSys::SetDLogA (FArrayBox& dloga,
     int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
-        amrex_setdloga(tbx, *dlogafab, a_offset, a_dx, dir, coord);
+        amrex_setdloga(tbx, dloga, a_offset, a_dx, dir, coord);
     });
 #endif
 }
@@ -339,22 +335,20 @@ CoordSys::GetFaceArea (FArrayBox& area,
 }
 
 void
-CoordSys::SetFaceArea (FArrayBox& area, 
+CoordSys::SetFaceArea (FArrayBox& a_areafab, 
                        const Box& region,
                        int        dir) const
 {
     AMREX_ASSERT(ok);
 
-    FArrayBox* areafab = &area;
-
-    Gpu::LaunchSafeGuard lg(Gpu::isDevicePtr(areafab));
+    auto area = a_areafab.array();
 
 #if (AMREX_SPACEDIM == 3)
     AMREX_ASSERT(IsCartesian());
     const Real da = (dir == 0) ? dx[1]*dx[2] : ((dir == 1) ? dx[0]*dx[2] : dx[0]*dx[1]);
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
+    AMREX_HOST_DEVICE_FOR_3D ( region, i, j, k,
     {
-        areafab->setVal(da, tbx);
+        area(i,j,k) = da;
     });
 #else
     GpuArray<Real,AMREX_SPACEDIM> a_offset{AMREX_D_DECL(offset[0],offset[1],offset[2])};
@@ -362,7 +356,7 @@ CoordSys::SetFaceArea (FArrayBox& area,
     int coord = (int) c_sys;
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( region, tbx,
     {
-        amrex_setarea(tbx, *areafab, a_offset, a_dx, dir, coord);
+        amrex_setarea(tbx, area, a_offset, a_dx, dir, coord);
     });
 #endif
 }
