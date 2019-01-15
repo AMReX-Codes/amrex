@@ -15,14 +15,14 @@ amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto state = statefab.view(lo);
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    const auto state = statefab.array();
     amrex::Real dt = std::numeric_limits<amrex::Real>::max();
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 amrex::Real rho = state(i,j,k,URHO);
                 amrex::Real mx  = state(i,j,k,UMX);
                 amrex::Real my  = state(i,j,k,UMY);
