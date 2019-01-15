@@ -150,14 +150,13 @@ MultiFab::Copy (MultiFab&       dst,
     for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(nghost);
-        FArrayBox const* srcFab = src.fabPtr(mfi);
-        FArrayBox      * dstFab = dst.fabPtr(mfi);
-
         if (bx.ok())
         {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
             {
-                dstFab->copy(*srcFab, tbx, srccomp, tbx, dstcomp, numcomp);
+                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
             });
         }
     }
@@ -345,12 +344,11 @@ MultiFab::Saxpy (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 
         if (bx.ok()) {
-            FArrayBox const* sfab = src.fabPtr(mfi);
-            FArrayBox      * dfab = dst.fabPtr(mfi);
-
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            auto const sfab = src.array(mfi);
+            auto       dfab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
             {
-                dfab->saxpy(a, *sfab, tbx, tbx, srccomp, dstcomp, numcomp);
+                dfab(i,j,k,dstcomp+n) += a * sfab(i,j,k,srccomp+n);
             });
         }
     }
@@ -418,12 +416,12 @@ MultiFab::LinComb (MultiFab&       dst,
         const Box& bx = mfi.growntilebox(nghost);
 	
         if (bx.ok()) {
-            FArrayBox const* xfab =   x.fabPtr(mfi);
-            FArrayBox const* yfab =   y.fabPtr(mfi);
-            FArrayBox      * dfab = dst.fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA( bx, tbx,
+            auto const xfab =   x.array(mfi);
+            auto const yfab =   y.array(mfi);
+            auto       dfab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
             {
-                dfab->linComb(*xfab,tbx,xcomp,*yfab,tbx,ycomp,a,b,tbx,dstcomp,numcomp);
+                dfab(i,j,k,dstcomp+n) = a*xfab(i,j,k,xcomp+n) + b*yfab(i,j,k,ycomp+n);
             });
         }
     }
