@@ -91,6 +91,16 @@ struct NumComps {
 };
 
 template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Array4<T>
+makeArray4 (T* p, Box const& bx)
+{
+    AMREX_ASSERT(bx.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+    const auto len = amrex::length(bx);
+    return Array4<T>{p, len.x, len.x*len.y, len.x*len.y*len.z, amrex::lbound(bx)};
+}
+
+template <typename T>
 struct BaseFabData : public Gpu::Managed
 {
     AMREX_GPU_HOST_DEVICE
@@ -342,11 +352,7 @@ public:
     AMREX_INLINE
     Array4<T> array () const
     {
-        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-        const auto len = amrex::length(this->domain);
-        return Array4<T>{this->dptr,
-                         len.x, len.x*len.y, len.x*len.y*len.z,
-                         amrex::lbound(this->domain)};
+        return makeArray4(this->dptr, this->domain);
     }
 
     AMREX_GPU_HOST_DEVICE

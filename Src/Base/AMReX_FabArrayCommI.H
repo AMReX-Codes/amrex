@@ -702,19 +702,19 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         {
             const Box& bx = fai.tilebox();
 
+            // avoid self copy or plus
 	    if (this != &src) {
-                const FAB* sfab = src.fabPtr(fai);
-                      FAB* dfab = this->fabPtr(fai);
-		// avoid self copy or plus
+                auto const sfab = src.array(fai);
+                auto       dfab = this->array(fai);
 		if (op == FabArrayBase::COPY) {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
-                        dfab->copy(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
+                        dfab(i,j,k,dcomp+n) = sfab(i,j,k,scomp+n);
                     });
 		} else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
-                        dfab->plus(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
+                        dfab(i,j,k,dcomp+n) += sfab(i,j,k,scomp+n);
                     });
                 }
 	    }
@@ -740,7 +740,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 const CopyComTag& tag = (*thecpc.m_LocTags)[i];
                 if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({src.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 #ifdef _OPENMP
@@ -749,15 +749,16 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = loc_copy_tags[mfi];
-                FAB* dfab = this->fabPtr(mfi);
+                auto dfab = this->array(mfi);
                 if (op == FabArrayBase::COPY)
                 {
                     for (auto const & tag : tags)
                     {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                        auto const sfab = tag.sfab->array();
+                        Dim3 offset = tag.offset.dim3();
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
                         {
-                            const Box sbx = dbx + tag.offset;
-                            dfab->copy(*tag.sfab, sbx, scomp, dbx, dcomp, ncomp);
+                            dfab(i,j,k,dcomp+n) = sfab(i+offset.x,j+offset.y,k+offset.z,scomp+n);
                         });
                     }
                 }
@@ -765,10 +766,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                 {
                     for (auto const & tag : tags)
                     {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                        auto const sfab = tag.sfab->array();
+                        Dim3 offset = tag.offset.dim3();
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
                         {
-                            const Box sbx = dbx + tag.offset;
-                            dfab->plus(*tag.sfab, sbx, dbx, scomp, dcomp, ncomp);
+                            dfab(i,j,k,dcomp+n) += sfab(i+offset.x,j+offset.y,k+offset.z,scomp+n);
                         });
                     }
                 }
@@ -983,12 +985,11 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     for (auto const& tag : cctc)
                     {
                         const Box& bx = tag.sbox;
-                        const FAB* sfab = src.fabPtr(tag.srcIndex);
-
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                        auto const sfab = src.array(tag.srcIndex);
+                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
+                        AMREX_HOST_DEVICE_FOR_4D ( bx, NC, i, j, k, n,
                         {
-                            char* p = dptr + sizeof(value_type)*NC*bx.index(tbx.smallEnd());
-                            sfab->copyToMem(tbx, SC, NC, p);
+                            pfab(i,j,k,n) = sfab(i,j,k,SC+n);
                         });
 
                         dptr += (bx.numPts() * NC * sizeof(value_type));
@@ -1093,20 +1094,19 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                 // avoid self copy or plus
 		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                    const FAB* sfab = src.fabPtr(tag.srcIndex);
-                          FAB* dfab = this->fabPtr(tag.dstIndex);
+                    auto const sfab = src.array(tag.srcIndex);
+                    auto       dfab = this->array(tag.dstIndex);
+                    Dim3 offset = (tag.dbox.smallEnd() - tag.sbox.smallEnd()).dim3();
 
 		    if (op == FabArrayBase::COPY) {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, i, j, k, n,
                         {
-                            Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->copy(*sfab, tbx, SC, dbx, DC, NC);
+                            dfab(i+offset.x,j+offset.y,k+offset.z,DC+n) = sfab(i,j,k,SC+n);
                         });
 		    } else {
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.sbox, tbx,
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, i, j, k, n,
                         {
-                            Box dbx = tbx + (tag.dbox.smallEnd() - tag.sbox.smallEnd());
-                            dfab->plus(*sfab, tbx, dbx, SC, DC, NC);
+                            dfab(i+offset.x,j+offset.y,k+offset.z,DC+n) += sfab(i,j,k,SC+n);
                         });
 		    }
 		}
@@ -1128,7 +1128,7 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     const CopyComTag& tag = (*thecpc.m_LocTags)[j];
                     if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
                         copy_tags[tag.dstIndex].push_back
-                            ({src.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                            ({src.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                     }
                 }
 
@@ -1136,22 +1136,24 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                    FAB* dfab = this->fabPtr(mfi);
+                    auto dfab = this->array(mfi);
                     const auto& fab_copy_tags = copy_tags[mfi];
                     if (op == FabArrayBase::COPY) {
                         for (auto const& fab_tag : fab_copy_tags) {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(fab_tag.dbox, dbx,
+                            Dim3 offset = fab_tag.offset.dim3();
+                            auto const sfab = fab_tag.sfab->array();
+                            AMREX_HOST_DEVICE_FOR_4D ( fab_tag.dbox, NC, i, j, k, n,
                             {
-                                const Box sbx = dbx + fab_tag.offset;
-                                dfab->copy(*fab_tag.sfab, sbx, SC, dbx, DC, NC);
+                                dfab(i,j,k,DC+n) = sfab(i+offset.x,j+offset.y,k+offset.z,SC+n);
                             });
                         }
                     } else {
                         for (auto const& fab_tag : fab_copy_tags) {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(fab_tag.dbox, dbx,
+                            Dim3 offset = fab_tag.offset.dim3();
+                            auto const sfab = fab_tag.sfab->array();
+                            AMREX_HOST_DEVICE_FOR_4D ( fab_tag.dbox, NC, i, j, k, n,
                             {
-                                const Box sbx = dbx + fab_tag.offset;
-                                dfab->plus(*fab_tag.sfab, sbx, dbx, SC, DC, NC);
+                                dfab(i,j,k,DC+n) += sfab(i+offset.x,j+offset.y,k+offset.z,SC+n);
                             });
                         }
                     }
@@ -1243,25 +1245,23 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi) {
-                    FAB* dfab = this->fabPtr(mfi);
+                    auto dfab = this->array(mfi);
                     const auto& void_copy_tags = recv_copy_tags[mfi];
                     if (op == FabArrayBase::COPY)
                     {
                         for (auto const& void_tag : void_copy_tags) {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(void_tag.dbox, tbx,
+                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox);
+                            AMREX_HOST_DEVICE_FOR_4D ( void_tag.dbox, NC, i, j, k, n,
                             {
-                                const char* p = void_tag.p + sizeof(value_type)*NC
-                                    * void_tag.dbox.index(tbx.smallEnd());
-                                dfab->copyFromMem(tbx,DC,NC,p);
+                                dfab(i,j,k,DC+n) = pfab(i,j,k,n);
                             });
                         }
                     } else {
                         for (auto const& void_tag : void_copy_tags) {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(void_tag.dbox, tbx,
+                            auto pfab = amrex::makeArray4((value_type*)(void_tag.p), void_tag.dbox);
+                            AMREX_HOST_DEVICE_FOR_4D ( void_tag.dbox, NC, i, j, k, n,
                             {
-                                const char* p = void_tag.p + sizeof(value_type)*NC
-                                    * void_tag.dbox.index(tbx.smallEnd());
-                                dfab->addFromMem(tbx,DC,NC,p);
+                                dfab(i,j,k,DC+n) += pfab(i,j,k,n);
                             });
                         }
                     }
