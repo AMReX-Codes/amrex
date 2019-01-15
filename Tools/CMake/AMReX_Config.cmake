@@ -45,8 +45,7 @@ function (configure_amrex)
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
-   
-   
+      
    # 
    # Location of Fortran modules
    # 
@@ -94,16 +93,40 @@ function (configure_amrex)
 
       # I don't think there's a specific Fortran library to link for pthreads
       target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-      
+
+   else ()
+      # Cray compiler has OMP turned on by default
+      target_compile_options( amrex PUBLIC
+         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
 
    #
    # Set compile features -- We just need to set C++ standard
    #
-   if (ENABLE_3D_NODAL_MLMG)
-      target_compile_features(amrex PUBLIC cxx_std_14)
+   set(SUPPORTED_COMPILERS GNU Intel PGI)
+   
+   if ("${CMAKE_CXX_COMPILER_ID}" IN_LIST SUPPORTED_COMPILERS)
+      if (ENABLE_3D_NODAL_MLMG)
+         target_compile_features(amrex PUBLIC cxx_std_14)
+      else ()
+         target_compile_features(amrex PUBLIC cxx_std_11)
+      endif ()
    else ()
-      target_compile_features(amrex PUBLIC cxx_std_11)
+      # This branch is for compiler not yet supported by CMake compiler features
+      # Remove this branch as more compilers are supported
+      if (NOT ENABLE_3D_NODAL_MLMG)
+         target_compile_options ( amrex
+            PUBLIC
+            $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
+            $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
+            $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+      else ()
+         target_compile_options ( amrex
+            PUBLIC
+            $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
+            $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
+            $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
+      endif ()
    endif ()
    
    #
