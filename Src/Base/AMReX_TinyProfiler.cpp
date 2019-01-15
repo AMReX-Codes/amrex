@@ -64,7 +64,7 @@ TinyProfiler::start ()
 #ifdef _OPENMP
 #pragma omp master
 #endif
-    if (stats.empty())
+    if (stats.empty() && !regionstack.empty())
     {
 	double t = amrex::second();
 

@@ -1528,6 +1528,19 @@ a tile. (Note that when tiling is disabled, :cpp:`tilebox` returns the same
 non-tiling version, whereas in the tiling version the kernel function is called
 8 times.
 
+It is important to use the correct :cpp:`Box` when implementing tiling, especially
+if the box is used to define a work region inside of the loop. For example: 
+
+.. highlight:: c++
+
+    // MFIter loop with tiling on.
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox();     // Gets box of entire, untiled region.
+        calcOverBox(bx);             // ERROR! Works on entire box, not tiled box.
+                                     // Other iterations will redo many of the same cells.  
+    }
+
 The tile size can be explicitly set when defining :cpp:`MFIter`.
 
 .. highlight:: c++
@@ -1538,7 +1551,7 @@ The tile size can be explicitly set when defining :cpp:`MFIter`.
       for (MFIter mfi(mf,IntVect(1024000,16,32)); mfi.isValid(); ++mfi) {...}
 
 An :cpp:`IntVect` is used to specify the tile size for every dimension.  A tile
-size larger than the grid size simply means tiling is disable in that
+size larger than the grid size simply means tiling is disabled in that
 direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
 no tiling in 2D. This is used when tile size is not explicitly set but the
 tiling flag is on. One can change the default size using :cpp:`ParmParse`
@@ -1568,6 +1581,45 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
+
+Dynamic tiling, which runs one box per OpenMP thread, is also available. 
+This is useful when the underlying work cannot benefit from thread
+parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
+object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
+parallel region:
+
+.. highlight:: c++
+
+::
+
+  // Dynamic tiling, one box per OpenMP thread.
+  // No further tiling details,
+  //   so each thread works on a single tilebox. 
+  #ifdef _OPENMP 
+  #pragma omp parallel
+  #endif
+      for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+      {  
+          const Box& bx = mfi.validbox();
+          ...
+      }
+
+Dynamic tiling also allows explicit definition of a tile size:
+
+.. highlight:: c++
+
+::
+
+  // Dynamic tiling, one box per OpenMP thread.
+  // No tiling in x-direction. Tile size is 16 for y and 32 for z.
+  #ifdef _OPENMP 
+  #pragma omp parallel
+  #endif
+      for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
+      {  
+          const Box& bx = mfi.tilebox();
+          ...
+      }
 
 Usually :cpp:`MFIter` is used for accessing multiple MultiFabs like the second
 example, in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via

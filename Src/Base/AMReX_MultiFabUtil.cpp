@@ -117,7 +117,7 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
     {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
@@ -537,32 +537,9 @@ namespace amrex
     }
 
 
-    void print_state(const MultiFab& mf, const IntVect& cell, const int n)
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n, const IntVect& ng)
     {
-
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  if (mfi.validbox().contains(cell)) {
-	    if (n >= 0) {
-	      amrex::AllPrint().SetPrecision(17) << mf[mfi](cell, n) << std::endl;
-	    } else {
-	      std::ostringstream ss;
-	      ss.precision(17);
-	      const int ncomp = mf.nComp();
-	      for (int i = 0; i < ncomp-1; ++i)
-		{
-		  ss << mf[mfi](cell,i) << ", ";
-		}
-	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << ss.str() << std::endl;
-	    }
-	  }
-	}
-
+        printCell(mf, cell, n, ng);
     }
 
     void writeFabs (const MultiFab& mf, const std::string& name)

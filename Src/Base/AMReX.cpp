@@ -572,11 +572,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
+
+    BL_TINY_PROFILE_INITIALIZE();
 }
 
 void
 amrex::Finalize (bool finalize_parallel)
 {
+    BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
 #ifdef BL_LAZY

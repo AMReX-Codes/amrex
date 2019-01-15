@@ -124,6 +124,12 @@ AsyncFabImpl::fabPtr ()
     return m_gpu_fab.get();
 }
 
+FArrayBox&
+AsyncFabImpl::hostFab ()
+{
+    return m_cpu_fab;
+}
+
 void
 AsyncFabImpl::copy_htod ()
 {
@@ -169,6 +175,8 @@ AsyncFabImpl::AsyncFabImpl (FArrayBox& a_fab, Box const& bx, int ncomp)
 AsyncFabImpl::~AsyncFabImpl () {}
 
 FArrayBox* AsyncFabImpl::fabPtr () { return m_cpu_fab_alias; }
+
+FArrayBox& AsyncFabImpl::hostFab () { return *m_cpu_fab_alias; }
 
 }}
 
