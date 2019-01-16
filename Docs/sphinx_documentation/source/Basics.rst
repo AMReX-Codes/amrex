@@ -137,6 +137,7 @@ a full listing of the available functions.
 
      // Remove the last added subcommunicator.
      // This would make "subCommA" the new local communicator.
+     // Note: The user still needs to free "subCommB". 
      ParallelContext::pop();
 
 .. _sec:basics:print:
