@@ -113,6 +113,15 @@ if (NOT BLITZ_INSTALL_DIR)
       message(FATAL_ERROR "Fatal error when installing BLITZ ")
    endif()
 
+else()
+
+   # add_library(blitz IMPORTED INTERFACE)
+   # target_include_directories(blitz PRIVATE ${BLITZ_INSTALL_DIR}/include )
+   # # set_property(TARGET blitz
+   # #    PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${BLITZ_INSTALL_DIR}/include/blitz")
+   # set_property(TARGET blitz 
+   #    PROPERTY INTERFACE_LINK_LIBRARIES "${BLITZ_INSTALL_DIR}/lib/libblitz.a")
+   
 endif()
 
 
@@ -153,6 +162,31 @@ if (NOT ALGOIM_INSTALL_DIR)
    endif()
 
 endif ()
+
+
+#
+# Interface for Algoim
+# 
+add_library(algoim IMPORTED INTERFACE)
+set_target_properties( algoim
+   PROPERTIES
+   INTERFACE_INCLUDE_DIRECTORIES "${ALGOIM_INSTALL_DIR}/src" 
+   INTERFACE_COMPILE_DEFINITIONS USE_ALGOIM )
+
+#
+# Interface for Blitz
+#
+add_library(blitz IMPORTED INTERFACE)
+set_target_properties( blitz
+   PROPERTIES
+   INTERFACE_INCLUDE_DIRECTORIES "${BLITZ_INSTALL_DIR}/include"
+   INTERFACE_LINK_LIBRARIES "${BLITZ_INSTALL_DIR}/lib/libblitz.a"
+   )
+
+# message(STATUS "Third party libraries location:")
+# print_option(BLITZ_INSTALL_DIR)
+# print_option(ALGOIM_INSTALL_DIR)
+
 
    set(  BLITZ_INSTALL_DIR "" CACHE PATH
       "Path to Blitz installation directory (leave empty for superbuild)")

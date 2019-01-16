@@ -95,9 +95,6 @@ function ( set_amrex_defines )
 	 add_amrex_define( AMREX_SINGLE_PRECISION_PARTICLES )
       endif ()
    endif ()
-
-   # External libraries for nodal MLMG
-   add_amrex_define( USE_ALGOIM IF ENABLE_3D_NODAL_MLMG)
    
    #  Assertions
    add_amrex_define( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
