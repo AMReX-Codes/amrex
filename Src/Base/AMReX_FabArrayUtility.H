@@ -702,7 +702,7 @@ template <class FAB,
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
-    Add(dst,src,srccomp,dstcomp,nghost,IntVect(nghost));
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB,
