@@ -190,8 +190,22 @@ void LSCoreBase::InitData (const Vector<Real> & m_phierr) {
 void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) {
 
-    LSCoreBase::MakeNewLevelFromCoarse( lev, level_set, level_set_valid, ba, dm,
-                                        geom, bcs, refRatio(lev - 1 ));
+    BL_PROFILE("LSCoreBase::MakeNewLevelFromCoarse()");
+    BL_ASSERT(lev > 0);
+
+    LSCoreBase::MakeNewLevelFromCoarse(level_set[lev], level_set[lev - 1], ba, dm,
+                                       geom[lev], geom[lev - 1], bcs, refRatio(lev - 1 ));
+
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+
+    const int ncomp  = level_set[lev].nComp();
+    const int nghost = level_set[lev].nGrow();
+
+    BoxArray ba_nd = amrex::convert(ba, IntVect::TheNodeVector());
+    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
+    level_set_valid[lev].setVal(1);
+
 }
 
 
@@ -360,21 +374,19 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
 
 
 // Fill an entire multifab by interpolating from the coarser level.
-void LSCoreBase::FillCoarsePatch (int lev, MultiFab & mf_out, const Vector<MultiFab> & levels_in,
-                                  const Vector<Geometry> & geom, const Vector<BCRec> & bcs,
-                                  const IntVect & ref, int icomp, int ncomp) {
+void LSCoreBase::FillCoarsePatch (MultiFab & mf_fne, const MultiFab & mf_crse,
+                                  const Geometry & geom_fne, const Geometry & geom_crse,
+                                  const Vector<BCRec> & bcs, const IntVect & ref, int icomp, int ncomp) {
 
-    BL_PROFILE("LSCoreBase::FillCoarsePatch()");
-
-    BL_ASSERT(lev > 0);
+    BL_PROFILE("static LSCoreBase::FillCoarsePatch()");
 
     BndryFuncArray bfunc(amrex_eb_phifill);
-    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1], bcs, bfunc);
-    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ], bcs, bfunc);
+    PhysBCFunct<BndryFuncArray> cphysbc(geom_crse, bcs, bfunc);
+    PhysBCFunct<BndryFuncArray> fphysbc(geom_fne,  bcs, bfunc);
 
     Interpolater * mapper = & node_bilinear_interp;
 
-    amrex::InterpFromCoarseLevel(mf_out, 0, levels_in[lev - 1], 0, icomp, ncomp, geom[lev-1], geom[lev],
+    amrex::InterpFromCoarseLevel(mf_fne, 0, mf_crse, 0, icomp, ncomp, geom_crse, geom_fne,
                                  cphysbc, 0, fphysbc, 0, ref, mapper, bcs, 0);
 }
 
@@ -382,25 +394,20 @@ void LSCoreBase::FillCoarsePatch (int lev, MultiFab & mf_out, const Vector<Multi
 
 // Make a new level using provided BoxArray and DistributionMapping and fill
 // with interpolated coarse level data.
-void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Vector<MultiFab> & ls_levs, Vector<iMultiFab> & valid_levs,
-                                          const BoxArray & ba, const DistributionMapping & dm,
-                                          const Vector<Geometry> & geom, const Vector<BCRec> & bcs,
-                                          const IntVect & ref){
+void LSCoreBase::MakeNewLevelFromCoarse (MultiFab & ls_fine, const MultiFab & ls_crse,
+                                         const BoxArray & ba, const DistributionMapping & dm,
+                                         const Geometry & geom_fine, const Geometry & geom_crse,
+                                         const Vector<BCRec> & bcs, const IntVect & ref){
 
-    BL_PROFILE("LSCoreBase::MakeNewLevelFromCoarse()");
+    BL_PROFILE("static LSCoreBase::MakeNewLevelFromCoarse()");
 
-    const int ncomp  = ls_levs[lev - 1].nComp();
-    const int nghost = ls_levs[lev - 1].nGrow();
+    const int ncomp  = ls_crse.nComp();
+    const int nghost = ls_crse.nGrow();
 
     BoxArray ba_nd = amrex::convert(ba, IntVect::TheNodeVector());
-    ls_levs[lev].define(ba_nd, dm, ncomp, nghost);
+    ls_fine.define(ba_nd, dm, ncomp, nghost);
 
-    LSCoreBase::FillCoarsePatch(lev, ls_levs[lev], ls_levs, geom, bcs, ref, 0, ncomp);
-
-    // At this point, we consider _everywhere_ as valid. This is maintained for
-    // legacy reasons. TODO: There might be a better way of doing things.
-    valid_levs[lev].define(ba_nd, dm, ncomp, nghost);
-    valid_levs[lev].setVal(1);
+    LSCoreBase::FillCoarsePatch(ls_fine, ls_crse, geom_fine, geom_crse, bcs, ref, 0, ncomp);
 }
 
 
@@ -545,7 +552,11 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 // into play when a new level of refinement appears
 void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
 
-    LSCoreBase::FillCoarsePatch(lev, mf, level_set, geom, bcs, refRatio(lev - 1), icomp, ncomp);
+    BL_PROFILE("LSCoreBase::FillCoarsePatch()");
+    BL_ASSERT(lev > 0);
+
+    LSCoreBase::FillCoarsePatch(mf, level_set[lev - 1], geom[lev], geom[lev - 1],
+                                bcs, refRatio(lev - 1), icomp, ncomp);
 }
 
 
