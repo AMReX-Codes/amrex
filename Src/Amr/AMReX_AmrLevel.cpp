@@ -1533,16 +1533,16 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
+            const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
 	    
-	    Vector<BCRec> bcr(ncomp);
+            Vector<BCRec> bcr(ncomp);
 	    
-	    amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
-	    
+            amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+
             FArrayBox const* crsefab = crseMF.fabPtr(mfi);
             FArrayBox* finefab = mf.fabPtr(mfi);
 	    mapper->interp(*crsefab,
