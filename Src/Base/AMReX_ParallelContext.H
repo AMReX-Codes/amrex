@@ -89,10 +89,10 @@ inline void global_to_local_rank (int* local, const int* global, int n)
     { frames.back().global_to_local_rank(local, global, n); }
 
 inline void push (MPI_Comm c) { frames.emplace_back(c); }
-inline void push (MPI_Comm c, int id, int io_rank) { frames.emplace_back(c, id, io_rank); }
-inline void set_last_frame_ofs (const std::string & filename) {
-    frames.back().set_ofs_name(filename);
-}
+
+inline void set_last_frame_ofs (const std::string & filename) 
+    { frames.back().set_ofs_name(filename); }
+
 // Note that it's the user's responsibility to free the MPI_Comm
 inline void pop () { frames.pop_back(); }
 
