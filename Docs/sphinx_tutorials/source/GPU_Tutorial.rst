@@ -16,29 +16,37 @@ tutorials to help applications convert to GPUs.
 
 This is a step-by-step guide to preparing, compiling and running your first
 AMReX GPU program.  This guide will use ``Tutorials/GPU/Launch``,
-and instructions will focus on ORNL's Summit system:
+and instructions will focus on ORNL's systems:
 
-1. Before compiling, the ``pgi`` and ``cuda`` software must be available.  On
-   ORNL systems, this is done with ``module load pgi cuda``.  However, Cuda
-   versions 9.2.x are not compatible with AMReX.  So, it is important to check
-   whether your system is using 9.2.x as its default. To check, type 
-   ``module list``.  If Cuda is the wrong version, use ``module avail cuda`` 
-   to find a compatible version and swap using 
-   ``module swap cuda [good module name]``.
+1. Before compiling, the ``pgi`` and ``cuda`` software must be available. 
+   Note, Cuda versions 9.2.x are not compatible with AMReX, so, it is
+   identify whether your system is using 9.2.x.  On systems that use
+   modules, type ``module avail cuda`` to find a compatible version and
+   load it using ``module load [good module name]``.
+
+   On ORNL systems, the correct modules can be loaded directly by typing:
+
+.. highlight:: console
+
+::
+
+   module load pgi cuda/9.1.85       ! For Summit
+   module load pgi cuda/9.0.69       ! For Summitdev
 
 2. Go to ``Tutorials/GPU/Launch`` to compile the executable.  Compile with
-   ``make USE_CUDA=TRUE COMP=pgi USE_MPI=TRUE USE_OMP=FALSE``. This should
-   result in an executable: ``main3d.pgi.MPI.CUDA.ex``.  
+   ``make USE_CUDA=TRUE COMP=pgi USE_MPI=TRUE USE_OMP=FALSE``, or edit the
+   ``GNUmakefile`` to match this configuration and run ``make``. This
+   should result in an executable: ``main3d.pgi.MPI.CUDA.ex``.  
 
 3. On Summit systems, this executable can be submitted by using one of the run
    scripts found in ``Tutorials/GPU``.  ``run.script`` can be used to run on
    Summitdev, and ``run.summit`` can be used for Summit.  To change the number
    of ranks and GPUs used in the simulation, change the number of resource sets,
-   ``n`` in the ``jsrun`` line.  Set the inputs line to an empty string for this
-   case. 
+   ``n`` in the ``jsrun`` line.  For the first ``Launch`` tutorial, use ``n=1``
+   and set ``INPUTS=""`` because no input file is used in this example. 
 
-When ready, submit the job (on Summit: ``bsub run.script``).  Congratulations!
-You've accelerated AMReX using GPUs! 
+When ready, submit the job script (on Summit: ``bsub run.script``).
+Congratulations! You've accelerated AMReX using GPUs! 
 
 **Launch**
 ----------
