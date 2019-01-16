@@ -1161,7 +1161,7 @@ MultiFab::invert (Real numerator,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    FabArray<FArrayBox>::mult(numerator,comp,num_comp,nghost);
+    FabArray<FArrayBox>::invert(numerator,comp,num_comp,nghost);
 }
 
 void
@@ -1175,7 +1175,7 @@ MultiFab::invert (Real       numerator,
     BL_ASSERT(comp+num_comp <= n_comp);
     BL_ASSERT(num_comp > 0);
 
-    FabArray<FArrayBox>::mult(numerator,region,comp,num_comp,nghost);
+    FabArray<FArrayBox>::invert(numerator,region,comp,num_comp,nghost);
 }
 
 void
