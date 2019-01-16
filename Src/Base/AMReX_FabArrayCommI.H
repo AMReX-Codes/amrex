@@ -55,7 +55,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 BL_ASSERT(distributionMap[tag.srcIndex] == ParallelDescriptor::MyProc());
 
                 loc_copy_tags[tag.dstIndex].push_back
-                    ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                    ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
             }
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -63,13 +63,14 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = loc_copy_tags[mfi];
-                FAB* dfab = this->fabPtr(mfi);
+                auto dfab = this->array(mfi);
                 for (auto const & tag : tags)
                 {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                    auto const sfab = tag.sfab->array();
+                    const auto offset = tag.offset.dim3();
+                    AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
                     {
-                        const Box sbx = dbx + tag.offset;
-                        dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
+                        dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
                     });
                 }
             }
@@ -264,12 +265,11 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 for (auto const& tag : cctc)
                 {
                     const Box& bx = tag.sbox;
-                    const FAB* sfab = this->fabPtr(tag.srcIndex);
-
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+                    auto const sfab = this->array(tag.srcIndex);
+                    auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
                     {
-                        char* p = dptr + sizeof(value_type)*ncomp*bx.index(tbx.smallEnd());
-                        sfab->copyToMem(tbx, scomp, ncomp, p);
+                        pfab(i,j,k,n) = sfab(i,j,k,n+scomp);
                     });
                     dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
@@ -366,13 +366,13 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
 	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
 
-            const FAB* sfab = this->fabPtr(tag.srcIndex);
-                  FAB* dfab = this->fabPtr(tag.dstIndex);
+            auto const sfab = this->array(tag.srcIndex);
+            auto       dfab = this->array(tag.dstIndex);
+            const Dim3 offset = (tag.sbox.smallEnd() - tag.dbox.smallEnd()).dim3();
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(tag.dbox, tbx,
+            AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
             {
-                Box sbx = tbx + (tag.sbox.smallEnd() - tag.dbox.smallEnd());
-                dfab->copy(*sfab, sbx, scomp, tbx, scomp, ncomp);
+                dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
             });
 	});
 #ifdef AMREX_USE_GPU
@@ -596,16 +596,15 @@ FabArray<FAB>::FillBoundary_finish ()
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
                 const auto& tags = recv_copy_tags[mfi];
-                FAB* dfab = this->fabPtr(mfi);
+                auto dfab = this->array(mfi);
                 const int scomp = fb_scomp;
                 const int ncomp = fb_ncomp;
                 for (auto const & tag : tags)
                 {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                    auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox);
+                    AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
                     {
-                        const char* p = tag.p + sizeof(value_type)*ncomp
-                            * tag.dbox.index(dbx.smallEnd());
-                        dfab->copyFromMem(dbx, scomp, ncomp, p);
+                        dfab(i,j,k,n+scomp) = pfab(i,j,k,n);
                     });
                 }
             }
@@ -1605,11 +1604,11 @@ FabArray<FAB>::Redistribute (const FabArray<FAB>& src,
         for (MFIter fai(*this,true); fai.isValid(); ++fai)
         {
             const Box& bx = fai.growntilebox(nghost);
-            const FAB* sfab = src.fabPtr(fai);
-                  FAB* dfab = this->fabPtr(fai);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+            auto const sfab = src.array(fai);
+            auto       dfab = this->array(fai);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
-                dfab->copy(*sfab, tbx, SrcComp{scomp}, DestComp{dcomp}, NumComps{ncomp});
+                dfab(i,j,k,n+dcomp) = sfab(i,j,k,n+scomp);
             });
         }
 
@@ -1794,12 +1793,11 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                     for (auto const& tag : cctc)
                     {
                         const Box& bx = tag.sbox;
-                        const FAB* sfab = fabarray.fabPtr(tag.srcIndex);
-
-                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                        auto const sfab = fabarray.array(tag.srcIndex);
+                        auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
+                        AMREX_HOST_DEVICE_FOR_4D ( bx, nc, i, j, k, n,
                         {
-                            char* p = dptr + sizeof(value_type)*nc*bx.index(tbx.smallEnd());
-                            sfab->copyToMem(tbx, sc, nc, p);
+                            pfab(i,j,k,n) = sfab(i,j,k,n+sc);
                         });
                         dptr += bx.numPts()*nc*sizeof(value_type);
                     }
@@ -2011,14 +2009,13 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                     for (MFIter mfi(fabarray); mfi.isValid(); ++mfi)
                     {
                         const auto& tags = recv_copy_tags[mfi];
-                        FAB* dfab = fabarray.fabPtr(mfi);
+                        auto dfab = fabarray.array(mfi);
                         for (auto const& tag : tags)
                         {
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (tag.dbox, dbx,
+                            auto pfab = amrex::makeArray4((value_type*)(tag.p), tag.dbox);
+                            AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, nc, i, j, k, n,
                             {
-                                const char* p = tag.p + sizeof(value_type) * nc
-                                    * tag.dbox.index(dbx.smallEnd());
-                                dfab->copyFromMem(dbx, sc, nc, p);
+                                dfab(i,j,k,n+sc) = pfab(i,j,k,n);
                             });
                         }
                     }

@@ -96,8 +96,7 @@ Array4<T>
 makeArray4 (T* p, Box const& bx)
 {
     AMREX_ASSERT(bx.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-    const auto len = amrex::length(bx);
-    return Array4<T>{p, len.x, len.x*len.y, len.x*len.y*len.z, amrex::lbound(bx)};
+    return Array4<T>{p, amrex::begin(bx), amrex::end(bx)};
 }
 
 template <typename T>
