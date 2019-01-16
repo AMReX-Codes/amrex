@@ -133,11 +133,8 @@ function (configure_amrex)
    # Add third party libraries
    #
    if (ENABLE_3D_NODAL_MLMG)
-      # Add Algoim dependency
-      target_include_directories( amrex PRIVATE ${ALGOIM_INSTALL_DIR}/src )
-      #  Blitz dependency
-      target_include_directories( amrex PRIVATE ${BLITZ_INSTALL_DIR}/include )
-      target_link_libraries( amrex PUBLIC ${BLITZ_INSTALL_DIR}/lib/libblitz.a)
+      include(AMReX_InstallExternalLibs)
+      target_link_libraries(amrex PRIVATE algoim PUBLIC blitz)
    endif()
    
    #
