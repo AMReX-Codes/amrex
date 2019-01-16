@@ -23,7 +23,7 @@ namespace amrex {
     template <typename T>
     struct Array4
     {
-        T* p;
+        T* AMREX_RESTRICT p;
         Dim3 begin;
         Dim3 end;
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
