@@ -46,6 +46,15 @@ namespace amrex {
             AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
             return p[(i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z))];
         }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T const* ptr (int i, int j, int k) const {
+            return p + (i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y));
+        }
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T const* ptr (int i, int j, int k, int n) const {
+            return p + ((i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z)));
+        }
     };
 
 }
