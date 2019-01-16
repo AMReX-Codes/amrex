@@ -3366,7 +3366,7 @@ BaseFab<T>::linInterp (const BaseFab<T>& f1,
   }
   else
   {
-    copy(f1);
+      copy(f1,b,comp1,b,comp,numcomp);
   }
   return *this;
 }

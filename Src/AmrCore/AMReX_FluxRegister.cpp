@@ -160,17 +160,12 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.tilebox();
-        FArrayBox      * dfab =   mf.fabPtr(mfi);
-        FArrayBox const* sfab = mflx.fabPtr(mfi);
-        FArrayBox const* afab = area.fabPtr(mfi);
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto       dfab =   mf.array(mfi);
+        auto const sfab = mflx.array(mfi);
+        auto const afab = area.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
         {
-            dfab->copy(*sfab, tbx, srccomp, tbx, 0, numcomp);
-            dfab->mult(mult, tbx, 0, numcomp);
-            for (int i = 0; i < numcomp; ++i) {
-                dfab->mult(*afab, tbx, tbx, 0, i, 1);
-            }
+            dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
         });
     }
 
@@ -196,11 +191,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
             for (FabSetIter mfi(fs); mfi.isValid(); ++mfi)
             {
                 const Box& bx = mfi.validbox();
-                FArrayBox const* sfab =          fs.fabPtr(mfi);
-                FArrayBox      * dfab = bndry[face].fabPtr(mfi);
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                auto const sfab =          fs.array(mfi);
+                auto       dfab = bndry[face].array(mfi);
+                AMREX_HOST_DEVICE_FOR_4D (bx, numcomp, i, j, k, n,
                 {
-                    dfab->plus(*sfab, tbx, tbx, 0, destcomp, numcomp);
+                    dfab(i,j,k,n+destcomp) += sfab(i,j,k,n);
                 });
             }
         }
@@ -252,17 +247,12 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     for (MFIter mfi(mflx,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
 	const Box& bx = mfi.tilebox();
-        FArrayBox      * dfab =   mf.fabPtr(mfi);
-        FArrayBox const* sfab = mflx.fabPtr(mfi);
-        FArrayBox const* afab = area.fabPtr(mfi);
-
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto       dfab =   mf.array(mfi);
+        auto const sfab = mflx.array(mfi);
+        auto const afab = area.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
         {
-            dfab->copy(*sfab, tbx, srccomp, tbx, 0, numcomp);
-            dfab->mult(mult, tbx, 0, numcomp);
-            for (int i = 0; i < numcomp; ++i) {
-                dfab->mult(*afab, tbx, tbx, 0, i, 1);
-            }
+            dfab(i,j,k,n) = sfab(i,j,k,n+srccomp)*mult*afab(i,j,k);
         });
     }
 
@@ -624,9 +614,9 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
         bndry[hi_face].plusTo(fine_flux, 0, srccomp, 0, numcomp, cperiod);
 
 #ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
+#pragma omp parallel
 #endif
-        for (MFIter mfi(crse_flux,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_flux,true); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
             amrex_froverwrite_cfb(BL_TO_FORTRAN_BOX(bx),
