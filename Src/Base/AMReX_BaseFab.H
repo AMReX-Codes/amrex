@@ -56,7 +56,7 @@ namespace amrex
 template <typename T>
 struct FabView
 {
-    T* p;
+    T* AMREX_RESTRICT p;
     int jstride;
     int kstride;
     long nstride;
