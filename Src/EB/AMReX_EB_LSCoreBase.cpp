@@ -190,20 +190,8 @@ void LSCoreBase::InitData (const Vector<Real> & m_phierr) {
 void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) {
 
-    BL_PROFILE("LSCoreBase::MakeNewLevelFromCoarse()");
-
-    const int ncomp  = level_set[lev - 1].nComp();
-    const int nghost = level_set[lev - 1].nGrow();
-
-    BoxArray ba_nd = amrex::convert(ba, IntVect::TheUnitVector());
-    level_set[lev].define(ba_nd, dm, ncomp, nghost);
-
-    FillCoarsePatch(lev, time, level_set[lev], 0, ncomp);
-
-    // At this point, we consider _everywhere_ as valid. This is maintained for
-    // legacy reasons. TODO: There might be a better way of doing things.
-    level_set_valid[lev].define(ba_nd, dm, ncomp, nghost);
-    level_set_valid[lev].setVal(1);
+    LSCoreBase::MakeNewLevelFromCoarse( lev, level_set, level_set_valid, ba, dm,
+                                        geom, bcs, refRatio(lev - 1 ));
 }
 
 
@@ -371,6 +359,52 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
 
 
 
+// Fill an entire multifab by interpolating from the coarser level.
+void LSCoreBase::FillCoarsePatch (int lev, MultiFab & mf_out, const Vector<MultiFab> & levels_in,
+                                  const Vector<Geometry> & geom, const Vector<BCRec> & bcs,
+                                  const IntVect & ref, int icomp, int ncomp) {
+
+    BL_PROFILE("LSCoreBase::FillCoarsePatch()");
+
+    BL_ASSERT(lev > 0);
+
+    BndryFuncArray bfunc(amrex_eb_phifill);
+    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1], bcs, bfunc);
+    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ], bcs, bfunc);
+
+    Interpolater * mapper = & node_bilinear_interp;
+
+    amrex::InterpFromCoarseLevel(mf_out, 0, levels_in[lev - 1], 0, icomp, ncomp, geom[lev-1], geom[lev],
+                                 cphysbc, 0, fphysbc, 0, ref, mapper, bcs, 0);
+}
+
+
+
+// Make a new level using provided BoxArray and DistributionMapping and fill
+// with interpolated coarse level data.
+void LSCoreBase::MakeNewLevelFromCoarse ( int lev, Vector<MultiFab> & ls_levs, Vector<iMultiFab> & valid_levs,
+                                          const BoxArray & ba, const DistributionMapping & dm,
+                                          const Vector<Geometry> & geom, const Vector<BCRec> & bcs,
+                                          const IntVect & ref){
+
+    BL_PROFILE("LSCoreBase::MakeNewLevelFromCoarse()");
+
+    const int ncomp  = ls_levs[lev - 1].nComp();
+    const int nghost = ls_levs[lev - 1].nGrow();
+
+    BoxArray ba_nd = amrex::convert(ba, IntVect::TheNodeVector());
+    ls_levs[lev].define(ba_nd, dm, ncomp, nghost);
+
+    LSCoreBase::FillCoarsePatch(lev, ls_levs[lev], ls_levs, geom, bcs, ref, 0, ncomp);
+
+    // At this point, we consider _everywhere_ as valid. This is maintained for
+    // legacy reasons. TODO: There might be a better way of doing things.
+    valid_levs[lev].define(ba_nd, dm, ncomp, nghost);
+    valid_levs[lev].setVal(1);
+}
+
+
+
 // Constructs a box over which to look for EB facets. The Box size grows based
 // on the coarse-level level-set value. But it never grows larger than
 // max_eb_pad.
@@ -511,21 +545,7 @@ void LSCoreBase::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int nco
 // into play when a new level of refinement appears
 void LSCoreBase::FillCoarsePatch (int lev, Real time, MultiFab & mf, int icomp, int ncomp) {
 
-    BL_PROFILE("LSCoreBase::FillCoarsePatch()");
-
-    BL_ASSERT(lev > 0);
-
-    BndryFuncArray bfunc(amrex_eb_phifill);
-    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1], bcs, bfunc);
-    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ], bcs, bfunc);
-
-    Interpolater * mapper = & node_bilinear_interp;
-
-    amrex::InterpFromCoarseLevel(mf, time, level_set[lev - 1], 0, icomp, ncomp,
-                                 geom[lev-1], geom[lev],
-                                 cphysbc, 0, fphysbc, 0,
-                                 refRatio(lev - 1), mapper, bcs, 0);
-
+    LSCoreBase::FillCoarsePatch(lev, mf, level_set, geom, bcs, refRatio(lev - 1), icomp, ncomp);
 }
 
 

@@ -53,6 +53,14 @@ public:
     static Box EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
                             const Geometry & geom_fine, const IntVect & max_grow, bool & bail);
 
+    static void FillCoarsePatch (int lev, MultiFab & mf_out, const Vector<MultiFab> & levels_in,
+                                 const Vector<Geometry> & geom, const Vector<BCRec> & bcs,
+                                 const IntVect & ref, int icomp, int ncomp);
+
+    static void MakeNewLevelFromCoarse ( int lev, Vector<MultiFab> & ls_levs, Vector<iMultiFab> & valid_levs,
+                                         const BoxArray & ba, const DistributionMapping & dm,
+                                         const Vector<Geometry> & geom, const Vector<BCRec> & bcs,
+                                         const IntVect & ref);
 
     static void FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                               const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
