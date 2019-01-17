@@ -412,9 +412,7 @@ AmrLevel::setTimeLevel (Real time,
 }
 
 bool
-AmrLevel::isStateVariable (const std::string& name,
-                           int&           typ,
-                           int&            n)
+AmrLevel::isStateVariable (const std::string& name, int& typ, int& n)
 {
     for (typ = 0; typ < desc_lst.size(); typ++)
     {
@@ -1567,9 +1565,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 }
 
 std::unique_ptr<MultiFab>
-AmrLevel::derive (const std::string& name,
-                  Real           time,
-                  int            ngrow)
+AmrLevel::derive (const std::string& name, Real time, int ngrow)
 {
     BL_ASSERT(ngrow >= 0);
 
@@ -1580,7 +1576,7 @@ AmrLevel::derive (const std::string& name,
     if (isStateVariable(name, index, scomp))
     {
         mf.reset(new MultiFab(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory));
-        FillPatch(*this,*mf,ngrow,time,index,scomp,1);
+        FillPatch(*this,*mf,ngrow,time,index,scomp,1,0);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1607,8 +1603,24 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
+        const int ncomp = rec->numDerive();
+        mf.reset(new MultiFab(dstBA, dmap, ncomp, ngrow, MFInfo(), *m_factory));
 
+        if (rec->derFuncFab() != nullptr)
+        {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(ngrow);
+                FArrayBox* derfab = mf->fabPtr(mfi);
+                FArrayBox const* datafab = srcMF.fabPtr(mfi);
+                rec->derFuncFab()(bx, *derfab, 0, ncomp, *datafab, geom, time, rec->getBC(), level);
+            }
+        }
+        else
+        {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1692,6 +1704,7 @@ AmrLevel::derive (const std::string& name,
 	    }
         }
 #endif
+        }
     }
     else
     {
@@ -1707,10 +1720,7 @@ AmrLevel::derive (const std::string& name,
 }
 
 void
-AmrLevel::derive (const std::string& name,
-                  Real           time,
-                  MultiFab&      mf,
-                  int            dcomp)
+AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 {
     BL_ASSERT(dcomp < mf.nComp());
 
@@ -1720,7 +1730,7 @@ AmrLevel::derive (const std::string& name,
 
     if (isStateVariable(name,index,scomp))
     {
-        FillPatch(*this,mf,ngrow,time,index,scomp,1);
+        FillPatch(*this,mf,ngrow,time,index,scomp,1,dcomp);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1745,6 +1755,21 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
+        if (rec->derFuncFab() != nullptr)
+        {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox();
+                FArrayBox* derfab = mf.fabPtr(mfi);
+                FArrayBox const* datafab = srcMF.fabPtr(mfi);
+                rec->derFuncFab()(bx, *derfab, 0, ncomp, *datafab, geom, time, rec->getBC(), level);
+            }
+        }
+        else
+        {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1828,6 +1853,7 @@ AmrLevel::derive (const std::string& name,
 	    }
         }
 #endif
+        }
     }
     else
     {
