@@ -62,19 +62,19 @@ struct Particle
 
     static int the_next_id;
 
-    int&  id()       & {return m_idata.id;}
-    int   id() const & {return m_idata.id;}
-    int& cpu()       & {return m_idata.cpu;}
-    int  cpu() const & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int&  id()       & {return m_idata.id;}
+    AMREX_GPU_HOST_DEVICE int   id() const & {return m_idata.id;}
+    AMREX_GPU_HOST_DEVICE int& cpu()       & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int  cpu() const & {return m_idata.cpu;}
 
-    RealType& pos(int index)       & {return m_rdata.pos[index];}
-    RealType  pos(int index) const & {return m_rdata.pos[index];}
+    AMREX_GPU_HOST_DEVICE RealType& pos(int index)       & {return m_rdata.pos[index];}
+    AMREX_GPU_HOST_DEVICE RealType  pos(int index) const & {return m_rdata.pos[index];}
 
-    RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
-    RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+    AMREX_GPU_HOST_DEVICE RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+    AMREX_GPU_HOST_DEVICE RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
 
-    int& idata(int index)       & {return m_idata.arr[2 + index];}
-    int  idata(int index) const & {return m_idata.arr[2 + index];}
+    AMREX_GPU_HOST_DEVICE int& idata(int index)       & {return m_idata.arr[2 + index];}
+    AMREX_GPU_HOST_DEVICE int  idata(int index) const & {return m_idata.arr[2 + index];}
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
