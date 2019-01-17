@@ -32,4 +32,98 @@ contains
     end do
     end subroutine init_phi_omp
 
+    subroutine compute_flux_x_omp(lo, hi, fluxx, f_lo, f_hi, &
+                                  phi, p_lo, p_hi, dxinv)    &
+        bind(c,name="compute_flux_x_omp")
+    integer(c_int), intent(in)   :: lo(3), hi(3), f_lo(3), f_hi(3), p_lo(3), p_hi(3)
+    real(amrex_real), intent(in) :: phi(p_lo(1):p_hi(1), p_lo(2):p_hi(2), p_lo(3):p_hi(3))
+    real(amrex_real), intent(in), value :: dxinv
+    real(amrex_real), intent(inout) :: fluxx(f_lo(1):f_hi(1), f_lo(2):f_hi(2), f_lo(3):f_hi(3))
+    
+    integer(c_int) :: i,j,k
+    !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(phi, fluxx)
+    do          k=lo(3), hi(3)
+        do      j=lo(2), hi(2)
+            do  i=lo(1), hi(1)
+                fluxx(i,j,k) = dxinv* ( phi(i,j,k)-phi(i-1,j,k))
+            end do
+        end do
+    end do
+
+    end subroutine compute_flux_x_omp
+
+
+    subroutine compute_flux_y_omp(lo, hi, fluxy, f_lo, f_hi, &
+                                  phi, p_lo, p_hi, dyinv)    &
+        bind(c,name="compute_flux_y_omp")
+    integer(c_int), intent(in)   :: lo(3), hi(3), f_lo(3), f_hi(3), p_lo(3), p_hi(3)
+    real(amrex_real), intent(in) :: phi(p_lo(1):p_hi(1), p_lo(2):p_hi(2), p_lo(3):p_hi(3))
+    real(amrex_real), intent(in), value :: dyinv
+    real(amrex_real), intent(inout) :: fluxy(f_lo(1):f_hi(1), f_lo(2):f_hi(2), f_lo(3):f_hi(3))
+    
+    integer(c_int) :: i,j,k
+    !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(phi, fluxy)
+    do          k=lo(3), hi(3)
+        do      j=lo(2), hi(2)
+            do  i=lo(1), hi(1)
+                fluxy(i,j,k) = dyinv* ( phi(i,j,k)-phi(i,j-1,k))
+            end do
+        end do
+    end do
+
+    end subroutine compute_flux_y_omp
+
+
+    subroutine compute_flux_z_omp(lo, hi, fluxz, f_lo, f_hi, &
+                                  phi, p_lo, p_hi, dzinv)    &
+        bind(c,name="compute_flux_z_omp")
+    integer(c_int), intent(in)   :: lo(3), hi(3), f_lo(3), f_hi(3), p_lo(3), p_hi(3)
+    real(amrex_real), intent(in) :: phi(p_lo(1):p_hi(1), p_lo(2):p_hi(2), p_lo(3):p_hi(3))
+    real(amrex_real), intent(in), value :: dzinv
+    real(amrex_real), intent(inout) :: fluxz(f_lo(1):f_hi(1), f_lo(2):f_hi(2), f_lo(3):f_hi(3))
+    
+    integer(c_int) :: i,j,k
+    !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(phi,fluxz)
+    do          k=lo(3), hi(3)
+        do      j=lo(2), hi(2)
+            do  i=lo(1), hi(1)
+                fluxz(i,j,k) = dzinv* ( phi(i,j,k)-phi(i,j,k-1))
+            end do
+        end do
+    end do
+
+    end subroutine compute_flux_z_omp
+
+
+    subroutine update_phi_omp(lo,hi,&
+                              fluxx,fxlo,fxhi, &
+                              fluxy,fylo,fyhi, &
+                              fluxz,fzlo,fzhi, &
+                              phi_old,polo,pohi, &
+                              phi_new,pnlo,pnhi, &
+                              dt,dxinv,dyinv,dzinv) &
+        bind(c,name="update_phi_omp")
+    integer(c_int), intent(in)   :: lo(3), hi(3), fxlo(3), fxhi(3), fylo(3), fyhi(3), fzlo(3), fzhi(3)
+    integer(c_int), intent(in)   :: polo(3), pohi(3), pnlo(3), pnhi(3)
+
+    real(amrex_real), intent(in) :: fluxx(fxlo(1):fxhi(1), fxlo(2):fxhi(2), fxlo(3):fxhi(3))
+    real(amrex_real), intent(in) :: fluxy(fylo(1):fyhi(1), fylo(2):fyhi(2), fylo(3):fyhi(3))
+    real(amrex_real), intent(in) :: fluxz(fzlo(1):fzhi(1), fzlo(2):fzhi(2), fzlo(3):fzhi(3))
+    real(amrex_real), intent(in) :: phi_old(polo(1):pohi(1), polo(2):pohi(2), polo(3):pohi(3))
+    real(amrex_real), intent(inout) :: phi_new(pnlo(1):pnhi(1), pnlo(2):pnhi(2), pnlo(3):pnhi(3))
+    real(amrex_real), intent(in), value :: dt, dxinv, dyinv, dzinv
+    
+    integer(c_int) :: i,j,k
+    !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(phi_old, phi_new, fluxx, fluxy, fluxz)
+    do          k=lo(3), hi(3)
+        do      j=lo(2), hi(2)
+            do  i=lo(1), hi(1)
+                phi_new(i,j,k) = phi_old(i,j,k) &
+                + dt * dxinv * (fluxx(i+1,j  ,k  ) - fluxx(i,j,k)) &
+                + dt * dyinv * (fluxy(i  ,j+1,k  ) - fluxy(i,j,k)) &
+                + dt * dzinv * (fluxz(i  ,j  ,k+1) - fluxz(i,j,k))
+            end do
+        end do
+    end do
+    end subroutine update_phi_omp
 end module my_kernel_omp_module

@@ -1,0 +1,17 @@
+Compile options and module requirement
+*** 
+    *If using pgi compiler, load cuda/9.0.69 on summitdev
+    *If using gcc compiler, load cuda/9.2.148 or default on summitdev
+
+(1) CUDA/C++
+    USE_CUDA = TRUE
+
+(2) CUDA/OpenACC; use pgi
+    USE_CUDA = TRUE
+    USE_ACC  = TRUE
+    USE_OMP_OFFLOAD = FALSE
+
+(3) CUDA/OpenMP; use gcc
+    USE_CUDA = TRUE
+    USE_ACC  = FALSE
+    USE_OMP_OFFLOAD = TRUE
