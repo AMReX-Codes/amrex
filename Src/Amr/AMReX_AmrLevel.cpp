@@ -165,7 +165,19 @@ AmrLevel::writePlotFile (const std::string& dir,
 	}
     }
 
-    int n_data_items = plot_var_map.size();
+    std::vector<std::string> derive_names;
+    const std::list<DeriveRec>& dlist = derive_lst.dlist();
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin();
+	 it != dlist.end();
+	 ++it)
+    {
+        if (parent->isDerivePlotVar(it->name()))
+        {
+            derive_names.push_back(it->name());
+	}
+    }
+
+    int n_data_items = plot_var_map.size() + derive_names.size();
 
     // get the time from the first State_Type
     // if the State_Type is ::Interval, this will get t^{n+1/2} instead of t^n
@@ -191,6 +203,11 @@ AmrLevel::writePlotFile (const std::string& dir,
 	    int typ = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
 	    os << desc_lst[typ].name(comp) << '\n';
+        }
+
+        // derived
+        for (auto const& dname : derive_names) {
+            os << derive_lst.get(dname)->variableName(0) << '\n';
         }
 
         os << AMREX_SPACEDIM << '\n';
@@ -277,7 +294,6 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     // We combine all of the multifabs -- state, derived, etc -- into one
     // multifab -- plotMF.
-    // NOTE: In this tutorial code, there is no derived data
     int       cnt   = 0;
     const int nGrow = 0;
     MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
@@ -292,6 +308,16 @@ AmrLevel::writePlotFile (const std::string& dir,
 	this_dat = &state[typ].newData();
 	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
 	cnt++;
+    }
+
+    // derived
+    if (derive_names.size() > 0)
+    {
+	for (auto const& dname : derive_names)
+	{
+            derive(dname, cur_time, plotMF, cnt);
+	    cnt++;
+	}
     }
 
     //
@@ -1765,7 +1791,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
                 const Box& bx = mfi.growntilebox();
                 FArrayBox* derfab = mf.fabPtr(mfi);
                 FArrayBox const* datafab = srcMF.fabPtr(mfi);
-                rec->derFuncFab()(bx, *derfab, 0, ncomp, *datafab, geom, time, rec->getBC(), level);
+                rec->derFuncFab()(bx, *derfab, dcomp, ncomp, *datafab, geom, time, rec->getBC(), level);
             }
         }
         else
