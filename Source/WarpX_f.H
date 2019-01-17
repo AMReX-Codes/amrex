@@ -137,7 +137,7 @@ extern "C"
 			const amrex::Real* byg, const int* byg_lo, const int* byg_hi,
 			const amrex::Real* bzg, const int* bzg_lo, const int* bzg_hi,
 			const int* ll4symtry, const int* l_lower_order_in_v,
-			const long* lvect,
+                        const int* l_nodal, const long* lvect,
 			const long* field_gathe_algo);
 
 	// Particle pusher (velocity and position)

@@ -427,7 +427,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bxfab),
                 BL_TO_FORTRAN_ANYD(byfab),
                 BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &l_lower_order_in_v,
+                &ll4symtry, &l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             // Save the position and momenta, making copies
