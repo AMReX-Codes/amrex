@@ -152,21 +152,13 @@ namespace amrex
 #endif
         for (MFIter mfi(mf_in,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            if (Gpu::inLaunchRegion())
+            const long n = mfi.fabbox().numPts() * mf_in.nComp();
+            auto pdst = mf_out[mfi].dataPtr();
+            auto psrc = mf_in [mfi].dataPtr();
+            AMREX_HOST_DEVICE_FOR_1D ( n, i,
             {
-                const long n = mfi.fabbox().numPts() * mf_in.nComp();
-                auto pdst = mf_out[mfi].dataPtr();
-                auto psrc = mf_in [mfi].dataPtr();
-                AMREX_LAUNCH_DEVICE_LAMBDA ( n, i,
-                {
-                    pdst[i] = static_cast<typename U::value_type>(psrc[i]);
-                });
-            }
-            else
-            {
-                amrex::cast(mf_out[mfi], mf_in[mfi], mfi.growntilebox(),
-                            SrcComp{0}, DestComp{0}, NumComps{0});
-            }
+                pdst[i] = static_cast<typename U::value_type>(psrc[i]);
+            });
         }
         return mf_out;
     }
