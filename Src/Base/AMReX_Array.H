@@ -23,18 +23,37 @@ namespace amrex {
     template <typename T>
     struct Array4
     {
-        T* p;
-        int jstride;
-        int kstride;
-        long nstride;
-        Dim3 lo;
+        T* AMREX_RESTRICT p;
+        Dim3 begin;
+        Dim3 end;
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T const& operator() (int i, int j, int k, int n=0) const {
-            return *(p + ((i-lo.x)+(j-lo.y)*jstride+(k-lo.z)*kstride+n*nstride));
+        T const& operator() (int i, int j, int k) const {
+            AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            return p[i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y)];
         }
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i, int j, int k, int n=0) {
-            return *(p + ((i-lo.x)+(j-lo.y)*jstride+(k-lo.z)*kstride+n*nstride));
+        T& operator() (int i, int j, int k) {
+            AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            return p[i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y)];
+        }
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T const& operator() (int i, int j, int k, int n) const {
+            AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            return p[(i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z))];
+        }
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T& operator() (int i, int j, int k, int n) {
+            AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            return p[(i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z))];
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T const* ptr (int i, int j, int k) const {
+            return p + (i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y));
+        }
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T const* ptr (int i, int j, int k, int n) const {
+            return p + ((i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z)));
         }
     };
 
