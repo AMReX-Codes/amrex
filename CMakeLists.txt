@@ -28,6 +28,35 @@ include( AMReX_Options )
 include( AMReX_Machines )
 
 #
+# Enable CUDA if requested
+#
+# CMake let you decide which host compiler to use
+# via the env variable CUDAHOSTCXX and the CMake
+# variable CMAKE_CUDA_HOST_COMPILER.
+# For the time being we force the CUDA host compiler
+# to be the C++ compiler. 
+# 
+if ( (CMAKE_CUDA_HOST_COMPILER) OR
+      NOT ("$ENV{CUDAHOSTCXX}" STREQUAL "") )
+   message(WARNING
+      "User-defined CUDA host compiler does not match C++ compiler:  overwriting user setting.")
+endif ()
+unset(ENV{CUDAHOSTCXX})
+set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+if (ENABLE_CUDA)
+   enable_language(CUDA)
+   print(CMAKE_CUDA_COMPILER_VERSION)
+   print(CMAKE_CUDA_COMPILER_ID)
+   print(CMAKE_CUDA_HOST_COMPILER)
+
+   # For now we require C++ to be the same as 
+   #find is deprecated for CUDA but currently
+   #it still provides some features not yet implemented
+   # natively. Remove this part when native support is complete
+   #find_package(CUDA 8.0 REQUIRED QUIET)
+endif ()
+
+#
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
 # 
 set_default_config_flags ()
@@ -56,17 +85,6 @@ endif ()
 
 set ( AMREX_GIT_VERSION "${TMP}" CACHE INTERNAL "" )
 unset (TMP)
-
-#
-# Install Blitz and Algoim at configuration time
-# if needed.
-# This is only required if ENABLE_3D_NODAL_MLMG is ON
-# and external libraries paths are not given 
-#
-# if ( ENABLE_3D_NODAL_MLMG )
-#    include(AMReX_InstallExternalLibs) 
-# endif ()
-
 
 # 
 # Source files for all binaries and libraries found under src

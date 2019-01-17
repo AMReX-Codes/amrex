@@ -72,11 +72,7 @@ function ( set_amrex_defines )
 
    # OpenMP
    add_amrex_define( AMREX_USE_OMP IF ENABLE_OMP )
-
-   # CUDA
-   add_amrex_define( AMREX_USE_CUDA    IF ENABLE_CUDA )
-   add_amrex_define( AMREX_USE_GPU     IF ENABLE_CUDA )
-   
+  
    # Precision
    if (NOT ENABLE_DP)
       add_amrex_define(AMREX_USE_FLOAT)
@@ -97,8 +93,8 @@ function ( set_amrex_defines )
    endif ()
    
    #  Assertions
-   add_amrex_define( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
-   add_amrex_define( AMREX_USE_EB IF ENABLE_EB )
+   add_amrex_define( AMREX_USE_ASSERTION    IF ENABLE_ASSERTIONS )
+   add_amrex_define( AMREX_USE_EB NO_LEGACY IF ENABLE_EB )
    add_amrex_define( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES ) 
    add_amrex_define( AMREX_NO_STRICT_PREFIX )
 
@@ -116,7 +112,8 @@ function ( set_amrex_defines )
    if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" ) 
    
       if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
-	 message ( WARNING " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.This might break during build. GCC>=4.8 is recommended.")
+	 message ( WARNING
+            " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.This might break during build. GCC>=4.8 is recommended.")
       endif ()
       
       string ( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
@@ -134,26 +131,87 @@ function ( set_amrex_defines )
    # 
    # Fortran/C mangling scheme
    # 
-   include ( FortranCInterface )
-   include ( ${FortranCInterface_BINARY_DIR}/Output.cmake )
+   include( FortranCInterface )
+   include( ${FortranCInterface_BINARY_DIR}/Output.cmake )
 
-   set ( FORTLINK "" )
+   set( FORTLINK "" )
    
    if ( FortranCInterface_GLOBAL_SUFFIX STREQUAL "" )
-      set (FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
-      message (STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
+      set(FORTLINK "${FortranCInterface_GLOBAL_CASE}CASE" )
+      message(STATUS "Fortran name mangling scheme: ${FORTLINK} (no append underscore)")
    elseif ( (FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")  AND
 	 ( FortranCInterface_GLOBAL_CASE STREQUAL "LOWER" ) )
-      set (FORTLINK "UNDERSCORE")
-      message (STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
+      set(FORTLINK "UNDERSCORE")
+      message(STATUS "Fortran name mangling scheme: ${FORTLINK} (lower case, append underscore)")
    else ()
-      message (AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
+      message(AUTHOR_WARNING "Fortran to C mangling not compatible with AMReX code")
    endif ()
 
    add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
 
    # SENSEI Insitu
    add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
+
+   # 
+   # CUDA
+   #
+   add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF ENABLE_CUDA )
+   add_amrex_define( AMREX_CUDA_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
+      IF ENABLE_CUDA )
+
+   if (ENABLE_CUDA)
+      
+      string( REPLACE "." ";" VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
+      list( GET VERSION_LIST 0 NVCC_VERSION_MAJOR )
+      list( GET VERSION_LIST 1 NVCC_VERSION_MINOR )
+
+      target_compile_definitions( amrex PUBLIC
+	 AMREX_NVCC_VERSION=${CMAKE_CUDA_COMPILER_VERSION}
+	 AMREX_NVCC_MAJOR_VERSION=${NVCC_VERSION_MAJOR}
+	 AMREX_NVCC_MINOR_VERSION=${NVCC_VERSION_MINOR} )
+      
+   endif ()
+
+      
+   # Fortran macros useful by application code only
+   # (they are not present in AMReX source code) 
+   if (ENABLE_CUDA AND ( ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "PGI" ) OR
+            ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "XL"  ) ) )
+
+      # THIS DOES NOT WORK
+      # target_compile_definitions( amrex PUBLIC
+      #    $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"attributes(global)\";
+      #    AMREX_DEVICE=\"attributes(device)\";
+      #    AMREX_CUDA_FORT_GLOBAL=\"attributes(global)\";
+      #    AMREX_CUDA_FORT_DEVICE=\"attributes(device)\";
+      #    AMREX_CUDA_FORT_HOST=\"attributes(host)\">)
+   else ()
+      target_compile_definitions( amrex PUBLIC
+         $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"\";
+         AMREX_DEVICE=\"\";
+         AMREX_CUDA_FORT_GLOBAL=\"\";
+         AMREX_CUDA_FORT_DEVICE=\"\";
+         AMREX_CUDA_FORT_HOST=\"\">)
+   endif ()
+
+   #
+   # OpenACC
+   #
+   add_amrex_define( AMREX_USE_ACC NO_LEGACY IF ENABLE_ACC ) 
+
+   #
+   # General setup for any GPUs 
+   #
+   if (ENABLE_CUDA OR ENABLE_ACC)
+      add_amrex_define( AMREX_USE_GPU  NO_LEGACY )
+      add_amrex_define( BL_COALESCE_FABS )
+
+      add_amrex_define( AMREX_GPUS_PER_SOCKET=${GPUS_PER_SOCKET}
+         NO_LEGACY IF GPUS_PER_SOCKET)
+
+      add_amrex_define( AMREX_GPUS_PER_NODE=${GPUS_PER_NODE}
+         NO_LEGACY IF GPUS_PER_NODE)         
+   endif ()
    
 endfunction ()
 

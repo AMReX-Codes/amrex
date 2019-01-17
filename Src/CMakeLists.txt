@@ -5,7 +5,12 @@
 # the properties of this object, like setting the sources,
 # setting the compile definitions and so on
 #
-add_library ( amrex "" )
+add_library( amrex "" )
+
+#
+# List of directories with CUDA kernels
+#
+set(CUDA_DIRS Base AmrCore Particles)
 
 #
 # Next, we implement a wrapper to add sources and headers
@@ -15,32 +20,39 @@ add_library ( amrex "" )
 # Variable PUBLIC_HEADERS accumulate all the headers for
 # final installation
 # WARNING: this routine add automatically ${CMAKE_CURRENT_LIST_DIR}
-# to the input source file, so always add sources with the relative path
+# to the input source file, so always add sources using the path relative
 # to the directory where add_sources is called from
-set (PUBLIC_HEADERS)
-macro ( add_sources )
-   foreach ( item IN ITEMS ${ARGV} )
-      target_sources ( amrex PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${item})
+set(PUBLIC_HEADERS)
+macro( add_sources )
+   foreach( item IN ITEMS ${ARGV} )
+      target_sources( amrex PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${item})
+      get_filename_component( ext ${item} EXT )
+      get_filename_component( dirname ${CMAKE_CURRENT_LIST_DIR} NAME )
+      
       # If it's a header, add it the public header group so it gets installed
-      get_filename_component ( ext ${item} EXT )
       if ( ( ${ext} STREQUAL ".H" ) OR ( ${ext} STREQUAL ".h" ) )
 	 # Do the following command to handle the case when ${item} is not the name
 	 # of the source file, but it's in the form <relative-path>/<file-name>
 	 # where <relative-path> is the path relative to the directory containing
 	 # the list file invoking add_sources
-	 get_filename_component ( dir ${CMAKE_CURRENT_LIST_DIR}/${item} DIRECTORY )
-	 list ( APPEND PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/${item} )
-	 target_include_directories ( amrex PUBLIC $<BUILD_INTERFACE:${dir}> )
-      endif()      
+	 get_filename_component( dir ${CMAKE_CURRENT_LIST_DIR}/${item} DIRECTORY )
+	 list( APPEND PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/${item} )
+	 target_include_directories( amrex PUBLIC $<BUILD_INTERFACE:${dir}> )
+      endif()
+      
+      # If it's a cpp file located in CUDA_DIRS and ENABLE_CUDA is on
+      # then force cpp file to be compiled with CUDA compiler    
+      if ( ENABLE_CUDA AND ( ${ext} STREQUAL ".cpp") AND ("${dirname}" IN_LIST CUDA_DIRS ) )
+         set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/${item}
+            PROPERTIES LANGUAGE CUDA)
+        # set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/${item} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ) #LANGUAGE CUDA)
+      endif ()
    endforeach ()
-   unset (ext)
-   unset (dir)
-endmacro ()
+   unset(ext)
+   unset(dir)
+   unset(dirname)
+endmacro()
 
-#
-# Set some properties for target 'amrex', like
-# compile definitions and so on
-#
 
 # General configuration
 include ( AMReX_Config )
