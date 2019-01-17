@@ -1,0 +1,5 @@
+CEXE_sources += main.cpp advance.cpp
+
+CEXE_headers += myfunc.H mykernel.H
+
+F90EXE_sources += mykernel_omp.F90 mykernel_acc.F90
