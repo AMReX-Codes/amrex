@@ -9,7 +9,6 @@
 #include <stack>
 #include <list>
 #include <chrono>
-#include <type_traits>
 
 #include <AMReX.H>
 #include <AMReX_Utility.H>
@@ -17,6 +16,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_TypeTraits.H>
 
 #ifdef BL_USE_MPI
 #include <AMReX_ccse-mpi.H>
@@ -1900,7 +1900,7 @@ namespace ParallelDescriptor
 #ifndef BL_AMRPROF
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
-    static_assert(std::is_trivially_copyable<IntVect>::value, "IntVect must be trivially copyable");
+    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IntVect), "IntVect must be trivially copyable");
     static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
 
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
@@ -1924,7 +1924,7 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
-    static_assert(std::is_trivially_copyable<IndexType>::value, "IndexType must be trivially copyable");
+    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IndexType), "IndexType must be trivially copyable");
     static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
 
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
@@ -1948,7 +1948,7 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
-    static_assert(std::is_trivially_copyable<Box>::value, "Box must be trivially copyable");
+    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Box), "Box must be trivially copyable");
     static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
 
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
