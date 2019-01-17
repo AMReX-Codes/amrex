@@ -38,31 +38,31 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tby  = mfi.tilebox(YeeGrid::Ey_nodal_flag);
         const Box& tbz  = mfi.tilebox(YeeGrid::Ez_nodal_flag);
 
-        FArrayBox      * Exfab = Ex.fabPtr(mfi);
-        FArrayBox      * Eyfab = Ey.fabPtr(mfi);
-        FArrayBox      * Ezfab = Ez.fabPtr(mfi);
-        FArrayBox const* Bxfab = Bx.fabPtr(mfi);
-        FArrayBox const* Byfab = By.fabPtr(mfi);
-        FArrayBox const* Bzfab = Bz.fabPtr(mfi);
-        FArrayBox const* jxfab = jx.fabPtr(mfi);
-        FArrayBox const* jyfab = jy.fabPtr(mfi);
-        FArrayBox const* jzfab = jz.fabPtr(mfi);
+        auto       Exfab = Ex.array(mfi);
+        auto       Eyfab = Ey.array(mfi);
+        auto       Ezfab = Ez.array(mfi);
+        auto const Bxfab = Bx.array(mfi);
+        auto const Byfab = By.array(mfi);
+        auto const Bzfab = Bz.array(mfi);
+        auto const jxfab = jx.array(mfi);
+        auto const jyfab = jy.array(mfi);
+        auto const jzfab = jz.array(mfi);
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, b,
+        AMREX_FOR_3D ( tbx, j, k, l,
         {
-            push_electric_field_x(b, *Exfab, *Bxfab, *Byfab, *Bzfab, *jxfab,
+            push_electric_field_x(j,k,l, Exfab, Byfab, Bzfab, jxfab,
                                   mu_c2_dt, dtsdy, dtsdz);
         });
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tby, b,
+        AMREX_FOR_3D ( tby, j, k, l,
         {
-            push_electric_field_y(b, *Eyfab, *Bxfab, *Byfab, *Bzfab, *jyfab,
+            push_electric_field_y(j,k,l, Eyfab, Bxfab, Bzfab, jyfab,
                                   mu_c2_dt, dtsdx, dtsdz);
         });
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbz, b,
+        AMREX_FOR_3D ( tbz, j, k, l,
         {
-            push_electric_field_y(b, *Ezfab, *Bxfab, *Byfab, *Bzfab, *jzfab,
+            push_electric_field_y(j,k,l, Ezfab, Bxfab, Byfab, jzfab,
                                   mu_c2_dt, dtsdx, dtsdy);
         });
     }
@@ -75,7 +75,9 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
     BL_PROFILE("evolve_magnetic_field");
 
     const Real* dx = geom.CellSize();
-    const std::array<Real,3> dtsdx {dt/dx[0], dt/dx[1], dt/dx[2]};
+    const Real dtsdx = dt/dx[0];
+    const Real dtsdy = dt/dx[1];
+    const Real dtsdz = dt/dx[2];
 
     for (MFIter mfi(Bx); mfi.isValid(); ++mfi)
     {
@@ -83,23 +85,27 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         const Box& tby = mfi.tilebox(YeeGrid::By_nodal_flag);
         const Box& tbz = mfi.tilebox(YeeGrid::Bz_nodal_flag);
 
-        FTOC(push_magnetic_field_x)(BL_TO_FORTRAN_BOX(tbx),
-                                    BL_TO_FORTRAN_3D(Bx[mfi]),
-                                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                                    BL_TO_FORTRAN_3D(Ez[mfi]),
-                                    dtsdx[1], dtsdx[2]);
+        auto       Bxfab = Bx.array(mfi);
+        auto       Byfab = By.array(mfi);
+        auto       Bzfab = Bz.array(mfi);
+        auto const Exfab = Ex.array(mfi);
+        auto const Eyfab = Ey.array(mfi);
+        auto const Ezfab = Ez.array(mfi);
 
-        FTOC(push_magnetic_field_y)(BL_TO_FORTRAN_BOX(tby),
-                                    BL_TO_FORTRAN_3D(By[mfi]),
-                                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                                    BL_TO_FORTRAN_3D(Ez[mfi]),
-                                    dtsdx[0], dtsdx[2]);
+        AMREX_FOR_3D ( tbx, j, k, l,
+        {
+            push_magnetic_field_x(j,k,l, Bxfab, Eyfab, Ezfab, dtsdy, dtsdz);
+        });
 
-        FTOC(push_magnetic_field_z)(BL_TO_FORTRAN_BOX(tbz),
-                                    BL_TO_FORTRAN_3D(Bz[mfi]),
-                                    BL_TO_FORTRAN_3D(Ex[mfi]),
-                                    BL_TO_FORTRAN_3D(Ey[mfi]),
-                                    dtsdx[0], dtsdx[1]);
+        AMREX_FOR_3D ( tby, j, k, l,
+        {
+            push_magnetic_field_y(j,k,l, Byfab, Exfab, Ezfab, dtsdx, dtsdz);
+        });
+
+        AMREX_FOR_3D ( tbz, j, k, l,
+        {
+            push_magnetic_field_z(j,k,l, Bzfab, Exfab, Eyfab, dtsdx, dtsdy);
+        });
     }
 }
 
