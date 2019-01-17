@@ -274,7 +274,7 @@ namespace amrex
         //! between the SymmetricGhost and AsymmetricGhost copy functions.
         template<typename T>
         void regrid( T & mf_out, const BoxArray & ba, const DistributionMapping & dm,
-                     const EBFArrayBoxFactory & eb_factory,
+                     const FabFactory<FArrayBox> & eb_factory,
                      const T & mf_in, bool regrid_ghost = false ) {
 
             int ng = mf_in.nGrow();
