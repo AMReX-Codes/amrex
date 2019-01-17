@@ -5,6 +5,7 @@
 #include <AMReX_CudaDevice.H>
 #include <AMReX_Extension.H>
 #include <AMReX_REAL.H>
+#include <AMReX_Array.H>
 #include <iostream>
 #include <cmath>
 #ifdef AMREX_USE_CUDA
@@ -13,6 +14,26 @@
 
 namespace amrex {
 namespace Cuda {
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T LDG (Array4<T> const& a, int i, int j, int k) {
+#ifdef __CUDA_ARCH__
+        return __ldg(a.ptr(i,j,k,n));
+#else
+        return a(i,j,k);
+#endif
+    }
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T LDG (Array4<T> const& a, int i, int j, int k, int n) {
+#ifdef __CUDA_ARCH__
+        return __ldg(a.ptr(i,j,k,n));
+#else
+        return a(i,j,k,n);
+#endif
+    }
 
     inline bool isManaged (void const* p) {
 #ifdef AMREX_USE_CUDA

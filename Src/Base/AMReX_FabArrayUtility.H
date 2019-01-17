@@ -696,6 +696,166 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
     }
 }
 
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
 }
 
 #endif

@@ -84,6 +84,62 @@ used functions are
      // See AMReX_ParallelDescriptor.H for many other Reduce functions
      ParallelDescriptor::ReduceRealSum(x);
 
+ParallelContext
+===============
+
+Users can also use groups of MPI subcommunicators to perform
+simultaneous physics calculations.  These comms are managed by AMReX's
+:cpp:`ParallelContext` in ``AMReX_ParallelContext.H.``  It maintains a
+stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
+:cpp:`ParallelContext` stack during AMReX's initialization and
+additional subcommunicators can be handled by adding comms with 
+:cpp:`push(MPI_Comm)` and removed using :cpp:`pop()`.  This creates a
+hierarchy of :cpp:`MPI_Comm` objects that can be used to split work as
+the user sees fit. 
+ 
+:cpp:`ParallelContext` also tracks and returns information about the
+local (most recently added) and global :cpp:`MPI_Comm`.  The most common
+access functions are given below.  See ``AMReX_ParallelContext.H.`` for
+a full listing of the available functions.
+
+ .. highlight:: c++
+
+::
+
+     MPI_Comm subCommA = ....;
+     MPI_Comm subCommB = ....;
+     // Add a communicator to ParallelContext.
+     // After these pushes, subCommB becomes the 
+     //     "local" communicator.
+     ParallelContext::push(subCommA);
+     ParallelContext::push(subCommB);
+
+     // Get Global and Local communicator (subCommB).
+     MPI_Comm globalComm = ParallelContext::CommunicatorAll();
+     MPI_Comm localComm  = ParallelContext::CommunicatorSub();
+
+     // Get local number of ranks and global IO Processor Number.
+     int localRanks = ParallelContext::NProcsSub();
+     int globalIO     = ParallelContext::IOProcessorNumberAll();
+
+     if (ParallelContext::IOProcessorSub()) {
+         // Only the local I/O process executes this
+     }
+
+     // Translation of global rank to local communicator rank.
+     // Returns MPI_UNDEFINED if comms do not overlap.
+     int localRank = ParallelContext::global_to_local_rank(globalrank);
+
+     // Translations of MPI rank IDs using integer arrays.
+     // Returns MPI_UNDEFINED if comms do not overlap.
+     ParallelContext::global_to_local_rank(local_array, global_array, n);
+     ParallelContext::local_to_global_rank(global_array, local_array, n);
+
+     // Remove the last added subcommunicator.
+     // This would make "subCommA" the new local communicator.
+     // Note: The user still needs to free "subCommB". 
+     ParallelContext::pop();
+
 .. _sec:basics:print:
 
 Print

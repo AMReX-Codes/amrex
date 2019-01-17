@@ -331,8 +331,8 @@ class GShopLSFactory {
             Geometry geom(dom);
             m_geom = geom;
 
-            // Set up refined BoxArray. NOTE: ensure that the inputted (refence)
-            // BoxArray is nodal
+            // Set up refined BoxArray. NOTE: ensure that the inputted
+            // (reference) BoxArray is nodal
             BoxArray ba = amrex::convert(ba_crse, IntVect::TheNodeVector());
             ba.refine(ls_ref);
             m_ls_ba = ba;

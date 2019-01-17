@@ -81,6 +81,9 @@ public:
     FArrayBox const* fabDevicePtr (int i)             const { return m_mf.fabDevicePtr(i); }
     FArrayBox      * fabDevicePtr (int i)                   { return m_mf.fabDevicePtr(i); }
 
+    Array4<Real> array(const MFIter& mfi) const { return m_mf.array(mfi); }
+    Array4<Real> array(int i)             const { return m_mf.array(i);   }
+
     Box fabbox (int K) const { return m_mf.fabbox(K); }
 
     int size () const { return m_mf.size(); }
