@@ -31,13 +31,8 @@ DeriveRec::DeriveRec (const std::string& a_name,
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
-    func_3d(0),
     mapper(a_interp),
-    bx_map(box_map),
-    n_state(0),
-    nsr(0),
-    rng(0),
-    bcr(0)
+    bx_map(box_map)
 {}
 
 DeriveRec::DeriveRec (const std::string& a_name,
@@ -51,14 +46,25 @@ DeriveRec::DeriveRec (const std::string& a_name,
     variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
-    func(0),
     func_3d(der_func_3d),
     mapper(a_interp),
-    bx_map(box_map),
-    n_state(0),
-    nsr(0),
-    rng(0),
-    bcr(0)
+    bx_map(box_map)
+{}
+
+DeriveRec::DeriveRec (const std::string& a_name,
+                      IndexType      result_type,
+                      int            nvar_derive,
+                      DeriveFuncFab  der_func_fab,
+                      DeriveBoxMap   box_map,
+                      Interpolater*  a_interp)
+    :
+    derive_name(a_name),
+    variable_names(),
+    der_type(result_type),
+    n_derive(nvar_derive),
+    func_fab(der_func_fab),
+    mapper(a_interp),
+    bx_map(box_map)
 {}
 
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
@@ -71,14 +77,7 @@ DeriveRec::DeriveRec (const std::string&      a_name,
     variable_names(),
     der_type(result_type),
     n_derive(nvar_derive),
-    func(NULL),
-    func_3d(NULL),
-    mapper(NULL),
-    bx_map(box_map),
-    n_state(0),
-    nsr(0),
-    rng(0),
-    bcr(0)
+    bx_map(box_map)
 {}
 
 DeriveRec::DeriveRec (const std::string& a_name,
@@ -94,20 +93,15 @@ DeriveRec::DeriveRec (const std::string& a_name,
     der_type(result_type),
     n_derive(nvar_derive),
     func(der_func),
-    func_3d(0),
     mapper(a_interp),
-    bx_map(box_map),
-    n_state(0),
-    nsr(0),
-    rng(0),
-    bcr(0)
+    bx_map(box_map)
 {}
 
 DeriveRec::DeriveRec (const std::string& a_name,
                       IndexType      result_type,
                       int            nvar_derive,
 		      Vector<std::string>& var_names,
-                      DeriveFunc3D     der_func_3d,
+                      DeriveFunc3D   der_func_3d,
                       DeriveBoxMap   box_map,
                       Interpolater*  a_interp)
     :
@@ -115,21 +109,34 @@ DeriveRec::DeriveRec (const std::string& a_name,
     variable_names(var_names),
     der_type(result_type),
     n_derive(nvar_derive),
-    func(0),
     func_3d(der_func_3d),
     mapper(a_interp),
-    bx_map(box_map),
-    n_state(0),
-    nsr(0),
-    rng(0),
-    bcr(0)
+    bx_map(box_map)
+{}
+
+DeriveRec::DeriveRec (const std::string& a_name,
+                      IndexType      result_type,
+                      int            nvar_derive,
+		      Vector<std::string>& var_names,
+                      DeriveFuncFab  der_func_fab,
+                      DeriveBoxMap   box_map,
+                      Interpolater*  a_interp)
+    :
+    derive_name(a_name),
+    variable_names(var_names),
+    der_type(result_type),
+    n_derive(nvar_derive),
+    func_fab(der_func_fab),
+    mapper(a_interp),
+    bx_map(box_map)
 {}
 
 DeriveRec::~DeriveRec () 
 {
    delete [] bcr;
-   func     = 0;
-   func_3d  = 0;
+   func     = nullptr;
+   func_3d  = nullptr;
+   func_fab = nullptr;
    mapper   = 0;
    bx_map   = 0;
    while (rng != 0)
@@ -162,6 +169,12 @@ DeriveFunc3D
 DeriveRec::derFunc3D () const
 {
     return func_3d;
+}
+
+DeriveFuncFab
+DeriveRec::derFuncFab () const
+{
+    return func_fab;
 }
 
 DeriveRec::DeriveBoxMap
@@ -306,6 +319,17 @@ DeriveList::add (const std::string&      name,
     lst.push_back(DeriveRec(name,result_type,nvar_der,der_func_3d,bx_map,interp));
 }
 
+void
+DeriveList::add (const std::string&      name,
+                 IndexType               result_type,
+                 int                     nvar_der,
+                 DeriveFuncFab           der_func_fab,
+                 DeriveRec::DeriveBoxMap bx_map,
+                 Interpolater*           interp)
+{
+    lst.push_back(DeriveRec(name,result_type,nvar_der,der_func_fab,bx_map,interp));
+}
+
 // This version doesn't take a Fortran function name, it is entirely defined by the C++
 void
 DeriveList::add (const std::string&      name,
@@ -320,7 +344,7 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&     vars,
+                 Vector<std::string>&    vars,
                  DeriveFunc              der_func,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
@@ -332,12 +356,24 @@ void
 DeriveList::add (const std::string&      name,
                  IndexType               res_typ,
                  int                     nvar_der,
-                 Vector<std::string>&     vars,
+                 Vector<std::string>&    vars,
                  DeriveFunc3D            der_func_3d,
                  DeriveRec::DeriveBoxMap bx_map,
                  Interpolater*           interp)
 {
     lst.push_back(DeriveRec(name,res_typ,nvar_der,vars,der_func_3d,bx_map,interp));
+}
+
+void
+DeriveList::add (const std::string&      name,
+                 IndexType               res_typ,
+                 int                     nvar_der,
+                 Vector<std::string>&    vars,
+                 DeriveFuncFab           der_func_fab,
+                 DeriveRec::DeriveBoxMap bx_map,
+                 Interpolater*           interp)
+{
+    lst.push_back(DeriveRec(name,res_typ,nvar_der,vars,der_func_fab,bx_map,interp));
 }
 
 std::list<DeriveRec>&

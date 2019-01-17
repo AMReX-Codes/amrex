@@ -38,6 +38,10 @@ extern "C"
 				 const int* level, const int* grid_no) ;
 }
 
+typedef void (*DeriveFuncFab) (const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
+                               const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
+                               amrex::Real time, const int* bcrec, int level);
+
 class DescriptorList;
 
 //
@@ -81,8 +85,9 @@ public:
     //
     // The DeriveFunc used to calculate the derived type.
     //
-    DeriveFunc   derFunc   () const;
-    DeriveFunc3D derFunc3D () const;
+    DeriveFunc    derFunc    () const;
+    DeriveFunc3D  derFunc3D  () const;
+    DeriveFuncFab derFuncFab () const;
     //
     // Maps state data box to derived data box.
     //
@@ -132,6 +137,12 @@ protected:
                DeriveFunc3D   der_func_3d,
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
+    DeriveRec (const std::string& name,
+               IndexType      result_type,
+               int            nvar_derive,
+               DeriveFuncFab  der_func_fab,
+               DeriveBoxMap   box_map,
+               Interpolater*  interp = &pc_interp);
 
     //
     // Constructor without a Fortran function
@@ -155,6 +166,13 @@ protected:
                int                 nvar_derive,
 	       Vector<std::string>& var_names,
                DeriveFunc3D        der_func_3d,
+               DeriveBoxMap        box_map,
+               Interpolater*       interp = &pc_interp);
+    DeriveRec (const std::string&  name,
+               IndexType           result_type,
+               int                 nvar_derive,
+	       Vector<std::string>& var_names,
+               DeriveFuncFab       der_func_fab,
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
@@ -191,16 +209,17 @@ private:
     //
     // Number of components in derived quantity.
     //
-    int n_derive;
+    int n_derive = 0;
     //
     // Function that computes derived quantity from state variables.
     //
-    DeriveFunc   func;
-    DeriveFunc3D func_3d;
+    DeriveFunc    func = nullptr;
+    DeriveFunc3D  func_3d = nullptr;
+    DeriveFuncFab func_fab = nullptr;
     //
     // Interpolater for mapping crse grid derived data to finer levels.
     //
-    Interpolater* mapper;
+    Interpolater* mapper = nullptr;
     //
     // Box mapper that specifies constituent region given derived region.
     //
@@ -208,19 +227,19 @@ private:
     //
     // Total number of state variables.
     //
-    int n_state;
+    int n_state = 0;
     //
     // Number of state ranges.
     //
-    int nsr;
+    int nsr = 0;
     //
     // List of state data subranges required to derive given quantity.
     //
-    StateRange* rng;
+    StateRange* rng = nullptr;
     //
     // Array of bndry types.
     //
-    int* bcr;
+    int* bcr = nullptr;
 };
 
 //
@@ -259,6 +278,12 @@ public:
               DeriveFunc3D            der_func_3d,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
+    void add (const std::string&      name,
+              IndexType               result_type,
+              int                     nvar_derive,
+              DeriveFuncFab           der_func_fab,
+              DeriveRec::DeriveBoxMap box_map,
+              Interpolater*           interp = &pc_interp);
 
     //
     // This version doesn't take a Fortran function.
@@ -274,15 +299,22 @@ public:
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-	      Vector<std::string>&     var_names,
+              Vector<std::string>&    var_names,
               DeriveFunc              der_func,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
-	      Vector<std::string>&     var_names,
+              Vector<std::string>&    var_names,
               DeriveFunc3D            der_func_3d,
+              DeriveRec::DeriveBoxMap box_map,
+              Interpolater*           interp = &pc_interp);
+    void add (const std::string&      name,
+              IndexType               result_type,
+              int                     nvar_derive,
+              Vector<std::string>&    var_names,
+              DeriveFuncFab           der_func_fab,
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
     //

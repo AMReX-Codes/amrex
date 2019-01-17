@@ -82,16 +82,29 @@ namespace amrex
 	    for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	    {
 		const Box& bx = mfi.tilebox();
-                FArrayBox* dfab = dmf->fabPtr(mfi);
-                FArrayBox* sfab0 = smf[0]->fabPtr(mfi);
-                FArrayBox* sfab1 = smf[1]->fabPtr(mfi);
                 const Real t0 = stime[0];
                 const Real t1 = stime[1];
+                auto const sfab0 = smf[0]->array(mfi);
+                auto const sfab1 = smf[1]->array(mfi);
+                auto       dfab  = dmf->array(mfi);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                if (std::abs(t1-t0) > 1.e-16)
                 {
-                    dfab->linInterp(*sfab0,scomp,*sfab1,scomp,t0,t1,time,tbx,destcomp,ncomp);
-                });
+                    Real alpha = (t1-time)/(t1-t0);
+                    Real beta = (time-t0)/(t1-t0);
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
+                            +                     beta*sfab1(i,j,k,n+scomp);
+                    });
+                }
+                else
+                {
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
+                    });
+                }
 	    }
 
 	    if (sameba)

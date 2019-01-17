@@ -112,7 +112,7 @@ void LSFactory::update_ba(const BoxArray & new_ba, const DistributionMapping & d
     base_ba = new_ba;
 
     // Refined versions of both the cell-centered and nodal (phi)
-    const BoxArray & phi_ba = amrex::convert(new_ba, IntVect::TheNodeVector());
+    const BoxArray phi_ba = amrex::convert(new_ba, IntVect::TheNodeVector());
 
     ls_dm = dm;
 
@@ -648,7 +648,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         // Don't do anything for the current tile if EB facets are ill-defined
         if (! bndrycent.ok(mfi)){
             auto & ls_tile = data[mfi];
-            ls_tile.setVal( min_dx * eb_pad , tile_box );
+            ls_tile.setVal( min_dx *( eb_pad + 1), tile_box );
 
             // Ensure that tile-wise assignment is validated
             const auto & if_tile = eb_impfunc[mfi];

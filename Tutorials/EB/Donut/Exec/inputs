@@ -14,7 +14,7 @@ is_periodic = 0       0       0       # Is periodic in each direction?
 
 
 
-eb_amr.eb_pad     = 8
+eb_amr.eb_pad     = 2
 eb_amr.max_eb_pad = 8
 
 # VERBOSITY
