@@ -121,6 +121,15 @@ function ( set_amrex_compiler_flags )
 	 >>>>
 	 )	  
    endif ()
+
+   
+   #
+   # Set REQUIRED CUDA flags 
+   # 
+   target_compile_options ( amrex
+      PRIVATE
+      $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr --expt-extended-lambda>
+      )
    
    #
    # Floating-point exceptions flags only if enabled
