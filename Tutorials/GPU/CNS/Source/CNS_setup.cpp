@@ -1,5 +1,6 @@
 
 #include <CNS.H>
+#include <CNS_derive.H>
 
 using namespace amrex;
 
@@ -130,7 +131,6 @@ CNS::variableSetUp ()
 
     // DEFINE DERIVED QUANTITIES
 
-#if 0
     // Pressure
     derive_lst.add("pressure",IndexType::TheCellType(),1,
                    cns_derpres,the_same_box);
@@ -151,7 +151,6 @@ CNS::variableSetUp ()
                    cns_dervel,the_same_box);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
-#endif
 }
 
 void
