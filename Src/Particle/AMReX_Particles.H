@@ -709,6 +709,9 @@ public:
     void operator++ () {
         ++m_pariter_index;
         currentIndex = m_valid_index[m_pariter_index];
+#ifdef AMREX_USE_GPU
+        Gpu::Device::setStreamIndex(currentIndex);
+#endif
     }
 #endif
     
