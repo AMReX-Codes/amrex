@@ -1,7 +1,6 @@
 #include "Evolve.H"
 #include "NodalFlags.H"
 #include "Constants.H"
-#include "em_pic_F.H"
 #include "em_pic_K.H"
 #include <cmath>
 
