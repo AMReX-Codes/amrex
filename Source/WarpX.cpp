@@ -424,6 +424,8 @@ WarpX::ReadParameters ()
             jx_nodal_flag = IntVect::TheNodeVector();
             jy_nodal_flag = IntVect::TheNodeVector();
             jz_nodal_flag = IntVect::TheNodeVector();
+            // Use same shape factors in all directions, for gathering
+            l_lower_order_in_v = false;
         }
     }
 
