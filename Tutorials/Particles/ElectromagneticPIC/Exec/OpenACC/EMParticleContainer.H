@@ -78,6 +78,15 @@ public:
 
     void PushParticlePositions(amrex::Real dt);
 
+    void RedistributeLocal()
+    {
+        const int lev_min = 0;
+        const int lev_max = 0;
+        const int nGrow = 0;
+        const int local = 1;
+        Redistribute(lev_min, lev_max, nGrow, local);
+    }
+    
 protected:
 
     int m_species_id;

@@ -172,7 +172,7 @@ void test_em_pic(const TestParams& parms)
 
         for (int i = 0; i < num_species; ++i)
         {
-            particles[i]->Redistribute();
+            particles[i]->RedistributeLocal();
         }
         
         time += dt;

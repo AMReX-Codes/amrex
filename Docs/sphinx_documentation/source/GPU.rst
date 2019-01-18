@@ -190,7 +190,9 @@ Gpu Namespace and Macros
 Most GPU related classes and functions are in ``namespace Gpu``,
 which is inside ``namespace amrex``. For example, the GPU configuration
 class ``Device`` can be referenced to at ``amrex::Gpu::Device``. Other
-important objects in the Gpu namespace include ``Gpu::AsyncFab``. 
+important objects in the Gpu namespace include objects designed to work
+with GPU memory spaces, such as ``Gpu::AsyncFab`` a temporary
+:cpp:`FArrayBox` designed to work with CUDA streams. 
 
 For portability, AMReX defines some macros for CUDA function qualifiers
 and they should be preferred to allow execution with ``USE_CUDA=FALSE``.
@@ -354,7 +356,6 @@ A :cpp:`AsyncArray` is used by constructing it from a reference to a host
 object containing an initial value, retrieving the associated device pointer
 that is passed into an AMReX lambda function and copying the final value back
 to the CPU. An example is given below:
-
 
 .. COMMENT: NEED ASYNCARRAY EXAMPLE
 
@@ -537,9 +538,39 @@ pointers for the CPU and GPU :cpp:`FArrayBox` and storage for the associated
 metadata to minimize data movement.  The :cpp:`AsyncFab` is async-safe and can
 be used inside of an :cpp:`MFIter` loop without reducing CPU-GPU asynchronicity.
 It is portable, reducing to a simple :cpp:`FArrayBox` pointer when ran without
-CUDA.
+CUDA.  An example of using :cpp:`Gpu::AsyncFab` is given below:
 
-.. COMMENT: NEED ASYNCFAB EXAMPLE.
+.. highlight:: c++
+
+::
+
+   for (MFIter mfi(some_multifab); mfi.isValid(); ++mfi)
+   {
+      const Box& bx = mfi.validbox();
+
+      // Create temporary FAB with given box & number of components.
+      Gpu::AsyncFab q_box(bx, 1);
+      FArrayBox* q_fab = q_box.fabPtr();  // Get device pointer to fab.
+
+      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+      {
+          Calcs q_fab 
+      });
+
+      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+      {
+          Uses q_fab
+      });
+
+      q_box.clear();  // Added to the stream's kernel launch stack.
+                      // So, q_box remains until completed.
+
+      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+      {
+          More work w/o q_fab.
+      }
+   }
+
 
 MultiFabs and Accessing FArrayBoxes 
 -----------------------------------
