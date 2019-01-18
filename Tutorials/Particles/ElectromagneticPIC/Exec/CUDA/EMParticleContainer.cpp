@@ -1,7 +1,6 @@
 #include "EMParticleContainer.H"
 #include "Constants.H"
 
-#include "em_pic_F.H"
 #include "em_pic_K.H"
 
 using namespace amrex;

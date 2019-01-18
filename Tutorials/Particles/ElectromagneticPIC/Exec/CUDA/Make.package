@@ -1,5 +1,4 @@
 CEXE_sources += Evolve.cpp EMParticleContainer.cpp
 CEXE_headers += Evolve.H EMParticleContainer.H
 
-CEXE_headers += em_pic_F.H em_pic_K.H
-F90EXE_sources += em_pic_$(DIM)d.F90
+CEXE_headers += em_pic_K.H
