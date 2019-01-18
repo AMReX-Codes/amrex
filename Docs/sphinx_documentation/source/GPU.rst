@@ -329,6 +329,7 @@ and :cpp:`Box::length3d()` all return :cpp:`GpuArray`\s.
 
 .. _sec:gpu:classes:asyncarray:
 
+
 AsyncArray
 ----------
 
@@ -353,11 +354,68 @@ that contain both CPU work and GPU launches, including :cpp:`MFIter` loops.
 object only stores and handles the CPU version of the data.
 
 A :cpp:`AsyncArray` is used by constructing it from a reference to a host
-object containing an initial value, retrieving the associated device pointer
-that is passed into an AMReX lambda function and copying the final value back
-to the CPU. An example is given below:
+object containing an initial value, retrieving the associated device pointer,
+passing the pointer into an device function and copying the final value back
+to the CPU. An example using :cpp:`AsyncArray` is given below, which finds 
+the avarage value of all the boundary cells of a :cpp:`MultiFab`: 
 
-.. COMMENT: NEED ASYNCARRAY EXAMPLE
+.. highlight:: c++
+
+::
+
+    // Previously defined MultiFab "multiFab".
+    // Find the average value of boundary cells.
+    {
+        Real avg_val = 0;
+        Gpu::AsyncArray<Real> a_avg(&avg_val, 1);     // Build AsyncArray
+        Real* d_avg = a_avg.data(); 		      // Get associated device ptr.
+
+        long total_cells = 0;
+
+        for (MFIter mfi(multiFab); mfi.isValid(); ++mfi)
+        {
+            const Box& gbx = mfi.fabbox();
+            const Box& vbx = mfi.validbox();
+            BoxList blst = amrex::boxDiff(gbx,vbx);
+            const int nboxes = blst.size();
+            if (nboxes > 0)
+            {
+                // Create AsyncArray for boxes describing boundary and
+                //    obtain associated device pointer.
+                Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                Box const* pboxes = async_boxes.data();
+
+                long ncells = 0;
+                for (const auto& b : blst) {
+                    ncells += b.numPts();
+                }
+                total_cells += ncells;
+
+                const FArrayBox* fab = multiFab.fabPtr(mfi);
+                AMREX_FOR_1D ( ncells, icell,
+                {
+                    // Use async_boxes to calc cell for this thread.
+                    const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
+                    for (int n = strt_comp; n < strt_comp+ncomp; ++n)
+                    {
+                        *d_avg += fab(cell.x,cell.y,cell.z,n);   // Add cell value to total.
+                    }
+                });
+
+            }
+        }
+        a_avg.copyToHost(&avg_val, 1);         // Return d_avg value to host in avg_val.
+
+        avg_val = avg_val / total_cells; 
+    }
+
+Note that there are two :cpp:`AsyncArray`\s: one which is constructed outside
+the :cpp:`MFIter` loop and stores the sum of the cell values and one that is
+constructed inside that stores the data from the :cpp:`BoxArray` that
+defines the boundary. :cpp:`avg_val` needs to be returned after the sum of
+cell values is completed, so an explicit call to :cpp:`copyToHost` is made
+after the loop, but the :cpp:`async_boxes` is only used on the device, so no
+return call is needed.
 
 
 ManagedVector
@@ -869,10 +927,9 @@ lambda to capture. For example:
 
 Finally, AMReX's expected OpenMP strategy for GPUs is to utilize OpenMP in
 CPU regions to maintain multi-threaded parallelism on work that cannot be
-offloaded efficiently, while using CUDA independently in GPU regions:
-(MPI+OpenMP)+(MPI+CUDA).  This means OpenMP pragmas need to be maintained
-when ``USE_CUDA=FALSE`` and turned off in locations CUDA is implemented
-when ``USE_CUDA=TRUE``.
+offloaded efficiently, while using CUDA independently in GPU regions.  
+This means OpenMP pragmas need to be maintained when ``USE_CUDA=FALSE``
+and turned off in locations CUDA is implemented when ``USE_CUDA=TRUE``.
 
 This can currently be implemented in preparation for an OpenMP strategy and
 users are highly encouraged to do so now.  This prevents having to track
