@@ -152,58 +152,54 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
     BL_PROFILE("EMParticleContainer::PushAndDeposeParticles");
 
     const int lev = 0;
-    
-    const Real* dx  = Geom(lev).CellSize();
-    const Real* plo = Geom(lev).ProbLo();
+
+    const auto dxi = Geom(lev).InvCellSizeArray();
+    const auto plo = Geom(lev).ProbLoArray();
 
     for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int np  = pti.numParticles();
-        
-        auto& structs = pti.GetArrayOfStructs();
-        auto& attribs = pti.GetAttribs();
 
-        auto&  wp  = attribs[PIdx::w];
-        auto& uxp  = attribs[PIdx::ux];
-        auto& uyp  = attribs[PIdx::uy];
-        auto& uzp  = attribs[PIdx::uz];
-        auto& Exp  = attribs[PIdx::Ex];
-        auto& Eyp  = attribs[PIdx::Ey];
-        auto& Ezp  = attribs[PIdx::Ez];
-        auto& Bxp  = attribs[PIdx::Bx];
-        auto& Byp  = attribs[PIdx::By];
-        auto& Bzp  = attribs[PIdx::Bz];
-        auto& ginv = attribs[PIdx::ginv];
-        
-	FTOC(gather_magnetic_field)(np, structs.dataPtr(),
-                                    Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                                    BL_TO_FORTRAN_3D(Bx[pti]),
-                                    BL_TO_FORTRAN_3D(By[pti]),
-                                    BL_TO_FORTRAN_3D(Bz[pti]),
-                                    plo, dx);
-        
-	FTOC(gather_electric_field)(np, structs.dataPtr(),
-                                    Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                                    BL_TO_FORTRAN_3D(Ex[pti]),
-                                    BL_TO_FORTRAN_3D(Ey[pti]),
-                                    BL_TO_FORTRAN_3D(Ez[pti]),
-                                    plo, dx);
-        
-        FTOC(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
-                                  Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
-                                  Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
-                                  m_charge, m_mass, dt);
-        
-        FTOC(push_position_boris)(np, structs.dataPtr(),
-                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
-        
-        FTOC(deposit_current)(BL_TO_FORTRAN_3D(jx[pti]),
-                              BL_TO_FORTRAN_3D(jy[pti]),
-                              BL_TO_FORTRAN_3D(jz[pti]),
-                              np, structs.dataPtr(),
-                              uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(),
-                              ginv.dataPtr(), wp.dataPtr(),
-                              m_charge, plo, dt, dx);
+        ParticleType * AMREX_RESTRICT pstruct = &(pti.GetArrayOfStructs()[0]);
+
+        auto& attribs = pti.GetAttribs();
+        Real const * AMREX_RESTRICT  wp  = attribs[PIdx::w].data();
+        Real       * AMREX_RESTRICT uxp  = attribs[PIdx::ux].data();
+        Real       * AMREX_RESTRICT uyp  = attribs[PIdx::uy].data();
+        Real       * AMREX_RESTRICT uzp  = attribs[PIdx::uz].data();
+        Real       * AMREX_RESTRICT Exp  = attribs[PIdx::Ex].data();
+        Real       * AMREX_RESTRICT Eyp  = attribs[PIdx::Ey].data();
+        Real       * AMREX_RESTRICT Ezp  = attribs[PIdx::Ez].data();
+        Real       * AMREX_RESTRICT Bxp  = attribs[PIdx::Bx].data();
+        Real       * AMREX_RESTRICT Byp  = attribs[PIdx::By].data();
+        Real       * AMREX_RESTRICT Bzp  = attribs[PIdx::Bz].data();
+        Real       * AMREX_RESTRICT ginv = attribs[PIdx::ginv].data();
+
+        auto const Exarr = Ex.array(pti);
+        auto const Eyarr = Ey.array(pti);
+        auto const Ezarr = Ez.array(pti);
+        auto const Bxarr = Bx.array(pti);
+        auto const Byarr = By.array(pti);
+        auto const Bzarr = Bz.array(pti);
+        auto       jxarr = jx.array(pti);
+        auto       jyarr = jy.array(pti);
+        auto       jzarr = jz.array(pti);
+
+        Real q = m_charge;
+        Real m = m_mass;
+        AMREX_FOR_1D ( np, i,
+        {
+            gather_fields(pstruct[i], Exp[i], Eyp[i], Ezp[i], Bxp[i], Byp[i], Bzp[i],
+                          Exarr, Eyarr, Ezarr, Bxarr, Byarr, Bzarr, plo, dxi);
+
+            push_momentum_boris(uxp[i], uyp[i], uzp[i], ginv[i], Exp[i], Eyp[i], Ezp[i],
+                                Bxp[i], Byp[i], Bzp[i], q, m, dt);
+
+            push_position_boris(pstruct[i], uxp[i], uyp[i], uzp[i], ginv[i], dt);
+
+            deposit_current(jxarr, jyarr, jzarr, pstruct[i], uxp[i], uyp[i], uzp[i],
+                            ginv[i], wp[i], q, dt, plo, dxi);
+        });
     }
 }
 
@@ -256,27 +252,3 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
     }
 }
 
-void EMParticleContainer::PushParticlePositions(Real dt)
-{
-    BL_PROFILE("EMParticleContainer::PushParticlePositions");
-
-    const int lev = 0;
-    
-    for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int np  = pti.numParticles();
-        
-        auto& structs = pti.GetArrayOfStructs();
-
-        auto& attribs = pti.GetAttribs();
-        auto& uxp  = attribs[PIdx::ux];
-        auto& uyp  = attribs[PIdx::uy];
-        auto& uzp  = attribs[PIdx::uz];
-        auto& ginv = attribs[PIdx::ginv];
-
-        FTOC(set_gamma)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr());
-        
-        FTOC(push_position_boris)(np, structs.dataPtr(),
-                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
-    }
-}
