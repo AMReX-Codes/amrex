@@ -5,7 +5,7 @@
 #include <AMReX_Print.H>
 
 #include "myfunc.H"
-#include "mykernel.H"
+#include "myfunc_F.H"
 
 using namespace amrex;
 
@@ -91,18 +91,9 @@ void main_main ()
 
     // =======================================
     // Initialize phi_new by calling a Fortran routine.
+    // Offload work to GPU, depending on compiler flag
     // MFIter = MultiFab Iterator
-#if !defined (AMREX_USE_ACC) && !defined (AMREX_OMP_OFFLOAD)
-    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
-    {
-        const Box& vbx = mfi.validbox();
-        Array4<Real> phiNew = phi_new.array(mfi);
-        AMREX_FOR_3D ( vbx, i, j, k,
-        {
-            init_phi(i,j,k,phiNew,dx,prob_lo);
-        });
-    }
-#elif defined (AMREX_USE_ACC) && !defined (AMREX_OMP_OFFLOAD)
+#if defined (AMREX_USE_ACC) && !defined (AMREX_OMP_OFFLOAD)
 
     for(MFIter mfi(phi_new, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -124,10 +115,28 @@ void main_main ()
                      dx.data(), prob_lo.data());
     }
 
-#endif
+#else
+
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        FArrayBox* phiNew = phi_new.fabPtr(mfi);
+
+        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
+        {
+            init_phi(BL_TO_FORTRAN_BOX(tbx),
+                     BL_TO_FORTRAN_ANYD(*phiNew),
+                     dx.data(), prob_lo.data());
+        });
+
+    }
+
+#endif 
+    Gpu::Device::synchronize(); 
 
     // ========================================
 
+    // compute the time step
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // time = starting time in the simulation

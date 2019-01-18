@@ -1,10 +1,11 @@
 
 #include "myfunc.H"
-#include "mykernel.H"
+#include "myfunc_F.H"
+#include <AMReX_Gpu.H>
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
-              Array<MultiFab, AMREX_SPACEDIM> & flux,
+              Array<MultiFab, AMREX_SPACEDIM>& flux,
               Real dt,
               Geometry const& geom)
 {
@@ -12,7 +13,6 @@ void advance (MultiFab& phi_old,
     // Fill the ghost cells of each grid from the other grids
     // includes periodic domain boundaries
     phi_old.FillBoundary(geom.periodicity());
-
     //
     // Note that this simple example is not optimized.
     // The following two MFIter loops could be merged
@@ -23,52 +23,13 @@ void advance (MultiFab& phi_old,
     const Real dxinv = geom.InvCellSize(0);
     const Real dyinv = geom.InvCellSize(1);
     const Real dzinv = geom.InvCellSize(2);
+    int Ncomp = phi_old.nComp();
+    int ng_p = phi_old.nGrow();
+    int ng_f = flux[0].nGrow();
 
-#if !defined (AMREX_USE_ACC) && !defined (AMREX_OMP_OFFLOAD)
     // Compute fluxes one grid at a time
-    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
-    {
-        const Box& xbx = mfi.nodaltilebox(0);
-        const Box& ybx = mfi.nodaltilebox(1);
-        const Box& zbx = mfi.nodaltilebox(2);
-        Array4<Real> fluxx = flux[0].array(mfi);
-        Array4<Real> fluxy = flux[1].array(mfi);
-        Array4<Real> fluxz = flux[2].array(mfi);
-        const Array4<Real> phi = phi_old.array(mfi);
 
-        AMREX_FOR_3D ( xbx, i, j, k,
-        {
-            compute_flux_x(i,j,k,fluxx,phi,dxinv);
-        });
-
-        AMREX_FOR_3D ( ybx, i, j, k,
-        {
-            compute_flux_y(i,j,k,fluxy,phi,dyinv);
-        });
-
-        AMREX_FOR_3D ( zbx, i, j, k,
-        {
-            compute_flux_z(i,j,k,fluxz,phi,dzinv);
-        });
-    }
-
-    // Advance the solution one grid at a time
-    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
-    {
-        const Box& vbx = mfi.validbox();
-        const Array4<Real> fluxx = flux[0].array(mfi);
-        const Array4<Real> fluxy = flux[1].array(mfi);
-        const Array4<Real> fluxz = flux[2].array(mfi);
-        const Array4<Real> phiOld = phi_old.array(mfi);
-        Array4<Real>       phiNew = phi_old.array(mfi);
-
-        AMREX_FOR_3D ( vbx, i, j, k,
-        {
-            update_phi(i,j,k,phiOld,phiNew,fluxx,fluxy,fluxz,dt,dxinv,dyinv,dzinv);
-        });
-    }
-
-#elif defined (AMREX_USE_ACC) && !defined (AMREX_OMP_OFFLOAD)
+#if defined (AMREX_USE_ACC) && !defined (AMREX_OMP_OFFLOAD)
 
     for(MFIter mfi(phi_old, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -92,6 +53,7 @@ void advance (MultiFab& phi_old,
                            BL_TO_FORTRAN_ANYD(*fluxz),
                            BL_TO_FORTRAN_ANYD(*phi_fab), dzinv);
     }
+    Gpu::Device::synchronize();
 
     for(MFIter mfi(phi_old, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -110,6 +72,7 @@ void advance (MultiFab& phi_old,
                        BL_TO_FORTRAN_ANYD(*pnew_fab),
                        dt,dxinv,dyinv,dzinv);
     }
+    Gpu::Device::synchronize();
 
 #elif !defined (AMREX_USE_ACC) && defined (AMREX_OMP_OFFLOAD)
 
@@ -135,6 +98,7 @@ void advance (MultiFab& phi_old,
                            BL_TO_FORTRAN_ANYD(*fluxz),
                            BL_TO_FORTRAN_ANYD(*phi_fab), dzinv);
     }
+    Gpu::Device::synchronize();
 
     for(MFIter mfi(phi_old, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
@@ -153,6 +117,56 @@ void advance (MultiFab& phi_old,
                        BL_TO_FORTRAN_ANYD(*pnew_fab),
                        dt,dxinv,dyinv,dzinv);
     }
+    Gpu::Device::synchronize();
 
+#else
+
+    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+    {
+        const Box& vbx = mfi.validbox();
+        const GeometryData& geomdata = geom.data();
+        const FArrayBox* phiOld = phi_old.fabPtr(mfi);
+        FArrayBox* fluxX = flux[0].fabPtr(mfi);
+        FArrayBox* fluxY = flux[1].fabPtr(mfi);
+        FArrayBox* fluxZ = flux[2].fabPtr(mfi);
+
+            AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
+        {
+                compute_flux(BL_TO_FORTRAN_BOX(tbx),
+                             BL_TO_FORTRAN_BOX(geomdata.Domain()),
+                             BL_TO_FORTRAN_ANYD(*phiOld),
+                             BL_TO_FORTRAN_ANYD(*fluxX),
+                             BL_TO_FORTRAN_ANYD(*fluxY),
+                             BL_TO_FORTRAN_ANYD(*fluxZ),
+                             geomdata.CellSize());
+        });
+
+    }
+    Gpu::Device::synchronize();
+
+    // Advance the solution one grid at a time
+    for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
+    {
+        const Box& vbx = mfi.validbox();
+        const GeometryData& geomdata = geom.data();
+        const FArrayBox* phiOld = phi_old.fabPtr(mfi);
+        const FArrayBox* fluxX = flux[0].fabPtr(mfi);
+        const FArrayBox* fluxY = flux[1].fabPtr(mfi);
+        const FArrayBox* fluxZ = flux[2].fabPtr(mfi);
+        FArrayBox* phiNew = phi_new.fabPtr(mfi);
+
+        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx, 
+	{
+            update_phi(BL_TO_FORTRAN_BOX(tbx),
+                       BL_TO_FORTRAN_ANYD(*phiOld),
+                       BL_TO_FORTRAN_ANYD(*phiNew),
+                       BL_TO_FORTRAN_ANYD(*fluxX),
+                       BL_TO_FORTRAN_ANYD(*fluxY),
+                       BL_TO_FORTRAN_ANYD(*fluxZ),
+                       geomdata.CellSize(), dt);
+	});
+
+    }
+    Gpu::Device::synchronize();
 #endif
 }
