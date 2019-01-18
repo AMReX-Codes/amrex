@@ -76,8 +76,6 @@ public:
                              const amrex::MultiFab& Bz,
                              amrex::Real      dt);
 
-    void PushParticlePositions(amrex::Real dt);
-
 protected:
 
     int m_species_id;
