@@ -248,15 +248,15 @@ namespace amrex
         //! is re-defined. The boolean flag `regrid_ghost` switched between the
         //! SymmetricGhost and AsymmetricGhost copy functions.
         template<typename T>
-        void regrid( T * mf_out, const BoxArray & ba, const DistributionMapping & dm,
+        void regrid( T & mf_out, const BoxArray & ba, const DistributionMapping & dm,
                      const T & mf_in, bool regrid_ghost = false ) {
 
             int ng = mf_in.nGrow();
             int nc = mf_in.nComp();
 
-            mf_out->define(ba, dm, nc, ng);
-            if (regrid_ghost) SymmetricGhost<T>::copy(*  mf_out, mf_in, nc, ng);
-            else              AsymmetricGhost<T>::copy(* mf_out, mf_in, nc, ng);
+            mf_out.define(ba, dm, nc, ng);
+            if (regrid_ghost)  SymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
+            else              AsymmetricGhost<T>::copy(mf_out, mf_in, nc, ng);
         }
 
 
