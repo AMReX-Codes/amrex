@@ -190,32 +190,15 @@ void deposit_current (amrex::Array4<amrex::Real>& jx,
     amrex::Real sy0[] = {1.-yint, yint};
     amrex::Real sz0[] = {1.-zint, zint};
 
-    amrex::Gpu::Atomic::Add(&jx(j0  , k  , l  ), sx0[0]*sy[0]*sz[0]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0+1, k  , l  ), sx0[1]*sy[0]*sz[0]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0  , k+1, l  ), sx0[0]*sy[1]*sz[0]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0+1, k+1, l  ), sx0[1]*sy[1]*sz[0]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0  , k  , l+1), sx0[0]*sy[0]*sz[1]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0+1, k  , l+1), sx0[1]*sy[0]*sz[1]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0  , k+1, l+1), sx0[0]*sy[1]*sz[1]*wqx);
-    amrex::Gpu::Atomic::Add(&jx(j0+1, k+1, l+1), sx0[1]*sy[1]*sz[1]*wqx);
-
-    amrex::Gpu::Atomic::Add(&jy(j  , k0  , l  ), sx[0]*sy0[0]*sz[0]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j+1, k0  , l  ), sx[1]*sy0[0]*sz[0]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j  , k0+1, l  ), sx[0]*sy0[1]*sz[0]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j+1, k0+1, l  ), sx[1]*sy0[1]*sz[0]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j  , k0  , l+1), sx[0]*sy0[0]*sz[1]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j+1, k0  , l+1), sx[1]*sy0[0]*sz[1]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j  , k0+1, l+1), sx[0]*sy0[1]*sz[1]*wqy);
-    amrex::Gpu::Atomic::Add(&jy(j+1, k0+1, l+1), sx[1]*sy0[1]*sz[1]*wqy);
-
-    amrex::Gpu::Atomic::Add(&jz(j  , k  , l0  ), sx[0]*sy[0]*sz0[0]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j+1, k  , l0  ), sx[1]*sy[0]*sz0[0]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j  , k+1, l0  ), sx[0]*sy[1]*sz0[0]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j+1, k+1, l0  ), sx[1]*sy[1]*sz0[0]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j  , k  , l0+1), sx[0]*sy[0]*sz0[1]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j+1, k  , l0+1), sx[1]*sy[0]*sz0[1]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j  , k+1, l0+1), sx[0]*sy[1]*sz0[1]*wqz);
-    amrex::Gpu::Atomic::Add(&jz(j+1, k+1, l0+1), sx[1]*sy[1]*sz0[1]*wqz);
+    for         (int loff = 0; loff < 2; ++loff) {
+        for     (int koff = 0; koff < 2; ++koff) {
+            for (int joff = 0; joff < 2; ++joff) {
+                amrex::Gpu::Atomic::Add(&jx(j0+joff,k +koff,l +loff), sx0[joff]*sy [koff]*sz [loff]*wqx);
+                amrex::Gpu::Atomic::Add(&jy(j +joff,k0+koff,l +loff), sx [joff]*sy0[koff]*sz [loff]*wqy);
+                amrex::Gpu::Atomic::Add(&jz(j +joff,k +koff,l0+loff), sx [joff]*sy [koff]*sz0[loff]*wqz);
+            }
+        }
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
