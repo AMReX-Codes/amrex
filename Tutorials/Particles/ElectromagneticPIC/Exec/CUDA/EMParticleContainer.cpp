@@ -159,13 +159,14 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
     {
         const int np  = pti.numParticles();
 
-        ParticleType * AMREX_RESTRICT pstruct = &(pti.GetArrayOfStructs()[0]);
+        ParticleType * pstruct = &(pti.GetArrayOfStructs()[0]);
 
         auto& attribs = pti.GetAttribs();
-        Real const * AMREX_RESTRICT  wp  = attribs[PIdx::w].data();
-        Real       * AMREX_RESTRICT uxp  = attribs[PIdx::ux].data();
-        Real       * AMREX_RESTRICT uyp  = attribs[PIdx::uy].data();
-        Real       * AMREX_RESTRICT uzp  = attribs[PIdx::uz].data();
+        Real *  wp  = attribs[PIdx::w].data();
+        Real * uxp  = attribs[PIdx::ux].data();
+        Real * uyp  = attribs[PIdx::uy].data();
+        Real * uzp  = attribs[PIdx::uz].data();
+/*
         Real       * AMREX_RESTRICT Exp  = attribs[PIdx::Ex].data();
         Real       * AMREX_RESTRICT Eyp  = attribs[PIdx::Ey].data();
         Real       * AMREX_RESTRICT Ezp  = attribs[PIdx::Ez].data();
@@ -173,6 +174,7 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
         Real       * AMREX_RESTRICT Byp  = attribs[PIdx::By].data();
         Real       * AMREX_RESTRICT Bzp  = attribs[PIdx::Bz].data();
         Real       * AMREX_RESTRICT ginv = attribs[PIdx::ginv].data();
+*/
 
         auto const Exarr = Ex.array(pti);
         auto const Eyarr = Ey.array(pti);
@@ -188,16 +190,23 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
         Real m = m_mass;
         AMREX_FOR_1D ( np, i,
         {
-            gather_fields(pstruct[i], Exp[i], Eyp[i], Ezp[i], Bxp[i], Byp[i], Bzp[i],
+            amrex::Real Exp;
+            amrex::Real Eyp;
+            amrex::Real Ezp;
+            amrex::Real Bxp;
+            amrex::Real Byp;
+            amrex::Real Bzp;
+            amrex::Real ginv;
+            gather_fields(pstruct[i], Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                           Exarr, Eyarr, Ezarr, Bxarr, Byarr, Bzarr, plo, dxi);
 
-            push_momentum_boris(uxp[i], uyp[i], uzp[i], ginv[i], Exp[i], Eyp[i], Ezp[i],
-                                Bxp[i], Byp[i], Bzp[i], q, m, dt);
+            push_momentum_boris(uxp[i], uyp[i], uzp[i], ginv, Exp, Eyp, Ezp,
+                                Bxp, Byp, Bzp, q, m, dt);
 
-            push_position_boris(pstruct[i], uxp[i], uyp[i], uzp[i], ginv[i], dt);
+            push_position_boris(pstruct[i], uxp[i], uyp[i], uzp[i], ginv, dt);
 
             deposit_current(jxarr, jyarr, jzarr, pstruct[i], uxp[i], uyp[i], uzp[i],
-                            ginv[i], wp[i], q, dt, plo, dxi);
+                            ginv, wp[i], q, dt, plo, dxi);
         });
     }
 }
@@ -223,6 +232,7 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
         Real * AMREX_RESTRICT uxp  = attribs[PIdx::ux].data();
         Real * AMREX_RESTRICT uyp  = attribs[PIdx::uy].data();
         Real * AMREX_RESTRICT uzp  = attribs[PIdx::uz].data();
+        /*
         Real * AMREX_RESTRICT Exp  = attribs[PIdx::Ex].data();
         Real * AMREX_RESTRICT Eyp  = attribs[PIdx::Ey].data();
         Real * AMREX_RESTRICT Ezp  = attribs[PIdx::Ez].data();
@@ -230,6 +240,7 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
         Real * AMREX_RESTRICT Byp  = attribs[PIdx::By].data();
         Real * AMREX_RESTRICT Bzp  = attribs[PIdx::Bz].data();
         Real * AMREX_RESTRICT ginv = attribs[PIdx::ginv].data();
+        */
 
         auto const Exarr = Ex.array(pti);
         auto const Eyarr = Ey.array(pti);
@@ -242,11 +253,18 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
         Real m = m_mass;
         AMREX_FOR_1D ( np, i,
         {
-            gather_fields(pstruct[i], Exp[i], Eyp[i], Ezp[i], Bxp[i], Byp[i], Bzp[i],
+            amrex::Real Exp;
+            amrex::Real Eyp;
+            amrex::Real Ezp;
+            amrex::Real Bxp;
+            amrex::Real Byp;
+            amrex::Real Bzp;
+            amrex::Real ginv;
+            gather_fields(pstruct[i], Exp, Eyp, Ezp, Bxp, Byp, Bzp,
                           Exarr, Eyarr, Ezarr, Bxarr, Byarr, Bzarr, plo, dxi);
 
-            push_momentum_boris(uxp[i], uyp[i], uzp[i], ginv[i], Exp[i], Eyp[i], Ezp[i],
-                                Bxp[i], Byp[i], Bzp[i], q, m, dt);
+            push_momentum_boris(uxp[i], uyp[i], uzp[i], ginv, Exp, Eyp, Ezp,
+                                Bxp, Byp, Bzp, q, m, dt);
         });
     }
 }
