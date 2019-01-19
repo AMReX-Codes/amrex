@@ -16,9 +16,9 @@ namespace amrex {
 //
 // CellBilinear only works in 1D and 2D on cpu.
 //
-// CellQuadratic only works in 2D on cpu.
+// CellQuadratic only works in 2D and 3D on cpu.
 //
-// CellConvervativeQuartic only works with ref ratio of 2 on cpu
+// CellConservativeQuartic only works with ref ratio of 2 on cpu
 //
 
 //
