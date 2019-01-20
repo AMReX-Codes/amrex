@@ -2,8 +2,6 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../
 
-COMP      = gnu
-COMP      = pgi
 DIM       = 3 
 
 DEBUG     = FALSE
@@ -11,11 +9,11 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 USE_CUDA  = TRUE 
 
+COMP      = pgi
 USE_ACC   = TRUE
-USE_ACC   = FALSE
 
-USE_OMP_OFFLOAD = TRUE
-USE_OMP_OFFLOAD = FALSE
+#COMP      = ibm
+#USE_OMP_OFFLOAD = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 

@@ -2,6 +2,7 @@ Compile options and module requirement
 *** 
     *If using pgi compiler, load cuda/9.0.69 on summitdev
     *If using gcc compiler, load cuda/9.2.148 or default on summitdev
+    *If using ibm compiler, load cuda/9.0.69 on summitdev
 
 (1) CUDA Fortran; use pgi (so that AMREX_CUDA_FORT_DEVICE is expanded to be attributes(device))
     USE_CUDA = TRUE
@@ -11,7 +12,7 @@ Compile options and module requirement
     USE_ACC  = TRUE
     USE_OMP_OFFLOAD = FALSE
 
-(3) CUDA/OpenMP; use gcc
+(3) CUDA/OpenMP; use ibm xl
     USE_CUDA = TRUE
     USE_ACC  = FALSE
     USE_OMP_OFFLOAD = TRUE
