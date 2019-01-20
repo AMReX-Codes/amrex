@@ -5,7 +5,7 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = pgi
+COMP    = ibm
 
 TINY_PROFILE  = TRUE
 USE_PARTICLES = TRUE
@@ -14,8 +14,8 @@ PRECISION     = DOUBLE
 
 USE_MPI       = TRUE
 USE_OMP       = FALSE
-USE_ACC       = TRUE
-USE_OMP_OFFLOAD = FALSE
+USE_ACC       = FALSE
+USE_OMP_OFFLOAD = TRUE
 USE_CUDA      = TRUE
 
 Bpack   := 
