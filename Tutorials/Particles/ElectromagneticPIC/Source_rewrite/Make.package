@@ -1,0 +1,7 @@
+CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H
+CEXE_headers += Evolve.H EMParticleContainer.H
+CEXE_headers += em_pic_F.H
+
+CEXE_sources += main.cpp IO.cpp NodalFlags.cpp
+CEXE_sources += Evolve.cpp EMParticleContainer.cpp
+F90EXE_sources += em_pic_$(DIM)d.F90 em_pic_omp_$(DIM)d.F90
