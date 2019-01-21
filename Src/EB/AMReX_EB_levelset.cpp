@@ -816,6 +816,75 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
 
 
 
+void LSFactory::intersect_data (MultiFab & data, iMultiFab & valid,
+                                const MultiFab & data_in, const iMultiFab & valid_in,
+                                const Geometry & geom_ls) {
+
+    BL_PROFILE("LSFactory::intersect_data()");
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(data, true); mfi.isValid(); ++mfi){
+        Box tile_box = mfi.growntilebox();
+
+        const auto & valid_in_tile = valid_in[mfi];
+        const auto & ls_in_tile = data_in[mfi];
+        auto & v_tile = valid[mfi];
+        auto & ls_tile = data[mfi];
+
+        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
+                                              BL_TO_FORTRAN_3D(valid_in_tile),
+                                              BL_TO_FORTRAN_3D(ls_in_tile),
+                                              BL_TO_FORTRAN_3D(v_tile),
+                                              BL_TO_FORTRAN_3D(ls_tile)              );
+    }
+
+//    /****************************************************************************
+//     * Set boundary values of ls_grid                                           *
+//     ****************************************************************************/
+//
+//     BL_PROFILE_REGION_START("LSFactory::intersect_data()::bcs");
+//
+//     // Simulation domain
+//     Box domain(geom_ls.Domain());
+//
+//     // Int array flagging periodic directions => no need to fill the periodic
+//     // ones as they are filled by FillBoundary
+//     IntVect periodic(
+//             AMREX_D_DECL(
+//                 geom_ls.isPeriodic(0),
+//                 geom_ls.isPeriodic(1),
+//                 geom_ls.isPeriodic(2)
+//             )
+//         );
+//
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for(MFIter mfi(data); mfi.isValid(); ++mfi){
+//         const auto & valid_in_tile = valid_in[mfi];
+//         const auto & ls_in_tile = data_in[mfi];
+//         auto & v_tile = valid[mfi];
+//         auto & ls_tile = data[mfi];
+//
+//         amrex_eb_update_levelset_intersection_bcs( BL_TO_FORTRAN_3D(valid_in_tile),
+//                                                    BL_TO_FORTRAN_3D(ls_in_tile),
+//                                                    BL_TO_FORTRAN_3D(v_tile),
+//                                                    BL_TO_FORTRAN_3D(ls_tile),
+//                                                    periodic.getVect(),
+//                                                    domain.loVect(), domain.hiVect()  );
+//     }
+//
+//     BL_PROFILE_REGION_STOP("LSFactory::intersect_data()::bcs");
+
+    BL_PROFILE_REGION_START("LSFactory::intersect_data()::FillBoundary");
+    data.FillBoundary(geom_ls.periodicity());
+    BL_PROFILE_REGION_STOP("LSFactory::intersect_data()::FillBoundary");
+}
+
+
+
 std::unique_ptr<iMultiFab> LSFactory::Fill(const EBFArrayBoxFactory & eb_factory,
                                            const MultiFab & mf_impfunc) {
     return Fill(eb_factory, mf_impfunc, eb_tile_size);
