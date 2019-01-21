@@ -878,9 +878,9 @@ void LSFactory::intersect_data (MultiFab & data, iMultiFab & valid,
 //
 //     BL_PROFILE_REGION_STOP("LSFactory::intersect_data()::bcs");
 
-    BL_PROFILE_REGION_START("LSFactory::intersect_data()::FillBoundary");
-    data.FillBoundary(geom_ls.periodicity());
-    BL_PROFILE_REGION_STOP("LSFactory::intersect_data()::FillBoundary");
+//     BL_PROFILE_REGION_START("LSFactory::intersect_data()::FillBoundary");
+//     data.FillBoundary(geom_ls.periodicity());
+//     BL_PROFILE_REGION_STOP("LSFactory::intersect_data()::FillBoundary");
 }
 
 
