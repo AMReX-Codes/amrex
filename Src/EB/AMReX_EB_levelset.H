@@ -151,6 +151,11 @@ class LSFactory {
                                int eb_pad, const Geometry & eb_geom);
 
 
+        static void intersect_data (MultiFab & data, iMultiFab & valid,
+                                    const MultiFab & data_in, const iMultiFab & valid_in,
+                                    const Geometry & geom_ls);
+
+
         /************************************************************************
          *                                                                      *
          * Public member functions to update level-set data                     *
