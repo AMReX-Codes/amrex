@@ -202,7 +202,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                           int thread_num, int lev, Real dt )
 {
   Real *jx_ptr, *jy_ptr, *jz_ptr;
-  const int  *jxntot, *jyntot, *jzntot;
   const std::array<Real,3>& xyzmin_tile = WarpX::LowerCorner(pti.tilebox(), lev);
   const std::array<Real,3>& dx = WarpX::CellSize(lev);
   const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
@@ -252,15 +251,15 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
         local_jz_ptr->setVal(0.0, b, 0, 1);
       });
 
-      jxntot = local_jx[thread_num]->length();
-      jyntot = local_jy[thread_num]->length();
-      jzntot = local_jz[thread_num]->length();
+      auto jxntot = local_jx[thread_num]->length();
+      auto jyntot = local_jy[thread_num]->length();
+      auto jzntot = local_jz[thread_num]->length();
 
       BL_PROFILE_VAR_START(blp_pxr_cd);
       warpx_current_deposition(
-                               jx_ptr, &ngJ, jxntot,
-                               jy_ptr, &ngJ, jyntot,
-                               jz_ptr, &ngJ, jzntot,
+                               jx_ptr, &ngJ, jxntot.getVect(),
+                               jy_ptr, &ngJ, jyntot.getVect(),
+                               jz_ptr, &ngJ, jzntot.getVect(),
                                &np_current,
                                m_xp[thread_num].dataPtr(),
                                m_yp[thread_num].dataPtr(),
@@ -339,16 +338,16 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       {
         local_jz_ptr->setVal(0.0, b, 0, 1);
       });
-      jxntot = local_jx[thread_num]->length();
-      jyntot = local_jy[thread_num]->length();
-      jzntot = local_jz[thread_num]->length();
+      auto jxntot = local_jx[thread_num]->length();
+      auto jyntot = local_jy[thread_num]->length();
+      auto jzntot = local_jz[thread_num]->length();
 
       long ncrse = np - np_current;
       BL_PROFILE_VAR_START(blp_pxr_cd);
       warpx_current_deposition(
-                               jx_ptr, &ngJ, jxntot,
-                               jy_ptr, &ngJ, jyntot,
-                               jz_ptr, &ngJ, jzntot,
+                               jx_ptr, &ngJ, jxntot.getVect(),
+                               jy_ptr, &ngJ, jyntot.getVect(),
+                               jz_ptr, &ngJ, jzntot.getVect(),
                                &ncrse,
                                m_xp[thread_num].dataPtr() +np_current,
                                m_yp[thread_num].dataPtr() +np_current,
@@ -408,7 +407,6 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
   long ngRho = rhomf->nGrow();
   Real* data_ptr;
   Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
-  const int *rholen;
 
   const std::array<Real,3>& dx = WarpX::CellSize(lev);
   const std::array<Real,3>& cdx = WarpX::CellSize(std::max(lev-1,0));
@@ -426,7 +424,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       });
 
       data_ptr = local_rho[thread_num]->dataPtr();
-      rholen = local_rho[thread_num]->length();
+      auto rholen = local_rho[thread_num]->length();
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -478,7 +476,7 @@ WarpXParticleContainer::DepositCharge ( WarpXParIter& pti, RealVector& wp,
       });
 
       data_ptr = local_rho[thread_num]->dataPtr();
-      rholen = local_rho[thread_num]->length();
+      auto rholen = local_rho[thread_num]->length();
 #if (AMREX_SPACEDIM == 3)
       const long nx = rholen[0]-1-2*ngRho;
       const long ny = rholen[1]-1-2*ngRho;
@@ -621,7 +619,6 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
 
             // Data on the grid
             Real* data_ptr;
-            const int *rholen;
             FArrayBox& rhofab = (*rho)[pti];
 #ifdef _OPENMP
             Box tile_box = convert(pti.tilebox(), IntVect::TheUnitVector());
@@ -630,11 +627,11 @@ WarpXParticleContainer::GetChargeDensity (int lev, bool local)
             local_rho.resize(tile_box);
             local_rho = 0.0;
             data_ptr = local_rho.dataPtr();
-            rholen = local_rho.length();
+            auto rholen = local_rho.length();
 #else
             const std::array<Real, 3>& xyzmin = xyzmin_grid;
             data_ptr = rhofab.dataPtr();
-            rholen = rhofab.length();
+            auto rholen = rhofab.length();
 #endif
 
 #if (AMREX_SPACEDIM == 3)
