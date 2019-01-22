@@ -421,7 +421,8 @@ bool
 FArrayBox::contains_nan () const
 {
     const Real* dp = dptr;
-    for (int i = 0; i < numpts*nvar; i++) {
+    const long n = numPts()*nvar;
+    for (long i = 0; i < n; i++) {
         if (amrex::isnan(*dp++)) {
             return true;
         }
@@ -492,7 +493,8 @@ bool
 FArrayBox::contains_inf () const
 {
     const Real* dp = dptr;
-    for (int i = 0; i < numpts*nvar; i++) {
+    const long n = numPts()*nvar;
+    for (long i = 0; i < n; i++) {
         if (amrex::isinf(*dp++)) {
             return true;
         }

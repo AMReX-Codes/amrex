@@ -267,9 +267,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     const Box& bx = tag.sbox;
                     auto const sfab = this->array(tag.srcIndex);
                     auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
-                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, ii, jj, kk, n,
                     {
-                        pfab(i,j,k,n) = sfab(i,j,k,n+scomp);
+                        pfab(ii,jj,kk,n) = sfab(ii,jj,kk,n+scomp);
                     });
                     dptr += (bx.numPts() * ncomp * sizeof(value_type));
                 }
@@ -370,9 +370,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             auto       dfab = this->array(tag.dstIndex);
             const Dim3 offset = (tag.sbox.smallEnd() - tag.dbox.smallEnd()).dim3();
 
-            AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+            AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, ii, jj, kk, n,
             {
-                dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
+                dfab(ii,jj,kk,n+scomp) = sfab(ii+offset.x,jj+offset.y,kk+offset.z,n+scomp);
             });
 	});
 #ifdef AMREX_USE_GPU
@@ -986,9 +986,9 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                         const Box& bx = tag.sbox;
                         auto const sfab = src.array(tag.srcIndex);
                         auto pfab = amrex::makeArray4((value_type*)(dptr),bx);
-                        AMREX_HOST_DEVICE_FOR_4D ( bx, NC, i, j, k, n,
+                        AMREX_HOST_DEVICE_FOR_4D ( bx, NC, ii, jj, kk, n,
                         {
-                            pfab(i,j,k,n) = sfab(i,j,k,SC+n);
+                            pfab(ii,jj,kk,n) = sfab(ii,jj,kk,SC+n);
                         });
 
                         dptr += (bx.numPts() * NC * sizeof(value_type));
@@ -1098,14 +1098,14 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     Dim3 offset = (tag.dbox.smallEnd() - tag.sbox.smallEnd()).dim3();
 
 		    if (op == FabArrayBase::COPY) {
-                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, i, j, k, n,
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, ii, jj, kk, n,
                         {
-                            dfab(i+offset.x,j+offset.y,k+offset.z,DC+n) = sfab(i,j,k,SC+n);
+                            dfab(ii+offset.x,jj+offset.y,kk+offset.z,DC+n) = sfab(ii,jj,kk,SC+n);
                         });
 		    } else {
-                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, i, j, k, n,
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, ii, jj, kk, n,
                         {
-                            dfab(i+offset.x,j+offset.y,k+offset.z,DC+n) += sfab(i,j,k,SC+n);
+                            dfab(ii+offset.x,jj+offset.y,kk+offset.z,DC+n) += sfab(ii,jj,kk,SC+n);
                         });
 		    }
 		}

@@ -1195,7 +1195,7 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory)
 	    long s = m_fabs_v[i]->size();
 	    if (ownership[i]) {
 		shmem.n_values += s;
-		shmem.n_points += m_fabs_v[i]->nPts();
+		shmem.n_points += m_fabs_v[i]->numPts();
 	    }
 	    if (nextoffset[owner] < 0) {
 		offset[i] = 0;
