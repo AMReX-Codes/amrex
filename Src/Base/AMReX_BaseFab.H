@@ -104,17 +104,16 @@ struct BaseFabData : public Gpu::Managed
 {
     AMREX_GPU_HOST_DEVICE
     BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
-                 IntVect const& a_dlen, long a_numpts, long a_truesize,
+                 long a_numpts, long a_truesize,
                  bool a_ptr_owner, bool a_shared_memory)
         : dptr(a_dptr), domain(a_domain), nvar(a_nvar),
-          dlen(a_dlen), numpts(a_numpts), truesize(a_truesize),
+          numpts(a_numpts), truesize(a_truesize),
           ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
         {}
     BaseFabData () = default;
     T*      dptr;     // The data pointer.
     Box     domain;   // My index space.
     int     nvar;     // Number components.
-    IntVect dlen;     // Length of domain in each direction.
     long    numpts;   // Cached number of points in FAB.
     long    truesize; // nvar*numpts that was allocated on heap.
     bool    ptr_owner;// Owner of T*?
@@ -272,7 +271,7 @@ public:
     * giving the length of the domain in each direction
     */
     AMREX_GPU_HOST_DEVICE
-    const int* length () const { return this->dlen.getVect(); }
+    IntVect length () const { return this->domain.length(); }
 
     /**
     * \brief Returns the lower corner of the domain
@@ -1855,7 +1854,7 @@ BaseFab<T>::define ()
 template <class T>
 BaseFab<T>::BaseFab ()
     : BaseFabData<T>{nullptr, Box(), 0,
-                     IntVect(0), 0L, 0L,
+                     0L, 0L,
                      false, false}
 {}
 
@@ -1865,7 +1864,7 @@ BaseFab<T>::BaseFab (const Box& bx,
 		     bool       alloc,
 		     bool       shared)
     : BaseFabData<T>{nullptr, bx, n,
-                     bx.size(), bx.numPts(), 0L,
+                     bx.numPts(), 0L,
                      false, shared}
 {
     if (!this->shared_memory && alloc) define();
@@ -1874,7 +1873,7 @@ BaseFab<T>::BaseFab (const Box& bx,
 template <class T>
 BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp)
     : BaseFabData<T>{const_cast<T*>(rhs.dataPtr(scomp)), rhs.domain, ncomp,
-                     rhs.dlen, rhs.numpts, ncomp*rhs.numpts,
+                     rhs.numpts, ncomp*rhs.numpts,
                      false, false}
 {
     AMREX_ASSERT(scomp+ncomp <= rhs.nComp());
@@ -1918,7 +1917,7 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
 template<class T>
 BaseFab<T>::BaseFab (const Box& bx, int ncomp, T* p)
     : BaseFabData<T>{p, bx, ncomp,
-                     bx.size(), bx.numPts(), bx.numPts()*ncomp,
+                     bx.numPts(), bx.numPts()*ncomp,
                      false, false}
 {
 }
@@ -1932,7 +1931,7 @@ BaseFab<T>::~BaseFab ()
 template <class T>
 BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
     : BaseFabData<T>{rhs.dptr, rhs.domain, rhs.nvar,
-                     rhs.dlen, rhs.numpts, rhs.truesize,
+                     rhs.numpts, rhs.truesize,
                      rhs.ptr_owner, rhs.shared_memory}
 {
     rhs.dptr = nullptr;
@@ -1954,7 +1953,6 @@ BaseFab<T>::resize (const Box& b,
 {
     this->nvar   = n;
     this->domain = b;
-    this->dlen   = b.size();
     this->numpts = this->domain.numPts();
 
     if (this->dptr == 0)
