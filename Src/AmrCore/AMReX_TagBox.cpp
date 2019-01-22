@@ -58,6 +58,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
     const int* lo       = b1.loVect();
     int        longlen  = b1.longside();
 
+    long numpts = domain.numPts();
     Vector<TagType> cfab(numpts);
     TagType* cdat = cfab.dataPtr();
 
