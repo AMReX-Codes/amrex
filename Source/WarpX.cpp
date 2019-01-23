@@ -94,7 +94,7 @@ IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 int WarpX::n_field_gather_buffer = 0;
 int WarpX::n_current_deposition_buffer = -1;
 
-int WarpX::do_nodal = 0;
+int WarpX::do_nodal = false;
 
 WarpX* WarpX::m_instance = nullptr;
 
@@ -424,6 +424,8 @@ WarpX::ReadParameters ()
             jx_nodal_flag = IntVect::TheNodeVector();
             jy_nodal_flag = IntVect::TheNodeVector();
             jz_nodal_flag = IntVect::TheNodeVector();
+            // Use same shape factors in all directions, for gathering
+            l_lower_order_in_v = false;
         }
     }
 

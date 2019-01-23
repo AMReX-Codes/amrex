@@ -75,7 +75,7 @@ contains
        ex,ey,ez,bx,by,bz,ixyzmin,xmin,ymin,zmin,dx,dy,dz,nox,noy,noz, &
        exg,exg_lo,exg_hi,eyg,eyg_lo,eyg_hi,ezg,ezg_lo,ezg_hi, &
        bxg,bxg_lo,bxg_hi,byg,byg_lo,byg_hi,bzg,bzg_lo,bzg_hi, &
-       ll4symtry,l_lower_order_in_v, &
+       ll4symtry,l_lower_order_in_v, l_nodal,&
        lvect,field_gathe_algo) &
        bind(C, name="warpx_geteb_energy_conserving")
 
@@ -87,12 +87,12 @@ contains
     real(amrex_real), intent(in) :: xmin,ymin,zmin,dx,dy,dz
     integer(c_long), intent(in) :: field_gathe_algo
     integer(c_long), intent(in) :: np,nox,noy,noz
-    integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v
+    integer(c_int), intent(in)  :: ll4symtry,l_lower_order_in_v, l_nodal
     integer(c_long),intent(in)   :: lvect
     real(amrex_real), intent(in), dimension(np) :: xp,yp,zp
     real(amrex_real), intent(out), dimension(np) :: ex,ey,ez,bx,by,bz
     real(amrex_real),intent(in):: exg(*), eyg(*), ezg(*), bxg(*), byg(*), bzg(*)
-    logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v
+    logical(pxr_logical) :: pxr_ll4symtry, pxr_l_lower_order_in_v, pxr_l_nodal
 
     ! Compute the number of valid cells and guard cells
     integer(c_long) :: exg_nvalid(AMREX_SPACEDIM), eyg_nvalid(AMREX_SPACEDIM), ezg_nvalid(AMREX_SPACEDIM),    &
@@ -102,7 +102,8 @@ contains
 
     pxr_ll4symtry = ll4symtry .eq. 1
     pxr_l_lower_order_in_v = l_lower_order_in_v .eq. 1
-
+    pxr_l_nodal = l_nodal .eq. 1
+    
     exg_nguards = ixyzmin - exg_lo
     eyg_nguards = ixyzmin - eyg_lo
     ezg_nguards = ixyzmin - ezg_lo
@@ -124,7 +125,7 @@ contains
          bxg,bxg_nguards,bxg_nvalid,&
          byg,byg_nguards,byg_nvalid,&
          bzg,bzg_nguards,bzg_nvalid,&
-	 pxr_ll4symtry, pxr_l_lower_order_in_v, &
+	 pxr_ll4symtry, pxr_l_lower_order_in_v, pxr_l_nodal, &
 	 lvect, field_gathe_algo )
 
   end subroutine warpx_geteb_energy_conserving

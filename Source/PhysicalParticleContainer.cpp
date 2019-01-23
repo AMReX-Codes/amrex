@@ -983,7 +983,7 @@ PhysicalParticleContainer::FieldGather (int lev,
                BL_TO_FORTRAN_ANYD(bxfab),
 	       BL_TO_FORTRAN_ANYD(byfab),
 	       BL_TO_FORTRAN_ANYD(bzfab),
-	       &ll4symtry, &WarpX::l_lower_order_in_v,
+	       &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
 	       &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             if (cost) {
@@ -1288,7 +1288,7 @@ PhysicalParticleContainer::Evolve (int lev,
                     BL_TO_FORTRAN_ANYD(*bxfab),
                     BL_TO_FORTRAN_ANYD(*byfab),
                     BL_TO_FORTRAN_ANYD(*bzfab),
-                    &ll4symtry, &WarpX::l_lower_order_in_v,
+                    &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                     &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
                 if (np_gather < np)
@@ -1385,7 +1385,7 @@ PhysicalParticleContainer::Evolve (int lev,
                         BL_TO_FORTRAN_ANYD(*cbxfab),
                         BL_TO_FORTRAN_ANYD(*cbyfab),
                         BL_TO_FORTRAN_ANYD(*cbzfab),
-                        &ll4symtry, &WarpX::l_lower_order_in_v,
+                        &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                         &lvect_fieldgathe, &WarpX::field_gathering_algo);
                 }
 
@@ -1560,7 +1560,7 @@ PhysicalParticleContainer::PushP (int lev, Real dt,
                 BL_TO_FORTRAN_ANYD(bxfab),
                 BL_TO_FORTRAN_ANYD(byfab),
                 BL_TO_FORTRAN_ANYD(bzfab),
-                &ll4symtry, &WarpX::l_lower_order_in_v,
+                &ll4symtry, &WarpX::l_lower_order_in_v, &WarpX::do_nodal,
                 &lvect_fieldgathe, &WarpX::field_gathering_algo);
 
             warpx_particle_pusher_momenta(&np,
