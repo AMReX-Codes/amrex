@@ -3,21 +3,12 @@
 
 #include <AMReX_BLFort.H>
 
-// A macro that add either _acc or _omp to function names
-#if defined (AMREX_USE_ACC) && ! defined (AMREX_OMP_OFFLOAD)
-#define FUNC_SUFFIX(x) x##_acc
-#elif !defined (AMREX_USE_ACC) && defined (AMREX_OMP_OFFLOAD)
-#define FUNC_SUFFIX(x) x##_omp
-#else
-#define FUNC_SUFFIX(x) x
-#endif
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    void FUNC_SUFFIX(push_momentum_boris)
+    void push_momentum_boris_omp
         (const int np,
          amrex::Real* uxp,
          amrex::Real* uyp,
@@ -33,7 +24,7 @@ extern "C"
          const amrex::Real m,
          const amrex::Real dt);
 
-    void FUNC_SUFFIX(push_position_boris)
+    void push_position_boris_omp
         (const int np, void* structs,
          const amrex::Real* uxp,
          const amrex::Real* uyp,
@@ -41,13 +32,13 @@ extern "C"
          const amrex::Real* gaminv,
          const amrex::Real dt);
 
-    void FUNC_SUFFIX(set_gamma)(const int np,
+    void set_gamma_omp(const int np,
                          const amrex::Real* uxp,
                          const amrex::Real* uyp,
                          const amrex::Real* uzp,
                          amrex::Real* gaminv);
 
-    void FUNC_SUFFIX(deposit_current)(BL_FORT_FAB_ARG_3D(jx),
+    void deposit_current_omp(BL_FORT_FAB_ARG_3D(jx),
                                BL_FORT_FAB_ARG_3D(jy),
                                BL_FORT_FAB_ARG_3D(jz),
                                const int np, const void* structs,
@@ -61,7 +52,7 @@ extern "C"
                                const amrex::Real dt,
                                const amrex::Real* dx);
 
-    void FUNC_SUFFIX(gather_magnetic_field)(const int np, const void* structs,
+    void gather_magnetic_field_omp(const int np, const void* structs,
                                      amrex::Real* bx,
                                      amrex::Real* by,
                                      amrex::Real* bz,
@@ -71,7 +62,7 @@ extern "C"
                                      const amrex::Real* plo, const amrex::Real* dx);
 
 
-    void FUNC_SUFFIX(gather_electric_field)(const int np, const void* structs,
+    void gather_electric_field_omp(const int np, const void* structs,
                                      amrex::Real* ex,
                                      amrex::Real* ey,
                                      amrex::Real* ez,
@@ -80,7 +71,7 @@ extern "C"
                                      const BL_FORT_FAB_ARG_3D(ezg),
                                      const amrex::Real* plo, const amrex::Real* dx);
 
-    void FUNC_SUFFIX(push_electric_field_x)(const int* xlo, const int* xhi,
+    void push_electric_field_x_omp(const int* xlo, const int* xhi,
                                      BL_FORT_FAB_ARG_3D(ex),
                                      const BL_FORT_FAB_ARG_3D(by),
                                      const BL_FORT_FAB_ARG_3D(bz),
@@ -89,7 +80,7 @@ extern "C"
                                      const amrex::Real dtsdy,
                                      const amrex::Real dtsdz);
 
-    void FUNC_SUFFIX(push_electric_field_y)(const int* ylo, const int* yhi,
+    void push_electric_field_y_omp(const int* ylo, const int* yhi,
                                      BL_FORT_FAB_ARG_3D(ey),
                                      const BL_FORT_FAB_ARG_3D(bx),
                                      const BL_FORT_FAB_ARG_3D(bz),
@@ -98,7 +89,7 @@ extern "C"
                                      const amrex::Real dtsdx,
                                      const amrex::Real dtsdz);
 
-    void FUNC_SUFFIX(push_electric_field_z)(const int* zlo, const int* zhi,
+    void push_electric_field_z_omp(const int* zlo, const int* zhi,
                                      BL_FORT_FAB_ARG_3D(ez),
                                      const BL_FORT_FAB_ARG_3D(bx),
                                      const BL_FORT_FAB_ARG_3D(by),
@@ -107,21 +98,21 @@ extern "C"
                                      const amrex::Real dtsdx,
                                      const amrex::Real dtsdy);
 
-    void FUNC_SUFFIX(push_magnetic_field_x)(const int* xlo, const int* xhi,
+    void push_magnetic_field_x_omp(const int* xlo, const int* xhi,
                                      BL_FORT_FAB_ARG_3D(bx),
                                      const BL_FORT_FAB_ARG_3D(ey),
                                      const BL_FORT_FAB_ARG_3D(ez),
                                      const amrex::Real dtsdy,
                                      const amrex::Real dtsdz);
 
-    void FUNC_SUFFIX(push_magnetic_field_y)(const int* ylo, const int* yhi,
+    void push_magnetic_field_y_omp(const int* ylo, const int* yhi,
                                      BL_FORT_FAB_ARG_3D(by),
                                      const BL_FORT_FAB_ARG_3D(ex),
                                      const BL_FORT_FAB_ARG_3D(ez),
                                      const amrex::Real dtsdx,
                                      const amrex::Real dtsdz);
 
-    void FUNC_SUFFIX(push_magnetic_field_z)(const int* zlo, const int* zhi,
+    void push_magnetic_field_z_omp(const int* zlo, const int* zhi,
                                      BL_FORT_FAB_ARG_3D(bz),
                                      const BL_FORT_FAB_ARG_3D(ex),
                                      const BL_FORT_FAB_ARG_3D(ey),

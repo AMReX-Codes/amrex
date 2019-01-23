@@ -1,2 +1,5 @@
-CEXE_sources += main.cpp IO.cpp NodalFlags.cpp
 CEXE_headers += Constants.H Particles.H IO.H NodalFlags.H
+CEXE_headers += Evolve.H EMParticleContainer.H
+
+CEXE_sources += main.cpp IO.cpp NodalFlags.cpp
+F90EXE_sources += em_pic_common.F90

@@ -1,32 +1,5 @@
-module constants
-  use amrex_fort_module, only : amrex_real
-
-  real(amrex_real), parameter :: clight  = 2.99792458d8
-  real(amrex_real), parameter :: epsilon_0 = 8.85418782d-12
-  real(amrex_real), parameter :: electron_charge = 1.60217662d-19
-  real(amrex_real), parameter :: electron_mass = 9.10938356d-31
-
-end module
-
-module em_particle_module
-  use amrex_fort_module, only: amrex_real, amrex_particle_real
-  use iso_c_binding ,    only: c_int
-
-  implicit none
-  private
-
-  public  particle_t
-
-  type, bind(C)  :: particle_t
-     real(amrex_particle_real) :: pos(3)     !< Position
-     integer(c_int)            :: id         !< Particle id
-     integer(c_int)            :: cpu        !< Particle cpu
-  end type particle_t
-
-end module em_particle_module
-
-subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
-     ex, ey, ez, bx, by, bz, q, m, dt)
+subroutine push_momentum_boris_acc(np, uxp, uyp, uzp, gaminv, &
+     ex, ey, ez, bx, by, bz, q, m, dt) bind(c,name='push_momentum_boris_acc')
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
@@ -89,10 +62,11 @@ subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_momentum_boris
+end subroutine push_momentum_boris_acc
 
 
-subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
+subroutine push_position_boris_acc(np, structs, uxp, uyp, uzp, gaminv, dt) &
+    bind(c,name='push_position_boris_acc')
 
   use em_particle_module, only : particle_t
   use amrex_fort_module, only : amrex_real
@@ -115,9 +89,10 @@ subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
   !$acc end loop
   !$acc end parallel
   
-end subroutine push_position_boris
+end subroutine push_position_boris_acc
 
-subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
+subroutine set_gamma_acc(np, uxp, uyp, uzp, gaminv) &
+    bind(c,name='set_gamma_acc')
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
@@ -140,10 +115,10 @@ subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
   !$acc end loop
   !$acc end parallel
   
-end subroutine set_gamma
+end subroutine set_gamma_acc
 
-subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &
-     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
+subroutine deposit_current_acc(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) bind(c,name='deposit_current_acc')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -299,10 +274,11 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, s
 !$acc end loop
 !$acc end parallel
 
-end subroutine deposit_current
+end subroutine deposit_current_acc
 
-subroutine gather_magnetic_field(np, structs, bx, by, bz, &
-     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx)
+subroutine gather_magnetic_field_acc(np, structs, bx, by, bz, &
+     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) &
+     bind(c,name='gather_magnetic_field_acc')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -432,10 +408,11 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine gather_magnetic_field
+end subroutine gather_magnetic_field_acc
 
-subroutine gather_electric_field(np, structs, ex, ey, ez, &
-     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx)
+subroutine gather_electric_field_acc(np, structs, ex, ey, ez, &
+     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) &
+     bind(c,name='gather_electric_field_acc')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -563,10 +540,11 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine gather_electric_field
+end subroutine gather_electric_field_acc
 
-subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
-     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz)
+subroutine push_electric_field_x_acc(xlo, xhi, ex, exlo, exhi,               &
+     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) &
+     bind(c,name='push_electric_field_x_acc')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -597,11 +575,12 @@ subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_electric_field_x
+end subroutine push_electric_field_x_acc
 
-subroutine push_electric_field_y(ylo, yhi, &
+subroutine push_electric_field_y_acc(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
-     jy, jylo, jyhi, mudt, dtsdx, dtsdz)
+     jy, jylo, jyhi, mudt, dtsdx, dtsdz) &
+     bind(c,name='push_electric_field_y_acc')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -632,11 +611,12 @@ subroutine push_electric_field_y(ylo, yhi, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_electric_field_y
+end subroutine push_electric_field_y_acc
 
-subroutine push_electric_field_z(zlo, zhi, &
+subroutine push_electric_field_z_acc(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
-     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)
+     jz, jzlo, jzhi, mudt, dtsdx, dtsdy) &
+     bind(c,name='push_electric_field_z_acc')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -668,10 +648,11 @@ subroutine push_electric_field_z(zlo, zhi, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_electric_field_z
+end subroutine push_electric_field_z_acc
 
-subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
-     ez, ezlo, ezhi, dtsdy, dtsdz)
+subroutine push_magnetic_field_x_acc(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
+     ez, ezlo, ezhi, dtsdy, dtsdz) &
+     bind(c,name='push_magnetic_field_x_acc')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -700,10 +681,11 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_magnetic_field_x
+end subroutine push_magnetic_field_x_acc
 
-subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
-     ez, ezlo, ezhi, dtsdx, dtsdz)
+subroutine push_magnetic_field_y_acc(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
+     ez, ezlo, ezhi, dtsdx, dtsdz) &
+     bind(c,name='push_magnetic_field_y_acc')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -732,10 +714,11 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_magnetic_field_y
+end subroutine push_magnetic_field_y_acc
 
-subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
-     ey, eylo, eyhi, dtsdx, dtsdy)
+subroutine push_magnetic_field_z_acc(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
+     ey, eylo, eyhi, dtsdx, dtsdy) &
+     bind(c,name='push_magnetic_field_z_acc')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -764,50 +747,5 @@ subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
 !$acc end loop
 !$acc end parallel
 
-end subroutine push_magnetic_field_z
-
-subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi, &
-     time, max_error) bind(c,name='check_langmuir_solution')
-
-  use amrex_fort_module, only : amrex_real
-  use constants
-
-  implicit none
-
-  integer,          intent(in)    :: boxlo(3),  boxhi(3)
-  integer,          intent(in)    :: testlo(3), testhi(3)
-  integer,          intent(in)    :: jxlo(3),   jxhi(3)
-  real(amrex_real), intent(in)    :: jx(jxlo(1):jxhi(1),jxlo(2):jxhi(2),jxlo(3):jxhi(3))
-  real(amrex_real), intent(in), value :: time
-  real(amrex_real), intent(inout) :: max_error
-
-  integer :: j,k,l
-  integer :: lo(3), hi(3)
-
-  real(amrex_real) error
-  real(amrex_real) exact
-
-  real(amrex_real), parameter :: u  = 0.01
-  real(amrex_real), parameter :: n0 = 1.d25
-  real(amrex_real) wp
-
-  wp = sqrt(n0*electron_charge**2/(electron_mass*epsilon_0))
-
-  error = 0.0
-  exact = -n0*electron_charge*clight*u*cos(wp*time)
-
-  lo = max(boxlo, testlo)
-  hi = min(boxhi, testhi)
-
-  do l       = lo(3), hi(3)
-     do k    = lo(2), hi(2)
-        do j = lo(1), hi(1)
-           error = max(error, abs(jx(j,k,l) - exact) / abs(exact))
-        end do
-     end do
-  end do
-
-  max_error = error
-
-end subroutine check_langmuir_solution
+end subroutine push_magnetic_field_z_acc
 

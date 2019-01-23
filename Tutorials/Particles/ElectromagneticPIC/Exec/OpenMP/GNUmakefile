@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../..
+AMREX_HOME ?= ../../../../../
 
 DEBUG	= TRUE
 DEBUG	= FALSE
@@ -18,7 +18,7 @@ USE_ACC       = FALSE
 USE_OMP_OFFLOAD = TRUE
 USE_CUDA      = TRUE
 
-Bpack   := 
+Bpack   := ./Make.package 
 Blocs   := . 
 
-include ../Make.EMPIC.Rewrite
+include ../../Make.EMPIC

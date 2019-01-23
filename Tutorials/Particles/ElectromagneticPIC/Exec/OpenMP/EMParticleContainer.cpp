@@ -174,29 +174,29 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
         auto& Bzp  = attribs[PIdx::Bz];
         auto& ginv = attribs[PIdx::ginv];
         
-	FUNC_SUFFIX(gather_magnetic_field)(np, structs.dataPtr(),
+	gather_magnetic_field_omp(np, structs.dataPtr(),
                                     Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
         
-	FUNC_SUFFIX(gather_electric_field)(np, structs.dataPtr(),
+	gather_electric_field_omp(np, structs.dataPtr(),
                                     Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
                                     BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
         
-        FUNC_SUFFIX(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
+        push_momentum_boris_omp(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
                                   Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                   Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                   m_charge, m_mass, dt);
         
-        FUNC_SUFFIX(push_position_boris)(np, structs.dataPtr(),
+        push_position_boris_omp(np, structs.dataPtr(),
                                   uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
         
-        FUNC_SUFFIX(deposit_current)(BL_TO_FORTRAN_3D(jx[pti]),
+        deposit_current_omp(BL_TO_FORTRAN_3D(jx[pti]),
                               BL_TO_FORTRAN_3D(jy[pti]),
                               BL_TO_FORTRAN_3D(jz[pti]),
                               np, structs.dataPtr(),
@@ -235,21 +235,21 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
         auto& Bzp  = attribs[PIdx::Bz];
         auto& ginv = attribs[PIdx::ginv];
 
-	FUNC_SUFFIX(gather_magnetic_field)(np, structs.dataPtr(),
+	gather_magnetic_field_omp(np, structs.dataPtr(),
                                     Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
         
-	FUNC_SUFFIX(gather_electric_field)(np, structs.dataPtr(),
+	gather_electric_field_omp(np, structs.dataPtr(),
                                     Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
                                     BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
         
-        FUNC_SUFFIX(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
+        push_momentum_boris_omp(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
                                   Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                   Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                   m_charge, m_mass, dt);
@@ -274,9 +274,9 @@ void EMParticleContainer::PushParticlePositions(Real dt)
         auto& uzp  = attribs[PIdx::uz];
         auto& ginv = attribs[PIdx::ginv];
 
-        FUNC_SUFFIX(set_gamma)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr());
+        set_gamma_omp(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr());
         
-        FUNC_SUFFIX(push_position_boris)(np, structs.dataPtr(),
+        push_position_boris_omp(np, structs.dataPtr(),
                                   uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
     }
 }

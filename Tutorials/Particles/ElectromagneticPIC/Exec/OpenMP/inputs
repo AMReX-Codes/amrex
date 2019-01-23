@@ -1,8 +1,6 @@
 
 ncell = (128, 128, 128)
 nppc  = (4, 4, 4) #number of particles per cell
-#ncell = (8, 8, 8)
-#nppc  = (1, 1, 1) #number of particles per cell
 
 max_grid_size = 64
 

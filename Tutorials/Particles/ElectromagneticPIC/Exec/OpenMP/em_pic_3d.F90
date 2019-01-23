@@ -120,7 +120,6 @@ subroutine deposit_current_omp(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, n
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
-  use omp_lib, only : omp_get_team_num, omp_get_num_teams
   implicit none
 
   integer,          intent(in), value    :: np
@@ -143,7 +142,6 @@ subroutine deposit_current_omp(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, n
   real(amrex_real), dimension(2)  :: sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1)
   real(amrex_real), parameter     :: onesixth=1.d0/6.d0, twothird=2.d0/3.d0
   integer                         :: j, k, l, j0, k0, l0, ip
-  integer           :: teamsize, teamid
 
   dxi = 1.d0/dx(1)
   dyi = 1.d0/dx(2)
@@ -211,58 +209,56 @@ subroutine deposit_current_omp(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, n
     sz0( 1) = zint
 
     ! --- add current contributions in the form rho(n+1/2)v(n+1/2)
- !   !$omp critical
     !$omp atomic update
-   jx(j0, k, l  )      = jx(j0, k, l      )  +   sx0(0)*sy(0)*sz(0)*wqx
+    jx(j0, k, l  )      = jx(j0, k, l      )  +   sx0(0)*sy(0)*sz(0)*wqx
     !$omp atomic update
-   jx(j0+1, k, l  )    = jx(j0+1, k, l    )  +   sx0(1)*sy(0)*sz(0)*wqx
+    jx(j0+1, k, l  )    = jx(j0+1, k, l    )  +   sx0(1)*sy(0)*sz(0)*wqx
     !$omp atomic update
-   jx(j0, k+1, l  )    = jx(j0, k+1, l    )  +   sx0(0)*sy(1)*sz(0)*wqx
+    jx(j0, k+1, l  )    = jx(j0, k+1, l    )  +   sx0(0)*sy(1)*sz(0)*wqx
     !$omp atomic update
-   jx(j0+1, k+1, l  )  = jx(j0+1, k+1, l  )  +   sx0(1)*sy(1)*sz(0)*wqx
+    jx(j0+1, k+1, l  )  = jx(j0+1, k+1, l  )  +   sx0(1)*sy(1)*sz(0)*wqx
     !$omp atomic update
-   jx(j0, k, l+1)      = jx(j0, k, l+1    )  +   sx0(0)*sy(0)*sz(1)*wqx
+    jx(j0, k, l+1)      = jx(j0, k, l+1    )  +   sx0(0)*sy(0)*sz(1)*wqx
     !$omp atomic update
-   jx(j0+1, k, l+1)    = jx(j0+1, k, l+1  )  +   sx0(1)*sy(0)*sz(1)*wqx
+    jx(j0+1, k, l+1)    = jx(j0+1, k, l+1  )  +   sx0(1)*sy(0)*sz(1)*wqx
     !$omp atomic update
-   jx(j0, k+1, l+1)    = jx(j0, k+1, l+1  )  +   sx0(0)*sy(1)*sz(1)*wqx
+    jx(j0, k+1, l+1)    = jx(j0, k+1, l+1  )  +   sx0(0)*sy(1)*sz(1)*wqx
     !$omp atomic update
-   jx(j0+1, k+1, l+1)  = jx(j0+1, k+1, l+1)  +   sx0(1)*sy(1)*sz(1)*wqx
+    jx(j0+1, k+1, l+1)  = jx(j0+1, k+1, l+1)  +   sx0(1)*sy(1)*sz(1)*wqx
 
     !$omp atomic update
-   jy(j, k0, l  )      = jy(j, k0, l      )  +   sx(0)*sy0(0)*sz(0)*wqy
+    jy(j, k0, l  )      = jy(j, k0, l      )  +   sx(0)*sy0(0)*sz(0)*wqy
     !$omp atomic update
-   jy(j+1, k0, l  )    = jy(j+1, k0, l    )  +   sx(1)*sy0(0)*sz(0)*wqy
+    jy(j+1, k0, l  )    = jy(j+1, k0, l    )  +   sx(1)*sy0(0)*sz(0)*wqy
     !$omp atomic update
-   jy(j, k0+1, l  )    = jy(j, k0+1, l    )  +   sx(0)*sy0(1)*sz(0)*wqy
+    jy(j, k0+1, l  )    = jy(j, k0+1, l    )  +   sx(0)*sy0(1)*sz(0)*wqy
     !$omp atomic update
-   jy(j+1, k0+1, l  )  = jy(j+1, k0+1, l  )  +   sx(1)*sy0(1)*sz(0)*wqy
+    jy(j+1, k0+1, l  )  = jy(j+1, k0+1, l  )  +   sx(1)*sy0(1)*sz(0)*wqy
     !$omp atomic update
-   jy(j, k0, l+1)      = jy(j, k0, l+1    )  +   sx(0)*sy0(0)*sz(1)*wqy
+    jy(j, k0, l+1)      = jy(j, k0, l+1    )  +   sx(0)*sy0(0)*sz(1)*wqy
     !$omp atomic update
-   jy(j+1, k0, l+1)    = jy(j+1, k0, l+1  )  +   sx(1)*sy0(0)*sz(1)*wqy
+    jy(j+1, k0, l+1)    = jy(j+1, k0, l+1  )  +   sx(1)*sy0(0)*sz(1)*wqy
     !$omp atomic update
-   jy(j, k0+1, l+1)    = jy(j, k0+1, l+1  )  +   sx(0)*sy0(1)*sz(1)*wqy
+    jy(j, k0+1, l+1)    = jy(j, k0+1, l+1  )  +   sx(0)*sy0(1)*sz(1)*wqy
     !$omp atomic update
-   jy(j+1, k0+1, l+1)  = jy(j+1, k0+1, l+1)  +   sx(1)*sy0(1)*sz(1)*wqy
+    jy(j+1, k0+1, l+1)  = jy(j+1, k0+1, l+1)  +   sx(1)*sy0(1)*sz(1)*wqy
 
     !$omp atomic update
-   jz(j, k, l0  )      = jz(j, k, l0      )  +   sx(0)*sy(0)*sz0(0)*wqz
+    jz(j, k, l0  )      = jz(j, k, l0      )  +   sx(0)*sy(0)*sz0(0)*wqz
     !$omp atomic update
-   jz(j+1, k, l0  )    = jz(j+1, k, l0    )  +   sx(1)*sy(0)*sz0(0)*wqz
+    jz(j+1, k, l0  )    = jz(j+1, k, l0    )  +   sx(1)*sy(0)*sz0(0)*wqz
     !$omp atomic update
-   jz(j, k+1, l0  )    = jz(j, k+1, l0    )  +   sx(0)*sy(1)*sz0(0)*wqz
+    jz(j, k+1, l0  )    = jz(j, k+1, l0    )  +   sx(0)*sy(1)*sz0(0)*wqz
     !$omp atomic update
-   jz(j+1, k+1, l0  )  = jz(j+1, k+1, l0  )  +   sx(1)*sy(1)*sz0(0)*wqz
+    jz(j+1, k+1, l0  )  = jz(j+1, k+1, l0  )  +   sx(1)*sy(1)*sz0(0)*wqz
     !$omp atomic update
-   jz(j, k, l0+1)      = jz(j, k, l0+1    )  +   sx(0)*sy(0)*sz0(1)*wqz
+    jz(j, k, l0+1)      = jz(j, k, l0+1    )  +   sx(0)*sy(0)*sz0(1)*wqz
     !$omp atomic update
-   jz(j+1, k, l0+1)    = jz(j+1, k, l0+1  )  +   sx(1)*sy(0)*sz0(1)*wqz
+    jz(j+1, k, l0+1)    = jz(j+1, k, l0+1  )  +   sx(1)*sy(0)*sz0(1)*wqz
     !$omp atomic update
-   jz(j, k+1, l0+1)    = jz(j, k+1, l0+1  )  +   sx(0)*sy(1)*sz0(1)*wqz
+    jz(j, k+1, l0+1)    = jz(j, k+1, l0+1  )  +   sx(0)*sy(1)*sz0(1)*wqz
     !$omp atomic update
     jz(j+1, k+1, l0+1)  = jz(j+1, k+1, l0+1)  +   sx(1)*sy(1)*sz0(1)*wqz
-!    !$omp end critical
 
   end do
 !$omp end target teams
