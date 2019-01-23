@@ -590,7 +590,7 @@ int main(int argc, char* argv[])
 
         amrex::Print() << "BaseFab<Real>::maskLT() test." << std::endl
                        << "Results (LT/LE/EQ/GE/GT): " << totalLT << "/" << totalLE << "/" << totalEQ << "/"
-                                                       << totalGE << "/" << totalGT << " of " << fab1.nPts() << " points." << std::endl 
+                                                       << totalGE << "/" << totalGT << " of " << fab1.numPts() << " points." << std::endl 
                        << "Completed in: "                <<  timer << " seconds." << std::endl
                        << " or, completed at a rate of: " <<         timer/(double(iters)/5) << " seconds/ops." << std::endl
                        << "                         or: " << double(iters)/(5*timer) << " ops/second." << std::endl << std::endl; 
