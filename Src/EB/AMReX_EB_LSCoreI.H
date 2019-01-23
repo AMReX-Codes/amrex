@@ -32,6 +32,18 @@ void LSCore<F>::ClearLevel (int lev) {
 }
 
 
+template<class F>
+const EB2::Level * LSCore<F>::BuildEBLevel ( const EB2::GeometryShop<F> gshop,
+                                             int lev, const Vector<Geometry> & geom,
+                                             int max_crse_level, int required_crse_lev) {
+    EB2::Build(gshop, geom[lev], required_crse_lev, max_crse_level);
+    const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+
+    return & cylinder_ebis.getLevel(geom[lev]);
+}
+
+
+
 // Build a new EB level and return a pointer to this level
 template<class F>
 const EB2::Level * LSCore<F>::BuildEBLevel (const EB2::GeometryShop<F> & gshop,
@@ -41,10 +53,12 @@ const EB2::Level * LSCore<F>::BuildEBLevel (const EB2::GeometryShop<F> & gshop,
                               // FillCoarsePatch)
     int required_crse_lev = std::max(0, lev - 1);
     //int required_crse_lev = lev;
-    EB2::Build(gshop, geom[lev], required_crse_lev, max_crse_level);
-    const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
 
-    return & cylinder_ebis.getLevel(geom[lev]);
+    // EB2::Build(gshop, geom[lev], required_crse_lev, max_crse_level);
+    // const EB2::IndexSpace & cylinder_ebis = EB2::IndexSpace::top();
+
+    // return & cylinder_ebis.getLevel(geom[lev]);
+    return LSCore<F>::BuildEBLevel (gshop, lev, geom, max_crse_level, required_crse_lev);
 }
 
 

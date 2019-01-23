@@ -58,6 +58,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
     const int* lo       = b1.loVect();
     int        longlen  = b1.longside();
 
+    long numpts = domain.numPts();
     Vector<TagType> cfab(numpts);
     TagType* cdat = cfab.dataPtr();
 
@@ -324,6 +325,7 @@ TagBox::tags_and_untags (const Vector<int>& ar)
 void 
 TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const
 {
+    auto dlen = length();
     int Lbx[] = {1,1,1};
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
@@ -364,6 +366,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const
 void 
 TagBox::tags (const Vector<int>& ar, const Box& tilebx)
 {
+    auto dlen = length();
     int Lbx[] = {1,1,1};
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
@@ -397,6 +400,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx)
 void 
 TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx)
 {
+    auto dlen = length();
     int Lbx[] = {1,1,1};
     for (int idim=0; idim<AMREX_SPACEDIM; idim++) {
 	Lbx[idim] = dlen[idim];
