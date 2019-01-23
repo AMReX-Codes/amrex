@@ -959,22 +959,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
         {
 	    // reorder structs
 	    m_aos_r.resize(np);
-            thrust::copy_n(thrust::device,
-			   thrust::make_permutation_iterator(aos().begin(),
-							     m_index_sequence_tmp.begin()), 
-			   np, m_aos_r.begin());
-            thrust::copy(thrust::device, m_aos_r.begin(), m_aos_r.end(), aos().begin());
+            thrust::gather(thrust::device,
+                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                           aos().begin(), m_aos_r.begin());
+            aos().swap(m_aos_r);
 
             // reorder real arrays
 	    m_rdata_r.resize(np);
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                thrust::copy_n(thrust::device,
-                               thrust::make_permutation_iterator(rdata.begin(),
-								 m_index_sequence_tmp.begin()), 
-			       np, m_rdata_r.begin());
-                thrust::copy(thrust::device, m_rdata_r.begin(), m_rdata_r.end(), rdata.begin());
+                thrust::gather(thrust::device,
+                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                               rdata.begin(), m_rdata_r.begin());
+                rdata.swap(m_rdata_r);
             }
 
             // reorder int arrays
@@ -982,11 +980,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
             for (int j = 0; j < NArrayInt; ++j)
             {
                 auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::copy_n(thrust::device,
-                               thrust::make_permutation_iterator(idata.begin(),
-                                                                 m_index_sequence_tmp.begin()), 
-			       np, m_idata_r.begin());
-                thrust::copy(thrust::device, m_idata_r.begin(), m_idata_r.end(), idata.begin());
+                thrust::gather(thrust::device,
+                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                               idata.begin(), m_idata_r.begin());
+                idata.swap(m_idata_r);
             }
         }
     }
@@ -1125,31 +1122,28 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         //
         {
 	    // reorder structs
-	    m_aos_r.resize(old_np);
-            thrust::copy_n(thrust::device,
-			   thrust::make_permutation_iterator(aos().begin(),
-							     m_index_sequence_tmp.begin()), 
-                old_np, m_aos_r.begin());
-            thrust::copy(thrust::device, m_aos_r.begin(), m_aos_r.end(), aos().begin());
+            m_aos_r.resize(old_np);
+            thrust::gather(thrust::device,
+                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                           aos().begin(), m_aos_r.begin());
+            aos().swap(m_aos_r);
 
             // reorder grids
             m_grids_r.resize(old_np);
-            thrust::copy_n(thrust::device,
-                           thrust::make_permutation_iterator(m_grids_tmp.begin(),
-                                                             m_index_sequence_tmp.begin()), 
-                           old_np, m_grids_r.begin());
-            thrust::copy(thrust::device, m_grids_r.begin(), m_grids_r.end(), m_grids_tmp.begin());
+            thrust::gather(thrust::device,
+                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                           m_grids_tmp.begin(), m_grids_r.begin());
+            m_grids_tmp.swap(m_grids_r);
 
             // reorder real arrays
 	    m_rdata_r.resize(old_np);
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                thrust::copy_n(thrust::device,
-                               thrust::make_permutation_iterator(rdata.begin(),
-								 m_index_sequence_tmp.begin()), 
-			       old_np, m_rdata_r.begin());
-                thrust::copy(thrust::device, m_rdata_r.begin(), m_rdata_r.end(), rdata.begin());
+                thrust::gather(thrust::device,
+                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                               rdata.begin(), m_rdata_r.begin());
+                rdata.swap(m_rdata_r);
             }
 
             // reorder int arrays
@@ -1157,11 +1151,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayInt; ++j)
             {
 	        auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::copy_n(thrust::device,
-                               thrust::make_permutation_iterator(idata.begin(),
-                                                                 m_index_sequence_tmp.begin()), 
-			       old_np, m_idata_r.begin());
-                thrust::copy(thrust::device, m_idata_r.begin(), m_idata_r.end(), idata.begin());
+                thrust::gather(thrust::device,
+                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                               idata.begin(), m_idata_r.begin());
+                idata.swap(m_idata_r);
             }
         }
         BL_PROFILE_VAR_STOP(blp_copy_partition);
@@ -1232,34 +1225,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             // reorder structs
             auto& aos = m_aos_to_redistribute;
             m_aos_r.resize(num_to_move);
-            thrust::copy_n(thrust::device,
-			   thrust::make_permutation_iterator(aos.begin(),
-							     m_index_sequence_tmp.begin()),
-			   num_to_move, m_aos_r.begin());
-            thrust::copy(thrust::device, m_aos_r.begin(), m_aos_r.end(), aos.begin());
+            thrust::gather(thrust::device,
+                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                           aos.begin(), m_aos_r.begin());
+            aos.swap(m_aos_r);
 
             // reorder real arrays
 	    m_rdata_r.resize(num_to_move);
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = m_real_arrays_to_redistribute[j];
-                thrust::copy_n(thrust::device,
-                               thrust::make_permutation_iterator(rdata.begin(),
-                                                                 m_index_sequence_tmp.begin()), 
-			       num_to_move, m_rdata_r.begin());
-                thrust::copy(thrust::device, m_rdata_r.begin(), m_rdata_r.end(), rdata.begin());
+                thrust::gather(thrust::device,
+                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                               rdata.begin(), m_rdata_r.begin());
+                rdata.swap(m_rdata_r);
             }
 
             // reorder int arrays
 	    m_idata_r.resize(num_to_move);
             for (int j = 0; j < NArrayInt; ++j)
             {
-                auto& idata = m_int_arrays_to_redistribute[j];
-                thrust::copy_n(thrust::device,
-                               thrust::make_permutation_iterator(idata.begin(),
-                                                                 m_index_sequence_tmp.begin()), 
-			       num_to_move, m_idata_r.begin());
-                thrust::copy(thrust::device, m_idata_r.begin(), m_idata_r.end(), idata.begin());
+	        auto& idata = m_int_arrays_to_redistribute[j];
+                thrust::gather(thrust::device,
+                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
+                               idata.begin(), m_idata_r.begin());
+                idata.swap(m_idata_r);
             }
         }
 
