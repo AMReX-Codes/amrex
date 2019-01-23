@@ -32,7 +32,6 @@
 
 #elif defined(__INTEL_COMPILER)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
-#endif
 
 #elif defined(_CRAYC)
 #define AMREX_PRAGMA_SIMD _Pragma("ivdep")
