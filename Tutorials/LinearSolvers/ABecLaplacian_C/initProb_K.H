@@ -65,7 +65,7 @@ void actual_init_abeclap (int i, int j, int k,
 {
     constexpr amrex::Real w = 0.05;
     constexpr amrex::Real sigma = 10.;
-    constexpr amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
+    const amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
 
     constexpr amrex::Real pi = 3.1415926535897932;
     constexpr amrex::Real tpi =  2.*pi;
