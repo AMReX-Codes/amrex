@@ -64,5 +64,7 @@ endif
 CEXE_headers += AMReX_MacProjector.H
 CEXE_sources += AMReX_MacProjector.cpp
 
+CEXE_headers += AMReX_MG_K.H AMReX_MG_$(DIM)D_K.H
+
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/MLMG
