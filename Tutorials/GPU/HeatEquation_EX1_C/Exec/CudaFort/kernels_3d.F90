@@ -113,4 +113,3 @@ AMREX_CUDA_FORT_DEVICE subroutine update_phi (lo, hi, phiold, polo, pohi, phinew
     end subroutine update_phi
 
 end module my_kernel_cuda_fort_module
-

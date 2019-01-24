@@ -11,7 +11,7 @@ extern "C"
     AMREX_GPU_DEVICE
     void init_phi(const int* lo, const int* hi,
                   amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+                  const amrex_real* dx, const amrex_real* prob_lo);
     
     AMREX_GPU_DEVICE
     void compute_flux(const int* lo, const int* hi,

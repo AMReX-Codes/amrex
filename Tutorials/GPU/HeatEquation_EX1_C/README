@@ -1,8 +1,8 @@
-Compile options and module requirement
+Compile options and module requirement on Summit-Dev
 *** 
-    *If using pgi compiler, load cuda/9.0.69 on summitdev
-    *If using gcc compiler, load cuda/9.2.148 or default on summitdev
-    *If using ibm compiler, load cuda/9.0.69 on summitdev
+    *If using pgi compiler, load cuda/9.0.69
+    *If using gcc compiler, load cuda (default version)
+    *If using ibm compiler, load cuda/9.0.69
 
 (1) CUDA Fortran; use pgi (so that AMREX_CUDA_FORT_DEVICE is expanded to be attributes(device))
     USE_CUDA = TRUE

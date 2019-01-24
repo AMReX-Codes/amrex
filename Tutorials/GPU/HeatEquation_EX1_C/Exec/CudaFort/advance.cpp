@@ -5,9 +5,9 @@
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
-	      std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	      Real dt,
-              Geometry& geom)
+              std::array<MultiFab, AMREX_SPACEDIM>& flux,
+              Real dt,
+              Geometry const& geom)
 {
 
     // Fill the ghost cells of each grid from the other grids
