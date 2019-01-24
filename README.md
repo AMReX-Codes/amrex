@@ -57,9 +57,9 @@ People who make a number of substantive contributions will be named
 "core developers" of AMReX.  The criteria for becoming a core
 developer are flexible, but generally involve one of the following:
 
-  * 100 non-trivial commits to `amrex/Src/` 
+  * 100 non-trivial commits to `amrex/Src/`  *and/or*
 
-  * addition of a new algorithm / module  *or*
+  * addition of a new algorithm / module  *and/or*
 
   * substantial input into the code design process or testing
 
