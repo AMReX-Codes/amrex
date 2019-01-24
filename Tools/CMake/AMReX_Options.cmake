@@ -114,7 +114,7 @@ if ( USE_XSDK_DEFAULTS )
    set ( ENABLE_FORTRAN_INTERFACES ${XSDK_ENABLE_Fortran} )
    print_option(ENABLE_FORTRAN_INTERFACES)
 else() 
-   option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" ON )
+   option( ENABLE_FORTRAN_INTERFACES "Build Fortran API" OFF )
    print_option(ENABLE_FORTRAN_INTERFACES)
 endif ()
 
