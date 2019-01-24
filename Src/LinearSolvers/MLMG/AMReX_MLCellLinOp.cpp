@@ -1,5 +1,6 @@
 
 #include <AMReX_MLCellLinOp.H>
+#include <AMReX_MG_K.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MG_F.H>
 #include <AMReX_MultiFabUtil.H>
