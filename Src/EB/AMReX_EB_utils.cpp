@@ -11,6 +11,8 @@ namespace amrex {
     void FillEBNormals(MultiFab & normals, const EBFArrayBoxFactory & eb_factory,
                        const Geometry & geom) {
 
+        BL_PROFILE("amrex::FillEBNormals()")
+
         BoxArray ba = normals.boxArray();
         DistributionMapping dm = normals.DistributionMap();
         int n_grow = normals.nGrow();

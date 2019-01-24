@@ -66,6 +66,16 @@ public:
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];
     }
+
+    FArrayBox      * fabPtr (const MFIter& mfi)
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.fabPtr(mfi);
+    }
+    FArrayBox const* fabPtr (const MFIter& mfi) const
+    {
+        BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.fabPtr(mfi);
+    }
+
     int nGrow () const { BL_ASSERT(m_initialized); return m_ngrow; }
 
     int nComp () const

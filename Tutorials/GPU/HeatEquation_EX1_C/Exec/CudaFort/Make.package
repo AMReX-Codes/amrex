@@ -1,3 +1,0 @@
-FEXE_headers += myfunc_F.H
-F90EXE_sources += kernels_$(DIM)d.F90
-CEXE_sources += advance.cpp

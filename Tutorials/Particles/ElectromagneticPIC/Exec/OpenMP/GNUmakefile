@@ -18,7 +18,7 @@ USE_ACC       = FALSE
 USE_OMP_OFFLOAD = TRUE
 USE_CUDA      = TRUE
 
-Bpack   := ./Make.package 
-Blocs   := . 
+Bpack   := ./Make.package
+Blocs   := .
 
 include ../../Make.EMPIC

@@ -393,6 +393,9 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INITPARAMS()  amrex::BLProfiler::InitParams();
 #define BL_PROFILE_FINALIZE()    amrex::BLProfiler::Finalize();
 
+#define BL_TINY_PROFILE_INITIALIZE()
+#define BL_TINY_PROFILE_FINALIZE()
+
 #define BL_PROFILE(fname) amrex::BLProfiler bl_profiler__((fname));
 #define BL_PROFILE_T(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
 #ifdef BL_PROFILING_SPECIAL
@@ -469,9 +472,13 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #include <AMReX_TinyProfiler.H>
 
-#define BL_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
+#define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE_INITPARAMS()
-#define BL_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
+#define BL_PROFILE_FINALIZE()
+
+#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
+#define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
+
 #define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
@@ -526,6 +533,10 @@ class BLProfiler
 #define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
+
+#define BL_TINY_PROFILE_INITIALIZE()
+#define BL_TINY_PROFILE_FINALIZE()
+
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)

@@ -37,6 +37,7 @@ class FabSetIter;
 class FabSet
 {
     friend class FabSetIter;
+    friend class FluxRegister;
 public:
     //
     // The default constructor -- you must later call define().
@@ -60,13 +61,28 @@ public:
     //
     void define (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
-    const FArrayBox& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
+    FArrayBox const& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
+    FArrayBox      & operator[] (const MFIter& mfi)       { return m_mf[mfi]; }
+    FArrayBox const& operator[] (int i)             const { return m_mf[i]; }
+    FArrayBox      & operator[] (int i)                   { return m_mf[i]; }
 
-    FArrayBox& operator[] (const MFIter& mfi) { return m_mf[mfi]; }
+    FArrayBox const* fabPtr (const MFIter& mfi) const { return m_mf.fabPtr(mfi); }
+    FArrayBox      * fabPtr (const MFIter& mfi)       { return m_mf.fabPtr(mfi); }
+    FArrayBox const* fabPtr (int i)             const { return m_mf.fabPtr(i); }
+    FArrayBox      * fabPtr (int i)                   { return m_mf.fabPtr(i); }
 
-    const FArrayBox& operator[] (int i) const { return m_mf[i]; }
+    FArrayBox const* fabHostPtr (const MFIter& mfi) const { return m_mf.fabHostPtr(mfi); }
+    FArrayBox      * fabHostPtr (const MFIter& mfi)       { return m_mf.fabHostPtr(mfi); }
+    FArrayBox const* fabHostPtr (int i)             const { return m_mf.fabHostPtr(i); }
+    FArrayBox      * fabHostPtr (int i)                   { return m_mf.fabHostPtr(i); }
 
-    FArrayBox& operator[] (int i) { return m_mf[i]; }
+    FArrayBox const* fabDevicePtr (const MFIter& mfi) const { return m_mf.fabDevicePtr(mfi); }
+    FArrayBox      * fabDevicePtr (const MFIter& mfi)       { return m_mf.fabDevicePtr(mfi); }
+    FArrayBox const* fabDevicePtr (int i)             const { return m_mf.fabDevicePtr(i); }
+    FArrayBox      * fabDevicePtr (int i)                   { return m_mf.fabDevicePtr(i); }
+
+    Array4<Real> array(const MFIter& mfi) const { return m_mf.array(mfi); }
+    Array4<Real> array(int i)             const { return m_mf.array(i);   }
 
     Box fabbox (int K) const { return m_mf.fabbox(K); }
 

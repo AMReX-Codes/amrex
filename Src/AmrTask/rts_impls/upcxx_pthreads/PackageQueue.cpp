@@ -62,7 +62,12 @@ Package::Package(int src, int dest)
     databuf= nullptr;
     source = src;
     destination = dest;
+    completed = false;
+    notified = false;
+    served = false;
+    request = 0;
     tag=0;
+    packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
     memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif

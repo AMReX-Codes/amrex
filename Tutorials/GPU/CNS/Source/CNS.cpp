@@ -87,11 +87,11 @@ CNS::initData ()
     for (MFIter mfi(S_new); mfi.isValid(); ++mfi)
     {
         const Box& box = mfi.validbox();
-        FArrayBox* sfab = S_new.fabPtr(mfi);
+        auto sfab = S_new.array(mfi);
 
-        AMREX_LAUNCH_DEVICE_LAMBDA ( box, tbox,
+        AMREX_PARALLEL_FOR_3D ( box, i, j, k,
         {
-            cns_initdata(tbox, *sfab, geomdata);
+            cns_initdata(i, j, k, sfab, geomdata);
         });
     }
 }
@@ -221,6 +221,8 @@ CNS::post_regrid (int lbase, int new_finest)
 void
 CNS::post_timestep (int iteration)
 {
+    BL_PROFILE("post_timestep");
+
     if (do_reflux && level < parent->finestLevel()) {
         MultiFab& S = get_new_data(State_Type);
         CNS& fine_level = getLevel(level+1);
@@ -235,6 +237,8 @@ CNS::post_timestep (int iteration)
 void
 CNS::postCoarseTimeStep (Real time)
 {
+    BL_PROFILE("postCoarseTimeStep()");
+
     // This only computes sum on level 0
     if (verbose >= 2) {
         printTotal();
@@ -305,12 +309,12 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         {
             const Box& bx = mfi.tilebox();
 
-            FArrayBox const* rhofab = rho.fabPtr(mfi);
-            TagBox * tag = tags.fabPtr(mfi);
+            const auto rhofab = rho.array(mfi);
+            auto tag = tags.array(mfi);
 
-            AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+            AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                cns_tag_denerror(tbx, *tag, *rhofab, dengrad_threshold, tagval);
+                cns_tag_denerror(i, j, k, tag, rhofab, dengrad_threshold, tagval);
             });
         }
     }
@@ -418,10 +422,10 @@ CNS::computeTemp (MultiFab& State, int ng)
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        FArrayBox* sfab = State.fabPtr(mfi);
-        AMREX_LAUNCH_DEVICE_LAMBDA (bx, tbx,
+        Array4<Real> sfab = State.array(mfi);
+        AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
         {
-            cns_compute_temperature(tbx, *sfab);
+            cns_compute_temperature(i,j,k,sfab);
         });
     }
 }

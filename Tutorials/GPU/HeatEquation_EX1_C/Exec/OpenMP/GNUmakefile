@@ -2,17 +2,17 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../../
 
-DIM       = 2 
+DIM       = 3
 
 DEBUG     = FALSE
-USE_MPI   = TRUE 
+USE_MPI   = TRUE
 USE_OMP   = FALSE
-USE_CUDA  = TRUE 
+USE_CUDA  = TRUE
 
 COMP      = ibm
 USE_OMP_OFFLOAD = TRUE
 
-Bpack   := ./Make.package 
-Blocs   := . 
+Bpack   := ./Make.package
+Blocs   := .
 
 include ../../Make.HEAT

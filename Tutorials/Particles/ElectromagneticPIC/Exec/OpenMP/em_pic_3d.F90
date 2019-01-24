@@ -61,6 +61,7 @@ subroutine push_momentum_boris_omp(np, uxp, uyp, uzp, gaminv, &
   end do
 !$omp end target teams
 
+
 end subroutine push_momentum_boris_omp
 
 
@@ -70,14 +71,14 @@ subroutine push_position_boris_omp(np, structs, uxp, uyp, uzp, gaminv, dt) &
   use em_particle_module, only : particle_t
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value  :: np
   type(particle_t), intent(inout)      :: structs(np)
   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in), value  :: dt
-  
+
   integer                              :: ip
-  
+
 !$omp target teams is_device_ptr(structs, uxp, uyp, uzp, gaminv)
 !$omp distribute parallel do schedule(static,1)
   do ip = 1, np
@@ -86,7 +87,8 @@ subroutine push_position_boris_omp(np, structs, uxp, uyp, uzp, gaminv, dt) &
      structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
   end do
 !$omp end target teams
-  
+
+
 end subroutine push_position_boris_omp
 
 subroutine set_gamma_omp(np, uxp, uyp, uzp, gaminv) &
@@ -103,15 +105,16 @@ subroutine set_gamma_omp(np, uxp, uyp, uzp, gaminv) &
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
-  
+
 !$omp target teams is_device_ptr(uxp, uyp, uzp, gaminv)
 !$omp distribute parallel do schedule(static,1)
-  do ip = 1, np     
+  do ip = 1, np
      usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
-     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)     
+     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
   end do
 !$omp end target teams
-  
+
+
 end subroutine set_gamma_omp
 
 subroutine deposit_current_omp(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &
@@ -152,11 +155,18 @@ subroutine deposit_current_omp(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, n
   dts2dz = 0.5d0*dt*dzi
   clightsq = 1.d0/clight**2
   sx=0.d0; sy=0.d0; sz=0.d0;
-  sx0=0.d0;sy0=0.d0;sz0=0.d0;
+
+
+
+
+
+
+
 
 !$omp target teams is_device_ptr(jx, jy, jz, structs, uxp, uyp, uzp, w, gaminv)
-!$omp distribute parallel do schedule(static, 1) firstprivate(sx,sy,sz,sx0,sy0,sz0)
+!$omp distribute parallel do schedule(static, 1) private(sx,sy,sz,sx0,sy0,sz0)
   do ip = 1, np
+
     ! --- computes position in grid units at (n+1)
     x = (structs(ip)%pos(1)-plo(1))*dxi
     y = (structs(ip)%pos(2)-plo(2))*dyi
@@ -263,6 +273,7 @@ subroutine deposit_current_omp(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, n
   end do
 !$omp end target teams
 
+
 end subroutine deposit_current_omp
 
 subroutine gather_magnetic_field_omp(np, structs, bx, by, bz, &
@@ -294,6 +305,14 @@ subroutine gather_magnetic_field_omp(np, structs, bx, by, bz, &
   dxi = 1.d0 / dx(1)
   dyi = 1.d0 / dx(2)
   dzi = 1.d0 / dx(3)
+
+
+
+
+
+
+
+
 
   ixmin = 0
   ixmax = 0
@@ -352,6 +371,10 @@ subroutine gather_magnetic_field_omp(np, structs, bx, by, bz, &
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
 
+
+
+
+
      do ll = izmin0, izmax0
         do kk = iymin0, iymax0
            do jj = ixmin, ixmax+1
@@ -359,6 +382,8 @@ subroutine gather_magnetic_field_omp(np, structs, bx, by, bz, &
            end do
         end do
      end do
+
+
 
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
@@ -368,16 +393,20 @@ subroutine gather_magnetic_field_omp(np, structs, bx, by, bz, &
         end do
      end do
 
+
+
      do ll = izmin, izmax+1
         do kk = iymin0, iymax0
            do jj = ixmin0, ixmax0
               bz(ip) = bz(ip) + sx0(jj)*sy0(kk)*sz(ll)*bzg(j0+jj, k0+kk, l+ll)
            end do
         end do
+
      end do
 
   end do
 !$omp end target teams
+
 
 end subroutine gather_magnetic_field_omp
 
@@ -477,6 +506,7 @@ subroutine gather_electric_field_omp(np, structs, ex, ey, ez, &
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
 
+
      do ll = izmin, izmax+1
         do kk = iymin, iymax+1
            do jj = ixmin0, ixmax0
@@ -484,6 +514,8 @@ subroutine gather_electric_field_omp(np, structs, ex, ey, ez, &
            end do
         end do
      end do
+
+
 
      do ll = izmin, izmax+1
         do kk = iymin0, iymax0
@@ -493,6 +525,8 @@ subroutine gather_electric_field_omp(np, structs, ex, ey, ez, &
         end do
      end do
 
+
+
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
            do jj = ixmin, ixmax+1
@@ -501,8 +535,10 @@ subroutine gather_electric_field_omp(np, structs, ex, ey, ez, &
         end do
      end do
 
+
   end do
 !$omp end target teams
+
 
 end subroutine gather_electric_field_omp
 
@@ -525,6 +561,7 @@ subroutine push_electric_field_x_omp(xlo, xhi, ex, exlo, exhi,               &
 
   integer :: j,k,l
 
+
 !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(ex,by,bz,jx)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
@@ -535,6 +572,8 @@ subroutine push_electric_field_x_omp(xlo, xhi, ex, exlo, exhi,               &
         end do
      end do
   end do
+
+
 
 end subroutine push_electric_field_x_omp
 
@@ -558,6 +597,7 @@ subroutine push_electric_field_y_omp(ylo, yhi, &
 
   integer :: j,k,l
 
+
 !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(ey,bz,bx,jy)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
@@ -568,6 +608,8 @@ subroutine push_electric_field_y_omp(ylo, yhi, &
         end do
      end do
   end do
+
+
 
 end subroutine push_electric_field_y_omp
 
@@ -592,6 +634,7 @@ subroutine push_electric_field_z_omp(zlo, zhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
+
 !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(ez,by,bx,jz)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
@@ -602,6 +645,8 @@ subroutine push_electric_field_z_omp(zlo, zhi, &
         end do
      end do
   end do
+
+
 
 end subroutine push_electric_field_z_omp
 
@@ -623,6 +668,7 @@ subroutine push_magnetic_field_x_omp(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
+
 !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(bx,ez,ey)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
@@ -632,6 +678,8 @@ subroutine push_magnetic_field_x_omp(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
         end do
      end do
   end do
+
+
 
 end subroutine push_magnetic_field_x_omp
 
@@ -653,6 +701,7 @@ subroutine push_magnetic_field_y_omp(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
+
 !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(by,ez,ex)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
@@ -662,6 +711,8 @@ subroutine push_magnetic_field_y_omp(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
         end do
      end do
   end do
+
+
 
 end subroutine push_magnetic_field_y_omp
 
@@ -683,6 +734,7 @@ subroutine push_magnetic_field_z_omp(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
+
 !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(bz,ey,ex)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
@@ -692,5 +744,7 @@ subroutine push_magnetic_field_z_omp(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
         end do
      end do
   end do
+
+
 
 end subroutine push_magnetic_field_z_omp

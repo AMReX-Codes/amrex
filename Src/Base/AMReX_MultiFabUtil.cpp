@@ -117,7 +117,7 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
     {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
@@ -238,6 +238,7 @@ namespace amrex
 		       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, const IntVect& ratio)
     {
+        BL_PROFILE("amrex::average_down_w_geom");
 
         if (S_fine.is_nodal() || S_crse.is_nodal())
         {
@@ -337,6 +338,7 @@ namespace amrex
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
                        int scomp, int ncomp, const IntVect& ratio)
     {
+        BL_PROFILE("amrex::average_down");
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
         AMREX_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
                      (S_crse.is_nodal()         && S_fine.is_nodal()));
@@ -535,32 +537,9 @@ namespace amrex
     }
 
 
-    void print_state(const MultiFab& mf, const IntVect& cell, const int n)
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n, const IntVect& ng)
     {
-
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  if (mfi.validbox().contains(cell)) {
-	    if (n >= 0) {
-	      amrex::AllPrint().SetPrecision(17) << mf[mfi](cell, n) << std::endl;
-	    } else {
-	      std::ostringstream ss;
-	      ss.precision(17);
-	      const int ncomp = mf.nComp();
-	      for (int i = 0; i < ncomp-1; ++i)
-		{
-		  ss << mf[mfi](cell,i) << ", ";
-		}
-	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << ss.str() << std::endl;
-	    }
-	  }
-	}
-
+        printCell(mf, cell, n, ng);
     }
 
     void writeFabs (const MultiFab& mf, const std::string& name)
@@ -578,47 +557,12 @@ namespace amrex
 
     MultiFab ToMultiFab (const iMultiFab& imf)
     {
-        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow(),
-                    MFInfo(), FArrayBoxFactory());
-
-        const int ncomp = imf.nComp();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.growntilebox();
-            FArrayBox      * rfab =  mf.fabPtr(mfi);
-            IArrayBox const* ifab = imf.fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
-            {
-                amrex::cast(tbx, *rfab, *ifab, 0, 0, ncomp);
-            });
-        }
-
-        return mf;
+        return amrex::cast<MultiFab>(imf);
     }
 
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
     {
-        FabArray<BaseFab<long> > lmf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow());
-
-        const int ncomp = imf.nComp();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(lmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.growntilebox();
-            BaseFab<long>  * lfab = lmf.fabPtr(mfi);
-            IArrayBox const* ifab = imf.fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
-            {
-                amrex::cast(tbx, *lfab, *ifab, 0, 0, ncomp);
-            });
-        }
-
-        return lmf;
+        return amrex::cast<FabArray<BaseFab<long> > > (imf);
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {

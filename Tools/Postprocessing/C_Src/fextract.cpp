@@ -27,7 +27,7 @@ using namespace std;
 // 
 void get_input_arguments ( const int argc, char** argv,
 			   string& pltfile, string& slicefile,
-			   vector<string>& var, int& format, bool& lleft,
+			   Vector<string>& var, int& format, bool& lleft,
 			   int& dir, Real& tol );
 void help ();
 
@@ -36,10 +36,10 @@ void help ();
 // 
 int main ( int argc, char* argv[] )
 {
-
     // Use "false" as third arguments to prevent AMReX
     // to check for an input file as first command line argument
     amrex::Initialize ( argc, argv, false );
+    {
 
     if ( ParallelDescriptor::NProcs() > 1 )
 	Abort("Only run this with one processor");
@@ -48,12 +48,11 @@ int main ( int argc, char* argv[] )
     string  dirname;
     string  pltfile;
     string  slicefile;
-    vector<string>  var;
+    Vector<string>  var;
     int     format = 10; 
     bool    lleft = false;
     int     dir = 1;
     Real    tol = 0.0;          
-    
 	
     get_input_arguments ( argc, argv, pltfile, slicefile, var, format,
 			  lleft, dir, tol );
@@ -97,7 +96,6 @@ int main ( int argc, char* argv[] )
     Box domain(amrData.ProbDomain()[finestLevel]);
     Box line(domain);		// Define a box covering the whole domain
 
-
     // Shrink "Box line" to coincide with the line of interest 
     for ( int idir = 0; idir < AMREX_SPACEDIM; ++idir)
     {
@@ -116,15 +114,15 @@ int main ( int argc, char* argv[] )
     }
     
     // Now extract the variables of interest
-    vector< unique_ptr<FArrayBox> > lineFabs( var.size() );
+    Vector< unique_ptr<FArrayBox> > lineFabs( var.size() );
 
     for (int nv = 0; nv < lineFabs.size(); ++nv )
     {
-	lineFabs[nv].reset( new FArrayBox(line,1) );
-	amrData.FillVar(lineFabs[nv].get(), lineFabs[nv]->box(), finestLevel, var[nv],
-			ParallelDescriptor::IOProcessorNumber());
+  	lineFabs[nv].reset( new FArrayBox(line,1) );
+        amrData.FillVar(lineFabs[nv].get(), lineFabs[nv]->box(), finestLevel, var[nv],
+  			ParallelDescriptor::IOProcessorNumber());
     }
-    
+
     // 
     // Now print to file
     // 
@@ -151,7 +149,7 @@ int main ( int argc, char* argv[] )
 
     for (int m = 0; m < lineFabs[0]->size (); ++m )
     {
-	amrData.CellLoc ( finestLevel, iv.shift(dir-1, min(1,m) ), x );
+	amrData.CellLoc ( finestLevel, iv.shift(dir-1, std::min(1,m) ), x );
 	
 	outfile << setw(25) << x[dir-1];
 
@@ -160,7 +158,7 @@ int main ( int argc, char* argv[] )
 	    Real  val = *( lineFabs[nv]->dataPtr() + m );
 
 	    // Set to zero all the values lower than a certain tolerance
-	    if ( abs(val) < tol )
+	    if ( std::abs(val) < tol )
 		val = 0.;
 	    
 	    outfile << setw(25) << val; 
@@ -171,19 +169,17 @@ int main ( int argc, char* argv[] )
   
     outfile.close();
     
+    }
     amrex::Finalize();
-     
     return 0;
 }
-
-
 
 //
 // Parse command line arguments
 //  
 void get_input_arguments ( const int argc, char** argv,
 			   string& pltfile, string& slicefile,
-			   vector<string>& var, int& format, bool& lleft,
+			   Vector<string>& var, int& format, bool& lleft,
 			   int& dir, Real& tol )
 {
     
@@ -282,6 +278,13 @@ void get_input_arguments ( const int argc, char** argv,
 	}
 
 	cout << "Slicefile set to " + slicefile << endl;
+    }
+
+    if ( var.size() == 0)
+    {
+	std::cout << "\n\nNeed to specify at least one variable" << std::endl;
+    	help ();
+    	exit (EXIT_FAILURE);
     }
 
 

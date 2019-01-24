@@ -20,6 +20,8 @@
 
 #include <AMReX_Gpu.H>
 
+#include <AMReX_Machine.H>
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #endif
@@ -533,6 +535,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
     BL_PROFILE_INITPARAMS();
 #endif
+    machine::Initialize();
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
@@ -569,11 +572,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
+
+    BL_TINY_PROFILE_INITIALIZE();
 }
 
 void
 amrex::Finalize (bool finalize_parallel)
 {
+    BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
 #ifdef BL_LAZY

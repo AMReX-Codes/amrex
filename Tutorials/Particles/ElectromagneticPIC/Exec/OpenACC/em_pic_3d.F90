@@ -71,24 +71,24 @@ subroutine push_position_boris_acc(np, structs, uxp, uyp, uzp, gaminv, dt) &
   use em_particle_module, only : particle_t
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value  :: np
   type(particle_t), intent(inout)      :: structs(np)
   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in), value  :: dt
-  
+
   integer                              :: ip
-  
+
   !$acc parallel deviceptr(structs, uxp, uyp, uzp, gaminv)
   !$acc loop gang vector
   do ip = 1, np
      structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
-     structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
-     structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(2) = structs(ip)%pos(2) + uyp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(3) = structs(ip)%pos(3) + uzp(ip)*gaminv(ip)*dt
   end do
   !$acc end loop
   !$acc end parallel
-  
+
 end subroutine push_position_boris_acc
 
 subroutine set_gamma_acc(np, uxp, uyp, uzp, gaminv) &
@@ -105,16 +105,16 @@ subroutine set_gamma_acc(np, uxp, uyp, uzp, gaminv) &
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
-  
+
   !$acc parallel deviceptr(uxp, uyp, uzp, gaminv)
   !$acc loop gang vector
-  do ip = 1, np     
+  do ip = 1, np
      usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
-     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)     
+     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
   end do
   !$acc end loop
   !$acc end parallel
-  
+
 end subroutine set_gamma_acc
 
 subroutine deposit_current_acc(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &

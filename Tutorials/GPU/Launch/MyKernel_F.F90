@@ -41,4 +41,21 @@ contains
     !$acc end kernels
   end subroutine plusone_acc
 
+  subroutine plusone_omp (lo, hi, dat, dlo, dhi) &
+       bind(c,name='plusone_omp')
+    integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
+    real(amrex_real), intent(inout) :: dat(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
+
+    integer(c_int) :: i,j,k
+
+    !$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(dat)
+    do       k = lo(3), hi(3)
+       do    j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+             dat(i,j,k) = dat(i,j,k) + 1.0_amrex_real
+          end do
+       end do
+    end do
+  end subroutine plusone_omp
+
 end module my_kernel_module

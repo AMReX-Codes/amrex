@@ -7,6 +7,6 @@ max_grid_size = 64
 problem_type = Langmuir #has exact solution, good for checking accuracy
 #problem_type = UniformPlasma #good for performance testing; loads of work
 
-nsteps = 1
+nsteps = 10
 
 write_plot = false

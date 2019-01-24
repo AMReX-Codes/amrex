@@ -99,7 +99,7 @@ namespace amrex
         //! Returns max_mv
         int MaxMV () const { return max_mv; }
  
-        int nPts () const { return data.size();}
+        int numPts () const { return data.size();}
 
         int nComp () const {return nvar;}
 

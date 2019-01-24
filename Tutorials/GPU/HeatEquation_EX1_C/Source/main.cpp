@@ -5,16 +5,21 @@
 #include <AMReX_Print.H>
 
 #include "myfunc.H"
+
+#if defined (AMREX_USE_ACC) || defined (AMREX_OMP_OFFLOAD)
 #include "myfunc_F.H"
+#else
+#include "mykernel.H"
+#endif
 
 using namespace amrex;
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-    
+
     main_main();
-    
+
     amrex::Finalize();
     return 0;
 }
@@ -33,7 +38,7 @@ void main_main ()
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
+        // We need to get n_cell from the inputs file - this is the number of cells on each side of
         //   a square (or cubic) domain.
         pp.get("n_cell",n_cell);
 
@@ -73,12 +78,12 @@ void main_main ()
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
-    // Nghost = number of ghost cells for each array 
+    // Nghost = number of ghost cells for each array
     int Nghost = 1;
-    
+
     // Ncomp = number of components for each array
     int Ncomp  = 1;
-  
+
     // How Boxes are distrubuted among MPI processes
     DistributionMapping dm(ba);
 
@@ -120,23 +125,17 @@ void main_main ()
     for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-        FArrayBox* phiNew = phi_new.fabPtr(mfi);
-
-        AMREX_LAUNCH_DEVICE_LAMBDA(vbx, tbx,
+        Array4<Real> phiNew = phi_new.array(mfi);
+        AMREX_FOR_3D ( vbx, i, j, k,
         {
-            init_phi(BL_TO_FORTRAN_BOX(tbx),
-                     BL_TO_FORTRAN_ANYD(*phiNew),
-                     dx.data(), prob_lo.data());
+            init_phi(i,j,k,phiNew,dx,prob_lo);
         });
-
     }
-
-#endif 
-    Gpu::Device::synchronize(); 
+#endif
+    Gpu::Device::synchronize();
 
     // ========================================
 
-    // compute the time step
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // time = starting time in the simulation
@@ -165,9 +164,9 @@ void main_main ()
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
-        advance(phi_old, phi_new, flux, dt, geom); 
+        advance(phi_old, phi_new, flux, dt, geom);
         time = time + dt;
-        
+
         // Tell the I/O Processor to write out which step we're doing
         amrex::Print() << "Advanced step " << n << "\n";
 
