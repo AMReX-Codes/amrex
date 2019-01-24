@@ -1,0 +1,71 @@
+{
+    "creators": [
+        {
+            "name": "the AMReX Development Team"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Almgren, Ann",
+            "orcid": "0000-0003-2103-312X"
+        },
+        {
+            "name": "Beckner, Vince"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Blaschke, Johannes"
+        },
+        {
+            "affiliation": "Lawrence Berkeley National Laboratory",
+            "name": "Chan, Cy"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Day, Marcus"
+        },
+        {
+            "affiliation": "NERSC",
+            "name": "Friesen, Brian"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Gott, Kevin"
+        },
+        {
+            "affiliation": "NVIDIA Corporation",
+            "name": "Katz, Maximilian",
+            "orcid": "0000-0003-0439-4556"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Myers, Andrew"
+        },
+        {
+            "affiliation": "Lawrence Berkeley National Laboratory",
+            "name": "Nguyen, Tan"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Nonaka, Andrew"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Rosso, Michele"
+        },
+        {
+            "affiliation": "Center for Computational Sciences and Engineering, Lawrence Berkeley National Laboratory",
+            "name": "Zhang, Weiqun",
+            "orcid": "0000-0001-8092-1974"
+        },
+        {
+            "affiliation": "Department of Physics and Astronomy, Stony Brook University",
+            "name": "Zingale, Michael",
+            "orcid": "0000-0001-8401-030X"
+        }
+    ],
+    "keywords": [
+        "adaptive mesh refinement",
+        "finite difference",
+        "finite volume"
+    ]
+}
