@@ -50,8 +50,8 @@ ifeq ($(DEBUG),TRUE)
 
 else
 
-  CXXFLAGS += -g -O2 -qsimd=auto
-  CFLAGS   += -g -O2 -qsimd=auto
+  CXXFLAGS += -g -O2 -qsimd=auto -qmaxmem=-1
+  CFLAGS   += -g -O2 -qsimd=auto -qmaxmem=-1
 
 endif
 
@@ -59,6 +59,11 @@ endif
 
 CXXFLAGS += -std=c++1y
 CFLAGS   += -std=gnu99
+
+########################################################################
+
+CXXFLAGS += -Wunknown-pragmas
+CFLAGS   += -Wunknown-pragmas
 
 ########################################################################
 

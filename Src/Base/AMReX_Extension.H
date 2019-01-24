@@ -43,7 +43,7 @@
 #define AMREX_PRAGMA_SIMD 
 
 #elif defined(__ibmxl__)
-#define AMREX_PRAGMA_SIMD _Pragma("simd_level(10)")
+#define AMREX_PRAGMA_SIMD _Pragma("ibm independent_loop")
 
 #elif defined(__clang__)
 #define AMREX_PRAGMA_SIMD _Pragma("clang loop vectorize(enable)")
