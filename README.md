@@ -18,6 +18,7 @@ irrevocable, worldwide license in the Software to reproduce,
 distribute copies to the public, prepare derivative works, and perform
 publicly and display publicly, and to permit other to do so.
 
+License for AMReX can be found at [license.txt](license.txt).
 
 ## Development Model:
 
