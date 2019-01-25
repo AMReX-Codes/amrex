@@ -107,11 +107,18 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
     BL_ASSERT(dst.nComp() == src.nComp());
     BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.DistributionMap() == src.DistributionMap());
+    const int ncomp = dst.nComp();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(dst.m_fa); mfi.isValid(); ++mfi) {
-	dst.m_fa[mfi].copy(src.m_fa[mfi]);
+        auto const srcfab = src.m_fa.array(mfi);
+        auto       dstfab = dst.m_fa.array(mfi);
+        const Box& bx = mfi.fabbox();
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            dstfab(i,j,k,n) = srcfab(i,j,k,n);
+        });
     }
 }
 
