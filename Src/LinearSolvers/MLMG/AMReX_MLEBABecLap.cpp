@@ -824,7 +824,7 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(crse,TilingIfNotGpu()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx    = mfi.tilebox();
         auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::refine(bx,2)) : FabType::regular;

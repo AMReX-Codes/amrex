@@ -33,8 +33,6 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-protected:
-
     virtual void prepareForSolve () final override;
     virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
     virtual bool isBottomSingular () const final override { return m_is_singular[0]; }

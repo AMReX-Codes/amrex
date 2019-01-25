@@ -25,4 +25,5 @@ void mg_cc_interp (int i, int j, int k, int n, Array4<Real>& f, Array4<Real> con
     f(i2p1,j2p1,k2p1,n) += cv;
 }
 
+}
 #endif

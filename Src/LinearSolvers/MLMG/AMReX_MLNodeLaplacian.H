@@ -73,8 +73,6 @@ public :
 
     void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
 
-protected:
-
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
     virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
@@ -98,6 +96,22 @@ protected:
 
     virtual void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final override;
+
+    void averageDownCoeffs ();
+    void averageDownCoeffsToCoarseAmrLevel (int flev);
+    void averageDownCoeffsSameAmrLevel (int amrlev);
+
+    void restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& frhs) const;
+
+    void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
+
+    void buildMasks ();
+
+    void buildStencil ();
+
+#ifdef AMREX_USE_EB
+    void buildIntegral ();
+#endif
 
 private:
 
@@ -123,24 +137,6 @@ private:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
-    //
-    // functions
-    //
-    void averageDownCoeffs ();
-    void averageDownCoeffsToCoarseAmrLevel (int flev);
-    void averageDownCoeffsSameAmrLevel (int amrlev);
-
-    void restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& frhs) const;
-
-    void FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom);
-
-    void buildMasks ();
-
-    void buildStencil ();
-
-#ifdef AMREX_USE_EB
-    void buildIntegral ();
-#endif
 };
 
 }

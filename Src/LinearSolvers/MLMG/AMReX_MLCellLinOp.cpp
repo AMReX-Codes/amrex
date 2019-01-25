@@ -314,7 +314,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(crse,TilingIfNotGpu()); mfi.isValid(); ++mfi)
+    for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx    = mfi.tilebox();
         auto const cfab = crse.array(mfi);
@@ -322,7 +322,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         AMREX_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             mg_cc_interp(i,j,k,n,ffab,cfab);
-        }
+        });
     }    
 }
 
