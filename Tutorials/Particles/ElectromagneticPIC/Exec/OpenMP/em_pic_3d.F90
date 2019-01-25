@@ -49,8 +49,8 @@ subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
   const = q*dt*0.5d0/m
   clghtisq = 1.d0/clight**2
 
-!$acc parallel deviceptr(uxp, uyp, uzp, gaminv, ex, ey, ez, bx, by, bz)
-!$acc loop gang vector
+!$omp target teams is_device_ptr(uxp, uyp, uzp, gaminv, ex, ey, ez, bx, by, bz)
+!$omp distribute parallel do schedule(static,1)
   do ip = 1, np
     ! Push using the electric field
     uxp(ip) = uxp(ip) + ex(ip)*const
@@ -86,40 +86,40 @@ subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
 
   end do
-!$acc end loop
-!$acc end parallel
+!$omp end target teams
+
 
 end subroutine push_momentum_boris
 
 
 subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt) &
-        bind(c,name='push_position_boris')
+    bind(c,name='push_position_boris')
 
   use em_particle_module, only : particle_t
   use amrex_fort_module, only : amrex_real
   implicit none
-  
+
   integer,          intent(in), value  :: np
   type(particle_t), intent(inout)      :: structs(np)
   real(amrex_real), intent(in)         :: uxp(np), uyp(np), uzp(np), gaminv(np)
   real(amrex_real), intent(in), value  :: dt
-  
+
   integer                              :: ip
-  
-  !$acc parallel deviceptr(structs, uxp, uyp, uzp, gaminv)
-  !$acc loop gang vector
+
+!$omp target teams is_device_ptr(structs, uxp, uyp, uzp, gaminv)
+!$omp distribute parallel do schedule(static,1)
   do ip = 1, np
      structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
-     structs(ip)%pos(2) = structs(ip)%pos(2) + uyp(ip)*gaminv(ip)*dt
-     structs(ip)%pos(3) = structs(ip)%pos(3) + uzp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
   end do
-  !$acc end loop
-  !$acc end parallel
-  
+!$omp end target teams
+
+
 end subroutine push_position_boris
 
 subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
-        bind(c,name='set_gamma')
+    bind(c,name='set_gamma')
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
@@ -132,21 +132,20 @@ subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
   integer                           :: ip
   real(amrex_real)                  :: clghtisq, usq
   clghtisq = 1.d0/clight**2
-  
-  !$acc parallel deviceptr(uxp, uyp, uzp, gaminv)
-  !$acc loop gang vector
-  do ip = 1, np     
+
+!$omp target teams is_device_ptr(uxp, uyp, uzp, gaminv)
+!$omp distribute parallel do schedule(static,1)
+  do ip = 1, np
      usq = (uxp(ip)**2 + uyp(ip)**2+ uzp(ip)**2)*clghtisq
-     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)     
+     gaminv(ip) = 1.d0/sqrt(1.d0 + usq)
   end do
-  !$acc end loop
-  !$acc end parallel
-  
+!$omp end target teams
+
+
 end subroutine set_gamma
 
 subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &
-     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) &
-     bind(c,name='deposit_current')
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) bind(c,name='deposit_current')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -182,17 +181,17 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, s
   dts2dy = 0.5d0*dt*dyi
   dts2dz = 0.5d0*dt*dzi
   clightsq = 1.d0/clight**2
-  ! CD: Not needed - initialized in parallel loop. It must be done this way
-  ! because firstprivate is not supported on a loop construct.
-  !sx=0.d0; sy=0.d0; sz=0.d0;
-  !sx0=0.d0;sy0=0.d0;sz0=0.d0;
+  sx=0.d0; sy=0.d0; sz=0.d0;
 
-! CD: The "private" clause is placed on the loop construct (containing a
-! vector schedule) to ensure that there is a private copy of the data
-! per thread - see 2.9.10. If "private" was applied to the parallel
-! construct then there would be a private copy per gang - see 2.5.10.
-!$acc parallel deviceptr(jx, jy, jz, structs, uxp, uyp, uzp, w, gaminv)
-!$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
+
+
+
+
+
+
+
+!$omp target teams is_device_ptr(jx, jy, jz, structs, uxp, uyp, uzp, w, gaminv)
+!$omp distribute parallel do schedule(static, 1) private(sx,sy,sz,sx0,sy0,sz0)
   do ip = 1, np
 
     ! --- computes position in grid units at (n+1)
@@ -247,60 +246,60 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, s
     sz0( 1) = zint
 
     ! --- add current contributions in the form rho(n+1/2)v(n+1/2)
-    !$acc atomic update
+    !$omp atomic update
     jx(j0, k, l  )      = jx(j0, k, l      )  +   sx0(0)*sy(0)*sz(0)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0+1, k, l  )    = jx(j0+1, k, l    )  +   sx0(1)*sy(0)*sz(0)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0, k+1, l  )    = jx(j0, k+1, l    )  +   sx0(0)*sy(1)*sz(0)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0+1, k+1, l  )  = jx(j0+1, k+1, l  )  +   sx0(1)*sy(1)*sz(0)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0, k, l+1)      = jx(j0, k, l+1    )  +   sx0(0)*sy(0)*sz(1)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0+1, k, l+1)    = jx(j0+1, k, l+1  )  +   sx0(1)*sy(0)*sz(1)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0, k+1, l+1)    = jx(j0, k+1, l+1  )  +   sx0(0)*sy(1)*sz(1)*wqx
-    !$acc atomic update
+    !$omp atomic update
     jx(j0+1, k+1, l+1)  = jx(j0+1, k+1, l+1)  +   sx0(1)*sy(1)*sz(1)*wqx
 
-    !$acc atomic update
+    !$omp atomic update
     jy(j, k0, l  )      = jy(j, k0, l      )  +   sx(0)*sy0(0)*sz(0)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j+1, k0, l  )    = jy(j+1, k0, l    )  +   sx(1)*sy0(0)*sz(0)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j, k0+1, l  )    = jy(j, k0+1, l    )  +   sx(0)*sy0(1)*sz(0)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j+1, k0+1, l  )  = jy(j+1, k0+1, l  )  +   sx(1)*sy0(1)*sz(0)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j, k0, l+1)      = jy(j, k0, l+1    )  +   sx(0)*sy0(0)*sz(1)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j+1, k0, l+1)    = jy(j+1, k0, l+1  )  +   sx(1)*sy0(0)*sz(1)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j, k0+1, l+1)    = jy(j, k0+1, l+1  )  +   sx(0)*sy0(1)*sz(1)*wqy
-    !$acc atomic update
+    !$omp atomic update
     jy(j+1, k0+1, l+1)  = jy(j+1, k0+1, l+1)  +   sx(1)*sy0(1)*sz(1)*wqy
 
-    !$acc atomic update
+    !$omp atomic update
     jz(j, k, l0  )      = jz(j, k, l0      )  +   sx(0)*sy(0)*sz0(0)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j+1, k, l0  )    = jz(j+1, k, l0    )  +   sx(1)*sy(0)*sz0(0)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j, k+1, l0  )    = jz(j, k+1, l0    )  +   sx(0)*sy(1)*sz0(0)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j+1, k+1, l0  )  = jz(j+1, k+1, l0  )  +   sx(1)*sy(1)*sz0(0)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j, k, l0+1)      = jz(j, k, l0+1    )  +   sx(0)*sy(0)*sz0(1)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j+1, k, l0+1)    = jz(j+1, k, l0+1  )  +   sx(1)*sy(0)*sz0(1)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j, k+1, l0+1)    = jz(j, k+1, l0+1  )  +   sx(0)*sy(1)*sz0(1)*wqz
-    !$acc atomic update
+    !$omp atomic update
     jz(j+1, k+1, l0+1)  = jz(j+1, k+1, l0+1)  +   sx(1)*sy(1)*sz0(1)*wqz
 
   end do
-!$acc end loop
-!$acc end parallel
+!$omp end target teams
+
 
 end subroutine deposit_current
 
@@ -334,13 +333,13 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
   dyi = 1.d0 / dx(2)
   dzi = 1.d0 / dx(3)
 
-  ! CD: Not needed - initialized in parallel loop
-  !sx  = 0.d0
-  !sy  = 0.d0
-  !sz  = 0.d0
-  !sx0 = 0.d0
-  !sy0 = 0.d0
-  !sz0 = 0.d0
+
+
+
+
+
+
+
 
   ixmin = 0
   ixmax = 0
@@ -356,8 +355,8 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
   izmin0 = 0
   izmax0 = 0
 
-!$acc parallel deviceptr(bxg, byg, bzg, structs, bx, by, bz)
-!$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
+!$omp target teams is_device_ptr(bxg, byg, bzg, structs, bx, by, bz)
+!$omp distribute parallel do schedule(static, 1) private(sx,sy,sz,sx0,sy0,sz0)
   do ip = 1, np
 
      bx(ip) = 0.d0
@@ -399,10 +398,10 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
 
-! CD: The independent clause silences the compiler about the loop
-! carried dependence of bx. There is no loop carried dependence
-! because each bx index is only ever accessed by 1 thread.
-!$acc loop seq independent collapse(3)
+
+
+
+
      do ll = izmin0, izmax0
         do kk = iymin0, iymax0
            do jj = ixmin, ixmax+1
@@ -410,9 +409,9 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
            end do
         end do
      end do
-!$acc end loop
 
-!$acc loop seq independent collapse(3)
+
+
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
            do jj = ixmin0, ixmax0
@@ -420,21 +419,21 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
            end do
         end do
      end do
-!$acc end loop
 
-!$acc loop seq independent collapse(3)
+
+
      do ll = izmin, izmax+1
         do kk = iymin0, iymax0
            do jj = ixmin0, ixmax0
               bz(ip) = bz(ip) + sx0(jj)*sy0(kk)*sz(ll)*bzg(j0+jj, k0+kk, l+ll)
            end do
         end do
+
      end do
-!$acc end loop
 
   end do
-!$acc end loop
-!$acc end parallel
+!$omp end target teams
+
 
 end subroutine gather_magnetic_field
 
@@ -491,8 +490,8 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
   izmin0 = 0
   izmax0 = 0
 
-!$acc parallel deviceptr(exg, eyg, ezg, structs, ex, ey, ez)
-!$acc loop gang vector private(sx(0:1), sy(0:1), sz(0:1), sx0(0:1), sy0(0:1), sz0(0:1))
+!$omp target teams is_device_ptr(exg, eyg, ezg, structs, ex, ey, ez)
+!$omp distribute parallel do schedule(static, 1) private(sx,sy,sz,sx0,sy0,sz0)
   do ip = 1, np
 
      ex(ip) = 0.d0
@@ -534,7 +533,7 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
      sy0(1) = 0.d0 ! Added by CD
      sz0(1) = 0.d0 ! Added by CD
 
-!$acc loop seq independent collapse(3)
+
      do ll = izmin, izmax+1
         do kk = iymin, iymax+1
            do jj = ixmin0, ixmax0
@@ -542,9 +541,9 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
            end do
         end do
      end do
-!$acc end loop
 
-!$acc loop seq independent collapse(3)
+
+
      do ll = izmin, izmax+1
         do kk = iymin0, iymax0
            do jj = ixmin, ixmax+1
@@ -552,9 +551,9 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
            end do
         end do
      end do
-!$acc end loop
 
-!$acc loop seq independent collapse(3)
+
+
      do ll = izmin0, izmax0
         do kk = iymin, iymax+1
            do jj = ixmin, ixmax+1
@@ -562,11 +561,11 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
            end do
         end do
      end do
-!$acc end loop
+
 
   end do
-!$acc end loop
-!$acc end parallel
+!$omp end target teams
+
 
 end subroutine gather_electric_field
 
@@ -589,8 +588,8 @@ subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
 
   integer :: j,k,l
 
-!$acc parallel deviceptr(ex,by,bz,jx)
-!$acc loop gang vector collapse(3)
+
+!$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(ex,by,bz,jx)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
         do j = xlo(1), xhi(1)
@@ -600,8 +599,8 @@ subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
         end do
      end do
   end do
-!$acc end loop
-!$acc end parallel
+
+
 
 end subroutine push_electric_field_x
 
@@ -625,8 +624,8 @@ subroutine push_electric_field_y(ylo, yhi, &
 
   integer :: j,k,l
 
-!$acc parallel deviceptr(ey,bx,bz,jy)
-!$acc loop gang vector collapse(3)
+
+!$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(ey,bz,bx,jy)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
         do j = ylo(1), yhi(1)
@@ -636,8 +635,8 @@ subroutine push_electric_field_y(ylo, yhi, &
         end do
      end do
   end do
-!$acc end loop
-!$acc end parallel
+
+
 
 end subroutine push_electric_field_y
 
@@ -662,8 +661,8 @@ subroutine push_electric_field_z(zlo, zhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(ez,bx,by,jz)
-!$acc loop gang vector collapse(3)
+
+!$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(ez,by,bx,jz)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
         do j = zlo(1), zhi(1)
@@ -673,8 +672,8 @@ subroutine push_electric_field_z(zlo, zhi, &
         end do
      end do
   end do
-!$acc end loop
-!$acc end parallel
+
+
 
 end subroutine push_electric_field_z
 
@@ -696,8 +695,8 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(bx,ey,ez)
-!$acc loop gang vector collapse(3)
+
+!$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(bx,ez,ey)
   do l       = xlo(3), xhi(3)
      do k    = xlo(2), xhi(2)
         do j = xlo(1), xhi(1)
@@ -706,8 +705,8 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
         end do
      end do
   end do
-!$acc end loop
-!$acc end parallel
+
+
 
 end subroutine push_magnetic_field_x
 
@@ -729,8 +728,8 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(by,ex,ez)
-!$acc loop gang vector collapse(3)
+
+!$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(by,ez,ex)
   do l       = ylo(3), yhi(3)
      do k    = ylo(2), yhi(2)
         do j = ylo(1), yhi(1)
@@ -739,8 +738,8 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
         end do
      end do
   end do
-!$acc end loop
-!$acc end parallel
+
+
 
 end subroutine push_magnetic_field_y
 
@@ -762,8 +761,8 @@ subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
   integer :: j,k,l
   integer :: blo(3), bhi(3)
 
-!$acc parallel deviceptr(bz,ex,ey)
-!$acc loop gang vector collapse(3)
+
+!$omp target teams distribute parallel do collapse(3) schedule(static,1) is_device_ptr(bz,ey,ex)
   do l       = zlo(3), zhi(3)
      do k    = zlo(2), zhi(2)
         do j = zlo(1), zhi(1)
@@ -772,8 +771,8 @@ subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
         end do
      end do
   end do
-!$acc end loop
-!$acc end parallel
+
+
 
 end subroutine push_magnetic_field_z
 
@@ -821,4 +820,3 @@ subroutine check_langmuir_solution(boxlo, boxhi, testlo, testhi, jx, jxlo, jxhi,
   max_error = error
 
 end subroutine check_langmuir_solution
-

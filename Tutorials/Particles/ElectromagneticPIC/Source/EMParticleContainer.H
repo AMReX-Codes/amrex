@@ -17,21 +17,21 @@ class EMParIter
 {
 public:
     using amrex::ParIter<0,0,PIdx::nattribs,0>::ParIter;
-    
+
     //    EMParIter (ContainerType& pc, int level);
-    
+
     const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
         return GetStructOfArrays().GetRealData(); 
     }
-    
+
     std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
         return GetStructOfArrays().GetRealData(); 
     }
-    
+
     const RealVector& GetAttribs (int comp) const { 
         return GetStructOfArrays().GetRealData(comp);
     }
-    
+
     RealVector& GetAttribs (int comp) { 
         return GetStructOfArrays().GetRealData(comp);
     }
@@ -49,7 +49,7 @@ public:
                          const int                         a_species_id,
                          const amrex::Real                 a_charge,
                          const amrex::Real                 a_mass);
-    
+
     void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
                        const amrex::Real     a_thermal_momentum_std,
                        const amrex::Real     a_thermal_momentum_mean,
