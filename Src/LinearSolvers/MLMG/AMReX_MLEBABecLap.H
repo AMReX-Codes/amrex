@@ -48,7 +48,7 @@ public:
 
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual bool isCrossStencil () const { return false; }
+    virtual bool isCrossStencil () const override { return false; }
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final override;
