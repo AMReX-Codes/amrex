@@ -319,7 +319,7 @@ MLCellLinOp::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
         const Box& bx    = mfi.tilebox();
         auto const cfab = crse.array(mfi);
         auto       ffab = fine.array(mfi);
-        AMREX_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             mg_cc_interp(i,j,k,n,ffab,cfab);
         });
