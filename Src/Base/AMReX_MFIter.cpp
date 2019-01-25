@@ -417,17 +417,23 @@ MFIter::growntilebox (const IntVect& ng) const
 Box
 MFIter::grownnodaltilebox (int dir, int a_ng) const
 {
+    IntVect ngv(a_ng);
+    if (a_ng < -100) ngv = fabArray.nGrowVect();
+    return grownnodaltilebox(dir, ngv);
+}
+
+Box
+MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const
+{
     BL_ASSERT(dir < AMREX_SPACEDIM);
     Box bx = nodaltilebox(dir);
-    IntVect ngv{a_ng};
-    if (a_ng < -100) ngv = fabArray.nGrowVect();
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ngv[d]);
+	    bx.growLo(d, a_ng[d]);
 	}
 	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, ngv[d]);
+	    bx.growHi(d, a_ng[d]);
 	}
     }
     return bx;
