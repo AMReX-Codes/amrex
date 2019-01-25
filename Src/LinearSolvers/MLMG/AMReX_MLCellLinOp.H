@@ -90,7 +90,7 @@ public:
     static Counters perf_counters;
 #endif
 
-    virtual bool isCrossStencil () const override { return true; }
+    virtual bool isCrossStencil () const { return true; }
 
     void updateSolBC (int amrlev, const MultiFab& crse_bcdata) const;
     void updateCorBC (int amrlev, const MultiFab& crse_bcdata) const;
