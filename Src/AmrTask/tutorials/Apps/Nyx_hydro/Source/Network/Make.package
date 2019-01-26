@@ -1,3 +1,0 @@
-f90EXE_sources += network.f90
-f90EXE_sources += nyx_burner.f90
-
