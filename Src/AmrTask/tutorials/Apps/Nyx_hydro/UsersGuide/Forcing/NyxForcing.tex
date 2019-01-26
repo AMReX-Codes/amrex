@@ -1,0 +1,47 @@
+In Nyx a stochastic force field can be applied. To make sure this option is chosen correctly, we must always set \\
+
+\noindent {\bf USE\_FORCING = TRUE} \\
+
+\noindent in the GNUmakefile and \\
+
+\noindent {\bf nyx.do\_forcing} = 1  \\
+
+\noindent in the inputs file.  \\
+
+The external forcing term in the momentum equation~(\ref{eq:momt}) is then given by
+\begin{equation}
+  {\bf S}_{\rho \Ub} = \rho_b \fb
+\end{equation}
+where the acceleration field $\mathbf{f}(\mathbf{x},t)$ is computed as inverse Fourier transform of the forcing spectrum $\widehat{\mathbf{f}}(\mathbf{k},t$). The time evolution of each wave mode is given by an Ornstein-Uhlenbeck process (see \cite{SchmHille06,Schmidt14} for details). Since the real space forcing acts on large scales $L$, non-zero modes are confined to a narrow window of small wave numbers with a prescribed shape (the forcing profile). The resulting flow reaches a statistically stationary and isotropic state with a root-mean-square velocity of the order $V=L/T$, where the integral time scale $T$ (also known as large-eddy turn-over time) is usually set equal to the autocorrelation time of the forcing. It is possible to vary the force field from solenoidal (divergence-free) if the weight parameter $\zeta=1$ to dilational (rotation-free) if $\zeta=0$. 
+
+To maintain a nearly constant root-mean-square Mach number, a simple model for radiative heating and cooling around a given equilibrium temperature $T_0$ is applied in the energy equation~(\ref{eq:energy}):
+\begin{equation}
+  S_{\rho E} = S_{\rho e} + \Ub \cdot {\bf S}_{\rho \Ub} = -\frac{\alpha k_{\rm B}(T-T_0)}{\mu m_{\rm H}(\gamma-1)} + \rho_b\Ub\cdot\fb
+\end{equation}
+The parameters $T_0$ and $\alpha$ correspond to temp0 and alpha, respectively, in the probin file (along with rho0 for the mean density, which is unity by default). While the gas is adiabatic for $\alpha=0$, it becomes
+nearly isothermal if the cooling time scale given by $1/\alpha$ is chosen sufficiently short compared to $T$. For performance reasons, a constant composition (corresponding to constant molecular weight $\mu$) is assumed.
+
+\section{List of Parameters}
+
+\begin{table*}[h]
+\begin{scriptsize}
+\begin{tabular}{|l|l|l|l|} \hline
+Parameter & Definition & Acceptable Values & Default \\
+\hline
+{\bf forcing.seed} & seed of the random number generator & Integer $>0$ & 27011974 \\
+{\bf forcing.profile} & shape of forcing spectrum & 1 (plane), 2 (band), 3 (parabolic) & 3\\
+{\bf forcing.alpha} & ratio of domain size $X$ to integral length $L=X/\alpha$ & Integer $>0$ & 2 2 2\\
+{\bf forcing.band\_width} & band width of the forcing spectrum relative to alpha & Real $\ge 0$ and $\le 1$ & 1.0 1.0 1.0\\
+{\bf forcing.intgr\_vel} & characteristic velocity $V$ & Real $> 0$ & must be set\\
+{\bf forcing.auto\_corrl} & autocorrelation time in units of $T=L/V$ & Real $> 0$ & 1.0 1.0 1.0\\
+{\bf forcing.soln\_weight} & weight $\zeta$ of solenoidal relative to dilatational modes & Real $\ge 0$ and $\le 1$ & 1.0\\
+\hline
+\end{tabular}
+\label{Table:Geometry}
+\end{scriptsize}
+\end{table*}
+
+Triples for forcing.alpha, forcing.band\_width, forcing.intgr\_vel, and forcing.auto\_corrl correspond to the three spatial dimensions.
+
+
+

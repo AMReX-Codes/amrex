@@ -47,19 +47,19 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         auto const jyfab = jy.array(mfi);
         auto const jzfab = jz.array(mfi);
 
-        AMREX_FOR_3D ( tbx, j, k, l,
+        AMREX_PARALLEL_FOR_3D ( tbx, j, k, l,
         {
             push_electric_field_x(j,k,l, Exfab, Byfab, Bzfab, jxfab,
                                   mu_c2_dt, dtsdy, dtsdz);
         });
 
-        AMREX_FOR_3D ( tby, j, k, l,
+        AMREX_PARALLEL_FOR_3D ( tby, j, k, l,
         {
             push_electric_field_y(j,k,l, Eyfab, Bxfab, Bzfab, jyfab,
                                   mu_c2_dt, dtsdx, dtsdz);
         });
 
-        AMREX_FOR_3D ( tbz, j, k, l,
+        AMREX_PARALLEL_FOR_3D ( tbz, j, k, l,
         {
             push_electric_field_y(j,k,l, Ezfab, Bxfab, Byfab, jzfab,
                                   mu_c2_dt, dtsdx, dtsdy);
@@ -91,17 +91,17 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         auto const Eyfab = Ey.array(mfi);
         auto const Ezfab = Ez.array(mfi);
 
-        AMREX_FOR_3D ( tbx, j, k, l,
+        AMREX_PARALLEL_FOR_3D ( tbx, j, k, l,
         {
             push_magnetic_field_x(j,k,l, Bxfab, Eyfab, Ezfab, dtsdy, dtsdz);
         });
 
-        AMREX_FOR_3D ( tby, j, k, l,
+        AMREX_PARALLEL_FOR_3D ( tby, j, k, l,
         {
             push_magnetic_field_y(j,k,l, Byfab, Exfab, Ezfab, dtsdx, dtsdz);
         });
 
-        AMREX_FOR_3D ( tbz, j, k, l,
+        AMREX_PARALLEL_FOR_3D ( tbz, j, k, l,
         {
             push_magnetic_field_z(j,k,l, Bzfab, Exfab, Eyfab, dtsdx, dtsdy);
         });

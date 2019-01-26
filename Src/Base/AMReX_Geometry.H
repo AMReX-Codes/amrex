@@ -117,7 +117,7 @@ public:
     }
 
     static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () {
-        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+        return {AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))};
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together

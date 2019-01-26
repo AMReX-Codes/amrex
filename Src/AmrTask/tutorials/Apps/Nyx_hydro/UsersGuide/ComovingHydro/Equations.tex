@@ -1,0 +1,167 @@
+\section{Hydrodynamic Equations in Comoving Coordinates}
+
+\subsection{Conservative Form}
+
+We solve the equations of gas dynamics in a coordinate system that is comoving 
+with the expanding universe,  with expansion factor, $a,$ related to the redshift, $z$, by $a = 1 / (1 + z).$
+The continuity equation is written,
+\begin{equation}
+\label{eq:dens}
+\frac{\partial \rho_b}{\partial t} = - \frac{1}{a} \nabla \cdot (\rho_b \Ub) \enskip , \\
+\end{equation}
+where $\rho_b$ is the comoving baryonic density, related to the proper density by $\rho_b = a^3 \rho_{proper},$ 
+and $\Ub$ is the proper peculiar baryonic velocity.
+
+The momentum evolution equation can be expressed as
+\begin{eqnarray}
+\frac{\partial (\rho_b \Ub)}{\partial t} &=&  \frac{1}{a} \left(
+- \nabla \cdot (\rho_b \Ub \Ub) 
+- \nabla p 
++ \rho_b \gb 
++ {\bf S}_{\rho \Ub}
+- \dot{a} \rho_b \Ub \right) \enskip , 
+\end{eqnarray}
+or equivalently,
+\begin{eqnarray}
+\label{eq:momt}
+\frac{\partial (a \rho_b \Ub)}{\partial t} &=& 
+-             \nabla \cdot (\rho_b \Ub \Ub) 
+-             \nabla p 
++             \rho_b \gb 
++             {\bf S}_{\rho \Ub} \enskip , 
+\end{eqnarray}
+where the pressure, $p$, that appears in the 
+evolution equations is related to the proper pressure, $p_{proper},$ by  $p = a^3 p_{proper}.$ 
+Here $\gb = - \nabla \phi$ is the gravitational acceleration vector, and 
+${\bf S}_{\rho \Ub}$ represents any external forcing terms.
+
+The energy equation can be written,
+\begin{eqnarray}
+\frac{\partial (\rho_b E)}{\partial t} &=& \frac{1}{a} \left[
+- \nabla \cdot (\rho_b \Ub E + p \Ub)
++ ( \rho_b \Ub \cdot \gb +  S_{\rho E} ) 
+- \dot{a} ( 3 (\gamma - 1) \rho_b e + \rho_b ( \Ub \cdot \Ub) ) \right] \enskip . 
+\end{eqnarray}
+or equivalently,
+\begin{eqnarray}
+\label{eq:energy}
+\frac{\partial (a^2 \rho_b E)}{\partial t} &=& a \left[
+- \nabla \cdot (\rho_b \Ub E + p \Ub)
++  \rho_b \Ub \cdot \gb 
++  S_{\rho E}  
++  \dot{a} ( \; ( 2 - 3 (\gamma - 1) ) \; \rho_b e ) \right] \enskip . 
+\end{eqnarray}
+Here $E = e + \Ub \cdot \Ub / 2$ is the total energy per unit mass, 
+where $e$ is the specific internal energy.  
+$S_{\rho E} = S_{\rho e} + \Ub \cdot {\bf S}_{\rho \Ub}$
+where $S_{\rho e} = \Lambda^H - \Lambda^C$ represents the heating and cooling terms, respectively.
+We can write the evolution equation for internal energy as
+\begin{eqnarray}
+\frac{\partial (\rho_b e)}{\partial t} &=& \frac{1}{a} \left[
+- \nabla \cdot (\rho_b \Ub e)
+- p \nabla \cdot \Ub
+- \dot{a} ( 3 (\gamma - 1) \rho_b e )
++ S_{\rho e}  \right] \enskip . 
+\end{eqnarray}
+or equivalently,
+\begin{eqnarray}
+\frac{\partial (a^2 \rho_b e)}{\partial t} &=&  a \left[
+- \nabla \cdot (\rho_b \Ub e)
+- p \nabla \cdot \Ub
++ S_{\rho e} 
++ \dot{a} ( \; ( 2 - 3 (\gamma - 1) ) \; \rho_b e ) \right] \enskip . 
+\end{eqnarray}
+
+Note that for a gamma-law gas with $\gamma = 5/3,$ we can write
+\begin{eqnarray}
+\frac{\partial (a^2 \rho_b E)}{\partial t} &=&  a \left[
+ -\nabla \cdot (\rho_b \Ub E + p \Ub)
++  \rho_b \Ub \cdot \gb 
++  S_{\rho e}  \right]  \enskip . 
+\end{eqnarray}
+and
+\begin{eqnarray}
+\frac{\partial (a^2 \rho_b e)}{\partial t} &=& a \left[ 
+- \nabla \cdot (\rho_b \Ub e)
+-  p \nabla \cdot \Ub
++  S_{\rho e}  \right]  \enskip . 
+\end{eqnarray}
+
+\subsection{Tracing}
+
+In order to compute the fluxes on faces, we trace $\rho, \Ub, \rho e$ and $p$ to the faces.
+
+\noindent Thus we must convert the momentum evolution equation into a velocity evolution equation:
+\begin{eqnarray}
+\frac{\partial\Ub}{\partial t} &=&  \frac{1}{\rho_b} \left(
+\frac{\partial (\rho_b \Ub)}{\partial t}  - \Ub \frac{\partial \rho_b}{\partial t}  \right) \\
+&=&  \frac{1}{a \rho_b} \left(
+- \nabla \cdot (\rho_b \Ub \Ub)
+- \nabla p
++ \rho_b \gb
++ S_{\rho \Ub}
+- \dot{a} \rho_b \Ub \right) 
++ \frac{1}{a}  \Ub \; \nabla \cdot (\rho_b \Ub) \\
+&=&  \frac{1}{a} \left(
+- \Ub \cdot \nabla \Ub
+- \frac{1}{\rho_b} \nabla p
++ \gb
++ \frac{1}{\rho_b} {\bf S}_{\rho \Ub}
+- \dot{a} \Ub \right) \enskip .
+\end{eqnarray}
+
+\section{Subgrid Scale Model in Comoving Coordinates}
+
+The fundamental modification to the standard compressible equations is the addition
+of a SGS turbulence energy variable, $K$ and associated source terms in the equations
+for the evolution of velocity, total energy, and $K$ \cite{schumann:1975,sagaut,schmidt:2006}.
+The set of conservation equations in comoving coordinates~(\ref{eq:dens})--(\ref{eq:energy}) then becomes
+\cite{maier:2009}:
+\begin{align}
+\frac{\partial \rho_b}{\partial t} =& - \frac{1}{a} \nabla \cdot (\rho_b \Ub) \enskip , \\
+\label{eq:momt_les}
+\frac{\partial (a \rho_b \Ub)}{\partial t} =& 
+-             \nabla \cdot (\rho_b \Ub \Ub) 
+-             \nabla p
++             \nabla \cdot \boldsymbol{\tau}
++             \rho_b \gb  \enskip , \\
+\label{eq:energy_les}
+\frac{\partial (a^2 \rho_b E)}{\partial t} =& - a \nabla \cdot (\rho_b \Ub E + p \Ub)
++  a \rho_b \Ub \cdot \gb 
++ a \nabla \cdot (\Ub\cdot\boldsymbol{\tau}) - a^2(\Sigma - \rho_b \varepsilon) \enskip \\
+\nonumber
+&+ a \dot{a} \left( ( 2 - 3 (\gamma - 1) ) \rho_b e \right) 
++ a^2 ( \Lambda^H  - \Lambda^C )  \enskip , \\
+\label{eq:k_les}
+\frac{\partial (a^2\rho_b K)}{\partial t} =&
+- a\nabla \cdot \left(\rho_b \Ub K\right) 
++ a\nabla \cdot \left(\rho_b \kappa_{\rm sgs}\nabla K\right)  
++ a^2(\Sigma - \rho_b \varepsilon)\enskip .
+\end{align}
+The interaction between resolved and unresolved turbulent eddies is described by
+the SGS turbulence stress tensor $\boldsymbol{\tau}$. Since inertial-range dynamics of 
+turbulence is scale-invariant, we conjecture that $\boldsymbol{\tau}$ in comoving coordinates 
+has the same form as for non-expanding fluids. For compressible turbulence, 
+the following closure is proposed in \cite{schmidt:2011}:
+\begin{equation}
+ \label{eq:tau_nonlin}
+  \tau_{ij}= 2C_{1}\Delta\rho_b(2 K_{\mathrm{sgs}})^{1/2}S_{\! ij}^{\ast}
+  -4C_{2}\rho_bK\frac{U_{i,k}U_{j,k}}{|\nabla\Ub|^{2}}
+  -\frac{2}{3}(1-C_{2})\rho_bK\delta_{ij}.
+\end{equation}
+where $|\nabla\Ub|:=(2U_{i,k}U_{i,k})^{1/2}$ is the norm of the resolved velocity derivative,
+\begin{equation}
+S_{ij}^{\ast} = S_{ij} - \frac{1}{3}\delta_{ij}d =
+\frac{1}{2} (U_{i,j} + U_{j,i}) - \frac{1}{3}\delta_{ij}U_{k,k}
+\end{equation}
+is the trace-free rate-of strain, and $\Delta=(\vartriangle\!x\,\vartriangle\!y\,\vartriangle\!z)^{1/3}$
+is the grid scale in comoving coordinates. The production and dissipation terms in equation~(\ref{eq:k_les}) 
+are defined as follows:
+\begin{eqnarray}
+\Sigma             &=& \frac{1}{a}\tau_{ij} S_{ij}, \\
+\varepsilon &=& \frac{C_\varepsilon K^{3/2}}{a\Delta},
+\end{eqnarray}
+and $\kappa_{\rm sgs} = C_{\kappa}\Delta K^{1/2}$ is the SGS diffusivity.
+Here we assume that the Reynolds number of turbulence is high such that the damping of turbulent eddies by the microscopic
+viscosity of the fluid occurs entirely on the subgrid scales. Because of the numerical viscosity of PPM,
+however, part of the numerically resolved kinetic energy will be dissipated directly into internal energy.

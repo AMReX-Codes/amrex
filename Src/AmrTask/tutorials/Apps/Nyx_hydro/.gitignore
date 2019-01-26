@@ -1,0 +1,61 @@
+# latex intermediates
+*.aux
+*.log
+*.dvi
+*.toc
+*.bbl
+*.blg
+*.lof
+*.lot
+*.idx
+*.ilg
+*.ind
+*.backup
+Docs/*.out
+Docs/*.ps
+Docs/*.pdf
+Docs/*/*.pdf
+UsersGuide/*.out
+UsersGuide/*.pdf
+
+# emacs temporaries
+*~
+\#*
+
+
+# executables
+*.ex
+*.exe
+
+# Nyx executables
+Nyx*.ex
+
+# plt and chk files
+plt*
+chk*
+*plt?????
+*chk?????
+*plt?????.old*
+*chk?????.old*
+*.xmgr
+ic_sb_32.ascii
+fixed_grids
+
+# build directories
+o/
+d/
+f/
+t/
+tmp_build_dir/
+AMReX_buildInfo.cpp
+buildInfo.cpp
+
+*.hack
+*.bak
+*.hlrn
+
+Backtrace.*
+junk
+
+ChangeLog.Nyx
+git.*

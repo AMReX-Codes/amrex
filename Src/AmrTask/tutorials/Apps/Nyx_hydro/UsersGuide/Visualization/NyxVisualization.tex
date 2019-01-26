@@ -1,0 +1,31 @@
+There are several visualization tools that can be used for Nyx
+plotfiles.  The standard tool used within the
+\amrex-community is \amrvis, a package developed and supported
+by CCSE that is designed specifically for highly efficient visualization
+of block-structured hierarchical AMR data.
+Plotfiles can also be viewed using the \visit, \paraview, and \yt\ packages.
+Particle data can be viewed using \paraview.
+
+Please see Chapter 9 of the AMReX User's Guide (available in amrex/Docs)
+for more detail about using all of these visualization packages. \\
+
+\noindent To control which variables appear in the plotfile, the user can set \\
+
+\noindent {\tt amr.plot\_vars} = \\
+\noindent {\tt amr.derive\_plot\_vars} = \\
+
+\noindent The default for {\tt amr.plot\_vars}
+is all of the state variables.  The default for {\tt amr.derive\_plot\_vars} is none of
+the derived variables.  So if you include neither of these lines then the plotfile
+will contain all of the state variables and none of the derived variables. \\
+
+\noindent If you want all of the state variables plus entropy and pressure (both derived quantities), for example, then set \\
+
+\noindent {\tt amr.derive\_plot\_vars} = entropy pressure \\
+
+\noindent If you just want density (state variable) and pressure (derived quantity), for example, then set \\
+
+\noindent {\tt amr.plot\_vars} =  density \\
+
+\noindent {\tt amr.derive\_plot\_vars} = pressure \\
+

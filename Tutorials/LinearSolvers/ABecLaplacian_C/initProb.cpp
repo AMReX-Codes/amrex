@@ -19,7 +19,7 @@ MyTest::initProbPoisson ()
             const Box& bx = mfi.tilebox();
             auto rhsfab = rhs[ilev].array(mfi);
             auto exactfab = exact_solution[ilev].array(mfi);
-            AMREX_FOR_3D ( bx, i, j, k,
+            AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
             {
                 actual_init_poisson(i,j,k,rhsfab,exactfab,prob_lo,dx);
             });
@@ -52,12 +52,12 @@ MyTest::initProbABecLaplacian ()
             auto acoeffab = acoef[ilev].array(mfi);
             auto bcoeffab = bcoef[ilev].array(mfi);
 
-            AMREX_FOR_3D (gbx, i, j, k,
+            AMREX_PARALLEL_FOR_3D (gbx, i, j, k,
             {
                 actual_init_bcoef(i,j,k,bcoeffab,prob_lo,prob_hi,dx);
             });
 
-            AMREX_FOR_3D (bx, i, j, k,
+            AMREX_PARALLEL_FOR_3D (bx, i, j, k,
             {
                 actual_init_abeclap(i,j,k,rhsfab,exactfab,acoeffab,bcoeffab,
                                     a,b,prob_lo,prob_hi,dx);

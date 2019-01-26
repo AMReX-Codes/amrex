@@ -1,0 +1,9 @@
+palette               /home/almgren/bin/Palette
+initialderived        density
+initialscale          1
+numberformat          %8.6e
+maxpixmapsize         1000000
+reservesystemcolors   35
+showboxes             TRUE
+windowheight          650
+windowwidth           1100

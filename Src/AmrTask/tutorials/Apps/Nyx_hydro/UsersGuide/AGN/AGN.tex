@@ -1,0 +1,238 @@
+\section{The AGN Model}
+
+% https://www.overleaf.com/9080833cntqkdydhkdq#/32617999/
+
+\newcommand{\Msun}{M_\odot}
+
+In the AGN model, super-massive black hole (SMBH) particles are formed
+at {\em haloes}, where
+each halo is defined by a connected mass enclosed by a
+user-defined density isocontour.
+In order to find haloes,
+we use the Reeber package described in Section~\ref{sec:Reeber}.
+Each AGN particle has the standard dark matter particle attributes of
+position, velocity, and mass, as well as two additional attributes,
+its stored accretion energy and its mass accretion rate.
+
+\begin{table}
+\begin{center}
+  \caption{Parameters of the AGN model}
+
+\begin{tabular}{l l l l}
+    \toprule
+In ``probin'' file & Parameter & Fiducial value & Explanation\\
+    \midrule
+* & $M_{\rm h, min}$ & $10^{10}~ \Msun$ & Minimum halo mass for SMBH placement\\
+* & $M_{\rm seed}$ & $10^5~ \Msun$ & Seed mass of SMBH\\
+% $n_{\rm local}$ & 8 & Number of cells in the ``local environment'', here CIC\\
+{\tt T\_min} & $T_{\rm min}$ & $10^7$ K & Minimum heating of the surrounding gas\\
+% $\chi$ & 0.01 & Two-mode change criteria (set to 0 if no momentum feedback) \\
+{\tt bondi\_boost} & $\alpha$ & 100 & Bondi accretion boost factor \\      
+{\tt max\_frac\_removed} & $f_{\rm max, removed}$ & 0.5 & Maximum fraction of mass removed from gas \\
+{\tt eps\_rad} & $\epsilon_{\rm r}$ & 0.1 & Radiation efficiency\\
+{\tt eps\_coupling} & $\epsilon{\rm c}$ & 0.15 & Coupling efficiency\\
+{\tt eps\_kinetic} & $\epsilon_{\rm kin}$ & 0.1 & Kinetic feedback efficiency \\
+{\tt frac\_kinetic} & $f_{\rm kin}$ & 0 & Fraction of feedback energy that is kinetic \\
+
+\bottomrule
+\end{tabular}
+
+% \medskip
+% Note that $n_{\rm local}$ is not really a parameter, but there is a
+% method of how we define ``local environment''.  This is harder to
+% change, as it is hard-coded in relevant routines, but is still listed
+% here for enhanced transparency -- this is something we can \emph{in
+%   principle} experiment with.  
+
+  \label{tab:agn_params1}
+ \end{center}
+
+\medskip
+* $M_{\rm h, min}$ and $M_{\rm seed}$ are not set in the ``probin''
+file, but in the inputs file, by respectively
+{\tt Nyx.mass\_halo\_min} and {\tt Nyx.mass\_seed}.
+
+
+\end{table}
+
+
+\subsection{Creating AGN Particles from Haloes}
+
+% We use the Reeber package to find haloes, and then create super-massive
+% black holes (SMBH) using the halo information.
+
+Each halo with threshold mass of $M_h \geqslant M_{\rm h, min}$
+that does not already host a black hole particle is seeded with
+a black hole of mass $M_{\rm seed}$.
+The initial position of this AGN particle is
+the center of the cell where the density is highest in the halo.
+
+When an AGN particle is created,
+the density in its cell is reduced by the amount required for
+mass to be conserved, and
+the velocity of the AGN particle is initialized so that
+momentum is conserved.
+The accretion energy and mass accretion rate are initialized to zero.
+
+\subsection{Merging AGN Particles}
+
+Two AGN particles merge when both of these conditions obtain:
+\begin{enumerate}
+\item 
+The distance between them, $l$, is less than the mesh spacing, $h$.
+\item
+\label{velocity-item}
+The difference of their velocities, $v_{\rm rel}$,
+is less than the circular velocity at distance $l$:
+$$ v_{\rm rel} < \sqrt{GM_{\rm BH}/l}$$
+where $M_{\rm BH}$ is the mass of the more massive SMBH in the pair,
+and $G$ is the gravitational constant.
+\end{enumerate}
+Criterion~\ref{velocity-item} above
+is necessary in order to prevent AGN particles from merging during
+a fly-through encounter of two haloes, as this could lead to AGN particles
+being quickly removed from the host halo due to momentum conservation.
+
+The merger of two AGN particles is implemented as the less massive one
+being removed, and its mass and momentum being transferred to the
+more massive one.
+% What about its stored accretion energy?
+
+\subsection{Accretion}
+
+For an AGN particle of mass $M_{\rm BH}$,
+the Bondi--Hoyle accretion rate is
+\begin{equation}
+\dot{M}_{\rm B} = \alpha
+\frac{4 \pi G^2 M_{\rm BH}^2 \overline{\rho}}{(\overline{c_s^2} + \overline{u^2})^{3/2}} ,
+\end{equation}
+where 
+% $\alpha$ is the Bondi boost factor, and
+$\overline{\rho}$, $\overline{c_s^2}$, and $\overline{u^2}$ are volume
+averages with a cloud-in-cell stencil of the gas's density, 
+squared sound speed, and squared velocity, respectively,
+in the neighborhood of the particle.
+
+The maximum black hole accretion rate is the Eddington limit,
+\begin{equation}
+\dot{M}_{\rm Edd} = 
+\frac{4 \pi G M_{\rm BH} m_{\rm p}}{\epsilon_{\rm r} \sigma_{\rm T} c} \, ,
+\end{equation}
+with proton mass $m_{\rm p}$,
+Thomson cross section $\sigma_{\rm T}$,
+and speed of light $c$.
+% , and $\epsilon_{\rm r}$ is the radiation efficiency parameter
+
+The mass accretion rate of the SMBH is the smaller of the two rates above:
+$\dot{M}_{\rm acc} = {\rm min} \{ \dot{M}_{\rm B}, \dot{M}_{\rm Edd} \}$.
+Then the gas will lose mass $\dot{M}_{\rm acc} \Delta t$, where
+$\Delta t$ is the length of the time step.
+However, $\dot{M}_{\rm acc}$ is adjusted downward if necessary so that
+when cloud-in-cell stencil weights are applied in the neighborhood of
+the particle, the fraction of gas density removed from any cell of the
+stencil is at most $f_{\rm max, removed}$.
+
+The mass of the AGN particle increases by 
+$(1-\epsilon_{\rm r}) \dot{M}_{\rm acc} \Delta t$,
+while $\dot{M}_{\rm acc} \Delta t$ amount of gas mass is removed from
+the grid according to cloud-in-cell stencil weights in the
+neighborhood of the particle.
+The momentum transfer can be computed by assuming the velocity of the
+gas is unchanged;  thus the gas in each cell loses momentum in
+proportion to its mass loss, and the particle gains the sum of the gas
+momentum loss multiplied by $(1-\epsilon_{\rm r})$. 
+
+\subsection{Feedback Energy}
+
+Feedback energy is stored in an AGN particle variable $E_{\rm AGN}$,
+and is accumulated over time until released.
+The fraction $f_{\rm kin}$ goes to kinetic energy, and the rest to
+thermal energy.
+
+\subsubsection{Thermal Feedback}
+
+% In high accretion rates,
+We increment $E_{\rm AGN}$ by
+thermal feedback energy, calculated from the
+mass accretion rate as 
+\begin{equation} % high energy
+\Delta E_{\rm thermal} = (1 - f_{\rm kin})
+\epsilon_{\rm c} \epsilon_{\rm r} \dot{M}_{\rm acc} c^2 \Delta t .
+\end{equation}
+% where $\epsilon{\rm c}$ is the coupling efficiency.
+% This energy is not released immediately to the surrounding gas, but
+% is instead accumulated over many time steps and stored in an AGN
+% particle variable $E_{\rm AGN}$.
+
+\subsubsection{Kinetic/Momentum Feedback}
+
+We increment $E_{\rm AGN}$ by the kinetic feedback energy
+\begin{equation} % low energy
+\Delta E_{\rm kinetic} =
+f_{\rm kin} \epsilon_{\rm kin} \dot{M}_{\rm acc} c^2 \Delta t .
+\end{equation}
+We also need to adjust the energy density
+and momentum density of the gas.
+We do this by computing a jet velocity
+\begin{equation}
+\vec{v}_{\rm jet} = \sqrt{\frac{2 \Delta E_{\rm kinetic}}{m_{\rm g}}} \vec{n}
+\end{equation}
+where $m_{\rm g}$ is the total gas mass inside the cloud-in-cell local
+environment, and $\vec{n}$ is a {\em randomly} chosen unit vector.
+We add
+$\rho \vec{v}$ to the momentum density $\vec{p}$ of the gas,
+and
+$\vec{v}_{\rm jet} \cdot \vec{p}$ to its energy density,
+both of these weighted by
+the cloud-in-cell stencil of the particle.
+
+\subsubsection{Releasing Feedback Energy}
+
+The accumulated energy is released when
+\begin{equation}
+E_{\rm AGN} > m_{\rm g} \overline{e}
+\label{eq:E_agn}
+\end{equation}
+where $\overline{e}$ is the average specific internal energy of the
+gas over the cloud-in-cell stencil, obtained from the equation of
+state using temperature $T_{\rm min}$ and
+average density of the gas over the same stencil,
+and $m_{\rm g}$ is the total gas mass inside the cloud-in-cell local environment.
+% where $k_{\rm B}$ is Boltzmann's constant, $m_{\rm p}$ is proton mass,
+% $\mu$ is the 
+% mean mass per particle in the gas, $\gamma$ is the ratio of specific
+% heats, and $m_{\rm g}$ is the total gas mass inside the cloud-in-cell
+% local environment.
+% Note that internal energy is $e = k_{\rm B} T / (\gamma -1) \mu m_{\rm p}$, thus
+% the most consistent way to implement equation \ref{eq:E_agn} in the
+% code is probably by calling the appropriate equation of state routine
+% with $T = T_{\rm min}$. 
+
+
+% \section{Finding Haloes with Reeber}
+
+\section{The Reeber Package}
+\label{sec:Reeber}
+
+Reeber is a separate package with a halo finder.
+Here are the Reeber parameters that are assigned in the input file.
+
+\begin{table*}[h]
+\begin{scriptsize}
+\begin{tabular}{|l|l|l|l|} \hline
+Parameter & Definition & Acceptable Values & Default \\
+\hline
+{\bf reeber.halo\_int} & timesteps between halo finder calls &
+Integer & -1 (none) \\
+{\bf reeber.negate} & allow negative values for analysis &
+0 if false, 1 if true & 1 \\
+{\bf reeber.halo\_density\_vars} & density variable list & density, particle\_mass\_density & ``density'' \\
+{\bf reeber.halo\_extrema\_threshold} & extrema threshold for haloes & Real  & 200. \\
+{\bf reeber.halo\_component\_threshold} & component threshold for haloes & Real & 82. \\
+{\bf reeber.absolute\_halo\_thresholds} & are halo thresholds absolute &
+0 if multiples of mean, 1 if absolute & 0 \\
+\hline
+\end{tabular}
+\label{Table:Reeber-inputs}
+\end{scriptsize}
+\end{table*}

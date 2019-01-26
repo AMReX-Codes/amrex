@@ -1,0 +1,15 @@
+f90EXE_sources += compute_temp_3d.f90
+f90EXE_sources += enforce_consistent_e_3d.f90
+f90EXE_sources += enforce_nonnegative_species_3d.f90
+f90EXE_sources += EstDt_3d.f90
+f90EXE_sources += Nyx_sums_3d.f90
+f90EXE_sources += reset_internal_energy_3d.f90
+f90EXE_sources += update_particles_3d.f90
+
+ifeq ($(USE_AMOM), TRUE)
+f90EXE_sources += ang_mom_sums_3d.f90
+endif
+
+ifneq ($(USE_OWN_BCS), TRUE)
+f90EXE_sources += bc_fill_3d.f90
+endif

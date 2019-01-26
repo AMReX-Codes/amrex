@@ -1,0 +1,357 @@
+module kernel
+  use constants_module, only : rt => type_real, M_PI
+  use cudafor
+  use iso_c_binding, only : c_float, c_double, c_size_t
+  
+  implicit none
+
+  ! Photo- rates (from file)
+  integer, public :: NCOOLFILE
+  real(rt), dimension(:), allocatable, public :: lzr
+  real(rt), dimension(:), allocatable, public :: rggh0, rgghe0, rgghep
+  real(rt), dimension(:), allocatable, public :: reh0, rehe0, rehep
+
+  ! Other rates (from equations)
+  integer, parameter, public :: NCOOLTAB=2000
+  real(rt), dimension(NCOOLTAB+1), public :: AlphaHp, AlphaHep, AlphaHepp, Alphad
+  real(rt), dimension(NCOOLTAB+1), public :: GammaeH0, GammaeHe0, GammaeHep
+  real(rt), dimension(NCOOLTAB+1), public :: BetaH0, BetaHe0, BetaHep, Betaff1, Betaff4
+  real(rt), dimension(NCOOLTAB+1), public :: RecHp, RecHep, RecHepp
+
+  real(rt), public, save :: this_z, ggh0, gghe0, gghep, eh0, ehe0, ehep
+
+  real(rt), allocatable, public :: TCOOLMIN, TCOOLMAX
+  real(rt), allocatable, public :: TCOOLMIN_R, TCOOLMAX_R
+  real(rt), allocatable, public :: deltaT
+
+!  real(rt), parameter, public :: TCOOLMIN = 0.0d0, TCOOLMAX = 9.0d0  ! in log10
+!  real(rt), parameter, public :: TCOOLMIN_R = 10.0d0**TCOOLMIN, TCOOLMAX_R = 10.0d0**TCOOLMAX
+!  real(rt), parameter, public :: deltaT = (TCOOLMAX - TCOOLMIN)/NCOOLTAB
+
+  real(rt), parameter, public :: MPROTON = 1.6726231d-24, BOLTZMANN = 1.3806e-16
+
+  real(rt), public, save :: uvb_density_A = 1.0d0, uvb_density_B = 0.0d0, mean_rhob
+
+  ! Note that XHYDROGEN can be set by a call to set_xhydrogen which now
+  ! lives in set_method_params.
+  real(rt), public :: XHYDROGEN = 0.76d0
+  real(rt), public :: YHELIUM   = 7.8947368421d-2  ! (1.0d0-XHYDROGEN)/(4.0d0*XHYDROGEN)
+
+  attributes(managed) :: lzr, rggh0, rgghe0, rgghep, reh0, rehe0, rehep
+  attributes(managed) :: TCOOLMIN, TCOOLMAX, TCOOLMIN_R, TCOOLMAX_R,deltaT
+
+  contains
+     attributes(global) subroutine fort_tabulate_rates_kernel()
+
+       integer :: i,j,fhi,flo
+        integer :: id
+	real(8) :: tmp, logT
+	
+ 
+        ! Get our global thread ID
+        id = (blockidx%x-1)*blockdim%x + threadidx%x
+      logT=4.5
+      tmp = (logT-TCOOLMIN)/deltaT
+      j = int(tmp)
+      fhi = tmp - j
+      flo = 1.0d0 - fhi
+      j = j + 1 ! F90 arrays start with 1
+         do i = 1, 301
+	 if(id .eq.1) then
+            lzr(i) = deltaT
+lzr(301)=TCOOLMIN
+rggh0(301)=TCOOLMAX
+rgghe0(301)=TCOOLMIN_R
+rgghe0(301)=TCOOLMAX_R
+rgghep(301)=deltaT
+reh0(301)=tmp
+rehe0(301)=j
+rehep(301)=flo
+         endif
+	    !, rggh0(i), rgghe0(i), rgghep(i), &
+            !                    reh0(i),  rehe0(i),  rehep(i)
+         end do
+
+     end subroutine fort_tabulate_rates_kernel
+end module kernel
+
+program main
+    use cudafor
+    use kernel
+!    use, intrinsic :: iso_c_binding
+      use constants_module, only : rt => type_real, M_PI
+      use fundamental_constants_module, only: Gconst
+      use comoving_module, only: comoving_h,comoving_OmB
+      use reion_aux_module, only: zhi_flash, zheii_flash, T_zhi, T_zheii, &
+                                  flash_h, flash_he, inhomogeneous_on
+  implicit none
+
+  integer :: Nalloc
+    real(8) :: a, half_dt
+    integer :: i, j, k
+    real(8) :: z, z_end, a_end, rho, H_reion_z, He_reion_z
+    real(8) :: T_orig, ne_orig, e_orig
+    real(8) :: T_out , ne_out , e_out, mu, T_H, T_He
+    real(8) :: species(5)
+
+    integer(c_int) :: ierr       ! error flag from C functions
+    real(c_double) :: tstart     ! initial time
+    real(c_double) :: atol, rtol
+    type(c_ptr) :: sunvec_y      ! sundials vector
+    type(c_ptr) :: CVmem         ! CVODE memory
+    integer(c_long), parameter :: neq = 1
+!  call amrex_init()
+ 
+  real(c_double), pointer :: yvec(:)
+  real(c_double) :: vode_atol_scaled_in, vode_rtol_in, xacc_in
+  CHARACTER(LEN=80) :: FMT, arg
+  CHARACTER(LEN=6)  :: string
+  integer :: STRANG_COMP
+!  integer :: i_loop, j_loop
+
+   real(rt) :: tmp_lzr, tmp_rggh0, tmp_rgghe0, tmp_rgghep, &
+                                tmp_reh0,  tmp_rehe0,  tmp_rehep
+
+! integer:: i
+      integer :: inhomo_reion
+      logical, parameter :: Katz96=.false.
+      real(8), parameter :: t3=1.0d3, t5=1.0d5, t6=1.0d6
+      real(8) :: t, U, E, y, sqrt_t, corr_term, tmp
+      logical, save :: first=.true.
+!      logical, save :: parallel_ioprocessor=.true.
+       character(len=80) :: file_in
+      character(len=14) :: var_name
+      character(len=2)  :: eq_name
+!      character(len=80) :: FMT
+!      type(amrex_parmparse) :: pp
+!!!!!!!!!!!!!!!!!!!!!!!!!!!
+       integer :: fhi,flo
+        integer :: id
+	real(8) :: tmp2, logT
+    real(8) :: total
+    	
+    ! Size of vectors
+    integer :: n = 100000
+type(dim3) :: blockSize, gridSize
+ 
+
+    allocate(TCOOLMIN, TCOOLMAX, TCOOLMAX_R, TCOOLMIN_R, deltaT)
+  TCOOLMIN = 0.0d0
+  TCOOLMAX = 9.0d0
+  TCOOLMIN_R = 10.0d0**TCOOLMIN 
+  TCOOLMAX_R = 10.0d0**TCOOLMAX
+  deltaT = (TCOOLMAX - TCOOLMIN)/NCOOLTAB
+      logT=4.5
+      tmp2 = (logT-TCOOLMIN)/deltaT
+      j = int(tmp2)
+      fhi = tmp2 - j
+      flo = 1.0d0 - fhi
+      j = j + 1 ! F90 arrays start with 1
+      print*, j, fhi, flo, tmp2
+    ! Number of threads in each thread block
+    blockSize = dim3(1024,1,1)
+ 
+    ! Number of thread blocks in grid
+    gridSize = dim3(ceiling(real(n)/real(blockSize%x)) ,1,1)
+ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Photo- rates (from file)
+!  integer :: NCOOLFILE
+!  real(rt), dimension(:), allocatable :: lzr
+!  real(rt), dimension(:), allocatable :: rggh0, rgghe0, rgghep
+!  real(rt), dimension(:), allocatable :: reh0, rehe0, rehep
+!  attributes(managed) :: lzr
+!  attributes(managed) :: rggh0, rgghe0, rgghep
+!  attributes(managed) :: reh0, rehe0, rehep
+!!!!Mangleds$acc declare create(lzr, rggh0, rgghe0, rgghep, reh0, rehe0, rehep
+
+    DO i = 1, command_argument_count()
+       CALL getarg(i, arg)
+       WRITE (*,*) arg
+    END DO
+
+    print*,"Created data"
+
+    open(2, FILE="inputs_atomic")
+
+         read(2,*) var_name, eq_name, inhomo_reion
+         read(2,*)  var_name, eq_name, file_in
+         read(2,*) var_name,eq_name, uvb_density_A != 1.0
+         read(2,*) var_name,eq_name, uvb_density_B != 0.0
+         read(2,*) var_name,eq_name,zHI_flash!=-1
+         read(2,*) var_name,eq_name,zHeII_flash!=-1
+         read(2,*) var_name,eq_name,T_zHI!=2.00E+004
+         read(2,*) var_name,eq_name,T_zHeII!=1.50E+004
+
+         close(2)
+            print*, 'TABULATE_RATES: reionization parameters are:'
+            print*, '    reionization_zHI_flash     = ', zhi_flash
+            print*, '    reionization_zHeII_flash   = ', zheii_flash
+            print*, '    reionization_T_zHI         = ', T_zhi
+            print*, '    reionization_T_zHeII       = ', T_zheii
+
+            print*, 'TABULATE_RATES: rho-dependent heating parameters are:'
+            print*, '    A       = ', uvb_density_A
+            print*, '    B       = ', uvb_density_B
+            print*, '    UVB heating rates will be multiplied by A*(rho/rho_mean)**B'
+
+        ! Save mean density (in code units) for density-dependent heating
+        mean_rhob = comoving_OmB * 3.d0*(comoving_h*100.d0)**2 / (8.d0*M_PI*Gconst)
+
+         if (.true.) then
+            print*, 'TABULATE_RATES: reionization flags are set to:'
+            print*, '    Hydrogen flash            = ', flash_h
+            print*, '    Helium   flash            = ', flash_he
+            print*, '    inhomogeneous_on (H only) = ', inhomogeneous_on
+         endif
+
+
+    allocate(yvec(neq))
+    ! Save mean density (in code units) for density-dependent heating
+        mean_rhob = comoving_OmB * 3.d0*(comoving_h*100.d0)**2 / (8.d0*M_PI*Gconst)
+
+         ! Set options in reion_aux_module
+         !   Hydrogen reionization
+         if (zhi_flash .gt. 0.0) then
+            if (inhomo_reion .gt. 0) then
+               if (.true.) print*, 'TABULATE_RATES: ignoring reionization_zHI, as nyx.inhomo_reion > 0'
+               flash_h = .false.
+               inhomogeneous_on = .true.
+            else
+               flash_h = .true.
+               inhomogeneous_on = .false.
+            endif
+         else
+            flash_h = .false.
+            if (inhomo_reion .gt. 0) then
+               inhomogeneous_on = .true.
+            else
+               inhomogeneous_on = .false.
+            endif
+         endif
+
+         !   Helium reionization
+         if (zheii_flash .gt. 0.0) then
+            flash_he = .true.
+         else
+            flash_he = .false.
+         endif
+
+         if (.true.) then
+            print*, 'TABULATE_RATES: reionization flags are set to:'
+            print*, '    Hydrogen flash            = ', flash_h
+            print*, '    Helium   flash            = ', flash_he
+            print*, '    inhomogeneous_on (H only) = ', inhomogeneous_on
+         endif
+
+
+         ! Read in UVB rates from a file
+         if (len(file_in) .gt. 0) then
+            open(unit=11, file=file_in, status='old')
+            if (.true.) then
+               print*, 'TABULATE_RATES: UVB file is set in inputs ('//file_in//').'
+            endif
+         else
+            open(unit=11, file='TREECOOL', status='old')
+            if (.true.) then
+               print*, 'TABULATE_RATES: UVB file is defaulted to "TREECOOL".'
+            endif
+         endif
+
+    NCOOLFILE = 0
+    do
+    read(11,*,end=10) tmp, tmp, tmp, tmp, tmp,  tmp, tmp
+       NCOOLFILE = NCOOLFILE + 1
+    end do
+    10 rewind(11)
+
+    allocate( lzr(NCOOLFILE), rggh0(NCOOLFILE), rgghe0(NCOOlFILE), rgghep(NCOOLFILE) )
+    allocate( reh0(NCOOLFILE), rehe0(NCOOLFILE), rehep(NCOOLFILE) )
+
+    print*,"Created data"
+        do i = 1, NCOOLFILE
+            read(11,*) lzr(i), rggh0(i), rgghe0(i), rgghep(i), &
+                                reh0(i),  rehe0(i),  rehep(i)
+         end do
+	 20 rewind(11)
+         
+	 ! Initialize cooling tables
+         t = 10.0d0**TCOOLMIN
+    
+    ! Execute the kernel
+    call fort_tabulate_rates_kernel<<<gridSize, blockSize>>>()
+
+    print*, TCOOLMIN, TCOOLMAX, TCOOLMAX_R, TCOOLMIN_R, deltaT
+         do i = 1, 300
+            print*, lzr(i), rggh0(i), rgghe0(i), rgghep(i), &
+                        reh0(i),  rehe0(i),  rehep(i)
+         end do
+print*, "888888888888888888888888888888888888888888888888"
+         do i = 301, 301
+            print*, lzr(i), rggh0(i), rgghe0(i), rgghep(i), &
+                        reh0(i),  rehe0(i),  rehep(i)
+         end do
+!         do i = 1, 301
+!            lzr(i) = lzr(i)-1.d0
+!!            print*, lzr(i), rggh0(i), rgghe0(i), rgghep(i), &
+!!                                reh0(i),  rehe0(i),  rehep(i)
+!            read(11,*) tmp_lzr, tmp_rggh0, tmp_rgghe0, tmp_rgghep, &
+!                                tmp_reh0,  tmp_rehe0,  tmp_rehep
+!!!!    print*, lzr(i)-tmp_lzr, rggh0(i)-tmp_rggh0, rgghe0(i)-tmp_rgghe0, rgghep(i)-tmp_rgghep, &
+!!!!                                reh0(i)-tmp_reh0,  rehe0(i)-tmp_rehe0,  rehep(i)-tmp_rehe0
+!         end do
+
+
+!    simd_width = 1    
+!    vode_atol_scaled_in = 1e-4
+!    vode_rtol_in = 1e-4
+!    xacc_in = 1e-6
+!    gamma_minus_1 = 2.d0/3.d0
+!    call fort_setup_eos_params(xacc_in, vode_rtol_in, vode_atol_scaled_in)
+
+    print*,"Finished reading table"
+
+    allocate(yvec(neq))
+    
+!    fn_vode = 0
+!    NR_vode = 0
+
+ FMT="(A6,I1,/,ES21.15,/,ES21.15E2,/,ES21.15,/,ES21.15,/,ES21.15,/,ES21.15,/,ES21.15)"
+
+    open(1,FILE=arg)
+    read(1,FMT) string, STRANG_COMP, a, half_dt, rho, T_orig, ne_orig, e_orig
+    close(1)
+
+    yvec(1) = e_orig
+
+    print(FMT), string,STRANG_COMP, a, half_dt, rho, T_orig, ne_orig, e_orig
+
+    z = 1.d0/a - 1.d0
+ !   call fort_integrate_comoving_a(a, a_end, half_dt)
+  !  z_end = 1.0d0/a_end - 1.0d0
+    !Added z_vode arbitrarily to be z, since it was set to 0
+!    call fort_interp_to_this_z(z)
+!    z_vode = z
+
+!    mean_rhob = comoving_OmB * 3.d0*(comoving_h*100.d0)**2 / (8.d0*M_PI*Gconst)
+
+    ! Flash reionization?
+!    if ((flash_h .eqv. .true.) .and. (z .gt. zhi_flash)) then
+!       JH_vode = 0
+!    else
+!       JH_vode = 1
+!    endif
+!    if ((flash_he .eqv. .true.) .and. (z .gt. zheii_flash)) then
+!       JHe_vode = 0
+!    else
+!       JHe_vode = 1
+!    endif
+
+!    if (flash_h ) H_reion_z  = zhi_flash
+!    if (flash_he) He_reion_z = zheii_flash
+
+    deallocate(yvec)
+
+!  call amrex_finalize()
+
+end program main
+
