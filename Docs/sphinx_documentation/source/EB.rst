@@ -571,6 +571,58 @@ derivative of the interpolation function, it is discontinuous at positions
 corresponding to the nodal points of the level-set :cpp:`MultiFab` (i.e.
 :math:`\mathbf{r} = (i, j, k) \cdot h`).
 
+At this point, AMReX does not provide a C++ interface for interpolating the
+level-set at a point. This is because so far the level-set was only needed while performing calculations in Fortran. The interpolation subroutines contained in :fortran:`amrex_eb_levelset_module` are:
+
+.. highlight:: fortran
+
+::
+
+   pure subroutine amrex_eb_interp_levelset(pos, plo,  n_refine, &
+                                            phi, phlo, phhi,     &
+                                            dx,  phi_interp    )
+
+and
+
+.. highlight:: fortran
+
+::
+
+   pure subroutine amrex_eb_normal_levelset(pos, plo,   n_refine, &
+                                            phi, phlo,  phhi,     &
+                                            dx,  normal         )
+
+which interpolate the level-set value :fortran:`phi_interp` and
+:fortran:`normal`, respectively, at the 3-dimensional point :fortran:`pos`. The
+nodal values of the level-set are given by the :fortran:`phi` array.
+:fortran:`dx/n_refine` is the refined cell-size of the level-set array. For
+example
+
+.. highlight:: fortran
+
+::
+
+   use iso_c_binding    , only : c_int
+   use amrex_fort_module, only : c_real => amrex_real
+   use amrex_eb_levelset_module, only: amrex_eb_interp_levelset
+
+   ! ** level-set data
+   !    philo, phihi - dimensions of phi array
+   !    dx           - spatial discretization
+   !    n_refine     - refinement of phi array (wrt to dx)
+   integer(c_int) :: philo(3), phihi(3)
+   real(c_real)   :: phi(  phlo(1):phhi(1), phlo(2):phhi(2), phlo(3):phhi(3) )
+   real(c_real)   :: dx(3)
+   integer(c_int) :: n_refine
+
+   ! ** interpolated level-set
+   !    pos      - coordinate where to interpolate
+   !    ls_value - interpolated level-set value (output)
+   real(c_real) :: pos(3), ls_value
+
+   call amrex_eb_interp_levelset(pos, plo, n_refine, phi, phlo, phhi, dx, ls_value);
+   
+
 AMReX provides collection of functions and subroutines to fill single and
 multi-level level-set data. For convenience, the :cpp:`amrex::LSFactory` helps
 manage the level-set data for a single AMR level. And :cpp:`amrex::LSCore`
