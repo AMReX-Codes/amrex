@@ -49,6 +49,8 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
 
     m_crse_fab_flag.resize(m_crse_flag.local_size(), crse_cell);
 
+    m_crse_flag.setVal(crse_cell);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -60,7 +62,6 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             auto& fab = m_crse_flag[mfi];
             const Box& bx = fab.box() & cdomain;
 
-            fab.setVal(crse_cell);
             bool has_fine = false;
 
             for (const auto& iv : pshifts)
@@ -192,6 +193,7 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
     bool is_periodic = m_fine_geom.isAnyPeriodic();
     if (is_periodic) {
         m_cfp_mask.define(cfp_ba, cfp_dm, 1, 0, MFInfo(), FArrayBoxFactory());
+        m_cfp_mask.setVal(1.0);
 
         const Box& domainbox = m_crse_geom.Domain();
 
@@ -204,7 +206,6 @@ YAFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             for (MFIter mfi(m_cfp_mask); mfi.isValid(); ++mfi)
             {
                 auto& fab = m_cfp_mask[mfi];
-                fab.setVal(1.0);
                 const Box& bx = fab.box();
                 if (!domainbox.contains(bx))  // part of the box is outside periodic boundary
                 {
@@ -333,14 +334,19 @@ YAFluxRegister::Reflux (MultiFab& state, int dc)
 {
     if (!m_cfp_mask.empty())
     {
+        const int ncomp = m_ncomp;
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
         {
-            for (int i = 0; i < m_ncomp; ++i) {
-                m_cfpatch[mfi].mult(m_cfp_mask[mfi],0,i);
-            }
+            const Box& bx = mfi.fabbox();
+            auto const maskfab = m_cfp_mask.array(mfi);
+            auto       cfptfab = m_cfpatch.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                cfptfab(i,j,k,n) *= maskfab(i,j,k);
+            });
         }
     }
 
