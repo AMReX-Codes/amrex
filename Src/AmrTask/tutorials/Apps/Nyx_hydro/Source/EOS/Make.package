@@ -1,8 +1,0 @@
-ifeq ($(USE_HEATCOOL), TRUE)
-f90EXE_sources += eos_hc.f90
-else
-f90EXE_sources += eos_stuff.f90
-endif
-
-f90EXE_sources += atomic_rates.f90
-f90EXE_sources += reion_aux_module.f90

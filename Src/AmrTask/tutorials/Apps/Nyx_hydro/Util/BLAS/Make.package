@@ -1,5 +1,0 @@
-fEXE_sources += daxpy.f
-fEXE_sources += dcopy.f
-fEXE_sources += ddot.f
-fEXE_sources += dscal.f
-fEXE_sources += idamax.f

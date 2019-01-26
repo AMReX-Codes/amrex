@@ -1123,14 +1123,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         {
 	    // reorder structs
             m_aos_r.resize(old_np);
-            thrust::gather(thrust::device,
+            thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                            m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                            aos().begin(), m_aos_r.begin());
             aos().swap(m_aos_r);
 
             // reorder grids
             m_grids_r.resize(old_np);
-            thrust::gather(thrust::device,
+            thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                            m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                            m_grids_tmp.begin(), m_grids_r.begin());
             m_grids_tmp.swap(m_grids_r);
@@ -1140,7 +1140,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                thrust::gather(thrust::device,
+                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                rdata.begin(), m_rdata_r.begin());
                 rdata.swap(m_rdata_r);
@@ -1151,7 +1151,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayInt; ++j)
             {
 	        auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::gather(thrust::device,
+                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                idata.begin(), m_idata_r.begin());
                 idata.swap(m_idata_r);
@@ -1208,8 +1208,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         BL_PROFILE_VAR_START(blp_sort);
 
-        thrust::device_vector<int> grid_begin(num_grids + 1);
-        thrust::device_vector<int> grid_end(num_grids + 1);
+        m_grid_begin.resize(num_grids + 1);
+        m_grid_end.resize(num_grids + 1);
 
         m_index_sequence_tmp.resize(num_to_move);
         thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
@@ -1225,7 +1225,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             // reorder structs
             auto& aos = m_aos_to_redistribute;
             m_aos_r.resize(num_to_move);
-            thrust::gather(thrust::device,
+            thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                            m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                            aos.begin(), m_aos_r.begin());
             aos.swap(m_aos_r);
@@ -1235,7 +1235,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = m_real_arrays_to_redistribute[j];
-                thrust::gather(thrust::device,
+                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                rdata.begin(), m_rdata_r.begin());
                 rdata.swap(m_rdata_r);
@@ -1246,7 +1246,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayInt; ++j)
             {
 	        auto& idata = m_int_arrays_to_redistribute[j];
-                thrust::gather(thrust::device,
+                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                idata.begin(), m_idata_r.begin());
                 idata.swap(m_idata_r);
@@ -1262,17 +1262,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             m_grids_to_redistribute.end(),
                             search_begin,
                             search_begin + num_grids + 1,
-                            grid_begin.begin());
+                            m_grid_begin.begin());
         
         thrust::upper_bound(thrust::device,
                             m_grids_to_redistribute.begin(),
                             m_grids_to_redistribute.end(),
                             search_begin,
                             search_begin + num_grids + 1,
-                            grid_end.begin());
+                            m_grid_end.begin());
         
-        thrust::host_vector<int> start(grid_begin);
-        thrust::host_vector<int> stop(grid_end);
+        thrust::host_vector<int> start(m_grid_begin);
+        thrust::host_vector<int> stop(m_grid_end);
         
         std::map<int, size_t> grid_counts;
         for (int i = 0; i < num_grids; ++i)
