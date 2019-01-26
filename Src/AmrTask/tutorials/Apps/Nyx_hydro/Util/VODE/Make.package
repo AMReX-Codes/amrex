@@ -1,0 +1,24 @@
+fEXE_sources += dvode.f
+
+fEXE_sources += dvhin.f
+fEXE_sources += dvindy.f
+fEXE_sources += dvjac.f
+fEXE_sources += dvjust.f
+fEXE_sources += dvnlsd.f
+fEXE_sources += dvnorm.f
+fEXE_sources += dvset.f
+fEXE_sources += dvsol.f
+fEXE_sources += dvstep.f
+fEXE_sources += xerrwd.f
+fEXE_sources += dewset.f
+fEXE_sources += ixsav.f
+fEXE_sources += dumach.f
+fEXE_sources += iumach.f
+
+fEXE_sources += dacopy.f
+fEXE_sources += dgbfa.f
+fEXE_sources += dgbsl.f
+fEXE_sources += dgefa.f
+fEXE_sources += dgesl.f
+fEXE_headers += vode.H
+

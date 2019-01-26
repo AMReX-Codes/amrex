@@ -1,0 +1,70 @@
+max_step = 10000
+stop_time =  0.15
+
+amr.checkpoint_files_output = 0
+
+nyx.small_temp = 1.e-4
+nyx.small_dens = 1.e-6
+
+nyx.gamma = 1.4
+
+nyx.initial_z = 0.
+
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic = 0 0 0
+geometry.coord_sys   = 0  # 0 => cart, 1 => RZ
+geometry.prob_lo     =  0     0     0
+geometry.prob_hi     = 0.125  1  0.125
+amr.n_cell           = 4    32     4
+
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+# 0 = Interior           3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+nyx.lo_bc       =  4   2   4
+nyx.hi_bc       =  4   2   4
+
+# WHICH PHYSICS
+nyx.do_hydro = 1
+nyx.do_react = 0
+
+# COMOVING
+nyx.comoving_OmM = 1.0d0
+nyx.comoving_OmB = 0.0d0
+nyx.comoving_h   = 0.0d0
+
+nyx.ppm_type = 1
+
+# TIME STEP CONTROL
+nyx.dt_cutoff      = 5.e-20  # level 0 timestep below which we halt
+nyx.cfl            = 0.8     # cfl number for hyperbolic system
+nyx.init_shrink    = 1.0     # scale back initial timestep
+nyx.change_max     = 1.05    # scale back initial timestep
+
+# DIAGNOSTICS & VERBOSITY
+nyx.sum_interval   = 1       # timesteps between computing mass
+nyx.v              = 1       # verbosity in Castro.cpp
+amr.v                 = 1       # verbosity in Amr.cpp
+#amr.grid_log         = grdlog  # name of grid logging file
+
+# REFINEMENT / REGRIDDING
+amr.max_level       = 2       # maximum level number allowed
+amr.ref_ratio       = 2 2 2 2 # refinement ratio
+amr.regrid_int      = 2       # how often to regrid
+amr.blocking_factor = 4       # block factor in grid generation
+amr.max_grid_size   = 16
+amr.n_error_buf     = 2 2 2 2 # number of buffer cells in error est
+
+# CHECKPOINT FILES
+amr.check_file      = chk  # root name of checkpoint file
+amr.check_int       = 10           # number of timesteps between checkpoints
+
+# PLOTFILES
+amr.plot_file       = plt  # root name of plotfile
+amr.plot_int        = 10           # number of timesteps between plotfiles
+amr.plot_vars       = density 
+amr.derive_plot_vars= pressure eint_E y_velocity
+
+# PROBIN FILENAME
+amr.probin_file = probin-test2-y

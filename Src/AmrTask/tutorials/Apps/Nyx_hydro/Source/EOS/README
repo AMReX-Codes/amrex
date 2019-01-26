@@ -1,0 +1,10 @@
+This EOS is designed for use with NYX.
+
+It transforms comoving density to proper density before calling the eos.
+
+It transforms proper pressure to comoving pressure before exiting.
+
+energy, temperature and sound speed are all left in proper coordinates.
+
+
+

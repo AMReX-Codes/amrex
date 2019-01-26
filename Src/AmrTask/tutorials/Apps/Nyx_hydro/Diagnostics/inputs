@@ -1,0 +1,4 @@
+infile  = plt00000
+nComp   = 1
+sComp   = 0
+verbose = 1
