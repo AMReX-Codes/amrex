@@ -1208,8 +1208,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     {
         BL_PROFILE_VAR_START(blp_sort);
 
-        thrust::device_vector<int> grid_begin(num_grids + 1);
-        thrust::device_vector<int> grid_end(num_grids + 1);
+        m_grid_begin.resize(num_grids + 1);
+        m_grid_end.resize(num_grids + 1);
 
         m_index_sequence_tmp.resize(num_to_move);
         thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
@@ -1262,17 +1262,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             m_grids_to_redistribute.end(),
                             search_begin,
                             search_begin + num_grids + 1,
-                            grid_begin.begin());
+                            m_grid_begin.begin());
         
         thrust::upper_bound(thrust::device,
                             m_grids_to_redistribute.begin(),
                             m_grids_to_redistribute.end(),
                             search_begin,
                             search_begin + num_grids + 1,
-                            grid_end.begin());
+                            m_grid_end.begin());
         
-        thrust::host_vector<int> start(grid_begin);
-        thrust::host_vector<int> stop(grid_end);
+        thrust::host_vector<int> start(m_grid_begin);
+        thrust::host_vector<int> stop(m_grid_end);
         
         std::map<int, size_t> grid_counts;
         for (int i = 0; i < num_grids; ++i)
