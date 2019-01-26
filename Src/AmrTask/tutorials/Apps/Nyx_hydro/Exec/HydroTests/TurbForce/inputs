@@ -1,0 +1,76 @@
+# ------------------  INPUTS TO MAIN PROGRAM  -------------------
+
+stop_time = 5.0
+
+# PROBLEM SIZE & GEOMETRY
+geometry.is_periodic =  1    1    1
+geometry.coord_sys   =  0            # 0 => cart
+geometry.prob_lo     =  0    0    0
+geometry.prob_hi     =  1    1    1
+amr.n_cell           = 64   64   64
+
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+# 0 = Interior           3 = Symmetry
+# 1 = Inflow             4 = SlipWall
+# 2 = Outflow            5 = NoSlipWall
+# >>>>>>>>>>>>>  BC FLAGS <<<<<<<<<<<<<<<<
+nyx.lo_bc       =  0 0 0
+nyx.hi_bc       =  0 0 0
+
+# WHICH PHYSICS
+nyx.do_hydro = 1
+nyx.do_react = 0
+nyx.do_grav  = 0
+
+# COMOVING
+nyx.comoving_OmM = 1.0
+nyx.comoving_OmB = 1.0
+nyx.comoving_h   = 0.0d0
+
+nyx.ppm_type = 2
+
+nyx.initial_z = 0.
+
+nyx.add_ext_src = 1
+nyx.heat_cool_type = 0
+
+nyx.use_const_species = 1
+nyx.h_species = 1.0
+nyx.he_species = 0.0
+
+# PARTICLES
+nyx.do_dm_particles = 0
+
+# TIME STEP CONTROL
+nyx.dt_cutoff      = 5.e-20  # level 0 timestep below which we halt
+nyx.cfl            = 0.5     # cfl number for hyperbolic system
+nyx.init_shrink    = 0.1     # scale back initial timestep by this factor
+nyx.change_max     = 1.1     # factor by which dt is allowed to change each timestep
+#nyx.sum_interval   = 1       # timesteps between computing and printing volume averages
+
+# REFINEMENT / REGRIDDING
+#amr.regrid_file = fixed_grids  # hard-code the adaptive gridding in file
+#fixed_grids
+amr.max_level       = 0       # maximum level number allowed
+amr.ref_ratio       = 2 2 2 2 # refinement ratio
+amr.regrid_int      = 2       # how often to regrid
+amr.blocking_factor = 16      # block factor in grid generation
+amr.max_grid_size   = 64
+
+# CHECKPOINT FILES
+amr.check_file      = chk     # root name of checkpoint file
+amr.check_int       = 100
+
+# PLOTFILES
+amr.plot_file       = plt
+amr.plot_per        = 0.1
+amr.derive_plot_vars = forcex forcey forcez magvort MachNumber
+
+# PROBIN FILENAME
+amr.probin_file    = probin
+
+# DIAGNOSTICS & VERBOSITY
+nyx.sum_interval   = 1       # timesteps between computing mass
+nyx.v              = 2       # verbosity in Castro.cpp
+amr.v              = 2       # verbosity in Amr.cpp
+amr.data_log = runlog stats_full stats_l0

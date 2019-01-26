@@ -1,0 +1,131 @@
+Our approach to adaptive refinement in CASTRO uses a nested
+hierarchy of logically-rectangular grids with simultaneous refinement
+of the grids in both space and time.  The integration algorithm on the grid hierarchy
+is a recursive procedure in which coarse grids are advanced in time,
+fine grids are advanced multiple steps to reach the same time
+as the coarse grids and the data at different levels are then synchronized.
+
+During the regridding step, increasingly finer grids
+are recursively embedded in coarse grids until the solution is
+sufficiently resolved.  An error estimation procedure based on
+user-specified criteria evaluates where additional refinement is needed
+and grid generation procedures dynamically create or
+remove rectangular fine grid patches as resolution requirements change.
+
+A good introduction to the style of AMR used here is in Lecture 1
+of the Adaptive Mesh Refinement Short Course at
+https://ccse.lbl.gov/people/jbb/index.html
+
+\section{Synchronization Algorithm}
+
+Here is the AMR algorithm for the compressible equations with
+self-gravity.  The gravity component of the algorithm 
+is closely related to (but not identical to) that in Miniati and Colella,
+JCP, 2007 (in press).
+
+Over a coarse grid time step 
+we collect flux register information for the hyperbolic part of the synchronization:
+\begin{equation}
+\delta\Fb = -\Delta t_c A^c F^c + \sum \Delta t_f A^f F^f
+\end{equation}
+Analogously, at the end of a coarse grid time step 
+we store the mismatch in normal gradients of $\phi$ at the coarse-fine interface:
+\begin{equation}
+\delta F_\phi =  - A^c \frac{\partial \phi^c}{\partial n}
++ \sum A^f \frac{\partial \phi^f}{\partial n}
+\end{equation}
+Because we want the composite $\phi^{c-f}$ to satisfy the multilevel version of  (\ref{eq:Self Gravity}) at each time $t^n$, we do not accumulate $\frac{\partial \phi^f}{\partial n}$ over time, rather we add coarse and fine fluxes only at integer coarse times.
+
+At the end of a coarse grid time step we can define
+${\overline{\Ub}}^{c-f}$ and $\overline{\phi}^{c-f}$
+as the composite of the data from coarse and fine grids as a provisional solution at
+time $n+1$. (Assume $\overline{\Ub}$ has been averaged down so that the data on coarse cells
+underlying fine cells is the average of the fine cell data above it.)
+
+The synchronization consists of two parts: 
+
+\begin{itemize}
+\item Step 1:  Hyperbolic reflux
+
+In the hyperbolic reflux step, we update the conserved variables with the flux synchronization
+and adjust the gravitational terms to reflect the changes in $\rho$ and $\ub$.
+\begin{equation}
+{\Ub}^{c, \star} = \overline{\Ub}^{c} + \frac{\delta\Fb}{V},
+\end{equation}
+where $V$ is the volume of the cell and the correction from $\delta\Fb$ is supported only on coarse cells adjacent to fine grids.   
+
+\item Step 2:  Gravitational synchronization
+
+In this step we correct for the mismatch in normal derivative in $\phi^{c-f}$ at the coarse-fine
+interface, as well as accounting for the changes in source terms for $(\rho \ub)$
+and $(\rho E)$ due to the change in $\rho.$
+
+On the coarse grid only, we define
+\begin{equation}
+(\delta \rho)^{c} =  \rho^{c, \star} - {\overline{\rho}}^{c}  .
+\end{equation}
+
+We then form the composite residual, which is composed of two contributions.
+The first is the degree to which the current $ \overline{\phi}^{c-f}$
+does not satisfy the original equation on a composite grid (since we have solved for 
+$\overline{\phi}^{c-f}$ separately on the coarse and fine levels).  The second
+is the response of $\phi$ to the change in $\rho.$
+We define 
+\begin{equation} R \equiv  - 4 \pi G \rho^{\star,c-f} - \Delta^{c-f} \; \overline{\phi}^{c-f} 
+= - 4 \pi G (\delta \rho)^c - (\nabla \cdot \delta F_\phi ) |_c   .
+\end{equation}
+
+Then we solve
+\begin{equation}
+ \Delta^{c-f} \; \delta \phi^{c-f} = R
+\label{eq:gravsync}
+\end{equation}
+as a two level solve at the coarse and fine levels.  
+We define the update to gravity,
+\begin{equation}
+\delta {\bf g}^{c-f} = \nabla (\delta \phi^{c-f})  .
+\end{equation}
+
+Define the \sync sources for momentum on the coarse and fine, $S^{\sync,c}_{\rho \ub}$, and
+$S^{\sync,f}_{\rho \ub}$, respectively as follows:
+\begin{eqnarray}
+S^{\sync,c}_{\rho \ub} &=& \left(
+        \overline{\rho}^c + (\delta \rho)^c \right) ({\bf g}^{c,n+1} + \delta {\bf g}^{c-f}) -
+        \overline{\rho}^c                 \; {\bf g}^{c,n+1} \nonumber \\
+           &=& \left[( \delta \rho)^c {\bf g}^{c,n+1} + 
+                \rho^{c,\star} \delta {\bf g}^c)  \right ] \\
+S^{\sync,f}_{\rho \ub} &=& \overline{\rho}^{f} \; \delta {\bf g}^f  .
+\end{eqnarray}
+These momentum sources lead to the following energy sources:
+\begin{eqnarray}
+S^{\sync,c}_{\rho E} &=& S^{\sync,c}_{\rho \ub} \cdot
+         \left(   \overline{\ub}^{c,n+1} + S^{\sync,c}_{\rho \ub} \Delta t_c / (2 \overline{\rho}^{c,n+1}) \right) \\
+S^{\sync,f}_{\rho E} &=& S^{\sync,f}_{\rho \ub} \cdot
+         \left(
+    \overline{\ub}^{f} + S^{\sync,f}_{\rho \ub} \Delta t_f / (2 \; \overline{\rho}^{f} )
+         \right)
+\end{eqnarray}
+
+The coarse and fine level state is updated using:
+\begin{eqnarray}
+(\rho \ub)^{c,n+1} =  (\rho \ub)^{c, \star } + \myhalf \Delta t_c S^{\sync,c}_{\rho \ub} ,&&
+(\rho \ub)^{f,n+1} =  (\overline{\rho \ub})^{f} + \myhalf \Delta t_f S^{\sync,f}_{\rho \ub},  \\
+(\rho E)^{c,n+1} =  (\rho E)^{c, \star } + \myhalf \Delta t_c S^{\sync,c}_{\rho E} ,&&
+(\rho E)^{f,n+1} =  (\overline{\rho E})^{f} + \myhalf \Delta t_f S^{\sync,f}_{\rho E}  .
+\end{eqnarray}
+As the final component of this step we need to 
+\begin{itemize}
+\item add $\delta \phi^{c-f}$ directly to 
+to $\phi^{c}$ and $\phi^{f}$ and interpolate $\delta \phi^{c-f}$ to any finer
+levels and add to the current $\phi$ at those levels.
+
+\item if level $c$ is not the coarsest level in the calculation, then we must transmit the
+effect of this change in $\phi$ to the coarser levels by updating the flux register between
+level $c$ and the next coarser level, $cc.$ In particular, we set
+\begin{equation}
+\delta {F_\phi}^{cc-c} = \delta F_\phi^{cc-c} 
++ \sum A^c \frac{\partial (\delta \phi)^{c-f}}{\partial n}  .
+\end{equation}
+\end{itemize}
+
+\end{itemize}

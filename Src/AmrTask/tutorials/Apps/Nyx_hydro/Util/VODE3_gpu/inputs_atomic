@@ -1,0 +1,8 @@
+inhomo_reion  = 0
+file_in       = "TREECOOL_middle"
+uvb_density_A = 1.0
+uvb_density_B = 0.0
+zHI_flash     = -1.0
+zHeII_flash   = -1.0
+T_zHI         = 2.0e4
+T_zHeII       = 1.5e4
