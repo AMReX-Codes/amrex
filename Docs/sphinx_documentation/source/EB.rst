@@ -533,17 +533,17 @@ testing cell types and getting neighbor information. For example
     integer :: i,j,k
 
     do k = ...
-    do j = ...
-    do i = ...
-       if (is_covered_cell(flags(i,j,k))) then
-           ! this is a completely covered cells
-       else if (is_regular_cell(flags(i,j,k))) then
-           ! this is a regular cell
-       else if (is_single_valued_cell(flags(i,j,k))) then
-           ! this is a cut cell
-       end if
-    end do     
-    end do     
+        do j = ...
+            do i = ...
+                if (is_covered_cell(flags(i,j,k))) then
+                    ! this is a completely covered cells
+                else if (is_regular_cell(flags(i,j,k))) then
+                    ! this is a regular cell
+                else if (is_single_valued_cell(flags(i,j,k))) then
+                    ! this is a cut cell
+                end if
+            end do     
+        end do     
     end do     
 
 
