@@ -1,0 +1,5 @@
+cEXE_sources += timers.c
+cEXE_sources += level.c
+cEXE_sources += operators.7pt.c
+cEXE_sources += mg_hpgmg.c
+cEXE_sources += solvers.c

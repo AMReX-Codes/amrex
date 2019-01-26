@@ -1,0 +1,179 @@
+\section{Conservation Forms}
+We begin with the fully compressible equations for the conserved state vector, 
+$\Ub = (\rho, \rho \ub, \rho E, \rho A_k, \rho X_k, \rho Y_k):$
+\begin{eqnarray}
+\frac{\partial \rho}{\partial t} &=& - \nabla \cdot (\rho \ub) + S_{{\rm ext},\rho}, \\
+\frac{\partial (\rho \ub)}{\partial t} &=& - \nabla \cdot (\rho \ub \ub) - \nabla p +\rho \gb + \Sb_{{\rm ext},\rho\ub}, \\
+\frac{\partial (\rho E)}{\partial t} &=& - \nabla \cdot (\rho \ub E + p \ub) + \rho \ub \cdot \gb - \sum_k {\rho q_k \dot\omega_k} + \nabla\cdot\kappa\nabla T + S_{{\rm ext},\rho E}, \\
+\frac{\partial (\rho A_k)}{\partial t} &=& - \nabla \cdot (\rho \ub A_k) + S_{{\rm ext},\rho A_k}, \\
+\frac{\partial (\rho X_k)}{\partial t} &=& - \nabla \cdot (\rho \ub X_k) + \rho \dot\omega_k + S_{{\rm ext},\rho X_k}, \\
+\frac{\partial (\rho Y_k)}{\partial t} &=& - \nabla \cdot (\rho \ub Y_k) + S_{{\rm ext},\rho Y_k}.
+\end{eqnarray}
+Here $\rho, \ub, T, p$, and $\kappa$ are the density, velocity,
+temperature, pressure, and thermal conductivity, respectively, and 
+$E = e + \ub \cdot \ub / 2$ is the total energy with $e$ representing the internal
+energy.  In addition, $X_k$ is the abundance of the $k^{\rm th}$ isotope,
+with associated production rate, $\dot\omega_k$, and
+energy release, $q_k$.  Here $\gb$ is the gravitational vector,
+and $S_{{\rm ext},\rho}, \Sb_{{\rm ext}\rho\ub}$, etc.,
+are user-specified source terms.  $A_k$ is an advected quantity, i.e., 
+a tracer.  We also carry around auxiliary variables, $Y_k$, which have a 
+user-defined evolution equation, but by default are treated as advected
+quantities.
+
+In the code we also carry around $T$ and $\rho e$ in the conservative state vector
+even though they are derived from the other conserved quantities.
+The ordering of the elements within $\Ub$ is defined (in 3D) by
+\begin{itemize}
+\item URHO: $\rho$
+\item UMX: $\rho u$
+\item UMY: $\rho v$
+\item UMZ: $\rho w$
+\item UEDEN: $\rho E$
+\item UEINT: $\rho e$ - this is computed from the other quantities using
+             $\rho e = \rho E - \rho \ub \cdot \ub / 2$.
+\item UTEMP: $T$ - this is computed from the other quantities using the EOS
+\item UFA: $\rho A_1$, the first advected quantity
+\item UFS: $\rho X_1$, the first species
+\item UFX: $\rho Y_1$, the first auxiliary variable
+\end{itemize}
+
+There are {\it nadv} advected quantities, which range from UFA: UFA+{\it nadv}-1.
+In addition, there are {\it nspec} species (defined in the network directory),  which
+range from UFS: UFS+{\it nspec}-1. Finally, there are {\it naux}
+auxiliary variables, from UFX:UFX+{\it naux}-1, and {\it nadv} advected
+quantities, which range from UFA: UFA + {\it nadv} - 1.  
+The advected quantities have no effect at all on the rest of the solution
+but can be useful as tracer quantities.  The auxiliary
+variables are passed into the equation of state routines along with the
+species;  An example of an auxiliary variable is the electron fraction, 
+Ye, in core collapse simulations.
+
+\section{Primitive Forms}
+Here are the primitive forms of the equations for the primitive state vector,
+$\Qb = (\rho, \ub, \rho e, A_k, X_k, Y_k)$:
+\begin{eqnarray}
+\frac{\partial\rho}{\partial t} &=& -\ub\cdot\nabla\rho - \rho\nabla\cdot\ub + S_{{\rm ext},\rho}, \\
+\frac{\partial\ub}{\partial t} &=& -\ub\cdot\nabla\ub - \frac{1}{\rho}\nabla p + \gb + \frac{1}{\rho}\Sb_{{\rm ext},\rho\ub}, \\
+\frac{\partial p}{\partial t} &=& -\ub\cdot\nabla p - \rho c^2\nabla\cdot\ub -\frac{\partial p}{\partial e}\sum_k q_k\dot\omega_k, + \frac{1}{\rho}\frac{\partial p}{\partial e}S_{{\rm ext},\rho E} + \frac{\partial p}{\partial\rho}S_{{\rm ext},\rho}, \\
+\frac{\partial(\rho e)}{\partial t} &=& - \ub\cdot\nabla(\rho e) - (\rho e+p)\nabla\cdot\ub - \sum_k \rho q_k\dot\omega_k + \nabla\cdot\kappa\nabla T + S_{{\rm ext},\rho E}, \\
+\frac{\partial A_k}{\partial t} &=& -\ub\cdot\nabla A_k + \frac{1}{\rho}S_{{\rm ext},\rho A_k}, \\
+\frac{\partial X_k}{\partial t} &=& -\ub\cdot\nabla X_k + \dot\omega_k + \frac{1}{\rho}S_{{\rm ext},\rho X_k}, \\
+\frac{\partial Y_k}{\partial t} &=& -\ub\cdot\nabla Y_k + \frac{1}{\rho}S_{{\rm ext},\rho Y_k}.
+\end{eqnarray}
+
+In the code we also carry around $T$ in the primitive state vector.
+All of the primitive variables are derived from the conservative state
+vector, as described in Section \ref{Sec:Compute Primitive Variables}.
+The ordering of the elements within $\Qb$ is defined (in 3D) by
+\begin{itemize}
+\item QRHO: $\rho$
+\item QU: $u$
+\item QV: $v$
+\item QW: $w$
+\item QPRES: $p$
+\item QREINT: $\rho e$
+\item QTEMP: $T$
+\item QFA: $A_1$, the first advected quantity
+\item QFS: $X_1$, the first species
+\item QFX: $Y_1$, the first auxiliary variable
+\end{itemize}
+The full primitive variable form (without the advected or auxiliary quantities) is
+\begin{equation}
+\frac{\partial\Qb}{\partial t} + \sum_d \Ab_d\frac{\partial\Qb}{\partial x_d} = \Sb_{\Qb}.
+\end{equation}
+For example, in 2D:
+\begin{equation}
+\left(\begin{array}{c}
+\rho \\
+u \\
+v \\
+p \\
+\rho e \\
+X_k
+\end{array}\right)_t
++
+\left(\begin{array}{cccccc}
+u & \rho & 0 & 0 & 0 & 0 \\
+0 & u & 0 & \frac{1}{\rho} & 0 & 0 \\
+0 & 0 & u & 0 & 0 & 0 \\
+0 & \rho c^2 & 0 & u & 0 & 0 \\
+0 & \rho e + p & 0 & 0 & u & 0 \\
+0 & 0 & 0 & 0 & 0 & u
+\end{array}\right)
+\left(\begin{array}{c}
+\rho \\
+u \\
+v \\
+p \\
+\rho e \\
+X_k
+\end{array}\right)_x
++
+\left(\begin{array}{cccccc}
+v & 0 & \rho & 0 & 0 & 0 \\
+0 & v & 0 & 0 & 0 & 0 \\
+0 & 0 & v & \frac{1}{\rho} & 0 & 0 \\
+0 & 0 & \rho c^2 & v & 0 & 0 \\
+0 & 0 & \rho e + p & 0 & v & 0 \\
+0 & 0 & 0 & 0 & 0 & v
+\end{array}\right)
+\left(\begin{array}{c}
+\rho \\
+u \\
+v \\
+p \\
+\rho e \\
+X_k
+\end{array}\right)_y
+=
+\Sb_\Qb
+\end{equation}
+The eigenvalues are:
+\begin{equation}
+{\bf \Lambda}(\Ab_x) = \{u-c,u,u,u,u,u+c\}, \qquad {\bf \Lambda}(\Ab_y) = \{v-c,v,v,v,v,v+c\} .
+\end{equation}
+The right column eigenvectors are:
+\begin{equation}
+\Rb(\Ab_x) =
+\left(\begin{array}{cccccc}
+1 & 1 & 0 & 0 & 0 & 1 \\
+-\frac{c}{\rho} & 0 & 0 & 0 & 0 & \frac{c}{\rho} \\
+0 & 0 & 1 & 0 & 0 & 0 \\
+c^2 & 0 & 0 & 0 & 0 & c^2 \\
+h & 0 & 0 & 1 & 0 & h \\
+0 & 0 & 0 & 0 & 1 & 0 \\
+\end{array}\right),
+\qquad
+\Rb(\Ab_y) =
+\left(\begin{array}{cccccc}
+1 & 1 & 0 & 0 & 0 & 1 \\
+0 & 0 & 1 & 0 & 0 & 0 \\
+-\frac{c}{\rho} & 0 & 0 & 0 & 0 & \frac{c}{\rho} \\
+c^2 & 0 & 0 & 0 & 0 & c^2 \\
+h & 0 & 0 & 1 & 0 & h \\
+0 & 0 & 0 & 0 & 1 & 0 \\
+\end{array}\right).
+\end{equation}
+The left row eigenvectors, normalized so that $\Rb_d\cdot\Lb_d = \Ib$ are:
+\begin{equation}
+\Lb_x =
+\left(\begin{array}{cccccc}
+0 & -\frac{\rho}{2c} & 0 & \frac{1}{2c^2} & 0 & 0 \\
+1 & 0 & 0 & -\frac{1}{c^2} & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 0 & -\frac{h}{c^2} & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 \\
+0 & \frac{\rho}{2c} & 0 & \frac{1}{2c^2} & 0 & 0
+\end{array}\right),
+\qquad
+\Lb_y =
+\left(\begin{array}{cccccc}
+0 & 0 & -\frac{\rho}{2c} & \frac{1}{2c^2} & 0 & 0 \\
+1 & 0 & 0 & -\frac{1}{c^2} & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 & 0 \\
+0 & 0 & 0 & -\frac{h}{c^2} & 1 & 0 \\
+0 & 0 & 0 & 0 & 0 & 1 \\
+0 & 0 & \frac{\rho}{2c} & \frac{1}{2c^2} & 0 & 0
+\end{array}\right).
+\end{equation}

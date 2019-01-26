@@ -1,0 +1,26 @@
+\label{chap:Gravity}
+
+In \nyx\ we always compute gravity by solving a Poisson equation on the mesh hierarchy.
+To make sure this option is chosen correctly, we must always set \\
+
+\noindent {\bf USE\_GRAV = TRUE} \\
+
+\noindent in the GNUmakefile and \\
+
+\noindent {\bf castro.do\_grav} = 1  \\
+\noindent {\bf gravity.gravity\_type = PoissonGrav} \\
+
+\noindent in the inputs file.  \\
+
+To define the gravitational vector we set
+\begin{equation}
+\mathbf{g}(\mathbf{x},t) = -\nabla \phi 
+\end{equation}
+where 
+\begin{equation}
+\mathbf{\Delta} \phi = \frac{4 \pi G}{a} (\rho - \overline{\rho}) \label{eq:Self Gravity}
+\end{equation}
+
+\noindent where $\overline{\rho}$ is the average of $\rho$ over the entire domain if we assume triply periodic boundary conditions,
+and $a(t)$ is the scale of the universe as a function of time.
+

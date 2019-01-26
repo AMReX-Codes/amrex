@@ -1,0 +1,76 @@
+\section{Automatic Restarting and Archiving of Data}
+
+The submission script {\tt jaguar.run} and shell script
+{\tt process.jaguar} in {\tt Exec/job\_scripts/}
+are designed to allow you to run CASTRO with minimal interaction,
+while being assured that the data is archived to HPSS on the NCCS
+machines.
+
+To use the scripts, first create a directory in HPSS that has the same
+name as the directory on lustre you are running in (just the directory
+name, not the full path).  E.g.\ if you are running in a directory
+called {\tt Nyx\_run}, then do:
+\begin{verbatim}
+hsi
+mkdir Nyx_run
+\end{verbatim}
+
+The script {\tt process.jaguar} is called from {\tt jaguar.run} and
+will run in the background and continually wait until checkpoint or
+plotfiles are created (actually, it always leaves the most recent one
+alone, since data may still be written to it, so it waits until there
+are more than one in the directory).
+
+Then the script will use {\tt htar} to archive the plotfiles and checkpoints
+to HPSS.  If the {\tt htar} command was successful, then the plotfiles are
+copied into a {\tt plotfile/} subdirectory.  This is actually important,
+since you don't want to try archiving the data a second time and
+overwriting the stored copy, especially if a purge took place.
+
+Additionally, if you have the path to the {\tt ftime} executable set in the
+script ({\tt ftime.f90} lives in {\tt fParallel/data\_processing/}), then the
+script will create a file called {\tt ftime.out} that lists the name of the
+plotfile and the corresponding simulation time.
+
+Finally, right when the job is submitted, the script will tar up all
+of the diagnostic files created by {\tt diag.f90} and archive them on HPSS.
+The {\tt .tar} file is given a name that contains the date-string to allow
+multiple archives to co-exist.
+
+This really allows you to run the job and have all of the data stored
+long term automatically.  This way you don't need to worry about
+filesystem purges.  It seems to work well.
+
+Also, the {\tt jaguar.run} submission script has code in it that will look
+at the most recently generated checkpoint files, make sure that they
+were written out correctly (it looks to see if there is a Header file,
+since that is the last thing written), and automatically set the
+{\tt --restart} flag on the run line to restart from the most recent
+checkpoint file.
+
+This allows you to job-chain a bunch of submission and have them wait
+until the previous job finished and then automatically queue up:
+\begin{verbatim}
+qsub -W depend=afterany:<JOB-ID>  <QSUB SCRIPT>
+\end{verbatim}
+where {\tt <JOB-ID>} is the id number of the job that must complete
+before the new submission runs and {\tt QSUB SCRIPT} is the submission
+script (e.g.\ {\tt jaguar.run}).
+This way you can queue up a bunch of runs and literally leave things
+alone and it will restart from the right place automatically and store
+the data as it is generated.
+
+When {\tt process.jaguar} is running, it creates a lockfile (called
+{\tt process.pid}) that ensures that only one instance of the script
+is running at any one time.  Sometimes if the machine crashes, the
+{\tt process.pid} file will be left behind, in which case, the script
+aborts.  Just delete that if you know the script is not running.
+
+Analogous scripts exist for running on Atlas, with the same general
+procedure.  The command to chain a job on atlas is:
+\begin{verbatim}
+msub -l depend=<JOB-ID> <MSUB SCRIPT>
+\end{verbatim}
+where, again, {\tt <JOB-ID>} is the id number of the job that must
+complete before the current submission runs and {\tt <MSUB SCRIPT>}
+is the job submission script (e.g.\ {\tt atlas.run}).
