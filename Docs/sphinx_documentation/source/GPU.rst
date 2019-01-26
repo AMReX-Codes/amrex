@@ -810,7 +810,7 @@ macro can be used to launch threads that work across cells in a
 is also capable of launching for a specified number of elements 
 that will be split across GPU threads. For example, 
 ``Tutorials/GPU/Launch`` also shows how the box launch can be 
- rewritten as a launch over the number of points in the box:
+rewritten as a launch over the number of points in the box:
 
 .. highlight:: c++
 

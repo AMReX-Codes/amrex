@@ -1,0 +1,5 @@
+ifeq ($(USE_CGS), TRUE)
+f90EXE_sources += constants_cgs.f90
+else
+f90EXE_sources += constants_cosmo.f90
+endif

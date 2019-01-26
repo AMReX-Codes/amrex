@@ -31,7 +31,7 @@ void main_main ()
 
     // Multiple ways of kernel launch
 
-    // (1) C++, AMREX_FOR_3D
+    // (1) C++, AMREX_PARALLEL_FOR_3D
     {
         BL_PROFILE("1-amrex_for_3d");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -42,7 +42,7 @@ void main_main ()
             // Get Array4 object
             Array4<Real> fab = mf.array(mfi);
             // loop over bx
-            AMREX_FOR_3D ( bx, i, j, k,
+            AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
             {
                 fab(i,j,k) += 1.;
                 // or fab(i,j,k,0) += 1.;
@@ -50,7 +50,7 @@ void main_main ()
         }
     }
 
-    // (2) C++, AMREX_FOR_4D
+    // (2) C++, AMREX_PARALLEL_FOR_4D
     {
         BL_PROFILE("2-amrex_for_4d");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -62,14 +62,14 @@ void main_main ()
             Array4<Real> fab = mf.array(mfi);
             int ncomp = mf.nComp();
             // loop over bx and component.
-            AMREX_FOR_4D ( bx, ncomp, i, j, k, n,
+            AMREX_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
             {
                 fab(i,j,k,n) += 1.;
             });
         }
     }
 
-    // (3) C++, AMREX_FOR_1D
+    // (3) C++, AMREX_PARALLEL_FOR_1D
     {
         BL_PROFILE("3-amrex_for_1d");
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -79,7 +79,7 @@ void main_main ()
             const long nitems = fab.box().numPts() * mf.nComp();
             // Enough threads are launched to work over nitems.
             // This only works on a contiguous chunk of memory.
-            AMREX_FOR_1D ( nitems, idx,
+            AMREX_PARALLEL_FOR_1D ( nitems, idx,
             {
                 p[idx] += 1.;
             });

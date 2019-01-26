@@ -436,6 +436,8 @@
         AMREX_GPU_ERROR_CHECK(); \
     }
 
+#define AMREX_CUDA_DEVICE_PARALLEL_FOR_1D(...) AMREX_CUDA_DEVICE_FOR_1D(__VA_ARGS__)
+
 // FOR_3D
 
 #define AMREX_CUDA_HOST_DEVICE_FOR_3D(box,i,j,k,block) \
@@ -492,6 +494,8 @@
         }); \
         AMREX_GPU_ERROR_CHECK(); \
     }
+
+#define AMREX_CUDA_DEVICE_PARALLEL_FOR_3D(...) AMREX_CUDA_DEVICE_FOR_3D(__VA_ARGS__)
 
 // FOR_4D
 
@@ -550,6 +554,8 @@
         }); \
         AMREX_GPU_ERROR_CHECK(); \
     }
+
+#define AMREX_CUDA_DEVICE_PARALLEL_FOR_4D(...) AMREX_CUDA_DEVICE_FOR_4D(__VA_ARGS__)
 
 #else
 
@@ -626,12 +632,28 @@
     }
 
 #define AMREX_CUDA_FOR_1D_IMPL(n,i,block) \
+        for (int i = 0; i < n; ++i) { \
+            block \
+        }
+
+#define AMREX_CUDA_PARALLEL_FOR_1D_IMPL(n,i,block) \
         AMREX_PRAGMA_SIMD \
         for (int i = 0; i < n; ++i) { \
             block \
         }
 
 #define AMREX_CUDA_FOR_3D_IMPL(box,i,j,k,block) \
+    { \
+        const auto amrex_i_lo = amrex::lbound(box); \
+        const auto amrex_i_hi = amrex::ubound(box); \
+        for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
+        for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
+        for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
+            block \
+        }}} \
+    }
+
+#define AMREX_CUDA_PARALLEL_FOR_3D_IMPL(box,i,j,k,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -644,6 +666,18 @@
     }
 
 #define AMREX_CUDA_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
+    { \
+        const auto amrex_i_lo = amrex::lbound(box); \
+        const auto amrex_i_hi = amrex::ubound(box); \
+        for (int n = 0; n < ncomp; ++n) { \
+        for (int k = amrex_i_lo.z; k <= amrex_i_hi.z; ++k) { \
+        for (int j = amrex_i_lo.y; j <= amrex_i_hi.y; ++j) { \
+        for (int i = amrex_i_lo.x; i <= amrex_i_hi.x; ++i) { \
+            block \
+        }}}} \
+    }
+
+#define AMREX_CUDA_PARALLEL_FOR_4D_IMPL(box,ncomp,i,j,k,n,block) \
     { \
         const auto amrex_i_lo = amrex::lbound(box); \
         const auto amrex_i_hi = amrex::ubound(box); \
@@ -665,6 +699,9 @@
 #define AMREX_CUDA_HOST_DEVICE_FOR_4D(...) AMREX_CUDA_FOR_4D_IMPL(__VA_ARGS__);
 #define AMREX_CUDA_DEVICE_FOR_4D(...)      AMREX_CUDA_FOR_4D_IMPL(__VA_ARGS__);
 
+#define AMREX_CUDA_DEVICE_PARALLEL_FOR_1D(...)      AMREX_CUDA_PARALLEL_FOR_1D_IMPL(__VA_ARGS__);
+#define AMREX_CUDA_DEVICE_PARALLEL_FOR_3D(...)      AMREX_CUDA_PARALLEL_FOR_3D_IMPL(__VA_ARGS__);
+#define AMREX_CUDA_DEVICE_PARALLEL_FOR_4D(...)      AMREX_CUDA_PARALLEL_FOR_4D_IMPL(__VA_ARGS__);
 
 #define AMREX_CUDA_LAUNCH_HOST_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);
 #define AMREX_CUDA_LAUNCH_DEVICE(strategy, ...) amrex::launch_host(__VA_ARGS__);

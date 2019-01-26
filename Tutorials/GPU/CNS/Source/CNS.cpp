@@ -89,7 +89,7 @@ CNS::initData ()
         const Box& box = mfi.validbox();
         auto sfab = S_new.array(mfi);
 
-        AMREX_FOR_3D ( box, i, j, k,
+        AMREX_PARALLEL_FOR_3D ( box, i, j, k,
         {
             cns_initdata(i, j, k, sfab, geomdata);
         });
@@ -312,7 +312,7 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
             const auto rhofab = rho.array(mfi);
             auto tag = tags.array(mfi);
 
-            AMREX_FOR_3D ( bx, i, j, k,
+            AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
             {
                 cns_tag_denerror(i, j, k, tag, rhofab, dengrad_threshold, tagval);
             });
@@ -423,7 +423,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     {
         const Box& bx = mfi.growntilebox(ng);
         Array4<Real> sfab = State.array(mfi);
-        AMREX_FOR_3D ( bx, i, j, k,
+        AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
         {
             cns_compute_temperature(i,j,k,sfab);
         });

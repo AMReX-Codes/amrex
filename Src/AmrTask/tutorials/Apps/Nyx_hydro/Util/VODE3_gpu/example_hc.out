@@ -1,0 +1,31 @@
+ inputs_hc                                                                       
+ Created data
+ Created data
+ Read table
+ TABULATE_RATES: reionization parameters are:
+     reionization_zHI_flash     =   -1.0000000000000000     
+     reionization_zHeII_flash   =   -1.0000000000000000     
+     reionization_T_zHI         =    20000.000000000000     
+     reionization_T_zHeII       =    15000.000000000000     
+ TABULATE_RATES: rho-dependent heating parameters are:
+     A       =    1.0000000000000000     
+     B       =    0.0000000000000000     
+     UVB heating rates will be multiplied by A*(rho/rho_mean)**B
+ TABULATE_RATES: reionization flags are set to:
+     Hydrogen flash            =  F
+     Helium   flash            =  F
+     inhomogeneous_on (H only) =  F
+ TABULATE_RATES: UVB file is set in inputs (TREECOOL_middle                                                                 ).
+ Finished reading table
+IntSta1
+1.635780036449432E-01
+8.839029760565609E-06
+2.119999946752000E+12
+3.255559960937500E+04
+1.076699972152710E+00
+6.226414794921875E+02
+
+ rtol =    1.0000000000000000E-004
+ atol =    6.2264147949218751E-002
+ fn_vode =           65
+ NR_vode =          462

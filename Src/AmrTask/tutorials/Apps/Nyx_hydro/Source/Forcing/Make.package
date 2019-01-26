@@ -1,0 +1,8 @@
+ifeq ($(USE_FORCING), TRUE)
+CEXE_sources += MersenneTwister.cpp
+CEXE_sources += Forcing.cpp Forcing_init.cpp
+CEXE_headers += Forcing.H
+f90EXE_sources += forcing_spect.f90
+f90EXE_sources += ext_src_force_3d.f90
+f90EXE_sources += integrate_state_force_3d.f90
+endif

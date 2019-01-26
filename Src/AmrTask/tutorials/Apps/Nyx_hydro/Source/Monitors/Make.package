@@ -1,0 +1,4 @@
+CEXE_sources += MemInfo.cpp 
+
+CEXE_headers += MemInfo.H
+ 

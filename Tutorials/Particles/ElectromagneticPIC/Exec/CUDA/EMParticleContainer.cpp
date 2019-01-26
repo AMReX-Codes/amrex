@@ -251,7 +251,7 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
 
         Real q = m_charge;
         Real m = m_mass;
-        AMREX_FOR_1D ( np, i,
+        AMREX_PARALLEL_FOR_1D ( np, i,
         {
             amrex::Real Exp;
             amrex::Real Eyp;

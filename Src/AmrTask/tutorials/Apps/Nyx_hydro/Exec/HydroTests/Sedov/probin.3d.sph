@@ -1,0 +1,20 @@
+&fortin
+
+  probtype = 33
+  r_init = 0.01
+  p_ambient = 1.d-5
+  exp_energy = 1.0
+  dens_ambient = 1.0
+  nsub = 10
+
+  denerr = 3
+  dengrad = 0.01
+  max_denerr_lev = 3
+  max_dengrad_lev = 3
+
+  presserr = 3
+  pressgrad = 0.01
+  max_presserr_lev = 3
+  max_pressgrad_lev = 3
+/
+

@@ -87,11 +87,11 @@ In an embedded boundary cell, the “conservative divergence” is discretized (
 Geometry is discretely represented by volumes (:math:`V = \kappa h^d`) and
 apertures (:math:`A= \alpha h^{d-1}`), where :math:`h` is the (uniform) mesh
 spacing at that AMR level, :math:`\kappa` is the volume fraction and
-:math:`\alpha` are the area fractions.  Without multivalued cells the volume
+:math:`\alpha` are the area fractions. Without multivalued cells the volume
 fractions, area fractions and cell and face centroids (see
 :numref:`fig::volume`) are the only geometric information needed to compute
 second-order fluxes centered at the face centroids, and to infer the
-connectivity of the cells.  Cells are connected if adjacent on the Cartesian
+connectivity of the cells. Cells are connected if adjacent on the Cartesian
 mesh, and only via coordinate-aligned faces on the mesh. If an aperture,
 :math:`\alpha = 0`, between two cells, they are not directly connected to each
 other.
@@ -139,12 +139,12 @@ conservation laws, a naive discretization in time of :eq:`eqn::hypsys` using
 .. math:: U^{n+1} = U^{n} - \delta t D^c(F)
 
 would have a time step constraint :math:`\delta t \sim h \kappa^{1/D}/V_m`,
-which goes to zero as the size of the smallest volume fraction :math:`\kappa`
-in the calculation. Since EB volume fractions can be arbitrarily small, this is
-an unacceptable constraint. One way to remedy this is to create
-“non-conservative” approximation to the divergence :math:`D^{nc}`, which at a
-cell :math:`{\bf i}`, can be formed as an average of the conservative
-divergences in the neighborhood, :math:`N_{\bf i}`, of :math:`{\bf i}`.
+which goes to zero as the size of the smallest volume fraction :math:`\kappa` in
+the calculation. Since EB volume fractions can be arbitrarily small, this is an
+unacceptable constraint. One way to remedy this is to create “non-conservative”
+approximation to the divergence :math:`D^{nc}`, which at a cell :math:`{\bf i}`,
+can be formed as an average of the conservative divergences in the neighborhood,
+:math:`N_{\bf i}`, of :math:`{\bf i}`.
 
 .. math:: D^{nc}(F)_{\bf i}= \frac{\sum_{{\bf j}\in N_{\bf i}}\kappa_{\bf j}D(F)_{\bf j}}{\sum_{{\bf j}\in N_{\bf i}}\kappa_{\bf j}}
 
@@ -166,8 +166,8 @@ time-explicit fashion to neighboring cells, :math:`{\bf j}\in N_{\bf i}`:
 
 in order to preserve strict conservation over :math:`N_{\bf i}`.
 
-Note that the physics at hand may impact the optimal choice of precisely how
-the excess mass is distributed in this fashion. We introduce a weighting for
+Note that the physics at hand may impact the optimal choice of precisely how the
+excess mass is distributed in this fashion. We introduce a weighting for
 redistribution, :math:`W`,
 
 .. math::
@@ -214,11 +214,11 @@ In AMReX geometric information is stored in a distributed database
 class that must be initialized at the start of the calculation. The
 procedure for this goes as follows:
 
-- Define an implicit function of position which describes the surface of the 
-  embedded object. Specifically, the function class must have a public member function
-  that takes a position and returns a negative value if that position is
-  inside the fluid, a positive value in the body, and identically zero
-  at the embedded boundary.
+- Define an implicit function of position which describes the surface of the
+  embedded object. Specifically, the function class must have a public member
+  function that takes a position and returns a negative value if that position
+  is inside the fluid, a positive value in the body, and identically zero at the
+  embedded boundary.
 
 .. highlight:: c++
 
@@ -228,9 +228,9 @@ procedure for this goes as follows:
 
 - Make a :cpp:`EB2::GeometryShop` object using the implicit function. 
 
-- Build an :cpp:`EB2::IndexSpace` with the
-  :cpp:`EB2::GeometryShop` object and a :cpp:`Geometry` object that
-  contains the information about the domain and the mesh.
+- Build an :cpp:`EB2::IndexSpace` with the :cpp:`EB2::GeometryShop` object and a
+  :cpp:`Geometry` object that contains the information about the domain and the
+  mesh.
 
 Here is a simple example of initialize the database for an embedded sphere.
 
@@ -251,9 +251,9 @@ Here is a simple example of initialize the database for an embedded sphere.
 Implicit Function
 -----------------
 
-In ``amrex/Src/EB/``, there are a number of predefined implicit
-function classes for basic shapes.  One can use these directly or as
-template for their own classes.  
+In ``amrex/Src/EB/``, there are a number of predefined implicit function classes
+for basic shapes. One can use these directly or as template for their own
+classes.
 
 - :cpp:`AllRegularIF`:  No embedded boundaries at all.
 
@@ -269,7 +269,8 @@ template for their own classes.
 
 AMReX also provides a number of transformation operations to apply to an object.
 
-- :cpp:`makeComplement`: Complement of an object. E.g. a sphere with fluid on outside becomes a sphere with fluid inside. 
+- :cpp:`makeComplement`: Complement of an object. E.g. a sphere with fluid on
+  outside becomes a sphere with fluid inside.
 
 - :cpp:`makeIntersection`: Intersection of two or more objects.
 
@@ -333,45 +334,41 @@ We build :cpp:`EB2::IndexSpace` with a template function
                      int max_coarsening_level,
                      int ngrow = 4);
 
-Here the template parameter is a :cpp:`EB2::GeometryShop`.
-:cpp:`Geometry` (see section :ref:`sec:basics:geom`) describes the
-rectangular problem domain and the mesh on the finest AMR level.
-Coarse level EB data is generated from coarsening the original fine data.  The
-:cpp:`int required_coarsening_level` parameter specifies the number of
-coarsening levels required.  This is usually set to :math:`N-1`, where
-:math:`N` is the total number of AMR levels.  The :cpp:`int
-max_coarsening_levels` parameter specifies the number of coarsening
-levels AMReX should try to have.  This is usually set to a big number,
-say 20 if multigrid solvers are used.  This essentially tells the build to
-coarsen as much as it can.  If there are no multigrid solvers, the
-parameter should be set to the same as
-:cpp:`required_coarsening_level`.  It should be noted that coarsening could
-create multi-valued cells even if the fine level does not have any
-multi-valued cells. This occurs when the embedded boundary cuts a cell 
-in such a way that there is fluid on multiple sides of the boundary within
-that cell.  Because multi-valued cells are not supported, it
-will cause a runtime error if the required coarsening level generates
-multi-valued cells.  The optional :cpp:`int ngrow` parameter specifies
-the number of ghost cells outside the domain on required levels.  For
-levels coarser than the required level, no EB data are generated for
-ghost cells outside the domain.
+Here the template parameter is a :cpp:`EB2::GeometryShop`. :cpp:`Geometry` (see
+section :ref:`sec:basics:geom`) describes the rectangular problem domain and the
+mesh on the finest AMR level. Coarse level EB data is generated from coarsening
+the original fine data. The :cpp:`int required_coarsening_level` parameter
+specifies the number of coarsening levels required. This is usually set to
+:math:`N-1`, where :math:`N` is the total number of AMR levels. The :cpp:`int
+max_coarsening_levels` parameter specifies the number of coarsening levels AMReX
+should try to have. This is usually set to a big number, say 20 if multigrid
+solvers are used. This essentially tells the build to coarsen as much as it can.
+If there are no multigrid solvers, the parameter should be set to the same as
+:cpp:`required_coarsening_level`. It should be noted that coarsening could
+create multi-valued cells even if the fine level does not have any multi-valued
+cells. This occurs when the embedded boundary cuts a cell in such a way that
+there is fluid on multiple sides of the boundary within that cell. Because
+multi-valued cells are not supported, it will cause a runtime error if the
+required coarsening level generates multi-valued cells. The optional :cpp:`int
+ngrow` parameter specifies the number of ghost cells outside the domain on
+required levels. For levels coarser than the required level, no EB data are
+generated for ghost cells outside the domain.
 
-The newly built :cpp:`EB2::IndexSpace` is pushed on to a stack.  Static
-function :cpp:`EB2::IndexSpace::top()` returns a :cpp:`const &` to the
-new :cpp:`EB2::IndexSpace` object.  We usually only need to build one
-:cpp:`EB2::IndexSpace` object.  However, if your application needs
-multiple :cpp:`EB2::IndexSpace` objects, you can save the pointers for
-later use.  For simplicity, we assume there is only one
-`EB2::IndexSpace` object for the rest of this chapter.
+The newly built :cpp:`EB2::IndexSpace` is pushed on to a stack. Static function
+:cpp:`EB2::IndexSpace::top()` returns a :cpp:`const &` to the new
+:cpp:`EB2::IndexSpace` object. We usually only need to build one
+:cpp:`EB2::IndexSpace` object. However, if your application needs multiple
+:cpp:`EB2::IndexSpace` objects, you can save the pointers for later use. For
+simplicity, we assume there is only one `EB2::IndexSpace` object for the rest of
+this chapter.
 
 EBFArrayBoxFactory
 ==================
 
 After the EB database is initialized, the next thing we build is
-:cpp:`EBFArrayBoxFactory`.  This object provides access to the EB
-database in the format of basic AMReX objects such as :cpp:`BaseFab`,
-:cpp:`FArrayBox`, :cpp:`FabArray`, and :cpp:`MultiFab`.   We can
-construct it with
+:cpp:`EBFArrayBoxFactory`. This object provides access to the EB database in the
+format of basic AMReX objects such as :cpp:`BaseFab`, :cpp:`FArrayBox`,
+:cpp:`FabArray`, and :cpp:`MultiFab`. We can construct it with
 
 .. highlight: c++
 
@@ -418,10 +415,9 @@ build :cpp:`MultiFab`\ s that carry EB data.  Member function of
 
     const FabFactory<FAB>& Factory () const;
 
-can then be used to return a reference to the
-:cpp:`EBFArrayBoxFactory` used for building the :cpp:`MultiFab`.
-Using :cpp:`dynamic_cast`, we can test whether a :cpp:`MultiFab` is
-built with an :cpp:`EBFArrayBoxFactory`.
+can then be used to return a reference to the :cpp:`EBFArrayBoxFactory` used for
+building the :cpp:`MultiFab`. Using :cpp:`dynamic_cast`, we can test whether a
+:cpp:`MultiFab` is built with an :cpp:`EBFArrayBoxFactory`.
 
 .. highlight: c++
 
@@ -437,8 +433,8 @@ built with an :cpp:`EBFArrayBoxFactory`.
 EB Data
 =======
 
-Through member functions of :cpp:`EBFArrayBoxFactory`, we have access
-to the following data:
+Through member functions of :cpp:`EBFArrayBoxFactory`, we have access to the
+following data:
 
 .. highlight: c++
 
@@ -462,14 +458,13 @@ to the following data:
     // face centroid
     Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const;
 
-Volume fraction is in a single-component :cpp:`MultiFab`, and it is
-zero for covered cells, one for regular cells, and in between for cut
-cells.  Centroid is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
-components with each component of the data is in the range of
-:math:`[-0.5,0.5]`. The centroid is based on each cell's local
-coordinates with respect to the embedded boundary.  
-A :cpp:`MultiCutFab` is very similar to a
-:cpp:`MultiFab`.  Its data can be accessed with subscript operator
+Volume fraction is in a single-component :cpp:`MultiFab`, and it is zero for
+covered cells, one for regular cells, and in between for cut cells. Centroid is
+in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components with each component
+of the data is in the range of :math:`[-0.5,0.5]`. The centroid is based on each
+cell's local coordinates with respect to the embedded boundary. A
+:cpp:`MultiCutFab` is very similar to a :cpp:`MultiFab`. Its data can be
+accessed with subscript operator
 
 .. highlight: c++
 
@@ -477,22 +472,20 @@ A :cpp:`MultiCutFab` is very similar to a
 
     const CutFab& operator[] (const MFIter& mfi) const;
 
-Here :cpp:`CutFab` is derived from :cpp:`FArrayBox` and can be passed
-to Fortran just like :cpp:`FArrayBox`.  The difference between
-:cpp:`MultiCutFab` and :cpp:`MultiFab` is that to save memory
-:cpp:`MultiCutFab` only has data on boxes that contain cut cells.  It
-is an error to call :cpp:`operator[]` if that box does not have cut
-cells.  Thus the call must be in a :cpp:`if` test block (see section
-:ref:`sec:EB:flag`).  Boundary centroid is also a :cpp:`MultiCutFab`
-with ``AMREX_SPACEDIM`` components, and it uses each cell's local
-coordinates.  Area fractions and face centroids are returned in
-:cpp:`Array` of :cpp:`MultiCutFab` pointers.  For each direction, area
-fraction is for the face of that direction.  As for face centroids,
-there are two components for each direction and the ordering is always
-the same as the original ordering of the coordinates.  For example,
-for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
-for :math:`z`.  The coordinates are in each face's local frame
-normalized to the range of :math:`[-0.5,0.5]`.
+Here :cpp:`CutFab` is derived from :cpp:`FArrayBox` and can be passed to Fortran
+just like :cpp:`FArrayBox`. The difference between :cpp:`MultiCutFab` and
+:cpp:`MultiFab` is that to save memory :cpp:`MultiCutFab` only has data on boxes
+that contain cut cells. It is an error to call :cpp:`operator[]` if that box
+does not have cut cells. Thus the call must be in a :cpp:`if` test block (see
+section :ref:`sec:EB:flag`). Boundary centroid is also a :cpp:`MultiCutFab` with
+``AMREX_SPACEDIM`` components, and it uses each cell's local coordinates. Area
+fractions and face centroids are returned in :cpp:`Array` of :cpp:`MultiCutFab`
+pointers. For each direction, area fraction is for the face of that direction.
+As for face centroids, there are two components for each direction and the
+ordering is always the same as the original ordering of the coordinates. For
+example, for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
+for :math:`z`. The coordinates are in each face's local frame normalized to the
+range of :math:`[-0.5,0.5]`.
 
 .. _sec:EB:flag:
 
@@ -523,12 +516,11 @@ it to determine if a box contains cut cells.
         }
     }
 
-:cpp:`EBCellFlagFab` is derived from :cpp:`BaseFab`.  Its data are
-stored in an array of 32-bit integers, and can be used in C++ or
-passed to Fortran just like an :cpp:`IArrayBox` (section
-:ref:`sec:basics:fab`).  AMReX provides a Fortran module called
-``amrex_ebcellflag_module``. This module contains procedures for testing cell types
-and getting neighbor information.  For example
+:cpp:`EBCellFlagFab` is derived from :cpp:`BaseFab`. Its data are stored in an
+array of 32-bit integers, and can be used in C++ or passed to Fortran just like
+an :cpp:`IArrayBox` (section :ref:`sec:basics:fab`). AMReX provides a Fortran
+module called ``amrex_ebcellflag_module``. This module contains procedures for
+testing cell types and getting neighbor information. For example
 
 .. highlight:: fortran
 

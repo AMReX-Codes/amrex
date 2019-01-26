@@ -10,8 +10,8 @@ void actual_init_poisson (int i, int j, int k,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    constexpr amrex::Real tpi =  8.*3.1415926535897932;
-    constexpr amrex::Real fpi = 16.*3.1415926535897932;
+    constexpr amrex::Real tpi = 2.*3.1415926535897932;
+    constexpr amrex::Real fpi = 4.*3.1415926535897932;
     constexpr amrex::Real fac = tpi*tpi*3.;
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
@@ -65,7 +65,7 @@ void actual_init_abeclap (int i, int j, int k,
 {
     constexpr amrex::Real w = 0.05;
     constexpr amrex::Real sigma = 10.;
-    constexpr amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
+    const amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
 
     constexpr amrex::Real pi = 3.1415926535897932;
     constexpr amrex::Real tpi =  2.*pi;
