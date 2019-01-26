@@ -1,0 +1,37 @@
+\label{chap:HeatCool}
+
+\nyx\ provides the capability to compute local heating and cooling effects due to radiation.
+The motivation and algorithm for the heating and cooling components is documented in \cite{lukic15}, and the relevant code is located in the \texttt{Source/HeatCool} subdirectory.
+The code is activated through the \texttt{USE\_HEATCOOL=TRUE} option in the \texttt{GNUmakefile}.
+Mathematically, the heating and cooling can be described by a single ODE in each cell, to be integrated per time step $\Delta t$.
+This ODE exhibits a sensitive relationship to quantities such as temperature and free electron density, and consequently it often requires sophisticated integration techniques to compute correctly.
+
+\nyx\ provides a few different techniques for solving this ODE, which are selected via the \texttt{nyx.heat\_cool\_type} input parameter.
+One method is to use the VODE ODE solver (selected with \texttt{nyx.heat\_cool\_type=3}).
+The source code for VODE is included in the \texttt{Util/VODE} subdirectory and is compiled automatically with the rest of \nyx.
+However, while VODE is sufficient for computing this ODE correctly, it is an old Fortran code which is no longer maintained, and consequently will not easily be adapted to future high-performance computing architectures.
+
+VODE's successor is CVODE, which is a translation of the original VODE solver from Fortran to C.
+CVODE is actively developed and maintained, and is more likely to be adapted to future architectures.
+To use CVODE in \nyx, one may use the \texttt{nyx.heat\_cool\_type=5} input parameter.
+Currently the performance of VODE is slightly better because CVODE evaluates the ODE RHS one more time than VODE per coarse time step integration.
+Users should note that, while the VODE solver is compiled automatically in \nyx, CVODE must be compiled as a separate library; instructions for compiling CVODE are provided in the \amrex\ User Guide.
+To link the external CVODE solver into \nyx, one must set \texttt{USE\_HEATCOOL=TRUE} as well as \texttt{USE\_CVODE=TRUE} in the \texttt{GNUmakefile}.
+
+Finally, a third ODE integration option (which is new and \emph{\textbf{highly experimental}}) consists of using CVODE while treating groups of ODEs in different cells as a single system of coupled ODEs.
+This option can be selected with the \texttt{nyx.heat\_cool\_type=7} option.
+The purpose of this approach is to enable the evaluation of multiple RHSs simultaneously, using SIMD instructions.
+SIMD parallelism comprises a large fraction of compute performance on modern HPC architectures, and consequently, this approach can lead to a significant performance gain in the ODE integration (which is the most expensive computational kernel in \nyx).
+The number of ODEs (cells) which are computed simultaneously is chosen through the input parameter \texttt{nyx.simd\_width}.
+On Intel Xeon Phi, with 512 bit-wide SIMD instructions, an appropriate value for this parameter might be 8 or 16, or perhaps larger; the value which yields the highest performance will vary by architecture.
+However, users are cautioned that this mode remains \emph{\textbf{experimental}} and its results have not been subjected to the same level of verification as the other solver methods.
+In particular, the are three numerical tolerances, available as input parameters, which affect the convergence of the scalar vs SIMD ODE integration:
+
+\begin{itemize}
+  \item \texttt{nyx.eos\_nr\_eps}: this is the convergence criterion for the Newton-Raphson iteration which is used to evaluate the ODE RHS
+  \item \texttt{nyx.vode\_rtol}: this is the relative tolerance required for the ODE integration in VODE or CVODE
+  \item \texttt{nyx.vode\_atol\_scaled}: this is the absolute tolerance required for the ODE integration in VODE or CVODE, scaled by the initial value of the independent variable in the ODE
+\end{itemize}
+
+These variables, in particular \texttt{nyx.vode\_rtol}, have different effects depending on whether one is integrating a single ODE at a time, or a system of ODEs simultaneously.
+One should be mindful of the numerical differences which arise from these, which can be observed with the \texttt{fcompare} tool in \amrex.

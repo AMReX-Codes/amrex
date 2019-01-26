@@ -1,0 +1,17 @@
+ifneq ($(NO_HYDRO), TRUE)
+ifneq ($(USE_AGN), TRUE)
+CEXE_sources += Nyx_sources.cpp
+endif
+endif
+
+f90EXE_sources += Nyx_sources_3d.f90
+
+ifeq ($(USE_GRAV), TRUE)
+f90EXE_sources += Nyx_grav_sources_3d.f90
+endif
+
+f90EXE_sources += ext_src_3d.f90
+
+ifneq ($(USE_SSM), TRUE)
+f90EXE_sources += ext_src_add_3d.f90
+endif
