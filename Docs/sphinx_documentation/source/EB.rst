@@ -248,6 +248,8 @@ Here is a simple example of initialize the database for an embedded sphere.
     Geometry geom(...);
     EB2::Build(shop, geom, 0, 0);
 
+.. _sec:EB:ebinit:IF:
+
 Implicit Function
 -----------------
 
@@ -558,7 +560,7 @@ provides a way to construct level-sets representing the signed distance function
 from the closest EB surface. In our implementation, the level-set data is stored
 as a 1-component nodal :cpp:`MultiFab` (cf. :ref:`sec:basics:multifab`) where
 each node stores its closest distance to the EB. The subroutine
-:fortran:`amrex_eb_interp_levelset` (in `/Scr/EB/AMREX_EB_levelset_F.F90`)
+:fortran:`amrex_eb_interp_levelset` (in ``/Scr/EB/AMREX_EB_levelset_F.F90``)
 interpolates the level-set :math:`\phi(\mathbf{r})` to any position
 :math:`\mathbf{r}` from the pre-computed level-set :cpp:`MultiFab`. Likewise the
 subroutine :fortran:`amrex_eb_normal_levelset` interpolated the normal
@@ -579,20 +581,20 @@ A Note on Filling Level-Sets from :cpp:`EBFArrayBoxFactory`
 -----------------------------------------------------------
 
 The data stored in a :cpp:`EBFArrayBoxFactory`, represents the embedded boundary
-as a discrete collection of volume fraction, and area fractions over a grid.
+as a discrete collection of volume fractions, and area fractions over a grid.
 Here this is further simplified by thinking of the EB as a collection of planar
 facets. This means that for any given node in a grid, the nearest EB facet might
 be in another grid. Hence if the :cpp:`EBFArrayBoxFactory` has :cpp:`n_pad`
 ghost cells, then for any given grid, there could be EB facets that are
-:cpp:`n_pad + 1` cells away, and we would *not* "see". In other words, if the
+:cpp:`n_pad + 1` cells away, yet we would *not* "see". In other words, if the
 :cpp:`EBFArrayBoxFactory` is defined on a grid with spacing :math:`h`, then, and
 we do not have any EB facets in the current grid, then any node within that grid
-is *at least* :math:`(\mathrm{n_{pad}}+1)h` away from the nearest EB surface.
+is *at least* :math:`(n_\mathrm{pad}+1)h` away from the nearest EB surface.
 
 Hence, when filling a level-set, it will "max-out" at
-:math:`\pm(\mathrm{n_{pad}}+1)h`. Hence it is recommended to think of this kind
-of level-set function as the point being "at least" :math:`\phi(\mathbf{r})`
-from the EB surface.
+:math:`\pm(n_\mathrm{pad}+1)h`. Hence it is recommended to think of this kind of
+level-set function as the point being "at least" :math:`\phi(\mathbf{r})` from
+the EB surface.
 
 .. _fig::local_levelset:
 
@@ -604,11 +606,12 @@ from the EB surface.
    plateaus further away from it.
 
 Figure :numref:`fig::local_levelset` shows an example of such a local level-set
-description. Only cells that are within :math:`\pm(\mathrm{n_{pad}}+1)h` of the
-EB surface are filled with a level-set. The rest is filled with lower (upper)
-bound. If the goal is capture interactions between the EB surface and a point
-somewhere else, this approach usually suffices as we only need to know if we are
-"far enough" from the EB in most applications.
+description for a cylinder. Only cells that are within
+:math:`\pm(n_\mathrm{pad}+1)h` of the EB surface are filled with a level-set.
+The rest is filled with lower (upper) bound. If the goal is capture interactions
+between the EB surface and a point somewhere else, this approach usually
+suffices as we only need to know if we are "far enough" from the EB in most
+applications.
 
 Since finding the closest distance between a point and an arbitrary surface is
 computationally expensive, we advice that :cpp:`n_pad` is chosen as the smallest
@@ -620,18 +623,17 @@ Filling Level-Sets without :cpp:`LSFactory`
 -------------------------------------------
 
 The static function :cpp:`amrex::LSFactory::fill_data` (defined in
-`Src/EB/AMReX_EB_levelset.cpp`) fills a :cpp:`MultiFab` with the nodal level-set
+``Src/EB/AMReX_EB_levelset.cpp``) fills a :cpp:`MultiFab` with the nodal level-set
 values and another :cpp:`iMultiFab` with integer tags that are 1 whenever a node
 is near the EB surface. It is then left up to the application to manage the
 level-set :cpp:`MultiFab`.
 
-AMReX defines its embedded surfaces using implicit functions (see above).
-Normally these implicit functions are usually *not* signed distance functions
-(i.e. their value at :math:`\mathbf{r}` is not the minimal distance to the EB
-surface). However, in rare cases such as the :cpp:`EB2::PlaneIF`, it is. In this
-case, the most straight-forward way to fill a level-set. If an signed-distance
-implicit function is know, and stored as a :cpp:`MultiFab mf_impfunc`, then we
-can use
+AMReX defines embedded surfaces using implicit functions (see above). Normally
+these implicit functions are usually *not* signed distance functions (i.e. their
+value at :math:`\mathbf{r}` is not the minimal distance to the EB surface).
+However, in rare cases such as the :cpp:`EB2::PlaneIF`, it is. In this case, the
+most straight-forward way to fill a level-set. If an signed-distance implicit
+function is know, and stored as a :cpp:`MultiFab mf_impfunc`, then we can use
 
 .. highlight:: c++
 
@@ -660,9 +662,10 @@ fills a :cpp:`MultiFab ls_grid` with level-set data given the implicit function
 stored in the :cpp:`MultiFab mf_impfunc`, and a threshold of
 :cpp:`2*geom_eb.CellSize()`. The helper class :cpp:`GShopLSFactory` converts EB2
 implicit functions to :cpp:`MultiFabs` (defined in
-`Src/EB/AMReX_EB_levelset.H`).
+``Src/EB/AMReX_EB_levelset.H``).
 
-The much more interesting application of :cpp:`amrex::LSFactory::fill_data` is filling a level-set given a :cpp:`EBFArrayBoxFactory`:
+The much more interesting application of :cpp:`amrex::LSFactory::fill_data` is
+filling a level-set given a :cpp:`EBFArrayBoxFactory`:
 
 .. highlight:: c++
 
@@ -679,18 +682,18 @@ which fills the :cpp:`MultiFab data` with level-set data from the
 implicit function using the :cpp:`MultiFab eb_impfunc`, as this is used to
 determine the inside/outside when no EB facets can be found, or in special
 edge-cases. The user also needs to specify the tile size (:cpp:`IntVect
-ebt_size`), the level-set and EB refinement (i.e. the grid over which `data` is
-defined is refined by a factor of :cpp:`ls_ref/eb_ref` compared to the
-:cpp:`eb_factory` 's grid), and the Geometries :cpp:`geom` and :cpp:`geom_eb`
-corresponding to the grids of :cpp:`data` and :cpp:`eb_factory` respectively.
+ebt_size`), the level-set and EB refinement (i.e. the grid over which
+:cpp:`data` is defined is refined by a factor of :cpp:`ls_ref/eb_ref` compared
+to the :cpp:`eb_factory` 's grid), and the Geometries :cpp:`geom` and
+:cpp:`geom_eb` corresponding to the grids of :cpp:`data` and :cpp:`eb_factory`
+respectively.
 
-When filling :cpp:`data`, a tile-size of `ebt_size` is used. Only EB facets
-within a tile (plus the :cpp:`eb_factory` 's ghost cells) are considered. Hence,
-chosing an appropriately small :cpp:`ebt_size` can significantly increase
-performance.
+When filling :cpp:`data`, a tile-size of :cpp:`ebt_size` is used. Only EB facets
+within a tile (plus the :cpp:`eb_factory` ghost cells) are considered. Hence,
+chosing an appropriate :cpp:`ebt_size` can significantly increase performance.
 
-Hence the following fills a level-set with a cylinder EB (like that shown in
-Fig. :numref:`fig::local_levelset`).
+For example, the following fills a level-set with a cylinder EB (like that shown
+in Fig. :numref:`fig::local_levelset`).
 
 .. highlight:: c++
 
@@ -725,13 +728,41 @@ Fig. :numref:`fig::local_levelset`).
 Note that in theory the :cpp:`EBFArrayBoxFactory eb_factory` could be defined on
 a different resolution as the the :cpp:`BoxArray ba`. In this case, the
 appropriate refinements and geometries must be specified. Also note that the
-thresholding behaviour (due to :cpp:`eb_pad`, is specified via the
+thresholding behaviour (due to :cpp:`eb_pad`) is specified via the
 :cpp:`EBFArrayBoxFactory` constructor. The implicit function MultiFab needs to
 have the same grids as `data`.
 
 Since this relies on the interplay of many different parameters, a number of
 utility functions and helper classes have been created. These are discussed in
-the subsequent section.
+the subsequent sections.
+
+The common operations of intersections and unions (similar to EB implicit
+functions, discussed in :ref:`sec:EB:ebinit:IF`) can also be applied to
+level-sets. Without the use of a :cpp:`LSFactory`, the functions:
+
+.. highlight:: c++
+
+::
+
+   static void intersect_data (MultiFab & data, iMultiFab & valid,
+                               const MultiFab & data_in, const iMultiFab & valid_in,
+                               const Geometry & geom_ls);
+
+and  
+
+.. highlight:: c++
+
+::
+
+   static void union_data (MultiFab & data, iMultiFab & valid,
+                           const MultiFab & data_in, const iMultiFab & valid_in,
+                           const Geometry & geom_ls);
+
+These apply the intersection (element-wise minimum) and union (maximum) between
+the :cpp:`MultiFab data`, and :cpp:`data_in`. The result overwrites the contents
+of :cpp:`data`. The tags stored in the :cpp:`iMultiFab valid_in` determine where
+the intersection takes place (i.e. only cells where both :cpp:`valid_in == 1`
+are intersected, others are ignored).
 
 
 Using :cpp:`LSFactory`
@@ -740,11 +771,11 @@ Using :cpp:`LSFactory`
 In the previous section, we've seen that the level-set and EB grids can exist on
 different levels of refinement. The practical reason behind this is that
 sometimes we want to capture interactions that are very sensitive close to EBs,
-but this can sometimes be difficult to keep track off. Hence the
-:cpp:`LSFactory` can be helpful int taking care of all of these parameters.
+but this can sometimes be difficult to keep track of. Hence the :cpp:`LSFactory`
+can be helpful in taking care of all of these parameters.
 
 The basic principle of the :cpp:`LSFactory` (defined in
-`Src/EB/AMReX_EB_levelset.H`) is that it is created relative to some reference
+``Src/EB/AMReX_EB_levelset.H``) is that it is created relative to some reference
 :cpp:`BoxArray ba`, :cpp:`Geometry geom`, and :cpp:`DistributionMapping dm`. The
 user then specifies refinement factors :cpp:`ls_ref` of the level-set data and
 :cpp:`eb_ref` of the EB grid. Calling the constructor:
@@ -758,9 +789,12 @@ user then specifies refinement factors :cpp:`ls_ref` of the level-set data and
              int eb_tile_size = 32);
 
 Then creates all appropriate grids and geometries. Note that we can also specify
-the tile size used in the `LSFactory::fill_data` function.
+the tile size used internally in the :cpp:`LSFactory::fill_data` function.
 
-When a :cpp:`LSFacotry` is first created, it is set to :fortran:`huge(amrex_real)`. Ie. there are no surfaces, and so the level-set value is effectively infinite. It can then be filled just like in the previous section:
+When a :cpp:`LSFacotry` is first created, its level-set values are set to
+:fortran:`huge(amrex_real)`. I. e. there are no surfaces, and so the level-set
+value is effectively infinite. It can then be filled just like in the previous
+section:
 
 .. highlight:: c++
 
@@ -814,7 +848,7 @@ or alternatively a copy of the data can be generated using:
 
    std::unique_ptr<MultiFab> level_set_data = level_set.copy_data();
 
-Both of the data above are on grids what have been refined by :cpp:`ls_ref`
+Both of the data above are on grids that have been refined by :cpp:`ls_ref`
 (with respect to the :cpp:`BoxArray ba`). In order to get a copy of the
 level-set data at the coarseness of the original grids, use:
 
@@ -824,10 +858,20 @@ level-set data at the coarseness of the original grids, use:
 
    std::unique_ptr<MultiFab> level_set_data_crse = level_set.coarsen_data();
 
+Note however, that the level-set data is nodal data. Therefore, even though the
+:cpp:`MultiFab level_set_data_crse` is defined on a grid with the same
+resolution as the :cpp:`BoxArray ba`, it is defined on the nodal version of that
+grid.
+
+The :cpp:`LSFactory` is also there to make operations on the level-set easier.
+Intersection and Union operations with EB factories and implicit functions in
+the :cpp:`LSFactory` class. As well as functions to regrid (updating the
+underlying :cpp:`BoxArray` and :cpp:`DistributionMapping`), copying, and
+inverting the level-set function.
+
 
 .. Using :cpp:`LSCore`
 .. -------------------
-
 
 .. Utility Functions
 .. -----------------
