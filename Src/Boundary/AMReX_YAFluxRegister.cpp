@@ -1,5 +1,6 @@
 
 #include <AMReX_YAFluxRegister.H>
+#include <AMReX_YAFluxRegister_K.H>
 #include <AMReX_YAFluxRegister_F.H>
 
 #ifdef _OPENMP

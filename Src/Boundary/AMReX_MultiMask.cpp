@@ -30,7 +30,31 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
     BndryBATransformer bbatrans(face,IndexType::TheCellType(),in_rad,out_rad,extent_rad);
     BoxArray mskba(regba, bbatrans);
     m_fa.define(mskba, dm, ncomp, 0, MFInfo(), DefaultFabFactory<Mask>());
-    
+
+    const Box& geomdomain = geom.Domain();
+    const int bndrydata_outside_domain = BndryData::outside_domain;
+    const int bndrydata_not_covered = BndryData::not_covered;
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    if (initval)
+    {
+	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
+	{
+	    const Box& face_box = mfi.fabbox();
+            Mask* m = m_fa.fabPtr(mfi);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( face_box, tbx,
+            {
+                m->setVal(bndrydata_outside_domain, tbx, DestComp{0}, NumComps{ncomp});
+                const Box& dbox = geomdomain & tbx;
+                if (dbox.ok()) {
+                    m->setVal(bndrydata_not_covered, dbox, DestComp{0}, NumComps{ncomp});
+                }
+            });
+        }
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -43,12 +67,6 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
 	{
 	    Mask& m = m_fa[mfi];
 	    const Box& face_box = m.box();
-		
-	    m.setVal(BndryData::outside_domain);
-	    const Box& dbox = geom.Domain() & face_box;
-            if (dbox.ok()) {
-                m.setVal(BndryData::not_covered,dbox,0,ncomp);
-            }
 	    //
 	    // Now have to set as not_covered the periodic translates as well.
 	    //
