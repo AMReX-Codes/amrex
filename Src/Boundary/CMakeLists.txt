@@ -11,10 +11,9 @@ add_sources ( AMReX_LO_BCTYPES.H AMReX_MacBndry.H )
 add_sources ( AMReX_INTERPBNDRYDATA_F.H )
 add_sources ( AMReX_INTERPBNDRYDATA_${DIM}D.F90 AMReX_LO_UTIL.F90 )
 
-add_sources ( AMReX_YAFluxRegister.H   AMReX_YAFluxRegister_F.H )
+add_sources ( AMReX_YAFluxRegister.H )
 add_sources ( AMReX_YAFluxRegister_K.H AMReX_YAFluxRegister_${DIM}D_K.H )
 add_sources ( AMReX_YAFluxRegister.cpp )
-add_sources ( AMReX_YAFluxRegister_${DIM}d.F90 AMReX_YAFluxRegister_nd.F90 )
 
 add_sources ( AMReX_lo_bctypes_mod.F90 )
 
