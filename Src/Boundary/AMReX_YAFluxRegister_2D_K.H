@@ -57,7 +57,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
         for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int i = lo.x;
-                const int ii = i*ratio[0];
+                const int ii = (i+1)*ratio[0];
                 Real* AMREX_RESTRICT dp = &(d(i,j,0,n));
                 for (int joff = 0; joff < ratio[1]; ++joff) {
                     const int jj =      j*ratio[1]  + joff;
@@ -95,7 +95,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
         for (int n = 0; n < nc; ++n) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 const int j = lo.y;
-                const int jj = j*ratio[1];
+                const int jj = (j+1)*ratio[1];
                 Real* AMREX_RESTRICT dp = &(d(i,j,0,n));
                 for (int ioff = 0; ioff < ratio[0]; ++ioff) {
                     const int ii =      i*ratio[0]  + ioff;

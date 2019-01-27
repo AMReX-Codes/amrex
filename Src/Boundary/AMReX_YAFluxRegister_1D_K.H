@@ -43,7 +43,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
     {
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
-            const int ii = i*ratio[0];
+            const int ii = (i+1)*ratio[0];
             Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
             Real tmp = -dtdx*f(ii,0,0,n);
 #ifdef _OPENMP
