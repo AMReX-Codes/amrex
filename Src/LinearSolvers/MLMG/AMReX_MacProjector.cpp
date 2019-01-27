@@ -141,4 +141,56 @@ MacProjector::project (Real reltol, Real atol )
     }
 }
 
+void
+MacProjector::project (const Vector<MultiFab*>& phi_inout, Real reltol, Real atol )
+{
+    if (m_mlmg == nullptr)
+    {
+        m_mlmg.reset(new MLMG(*m_linop));
+        m_mlmg->setVerbose(m_verbose);
+    }
+
+    m_mlmg->setBottomSolver(bottom_solver_type);
+
+    const int nlevs = m_rhs.size();
+
+    for (int ilev = 0; ilev < nlevs; ++ilev)
+    {
+        Array<MultiFab const*, AMREX_SPACEDIM> u;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            u[idim] = m_umac[ilev][idim];
+        }
+        MultiFab divu(m_rhs[ilev].boxArray(), m_rhs[ilev].DistributionMap(),
+                      1, 0, MFInfo(), m_rhs[ilev].Factory());
+#ifdef AMREX_USE_EB
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            m_umac[ilev][idim]->FillBoundary(m_geom[ilev].periodicity());
+        }
+        EB_computeDivergence(divu, u, m_geom[ilev]);
+#else
+        computeDivergence(divu, u, m_geom[ilev]);
+#endif
+        MultiFab::Subtract(m_rhs[ilev], divu, 0, 0, 1, 0);
+
+        MultiFab::Copy(m_phi[ilev], *phi_inout[ilev], 0, 0, 1, 0);
+    }
+
+    m_mlmg->solve(amrex::GetVecOfPtrs(m_phi), amrex::GetVecOfConstPtrs(m_rhs), reltol, atol);
+
+    m_mlmg->getFluxes(amrex::GetVecOfArrOfPtrs(m_fluxes), MLMG::Location::FaceCenter);
+    
+    for (int ilev = 0; ilev < nlevs; ++ilev) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            MultiFab::Add(*m_umac[ilev][idim], m_fluxes[ilev][idim], 0, 0, 1, 0);
+#ifdef AMREX_USE_EB
+            EB_set_covered_faces(m_umac[ilev], 0.0);
+#endif
+        }
+    }
+    for (int ilev = 0; ilev < nlevs; ++ilev)
+    {
+        MultiFab::Copy(*phi_inout[ilev], m_phi[ilev], 0, 0, 1, 0);
+    }
+}
+
 }
