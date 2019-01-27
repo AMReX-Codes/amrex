@@ -1,7 +1,6 @@
 
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_YAFluxRegister_K.H>
-#include <AMReX_YAFluxRegister_F.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -247,19 +246,31 @@ YAFluxRegister::CrseAdd (const MFIter& mfi,
         return;  // this coarse fab is not close to fine fabs.
     }
 
-    FArrayBox& fab = m_crse_data[mfi];
     const Box& bx = mfi.tilebox();
-    const int nc = fab.nComp();
+    const int nc = m_crse_data.nComp();
+    AMREX_D_TERM(const Real dtdx = dt/dx[0];,
+                 const Real dtdy = dt/dx[1];,
+                 const Real dtdz = dt/dx[2];);
+    AMREX_D_TERM(FArrayBox const* fx = flux[0];,
+                 FArrayBox const* fy = flux[1];,
+                 FArrayBox const* fz = flux[2];);
 
-    const IArrayBox& flag = m_crse_flag[mfi];
+    auto fab = m_crse_data.array(mfi);
+    auto const flag = m_crse_flag.array(mfi);
 
-    amrex_ya_flux_reg_crseadd(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_ANYD(fab),
-                              BL_TO_FORTRAN_ANYD(flag),
-                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
-                                           BL_TO_FORTRAN_ANYD(*flux[1]),
-                                           BL_TO_FORTRAN_ANYD(*flux[2])),
-                              dx, &dt,&nc);
+    if (Gpu::isDevicePtr(fx))
+    {
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            yafluxreg_crseadd(tbx, fab, flag, AMREX_D_DECL(*fx,*fy,*fz),
+                              AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
+        });
+    }
+    else
+    {
+        yafluxreg_crseadd(bx, fab, flag, AMREX_D_DECL(*fx,*fy,*fz),
+                          AMREX_D_DECL(dtdx,dtdy,dtdz),nc);
+    }
 }
 
 
@@ -271,18 +282,25 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
     const int li = mfi.LocalIndex();
-    Vector<FArrayBox*>& fabs = m_cfp_fab[li];
-    if (fabs.empty()) return;
-
-    const int nc = m_cfpatch.nComp();
+    Vector<FArrayBox*>& cfp_fabs = m_cfp_fab[li];
+    if (cfp_fabs.empty()) return;
 
     const Box& tbx = mfi.tilebox();
     const Box& bx = amrex::coarsen(tbx, m_ratio);
     const Box& fbx = amrex::refine(bx, m_ratio);
+    const int nc = m_cfpatch.nComp();
+
+    const Real ratio = static_cast<Real>(AMREX_D_TERM(m_ratio[0],*m_ratio[1],*m_ratio[2]));
+    std::array<Real,AMREX_SPACEDIM> dtdx{AMREX_D_DECL(dt/(dx[0]*ratio),
+                                                      dt/(dx[1]*ratio),
+                                                      dt/(dx[2]*ratio))};
+    const IntVect ratioarray = m_ratio;
 
     std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
+    bool use_gpu = Gpu::isDevicePtr(a_flux[0]) && Gpu::inLaunchRegion();
     std::array<FArrayBox,AMREX_SPACEDIM> ftmp;
     if (fbx != tbx) {
+        AMREX_ASSERT(!use_gpu);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             const Box& b = amrex::surroundingNodes(fbx,idim);
             ftmp[idim].resize(b,nc);
@@ -292,24 +310,31 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
         }
     }
     
-    AMREX_ALWAYS_ASSERT(bx.cellCentered());
+    AMREX_ASSERT(bx.cellCentered());
 
     for (int idim=0; idim < AMREX_SPACEDIM; ++idim)
     {
         const Box& lobx = amrex::adjCellLo(bx, idim);
         const Box& hibx = amrex::adjCellHi(bx, idim);
-        for (FArrayBox* cfp : m_cfp_fab[li])
+        for (FArrayBox* cfp : cfp_fabs)
         {
             {
                 const Box& lobx_is = lobx & cfp->box();
                 const int side = 0;
                 if (lobx_is.ok())
                 {
-                    amrex_ya_flux_reg_fineadd(BL_TO_FORTRAN_BOX(lobx_is),
-                                              BL_TO_FORTRAN_ANYD(*cfp),
-                                              BL_TO_FORTRAN_ANYD(*flux[idim]),
-                                              dx, &dt, &nc, &idim, &side,
-                                              m_ratio.getVect());
+                    auto d = cfp->array();
+                    FArrayBox const* f = flux[idim];
+                    Real dtdxs = dtdx[idim];
+                    int dirside = idim*2+side;
+                    if (use_gpu) {
+                        AMREX_LAUNCH_DEVICE_LAMBDA ( lobx_is, tmpbox,
+                        {
+                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, ratioarray);
+                        });
+                    } else {
+                        yafluxreg_fineadd(lobx_is,  d, *f, dtdxs, nc, dirside, ratioarray);
+                    }
                 }
             }
             {
@@ -317,11 +342,18 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                 const int side = 1;
                 if (hibx_is.ok())
                 {
-                    amrex_ya_flux_reg_fineadd(BL_TO_FORTRAN_BOX(hibx_is),
-                                              BL_TO_FORTRAN_ANYD(*cfp),
-                                              BL_TO_FORTRAN_ANYD(*flux[idim]),
-                                              dx, &dt, &nc, &idim, &side,
-                                              m_ratio.getVect());
+                    auto d = cfp->array();
+                    FArrayBox const* f = a_flux[idim];
+                    Real dtdxs = dtdx[idim];
+                    int dirside = idim*2+side;
+                    if (use_gpu) {
+                        AMREX_LAUNCH_DEVICE_LAMBDA ( hibx_is, tmpbox,
+                        {
+                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, ratioarray);
+                        });
+                    } else {
+                        yafluxreg_fineadd(hibx_is, d, *f, dtdxs, nc, dirside, ratioarray);
+                    }
                 }
             }
         }
