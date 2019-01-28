@@ -343,7 +343,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                 if (hibx_is.ok())
                 {
                     auto d = cfp->array();
-                    FArrayBox const* f = a_flux[idim];
+                    FArrayBox const* f = flux[idim];
                     Real dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     if (use_gpu) {
