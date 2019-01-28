@@ -670,6 +670,7 @@ computationally expensive, we advice that :cpp:`n_pad` is chosen as the smallest
 necessary number for the application.
 
 
+.. _ss:ls:nolsf:
 
 Filling Level-Sets without :cpp:`LSFactory`
 -------------------------------------------
@@ -916,17 +917,162 @@ resolution as the :cpp:`BoxArray ba`, it is defined on the nodal version of that
 grid.
 
 The :cpp:`LSFactory` is also there to make operations on the level-set easier.
-Intersection and Union operations with EB factories and implicit functions in
-the :cpp:`LSFactory` class. As well as functions to regrid (updating the
-underlying :cpp:`BoxArray` and :cpp:`DistributionMapping`), copying, and
-inverting the level-set function.
+Intersection and Union operations with EB factories and implicit functions are
+available in the :cpp:`LSFactory` class. As well as functions to regrid
+(updating the underlying :cpp:`BoxArray` and :cpp:`DistributionMapping`),
+copying, and inverting the level-set function.
 
 
-.. Using :cpp:`LSCore`
-.. -------------------
+Filling Multi-Level Level-Sets without :cpp:`LSCore`
+----------------------------------------------------
 
-.. Utility Functions
-.. -----------------
+AMReX also provides code to fill the level-set function on different levels of
+refinement. The static function :cpp:`amrex::LSCoreBase::FillLevelSet`,
+:cpp:`amrex::LSCoreBase::MakeNewLevelFromCoarse`, and
+:cpp:`amrex::LSCoreBase::FillVolfracTags` (or
+:cpp:`amrex::LSCoreBase::FillLevelSetTags` for level-set tagging instead of
+volume-fraction tagging) fill a finer level from a coarse one. Just like the
+section on :ref:`ss:ls:nolsf`, the philosophy here is to enable to user to fill
+a :cpp:`MultiFab` with level-set values, and manage this data structure
+themselves. Later we will discuss the :cpp:`LSCore` class, which automatically
+constructs multi-level level-sets.
+
+One common problem with level-set function is that they are expensive to
+compute. Therefore, a strategy would be to compromise by computing the level-set
+function accurately near embedded boundaries (where precision is important), and
+at a lower resolution for from walls. The function
+
+.. highlight:: c++
+
+::
+
+   static void FillVolfracTags( int lev, TagBoxArray & tags, int buffer,
+                                 const Vector<BoxArray> & grids,
+                                 const Vector<DistributionMapping> & dmap,
+                                 const EB2::Level & eb_lev, const Vector<Geometry> & geom );
+
+fills a :cpp:`TagBoxArray` with tags wherever the volume fraction is between 0
+and 1. This way any cut-cells a buffered of :cpp:`buffer` many neighbors is
+tagged for refinement. If we need finer control over the tagging, the function
+
+.. highlight:: c++
+
+::
+
+   static void FillLevelSetTags( int lev, TagBoxArray & tags, const Vector<Real> & phierr,
+                                 const MultiFab & levelset_data, const Vector<Geometry> & geom );
+
+takes a list of threshold level-set values (:cpp:`Vector<Real> & phierr`) and
+tags cells for refinement if the coarse estimate of the levelset
+(:cpp:`levelset_data`) from level :cpp:`lev` is less than :cpp:`phierr[lev]`.
+
+The following code would then fill a multi-level hierarchy of level-sets
+contained in :cpp:`Vector<MultiFab> level_sets`.
+
+.. highlight:: c++
+
+::
+
+   //___________________________________________________________________________
+   // Start with level zero
+
+   EBFArrayBoxFactory eb_factory(* eb_levels[0], geom[0], grids[0], dmap[0],
+                                 {eb_pad, eb_pad, leb_pad}, EBSupport::full);
+
+   // NOTE: reference BoxArray is not nodal
+   BoxArray nd_ba = amrex::convert(grids[0], IntVect::TheNodeVector());
+
+   level_sets[0].define(nd_ba, dmap[0], 1, pad);
+   iMultiFab valid(nd_ba, dmap[0], 1, pad);
+
+   // NOTE: implicit function data might not be on the right grids
+   MultiFab impfunc = MFUtil::regrid(nd_ba, dmap[0], implicit_functions[0], true);
+
+   LSFactory::fill_data(level_sets[0], valid, ebfactory, impfunc,
+                        32, 1, 1, geom[0], geom[0]);
+
+
+   //___________________________________________________________________________
+   // Fill finer levels, using coarser level to estimate level-set
+
+   for (int lev = 1; lev < nlev; lev++) {
+            // NOTE: reference BoxArray is not nodal
+            BoxArray ba = amrex::convert(grids[lev], IntVect::TheNodeVector());
+            level_sets[lev].reset(new MultiFab);
+            iMultiFab valid(ba, dmap[lev], 1, pad);
+
+            // Fills level_sets[lev] with coarse data
+            LSCoreBase::MakeNewLevelFromCoarse( level_sets[lev], level_sets[lev-1],
+                                               ba, dmap[lev], geom[lev], geom[lev-1],
+                                               bcs_ls, refRatio(lev-1));
+
+            EBFArrayBoxFactory eb_factory(* eb_levels[lev], geom[lev], grids[lev], dmap[lev],
+                                          {eb_pad, eb_pad, eb_pad}, EBSupport::full);
+
+            // NOTE: implicit function data might not be on the right grids
+            MultiFab impfunc = MFUtil::regrid(ba, dmap[lev], implicit_functions[lev]);
+
+            IntVect ebt_size{AMREX_D_DECL(32, 32, 32)}; // Fudge factors...
+            LSCoreBase::FillLevelSet(level_sets[lev], level_sets[lev], eb_factory, impfunc,
+                                     ebt_size, eb_pad, geom[lev]);
+        }
+
+Here the :cpp:`Vector<const EB2::Level *> eb_levels` has been filled while
+initializing the embedded boundaries. At the same time, the implicit functions
+need to be saved to :cpp:`Vector<MultiFab> implicit_functions`. The user also
+needs to specify the level-set boundary conditions in :cpp:`Vector<BCRec>
+bcs_ls`. Note that the function :cpp:`LSCoreBase::FillLevelSet` uses the coarse
+level-set as an upper bound to the tile size used for testing EB facets.
+
+
+
+Using :cpp:`LSCore`
+-------------------
+
+The process described in the previous section is automated in the :cpp:`LSCore`
+class. It is derived from :cpp:`LSCoreBase`, which in turn is derived from
+:cpp:`AmrCore` (cf. :ref:`Chap:AmrCore`). :cpp:`LSCore` is a template class
+depending on the embedded boundary implicit function. This way, it can build new
+:cpp:`EB2::Level` objects for every new level that is needed.
+
+Since :cpp:`LSCore` is a template class, it might lead to problems in
+applications where the template parameter can depend of runtime parameters. This
+is the reason why it derives from the base class :cpp:`LSCoreBase`.
+:cpp:`LSCore` overwrites the virtual function :cpp:`MakeNewLevelFromScratch` in
+:cpp:`LSCoreBase`. The application can then employ the following polymorphism to
+construct the level-set;
+
+.. highlight:: c++
+
+::
+
+   LSCoreBase * ls_core;
+
+   // sets ls_core pointer
+   make_my_eb(ls_core);
+
+   ls_core->InitData();
+
+where the function :cpp:`make_my_eb` defines the actual EB geometry:
+
+.. highlight:: c++
+
+::
+
+   void make_my_eb(LSCoreBase *& ls_core) {
+
+       // MyIF is an EB2 Implicit Fuction
+       GeometryShop<MyIF> gshop;
+
+       // Build an EB geometry shop here
+
+       ls_core = new LSCore<MyIF>(gshop);
+   }
+
+Here the :cpp:`make_my_eb` is only defines the EB geometry. The function call
+:cpp:`ls_core->InitData()` constructs level hierarchy and fills it with
+level-set values.
+
 
 
 Linear Solvers
