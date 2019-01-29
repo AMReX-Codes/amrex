@@ -1719,6 +1719,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                   }
                       
                   locateParticle(p, pld, lev_min, lev_max, nGrow, local ? grid : -1);
+
+                  particlePostLocate(p, pld, lev);
                   
                   if (p.m_idata.id < 0)
                   {
