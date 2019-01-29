@@ -24,7 +24,7 @@ function (configure_amrex)
    # Check that needed options have already been defined
    # 
    if ( ( NOT ( DEFINED ENABLE_MPI ) ) OR ( NOT (DEFINED ENABLE_OMP) ) 
-	 OR ( NOT (DEFINED ENABLE_PIC ) ) )
+	 OR ( NOT (DEFINED ENABLE_PIC) ) OR (NOT (DEFINED ENABLE_FPE)))
       message ( AUTHOR_WARNING "Required options are not defined" )
    endif ()
 
@@ -33,14 +33,13 @@ function (configure_amrex)
    # 
    include( AMReX_ThirdPartyProfilers )
    include( AMReX_Defines )
-   include( AMReX_Compilers )
    include( AMReX_Utils )
    
    # 
    # Set properties for target "amrex"
    # 
-   set_amrex_defines ()
-   set_amrex_compiler_flags ()
+   set_amrex_defines()
+   setup_amrex_compilers()
 
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
@@ -99,35 +98,6 @@ function (configure_amrex)
       target_compile_options( amrex PUBLIC
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
-
-   #
-   # Set compile features -- We just need to set C++ standard
-   #
-   set(SUPPORTED_COMPILERS GNU Intel PGI)
-   
-   if ("${CMAKE_CXX_COMPILER_ID}" IN_LIST SUPPORTED_COMPILERS)
-      if (ENABLE_3D_NODAL_MLMG)
-         target_compile_features(amrex PUBLIC cxx_std_14)
-      else ()
-         target_compile_features(amrex PUBLIC cxx_std_11)
-      endif ()
-   else ()
-      # This branch is for compiler not yet supported by CMake compiler features
-      # Remove this branch as more compilers are supported
-      if (NOT ENABLE_3D_NODAL_MLMG)
-         target_compile_options ( amrex
-            PUBLIC
-            $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
-            $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-            $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
-      else ()
-         target_compile_options ( amrex
-            PUBLIC
-            $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
-            $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-            $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
-      endif ()
-   endif ()
    
    #
    # Add third party libraries
@@ -151,10 +121,108 @@ function (configure_amrex)
 
    #
    # Print out summary
-   # 
+   #  
    print_amrex_configuration_summary ()
 
 endfunction ()
+
+
+
+# 
+#
+# FUNCTION: setup_amrex_compilers
+# 
+# Load the configurations for all the supported compilers suite.
+# This function requires target "amrex" to be already existent.
+#
+# Author: Michele Rosso
+# Date  : January 24, 2019
+#
+# 
+function ( setup_amrex_compilers )
+
+   # 
+   # Check if target "amrex" has been defined before
+   # calling this function
+   #
+   if ( NOT TARGET amrex )
+      message(FATAL_ERROR "Target 'amrex' must be defined before calling function 'setup_amrex_compilers'" )
+   endif ()
+
+   #
+   # Exit if Cray compiler is in use -- Support for Cray is currently broken
+   # 
+   if ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray") OR
+         ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
+      message(FATAL_ERROR "Support for Cray compiler is currently broken")
+   endif()
+
+   # Load all compilers comfiguration
+   include(${CMAKE_MODULE_PATH}/comps/AMReX_GNU.cmake)
+   include(${CMAKE_MODULE_PATH}/comps/AMReX_PGI.cmake)
+   include(${CMAKE_MODULE_PATH}/comps/AMReX_Intel.cmake)
+   include(${CMAKE_MODULE_PATH}/comps/AMReX_Cray.cmake)
+
+   if (ENABLE_CUDA)
+      # After we load the setups for ALL the supported compilers
+      # we can load the setup for NVCC if required
+      # This is necessary because we need to know the C++ flags
+      # to pass to the Xcompiler option.
+      include(${CMAKE_MODULE_PATH}/comps/AMReX_NVIDIA.cmake)
+   endif ()
+   
+   # 
+   # Define some handy variables for handling generator expression
+   # Since genex "Fortran_COMPILER_ID" is not supported, we use genex
+   # "STREQUAL" as workaround 
+   #
+   set(cxx_lang       "$<COMPILE_LANGUAGE:CXX>"    )
+   set(fortran_lang   "$<COMPILE_LANGUAGE:Fortran>")
+   set(cuda_lang      "$<COMPILE_LANGUAGE:CUDA>"   )
+   set(debug_build    "$<CONFIG:Debug>")
+   set(release_build  "$<CONFIG:Release>")  
+   
+   # #
+   # # Set CUDA flags  
+   # #
+   # if (ENABLE_CUDA)
+   #    set_property(TARGET amrex PROPERTY CUDA_STANDARD 11)
+
+   #    if (CMAKE_VERSION VERSION_LESS 3.12 )
+   #       set( CMAKE_CUDA_COMPILER_LOADED 1 )
+   #       include(select_gpu_arch)
+   #       get_nvcc_arch_flags(nvcc_arch_flags "Auto")
+   #    endif ()
+
+   #    print(nvcc_arch_flags)
+   #    target_compile_options( amrex
+   #       PUBLIC
+   #       $<${cuda_lang}:--expt-relaxed-constexpr --expt-extended-lambda -dc --ptxas-options=-O3,-v -Wno-deprecated-gpu-targets -m64
+   #       ${nvcc_arch_flags} -lineinfo  --use_fast_math
+   #       -Xcompiler=-g,-O3,-std=c++11,--std=c++11>   
+   #       )
+
+   #    target_compile_options( amrex
+   #       PUBLIC
+   #       $<${fortran_pgi}:-Mcuda=ptxinfo,fastmath,charstring>     
+   #       )
+   # endif ()
+
+   # #
+   # # Openacc
+   # # 
+   # if (NOT ENABLE_ACC)
+   #    target_compile_options( amrex
+   #       PUBLIC
+   #       $<${fortran_pgi}:-noacc>     
+   #       )
+   # endif ()
+
+   
+endfunction () 
+
+
+
 
 # 
 #
@@ -176,8 +244,7 @@ function (print_amrex_configuration_summary)
    #
    get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
    replace_genex ( AMREX_DEFINES AMREX_CXX_DEFINES     LANGUAGE CXX )
-   replace_genex ( AMREX_DEFINES AMREX_Fortran_DEFINES LANGUAGE Fortran )
-
+   replace_genex ( AMREX_DEFINES AMREX_Fortran_DEFINES LANGUAGE Fortran )  
 
    # extract_by_language ( AMREX_DEFINES AMREX_CXX_DEFINES AMREX_Fortran_DEFINES )
    string (REPLACE " " " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )

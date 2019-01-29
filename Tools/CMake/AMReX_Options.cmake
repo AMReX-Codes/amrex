@@ -248,7 +248,7 @@ if (ENABLE_CUDA)
    
    set(CUDA_MAX_THREADS "256" CACHE STRING
       "Maximum number of CUDA threads per block" )
-   print_option(CUDA_MAX_THREAD)
+   print_option(CUDA_MAX_THREADS)
 
    set(CUDA_MAXREGCOUNT "255" CACHE STRING
       "Limit the maximum number of registers available" )
