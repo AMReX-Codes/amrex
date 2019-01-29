@@ -39,7 +39,7 @@ macro( add_sources )
       # to be compiled with CUDA compiler    
       if ( ENABLE_CUDA AND ( ${ext} STREQUAL ".cpp") ) 
          set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/${item}
-            PROPERTIES LANGUAGE CUDA INCLUDE_DIRECTORIES "/sw/summit/cuda/9.2.148/" )
+            PROPERTIES LANGUAGE CUDA )
       endif ()
    endforeach ()
    unset(ext)
@@ -64,7 +64,7 @@ include (Amr/CMakeLists.txt)
 # Optional components
 #
 if (ENABLE_EB)
-   include (EB/CMakeLists.txt)
+   include(EB/CMakeLists.txt)
 endif ()
 
 if (ENABLE_AMRDATA)
@@ -84,15 +84,15 @@ if (ENABLE_3D_NODAL_MLMG)
 endif ()
 
 if (ENABLE_FORTRAN_INTERFACES) 
-   include (F_Interfaces/CMakeLists.txt)
+   include(F_Interfaces/CMakeLists.txt)
 endif ()
 
-if ( ENABLE_PARTICLES )
-   include (Particle/CMakeLists.txt)
+if (ENABLE_PARTICLES)
+   include(Particle/CMakeLists.txt)
 endif ()
 
 if (ENABLE_SENSEI_INSITU)
-   include (Extern/SENSEI/CMakeLists.txt)
+   include(Extern/SENSEI/CMakeLists.txt)
 endif ()
 
 
@@ -119,7 +119,7 @@ if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating AMReX_buildInfo.cpp" )
    
-   target_sources ( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
+   target_sources( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
 endif ()
 
 #

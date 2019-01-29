@@ -1,3 +1,9 @@
+#
+# Compile definitions required by Extern/ProfParser
+# 
+add_amrex_define( AMREX_USE_PROFPARSER )
+
+
 # 
 # Extra pre-processing steps if any profiling is active
 # 

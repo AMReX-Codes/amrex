@@ -1,3 +1,16 @@
+# 
+# Compile definitions required by Particle 
+# 
+add_amrex_define(AMREX_PARTICLES NO_LEGACY)
+
+if (NOT ENABLE_DP_PARTICLES)
+   add_amrex_define( AMREX_SINGLE_PRECISION_PARTICLES )
+endif ()
+
+
+#
+# Source files
+# 
 add_sources( AMReX_TracerParticles.cpp AMReX_LoadBalanceKD.cpp AMReX_ParticleMPIUtil.cpp )
 add_sources( AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H )
 add_sources( AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H )
