@@ -32,7 +32,7 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real>& d, Array4<int> const& flag,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
-                        Real dtdx, int nc, int dirside, IntVect const& ratio)
+                        Real dtdx, int nc, int dirside, Dim3 const& rr)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -43,7 +43,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
     {
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
-            const int ii = (i+1)*ratio[0];
+            const int ii = (i+1)*rr.x;
             Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
             Real tmp = -dtdx*f(ii,0,0,n);
 #ifdef _OPENMP
@@ -57,7 +57,7 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
     {
         for (int n = 0; n < nc; ++n) {
             const int i = lo.x;
-            const int ii = i*ratio[0];
+            const int ii = i*rr.x;
             Real* AMREX_RESTRICT dp = &(d(i,0,0,n));
             Real tmp = dtdx*f(ii,0,0,n);
 #ifdef _OPENMP

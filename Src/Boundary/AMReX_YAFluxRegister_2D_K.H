@@ -45,7 +45,7 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real>& d, Array4<int> const& flag,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
-                        Real dtdx, int nc, int dirside, IntVect const& ratio)
+                        Real dtdx, int nc, int dirside, Dim3 const& rr)
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -57,10 +57,10 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
         for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int i = lo.x;
-                const int ii = (i+1)*ratio[0];
+                const int ii = (i+1)*rr.x;
                 Real* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int joff = 0; joff < ratio[1]; ++joff) {
-                    const int jj =      j*ratio[1]  + joff;
+                for (int joff = 0; joff < rr.y; ++joff) {
+                    const int jj =      j*rr.y  + joff;
                     Real tmp = -dtdx*f(ii,jj,0,n);
 #ifdef _OPENMP
 #pragma omp atomic
@@ -76,10 +76,10 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
         for (int n = 0; n < nc; ++n) {
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int i = lo.x;
-                const int ii = i*ratio[0];
+                const int ii = i*rr.x;
                 Real* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int joff = 0; joff < ratio[1]; ++joff) {
-                    const int jj =      j*ratio[1]  + joff;
+                for (int joff = 0; joff < rr.y; ++joff) {
+                    const int jj =      j*rr.y  + joff;
                     Real tmp = dtdx*f(ii,jj,0,n);
 #ifdef _OPENMP
 #pragma omp atomic
@@ -95,10 +95,10 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
         for (int n = 0; n < nc; ++n) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 const int j = lo.y;
-                const int jj = (j+1)*ratio[1];
+                const int jj = (j+1)*rr.y;
                 Real* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int ioff = 0; ioff < ratio[0]; ++ioff) {
-                    const int ii =      i*ratio[0]  + ioff;
+                for (int ioff = 0; ioff < rr.x; ++ioff) {
+                    const int ii =      i*rr.x  + ioff;
                     Real tmp = -dtdx*f(ii,jj,0,n);
 #ifdef _OPENMP
 #pragma omp atomic
@@ -114,10 +114,10 @@ void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
         for (int n = 0; n < nc; ++n) {
             for (int i = lo.x; i <= hi.x; ++i) {
                 const int j = lo.y;
-                const int jj = j*ratio[1];
+                const int jj = j*rr.y;
                 Real* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int ioff = 0; ioff < ratio[0]; ++ioff) {
-                    const int ii =      i*ratio[0]  + ioff;
+                for (int ioff = 0; ioff < rr.x; ++ioff) {
+                    const int ii =      i*rr.x  + ioff;
                     Real tmp = dtdx*f(ii,jj,0,n);
 #ifdef _OPENMP
 #pragma omp atomic
