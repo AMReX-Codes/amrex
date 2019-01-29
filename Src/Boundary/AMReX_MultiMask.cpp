@@ -42,7 +42,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
     {
 	for (MFIter mfi(m_fa); mfi.isValid(); ++mfi)
 	{
-	    const Box& face_box = mfi.fabbox();
+	    const Box& face_box = m_fa[mfi].box();
             Mask* m = m_fa.fabPtr(mfi);
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( face_box, tbx,
             {
@@ -132,7 +132,7 @@ MultiMask::Copy (MultiMask& dst, const MultiMask& src)
     for (MFIter mfi(dst.m_fa); mfi.isValid(); ++mfi) {
         auto const srcfab = src.m_fa.array(mfi);
         auto       dstfab = dst.m_fa.array(mfi);
-        const Box& bx = mfi.fabbox();
+        const Box& bx = dst.m_fa[mfi].box();
         AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             dstfab(i,j,k,n) = srcfab(i,j,k,n);
