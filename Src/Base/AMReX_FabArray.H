@@ -1355,7 +1355,7 @@ FabArray<FAB>::setBndry (value_type val,
                 const int nboxes = blst.size();
                 if (nboxes > 0)
                 {
-                    Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                    AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
                     Box const* pboxes = async_boxes.data();
 
                     long ncells = 0;
@@ -1420,7 +1420,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
             const int nboxes = blst.size();
             if (nboxes > 0)
             {
-                Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
                 Box const* pboxes = async_boxes.data();
 
                 long ncells = 0;

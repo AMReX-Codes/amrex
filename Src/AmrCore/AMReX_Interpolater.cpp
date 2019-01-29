@@ -118,7 +118,7 @@ NodeBilinear::interp (const FArrayBox&  crse,
 
     int num_slope  = ncomp*(AMREX_D_TERM(2,*2,*2)-1);
     const Box cslope_bx = amrex::enclosedCells(CoarseBox(fine_region, ratio));
-    Gpu::AsyncFab as_slopefab(cslope_bx, num_slope);
+    AsyncFab as_slopefab(cslope_bx, num_slope);
     FArrayBox* slopefab = as_slopefab.fabPtr();
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
@@ -286,7 +286,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
 
-    Gpu::AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
+    AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
     BCRec* bcrp = async_bcr.data();
 
     // component of ccfab : slopes for first compoent for x-direction
@@ -299,12 +299,12 @@ CellConservativeLinear::interp (const FArrayBox& crse,
     //      lin_lim = true : factors (one for all components) for x, y and z-direction
     //      lin_lim = false: min for every component followed by max for every component
     const int ntmp = do_linear_limiting ? (ncomp+1)*AMREX_SPACEDIM : ncomp*(AMREX_SPACEDIM+2);
-    Gpu::AsyncFab as_ccfab(cslope_bx, ntmp);
+    AsyncFab as_ccfab(cslope_bx, ntmp);
     FArrayBox* ccfab = as_ccfab.fabPtr();
 
     const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
 
-    Gpu::AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
+    AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
     Real const* voff = async_voff.data();
 
     if (do_linear_limiting) {
@@ -320,7 +320,7 @@ CellConservativeLinear::interp (const FArrayBox& crse,
         });
     } else {
         const Box& fslope_bx = amrex::refine(cslope_bx,ratio);
-        Gpu::AsyncFab as_fafab(fslope_bx, ncomp);
+        AsyncFab as_fafab(fslope_bx, ncomp);
         FArrayBox* fafab = as_fafab.fabPtr();
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,
@@ -564,7 +564,7 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     const Box& crse_region = CoarseBox(fine_region,ratio);
     const Box& cslope_bx = amrex::grow(crse_region,-1);
 
-    Gpu::AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
+    AsyncArray<BCRec> async_bcr(bcr.data(), ncomp);
     BCRec* bcrp = async_bcr.data();
 
     // component of ccfab : slopes for first compoent for x-direction
@@ -576,12 +576,12 @@ CellConservativeProtected::interp (const FArrayBox& crse,
     // then followed by
     //                      factors (one for all components) for x, y and z-direction
     const int ntmp = (ncomp+1)*AMREX_SPACEDIM;
-    Gpu::AsyncFab as_ccfab(cslope_bx, ntmp);
+    AsyncFab as_ccfab(cslope_bx, ntmp);
     FArrayBox* ccfab = as_ccfab.fabPtr();
 
     const Vector<Real>& vec_voff = amrex::ccinterp_compute_voff(cslope_bx, ratio, crse_geom, fine_geom);
 
-    Gpu::AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
+    AsyncArray<Real> async_voff(vec_voff.data(), vec_voff.size());
     Real const* voff = async_voff.data();
 
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA (cslope_bx, tbx,

@@ -15,7 +15,8 @@ extern "C" {
 }
 #endif
 
-namespace amrex { namespace Cuda {
+namespace amrex {
+namespace Cuda {
 
 template <typename T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
 class AsyncArray
@@ -100,6 +101,9 @@ private:
     T* h_data = nullptr;
 };
 
-}}
+}
+
+using Cuda::AsyncArray;
+}
 
 #endif

@@ -438,8 +438,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                         const int ntags_hi = tags_hi.size();
                         if (ntags_lo > 0 || ntags_hi > 0)
                         {
-                            Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_lo(tags_lo.data(), ntags_lo);
-                            Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_hi(tags_hi.data(), ntags_hi);
+                            AsyncArray<FabCopyTag<FAB> > async_tags_lo(tags_lo.data(), ntags_lo);
+                            AsyncArray<FabCopyTag<FAB> > async_tags_hi(tags_hi.data(), ntags_hi);
                             FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
                             FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
 
@@ -1876,8 +1876,8 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                                 const int ntags_hi = vtags_hi.size();
                                 if (ntags_lo > 0 || ntags_hi > 0)
                                 {
-                                    Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_lo(vtags_lo.data(), ntags_lo);
-                                    Gpu::AsyncArray<FabCopyTag<FAB> > async_tags_hi(vtags_hi.data(), ntags_hi);
+                                    AsyncArray<FabCopyTag<FAB> > async_tags_lo(vtags_lo.data(), ntags_lo);
+                                    AsyncArray<FabCopyTag<FAB> > async_tags_hi(vtags_hi.data(), ntags_hi);
                                     FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
                                     FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
 
