@@ -193,13 +193,13 @@ BndryData::define (const BoxArray& _grids,
 void
 BndryData::setValue (Orientation face, int n, Real val)
 {
-    auto& mf = bndry[face];
-    auto fab = mf.array(n);
-    const Box& bx = mf.fabbox(n);
+    auto& fab = bndry[face][n]; 
+    auto arr = fab.array();
+    const Box& bx = fab.box();
     const int ncomp = m_ncomp;
     AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, m,
     {
-        fab(i,j,k,m) = val;
+        arr(i,j,k,m) = val;
     });
 }
 

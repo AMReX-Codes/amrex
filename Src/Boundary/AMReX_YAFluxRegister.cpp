@@ -372,7 +372,7 @@ YAFluxRegister::Reflux (MultiFab& state, int dc)
 #endif
         for (MFIter mfi(m_cfpatch); mfi.isValid(); ++mfi)
         {
-            const Box& bx = mfi.fabbox();
+            const Box& bx = m_cfpatch[mfi].box();
             auto const maskfab = m_cfp_mask.array(mfi);
             auto       cfptfab = m_cfpatch.array(mfi);
             AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
