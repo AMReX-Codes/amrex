@@ -214,7 +214,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 0:
                         {
                             const Box& b = amrex::adjCellLo(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_x_o1(1,ic,jc,kc,n,bdry_array,crse_array,r);
                             });
@@ -223,7 +223,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 1:
                         {
                             const Box& b = amrex::adjCellHi(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_x_o1(0,ic,jc,kc,n,bdry_array,crse_array,r);
                             });
@@ -233,7 +233,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 2:
                         {
                             const Box& b = amrex::adjCellLo(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_y_o1(1,ic,jc,kc,n,bdry_array,crse_array,r);
                             });
@@ -242,7 +242,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 3:
                         {
                             const Box& b = amrex::adjCellHi(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_y_o1(0,ic,jc,kc,n,bdry_array,crse_array,r);
                             });
@@ -252,7 +252,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 4:
                         {
                             const Box& b = amrex::adjCellLo(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_z_o1(1,ic,jc,kc,n,bdry_array,crse_array,r);
                             });
@@ -261,7 +261,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 5:
                         {
                             const Box& b = amrex::adjCellHi(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_z_o1(0,ic,jc,kc,n,bdry_array,crse_array,r);
                             });
@@ -280,7 +280,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 0:
                         {
                             const Box& b = amrex::adjCellLo(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_x_o3(1,ic,jc,kc,n,bdry_array,crse_array,r,
                                                      mask_array, is_not_covered);
@@ -290,7 +290,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 1:
                         {
                             const Box& b = amrex::adjCellHi(crse_bx, 0);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_x_o3(0,ic,jc,kc,n,bdry_array,crse_array,r,
                                                      mask_array, is_not_covered);
@@ -301,7 +301,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 2:
                         {
                             const Box& b = amrex::adjCellLo(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_y_o3(1,ic,jc,kc,n,bdry_array,crse_array,r,
                                                      mask_array, is_not_covered);
@@ -311,7 +311,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 3:
                         {
                             const Box& b = amrex::adjCellHi(crse_bx, 1);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_y_o3(0,ic,jc,kc,n,bdry_array,crse_array,r,
                                                      mask_array, is_not_covered);
@@ -322,7 +322,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 4:
                         {
                             const Box& b = amrex::adjCellLo(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_z_o3(1,ic,jc,kc,n,bdry_array,crse_array,r,
                                                      mask_array, is_not_covered);
@@ -332,7 +332,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                         case 5:
                         {
                             const Box& b = amrex::adjCellHi(crse_bx, 2);
-                            AMREX_HOST_DEVICE_FOR_4D ( crse_bx, num_comp, ic, jc, kc, n,
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
                                 interpbndrydata_z_o3(0,ic,jc,kc,n,bdry_array,crse_array,r,
                                                      mask_array, is_not_covered);
