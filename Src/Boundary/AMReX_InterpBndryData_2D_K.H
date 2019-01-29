@@ -3,6 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
+#include <AMReX_LOUtil_K.H>
 
 namespace amrex {
 
@@ -41,17 +42,43 @@ void interpbndrydata_x_o3 (int islo, int ic, int jc, int /*kc*/, int n,
     const int i = ic*r.x + islo*(r.x-1);
     int j = jc*r.y;
 
-    int lo = (mask(i,j-1  ,0) == not_covered) ? jc-1 : jc;
-    int hi = (mask(i,j+r.y,0) == not_covered) ? jc+1 : jc;
-    Real fac = (hi == lo+1) ? 1.0 : 0.5;
-    Real dy = fac*(crse(ic,hi,0,n+nc)-crse(ic,lo,0,n+nc));
-    Real dy2 = (hi==lo+2) ? 0.5*(crse(ic,jc+1,0,n+nc) - 2.*crse(ic,jc,0,n+nc) + crse(ic,jc-1,0,n+nc)) : 0.;
+    Real x[3], y[3], c[3];
+    x[0] = 0.0;
+    y[0] = crse(ic,jc,0,n+nc);
+    int NN = 1;
 
-    Real c = crse(ic,jc,0,n+nc);
-    for (int joff = 0; joff < r.y; ++joff) {
-        j = jc*r.y  + joff;
-        Real y = (0.5+(joff-r.y/2)) / r.y;
-        bdry(i,j,0,n+nb) = c + y*dy + (y*y)*dy2;
+    if (mask(i,j-1,0) == not_covered) {
+        x[NN] = -1.0;
+        y[NN] = crse(ic,jc-1,0,n+nc);
+        ++NN;
+    } else if (mask(i,j+2*r.y,0) == not_covered) {
+        x[NN] = 2.0;
+        y[NN] = crse(ic,jc+2,0,n+nc);
+        ++NN;
+    }
+
+    if (mask(i,j+r.y,0) == not_covered) {
+        x[NN] = 1.0;
+        y[NN] = crse(ic,jc+1,0,n+nc);
+        ++NN;
+    } else if (mask(i,j-r.y-1,0) == not_covered) {
+        x[NN] = -2.0;
+        y[NN] = crse(ic,jc-2,0,n+nc);
+        ++NN;
+    }
+
+    if ( (mask(i,j-1,0) != not_covered) and (mask(i,j+r.y,0) != not_covered) ) {
+        NN = 1;
+    }
+
+    for (int off = 0; off < r.y; ++off) {
+        Real xInt = ((off-r.y/2) + 0.5) / r.y;
+        poly_interp_coeff(xInt, x, NN, c);
+        Real b = 0.0;
+        for (int m = 0; m < NN; ++m) {
+            b += c[m]*y[m];
+        }
+        bdry(i,j+off,0,n+nb) = b;
     }
 }
 
@@ -64,17 +91,43 @@ void interpbndrydata_y_o3 (int islo, int ic, int jc, int /*kc*/, int n,
     int i = ic*r.x;
     const int j = jc*r.y + islo*(r.y-1);
 
-    int lo = (mask(i-1  ,j,0) == not_covered) ? ic-1 : ic;
-    int hi = (mask(i+r.x,j,0) == not_covered) ? ic+1 : ic;
-    Real fac = (hi == lo+1) ? 1.0 : 0.5;
-    Real dx = fac*(crse(hi,jc,0,n+nc)-crse(lo,jc,0,n+nc));
-    Real dx2 = (hi==lo+2) ? 0.5*(crse(ic+1,jc,0,n+nc) - 2.*crse(ic,jc,0,n+nc) + crse(ic-1,jc,0,n+nc)) : 0.;
+    Real x[3], y[3], c[3];
+    x[0] = 0.0;
+    y[0] = crse(ic,jc,0,n+nc);
+    int NN = 1;
 
-    Real c = crse(ic,jc,0,n+nc);
-    for (int ioff = 0; ioff < r.x; ++ioff) {
-        i = ic*r.x  + ioff;
-        Real x = (0.5+(ioff-r.x/2)) / r.x;
-        bdry(i,j,0,n+nb) = c + x*dx + (x*x)*dx2;
+    if (mask(i-1,j,0) == not_covered) {
+        x[NN] = -1.0;
+        y[NN] = crse(ic-1,jc,0,n+nc);
+        ++NN;
+    } else if (mask(i+2*r.x,j,0) == not_covered) {
+        x[NN] = 2.0;
+        y[NN] = crse(ic+2,jc,0,n+nc);
+        ++NN;
+    }
+
+    if (mask(i+r.x,j,0) == not_covered) {
+        x[NN] = 1.0;
+        y[NN] = crse(ic+1,jc,0,n+nc);
+        ++NN;
+    } else if (mask(i-r.x-1,j,0) == not_covered) {
+        x[NN] = -2.0;
+        y[NN] = crse(ic-2,jc,0,n+nc);
+        ++NN;
+    }
+
+    if ( (mask(i-1,j,0) != not_covered) and (mask(i+r.x,j,0) != not_covered) ) {
+        NN = 1;
+    }
+
+    for (int off = 0; off < r.x; ++off) {
+        Real xInt = ((off-r.x/2) + 0.5) / r.x;
+        poly_interp_coeff(xInt, x, NN, c);
+        Real b = 0.0;
+        for (int m = 0; m < NN; ++m) {
+            b += c[m]*y[m];
+        }
+        bdry(i+off,j,0,n+nb) = b;
     }
 }
 

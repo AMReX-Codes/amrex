@@ -11,6 +11,7 @@ add_sources ( AMReX_LO_BCTYPES.H AMReX_MacBndry.H )
 add_sources ( AMReX_InterpBndryData_K.H AMReX_InterpBndryData_${DIM}_K.H )
 
 add_sources ( AMReX_LO_UTIL.F90 )
+add_sources ( AMReX_LOUtil_K.H )
 
 add_sources ( AMReX_YAFluxRegister.H )
 add_sources ( AMReX_YAFluxRegister_K.H AMReX_YAFluxRegister_${DIM}D_K.H )
