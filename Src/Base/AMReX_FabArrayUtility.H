@@ -19,7 +19,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_sm(&sm, 1);
+        AsyncArray<value_type> as_sm(&sm, 1);
         value_type* d_sm = as_sm.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -79,7 +79,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_sm(&sm, 1);
+        AsyncArray<value_type> as_sm(&sm, 1);
         value_type* d_sm = as_sm.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -140,7 +140,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_sm(&sm, 1);
+        AsyncArray<value_type> as_sm(&sm, 1);
         value_type* d_sm = as_sm.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -201,7 +201,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -261,7 +261,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -322,7 +322,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -382,7 +382,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -442,7 +442,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -501,7 +501,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -560,7 +560,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -619,7 +619,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
