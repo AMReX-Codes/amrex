@@ -86,7 +86,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                      Array4<Real> fzfab = fluxes[2].array(mfi););
 
         const Box& bxg2 = amrex::grow(bx,2);
-        Gpu::AsyncFab q(bxg2, nprim);
+        AsyncFab q(bxg2, nprim);
         Array4<Real> qfab = q.array();
 
         AMREX_PARALLEL_FOR_3D ( bxg2, i, j, k,
@@ -95,7 +95,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         });
 
         const Box& bxg1 = amrex::grow(bx,1);
-        Gpu::AsyncFab slope(bxg1,neqns);
+        AsyncFab slope(bxg1,neqns);
         Array4<Real> slopefab = slope.array();
 
         // x-direction

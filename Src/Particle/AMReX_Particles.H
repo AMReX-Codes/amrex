@@ -634,6 +634,8 @@ protected:
 
     mutable thrust::device_vector<amrex::IntVect> m_cells_tmp;
     mutable thrust::device_vector<int> m_grids_tmp;
+    mutable thrust::device_vector<int> m_grid_begin;
+    mutable thrust::device_vector<int> m_grid_end;    
     mutable thrust::device_vector<int> m_index_sequence_tmp;
     mutable std::map<int, thrust::device_vector<char> > m_not_ours;
     mutable thrust::device_vector<char> m_recvdata;
@@ -641,6 +643,9 @@ protected:
     
 private:
 
+    virtual void particlePostLocate(const ParticleType& p, const ParticleLocData& pld,
+                                    const int lev) {};
+    
     virtual void correctCellVectors(int old_index, int new_index,
 				    int grid, const ParticleType& p) {};
 
