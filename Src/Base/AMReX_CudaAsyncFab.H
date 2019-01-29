@@ -52,6 +52,9 @@ private:
 };
 
 }
+
+using Cuda::AsyncFab;
+
 }
 
 #endif

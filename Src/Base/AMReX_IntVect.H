@@ -18,8 +18,6 @@
 
 namespace amrex {
 
-std::ostream& operator<< (std::ostream& os, const Dim3& d);
-
 /**
 * An Integer Vector in SPACEDIM-Dimensional Space
 *

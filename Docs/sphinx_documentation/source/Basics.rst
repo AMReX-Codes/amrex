@@ -1589,6 +1589,8 @@ if the box is used to define a work region inside of the loop. For example:
 
 .. highlight:: c++
 
+::
+
     // MFIter loop with tiling on.
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
