@@ -1,0 +1,19 @@
+Simple, AMReX independent test to explore building a CUDA code
+either as an executable or through a static library in the AMReX fashion.
+
+This version is the pure C++ build test.
+
+Files
+----- 
+main.cpp contains the main which calls two CUDA global functions.
+MyKernel.cpp and MyKernelB.cpp contain the CUDA global functions.
+
+Make targets
+------------
+make: Build an executable directly using nvcc. Used to test the code.
+make pgi: Build an executable directly using pgfortran, similar to AMReX.
+
+make ***exec: Build an executable through a static library. 
+make ***library: Just build the static library.
+
+*** options: pgi, gcc, nvcc
