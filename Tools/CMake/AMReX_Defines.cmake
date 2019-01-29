@@ -3,11 +3,16 @@
 #
 # Populate the "compile definitions" property of target "amrex".
 # Target "amrex" must exist before calling this function.
+# set_amrex_defines() handles ONLY the general compile definitions.
+# That means it won't add defines associated to specific compilers or
+# required by optional AMReX components, like the EB or Particle code for
+# example.
 #
 # As per xSDK requirements, if a user set the env variable CPPFLAGS,
 # CPPFLAGS should overwrite AMReX_DEFINES. Since this is not possible without
 # breaking the build (most of the defines here are necessary for AMReX to compile),
 # for the time being we will not follow this requirement.
+# 
 #  
 # Author: Michele Rosso
 # Date  : June 26, 2018
@@ -39,7 +44,7 @@ function ( set_amrex_defines )
    endif ()
 
    # Base profiling options
-   add_amrex_define( AMREX_PROFILING IF ENABLE_BASE_PROFILE )
+   add_amrex_define( AMREX_PROFILING       IF ENABLE_BASE_PROFILE )
    add_amrex_define( AMREX_TRACE_PROFILING IF ENABLE_TRACE_PROFILE )
    add_amrex_define( AMREX_COMM_PROFILING  IF ENABLE_COMM_PROFILE )
 
@@ -49,22 +54,10 @@ function ( set_amrex_defines )
    # Mem profiler 
    add_amrex_define( AMREX_MEM_PROFILING IF ENABLE_MEM_PROFILE )
 
-   # Profparser 
-   add_amrex_define( AMREX_USE_PROFPARSER IF ENABLE_PROFPARSER )
-
    # Backtrace
    if (ENABLE_BACKTRACE)
       add_amrex_define( AMREX_BACKTRACING )
       add_amrex_define( AMREX_TESTING )
-   endif ()
-
-   # Third party profiling
-   if (${TP_PROFILE} MATCHES "CRAYPAT")
-      add_amrex_define( AMREX_CRAYPAT )
-   elseif (${TP_PROFILE} MATCHES "FORGE")
-      add_amrex_define( AMREX_FORGE )
-   elseif (${TP_PROFILE} MATCHES "VTUNE")
-      add_amrex_define( AMREX_VTUNE )
    endif ()
 
    # MPI
@@ -83,20 +76,9 @@ function ( set_amrex_defines )
 
    # System
    add_amrex_define( AMREX_${CMAKE_SYSTEM_NAME} )
-
-   # Particles
-   if (ENABLE_PARTICLES)
-      add_amrex_define( AMREX_PARTICLES )
-      if (NOT ENABLE_DP_PARTICLES)
-	 add_amrex_define( AMREX_SINGLE_PRECISION_PARTICLES )
-      endif ()
-   endif ()
    
    #  Assertions
-   add_amrex_define( AMREX_USE_ASSERTION    IF ENABLE_ASSERTIONS )
-   add_amrex_define( AMREX_USE_EB NO_LEGACY IF ENABLE_EB )
-   add_amrex_define( AMREX_USE_F_INTERFACES IF ENABLE_FORTRAN_INTERFACES ) 
-   add_amrex_define( AMREX_NO_STRICT_PREFIX )
+   add_amrex_define( AMREX_USE_ASSERTION IF ENABLE_ASSERTIONS )
 
    #
    # Fortran-specific defines: BL_LANG_FORT e AMREX_LANG_FORT
@@ -127,9 +109,6 @@ function ( set_amrex_defines )
 
    add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
 
-   # SENSEI Insitu
-   add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
-
    # 
    # CUDA
    #
@@ -138,28 +117,11 @@ function ( set_amrex_defines )
    add_amrex_define( AMREX_CUDA_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
       IF ENABLE_CUDA )
 
-   if (ENABLE_CUDA)
-      
-      string( REPLACE "." ";" VERSION_LIST ${CMAKE_CUDA_COMPILER_VERSION})
-      list( GET VERSION_LIST 0 NVCC_VERSION_MAJOR )
-      list( GET VERSION_LIST 1 NVCC_VERSION_MINOR )
-
-      target_compile_definitions( amrex PUBLIC
-	 AMREX_NVCC_VERSION=${CMAKE_CUDA_COMPILER_VERSION}
-	 AMREX_NVCC_MAJOR_VERSION=${NVCC_VERSION_MAJOR}
-	 AMREX_NVCC_MINOR_VERSION=${NVCC_VERSION_MINOR} )
-      
-   endif ()
-
       
    # Fortran macros useful by application code only
    # (they are not present in AMReX source code) 
    if (ENABLE_CUDA AND ( ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "PGI" ) OR
-            ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "XL"  ) ) )
-
-      # target_compile_definitions( amrex PUBLIC
-      #    $<$<COMPILE_LANGUAGE:Fortran>:AMREX_USE_CUDA_FORTRAN> )
-      
+            ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "XL"  ) ) )      
       target_compile_definitions( amrex PUBLIC
          $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=attributes\(global\);
          AMREX_DEVICE=attributes\(device\);
@@ -196,64 +158,6 @@ function ( set_amrex_defines )
    
 endfunction ()
 
-# 
-#
-# FUNCTION: add_amrex_define
-#
-# Add definition to target "amrex" compile definitions.
-#
-# Arguments:
-#
-#    new_define    = variable containing the definition to add.
-#                    The new define can be any string with no "-D" prepended.
-#                    If the new define is in the form AMREX_SOMENAME,
-#                    this function also adds BL_SOMENAME to the list,
-#                    unless NO_LEGACY is specified (see below)
-# 
-#    NO_LEGACY     = if specified, the legacy version of a new_define given in the
-#                    form AMREX_SOMENAME will not be added.
-#                     
-#    IF <cond-var> = new_define is added only if <cond-var> is true
-#
-# Author: Michele Rosso
-# Date  : June 26, 2018
-# 
-function ( add_amrex_define new_define )
-
-   # 
-   # Check if target "amrex" has been defined before
-   # calling this macro
-   #
-   if (NOT TARGET amrex)
-      message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'add_amrex_define'" )
-   endif ()
-   
-   cmake_parse_arguments ( DEFINE "NO_LEGACY" "IF" ""  ${ARGN} )
-
-   set ( condition  1 )
-
-   if (DEFINE_IF)
-      set ( condition ${${DEFINE_IF}} )
-   endif()
-
-   # Return if flags does not need to be included
-   if (NOT condition)
-      return ()
-   endif ()
-
-   target_compile_definitions ( amrex PUBLIC ${new_define} )
-
-   if ( NOT DEFINE_NO_LEGACY )
-      # Add legacy definition
-      string ( FIND ${new_define} "AMREX_" out )
-
-      if (${out} GREATER -1 )
-	 string (REPLACE "AMREX_" "BL_" legacy_define ${new_define})
-	 target_compile_definitions ( amrex PUBLIC ${legacy_define} )
-      endif ()
-   endif () 
-   
-endfunction ()
 
 
 
