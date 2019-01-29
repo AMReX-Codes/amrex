@@ -11,7 +11,7 @@ void interpbndrydata_x_o1 (int islo, int ic, int jc, int /*kc*/, int n, Array4<R
                            Array4<Real> const& crse, Dim3 const& r)
 {
     Real c = crse(ic,jc,0,n);
-    int i = ic*r.x + islo;
+    const int i = ic*r.x + islo*(r.x-1);
     for (int joff = 0; joff < r.y; ++joff) {
         int  j    =        jc*r.y  + joff;
         bdry(i,j,0,n) = c;
@@ -23,7 +23,7 @@ void interpbndrydata_y_o1 (int islo, int ic, int jc, int /*kc*/, int n, Array4<R
                            Array4<Real> const& crse, Dim3 const& r)
 {
     Real c = crse(ic,jc,0,n);
-    int j = jc*r.y + islo;
+    const int j = jc*r.y + islo*(r.y-1);
     for (int ioff = 0; ioff < r.x; ++ioff) {
         int  i    =        ic*r.x  + ioff;
         bdry(i,j,0,n) = c;
@@ -35,7 +35,7 @@ void interpbndrydata_x_o3 (int islo, int ic, int jc, int /*kc*/, int n, Array4<R
                            Array4<Real> const& crse, Dim3 const& r,
                            Array4<int> const& mask, int not_covered)
 {
-    const int i = ic*r.x + islo;
+    const int i = ic*r.x + islo*(r.x-1);
     int j = jc*r.y;
 
     int lo = (mask(i,j-1  ,0) == not_covered) ? jc-1 : jc;
@@ -58,7 +58,7 @@ void interpbndrydata_y_o3 (int islo, int ic, int jc, int /*kc*/, int n, Array4<R
                            Array4<int> const& mask, int not_covered)
 {
     int i = ic*r.x;
-    const int j = jc*r.y + islo;
+    const int j = jc*r.y + islo*(r.y-1);
 
     int lo = (mask(i-1  ,j,0) == not_covered) ? ic-1 : ic;
     int hi = (mask(i+r.x,j,0) == not_covered) ? ic+1 : ic;

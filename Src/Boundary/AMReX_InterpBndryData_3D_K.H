@@ -11,7 +11,7 @@ void interpbndrydata_x_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>
                            Array4<Real> const& crse, Dim3 const& r)
 {
     Real c = crse(ic,jc,kc,n);
-    int i = ic*r.x + islo;
+    const int i = ic*r.x + islo*(r.x-1);
     for     (int koff = 0; koff < r.z; ++koff) {
         int      k    =        kc*r.z  + koff;
         for (int joff = 0; joff < r.y; ++joff) {
@@ -26,7 +26,7 @@ void interpbndrydata_y_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>
                            Array4<Real> const& crse, Dim3 const& r)
 {
     Real c = crse(ic,jc,kc,n);
-    int j = jc*r.y + islo;
+    const int j = jc*r.y + islo*(r.y-1);
     for     (int koff = 0; koff < r.z; ++koff) {
         int      k    =        kc*r.z  + koff;
         for (int ioff = 0; ioff < r.x; ++ioff) {
@@ -41,7 +41,7 @@ void interpbndrydata_z_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>
                            Array4<Real> const& crse, Dim3 const& r)
 {
     Real c = crse(ic,jc,kc,n);
-    int k = kc*r.z + islo;
+    const int k = kc*r.z + islo*(r.z-1);
     for     (int joff = 0; joff < r.y; ++joff) {
         int      j    =        jc*r.y  + joff;
         for (int ioff = 0; ioff < r.x; ++ioff) {
@@ -56,7 +56,7 @@ void interpbndrydata_x_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>
                            Array4<Real> const& crse, Dim3 const& r,
                            Array4<int> const& mask, int not_covered)
 {
-    const int i = ic*r.x + islo;
+    const int i = ic*r.x + islo*(r.x-1);
     int j = jc*r.y;
     int k = kc*r.z;
 
@@ -95,7 +95,7 @@ void interpbndrydata_y_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>
                            Array4<int> const& mask, int not_covered)
 {
     int i = ic*r.x;
-    const int j = jc*r.y + islo;
+    const int j = jc*r.y + islo*(r.y-1);
     int k = kc*r.z;
 
     int lo = (mask(i-1  ,j,k) == not_covered) ? ic-1 : ic;
@@ -134,7 +134,7 @@ void interpbndrydata_z_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>
 {
     int i = ic*r.x;
     int j = jc*r.y;
-    const int k = kc*r.z + islo;
+    const int k = kc*r.z + islo*(r.z-1);
 
     int lo = (mask(i-1  ,j,k) == not_covered) ? ic-1 : ic;
     int hi = (mask(i+r.x,j,k) == not_covered) ? ic+1 : ic;
