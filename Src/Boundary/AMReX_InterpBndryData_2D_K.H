@@ -44,8 +44,8 @@ void interpbndrydata_x_o3 (int islo, int ic, int jc, int /*kc*/, int n,
     int lo = (mask(i,j-1  ,0) == not_covered) ? jc-1 : jc;
     int hi = (mask(i,j+r.y,0) == not_covered) ? jc+1 : jc;
     Real fac = (hi == lo+1) ? 1.0 : 0.5;
-    Real dy = fac*(crse(ic,hi,0,n)-crse(ic,lo,0,n+nc));
-    Real dy2 = (hi==lo+2) ? 0.5*(crse(ic,jc+1,0,n) - 2.*crse(ic,jc,0,n) + crse(ic,jc-1,0,n+nc)) : 0.;
+    Real dy = fac*(crse(ic,hi,0,n+nc)-crse(ic,lo,0,n+nc));
+    Real dy2 = (hi==lo+2) ? 0.5*(crse(ic,jc+1,0,n+nc) - 2.*crse(ic,jc,0,n+nc) + crse(ic,jc-1,0,n+nc)) : 0.;
 
     Real c = crse(ic,jc,0,n+nc);
     for (int joff = 0; joff < r.y; ++joff) {
@@ -67,13 +67,13 @@ void interpbndrydata_y_o3 (int islo, int ic, int jc, int /*kc*/, int n,
     int lo = (mask(i-1  ,j,0) == not_covered) ? ic-1 : ic;
     int hi = (mask(i+r.x,j,0) == not_covered) ? ic+1 : ic;
     Real fac = (hi == lo+1) ? 1.0 : 0.5;
-    Real dx = fac*(crse(hi,jc,0,n)-crse(lo,jc,0,n+nc));
-    Real dx2 = (hi==lo+2) ? 0.5*(crse(ic+1,jc,0,n) - 2.*crse(ic,jc,0,n) + crse(ic-1,jc,0,n+nc)) : 0.;
+    Real dx = fac*(crse(hi,jc,0,n+nc)-crse(lo,jc,0,n+nc));
+    Real dx2 = (hi==lo+2) ? 0.5*(crse(ic+1,jc,0,n+nc) - 2.*crse(ic,jc,0,n+nc) + crse(ic-1,jc,0,n+nc)) : 0.;
 
     Real c = crse(ic,jc,0,n+nc);
     for (int ioff = 0; ioff < r.x; ++ioff) {
         i = ic*r.x  + ioff;
-        Real x = (0.5*(ioff-r.x/2)) / r.x;
+        Real x = (0.5+(ioff-r.x/2)) / r.x;
         bdry(i,j,0,n+nb) = c + x*dx + (x*x)*dx2;
     }
 }
