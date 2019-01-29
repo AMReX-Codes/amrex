@@ -156,7 +156,7 @@ void interpbndrydata_z_o3 (int islo, int ic, int jc, int kc, int n,
 
     Real dxy = (mask(i-1,j-1,k) == not_covered and mask(i+r.x,j-1,k) == not_covered
                 and mask(i-1,j+r.y,k) == not_covered and mask(i+r.x,j+r.y,k) == not_covered)
-        ? 0.25*(crse(ic+1,jc+1,kc,n+nc)-crse(ic-1,jc+1,kc,n+nc)+crse(ic-1,jc-1,kc,n+nc)+crse(ic+1,jc-1,kc,n+nc))
+        ? 0.25*(crse(ic+1,jc+1,kc,n+nc)-crse(ic-1,jc+1,kc,n+nc)+crse(ic-1,jc-1,kc,n+nc)-crse(ic+1,jc-1,kc,n+nc))
         : 0.0;
 
     Real c = crse(ic,jc,kc,n+nc);
