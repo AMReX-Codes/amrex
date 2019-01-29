@@ -204,7 +204,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                     auto const crse_array = crse[face].array(mfi);
                     auto       bdry_array = bndry[face].array(mfi);
                     const int dirside = dir*2 + side;
-                    const auto r = ratio.dim3();
+                    const auto rr = ratio.dim3();
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
@@ -216,7 +216,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellLo(crse_bx, 0);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_x_o1(1,ic,jc,kc,n,bdry_array,crse_array,r);
+                                interpbndrydata_x_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
                             });
                             break;
                         }
@@ -225,7 +226,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellHi(crse_bx, 0);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_x_o1(0,ic,jc,kc,n,bdry_array,crse_array,r);
+                                interpbndrydata_x_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
                             });
                             break;
                         }
@@ -235,7 +237,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellLo(crse_bx, 1);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_y_o1(1,ic,jc,kc,n,bdry_array,crse_array,r);
+                                interpbndrydata_y_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
                             });
                             break;
                         }
@@ -244,7 +247,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellHi(crse_bx, 1);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_y_o1(0,ic,jc,kc,n,bdry_array,crse_array,r);
+                                interpbndrydata_y_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
                             });
                             break;
                         }
@@ -254,7 +258,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellLo(crse_bx, 2);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_z_o1(1,ic,jc,kc,n,bdry_array,crse_array,r);
+                                interpbndrydata_z_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
                             });
                             break;
                         }
@@ -263,7 +268,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellHi(crse_bx, 2);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_z_o1(0,ic,jc,kc,n,bdry_array,crse_array,r);
+                                interpbndrydata_z_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
                             });
                             break;
                         }
@@ -282,7 +288,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellLo(crse_bx, 0);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_x_o3(1,ic,jc,kc,n,bdry_array,crse_array,r,
+                                interpbndrydata_x_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
@@ -292,7 +299,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellHi(crse_bx, 0);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_x_o3(0,ic,jc,kc,n,bdry_array,crse_array,r,
+                                interpbndrydata_x_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
@@ -303,7 +311,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellLo(crse_bx, 1);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_y_o3(1,ic,jc,kc,n,bdry_array,crse_array,r,
+                                interpbndrydata_y_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
@@ -313,7 +322,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellHi(crse_bx, 1);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_y_o3(0,ic,jc,kc,n,bdry_array,crse_array,r,
+                                interpbndrydata_y_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
@@ -324,7 +334,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellLo(crse_bx, 2);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_z_o3(1,ic,jc,kc,n,bdry_array,crse_array,r,
+                                interpbndrydata_z_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;
@@ -334,7 +345,8 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
                             const Box& b = amrex::adjCellHi(crse_bx, 2);
                             AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
                             {
-                                interpbndrydata_z_o3(0,ic,jc,kc,n,bdry_array,crse_array,r,
+                                interpbndrydata_z_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
                                                      mask_array, is_not_covered);
                             });
                             break;

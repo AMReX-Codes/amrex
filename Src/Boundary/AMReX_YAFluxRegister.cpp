@@ -294,7 +294,7 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
     std::array<Real,AMREX_SPACEDIM> dtdx{AMREX_D_DECL(dt/(dx[0]*ratio),
                                                       dt/(dx[1]*ratio),
                                                       dt/(dx[2]*ratio))};
-    const IntVect ratioarray = m_ratio;
+    const Dim3 rr = m_ratio.dim3();
 
     std::array<FArrayBox const*,AMREX_SPACEDIM> flux{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])};
     bool use_gpu = Gpu::isDevicePtr(a_flux[0]) && Gpu::inLaunchRegion();
@@ -330,10 +330,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                     if (use_gpu) {
                         AMREX_LAUNCH_DEVICE_LAMBDA ( lobx_is, tmpbox,
                         {
-                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, ratioarray);
+                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, rr);
                         });
                     } else {
-                        yafluxreg_fineadd(lobx_is,  d, *f, dtdxs, nc, dirside, ratioarray);
+                        yafluxreg_fineadd(lobx_is,  d, *f, dtdxs, nc, dirside, rr);
                     }
                 }
             }
@@ -349,10 +349,10 @@ YAFluxRegister::FineAdd (const MFIter& mfi,
                     if (use_gpu) {
                         AMREX_LAUNCH_DEVICE_LAMBDA ( hibx_is, tmpbox,
                         {
-                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, ratioarray);
+                            yafluxreg_fineadd(tmpbox, d, *f, dtdxs, nc, dirside, rr);
                         });
                     } else {
-                        yafluxreg_fineadd(hibx_is, d, *f, dtdxs, nc, dirside, ratioarray);
+                        yafluxreg_fineadd(hibx_is, d, *f, dtdxs, nc, dirside, rr);
                     }
                 }
             }

@@ -7,8 +7,9 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void interpbndrydata_x_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>& bdry,
-                           Array4<Real> const& crse, Dim3 const& r)
+void interpbndrydata_x_o1 (int islo, int ic, int jc, int kc, int n,
+                           Array4<Real>& bdry, int nb,
+                           Array4<Real> const& crse, int nc, Dim3 const& r)
 {
     Real c = crse(ic,jc,kc,n);
     const int i = ic*r.x + islo*(r.x-1);
@@ -16,14 +17,15 @@ void interpbndrydata_x_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>
         int      k    =        kc*r.z  + koff;
         for (int joff = 0; joff < r.y; ++joff) {
             int  j    =        jc*r.y  + joff;
-            bdry(i,j,k,n) = c;
+            bdry(i,j,k,n+nb) = c;
         }
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void interpbndrydata_y_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>& bdry,
-                           Array4<Real> const& crse, Dim3 const& r)
+void interpbndrydata_y_o1 (int islo, int ic, int jc, int kc, int n,
+                           Array4<Real>& bdry, int nb,
+                           Array4<Real> const& crse, int nc, Dim3 const& r)
 {
     Real c = crse(ic,jc,kc,n);
     const int j = jc*r.y + islo*(r.y-1);
@@ -31,14 +33,15 @@ void interpbndrydata_y_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>
         int      k    =        kc*r.z  + koff;
         for (int ioff = 0; ioff < r.x; ++ioff) {
             int  i    =        ic*r.x  + ioff;
-            bdry(i,j,k,n) = c;
+            bdry(i,j,k,n+nb) = c;
         }
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void interpbndrydata_z_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>& bdry,
-                           Array4<Real> const& crse, Dim3 const& r)
+void interpbndrydata_z_o1 (int islo, int ic, int jc, int kc, int n,
+                           Array4<Real>& bdry, int nb,
+                           Array4<Real> const& crse, int nc, Dim3 const& r)
 {
     Real c = crse(ic,jc,kc,n);
     const int k = kc*r.z + islo*(r.z-1);
@@ -46,14 +49,15 @@ void interpbndrydata_z_o1 (int islo, int ic, int jc, int kc, int n, Array4<Real>
         int      j    =        jc*r.y  + joff;
         for (int ioff = 0; ioff < r.x; ++ioff) {
             int  i    =        ic*r.x  + ioff;
-            bdry(i,j,k,n) = c;
+            bdry(i,j,k,n+nb) = c;
         }
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void interpbndrydata_x_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>& bdry,
-                           Array4<Real> const& crse, Dim3 const& r,
+void interpbndrydata_x_o3 (int islo, int ic, int jc, int kc, int n,
+                           Array4<Real>& bdry, int nb,
+                           Array4<Real> const& crse, int nc, Dim3 const& r,
                            Array4<int> const& mask, int not_covered)
 {
     const int i = ic*r.x + islo*(r.x-1);
@@ -84,14 +88,15 @@ void interpbndrydata_x_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>
         for (int joff = 0; joff < r.y; ++joff) {
             j = jc*r.y  + joff;
             Real y = (0.5+(joff-r.y/2)) / r.y;
-            bdry(i,j,k,n) = c + y*dy + (y*y)*dy2 + z*dz + (z*z)*dz2 + y*z*dyz;
+            bdry(i,j,k,n+nb) = c + y*dy + (y*y)*dy2 + z*dz + (z*z)*dz2 + y*z*dyz;
         }
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void interpbndrydata_y_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>& bdry,
-                           Array4<Real> const& crse, Dim3 const& r,
+void interpbndrydata_y_o3 (int islo, int ic, int jc, int kc, int n,
+                           Array4<Real>& bdry, int nb,
+                           Array4<Real> const& crse, int nc, Dim3 const& r,
                            Array4<int> const& mask, int not_covered)
 {
     int i = ic*r.x;
@@ -122,14 +127,15 @@ void interpbndrydata_y_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>
         for (int ioff = 0; ioff < r.x; ++ioff) {
             i = ic*r.x  + ioff;
             Real x = (0.5*(ioff-r.x/2)) / r.x;
-            bdry(i,j,k,n) = c + x*dx + (x*x)*dx2 + z*dz + (z*z)*dz2 + x*z*dxz;
+            bdry(i,j,k,n+nb) = c + x*dx + (x*x)*dx2 + z*dz + (z*z)*dz2 + x*z*dxz;
         }
     }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void interpbndrydata_z_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>& bdry,
-                           Array4<Real> const& crse, Dim3 const& r,
+void interpbndrydata_z_o3 (int islo, int ic, int jc, int kc, int n,
+                           Array4<Real>& bdry, int nb,
+                           Array4<Real> const& crse, int nc, Dim3 const& r,
                            Array4<int> const& mask, int not_covered)
 {
     int i = ic*r.x;
@@ -160,7 +166,7 @@ void interpbndrydata_z_o3 (int islo, int ic, int jc, int kc, int n, Array4<Real>
         for (int ioff = 0; ioff < r.x; ++ioff) {
             i = ic*r.x + ioff;
             Real x = (0.5*(ioff-r.x/2)) / r.x;
-            bdry(i,j,k,n) = c + x*dx + (x*x)*dx2 + y*dy + (y*y)*dy2 + x*y*dxy;
+            bdry(i,j,k,n+nb) = c + x*dx + (x*x)*dx2 + y*dy + (y*y)*dy2 + x*y*dxy;
         }
     }
 }
