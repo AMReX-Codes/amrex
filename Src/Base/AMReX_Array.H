@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <iostream>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
@@ -59,6 +60,16 @@ namespace amrex {
         }
     };
 
+    inline std::ostream& operator<< (std::ostream& os, const Dim3& d) {
+        os << '(' << d.x << ',' << d.y << ',' << d.z << ')';
+        return os;
+    }
+
+    template <typename T>
+    std::ostream& operator<< (std::ostream& os, const Array4<T>& a) {
+        os << '(' << a.begin << ',' << a.end << ')';
+        return os;
+    }
 }
 
 // If on GPUs, use a simple array wrapper that 
