@@ -312,10 +312,12 @@ macro (replace_genex input_list output_list )
   string ( REPLACE ";" "*" tmp_list "${tmp_list}" )
 
   # Add tmp_list delimiter only where it suits us
-  string ( REPLACE ">*" ">;" tmp_list "${tmp_list}" )
-  string ( REPLACE "*$" ";$" tmp_list "${tmp_list}" )
-  string ( REPLACE "*/" ";/" tmp_list "${tmp_list}" )
-  string ( REPLACE "*" " "   tmp_list "${tmp_list}" )
+  string( REPLACE ">*" ">;" tmp_list "${tmp_list}" )
+  string( REPLACE "*$" ";$" tmp_list "${tmp_list}" )
+  string( REPLACE "*/" ";/" tmp_list "${tmp_list}" )
+  string( REPLACE "*" " "   tmp_list "${tmp_list}" )
+  string( REPLACE "AND" " "   tmp_list "${tmp_list}" )
+  string( REPLACE "OR" " "   tmp_list "${tmp_list}" )
   
   #
   # First remove entries related to:
@@ -414,3 +416,67 @@ macro (strip var)
     string ( STRIP "${${var}}" ${var} )
   endif ()  
 endmacro ()
+
+
+#
+# Setup CUDA host compiler
+# Must be called before enable_language
+# CMake let you decide which host compiler to use
+# via the env variable CUDAHOSTCXX and the CMake
+# variable CMAKE_CUDA_HOST_COMPILER.
+# For the time being we force the CUDA host compiler
+# to be the C++ compiler.
+#
+macro (setup_cuda_host_compiler)
+   if ( ( CMAKE_CUDA_HOST_COMPILER AND NOT ("${CMAKE_CUDA_HOST_COMPILER}" STREQUAL "${CMAKE_CXX_COMPILER}") )
+         OR  ( NOT ("$ENV{CUDAHOSTCXX}" STREQUAL "") ) )
+      message(WARNING
+         "User-defined CUDA host compiler does not match C++ compiler:  overwriting user setting.")
+   endif ()
+   unset(ENV{CUDAHOSTCXX})
+   set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER} CACHE FILEPATH "" FORCE)
+endmacro()
+
+#
+# Setup CUDA environment
+# Must be called after enable_language
+# 
+macro (setup_cuda_environment)
+
+   if (CMAKE_VERSION VERSION_LESS 3.12 )
+      set( CMAKE_CUDA_COMPILER_LOADED 1 )
+      include(select_gpu_arch)
+      get_nvcc_arch_flags(NVCC_ARCH_FLAGS "Auto")
+   else ()
+      # message("I AM IN THE WRONG BRANCH")
+      # print(CMAKE_VERSION)
+      include(FindCUDA/select_compute_arch)
+      CUDA_SELECT_NVCC_ARCH_FLAGS(NVCC_ARCH_FLAGS "Auto")
+   endif ()
+
+   # CUDA compiler is in the form CUDA_HOME/bin/compiler-name
+   # Remove bin/compiler-name to get CUDA HOME
+   get_filename_component(CUDA_HOME ${CMAKE_CUDA_COMPILER} DIRECTORY)
+   get_filename_component(CUDA_HOME ${CUDA_HOME} DIRECTORY)
+
+   # Extrapolate CUDA arch number (compute capabilities number)
+   string(REGEX MATCHALL "compute_[0-9]+"  CUDA_ARCH_TMP "${NVCC_ARCH_FLAGS}")
+   list(REMOVE_DUPLICATES CUDA_ARCH_TMP)
+   set(CUDA_ARCH "")
+   foreach (item ${CUDA_ARCH_TMP})
+      string(REPLACE "compute_" "" arch ${item} )
+      print(item)
+      list(APPEND CUDA_ARCH ${arch})      
+   endforeach ()
+   unset(CUDA_ARCH_TMP)
+
+   string(REPLACE ";" " " tmp "${NVCC_ARCH_FLAGS}")
+   set(CMAKE_CUDA_FLAGS "${tmp}")
+   
+endmacro ()
+
+
+
+
+
+

@@ -36,24 +36,18 @@ include( AMReX_Machines )
 # For the time being we force the CUDA host compiler
 # to be the C++ compiler. 
 # 
-if ( (CMAKE_CUDA_HOST_COMPILER) OR
-      NOT ("$ENV{CUDAHOSTCXX}" STREQUAL "") )
-   message(WARNING
-      "User-defined CUDA host compiler does not match C++ compiler:  overwriting user setting.")
-endif ()
-unset(ENV{CUDAHOSTCXX})
-set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 if (ENABLE_CUDA)
+   setup_cuda_host_compiler()
+
    enable_language(CUDA)
+   setup_cuda_environment()
+   print(NVCC_ARCH_FLAGS)
+   print(CUDA_ARCH)
+   print(CUDA_HOME)
    print(CMAKE_CUDA_COMPILER_VERSION)
    print(CMAKE_CUDA_COMPILER_ID)
    print(CMAKE_CUDA_HOST_COMPILER)
-
-   # For now we require C++ to be the same as 
-   #find is deprecated for CUDA but currently
-   #it still provides some features not yet implemented
-   # natively. Remove this part when native support is complete
-   #find_package(CUDA 8.0 REQUIRED QUIET)
+   print(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
 endif ()
 
 #

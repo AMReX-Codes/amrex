@@ -106,28 +106,6 @@ function ( set_amrex_defines )
    target_compile_definitions ( amrex PUBLIC
       $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LANG_FORT> )
 
-   #
-   # GNU-specific defines
-   # 
-   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" ) 
-   
-      if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
-	 message ( WARNING
-            " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.This might break during build. GCC>=4.8 is recommended.")
-      endif ()
-      
-      string ( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
-      list ( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
-      list ( GET VERSION_LIST 1 GCC_VERSION_MINOR )
-
-      target_compile_definitions ( amrex PUBLIC
-	 BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
-	 BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}
-	 BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}
-	 )
-
-   endif ()
-
    # 
    # Fortran/C mangling scheme
    # 
@@ -156,6 +134,7 @@ function ( set_amrex_defines )
    # CUDA
    #
    add_amrex_define( AMREX_USE_CUDA NO_LEGACY IF ENABLE_CUDA )
+   add_amrex_define( AMREX_USE_NVML NO_LEGACY IF ENABLE_CUDA )
    add_amrex_define( AMREX_CUDA_MAX_THREADS=${CUDA_MAX_THREADS} NO_LEGACY
       IF ENABLE_CUDA )
 
@@ -178,13 +157,15 @@ function ( set_amrex_defines )
    if (ENABLE_CUDA AND ( ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "PGI" ) OR
             ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "XL"  ) ) )
 
-      # THIS DOES NOT WORK
       # target_compile_definitions( amrex PUBLIC
-      #    $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"attributes(global)\";
-      #    AMREX_DEVICE=\"attributes(device)\";
-      #    AMREX_CUDA_FORT_GLOBAL=\"attributes(global)\";
-      #    AMREX_CUDA_FORT_DEVICE=\"attributes(device)\";
-      #    AMREX_CUDA_FORT_HOST=\"attributes(host)\">)
+      #    $<$<COMPILE_LANGUAGE:Fortran>:AMREX_USE_CUDA_FORTRAN> )
+      
+      target_compile_definitions( amrex PUBLIC
+         $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=attributes\(global\);
+         AMREX_DEVICE=attributes\(device\);
+         AMREX_CUDA_FORT_GLOBAL=attributes\(global\);
+         AMREX_CUDA_FORT_DEVICE=attributes\(device\);
+         AMREX_CUDA_FORT_HOST=attributes\(host\)>)
    else ()
       target_compile_definitions( amrex PUBLIC
          $<$<COMPILE_LANGUAGE:Fortran>:AMREX_LAUNCH=\"\";

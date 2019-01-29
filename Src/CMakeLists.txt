@@ -8,11 +8,6 @@
 add_library( amrex "" )
 
 #
-# List of directories with CUDA kernels
-#
-set(CUDA_DIRS Base AmrCore Particles)
-
-#
 # Next, we implement a wrapper to add sources and headers
 # to target object "amrex".
 # If headers are detected, this function add the
@@ -40,12 +35,11 @@ macro( add_sources )
 	 target_include_directories( amrex PUBLIC $<BUILD_INTERFACE:${dir}> )
       endif()
       
-      # If it's a cpp file located in CUDA_DIRS and ENABLE_CUDA is on
-      # then force cpp file to be compiled with CUDA compiler    
-      if ( ENABLE_CUDA AND ( ${ext} STREQUAL ".cpp") AND ("${dirname}" IN_LIST CUDA_DIRS ) )
+      # If it's a cpp file and ENABLE_CUDA is on, then force cpp file
+      # to be compiled with CUDA compiler    
+      if ( ENABLE_CUDA AND ( ${ext} STREQUAL ".cpp") ) 
          set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/${item}
-            PROPERTIES LANGUAGE CUDA)
-        # set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/${item} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ) #LANGUAGE CUDA)
+            PROPERTIES LANGUAGE CUDA INCLUDE_DIRECTORIES "/sw/summit/cuda/9.2.148/" )
       endif ()
    endforeach ()
    unset(ext)
@@ -165,8 +159,6 @@ endif ()
 write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
    VERSION ${AMREX_VERSION}
    COMPATIBILITY AnyNewerVersion )
-
-
 
 install ( FILES
    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
