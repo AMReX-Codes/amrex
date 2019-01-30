@@ -130,19 +130,27 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     const int ncomp = b.nComp();
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][0];
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(resid, true); mfi.isValid(); ++mfi)
-    {
-	    const Box& bx = mfi.tilebox();
-	    amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
-					    BL_TO_FORTRAN_ANYD(resid[mfi]),
-					    BL_TO_FORTRAN_ANYD(b[mfi]),
-					    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-					    &ncomp);
-    }
+    // std::cout << "xgrow = " << x.nGrow() << std::endl;
+    // std::cout << "bgrow = " << b.nGrow() << std::endl;
+    // std::cout << "residgrow = " << resid.nGrow() << std::endl;
+
+    resid.mult(-1,0,ncomp);
+    MultiFab::Add(resid,b,0,0,ncomp,1);
+
+//     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][0];
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//     for (MFIter mfi(resid, true); mfi.isValid(); ++mfi)
+//     {
+// 	    const Box& bx = mfi.tilebox();
+// 	    Box bx = mfi.tilebox();
+// 	    amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
+// 					    BL_TO_FORTRAN_ANYD(resid[mfi]),
+// 					    BL_TO_FORTRAN_ANYD(b[mfi]),
+// 					    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+// 					    &ncomp);
+//     }
 }
 
 void
@@ -151,7 +159,7 @@ MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFa
 {
     apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
     int ncomp = b.nComp();
-    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
+    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, resid.nGrow());
 }
 
 void
