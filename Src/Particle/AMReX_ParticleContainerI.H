@@ -1405,33 +1405,33 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 if (old_size == 0)
                 {
                     m_not_ours[dest_proc].resize(new_size + sizeof(size_t));
-                    cudaMemcpy(thrust::raw_pointer_cast(m_not_ours[dest_proc].data()), 
-                               &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(m_not_ours[dest_proc].data()), 
+                                    &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
                     dst = thrust::raw_pointer_cast(
-				      m_not_ours[dest_proc].data() + old_size + sizeof(size_t));
+                                           m_not_ours[dest_proc].data() + old_size + sizeof(size_t));
                 } else
                 {
                     m_not_ours[dest_proc].resize(new_size);
                     dst = thrust::raw_pointer_cast(m_not_ours[dest_proc].data() + old_size);
                 }
 
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
                 dst += sizeof(size_t);
                 
-                cudaMemcpy(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
                 dst += sizeof(int);
                 
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
                 dst += sizeof(int);
                 
                 // pack structs
                 {
 		    auto& aos = m_aos_to_redistribute;
-                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                               thrust::raw_pointer_cast(aos.data() + start[i+1]),
-                               num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                    thrust::raw_pointer_cast(aos.data() + start[i+1]),
+                                    num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
                     dst += num_to_add*sizeof(ParticleType);
                 }
 
@@ -1440,9 +1440,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_real_comp[j]) continue;
                     auto& attrib = m_real_arrays_to_redistribute[j];
-                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                               thrust::raw_pointer_cast(attrib.data() + start[i+1]),
-                               num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                    thrust::raw_pointer_cast(attrib.data() + start[i+1]),
+                                    num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
                     dst += num_to_add*sizeof(Real);
                 }
                 
@@ -1451,24 +1451,14 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_int_comp[j]) continue;
                     auto& attrib = m_int_arrays_to_redistribute[j];
-                    cudaMemcpy(thrust::raw_pointer_cast(dst),
-                               thrust::raw_pointer_cast(attrib.data() + start[i+1]),
-                               num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst),
+                                    thrust::raw_pointer_cast(attrib.data() + start[i+1]),
+                                    num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
                     dst += num_to_add*sizeof(int);
                 }
             }
         }
         BL_PROFILE_VAR_STOP(blp_copy);
-    }
-
-    // remove any empty map entries from m_not_ours
-    for (auto pmap_it = m_not_ours.begin(); pmap_it != m_not_ours.end(); /* no ++ */) {
-        if (pmap_it->second.empty()) {
-            m_not_ours.erase(pmap_it++);
-        }
-        else {
-            ++pmap_it;
-        }
     }
 
     RedistributeMPIGPU();
@@ -1642,17 +1632,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     ptile.resize(new_size);
                    
                     //copy structs
-                    cudaMemcpy(static_cast<ParticleType*>(aos().data()) + old_size,
-                               buffer, num_particles*sizeof(ParticleType),
-                               cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + old_size,
+                                    buffer, num_particles*sizeof(ParticleType),
+                                    cudaMemcpyDeviceToDevice);
                     buffer += num_particles*sizeof(ParticleType);
 
                     // copy real arrays 
                     for (int j = 0; j < NArrayReal; ++j) {
                         if (not communicate_real_comp[j]) continue;
                         auto& attrib = soa.GetRealData(j);
-                        cudaMemcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real),
-                                   cudaMemcpyDeviceToDevice);
+                        cudaMemcpyAsync(attrib.data() + old_size, buffer, num_particles*sizeof(Real),
+                                        cudaMemcpyDeviceToDevice);
                         buffer += num_particles*sizeof(Real);
                     }
 
@@ -1660,8 +1650,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     for (int j = 0; j < NArrayInt; ++j) {
                         if (not communicate_int_comp[j]) continue;
                         auto& attrib = soa.GetIntData(j);
-                        cudaMemcpy(attrib.data() + old_size, buffer, num_particles*sizeof(int),
-                                   cudaMemcpyDeviceToDevice);
+                        cudaMemcpyAsync(attrib.data() + old_size, buffer, num_particles*sizeof(int),
+                                        cudaMemcpyDeviceToDevice);
                         buffer += num_particles*sizeof(int);
                     }
                 }       
