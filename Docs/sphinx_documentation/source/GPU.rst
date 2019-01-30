@@ -190,7 +190,9 @@ Gpu Namespace and Macros
 Most GPU related classes and functions are in ``namespace Gpu``,
 which is inside ``namespace amrex``. For example, the GPU configuration
 class ``Device`` can be referenced to at ``amrex::Gpu::Device``. Other
-important objects in the Gpu namespace include ``Gpu::AsyncFab``. 
+important objects in the Gpu namespace include objects designed to work
+with GPU memory spaces, such as ``AsyncFab`` a temporary
+:cpp:`FArrayBox` designed to work with CUDA streams. 
 
 For portability, AMReX defines some macros for CUDA function qualifiers
 and they should be preferred to allow execution with ``USE_CUDA=FALSE``.
@@ -327,6 +329,7 @@ and :cpp:`Box::length3d()` all return :cpp:`GpuArray`\s.
 
 .. _sec:gpu:classes:asyncarray:
 
+
 AsyncArray
 ----------
 
@@ -351,12 +354,68 @@ that contain both CPU work and GPU launches, including :cpp:`MFIter` loops.
 object only stores and handles the CPU version of the data.
 
 A :cpp:`AsyncArray` is used by constructing it from a reference to a host
-object containing an initial value, retrieving the associated device pointer
-that is passed into an AMReX lambda function and copying the final value back
-to the CPU. An example is given below:
+object containing an initial value, retrieving the associated device pointer,
+passing the pointer into an device function and copying the final value back
+to the CPU. An example using :cpp:`AsyncArray` is given below, which finds 
+the avarage value of all the boundary cells of a :cpp:`MultiFab`: 
 
+.. highlight:: c++
 
-.. COMMENT: NEED ASYNCARRAY EXAMPLE
+::
+
+    // Previously defined MultiFab "multiFab".
+    // Find the average value of boundary cells.
+    {
+        Real avg_val = 0;
+        AsyncArray<Real> a_avg(&avg_val, 1);     // Build AsyncArray
+        Real* d_avg = a_avg.data(); 		      // Get associated device ptr.
+
+        long total_cells = 0;
+
+        for (MFIter mfi(multiFab); mfi.isValid(); ++mfi)
+        {
+            const Box& gbx = mfi.fabbox();
+            const Box& vbx = mfi.validbox();
+            BoxList blst = amrex::boxDiff(gbx,vbx);
+            const int nboxes = blst.size();
+            if (nboxes > 0)
+            {
+                // Create AsyncArray for boxes describing boundary and
+                //    obtain associated device pointer.
+                AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                Box const* pboxes = async_boxes.data();
+
+                long ncells = 0;
+                for (const auto& b : blst) {
+                    ncells += b.numPts();
+                }
+                total_cells += ncells;
+
+                const FArrayBox* fab = multiFab.fabPtr(mfi);
+                AMREX_FOR_1D ( ncells, icell,
+                {
+                    // Use async_boxes to calc cell for this thread.
+                    const Dim3 cell = amrex::getCell(pboxes, nboxes, icell).dim3();
+                    for (int n = strt_comp; n < strt_comp+ncomp; ++n)
+                    {
+                        *d_avg += fab(cell.x,cell.y,cell.z,n);   // Add cell value to total.
+                    }
+                });
+
+            }
+        }
+        a_avg.copyToHost(&avg_val, 1);         // Return d_avg value to host in avg_val.
+
+        avg_val = avg_val / total_cells; 
+    }
+
+Note that there are two :cpp:`AsyncArray`\s: one which is constructed outside
+the :cpp:`MFIter` loop and stores the sum of the cell values and one that is
+constructed inside that stores the data from the :cpp:`BoxArray` that
+defines the boundary. :cpp:`avg_val` needs to be returned after the sum of
+cell values is completed, so an explicit call to :cpp:`copyToHost` is made
+after the loop, but the :cpp:`async_boxes` is only used on the device, so no
+return call is needed.
 
 
 ManagedVector
@@ -537,9 +596,39 @@ pointers for the CPU and GPU :cpp:`FArrayBox` and storage for the associated
 metadata to minimize data movement.  The :cpp:`AsyncFab` is async-safe and can
 be used inside of an :cpp:`MFIter` loop without reducing CPU-GPU asynchronicity.
 It is portable, reducing to a simple :cpp:`FArrayBox` pointer when ran without
-CUDA.
+CUDA.  An example of using :cpp:`AsyncFab` is given below:
 
-.. COMMENT: NEED ASYNCFAB EXAMPLE.
+.. highlight:: c++
+
+::
+
+   for (MFIter mfi(some_multifab); mfi.isValid(); ++mfi)
+   {
+      const Box& bx = mfi.validbox();
+
+      // Create temporary FAB with given box & number of components.
+      AsyncFab q_box(bx, 1);
+      FArrayBox* q_fab = q_box.fabPtr();  // Get device pointer to fab.
+
+      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+      {
+          Calcs q_fab 
+      });
+
+      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+      {
+          Uses q_fab
+      });
+
+      q_box.clear();  // Added to the stream's kernel launch stack.
+                      // So, q_box remains until completed.
+
+      AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
+      {
+          More work w/o q_fab.
+      }
+   }
+
 
 MultiFabs and Accessing FArrayBoxes 
 -----------------------------------
@@ -721,7 +810,7 @@ macro can be used to launch threads that work across cells in a
 is also capable of launching for a specified number of elements 
 that will be split across GPU threads. For example, 
 ``Tutorials/GPU/Launch`` also shows how the box launch can be 
- rewritten as a launch over the number of points in the box:
+rewritten as a launch over the number of points in the box:
 
 .. highlight:: c++
 
@@ -838,10 +927,9 @@ lambda to capture. For example:
 
 Finally, AMReX's expected OpenMP strategy for GPUs is to utilize OpenMP in
 CPU regions to maintain multi-threaded parallelism on work that cannot be
-offloaded efficiently, while using CUDA independently in GPU regions:
-(MPI+OpenMP)+(MPI+CUDA).  This means OpenMP pragmas need to be maintained
-when ``USE_CUDA=FALSE`` and turned off in locations CUDA is implemented
-when ``USE_CUDA=TRUE``.
+offloaded efficiently, while using CUDA independently in GPU regions.  
+This means OpenMP pragmas need to be maintained when ``USE_CUDA=FALSE``
+and turned off in locations CUDA is implemented when ``USE_CUDA=TRUE``.
 
 This can currently be implemented in preparation for an OpenMP strategy and
 users are highly encouraged to do so now.  This prevents having to track
@@ -925,8 +1013,8 @@ still need it.
 One way to fix this is put the temporary :cpp:`FArrayBox` objects in a
 :cpp:`MultiFab` defined outside the loop.  This creates a separate
 :cpp:`FArrayBox` for each loop iteration, eliminating the race
-condition.  Another way is to use :cpp:`Gpu::AsyncFab` designed for 
-this kind of situation.  The code below shows how :cpp:`Gpu::AsyncFab`
+condition.  Another way is to use :cpp:`AsyncFab` designed for 
+this kind of situation.  The code below shows how :cpp:`AsyncFab`
 is used and how this MFIter loop can be rewritten for GPUs. 
 
 .. highlight:: c++
@@ -937,7 +1025,7 @@ is used and how this MFIter loop can be rewritten for GPUs.
    {
        const Box& vbx = mfi.validbox();              // f2 work domain
        const Box& gbx = amrex::grow(vbx,1);          // f1 work domain
-       Gpu::AsyncFab q(gbx);                         // Local, GPU managed FArrayBox
+       AsyncFab q(gbx);                              // Local, GPU managed FArrayBox
        FArrayBox const* uinfab  = uin.fabPtr();      // Managed GPU capturable
        FArrayBox      * uoutfab = uout.fabPtr();     //   pointers to MultiFab's FABs.
 

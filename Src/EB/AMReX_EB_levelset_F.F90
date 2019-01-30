@@ -637,8 +637,8 @@ contains
         integer,      dimension(3), intent(in   ) :: lo, hi, vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
         real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
-        integer,                    intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(c_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        integer,                    intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(c_real),               intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         real(c_real) :: ls_node, in_node
         integer      :: ii, jj, kk

@@ -130,7 +130,7 @@ class LSFactory {
         //! EB surface. Only EB facets in a box size of `ebt_size` are
         //! considered. Any EB facets that are outside this box are ignored =>
         //! the min/max value of the level-set are +/- `eb_pad *
-        //! min(geom_eb.CellSize(:))`.
+        //! min(geom_eb.CellSize(:))`. 
         static void fill_data (MultiFab & data, iMultiFab & valid,
                                const EBFArrayBoxFactory & eb_factory,
                                const MultiFab & eb_impfunc,
@@ -149,6 +149,27 @@ class LSFactory {
         static void fill_data (MultiFab & data, iMultiFab & valid,
                                const MultiFab & mf_impfunc,
                                int eb_pad, const Geometry & eb_geom);
+
+
+        //! Updates the level-set MultiFab `data` with the result of
+        //! intersection operation between `data` and another level-set MultiFab
+        //! `data_in`, for all cells where `valid_in == 1`. The iMultiFab
+        //! `valid` is also updated with the new valid flags corresponding to
+        //! the intersection level-set.
+        static void intersect_data (MultiFab & data, iMultiFab & valid,
+                                    const MultiFab & data_in, const iMultiFab & valid_in,
+                                    const Geometry & geom_ls);
+
+
+        //! Updates the level-set MultiFab `data` with the result of union
+        //! operation between `data` and another level-set MultiFab `data_in`,
+        //! for all cells where `valid_in == 1`. The iMultiFab `valid` is also
+        //! updated with the new valid flags corresponding to the intersection
+        //! level-set.
+        static void union_data (MultiFab & data, iMultiFab & valid,
+                                const MultiFab & data_in, const iMultiFab & valid_in,
+                                const Geometry & geom_ls);
+
 
 
         /************************************************************************
@@ -201,31 +222,57 @@ class LSFactory {
         std::unique_ptr<iMultiFab> Fill(const MultiFab & mf_impfunc,
                                         bool apply_threshold = false);
 
+        //! Performs intersection operation with the level-set representation of
+        //! `eb_factory`. The implicit function (mf_impfunc) is needed to select
+        //! the inside/outside edge-cases where the level-set cannot be
+        //! determined by projection onto EB facets.
         std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc);
 
+        //! Performs intersection operation with the level-set representation of
+        //! `eb_factory`. The integer `ebt_size` specifies the (cubic) tile size
+        //! used to search of EB facets.
         std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc,
                                              int ebt_size);
 
+        //! Performs intersection operation with the level-set representation of
+        //! `eb_factory`. The IntVect `ebt_size` specifies the tile size used to
+        //! search of EB facets.
         std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc,
                                              const IntVect & ebt_size);
 
+        //! Performs intersection operation with the level-set given in the
+        //! MultiFab `mf_impfunc`. If the flag `apply_threshold == true`, then
+        //! the level-set in `mf_impfunc` will be thresholded.
         std::unique_ptr<iMultiFab> Intersect(const MultiFab & mf_impfunc,
                                              bool apply_threshold = false);
 
+        //! Performs union operation with the level-set representation of
+        //! `eb_factory`. The implicit function (mf_impfunc) is needed to select
+        //! the inside/outside edge-cases where the level-set cannot be
+        //! determined by projection onto EB facets.
         std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
                                          const MultiFab & mf_impfunc);
 
+        //! Performs union operation with the level-set representation of
+        //! `eb_factory`. The integer `ebt_size` specifies the (cubic) tile size
+        //! used to search of EB facets.
         std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
                                          const MultiFab & mf_impfunc,
                                          int ebt_size);
 
+        //! Performs union operation with the level-set representation of
+        //! `eb_factory`. The IntVect `ebt_size` specifies the tile size used to
+        //! search of EB facets.
         std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
                                          const MultiFab & mf_impfunc,
                                          const IntVect & ebt_size);
 
+        //! Performs union operation with the level-set given in the MultiFab
+        //! `mf_impfunc`. If the flag `apply_threshold == true`, then the
+        //! level-set in `mf_impfunc` will be thresholded.
         std::unique_ptr<iMultiFab> Union(const MultiFab & mf_impfunc,
                                          bool apply_threshold = false);
 

@@ -52,7 +52,7 @@ cns_flux_to_dudt (int i, int j, int k, int n,
 namespace {
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-Real limiter (amrex::Real dlft, amrex::Real drgt)
+amrex::Real limiter (amrex::Real dlft, amrex::Real drgt)
 {
     amrex::Real dcen = 0.5*(dlft+drgt);
     amrex::Real dsgn = std::copysign(1.0, dcen);

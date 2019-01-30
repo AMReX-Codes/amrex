@@ -62,6 +62,10 @@ public:
     static const EB2::Level * BuildEBLevel (const EB2::GeometryShop<F> & gshop,
                                             int lev, const Vector<Geometry> & geom );
 
+    static const EB2::Level * BuildEBLevel ( const EB2::GeometryShop<F> gshop,
+                                             int lev, const Vector<Geometry> & geom,
+                                             int max_crse_level, int required_crse_lev);
+
 private:
 
     /****************************************************************************

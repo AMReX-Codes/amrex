@@ -35,17 +35,17 @@ void advance (MultiFab& phi_old,
         Array4<Real> fluxz = flux[2].array(mfi);
         const Array4<Real> phi = phi_old.array(mfi);
 
-        AMREX_FOR_3D ( xbx, i, j, k,
+        AMREX_PARALLEL_FOR_3D ( xbx, i, j, k,
         {
             compute_flux_x(i,j,k,fluxx,phi,dxinv);
         });
 
-        AMREX_FOR_3D ( ybx, i, j, k,
+        AMREX_PARALLEL_FOR_3D ( ybx, i, j, k,
         {
             compute_flux_y(i,j,k,fluxy,phi,dyinv);
         });
 
-        AMREX_FOR_3D ( zbx, i, j, k,
+        AMREX_PARALLEL_FOR_3D ( zbx, i, j, k,
         {
             compute_flux_z(i,j,k,fluxz,phi,dzinv);
         });
@@ -61,7 +61,7 @@ void advance (MultiFab& phi_old,
         const Array4<Real> phiOld = phi_old.array(mfi);
         Array4<Real>       phiNew = phi_old.array(mfi);
 
-        AMREX_FOR_3D ( vbx, i, j, k,
+        AMREX_PARALLEL_FOR_3D ( vbx, i, j, k,
         {
             update_phi(i,j,k,phiOld,phiNew,fluxx,fluxy,fluxz,dt,dxinv,dyinv,dzinv);
         });
