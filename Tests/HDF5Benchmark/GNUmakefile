@@ -5,12 +5,12 @@ DEBUG	= FALSE
 
 DIM	= 3
 
-COMP    = intel
+COMP    = gnu 
 
 PRECISION = DOUBLE
 
 USE_MPI   = TRUE
-USE_OMP   = TRUE
+USE_OMP   = FALSE
 
 TINY_PROFILE = TRUE
 
@@ -26,12 +26,12 @@ include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
-HDF5_HOME   = /global/homes/s/sbyna/software/hdf5develop/install
+HDF5_HOME   = /home/khl7265/.local
 USE_HDF5 = TRUE
 ifeq ($(USE_HDF5), TRUE)
 DEFINES += -DBL_HDF5 
 INCLUDE_LOCATIONS += $(HDF5_HOME)/include
-LIBRARIES         += -lhdf5 -L$(HDF5_HOME)/lib
+LIBRARIES         += -lhdf5 -lz -ldl -L$(HDF5_HOME)/lib
 # Edison
 #  XTRALIBS += -lhdf5 -L$(HDF5_HOME)/lib -L/usr/common/software/zlib/1.2.7/intel/lib -lz
 endif

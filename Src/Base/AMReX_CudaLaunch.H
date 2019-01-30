@@ -9,7 +9,7 @@
 #include <AMReX_Box.H>
 #include <cstddef>
 
-#define AMREX_CUDA_NCELLS_PER_THREAD 2
+#define AMREX_CUDA_NCELLS_PER_THREAD 3
 #define AMREX_CUDA_WARP_SIZE 32
 #define AMREX_CUDA_Y_STRIDE 1
 #define AMREX_CUDA_Z_STRIDE 1
@@ -557,7 +557,7 @@ namespace Cuda {
         }
         ExecutionConfig (const Box& box) {
             // If we change this, we must make sure it doesn't break say getGridSize, which
-            // assumes the decomposiiton is 1D.
+            // assumes the decomposition is 1D.  FabArrayUtility Reduce* as well.
             Cuda::Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
 #if 0
             Box b = amrex::surroundingNodes(box);

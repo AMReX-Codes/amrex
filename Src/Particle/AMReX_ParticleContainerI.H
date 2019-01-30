@@ -848,8 +848,11 @@ copyParticles(const ParticleContainerType& other)
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+            
+            if(plevel_other.find(index) == plevel_other.end()) continue;
+            
             const auto& tile_other = plevel_other.at(index);
-
+            
             if (tile_other.numParticles() == 0) continue;
             
             const auto& aos_other = tile_other.GetArrayOfStructs();
@@ -1039,7 +1042,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const DistributionMapping& dmap = ParticleDistributionMap(lev);
     auto& plev  = m_particles[lev];
 
-    if (ba.size() == 1)
+    if ( (ba.size() == 1) and geom.isAllPeriodic() )
     {
         EnforcePeriodicGPU();
         AMREX_ASSERT(OK());
