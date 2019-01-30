@@ -117,6 +117,7 @@ function (configure_amrex)
    #
    if (ENABLE_SENSEI_INSITU)
       find_package(SENSEI REQUIRED)
+      target_link_libraries( amrex PUBLIC sensei )
    endif()
 
    #
@@ -220,8 +221,6 @@ function ( setup_amrex_compilers )
 
    
 endfunction () 
-
-
 
 
 # 
