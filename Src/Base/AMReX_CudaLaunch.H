@@ -421,7 +421,7 @@
     } \
     else { \
         AMREX_PRAGMA_SIMD \
-        for (int i = 0; i < n; ++i) block \
+        for (auto i = decltype(n){0}; i < n; ++i) block     \
     }
 
 #define AMREX_CUDA_DEVICE_FOR_1D(n,i,block) \
@@ -633,13 +633,13 @@
     }
 
 #define AMREX_CUDA_FOR_1D_IMPL(n,i,block) \
-        for (int i = 0; i < n; ++i) { \
+        for (auto i = decltype(n){0}; i < n; ++i) {     \
             block \
         }
 
 #define AMREX_CUDA_PARALLEL_FOR_1D_IMPL(n,i,block) \
         AMREX_PRAGMA_SIMD \
-        for (int i = 0; i < n; ++i) { \
+        for (auto i = decltype(n){0}; i < n; ++i) {     \
             block \
         }
 
@@ -926,7 +926,7 @@ template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<
 AMREX_FORCE_INLINE
 void For (T n, L&& f)
 {
-    for (auto i = 0; i < n; ++i) {
+    for (T i = 0; i < n; ++i) {
         std::forward<L>(f)(i);
     }
 }
@@ -936,7 +936,7 @@ AMREX_FORCE_INLINE
 void ParallelFor (T n, L&& f)
 {
     AMREX_PRAGMA_SIMD
-    for (auto i = 0; i < n; ++i) {
+    for (T i = 0; i < n; ++i) {
         std::forward<L>(f)(i);
     }
 }
