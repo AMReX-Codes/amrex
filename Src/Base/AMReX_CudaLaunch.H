@@ -916,12 +916,14 @@ void ParallelFor (Box const& box, T ncomp, L f)
 #else
 
 template<typename T, typename L>
+AMREX_FORCE_INLINE
 void launch (T const& n, L&& f)
 {
     std::forward<L>(f)(n);
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+AMREX_FORCE_INLINE
 void For (T n, L&& f)
 {
     for (auto i = 0; i < n; ++i) {
@@ -930,6 +932,7 @@ void For (T n, L&& f)
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+AMREX_FORCE_INLINE
 void ParallelFor (T n, L&& f)
 {
     AMREX_PRAGMA_SIMD
@@ -939,6 +942,7 @@ void ParallelFor (T n, L&& f)
 }
 
 template <typename L>
+AMREX_FORCE_INLINE
 void For (Box const& box, L&& f)
 {
     const auto lo = amrex::lbound(box);
@@ -951,6 +955,7 @@ void For (Box const& box, L&& f)
 }
 
 template <typename L>
+AMREX_FORCE_INLINE
 void ParallelFor (Box const& box, L&& f)
 {
     const auto lo = amrex::lbound(box);
@@ -964,6 +969,7 @@ void ParallelFor (Box const& box, L&& f)
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+AMREX_FORCE_INLINE
 void For (Box const& box, T ncomp, L&& f)
 {
     const auto lo = amrex::lbound(box);
@@ -978,6 +984,7 @@ void For (Box const& box, T ncomp, L&& f)
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+AMREX_FORCE_INLINE
 void ParallelFor (Box const& box, T ncomp, L&& f)
 {
     const auto lo = amrex::lbound(box);
