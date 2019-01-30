@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <iostream>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
@@ -49,14 +50,26 @@ namespace amrex {
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T const* ptr (int i, int j, int k) const {
+            AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
             return p + (i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y));
         }
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T const* ptr (int i, int j, int k, int n) const {
+            AMREX_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
             return p + ((i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z)));
         }
     };
 
+    inline std::ostream& operator<< (std::ostream& os, const Dim3& d) {
+        os << '(' << d.x << ',' << d.y << ',' << d.z << ')';
+        return os;
+    }
+
+    template <typename T>
+    std::ostream& operator<< (std::ostream& os, const Array4<T>& a) {
+        os << '(' << a.begin << ',' << a.end << ')';
+        return os;
+    }
 }
 
 // If on GPUs, use a simple array wrapper that 

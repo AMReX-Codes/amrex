@@ -1,8 +1,9 @@
 
 #include <cstdio>
+#include <cstddef>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
 #include <unistd.h>
 #include <sstream>
 #include <stack>
@@ -15,6 +16,7 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_TypeTraits.H>
 
 #ifdef BL_USE_MPI
 #include <AMReX_ccse-mpi.H>
@@ -1898,25 +1900,23 @@ namespace ParallelDescriptor
 #ifndef BL_AMRPROF
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
+    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IntVect), "IntVect must be trivially copyable");
+    static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
+
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
     {
-	IntVect iv[2];	// Used to construct the data types
-	MPI_Datatype types[] = {
-	    MPI_LB,
-	    MPI_INT,
-	    MPI_UB};
-	int blocklens[] = { 1, AMREX_SPACEDIM, 1};
-	MPI_Aint disp[3];
-	int n = 0;
-	BL_MPI_REQUIRE( MPI_Address(&iv[0],      &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[0].vect, &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[1],      &disp[n++]) );
-	for ( int i = n-1; i >= 0; i-- )
-	{
-	    disp[i] -= disp[0];
-	}
-	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+	MPI_Datatype types[] = { MPI_INT };
+	int blocklens[] = { AMREX_SPACEDIM };
+	MPI_Aint disp[] = { 0 };
+	BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mine) );
+        MPI_Aint lb, extent;
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        if (extent != sizeof(IntVect)) {
+            MPI_Datatype tmp = mine;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IntVect), &mine) );
+            BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
+        }
 	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
     return mine;
@@ -1924,25 +1924,23 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
+    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(IndexType), "IndexType must be trivially copyable");
+    static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
+
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
     {
-	IndexType iv[2];	// Used to construct the data types
-	MPI_Datatype types[] = {
-	    MPI_LB,
-	    MPI_UNSIGNED,
-	    MPI_UB};
-	int blocklens[] = { 1, 1, 1};
-	MPI_Aint disp[3];
-	int n = 0;
-	BL_MPI_REQUIRE( MPI_Address(&iv[0],       &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[0].itype, &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[1],       &disp[n++]) );
-	for ( int i = n-1; i >= 0; i-- )
-	{
-	    disp[i] -= disp[0];
-	}
-	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+	MPI_Datatype types[] = { MPI_UNSIGNED };
+	int blocklens[] = { 1 };
+	MPI_Aint disp[] = { 0 };
+        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mine) );
+        MPI_Aint lb, extent;
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        if (extent != sizeof(IndexType)) {
+            MPI_Datatype tmp = mine;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(IndexType), &mine) );
+            BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
+        }
 	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
     return mine;
@@ -1950,29 +1948,34 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
+    static_assert(AMREX_IS_TRIVIALLY_COPYABLE(Box), "Box must be trivially copyable");
+    static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
+
     static MPI_Datatype mine(MPI_DATATYPE_NULL);
     if ( mine == MPI_DATATYPE_NULL )
     {
-	Box iv[2];	// Used to construct the data types
+	Box bx[2];
 	MPI_Datatype types[] = {
-	    MPI_LB,
 	    Mpi_typemap<IntVect>::type(),
 	    Mpi_typemap<IntVect>::type(),
 	    Mpi_typemap<IndexType>::type(),
-	    MPI_UB};
-	int blocklens[] = { 1, 1, 1, 1, 1};
-	MPI_Aint disp[5];
-	int n = 0;
-	BL_MPI_REQUIRE( MPI_Address(&iv[0],          &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[0].smallend, &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[0].bigend,   &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[0].btype,    &disp[n++]) );
-	BL_MPI_REQUIRE( MPI_Address(&iv[1],          &disp[n++]) );
-	for ( int i = n-1; i >= 0; i-- )
-	{
-	    disp[i] -= disp[0];
-	}
-	BL_MPI_REQUIRE( MPI_Type_struct(n, blocklens, disp, types, &mine) );
+        };
+	int blocklens[] = { 1, 1, 1 };
+	MPI_Aint disp[3];
+	BL_MPI_REQUIRE( MPI_Get_address(&bx[0].smallend, &disp[0]) );
+	BL_MPI_REQUIRE( MPI_Get_address(&bx[0].bigend,   &disp[1]) );
+	BL_MPI_REQUIRE( MPI_Get_address(&bx[0].btype,    &disp[2]) );
+        disp[2] -= disp[0];
+        disp[1] -= disp[0];
+        disp[0] = 0;
+        BL_MPI_REQUIRE( MPI_Type_create_struct(3, blocklens, disp, types, &mine) );
+        MPI_Aint lb, extent;
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mine, &lb, &extent) );
+        if (extent != sizeof(bx[0])) {
+            MPI_Datatype tmp = mine;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(bx[0]), &mine) );
+            BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
+        }
 	BL_MPI_REQUIRE( MPI_Type_commit( &mine ) );
     }
     return mine;

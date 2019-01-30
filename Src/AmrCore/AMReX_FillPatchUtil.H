@@ -5,7 +5,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Interpolater.H>
-#include <array>
+#include <AMReX_Array.H>
 
 namespace amrex
 {
@@ -55,16 +55,17 @@ namespace amrex
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
 
-    void InterpCrseFineBndryBfield (const std::array<MultiFab,AMREX_SPACEDIM>& crse,
-                                    std::array<MultiFab,AMREX_SPACEDIM>& fine,
-                                    const Geometry& cgeom, const Geometry& fgeom,
-                                    int ref_ratio);
-
     enum InterpEM_t { InterpE, InterpB};
 
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
-                                     const std::array<MultiFab,AMREX_SPACEDIM>& crse,
-                                     std::array<MultiFab,AMREX_SPACEDIM>& fine,
+                                     const Array<MultiFab,AMREX_SPACEDIM>& crse,
+                                     Array<MultiFab,AMREX_SPACEDIM>& fine,
+                                     const Geometry& cgeom, const Geometry& fgeom,
+                                     int ref_ratio);
+
+    void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
+                                     const Array<MultiFab const*,AMREX_SPACEDIM>& crse,
+                                     const Array<MultiFab*,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio);
 }

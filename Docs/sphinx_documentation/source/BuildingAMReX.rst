@@ -232,7 +232,7 @@ Building libamrex
 =================
 
 If an application code already has its own elaborated build system and wants to
-use AMReX an external library, this might be your choice. In this approach, one
+use AMReX, an external AMReX library can be created instead. In this approach, one
 runs ``./configure``, followed by ``make`` and ``make install``.
 Other make options include ``make distclean`` and ``make uninstall``.  In the top
 AMReX directory, one can run ``./configure -h`` to show the various options for

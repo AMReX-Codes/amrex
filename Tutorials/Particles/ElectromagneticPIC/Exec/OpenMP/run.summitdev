@@ -1,0 +1,49 @@
+#!/bin/bash
+#BSUB -P CSC308
+#BSUB -W 30
+#BSUB -nnodes 1
+#BSUB -J MMtest
+#BSUB -o MMtest.%J
+#BSUB -e MMtest.%J
+
+module load xl
+module load cuda/9.0.69
+module list
+set -x
+
+omp=1
+export OMP_NUM_THREADS=${omp}
+EXE="./main3d.ibm.TPROF.MPI.CUDA.ex"
+JSRUN="jsrun -n 1 -a 1 -g 1 -c 1 --bind=packed:${omp}"
+INPUTS=inputs
+cat ${INPUTS}
+# n = tasks (MPI), g = gpus/task, c = threads/task, a = task/resource
+
+
+rundir="${LSB_JOBNAME}-${LSB_JOBID}"
+#mkdir $rundir
+#cp $0 $rundir
+#cp ${INPUTS} $rundir
+#cd $rundir
+
+# 0. Run with memcheck to find problems while initially designing kernels.
+#${JSRUN} --smpiargs="-gpu" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
+#${JSRUN} --smpiargs="-x PAMI_DISABLE_CUDA_HOOK=1 -disable_gpu_hooks" cuda-memcheck ${EXE} ${INPUTS} &> memcheck.${LSB_JOBID}.txt
+
+# 1. Run normally
+#${JSRUN} ${EXE} ${INPUTS} >& out.${LSB_JOBID}
+
+# 2. Run under nvprof and direct all stdout and stderr to nvprof.txt
+${JSRUN} --smpiargs="-x PAMI_DISABLE_IPC=1 -gpu" nvprof ${EXE} ${INPUTS} &> nvprof.${LSB_JOBID}.txt
+#${JSRUN} nvprof --profile-child-processes ${EXE} ${INPUTS} &> nvprof.txt
+
+# 3. Run under nvprof and store performance data in a nvvp file
+# Can be converted to text using nvprof -i nvprof-timeline-%p.nvvp
+#${JSRUN} nvprof --profile-child-processes -o nvprof-timeline-%p.nvvp ${EXE} ${INPUTS}
+
+# COLLECT PERFORMANCE METRICS - THIS IS MUCH SLOWER. Set nsteps=2 in the inputs files
+# 4. Run under nvprof and collect metrics for a subset of kernels
+#${JSRUN} nvprof --profile-child-processes --kernels '((__xl_)?deposit_current[a-zA-Z0-9_]*|(__xl_)?gather_\w+_field[a-zA-Z0-9_]*|(__xl_)?push_\w+_boris[a-zA-Z0-9_]*)' --analysis-metrics -o nvprof-metrics-kernel-%p.nvvp ${EXE} ${INPUTS}
+
+# 5. Run under nvprof and collect metrics for all kernels -- much slower!
+#${JSRUN} nvprof --profile-child-processes --analysis-metrics -o nvprof-metrics-%p.nvvp ${EXE} ${INPUTS}
