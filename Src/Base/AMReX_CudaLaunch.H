@@ -9,6 +9,7 @@
 #include <AMReX_Box.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
+#include <AMReX_TypeTraits.H>
 #include <cstddef>
 #include <limits>
 
@@ -711,6 +712,8 @@
 
 namespace amrex {
 
+    // Because of CUDA, we cannot take rvalue lambdas.
+
 // ************************************************
 //  Variadic lambda function wrappers for C++ CUDA Kernel calls.
 
@@ -811,6 +814,180 @@ namespace Cuda {
 #endif
 
 }
+
+template<typename T, typename L>
+void launch (T const& n, L f)
+{
+#ifdef AMREX_USE_CUDA
+    const auto ec = Cuda::ExecutionConfig(n);
+    amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, Cuda::Device::cudaStream()>>>(
+    [=] AMREX_GPU_DEVICE () mutable {
+        for (auto const i : Cuda::Range(n)) {
+            f(i);
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+#else
+    f(n);
+#endif
+ }
+
+#ifdef AMREX_USE_CUDA
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void For (T n, L f)
+{
+    const auto ec = Cuda::ExecutionConfig(n);
+    amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, Cuda::Device::cudaStream()>>>(
+    [=] AMREX_GPU_DEVICE () mutable {
+        for (T i = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+             i < n; i += stride) {
+            f(i);
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void ParallelFor (T n, L f)
+{
+    For(n,f);
+}
+
+template <typename L>
+void For (Box const& box, L f)
+{
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    const auto ec = Cuda::ExecutionConfig(ncells);
+    amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(
+    [=] AMREX_GPU_DEVICE () mutable {
+        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+             icell < ncells; icell += stride) {
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            f(i,j,k);
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <typename L>
+void ParallelFor (Box const& box, L f)
+{
+    For(box,f);
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void For (Box const& box, T ncomp, L f)
+{
+    int ncells = box.numPts();
+    const auto lo  = amrex::lbound(box);
+    const auto len = amrex::length(box);
+    const auto ec = Cuda::ExecutionConfig(ncells);
+    amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, amrex::Cuda::Device::cudaStream()>>>(
+    [=] AMREX_GPU_DEVICE () mutable {
+        for (int icell = blockDim.x*blockIdx.x+threadIdx.x, stride = blockDim.x*gridDim.x;
+             icell < ncells; icell += stride) {
+            int k =  icell /   (len.x*len.y);
+            int j = (icell - k*(len.x*len.y)) /   len.x;
+            int i = (icell - k*(len.x*len.y)) - j*len.x;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            for (T n = 0; n < ncomp; ++n) {
+                f(i,j,k,n);
+            }
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void ParallelFor (Box const& box, T ncomp, L f)
+{
+    For(box,ncomp,f);
+}
+
+#else
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void For (T n, L f)
+{
+    for (auto i = 0; i < n; ++i) {
+        f(i);
+    }
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void ParallelFor (T n, L f)
+{
+    AMREX_PRAGMA_SIMD
+    for (auto i = 0; i < n; ++i) {
+        f(i);
+    }
+}
+
+template <typename L>
+void For (Box const& box, L f)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k);
+    }}}
+}
+
+template <typename L>
+void ParallelFor (Box const& box, L f)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int k = lo.z; k <= hi.z; ++k) {
+    for (int j = lo.y; j <= hi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        f(i,j,k);
+    }}}
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void For (Box const& box, T ncomp, L f)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        for (int i = lo.x; i <= hi.x; ++i) {
+            f(i,j,k,n);
+        }}}
+    }
+}
+
+template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
+void ParallelFor (Box const& box, T ncomp, L f)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    for (int n = 0; n < ncomp; ++n) {
+        for (int k = lo.z; k <= hi.z; ++k) {
+        for (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            f(i,j,k,n);
+        }}}
+    }
+}
+
+#endif
 
 }
 

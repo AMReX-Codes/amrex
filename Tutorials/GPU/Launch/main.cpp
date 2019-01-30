@@ -31,7 +31,7 @@ void main_main ()
 
     // Multiple ways of kernel launch
 
-    // (1) C++, AMREX_PARALLEL_FOR_3D
+    // (1) C++, AMREX_PARALLEL_FOR_3D macro and amrex::ParallelFor function
     {
         BL_PROFILE("1-amrex_for_3d");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -47,10 +47,16 @@ void main_main ()
                 fab(i,j,k) += 1.;
                 // or fab(i,j,k,0) += 1.;
             });
+            // Alternatively
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) mutable
+            {
+                fab(i,j,k) += 1.;   // fab needs to be mutable
+            });
         }
     }
 
-    // (2) C++, AMREX_PARALLEL_FOR_4D
+    // (2) C++, AMREX_PARALLEL_FOR_4D macro and amrex::ParallelFor function
     {
         BL_PROFILE("2-amrex_for_4d");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -66,10 +72,16 @@ void main_main ()
             {
                 fab(i,j,k,n) += 1.;
             });
+            // Alternatively
+            amrex::ParallelFor(bx, ncomp,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) mutable
+            {
+                fab(i,j,k,n) += 1.;
+            });
         }
     }
 
-    // (3) C++, AMREX_PARALLEL_FOR_1D
+    // (3) C++, AMREX_PARALLEL_FOR_1D macro and amrex::ParallelFor function
     {
         BL_PROFILE("3-amrex_for_1d");
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
@@ -83,10 +95,16 @@ void main_main ()
             {
                 p[idx] += 1.;
             });
+            // Alternatively
+            amrex::ParallelFor(nitems,
+            [=] AMREX_GPU_DEVICE (long idx) mutable
+            {
+                p[idx] += 1.;
+            });
         }
     }
 
-    // (4) C++, AMREX_LAUNCH_DEVICE_LAMBDA, Capture Array4
+    // (4) C++, AMREX_LAUNCH_DEVICE_LAMBDA macro and amrex::launch function, Capture Array4
     {
         BL_PROFILE("4-amrex_launch_array4");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -109,10 +127,23 @@ void main_main ()
                     fab(i,j,k) += 1.;
                 }}}
             });
+            // Alternatively
+            amrex::launch(bx,
+            [=] AMREX_GPU_DEVICE (Box const& tbx) mutable
+            {
+                // Array4<Real> fab is captured
+                const auto lo = amrex::lbound(tbx);
+                const auto hi = amrex::ubound(tbx);
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    fab(i,j,k) += 1.;
+                }}}                
+            });
         }
     }
 
-    // (5) C++, AMREX_LAUNCH_DEVICE_LAMBDA, Capture FArrayBox
+    // (5) C++, AMREX_LAUNCH_DEVICE_LAMBDA macro and amrex::launch function, Capture FArrayBox
     {
         BL_PROFILE("5-amrex_launch_fab");
         for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -125,6 +156,13 @@ void main_main ()
             // Enough threads are launched to work over bx,
             // and tbx is a thread's work box
             AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
+            {
+                // FArrayBox* fab is captured
+                plusone_cudacpp(tbx, *fab);
+            });
+            // Alternatively
+            amrex::launch(bx,
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 // FArrayBox* fab is captured
                 plusone_cudacpp(tbx, *fab);
@@ -145,6 +183,13 @@ void main_main ()
                 plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
                                  BL_TO_FORTRAN_ANYD(*fab));
             });
+            // Alternatively
+            amrex::launch(bx,
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            {
+                plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
+                                 BL_TO_FORTRAN_ANYD(*fab));
+            });
         }
     }
 #endif
@@ -161,6 +206,9 @@ void main_main ()
             FArrayBox& fab = mf[mfi];
             plusone_acc(BL_TO_FORTRAN_BOX(bx),
                         BL_TO_FORTRAN_ANYD(fab));
+            // call it again so that it's just like others
+            plusone_acc(BL_TO_FORTRAN_BOX(bx),
+                        BL_TO_FORTRAN_ANYD(fab));
         }
     }
 #endif
@@ -175,6 +223,9 @@ void main_main ()
             // Use operator[] to get a reference to fab.
             // The reference points to host memory, but the data pointer inside is managed.
             FArrayBox& fab = mf[mfi];
+            plusone_omp(BL_TO_FORTRAN_BOX(bx),
+                        BL_TO_FORTRAN_ANYD(fab));
+            // call it again so that it's just like others
             plusone_omp(BL_TO_FORTRAN_BOX(bx),
                         BL_TO_FORTRAN_ANYD(fab));
         }
