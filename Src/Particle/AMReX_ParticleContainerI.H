@@ -1401,6 +1401,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BL_PROFILE_VAR_STOP(blp_copy);
     }
 
+    // remove any empty map entries from m_not_ours
+    for (auto pmap_it = m_not_ours.begin(); pmap_it != m_not_ours.end(); /* no ++ */) {
+        if (pmap_it->second.empty()) {
+            m_not_ours.erase(pmap_it++);
+        }
+        else {
+            ++pmap_it;
+        }
+    }
+
     RedistributeMPIGPU();
 
     EnforcePeriodicGPU();
