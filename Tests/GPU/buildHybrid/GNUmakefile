@@ -20,9 +20,9 @@ all: $(objects)
 # pgiexec BUILDS AN EXECUTABLE USING CUDA LIBRARY 
 # =================================================
 
-exec: pgilibrary $(main)
+exec: library $(main)
 	# No -dlink step needed with Fortran. pgfortran performs the link operation. 
-	pgfortran -gopt -Mnomain -module . -Mcuda=cc70,ptxinfo,fastmath,charstring CUDA_HOME=/sw/summit/cuda/9.1.85 -Mdclchk -noacc -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(lib) -o $(app).lib
+	pgfortran -gopt -Mnomain -module . -Mcuda=cc70 CUDA_HOME=/sw/summit/cuda/9.1.85 -Mdclchk -noacc -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(lib) -o $(app).lib
 
 library: $(srcs) $(fsrcs)
 	$(SILENT) $(AR) qc $(lib) $^
