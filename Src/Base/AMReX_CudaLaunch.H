@@ -732,10 +732,13 @@ namespace amrex {
 // CPU variation
 
     template<class L>
-    void launch_host (L f0) { f0(); }
+    void launch_host (L&& f0) { std::forward<L>(f0)(); }
     
     template<class L, class... Lambdas>
-    void launch_host (L f0, Lambdas... fs) { f0(); launch_host(fs...); }
+    void launch_host (L&& f0, Lambdas&&... fs) {
+        std::forward<L>(f0)();
+        launch_host(std::forward<Lambdas>(fs)...);
+    }
 
 
     template <class T> class LayoutData;
