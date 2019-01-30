@@ -815,10 +815,11 @@ namespace Cuda {
 
 }
 
+#ifdef AMREX_USE_CUDA
+
 template<typename T, typename L>
 void launch (T const& n, L f)
 {
-#ifdef AMREX_USE_CUDA
     const auto ec = Cuda::ExecutionConfig(n);
     amrex::launch_global<<<ec.numBlocks, ec.numThreads, ec.sharedMem, Cuda::Device::cudaStream()>>>(
     [=] AMREX_GPU_DEVICE () mutable {
@@ -827,12 +828,7 @@ void launch (T const& n, L f)
         }
     });
     AMREX_GPU_ERROR_CHECK();
-#else
-    f(n);
-#endif
- }
-
-#ifdef AMREX_USE_CUDA
+}
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
 void For (T n, L f)
@@ -916,37 +912,43 @@ void ParallelFor (Box const& box, T ncomp, L f)
 
 #else
 
+template<typename T, typename L>
+void launch (T const& n, L&& f)
+{
+    std::forward<L>(f)(n);
+}
+
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void For (T n, L f)
+void For (T n, L&& f)
 {
     for (auto i = 0; i < n; ++i) {
-        f(i);
+        std::forward<L>(f)(i);
     }
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (T n, L f)
+void ParallelFor (T n, L&& f)
 {
     AMREX_PRAGMA_SIMD
     for (auto i = 0; i < n; ++i) {
-        f(i);
+        std::forward<L>(f)(i);
     }
 }
 
 template <typename L>
-void For (Box const& box, L f)
+void For (Box const& box, L&& f)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
     for (int k = lo.z; k <= hi.z; ++k) {
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i) {
-        f(i,j,k);
+        std::forward<L>(f)(i,j,k);
     }}}
 }
 
 template <typename L>
-void ParallelFor (Box const& box, L f)
+void ParallelFor (Box const& box, L&& f)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -954,12 +956,12 @@ void ParallelFor (Box const& box, L f)
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        f(i,j,k);
+        std::forward<L>(f)(i,j,k);
     }}}
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void For (Box const& box, T ncomp, L f)
+void For (Box const& box, T ncomp, L&& f)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -967,13 +969,13 @@ void For (Box const& box, T ncomp, L f)
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
-            f(i,j,k,n);
+            std::forward<L>(f)(i,j,k,n);
         }}}
     }
 }
 
 template <typename T, typename L, typename M=amrex::EnableIf_t<std::is_integral<T>::value> >
-void ParallelFor (Box const& box, T ncomp, L f)
+void ParallelFor (Box const& box, T ncomp, L&& f)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -982,7 +984,7 @@ void ParallelFor (Box const& box, T ncomp, L f)
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            f(i,j,k,n);
+            std::forward<L>(f)(i,j,k,n);
         }}}
     }
 }
