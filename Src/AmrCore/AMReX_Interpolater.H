@@ -173,9 +173,6 @@ public:
 //  sum_ivar a(ic,jc,ivar)*fab(if,jf,ivar) = 0 is satisfied
 //  in all fine cells if,jf covering coarse cell ic,jc.
 //
-//  If do_linear_limiting = 0, the interpolation scheme is identical to
-//  the used in CellConservative for do_limited_slopes=1.
-//
 
 class CellConservativeLinear
     :
@@ -212,9 +209,9 @@ public:
                          const IntVect&   ratio,
                          const Geometry&  crse_geom,
                          const Geometry&  fine_geom,
-                         Vector<BCRec>&    bcr,
-                         int              actual_comp,
-                         int              actual_state) override;
+                         Vector<BCRec>&   bcr,
+                         int              /*actual_comp*/,
+                         int              /*actual_state*/) override;
 
 protected:
 

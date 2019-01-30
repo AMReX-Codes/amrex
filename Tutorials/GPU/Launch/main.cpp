@@ -44,17 +44,19 @@ void main_main ()
         });
     }
 
-    // launch C++ kernel on vector to add 1
+    // launch CUDA C++ kernel to add 1
+    // This example shows how to launch kernels over a 1D iteration space.
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        int size = 100;
-        amrex::Gpu::ManagedVector<int> ones(size, 0); 
-        const auto data = ones.dataPtr();
-        AMREX_LAUNCH_DEVICE_LAMBDA(size, iter,
+        FArrayBox& fab = mf[mfi];
+        Real* p = fab.dataPtr();
+        const long nitems = fab.box().numPts() * mf.nComp();
+        // Enough threads are launched to work over nitems, and idx is item index for each thread.
+        // This only works on a contiguous chunk of memory.
+        AMREX_LAUNCH_DEVICE_LAMBDA ( nitems, idx,
         {
-            data[iter] = data[iter] + 1;
+            p[idx] += 1;
         });
-
-        Gpu::Device::synchronize();
     }
 
 #ifdef AMREX_USE_CUDA_FORTRAN

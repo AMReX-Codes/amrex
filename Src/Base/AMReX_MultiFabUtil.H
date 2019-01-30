@@ -104,16 +104,12 @@ namespace amrex
                              const Geometry& cgeom, const Geometry& fgeom);
 
     //! Output state data for a single zone
-    void print_state (const MultiFab& mf, const IntVect& cell, const int n=-1);
+    void print_state (const MultiFab& mf, const IntVect& cell, const int n=-1,
+                      const IntVect& ng = IntVect::TheZeroVector());
 
     //! Write each fab individually
     void writeFabs (const MultiFab& mf, const std::string& name);
     void writeFabs (const MultiFab& mf, int comp, int ncomp, const std::string& name);
-
-    //! Convert iMultiFab to MultiFab
-    MultiFab ToMultiFab (const iMultiFab& imf);
-    //! Convert iMultiFab to long
-    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
 
     //! Extract a slice from the given cell-centered MultiFab at coordinate
     //! "coord" along direction "dir".
@@ -140,6 +136,40 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom);
 
+    //! Convert iMultiFab to MultiFab
+    MultiFab ToMultiFab (const iMultiFab& imf);
+    //! Convert iMultiFab to long
+    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
+
+    // example: auto mf = amrex::cast<MultiFab>(imf);
+    template <typename T, typename U>
+    T cast (U const& mf_in)
+    {
+        T mf_out(mf_in.boxArray(), mf_in.DistributionMap(), mf_in.nComp(), mf_in.nGrowVect());
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(mf_in,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            if (Gpu::inLaunchRegion())
+            {
+                const long n = mfi.fabbox().numPts() * mf_in.nComp();
+                auto pdst = mf_out[mfi].dataPtr();
+                auto psrc = mf_in [mfi].dataPtr();
+                AMREX_LAUNCH_DEVICE_LAMBDA ( n, i,
+                {
+                    pdst[i] = static_cast<typename U::value_type>(psrc[i]);
+                });
+            }
+            else
+            {
+                amrex::cast(mf_out[mfi], mf_in[mfi], mfi.growntilebox(),
+                            SrcComp{0}, DestComp{0}, NumComps{0});
+            }
+        }
+        return mf_out;
+    }
 
     //! General collection of MultiFab utilities
     namespace MFUtil {

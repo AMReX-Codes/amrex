@@ -1939,31 +1939,33 @@ each :cpp:`FabView` object must be created with the corresponding
 Ghost Cells
 ===========
 
-AMReX uses :cpp:`MultiFab` as the data container for floating point data on
-multiple Boxes on a single AMR level. Each rectangular Box has its own
-boundaries. A :cpp:`MultiFab` can have ghost cells for storing data outside its
-grid Box boundaries. This allows us to perform stencil type of operations on
+AMReX uses a :cpp:`MultiFab` as a container for floating point data on
+multiple Boxes at a single level of refinement. Each rectangular Box has its own boundaries
+on the low and high side in each coordinate direction.
+Each Box within a :cpp:`MultiFab` can have ghost cells for storing data outside
+the Box's valid region. This allows us to, e.g., perform stencil-type operations on
 regular arrays. There are three basic types of boundaries:
 
     #. interior boundary
     #. coarse/fine boundary
-    #. physical boundary. 
-           
-Periodic boundary is not considered a basic type in the discussion here because
-after periodic transformation it becomes either interior boundary or
-coarse/fine boundary.
+    #. physical boundary
 
 Interior boundary is the border among the grid Boxes themselves.  For example,
 in :numref:`fig:basics:amrgrids`, the two blue grid Boxes on level 1 share an
 interior boundary that is 10 cells long. For a :cpp:`MultiFab` with ghost cells
 on level 1, we can use the :cpp:`MultiFab::FillBoundary` function introduced in
-the section on :ref:`sec:basics:multifab` to fill ghost cells at the interior
-boundary with valid cell data from other Boxes.
+the section on :ref:`sec:basics:multifab` to fill ghost cells at the interior
+boundary with valid cell data from other Boxes.  :cpp:`MultiFab::FillBoundary`
+can optionally fill periodic boundary ghost cells as well.
 
 A coarse/fine boundary is the border between two AMR levels.
 :cpp:`FillBoundary` does not fill these ghost cells. These ghost cells on the
 fine level need to be interpolated from the coarse level data.  This is a
-subject that will be discussed in the section on  :ref:`sec:amrcore:fillpatch`.
+subject that will be discussed in the section on :ref:`sec:amrcore:fillpatch`.
+
+Note that periodic boundary is not considered a basic type in the discussion here because
+after periodic transformation it becomes either interior boundary or
+coarse/fine boundary.
 
 The third type of boundary is the physical boundary at the physical domain.
 Note that both coarse and fine AMR levels could have grids touching the
@@ -1973,6 +1975,139 @@ common operations.  See the section on :ref:`sec:basics:boundary` for a
 discussion on domain boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
 
+.. _sec:basics:boundary:
+
+Boundary Conditions
+===================
+
+This section describes how to implement domain boundary conditions in AMReX.  A
+ghost cell that is outside of the valid region can be thought of as either
+“interior” (which includes periodic and coarse-fine ghost cells), or “physical”.
+Physical boundary conditions can occur on domain boundaries and can
+be characterized as inflow, outflow, slip/no-slip walls, etc., and are
+ultimately linked to mathematical Dirichlet or Neumann conditions.
+
+The basic idea behind physical boundary conditions is as follows:
+
+-  Create a :cpp:`BCRec` object, which is essentially a multidimensional
+   integer array of :cpp:`2*DIM` components. Each component defines a boundary
+   condition type for the lo/hi side of the domain, for each direction.  See
+   ``amrex/Src/Base/AMReX_BC_TYPES.H`` for common physical and mathematical
+   types.  If there is more than one variable, we can create an array of BCRec
+   objects, and pass in a pointer to the 0-index component since the arrays for
+   all the components are contiguous in memory.  Here we need to provide
+   boundary types to each component of the :cpp:`MultiFab`. Below is an example
+   of setting up :cpp:`Vector<BCRec>` before the call to ghost cell routines.
+   
+   .. highlight:: c++
+
+   ::
+
+         // Set up BC; see ``amrex/Src/Base/AMReX_BC_TYPES.H`` for supported types
+         Vector<BCRec> bc(phi.nComp());
+         for (int n = 0; n < phi.nComp(); ++n)
+         {
+             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+             {
+                 if (Geometry::isPeriodic(idim))
+                 {
+                     bc[n].setLo(idim, BCType::int_dir); // interior
+                     bc[n].setHi(idim, BCType::int_dir);
+                 }
+                 else
+                 {
+                     bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
+                     bc[n].setHi(idim, BCType::foextrap);
+                 }
+             }
+         }
+
+   :cpp:`amrex::BCType` has the following types,
+
+       int_dir
+           Interior, including periodic boundary
+
+       ext_dir
+           “External Dirichlet”. It is the user’s responsibility to write a routine
+           to fill ghost cells (more details below).
+
+       foextrap
+           “First Order Extrapolation”
+           First order extrapolation from last cell in interior.
+
+       reflect_even
+           Reflection from interior cells with sign
+           unchanged, :math:`q(-i) = q(i)`.
+
+       reflect_odd
+           Reflection from interior cells with sign
+           changed, :math:`q(-i) = -q(i)`.
+
+-  We have interfaces to a fortran routine that fills ghost cells at domain
+   boundaries based on the boundary condition type defined in the :cpp:`BCRec`
+   object.  It is the user’s responsibility to have a consisent definition of
+   what the ghost cells represent. A common option used in AMReX codes is to
+   fill the domain ghost cells with the value that lies on the boundary (as
+   opposed to another common option where the value in the ghost cell represents
+   an extrapolated value based on the boundary condition type). Then in our
+   stencil based “work” codes, we also pass in the :cpp:`BCRec` object and use
+   modified stencils near the domain boundary that know the value in the first
+   ghost cell represents the value on the boundary.
+
+Depending on the level of complexity of your code, there are various options
+for filling domain boundary ghost cells.
+
+For single-level codes built from ``amrex/Src/Base`` (excluding the
+``amrex/Src/AmrCore`` and ``amrex/Src/Amr`` source code directories), you will
+have single-level MultiFabs filled with data in the valid region where you need
+to fill the ghost cells on each grid. There are essentially three ways to fill
+the ghost cells. (refer to ``amrex/Tutorials/Basic/HeatEquation_EX2_C`` for an
+example).
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf;
+    Geometry geom;
+    Vector<BCRec> bc;
+
+    // ...
+
+    // fills interior and periodic domain boundary ghost cells
+    mf.FillBoundary(geom.periodicity());
+
+    // fills interior (but not periodic domain boundary) ghost cells
+    mf.FillBoundary();
+
+    // fills physical domain boundary ghost cells for a cell-centered multifab
+    // except for external Dirichlet
+    FillDomainBoundary(mf, geom, bc);
+
+:cpp:`FillDomainBoundary()` is a function in
+``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
+boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
+for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
+use it as a template and insert their own function for
+:cpp:`BCType:ext_dir` like below
+
+.. highlight:: c++
+
+::
+
+    if (! grown_domain_box.contains(fab_box))
+    {
+        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                        BL_TO_FORTRAN_BOX(domain_box),
+                        dx, prob_lo,
+                        bc[0].data());
+        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                       BL_TO_FORTRAN_BOX(domain_box),
+                       dx, prob_lo,
+                       bc[0].data());
+    }
+
+    
 Memory Allocation
 =================
 
@@ -2098,141 +2233,7 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
-
-
-
-.. _sec:basics:boundary:
-
-Boundary Conditions
-===================
-
-This section describes how to implement domain boundary conditions in AMReX.  A
-ghost cell that is outside of the valid region can be thought of as either
-“interior” (for periodic and coarse-fine ghost cells), or “physical”.  Physical
-boundary conditions can include inflow, outflow, slip/no-slip walls, but are
-ultimately linked to mathematical Dirichlet or Neumann conditions.
-
-The basic idea behind physical boundary conditions is as follows:
-
--  Create a :cpp:`BCRec` object, which is essentially a multidimensional
-   integer array of :cpp:`2*DIM` components. Each component defines a boundary
-   condition type for the lo/hi side of the domain, for each direction.  See
-   ``amrex/Src/Base/AMReX_BC_TYPES.H`` for common physical and mathematical
-   types.  If there is more than one variable, we can create an array of BCRec
-   objects, and pass in a pointer to the 0-index component since the arrays for
-   all the components are contiguous in memory.  Here we need to provide
-   boundary types to each component of the :cpp:`MultiFab`. Below is an example
-   of setting up :cpp:`Vector<BCRec>` before the call to ghost cell routines.
-   
-   .. highlight:: c++
-
-   ::
-
-         // Set up BC; see ``amrex/Src/Base/AMReX_BC_TYPES.H`` for supported types
-         Vector<BCRec> bc(phi.nComp());
-         for (int n = 0; n < phi.nComp(); ++n)
-         {
-             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-             {
-                 if (Geometry::isPeriodic(idim))
-                 {
-                     bc[n].setLo(idim, BCType::int_dir); // interior
-                     bc[n].setHi(idim, BCType::int_dir);
-                 }
-                 else
-                 {
-                     bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
-                     bc[n].setHi(idim, BCType::foextrap);
-                 }
-             }
-         }
-
-   :cpp:`amrex::BCType` has the following types,
-
-       int_dir
-           Interior, including periodic boundary
-
-       ext_dir
-           “External Dirichlet”. It is the user’s responsibility to write a routine
-           to fill ghost cells (more details below).
-
-       foextrap
-           “First Order Extrapolation”
-           First order extrapolation from last cell in interior.
-
-       reflect_even
-           Reflection from interior cells with sign
-           unchanged, :math:`q(-i) = q(i)`.
-
-       reflect_odd
-           Reflection from interior cells with sign
-           changed, :math:`q(-i) = -q(i)`.
-
--  We have interfaces to a fortran routine that fills ghost cells at domain
-   boundaries based on the boundary condition type defined in the :cpp:`BCRec`
-   object.  It is the user’s responsibility to have a consisent definition of
-   what the ghost cells represent. A common option used in AMReX codes is to
-   fill the domain ghost cells with the value that lies on the boundary (as
-   opposed to another common option where the value in the ghost cell represents
-   an extrapolated value based on the boundary condition type). Then in our
-   stencil based “work” codes, we also pass in the :cpp:`BCRec` object and use
-   modified stencils near the domain boundary that know the value in the first
-   ghost cell represents the value on the boundary.
-
-Depending on the level of complexity of your code, there are various options
-for filling domain boundary ghost cells.
-
-For single-level codes built from ``amrex/Src/Base`` (excluding the
-``amrex/Src/AmrCore`` and ``amrex/Src/Amr`` source code directories), you will
-have single-level MultiFabs filled with data in the valid region where you need
-to fill the ghost cells on each grid. There are essentially three ways to fill
-the ghost cells. (refer to ``amrex/Tutorials/Basic/HeatEquation_EX2_C`` for an
-example).
-
-.. highlight:: c++
-
-::
-
-    MultiFab mf;
-    Geometry geom;
-    Vector<BCRec> bc;
-
-    // ...
-
-    // fills interior and periodic domain boundary ghost cells
-    mf.FillBoundary(geom.periodicity());
-
-    // fills interior (but not periodic domain boundary) ghost cells
-    mf.FillBoundary();
-
-    // fills physical domain boundary ghost cells for a cell-centered multifab
-    // except for external Dirichlet
-    FillDomainBoundary(mf, geom, bc);
-
-:cpp:`FillDomainBoundary()` is a function in
-``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
-boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
-for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
-use it as a template and insert their own function for
-:cpp:`BCType:ext_dir` like below
-
-.. highlight:: c++
-
-::
-
-    if (! grown_domain_box.contains(fab_box))
-    {
-        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                        BL_TO_FORTRAN_BOX(domain_box),
-                        dx, prob_lo,
-                        bc[0].data());
-        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                       BL_TO_FORTRAN_BOX(domain_box),
-                       dx, prob_lo,
-                       bc[0].data());
-    }
-
-
+    
 .. _sec:basics:heat1:
 
 Example: HeatEquation_EX1_C
