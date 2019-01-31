@@ -176,7 +176,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
     FArrayBox* fab = &dest;
     const auto geomdata = geom.data();
 
-    Gpu::AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
     BCRec* bcr_p = bcr_aa.data();
 
     const IntVect& len = bx.length();
@@ -209,7 +209,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         }
         const int n_face_boxes = face_boxes.size();
         if (n_face_boxes > 0) {
-            Gpu::AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
+            AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
             Box* boxes_p = face_boxes_aa.data();
 
             long ncells = 0;
@@ -262,7 +262,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         }
         const int n_edge_boxes = edge_boxes.size();
         if (n_edge_boxes > 0) {
-            Gpu::AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
+            AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
             Box* boxes_p = edge_boxes_aa.data();
 
             long ncells = 0;
@@ -302,7 +302,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         }
         const int n_corner_boxes = corner_boxes.size();
         if (n_corner_boxes > 0) {
-            Gpu::AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
+            AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
             Box* boxes_p = corner_boxes_aa.data();
 
             long ncells = 0;

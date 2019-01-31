@@ -191,7 +191,7 @@ Most GPU related classes and functions are in ``namespace Gpu``,
 which is inside ``namespace amrex``. For example, the GPU configuration
 class ``Device`` can be referenced to at ``amrex::Gpu::Device``. Other
 important objects in the Gpu namespace include objects designed to work
-with GPU memory spaces, such as ``Gpu::AsyncFab`` a temporary
+with GPU memory spaces, such as ``AsyncFab`` a temporary
 :cpp:`FArrayBox` designed to work with CUDA streams. 
 
 For portability, AMReX defines some macros for CUDA function qualifiers
@@ -367,7 +367,7 @@ the avarage value of all the boundary cells of a :cpp:`MultiFab`:
     // Find the average value of boundary cells.
     {
         Real avg_val = 0;
-        Gpu::AsyncArray<Real> a_avg(&avg_val, 1);     // Build AsyncArray
+        AsyncArray<Real> a_avg(&avg_val, 1);     // Build AsyncArray
         Real* d_avg = a_avg.data(); 		      // Get associated device ptr.
 
         long total_cells = 0;
@@ -382,7 +382,7 @@ the avarage value of all the boundary cells of a :cpp:`MultiFab`:
             {
                 // Create AsyncArray for boxes describing boundary and
                 //    obtain associated device pointer.
-                Gpu::AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
+                AsyncArray<Box> async_boxes(blst.data().data(), nboxes);
                 Box const* pboxes = async_boxes.data();
 
                 long ncells = 0;
@@ -596,7 +596,7 @@ pointers for the CPU and GPU :cpp:`FArrayBox` and storage for the associated
 metadata to minimize data movement.  The :cpp:`AsyncFab` is async-safe and can
 be used inside of an :cpp:`MFIter` loop without reducing CPU-GPU asynchronicity.
 It is portable, reducing to a simple :cpp:`FArrayBox` pointer when ran without
-CUDA.  An example of using :cpp:`Gpu::AsyncFab` is given below:
+CUDA.  An example of using :cpp:`AsyncFab` is given below:
 
 .. highlight:: c++
 
@@ -607,7 +607,7 @@ CUDA.  An example of using :cpp:`Gpu::AsyncFab` is given below:
       const Box& bx = mfi.validbox();
 
       // Create temporary FAB with given box & number of components.
-      Gpu::AsyncFab q_box(bx, 1);
+      AsyncFab q_box(bx, 1);
       FArrayBox* q_fab = q_box.fabPtr();  // Get device pointer to fab.
 
       AMREX_LAUNCH_DEVICE_LAMBDA(bx, tbx,
@@ -1013,8 +1013,8 @@ still need it.
 One way to fix this is put the temporary :cpp:`FArrayBox` objects in a
 :cpp:`MultiFab` defined outside the loop.  This creates a separate
 :cpp:`FArrayBox` for each loop iteration, eliminating the race
-condition.  Another way is to use :cpp:`Gpu::AsyncFab` designed for 
-this kind of situation.  The code below shows how :cpp:`Gpu::AsyncFab`
+condition.  Another way is to use :cpp:`AsyncFab` designed for 
+this kind of situation.  The code below shows how :cpp:`AsyncFab`
 is used and how this MFIter loop can be rewritten for GPUs. 
 
 .. highlight:: c++
@@ -1025,7 +1025,7 @@ is used and how this MFIter loop can be rewritten for GPUs.
    {
        const Box& vbx = mfi.validbox();              // f2 work domain
        const Box& gbx = amrex::grow(vbx,1);          // f1 work domain
-       Gpu::AsyncFab q(gbx);                         // Local, GPU managed FArrayBox
+       AsyncFab q(gbx);                              // Local, GPU managed FArrayBox
        FArrayBox const* uinfab  = uin.fabPtr();      // Managed GPU capturable
        FArrayBox      * uoutfab = uout.fabPtr();     //   pointers to MultiFab's FABs.
 
