@@ -1016,7 +1016,7 @@ SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NA
 struct my_op {
 
     template <typename T>
-    __host__ __device__
+    AMREX_GPU_HOST_DEVICE
     T operator()(T v1, T v2)  {
         thrust::get<0>(v1) = thrust::get<0>(v2) + thrust::get<0>(v1);
         thrust::get<1>(v1) = thrust::get<1>(v2) + thrust::get<1>(v1);
