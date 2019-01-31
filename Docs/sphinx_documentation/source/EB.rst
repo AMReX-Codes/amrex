@@ -946,14 +946,15 @@ at a lower resolution for from walls. The function
 
 ::
 
-   static void FillVolfracTags( int lev, TagBoxArray & tags, int buffer,
+   static void FillVolfracTags( int lev, TagBoxArray & tags,
                                  const Vector<BoxArray> & grids,
                                  const Vector<DistributionMapping> & dmap,
                                  const EB2::Level & eb_lev, const Vector<Geometry> & geom );
 
 fills a :cpp:`TagBoxArray` with tags wherever the volume fraction is between 0
-and 1. This way any cut-cells a buffered of :cpp:`buffer` many neighbors is
-tagged for refinement. If we need finer control over the tagging, the function
+and 1. This way any cut-cells a buffered of :cpp:`amr.n_error_buff` many
+neighbors is tagged for refinement. If we need finer control over the tagging,
+the function
 
 .. highlight:: c++
 

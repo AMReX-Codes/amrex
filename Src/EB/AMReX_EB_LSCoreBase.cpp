@@ -316,7 +316,7 @@ void LSCoreBase::FillLevelSetTags(int lev, TagBoxArray & tags, const Vector<Real
 
 
 
-void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
+void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags,
                                  const Vector<BoxArray> & grids,
                                  const Vector<DistributionMapping> & dmap,
                                  const EB2::Level & eb_lev, const Vector<Geometry> & geom) {
@@ -329,18 +329,6 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
     eb_lev.fillVolFrac(volfrac, geom[lev]);
 
     amrex::TagVolfrac(tags, volfrac);
-
-    //___________________________________________________________________________
-    // Buffer tags (neighbors are tagged also) to prevent thin grids
-    // NOTE: int buffer < tags.nGrow() => repeat buffer/m_buffer times
-    int m_buffer = std::min(buffer, tags.nGrow());
-    int n_repeat = buffer/m_buffer;
-
-    for (int i = 0; i < n_repeat; i++)
-        tags.buffer(m_buffer);
-
-    int r_buffer = buffer - n_repeat*m_buffer;
-    tags.buffer(r_buffer);
 }
 
 
@@ -439,7 +427,7 @@ void LSCoreBase::ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) {
     if (use_phierr) {
         LSCoreBase::FillLevelSetTags(lev, tags, phierr, level_set[lev], geom);
     } else {
-        LSCoreBase::FillVolfracTags(lev, tags, 8, grids, dmap, * eb_levels[lev], geom);
+        LSCoreBase::FillVolfracTags(lev, tags, grids, dmap, * eb_levels[lev], geom);
     }
 
 }
