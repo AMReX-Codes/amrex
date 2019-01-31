@@ -114,7 +114,7 @@ FabArrayBase::Initialize ()
         MaxComp = 1;
     }
 
-    if (ParallelDescriptor::UseCudaAwareMpi()) {
+    if (ParallelDescriptor::UseGpuAwareMpi()) {
         the_fa_arena = The_Device_Arena();
     } else {
         the_fa_arena = The_Pinned_Arena();
