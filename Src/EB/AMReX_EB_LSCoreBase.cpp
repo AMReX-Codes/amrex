@@ -9,6 +9,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_EB_utils.H>
+#include <AMReX_EBAmrUtil.H>
 #include <AMReX_EB_F.H>
 
 #ifdef BL_USE_SENSEI_INSITU
@@ -322,53 +323,24 @@ void LSCoreBase::FillVolfracTags(int lev, TagBoxArray & tags, int buffer,
 
     BL_PROFILE("LSCoreBase::FillVolfracTags()");
 
-    const int clearval = TagBox::CLEAR;
-    const int   tagval = TagBox::SET;
-
-    const Real * dx      = geom[lev].CellSize();
-    const Real * prob_lo = geom[lev].ProbLo();
-
-    //Temporary storing volfrac data
+    //___________________________________________________________________________
+    // Tag all cells with volfrac \in (0, 1)
     MultiFab volfrac(grids[lev], dmap[lev], 1, 1);
     eb_lev.fillVolFrac(volfrac, geom[lev]);
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        Vector<int> itags;
+    amrex::TagVolfrac(tags, volfrac);
 
-        for (MFIter mfi(volfrac, true); mfi.isValid(); ++mfi) {
-            const Box &    tilebox = mfi.tilebox();
-                  TagBox & tagfab  = tags[mfi];
+    //___________________________________________________________________________
+    // Buffer tags (neighbors are tagged also) to prevent thin grids
+    // NOTE: int buffer < tags.nGrow() => repeat buffer/m_buffer times
+    int m_buffer = std::min(buffer, tags.nGrow());
+    int n_repeat = buffer/m_buffer;
 
-            // We cannot pass tagfab to Fortran because it is BaseFab<char>. So
-            // we are going to get a temporary integer array. set itags
-            // initially to 'untagged' everywhere we define itags over the
-            // tilebox region
-            tagfab.get_itags(itags, tilebox);
+    for (int i = 0; i < n_repeat; i++)
+        tags.buffer(m_buffer);
 
-            // data pointer and index space
-            int *       tptr = itags.dataPtr();
-            const int * tlo  = tilebox.loVect();
-            const int * thi  = tilebox.hiVect();
-
-            //___________________________________________________________________
-            // Tag cells for refinement
-            Real tol = 0.000001; // TODO: Fix magic numbers (after talking with ANN)
-            amrex_eb_volfrac_error ( tptr, AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
-                                     BL_TO_FORTRAN_3D(volfrac[mfi]),
-                                     & tagval, & clearval, & tol,
-                                     BL_TO_FORTRAN_BOX(tilebox),
-                                     AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo));
-
-            //___________________________________________________________________
-            // Update the tags in the TagBox in the tilebox region to be equal
-            // to itags after buffering
-            tagfab.buffer(buffer, 0);
-            tagfab.tags_and_untags(itags, tilebox);
-        }
-    }
+    int r_buffer = buffer - n_repeat*m_buffer;
+    tags.buffer(r_buffer);
 }
 
 
