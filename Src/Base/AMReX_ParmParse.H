@@ -228,7 +228,7 @@ class IntVect;
 *
 *                9 10 11 12
 *
-*     aBox    = ((0,0) (5,5))		
+*     aBox    = ((0,0) (5,5))
 *
 *     test = apple "boy blue" 10 20 30 40
 *
@@ -463,7 +463,7 @@ public:
                  int         k,
                  std::string&    ref,
                  int         ival = FIRST) const;
-    
+
     //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               std::string&    ref,
@@ -856,7 +856,7 @@ public:
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
     const Table& table() const {return m_table;}
-  
+
 private:
     //
     // Don't allow one ParmParse object to be assigned to another.
@@ -875,16 +875,14 @@ private:
 
     explicit ParmParse (const Table& tbl);
     //
-    // Set/Get the prefix.
-    //
+    //! Set/Get the prefix.
     std::string getPrefix() const;
     std::string setPrefix(const std::string& str);
     void pushPrefix(const std::string& str);
     void popPrefix();
     std::string prefixedName (const std::string& str) const;
     //
-    // Prefix used in keyword search.
-    //
+    //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
     const Table& m_table;
 };
@@ -894,7 +892,7 @@ struct ParmParse::PP_entry
     PP_entry (const std::string&            name,
               const std::list<std::string>& vals);
     PP_entry (const std::string& name,
-              const std::string& vals);              
+              const std::string& vals);
     PP_entry (const std::string& name,
 	      const Table& table);
     PP_entry (const PP_entry& pe);
