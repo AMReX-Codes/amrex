@@ -47,7 +47,7 @@ namespace amrex {
 namespace ParallelDescriptor
 {
 #ifdef AMREX_USE_GPU
-    int use_gpu_aware_mpi = true;
+    int use_gpu_aware_mpi = false;
 #else
     int use_gpu_aware_mpi = false;
 #endif
