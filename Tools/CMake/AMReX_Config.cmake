@@ -242,23 +242,27 @@ function (print_amrex_configuration_summary)
    # Retrieve defines
    #
    get_target_property ( AMREX_DEFINES amrex COMPILE_DEFINITIONS )
-   replace_genex ( AMREX_DEFINES AMREX_CXX_DEFINES     LANGUAGE CXX )
-   replace_genex ( AMREX_DEFINES AMREX_Fortran_DEFINES LANGUAGE Fortran )  
-
-   # extract_by_language ( AMREX_DEFINES AMREX_CXX_DEFINES AMREX_Fortran_DEFINES )
-   string (REPLACE " " " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )
-   string (REPLACE ";" " -D" AMREX_CXX_DEFINES "${AMREX_CXX_DEFINES}" )
-   string (REPLACE " " " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
-   string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "${AMREX_Fortran_DEFINES}" )
+   evaluate_genex(AMREX_DEFINES AMREX_CXX_DEFINES     LANG CXX     COMP ${CMAKE_CXX_COMPILER_ID} )
+   evaluate_genex(AMREX_DEFINES AMREX_Fortran_DEFINES LANG Fortran COMP ${CMAKE_Fortran_COMPILER_ID} ) 
+   string (REPLACE ";" " -D" AMREX_CXX_DEFINES "-D${AMREX_CXX_DEFINES}" )
+   string (REPLACE ";" " -D" AMREX_Fortran_DEFINES "-D${AMREX_Fortran_DEFINES}" )
    
    #
    # Retrieve compile flags
    #
-   get_target_property ( AMREX_FLAGS   amrex COMPILE_OPTIONS)
-   replace_genex ( AMREX_FLAGS AMREX_CXX_FLAGS     LANGUAGE CXX )
-   replace_genex ( AMREX_FLAGS AMREX_Fortran_FLAGS LANGUAGE Fortran )
-   string ( REPLACE ";" " " AMREX_CXX_FLAGS "${AMREX_CXX_FLAGS}" )
-   string ( REPLACE ";" " " AMREX_Fortran_FLAGS "${AMREX_Fortran_FLAGS}" )
+   get_target_property( AMREX_FLAGS   amrex COMPILE_OPTIONS)
+
+   evaluate_genex(AMREX_FLAGS AMREX_CXX_FLAGS
+      LANG   CXX
+      COMP   ${CMAKE_CXX_COMPILER_ID}
+      CONFIG ${CMAKE_BUILD_TYPE}
+      STRING )
+
+   evaluate_genex(AMREX_FLAGS AMREX_Fortran_FLAGS
+      LANG   Fortran
+      COMP   ${CMAKE_Fortran_COMPILER_ID}
+      CONFIG ${CMAKE_BUILD_TYPE}
+      STRING )
 
    # Add base flags
    string ( TOUPPER "${CMAKE_BUILD_TYPE}"  AMREX_BUILD_TYPE )
@@ -270,21 +274,20 @@ function (print_amrex_configuration_summary)
    #
    # Include paths
    #
-   get_target_property ( AMREX_INCLUDE_PATHS amrex INTERFACE_INCLUDE_DIRECTORIES )
-   replace_genex ( AMREX_INCLUDE_PATHS AMREX_CXX_INCLUDE_PATHS LANGUAGE CXX )
-   replace_genex ( AMREX_INCLUDE_PATHS AMREX_Fortran_INCLUDE_PATHS LANGUAGE Fortran )
-
+   get_target_property( AMREX_INCLUDE_PATHS amrex INTERFACE_INCLUDE_DIRECTORIES )
+   evaluate_genex(AMREX_INCLUDE_PATHS AMREX_CXX_INCLUDE_PATHS     LANG CXX )
+   evaluate_genex(AMREX_INCLUDE_PATHS AMREX_Fortran_INCLUDE_PATHS LANG Fortran )
 
    #
    # Link libraries
    # 
    get_target_property ( TMP amrex LINK_LIBRARIES )
-   replace_genex (TMP AMREX_LINK_LINE)
+   evaluate_genex(TMP AMREX_LINK_LINE )
    if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
       set (AMREX_LINK_LINE "")
    endif ()   
    string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
-   
+  
    
    #
    # Config summary
