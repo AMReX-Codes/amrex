@@ -21,7 +21,6 @@ namespace amrex {
 //
 // Set default values in Initialize()!!!
 //
-bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
 int     FabArrayBase::use_cuda_aware_mpi;
 
@@ -86,7 +85,6 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::do_async_sends    = true;
     FabArrayBase::MaxComp           = 25;
 
     ParmParse pp("fabarray");
@@ -109,10 +107,10 @@ FabArrayBase::Initialize ()
     }
 
     pp.query("maxcomp",             FabArrayBase::MaxComp);
-    pp.query("do_async_sends",      FabArrayBase::do_async_sends);
 
-    if (MaxComp < 1)
+    if (MaxComp < 1) {
         MaxComp = 1;
+    }
 
 #ifdef AMREX_USE_CUDA
     FabArrayBase::use_cuda_aware_mpi = 1;
