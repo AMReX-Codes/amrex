@@ -525,7 +525,6 @@ public:
 
     static bool do_tiling;
     static IntVect tile_size;
-    static bool m_do_cuda_aware_mpi;
     
     void SetLevelDirectoriesCreated(bool tf) {
       levelDirectoriesCreated = tf;
