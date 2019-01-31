@@ -97,8 +97,8 @@ namespace ParallelDescriptor
     void Initialize ();
     void Finalize ();
 
-    extern int use_cuda_aware_mpi;
-    inline bool UseCudaAwareMpi () { return use_cuda_aware_mpi; }
+    extern int use_gpu_aware_mpi;
+    inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
     void StartTeams ();

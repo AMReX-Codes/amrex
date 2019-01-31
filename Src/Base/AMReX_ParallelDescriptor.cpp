@@ -46,7 +46,11 @@ namespace amrex {
 
 namespace ParallelDescriptor
 {
-    int use_cuda_aware_mpi = true;
+#ifdef AMREX_USE_GPU
+    int use_gpu_aware_mpi = true;
+#else
+    int use_gpu_aware_mpi = false;
+#endif
 
     ProcessTeam m_Team;
 
@@ -2045,7 +2049,7 @@ ParallelDescriptor::Initialize ()
 {
 #ifndef BL_AMRPROF
     ParmParse pp("amrex");
-    pp.query("use_cuda_aware_mpi", use_cuda_aware_mpi);
+    pp.query("use_gpu_aware_mpi", use_gpu_aware_mpi);
 
     StartTeams();
 #endif
