@@ -46,6 +46,8 @@ namespace amrex {
 
 namespace ParallelDescriptor
 {
+    int use_cuda_aware_mpi = true;
+
     ProcessTeam m_Team;
 
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
@@ -2038,6 +2040,24 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     charBuf[fileLength] = '\0';
 }
 
+void
+ParallelDescriptor::Initialize ()
+{
+#ifndef BL_AMRPROF
+    ParmParse pp("amrex");
+    pp.query("use_cuda_aware_mpi", use_cuda_aware_mpi);
+
+    StartTeams();
+#endif
+}
+
+void
+ParallelDescriptor::Finalize ()
+{
+#ifndef BL_AMRPROF
+    EndTeams();
+#endif
+}
 
 #ifndef BL_AMRPROF
 void

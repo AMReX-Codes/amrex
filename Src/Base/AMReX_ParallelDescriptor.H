@@ -94,6 +94,12 @@ namespace ParallelDescriptor
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
+    void Initialize ();
+    void Finalize ();
+
+    extern int use_cuda_aware_mpi;
+    inline bool UseCudaAwareMpi () { return use_cuda_aware_mpi; }
+
     //! Split the process pool into teams
     void StartTeams ();
     void EndTeams ();
