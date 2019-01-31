@@ -1013,18 +1013,6 @@ SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NA
 #endif
 }
 
-struct my_op {
-
-    template <typename T>
-    AMREX_GPU_HOST_DEVICE
-    T operator()(T v1, T v2)  {
-        thrust::get<0>(v1) = thrust::get<0>(v2) + thrust::get<0>(v1);
-        thrust::get<1>(v1) = thrust::get<1>(v2) + thrust::get<1>(v1);
-        return v1 ;
-    }
-
-};
-
 //
 // The GPU implementation of Redistribute
 //
@@ -1142,7 +1130,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.end(),   m_hi.end())),
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
-            thrust::tuple<int, int>(0, 0), my_op());
+            thrust::tuple<int, int>(0, 0), functors::tupleAdd());
 
         size_t new_np;
         if (m_grids_tmp[old_np-1] == gid) {
