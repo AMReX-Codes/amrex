@@ -1,11 +1,18 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = false;
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::m_do_cuda_aware_mpi = false;
+
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+bool
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size { AMREX_D_DECL(1024000,8,8) };
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::tile_size { AMREX_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -44,6 +51,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
+        pp.query("do_cuda_aware_mpi", m_do_cuda_aware_mpi);
         Vector<int> tilesize(AMREX_SPACEDIM);
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
@@ -1558,6 +1566,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Allocate data for rcvs as one big chunk.
     m_recvdata.resize(TotRcvBytes);
     
+    char* rcv_buffer;
+    if (m_do_cuda_aware_mpi) 
+    {
+        rcv_buffer = thrust::raw_pointer_cast(m_recvdata.data());
+    }
+    else 
+    {
+        m_host_rcv_buffer.resize(TotRcvBytes);
+        rcv_buffer = &(m_host_rcv_buffer[0]);
+    }
+    
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
@@ -1567,7 +1586,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(m_recvdata.data() + offset),
+        rreqs[i] = ParallelDescriptor::Arecv(rcv_buffer + offset,
                                              Cnt, Who, SeqNum).req();
     }
     
@@ -1580,13 +1599,28 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
-                                 Cnt, Who, SeqNum);
+        if (m_do_cuda_aware_mpi)
+        {
+            ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
+                                     Cnt, Who, SeqNum);
+        } else 
+        {
+            m_host_snd_buffer.resize(Cnt);
+            thrust::copy(kv.second.begin(), kv.second.end(), m_host_snd_buffer.begin());
+            ParallelDescriptor::Send(thrust::raw_pointer_cast(m_host_snd_buffer.data()),
+                                     Cnt, Who, SeqNum);
+        }
     }
 
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
 
+        if (not m_do_cuda_aware_mpi)
+        {
+            thrust::copy(m_host_rcv_buffer.begin(), m_host_rcv_buffer.end(),
+                         m_recvdata.data());
+        }
+                         
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
             char* buffer = thrust::raw_pointer_cast(m_recvdata.data() + offset);

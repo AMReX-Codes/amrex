@@ -525,6 +525,7 @@ public:
 
     static bool do_tiling;
     static IntVect tile_size;
+    static bool m_do_cuda_aware_mpi;
     
     void SetLevelDirectoriesCreated(bool tf) {
       levelDirectoriesCreated = tf;
@@ -641,6 +642,8 @@ protected:
     mutable thrust::device_vector<int> m_hi;
     mutable thrust::device_vector<int> m_output;
     
+    mutable thrust::host_vector<char> m_host_snd_buffer;
+    mutable thrust::host_vector<char> m_host_rcv_buffer;
 
     mutable thrust::device_vector<amrex::IntVect> m_cells_tmp;
     mutable thrust::device_vector<int> m_grids_tmp;
