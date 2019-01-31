@@ -40,7 +40,7 @@ def generate_filelist(rootdir, outfile, output_data, subdir_prefix=""):
                 subdir_output_data += """
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    """
                 generate_filelist(os.path.join(rootdir, subdir), subdir_file,

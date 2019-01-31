@@ -46,7 +46,6 @@ def make_method_header(description="", parameters=[], space=""):
         return """
 """
 
-
     boilerplate = ""
 
     if description != "":
@@ -65,9 +64,11 @@ def make_method_header(description="", parameters=[], space=""):
 """
         for param in parameters:
             param_name = (param.split('=')[0].strip()).split(' ')[-1]
+            # if param name is surrounded by /* */ ignore it
+            re_commented = re.compile(r"\/\*(\w*)\*\/")
             # if the name ends in & or *, then the prototype only lists
             # the function type, not the parameter name
-            if param_name[-1] == '&' or param_name[-1] == '*':
+            if param_name[-1] == '&' or param_name[-1] == '*' or re_commented.search(param_name):
                 continue
             boilerplate += f"""{space}* \param {param_name}
 """
@@ -176,7 +177,7 @@ def process_header_file(filename):
     last_index = 0
 
     re_prototype = re.compile(
-        r"^([ \t]*)[\w&:~*<> ]+(?:\(\S*?\))*\s*\(([*\w\: \,&\n\t_=\<>\-.\(\)]*)\)[ =\w]*;", flags=re.MULTILINE)
+        r"(?:^[\w&:*\t ]+\n)*^([ \t]*)[\w&:~*<> ]+(?:\(\S*?\))*\s*\(([*\w\: \,&\n\t_=\<>\-.\(\)]*)\)[ =\w]*;", flags=re.MULTILINE)
 
     # markup methods
     for m in re.finditer(re_prototype, data):
@@ -212,7 +213,8 @@ def process_header_file(filename):
     output_data = ""
     last_index = 0
 
-    re_prototype_braces = re.compile(r"^([ \t]*)[\w&:~*<> ]+(?:\(\S*?\))*\s*\(([*\w\: \,&\n\t_=\<>\-.\(\)]*)\)[\s\w]*{[^}]*}", flags=re.MULTILINE)
+    re_prototype_braces = re.compile(
+        r"(?:^[\w&:*\t ]+\n)*^([ \t]*)[\w&:~*<> ]+(?:\(\S*?\))*\s*\(([*\w\: \,&\n\t_=\<>\-.\(\)\/]*)\)[\s\w]*{[^}]*}", flags=re.MULTILINE)
 
     # repeat for methods with braces
     for m in re.finditer(re_prototype_braces, data):
@@ -236,7 +238,8 @@ def process_header_file(filename):
 
         else:
             output_data += data[last_index:m.start()]
-            method_header = make_method_header("", parameters, space=m.group(1))
+            method_header = make_method_header(
+                "", parameters, space=m.group(1))
             last_index = m.start()
 
         output_data += method_header
