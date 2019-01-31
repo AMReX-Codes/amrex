@@ -2,11 +2,6 @@
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::m_do_cuda_aware_mpi = false;
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -51,7 +46,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
-        pp.query("do_cuda_aware_mpi", m_do_cuda_aware_mpi);
         Vector<int> tilesize(AMREX_SPACEDIM);
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
@@ -1555,7 +1549,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     m_recvdata.resize(TotRcvBytes);
     
     char* rcv_buffer;
-    if (m_do_cuda_aware_mpi) 
+    if (ParallelDescriptor::UseGpuAwareMpi()) 
     {
         rcv_buffer = thrust::raw_pointer_cast(m_recvdata.data());
     }
@@ -1587,7 +1581,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        if (m_do_cuda_aware_mpi)
+        if (ParallelDescriptor::UseGpuAwareMpi())
         {
             ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
                                      Cnt, Who, SeqNum);
@@ -1603,7 +1597,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
 
-        if (not m_do_cuda_aware_mpi)
+        if (not ParallelDescriptor::UseGpuAwareMpi())
         {
             thrust::copy(m_host_rcv_buffer.begin(), m_host_rcv_buffer.end(),
                          m_recvdata.data());
