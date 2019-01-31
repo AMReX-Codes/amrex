@@ -22,8 +22,9 @@
 namespace amrex
 {
 
-/// A Real vector in SpaceDim-dimensional space
 /**
+  \brief A Real vector in SpaceDim-dimensional space
+
   The class RealVect is an implementation of a Real vector in a
   SpaceDim-dimensional space.
   RealVect values are accessed using the operator[] function, as for a normal

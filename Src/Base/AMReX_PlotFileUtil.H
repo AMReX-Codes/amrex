@@ -8,38 +8,48 @@
 
 namespace amrex
 {
-    // ---- return the name of the level directory,  e.g., Level_5
+    //!  return the name of the level directory,  e.g., Level_5
     std::string LevelPath (int level, const std::string &levelPrefix = "Level_");
 
-    // ---- return the path of the multifab to write to the header, e.g., Level_5/Cell
+    //!  return the path of the multifab to write to the header, e.g., Level_5/Cell
     std::string MultiFabHeaderPath (int level,
                                     const std::string &levelPrefix = "Level_",
                                     const std::string &mfPrefix = "Cell");
 
-    // ---- return the full path of the level directory, e.g., plt00005/Level_5
+    //!  return the full path of the level directory, e.g., plt00005/Level_5
     std::string LevelFullPath (int level,
                                const std::string &plotfilename,
                                const std::string &levelPrefix = "Level_");
 
-    // ---- return the full path multifab prefix, e.g., plt00005/Level_5/Cell
+    //!  return the full path multifab prefix, e.g., plt00005/Level_5/Cell
     std::string MultiFabFileFullPrefix (int level,
                                         const std::string &plotfilename,
                                         const std::string &levelPrefix = "Level_",
 					const std::string &mfPrefix = "Cell");
 
-    // ---- prebuild a hierarchy of directories
-    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
-    // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
-    // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
-    // ---- after all directories are built
-    // ---- ParallelDescriptor::IOProcessor() creates the directories
+
+    /**
+    * \brief  prebuild a hierarchy of directories
+    *  dirName is built first.  if dirName exists, it is renamed.  then build
+    *  dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
+    *  if callBarrier is true, call ParallelDescriptor::Barrier()
+    *  after all directories are built
+    *  ParallelDescriptor::IOProcessor() creates the directories
+    *
+    * \param &dirName
+    * \param &subDirPrefix
+    * \param nSubDirs
+    * \param callBarrier
+    */
     void PreBuildDirectorHierarchy (const std::string &dirName,
                                     const std::string &subDirPrefix,
 				    int nSubDirs,
 				    bool callBarrier);
 
-    // ---- write a generic plot file header to the file plotfilename/Header
-    // ---- the plotfilename directory must already exist
+    /**
+    *  write a generic plot file header to the file plotfilename/Header
+    *  the plotfilename directory must already exist
+    */
     void WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                                      int nlevels,
 				     const Vector<BoxArray> &bArray,
@@ -76,13 +86,20 @@ namespace amrex
                                   const std::string &mfPrefix = "Cell",
                                   const Vector<std::string>& extra_dirs = Vector<std::string>());
 
-    // write a plotfile to disk given:
-    // -plotfile name
-    // -vector of MultiFabs
-    // -vector of Geometrys
-    // variable names are written as "Var0", "Var1", etc.    
-    // refinement ratio is computed from the Geometry vector
-    // "time" and "level_steps" are set to zero
+
+    /**
+    * \brief write a plotfile to disk given:
+    * -plotfile name
+    * -vector of MultiFabs
+    * -vector of Geometrys
+    * variable names are written as "Var0", "Var1", etc.
+    * refinement ratio is computed from the Geometry vector
+    * "time" and "level_steps" are set to zero
+    *
+    * \param &plotfilename
+    * \param mf
+    * \param &geom
+    */
     void WriteMLMF (const std::string &plotfilename,
                     const Vector<const MultiFab*>& mf,
                     const Vector<Geometry> &geom);
