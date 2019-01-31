@@ -662,7 +662,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                                                          std::max(ngbxx.bigEnd(1)+1, ngbxy.bigEnd(1)),
                                                          0)));
 
-            Gpu::AsyncFab psi(psibox, 1);
+            AsyncFab psi(psibox, 1);
             FArrayBox* psifab = psi.fabPtr();
             GeometryData geomdata = geom[lev].data();
 
@@ -712,16 +712,16 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& dqbxy = amrex::grow(bx, IntVect{1, 2, 1});,
                          const Box& dqbxz = amrex::grow(bx, IntVect{1, 1, 2}););
 
-            Gpu::AsyncFab slope2 (amrex::grow(bx, 2), 1);
+            AsyncFab slope2 (amrex::grow(bx, 2), 1);
             FArrayBox* slope2fab = slope2.fabPtr();
-            Gpu::AsyncFab slope4 (amrex::grow(bx, 1), 1);
+            AsyncFab slope4 (amrex::grow(bx, 1), 1);
             FArrayBox* slope4fab = slope4.fabPtr();
 
             // compute longitudinal fluxes
             // ===========================
 
             // x -------------------------
-            Gpu::AsyncFab phix (gbx, 1);
+            AsyncFab phix (gbx, 1);
             FArrayBox* phixfab = phix.fabPtr();
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxx, tbx,
@@ -740,7 +740,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             // y -------------------------
-            Gpu::AsyncFab phiy (gbx, 1);
+            AsyncFab phiy (gbx, 1);
             FArrayBox* phiyfab = phiy.fabPtr();
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxy, tbx,
@@ -759,7 +759,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             });
 
             // z -------------------------
-            Gpu::AsyncFab phiz (gbx, 1);
+            AsyncFab phiz (gbx, 1);
             FArrayBox* phizfab = phiz.fabPtr();
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxz, tbx,
@@ -788,8 +788,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& gbxz = amrex::grow(bx, 2, 1););
 
             // xy & xz --------------------
-            Gpu::AsyncFab phix_y (gbx, 1);
-            Gpu::AsyncFab phix_z (gbx, 1);
+            AsyncFab phix_y (gbx, 1);
+            AsyncFab phix_z (gbx, 1);
             FArrayBox* phix_yfab = phix_y.fabPtr();
             FArrayBox* phix_zfab = phix_z.fabPtr();
 
@@ -810,8 +810,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             }); 
 
             // yz & yz --------------------
-            Gpu::AsyncFab phiy_x (gbx, 1);
-            Gpu::AsyncFab phiy_z (gbx, 1);
+            AsyncFab phiy_x (gbx, 1);
+            AsyncFab phiy_z (gbx, 1);
             FArrayBox* phiy_xfab = phiy_x.fabPtr();
             FArrayBox* phiy_zfab = phiy_z.fabPtr();
 
@@ -832,8 +832,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             }); 
 
             // zx & zy --------------------
-            Gpu::AsyncFab phiz_x (gbx, 1);
-            Gpu::AsyncFab phiz_y (gbx, 1);
+            AsyncFab phiz_x (gbx, 1);
+            AsyncFab phiz_y (gbx, 1);
             FArrayBox* phiz_xfab = phiz_x.fabPtr();
             FArrayBox* phiz_yfab = phiz_y.fabPtr();
 
@@ -1060,7 +1060,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                                                          std::max(nbxx.bigEnd(1)+1,   nbxy.bigEnd(1)),
                                                          0)));
 
-            Gpu::AsyncFab psi(psibox, 1);
+            AsyncFab psi(psibox, 1);
             FArrayBox* psifab = psi.fabPtr();
             GeometryData geomdata = geom[lev].data();
 
