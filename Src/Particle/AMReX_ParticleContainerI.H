@@ -1035,13 +1035,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
-    BL_PROFILE_VAR_NS("compute_grid", blp_transform);
-    BL_PROFILE_VAR_NS("compute_partition", blp_compute_partition);
-    BL_PROFILE_VAR_NS("copy_partition", blp_copy_partition);
-    BL_PROFILE_VAR_NS("copy_buffer", blp_copy_buffer);
-    BL_PROFILE_VAR_NS("sort_by_dest", blp_sort);
-    BL_PROFILE_VAR_NS("final_copy", blp_copy);
-    BL_PROFILE_VAR_NS("resize", blp_resize);
 
     if (local > 0) BuildRedistributeMask(0, local);
 
@@ -1175,7 +1168,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (int k = 0; k < NArrayInt; ++k) m_int_arrays_to_redistribute[k].resize(new_size);
         m_grids_to_redistribute.resize(new_size);
 
-        BL_PROFILE_VAR_START(blp_copy_partition);        
         //
         // Reorder the particle data based on the partition we just computed
         //
@@ -1217,9 +1209,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 idata.swap(m_idata_r);
             }
         }
-        BL_PROFILE_VAR_STOP(blp_copy_partition);
 
-        BL_PROFILE_VAR_START(blp_copy_buffer);
         //
         // copy the particle data to be moved into temp buffers
         //
@@ -1250,8 +1240,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
 
         ptile.resize(new_np);
-
-        BL_PROFILE_VAR_STOP(blp_copy_buffer);
     }
 
     //
@@ -1266,8 +1254,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (num_to_move > 0)
     {
-        BL_PROFILE_VAR_START(blp_sort);
-
         m_grid_begin.resize(num_grids + 1);
         m_grid_end.resize(num_grids + 1);
 
@@ -1343,9 +1329,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 grid_counts[dest_proc] += 1;
             }
         }
-        BL_PROFILE_VAR_STOP(blp_sort);
-
-        BL_PROFILE_VAR_START(blp_copy);
         
         //
         // Each destination grid, copy the appropriate particle data, passing the non-local data
@@ -1461,7 +1444,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 }
             }
         }
-        BL_PROFILE_VAR_STOP(blp_copy);
     }
 
     RedistributeMPIGPU();
