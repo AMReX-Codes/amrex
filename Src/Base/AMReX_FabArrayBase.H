@@ -277,13 +277,6 @@ public:
     //
     static int MaxComp;
     //
-    // Whether to use CUDA-aware MPI.
-    // If true, MPI buffers will be staged on the GPU and sent
-    // directly from there; if false, the MPI staging buffers
-    // will be on the host.
-    //
-    static int use_cuda_aware_mpi;
-    //
     // Initialize from ParmParse with "fabarray" prefix.
     //
     static void Initialize ();

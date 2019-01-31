@@ -525,6 +525,7 @@ public:
 
     static bool do_tiling;
     static IntVect tile_size;
+    static bool m_do_cuda_aware_mpi;
     
     void SetLevelDirectoriesCreated(bool tf) {
       levelDirectoriesCreated = tf;
@@ -545,8 +546,6 @@ public:
       return doUnlink;
     }
 
-protected:
-
     void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0);
@@ -554,6 +553,14 @@ protected:
     bool OKCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+#ifdef AMREX_USE_CUDA
+    void RedistributeMPIGPU ();
+    
+    void EnforcePeriodicGPU ();
+#endif
+
+protected:
 
     //
     // Checks a particle's location on levels lev_min and higher.
@@ -631,6 +638,12 @@ protected:
     mutable IntVector  m_idata_r;
 
     mutable thrust::device_vector<int> m_grids_r;
+    mutable thrust::device_vector<int> m_lo;
+    mutable thrust::device_vector<int> m_hi;
+    mutable thrust::device_vector<int> m_output;
+    
+    mutable thrust::host_vector<char> m_host_snd_buffer;
+    mutable thrust::host_vector<char> m_host_rcv_buffer;
 
     mutable thrust::device_vector<amrex::IntVect> m_cells_tmp;
     mutable thrust::device_vector<int> m_grids_tmp;
@@ -651,13 +664,6 @@ private:
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
-
-#ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU ();
-    
-    void EnforcePeriodicGPU ();
-
-#endif
 
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
