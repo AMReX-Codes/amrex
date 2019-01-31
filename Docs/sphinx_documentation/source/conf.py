@@ -104,7 +104,7 @@ breathe_projects = {
 breathe_default_project = "amrex"
 
 breathe_default_members = ('members', 'undoc-members', 'protected-members',
-                           'private-members')
+                           'private-members', 'content-only')
 
 breathe_doxygen_config_options = {'EXTRACT_ALL': 'YES',
                                   'SHOW_USED_FILES': 'YES',

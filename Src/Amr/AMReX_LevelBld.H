@@ -10,47 +10,59 @@
 
 namespace amrex {
 
-//
-// Builds problem-specific AmrLevels.
-//
-// Abstract base class specifying an interface for building problem-specific
-// AmrLevels.  
-//
+
+/**
+* \brief Builds problem-specific AmrLevels.
+*
+* Abstract base class specifying an interface for building problem-specific
+* AmrLevels.
+*/
 
 class LevelBld
 {
 public:
 
     virtual ~LevelBld () {}
-    //
-    // Perform any problem-dependent setup such as physical
-    // boundary condition and derived quantities.
-    // This is a pure virtual function and hence MUST
-    // be implemented by derived classes.
-    //
+
+    /**
+    * \brief Perform any problem-dependent setup such as physical
+    * boundary condition and derived quantities.
+    * This is a pure virtual function and hence MUST
+    * be implemented by derived classes.
+    */
     virtual void variableSetUp () = 0;
-    virtual void variableSetUpForNewCompProcs () { } 
-    //
-    // Perform any problem-dependent cleanup.
-    // This is a pure virtual function and hence MUST
-    // be implemented by derived classes.
-    //
+    virtual void variableSetUpForNewCompProcs () { }
+
+    /**
+    * \brief Perform any problem-dependent cleanup.
+    * This is a pure virtual function and hence MUST
+    * be implemented by derived classes.
+    */
     virtual void variableCleanUp () = 0;
-    //
-    // This is a virtual constructor for types derived
-    // from AmrLevel.  The derived type is initialized
-    // with the default constructor.
-    // This is a pure virtual function and hence MUST
-    // be implemented by derived classes.
-    //
+
+    /**
+    * \brief This is a virtual constructor for types derived
+    * from AmrLevel.  The derived type is initialized
+    * with the default constructor.
+    * This is a pure virtual function and hence MUST
+    * be implemented by derived classes.
+    */
     virtual AmrLevel* operator() () = 0;
-    //
-    // This is a virtual constructor for types derived
-    // from AmrLevel.  The derived type is initialized
-    // with the five specified variables.
-    // This is a pure virtual function and hence MUST
-    // be implemented by derived classes.
-    //
+
+    /**
+    * \brief This is a virtual constructor for types derived
+    * from AmrLevel.  The derived type is initialized
+    * with the five specified variables.
+    * This is a pure virtual function and hence MUST
+    * be implemented by derived classes.
+    *
+    * \param papa
+    * \param lev
+    * \param geom_lev
+    * \param ba
+    * \param dm
+    * \param time
+    */
     virtual AmrLevel* operator() (Amr&                       papa,
                                   int                        lev,
                                   const Geometry&            geom_lev,

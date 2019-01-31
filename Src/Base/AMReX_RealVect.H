@@ -18,6 +18,10 @@
 //template<typename T, int n>
 //class IndexTM;
 
+
+namespace amrex
+{
+
 /// A Real vector in SpaceDim-dimensional space
 /**
   The class RealVect is an implementation of a Real vector in a
@@ -26,9 +30,6 @@
   C++ array.  In addition, the basic arithmetic operators have been overloaded
   to implement scaling and translation operations.
 */
-
-namespace amrex
-{
 
 class RealVect
 {
