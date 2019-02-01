@@ -652,7 +652,7 @@ protected:
     
 private:
 
-    virtual void particlePostLocate(const ParticleType& p, const ParticleLocData& pld,
+    virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
                                     const int lev) {};
     
     virtual void correctCellVectors(int old_index, int new_index,
