@@ -554,7 +554,9 @@ public:
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
 #ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU ();
+    void RedistributeMPIGPU (const std::map<int, size_t>& send_bytes,
+                             Vector<int>& DstProc, Vector<std::size_t>& sOffset,
+                             char* snd_buffer);
     
     void EnforcePeriodicGPU ();
 #endif
@@ -641,16 +643,11 @@ protected:
     mutable thrust::device_vector<int> m_hi;
     mutable thrust::device_vector<int> m_output;
     
-    mutable thrust::host_vector<char> m_host_snd_buffer;
-    mutable thrust::host_vector<char> m_host_rcv_buffer;
-
     mutable thrust::device_vector<amrex::IntVect> m_cells_tmp;
     mutable thrust::device_vector<int> m_grids_tmp;
     mutable thrust::device_vector<int> m_grid_begin;
     mutable thrust::device_vector<int> m_grid_end;    
     mutable thrust::device_vector<int> m_index_sequence_tmp;
-    mutable std::map<int, thrust::device_vector<char> > m_not_ours;
-    mutable thrust::device_vector<char> m_recvdata;
     #endif
     
 private:
