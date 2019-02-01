@@ -202,7 +202,7 @@ void MLMG::oneIter (int iter)
     {
         miniCycle(alev);
 
-        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 0);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 1);
 
         // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
@@ -547,7 +547,7 @@ MLMG::interpCorrection (int alev)
     const int ng = 1;
     MultiFab cfine(ba, fine_cor.DistributionMap(), ncomp, ng);
     cfine.setVal(0.0);
-    cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
+    cfine.ParallelCopy(crse_cor, 0, 0, ncomp, ng, ng, crse_geom.periodicity());
 
     bool isEB = fine_cor.hasEBFabFactory();
     ignore_unused(isEB);
@@ -776,7 +776,6 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
-    std::cout << __FILE__<< ":" << __LINE__ << std::endl;
     linop.correctionResidual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
 }
 
@@ -1348,7 +1347,6 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         linop.applyMetricTerm(alev, 0, rhstmp);
         prhs = &rhstmp;
 #endif
-	std::cout << __FILE__<< ":" << __LINE__ << std::endl;
         linop.solutionResidual(alev, *a_res[alev], *sol[alev], *prhs, crse_bcdata);
         if (alev < finest_amr_lev) {
             linop.reflux(alev, *a_res[alev], *sol[alev], *prhs,
