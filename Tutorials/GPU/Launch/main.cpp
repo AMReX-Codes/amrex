@@ -262,8 +262,7 @@ void main_main ()
         {
             const Box& bx = mfi.tilebox();
             FArrayBox* fab = mf.fabPtr(mfi);
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
             {
                 plusone_cudafort(BL_TO_FORTRAN_BOX(tbx),
                                  BL_TO_FORTRAN_ANYD(*fab));
