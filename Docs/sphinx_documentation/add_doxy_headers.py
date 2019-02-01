@@ -31,7 +31,7 @@ def make_class_header(class_name, description, space=""):
 def make_method_header(description="", parameters=[], space=""):
 
     # if both are empty, do nothing
-    if description == "" and parameters == []:
+    if description == "":
         return ""
 
     # remove // from description
@@ -41,7 +41,7 @@ def make_method_header(description="", parameters=[], space=""):
     description = re.sub(r"<", "\<", description)
     description = re.sub(r">", "\>", description)
 
-    if description == "" and parameters == []:
+    if description == "":
         # description was just //, so just return a new line
         return """
 """
@@ -254,7 +254,7 @@ def process_header_file(filename):
         r"^[ \t]*(\/\/[ \t]*[\S \n]*?)\n^(?![ \t]*\/\/)", flags=re.MULTILINE)
 
     re_variable = re.compile(
-        r"^([ \t]*)([~\w:*& <>\[\]=]+;[ \t]*)(?:\/\/[ \t]*)?([\S ]*)?$", flags=re.MULTILINE)
+        r"^([ \t]*)([~\w:*& <>\[\]=,]+;[ \t]*)(?:\/\/[ \t]*)?([\S ]*)?$", flags=re.MULTILINE)
 
     # markup variables
     for m in re.finditer(re_variable, data):
