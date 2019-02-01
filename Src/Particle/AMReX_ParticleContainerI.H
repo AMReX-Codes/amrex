@@ -2,11 +2,6 @@
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::m_do_cuda_aware_mpi = false;
-
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
-bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 ::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
@@ -51,7 +46,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt> :: Initialize 
         
         ParmParse pp("particles");
         pp.query("do_tiling", do_tiling);
-        pp.query("do_cuda_aware_mpi", m_do_cuda_aware_mpi);
         Vector<int> tilesize(AMREX_SPACEDIM);
         if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
             for (int i=0; i<AMREX_SPACEDIM; ++i) tile_size[i] = tilesize[i];
@@ -1110,7 +1104,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                                               floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
 				 );
 
-	    iv += domain.smallEnd();
+            iv += domain.smallEnd();
 
 	    int grid_id = (*mask_ptr)(iv);
 
@@ -1126,7 +1120,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
         });
 
-        thrust::exclusive_scan(thrust::device, 
+        thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()), 
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.end(),   m_hi.end())),
             thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
@@ -1244,7 +1238,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Note that a negative grid id means the particle has left the domain in a non-
     // periodic direction - we remove those from the simulation volume here.
     //
-    for (auto& kv : m_not_ours) kv.second.resize(0);
+    std::map<int, size_t> send_bytes;
+    std::map<int, int> proc_index;
+    Vector<int> DstProc;
+    Vector<std::size_t> sOffset; // Offset (in bytes) in the send buffer    
+    char* snd_buffer;
+
     const int num_grids = ba.size();
     const int num_to_move = m_grids_to_redistribute.size();
 
@@ -1317,18 +1316,47 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         thrust::host_vector<int> stop(m_grid_end);
         
         std::map<int, size_t> grid_counts;
+        std::map<int, size_t> np_counts;
         for (int i = 0; i < num_grids; ++i)
         {
             const int dest_proc = dmap[i];
+            const size_t num_to_add = stop[i+1] - start[i+1];
             if (dest_proc != ParallelDescriptor::MyProc())
             {
                 grid_counts[dest_proc] += 1;
+                np_counts[dest_proc] += num_to_add;
             }
         }
+
+        for (const auto& kv : np_counts)
+        {
+            send_bytes[kv.first] = sizeof(size_t) + kv.second*superparticle_size 
+                + grid_counts[kv.first]*(sizeof(size_t) + 2*sizeof(int));
+        }
         
+        Vector<int> current_sizes;
+        std::size_t TotSndBytes = 0;
+        for (const auto& kv : send_bytes)
+        {
+            DstProc.push_back(kv.first);
+            proc_index[kv.first] = DstProc.size() - 1;
+            sOffset.push_back(TotSndBytes);
+            TotSndBytes += kv.second;
+            current_sizes.push_back(0);
+        }
+
+        if (ParallelDescriptor::UseGpuAwareMpi()) 
+        {
+            snd_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotSndBytes));
+        }
+        else 
+        {
+            snd_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotSndBytes));
+        }
+
         //
         // Each destination grid, copy the appropriate particle data, passing the non-local data
-        // into m_not_ours
+        // into snd_buffer
         //
         for (int i = 0; i < num_grids; ++i)
         {
@@ -1379,41 +1407,38 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
             else // this is the non-local case
             {
-                char* dst;
-                const size_t old_size = m_not_ours[dest_proc].size();
+                char* dst = snd_buffer + sOffset[proc_index[dest_proc]];
+                const size_t old_size = current_sizes[proc_index[dest_proc]];
                 const size_t new_size
                     = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
-
+                
                 if (old_size == 0)
                 {
-                    m_not_ours[dest_proc].resize(new_size + sizeof(size_t));
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(m_not_ours[dest_proc].data()), 
-                                    &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
-                    dst = thrust::raw_pointer_cast(
-                                           m_not_ours[dest_proc].data() + old_size + sizeof(size_t));
+                    current_sizes[proc_index[dest_proc]] = new_size + sizeof(size_t);
+                    cudaMemcpyAsync(dst, &grid_counts[dest_proc], sizeof(size_t), 
+                                    cudaMemcpyHostToHost);
+                    dst += sizeof(size_t);
                 } else
                 {
-                    m_not_ours[dest_proc].resize(new_size);
-                    dst = thrust::raw_pointer_cast(m_not_ours[dest_proc].data() + old_size);
+                    current_sizes[proc_index[dest_proc]] = new_size;
+                    dst += old_size;
                 }
-
-                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
+                
+                cudaMemcpyAsync(dst, &num_to_add, sizeof(size_t), cudaMemcpyHostToHost);
                 dst += sizeof(size_t);
                 
-                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
+                cudaMemcpyAsync(dst, &i, sizeof(int), cudaMemcpyHostToHost);
                 dst += sizeof(int);
                 
-                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
+                cudaMemcpyAsync(dst, &dest_proc, sizeof(int), cudaMemcpyHostToHost);
                 dst += sizeof(int);
                 
                 // pack structs
                 {
 		    auto& aos = m_aos_to_redistribute;
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                    cudaMemcpyAsync(dst, 
                                     thrust::raw_pointer_cast(aos.data() + start[i+1]),
-                                    num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                                    num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(ParticleType);
                 }
 
@@ -1422,9 +1447,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_real_comp[j]) continue;
                     auto& attrib = m_real_arrays_to_redistribute[j];
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                    cudaMemcpyAsync(dst,
                                     thrust::raw_pointer_cast(attrib.data() + start[i+1]),
-                                    num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
+                                    num_to_add*sizeof(Real), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(Real);
                 }
                 
@@ -1433,16 +1458,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_int_comp[j]) continue;
                     auto& attrib = m_int_arrays_to_redistribute[j];
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst),
+                    cudaMemcpyAsync(dst,
                                     thrust::raw_pointer_cast(attrib.data() + start[i+1]),
-                                    num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
+                                    num_to_add*sizeof(int), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(int);
                 }
             }
         }
     }
 
-    RedistributeMPIGPU();
+    RedistributeMPIGPU(send_bytes, DstProc, sOffset, snd_buffer);
 
     EnforcePeriodicGPU();
 
@@ -1493,7 +1518,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::RedistributeMPIGPU ()
+::RedistributeMPIGPU (const std::map<int, size_t>& send_bytes,
+                      Vector<int>& DstProc, Vector<std::size_t>& sOffset,
+                      char* snd_buffer)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPIGPU()");
 
@@ -1506,11 +1533,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     long NumSnds = 0;
 
-    for (const auto& kv : m_not_ours)
+    for (const auto& kv : send_bytes)
     {
-        const int np = kv.second.size(); 
-        Snds[kv.first] = np;
-        NumSnds += np;
+        const size_t nbytes = kv.second;
+        Snds[kv.first] = nbytes;
+        NumSnds += nbytes;
     }
     
     ParallelDescriptor::ReduceLongMax(NumSnds);
@@ -1546,23 +1573,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     
     const int nrcvs = RcvProc.size();
+    const int nsnds = DstProc.size();
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     
-    // Allocate data for rcvs as one big chunk.
-    m_recvdata.resize(TotRcvBytes);
-    
+    // Allocate data for rcvs as one big chunk.    
     char* rcv_buffer;
-    if (m_do_cuda_aware_mpi) 
+    if (ParallelDescriptor::UseGpuAwareMpi()) 
     {
-        rcv_buffer = thrust::raw_pointer_cast(m_recvdata.data());
+        rcv_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotRcvBytes));
     }
     else 
     {
-        m_host_rcv_buffer.resize(TotRcvBytes);
-        rcv_buffer = &(m_host_rcv_buffer[0]);
+        rcv_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotRcvBytes));
     }
     
     // Post receives.
@@ -1570,6 +1595,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         const auto Cnt    = Rcvs[Who];
+        
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
@@ -1579,50 +1605,35 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     
     // Send.
-    for (const auto& kv : m_not_ours) {
-        const auto Who = kv.first;
-        const auto Cnt = kv.second.size();
-        
+    for (int i = 0; i < nsnds; ++i) {
+        const auto Who    = DstProc[i];
+        const auto offset = sOffset[i];
+        const auto Cnt    = Snds[Who];
+
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        if (m_do_cuda_aware_mpi)
-        {
-            ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
-                                     Cnt, Who, SeqNum);
-        } else 
-        {
-            m_host_snd_buffer.resize(Cnt);
-            thrust::copy(kv.second.begin(), kv.second.end(), m_host_snd_buffer.begin());
-            ParallelDescriptor::Send(thrust::raw_pointer_cast(m_host_snd_buffer.data()),
-                                     Cnt, Who, SeqNum);
-        }
+        ParallelDescriptor::Send(snd_buffer + offset, Cnt, Who, SeqNum);
     }
 
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
 
-        if (not m_do_cuda_aware_mpi)
-        {
-            thrust::copy(m_host_rcv_buffer.begin(), m_host_rcv_buffer.end(),
-                         m_recvdata.data());
-        }
-                         
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
-            char* buffer = thrust::raw_pointer_cast(m_recvdata.data() + offset);
+            char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
             size_t num_grids, num_particles;
             int gid, pid;
-            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyDeviceToHost); 
+            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyHostToHost); 
             buffer += sizeof(size_t);
 
             for (int g = 0; g < num_grids; ++g) {
-                cudaMemcpy(&num_particles, buffer, sizeof(size_t), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
                 buffer += sizeof(size_t);
-                cudaMemcpy(&gid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
-                cudaMemcpy(&pid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpy(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
 
                 if (num_particles == 0) continue;
@@ -1641,7 +1652,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     //copy structs
                     cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + old_size,
                                     buffer, num_particles*sizeof(ParticleType),
-                                    cudaMemcpyDeviceToDevice);
+                                    cudaMemcpyHostToDevice);
                     buffer += num_particles*sizeof(ParticleType);
 
                     // copy real arrays 
@@ -1649,7 +1660,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         if (not communicate_real_comp[j]) continue;
                         auto& attrib = soa.GetRealData(j);
                         cudaMemcpyAsync(attrib.data() + old_size, buffer, num_particles*sizeof(Real),
-                                        cudaMemcpyDeviceToDevice);
+                                        cudaMemcpyHostToDevice);
                         buffer += num_particles*sizeof(Real);
                     }
 
@@ -1658,13 +1669,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         if (not communicate_int_comp[j]) continue;
                         auto& attrib = soa.GetIntData(j);
                         cudaMemcpyAsync(attrib.data() + old_size, buffer, num_particles*sizeof(int),
-                                        cudaMemcpyDeviceToDevice);
+                                        cudaMemcpyHostToDevice);
                         buffer += num_particles*sizeof(int);
                     }
                 }       
             }
         }
-    }        
+    }
+
+    if (ParallelDescriptor::UseGpuAwareMpi()) 
+    {
+        amrex::The_Device_Arena()->free(snd_buffer);
+        amrex::The_Device_Arena()->free(rcv_buffer);
+    } else {
+        amrex::The_Pinned_Arena()->free(snd_buffer);
+        amrex::The_Pinned_Arena()->free(rcv_buffer);
+    }
+    
 #endif // MPI    
 }
 #endif // AMREX_USE_CUDA

@@ -345,9 +345,23 @@ public:
 
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
-    Array4<T> array () const
+    Array4<T const> array () const
     {
-        return makeArray4(this->dptr, this->domain);
+        return makeArray4<T const>(this->dptr, this->domain);
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
+    Array4<T> array ()
+    {
+        return makeArray4<T>(this->dptr, this->domain);
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    AMREX_INLINE
+    Array4<T const> const_array () const
+    {
+        return makeArray4<T const>(this->dptr, this->domain);
     }
 
     AMREX_GPU_HOST_DEVICE

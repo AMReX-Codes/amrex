@@ -56,6 +56,7 @@ public:
     }
 
     enum CellType : int {
+        // must be same as in AMReX_YAFluxRegiser_K.H
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
 
