@@ -6,7 +6,7 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void yafluxreg_crseadd (Box const& bx, Array4<Real>& d, Array4<int> const& flag,
+void yafluxreg_crseadd (Box const& bx, Array4<Real> const& d, Array4<int const> const& flag,
                         FArrayBox const& fxfab, Real dtdx, int nc)
 {
     auto const fx = fxfab.array();
@@ -31,7 +31,7 @@ void yafluxreg_crseadd (Box const& bx, Array4<Real>& d, Array4<int> const& flag,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void yafluxreg_fineadd (Box const& bx, Array4<Real>& d, FArrayBox const& ffab,
+void yafluxreg_fineadd (Box const& bx, Array4<Real> const& d, FArrayBox const& ffab,
                         Real dtdx, int nc, int dirside, Dim3 const& rr)
 {
     const auto lo = amrex::lbound(bx);
