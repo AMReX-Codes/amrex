@@ -11,7 +11,7 @@ namespace amrex {
 AMREX_GPU_HOST_DEVICE
 inline
 void
-amrex_setvol (Box const& bx, Array4<Real>& vol,
+amrex_setvol (Box const& bx, Array4<Real> const& vol,
               GpuArray<Real,2> const& offset,
               GpuArray<Real,2> const& dx, const int coord)
 {
@@ -62,7 +62,7 @@ amrex_setvol (Box const& bx, Array4<Real>& vol,
 AMREX_GPU_HOST_DEVICE
 inline
 void
-amrex_setarea (Box const& bx, Array4<Real>& area,
+amrex_setarea (Box const& bx, Array4<Real> const& area,
                GpuArray<Real,2> const& offset,
                GpuArray<Real,2> const& dx, const int dir, const int coord)
 {
@@ -142,7 +142,7 @@ amrex_setarea (Box const& bx, Array4<Real>& area,
 AMREX_GPU_HOST_DEVICE
 inline
 void
-amrex_setdloga (Box const& bx, Array4<Real>& dloga,
+amrex_setdloga (Box const& bx, Array4<Real> const& dloga,
                 GpuArray<Real,2> const& offset,
                 GpuArray<Real,2> const& dx, const int dir, const int coord)
 {

@@ -49,7 +49,7 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
 AMREX_GPU_DEVICE
 inline
 void
-cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real>& u)
+cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u)
 {
     amrex::Real rhoinv = 1.0/u(i,j,k,URHO);
     amrex::Real mx = u(i,j,k,UMX);

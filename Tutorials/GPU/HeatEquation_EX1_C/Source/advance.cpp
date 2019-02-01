@@ -4,7 +4,7 @@
 
 void advance (MultiFab& phi_old,
               MultiFab& phi_new,
-	      Array<MultiFab, AMREX_SPACEDIM> const& flux,
+	      Array<MultiFab, AMREX_SPACEDIM>& flux,
 	      Real dt,
               Geometry const& geom)
 {
@@ -30,10 +30,10 @@ void advance (MultiFab& phi_old,
         const Box& xbx = mfi.nodaltilebox(0);
         const Box& ybx = mfi.nodaltilebox(1);
         const Box& zbx = mfi.nodaltilebox(2);
-        Array4<Real> fluxx = flux[0].array(mfi);
-        Array4<Real> fluxy = flux[1].array(mfi);
-        Array4<Real> fluxz = flux[2].array(mfi);
-        const Array4<Real> phi = phi_old.array(mfi);
+        auto const& fluxx = flux[0].array(mfi);
+        auto const& fluxy = flux[1].array(mfi);
+        auto const& fluxz = flux[2].array(mfi);
+        auto const& phi = phi_old.array(mfi);
 
         AMREX_PARALLEL_FOR_3D ( xbx, i, j, k,
         {
@@ -55,11 +55,11 @@ void advance (MultiFab& phi_old,
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
         const Box& vbx = mfi.validbox();
-        const Array4<Real> fluxx = flux[0].array(mfi);
-        const Array4<Real> fluxy = flux[1].array(mfi);
-        const Array4<Real> fluxz = flux[2].array(mfi);
-        const Array4<Real> phiOld = phi_old.array(mfi);
-        Array4<Real>       phiNew = phi_old.array(mfi);
+        auto const& fluxx = flux[0].array(mfi);
+        auto const& fluxy = flux[1].array(mfi);
+        auto const& fluxz = flux[2].array(mfi);
+        auto const& phiOld = phi_old.array(mfi);
+        auto const& phiNew = phi_old.array(mfi);
 
         AMREX_PARALLEL_FOR_3D ( vbx, i, j, k,
         {
