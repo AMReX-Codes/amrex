@@ -341,7 +341,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     const Box& hibox = hireg.box();
 
     FArrayBox const* pflux = &flux;
-    if (Gpu::isDevicePtr(pflux))
+    if (Gpu::isGpuPtr(pflux))
     {
         FArrayBox* ploreg = bndry[Orientation(dir,Orientation::low)].fabPtr(boxno);
         FArrayBox* phireg = bndry[Orientation(dir,Orientation::high)].fabPtr(boxno);
@@ -387,7 +387,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
 
     FArrayBox const* pflux = &flux;
     FArrayBox const* parea = &area;
-    if (Gpu::isDevicePtr(pflux) && Gpu::isDevicePtr(parea))
+    if (Gpu::isGpuPtr(pflux) && Gpu::isGpuPtr(parea))
     {
         FArrayBox* ploreg = bndry[Orientation(dir,Orientation::low)].fabPtr(boxno);
         FArrayBox* phireg = bndry[Orientation(dir,Orientation::high)].fabPtr(boxno);
