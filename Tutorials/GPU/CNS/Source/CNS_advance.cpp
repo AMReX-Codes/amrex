@@ -79,15 +79,15 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
     {
         const Box& bx = mfi.tilebox();
 
-        const Array4<Real> sfab = S.array(mfi);
-        Array4<Real> dsdtfab = dSdt.array(mfi);
-        AMREX_D_TERM(Array4<Real> fxfab = fluxes[0].array(mfi);,
-                     Array4<Real> fyfab = fluxes[1].array(mfi);,
-                     Array4<Real> fzfab = fluxes[2].array(mfi););
+        auto const& sfab = S.array(mfi);
+        auto const& dsdtfab = dSdt.array(mfi);
+        AMREX_D_TERM(auto const& fxfab = fluxes[0].array(mfi);,
+                     auto const& fyfab = fluxes[1].array(mfi);,
+                     auto const& fzfab = fluxes[2].array(mfi););
 
         const Box& bxg2 = amrex::grow(bx,2);
         AsyncFab q(bxg2, nprim);
-        Array4<Real> qfab = q.array();
+        auto const& qfab = q.array();
 
         AMREX_PARALLEL_FOR_3D ( bxg2, i, j, k,
         {
@@ -96,7 +96,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
 
         const Box& bxg1 = amrex::grow(bx,1);
         AsyncFab slope(bxg1,neqns);
-        Array4<Real> slopefab = slope.array();
+        auto const& slopefab = slope.array();
 
         // x-direction
         int cdir = 0;

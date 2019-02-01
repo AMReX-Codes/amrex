@@ -128,20 +128,7 @@ public:
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
-#if defined(_OPENMP)
-    void operator++ () {
-        if (dynamic) {
-#pragma omp atomic capture
-            currentIndex = nextDynamicIndex++;
-        } else {
-            ++currentIndex;
-        }
-    }
-#elif !defined(AMREX_USE_GPU)
-    void operator++ () { ++currentIndex; }
-#else
     void operator++ ();
-#endif
 
     //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () const { return currentIndex < endIndex; }

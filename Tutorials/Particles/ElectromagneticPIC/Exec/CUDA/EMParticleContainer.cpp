@@ -115,12 +115,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 
                 host_particles.push_back(p);
                 for (int kk = 0; kk < PIdx::nattribs; ++kk)
-                    host_attribs[kk].push_back(attribs[kk]);
-                
-                attribs[PIdx::ux] = u[0] * PhysConst::c;
-                attribs[PIdx::uy] = u[1] * PhysConst::c;
-                attribs[PIdx::uz] = u[2] * PhysConst::c;
-                attribs[PIdx::w ] = a_density * scale_fac;                                
+                    host_attribs[kk].push_back(attribs[kk]);                
             }
         }
         

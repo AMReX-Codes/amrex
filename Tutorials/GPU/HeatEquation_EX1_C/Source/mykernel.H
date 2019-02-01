@@ -5,7 +5,7 @@
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void init_phi (int i, int j, int k,
-               amrex::Array4<amrex::Real>& phi,
+               amrex::Array4<amrex::Real> const& phi,
                GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
                GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo)
 {
@@ -19,8 +19,8 @@ void init_phi (int i, int j, int k,
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void compute_flux_x (int i, int j, int k,
-                     amrex::Array4<amrex::Real>& fluxx,
-                     amrex::Array4<amrex::Real> const& phi, amrex::Real dxinv)
+                     amrex::Array4<amrex::Real> const& fluxx,
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dxinv)
 {
     fluxx(i,j,k) = (phi(i,j,k)-phi(i-1,j,k)) * dxinv;
 }
@@ -28,8 +28,8 @@ void compute_flux_x (int i, int j, int k,
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void compute_flux_y (int i, int j, int k,
-                     amrex::Array4<amrex::Real>& fluxy,
-                     amrex::Array4<amrex::Real> const& phi, amrex::Real dyinv)
+                     amrex::Array4<amrex::Real> const& fluxy,
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dyinv)
 {
     fluxy(i,j,k) = (phi(i,j,k)-phi(i,j-1,k)) * dyinv;
 }
@@ -37,8 +37,8 @@ void compute_flux_y (int i, int j, int k,
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void compute_flux_z (int i, int j, int k,
-                     amrex::Array4<amrex::Real>& fluxz,
-                     amrex::Array4<amrex::Real> const& phi, amrex::Real dzinv)
+                     amrex::Array4<amrex::Real> const& fluxz,
+                     amrex::Array4<amrex::Real const> const& phi, amrex::Real dzinv)
 {
     fluxz(i,j,k) = (phi(i,j,k)-phi(i,j,k-1)) * dzinv;
 }
@@ -46,11 +46,11 @@ void compute_flux_z (int i, int j, int k,
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void update_phi (int i, int j, int k,
-                 amrex::Array4<amrex::Real> const& phiold,
-                 amrex::Array4<amrex::Real>      & phinew,
-                 amrex::Array4<amrex::Real> const& fluxx,
-                 amrex::Array4<amrex::Real> const& fluxy,
-                 amrex::Array4<amrex::Real> const& fluxz,
+                 amrex::Array4<amrex::Real const> const& phiold,
+                 amrex::Array4<amrex::Real      > const& phinew,
+                 amrex::Array4<amrex::Real const> const& fluxx,
+                 amrex::Array4<amrex::Real const> const& fluxy,
+                 amrex::Array4<amrex::Real const> const& fluxz,
                  amrex::Real dt,
                  amrex::Real dxinv, amrex::Real dyinv, amrex::Real dzinv)
 {

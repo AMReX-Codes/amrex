@@ -91,6 +91,7 @@ public:
     void writeOn (std::ostream&) const;
     //
     //! in-place And operator
+    AMREX_GPU_HOST_DEVICE
     Mask& operator&= (const Mask& src) { return And(src); }
 
     /**
@@ -98,6 +99,7 @@ public:
     *
     * \param src
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& And (const Mask& src);
 
     /**
@@ -108,11 +110,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& And (const Mask& src,
                int         srccomp,
                int         destcomp,
                int         numcomp = 1);
-
     /**
     * \brief as above, and specify subregion
     *
@@ -122,12 +124,12 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& And (const Mask& src,
                const Box&  subbox,
                int         srccomp,
                int         destcomp,
                int         numcomp = 1);
-
     /**
     * \brief in-pace And, over source components to destination components,
     * and on intersection of source and destination boxes
@@ -139,14 +141,15 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& And (const Mask& src,
                const Box&  srcbox,
                const Box&  destbox,
                int         srccomp,
                int         destcomp,
                int         numcomp = 1);
-
     //! in-place Or operator
+    AMREX_GPU_HOST_DEVICE
     Mask& operator|= (const Mask& src) { return Or(src); }
 
     /**
@@ -154,6 +157,7 @@ public:
     *
     * \param src
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& Or (const Mask& src);
 
     /**
@@ -164,11 +168,11 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& Or (const Mask& src,
               int         srccomp,
               int         destcomp,
               int         numcomp = 1);
-
     /**
     * \brief as above, and specify subregion
     *
@@ -178,12 +182,12 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& Or (const Mask& src,
               const Box&  subbox,
               int         srccomp,
               int         destcomp,
               int         numcomp = 1);
-
     /**
     * \brief in-pace Or, over source components to destination components,
     * and on intersection of source and destination boxes
@@ -195,6 +199,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
+    AMREX_GPU_HOST_DEVICE
     Mask& Or (const Mask& src,
               const Box&  srcbox,
               const Box&  destbox,
@@ -202,6 +207,120 @@ public:
               int         destcomp,
               int         numcomp = 1);
 };
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::And (const Mask& src)
+{
+    return this->And(src,domain,domain,0,0,nvar);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::And (const Mask& src,
+           int         srccomp,
+           int         destcomp,
+           int         numcomp)
+{
+    return this->And(src,domain,domain,srccomp,destcomp,numcomp);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::And (const Mask& src,
+           const Box&  subbox,
+           int         srccomp,
+           int         destcomp,
+           int         numcomp)
+{
+    return this->And(src,subbox,subbox,srccomp,destcomp,numcomp);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::And (const Mask& src,
+           const Box&  srcbox,
+           const Box&  destbox,
+           int         srccomp,
+           int         destcomp,
+           int         numcomp)
+{
+    const auto len = amrex::length(destbox);
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const auto dp  =     view(dlo, destcomp);
+    const auto sp  = src.view(slo, srccomp);
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,k,n) = dp(i,j,k,n) ? sp(i,j,k,n) : 0;
+                }
+            }
+        }
+    }
+
+    return *this;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::Or (const Mask& src)
+{
+    return this->Or(src,domain,domain,0,0,nvar);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::Or (const Mask& src,
+          int         srccomp,
+          int         destcomp,
+          int         numcomp)
+{
+    return this->Or(src,domain,domain,srccomp,destcomp,numcomp);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::Or (const Mask& src,
+          const Box&  subbox,
+          int         srccomp,
+          int         destcomp,
+          int         numcomp)
+{
+    return this->Or(src,subbox,subbox,srccomp,destcomp,numcomp);
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Mask&
+Mask::Or (const Mask& src,
+          const Box&  srcbox,
+          const Box&  destbox,
+          int         srccomp,
+          int         destcomp,
+          int         numcomp)
+{
+    const auto len = amrex::length(destbox);
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const auto dp  =     view(dlo, destcomp);
+    const auto sp  = src.view(slo, srccomp);
+
+    for (int n = 0; n < numcomp; ++n) {
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = 0; i < len.x; ++i) {
+                    dp(i,j,k,n) = dp(i,j,k,n) ? 1: sp(i,j,k,n);
+                }
+            }
+        }
+    }
+
+    return *this;
+}
 
 }
 

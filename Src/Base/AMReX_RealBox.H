@@ -24,11 +24,11 @@ public:
 
     //! Construct region given diagonal points.
     AMREX_GPU_HOST_DEVICE
-    RealBox (const Real* lo, const Real* hi)
-        : xlo{AMREX_D_DECL(lo[0],lo[1],lo[2])}, xhi{AMREX_D_DECL(hi[0],hi[1],hi[2])} {}
+    RealBox (const Real* a_lo, const Real* a_hi)
+        : xlo{AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2])}, xhi{AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])} {}
 
-    RealBox (const std::array<Real,AMREX_SPACEDIM>& lo,
-             const std::array<Real,AMREX_SPACEDIM>& hi);
+    RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
+             const std::array<Real,AMREX_SPACEDIM>& a_hi);
 
     /**
     * \brief Construct region given index box, cell spacing

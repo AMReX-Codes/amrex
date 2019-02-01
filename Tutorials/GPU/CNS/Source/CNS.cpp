@@ -422,7 +422,7 @@ CNS::computeTemp (MultiFab& State, int ng)
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        Array4<Real> sfab = State.array(mfi);
+        auto const& sfab = State.array(mfi);
         AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
         {
             cns_compute_temperature(i,j,k,sfab);

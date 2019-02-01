@@ -46,13 +46,9 @@ public:
     }
     virtual void update () final override;
 
-protected:
-
-    bool m_needs_update = true;
-
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual bool isCrossStencil () const { return false; }
+    virtual bool isCrossStencil () const override { return false; }
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final override;
@@ -99,6 +95,10 @@ protected:
 #ifdef AMREX_USE_PETSC
     virtual std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
+
+protected:
+
+    bool m_needs_update = true;
 
 private:
 

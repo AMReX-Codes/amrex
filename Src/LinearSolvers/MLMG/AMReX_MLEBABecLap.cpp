@@ -4,11 +4,11 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EBFArrayBox.H>
 
+#include <AMReX_MG_K.H>
 #include <AMReX_MLEBABecLap_F.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
-#include <AMReX_MG_F.H>
 #include <AMReX_EBMultiFabUtil_F.H>
 
 #ifdef AMREX_USE_HYPRE
@@ -819,28 +819,29 @@ MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiF
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][fmglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
-    {
-        const Box&         bx    = mfi.tilebox();
-        const int          ncomp = getNComp();
-        const FArrayBox& cfab    = crse[mfi];
-        FArrayBox&       ffab    = fine[mfi];
+    const int ncomp = getNComp();
 
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx    = mfi.tilebox();
         auto fabtyp = (flags) ? (*flags)[mfi].getType(amrex::refine(bx,2)) : FabType::regular;
 
         if (fabtyp == FabType::regular)
         {
-            amrex_mg_interp(ffab.dataPtr(),
-                            AMREX_ARLIM(ffab.loVect()), AMREX_ARLIM(ffab.hiVect()),
-                            cfab.dataPtr(),
-                            AMREX_ARLIM(cfab.loVect()), AMREX_ARLIM(cfab.hiVect()),
-                            bx.loVect(), bx.hiVect(), &ncomp);
+            auto const cfab = crse.array(mfi);
+            auto       ffab = fine.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+            {
+                mg_cc_interp(i,j,k,n,ffab,cfab);
+            });
         }
         else if (fabtyp == FabType::singlevalued)
         {
+            const FArrayBox& cfab = crse[mfi];
+            FArrayBox&       ffab = fine[mfi];
             amrex_eb_mg_interp(BL_TO_FORTRAN_BOX(bx),
                                BL_TO_FORTRAN_ANYD(ffab),
                                BL_TO_FORTRAN_ANYD(cfab),
