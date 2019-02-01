@@ -83,19 +83,6 @@ extern "C"
 				 const int* level, const int* grid_no) ;
 }
 
-
-/**
-*
-* \param bx
-* \param derfab
-* \param dcomp
-* \param ncomp
-* \param datafab
-* \param geomdata
-* \param time
-* \param bcrec
-* \param level
-*/
 typedef void (*DeriveFuncFab) (const amrex::Box& bx, amrex::FArrayBox& derfab, int dcomp, int ncomp,
                                const amrex::FArrayBox& datafab, const amrex::Geometry& geomdata,
                                amrex::Real time, const int* bcrec, int level);
@@ -125,17 +112,8 @@ public:
     */
     typedef Box (*DeriveBoxMap)(const Box&);
 
-
-    /**
-    *
-    * \param box
-    */
     static Box TheSameBox (const Box& box);
 
-    /**
-    *
-    * \param box
-    */
     static Box GrowBoxByOne (const Box& box);
 
     /**
@@ -230,15 +208,6 @@ protected:
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param der_func_3d
-    * \param box_map
-    * \param interp
-    */
     DeriveRec (const std::string& name,
                IndexType      result_type,
                int            nvar_derive,
@@ -246,15 +215,6 @@ protected:
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param der_func_fab
-    * \param box_map
-    * \param interp
-    */
     DeriveRec (const std::string& name,
                IndexType      result_type,
                int            nvar_derive,
@@ -295,16 +255,6 @@ protected:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param var_names
-    * \param der_func_3d
-    * \param box_map
-    * \param interp
-    */
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
@@ -313,16 +263,6 @@ protected:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param var_names
-    * \param der_func_fab
-    * \param box_map
-    * \param interp
-    */
     DeriveRec (const std::string&  name,
                IndexType           result_type,
                int                 nvar_derive,
@@ -331,28 +271,14 @@ protected:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
-
-    /**
-    *
-    * \param d_list
-    * \param state_indx
-    * \param src_comp
-    * \param num_comp
-    */
     void addRange (const DescriptorList& d_list,
                    int                   state_indx,
                    int                   src_comp,
                    int                   num_comp);
 
-
-    /**
-    *
-    * \param d_list
-    */
     void buildBC (const DescriptorList& d_list);
-    //
-    // An element of a linked list to point to state quantities in AmrLevels.
-    //
+
+    //! An element of a linked list to point to state quantities in AmrLevels.
     struct StateRange
     {
         int         typ;
@@ -446,15 +372,6 @@ public:
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param der_func_3d
-    * \param box_map
-    * \param interp
-    */
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -462,15 +379,6 @@ public:
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param der_func_fab
-    * \param box_map
-    * \param interp
-    */
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -511,16 +419,6 @@ public:
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param var_names
-    * \param der_func_3d
-    * \param box_map
-    * \param interp
-    */
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -529,16 +427,6 @@ public:
               DeriveRec::DeriveBoxMap box_map,
               Interpolater*           interp = &pc_interp);
 
-    /**
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param var_names
-    * \param der_func_fab
-    * \param box_map
-    * \param interp
-    */
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,

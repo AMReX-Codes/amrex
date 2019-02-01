@@ -73,11 +73,6 @@ public:
     //! Copy assignment operator.
     InterpBndryData& operator= (const InterpBndryData& rhs);
 
-
-    /**
-    *
-    * \param rhs
-    */
     InterpBndryData (InterpBndryData&& rhs) = delete;
     InterpBndryData& operator= (InterpBndryData&& rhs) = delete;
 
@@ -118,16 +113,6 @@ public:
                                  int             num_comp,
                                  const BCRec&    phys_bc);
 
-
-    /**
-    *
-    * \param mf
-    * \param mf_start
-    * \param bnd_start
-    * \param num_comp
-    * \param ratio
-    * \param phys_bc
-    */
     virtual void setBndryValues (const MultiFab& mf,
                                  int             mf_start,
                                  int             bnd_start,
@@ -135,16 +120,6 @@ public:
                                  int             ratio,
                                  const BCRec&    phys_bc);
 
-
-    /**
-    *
-    * \param mf
-    * \param mf_start
-    * \param bnd_start
-    * \param num_comp
-    * \param ratio
-    * \param phys_bc
-    */
     virtual void setBndryValues (const MultiFab& mf,
                                  int             mf_start,
                                  int             bnd_start,
@@ -198,29 +173,9 @@ public:
                                  const BCRec&    phys_bc,
                                  int             max_order = IBD_max_order_DEF);
 
-
-    /**
-    *
-    * \param crse
-    * \param c_start
-    * \param bnd_start
-    * \param num_comp
-    * \param ratio
-    * \param max_order
-    */
     void updateBndryValues (BndryRegister& crse, int c_start, int bnd_start, int num_comp,
                             const IntVect& ratio, int max_order = IBD_max_order_DEF);
 
-
-    /**
-    *
-    * \param crse
-    * \param c_start
-    * \param bnd_start
-    * \param num_comp
-    * \param ratio
-    * \param max_order
-    */
     void updateBndryValues (BndryRegister& crse, int c_start, int bnd_start, int num_comp,
                             int ratio, int max_order = IBD_max_order_DEF);
 
@@ -232,19 +187,6 @@ public:
 
 private:
 
-
-    /**
-    *
-    * \param crse
-    * \param c_start
-    * \param fine
-    * \param f_start
-    * \param bnd_start
-    * \param num_comp
-    * \param ratio
-    * \param phys_bc
-    * \param max_order
-    */
     void BndryValuesDoIt (BndryRegister&  crse,
                           int             c_start,
                           const MultiFab* fine,

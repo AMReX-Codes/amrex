@@ -145,7 +145,7 @@ public:
                int         srccomp,
                int         destcomp,
                int         numcomp = 1);
-    //
+
     //! in-place Or operator
     Mask& operator|= (const Mask& src) { return Or(src); }
 

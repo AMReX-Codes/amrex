@@ -45,18 +45,8 @@ public:
     */
     virtual ~FluxRegister ();
 
-
-    /**
-    *
-    * \param rhs
-    */
     FluxRegister (FluxRegister&& rhs) noexcept = default;
 
-
-    /**
-    *
-    * \param rhs
-    */
     FluxRegister (const FluxRegister& rhs) = delete;
     FluxRegister& operator= (const FluxRegister& rhs) = delete;
     FluxRegister& operator= (FluxRegister&& rhs) = delete;
@@ -330,16 +320,6 @@ public:
                  int             numcomp,
                  const Geometry& crse_geom);
 
-
-    /**
-    *
-    * \param crse_fluxes
-    * \param scale
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
-    * \param crse_geom
-    */
     void OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                         Real scale, int srccomp, int destcomp, int numcomp,
                         const Geometry& crse_geom);

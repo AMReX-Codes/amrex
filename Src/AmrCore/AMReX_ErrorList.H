@@ -18,13 +18,13 @@ extern "C"
     * \brief Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
     *
     * \param tag
-    * \param AMREX_ARLIM_P(tlo)
-    * \param AMREX_ARLIM_P(thi)
+    * \param tlo
+    * \param thi
     * \param tagval
     * \param clearval
     * \param data
-    * \param AMREX_ARLIM_P(data_lo)
-    * \param AMREX_ARLIM_P(data_hi)
+    * \param data_lo
+    * \param data_hi
     * \param lo
     * \param hi
     * \param nvar
@@ -45,26 +45,6 @@ extern "C"
                                      const amrex::Real* prob_lo, const amrex::Real* time,
                                      const int* level);
 
-
-    /**
-    *
-    * \param tag
-    * \param AMREX_ARLIM_P(tlo)
-    * \param AMREX_ARLIM_P(thi)
-    * \param tagval
-    * \param clearval
-    * \param data
-    * \param AMREX_ARLIM_P(data_lo)
-    * \param AMREX_ARLIM_P(data_hi)
-    * \param lo
-    * \param hi
-    * \param nvar
-    * \param domain_lo
-    * \param domain_hi
-    * \param dx
-    * \param level
-    * \param avg
-    */
     typedef void (*ErrorFunc2Default)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
                                       const int* tagval, const int* clearval,
                                       amrex::Real* data, AMREX_ARLIM_P(data_lo), AMREX_ARLIM_P(data_hi),
@@ -166,13 +146,13 @@ public:
         * \brief Tag cells using "regular" function.
         *
         * \param tag
-        * \param AMREX_ARLIM_P(tlo)
-        * \param AMREX_ARLIM_P(thi)
+        * \param tlo
+        * \param thi
         * \param tagval
         * \param clearval
         * \param data
-        * \param AMREX_ARLIM_P(data_lo)
-        * \param AMREX_ARLIM_P(data_hi)
+        * \param data_lo
+        * \param data_hi
         * \param lo
         * \param hi
         * \param nvar
@@ -259,13 +239,13 @@ public:
         * \brief Tag cells cells using "v2" interface
         *
         * \param tag
-        * \param AMREX_ARLIM_P(tlo)
-        * \param AMREX_ARLIM_P(thi)
+        * \param tlo
+        * \param thi
         * \param tagval
         * \param clearval
         * \param data
-        * \param AMREX_ARLIM_P(data_lo)
-        * \param AMREX_ARLIM_P(data_hi)
+        * \param data_lo
+        * \param data_hi
         * \param lo
         * \param hi
         * \param nvar
@@ -299,13 +279,6 @@ public:
               ErrorType                   etyp,
               const ErrorRec::ErrorFunc2& f2);
 
-    /**
-    *
-    * \param nm
-    * \param ng
-    * \param etyp
-    * \param f
-    */
     ErrorRec (const std::string&         nm,
               int                        ng,
               ErrorType                  etyp,
@@ -379,27 +352,14 @@ public:
               ErrorRec::ErrorType typ,
               const ErrorRec::ErrorFunc&    func);
 
-    /**
-    *
-    * \param name
-    * \param nextra
-    * \param typ
-    * \param func
-    */
     void add (const std::string&  name,
               int                 nextra,
               ErrorRec::ErrorType typ,
               const ErrorRec::ErrorFunc2&   func);
-    //
-    // The kth ErrorRec.
-    //
+
+    //! The kth ErrorRec.
     const ErrorRec& operator[] (int k) const;
 
-
-    /**
-    *
-    * \param rs0
-    */
     void clear (bool rs0 = false) { vec.clear(); if(rs0) { vec.resize(0); } }
 
 private:
@@ -407,12 +367,6 @@ private:
     Vector<std::unique_ptr<ErrorRec> > vec;
 };
 
-
-/**
-*
-* \param os
-* \param elst
-*/
 std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
 }

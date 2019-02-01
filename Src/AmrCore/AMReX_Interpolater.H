@@ -109,18 +109,8 @@ public:
                           const Geometry&  fine_geom,
                           Vector<BCRec>&    bcr) {};
 
-
-    /**
-    *
-    * \param ratio
-    */
     virtual InterpolaterBoxCoarsener BoxCoarsener (const IntVect& ratio);
 
-
-    /**
-    *
-    * \param bcr
-    */
     static Vector<int> GetBCArray (const Vector<BCRec>& bcr);
 };
 

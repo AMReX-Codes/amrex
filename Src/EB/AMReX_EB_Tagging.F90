@@ -19,7 +19,7 @@ contains
   !! \param dx          => cell size
   !! \param problo      => phys loc of lower left corner of prob domain
   !! \param time        => problem evolution time
-  !! \param level       => refinement level of this array
+  !!        level       => refinement level of this array
   ! -----------------------------------------------------------
 
   subroutine amrex_eb_levelset_error(tag,   tag_lo,   tag_hi,   &

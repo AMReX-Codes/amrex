@@ -78,9 +78,7 @@ public:
     * \brief Boundary of the whole domain. This functions must be called,
     * and must be called before other bc functions.
     *
-    * \param Array<BCType
     * \param lobc
-    * \param Array<BCType
     * \param hibc
     */
     void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,

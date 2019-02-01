@@ -210,9 +210,9 @@ public:
     /**
     * \brief Compute flux associated with the op
     *
-    * \param &xflux
-    * \param &yflux
-    * \param &zflux)
+    * \paramxflux
+    * \paramyflux
+    * \paramzflux)
     * \param in
     * \param bc_mode
     * \param sComp

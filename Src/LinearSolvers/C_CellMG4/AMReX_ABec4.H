@@ -82,9 +82,9 @@ public:
     /**
     * \brief Compute extensive (area-weighted) flux associated with the op
     *
-    * \param &xflux
-    * \param &yflux
-    * \param &zflux)
+    * \param xflux
+    * \param yflux
+    * \param zflux)
     * \param in
     * \param bc_mode
     * \param src_comp
@@ -269,7 +269,7 @@ protected:
     /**
     * \brief initialize a full set (a,b) of coefficients on the box array
     *
-    * \param &_ba
+    * \param _ba
     * \param _dm
     */
     void initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm);

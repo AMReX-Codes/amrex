@@ -148,7 +148,7 @@ public:
     /**
     * \brief For MAC projection
     *
-    * \param &b
+    * \param b
     */
     void set_mac_coeffs (const Vector<MultiFab*> &b);
 

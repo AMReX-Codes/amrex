@@ -46,8 +46,6 @@ public:
 
     /**
     * \brief Default constructor.
-    *
-    * \param BndryData(
     */
     MCInterpBndryData () : BndryData() {}
 
