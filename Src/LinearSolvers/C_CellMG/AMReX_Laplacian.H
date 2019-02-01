@@ -57,9 +57,9 @@ public:
     /**
     * \brief Compute flux associated with the op
     *
-    * \param &xflux
-    * \param &yflux
-    * \param &zflux)
+    * \paramxflux
+    * \paramyflux
+    * \paramzflux)
     * \param in
     * \param bc_mode
     * \param sComp
@@ -93,7 +93,7 @@ protected:
                          int             level) override;
 
     /**
-    * \brief apply GSRB smoother to improve residual to L(solnL)=rhsL
+    * \brief apply GSRB smoother to improve residual to ``L(solnL)=rhsL``
     *
     * \param solnL
     * \param rhsL
@@ -106,7 +106,7 @@ protected:
                           int             rgbflag) override;
 
     /**
-    * \brief apply Jacobi smoother to improve residual to L(solnL)=rhsL
+    * \brief apply Jacobi smoother to improve residual to ``L(solnL)=rhsL``
     *
     * \param solnL
     * \param rhsL

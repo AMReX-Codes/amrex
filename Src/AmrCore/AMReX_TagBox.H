@@ -50,28 +50,13 @@ public:
     explicit TagBox (const Box& bx, int n = 1, bool alloc = true, bool shared = false);
 
 #ifdef AMREX_USE_GPU
-
-    /**
-    *
-    * \param rhs
-    * \param make_type
-    */
     TagBox (const TagBox& rhs, MakeType make_type);
 #endif
 
     ~TagBox () = default;
 
-    /**
-    *
-    * \param rhs
-    */
     TagBox (TagBox&& rhs) noexcept = default;
 
-
-    /**
-    *
-    * \param rhs
-    */
     TagBox (const TagBox& rhs) = delete;
     TagBox& operator= (const TagBox& rhs) = delete;
     TagBox& operator= (TagBox&& rhs) = delete;
@@ -204,18 +189,8 @@ public:
 
     ~TagBoxArray () override = default;
 
-
-    /**
-    *
-    * \param rhs
-    */
     TagBoxArray (TagBoxArray&& rhs) noexcept = default;
 
-
-    /**
-    *
-    * \param rhs
-    */
     TagBoxArray (const TagBoxArray& rhs) = delete;
     TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
     TagBoxArray& operator= (TagBoxArray&& rhs) = delete;

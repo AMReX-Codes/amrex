@@ -98,30 +98,11 @@ class NFilesIter
     */
     std::streampos SeekPos();
 
-
-    /**
-    *
-    * \param nProcs
-    * \param nOutFiles
-    */
     static int LengthOfSet(int nProcs, int nOutFiles) {
-
-      /**
-      *
-      * \param ActualNFiles(nOutFiles)
-      */
       int anf(ActualNFiles(nOutFiles));
       return ((nProcs + (anf - 1)) / anf);
     }
 
-
-    /**
-    *
-    * \param whichproc
-    * \param nprocs
-    * \param noutfiles
-    * \param groupsets
-    */
     static int WhichSetPosition(int whichproc, int nprocs,
                                 int noutfiles, bool groupsets)
     {
@@ -143,13 +124,6 @@ class NFilesIter
     */
     static int ActualNFiles(int nOutFiles)
     {
-
-      /**
-      *
-      * \param std::max(1
-      * \param std::min(ParallelDescriptor::NProcs()
-      * \param nOutFiles))
-      */
       return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
     }
 
@@ -164,36 +138,16 @@ class NFilesIter
     */
     static bool CheckNFiles(int nProcs, int nOutFiles, bool groupSets);
 
-
-    /**
-    *
-    * \param nOutFiles
-    * \param whichProc
-    * \param groupSets
-    */
     static int FileNumber(int nOutFiles, int whichProc, bool groupSets)
     {
-
-      /**
-      *
-      * \param >
-      */
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
-      /**
-      *
-      * \param ActualNFiles(nOutFiles)
-      */
       int anf(ActualNFiles(nOutFiles));
       if(groupSets) {
         return(whichProc % anf);
       } else {
 
-	/**
-	*
-	* \param ParallelDescriptor::NProcs()
-	*/
-	int nProcs(ParallelDescriptor::NProcs());
+	    int nProcs(ParallelDescriptor::NProcs());
         return(whichProc / LengthOfSet(nProcs, anf));
       }
     }
@@ -201,54 +155,20 @@ class NFilesIter
     const std::string &FileName() const { return fullFileName; }
     int FileNumber() const { return fileNumber; }
 
-
-    /**
-    *
-    * \param nOutFiles
-    * \param &filePrefix
-    * \param whichProc
-    * \param groupSets
-    */
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
 				int whichProc, bool groupSets)
     {
-
-      /**
-      *
-      * \param >
-      */
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
 
-      /**
-      *
-      * \param amrex::Concatenate(filePrefix
-      * \param FileNumber(ActualNFiles(nOutFiles)
-      * \param whichProc
-      * \param groupSets)
-      * \param )
-      */
       return ( amrex::Concatenate(filePrefix,
                                    FileNumber(ActualNFiles(nOutFiles),
 				              whichProc, groupSets), minDigits ) );
     }
 
-
-    /**
-    *
-    * \param fileNumber
-    * \param &filePrefix
-    */
     static std::string FileName(int fileNumber,
                                 const std::string &filePrefix)
     {
-
-      /**
-      *
-      * \param amrex::Concatenate(filePrefix
-      * \param fileNumber
-      * \param )
-      */
       return ( amrex::Concatenate(filePrefix, fileNumber, minDigits ) );
     }
 
@@ -276,10 +196,6 @@ class NFilesIter
 
     static int  GetMinDigits()       { return minDigits; }
 
-    /**
-    *
-    * \param md
-    */
     static void SetMinDigits(int md) { minDigits = md;   }
 
   private:

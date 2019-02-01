@@ -123,7 +123,6 @@ struct Particle
     /**
     * \brief Old, *-based CIC for use in Interp.
     *
-    * \param Particle<NReal
     * \param p
     * \param plo
     * \param dx
@@ -140,7 +139,6 @@ struct Particle
     /**
     * \brief Wraps the arbitrary dx function.
     *
-    * \param Particle<NReal
     * \param p
     * \param plo
     * \param dx
@@ -156,7 +154,6 @@ struct Particle
     /**
     * \brief Does CIC computations for arbitrary particle/grid dx's.
     *
-    * \param Particle<NReal
     * \param p
     * \param plo
     * \param dx_geom

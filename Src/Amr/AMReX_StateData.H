@@ -64,17 +64,8 @@ public:
     */
     ~StateData ();
 
-
-    /**
-    *
-    * \param rhs
-    */
     StateData (StateData&& rhs) noexcept;
 
-    /**
-    *
-    * \param rhs
-    */
     StateData (StateData const& rhs) = delete;
     void operator= (StateData && rhs) = delete;
     void operator= (StateData const& rhs);
@@ -195,36 +186,11 @@ public:
     */
     void setNewTimeLevel (Real t_new);
 
-
-    /**
-    *
-    * \param t_new
-    */
     void syncNewTimeLevel (Real t_new);
 
-
-    /**
-    *
-    * \param multiFabCopyDesc
-    * \param mfid
-    */
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Vector<MultiFabId>&      mfid);
 
-
-    /**
-    *
-    * \param multiFabCopyDesc
-    * \param mfid
-    * \param returnedUnfillableBoxes
-    * \param returnedFillBoxIds
-    * \param subbox
-    * \param time
-    * \param src_comp
-    * \param dest_comp
-    * \param num_comp
-    * \param extrap
-    */
     void InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
 		       Vector<MultiFabId>&      mfid,
 		       BoxList*                returnedUnfillableBoxes,
@@ -236,19 +202,6 @@ public:
 		       int                     num_comp,
 		       bool                    extrap = false);
 
-
-    /**
-    *
-    * \param fabCopyDesc
-    * \param mfid
-    * \param fillBoxIds
-    * \param dest
-    * \param time
-    * \param src_comp
-    * \param dest_comp
-    * \param num_comp
-    * \param extrap
-    */
     void InterpFillFab (MultiFabCopyDescriptor&  fabCopyDesc,
 			const Vector<MultiFabId>& mfid,
 			const Vector<FillBoxId>&  fillBoxIds,
@@ -279,17 +232,6 @@ public:
                        int            src_comp,
                        int            num_comp = 1);
 
-
-    /**
-    *
-    * \param bx
-    * \param dest
-    * \param time
-    * \param geom
-    * \param dest_comp
-    * \param src_comp
-    * \param num_comp
-    */
     void FillBoundary (Box const&      bx,
                        FArrayBox&      dest,
                        Real            time,
@@ -441,13 +383,6 @@ public:
     */
     bool hasNewData () const { return new_data != nullptr; }
 
-
-    /**
-    *
-    * \param data
-    * \param datatime
-    * \param time
-    */
     void getData (Vector<MultiFab*>& data,
 		  Vector<Real>& datatime,
 		  Real time) const;
@@ -460,11 +395,6 @@ public:
     static const Vector<std::string> &FabArrayHeaderNames() { return fabArrayHeaderNames; }
     static void ClearFabArrayHeaderNames() { fabArrayHeaderNames.clear(); }
 
-    /**
-    *
-    * \param std::map<std::string
-    * \param *fahmp
-    */
     static void SetFAHeaderMapPtr(std::map<std::string, Vector<char> > *fahmp) { faHeaderMap = fahmp; }
 
 
@@ -506,17 +436,10 @@ private:
     * names written during a checkpoint
     */
     static Vector<std::string> fabArrayHeaderNames;
-    //
-    // This is used to store preread FabArray headers
-    //
+
+    //! This is used to store preread FabArray headers
     static std::map<std::string, Vector<char> > *faHeaderMap;  // ---- [faheader name, the header]
 
-
-    /**
-    *
-    * \param is
-    * \param restart_file
-    */
     void restartDoit (std::istream& is, const std::string& restart_file);
 };
 
@@ -525,22 +448,8 @@ class StateDataPhysBCFunct
 {
 public:
 
-    /**
-    *
-    * \param sd
-    * \param sc
-    * \param geom_
-    */
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
-
-    /**
-    *
-    * \param mf
-    * \param dcomp
-    * \param ncomp
-    * \param time
-    * \param bccomp
-    */
+    
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) override;
     using PhysBCFunctBase::FillBoundary;
 private:

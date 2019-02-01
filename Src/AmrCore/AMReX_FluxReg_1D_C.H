@@ -78,18 +78,6 @@ fluxreg_fineareaadd (Box const& bx, FArrayBox& regfab, const int rcomp,
     }
 }
 
-
-/**
-*
-* \param bx
-* \param sfab
-* \param scomp
-* \param ffab
-* \param vfab
-* \param ncomp
-* \param mult
-* \param face
-*/
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux (Box const& bx, FArrayBox& sfab, const int scomp,
                 FArrayBox const& ffab, FArrayBox const& vfab,

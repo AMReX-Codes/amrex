@@ -13,19 +13,6 @@
 
 namespace amrex {
 
-
-/**
-*
-* \param bx
-* \param data
-* \param dcomp
-* \param numcomp
-* \param geom
-* \param time
-* \param bcr
-* \param bcomp
-* \param scomp
-*/
 typedef void (*BndryFuncFabDefault) (Box const& bx, FArrayBox& data,
                                      const int dcomp, const int numcomp,
                                      Geometry const& geom, const Real time,
@@ -44,15 +31,15 @@ class StateDescriptor
     friend class DescriptorList;
 
 public:
-    //
-    // Defines the temporal centeredness of data.
-    //
+
+    //! Defines the temporal centeredness of data.
     enum TimeCenter { Point = 0 , Interval };
-    //
-    // Type of function called by BCRec for user-supplied boundary data.
-    //
-    // Class wrapper around BndryFuncDefault.
-    //
+
+    /**
+    * Type of function called by BCRec for user-supplied boundary data.
+    *
+    * Class wrapper around BndryFuncDefault.
+    */
     class BndryFunc
     {
     public:
@@ -64,39 +51,22 @@ public:
 
         /**
         * \brief A Constructor.
-        *
-        * \param m_func(inFunc
         */
         BndryFunc (BndryFuncDefault inFunc) : m_func(inFunc) {}
 
-        /**
-        *
-        * \param m_func3D(inFunc
-        */
         BndryFunc (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
 
-        /**
-        *
-        * \param m_funcfab(inFunc
-        */
         BndryFunc (BndryFuncFabDefault inFunc) : m_funcfab(inFunc) {}
 
         /**
         * \brief Another Constructor.
         *
         * \param inFunc
-        * \param m_func(inFunc)
-        * \param m_gfunc(gFunc
+        * \param gFunc
         */
         BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc)
             : m_func(inFunc), m_gfunc(gFunc) {}
 
-        /**
-        *
-        * \param inFunc
-        * \param m_func3D(inFunc)
-        * \param m_gfunc3D(gFunc
-        */
         BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc)
             : m_func3D(inFunc), m_gfunc3D(gFunc) {}
 
@@ -110,11 +80,10 @@ public:
         * \brief Destructor.
         */
         virtual ~BndryFunc ();
-	//
-	// Fill boundary cells using "regular" function.
 
 	/**
-	*
+	* Fill boundary cells using "regular" function.
+    *
 	* \param data
 	* \param lo
 	* \param hi
@@ -149,19 +118,6 @@ public:
                                   const Real* dx, const Real* grd_lo,
                                   const Real* time, const int* bc, int ng) const;
 
-
-        /**
-        *
-        * \param bx
-        * \param data
-        * \param dcomp
-        * \param numcomp
-        * \param geom
-        * \param time
-        * \param bcr
-        * \param bcomp
-        * \param scomp
-        */
         virtual void operator () (Box const& bx, FArrayBox& data,
                                   const int dcomp, const int numcomp,
                                   Geometry const& geom, const Real time,
@@ -170,10 +126,6 @@ public:
 
         bool RunOnGPU () const { return m_run_on_gpu; }
 
-        /**
-        *
-        * \param b
-        */
         void setRunOnGPU (bool b) { m_run_on_gpu = b; }
 
         bool hasFabVersion () const { return m_funcfab != nullptr; }
@@ -428,18 +380,8 @@ public:
     */
     bool store_in_checkpoint () const;
 
-
-    /**
-    *
-    * \param i
-    */
     bool master (int i) const { return m_master[i]; }
 
-
-    /**
-    *
-    * \param i
-    */
     int groupsize (int i) const { return m_groupsize[i]; }
 
 
@@ -453,11 +395,6 @@ public:
     */
     bool hasBndryFuncFab () const { return bc_func[0]->hasFabVersion(); }
 
-
-    /**
-    *
-    * \param ext_dir_safe
-    */
     static void setBndryFuncThreadSafety (int ext_dir_safe) { bf_ext_dir_threadsafe = ext_dir_safe; }
 
 private:
@@ -497,15 +434,6 @@ private:
 
     static int bf_ext_dir_threadsafe;
 
-    /**
-    *
-    * \param lo
-    * \param hi
-    * \param dom_lo
-    * \param dom_hi
-    * \param bc
-    * \param ng
-    */
     static bool bf_thread_safety (const int* lo,const int* hi,
 				  const int* dom_lo, const int* dom_hi,
 				  const int* bc, int ng);

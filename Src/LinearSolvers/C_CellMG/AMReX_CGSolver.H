@@ -142,7 +142,7 @@ public:
     */
     void setUseMGPrecond (bool _use_mg_precond)
     {
-        use_mg_precond = _use_mg_precond;         //!< set_mg_precond();
+        use_mg_precond = _use_mg_precond;         // set_mg_precond();
     }
 
     /**

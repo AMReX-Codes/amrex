@@ -42,90 +42,26 @@ public:
      * their own grids.                                                         *
      ***************************************************************************/
 
-
-    /**
-    *
-    * \param lev
-    * \param tags
-    * \param phierr
-    * \param levelset_data
-    * \param geom
-    */
     static void FillLevelSetTags( int lev, TagBoxArray & tags, const Vector<Real> & phierr,
                                   const MultiFab & levelset_data, const Vector<Geometry> & geom );
 
-
-    /**
-    *
-    * \param lev
-    * \param tags
-    * \param buffer
-    * \param grids
-    * \param dmap
-    * \param eb_lev
-    * \param geom
-    */
     static void FillVolfracTags( int lev, TagBoxArray & tags, int buffer,
                                  const Vector<BoxArray> & grids,
                                  const Vector<DistributionMapping> & dmap,
                                  const EB2::Level & eb_lev, const Vector<Geometry> & geom );
 
-
-    /**
-    *
-    * \param tilebox
-    * \param ls_crse
-    * \param geom_fine
-    * \param max_grow
-    * \param bail
-    */
     static Box EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
                             const Geometry & geom_fine, const IntVect & max_grow, bool & bail);
 
-
-    /**
-    *
-    * \param mf_fne
-    * \param mf_crse
-    * \param geom_fne
-    * \param geom_crse
-    * \param bcs
-    * \param ref
-    * \param icomp
-    * \param ncomp
-    */
     static void FillCoarsePatch (MultiFab & mf_fne, const MultiFab & mf_crse,
                                  const Geometry & geom_fne, const Geometry & geom_crse,
                                  const Vector<BCRec> & bcs, const IntVect & ref, int icomp, int ncomp);
 
-
-    /**
-    *
-    * \param ls_fine
-    * \param ls_crse
-    * \param ba
-    * \param dm
-    * \param geom_fine
-    * \param geom_crse
-    * \param bcs
-    * \param ref
-    */
     static void MakeNewLevelFromCoarse (MultiFab & ls_fine, const MultiFab & ls_crse,
                                         const BoxArray & ba, const DistributionMapping & dm,
                                         const Geometry & geom_fine, const Geometry & geom_crse,
                                         const Vector<BCRec> & bcs, const IntVect & ref);
 
-
-    /**
-    *
-    * \param level_set
-    * \param ls_crse
-    * \param eb_factory
-    * \param mf_impfunc
-    * \param ebt_size
-    * \param eb_pad
-    * \param geom
-    */
     static void FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
                               const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
                               const IntVect & ebt_size, int eb_pad, const Geometry & geom );
@@ -141,13 +77,6 @@ public:
     */
     LSCoreBase ();
 
-    /**
-    *
-    * \param rb
-    * \param max_level_in
-    * \param n_cell_in
-    * \param coord
-    */
     LSCoreBase (const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord=-1);
     virtual ~LSCoreBase ();
 
@@ -159,10 +88,6 @@ public:
     */
     void InitData (bool a_use_phierr = false);
 
-    /**
-    *
-    * \param m_phierr
-    */
     void InitData (const Vector<Real> & m_phierr);
 
 
@@ -202,23 +127,9 @@ public:
     */
     virtual void ClearLevel (int lev) override = 0;
 
-    /**
-    *
-    * \param lev
-    * \param time
-    * \param ba
-    * \param dm
-    */
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) override = 0;
 
-
-    /**
-    *
-    * \param lev
-    * \param ba
-    * \param dm
-    */
     void UpdateGrids (int lev, const BoxArray & ba, const DistributionMapping & dm);
 
 
@@ -246,23 +157,10 @@ public:
     */
     void WriteCheckpointFile () const;
 
-
-    /**
-    *
-    * \param n
-    */
     const MultiFab * getLevelSet(int n) const {return & level_set[n];}
 
-          /**
-          *
-          * \param n
-          */
           MultiFab * getLevelSet(int n)       {return & level_set[n];}
 
-    /**
-    *
-    * \param n
-    */
     const iMultiFab * getValid(int n) const {return & level_set_valid[n];}
 
 protected:

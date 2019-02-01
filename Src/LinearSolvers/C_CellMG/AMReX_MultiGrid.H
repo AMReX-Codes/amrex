@@ -14,10 +14,10 @@
 namespace amrex {
 
 /**
-  \brief A MultiGrid solves the linear equation, L(phi)=rhs, for a LinOp L and
+  \brief A MultiGrid solves the linear equation, ``L(phi)=rhs``, for a LinOp L and
   MultiFabs rhs and phi using a V-type cycle of the MultiGrid algorithm
 
-  A MultiGrid object solves the linear equation, L(phi)=rhs for a LinOp
+  A MultiGrid object solves the linear equation, ``L(phi)=rhs`` for a LinOp
   L, and MultiFabs phi and rhs.  A MultiGrid is constructed with a
   fully initialized 2D or 3D LinOp, and responds to "solve" requests of
   various signatures, ultimately performing a recursive "relax"
