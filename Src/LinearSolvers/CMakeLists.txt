@@ -56,6 +56,9 @@ add_sources ( MLMG/AMReX_MLNodeLap_nd.F90 )
 add_sources ( MLMG/AMReX_MacProjector.H )
 add_sources ( MLMG/AMReX_MacProjector.cpp )
 
+add_sources ( MLMG/AMReX_MG_K.H )
+add_sources ( MLMG/AMReX_MG_${DIM}D_K.H )
+
 
 #-------------------------------------------------------------------------------
 #
