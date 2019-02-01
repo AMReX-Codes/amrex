@@ -273,10 +273,16 @@ public:
     FAB const* fabDevicePtr (int K) const;
 
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
-    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi) const;
+    Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi) const;
     //
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
-    Array4<typename FabArray<FAB>::value_type> array (int K) const;
+    Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi);
+    //
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    Array4<typename FabArray<FAB>::value_type const> array (int K) const;
+    //
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    Array4<typename FabArray<FAB>::value_type> array (int K);
 
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     void setFab (int K, FAB* elem);
@@ -898,7 +904,7 @@ FabArray<FAB>::fabPtr (int K) const
 
 template <class FAB>
 template <class>
-Array4<typename FabArray<FAB>::value_type>
+Array4<typename FabArray<FAB>::value_type const>
 FabArray<FAB>::array (const MFIter& mfi) const
 {
     return fabHostPtr(mfi)->array();
@@ -907,7 +913,23 @@ FabArray<FAB>::array (const MFIter& mfi) const
 template <class FAB>
 template <class>
 Array4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::array (const MFIter& mfi)
+{
+    return fabHostPtr(mfi)->array();
+}
+
+template <class FAB>
+template <class>
+Array4<typename FabArray<FAB>::value_type const>
 FabArray<FAB>::array (int K) const
+{
+    return fabHostPtr(K)->array();
+}
+
+template <class FAB>
+template <class>
+Array4<typename FabArray<FAB>::value_type>
+FabArray<FAB>::array (int K)
 {
     return fabHostPtr(K)->array();
 }
