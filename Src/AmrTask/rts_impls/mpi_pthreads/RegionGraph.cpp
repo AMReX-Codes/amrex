@@ -603,7 +603,7 @@ void RegionGraph::graphTeardown()
     if(ParallelDescriptor::NProcs() == 1) return;
 
 
-#if 0
+#if 1
 
     for(int f=0; f<numfabs; f++)
     {
@@ -618,6 +618,8 @@ void RegionGraph::graphTeardown()
 		    while(cpDst->r_con.rcv[i].pQueue.queueSize() >= 1)
 		    {
 			package = cpDst->r_con.rcv[i].pQueue.dequeue();
+			if(package->request != MPI_REQUEST_NULL)
+			    MPI_Cancel( &(package->request) );
 			package->completed = false;
 			package->served = false;
 			package->notified = false;
@@ -645,6 +647,7 @@ void RegionGraph::graphTeardown()
 		    while(cpSrc->r_con.snd[i].pQueue.queueSize() >= 1)
 		    {
 			package = cpSrc->r_con.snd[i].pQueue.dequeue();
+			MPI_Wait( &(package->request), &status );
 			package->completed = false;
 			package->served = false;
 			package->notified = false;
@@ -660,6 +663,7 @@ void RegionGraph::graphTeardown()
 #endif
 
 
+#if 0
     if(tg == 0)
     {
 	CopyMap* cpDst = rCopyMapHead;
@@ -726,6 +730,7 @@ void RegionGraph::graphTeardown()
 	    cpSrc = cpSrc->next;
 	}
     }
+#endif
 
     //if(WorkerThread::isTeamMasterThread(tid)) commented out b/c its already call by single thread in a team
     //Perilla::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);

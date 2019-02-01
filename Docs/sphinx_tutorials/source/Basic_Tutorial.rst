@@ -13,7 +13,7 @@ operations supported by AMReX.
 **HelloWorld**
 ----------------
 
-HelloWorld_C and HellowWorld_F demonstrate the GNU Make system -- with
+HelloWorld_C and HelloWorld_F demonstrate the GNU Make system -- with
 a sample Make.package and GNUmakefile -- and the amrex::Initialize
 and amrex::Finalize functions.
 

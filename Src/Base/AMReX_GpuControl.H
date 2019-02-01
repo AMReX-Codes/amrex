@@ -21,11 +21,25 @@ namespace Cuda {
         return r;
     }
 
+    struct LaunchSafeGuard
+    {
+        LaunchSafeGuard (bool flag)
+            : m_old(setLaunchRegion(in_launch_region && flag)) {}
+        ~LaunchSafeGuard () { setLaunchRegion(m_old); }
+    private:
+        bool m_old;
+    };
+
 #else
 
     inline static constexpr bool inLaunchRegion () { return false; }
     inline static constexpr bool notInLaunchRegion () { return true; }
     inline static constexpr bool setLaunchRegion (bool) { return false; }
+
+    struct LaunchSafeGuard
+    {
+        LaunchSafeGuard (bool) {}
+    };
 
 #endif
 

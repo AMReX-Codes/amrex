@@ -34,6 +34,62 @@ public:
     }
     virtual void update () override;
 
+#ifdef AMREX_SOFT_PERF_COUNTERS
+    struct Counters
+    {
+        size_t smooth_n = 0;
+        size_t smooth_cell_n = 0;
+        size_t apply_n = 0;
+        size_t apply_cell_n = 0;
+        size_t restrict_n = 0;
+        size_t restrict_cell_n = 0;
+        size_t interp_n = 0;
+        size_t interp_cell_n = 0;
+
+        void reset () {
+            smooth_n = 0;
+            smooth_cell_n = 0;
+            apply_n = 0;
+            apply_cell_n = 0;
+            restrict_n = 0;
+            restrict_cell_n = 0;
+            interp_n = 0;
+            interp_cell_n = 0;
+        }
+
+        void smooth (const MultiFab & mf) {
+            smooth_n++;
+            smooth_cell_n += mf.boxArray().numPts();
+        }
+        void apply (const MultiFab & mf) {
+            apply_n++;
+            apply_cell_n += mf.boxArray().numPts();
+        }
+        void restrict (const MultiFab & mf) {
+            restrict_n++;
+            restrict_cell_n += mf.boxArray().numPts();
+        }
+        void interpolate (const MultiFab & mf) {
+            interp_n++;
+            interp_cell_n += mf.boxArray().numPts();
+        }
+
+        void print () {
+            Print() << ParallelContext::MyProcSub() << ": perf: MLCellLinOp::smooth()        called " << smooth_n
+                    << " times on " << smooth_cell_n << " cells total" << std::endl;
+            Print() << ParallelContext::MyProcSub() << ": perf: MLCellLinOp::apply()         called " << apply_n
+                    << " times on " << apply_cell_n << " cells total" << std::endl;
+            Print() << ParallelContext::MyProcSub() << ": perf: MLCellLinOp::restriction()   called " << restrict_n
+                    << " times on " << restrict_cell_n << " cells total" << std::endl;
+            Print() << ParallelContext::MyProcSub() << ": perf: MLCellLinOp::interpolation() called " << interp_n
+                    << " times on " << interp_cell_n << " cells total" << std::endl;
+        }
+    };
+
+    // software counters for performance analysis
+    static Counters perf_counters;
+#endif
+
 protected:
 
     virtual bool isCrossStencil () const { return true; }
