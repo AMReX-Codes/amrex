@@ -5,8 +5,8 @@
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void actual_init_poisson (int i, int j, int k,
-                          amrex::Array4<amrex::Real>& rhs,
-                          amrex::Array4<amrex::Real>& exact,
+                          amrex::Array4<amrex::Real> const& rhs,
+                          amrex::Array4<amrex::Real> const& exact,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
@@ -26,7 +26,7 @@ void actual_init_poisson (int i, int j, int k,
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void actual_init_bcoef (int i, int j, int k,
-                        amrex::Array4<amrex::Real> beta,
+                        amrex::Array4<amrex::Real> const& beta,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_hi,
                         amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
@@ -54,10 +54,10 @@ void actual_init_bcoef (int i, int j, int k,
 
 AMREX_GPU_DEVICE AMREX_INLINE
 void actual_init_abeclap (int i, int j, int k,
-                          amrex::Array4<amrex::Real>& rhs,
-                          amrex::Array4<amrex::Real>& exact,
-                          amrex::Array4<amrex::Real>& alpha,
-                          amrex::Array4<amrex::Real> const& beta,
+                          amrex::Array4<amrex::Real      > const& rhs,
+                          amrex::Array4<amrex::Real      > const& exact,
+                          amrex::Array4<amrex::Real      > const& alpha,
+                          amrex::Array4<amrex::Real const> const& beta,
                           amrex::Real a, amrex::Real b,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_hi,

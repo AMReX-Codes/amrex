@@ -10,12 +10,12 @@ AMREX_GPU_DEVICE AMREX_INLINE
 void gather_fields (EMParticleContainer::ParticleType const& p,
                     amrex::Real& Exp, amrex::Real& Eyp, amrex::Real& Ezp,
                     amrex::Real& Bxp, amrex::Real& Byp, amrex::Real& Bzp,
-                    amrex::Array4<amrex::Real> const& Exarr,
-                    amrex::Array4<amrex::Real> const& Eyarr,
-                    amrex::Array4<amrex::Real> const& Ezarr,
-                    amrex::Array4<amrex::Real> const& Bxarr,
-                    amrex::Array4<amrex::Real> const& Byarr,
-                    amrex::Array4<amrex::Real> const& Bzarr,
+                    amrex::Array4<amrex::Real const> const& Exarr,
+                    amrex::Array4<amrex::Real const> const& Eyarr,
+                    amrex::Array4<amrex::Real const> const& Ezarr,
+                    amrex::Array4<amrex::Real const> const& Bxarr,
+                    amrex::Array4<amrex::Real const> const& Byarr,
+                    amrex::Array4<amrex::Real const> const& Bzarr,
                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& plo,
                     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi)
 {
@@ -138,9 +138,9 @@ void push_position_boris(EMParticleContainer::ParticleType& p,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void deposit_current (amrex::Array4<amrex::Real>& jx,
-                      amrex::Array4<amrex::Real>& jy,
-                      amrex::Array4<amrex::Real>& jz,
+void deposit_current (amrex::Array4<amrex::Real> const& jx,
+                      amrex::Array4<amrex::Real> const& jy,
+                      amrex::Array4<amrex::Real> const& jz,
                       EMParticleContainer::ParticleType const& p,
                       amrex::Real uxp, amrex::Real uyp, amrex::Real uzp,
                       amrex::Real gaminv, amrex::Real w, amrex::Real q, amrex::Real dt,
@@ -203,10 +203,10 @@ void deposit_current (amrex::Array4<amrex::Real>& jx,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_electric_field_x (int j, int k, int l,
-                            amrex::Array4<amrex::Real>& Ex,
-                            amrex::Array4<amrex::Real> const& By,
-                            amrex::Array4<amrex::Real> const& Bz,
-                            amrex::Array4<amrex::Real> const& jx,
+                            amrex::Array4<amrex::Real      > const& Ex,
+                            amrex::Array4<amrex::Real const> const& By,
+                            amrex::Array4<amrex::Real const> const& Bz,
+                            amrex::Array4<amrex::Real const> const& jx,
                             amrex::Real mudt, amrex::Real dtsdy, amrex::Real dtsdz)
 {
     Ex(j,k,l) = Ex(j,k,l) + dtsdy * (Bz(j,k,l) - Bz(j,k-1,l  ))
@@ -216,10 +216,10 @@ void push_electric_field_x (int j, int k, int l,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_electric_field_y (int j, int k, int l,
-                            amrex::Array4<amrex::Real>& Ey,
-                            amrex::Array4<amrex::Real> const& Bx,
-                            amrex::Array4<amrex::Real> const& Bz,
-                            amrex::Array4<amrex::Real> const& jy,
+                            amrex::Array4<amrex::Real      > const& Ey,
+                            amrex::Array4<amrex::Real const> const& Bx,
+                            amrex::Array4<amrex::Real const> const& Bz,
+                            amrex::Array4<amrex::Real const> const& jy,
                             amrex::Real mudt, amrex::Real dtsdx, amrex::Real dtsdz)
 {
     Ey(j,k,l) = Ey(j,k,l) - dtsdx * (Bz(j,k,l) - Bz(j-1,k,l))
@@ -229,10 +229,10 @@ void push_electric_field_y (int j, int k, int l,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_electric_field_z (int j, int k, int l,
-                            amrex::Array4<amrex::Real>& Ez,
-                            amrex::Array4<amrex::Real> const& Bx,
-                            amrex::Array4<amrex::Real> const& By,
-                            amrex::Array4<amrex::Real> const& jz,
+                            amrex::Array4<amrex::Real      > const& Ez,
+                            amrex::Array4<amrex::Real const> const& Bx,
+                            amrex::Array4<amrex::Real const> const& By,
+                            amrex::Array4<amrex::Real const> const& jz,
                             amrex::Real mudt, amrex::Real dtsdx, amrex::Real dtsdy)
 {
     Ez(j,k,l) = Ez(j,k,l) + dtsdx * (By(j,k,l) - By(j-1,k  ,l))
@@ -242,9 +242,9 @@ void push_electric_field_z (int j, int k, int l,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_magnetic_field_x (int j, int k, int l,
-                            amrex::Array4<amrex::Real>& Bx,
-                            amrex::Array4<amrex::Real> const& Ey,
-                            amrex::Array4<amrex::Real> const& Ez,
+                            amrex::Array4<amrex::Real      > const& Bx,
+                            amrex::Array4<amrex::Real const> const& Ey,
+                            amrex::Array4<amrex::Real const> const& Ez,
                             amrex::Real dtsdy, amrex::Real dtsdz)
 {
     Bx(j,k,l) = Bx(j,k,l) - dtsdy * (Ez(j  ,k+1,l  ) - Ez(j,k,l))
@@ -253,9 +253,9 @@ void push_magnetic_field_x (int j, int k, int l,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_magnetic_field_y (int j, int k, int l,
-                            amrex::Array4<amrex::Real>& By,
-                            amrex::Array4<amrex::Real> const& Ex,
-                            amrex::Array4<amrex::Real> const& Ez,
+                            amrex::Array4<amrex::Real      > const& By,
+                            amrex::Array4<amrex::Real const> const& Ex,
+                            amrex::Array4<amrex::Real const> const& Ez,
                             amrex::Real dtsdx, amrex::Real dtsdz)
 {
     By(j,k,l) = By(j,k,l) + dtsdx * (Ez(j+1,k  ,l  ) - Ez(j,k,l))
@@ -264,9 +264,9 @@ void push_magnetic_field_y (int j, int k, int l,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void push_magnetic_field_z (int j, int k, int l,
-                            amrex::Array4<amrex::Real>& Bz,
-                            amrex::Array4<amrex::Real> const& Ex,
-                            amrex::Array4<amrex::Real> const& Ey,
+                            amrex::Array4<amrex::Real      > const& Bz,
+                            amrex::Array4<amrex::Real const> const& Ex,
+                            amrex::Array4<amrex::Real const> const& Ey,
                             amrex::Real dtsdx, amrex::Real dtsdy)
 {
     Bz(j,k,l) = Bz(j,k,l) - dtsdx * (Ey(j+1,k  ,l  ) - Ey(j,k,l))
