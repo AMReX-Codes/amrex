@@ -263,22 +263,15 @@ public:
             procThatNeedsData(0),
             procThatHasData(0) {}
     };
-    //
+
     //! Default tilesize in MFIter
     static IntVect mfiter_tile_size;
-    //
+
     //! Default tilesize in MFGhostIter
     static IntVect mfghostiter_tile_size;
-    //
+
     //! The maximum number of components to copy() at a time.
     static int MaxComp;
-    /**
-    * Whether to use CUDA-aware MPI.
-    * If true, MPI buffers will be staged on the GPU and sent
-    * directly from there; if false, the MPI staging buffers
-    * will be on the host.
-    */
-    static int use_cuda_aware_mpi;
     /**
     * Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     *
@@ -287,7 +280,7 @@ public:
     * Default is true.
     */
     static bool do_async_sends;
-    //
+    
     //! Initialize from ParmParse with "fabarray" prefix.
     static void Initialize ();
     static void Finalize ();

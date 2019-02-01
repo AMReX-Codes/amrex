@@ -45,7 +45,7 @@ public:
     static void FillLevelSetTags( int lev, TagBoxArray & tags, const Vector<Real> & phierr,
                                   const MultiFab & levelset_data, const Vector<Geometry> & geom );
 
-    static void FillVolfracTags( int lev, TagBoxArray & tags, int buffer,
+    static void FillVolfracTags( int lev, TagBoxArray & tags,
                                  const Vector<BoxArray> & grids,
                                  const Vector<DistributionMapping> & dmap,
                                  const EB2::Level & eb_lev, const Vector<Geometry> & geom );

@@ -84,7 +84,7 @@ public:
     *
     * \param xflux
     * \param yflux
-    * \param zflux)
+    * \param zflux
     * \param in
     * \param bc_mode
     * \param src_comp
