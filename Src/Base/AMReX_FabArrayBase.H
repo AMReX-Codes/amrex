@@ -277,13 +277,6 @@ public:
     //
     static int MaxComp;
     //
-    // Whether to use CUDA-aware MPI.
-    // If true, MPI buffers will be staged on the GPU and sent
-    // directly from there; if false, the MPI staging buffers
-    // will be on the host.
-    //
-    static int use_cuda_aware_mpi;
-    //
     // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
     //
     // Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.

@@ -12,6 +12,7 @@
 
 #include <AMReX_BCRec.H>
 #include <AMReX_Vector.H>
+#include <AMReX_TagBox.H>
 #include <AMReX_AmrCore.H>
 
 #include <AMReX_EB_LSCore_F.H>
@@ -34,6 +35,36 @@ class LSCoreBase
     : public AmrCore
 {
 public:
+
+
+    /****************************************************************************
+     * Static utilities exposing LSCore's basic operations to classes managing  *
+     * their own grids.                                                         *
+     ***************************************************************************/
+
+    static void FillLevelSetTags( int lev, TagBoxArray & tags, const Vector<Real> & phierr,
+                                  const MultiFab & levelset_data, const Vector<Geometry> & geom );
+
+    static void FillVolfracTags( int lev, TagBoxArray & tags,
+                                 const Vector<BoxArray> & grids,
+                                 const Vector<DistributionMapping> & dmap,
+                                 const EB2::Level & eb_lev, const Vector<Geometry> & geom );
+
+    static Box EBSearchBox( const Box & tilebox, const FArrayBox & ls_crse,
+                            const Geometry & geom_fine, const IntVect & max_grow, bool & bail);
+
+    static void FillCoarsePatch (MultiFab & mf_fne, const MultiFab & mf_crse,
+                                 const Geometry & geom_fne, const Geometry & geom_crse,
+                                 const Vector<BCRec> & bcs, const IntVect & ref, int icomp, int ncomp);
+
+    static void MakeNewLevelFromCoarse (MultiFab & ls_fine, const MultiFab & ls_crse,
+                                        const BoxArray & ba, const DistributionMapping & dm,
+                                        const Geometry & geom_fine, const Geometry & geom_crse,
+                                        const Vector<BCRec> & bcs, const IntVect & ref);
+
+    static void FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
+                              const EBFArrayBoxFactory & eb_factory, const MultiFab & mf_impfunc,
+                              const IntVect & ebt_size, int eb_pad, const Geometry & geom );
 
     /****************************************************************************
      * public member functions                                                  *
@@ -73,7 +104,7 @@ public:
 
     // Tag all cells for refinement. Overrides the pure virtual function in
     // AmrCore
-    virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
+    virtual void ErrorEst (int lev, TagBoxArray & tags, Real time, int ngrow) override;
 
     // Write plotfile to disk
     void WritePlotFile () const;
@@ -82,6 +113,7 @@ public:
     void WriteCheckpointFile () const;
 
     const MultiFab * getLevelSet(int n) const {return & level_set[n];}
+          MultiFab * getLevelSet(int n)       {return & level_set[n];}
     const iMultiFab * getValid(int n) const {return & level_set_valid[n];}
 
 protected:

@@ -20,6 +20,8 @@
 
 #include <AMReX_Gpu.H>
 
+#include <AMReX_Machine.H>
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #endif
@@ -507,12 +509,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     }
 
+    ParallelDescriptor::Initialize();
+
     //
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-    ParallelDescriptor::StartTeams();
 
     Arena::Initialize();
     amrex_mempool_init();
@@ -533,6 +535,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
     BL_PROFILE_INITPARAMS();
 #endif
+    machine::Initialize();
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
@@ -569,11 +572,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
+
+    BL_TINY_PROFILE_INITIALIZE();
 }
 
 void
 amrex::Finalize (bool finalize_parallel)
 {
+    BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
 #ifdef BL_LAZY
@@ -629,8 +635,6 @@ amrex::Finalize (bool finalize_parallel)
 
     amrex_mempool_finalize();
     Arena::Finalize();
-
-    ParallelDescriptor::EndTeams();
 
 #ifndef BL_AMRPROF
     if (system::signal_handling)

@@ -16,12 +16,14 @@ public:
     void solve ();
     void writePlotfile () const;
 
+public: // make these public for cuda
+    void initProbPoisson ();
+    void initProbABecLaplacian ();
+
 private:
 
     void readParameters ();
     void initData ();
-    void initProbPoisson ();
-    void initProbABecLaplacian ();
     void solvePoisson ();
     void solveABecLaplacian ();
 

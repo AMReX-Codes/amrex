@@ -49,7 +49,7 @@ else
   CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
 
 ifeq ($(DEBUG),TRUE)
   NVCC_FLAGS += -g -G

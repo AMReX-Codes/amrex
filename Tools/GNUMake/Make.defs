@@ -123,6 +123,10 @@ ifeq ($(USE_PMI), TRUE)
   DEFINES += -DAMREX_PMI
 endif
 
+ifeq ($(USE_OMP_OFFLOAD), TRUE)
+  DEFINES += -DAMREX_OMP_OFFLOAD
+endif
+
 ifdef USE_UPCXX
   USE_UPCXX := $(strip $(USE_UPCXX))
 else
@@ -736,6 +740,8 @@ ifeq ($(USE_CUDA),TRUE)
     else ifneq ($(SYSTEM_CUDA_PATH),)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
+
+    LIBRARIES += -lcuda
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64

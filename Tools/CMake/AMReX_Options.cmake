@@ -15,8 +15,8 @@ if (DEFINED __AMREX_OPTIONS__)
 endif ()
 
 # Define the following variable
-# so that other included file can check if this file has been
-# run already
+# so that other included files can check if this file has been
+# processed already
 set (__AMREX_OPTIONS__ "")
 
 #
@@ -27,52 +27,27 @@ macro (print_option var)
 endmacro ()
 
 #
+# Check if CMAKE_BUILD_TYPE is given. If not, use default
+#
+if ( NOT CMAKE_BUILD_TYPE )
+   message(STATUS "Setting build type to Release as none was specified.")
+   set( CMAKE_BUILD_TYPE Release )
+else ()
+   message(STATUS "Build type set by user to '${CMAKE_BUILD_TYPE}'.")
+endif()
+
+#
 # Populate the cache and check the value of the user-definable options 
 #
 message (STATUS "Configuring AMReX with the following options: ")
 
+
 #
 # This is the option to enable/disable xSDK mode
 #
-option ( USE_XSDK_DEFAULTS "Enable xSDK mode"  OFF )
+option( USE_XSDK_DEFAULTS "Enable xSDK mode"  OFF )
 print_option ( USE_XSDK_DEFAULTS )
 
-#
-# Option to control the build type.
-# If xSDK mode is enabled, the build type is determined by
-# CMAKE_BUILD_TYPE and DEBUG is a regular variable.
-# If xSDK mode is disabled, the build type is determined by DEBUG
-# and CMAKE_BUILD_TYPE is set accordingly.
-# 
-if ( USE_XSDK_DEFAULTS )
-   set ( DEBUG OFF )
-   if ( ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" ) OR
-	( NOT CMAKE_BUILD_TYPE ) )
-      set ( DEBUG ON )
-      set ( CMAKE_BUILD_TYPE "Debug" )
-   endif ()
-else ()
-  option ( DEBUG "Build in debug mode" OFF )
-  if (DEBUG)
-    set (CMAKE_BUILD_TYPE "Debug")
-  else ()
-    set (CMAKE_BUILD_TYPE "Release")
-  endif ()
-endif ()
-
-# if (DEBUG)
-#    set (CMAKE_BUILD_TYPE "Debug")
-# else ()
-#    set (CMAKE_BUILD_TYPE "Release")
-# endif ()
-
-if ( USE_XSDK_DEFAULTS )
-   print_option (CMAKE_BUILD_TYPE)
-else ()
-   print_option (DEBUG)
-endif ()
-
-string ( TOUPPER ${CMAKE_BUILD_TYPE} AMREX_BUILD_TYPE ) 
 
 #
 # Option to control the type of library build: static vs shared
@@ -146,11 +121,6 @@ endif ()
 option ( ENABLE_LINEAR_SOLVERS  "Build AMReX Linear solvers" ON )
 print_option ( ENABLE_LINEAR_SOLVERS )
 
-############ To be removed #####################
-set ( ENABLE_FBASELIB "DEPRECATED" CACHE STRING "Build Fortran kernel (deprecated)" FORCE)
-print_option (ENABLE_FBASELIB)
-################################################
-
 option ( ENABLE_AMRDATA "Build data services" OFF)
 print_option ( ENABLE_AMRDATA )
 
@@ -196,7 +166,7 @@ endif ()
 option (ENABLE_FPE "Enable Floating Point Exceptions checks" OFF)
 print_option ( ENABLE_FPE )
 
-if (DEBUG)
+if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
    option ( ENABLE_ASSERTIONS "Enable assertions" ON)
 else ()
    option ( ENABLE_ASSERTIONS "Enable assertions" OFF)

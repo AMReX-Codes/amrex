@@ -8,6 +8,7 @@
 #include <omp.h>
 #endif
 
+#include <AMReX_Array.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_RealBox.H>
@@ -116,7 +117,7 @@ public:
     }
 
     static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () {
-        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+        return {AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))};
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -218,6 +219,18 @@ public:
     Box growNonPeriodicDomain (int ngrow) const;
     // Return domain box with periodic directions grown by ngrow.
     Box growPeriodicDomain (int ngrow) const;
+
+    // Set periodicity flags and return the old flags.
+    // Note that, unlike Periodicity class, the flags are just boolean.
+    static Array<bool,AMREX_SPACEDIM> setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) {
+        Array<bool,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
+                                                  is_periodic[1],
+                                                  is_periodic[2])};
+        AMREX_D_TERM(is_periodic[0] = period[0];,
+                     is_periodic[1] = period[1];,
+                     is_periodic[2] = period[2];);
+        return r;
+    }
 
 private:
     //! Helper functions.

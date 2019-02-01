@@ -42,7 +42,7 @@ public:
     * DO NOT CHANGE THIS BEHAVIOR!
     */
     AMREX_GPU_HOST_DEVICE
-    Box ()
+    constexpr Box ()
         : smallend(1),
           bigend(0),
           btype()
@@ -50,7 +50,7 @@ public:
 
     //! Construct cell-centered type Box.
     AMREX_GPU_HOST_DEVICE
-    Box (const IntVect& small, const IntVect& big)
+    constexpr Box (const IntVect& small, const IntVect& big)
         : smallend(small),
           bigend(big)
         {}
@@ -689,9 +689,11 @@ public:
         }
     }
 
-    AMREX_GPU_HOST_DEVICE friend AMREX_INLINE Dim3 lbound (Box const& box);
-    AMREX_GPU_HOST_DEVICE friend AMREX_INLINE Dim3 ubound (Box const& box);
-    AMREX_GPU_HOST_DEVICE friend AMREX_INLINE Dim3 length (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 lbound (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 ubound (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 begin  (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 end    (Box const& box);
+    AMREX_GPU_HOST_DEVICE friend AMREX_FORCE_INLINE Dim3 length (Box const& box);
 
 private:
     IntVect         smallend;
@@ -830,7 +832,7 @@ Box::enclosedCells ()
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 long
 Box::index (const IntVect& v) const
 {
@@ -845,7 +847,7 @@ Box::index (const IntVect& v) const
 }
 
 AMREX_GPU_HOST_DEVICE
-inline
+AMREX_FORCE_INLINE
 IntVect
 Box::atOffset (long offset) const
 {
@@ -1449,7 +1451,7 @@ std::ostream& operator<< (std::ostream& os, const Box& bx);
 std::istream& operator>> (std::istream& os, Box& bx);
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 Dim3 lbound (Box const& box)
 {
 #if (AMREX_SPACEDIM == 1)
@@ -1462,7 +1464,7 @@ Dim3 lbound (Box const& box)
 }
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
 Dim3 ubound (Box const& box)
 {
 #if (AMREX_SPACEDIM == 1)
@@ -1475,7 +1477,33 @@ Dim3 ubound (Box const& box)
 }
 
 AMREX_GPU_HOST_DEVICE
-AMREX_INLINE
+AMREX_FORCE_INLINE
+Dim3 begin (Box const& box)
+{
+#if (AMREX_SPACEDIM == 1)
+    return {box.smallend[0], 0, 0};
+#elif (AMREX_SPACEDIM == 2)
+    return {box.smallend[0], box.smallend[1], 0};
+#elif (AMREX_SPACEDIM == 3)
+    return {box.smallend[0], box.smallend[1], box.smallend[2]};
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
+Dim3 end (Box const& box)
+{
+#if (AMREX_SPACEDIM == 1)
+    return {box.bigend[0]+1, 1, 1};
+#elif (AMREX_SPACEDIM == 2)
+    return {box.bigend[0]+1, box.bigend[1]+1, 1};
+#elif (AMREX_SPACEDIM == 3)
+    return {box.bigend[0]+1, box.bigend[1]+1, box.bigend[2]+1};
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+AMREX_FORCE_INLINE
 Dim3 length (Box const& box)
 {
 #if (AMREX_SPACEDIM == 1)

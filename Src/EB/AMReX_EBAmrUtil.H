@@ -8,6 +8,8 @@ namespace amrex {
 
     void TagCutCells (TagBoxArray& tags, const MultiFab& state);
 
+    void TagVolfrac  (TagBoxArray& tags, const MultiFab& volfrac, Real tol = 0.000001);
+
 }
 
 #endif

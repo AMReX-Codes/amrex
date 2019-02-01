@@ -69,6 +69,9 @@ alternatively, in tcsh one can set
 
     setenv AMREX_HOME /path/to/amrex
 
+Note: when setting ``AMREX_HOME`` in the ``GNUmakefile``, be aware that ``~`` does
+not expand, so ``AMREX_HOME=~/amrex/`` will yield an error. 
+
 One must set the ``COMP`` variable to choose a compiler. Currently the list of
 supported compilers includes gnu, cray, ibm, intel, llvm, and pgi. One must
 also set the ``DIM`` variable to either 1, 2, or 3, depending on the dimensionality
@@ -229,7 +232,7 @@ Building libamrex
 =================
 
 If an application code already has its own elaborated build system and wants to
-use AMReX an external library, this might be your choice. In this approach, one
+use AMReX, an external AMReX library can be created instead. In this approach, one
 runs ``./configure``, followed by ``make`` and ``make install``.
 Other make options include ``make distclean`` and ``make uninstall``.  In the top
 AMReX directory, one can run ``./configure -h`` to show the various options for
@@ -249,7 +252,7 @@ CMake build is a two-step process. First ``cmake`` is invoked to create
 configuration files and makefiles in a chosen directory (``builddir``).  This
 is roughly equivalent to running ``./configure`` (see the section on
 :ref:`sec:build:lib`). Next, the actual build and installation are performed by
-invoking ``make install`` from within builddir. This installs the library files
+invoking ``make install`` from within ``builddir``. This installs the library files
 in a chosen installation directory (``installdir``).  If no installation path
 is provided by the user, AMReX will be installed in /path/to/amrex/installdir.
 The CMake build process is summarized as follows:
@@ -260,12 +263,13 @@ The CMake build process is summarized as follows:
 
     mkdir /path/to/builddir
     cd    /path/to/builddir
-    cmake [options] -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex
+    cmake [options] -DCMAKE_BUILD_TYPE=[Debug|Release|RelWithDebInfo|MinSizeRel] -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
     make  install
 
 In the above snippet, ``[options]`` indicates one or more options for the
 customization of the build, as described in the subsection on
-:ref:`sec:build:cmake:options`.  Although the AMReX source could be used as
+:ref:`sec:build:cmake:options`. If the option ``CMAKE_BUILD_TYPE`` is omitted,
+``CMAKE_BUILD_TYPE=Release`` is assumed. Although the AMReX source could be used as
 build directory, we advise against doing so.  After the installation is
 complete, builddir can be removed.
 
@@ -295,7 +299,7 @@ AMReX configuration settings may be specified on the command line with the
 
 ::
 
-    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/path/to/installdir  /path/to/amrex
+    cmake -DENABLE_OMP=1 -DCMAKE_INSTALL_PREFIX=/path/to/installdir  /path/to/amrex
 
 The list of available option is reported in the table on :ref:`tab:cmakevar`
 below.
@@ -312,8 +316,6 @@ below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Option Name                  | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | DEBUG                        |  Build AMReX in debug mode                      | OFF         | ONE, OFF        |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
    | DIM                          |  Dimension of AMReX build                       | 3           | 2, 3            |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_DP                    |  Build with double-precision reals              | ON          | ON, OFF         |
@@ -327,10 +329,6 @@ below.
    | ENABLE_FORTRAN_INTERFACES    |  Build Fortran API                              | ON          | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_LINEAR_SOLVERS        |  Build AMReX linear solvers                     | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_LINEAR_SOLVERS_LEGACY |  Build AMReX linear solvers (legacy components) | ON          | ON, OFF         |
-   +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | ENABLE_FBASELIB              |  Build (deprecated) Fortran kernel              | ON          | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | ENABLE_AMRDATA               |  Build data services                            | OFF         | ON, OFF         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -370,12 +368,7 @@ below.
 
    \end{center}
 
-The option ``ENABLE_LINEAR_SOLVERS=ON`` triggers the inclusion of C++-based
-linear solvers in the build. Fortran-based linear solvers can be included as
-well by providing the option ``ENABLE_FBASELIB=ON`` in addition to
-``ENABLE_LINEAR_SOLVERS=ON``.
-
-The option ``DEBUG=ON`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
+The option ``CMAKE_BUILD_TYPE=Debug`` implies ``ENABLE_ASSERTION=ON``. In order to turn off
 assertions in debug mode, ``ENABLE_ASSERTION=OFF`` must be set explicitly while
 invoking CMake.
 
