@@ -510,19 +510,25 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tbz  = mfi.tilebox(Bz_nodal_flag);
 
         if (do_nodal) {
-            auto       Bxfab = Bx->array(mfi);
-            auto       Byfab = By->array(mfi);
-            auto       Bzfab = Bz->array(mfi);
-            auto const Exfab = Ex->array(mfi);
-            auto const Eyfab = Ey->array(mfi);
-            auto const Ezfab = Ez->array(mfi);
-            AMREX_FOR_3D ( tbx, j, k, l, {
+            auto const& Bxfab = Bx->array(mfi);
+            auto const& Byfab = By->array(mfi);
+            auto const& Bzfab = Bz->array(mfi);
+            auto const& Exfab = Ex->array(mfi);
+            auto const& Eyfab = Ey->array(mfi);
+            auto const& Ezfab = Ez->array(mfi);
+            amrex::ParallelFor(tbx,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
                 warpx_push_bx_nodal(j,k,l,Bxfab,Eyfab,Ezfab,dtsdy,dtsdz);
             });
-            AMREX_FOR_3D ( tby, j, k, l, {
+            amrex::ParallelFor(tby,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
                 warpx_push_by_nodal(j,k,l,Byfab,Exfab,Ezfab,dtsdx,dtsdz);
             });
-            AMREX_FOR_3D ( tbz, j, k, l, {
+            amrex::ParallelFor(tbz,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
                 warpx_push_bz_nodal(j,k,l,Bzfab,Exfab,Eyfab,dtsdx,dtsdy);
             });
         } else {
@@ -546,7 +552,8 @@ WarpX::EvolveB (int lev, PatchType patch_type, amrex::Real dt)
             if (patch_type == PatchType::coarse) cbx.refine(rr);
             wt = (amrex::second() - wt) / cbx.d_numPts();
             auto costfab = cost->array(mfi);
-            AMREX_FOR_3D ( cbx, i, j, k,
+            amrex::ParallelFor(cbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 costfab(i,j,k) += wt;
             });
@@ -657,22 +664,28 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
         const Box& tez  = mfi.tilebox(Ez_nodal_flag);
 
         if (do_nodal) {
-            auto       Exfab = Ex->array(mfi);
-            auto       Eyfab = Ey->array(mfi);
-            auto       Ezfab = Ez->array(mfi);
-            auto const Bxfab = Bx->array(mfi);
-            auto const Byfab = By->array(mfi);
-            auto const Bzfab = Bz->array(mfi);
-            auto const jxfab = jx->array(mfi);
-            auto const jyfab = jy->array(mfi);
-            auto const jzfab = jz->array(mfi);
-            AMREX_FOR_3D ( tex, j, k, l, {
+            auto const& Exfab = Ex->array(mfi);
+            auto const& Eyfab = Ey->array(mfi);
+            auto const& Ezfab = Ez->array(mfi);
+            auto const& Bxfab = Bx->array(mfi);
+            auto const& Byfab = By->array(mfi);
+            auto const& Bzfab = Bz->array(mfi);
+            auto const& jxfab = jx->array(mfi);
+            auto const& jyfab = jy->array(mfi);
+            auto const& jzfab = jz->array(mfi);
+            amrex::ParallelFor(tex,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
                 warpx_push_ex_nodal(j,k,l,Exfab,Byfab,Bzfab,jxfab,mu_c2_dt,dtsdy_c2,dtsdz_c2);
             });
-            AMREX_FOR_3D ( tey, j, k, l, {
+            amrex::ParallelFor(tey,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
                 warpx_push_ey_nodal(j,k,l,Eyfab,Bxfab,Bzfab,jyfab,mu_c2_dt,dtsdx_c2,dtsdz_c2);
             });
-            AMREX_FOR_3D ( tez, j, k, l, {
+            amrex::ParallelFor(tez,
+            [=] AMREX_GPU_DEVICE (int j, int k, int l)
+            {
                 warpx_push_ez_nodal(j,k,l,Ezfab,Bxfab,Byfab,jzfab,mu_c2_dt,dtsdx_c2,dtsdy_c2);
             });
         } else {
@@ -713,7 +726,8 @@ WarpX::EvolveE (int lev, PatchType patch_type, amrex::Real dt)
             if (patch_type == PatchType::coarse) cbx.refine(rr);
             wt = (amrex::second() - wt) / cbx.d_numPts();
             auto costfab = cost->array(mfi);
-            AMREX_FOR_3D ( cbx, i, j, k,
+            amrex::ParallelFor(cbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 costfab(i,j,k) += wt;
             });

@@ -6,32 +6,36 @@
 using namespace amrex;
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_bx_nodal (int j, int k, int l, Array4<Real>& Bx,
-                          Array4<Real> const& Ey, Array4<Real> const& Ez, Real dtsdy, Real dtsdz)
+void warpx_push_bx_nodal (int j, int k, int l, Array4<Real> const& Bx,
+                          Array4<Real const> const& Ey, Array4<Real const> const& Ez,
+                          Real dtsdy, Real dtsdz)
 {
     Bx(j,k,l) = Bx(j,k,l) - 0.5*dtsdy * (Ez(j,k+1,l  ) - Ez(j,k-1,l  ))
                           + 0.5*dtsdz * (Ey(j,k  ,l+1) - Ey(j,k  ,l-1));
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_by_nodal (int j, int k, int l, Array4<Real>& By,
-                          Array4<Real> const& Ex, Array4<Real> const& Ez, Real dtsdx, Real dtsdz)
+void warpx_push_by_nodal (int j, int k, int l, Array4<Real> const& By,
+                          Array4<Real const> const& Ex, Array4<Real const> const& Ez,
+                          Real dtsdx, Real dtsdz)
 {
     By(j,k,l) = By(j,k,l) + 0.5*dtsdx * (Ez(j+1,k,l  ) - Ez(j-1,k,l  ))
                           - 0.5*dtsdz * (Ex(j  ,k,l+1) - Ex(j  ,k,l-1));
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_bz_nodal (int j, int k, int l, Array4<Real>& Bz,
-                          Array4<Real> const& Ex, Array4<Real> const& Ey, Real dtsdx, Real dtsdy)
+void warpx_push_bz_nodal (int j, int k, int l, Array4<Real> const& Bz,
+                          Array4<Real const> const& Ex, Array4<Real const> const& Ey,
+                          Real dtsdx, Real dtsdy)
 {
     Bz(j,k,l) = Bz(j,k,l) - 0.5*dtsdx * (Ey(j+1,k  ,l) - Ey(j-1,k  ,l))
                           + 0.5*dtsdy * (Ex(j  ,k+1,l) - Ex(j  ,k-1,l));
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_ex_nodal (int j, int k, int l, Array4<Real>& Ex,
-                          Array4<Real> const& By, Array4<Real> const& Bz, Array4<Real> const& jx,
+void warpx_push_ex_nodal (int j, int k, int l, Array4<Real> const& Ex,
+                          Array4<Real const> const& By, Array4<Real const> const& Bz,
+                          Array4<Real const> const& jx,
                           Real mudt, Real dtsdy, Real dtsdz)
 {
     Ex(j,k,l) = Ex(j,k,l) + 0.5*dtsdy * (Bz(j,k+1,l  ) - Bz(j,k-1,l  ))
@@ -40,8 +44,9 @@ void warpx_push_ex_nodal (int j, int k, int l, Array4<Real>& Ex,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_ey_nodal (int j, int k, int l, Array4<Real>& Ey,
-                          Array4<Real> const& Bx, Array4<Real> const& Bz, Array4<Real> const& jy,
+void warpx_push_ey_nodal (int j, int k, int l, Array4<Real> const& Ey,
+                          Array4<Real const> const& Bx, Array4<Real const> const& Bz,
+                          Array4<Real const> const& jy,
                           Real mudt, Real dtsdx, Real dtsdz)
 {
     Ey(j,k,l) = Ey(j,k,l) - 0.5*dtsdx * (Bz(j+1,k,l  ) - Bz(j-1,k,l  ))
@@ -50,8 +55,9 @@ void warpx_push_ey_nodal (int j, int k, int l, Array4<Real>& Ey,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void warpx_push_ez_nodal (int j, int k, int l, Array4<Real>& Ez,
-                          Array4<Real> const& Bx, Array4<Real> const& By, Array4<Real> const& jz,
+void warpx_push_ez_nodal (int j, int k, int l, Array4<Real> const& Ez,
+                          Array4<Real const> const& Bx, Array4<Real const> const& By,
+                          Array4<Real const> const& jz,
                           Real mudt, Real dtsdx, Real dtsdy)
 {
     Ez(j,k,l) = Ez(j,k,l) + 0.5*dtsdx * (By(j+1,k  ,l) - By(j-1,k  ,l))
