@@ -67,3 +67,21 @@ void advance (MultiFab& phi_old,
         });
     }
 }
+
+void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom){
+
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
+    // =======================================
+    // Initialize phi_new by calling a Fortran routine.
+    // MFIter = MultiFab Iterator
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        auto const& phiNew = phi_new.array(mfi);
+        AMREX_FOR_3D ( vbx, i, j, k,
+        {
+            init_phi(i,j,k,phiNew,dx,prob_lo);
+        });
+    }
+}
