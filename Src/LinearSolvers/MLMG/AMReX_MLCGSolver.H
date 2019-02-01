@@ -26,13 +26,13 @@ public:
 
     void setSolver (Type _typ) { solver_type = _typ; }
 
-    //
-    // solve the system, Lp(solnL)=rhsL to relative err, tolerance
-    // RETURNS AN INT!!!! indicating success or failure.  
-    // 0 means success
-    // 1 means failed for loss of precision
-    // 2 means iterations exceeded
-    //
+    /**
+    * solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    * RETURNS AN INT!!!! indicating success or failure.
+    * 0 means success
+    * 1 means failed for loss of precision
+    * 2 means iterations exceeded
+    */
     int solve (MultiFab&       solnL,
 	       const MultiFab& rhsL,
 	       Real            eps_rel,
