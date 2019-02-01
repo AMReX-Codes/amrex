@@ -35,7 +35,7 @@ Development generally follows the following ideas:
   * Contributions are welcomed from anyone.  *Any contributions that
     have the potential to change answers should be done via pull
     requests.*   A pull request should be generated from your fork of
-    amrex and target the `development` branch.  
+    amrex and target the `development` branch.
 
     If there are a number of small commits making up the PR, we may
     wish to squash commits upon merge to have a clean history.
@@ -58,9 +58,9 @@ People who make a number of substantive contributions will be named
 "core developers" of AMReX.  The criteria for becoming a core
 developer are flexible, but generally involve one of the following:
 
-  * 100 non-trivial commits to `amrex/Src/` 
+  * 100 non-trivial commits to `amrex/Src/`  *and/or*
 
-  * addition of a new algorithm / module  *or*
+  * addition of a new algorithm / module  *and/or*
 
   * substantial input into the code design process or testing
 
