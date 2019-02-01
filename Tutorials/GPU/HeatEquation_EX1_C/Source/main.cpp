@@ -95,7 +95,7 @@ void main_main ()
     for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
     {
         const Box& vbx = mfi.validbox();
-        Array4<Real> phiNew = phi_new.array(mfi);
+        auto const& phiNew = phi_new.array(mfi);
         AMREX_FOR_3D ( vbx, i, j, k,
         {
             init_phi(i,j,k,phiNew,dx,prob_lo);

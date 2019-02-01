@@ -10,8 +10,8 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_ctoprim (int i, int j, int k,
-             amrex::Array4<amrex::Real> const& u,
-             amrex::Array4<amrex::Real>& q)
+             amrex::Array4<amrex::Real const> const& u,
+             amrex::Array4<amrex::Real> const& q)
 {
     amrex::Real rho = amrex::max(u(i,j,k,URHO),Parm::smallr);
     amrex::Real rhoinv = 1.0/rho;
@@ -38,10 +38,10 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_flux_to_dudt (int i, int j, int k, int n,
-                  amrex::Array4<amrex::Real> & dudt,
-                  amrex::Array4<amrex::Real> const& fx,
-                  amrex::Array4<amrex::Real> const& fy,
-                  amrex::Array4<amrex::Real> const& fz,
+                  amrex::Array4<amrex::Real> const& dudt,
+                  amrex::Array4<amrex::Real const> const& fx,
+                  amrex::Array4<amrex::Real const> const& fy,
+                  amrex::Array4<amrex::Real const> const& fz,
                   amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxinv)
 {
     dudt(i,j,k,n) = dxinv[0] * (fx(i,j,k,n) - fx(i+1,j,k,n))
@@ -67,8 +67,8 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_slope_x (int i, int j, int k,
-             amrex::Array4<amrex::Real>& dq,
-             amrex::Array4<amrex::Real> const& q)
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real const> const& q)
 {
     amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i-1,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU));
     amrex::Real drgt = 0.5*(q(i+1,j,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i+1,j,k,QU) - q(i,j,k,QU));
@@ -102,8 +102,8 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_slope_y (int i, int j, int k,
-             amrex::Array4<amrex::Real>& dq,
-             amrex::Array4<amrex::Real> const& q)
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real const> const& q)
 {
     amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i,j-1,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV));
     amrex::Real drgt = 0.5*(q(i,j+1,k,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j+1,k,QV) - q(i,j,k,QV));
@@ -137,8 +137,8 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_slope_z (int i, int j, int k,
-             amrex::Array4<amrex::Real>& dq,
-             amrex::Array4<amrex::Real> const& q)
+             amrex::Array4<amrex::Real> const& dq,
+             amrex::Array4<amrex::Real const> const& q)
 {
     amrex::Real dlft = 0.5*(q(i,j,k,QPRES)-q(i,j,k-1,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW));
     amrex::Real drgt = 0.5*(q(i,j,k+1,QPRES)-q(i,j,k,QPRES))/q(i,j,k,QCS) - 0.5*q(i,j,k,QRHO)*(q(i,j,k+1,QW) - q(i,j,k,QW));
@@ -304,9 +304,9 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_riemann_x (int i, int j, int k,
-               amrex::Array4<amrex::Real>& fx,
-               amrex::Array4<amrex::Real> const& dq,
-               amrex::Array4<amrex::Real> const& q)
+               amrex::Array4<amrex::Real> const& fx,
+               amrex::Array4<amrex::Real const> const& dq,
+               amrex::Array4<amrex::Real const> const& q)
 {
     amrex::Real cspeed = q(i-1,j,k,QCS);
     amrex::Real rl = q(i-1,j,k,QRHO) + 0.5 * ( (dq(i-1,j,k,0)+dq(i-1,j,k,2))/cspeed + dq(i-1,j,k,1));
@@ -335,9 +335,9 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_riemann_y (int i, int j, int k,
-               amrex::Array4<amrex::Real>& fy,
-               amrex::Array4<amrex::Real> const& dq,
-               amrex::Array4<amrex::Real> const& q)
+               amrex::Array4<amrex::Real> const& fy,
+               amrex::Array4<amrex::Real const> const& dq,
+               amrex::Array4<amrex::Real const> const& q)
 {
     amrex::Real cspeed = q(i,j-1,k,QCS);
     amrex::Real rl = q(i,j-1,k,QRHO) + 0.5 * ( (dq(i,j-1,k,0)+dq(i,j-1,k,2))/cspeed + dq(i,j-1,k,1));
@@ -366,9 +366,9 @@ AMREX_GPU_DEVICE
 inline
 void
 cns_riemann_z (int i, int j, int k,
-               amrex::Array4<amrex::Real>& fz,
-               amrex::Array4<amrex::Real> const& dq,
-               amrex::Array4<amrex::Real> const& q)
+               amrex::Array4<amrex::Real> const& fz,
+               amrex::Array4<amrex::Real const> const& dq,
+               amrex::Array4<amrex::Real const> const& q)
 {
     amrex::Real cspeed = q(i,j,k-1,QCS);
     amrex::Real rl = q(i,j,k-1,QRHO) + 0.5 * ( (dq(i,j,k-1,0)+dq(i,j,k-1,2))/cspeed + dq(i,j,k-1,1));

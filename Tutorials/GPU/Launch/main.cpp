@@ -40,12 +40,12 @@ void main_main ()
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
             // Get Array4 object
-            Array4<Real> fab = mf.array(mfi);
+            Array4<Real> const& fab = mf.array(mfi);
             // loop over bx
             amrex::ParallelFor(bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) mutable
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                fab(i,j,k) += 1.;   // fab needs to be mutable
+                fab(i,j,k) += 1.;
             });
         }
     }
@@ -59,7 +59,7 @@ void main_main ()
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
             // Get Array4 object
-            Array4<Real> fab = mf.array(mfi);
+            Array4<Real> const& fab = mf.array(mfi);
             // loop over bx
             AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
             {
@@ -78,11 +78,11 @@ void main_main ()
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
             // Get Array4 object
-            Array4<Real> fab = mf.array(mfi);
+            Array4<Real> const& fab = mf.array(mfi);
             int ncomp = mf.nComp();
             // loop over bx and component.
             amrex::ParallelFor(bx, ncomp,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) mutable
+            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
             {
                 fab(i,j,k,n) += 1.;
             });
@@ -98,7 +98,7 @@ void main_main ()
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
             // Get Array4 object
-            Array4<Real> fab = mf.array(mfi);
+            Array4<Real> const& fab = mf.array(mfi);
             int ncomp = mf.nComp();
             // loop over bx and component.
             AMREX_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
@@ -119,7 +119,7 @@ void main_main ()
             // Enough threads are launched to work over nitems.
             // This only works on a contiguous chunk of memory.
             amrex::ParallelFor(nitems,
-            [=] AMREX_GPU_DEVICE (long idx) // no need to be mutable
+            [=] AMREX_GPU_DEVICE (long idx)
             {
                 p[idx] += 1.;
             });
@@ -152,11 +152,11 @@ void main_main ()
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
             // Get Array4 object
-            Array4<Real> fab = mf.array(mfi);
+            Array4<Real> const& fab = mf.array(mfi);
             // Enough threads are launched to work over bx,
             // and tbx is a thread's work box
             amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx) mutable
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 // Array4<Real> fab is captured
                 const auto lo = amrex::lbound(tbx);
@@ -180,7 +180,7 @@ void main_main ()
             // In that case, tilebox simply return validbox
             const Box& bx = mfi.tilebox();
             // Get Array4 object
-            Array4<Real> fab = mf.array(mfi);
+            Array4<Real> const& fab = mf.array(mfi);
             // Enough threads are launched to work over bx,
             // and tbx is a thread's work box
             AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
@@ -210,7 +210,7 @@ void main_main ()
             // Enough threads are launched to work over bx,
             // and tbx is a thread's work box
             amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)  // no need to be mutable
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 // FArrayBox* fab is captured
                 plusone_cudacpp(tbx, *fab);
