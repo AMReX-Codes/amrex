@@ -113,6 +113,67 @@ public:
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
 
+    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
+    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
+    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
+                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;
+
+    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
+                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const = 0;
+    virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+                         bool skip_fillboundary=false) const = 0;
+
+    // Divide mf by the diagonal component of the operator. Used by bicgstab.
+    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const {}
+
+    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                                   const MultiFab* crse_bcdata=nullptr) = 0;
+    virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
+                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) = 0;
+
+    virtual void reflux (int crse_amrlev,
+                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
+                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
+    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
+                           MultiFab& sol, Location loc) const = 0;
+    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
+                           MultiFab& sol, Location loc) const = 0;
+    
+    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
+    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
+    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
+
+    virtual void prepareForSolve () = 0;
+    virtual bool isSingular (int amrlev) const = 0;
+    virtual bool isBottomSingular () const = 0;
+    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
+
+    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
+    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
+
+    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
+
+    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MultiFab*>& a_sol,
+                            Location a_loc) const {
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+    }
+    virtual void getFluxes (const Vector<MultiFab*>& a_flux,
+                            const Vector<MultiFab*>& a_sol) const {
+        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
+    }
+
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
+        amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
+#endif
+
+#ifdef AMREX_USE_PETSC
+    virtual std::unique_ptr<PETScABecLap> makePETSc () const;
+#endif
+
 protected:
 
     static constexpr int mg_coarsen_ratio = 2;
@@ -208,67 +269,6 @@ protected:
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const {
         return std::unique_ptr<FabFactory<FArrayBox> >(new FArrayBoxFactory());
     }
-
-    virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const = 0;
-    virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const = 0;
-    virtual void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                         const MultiFab& fine_sol, const MultiFab& fine_rhs) = 0;
-
-    virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                        StateMode s_mode, const MLMGBndry* bndry=nullptr) const = 0;
-    virtual void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const = 0;
-
-    // Divide mf by the diagonal component of the operator. Used by bicgstab.
-    virtual void normalize (int amrlev, int mglev, MultiFab& mf) const {}
-
-    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                   const MultiFab* crse_bcdata=nullptr) = 0;
-    virtual void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                     BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) = 0;
-
-    virtual void reflux (int crse_amrlev,
-                         MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                         MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const = 0;
-    virtual void compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes,
-                           MultiFab& sol, Location loc) const = 0;
-    virtual void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
-                           MultiFab& sol, Location loc) const = 0;
-    
-    virtual void applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
-    virtual void unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const = 0;
-    virtual void fillSolutionBC (int amrlev, MultiFab& sol, const MultiFab* crse_bcdata=nullptr) = 0;
-
-    virtual void prepareForSolve () = 0;
-    virtual bool isSingular (int amrlev) const = 0;
-    virtual bool isBottomSingular () const = 0;
-    virtual Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const = 0;
-
-    virtual void fixUpResidualMask (int amrlev, iMultiFab& resmsk) { }
-    virtual void nodalSync (int amrlev, int mglev, MultiFab& mf) const {}
-
-    virtual std::unique_ptr<MLLinOp> makeNLinOp (int grid_size) const = 0;
-
-    virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,
-                            const Vector<MultiFab*>& a_sol,
-                            Location a_loc) const {
-        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
-    }
-    virtual void getFluxes (const Vector<MultiFab*>& a_flux,
-                            const Vector<MultiFab*>& a_sol) const {
-        amrex::Abort("MLLinOp::getFluxes: How did we get here?");
-    }
-
-#ifdef AMREX_USE_HYPRE
-    virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
-        amrex::Abort("MLLinOp::makeHypre: How did we get here?");
-        return {nullptr};
-    }
-#endif
-
-#ifdef AMREX_USE_PETSC
-    virtual std::unique_ptr<PETScABecLap> makePETSc () const;
-#endif
 
 private:
 

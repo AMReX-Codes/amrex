@@ -89,16 +89,7 @@ MacBndry::setHomogValues (const BCRec&   bc,
                           const IntVect& ratio)
 {
     setBndryConds(bc, ratio);
- 
-    for (OrientationIter fi; fi; ++fi)
-    {
-        const Orientation face  = fi();
-        
-        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
-        {
-            bndry[face][fsi].setVal(0);
-        }
-    }
+    setVal(0.0);
 }
 
 }
