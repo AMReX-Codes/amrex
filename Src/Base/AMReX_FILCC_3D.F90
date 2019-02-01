@@ -1,24 +1,23 @@
 
 #ifndef AMREX_XSDK
 
-! ::: -----------------------------------------------------------
-! ::: This routine is intended to be a generic fill function
-! ::: for cell centered data.  It knows how to exrapolate,
-! ::: and reflect data and can be used to suppliment problem
-! ::: specific fill functions (ie. EXT_DIR).
-! ::: 
-! ::: INPUTS/OUTPUTS:
-! ::: q        <=  array to fill
-! ::: q_l1,q_l2,q_l3,q_h1,q_h2,q_h3   => index extent of q array
-! ::: domlo,hi  => index extent of problem domain
-! ::: dx        => cell spacing
-! ::: xlo       => physical location of lower left hand
-! :::	           corner of q array
-! ::: bc	=> array of boundary flags bc(SPACEDIM,lo:hi)
-! ::: 
-! ::: NOTE: corner data not used in computing soln but must have
-! :::       reasonable values for arithmetic to live
-! ::: -----------------------------------------------------------
+! -----------------------------------------------------------
+!> This routine is intended to be a generic fill function
+!! for cell centered data.  It knows how to exrapolate,
+!! and reflect data and can be used to suppliment problem
+!! specific fill functions (ie. EXT_DIR).
+!!
+!! \param q        <=  array to fill
+!! \param q_l1,q_l2,q_l3,q_h1,q_h2,q_h3   => index extent of q array
+!! \param domlo,hi  => index extent of problem domain
+!! \param dx        => cell spacing
+!! \param xlo       => physical location of lower left hand
+!!	           corner of q array
+!! \param bc	=> array of boundary flags bc(SPACEDIM,lo:hi)
+!!
+!! NOTE: corner data not used in computing soln but must have
+!!       reasonable values for arithmetic to live
+! -----------------------------------------------------------
 
 subroutine filcc(q,q_l1,q_l2,q_l3,q_h1,q_h2,q_h3,domlo,domhi,dx,xlo,bc)
 

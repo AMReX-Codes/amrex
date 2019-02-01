@@ -16,7 +16,7 @@ namespace amrex {
         An InterpBndryData object adds to a BndryData object the ability to
         manipulate and set the data stored in the boundary cells.
 
-        The Interpbndrydata class is a virtual base class derived from
+        The InterpBndryData class is a virtual base class derived from
         BndryData.  It is intended to provide a more physical method for
         filling boundary-related data.  Boundary values in a BndryData object
         are stored in FabSets around each grid in the domain, and the
