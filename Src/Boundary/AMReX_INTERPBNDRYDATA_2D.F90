@@ -12,27 +12,26 @@ contains
 #define NUMDERIV 2
 #define XDER   1
 #define X2DER  2
-      
-      
+
+
 ! ---------------------------------------------------------------
-! ::  AMREX_BDINTERPXLO : Interpolation on Xlo Face
-! ::       Quadratic Interpolation from crse data
-! ::       in directions transverse to face of grid
-! ::
-! ::  Inputs/Outputs:
-! ::  bdry       <=  fine grid bndry data strip
-! ::  bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
-! ::  lo,hi       => index limits of grd interior
-! ::  cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
-! ::  nvar        => number of variables to interpolate
-! ::  ratios(2)   => refinement ratios
-! ::  not_covered => mask is set to this value if cell is not
-! ::                 covered by another fine grid and not outside the domain.
-! ::  mask        => fine grid mask bndry strip
-! ::  mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
-! ::  crse        => crse grid bndry data strip
-! ::  crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
-! ::  derives     => crse grid tmp array
+!>  AMREX_BDINTERPXLO : Interpolation on Xlo Face
+!!       Quadratic Interpolation from crse data
+!!       in directions transverse to face of grid
+!!
+!!  \param bdry       <=  fine grid bndry data strip
+!!  \param bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
+!!  \param lo,hi       => index limits of grd interior
+!!  \param cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
+!!  \param nvar        => number of variables to interpolate
+!!  \param ratios(2)   => refinement ratios
+!!  \param not_covered => mask is set to this value if cell is not
+!!                 covered by another fine grid and not outside the domain.
+!!  \param mask        => fine grid mask bndry strip
+!!  \param mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
+!!  \param crse        => crse grid bndry data strip
+!!  \param crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
+!!  \param derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
     subroutine AMREX_BDINTERPXLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
@@ -50,7 +49,7 @@ contains
       integer  crse_l1,crse_l2,crse_h1,crse_h2
       integer  cb_l1,cb_l2,cb_h1,cb_h2
       real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
-      real(amrex_real)   derives(cb_l2:cb_h2,NUMDERIV)      
+      real(amrex_real)   derives(cb_l2:cb_h2,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2)
       real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
 
@@ -81,7 +80,7 @@ contains
       do n=1,nvar
          do jc=jclo,jchi
             j = ratioy*jc
-            
+
             NN = 1
             y(NN) = crse(ic,jc,n)
             x(NN) = zero
@@ -95,7 +94,7 @@ contains
                y(NN) = crse(ic,jc+2,n)
                x(NN) = two
             endif
-            
+
             if (mask(i,j+ratioy).eq.not_covered) then
                NN=NN+1
                y(NN) = crse(ic,jc+1,n)
@@ -105,10 +104,10 @@ contains
                y(NN) = crse(ic,jc-2,n)
                x(NN) = -two
             endif
-               
+
             if ( (mask(i,j-1).ne.not_covered).and. &
                  (mask(i,j+ratioy).ne.not_covered) ) NN = 1
-            
+
             do off = 0,ratioy-1
                xInt = (dble(off - ratioy/2) + half)/ratioy
                call polyInterpCoeff(xInt, x, NN, c)
@@ -119,30 +118,29 @@ contains
             end do
          end do
       end do
-      
+
       endif
 
     end subroutine AMREX_BDINTERPXLO
 
 ! ---------------------------------------------------------------
-! ::  AMREX_BDINTERPXHI : Interpolation on Xhi Face
-! ::       Quadratic Interpolation from crse data
-! ::       in directions transverse to face of grid
-! ::
-! ::  Inputs/Outputs:
-! ::  bdry       <=  fine grid bndry data strip
-! ::  bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
-! ::  lo,hi       => index limits of grd interior
-! ::  cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
-! ::  nvar        => number of variables to interpolate
-! ::  ratios(2)   => refinement ratios
-! ::  not_covered => mask is set to this value if cell is not
-! ::                 covered by another fine grid and not outside the domain.
-! ::  mask        => fine grid mask bndry strip
-! ::  mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
-! ::  crse        => crse grid bndry data strip
-! ::  crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
-! ::  derives     => crse grid tmp array
+!>  AMREX_BDINTERPXHI : Interpolation on Xhi Face
+!!       Quadratic Interpolation from crse data
+!!       in directions transverse to face of grid
+!!
+!!  \param bdry       <=  fine grid bndry data strip
+!!  \param bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
+!!  \param lo,hi       => index limits of grd interior
+!!  \param cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
+!!  \param nvar        => number of variables to interpolate
+!!  \param ratios(2)   => refinement ratios
+!!  \param not_covered => mask is set to this value if cell is not
+!!                 covered by another fine grid and not outside the domain.
+!!  \param mask        => fine grid mask bndry strip
+!!  \param mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
+!!  \param crse        => crse grid bndry data strip
+!!  \param crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
+!!  \param derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
     subroutine AMREX_BDINTERPXHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
@@ -160,7 +158,7 @@ contains
       integer  cb_l1,cb_l2,cb_h1,cb_h2
       integer  crse_l1,crse_l2,crse_h1,crse_h2
       real(amrex_real)   bdry(bdry_l1:bdry_h1,bdry_l2:bdry_h2,nvar)
-      real(amrex_real)   derives(cb_l2:cb_h2,NUMDERIV)      
+      real(amrex_real)   derives(cb_l2:cb_h2,NUMDERIV)
       integer  mask(mask_l1:mask_h1,mask_l2:mask_h2)
       real(amrex_real)   crse(crse_l1:crse_h1,crse_l2:crse_h2,nvar)
 
@@ -188,11 +186,11 @@ contains
             end do
          end do
       else
-      
+
       do n=1,nvar
          do jc=jclo,jchi
             j = ratioy*jc
-            
+
             NN = 1
             y(NN) = crse(ic,jc,n)
             x(NN) = zero
@@ -206,7 +204,7 @@ contains
                y(NN) = crse(ic,jc+2,n)
                x(NN) = two
             endif
-            
+
             if (mask(i,j+ratioy).eq.not_covered) then
                NN=NN+1
                y(NN) = crse(ic,jc+1,n)
@@ -216,10 +214,10 @@ contains
                y(NN) = crse(ic,jc-2,n)
                x(NN) = -two
             endif
-               
+
             if ( (mask(i,j-1).ne.not_covered).and. &
                  (mask(i,j+ratioy).ne.not_covered) ) NN = 1
-            
+
             do off = 0,ratioy-1
                xInt = (dble(off - ratioy/2) + half)/ratioy
                call polyInterpCoeff(xInt, x, NN, c)
@@ -230,30 +228,29 @@ contains
             end do
          end do
       end do
-      
+
       endif
 
     end subroutine AMREX_BDINTERPXHI
 
 ! ---------------------------------------------------------------
-! ::  AMREX_BDINTERPYLO : Interpolation on Ylo Face
-! ::       Quadratic Interpolation from crse data
-! ::       in directions transverse to face of grid
-! ::
-! ::  Inputs/Outputs:
-! ::  bdry       <=  fine grid bndry data strip
-! ::  bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
-! ::  lo,hi       => index limits of grd interior
-! ::  cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
-! ::  nvar        => number of variables to interpolate
-! ::  ratios(2)   => refinement ratios
-! ::  not_covered => mask is set to this value if cell is not
-! ::                 covered by another fine grid and not outside the domain.
-! ::  mask        => fine grid mask bndry strip
-! ::  mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
-! ::  crse        => crse grid bndry data strip
-! ::  crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
-! ::  derives     => crse grid tmp array
+!>  AMREX_BDINTERPYLO : Interpolation on Ylo Face
+!!       Quadratic Interpolation from crse data
+!!       in directions transverse to face of grid
+!!
+!!  \param bdry       <=  fine grid bndry data strip
+!!  \param bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
+!!  \param lo,hi       => index limits of grd interior
+!!  \param cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
+!!  \param nvar        => number of variables to interpolate
+!!  \param ratios(2)   => refinement ratios
+!!  \param not_covered => mask is set to this value if cell is not
+!!                 covered by another fine grid and not outside the domain.
+!!  \param mask        => fine grid mask bndry strip
+!!  \param mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
+!!  \param crse        => crse grid bndry data strip
+!!  \param crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
+!!  \param derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
     subroutine AMREX_BDINTERPYLO (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
@@ -299,11 +296,11 @@ contains
          end do
       end do
       else
-      
+
       do n=1,nvar
          do ic=iclo,ichi
             i = ratiox*ic
-            
+
             NN = 1
             y(NN) = crse(ic,jc,n)
             x(NN) = zero
@@ -317,7 +314,7 @@ contains
                y(NN) = crse(ic+2,jc,n)
                x(NN) = two
             endif
-            
+
             if (mask(i+ratiox,j).eq.not_covered) then
                NN=NN+1
                y(NN) = crse(ic+1,jc,n)
@@ -327,10 +324,10 @@ contains
                y(NN) = crse(ic-2,jc,n)
                x(NN) = -two
             endif
-               
+
             if ( (mask(i-1,j).ne.not_covered).and. &
                  (mask(i+ratiox,j).ne.not_covered) ) NN = 1
-            
+
             do off = 0,ratiox-1
                xInt = (dble(off - ratiox/2) + half)/ratiox
                call polyInterpCoeff(xInt, x, NN, c)
@@ -341,30 +338,29 @@ contains
             end do
          end do
       end do
-      
+
       endif
 
     end subroutine AMREX_BDINTERPYLO
 
 ! ---------------------------------------------------------------
-! ::  AMREX_BDINTERPYHI : Interpolation on Yhi Face
-! ::       Quadratic Interpolation from crse data
-! ::       in directions transverse to face of grid
-! ::
-! ::  Inputs/Outputs:
-! ::  bdry       <=  fine grid bndry data strip
-! ::  bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
-! ::  lo,hi       => index limits of grd interior
-! ::  cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
-! ::  nvar        => number of variables to interpolate
-! ::  ratios(2)   => refinement ratios
-! ::  not_covered => mask is set to this value if cell is not
-! ::                 covered by another fine grid and not outside the domain.
-! ::  mask        => fine grid mask bndry strip
-! ::  mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
-! ::  crse        => crse grid bndry data strip
-! ::  crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
-! ::  derives     => crse grid tmp array
+!>  AMREX_BDINTERPYHI : Interpolation on Yhi Face
+!!       Quadratic Interpolation from crse data
+!!       in directions transverse to face of grid
+!!
+!!  \param bdry       <=  fine grid bndry data strip
+!!  \param bdry_l1,bdry_l2,bdry_h1,bdry_h2  => index limits of bdry
+!!  \param lo,hi       => index limits of grd interior
+!!  \param cb_l1,cb_l2,cb_h1,cb_h2    => index limits of coarsened grid interior
+!!  \param nvar        => number of variables to interpolate
+!!  \param ratios(2)   => refinement ratios
+!!  \param not_covered => mask is set to this value if cell is not
+!!                 covered by another fine grid and not outside the domain.
+!!  \param mask        => fine grid mask bndry strip
+!!  \param mask_l1,mask_l2,mask_h1,mask_h2  => index limits of mask array
+!!  \param crse        => crse grid bndry data strip
+!!  \param crse_l1,crse_l2,crse_h1,crse_h2  => index limits of crse array
+!!  \param derives     => crse grid tmp array
 ! ---------------------------------------------------------------
 
     subroutine AMREX_BDINTERPYHI (bdry,bdry_l1,bdry_l2,bdry_h1,bdry_h2, &
@@ -392,7 +388,7 @@ contains
       integer Norder, NN, m
       parameter (Norder = 3)
       real(amrex_real) x(Norder), y(Norder), c(Norder), xInt
-      
+
       ratiox = ratios(1)
 
       iclo = cb_l1
@@ -414,7 +410,7 @@ contains
       do n=1,nvar
          do ic=iclo,ichi
             i = ratiox*ic
-            
+
             NN = 1
             y(NN) = crse(ic,jc,n)
             x(NN) = zero
@@ -428,7 +424,7 @@ contains
                y(NN) = crse(ic+2,jc,n)
                x(NN) = two
             endif
-            
+
             if (mask(i+ratiox,j).eq.not_covered) then
                NN=NN+1
                y(NN) = crse(ic+1,jc,n)
@@ -438,10 +434,10 @@ contains
                y(NN) = crse(ic-2,jc,n)
                x(NN) = -two
             endif
-               
+
             if ( (mask(i-1,j).ne.not_covered).and. &
                  (mask(i+ratiox,j).ne.not_covered) ) NN = 1
-            
+
             do off = 0,ratiox-1
                xInt = (dble(off - ratiox/2) + half)/ratiox
                call polyInterpCoeff(xInt, x, NN, c)
@@ -452,7 +448,7 @@ contains
             end do
          end do
       end do
-      
+
       endif
 
     end subroutine AMREX_BDINTERPYHI
