@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <limits>
+#include <climits>
 #include <array>
 
 #ifdef _OPENMP
@@ -95,12 +96,21 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Array4<T>
 makeArray4 (T* p, Box const& bx)
 {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     AMREX_ASSERT(bx.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+#else
+    AMREX_ASSERT(bx.numPts() < static_cast<long>(INT_MAX));
+#endif
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx)};
 }
 
 template <typename T>
-struct BaseFabData : public Gpu::Managed
+struct BaseFabData
+#ifdef AMREX_FAB_IS_PINNED
+    : public Gpu::Pinned
+#else
+    : public Gpu::Managed
+#endif
 {
     AMREX_GPU_HOST_DEVICE
     BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
@@ -422,7 +432,11 @@ public:
     AMREX_INLINE
     FabView<T const> view (const GpuArray<int,3>& slo, int n = 0) const
     {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+#else
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
+#endif
         const auto& len = this->domain.length3d();
         int jstride = len[0];
         int kstride = jstride*len[1];
@@ -447,7 +461,11 @@ public:
     AMREX_INLINE
     FabView<T> view (const GpuArray<int,3>& slo, int n = 0)
     {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+#else
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
+#endif
         const auto& len = this->domain.length3d();
         int jstride = len[0];
         int kstride = jstride*len[1];
@@ -472,7 +490,11 @@ public:
     AMREX_INLINE
     FabView<T const> view (const Dim3& slo, int n = 0) const
     {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+#else
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
+#endif
         const auto len = amrex::length(this->domain);
         const auto dlo = amrex::lbound(this->domain);
         int jstride = len.x;
@@ -497,7 +519,11 @@ public:
     AMREX_INLINE
     FabView<T> view (const Dim3& slo, int n = 0)
     {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         AMREX_ASSERT(this->domain.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
+#else
+        AMREX_ASSERT(this->domain.numPts() < static_cast<long>(INT_MAX));
+#endif
         const auto len = amrex::length(this->domain);
         const auto dlo = amrex::lbound(this->domain);
         int jstride = len.x;
@@ -1842,7 +1868,11 @@ BaseFab<T>::define ()
     AMREX_ASSERT(this->nvar > 0);
     AMREX_ASSERT(this->dptr == 0);
     AMREX_ASSERT(this->domain.numPts() > 0);
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     AMREX_ASSERT(std::numeric_limits<long>::max()/this->nvar > this->domain.numPts());
+#else
+    AMREX_ASSERT(LONG_MAX/this->nvar > this->domain.numPts());
+#endif
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
@@ -1901,9 +1931,13 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
 {
     auto dst = static_cast<BaseFabData<T>*>(this);
     auto src = static_cast<BaseFabData<T>const*>(&rhs);
+#ifndef AMREX_FAB_IS_PINNED
     if (Gpu::isDevicePtr(&rhs)) {
         AMREX_GPU_SAFE_CALL(cudaMemcpy(dst, src, sizeof(BaseFabData<T>), cudaMemcpyDeviceToHost));
-    } else {
+    }
+    else
+#endif
+    {
         std::memcpy(dst, src, sizeof(BaseFabData<T>));
     }
 
@@ -2283,12 +2317,15 @@ template <class T>
 T
 BaseFab<T>::min (const Box& subbox, int comp) const
 {
-    T r = std::numeric_limits<T>::max();
-
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+    T r = std::numeric_limits<T>::max();
+#else
+    T r = *dp.p;
+#endif
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
             for (int i = 0; i < len.x; ++i) {
@@ -2312,11 +2349,15 @@ template <class T>
 T
 BaseFab<T>::max (const Box& subbox, int comp) const
 {
-    T r = std::numeric_limits<T>::lowest();
-
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
+
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+    T r = std::numeric_limits<T>::lowest();
+#else
+    T r = *dp.p;
+#endif
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
@@ -2341,11 +2382,15 @@ template <class T>
 T
 BaseFab<T>::maxabs (const Box& subbox, int comp) const
 {
-    T r = std::numeric_limits<T>::lowest();
-
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
+
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+    T r = std::numeric_limits<T>::lowest();
+#else
+    T r = *dp.p;
+#endif
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
@@ -2371,13 +2416,17 @@ template <class T>
 IntVect
 BaseFab<T>::minIndex (const Box& subbox, int comp) const
 {
-    AMREX_D_DECL(int imin, jmin, kmin);
-    T min_val = std::numeric_limits<T>::max();
-
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
  
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+    AMREX_D_DECL(int imin, jmin, kmin);
+    T min_val = std::numeric_limits<T>::max();
+#else
+    AMREX_D_DECL(int imin=0, jmin=0, kmin=0);
+    T min_val = *dp.p;
+#endif
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {
@@ -2397,9 +2446,13 @@ template <class T>
 IntVect
 BaseFab<T>::indexFromValue (Real value, const Box& subbox, int comp) const
 {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     AMREX_D_DECL(int imin = std::numeric_limits<int>::lowest(),
                      jmin = std::numeric_limits<int>::lowest(),
                      kmin = std::numeric_limits<int>::lowest());
+#else
+    AMREX_D_DECL(int imin = INT_MIN, jmin = INT_MIN, kmin = INT_MIN);
+#endif
 
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
@@ -2451,12 +2504,17 @@ IntVect
 BaseFab<T>::maxIndex (const Box& subbox,
                       int        comp) const
 {
-    AMREX_D_DECL(int imax, jmax, kmax);
-    T max_val = std::numeric_limits<T>::lowest();
-
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
+
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
+    AMREX_D_DECL(int imax, jmax, kmax);
+    T max_val = std::numeric_limits<T>::lowest();
+#else
+    AMREX_D_DECL(int imax=0, jmax=0, kmax=0);
+    T max_val = *dp.p;
+#endif
 
     for         (int k = 0; k < len.z; ++k) {
         for     (int j = 0; j < len.y; ++j) {

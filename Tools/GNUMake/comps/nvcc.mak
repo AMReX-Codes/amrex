@@ -15,10 +15,6 @@ ifeq ($(nvcc_major_lt_8),1)
   $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 8.0 or newer.)
 endif
 
-#ifeq ($(nvcc_version),9.2)
-#  $(warning --expt-relaxed-constexpr --expt-extended-lambda CUDA flags turned off. Incompatible with CUDA version 9.2.)
-#endif
-
 #
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using
@@ -64,7 +60,12 @@ endif
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
-CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+ifeq ($(nvcc_version),9.2)
+  # relaxed constexpr not supported
+  CXXFLAGS += --expt-extended-lambda
+else
+  CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+endif
 
 CXX = nvcc
 CC  = nvcc

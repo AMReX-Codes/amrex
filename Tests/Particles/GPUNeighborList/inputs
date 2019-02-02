@@ -1,0 +1,9 @@
+
+ncell = (8, 8, 8)
+nppc  = (4, 4, 4)         # number of particles per cell
+
+max_grid_size = 8
+
+nsteps = 10
+
+write_plot = false
