@@ -83,6 +83,47 @@ public:
 #endif
     }
 #endif
+
+    void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
+
+    void prepareForNSolve ();
+
+    void oneIter (int iter);
+
+    void miniCycle (int alev);
+
+    void mgVcycle (int amrlev, int mglev);
+    void mgFcycle ();
+
+    void bottomSolve ();
+    void NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs);
+    void actualBottomSolve ();
+
+    void computeMLResidual (int amrlevmax);
+    void computeResidual (int alev);
+    void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
+    void computeResWithCrseCorFineCor (int fine_amr_lev);
+    void interpCorrection (int alev);
+    void interpCorrection (int alev, int mglev);
+    void addInterpCorrection (int alev, int mglev);
+
+    void computeResOfCorrection (int amrlev, int mglev);
+
+    Real ResNormInf (int amrlev, bool local = false);
+    Real MLResNormInf (int alevmax, bool local = false);
+    Real MLRhsNormInf (bool local = false);
+    void buildFineMask ();
+
+    void averageDownAndSync ();
+
+    void computeVolInv ();
+    void makeSolvable ();
+    void makeSolvable (int amrlev, int mglev, MultiFab& mf);
+    Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
+
+    void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
+
+    void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
     
 private:
 
@@ -162,47 +203,6 @@ private:
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
-
-    void prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs);
-
-    void prepareForNSolve ();
-
-    void oneIter (int iter);
-
-    void miniCycle (int alev);
-
-    void mgVcycle (int amrlev, int mglev);
-    void mgFcycle ();
-
-    void bottomSolve ();
-    void NSolve (MLMG& a_solver, MultiFab& a_sol, MultiFab& a_rhs);
-    void actualBottomSolve ();
-
-    void computeMLResidual (int amrlevmax);
-    void computeResidual (int alev);
-    void computeResWithCrseSolFineCor (int crse_amr_lev, int fine_amr_lev);
-    void computeResWithCrseCorFineCor (int fine_amr_lev);
-    void interpCorrection (int alev);
-    void interpCorrection (int alev, int mglev);
-    void addInterpCorrection (int alev, int mglev);
-
-    void computeResOfCorrection (int amrlev, int mglev);
-
-    Real ResNormInf (int amrlev, bool local = false);
-    Real MLResNormInf (int alevmax, bool local = false);
-    Real MLRhsNormInf (bool local = false);
-    void buildFineMask ();
-
-    void averageDownAndSync ();
-
-    void computeVolInv ();
-    void makeSolvable ();
-    void makeSolvable (int amrlev, int mglev, MultiFab& mf);
-    Real getNodalSum (int amrlev, int mglev, MultiFab& mf) const;
-
-    void bottomSolveWithHypre (MultiFab& x, const MultiFab& b);
-
-    void bottomSolveWithPETSc (MultiFab& x, const MultiFab& b);
 };
 
 }
