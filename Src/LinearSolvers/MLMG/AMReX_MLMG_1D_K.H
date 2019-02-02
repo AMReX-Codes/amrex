@@ -11,6 +11,7 @@ void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
     const auto hi = amrex::ubound(bx);
 
     for (int n = 0; n < nc; ++n) {
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             const int ic = i/2;
             const int ioff = 2*(i-ic*2)-1;
@@ -27,6 +28,7 @@ void mlmg_lin_cc_interp_r4 (Box const& bx, Array4<Real> const& ff,
     const auto hi = amrex::ubound(bx);
 
     for (int n = 0; n < nc; ++n) {
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             const int ic = i/4;
             ff(i,0,0,n) = cc(ic,0,0,n);

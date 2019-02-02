@@ -2,6 +2,7 @@
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <AMReX_MLABecLap_K.H>
 #include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
 
@@ -225,30 +226,29 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+
+    const Real ascalar = m_a_scalar;
+    const Real bscalar = m_b_scalar;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        const FArrayBox& xfab = in[mfi];
-        FArrayBox& yfab = out[mfi];
-        const FArrayBox& afab = acoef[mfi];
-        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                     const FArrayBox& byfab = bycoef[mfi];,
-                     const FArrayBox& bzfab = bzcoef[mfi];);
+        const auto& xfab = in.array(mfi);
+        const auto& yfab = out.array(mfi);
+        const auto& afab = acoef.array(mfi);
+        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
+                     const auto& byfab = bycoef.array(mfi);,
+                     const auto& bzfab = bzcoef.array(mfi););
 
-        amrex_mlabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_ANYD(yfab),
-                              BL_TO_FORTRAN_ANYD(xfab),
-                              BL_TO_FORTRAN_ANYD(afab),
-                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
-                                           BL_TO_FORTRAN_ANYD(byfab),
-                                           BL_TO_FORTRAN_ANYD(bzfab)),
-                              dxinv, m_a_scalar, m_b_scalar);
-
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                            dxinv, ascalar, bscalar);
+        });
     }
 }
 
