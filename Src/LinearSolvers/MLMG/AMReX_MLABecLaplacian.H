@@ -42,10 +42,6 @@ public:
     }
     virtual void update () final override;
 
-protected:
-
-    bool m_needs_update = true;
-
     virtual void prepareForSolve () final override;
     virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
     virtual bool isBottomSingular () const final override { return m_is_singular[0]; }
@@ -70,6 +66,17 @@ protected:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
+    void averageDownCoeffs ();
+    void averageDownCoeffsToCoarseAmrLevel (int flev);
+
+    void applyMetricTermsCoeffs ();
+
+protected:
+
+    bool m_needs_update = true;
+
 private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
@@ -78,17 +85,6 @@ private:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
     Vector<int> m_is_singular;
-
-    //
-    // functions
-    //
-
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
-    void averageDownCoeffs ();
-    void averageDownCoeffsToCoarseAmrLevel (int flev);
-
-    void applyMetricTermsCoeffs ();
 };
 
 }

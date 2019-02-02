@@ -138,7 +138,7 @@ public:
 
     static int maxOrderDEF() {return IBD_max_order_DEF;}
 
-private:
+// private:  // public for cuda
 
     void BndryValuesDoIt (BndryRegister&  crse,
                           int             c_start,
