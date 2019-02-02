@@ -263,11 +263,11 @@ void MDParticleContainer::BuildNeighborList()
         });
 
         // for (int i = 0; i < np; ++i) {
-        //     std::cout << "Particle " << i << " will collide with: ";
+        //     amrex::Print() << "Particle " << i << " will collide with: ";
         //     for (int j = nbor_offsets[i]; j < nbor_offsets[i+1]; ++j) {
-        //         std::cout << nbor_list[j] << " ";
+        //         amrex::Print() << nbor_list[j] << " ";
         //     }
-        //     std::cout << "\n";
+        //     amrex::Print() << "\n";
         // }
     }
 }
