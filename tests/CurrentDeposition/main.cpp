@@ -110,9 +110,12 @@ int main(int argc, char* argv[])
 	long ngy = ng;
 	long ngz = ng;
 	long lvect = 8;
-	warpx_current_deposition(jxfab.dataPtr(), &ngx, jxfab.length(),
-                                 jyfab.dataPtr(), &ngy, jyfab.length(),
-                                 jzfab.dataPtr(), &ngz, jzfab.length(),
+        auto jxntot = jxfab.length();
+        auto jyntot = jyfab.length();
+        auto jzntot = jzfab.length();
+	warpx_current_deposition(jxfab.dataPtr(), &ngx, jxntot.getVect(),
+                                 jyfab.dataPtr(), &ngy, jyntot.getVect(),
+                                 jzfab.dataPtr(), &ngz, jzntot.getVect(),
 				 &np, xp.data(), yp.data(), zp.data(), 
 				 uxp.data(), uyp.data(), uzp.data(), 
 				 giv.data(), wp.data(), &charge, 

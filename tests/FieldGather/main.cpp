@@ -148,6 +148,7 @@ int main(int argc, char* argv[])
 
 	const int ll4symtry          = false;
 	const int l_lower_order_in_v = true;
+	const int l_nodal = false;
 	long lvect_fieldgathe = 64;
 	warpx_geteb_energy_conserving(&np, xp.data(), yp.data(), zp.data(),
 				      Exp.data(),Eyp.data(),Ezp.data(),
@@ -163,6 +164,7 @@ int main(int argc, char* argv[])
                                       BL_TO_FORTRAN_ANYD(byfab),
                                       BL_TO_FORTRAN_ANYD(bzfab),
 				      &ll4symtry, &l_lower_order_in_v,
+				      &l_nodal,
 				      &lvect_fieldgathe,
 				      &field_gathering_algo);
 
