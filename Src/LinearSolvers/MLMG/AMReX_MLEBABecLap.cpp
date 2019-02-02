@@ -327,7 +327,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
     
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
-    const Real dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
+    const auto dxinvarr = m_geom[amrlev][mglev].InvCellSizeArray();
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -363,11 +363,11 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         if (fabtyp == FabType::covered) {
             yfab.setVal(0.0, bx, 0, 1);
         } else if (fabtyp == FabType::regular) {
-            amrex_mlabeclap_adotx(bx, yfab.array(), xfab.array(), afab.array(),
-                                  AMREX_D_DECL(bxfab.array(),
-                                               byfab.array(),
-                                               bzfab.array()),
-                                  dxinvarr, ascalar, bscalar);
+            mlabeclap_adotx(bx, yfab.array(), xfab.array(), afab.array(),
+                            AMREX_D_DECL(bxfab.array(),
+                                         byfab.array(),
+                                         bzfab.array()),
+                            dxinvarr, ascalar, bscalar);
         } else {
 
             FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
