@@ -196,7 +196,8 @@ typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type r = std::numeric_limits<value_type>::max();
+    constexpr value_type value_max = std::numeric_limits<value_type>::max();
+    value_type r = value_max;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -218,7 +219,11 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
+#else
+                value_type tmin = value_max;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab);
                     tmin = amrex::min(tmin, local_tmin);
@@ -256,7 +261,8 @@ typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type r = std::numeric_limits<value_type>::max();
+    constexpr value_type value_max = std::numeric_limits<value_type>::max();
+    value_type r = value_max;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -279,7 +285,11 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
+#else
+                value_type tmin = value_max;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab1, *fab2);
                     tmin = amrex::min(tmin, local_tmin);
@@ -317,7 +327,8 @@ typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type r = std::numeric_limits<value_type>::lowest();
+    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
+    value_type r = value_lowest;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -339,7 +350,11 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
+#else
+                value_type tmax = value_lowest;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab);
                     tmax = amrex::max(tmax, local_tmax);
@@ -377,7 +392,8 @@ typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type r = std::numeric_limits<value_type>::lowest();
+    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
+    value_type r = value_lowest;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
@@ -400,7 +416,11 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
+#else
+                value_type tmax = value_lowest;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab1, *fab2);
                     tmax = amrex::max(tmax, local_tmax);
