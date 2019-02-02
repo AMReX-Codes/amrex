@@ -2,6 +2,8 @@ add_sources ( MLMG/AMReX_MLMG.H )
 add_sources ( MLMG/AMReX_MLMG.cpp )
 add_sources ( MLMG/AMReX_MLMG_F.H )
 add_sources ( MLMG/AMReX_MLMG_${DIM}d.F90 )
+add_sources ( MLMG/AMReX_MLMG_K.H )
+add_sources ( MLMG/AMReX_MLMG_${DIM}D_K.H )
 
 add_sources ( MLMG/AMReX_MLMGBndry.H )
 add_sources ( MLMG/AMReX_MLMGBndry.cpp )
