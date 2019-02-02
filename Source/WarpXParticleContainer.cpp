@@ -21,12 +21,31 @@ void
 WarpXParIter::GetPosition (Cuda::DeviceVector<Real>& x, Cuda::DeviceVector<Real>& y, Cuda::DeviceVector<Real>& z) const
 {
     amrex::ParIter<0,0,PIdx::nattribs>::GetPosition(x, z);
+#ifdef WARPX_RZ
+    const auto& attribs = GetAttribs();
+    const auto& theta = attribs[PIdx::theta];
+    y.resize(x.size());
+    for (unsigned int i=0 ; i < x.size() ; i++) {
+        // The x stored in the particles is actually the radius
+        y[i] = x[i]*std::sin(theta[i]);
+        x[i] = x[i]*std::cos(theta[i]);
+    }
+#else
     y.resize(x.size(), std::numeric_limits<Real>::quiet_NaN());
+#endif
 }
 
 void
 WarpXParIter::SetPosition (const Cuda::DeviceVector<Real>& x, const Cuda::DeviceVector<Real>& y, const Cuda::DeviceVector<Real>& z)
 {
+#ifdef WARPX_RZ
+    const auto& attribs = GetAttribs();
+    const auto& theta = attribs[PIdx::theta];
+    for (unsigned int i=0 ; i < x.size() ; i++) {
+        theta[i] = std::atan2(y[i], x[i]);
+        x[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
+    }
+#endif
     amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
 }
 #endif
@@ -117,6 +136,10 @@ WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
     p.pos(1) = y;
     p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
+#ifdef WARPX_RZ
+    attribs[PIdx::theta] = std::atan2(y, x);
+    x = std::sqrt(x*x + y*y);
+#endif
     p.pos(0) = x;
     p.pos(1) = z;
 #endif
@@ -157,6 +180,12 @@ WarpXParticleContainer::AddNParticles (int lev,
     std::pair<int,int> key {0,0};
     auto& particle_tile = GetParticles(lev)[key];
 
+    std::size_t np = iend-ibegin;
+
+#ifdef WARPX_RZ
+    Vector<Real> theta(np);
+#endif
+
     for (int i = ibegin; i < iend; ++i)
     {
         ParticleType p;
@@ -167,13 +196,16 @@ WarpXParticleContainer::AddNParticles (int lev,
         p.pos(1) = y[i];
         p.pos(2) = z[i];
 #elif (AMREX_SPACEDIM == 2)
+#ifdef WARPX_RZ
+        theta[i-ibegin] = std::atan2(y[i], x[i]);
+        p.pos(0) = std::sqrt(x[i]*x[i] + y[i]*y[i]);
+#else
         p.pos(0) = x[i];
+#endif
         p.pos(1) = z[i];
 #endif
         particle_tile.push_back(p);
     }
-
-    std::size_t np = iend-ibegin;
 
     if (np > 0)
     {
@@ -184,7 +216,16 @@ WarpXParticleContainer::AddNParticles (int lev,
 
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
         {
+#ifdef WARPX_RZ
+            if (comp == PIdx::theta) {
+                particle_tile.push_back_real(comp, theta.data, theta.data+np);
+            }
+            else {
+                particle_tile.push_back_real(comp, np, 0.0);
+            }
+#else
             particle_tile.push_back_real(comp, np, 0.0);
+#endif
         }
     }
 

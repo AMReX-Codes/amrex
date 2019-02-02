@@ -71,6 +71,10 @@ ifeq ($(USE_PSATD),TRUE)
   endif
 endif
 
+ifeq ($(WARPX_RZ),TRUE)
+  DEFINES += -DWARPX_RZ
+endif
+
 ifeq ($(STORE_OLD_PARTICLE_ATTRIBS),TRUE)
      DEFINES += -DWARPX_STORE_OLD_PARTICLE_ATTRIBS
 endif

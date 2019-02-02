@@ -155,7 +155,7 @@ PhysicalParticleContainer::AddGaussianBeam(Real x_m, Real y_m, Real z_m,
        std::array<Real, 3> u;
        Real weight;
        for (long i = 0; i < npart; ++i) {
-#if ( AMREX_SPACEDIM == 3 )
+#if ( AMREX_SPACEDIM == 3 | WARPX_RZ)
             weight = q_tot/npart/charge;
             Real x = distx(mt);
             Real y = disty(mt);

@@ -1200,6 +1200,10 @@ WarpX::WritePlotFile () const
     particle_varnames.push_back("By");
     particle_varnames.push_back("Bz");
 
+#if (AMREX_SPACEDIM == 2) && WARPX_RZ
+    particle_varnames.push_back("theta");
+#endif
+
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
     particle_varnames.push_back("xold");
     particle_varnames.push_back("yold");
