@@ -219,7 +219,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
 #else
                 value_type tmin = value_max;
@@ -285,7 +285,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
 #else
                 value_type tmin = value_max;
@@ -350,7 +350,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
 #else
                 value_type tmax = value_lowest;
@@ -416,7 +416,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
 #else
                 value_type tmax = value_lowest;

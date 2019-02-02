@@ -18,7 +18,7 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
     const auto state = statefab.array();
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     amrex::Real dt = std::numeric_limits<amrex::Real>::max();
 #else
     amrex::Real dt = 1.e37;

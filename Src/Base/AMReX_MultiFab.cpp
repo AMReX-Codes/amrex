@@ -678,7 +678,7 @@ MultiFab::min (const Box& region,
         if (b.ok()) {
             return fab.min(b,comp);
         } else {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
             return std::numeric_limits<Real>::max();
 #elif defined(BL_USE_DOUBLE)
             return DBL_MAX;
@@ -729,7 +729,7 @@ MultiFab::max (const Box& region,
         if (b.ok()) {
             return fab.max(b,comp);
         } else {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
             return std::numeric_limits<Real>::lowest();
 #elif defined(BL_USE_DOUBLE)
             return -DBL_MAX;
