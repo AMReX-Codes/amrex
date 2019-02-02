@@ -3,7 +3,7 @@
 
 #include <thrust/reduce.h>
 
-//#include "md_K.H"
+#include "md_K.H"
 
 using namespace amrex;
 
@@ -214,13 +214,7 @@ void MDParticleContainer::BuildNeighborList()
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            amrex::Real d0 = (pstruct[i].pos(0) - pstruct[pperm[p]].pos(0));
-                            amrex::Real d1 = (pstruct[i].pos(1) - pstruct[pperm[p]].pos(1));
-                            amrex::Real d2 = (pstruct[i].pos(2) - pstruct[pperm[p]].pos(2));
-
-                            amrex::Real dsquared = d0*d0 + d1*d1 + d2*d2;
-
-                            if (dsquared <= Params::cutoff*Params::cutoff)
+                            if (check_pair(pstruct[i], pstruct[pperm[p]]))
                                 count += 1;
                         }
                     }
@@ -258,13 +252,7 @@ void MDParticleContainer::BuildNeighborList()
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            amrex::Real d0 = (pstruct[i].pos(0) - pstruct[pperm[p]].pos(0));
-                            amrex::Real d1 = (pstruct[i].pos(1) - pstruct[pperm[p]].pos(1));
-                            amrex::Real d2 = (pstruct[i].pos(2) - pstruct[pperm[p]].pos(2));
-
-                            amrex::Real dsquared = d0*d0 + d1*d1 + d2*d2;
-
-                            if (dsquared <= Params::cutoff*Params::cutoff) {
+                            if (check_pair(pstruct[i], pstruct[pperm[p]])) {
                                 pnbor_list[pnbor_offset[i] + n] = pperm[p]; 
                                 ++n;
                             }
