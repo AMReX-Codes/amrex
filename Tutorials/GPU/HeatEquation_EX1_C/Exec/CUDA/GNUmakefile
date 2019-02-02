@@ -9,11 +9,7 @@ USE_CUDA  = TRUE
 COMP      = pgi
 DIM       = 3 
 
-include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+Bpack   := ./Make.package
+Blocs   := .
 
-include ../Source/Make.package
-VPATH_LOCATIONS  += ../Source
-
-include $(AMREX_HOME)/Src/Base/Make.package
-
-include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+include ../../Make.HEAT
