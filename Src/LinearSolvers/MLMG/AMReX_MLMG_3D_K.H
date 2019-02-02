@@ -17,6 +17,7 @@ void mlmg_lin_cc_interp_r2 (Box const& bx, Array4<Real> const& ff,
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int jc = j/2;
                 const int joff = 2*(j-jc*2)-1;
+                AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int ic = i/2;
                     const int ioff = 2*(i-ic*2)-1;
@@ -46,6 +47,7 @@ void mlmg_lin_cc_interp_r4 (Box const& bx, Array4<Real> const& ff,
             const int kc = k/4;
             for (int j = lo.y; j <= hi.y; ++j) {
                 const int jc = j/4;
+                AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     const int ic = i/4;
                     ff(i,j,k,n) = cc(ic,jc,kc,n);
