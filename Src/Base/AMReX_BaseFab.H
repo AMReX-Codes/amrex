@@ -101,10 +101,10 @@ makeArray4 (T* p, Box const& bx)
 
 template <typename T>
 struct BaseFabData
-#ifdef AMREX_FAB_IS_MANAGED
-    : public Gpu::Managed
-#else
+#ifdef AMREX_FAB_IS_PINNED
     : public Gpu::Pinned
+#else
+    : public Gpu::Managed
 #endif
 {
     AMREX_GPU_HOST_DEVICE
@@ -1906,7 +1906,7 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
 {
     auto dst = static_cast<BaseFabData<T>*>(this);
     auto src = static_cast<BaseFabData<T>const*>(&rhs);
-#ifdef AMREX_FAB_IS_MANAGED
+#ifndef AMREX_FAB_IS_PINNED
     if (Gpu::isDevicePtr(&rhs)) {
         AMREX_GPU_SAFE_CALL(cudaMemcpy(dst, src, sizeof(BaseFabData<T>), cudaMemcpyDeviceToHost));
     }
