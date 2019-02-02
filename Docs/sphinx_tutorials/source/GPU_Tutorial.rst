@@ -19,19 +19,13 @@ AMReX GPU program.  This guide will use ``Tutorials/GPU/Launch``,
 and instructions will focus on ORNL's systems:
 
 1. Before compiling, the ``pgi`` and ``cuda`` software must be available. 
-   Note, Cuda versions 9.2.x are not compatible with AMReX, so, it is
-   identify whether your system is using 9.2.x.  On systems that use
-   modules, type ``module avail cuda`` to find a compatible version and
-   load it using ``module load [good module name]``.
-
-   On ORNL systems, the correct modules can be loaded directly by typing:
+   On ORNL systems, the modules can be loaded directly by typing:
 
 .. highlight:: console
 
 ::
 
-   module load pgi cuda/9.1.85       ! For Summit
-   module load pgi cuda/9.0.69       ! For Summitdev
+   module load pgi cuda
 
 2. Go to ``Tutorials/GPU/Launch`` to compile the executable.  Compile with
    ``make USE_CUDA=TRUE COMP=pgi USE_MPI=TRUE USE_OMP=FALSE``, or edit the
