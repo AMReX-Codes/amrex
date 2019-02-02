@@ -497,7 +497,7 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheMaxVector () {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::max());
 #else
         return IntVect(INT_MAX);
@@ -505,7 +505,7 @@ public:
     }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheMinVector () {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) && (__CUDACC_VERSION__ != 2)
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::lowest());
 #else
         return IntVect(INT_MIN);
