@@ -277,14 +277,6 @@ public:
     //
     static int MaxComp;
     //
-    // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
-    //
-    // Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.
-    //
-    // Default is true.
-    //
-    static bool do_async_sends;
-    //
     // Initialize from ParmParse with "fabarray" prefix.
     //
     static void Initialize ();
