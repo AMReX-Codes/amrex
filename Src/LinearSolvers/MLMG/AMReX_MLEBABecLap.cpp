@@ -742,6 +742,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const auto dxinvarray = m_geom[amrlev][mglev].InvCellSizeArray();
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
@@ -755,6 +756,9 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
     const int is_eb_dirichlet = isEBDirichlet();
     FArrayBox foo(Box::TheUnitBox());
+
+    const Real ascalar = m_a_scalar;
+    const Real bscalar = m_b_scalar;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -772,13 +776,11 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
         if (fabtyp == FabType::regular)
         {
-            amrex_mlabeclap_normalize(BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(fab),
-                                      BL_TO_FORTRAN_ANYD(afab),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
-                                                   BL_TO_FORTRAN_ANYD(byfab),
-                                                   BL_TO_FORTRAN_ANYD(bzfab)),
-                                      dxinv, m_a_scalar, m_b_scalar);
+            mlabeclap_normalize(bx, fab.array(), afab.array(),
+                                AMREX_D_DECL(bxfab.array(),
+                                             byfab.array(),
+                                             bzfab.array()),
+                                dxinvarray, ascalar, bscalar);
         }
         else if (fabtyp == FabType::singlevalued)
         {
