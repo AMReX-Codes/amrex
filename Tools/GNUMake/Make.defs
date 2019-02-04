@@ -215,6 +215,12 @@ else
   GPU_ERROR_CHECK := TRUE
 endif 
 
+ifdef FAB_IS_PINNED
+  FAB_IS_PINNED := $(strip $(FAB_IS_PINNED))
+else
+  FAB_IS_PINNED := FALSE
+endif
+
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
 
@@ -483,6 +489,10 @@ ifeq ($(USE_CUDA),TRUE)
 
     ifeq ($(USE_GPU_PRAGMA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
+    endif
+
+    ifeq ($(FAB_IS_PINNED),TRUE)
+        DEFINES += -DAMREX_FAB_IS_PINNED
     endif
 
     CUDASuffix := .CUDA
