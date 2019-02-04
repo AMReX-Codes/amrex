@@ -79,19 +79,9 @@ public:
 
     virtual ~iMultiFab () override = default;
 
-    /**
-    *
-    * \param rhs
-    */
-
     iMultiFab (iMultiFab&& rhs) noexcept = default;
     iMultiFab& operator= (iMultiFab&& rhs) noexcept = default;
 
-
-    /**
-    *
-    * \param rhs
-    */
     iMultiFab (const iMultiFab& rhs) = delete;
     iMultiFab& operator= (const iMultiFab& rhs) = delete;
 
@@ -339,21 +329,9 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
-
-    /**
-    *
-    * \param comp
-    * \param nghost
-    */
     IntVect minIndex (int comp,
                       int nghost = 0) const;
 
-
-    /**
-    *
-    * \param comp
-    * \param nghost
-    */
     IntVect maxIndex (int comp,
                       int nghost = 0) const;
 
@@ -536,21 +514,11 @@ public:
     const IArrayBox& operator[] (const MFIter& mfi) const {
 	return this->FabArray<IArrayBox>::get(mfi); }
 
-
-    /**
-    *
-    * \param mfi
-    */
     const IArrayBox& get (const MFIter& mfi) const { return operator[](mfi); }
 
     IArrayBox& operator[] (const MFIter& mfi) {
 	return this->FabArray<IArrayBox>::get(mfi); }
-
-
-    /**
-    *
-    * \param mfi
-    */
+    
     IArrayBox& get (const MFIter& mfi) { return operator[](mfi); }
 
     static void Initialize ();

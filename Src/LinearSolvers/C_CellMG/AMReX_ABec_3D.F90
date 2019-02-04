@@ -8,7 +8,7 @@ module amrex_abec_module
 
 contains
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Gauss-Seidel Red-Black (GSRB):
 !>     Apply the GSRB relaxation to the state phi for the equation
@@ -31,7 +31,7 @@ contains
 !>     value was filled with an interpolant involving the central stencil
 !>     element.
 !>
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
     subroutine amrex_abec_gsrb ( &
            phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
            rhs,rhs_l1,rhs_l2,rhs_l3,rhs_h1,rhs_h2,rhs_h3, &
@@ -160,7 +160,7 @@ contains
 
     end subroutine amrex_abec_gsrb
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Jacobi:
 !>     Apply the Jacobi relaxation to the state phi for the equation
@@ -183,7 +183,7 @@ contains
 !>     value was filled with an interpolant involving the central stencil
 !>     element.
 !>
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
     subroutine amrex_abec_jacobi ( &
            phi,phi_l1,phi_l2,phi_l3,phi_h1,phi_h2,phi_h3, &
            rhs,rhs_l1,rhs_l2,rhs_l3,rhs_h1,rhs_h2,rhs_h3, &
@@ -314,7 +314,7 @@ contains
 
     end subroutine amrex_abec_jacobi
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -376,7 +376,7 @@ contains
 
     end subroutine amrex_abec_adotx
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -432,7 +432,7 @@ contains
 
     end subroutine amrex_abec_norma
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in fluxes
 !>
