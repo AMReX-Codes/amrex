@@ -229,7 +229,7 @@ public:
 #endif
                     ref_ratio.push_back(rr[i][0]);
                 }
-                return ref_ratio;                  //!< }() )
+                return ref_ratio;  }() )
     {
         Initialize ();
         m_gdb = & m_gdb_object;
@@ -774,12 +774,8 @@ protected:
     mutable thrust::device_vector<int> m_index_sequence_tmp;
     #endif
 
-<<<<<<< HEAD
 private:
     virtual void particlePostLocate(const ParticleType& p, const ParticleLocData& pld,
-=======
-    virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
->>>>>>> e5cba96da276752f1da288294598d51037f64dea
                                     const int lev) {};
 
     virtual void correctCellVectors(int old_index, int new_index,
@@ -788,16 +784,6 @@ private:
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
 			  int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
-<<<<<<< HEAD
-#ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU ();
-
-    void EnforcePeriodicGPU ();
-
-#endif
-
-=======
->>>>>>> e5cba96da276752f1da288294598d51037f64dea
     void locateParticle(ParticleType& p, ParticleLocData& pld,
                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
 
