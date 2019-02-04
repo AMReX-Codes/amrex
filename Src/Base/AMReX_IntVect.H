@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <limits>
+#include <climits>
 #include <algorithm>
 
 #include <AMReX_ccse-mpi.H>
@@ -496,11 +497,19 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheMaxVector () {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::max());
+#else
+        return IntVect(INT_MAX);
+#endif
     }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheMinVector () {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::lowest());
+#else
+        return IntVect(INT_MIN);
+#endif
     }
 
 private:
