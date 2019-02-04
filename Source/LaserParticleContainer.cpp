@@ -35,10 +35,10 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
 	std::transform(laser_type_s.begin(), laser_type_s.end(), laser_type_s.begin(), ::tolower);
 	if (laser_type_s == "gaussian") {
 	    profile = laser_t::Gaussian;
-  } else if(laser_type_s == "harris") {
-      profile = laser_t::Harris;
-  } else if(laser_type_s == "parse_field_function") {
-      profile = laser_t::parse_field_function;
+        } else if(laser_type_s == "harris") {
+            profile = laser_t::Harris;
+        } else if(laser_type_s == "parse_field_function") {
+            profile = laser_t::parse_field_function;
 	} else {
 	    amrex::Abort("Unknown laser type");
 	}
