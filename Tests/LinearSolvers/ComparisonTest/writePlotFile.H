@@ -10,4 +10,4 @@ void writePlotFile (const std::string& dir,
 		    const amrex::Vector<amrex::MultiFab*>& rhs, 
 		    const std::vector<amrex::Geometry>& geom, 
 		    const std::vector<amrex::BoxArray>& grids,
-		    int nsoln, int iCpp, int iF90, int iHyp);
+		    int nsoln, int iCpp, int iHyp);
