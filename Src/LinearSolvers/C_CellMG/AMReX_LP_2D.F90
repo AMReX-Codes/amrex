@@ -7,7 +7,7 @@ module amrex_lp_module
 
 contains
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Gauss-Seidel Red-Black (GSRB):
 !>     Apply the GSRB relaxation to the state phi for the equation
@@ -29,7 +29,7 @@ contains
 !>     value was filled with an interpolant involving the central stencil
 !>     element.
 !>
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
     subroutine amrex_lp_gsrb ( &
            phi, phi_l1,phi_l2,phi_h1,phi_h2, &
            rhs, rhs_l1,rhs_l2,rhs_h1,rhs_h2, &
@@ -102,7 +102,7 @@ contains
       end do
 
     end subroutine amrex_lp_gsrb
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -142,7 +142,7 @@ contains
 
     end subroutine amrex_lp_adotx
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in fluxes
 !>

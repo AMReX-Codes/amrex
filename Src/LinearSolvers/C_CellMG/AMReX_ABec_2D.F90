@@ -9,7 +9,7 @@ module amrex_abec_module
 
 contains
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Gauss-Seidel Red-Black (GSRB):
 !>     Apply the GSRB relaxation to the state phi for the equation
@@ -32,7 +32,7 @@ contains
 !>     value was filled with an interpolant involving the central stencil
 !>     element.
 !>
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
     subroutine amrex_abec_gsrb ( &
            phi,phi_l1,phi_l2,phi_h1,phi_h2, &
            rhs,rhs_l1,rhs_l2,rhs_h1,rhs_h2, &
@@ -254,7 +254,7 @@ contains
 
     end subroutine amrex_abec_gsrb
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     JACOBI:
 !>     Apply the JACOBI relaxation to the state phi for the equation
@@ -277,7 +277,7 @@ contains
 !>     value was filled with an interpolant involving the central stencil
 !>     element.
 !>
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
     subroutine amrex_abec_jacobi ( &
            phi,phi_l1,phi_l2,phi_h1,phi_h2, &
            rhs,rhs_l1,rhs_l2,rhs_h1,rhs_h2, &
@@ -379,7 +379,7 @@ contains
 
     end subroutine amrex_abec_jacobi
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -432,7 +432,7 @@ contains
 
     end subroutine amrex_abec_adotx
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -481,7 +481,7 @@ contains
 
     end subroutine amrex_abec_norma
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in fluxes
 !>

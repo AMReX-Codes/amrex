@@ -8,7 +8,7 @@ module amrex_abec_module
 
 contains
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     LINESOLVE
 !>     Apply the line solve to the state phi for the equation
@@ -31,7 +31,7 @@ contains
 !>     value was filled with an interpolant involving the central stencil
 !>     element.
 !>
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
     subroutine amrex_abec_linesolve ( &
            phi,phi_l1,phi_h1, &
            rhs,rhs_l1,rhs_h1, &
@@ -119,7 +119,7 @@ contains
 
     end subroutine amrex_abec_linesolve
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -161,7 +161,7 @@ contains
 
     end subroutine amrex_abec_adotx
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in a matrix x vector operator here
 !>
@@ -200,7 +200,7 @@ contains
 
     end subroutine amrex_abec_norma
 
-!>-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 !>
 !>     Fill in fluxes
 !>

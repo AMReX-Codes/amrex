@@ -59,6 +59,7 @@ class SDCstruct
    */
    SDCstruct(int Nnodes_in,int Npieces_in, MultiFab& sol_in);
 
+   //  Sweeper routines
    void SDC_rhs_integrals(Real dt);
 
    void SDC_rhs_k_plus_one(MultiFab& rhs, Real dt,int m);
