@@ -1060,6 +1060,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     for (int k = 0; k < NArrayInt; ++k) m_int_arrays_to_redistribute[k].resize(0);
     m_grids_to_redistribute.resize(0);
 
+    std::map<int, SendBuffer> not_ours;
+
     //
     // First pass - figure out what grid each particle should be on, and copy
     // the ones that move into a temporary buffer
@@ -1238,12 +1240,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Note that a negative grid id means the particle has left the domain in a non-
     // periodic direction - we remove those from the simulation volume here.
     //
-    std::map<int, size_t> send_bytes;
-    std::map<int, int> proc_index;
-    Vector<int> DstProc;
-    Vector<std::size_t> sOffset; // Offset (in bytes) in the send buffer    
-    char* snd_buffer;
-
     const int num_grids = ba.size();
     const int num_to_move = m_grids_to_redistribute.size();
 
@@ -1316,47 +1312,18 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         thrust::host_vector<int> stop(m_grid_end);
         
         std::map<int, size_t> grid_counts;
-        std::map<int, size_t> np_counts;
         for (int i = 0; i < num_grids; ++i)
         {
             const int dest_proc = dmap[i];
-            const size_t num_to_add = stop[i+1] - start[i+1];
             if (dest_proc != ParallelDescriptor::MyProc())
             {
                 grid_counts[dest_proc] += 1;
-                np_counts[dest_proc] += num_to_add;
             }
-        }
-
-        for (const auto& kv : np_counts)
-        {
-            send_bytes[kv.first] = sizeof(size_t) + kv.second*superparticle_size 
-                + grid_counts[kv.first]*(sizeof(size_t) + 2*sizeof(int));
-        }
-        
-        Vector<int> current_sizes;
-        std::size_t TotSndBytes = 0;
-        for (const auto& kv : send_bytes)
-        {
-            DstProc.push_back(kv.first);
-            proc_index[kv.first] = DstProc.size() - 1;
-            sOffset.push_back(TotSndBytes);
-            TotSndBytes += kv.second;
-            current_sizes.push_back(0);
-        }
-
-        if (ParallelDescriptor::UseGpuAwareMpi()) 
-        {
-            snd_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotSndBytes));
-        }
-        else 
-        {
-            snd_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotSndBytes));
         }
 
         //
         // Each destination grid, copy the appropriate particle data, passing the non-local data
-        // into snd_buffer
+        // into not_ours
         //
         for (int i = 0; i < num_grids; ++i)
         {
@@ -1407,36 +1374,39 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             }
             else // this is the non-local case
             {
-                char* dst = snd_buffer + sOffset[proc_index[dest_proc]];
-                const size_t old_size = current_sizes[proc_index[dest_proc]];
+                char* dst;
+                const size_t old_size = not_ours[dest_proc].size();
                 const size_t new_size
                     = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
                 
                 if (old_size == 0)
                 {
-                    current_sizes[proc_index[dest_proc]] = new_size + sizeof(size_t);
-                    cudaMemcpyAsync(dst, &grid_counts[dest_proc], sizeof(size_t), 
-                                    cudaMemcpyHostToHost);
-                    dst += sizeof(size_t);
+                    not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
+                                    &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                    dst = thrust::raw_pointer_cast(
+                                  not_ours[dest_proc].data() + old_size + sizeof(size_t));
                 } else
                 {
-                    current_sizes[proc_index[dest_proc]] = new_size;
-                    dst += old_size;
+                    not_ours[dest_proc].resize(new_size);
+                    dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
                 }
                 
-                cudaMemcpyAsync(dst, &num_to_add, sizeof(size_t), cudaMemcpyHostToHost);
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
                 dst += sizeof(size_t);
-                
-                cudaMemcpyAsync(dst, &i, sizeof(int), cudaMemcpyHostToHost);
+
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
                 dst += sizeof(int);
-                
-                cudaMemcpyAsync(dst, &dest_proc, sizeof(int), cudaMemcpyHostToHost);
+
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                &dest_proc, sizeof(int), cudaMemcpyHostToDevice);                
                 dst += sizeof(int);
                 
                 // pack structs
                 {
 		    auto& aos = m_aos_to_redistribute;
-                    cudaMemcpyAsync(dst, 
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
                                     thrust::raw_pointer_cast(aos.data() + start[i+1]),
                                     num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(ParticleType);
@@ -1447,7 +1417,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_real_comp[j]) continue;
                     auto& attrib = m_real_arrays_to_redistribute[j];
-                    cudaMemcpyAsync(dst,
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst),
                                     thrust::raw_pointer_cast(attrib.data() + start[i+1]),
                                     num_to_add*sizeof(Real), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(Real);
@@ -1458,7 +1428,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_int_comp[j]) continue;
                     auto& attrib = m_int_arrays_to_redistribute[j];
-                    cudaMemcpyAsync(dst,
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst),
                                     thrust::raw_pointer_cast(attrib.data() + start[i+1]),
                                     num_to_add*sizeof(int), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(int);
@@ -1467,7 +1437,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
     }
 
-    RedistributeMPIGPU(send_bytes, DstProc, sOffset, snd_buffer);
+    RedistributeMPIGPU(not_ours);
 
     EnforcePeriodicGPU();
 
@@ -1518,9 +1488,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::RedistributeMPIGPU (const std::map<int, size_t>& send_bytes,
-                      Vector<int>& DstProc, Vector<std::size_t>& sOffset,
-                      char* snd_buffer)
+::RedistributeMPIGPU (std::map<int, SendBuffer>& not_ours)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPIGPU()");
 
@@ -1533,9 +1501,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     long NumSnds = 0;
 
-    for (const auto& kv : send_bytes)
+    for (const auto& kv : not_ours)
     {
-        const size_t nbytes = kv.second;
+        const size_t nbytes = kv.second.size();
         Snds[kv.first] = nbytes;
         NumSnds += nbytes;
     }
@@ -1573,7 +1541,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     
     const int nrcvs = RcvProc.size();
-    const int nsnds = DstProc.size();
     Vector<MPI_Status>  stats(nrcvs);
     Vector<MPI_Request> rreqs(nrcvs);
 
@@ -1605,16 +1572,16 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     }
     
     // Send.
-    for (int i = 0; i < nsnds; ++i) {
-        const auto Who    = DstProc[i];
-        const auto offset = sOffset[i];
-        const auto Cnt    = Snds[Who];
+    for (const auto& kv : not_ours) {
+        const auto Who = kv.first;
+        const auto Cnt = kv.second.size();
 
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         
-        ParallelDescriptor::Send(snd_buffer + offset, Cnt, Who, SeqNum);
+        ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
+                                 Cnt, Who, SeqNum);
     }
 
     if (nrcvs > 0) {
@@ -1679,10 +1646,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (ParallelDescriptor::UseGpuAwareMpi()) 
     {
-        amrex::The_Device_Arena()->free(snd_buffer);
         amrex::The_Device_Arena()->free(rcv_buffer);
     } else {
-        amrex::The_Pinned_Arena()->free(snd_buffer);
         amrex::The_Pinned_Arena()->free(rcv_buffer);
     }
     

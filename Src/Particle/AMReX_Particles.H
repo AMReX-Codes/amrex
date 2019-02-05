@@ -155,6 +155,7 @@ public:
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
     using CharVector     = Gpu::ManagedDeviceVector<char>;
+    using SendBuffer     = Gpu::PinnedDeviceVector<char>;
 
     ParticleContainer ()
       : 
@@ -554,9 +555,7 @@ public:
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
 #ifdef AMREX_USE_CUDA
-    void RedistributeMPIGPU (const std::map<int, size_t>& send_bytes,
-                             Vector<int>& DstProc, Vector<std::size_t>& sOffset,
-                             char* snd_buffer);
+    void RedistributeMPIGPU (std::map<int, SendBuffer>& not_ours);
     
     void EnforcePeriodicGPU ();
 #endif
