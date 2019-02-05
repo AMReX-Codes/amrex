@@ -14,12 +14,12 @@ class BoxIF
 {
 public:
 
-    // inside: is the fluid inside the box?
+    //! inside: is the fluid inside the box?
     BoxIF (const RealArray& a_lo, const RealArray& a_hi, bool a_inside)
         : m_lo(a_lo), m_hi(a_hi), m_inside(a_inside),
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
-          
+
     ~BoxIF () {}
 
     BoxIF (const BoxIF& rhs) noexcept = default;
@@ -50,4 +50,3 @@ protected:
 }}
 
 #endif
-

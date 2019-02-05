@@ -7,8 +7,10 @@
 
 namespace amrex {
 
-/*
-        A FabSet is a group of FArrayBox's.  The grouping is designed
+class FabSetIter;
+
+/**
+        \brief A FabSet is a group of FArrayBox's.  The grouping is designed
         specifically to represent regions along the boundary of Box's,
         and are used to implement boundary conditions to discretized
         partial differential equations.
@@ -32,21 +34,17 @@ namespace amrex {
         manipulated by more sophisticated control classes.
 */
 
-class FabSetIter;
-
 class FabSet
 {
     friend class FabSetIter;
     friend class FluxRegister;
 public:
     //
-    // The default constructor -- you must later call define().
-    //
+    //! The default constructor -- you must later call define().
     FabSet ();
     //
-    // Construct a FabSet of specified number of components on the grids.
-    //
-    FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp); 
+    //! Construct a FabSet of specified number of components on the grids.
+    FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
     ~FabSet () = default;
 
@@ -57,8 +55,7 @@ public:
     FabSet& operator= (FabSet&& rhs) = delete;
 
     //
-    // Define a FabSet constructed via default constructor.
-    //
+    //! Define a FabSet constructed via default constructor.
     void define (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
     FArrayBox const& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
@@ -92,7 +89,7 @@ public:
 
     const BoxArray& boxArray () const { return m_mf.boxArray(); }
 
-    const DistributionMapping& DistributionMap () const 
+    const DistributionMapping& DistributionMap () const
 	{ return m_mf.DistributionMap(); }
 
     int nComp () const { return m_mf.nComp(); }
@@ -119,24 +116,22 @@ public:
 
     void setVal (Real val, int comp, int num_comp);
 
-    // Linear combination: this := a*this + b*src (FabSets must be commensurate).
+    //!< Linear combination: this := a*this + b*src (FabSets must be commensurate).
     FabSet& linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int ncomp);
 
-    // Linear combination: this := a*mfa + b*mfb
+    //!< Linear combination: this := a*mfa + b*mfb
     FabSet& linComb (Real a, const MultiFab& mfa, int a_comp,
 		     Real b, const MultiFab& mfb, int b_comp,
                      int dcomp, int ncomp, int ngrow);
 
     //
-    // Write (used for writing to checkpoint)
-    //
+    //! Write (used for writing to checkpoint)
     void write (const std::string& name) const;
     //
-    // Read (used for reading from checkpoint)
-    //
+    //! Read (used for reading from checkpoint)
     void read (const std::string& name);
 
-    // Local copy function
+    //!< Local copy function
     static void Copy (FabSet& dst, const FabSet& src);
 
 private:
@@ -147,7 +142,7 @@ class FabSetIter
     : public MFIter
 {
 public:
-    explicit FabSetIter (const FabSet& fs) 
+    explicit FabSetIter (const FabSet& fs)
 	: MFIter(fs.m_mf) { }
 };
 

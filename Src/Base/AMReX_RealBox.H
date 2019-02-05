@@ -83,7 +83,7 @@ public:
 #endif
             ;
     }
-    //! Returns the volume of the RealBox. If this RealBox is invalid, 
+    //! Returns the volume of the RealBox. If this RealBox is invalid,
     //! it's volume is considered to be zero.
     AMREX_GPU_HOST_DEVICE
     Real volume () const {
@@ -111,7 +111,7 @@ public:
                              || (xlo[1] > bx.xhi[1]) || (xhi[1] < bx.xlo[1]),
                              || (xlo[2] > bx.xhi[2]) || (xhi[2] < bx.xlo[2])));
     }
-    
+
 private:
     //
     // The data.
@@ -121,12 +121,10 @@ private:
 };
 
 //
-// Nice ASCII output.
-//
+//! Nice ASCII output.
 std::ostream& operator<< (std::ostream&, const RealBox&);
 //
-// Nice ASCII input.
-//
+//! Nice ASCII input.
 std::istream& operator>> (std::istream&, RealBox&);
 
 }

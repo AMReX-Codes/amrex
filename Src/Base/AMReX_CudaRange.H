@@ -11,8 +11,7 @@ namespace Cuda {
 
 namespace range_detail {
 
-// integer version
-
+//! integer version
 template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_GPU_HOST_DEVICE
 long size (T const& b) { return static_cast<long>(b); }
@@ -21,8 +20,7 @@ template <typename T, typename = amrex::EnableIf_t<std::is_integral<T>::value> >
 AMREX_GPU_HOST_DEVICE
 long at (T const& b, long offset) { return offset; }
 
-// Box version
-
+//! Box version
 AMREX_GPU_HOST_DEVICE
 AMREX_INLINE long size (Box const& b)
 {
@@ -48,7 +46,7 @@ AMREX_INLINE Box at (Box const& b, long offset)
     return Box(iv,iv,b.type());
 #else
     return b;
-#endif    
+#endif
 }
 
 template <typename T>
