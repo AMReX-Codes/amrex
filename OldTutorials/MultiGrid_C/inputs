@@ -1,5 +1,4 @@
 # solver_type = Hypre
-# solver_type = BoxLib_F
 # solver_type = BoxLib_C
 solver_type = All
 solver_type = BoxLib_C
