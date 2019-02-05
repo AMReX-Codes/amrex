@@ -166,14 +166,7 @@ namespace amrex {
         void deallocate(char *ptr, size_t n)
         {
 	    The_Pinned_Arena()->free(ptr);
-	}
-      
-    private:
-        typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
-        typedef std::map<char *, std::ptrdiff_t>     allocated_blocks_type;
-  
-        free_blocks_type      free_blocks;
-        allocated_blocks_type allocated_blocks; 
+	}      
     };
 
     namespace Cuda
