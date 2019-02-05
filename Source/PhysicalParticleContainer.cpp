@@ -79,13 +79,13 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
     pp.query("do_backward_propagation", do_backward_propagation);
-	pp.query("do_splitting", do_splitting);
+    pp.query("do_splitting", do_splitting);
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
     : WarpXParticleContainer(amr_core, 0)
 {
-	plasma_injector.reset(new PlasmaInjector());
+    plasma_injector.reset(new PlasmaInjector());
 }
 
 void PhysicalParticleContainer::InitData()
@@ -1403,7 +1403,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
                 PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], 
-					   m_giv[thread_num], dt);
+                       m_giv[thread_num], dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 				// Split particles
