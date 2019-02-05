@@ -39,6 +39,9 @@ endif
 #
 # Rules for building executable.
 #
+ifeq ($(multiple_executables),)
+
+# only one executable
 $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
@@ -49,9 +52,17 @@ else
 endif
 #	@echo SUCCESS
 endif
-
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
+
+else
+
+# multiple executables
+%.$(machineSuffix).ex:%.cpp $(objForExecs)
+	@echo "Linking $@ ..."
+	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+
 endif
 
 ifeq ($(USE_PROFPARSER),TRUE)
