@@ -114,6 +114,32 @@ namespace amrex {
 
     /**
 
+       This is a memory allocator that uses the Pinned memory Pool from AMReX.
+       It is intended for use with thrust::device_vector.
+
+    **/
+    template<class T>
+    class ThrustPinnedAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+    
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+	    value_type* result = nullptr;
+            result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));  
+	    return thrust::device_pointer_cast(result);
+	}
+  
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Pinned_Arena()->free(thrust::raw_pointer_cast(ptr));
+	}
+    };
+
+    /**
+
        This allocator implements caching and is intended to be used internally by thrust when it allocates
        temporary storage.
 
@@ -136,14 +162,7 @@ namespace amrex {
         void deallocate(char *ptr, size_t n)
         {
 	    The_Device_Arena()->free(ptr);
-	}
-      
-    private:
-        typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
-        typedef std::map<char *, std::ptrdiff_t>     allocated_blocks_type;
-  
-        free_blocks_type      free_blocks;
-        allocated_blocks_type allocated_blocks; 
+	}      
     };
 
     namespace Cuda

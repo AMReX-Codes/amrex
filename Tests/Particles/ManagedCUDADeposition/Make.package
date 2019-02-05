@@ -1,9 +1,0 @@
-CEXE_headers += MyParticleContainer.H CUDAManagedAllocator.H
-CEXE_sources += main.cpp MyParticleContainer.cpp solve_for_accel.cpp solve_with_f90.cpp
-
-FEXE_headers += deposit_F.H
-f90EXE_sources += deposit_$(DIM)d.f90
-
-ifeq ($(USE_CUDA), TRUE)
-f90EXE_sources += cuda_deposit_$(DIM)d.f90
-endif
