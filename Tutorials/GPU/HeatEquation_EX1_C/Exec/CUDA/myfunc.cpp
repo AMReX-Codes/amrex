@@ -59,11 +59,29 @@ void advance (MultiFab& phi_old,
         auto const& fluxy = flux[1].array(mfi);
         auto const& fluxz = flux[2].array(mfi);
         auto const& phiOld = phi_old.array(mfi);
-        auto const& phiNew = phi_old.array(mfi);
+        auto const& phiNew = phi_new.array(mfi);
 
         AMREX_PARALLEL_FOR_3D ( vbx, i, j, k,
         {
             update_phi(i,j,k,phiOld,phiNew,fluxx,fluxy,fluxz,dt,dxinv,dyinv,dzinv);
+        });
+    }
+}
+
+void init_phi(amrex::MultiFab& phi_new, amrex::Geometry const& geom){
+
+    GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    GpuArray<Real,AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
+    // =======================================
+    // Initialize phi_new by calling a Fortran routine.
+    // MFIter = MultiFab Iterator
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    {
+        const Box& vbx = mfi.validbox();
+        auto const& phiNew = phi_new.array(mfi);
+        AMREX_FOR_3D ( vbx, i, j, k,
+        {
+            init_phi(i,j,k,phiNew,dx,prob_lo);
         });
     }
 }
