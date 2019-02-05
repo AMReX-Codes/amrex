@@ -61,13 +61,13 @@ private:
     Ordering ord;
 };
 
-//
-// Write out an IntDescriptor to an ostream in ASCII.
-//
+//!
+//! Write out an IntDescriptor to an ostream in ASCII.
+//!
 std::ostream& operator<< (std::ostream& os, const IntDescriptor& id);
-//
-// Read in an IntDescriptor from an istream.
-//
+//!
+//! Read in an IntDescriptor from an istream.
+//!
 std::istream& operator>> (std::istream& is, IntDescriptor& id);
 
 
@@ -79,7 +79,7 @@ std::istream& operator>> (std::istream& is, IntDescriptor& id);
 *  mean either the "float" or "double" type that this version of AMReX
 *  was built with, which corresponds to whether BL_USE_FLOAT or
 *  BL_USE_DOUBLE was used to build the version of the library.
-*  
+*
 *  To describe a "Real" type two arrays are needed: one detailing the ordering
 *  of the bytes in the Real, relative to the canonical ordering
 *  1 .. sizeof(Real) and the other detailing the format of the floating-point
@@ -255,13 +255,13 @@ private:
     static int readBufferSize;
 };
 
-//
-// Write out an RealDescriptor to an ostream in ASCII.
-//
+//!
+//! Write out an RealDescriptor to an ostream in ASCII.
+//!
 std::ostream& operator<< (std::ostream& os, const amrex::RealDescriptor& id);
-//
-// Read in a RealDescriptor from an istream.
-//
+//!
+//! Read in a RealDescriptor from an istream.
+//!
 std::istream& operator>> (std::istream& is, amrex::RealDescriptor& id);
 
 }

@@ -1,14 +1,14 @@
 
-// NOTE: Since super class (LSCoreBase) constructor has no arguments, it is
-// called by default.
+//! NOTE: Since super class (LSCoreBase) constructor has no arguments, it is
+//! called by default.
 template<class F>
 LSCore<F>::LSCore (EB2::GeometryShop<F> a_gshop)
 : m_gshop(a_gshop)
 {}
 
 
-// NOTE: here we need to explicitly call the super call (LSCoreBase)
-// constructor due to the extra arguments
+//! NOTE: here we need to explicitly call the super call (LSCoreBase)
+//! constructor due to the extra arguments
 template<class F>
 LSCore<F>::LSCore (EB2::GeometryShop<F> a_gshop,
                    const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord)
@@ -21,7 +21,7 @@ template<class F>
 LSCore<F>::~LSCore () {}
 
 
-// Delete level data overrides the pure virtual function in AmrCore
+//! Delete level data overrides the pure virtual function in AmrCore
 template<class F>
 void LSCore<F>::ClearLevel (int lev) {
     level_set[lev].clear();
@@ -44,13 +44,13 @@ const EB2::Level * LSCore<F>::BuildEBLevel ( const EB2::GeometryShop<F> gshop,
 
 
 
-// Build a new EB level and return a pointer to this level
+//! Build a new EB level and return a pointer to this level
 template<class F>
 const EB2::Level * LSCore<F>::BuildEBLevel (const EB2::GeometryShop<F> & gshop,
                                             int lev, const Vector<Geometry> & geom ) {
-    int max_crse_level = lev; // Important! this is needed to allow EBFactory to
-                              // be built on coarser levels (which is needed by
-                              // FillCoarsePatch)
+    int max_crse_level = lev; //!< Important! this is needed to allow EBFactory to
+                              //!< be built on coarser levels (which is needed by
+                              //!< FillCoarsePatch)
     int required_crse_lev = std::max(0, lev - 1);
     //int required_crse_lev = lev;
 
@@ -58,9 +58,9 @@ const EB2::Level * LSCore<F>::BuildEBLevel (const EB2::GeometryShop<F> & gshop,
 }
 
 
-// Make a new level from scratch using provided BoxArray and
-// DistributionMapping. Only used during initialization. Overrides the pure
-// virtual function in AmrCore
+//! Make a new level from scratch using provided BoxArray and
+//! DistributionMapping. Only used during initialization. Overrides the pure
+//! virtual function in AmrCore
 template<class F>
 void LSCore<F>::MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
                                          const DistributionMapping & dm) {

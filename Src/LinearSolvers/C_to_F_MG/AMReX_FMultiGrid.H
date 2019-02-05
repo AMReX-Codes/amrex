@@ -1,48 +1,3 @@
-// This solves (alpha * a - beta * (del dot b grad)) phi = rhs using MGT_Solver,
-// which in turn uses Fortran multigrid solver F_MG.  Here a, phi and rhs are 
-// cell-centered arrays (i.e., MultiFab), alpha and beta is a scalar, and b is
-// face-centered array represented by BL_SPACEDIM face-centered MultiFabs.
-//
-// Steps to use this solver:
-//
-// Step 1: 
-//   Build FMultiGrid with Geometry.  The baselevel and crse_ratio arguments are 
-//   optional.  They are needed when the problem to solve has a base level greater
-//   than AMR level 0.  That is the lowest local level in the solver is at level
-//   baselevel in the AMR hierachy.  Also note that geom[0] is on the local level 0.
-//   In the case of baselevel != 0, crse_ratio must be set to the refinement ratio
-//   between AMR levels baselevel-1 and baselevel.
-//
-// Step 2: OPTIONAL
-//   Set stencil type and verbosity.
-//
-// Step 3:
-//   Use one of the set_bc functions to pass in multigrid boundary conditions
-//   and set boundary values.  Here the values in mg_bc should match the ones in
-//   F_MG/mg_cpp_f.h.  For periodic boundaries, it can set to either BC_PER 
-//   (i.e., -1) or BC_INT (i.e., 0).
-//
-// Step 4:
-//   * For a constant gravity problem, call set_const_gravity_coeffs.
-//   * For a curvilinear gravity problem, call set_gravity_coeffs.
-//   * For a general problem, call set_scalars and set_coefficients.
-//
-// Step 5:
-//   Call solve.  This will store the solution in phi.
-//
-// Step 6: OPTIONAL
-//   Call get_fluxes to get fluxes (i.e., -b grad phi).  The need_grad_phi 
-//   flag in last step must be 1.  Note that grad_phi is Array with BL_SPACEDIM
-//   face-centered MultiFab pointers or Vector<Array> in case of multiple levels.
-//
-// If one only wants to test a solution by computing residual without actually
-// solving the problem, or apply the operator.  Replace Step 5 with a call to 
-// compute_residual or applyop.
-//
-// Various MultiFabs are passed in, and the pointers to these MultiFabs,
-// not copies, are stored.  Therefore, these MultiFabs must still be alive
-// when solve is called.
-
 #ifndef AMREX_FMultiGrid_H_
 #define AMREX_FMultiGrid_H_
 
@@ -53,16 +8,75 @@
 
 namespace amrex {
 
+//! This solves ``(alpha * a - beta * (del dot b grad)) phi = rhs`` using MGT_Solver,
+//! which in turn uses Fortran multigrid solver F_MG.  Here a, phi and rhs are
+//! cell-centered arrays (i.e., MultiFab), alpha and beta is a scalar, and b is
+//! face-centered array represented by BL_SPACEDIM face-centered MultiFabs.
+//!
+//! Steps to use this solver:
+//!
+//! Step 1:
+//!   Build FMultiGrid with Geometry.  The baselevel and crse_ratio arguments are
+//!   optional.  They are needed when the problem to solve has a base level greater
+//!   than AMR level 0.  That is the lowest local level in the solver is at level
+//!   baselevel in the AMR hierachy.  Also note that geom[0] is on the local level 0.
+//!   In the case of baselevel != 0, crse_ratio must be set to the refinement ratio
+//!   between AMR levels baselevel-1 and baselevel.
+//!
+//! Step 2: OPTIONAL
+//!   Set stencil type and verbosity.
+//!
+//! Step 3:
+//!   Use one of the set_bc functions to pass in multigrid boundary conditions
+//!   and set boundary values.  Here the values in mg_bc should match the ones in
+//!   F_MG/mg_cpp_f.h.  For periodic boundaries, it can set to either BC_PER
+//!   (i.e., -1) or BC_INT (i.e., 0).
+//!
+//! Step 4:
+//!   * For a constant gravity problem, call set_const_gravity_coeffs.
+//!   * For a curvilinear gravity problem, call set_gravity_coeffs.
+//!   * For a general problem, call set_scalars and set_coefficients.
+//!
+//! Step 5:
+//!   Call solve.  This will store the solution in phi.
+//!
+//! Step 6: OPTIONAL
+//!   Call get_fluxes to get fluxes (i.e., -b grad phi).  The need_grad_phi
+//!   flag in last step must be 1.  Note that grad_phi is Array with BL_SPACEDIM
+//!   face-centered MultiFab pointers or Vector<Array> in case of multiple levels.
+//!
+//! If one only wants to test a solution by computing residual without actually
+//! solving the problem, or apply the operator.  Replace Step 5 with a call to
+//! compute_residual or applyop.
+//!
+//! Various MultiFabs are passed in, and the pointers to these MultiFabs,
+//! not copies, are stored.  Therefore, these MultiFabs must still be alive
+//! when solve is called.
+//!
 class FMultiGrid
 {
 public:
 
-    // single level
+
+    /**
+    * \brief single level
+    *
+    * \param geom
+    * \param baselevel
+    * \param crse_ratio
+    */
     FMultiGrid (const       Geometry  & geom,
 		int                     baselevel = 0,
 		IntVect                 crse_ratio = IntVect::TheZeroVector());
 
-    // multi level
+
+    /**
+    * \brief multi level
+    *
+    * \param geom
+    * \param baselevel
+    * \param crse_ratio
+    */
     FMultiGrid (const Vector<Geometry> & geom,
 		int                     baselevel = 0,
 		IntVect                 crse_ratio = IntVect::TheZeroVector());
@@ -77,40 +91,82 @@ public:
     void set_maxorder (int maxorder) {m_maxorder = maxorder;}
     void set_verbose  (int verbose)  {m_verbose  = verbose;}
 
-    // Set homogeneous Dirichlet boundary
+
+    /**
+    * \brief Set homogeneous Dirichlet boundary
+    *
+    * \param mg_bc
+    */
     void set_bc (int * mg_bc);
 
-    // Set boundry values using phi
+
+    /**
+    * \brief Set boundry values using phi
+    *
+    * \param mg_bc
+    * \param phi
+    */
     void set_bc (int     * mg_bc,
 		 MultiFab& phi);
 
-    // Set boundary values with crse level data, crse_phi
+
+    /**
+    * \brief Set boundary values with crse level data, crse_phi
+    *
+    * \param mg_bc
+    * \param crse_phi
+    * \param phi
+    */
     void set_bc (int     * mg_bc,
 		 MultiFab& crse_phi,
 		 MultiFab& phi);
 
-    // Use data in mac_bndry
+
+    /**
+    * \brief Use data in mac_bndry
+    *
+    * \param mac_bndry
+    */
     void set_bc (const MacBndry& mac_bndry);
 
-    // For const_gravity_eq
+
+    /**
+    * \brief For const_gravity_eq
+    */
     void set_const_gravity_coeffs ();
 
-    // For gravity_eq
-    void set_gravity_coeffs (const        Vector<MultiFab*>  & b); // single level
-    void set_gravity_coeffs (const Vector< Vector<MultiFab*> >& b); // multi level
 
-    // For MAC projection
+    /**
+    * \brief For gravity_eq
+    *
+    * \param b
+    */
+    void set_gravity_coeffs (const        Vector<MultiFab*>  & b); //!< single level
+    void set_gravity_coeffs (const Vector< Vector<MultiFab*> >& b); //!< multi level
+
+
+    /**
+    * \brief For MAC projection
+    *
+    * \param b
+    */
     void set_mac_coeffs (const Vector<MultiFab*> &b);
- 
+
     // For Diffusion operator
-    void set_diffusion_coeffs (const        Vector<MultiFab*>  & b) // single level
+    void set_diffusion_coeffs (const        Vector<MultiFab*>  & b) //!< single level
 	{ set_gravity_coeffs(b); }
-    void set_diffusion_coeffs (const Vector< Vector<MultiFab*> >& b) // multi level
+    void set_diffusion_coeffs (const Vector< Vector<MultiFab*> >& b) //!< multi level
 	{ set_gravity_coeffs(b); }
 
-    // For general_eq
+
+    /**
+    * \brief For general_eq
+    *
+    * \param alpha
+    * \param beta
+    */
     void set_scalars (Real alpha, Real beta);
-    //
+
     void set_coefficients (const       MultiFab   &a, const       Vector<MultiFab*>   & b);
     void set_coefficients (const Vector<MultiFab*> &a, const Vector<Vector<MultiFab*> > & b);
 
@@ -165,7 +221,7 @@ private:
 	MultiFab* crse_phi;
 	MultiFab* phi;
 	Boundary () : initilized(false) {}
-	Boundary (const int * bc, MultiFab* cmf = 0, MultiFab * mf = 0) 
+	Boundary (const int * bc, MultiFab* cmf = 0, MultiFab * mf = 0)
 	    : initilized(true),
 	      mg_bc(bc, bc+2*BL_SPACEDIM),
 	      crse_phi(cmf),
@@ -176,9 +232,9 @@ private:
     Boundary m_bc;
 
     enum Eq_t { invalid_eq,
-		const_gravity_eq, // del dot grad phi = rhs  
-		gravity_eq,       // (del dot b grad) phi = rhs  
-		macproj_eq,       // - (del dot b grad) phi = rhs  
+		const_gravity_eq, // del dot grad phi = rhs
+		gravity_eq,       // (del dot b grad) phi = rhs
+		macproj_eq,       // - (del dot b grad) phi = rhs
 		general_eq};
 
     struct ABecCoeff

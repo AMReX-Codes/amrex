@@ -10,7 +10,7 @@ before_install:
 
 install:
   - pyenv global 3.6
-  - pip install --user sphinx sphinx_rtd_theme
+  - pip install --user sphinx sphinx_rtd_theme breathe
 
 script: bash ./build_and_deploy.sh
 

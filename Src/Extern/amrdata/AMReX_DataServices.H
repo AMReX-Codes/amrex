@@ -50,7 +50,7 @@ class DataServices {
       MinMaxRequest,
       PointValueRequest,
       LineValuesRequest,
-#ifdef BL_USE_PROFPARSER 
+#ifdef BL_USE_PROFPARSER
       InitTimeRanges,
       WriteSummaryRequest,
       CheckProfDataRequest,
@@ -78,7 +78,7 @@ class DataServices {
 
     // Dispatchable functions
 
-      // FillVarOneFab
+      //! FillVarOneFab
       bool FillVar(FArrayBox *destFab, const Box &destBox,
                    int finestFillLevel, const string &varname,
                    int procWithFab);
@@ -88,41 +88,41 @@ class DataServices {
                    //int finestFillLevel, const string &varname,
                    //int procWithFab);
 
-      // FillVarMultiFab
+      //! FillVarMultiFab
       bool FillVar(MultiFab &destMultiFab, int finestFillLevel,
                    const string &varname);
 
-      // WriteFabOneVar:  write a single variable to one fab
+      //! WriteFabOneVar:  write a single variable to one fab
       bool WriteFab(const string &fabfilename, const Box &region, int lev,
                     const string &varname);
 
-      // WriteFabAllVars:  write all vars in one fab
+      //! WriteFabAllVars:  write all vars in one fab
       bool WriteFab(const string &fabfilename, const Box &region, int lev);
 
-      // DumpSlicePlaneOneVar
+      //! DumpSlicePlaneOneVar
       bool DumpSlice(int slicedir, int slicenum, const string &varname);
 
-      // DumpSlicePlaneAllVars
+      //! DumpSlicePlaneAllVars
       bool DumpSlice(int slicedir, int slicenum);
 
-      // DumpSliceBoxOneVar
+      //! DumpSliceBoxOneVar
       bool DumpSlice(const Box &slicebox, const string &varname);
 
-      // DumpSliceBoxAllVars
+      //! DumpSliceBoxAllVars
       bool DumpSlice(const Box &slicebox);
 
-      // MinMaxRequest
+      //! MinMaxRequest
       bool MinMax(const Box &onBox, const string &derived, int level,
                   Real &dataMin, Real &dataMax, bool &minMaxValid);
 
-      // PointValueRequest
+      //! PointValueRequest
       void PointValue(int pointBoxArraySize, Box *pointBoxArray,
 		      const string &currentDerived,
 		      int coarsestLevelToSearch, int finestLevelToSearch,
 		      int &intersectedLevel, Box &intersectedGrid,
 		      Real &dataPointValue, bool &bPointIsValid);
 
-      // LineValuesRequest
+      //! LineValuesRequest
       void LineValues(int lineBoxArraySize, Box *lineBoxArray, int whichDir,
                       const string &currentDerived,
                       int coarsestLevelToSearch, int finestLevelToSearch,
@@ -139,7 +139,7 @@ class DataServices {
     void ListDeriveFunc(std::ostream &os) const;
     const Vector<string> &PlotVarNames() const { return amrData.PlotVarNames(); }
     AmrData &AmrDataRef() { return amrData; }
-    bool AmrDataOk() { return bAmrDataOk; }  
+    bool AmrDataOk() { return bAmrDataOk; }
     void SetWriteToLevel(const int iwtlev)  { iWriteToLevel = iwtlev; }
 
     // other functions
