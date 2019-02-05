@@ -128,13 +128,13 @@ namespace amrex {
         inline pointer allocate(size_t n)
         {
 	    value_type* result = nullptr;
-            result = The_Pinned_Arena()->alloc(n * sizeof(T));  
+            result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));  
 	    return thrust::device_pointer_cast(result);
 	}
   
         inline void deallocate(pointer ptr, size_t)
         {
-            The_Pinned_Arena()->free(ptr);
+            The_Pinned_Arena()->free(thrust::raw_pointer_cast(ptr));
 	}
     };
 
