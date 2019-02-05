@@ -28,8 +28,6 @@ add_sources ( MLMG/AMReX_MLCGSolver.cpp )
 
 add_sources ( MLMG/AMReX_MLABecLaplacian.H )
 add_sources ( MLMG/AMReX_MLABecLaplacian.cpp )
-add_sources ( MLMG/AMReX_MLABecLap_F.H )
-add_sources ( MLMG/AMReX_MLABecLap_${DIM}d.F90 )
 add_sources ( MLMG/AMReX_MLABecLap_K.H MLMG/AMReX_MLABecLap_${DIM}D_K.H )
 
 if (ENABLE_EB)

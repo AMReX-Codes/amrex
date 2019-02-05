@@ -3,7 +3,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <AMReX_MLABecLap_K.H>
-#include <AMReX_MLABecLap_F.H>
 #include <AMReX_ABec_F.H>
 
 namespace amrex {
@@ -290,6 +289,8 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 void
 MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
+    // todo: gpu
+
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
@@ -431,21 +432,70 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
     BL_PROFILE("MLABecLaplacian::FFlux()");
 
     const int mglev = 0;
-    AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
-                 const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
-                 const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
+    AMREX_D_TERM(const auto bx = m_b_coeffs[amrlev][mglev][0][mfi].array();,
+                 const auto by = m_b_coeffs[amrlev][mglev][1][mfi].array();,
+                 const auto bz = m_b_coeffs[amrlev][mglev][2][mfi].array(););
     const Box& box = mfi.tilebox();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
-    amrex_mlabeclap_flux(BL_TO_FORTRAN_BOX(box),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
-                                      BL_TO_FORTRAN_ANYD(*flux[1]),
-                                      BL_TO_FORTRAN_ANYD(*flux[2])),
-                         BL_TO_FORTRAN_ANYD(sol),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
-                                      BL_TO_FORTRAN_ANYD(by),
-                                      BL_TO_FORTRAN_ANYD(bz)),
-                         dxinv, m_b_scalar, face_only);
+    AMREX_D_TERM(const auto& fxarr = flux[0]->array();,
+                 const auto& fyarr = flux[1]->array();,
+                 const auto& fzarr = flux[2]->array(););
+    const auto& solarr = sol.array();
+
+    if (face_only)
+    {
+        Real fac = m_b_scalar*dxinv[0];
+        Box blo = amrex::bdryLo(box, 0);
+        int blen = box.length(0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen);
+        });
+#if (AMREX_SPACEDIM >= 2)
+        fac = m_b_scalar*dxinv[1];
+        blo = amrex::bdryLo(box, 1);
+        blen = box.length(1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen);
+        });
+#endif
+#if (AMREX_SPACEDIM == 3)
+        fac = m_b_scalar*dxinv[2];
+        blo = amrex::bdryLo(box, 2);
+        blen = box.length(2);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen);
+        });
+#endif
+    }
+    else
+    {
+        Real fac = m_b_scalar*dxinv[0];
+        Box bflux = amrex::surroundingNodes(box, 0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac);
+        });
+#if (AMREX_SPACEDIM >= 2)
+        fac = m_b_scalar*dxinv[1];
+        bflux = amrex::surroundingNodes(box, 1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlabeclap_flux_y(tbox, fyarr, solarr, by, fac);
+        });
+#endif
+#if (AMREX_SPACEDIM == 3)
+        fac = m_b_scalar*dxinv[2];
+        bflux = amrex::surroundingNodes(box, 2);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac);
+        });
+#endif
+    }
 }
 
 void

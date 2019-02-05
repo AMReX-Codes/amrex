@@ -520,24 +520,43 @@ MLCellLinOp::reflux (int crse_amrlev,
     applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[fine_amrlev].get());
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
         Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
         Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
-        for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             if (fluxreg.CrseHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
-                fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
+                if (Gpu::inLaunchRegion()) {
+                    AMREX_D_TERM(AsyncFab f0(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 AsyncFab f1(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 AsyncFab f2(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(crse_amrlev, mfi,
+                          Array<FArrayBox*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                        &(f1.fab()),
+                                                                        &(f2.fab()))},
+                          crse_sol[mfi], Location::FaceCentroid);
+                    fluxreg.CrseAdd(mfi,
+                                    Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                                        &(f1.fab()),
+                                                                                        &(f2.fab()))},
+                                    crse_dx, dt);
+                } else {
+                    AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
+                    fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
+                }
             }
         }
 
@@ -545,17 +564,33 @@ MLCellLinOp::reflux (int crse_amrlev,
 #pragma omp barrier
 #endif
 
-        for (MFIter mfi(fine_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             if (fluxreg.FineHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 const int face_only = true;
-                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
-                fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
+                if (Gpu::inLaunchRegion()) {
+                    AMREX_D_TERM(AsyncFab f0(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 AsyncFab f1(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 AsyncFab f2(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(fine_amrlev, mfi,
+                          Array<FArrayBox*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                        &(f1.fab()),
+                                                                        &(f2.fab()))},
+                          fine_sol[mfi], Location::FaceCentroid, face_only);
+                    fluxreg.FineAdd(mfi,
+                                    Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                                        &(f1.fab()),
+                                                                                        &(f2.fab()))},
+                                    fine_dx, dt);
+                } else {
+                    AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
+                    fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);
+                }
             }
         }
     }
@@ -574,22 +609,45 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[amrlev].get());
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
         Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
-                         flux[1].resize(amrex::surroundingNodes(tbx,1));,
-                         flux[2].resize(amrex::surroundingNodes(tbx,2)););
-            FFlux(amrlev, mfi, pflux, sol[mfi], loc);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                const Box& nbx = mfi.nodaltilebox(idim);
-                (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, ncomp);
+            if (Gpu::inLaunchRegion()) {
+                AMREX_D_TERM(AsyncFab f0(amrex::surroundingNodes(tbx,0),ncomp);,
+                             AsyncFab f1(amrex::surroundingNodes(tbx,1),ncomp);,
+                             AsyncFab f2(amrex::surroundingNodes(tbx,2),ncomp););
+                Array<FArrayBox*,AMREX_SPACEDIM> pf{AMREX_D_DECL(&(f0.fab()),
+                                                                 &(f1.fab()),
+                                                                 &(f2.fab()))};
+                FFlux(amrlev, mfi, pf, sol[mfi], loc);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    const Box& nbx = mfi.nodaltilebox(idim);
+                    const auto& dst = fluxes[idim]->array(mfi);
+                    const auto& src = pf[idim]->array();
+                    amrex::ParallelFor(nbx, ncomp,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+                    {
+                        dst(i,j,k,n) = src(i,j,k,n);
+                    });
+                }
+            } else {
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2)););
+                FFlux(amrlev, mfi, pflux, sol[mfi], loc);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    const Box& nbx = mfi.nodaltilebox(idim);
+                    (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, ncomp);
+                }
             }
         }
     }

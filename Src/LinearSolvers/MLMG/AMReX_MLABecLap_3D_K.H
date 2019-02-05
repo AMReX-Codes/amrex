@@ -65,5 +65,118 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
+                       Array4<Real const> const& bx, Real fac)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                fx(i,j,k) = -fac*bx(i,j,k)*(sol(i,j,k)-sol(i-1,j,k));
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
+                           Array4<Real const> const& bx, Real fac, int xlen)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            int i = lo.x;
+            fx(i,j,k) = -fac*bx(i,j,k)*(sol(i,j,k)-sol(i-1,j,k));
+            i += xlen;
+            fx(i,j,k) = -fac*bx(i,j,k)*(sol(i,j,k)-sol(i-1,j,k));
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlabeclap_flux_y (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
+                       Array4<Real const> const& by, Real fac)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                fy(i,j,k) = -fac*by(i,j,k)*(sol(i,j,k)-sol(i,j-1,k));
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real const> const& sol,
+                           Array4<Real const> const& by, Real fac, int ylen)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for     (int k = lo.z; k <= hi.z; ++k) {
+        int j = lo.y;
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            fy(i,j,k) = -fac*by(i,j,k)*(sol(i,j,k)-sol(i,j-1,k));
+        }
+        j += ylen;
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            fy(i,j,k) = -fac*by(i,j,k)*(sol(i,j,k)-sol(i,j-1,k));
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
+                       Array4<Real const> const& bz, Real fac)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                fz(i,j,k) = -fac*bz(i,j,k)*(sol(i,j,k)-sol(i,j,k-1));
+            }
+        }
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlabeclap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
+                           Array4<Real const> const& bz, Real fac, Real zlen)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    int k = lo.z;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            fz(i,j,k) = -fac*bz(i,j,k)*(sol(i,j,k)-sol(i,j,k-1));
+        }
+    }
+
+    k += zlen;
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            fz(i,j,k) = -fac*bz(i,j,k)*(sol(i,j,k)-sol(i,j,k-1));
+        }
+    }
+}
+
 }
 #endif
