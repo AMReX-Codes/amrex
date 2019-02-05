@@ -168,8 +168,11 @@ WarpXParticleContainer::AddNParticles (int lev,
     {
 		Print()<<"here -5\n";
         ParticleType p;
+		Print()<<"here -51\n";
         p.id()  = ParticleType::NextID();
+		Print()<<"here -52\n";
         p.cpu() = ParallelDescriptor::MyProc();
+		Print()<<"here -53\n";
 #if (AMREX_SPACEDIM == 3)
         p.pos(0) = x[i];
         p.pos(1) = y[i];

@@ -239,6 +239,8 @@ public:
 
     using vec3 = std::array<amrex::Real, 3>;
 
+	PlasmaInjector();
+
     PlasmaInjector(int ispecies, const std::string& name);
 
     amrex::Real getDensity(amrex::Real x, amrex::Real y, amrex::Real z);

@@ -84,7 +84,9 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
     : WarpXParticleContainer(amr_core, 0)
-{}
+{
+	plasma_injector.reset(new PlasmaInjector());
+}
 
 void PhysicalParticleContainer::InitData()
 {
