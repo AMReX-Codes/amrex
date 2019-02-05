@@ -14,4 +14,5 @@ void advance (amrex::MultiFab& phi_old,
 	      amrex::Real dt,
               amrex::Geometry const& geom);
 
+void init_phi (amrex::MultiFab& phi_new, amrex::Geometry const& geom);
 #endif
