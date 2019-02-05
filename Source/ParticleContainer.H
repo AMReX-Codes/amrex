@@ -180,7 +180,7 @@ public:
 
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
 
-	PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
+    PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
     
 protected:
 
@@ -197,7 +197,7 @@ private:
 
     // physical particles (+ laser)
     amrex::Vector<std::unique_ptr<WarpXParticleContainer> > allcontainers;
-	std::unique_ptr<PhysicalParticleContainer> pc_tmp;
+    std::unique_ptr<PhysicalParticleContainer> pc_tmp;
 
     void ReadParameters ();
 

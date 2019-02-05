@@ -28,7 +28,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
     }
-	pc_tmp.reset(new PhysicalParticleContainer(amr_core));	
+    pc_tmp.reset(new PhysicalParticleContainer(amr_core));	
 }
 
 void
