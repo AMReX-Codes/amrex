@@ -98,7 +98,7 @@ numfig = True
 # -- breathe options ------------------------------------------------------
 
 breathe_projects = {
-    "amrex": "../../Doxygen/xml",
+    "amrex": "../../../out/docs_xml/doxygen/",
     }
 
 breathe_default_project = "amrex"
