@@ -151,6 +151,37 @@ namespace amrex {
         ThrustCachedAllocator& The_ThrustCachedAllocator ();
     }
 
+    class ThrustPinnedAllocator
+    {
+    public:
+        typedef char value_type;
+
+        ThrustPinnedAllocator() {}
+
+        char *allocate(std::ptrdiff_t num_bytes)
+        {
+	  return (char*) The_Pinned_Arena()->alloc(num_bytes);
+	}
+
+        void deallocate(char *ptr, size_t n)
+        {
+	    The_Pinned_Arena()->free(ptr);
+	}
+      
+    private:
+        typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
+        typedef std::map<char *, std::ptrdiff_t>     allocated_blocks_type;
+  
+        free_blocks_type      free_blocks;
+        allocated_blocks_type allocated_blocks; 
+    };
+
+    namespace Cuda
+    {
+        ThrustCachedAllocator& The_ThrustCachedAllocator ();
+        ThrustPinnedAllocator& The_ThrustPinnedAllocator ();
+    }
+
 // When not using CUDA, replace with standard allocator.
 // Prevents need to wrap applications in lots of ifdefs.
 #else
