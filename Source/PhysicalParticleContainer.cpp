@@ -1407,7 +1407,7 @@ PhysicalParticleContainer::Evolve (int lev,
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
 
 				// Split particles
-				SplitParticles(pti, lev);
+				if (do_splitting){ SplitParticles(pti, lev); }
 
                 //
                 // Current Deposition
@@ -1451,9 +1451,10 @@ PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
 	auto& uyp = attribs[PIdx::uy];
 	auto& uzp = attribs[PIdx::uz];
 	const long np = pti.numParticles();
+	Print()<<"lev "<<lev<<std::endl;
 	const std::array<Real,3>& dx = WarpX::CellSize(lev);
 	Print()<< "dx "<<dx[0]<<' '<<dx[1]<<' '<<dx[2]<<' '<<std::endl;
-	const auto& particles = pti.GetArrayOfStructs();
+	auto& particles = pti.GetArrayOfStructs();
 
 	RealVector psplit_x, psplit_y, psplit_z, psplit_w;
 	RealVector psplit_ux, psplit_uy, psplit_uz;
@@ -1463,14 +1464,53 @@ PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
 			Print()<<"splitting particles\n";
 #if (AMREX_SPACEDIM==2)
 			long np_split = 4;
+#elif(AMREX_SPACEDIM==3)
+			long np_split = 6;
+#endif
 			for (int ishift = -1; ishift < 2; ishift +=2 ){
+#if (AMREX_SPACEDIM==2)
+				// Add one particle with offset in x
 				psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
 				psplit_y.push_back( 0. );
-				psplit_z.push_back( zp[i] + ishift*dx[1]/2 );
+				psplit_z.push_back( zp[i] );
 				psplit_ux.push_back( uxp[i] );
 				psplit_uy.push_back( 0. );
 				psplit_uz.push_back( uzp[i] );
-				psplit_w.push_back( wp[i]/4. );
+				psplit_w.push_back( wp[i]/np_split );
+				// Add one particle with offset in z
+				psplit_x.push_back( xp[i] );
+				psplit_y.push_back( 0. );
+				psplit_z.push_back( zp[i] + ishift*dx[2]/2 );
+				psplit_ux.push_back( uxp[i] );
+				psplit_uy.push_back( 0. );
+				psplit_uz.push_back( uzp[i] );
+				psplit_w.push_back( wp[i]/np_split );
+#elif (AMREX_SPACEDIM==3)
+				// Add one particle with offset in x
+				psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
+				psplit_y.push_back( yp[i] );
+				psplit_z.push_back( zp[i] );
+				psplit_ux.push_back( uxp[i] );
+				psplit_uy.push_back( uyp[i] );
+				psplit_uz.push_back( uzp[i] );
+				psplit_w.push_back( wp[i]/np_split );
+				// Add one particle with offset in y
+				psplit_x.push_back( xp[i] );
+				psplit_y.push_back( yp[i] + ishift*dx[1]/2);
+				psplit_z.push_back( zp[i] );
+				psplit_ux.push_back( uxp[i] );
+				psplit_uy.push_back( uyp[i] );
+				psplit_uz.push_back( uzp[i] );
+				psplit_w.push_back( wp[i]/np_split );
+				// Add one particle with offset in x
+				psplit_x.push_back( xp[i] );
+				psplit_y.push_back( yp[i] );
+				psplit_z.push_back( zp[i] + ishift*dx[2]/2 );
+				psplit_ux.push_back( uxp[i] );
+				psplit_uy.push_back( uyp[i] );
+				psplit_uz.push_back( uzp[i] );
+				psplit_w.push_back( wp[i]/np_split );
+#endif
 			}
 			Print()<<"AddNParticles start\n";
 			pctmp_split.AddNParticles(lev, 
@@ -1485,9 +1525,15 @@ PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
 									   psplit_w.dataPtr(),
 									   1);
 			Print()<<"AddNParticles end\n";
-#endif
+			p.m_idata.id = -p.m_idata.id; // invalidate the particle
 		}
 	}
+	// --- @atmyers -------------
+	// Add particles in pctmp_split to pti, assuming all particles
+	// already are in the appropriate tiles (no need to re-Redistribute).
+	// Delete particles in pctmp_split.
+	// pti.LocalCopyParticles(pctmp_split);
+	// --------------------------
 }
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,

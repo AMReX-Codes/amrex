@@ -885,10 +885,14 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
 										   const ParticleLocData& pld,
 										   const int lev)
 {
+	// Tag particle if goes to higher level.
+	// It will be split later in the loop
 	if (pld.m_lev == lev+1){
 		Print()<<"particle goes to higher level"<<'\n';
 		p.m_idata.id = SplitParticleID;
 	}
+	// For the moment, do not do anything if particles goes
+	// to lower level.
 	if (pld.m_lev == lev-1){
 		Print()<<"particle goes to lower level"<<'\n';
 		Print()<<"Do not do anything"<<'\n';
