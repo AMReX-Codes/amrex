@@ -54,10 +54,7 @@ void update_phi (int i, int j, int k,
                  amrex::Real dt,
                  amrex::Real dxinv, amrex::Real dyinv, amrex::Real dzinv)
 {
-    phinew(i,j,k) = phiold(i,j,k)
-        + dt * dxinv * (fluxx(i+1,j  ,k  ) - fluxx(i,j,k)),
-        + dt * dyinv * (fluxy(i  ,j+1,k  ) - fluxy(i,j,k)),
-        + dt * dzinv * (fluxz(i  ,j  ,k+1) - fluxz(i,j,k));
+    phinew(i,j,k) = phiold(i,j,k) + dt * dxinv * (fluxx(i+1,j  ,k  ) - fluxx(i,j,k)) + dt * dyinv * (fluxy(i  ,j+1,k  ) - fluxy(i,j,k)) + dt * dzinv * (fluxz(i  ,j  ,k+1) - fluxz(i,j,k));
 }
 
 #endif
