@@ -78,8 +78,13 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     ParmParse pp(species_name);
 
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
-    pp.query("do_backward_propagation", do_backward_propagation);    
+    pp.query("do_backward_propagation", do_backward_propagation);
+	pp.query("do_splitting", do_splitting);
 }
+
+PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
+    : WarpXParticleContainer(amr_core, 0)
+{}
 
 void PhysicalParticleContainer::InitData()
 {
@@ -1396,8 +1401,11 @@ PhysicalParticleContainer::Evolve (int lev,
                 //
                 BL_PROFILE_VAR_START(blp_pxr_pp);
                 PushPX(pti, m_xp[thread_num], m_yp[thread_num], m_zp[thread_num], 
-		       m_giv[thread_num], dt);
+					   m_giv[thread_num], dt);
                 BL_PROFILE_VAR_STOP(blp_pxr_pp);
+
+				// Split particles
+				SplitParticles(pti, lev);
 
                 //
                 // Current Deposition
@@ -1428,6 +1436,73 @@ PhysicalParticleContainer::Evolve (int lev,
     }
 }
 
+void
+PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
+{
+	auto& mypc = WarpX::GetInstance().GetPartContainer();
+	auto& pctmp_split = mypc.GetPCtmp();
+	// std::unique_ptr<PhysicalParticleContainer> pc_tmp = mypc.pc_tmp;
+	//	WarpXParticleContainer ppc_tmp(amr_core, ispecies);
+	Cuda::DeviceVector<Real> xp, yp, zp;
+	pti.GetPosition(xp, yp, zp);
+	auto& attribs = pti.GetAttribs();
+	auto& wp  = attribs[PIdx::w ];
+	auto& uxp = attribs[PIdx::ux];
+	auto& uyp = attribs[PIdx::uy];
+	auto& uzp = attribs[PIdx::uz];
+	const long np = pti.numParticles();
+	const std::array<Real,3>& dx = WarpX::CellSize(lev);
+	Print()<< "dx "<<dx[0]<<' '<<dx[1]<<' '<<dx[2]<<' '<<std::endl;
+	const auto& particles = pti.GetArrayOfStructs();
+
+	RealVector psplit_x, psplit_y, psplit_z, psplit_w;
+	RealVector psplit_ux, psplit_uy, psplit_uz;
+	//	for (auto& p : particles){
+	for(int i=0; i<np; i++){
+		auto& p = particles[i];
+		if (p.id() == SplitParticleID){
+			Print()<<"splitting particles\n";
+#if (AMREX_SPACEDIM==2)
+			long np_split = 4;
+			for (int ishift = -1; ishift < 2; ishift +=2 ){
+				psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
+				psplit_y.push_back( 0. );
+				psplit_z.push_back( zp[i] + ishift*dx[1]/2 );
+				psplit_ux.push_back( uxp[i] );
+				psplit_uy.push_back( 0. );
+				psplit_uz.push_back( uzp[i] );
+				psplit_w.push_back( wp[i]/4. );
+			}
+			Print()<<"AddNParticles start\n";
+			pctmp_split.AddNParticles(lev, 
+									   np_split,
+									   psplit_x.dataPtr(),
+									   psplit_y.dataPtr(),
+									   psplit_z.dataPtr(),
+									   psplit_ux.dataPtr(),
+									   psplit_uy.dataPtr(),
+									   psplit_uz.dataPtr(),
+									   1,
+									   psplit_w.dataPtr(),
+									   1);
+			Print()<<"AddNParticles end\n";
+#endif
+		}
+	}
+	/*
+	for (auto& p : particles){
+		if (p.id() == SplitParticleID){
+			Print()<<"toto\n";
+			
+		}
+	}
+
+	auto& uxp = attribs[PIdx::ux];
+	
+	for(int i, i<np, ++i){
+		if 
+		}*/
+}
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,
 	                          Cuda::DeviceVector<Real>& xp,

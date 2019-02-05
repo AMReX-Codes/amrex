@@ -15,6 +15,9 @@ public:
     PhysicalParticleContainer (amrex::AmrCore* amr_core,
                                int ispecies,
                                const std::string& name);
+
+    PhysicalParticleContainer (amrex::AmrCore* amr_core);
+
     virtual ~PhysicalParticleContainer () {}
 
     virtual void InitData () override;
@@ -77,6 +80,8 @@ public:
 
     virtual void PostRestart () final {}
 
+	void SplitParticles(WarpXParIter& pti, int lev);
+
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
     void AddPlasma(int lev, amrex::RealBox part_realbox = amrex::RealBox());
@@ -108,6 +113,7 @@ protected:
     // particle and the time of the boosted frame.
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
+	bool do_splitting = false;
 
     long NumParticlesToAdd (const amrex::Box& overlap_box,
 			    const amrex::RealBox& overlap_realbox,

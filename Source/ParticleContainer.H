@@ -179,6 +179,11 @@ public:
     amrex::Vector<amrex::Array<amrex::Real, nstencilz_fdtd_nci_corr> > fdtd_nci_stencilz_by;
 
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
+
+	// std::unique_ptr<amrex::ParticleContainer<0,0,PIdx::nattribs>> pc_tmp;
+    // std::unique_ptr<WarpXParticleContainer> pc_tmp;
+
+	PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
     
 protected:
 
@@ -195,6 +200,7 @@ private:
 
     // physical particles (+ laser)
     amrex::Vector<std::unique_ptr<WarpXParticleContainer> > allcontainers;
+	std::unique_ptr<PhysicalParticleContainer> pc_tmp;
 
     void ReadParameters ();
 

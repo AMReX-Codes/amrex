@@ -131,14 +131,18 @@ WarpXParticleContainer::AddNParticles (int lev,
 				       const Real* vx, const Real* vy, const Real* vz,
 				       int nattr, const Real* attr, int uniqueparticles)
 {
+	
+	Print()<<"here -1\n";
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
 
     int ibegin, iend;
     if (uniqueparticles) {
+	Print()<<"here -2\n";
 	ibegin = 0;
 	iend = n;
     } else {
+	Print()<<"here -3\n";
 	int myproc = ParallelDescriptor::MyProc();
 	int nprocs = ParallelDescriptor::NProcs();
 	int navg = n/nprocs;
@@ -154,11 +158,15 @@ WarpXParticleContainer::AddNParticles (int lev,
 
     //  Add to grid 0 and tile 0
     // Redistribute() will move them to proper places.
+	Print()<<"here -4\n";
     std::pair<int,int> key {0,0};
+	Print()<<"here -10\n";
     auto& particle_tile = GetParticles(lev)[key];
+	Print()<<"here -11\n";
 
     for (int i = ibegin; i < iend; ++i)
     {
+		Print()<<"here -5\n";
         ParticleType p;
         p.id()  = ParticleType::NextID();
         p.cpu() = ParallelDescriptor::MyProc();
@@ -167,6 +175,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         p.pos(1) = y[i];
         p.pos(2) = z[i];
 #elif (AMREX_SPACEDIM == 2)
+		Print()<<"here -6\n";
         p.pos(0) = x[i];
         p.pos(1) = z[i];
 #endif
@@ -177,18 +186,24 @@ WarpXParticleContainer::AddNParticles (int lev,
 
     if (np > 0)
     {
+		Print()<<"here 1\n";
         particle_tile.push_back_real(PIdx::w , weight + ibegin, weight + iend);
+		Print()<<"here 2\n";
         particle_tile.push_back_real(PIdx::ux,     vx + ibegin,     vx + iend);
         particle_tile.push_back_real(PIdx::uy,     vy + ibegin,     vy + iend);
         particle_tile.push_back_real(PIdx::uz,     vz + ibegin,     vz + iend);
 
+		Print()<<"here 3\n";
         for (int comp = PIdx::uz+1; comp < PIdx::nattribs; ++comp)
         {
+		Print()<<"here 4\n";
             particle_tile.push_back_real(comp, np, 0.0);
         }
     }
 
+	Print()<<"here 5\n";
     Redistribute();
+	Print()<<"here 6\n";
 }
 
 
