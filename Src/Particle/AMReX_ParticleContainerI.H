@@ -1080,7 +1080,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         m_grids_tmp.resize(old_np);
         m_index_sequence_tmp.resize(old_np);
 
-        constexpr bool do_custom_partition = false;
+        constexpr bool do_custom_partition = true;
         size_t old_size, new_size, new_np, num_moved;
 
         if (do_custom_partition)
