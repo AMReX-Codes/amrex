@@ -59,7 +59,7 @@ void advance (MultiFab& phi_old,
         auto const& fluxy = flux[1].array(mfi);
         auto const& fluxz = flux[2].array(mfi);
         auto const& phiOld = phi_old.array(mfi);
-        auto const& phiNew = phi_old.array(mfi);
+        auto const& phiNew = phi_new.array(mfi);
 
         AMREX_PARALLEL_FOR_3D ( vbx, i, j, k,
         {
