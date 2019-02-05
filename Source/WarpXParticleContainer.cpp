@@ -130,8 +130,7 @@ WarpXParticleContainer::AddNParticles (int lev,
                                        int n, const Real* x, const Real* y, const Real* z,
 				       const Real* vx, const Real* vy, const Real* vz,
 				       int nattr, const Real* attr, int uniqueparticles)
-{
-	
+{	
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
 
@@ -155,9 +154,9 @@ WarpXParticleContainer::AddNParticles (int lev,
 
     //  Add to grid 0 and tile 0
     // Redistribute() will move them to proper places.
-	std::pair<int,int> key {0,0};
-	auto& particle_tile = GetParticles(lev)[key];
-	
+    std::pair<int,int> key {0,0};
+    auto& particle_tile = GetParticles(lev)[key];
+
     for (int i = ibegin; i < iend; ++i)
     {
         ParticleType p;
@@ -882,19 +881,19 @@ WarpXParticleContainer::PushX (int lev, Real dt)
 
 void 
 WarpXParticleContainer::particlePostLocate(ParticleType& p, 
-										   const ParticleLocData& pld,
-										   const int lev)
+                                           const ParticleLocData& pld,
+                                           const int lev)
 {
-	// Tag particle if goes to higher level.
-	// It will be split later in the loop
-	if (pld.m_lev == lev+1){
-		Print()<<"particle goes to higher level"<<'\n';
-		p.m_idata.id = SplitParticleID;
-	}
-	// For the moment, do not do anything if particles goes
-	// to lower level.
-	if (pld.m_lev == lev-1){
-		Print()<<"particle goes to lower level"<<'\n';
-		Print()<<"Do not do anything"<<'\n';
-	}
+    // Tag particle if goes to higher level.
+    // It will be split later in the loop
+    if (pld.m_lev == lev+1){
+        Print()<<"particle goes to higher level"<<'\n';
+        p.m_idata.id = SplitParticleID;
+    }
+    // For the moment, do not do anything if particles goes
+    // to lower level.
+    if (pld.m_lev == lev-1){
+        Print()<<"particle goes to lower level"<<'\n';
+        Print()<<"Do not do anything"<<'\n';
+    }
 }

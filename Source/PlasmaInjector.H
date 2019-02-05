@@ -239,7 +239,7 @@ public:
 
     using vec3 = std::array<amrex::Real, 3>;
 
-	PlasmaInjector();
+    PlasmaInjector();
 
     PlasmaInjector(int ispecies, const std::string& name);
 
