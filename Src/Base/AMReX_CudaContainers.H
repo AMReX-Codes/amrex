@@ -222,6 +222,9 @@ public:
 
     template <class T>
     using ManagedDeviceVector = Vector<T>;
+
+    template <class T>
+    using PinnedDeviceVector = Vector<T>;
 #endif
 
     template<class InIter, class OutIter>
