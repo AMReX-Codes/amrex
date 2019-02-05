@@ -292,8 +292,8 @@ main (int argc, char* argv[])
       {
           const Real run_strt = ParallelDescriptor::second();
 
-	  MultiGrid mg(lp);
-	  mg.solve(soln, rhs, tolerance, tolerance_abs);
+	  MultiGrid mg_solver(lp);
+	  mg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	  if ( new_bc )
           {
 	      for ( MFIter mfi(rhs); mfi.isValid(); ++mfi )
@@ -305,7 +305,7 @@ main (int argc, char* argv[])
 		      bd.setValue(Orientation(n, Orientation::high),i,2.0);
                   }
               }
-	      mg.solve(soln, rhs, tolerance, tolerance_abs);
+	      mg_solver.solve(soln, rhs, tolerance, tolerance_abs);
           }
 
           const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -318,10 +318,9 @@ main (int argc, char* argv[])
       }
       if ( cg )
       {
-	  CGSolver cg(lp,use_mg_pre);
-//          cg.setCGSolver(CGSolver::CG);
-	  cg.setMaxIter(maxiter);
-	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  CGSolver cg_solver(lp,use_mg_pre);
+	  cg_solver.setMaxIter(maxiter);
+	  res = cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	  std::cout << "CG Result = " << res << std::endl;
 	  if ( new_bc )
           {
@@ -334,16 +333,15 @@ main (int argc, char* argv[])
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
                   }
               }
-	      res  = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      res  = cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	      std::cout << "CG (new_bc) Result = " << res << std::endl;
           }
       }
       if ( bicg )
       {
-	  CGSolver cg(lp,use_mg_pre);
-//          cg.setCGSolver(CGSolver::BiCGStab);
-	  cg.setMaxIter(maxiter);
-	  res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	  CGSolver cg_solver(lp,use_mg_pre);
+	  cg_solver.setMaxIter(maxiter);
+	  res = cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	  std::cout << "BiCGStab Result = " << res << std::endl;
 	  if ( new_bc )
           {
@@ -356,7 +354,7 @@ main (int argc, char* argv[])
 		      bd.setValue(Orientation(n, Orientation::high),i,4.0);
                   }
               }
-	      res = cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      res = cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	      std::cout << "BiCGStab (new_bc) Result = " << res << std::endl;
           }
       }
@@ -444,8 +442,8 @@ main (int argc, char* argv[])
           {
 	      const Real run_strt = ParallelDescriptor::second();
 
-	      MultiGrid mg(lp);
-	      mg.solve(soln, rhs, tolerance, tolerance_abs);
+	      MultiGrid mg_solver(lp);
+	      mg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
               {
 		  for ( int i=0; i < bs.size(); ++i )
@@ -456,7 +454,7 @@ main (int argc, char* argv[])
 			  bd.setValue(Orientation(n, Orientation::high),i,2.0);
                       } 
                   }
-		  mg.solve(soln, rhs, tolerance, tolerance_abs);
+		  mg_solver.solve(soln, rhs, tolerance, tolerance_abs);
               }
 
 	      const int IOProc   = ParallelDescriptor::IOProcessorNumber();
@@ -469,9 +467,9 @@ main (int argc, char* argv[])
           }
 	  if ( cg )
           {
-	      CGSolver cg(lp,use_mg_pre);
-	      cg.setMaxIter(maxiter);
-	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      CGSolver cg_solver(lp,use_mg_pre);
+	      cg_solver.setMaxIter(maxiter);
+	      cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
               {
 		  for ( int i=0; i < bs.size(); ++i )
@@ -482,15 +480,14 @@ main (int argc, char* argv[])
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
                       }
                   }
-		  cg.solve(soln, rhs, tolerance, tolerance_abs);
+		  cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
               }
           }
 	  if ( bicg )
           {
-	      CGSolver cg(lp,use_mg_pre);
-              //cg.setCGSolver(CGSolver::BiCGStab);
-	      cg.setMaxIter(maxiter);
-	      cg.solve(soln, rhs, tolerance, tolerance_abs);
+	      CGSolver cg_solver(lp,use_mg_pre);
+	      cg_solver.setMaxIter(maxiter);
+	      cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
 	      if ( new_bc )
               {
 		  for ( int i=0; i < bs.size(); ++i )
@@ -501,7 +498,7 @@ main (int argc, char* argv[])
 			  bd.setValue(Orientation(n, Orientation::high),i,4.0);
                       }
                   }
-		  cg.solve(soln, rhs, tolerance, tolerance_abs);
+		  cg_solver.solve(soln, rhs, tolerance, tolerance_abs);
               }
           }
 

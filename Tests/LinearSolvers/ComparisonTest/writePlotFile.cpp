@@ -21,7 +21,7 @@ void writePlotFile (const std::string& dir,
 		    const Vector<MultiFab*>& rhs, 
 		    const std::vector<Geometry>& geom, 
 		    const std::vector<BoxArray>& grids,
-		    int nsoln, int iCpp, int iF90, int iHyp)
+		    int nsoln, int iCpp, int iHyp)
 {
   int n_data_items = 4+nsoln;
   int nlevels = exac.size();
@@ -64,9 +64,6 @@ void writePlotFile (const std::string& dir,
 
 	if (iCpp >= 0) {
 	  HeaderFile << "solnCpp\n";
-	}
-	if (iF90 >= 0) {
-	  HeaderFile << "solnF90\n";	  
 	}
 	if (iHyp >= 0) {
 	  HeaderFile << "solnHyp\n";	  

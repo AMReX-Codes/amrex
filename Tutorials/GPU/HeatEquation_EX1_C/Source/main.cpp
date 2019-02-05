@@ -5,7 +5,6 @@
 #include <AMReX_Print.H>
 
 #include "myfunc.H"
-#include "mykernel.H"
 
 using namespace amrex;
 
@@ -87,21 +86,8 @@ void main_main ()
     MultiFab phi_new(ba, dm, Ncomp, Nghost);
 
     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    GpuArray<Real,AMREX_SPACEDIM> prob_lo = geom.ProbLoArray();
 
-    // =======================================
-    // Initialize phi_new by calling a Fortran routine.
-    // MFIter = MultiFab Iterator
-    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
-    {
-        const Box& vbx = mfi.validbox();
-        auto const& phiNew = phi_new.array(mfi);
-        AMREX_FOR_3D ( vbx, i, j, k,
-        {
-            init_phi(i,j,k,phiNew,dx,prob_lo);
-        });
-    }
-
+    init_phi(phi_new, geom);
     // ========================================
 
     Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
