@@ -144,6 +144,7 @@ MLALaplacian::prepareForSolve ()
 void
 MLALaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    // todo: gpu
     BL_PROFILE("MLALaplacian::Fapply()");
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
@@ -181,6 +182,7 @@ MLALaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) 
 void
 MLALaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    // todo: gpu
     BL_PROFILE("MLALaplacian::normalize()");
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
@@ -216,9 +218,10 @@ MLALaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 void
 MLALaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
+    // todo: gpu
     BL_PROFILE("MLALaplacian::Fsmooth()");
 
-   const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
+    const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     const auto& undrrelxr = m_undrrelxr[amrlev][mglev];
     const auto& maskvals  = m_maskvals [amrlev][mglev];
 
@@ -317,6 +320,8 @@ MLALaplacian::FFlux (int amrlev, const MFIter& mfi,
                         const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                         const FArrayBox& sol, Location, const int face_only) const
 {
+    // todo: gpu
+    Gpu::LaunchSafeGuard(false);
     BL_PROFILE("MLALaplacian::FFlux()");
 
     const int mglev = 0;

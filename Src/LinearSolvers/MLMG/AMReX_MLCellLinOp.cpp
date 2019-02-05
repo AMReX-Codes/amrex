@@ -445,6 +445,7 @@ void
 MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode,
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
+    // todo: gpu
     BL_PROFILE("MLCellLinOp::applyBC()");
     // No coarsened boundary values, cannot apply inhomog at mglev>0.
     BL_ASSERT(mglev == 0 || bc_mode == BCMode::Homogeneous);
@@ -657,6 +658,7 @@ void
 MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                        MultiFab& sol, Location loc) const
 {
+    // todo: gpu
     BL_PROFILE("MLCellLinOp::compGrad()");
 
     if (sol.nComp() > 1)
@@ -689,6 +691,7 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
 void
 MLCellLinOp::prepareForSolve ()
 {
+    // todo: gpu
     BL_PROFILE("MLCellLinOp::prepareForSolve()");
 
     const int ncomp = getNComp();
@@ -775,6 +778,7 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
 void
 MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
+    // todo: gpu
 #if (AMREX_SPACEDIM != 3)
     
     if (Geometry::IsCartesian() || !info.has_metric_term) return;
@@ -806,6 +810,7 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 void
 MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
+    // todo: gpu
 #if (AMREX_SPACEDIM != 3)
 
     if (Geometry::IsCartesian() || !info.has_metric_term) return;

@@ -54,6 +54,7 @@ MLPoisson::prepareForSolve ()
 void
 MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    // todo: gpu
     BL_PROFILE("MLPoisson::Fapply()");
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
@@ -86,6 +87,7 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 void
 MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    // todo: gpu
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
@@ -114,6 +116,7 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 void
 MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
+    // todo: gpu
     BL_PROFILE("MLPoisson::Fsmooth()");
 
     const auto& undrrelxr = m_undrrelxr[amrlev][mglev];
@@ -240,6 +243,8 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                   const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                   const FArrayBox& sol, Location, const int face_only) const
 {
+    // todo: gpu
+    Gpu::LaunchSafeGuard(false);
     BL_PROFILE("MLPoisson::FFlux()");
 
     const int mglev = 0;
