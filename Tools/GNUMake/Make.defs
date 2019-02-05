@@ -83,6 +83,12 @@ else
   USE_ASSERTION := FALSE
 endif
 
+ifdef BOUND_CHECK
+  BOUND_CHECK := $(strip $(BOUND_CHECK))
+else
+  BOUND_CHECK := FALSE
+endif
+
 ifdef BACKTRACE
   BACKTRACE := $(strip $(BACKTRACE))
 else
@@ -595,6 +601,10 @@ else
 ifeq ($(USE_ASSERTION),TRUE)
   DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 endif
+endif
+
+ifeq ($(BOUND_CHECK),TRUE)
+  DEFINES += -DAMREX_BOUND_CHECK
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)

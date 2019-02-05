@@ -149,6 +149,66 @@ public:
     }
 };
 
+/**
+
+   This is thrust::device_vector allocated using managed memory.
+
+ **/
+template <class T>
+class PinnedDeviceVector
+    :
+    public thrust::device_vector<T, ThrustPinnedAllocator<T> >
+{
+public:
+
+    using thrust::device_vector<T, ThrustPinnedAllocator<T> >::device_vector;
+
+    //! get access to the underlying data pointer
+    T* data ()
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    const T* data () const
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    T* dataPtr () { return this->data(); }
+    //! get access to the underlying data pointer
+    const T* dataPtr () const { return this->data(); }
+
+    T& operator[] (std::size_t i)
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::operator[](i)));
+    }
+
+    const T& operator[] (std::size_t i) const
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::operator[](i)));
+    }
+    
+    void assign(typename thrust::host_vector<T>::size_type count, const T& value )
+    {
+        if (Cuda::inLaunchRegion())
+        {
+            thrust::fill(thrust::device,
+                         thrust::raw_pointer_cast(this->data()),
+                         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+	    this->thrust::device_vector<T, ThrustPinnedAllocator<T> >::assign(count, value);
+        }
+    }
+};
+
 #else
     // When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
@@ -162,6 +222,9 @@ public:
 
     template <class T>
     using ManagedDeviceVector = Vector<T>;
+
+    template <class T>
+    using PinnedDeviceVector = Vector<T>;
 #endif
 
     template<class InIter, class OutIter>

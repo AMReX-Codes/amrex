@@ -12,19 +12,19 @@ lib = lib
 # ============================
  
 all: $(objects)
-	nvcc -m64 -arch=compute_70 -code=sm_70 -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(objects) -o $(app) 
+	nvcc -m64 -arch=compute_70 -code=sm_70 -lcuda -lnvidia-ml $(objects) -o $(app) 
 
 pgi: $(objects) 
-	pgfortran -gopt -Mnomain -Mcuda=cc70,ptxinfo,fastmath,charstring CUDA_HOME=/sw/summit/cuda/9.1.85 -Mdclchk -noacc -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lnvidia-ml -lstdc++ -latomic $(objects) -o $(app).pgi
+	pgfortran -gopt -Mnomain -Mcuda=cc70,charstring -noacc -L/usr/lib64/nvidia -lcuda -lnvidia-ml -lstdc++ -latomic $(objects) -o $(app).pgi
 
 # NVCC LIBRARY TARGETS 
 # ====================
 
-nvccexec: library $(main)
-	nvcc -m64 -arch=compute_70 -code=sm_70 -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(lib).a $(main) -o $(app) 
+nvccexec: nvcclibrary $(main)
+	nvcc -m64 -arch=compute_70 -code=sm_70 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(lib).a $(main) -o $(app) 
 
 nvcclibrary: $(srcs)
-	nvcc --lib -m64 -arch=compute_70 -code=sm_70 -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(srcs) -o $(lib).a
+	nvcc --lib -m64 -arch=compute_70 -code=sm_70 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(srcs) -o $(lib).a
 
 # g++ LIBRARY TARGETS
 # =========================
@@ -34,7 +34,7 @@ gccexec: gcclibrary $(main)
 	g++ -gopt -m64 -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(lib).gcc.a link.o -o $(app).gpp
 
 gcclibrary: $(srcs)
-	nvcc -ccbin=g++ -Xcompiler='-g -O3 -std=c++11 --std=c++11' --std=c++11 -m64 -arch=compute_70 -code=sm_70 --lib -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(srcs) -o $(lib).gcc.a
+	nvcc -ccbin=g++ -Xcompiler='-g -O3 -std=c++11 --std=c++11' --std=c++11 -m64 -arch=compute_70 -code=sm_70 --lib -lcuda -lnvidia-ml $(srcs) -o $(lib).gcc.a
 
 # pgfortran LIBRARY TARGETS
 # =========================
@@ -42,10 +42,10 @@ gcclibrary: $(srcs)
 pgiexec: pgilibrary $(main)
 	# Requires additional dlink step to link device code before pgfortran link into executable. 
 	nvcc -ccbin=g++ -Xcompiler='-g -O3 -std=c++11 --std=c++11' --std=c++11 -m64 -arch=compute_70 -code=sm_70 -dlink main.o $(lib).pgi.a -o link.o 
-	pgfortran -gopt -Mnomain -Mcuda=cc70,ptxinfo,fastmath,charstring CUDA_HOME=/sw/summit/cuda/9.1.85 -Mdclchk -noacc -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(lib).pgi.a link.o -o $(app).pgi
+	pgfortran -gopt -Mnomain -Mcuda=cc70,charstring -Mdclchk -noacc -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(lib).pgi.a link.o -o $(app).pgi
 
 pgilibrary: $(srcs)
-	nvcc -ccbin=g++ -Xcompiler='-g -O3 -std=c++11 --std=c++11' --lib -m64 -arch=compute_70 -code=sm_70 -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lnvidia-ml $(srcs) -o $(lib).pgi.a
+	nvcc -ccbin=g++ -Xcompiler='-g -O3 -std=c++11 --std=c++11' --lib -m64 -arch=compute_70 -code=sm_70 -lcuda -lnvidia-ml $(srcs) -o $(lib).pgi.a
 
 
 # MAKE OBJECT FILES USING EITHER -dc OR -dlink
