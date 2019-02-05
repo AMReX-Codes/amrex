@@ -28,13 +28,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
     }
-	//	pc_tmp = WarpXParticleContainer(amr_core, 0);
-	// pc_tmp = std::unique_ptr<WarpXParticleContainer> (new WarpXParticleContainer(this));
-	pc_tmp.reset(new PhysicalParticleContainer(amr_core));
-	// pc_tmp = std::unique_ptr<WarpXParticleContainer> (new WarpXParticleContainer(amr_core, 0));
-	// pc_tmp = std::unique_ptr<PhysicalParticleContainer> (new PhysicalParticleContainer(amr_core));
-	// pc_tmp = std::unique_ptr<amrex::ParticleContainer<0,0,PIdx::nattribs>> (new amrex::ParticleContainer<0,0,PIdx::nattribs>);
-	
+	pc_tmp.reset(new PhysicalParticleContainer(amr_core));	
 }
 
 void

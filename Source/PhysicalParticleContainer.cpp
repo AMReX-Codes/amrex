@@ -1443,8 +1443,6 @@ PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
 {
 	auto& mypc = WarpX::GetInstance().GetPartContainer();
 	auto& pctmp_split = mypc.GetPCtmp();
-	// std::unique_ptr<PhysicalParticleContainer> pc_tmp = mypc.pc_tmp;
-	//	WarpXParticleContainer ppc_tmp(amr_core, ispecies);
 	Cuda::DeviceVector<Real> xp, yp, zp;
 	pti.GetPosition(xp, yp, zp);
 	auto& attribs = pti.GetAttribs();
@@ -1459,7 +1457,6 @@ PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
 
 	RealVector psplit_x, psplit_y, psplit_z, psplit_w;
 	RealVector psplit_ux, psplit_uy, psplit_uz;
-	//	for (auto& p : particles){
 	for(int i=0; i<np; i++){
 		auto& p = particles[i];
 		if (p.id() == SplitParticleID){
@@ -1491,19 +1488,6 @@ PhysicalParticleContainer::SplitParticles(WarpXParIter& pti, int lev)
 #endif
 		}
 	}
-	/*
-	for (auto& p : particles){
-		if (p.id() == SplitParticleID){
-			Print()<<"toto\n";
-			
-		}
-	}
-
-	auto& uxp = attribs[PIdx::ux];
-	
-	for(int i, i<np, ++i){
-		if 
-		}*/
 }
 void
 PhysicalParticleContainer::PushPX(WarpXParIter& pti,

@@ -180,9 +180,6 @@ public:
 
     std::vector<std::string> GetSpeciesNames() const { return species_names; }
 
-	// std::unique_ptr<amrex::ParticleContainer<0,0,PIdx::nattribs>> pc_tmp;
-    // std::unique_ptr<WarpXParticleContainer> pc_tmp;
-
 	PhysicalParticleContainer& GetPCtmp () { return *pc_tmp; }
     
 protected:
