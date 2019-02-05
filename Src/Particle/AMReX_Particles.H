@@ -653,6 +653,7 @@ public:
 
     bool OKGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
 
+#ifdef AMREX_USE_CUDA
     void RedistributeMPIGPU (std::map<int, SendBuffer>& not_ours);
     
     void EnforcePeriodicGPU ();
