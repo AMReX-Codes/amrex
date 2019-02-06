@@ -199,6 +199,8 @@ public:
 
     static int NextID () { return ParticleType::NextID(); }
 
+    bool do_splitting = false;
+
 protected:
 
     int species_id;

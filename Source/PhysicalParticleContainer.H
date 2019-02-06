@@ -80,7 +80,7 @@ public:
 
     virtual void PostRestart () final {}
 
-    void SplitParticles(WarpXParIter& pti, int lev);
+    void SplitParticles(int lev);
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
@@ -113,7 +113,7 @@ protected:
     // particle and the time of the boosted frame.
     bool boost_adjust_transverse_positions = false;
     bool do_backward_propagation = false;
-    bool do_splitting = false;
+    //     bool do_splitting = false;
 
     long NumParticlesToAdd (const amrex::Box& overlap_box,
 			    const amrex::RealBox& overlap_realbox,

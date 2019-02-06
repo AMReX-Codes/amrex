@@ -613,6 +613,13 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         ngJz = std::max(ngJz,2);
     }
 
+    // Add one J guard cell when doing splitting
+    if (mypc->do_splitting==true){
+        ngJx += 1;
+        ngJy += 1;
+        ngJz += 1;
+    }
+
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngJx,ngJy,ngJz);
