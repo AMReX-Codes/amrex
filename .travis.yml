@@ -5,10 +5,20 @@ language: generic
 python:
   - "3.7-dev"
 
-before_install:
-  - sudo add-apt-repository -y ppa:deadsnakes/ppa
-  - sudo apt-get update
-  - sudo apt-get install -y mpich gfortran python3.6 python3.6-venv texlive texlive-latex-extra texlive-lang-cjk latexmk
+addons:
+   apt:
+     packages:  
+       - mpich
+       - g++
+       - gfortran
+       - libgmp-dev
+       - libmpfr-dev
+       - pandoc
+       - texlive
+       - texlive-latex-extra
+       - texlive-lang-cjk
+       - latexmk
+       - doxygen
 
 install:
   - pip install --user sphinx sphinx_rtd_theme breathe
