@@ -435,35 +435,34 @@ contains
       use amrex_ebcellflag_module, only: is_covered_cell, get_neighbor_cells
 
       ! Tile bounds ( face centered )
-      integer(c_int),  intent(in   ) :: lo(3),  hi(3)
+      integer,  intent(in   ) :: lo(3),  hi(3)
 
       ! Array Bounds
-      integer(c_int),  intent(in   ) :: vlo(3), vhi(3)
-      integer(c_int),  intent(in   ) :: alo(3), ahi(3)
-      integer(c_int),  intent(in   ) :: clo(3), chi(3)
-      integer(c_int),  intent(in   ) :: flo(3), fhi(3)
-      integer(c_int),  intent(in   ) :: ncomp
+      integer,  intent(in   ) :: vlo(3), vhi(3)
+      integer,  intent(in   ) :: alo(3), ahi(3)
+      integer,  intent(in   ) :: clo(3), chi(3)
+      integer,  intent(in   ) :: flo(3), fhi(3)
+      integer,  intent(in   ) :: ncomp
 
       ! Type of face (1=x, 2=y, 3=z)
-      integer(c_int),  intent(in   ) :: face_type
-
+      integer,  intent(in   ) :: face_type
 
       ! Arrays
-      real(ar),        intent(inout) ::                            &
+      real(amrex_real), intent(inout) ::                            &
            & ivar(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),ncomp)  ! Interpolated Variable
 
-      real(ar),        intent(in   ) ::                            &
+      real(amrex_real), intent(inout) ::                            &
            & var(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),ncomp), &
            & areafrac(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3)),  &
            & cent(clo(1):chi(1),clo(2):chi(2),clo(3):chi(3),2)
 
-      integer(c_int),  intent(in   ) :: &
+      integer, intent(in   ) :: &
            & flags(flo(1):fhi(1),flo(2):fhi(2),flo(3):fhi(3))
 
 
       ! Local variables
-      integer(c_int)                 :: i, j, k, n, nbr(-1:1,-1:1,-1:1)
-      real(ar)                       :: fracx, fracy, fracz
+      integer          :: i, j, k, n, nbr(-1:1,-1:1,-1:1)
+      real(amrex_real) :: fracx, fracy, fracz
 
       select case ( face_type )
       case(1) ! >>>>>>>>>>>>>>>>>>>>>>  X-face <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< !
