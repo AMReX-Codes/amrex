@@ -66,7 +66,7 @@ PlotfileData::coordSys () const
 }
 
 Box
-PlotfileData::ProbDomain (int level) const
+PlotfileData::probDomain (int level) const
 {
     return m_ad->ProbDomain()[level];
 }
