@@ -133,7 +133,6 @@ void MDParticleContainer::BuildNeighborList()
     const auto dxi = Geom(lev).InvCellSizeArray();
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
-    const auto is_per = Geom(lev).isPeriodicArray();
     const BoxArray& ba   = ParticleBoxArray(lev);
     const DistributionMapping& dmap = ParticleDistributionMap(lev);
     auto& plev  = GetParticles(lev);
