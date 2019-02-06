@@ -492,12 +492,21 @@ public:
 
     /**
     * \brief Copy particles from other to this ParticleContainer. Will clear all the
-    * particles from this container first.
+    * particles from this container first. local controls whether or not to call
+    * Redistribute() after adding the particles.
     *
     * \param other
     */
-    void copyParticles(const ParticleContainerType& other);
+    void copyParticles(const ParticleContainerType& other, bool local=false);
 
+    /**
+    * \brief Add particles from other to this ParticleContainer. local controls 
+    * whether or not to call Redistribute after adding the particles.
+    *
+    * \param other
+    */
+    void addParticles(const ParticleContainerType& other, bool local=false);
+    
     void WriteParticleRealData (void* data, size_t size,
                                 std::ostream& os, const RealDescriptor& rd) const;
 
