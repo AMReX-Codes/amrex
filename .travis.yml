@@ -9,19 +9,21 @@ before_install:
   - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
 
 addons:
-   apt:
-     packages:
-       - mpich
-       - g++
-       - gfortran
-       - libgmp-dev
-       - libmpfr-dev
-       - pandoc
-       - texlive
-       - texlive-latex-extra
-       - texlive-lang-cjk
-       - latexmk
-       - doxygen
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - mpich
+      - g++
+      - gfortran
+      - libgmp-dev
+      - libmpfr-dev
+      - pandoc
+      - texlive
+      - texlive-latex-extra
+      - texlive-lang-cjk
+      - latexmk
+      - doxygen
 
 install:
   - pip install sphinx sphinx_rtd_theme breathe
