@@ -23,7 +23,7 @@ class DeviceVector
 public:
 
     using thrust::device_vector<T>::device_vector;
-    
+
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
     //! get access to the underlying data pointer
@@ -32,7 +32,7 @@ public:
     void assign(typename thrust::device_vector<T>::size_type count, const T& value )
     {
         thrust::fill(thrust::device, dataPtr(), dataPtr() + count, value);
-    }        
+    }
 };
 
 /**
@@ -48,7 +48,7 @@ class HostVector
 public:
 
     using thrust::host_vector<T>::host_vector;
-    
+
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
     //! get access to the underlying data pointer
@@ -105,14 +105,14 @@ public:
 
     //! get access to the underlying data pointer
     T* data ()
-    { 
+    {
       return thrust::raw_pointer_cast(
        this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
     }
 
     //! get access to the underlying data pointer
     const T* data () const
-    { 
+    {
       return thrust::raw_pointer_cast(
        this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
     }
@@ -133,7 +133,7 @@ public:
       return *thrust::raw_pointer_cast(
       &(this->thrust::device_vector<T, ThrustManagedAllocator<T>>::operator[](i)));
     }
-    
+
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
         if (Cuda::inLaunchRegion())
@@ -210,7 +210,7 @@ public:
 };
 
 #else
-    // When Cuda is off, all these containers revert to amrex::Vector. 
+    //! When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
     using DeviceVector = Vector<T>;
 
@@ -239,8 +239,8 @@ public:
 
 }
 
-    
+
 }
-    
+
 
 #endif

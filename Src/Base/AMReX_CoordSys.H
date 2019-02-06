@@ -151,11 +151,11 @@ public:
 
     //! Return location of upper right hand corner.
     void HiNode (const IntVect& point, Real* loc) const;
-    /*
+    /**
     * \brief Returns cell centered index of cell containing point.
     * This may return undesired results if point
     * is on a cell boundary.
-    */ 
+    */
     IntVect CellIndex (const Real* point) const;
     /**
     * \brief Returns node centered index of lower left hand corner of
@@ -275,10 +275,10 @@ CoordSys::IsSPHERICAL ()
     BL_ASSERT(c_sys != undef);
 #if (AMREX_SPACEDIM <= 2)
     return (c_sys == SPHERICAL);
-#endif    
+#endif
 #if (AMREX_SPACEDIM == 3)
     return false;
-#endif    
+#endif
 }
 
 inline
@@ -288,10 +288,10 @@ CoordSys::IsRZ ()
     BL_ASSERT(c_sys != undef);
 #if (AMREX_SPACEDIM <= 2)
     return (c_sys == RZ);
-#endif    
+#endif
 #if (AMREX_SPACEDIM == 3)
     return false;
-#endif    
+#endif
 }
 
 }

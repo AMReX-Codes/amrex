@@ -10,8 +10,10 @@
 
 namespace amrex
 {
-  ///iterates through the IntVects of a Box
   /**
+     \brief iterates through the IntVects of a Box
+
+
      BoxIterator iterates through the IntVects of a box.  The actual
      sqeuence of IntVects is implementation-specific.
      Typical usage:
@@ -167,7 +169,7 @@ namespace amrex
             m_current[2]++;
           }
 #endif
-      }      
+      }
 #endif
   }
 

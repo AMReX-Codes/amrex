@@ -21,6 +21,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import sphinx_rtd_theme
+import breathe
 from datetime import datetime
 
 def get_amrex_version():
@@ -39,7 +40,8 @@ def get_amrex_version():
 extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.githubpages',
               'sphinx.ext.viewcode',
-              'sphinx.ext.intersphinx']
+              'sphinx.ext.intersphinx',
+              'breathe']
 
 intersphinx_mapping = {
     'amrex_tutorials': ('https://amrex-codes.github.io/amrex/tutorials_html/', None)
@@ -92,6 +94,21 @@ pygments_style = 'sphinx'
 todo_include_todos = False
 
 numfig = True
+
+# -- breathe options ------------------------------------------------------
+
+breathe_projects = {
+    "amrex": "../../../out/docs_xml/doxygen/",
+    }
+
+breathe_default_project = "amrex"
+
+breathe_default_members = ('members', 'undoc-members', 'protected-members',
+                           'private-members', 'content-only')
+
+breathe_doxygen_config_options = {'EXTRACT_ALL': 'YES',
+                                  'SHOW_USED_FILES': 'YES',
+                                  'RECURSIVE': 'YES'}
 
 
 # -- Options for HTML output ----------------------------------------------
@@ -189,6 +206,3 @@ texinfo_documents = [
      author, 'amrex', 'One line description of project.',
      'Miscellaneous'),
 ]
-
-
-
