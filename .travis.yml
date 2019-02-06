@@ -9,10 +9,8 @@ before_install:
   - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
 
 addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
+   apt: 
+      packages:
       - mpich
       - g++
       - gfortran
