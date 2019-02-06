@@ -291,6 +291,7 @@ writePlotFile (const char*               name,
 }
 
 void WritePlotFile(const Vector<MultiFab*>&   mfa,
+                   const Vector<Box>&         probDomain,
 		   AmrData&                   amrdToMimic,
 		   const std::string&         oFile,
 		   bool                       verbose,
@@ -343,7 +344,7 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
     os << '\n';
     for (i = 0; i < finestLevel; i++) os << amrdToMimic.RefRatio()[i] << ' ';
     os << '\n';
-    for (i = 0; i <= finestLevel; i++) os << amrdToMimic.ProbDomain()[i] << ' ';
+    for (i = 0; i <= finestLevel; i++) os << probDomain[i] << ' ';
     os << '\n';
     for (i = 0; i <= finestLevel; i++) os << 0 << ' ';
     os << '\n';
@@ -420,4 +421,13 @@ void WritePlotFile(const Vector<MultiFab*>&   mfa,
     }
 
     os.close();
+}
+
+void WritePlotFile(const Vector<MultiFab*>&   mfa,
+		   AmrData&                   amrdToMimic,
+		   const std::string&         oFile,
+		   bool                       verbose,
+                   const Vector<std::string>& varNames)
+{
+    WritePlotFile(mfa,amrdToMimic.ProbDomain(),amrdToMimic,oFile,verbose,varNames);
 }
