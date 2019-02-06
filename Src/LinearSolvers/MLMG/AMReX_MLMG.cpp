@@ -202,7 +202,7 @@ void MLMG::oneIter (int iter)
     {
         miniCycle(alev);
 
-        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 1);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 2);
 
         // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
@@ -234,10 +234,10 @@ void MLMG::oneIter (int iter)
         // (Fine AMR correction) = I(Coarse AMR correction)
         interpCorrection(alev);
 
-        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 1);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 2);
 
         if (alev != finest_amr_lev) {
-	  MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, ncomp, 1);
+	  MultiFab::Add(*cor_hold[alev][0], *cor[alev][0], 0, 0, ncomp, 2);
         }
 
         // Update fine AMR level correction
@@ -245,10 +245,10 @@ void MLMG::oneIter (int iter)
 
         miniCycle(alev);
 
-        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 1);
+        MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 2);
 
         if (alev != finest_amr_lev) {
-	  MultiFab::Add(*cor[alev][0], *cor_hold[alev][0], 0, 0, ncomp, 1);
+	  MultiFab::Add(*cor[alev][0], *cor_hold[alev][0], 0, 0, ncomp, 2);
         }
     }
 
@@ -314,7 +314,7 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
 
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
-    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 1);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 2);
 
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
@@ -345,7 +345,7 @@ MLMG::computeResWithCrseCorFineCor (int falev)
     // fine_rescor = fine_res - L(fine_cor)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
-    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 1);
+    MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 2);
 }
 
 void
@@ -517,12 +517,12 @@ MLMG::mgFcycle ()
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
         // res = rescor; this provides b to the vcycle below
-        MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,ncomp,1);
+        MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,ncomp,2);
 
         // save cor; do v-cycle; add the saved to cor
         std::swap(cor[amrlev][mglev], cor_hold[amrlev][mglev]);
         mgVcycle(amrlev, mglev);
-        MultiFab::Add(*cor[amrlev][mglev], *cor_hold[amrlev][mglev], 0, 0, ncomp, 1);
+        MultiFab::Add(*cor[amrlev][mglev], *cor_hold[amrlev][mglev], 0, 0, ncomp, 2);
     }
 }
 
@@ -544,7 +544,7 @@ MLMG::interpCorrection (int alev)
 
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
-    const int ng = 1;
+    const int ng = 2;
     MultiFab cfine(ba, fine_cor.DistributionMap(), ncomp, ng);
     cfine.setVal(0.0);
     cfine.ParallelCopy(crse_cor, 0, 0, ncomp, ng, ng, crse_geom.periodicity());
@@ -612,7 +612,7 @@ MLMG::interpCorrection (int alev)
                 const Box& fbx = mfi.tilebox();
                 const Box& cbx = amrex::coarsen(fbx,2);
                 Box tmpbx = amrex::refine(cbx,2);
-		tmpbx.grow(1);
+		tmpbx.grow(2);
                 tmpfab.resize(tmpbx,ncomp);
 		
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
@@ -654,7 +654,7 @@ MLMG::interpCorrection (int alev, int mglev)
     {
         BoxArray cba = fine_cor.boxArray();
         cba.coarsen(refratio);
-        const int ng = 1;
+        const int ng = 2;
         cfine.define(cba, fine_cor.DistributionMap(), ncomp, ng);
         cfine.setVal(0.0);
         cfine.ParallelCopy(crse_cor, 0, 0, ncomp, 0, ng, crse_geom.periodicity());
@@ -1052,7 +1052,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     sol_raii.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        if (a_sol[alev]->nGrow() == 1)
+        if (a_sol[alev]->nGrow() >= 1)
         {
             sol[alev] = a_sol[alev];
         }
@@ -1072,7 +1072,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
     rhs.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-	int ng = 1;
+	int ng = 2;
         if (!solve_called) {
             rhs[alev].define(a_rhs[alev]->boxArray(), a_rhs[alev]->DistributionMap(), ncomp, ng,
                              MFInfo(), *linop.Factory(alev));
@@ -1102,7 +1102,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         makeSolvable();
     }
 
-    int ng = 1;
+    int ng = 2;
     if (!solve_called) {
         linop.make(res, ncomp, ng);
         linop.make(rescor, ncomp, ng);
@@ -1117,7 +1117,7 @@ MLMG::prepareForSolve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab con
         }
     }
 
-    ng = 1;
+    ng = 2;
     cor.resize(namrlevs);
     for (int alev = 0; alev <= finest_amr_lev; ++alev)
     {
@@ -1212,8 +1212,8 @@ MLMG::prepareForNSolve ()
     const BoxArray& ba = (*ns_linop).m_grids[0][0];
     const DistributionMapping& dm =(*ns_linop).m_dmap[0][0]; 
 
-    ns_sol.reset(new MultiFab(ba, dm, ncomp, 1, MFInfo(), *(ns_linop->Factory(0,0))));
-    ns_rhs.reset(new MultiFab(ba, dm, ncomp, 0, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_sol.reset(new MultiFab(ba, dm, ncomp, 2, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_rhs.reset(new MultiFab(ba, dm, ncomp, 2, MFInfo(), *(ns_linop->Factory(0,0))));
     ns_sol->setVal(0.0);
     ns_rhs->setVal(0.0);
 
@@ -1311,7 +1311,7 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
     sol_raii.resize(namrlevs);
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        if (a_sol[alev]->nGrow() == 1)
+        if (a_sol[alev]->nGrow() >= 1)
         {
             sol[alev] = a_sol[alev];
         }
@@ -1320,10 +1320,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
             if (sol_raii[alev] == nullptr)
             {
                 sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                                  a_sol[alev]->DistributionMap(), ncomp, 1,
+                                                  a_sol[alev]->DistributionMap(), ncomp, 2,
                                                   MFInfo(), *linop.Factory(alev)));
             }
-            MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
+            MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 2);
             sol[alev] = sol_raii[alev].get();
         }
     }
@@ -1380,7 +1380,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
 
     for (int alev = 0; alev < namrlevs; ++alev)
     {
-        if (a_in[alev]->nGrow() == 1)
+        if (a_in[alev]->nGrow() >= 1)
         {
             in[alev] = a_in[alev];
         }
@@ -1388,14 +1388,14 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         {
             in_raii[alev].define(a_in[alev]->boxArray(),
                                  a_in[alev]->DistributionMap(),
-                                 a_in[alev]->nComp(), 1,
+                                 a_in[alev]->nComp(), 2,
                                  MFInfo(), *linop.Factory(alev));
             MultiFab::Copy(in_raii[alev], *a_in[alev], 0, 0, a_in[alev]->nComp(), 0);
             in[alev] = &(in_raii[alev]);
         }
         rh[alev].define(a_in[alev]->boxArray(),
                         a_in[alev]->DistributionMap(),
-                        a_in[alev]->nComp(), 1, MFInfo(),
+                        a_in[alev]->nComp(), 2, MFInfo(),
                         *linop.Factory(alev));
         rh[alev].setVal(0.0);
     }
@@ -1464,7 +1464,7 @@ MLMG::averageDownAndSync ()
             auto&       cmf = *sol[falev-1];
 
             MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), amrrr[falev-1]),
-                           fmf.DistributionMap(), ncomp, 1);
+                           fmf.DistributionMap(), ncomp, 2);
             amrex::average_down(fmf, tmpmf, 0, ncomp, amrrr[falev-1]);
             cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
             linop.nodalSync(falev-1, 0, cmf);
