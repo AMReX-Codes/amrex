@@ -12,6 +12,7 @@ addons:
    apt: 
       packages:
       - mpich
+      - libmpich-dev
       - g++
       - gfortran
       - libgmp-dev
