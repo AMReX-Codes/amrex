@@ -35,7 +35,7 @@ rm -rf out/docs_xml/**/* || exit 0
 
 # build the Doxygen documentation
 cd Docs/Doxygen
-doxygen doxygen.conf
+doxygen doxygen.conf &> doxygen.out
 cd ../..
 
 mkdir -p out/docs_html
