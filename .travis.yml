@@ -5,9 +5,12 @@ language: python
 python:
   - "3.7-dev"
 
+before_install:
+  - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
+
 addons:
    apt:
-     packages:  
+     packages:
        - mpich
        - g++
        - gfortran
