@@ -31,7 +31,8 @@ class AmrData {
   Vector<Vector<VisMF *> > visMF;    // [level][whichMultiFab]
   Vector<int> compIndexToVisMFMap;  // [nComp]
   Vector<int> compIndexToVisMFComponentMap;  // [nComp]
-  
+
+  int spacedim;
   int finestLevel;   // most refined level available
   Vector<int> refRatio; // refinement ratio between level L and L+1
   Vector< Vector<Real> > dxLevel;  // [level][dim];   // grid spacing
@@ -42,7 +43,8 @@ class AmrData {
   Real time;
   Vector<string> plotVars;
   Vector<Real> vfEps, afEps;
-  int nComp, nGrow;
+  int nComp;
+  IntVect nGrow;
   int nRegions;         // number of boundary regions
   int boundaryWidth;    // number of zones in the boundary regions
   int coordSys;
@@ -64,7 +66,8 @@ class AmrData {
   bool ReadNonPlotfileData(const string &filename, Amrvis::FileType filetype);
   
   const Vector<string> &PlotVarNames() const { return plotVars; }
-  
+
+  int SpaceDim () const { return spacedim; }
   int FinestLevel() const		{ return finestLevel; }
   const Vector<int> &RefRatio() const      { return refRatio; }
   const BoxArray &boxArray(int level) const {
@@ -116,7 +119,8 @@ class AmrData {
   
   int NComp() const		{ return nComp; }
   int BoundaryWidth() const	{ return boundaryWidth; }
-  int NGrow() const	        { return nGrow; }
+  int NGrow() const	        { return nGrow[0]; }
+  IntVect NGrowVect () const    { return nGrow; }
   int CoordSys() const	        { return coordSys; }
   Real Time() const	        { return time; }
   const string &PlotFileVersion() const { return plotFileVersion; }
@@ -176,13 +180,15 @@ class AmrData {
   static bool Verbose()                 { return verbose; }
   static void SetSkipPltLines(int spl)  { skipPltLines = spl; }
   static void SetStaticBoundaryWidth(int bw)  { sBoundaryWidth = bw; }
-  
+  static void SetDimensionAgnostic (bool b) { dimensionAgnostic = b; }
+
  private:
   string fileName;
   static Amrvis::FileType defaultFileType;
   static bool verbose;
   static int  skipPltLines;
   static int  sBoundaryWidth;
+  static bool dimensionAgnostic;
   
   // fill on interior by piecewise constant interpolation
   void FillInterior(FArrayBox &dest, int level, const Box &subbox);
