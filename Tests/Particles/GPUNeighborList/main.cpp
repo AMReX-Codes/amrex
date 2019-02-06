@@ -62,8 +62,14 @@ void main_main ()
     MDParticleContainer pc(geom, dm, ba);
 
     IntVect nppc = IntVect(AMREX_D_DECL(1, 1, 1));
+    constexpr Real dt = 0.1;
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    pc.BuildNeighborList();
+    for (int step = 0; step < params.nsteps; ++step) {
+
+        pc.BuildNeighborList();
+        
+        pc.moveParticles(dt);
+    }
 }
