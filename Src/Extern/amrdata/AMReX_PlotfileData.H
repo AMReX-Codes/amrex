@@ -29,7 +29,7 @@ public:
 
     int coordSys () const;
 
-    Box ProbDomain (int level) const;
+    Box probDomain (int level) const;
 
     Array<Real,AMREX_SPACEDIM> probSize () const;
     Array<Real,AMREX_SPACEDIM> probLo () const;
