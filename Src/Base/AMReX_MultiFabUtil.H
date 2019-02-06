@@ -141,7 +141,7 @@ namespace amrex
     //! Convert iMultiFab to long
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
 
-    // example: auto mf = amrex::cast<MultiFab>(imf);
+    //! example: auto mf = amrex::cast<MultiFab>(imf);
     template <typename T, typename U>
     T cast (U const& mf_in)
     {

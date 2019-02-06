@@ -12,9 +12,8 @@ class ABec2
     : public ABecLaplacian
 {
 public:
-  //
-  // constructor for box array, boundary data and vector mesh spacing
-  //
+
+  //! constructor for box array, boundary data and vector mesh spacing
   ABec2 (const BndryData& bd,
          const Real*      h)
     : ABecLaplacian(bd,h) {}
@@ -50,9 +49,7 @@ protected:
 			int             level,
 			int             redBlackFlag);
 
-  //
-  // Disallow copy constructors
-  //
+  //! Disallow copy constructors
   ABec2 (const ABec2&);
   ABec2& operator= (const ABec2&);
 };

@@ -6,23 +6,21 @@ module amrex_eb_tagging_module
 
 contains
 
-  ! ::: -----------------------------------------------------------
-  ! ::: This routine will tag high error cells based on the state
-  ! :::
-  ! ::: INPUTS/OUTPUTS:
-  ! :::
-  ! ::: tag        <=  integer tag array
-  ! ::: tag_lo,hi   => index extent of tag array
-  ! ::: state       => state array
-  ! ::: state_lo,hi => index extent of state array
-  ! ::: set         => integer value to tag cell for refinement
-  ! ::: clear       => integer value to untag cell
-  ! ::: lo,hi       => work region we are allowed to change
-  ! ::: dx          => cell size
-  ! ::: problo      => phys loc of lower left corner of prob domain
-  ! ::: time        => problem evolution time
-  ! ::: level       => refinement level of this array
-  ! ::: -----------------------------------------------------------
+  ! -----------------------------------------------------------
+  !> This routine will tag high error cells based on the state
+  !!
+  !! \param tag        <=  integer tag array
+  !! \param tag_lo,hi   => index extent of tag array
+  !! \param state       => state array
+  !! \param state_lo,hi => index extent of state array
+  !! \param set         => integer value to tag cell for refinement
+  !! \param clear       => integer value to untag cell
+  !! \param lo,hi       => work region we are allowed to change
+  !! \param dx          => cell size
+  !! \param problo      => phys loc of lower left corner of prob domain
+  !! \param time        => problem evolution time
+  !!        level       => refinement level of this array
+  ! -----------------------------------------------------------
 
   subroutine amrex_eb_levelset_error(tag,   tag_lo,   tag_hi,   &
                                      state, state_lo, state_hi, &

@@ -837,12 +837,20 @@ clearParticles()
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-copyParticles(const ParticleContainerType& other)
+copyParticles(const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
+    clearParticles();   
+    addParticles(other, local);
+}
 
-    clearParticles();
-    
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+addParticles(const ParticleContainerType& other, bool local)
+{
+    BL_PROFILE("ParticleContainer::addParticles");
+
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
         const auto& plevel_other = other.GetParticles(lev);
@@ -883,7 +891,7 @@ copyParticles(const ParticleContainerType& other)
         }
     }
     
-    Redistribute();
+    if (not local) Redistribute();
 }
 
 //

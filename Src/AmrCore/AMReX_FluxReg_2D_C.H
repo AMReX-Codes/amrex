@@ -5,12 +5,23 @@
 
 namespace amrex {
 
-//
-// Add fine grid flux to flux register.  Flux array is a fine grid
-// edge based object, Register is a coarse grid edge based object.
-// It is assumed that the coarsened flux region contains the register
-// region.
-//
+
+/**
+* \brief Add fine grid flux to flux register.  Flux array is a fine grid
+* edge based object, Register is a coarse grid edge based object.
+* It is assumed that the coarsened flux region contains the register
+* region.
+*
+* \param bx
+* \param regfab
+* \param rcomp
+* \param flxfab
+* \param fcomp
+* \param ncomp
+* \param dir
+* \param ratio
+* \param mult
+*/
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineadd (Box const& bx, FArrayBox& regfab, const int rcomp,
                  FArrayBox const& flxfab, const int fcomp, const int ncomp,
@@ -56,12 +67,24 @@ fluxreg_fineadd (Box const& bx, FArrayBox& regfab, const int rcomp,
     }
 }
 
-//
-// Add fine grid flux times area to flux register.  Flux array is a fine grid
-// edge based object, Register is a coarse grid edge based object.
-// It is assumed that the coarsened flux region contains the register
-// region.
-//
+
+/**
+* \brief Add fine grid flux times area to flux register.  Flux array is a fine grid
+* edge based object, Register is a coarse grid edge based object.
+* It is assumed that the coarsened flux region contains the register
+* region.
+*
+* \param bx
+* \param regfab
+* \param rcomp
+* \param areafab
+* \param flxfab
+* \param fcomp
+* \param ncomp
+* \param dir
+* \param ratio
+* \param mult
+*/
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineareaadd (Box const& bx, FArrayBox& regfab, const int rcomp,
                      FArrayBox const& areafab,

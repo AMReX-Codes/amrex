@@ -14,8 +14,8 @@ namespace amrex {
 
 class MultiGrid;
 
-/*
-        A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
+/**
+        \brief A CGSolver solves the linear equation, L(phi)=rhs, for a LinOp L and
         MultiFabs rhs and phi, using the conjugate gradient algorithm, either
         vanilla, or preconditioned via a single V-cycle of multigrid.
 
@@ -60,7 +60,7 @@ class MultiGrid;
         setting the LinOp's maxorder=2 is a good place to start.
 
 	CGSolver can fail to converge, or more likely diverge, if you
-	run into a solvability problem (likely the accuracy cannot be 
+	run into a solvability problem (likely the accuracy cannot be
 	achieved).  CGSolver returns error codes 0 means good, 1--7 means
 	loss-of-accuracy, 8 means iteration count exceeded.
 
@@ -75,10 +75,10 @@ class MultiGrid;
         use_mg_precond(false) Whether to use the V-cycle multigrid
         solver for the preconditioner system
 
-	unstable_criterion(10) if norm of residual grows by more than 
+	unstable_criterion(10) if norm of residual grows by more than
 	this factor, it is taken as signal that you've run into a solvability
 	problem.
-        
+
         This class does NOT provide a copy constructor or assignment operator.
 */
 
@@ -87,58 +87,83 @@ class CGSolver
 public:
 
     enum Solver { CG, BiCGStab, CABiCGStab, CABiCGStabQuad };
-    //
-    // The Constructor.
-    //
+
+    /**
+    * \brief The Constructor.
+    *
+    * \param _lp
+    * \param _use_mg_precond
+    * \param _lev
+    */
     CGSolver (LinOp& _lp,
               bool   _use_mg_precond = false,
               int    _lev = 0);
-    //
-    // The Destructor.
-    //
+
+    /**
+    * \brief The Destructor.
+    */
     ~CGSolver ();
-    //
-    // solve the system, Lp(solnL)=rhsL to relative err, tolerance
-    // RETURNS AN INT!!!! indicating success or failure.  
-    // 0 means success
-    // 1 means failed for loss of precision
-    // 2 means iterations exceeded
-    //
+
+    /**
+    * \brief solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    * RETURNS AN INT!!!! indicating success or failure.
+    * 0 means success
+    * 1 means failed for loss of precision
+    * 2 means iterations exceeded
+    *
+    * \param solnL
+    * \param rhsL
+    * \param eps_rel
+    * \param eps_abs
+    * \param bc_mode
+    */
     int solve (MultiFab&       solnL,
 	       const MultiFab& rhsL,
 	       Real            eps_rel    = -1.0,
 	       Real            eps_abs    = -1.0,
 	       LinOp::BC_Mode  bc_mode    = LinOp::Inhomogeneous_BC);
-    //
-    // Set maximum allowed number of CG iterations.
-    //
+
+    /**
+    * \brief Set maximum allowed number of CG iterations.
+    *
+    * \param _maxiter
+    */
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
-    //
-    // Get maximum allowed number of CG iterations.
-    //
+
+    /**
+    * \brief Get maximum allowed number of CG iterations.
+    */
     int getMaxIter () const { return maxiter; }
-    //
-    // Set flag determining whether MG preconditioning is used.
-    //
+
+    /**
+    * \brief Set flag determining whether MG preconditioning is used.
+    *
+    * \param _use_mg_precond
+    */
     void setUseMGPrecond (bool _use_mg_precond)
     {
         use_mg_precond = _use_mg_precond; set_mg_precond();
     }
-    //
-    // Get  flag determining whether MG preconditioning is used.
-    //
+
+    /**
+    * \brief Get  flag determining whether MG preconditioning is used.
+    */
     bool getUseMGPrecond () const { return use_mg_precond; }
 
     void setCGSolver (Solver s) { cg_solver = s; }
     Solver getCGSolver () const { return cg_solver; }
 
-    //
-    // Set the verbosity value.
-    //
+
+    /**
+    * \brief Set the verbosity value.
+    *
+    * \param _verbose
+    */
     void setVerbose (int _verbose) { verbose = _verbose; }
-    //
-    // Return the verbosity value.
-    //
+
+    /**
+    * \brief Return the verbosity value.
+    */
     int getVerbose () const { return verbose; }
 
 protected:
@@ -171,15 +196,17 @@ protected:
                      const MultiFab& rhs,
                      int             lev,
                      LinOp&          Lp);
-    //
-    // Construct work space, initialize parameters.
-    //
+
+    /**
+    * \brief Construct work space, initialize parameters.
+    */
     static void Initialize ();
 
     static void Finalize ();
-    //
-    // if  (use_mg_precond == 1) then define the MultiGrid * mg_precond
-    //
+
+    /**
+    * \brief if  (use_mg_precond == 1) then define the MultiGrid * mg_precond
+    */
     void set_mg_precond ();
 
 private:
@@ -188,23 +215,24 @@ private:
     static double def_unstable_criterion;
     static int    def_verbose;
     static Solver def_cg_solver;
-    static bool   use_jbb_precond;    // Use JBB's new method as a preconditioner.
-    static bool   use_jacobi_precond; // Use Jacobi smoothing as a preconditioner.
+    static bool   use_jbb_precond;        //!< Use JBB's new method as a preconditioner.
+    static bool   use_jacobi_precond;     //!< Use Jacobi smoothing as a preconditioner.
 
-    //
-    // The data.
-    //
-    LinOp&     Lp;             // Operator for linear system to be solved.
-    MultiGrid* mg_precond;     // MultiGrid solver to be used as preconditioner
-    int        maxiter;        // Current maximum number of allowed iterations.
-    int        verbose;        // Current verbosity level.
-    int        lev;            // Level of the linear operator to use
-    bool       use_mg_precond; // Use multigrid as a preconditioner.
+
+    //! The data.
+    LinOp&     Lp;             //!< Operator for linear system to be solved.
+    MultiGrid* mg_precond;         //!< MultiGrid solver to be used as preconditioner
+    int        maxiter;            //!< Current maximum number of allowed iterations.
+    int        verbose;            //!< Current verbosity level.
+    int        lev;                //!< Level of the linear operator to use
+    bool       use_mg_precond;     //!< Use multigrid as a preconditioner.
     Solver     cg_solver;
 
-    //
-    // Disable copy constructor and assignment operator.
-    //
+
+    /**
+    * \brief Disable copy constructor and assignment operator.
+    *
+    */
     CGSolver (const CGSolver&);
     CGSolver& operator= (const CGSolver&);
 };
