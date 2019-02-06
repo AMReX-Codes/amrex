@@ -11,6 +11,7 @@ before_install:
 addons:
    apt: 
       packages:
+      - mpich
       - g++
       - gfortran
       - libgmp-dev
@@ -27,7 +28,3 @@ env:
   global:
   - COMMIT_AUTHOR_EMAIL: "atmyers@lbl.gov"
 
-addons:
-  apt:
-    packages:
-      - doxygen
