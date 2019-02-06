@@ -1,6 +1,5 @@
 
-ncell = (8, 8, 8)
-nppc  = (4, 4, 4)         # number of particles per cell
+size = 16
 
 max_grid_size = 8
 
