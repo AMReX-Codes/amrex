@@ -21,7 +21,7 @@ addons:
        - doxygen
 
 install:
-  - pip install --user sphinx sphinx_rtd_theme breathe
+  - pip install sphinx sphinx_rtd_theme breathe
 
 script: bash ./build_and_deploy.sh
 
