@@ -1382,10 +1382,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
 		    auto& src = m_aos_to_redistribute;
                     auto& dst = ptile.GetArrayOfStructs();
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(src.data() + start[i+1]), 
-                                    thrust::raw_pointer_cast(dst.data() + old_size),
-                                    num_to_add*sizeof(ParticleType), 
-                                    cudaMemcpyDeviceToDevice);
+                    thrust::copy(thrust::device,
+                                 src.begin() + start[i+1], src.begin() + stop[i+1], 
+                                 dst().begin() + old_size);
                 }
                 
                 // copy real arrays
@@ -1393,10 +1392,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
 		    auto& src = m_real_arrays_to_redistribute[j];
 		    auto& dst = ptile.GetStructOfArrays().GetRealData(j);
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(src.data() + start[i+1]), 
-                                    thrust::raw_pointer_cast(dst.data() + old_size),
-                                    num_to_add*sizeof(Real), 
-                                    cudaMemcpyDeviceToDevice);
+                    thrust::copy(thrust::device,
+                                 src.begin() + start[i+1], src.begin() + stop[i+1],
+                                 dst.begin() + old_size);
                 }
 
 		// copy int arrays
@@ -1404,10 +1402,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
 		    auto& src = m_int_arrays_to_redistribute[j];
 		    auto& dst = ptile.GetStructOfArrays().GetIntData(j);
-                    cudaMemcpyAsync(thrust::raw_pointer_cast(src.data() + start[i+1]), 
-                                    thrust::raw_pointer_cast(dst.data() + old_size),
-                                    num_to_add*sizeof(int), 
-                                    cudaMemcpyDeviceToDevice);
+                    thrust::copy(thrust::device,
+                                 src.begin() + start[i+1], src.begin() + stop[i+1],
+                                 dst.begin() + old_size);
                 }
             }
             else // this is the non-local case
