@@ -39,7 +39,7 @@ MDParticleContainer::
 MDParticleContainer(const Geometry            & a_geom,
                     const DistributionMapping & a_dmap,
                     const BoxArray            & a_ba)
-    : ParticleContainer<0, 0, PIdx::nattribs, 0>(a_geom, a_dmap, a_ba)
+    : ParticleContainer<PIdx::ncomps>(a_geom, a_dmap, a_ba)
 {}
 
 void
@@ -60,15 +60,11 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                                      *a_num_particles_per_cell[1],
                                      *a_num_particles_per_cell[2]);
 
-    std::array<Real,PIdx::nattribs> attribs;
-    attribs.fill(0.0);    
-
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         const Box& tile_box  = mfi.tilebox();
 
         Cuda::HostVector<ParticleType> host_particles;
-        std::array<Cuda::HostVector<Real>, PIdx::nattribs> host_attribs;
         
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv)) {
             for (int i_part=0; i_part<num_ppc;i_part++) {
@@ -91,17 +87,15 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                 p.pos(1) = y;
                 p.pos(2) = z;
                 
-                attribs[PIdx::vx] = v[0];
-                attribs[PIdx::vy] = v[1];
-                attribs[PIdx::vz] = v[2];
+                p.rdata(PIdx::vx) = v[0];
+                p.rdata(PIdx::vy) = v[1];
+                p.rdata(PIdx::vz) = v[2];
 
-                attribs[PIdx::ax] = 0.0;
-                attribs[PIdx::ay] = 0.0;
-                attribs[PIdx::az] = 0.0;
+                p.rdata(PIdx::ax) = 0.0;
+                p.rdata(PIdx::ay) = 0.0;
+                p.rdata(PIdx::az) = 0.0;
                 
                 host_particles.push_back(p);
-                for (int kk = 0; kk < PIdx::nattribs; ++kk)
-                    host_attribs[kk].push_back(attribs[kk]);                
             }
         }
         
@@ -113,14 +107,7 @@ InitParticles(const IntVect& a_num_particles_per_cell,
         
         Cuda::thrust_copy(host_particles.begin(),
                           host_particles.end(),
-                          particle_tile.GetArrayOfStructs().begin() + old_size);
-        
-        for (int kk = 0; kk < PIdx::nattribs; ++kk)
-        {
-            Cuda::thrust_copy(host_attribs[kk].begin(),
-                              host_attribs[kk].end(),
-                              particle_tile.GetStructOfArrays().GetRealData(kk).begin() + old_size);
-        }
+                          particle_tile.GetArrayOfStructs().begin() + old_size);        
     }
 }
 
@@ -148,7 +135,6 @@ void MDParticleContainer::BuildNeighborList()
 
         auto& ptile = plev[std::make_pair(gid, tid)];
         auto& aos   = ptile.GetArrayOfStructs();
-        auto& soa   = ptile.GetStructOfArrays();
         const size_t np = aos.numParticles();
 
         thrust::device_vector<unsigned int> cells(np);

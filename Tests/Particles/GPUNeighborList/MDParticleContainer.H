@@ -8,35 +8,12 @@ struct PIdx
     enum {
         vx = 0,
         vy, vz, ax, ay, az,
-        nattribs
+        ncomps
     };
 };
 
-class MDParIter
-    : public amrex::ParIter<0,0,PIdx::nattribs,0>
-{
-public:
-    using amrex::ParIter<0,0,PIdx::nattribs,0>::ParIter;
-
-    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
-        return GetStructOfArrays().GetRealData(); 
-    }
-
-    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
-        return GetStructOfArrays().GetRealData(); 
-    }
-
-    const RealVector& GetAttribs (int comp) const { 
-        return GetStructOfArrays().GetRealData(comp);
-    }
-
-    RealVector& GetAttribs (int comp) { 
-        return GetStructOfArrays().GetRealData(comp);
-    }
-};
-
 class MDParticleContainer
-    : public amrex::ParticleContainer<0, 0, PIdx::nattribs, 0>
+    : public amrex::ParticleContainer<PIdx::ncomps>
 {
 
 public:
