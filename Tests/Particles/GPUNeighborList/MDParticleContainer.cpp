@@ -119,9 +119,6 @@ void MDParticleContainer::BuildNeighborList()
     const Geometry& geom = Geom(lev);
     const auto dxi = Geom(lev).InvCellSizeArray();
     const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
-    const BoxArray& ba   = ParticleBoxArray(lev);
-    const DistributionMapping& dmap = ParticleDistributionMap(lev);
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -276,10 +273,40 @@ void MDParticleContainer::BuildNeighborList()
             }
         });
         
+        // for (int i = 0; i < np; ++i) {
+        //     amrex::Print() << "Particle " << i << " will collide with: ";
+        //     for (int j = nbor_offsets[i]; j < nbor_offsets[i+1]; ++j) {
+        //         amrex::Print() << nbor_list[j] << " ";
+        //     }
+        //     amrex::Print() << "\n";
+        // }
+    }
+}
+
+void MDParticleContainer::moveParticles(const amrex::Real& dt)
+{
+    BL_PROFILE("MDParticleContainer::moveParticles");
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const auto plo = Geom(lev).ProbLoArray();
+    const auto phi = Geom(lev).ProbHiArray();
+    auto& plev  = GetParticles(lev);
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        
+        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto& aos   = ptile.GetArrayOfStructs();
+        ParticleType* pstruct = &(aos[0]);
+
+        const size_t np = aos.numParticles();
+    
         // now we move the particles
         AMREX_FOR_1D ( np, i,
         {
-            constexpr Real dt = 0.1;
             pstruct[i].rdata(PIdx::vx) += pstruct[i].rdata(PIdx::ax) * dt;
             pstruct[i].rdata(PIdx::vy) += pstruct[i].rdata(PIdx::ay) * dt;
             pstruct[i].rdata(PIdx::vz) += pstruct[i].rdata(PIdx::az) * dt;
@@ -300,13 +327,5 @@ void MDParticleContainer::BuildNeighborList()
             }
         
         });
-                        
-        // for (int i = 0; i < np; ++i) {
-        //     amrex::Print() << "Particle " << i << " will collide with: ";
-        //     for (int j = nbor_offsets[i]; j < nbor_offsets[i+1]; ++j) {
-        //         amrex::Print() << nbor_list[j] << " ";
-        //     }
-        //     amrex::Print() << "\n";
-        // }
-    }
+    }        
 }

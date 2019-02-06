@@ -36,6 +36,8 @@ public:
     }
 
     void BuildNeighborList();
+
+    void moveParticles(const amrex::Real& dt);
 };
 
 #endif
