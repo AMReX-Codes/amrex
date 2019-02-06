@@ -54,7 +54,7 @@ breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
 python make_api.py
 
 # now do sphinx
-make SPHINX_BUILD="python -msphinx" latexpdf &> make_source_latex.out
+make SPHINX_BUILD="python -msphinx" latexpdf
 mv build/latex/amrex.pdf source/ 
 make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
 
