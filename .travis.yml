@@ -19,6 +19,10 @@ addons:
       - libmpfr-dev
       - pandoc
       - doxygen
+      - texlive
+      - texlive-latex-extra
+      - texlive-lang-cjk
+      - latexmk
 
 install:
   - pip install sphinx sphinx_rtd_theme breathe
