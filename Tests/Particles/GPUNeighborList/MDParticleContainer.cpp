@@ -132,6 +132,8 @@ void MDParticleContainer::BuildNeighborList()
     const Geometry& geom = Geom(lev);
     const auto dxi = Geom(lev).InvCellSizeArray();
     const auto plo = Geom(lev).ProbLoArray();
+    const auto phi = Geom(lev).ProbHiArray();
+    const auto is_per = Geom(lev).isPeriodicArray();
     const BoxArray& ba   = ParticleBoxArray(lev);
     const DistributionMapping& dmap = ParticleDistributionMap(lev);
     auto& plev  = GetParticles(lev);
@@ -264,6 +266,56 @@ void MDParticleContainer::BuildNeighborList()
             }
         });
 
+        // now we loop over the neighbor list and compute the forces
+        AMREX_FOR_1D ( np, i,
+        {
+            pstruct[i].rdata(PIdx::ax) = 0.0;
+            pstruct[i].rdata(PIdx::ay) = 0.0;
+            pstruct[i].rdata(PIdx::az) = 0.0;
+
+            for (int k = pnbor_offset[i]; k < pnbor_offset[i+1]; ++k) {
+                int j = pnbor_list[k];
+                
+                Real dx = pstruct[i].pos(0) - pstruct[j].pos(0);
+                Real dy = pstruct[i].pos(1) - pstruct[j].pos(1);
+                Real dz = pstruct[i].pos(2) - pstruct[j].pos(2);
+
+                Real r2 = dx*dx + dy*dy + dz*dz;
+                r2 = amrex::max(r2, Params::min_r*Params::min_r);
+                Real r = sqrt(r2);
+
+                Real coef = (1.0 - Params::cutoff / r) / r2 / Params::mass;
+                pstruct[i].rdata(PIdx::ax) += coef * dx;
+                pstruct[i].rdata(PIdx::ay) += coef * dy;
+                pstruct[i].rdata(PIdx::az) += coef * dz;                
+            }
+        });
+        
+        // now we move the particles
+        AMREX_FOR_1D ( np, i,
+        {
+            constexpr Real dt = 0.1;
+            pstruct[i].rdata(PIdx::vx) += pstruct[i].rdata(PIdx::ax) * dt;
+            pstruct[i].rdata(PIdx::vy) += pstruct[i].rdata(PIdx::ay) * dt;
+            pstruct[i].rdata(PIdx::vz) += pstruct[i].rdata(PIdx::az) * dt;
+
+            pstruct[i].pos(0) += pstruct[i].rdata(PIdx::vx) * dt;
+            pstruct[i].pos(1) += pstruct[i].rdata(PIdx::vy) * dt;
+            pstruct[i].pos(2) += pstruct[i].rdata(PIdx::vz) * dt;
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                while ( (pstruct[i].pos(idim) < plo[idim]) or (pstruct[i].pos(idim) > phi[idim]) ) {
+                    if ( pstruct[i].pos(idim) < plo[idim] ) {
+                        pstruct[i].pos(idim) = 2*plo[idim] - pstruct[i].pos(idim);
+                    } else {
+                        pstruct[i].pos(idim) = 2*phi[idim] - pstruct[i].pos(idim);
+                    }
+                    pstruct[i].rdata(idim) *= -1; // flip velocity
+                }
+            }
+        
+        });
+                        
         // for (int i = 0; i < np; ++i) {
         //     amrex::Print() << "Particle " << i << " will collide with: ";
         //     for (int j = nbor_offsets[i]; j < nbor_offsets[i+1]; ++j) {
