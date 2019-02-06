@@ -184,10 +184,12 @@ void MDParticleContainer::BuildNeighborList()
 
         thrust::copy(offsets.begin(), offsets.end()-1, counts.begin());
 
+        constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
+
         AMREX_FOR_1D ( np, i,
         {
             unsigned int index = atomicInc(&pcount[pcell[i]],
-                                           std::numeric_limits<unsigned int>::max());
+                                           max_unsigned_int);
             pperm[index] = i;
         });
 
