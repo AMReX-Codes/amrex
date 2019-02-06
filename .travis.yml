@@ -11,16 +11,11 @@ before_install:
 addons:
    apt: 
       packages:
-      - mpich
       - g++
       - gfortran
       - libgmp-dev
       - libmpfr-dev
       - pandoc
-      - texlive
-      - texlive-latex-extra
-      - texlive-lang-cjk
-      - latexmk
       - doxygen
 
 install:
