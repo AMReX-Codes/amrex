@@ -54,14 +54,14 @@ breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
 python make_api.py
 
 # now do sphinx
-make SPHINX_BUILD="python -msphinx" latexpdf
-mv build/latex/amrex.pdf source/
-make SPHINX_BUILD="python -msphinx" html
+make SPHINX_BUILD="python -msphinx" latexpdf &> make_source_latex.out
+mv build/latex/amrex.pdf source/ 
+make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
 
 cd ../sphinx_tutorials
-make SPHINX_BUILD="python -msphinx" latexpdf
+make SPHINX_BUILD="python -msphinx" latexpdf &> make_tutorials_latex.out
 mv build/latex/amrex.pdf source/
-make SPHINX_BUILD="python -msphinx" html
+make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 
 mv Docs/sphinx_documentation/build/html/* out/docs_html/
