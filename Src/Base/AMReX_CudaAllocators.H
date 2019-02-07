@@ -140,6 +140,47 @@ namespace amrex {
 
     /**
 
+       This is a polymorphic memory allocator that uses either the 
+       Pinned or Device memory pool from AMReX, depending on the value of
+       amrex.use_gpu_aware_mpi. It is intended for use with thrust::device_vector.
+
+    **/
+    template<class T>
+    class ThrustPolymorphicAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+    
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+	    value_type* result = nullptr;
+            if (ParallelDescriptor::UseGpuAwareMpi()) 
+            {
+                result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
+            }
+            else
+            {
+                result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
+            }
+	    return thrust::device_pointer_cast(result);
+	}
+  
+        inline void deallocate(pointer ptr, size_t)
+        {
+            if (ParallelDescriptor::UseGpuAwareMpi()) 
+            {
+                The_Device_Arena()->free(thrust::raw_pointer_cast(ptr));
+            }
+            else
+            {
+                The_Pinned_Arena()->free(thrust::raw_pointer_cast(ptr));
+            }
+	}
+    };
+
+    /**
+
        This allocator implements caching and is intended to be used internally by thrust when it allocates
        temporary storage.
 
