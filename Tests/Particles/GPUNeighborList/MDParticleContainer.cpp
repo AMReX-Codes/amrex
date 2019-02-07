@@ -135,16 +135,16 @@ void MDParticleContainer::BuildNeighborList()
         const size_t np = aos.numParticles();
 
         Gpu::DeviceVector<unsigned int> cells(np);
-        unsigned int* pcell = thrust::raw_pointer_cast(cells.data());
+        unsigned int* pcell = cells.dataPtr();
 
         Gpu::DeviceVector<unsigned int> counts(bx.numPts());
-        unsigned int* pcount = thrust::raw_pointer_cast(counts.data());
+        unsigned int* pcount = counts.dataPtr();
 
         Gpu::DeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
-        unsigned int* poffset = thrust::raw_pointer_cast(offsets.data());
+        unsigned int* poffset = offsets.dataPtr();
 
         Gpu::DeviceVector<unsigned int> permutation(np);
-        unsigned int* pperm = thrust::raw_pointer_cast(permutation.data());
+        unsigned int* pperm = permutation.dataPtr();
 
         // First we build the cell list data structure
         
@@ -179,7 +179,7 @@ void MDParticleContainer::BuildNeighborList()
         // Now count the number of neighbors for each particle
 
         Gpu::DeviceVector<unsigned int> nbor_counts(np);
-        unsigned int* pnbor_counts = thrust::raw_pointer_cast(nbor_counts.data());
+        unsigned int* pnbor_counts = nbor_counts.dataPtr();
         
         AMREX_FOR_1D ( np, i,
         {
@@ -213,12 +213,12 @@ void MDParticleContainer::BuildNeighborList()
 
         const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
         Gpu::DeviceVector<unsigned int> nbor_offsets(np + 1, total_nbors);
-        unsigned int* pnbor_offset = thrust::raw_pointer_cast(nbor_offsets.data());
+        unsigned int* pnbor_offset = nbor_offsets.dataPtr();
 
         thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(), nbor_offsets.begin());
                 
         Gpu::DeviceVector<unsigned int> nbor_list(total_nbors);
-        unsigned int* pnbor_list = thrust::raw_pointer_cast(nbor_list.data());
+        unsigned int* pnbor_list = nbor_list.dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
