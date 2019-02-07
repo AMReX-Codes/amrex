@@ -278,7 +278,6 @@ MultiParticleContainer::Redistribute ()
     for (auto& pc : allcontainers) {
 	pc->Redistribute();
     }
-    pc_tmp->Redistribute();
 }
 
 void
@@ -287,7 +286,6 @@ MultiParticleContainer::RedistributeLocal (const int num_ghost)
     for (auto& pc : allcontainers) {
 	pc->Redistribute(0, 0, 0, num_ghost);
     }
-    pc_tmp->Redistribute(0, 0, 0, num_ghost);
 }
 
 Vector<long>
