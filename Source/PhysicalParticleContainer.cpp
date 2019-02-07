@@ -80,6 +80,7 @@ PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core, int isp
     pp.query("boost_adjust_transverse_positions", boost_adjust_transverse_positions);
     pp.query("do_backward_propagation", do_backward_propagation);
     pp.query("do_splitting", do_splitting);
+    pp.query("split_type", split_type);
 }
 
 PhysicalParticleContainer::PhysicalParticleContainer (AmrCore* amr_core)
@@ -1448,7 +1449,13 @@ PhysicalParticleContainer::SplitParticles(int lev)
     auto& pctmp_split = mypc.GetPCtmp();
     Cuda::DeviceVector<Real> xp, yp, zp;
     long np_split_to_add = 0;
-    long np_split = pow(2, AMREX_SPACEDIM);
+    long np_split;
+    if(split_type==0)
+    {
+        np_split = pow(2, AMREX_SPACEDIM);
+    } else {
+        np_split = 2*AMREX_SPACEDIM;
+    }
     RealVector psplit_x, psplit_y, psplit_z, psplit_w;
     RealVector psplit_ux, psplit_uy, psplit_uz;
 
@@ -1469,12 +1476,33 @@ PhysicalParticleContainer::SplitParticles(int lev)
                 Print()<<"split one particle\n";
                 np_split_to_add += np_split;
 #if (AMREX_SPACEDIM==2)
-                for (int ishift = -1; ishift < 2; ishift +=2 ){
-                    for (int kshift = -1; kshift < 2; kshift +=2 ){
-                        // Add one particle with offset in x and z
+                if (split_type==0){
+                    for (int ishift = -1; ishift < 2; ishift +=2 ){
+                        for (int kshift = -1; kshift < 2; kshift +=2 ){
+                            // Add one particle with offset in x and z
+                            psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
+                            psplit_y.push_back( yp[i] );
+                            psplit_z.push_back( zp[i] + kshift*dx[2]/2 );
+                            psplit_ux.push_back( uxp[i] );
+                            psplit_uy.push_back( uyp[i] );
+                            psplit_uz.push_back( uzp[i] );
+                            psplit_w.push_back( wp[i]/np_split );
+                        }
+                    }
+                } else {
+                    for (int ishift = -1; ishift < 2; ishift +=2 ){
+                        // Add one particle with offset in x
                         psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
                         psplit_y.push_back( yp[i] );
-                        psplit_z.push_back( zp[i] + kshift*dx[2]/2 );
+                        psplit_z.push_back( zp[i] );
+                        psplit_ux.push_back( uxp[i] );
+                        psplit_uy.push_back( uyp[i] );
+                        psplit_uz.push_back( uzp[i] );
+                        psplit_w.push_back( wp[i]/np_split );
+                        // Add one particle with offset in z
+                        psplit_x.push_back( xp[i] );
+                        psplit_y.push_back( yp[i] );
+                        psplit_z.push_back( zp[i] + ishift*dx[2]/2 );
                         psplit_ux.push_back( uxp[i] );
                         psplit_uy.push_back( uyp[i] );
                         psplit_uz.push_back( uzp[i] );
@@ -1501,7 +1529,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
             }
         }
     }
-    if (np_split_to_add>0){
+    //    if (np_split_to_add>0){
         // Add particles one by one, to have the proper number of attribs
         /*
         for (int i=0; i<np_split_to_add; i++){
@@ -1550,7 +1578,7 @@ PhysicalParticleContainer::SplitParticles(int lev)
                       0);
         Redistribute();
         */
-    }
+        //    }
 }
 
 void
