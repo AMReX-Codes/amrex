@@ -247,7 +247,40 @@ void MDParticleContainer::BuildNeighborList()
             }
         });
 
-        // now we loop over the neighbor list and compute the forces
+        // for (int i = 0; i < np; ++i) {
+        //     amrex::Print() << "Particle " << i << " will collide with: ";
+        //     for (int j = m_nbor_offsets[i]; j < m_nbor_offsets[i+1]; ++j) {
+        //         amrex::Print() << m_nbor_list[j] << " ";
+        //     }
+        //     amrex::Print() << "\n";
+        // }
+    }
+}
+
+void MDParticleContainer::computeForces()
+{
+    BL_PROFILE("MDParticleContainer::computeForces");
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const auto plo = Geom(lev).ProbLoArray();
+    const auto phi = Geom(lev).ProbHiArray();
+    auto& plev  = GetParticles(lev);
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        
+        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+        unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
+        unsigned int* pm_nbor_list = m_nbor_list.dataPtr();
+        ParticleType* pstruct = &(aos[0]);
+
+       // now we loop over the neighbor list and compute the forces
         AMREX_FOR_1D ( np, i,
         {
             pstruct[i].rdata(PIdx::ax) = 0.0;
@@ -271,14 +304,6 @@ void MDParticleContainer::BuildNeighborList()
                 pstruct[i].rdata(PIdx::az) += coef * dz;                
             }
         });
-        
-        // for (int i = 0; i < np; ++i) {
-        //     amrex::Print() << "Particle " << i << " will collide with: ";
-        //     for (int j = m_nbor_offsets[i]; j < m_nbor_offsets[i+1]; ++j) {
-        //         amrex::Print() << m_nbor_list[j] << " ";
-        //     }
-        //     amrex::Print() << "\n";
-        // }
     }
 }
 

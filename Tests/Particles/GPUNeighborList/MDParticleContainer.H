@@ -37,6 +37,8 @@ public:
 
     void BuildNeighborList();
 
+    void computeForces();
+
     void moveParticles(const amrex::Real& dt);
 
 protected:
