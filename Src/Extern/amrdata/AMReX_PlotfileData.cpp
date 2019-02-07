@@ -1,4 +1,5 @@
 #include <AMReX_PlotfileData.H>
+#include <AMReX_DataServices.H>
 
 namespace amrex {
 
@@ -117,22 +118,25 @@ PlotfileData::nGrowVect () const
     return m_ad->NGrowVect();
 }
 
-void
-PlotfileData::fill (MultiFab& dest, int level, const std::string& varname, int dcomp)
+MultiFab
+PlotfileData::get (int level, const std::string& varname)
 {
-    m_ad->FillVar(dest, level, varname, dcomp);
+    MultiFab mf(m_ad->boxArray(level), m_ad->DistributionMap(level), 1, 0);
+    m_ad->FillVar(mf, level, varname, 0);
+    m_ad->FlushGrids(m_ad->StateNumber(varname));
+    return mf;
 }
 
-void
-PlotfileData::flush ()
+MultiFab
+PlotfileData:: get (int level)
 {
-    m_ad->FlushGrids();
-}
-
-void
-PlotfileData::flush (int comp)
-{
-    m_ad->FlushGrids(comp);
+    MultiFab mf(boxArray(level), DistributionMap(level), nComp(), 0);
+    const auto& varnames = varNames();
+    for (int n = 0; n < nComp(); ++n) {
+        m_ad->FillVar(mf, level, varnames[n], n);
+        m_ad->FlushGrids(m_ad->StateNumber(varnames[n]));
+    }
+    return mf;
 }
 
 }

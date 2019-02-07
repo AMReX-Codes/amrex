@@ -1,11 +1,14 @@
 #ifndef AMREX_PLOTFILE_DATA_H_
 #define AMREX_PLOTFILE_DATA_H_
 
-#include <AMReX_DataServices.H>
+#include <AMReX_MultiFab.H>
 #include <string>
 #include <memory>
 
 namespace amrex {
+
+class DataServices;
+class AmrData;
 
 class PlotfileData
 {
@@ -41,10 +44,8 @@ public:
     int nComp () const;
     IntVect nGrowVect () const;
 
-    void fill (MultiFab& dest, int level, const std::string& varname, int dcomp);
-
-    void flush ();
-    void flush (int comp);
+    MultiFab get (int level, const std::string& varname);
+    MultiFab get (int level);
 
 private:
 
