@@ -12,7 +12,7 @@ struct TestParams
     int size;
     int max_grid_size;
     int nsteps;
-    bool write_plot;
+    bool print_neighbor_list;
 };
 
 void main_main();
@@ -30,7 +30,7 @@ void get_test_params(TestParams& params)
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("nsteps", params.nsteps);
-    pp.get("write_plot", params.write_plot);
+    pp.get("print_neighbor_list", params.print_neighbor_list);
 }
 
 void main_main ()
@@ -69,6 +69,8 @@ void main_main ()
     for (int step = 0; step < params.nsteps; ++step) {
 
         pc.BuildNeighborList();
+
+        if (params.print_neighbor_list) pc.printNeighborList();
 
         pc.computeForces();
         
