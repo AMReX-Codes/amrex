@@ -130,7 +130,12 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     const int ncomp = b.nComp();
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
 
-    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, std::min(resid.nGrow(),b.nGrow()));
+    if (resid.nGrow() != 2) amrex::Abort();
+    if (x.nGrow() != 2) amrex::Abort();
+    if (b.nGrow() != 2) amrex::Abort();
+    //std::cout << "solutionResidual nghosts: " << resid.nGrow() << " " << x.nGrow() << " " << b.nGrow() << std::endl; 
+
+    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 2);
     return;
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][0];
