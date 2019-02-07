@@ -759,25 +759,6 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
-    //! buffers for communication in RedistributeGPU
-    #ifdef AMREX_USE_CUDA
-
-    mutable ParticleVector m_aos_r;
-    mutable RealVector m_rdata_r;
-    mutable IntVector  m_idata_r;
-
-    mutable Gpu::DeviceVector<int> m_grids_r;
-    mutable Gpu::DeviceVector<int> m_lo;
-    mutable Gpu::DeviceVector<int> m_hi;
-    mutable Gpu::DeviceVector<int> m_output;
-
-    mutable Gpu::DeviceVector<amrex::IntVect> m_cells_tmp;
-    mutable Gpu::DeviceVector<int> m_grids_tmp;
-    mutable Gpu::DeviceVector<int> m_grid_begin;
-    mutable Gpu::DeviceVector<int> m_grid_end;
-    mutable Gpu::DeviceVector<int> m_index_sequence_tmp;
-    #endif
-
 private:
     virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
                                     const int lev) {};
