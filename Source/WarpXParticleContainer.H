@@ -200,7 +200,7 @@ public:
     static int NextID () { return ParticleType::NextID(); }
 
     bool do_splitting = false;
-    int split_type = 0;
+    int split_type = 1;
 
 protected:
 
