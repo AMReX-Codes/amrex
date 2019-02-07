@@ -117,5 +117,22 @@ PlotfileData::nGrowVect () const
     return m_ad->NGrowVect();
 }
 
+void
+PlotfileData::fill (MultiFab& dest, int level, const std::string& varname, int dcomp)
+{
+    m_ad->FillVar(dest, level, varname, dcomp);
+}
+
+void
+PlotfileData::flush ()
+{
+    m_ad->FlushGrids();
+}
+
+void
+PlotfileData::flush (int comp)
+{
+    m_ad->FlushGrids(comp);
+}
 
 }

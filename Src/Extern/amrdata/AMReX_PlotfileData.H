@@ -41,6 +41,11 @@ public:
     int nComp () const;
     IntVect nGrowVect () const;
 
+    void fill (MultiFab& dest, int level, const std::string& varname, int dcomp);
+
+    void flush ();
+    void flush (int comp);
+
 private:
 
     std::unique_ptr<DataServices> m_ds;

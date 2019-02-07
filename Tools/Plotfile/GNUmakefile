@@ -14,6 +14,7 @@ programs ?=
 
 ifeq ($(strip $(programs)),)
   programs += fboxinfo
+  programs += fnan
   programs += ftime
   programs += fvarnames
 endif
