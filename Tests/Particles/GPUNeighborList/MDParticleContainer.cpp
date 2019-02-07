@@ -134,16 +134,16 @@ void MDParticleContainer::BuildNeighborList()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        thrust::device_vector<unsigned int> cells(np);
+        Gpu::DeviceVector<unsigned int> cells(np);
         unsigned int* pcell = thrust::raw_pointer_cast(cells.data());
 
-        thrust::device_vector<unsigned int> counts(bx.numPts());
+        Gpu::DeviceVector<unsigned int> counts(bx.numPts());
         unsigned int* pcount = thrust::raw_pointer_cast(counts.data());
 
-        thrust::device_vector<unsigned int> offsets(bx.numPts() + 1, np);
+        Gpu::DeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
         unsigned int* poffset = thrust::raw_pointer_cast(offsets.data());
 
-        thrust::device_vector<unsigned int> permutation(np);
+        Gpu::DeviceVector<unsigned int> permutation(np);
         unsigned int* pperm = thrust::raw_pointer_cast(permutation.data());
 
         // First we build the cell list data structure
@@ -172,14 +172,13 @@ void MDParticleContainer::BuildNeighborList()
 
         AMREX_FOR_1D ( np, i,
         {
-            unsigned int index = atomicInc(&pcount[pcell[i]],
-                                           max_unsigned_int);
+            unsigned int index = atomicInc(&pcount[pcell[i]], max_unsigned_int);
             pperm[index] = i;
         });
 
         // Now count the number of neighbors for each particle
 
-        thrust::device_vector<unsigned int> nbor_counts(np);
+        Gpu::DeviceVector<unsigned int> nbor_counts(np);
         unsigned int* pnbor_counts = thrust::raw_pointer_cast(nbor_counts.data());
         
         AMREX_FOR_1D ( np, i,
@@ -206,19 +205,19 @@ void MDParticleContainer::BuildNeighborList()
                     }
                 }
             }
-
+            
             pnbor_counts[i] = count;
         });
 
         // Now we can allocate and build our neighbor list
 
         const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
-        thrust::device_vector<unsigned int> nbor_offsets(np + 1, total_nbors);
+        Gpu::DeviceVector<unsigned int> nbor_offsets(np + 1, total_nbors);
         unsigned int* pnbor_offset = thrust::raw_pointer_cast(nbor_offsets.data());
 
         thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(), nbor_offsets.begin());
                 
-        thrust::device_vector<unsigned int> nbor_list(total_nbors);
+        Gpu::DeviceVector<unsigned int> nbor_list(total_nbors);
         unsigned int* pnbor_list = thrust::raw_pointer_cast(nbor_list.data());
 
         AMREX_FOR_1D ( np, i,
