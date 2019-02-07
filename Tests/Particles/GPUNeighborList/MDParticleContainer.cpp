@@ -246,14 +246,33 @@ void MDParticleContainer::BuildNeighborList()
                 }
             }
         });
+    }
+}
 
-        // for (int i = 0; i < np; ++i) {
-        //     amrex::Print() << "Particle " << i << " will collide with: ";
-        //     for (int j = m_nbor_offsets[i]; j < m_nbor_offsets[i+1]; ++j) {
-        //         amrex::Print() << m_nbor_list[j] << " ";
-        //     }
-        //     amrex::Print() << "\n";
-        // }
+void MDParticleContainer::printNeighborList()
+{
+    BL_PROFILE("MDParticleContainer::printNeighborList");
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    auto& plev  = GetParticles(lev);
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();
+        
+        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+        for (int i = 0; i < np; ++i) {
+            amrex::Print() << "Particle " << i << " will collide with: ";
+            for (int j = m_nbor_offsets[i]; j < m_nbor_offsets[i+1]; ++j) {
+                amrex::Print() << m_nbor_list[j] << " ";
+            }
+            amrex::Print() << "\n";
+        }
     }
 }
 
