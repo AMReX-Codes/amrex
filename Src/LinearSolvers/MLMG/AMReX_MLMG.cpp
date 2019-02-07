@@ -1341,9 +1341,9 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
         const MultiFab* crse_bcdata = (alev > 0) ? sol[alev-1] : nullptr;
         const MultiFab* prhs = a_rhs[alev];
 #if (AMREX_SPACEDIM != 3)
-        MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, 0,
+        MultiFab rhstmp(prhs->boxArray(), prhs->DistributionMap(), ncomp, 2,
                         MFInfo(), *linop.Factory(alev));
-        MultiFab::Copy(rhstmp, *prhs, 0, 0, ncomp, 0);
+        MultiFab::Copy(rhstmp, *prhs, 0, 0, ncomp, 2);
         linop.applyMetricTerm(alev, 0, rhstmp);
         prhs = &rhstmp;
 #endif
@@ -1432,7 +1432,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
 #endif
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        out[alev]->negate();
+        out[alev]->negate(2);
     }
 }
 
