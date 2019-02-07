@@ -38,6 +38,12 @@ public:
     void BuildNeighborList();
 
     void moveParticles(const amrex::Real& dt);
+
+protected:
+    
+    // This is the neighbor list data structure
+    amrex::Gpu::DeviceVector<unsigned int> m_nbor_offsets;
+    amrex::Gpu::DeviceVector<unsigned int> m_nbor_list;
 };
 
 #endif
