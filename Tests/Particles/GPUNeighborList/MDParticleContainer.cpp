@@ -212,13 +212,13 @@ void MDParticleContainer::BuildNeighborList()
         // Now we can allocate and build our neighbor list
 
         const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
-        Gpu::DeviceVector<unsigned int> nbor_offsets(np + 1, total_nbors);
-        unsigned int* pnbor_offset = nbor_offsets.dataPtr();
+        m_nbor_offsets.resize(np + 1, total_nbors);
+        unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
 
-        thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(), nbor_offsets.begin());
+        thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(), m_nbor_offsets.begin());
                 
-        Gpu::DeviceVector<unsigned int> nbor_list(total_nbors);
-        unsigned int* pnbor_list = nbor_list.dataPtr();
+        m_nbor_list.resize(total_nbors);
+        unsigned int* pm_nbor_list = m_nbor_list.dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
@@ -238,7 +238,7 @@ void MDParticleContainer::BuildNeighborList()
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
                             if (check_pair(pstruct[i], pstruct[pperm[p]])) {
-                                pnbor_list[pnbor_offset[i] + n] = pperm[p]; 
+                                pm_nbor_list[pnbor_offset[i] + n] = pperm[p]; 
                                 ++n;
                             }
                         }
@@ -255,7 +255,7 @@ void MDParticleContainer::BuildNeighborList()
             pstruct[i].rdata(PIdx::az) = 0.0;
 
             for (int k = pnbor_offset[i]; k < pnbor_offset[i+1]; ++k) {
-                int j = pnbor_list[k];
+                int j = pm_nbor_list[k];
                 
                 Real dx = pstruct[i].pos(0) - pstruct[j].pos(0);
                 Real dy = pstruct[i].pos(1) - pstruct[j].pos(1);
@@ -274,8 +274,8 @@ void MDParticleContainer::BuildNeighborList()
         
         // for (int i = 0; i < np; ++i) {
         //     amrex::Print() << "Particle " << i << " will collide with: ";
-        //     for (int j = nbor_offsets[i]; j < nbor_offsets[i+1]; ++j) {
-        //         amrex::Print() << nbor_list[j] << " ";
+        //     for (int j = m_nbor_offsets[i]; j < m_nbor_offsets[i+1]; ++j) {
+        //         amrex::Print() << m_nbor_list[j] << " ";
         //     }
         //     amrex::Print() << "\n";
         // }
