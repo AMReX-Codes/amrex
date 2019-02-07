@@ -1066,7 +1066,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     m_aos_to_redistribute.resize(0);
     for (int k = 0; k < NArrayReal; ++k) m_real_arrays_to_redistribute[k].resize(0);
     for (int k = 0; k < NArrayInt; ++k) m_int_arrays_to_redistribute[k].resize(0);
-    m_grids_to_redistribute.resize(0);
+    Gpu::DeviceVector<int> m_grids_to_redistribute;
 
     std::map<int, SendBuffer> not_ours;
 
@@ -2108,7 +2108,6 @@ BuildRedistributeMask (int lev, int nghost) const {
 	        m_real_arrays_to_redistribute[k].reserve(bx.numPts());
 	    for (int k = 0; k < NArrayInt; ++k)  
 	        m_int_arrays_to_redistribute[k].reserve(bx.numPts());
-	    m_grids_to_redistribute.reserve(bx.numPts());
 #endif
         }
 }
