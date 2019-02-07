@@ -69,6 +69,8 @@ void main_main ()
     for (int step = 0; step < params.nsteps; ++step) {
 
         pc.BuildNeighborList();
+
+        pc.computeForces();
         
         pc.moveParticles(dt);
     }
