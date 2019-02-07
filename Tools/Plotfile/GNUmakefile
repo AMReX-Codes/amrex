@@ -10,7 +10,13 @@ USE_CUDA = FALSE
 
 DEBUG=TRUE
 
-programs ?= fboxinfo fvarnames
+programs ?=
+
+ifeq ($(strip $(programs)),)
+  programs += fboxinfo
+  programs += ftime
+  programs += fvarnames
+endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
@@ -23,3 +29,5 @@ include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
+clean::
+	$(SILENT) $(RM) $(multiple_executables)

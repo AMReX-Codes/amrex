@@ -13,20 +13,19 @@ void main_main()
         amrex::Print()
             << "\n"
             << " Usage:\n"
-            << "      fvarnames plotfile\n"
+            << "      ftime plotfile\n"
             << "\n"
             << " Description:\n"
-            << "      This program takes a single plotfile and dumps out the list of variables\n"
+            << "      This program takes a whitespace-separated list of plotfiles and\n"
+            << "      returns the time for each plotfile.\n"
             << std::endl;
         return;
     }
 
-    const auto& fname = amrex::get_command_argument(1);
-    PlotfileData plotfile(fname);
-    const auto& names = plotfile.varNames();
-    int n = 0;
-    for (auto const& name : names) {
-        amrex::Print() << std::setw(4) << n++ << "   " << name << "\n";
+    for (int f = 1; f <= narg; ++f) {
+        const auto& fname = amrex::get_command_argument(f);
+        PlotfileData plotfile(fname);
+        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << std::endl;
     }
 }
 

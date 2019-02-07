@@ -11,7 +11,7 @@ void main_main()
     bool b_gridfile = false;
     bool b_levels = false;
 
-    int narg = amrex::command_argument_count();
+    const int narg = amrex::command_argument_count();
 
     int farg = 1;
     while (farg <= narg) {
