@@ -124,13 +124,14 @@ void MDParticleContainer::BuildNeighborList()
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int gid = mfi.index();
-        int tid = mfi.LocalTileIndex();
-        
+        int tid = mfi.LocalTileIndex();        
+        auto index = std::make_pair(gid, tid);
+
         const Box& bx = mfi.tilebox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
-        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
@@ -212,13 +213,14 @@ void MDParticleContainer::BuildNeighborList()
         // Now we can allocate and build our neighbor list
 
         const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
-        m_nbor_offsets.resize(np + 1, total_nbors);
-        unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
+        m_nbor_offsets[index].resize(np + 1, total_nbors);
+        unsigned int* pnbor_offset = m_nbor_offsets[index].dataPtr();
 
-        thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(), m_nbor_offsets.begin());
+        thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(),
+                               m_nbor_offsets[index].begin());
                 
-        m_nbor_list.resize(total_nbors);
-        unsigned int* pm_nbor_list = m_nbor_list.dataPtr();
+        m_nbor_list[index].resize(total_nbors);
+        unsigned int* pm_nbor_list = m_nbor_list[index].dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {
@@ -261,20 +263,21 @@ void MDParticleContainer::printNeighborList()
     {
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
-        
-        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto index = std::make_pair(gid, tid);
+
+        auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        Gpu::HostVector<unsigned int> host_nbor_offsets(m_nbor_offsets.size());
-        Gpu::HostVector<unsigned int> host_nbor_list(m_nbor_list.size());
+        Gpu::HostVector<unsigned int> host_nbor_offsets(m_nbor_offsets[index].size());
+        Gpu::HostVector<unsigned int> host_nbor_list(m_nbor_list[index].size());
 
-        Cuda::thrust_copy(m_nbor_offsets.begin(),
-                          m_nbor_offsets.end(),
+        Cuda::thrust_copy(m_nbor_offsets[index].begin(),
+                          m_nbor_offsets[index].end(),
                           host_nbor_offsets.begin());
 
-        Cuda::thrust_copy(m_nbor_list.begin(),
-                          m_nbor_list.end(),
+        Cuda::thrust_copy(m_nbor_list[index].begin(),
+                          m_nbor_list[index].end(),
                           host_nbor_list.begin());
 
         for (int i = 0; i < np; ++i) {
@@ -301,13 +304,14 @@ void MDParticleContainer::computeForces()
     {
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();
-        
-        auto& ptile = plev[std::make_pair(gid, tid)];
+        auto index = std::make_pair(gid, tid);
+
+        auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        unsigned int* pnbor_offset = m_nbor_offsets.dataPtr();
-        unsigned int* pm_nbor_list = m_nbor_list.dataPtr();
+        unsigned int* pnbor_offset = m_nbor_offsets[index].dataPtr();
+        unsigned int* pm_nbor_list = m_nbor_list[index].dataPtr();
         ParticleType* pstruct = &(aos[0]);
 
        // now we loop over the neighbor list and compute the forces
@@ -378,8 +382,7 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
                     }
                     pstruct[i].rdata(idim) *= -1; // flip velocity
                 }
-            }
-        
+            }        
         });
     }        
 }
