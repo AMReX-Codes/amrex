@@ -153,7 +153,7 @@ public:
     using IntVector      = typename SoA::IntVector;
     using ParticleVector = typename AoS::ParticleVector;
     using CharVector     = Gpu::ManagedDeviceVector<char>;
-    using SendBuffer     = Gpu::PinnedDeviceVector<char>;
+    using SendBuffer     = Gpu::PolymorphicDeviceVector<char>;
 
 
     ParticleContainer ()
