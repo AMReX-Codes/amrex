@@ -18,11 +18,11 @@ namespace Cuda {
 template <class T>
 class DeviceVector
   :
-    public thrust::device_vector<T>
+        public thrust::device_vector<T, ThrustDeviceAllocator<T> >
 {
 public:
 
-    using thrust::device_vector<T>::device_vector;
+    using thrust::device_vector<T, ThrustDeviceAllocator<T> >::device_vector;
 
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
