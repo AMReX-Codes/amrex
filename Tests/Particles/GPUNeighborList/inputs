@@ -5,4 +5,4 @@ max_grid_size = 8
 
 nsteps = 10
 
-write_plot = false
+print_neighbor_list = false
