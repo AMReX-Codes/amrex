@@ -192,36 +192,9 @@ namespace amrex {
 	}
     };
 
-    /**
-
-       This allocator implements caching and is intended to be used internally by thrust when it allocates
-       temporary storage.
-
-       See:
-           https://github.com/thrust/thrust/blob/master/examples/cuda/custom_temporary_allocation.cu
-
-    **/
-    class ThrustCachedAllocator
-    {
-    public:
-        typedef char value_type;
-
-        ThrustCachedAllocator() {}
-
-        char *allocate(std::ptrdiff_t num_bytes)
-        {
-	  return (char*) The_Device_Arena()->alloc(num_bytes);
-	}
-
-        void deallocate(char *ptr, size_t n)
-        {
-	    The_Device_Arena()->free(ptr);
-	}      
-    };
-
     namespace Cuda
     {
-        ThrustCachedAllocator& The_ThrustCachedAllocator ();
+        ThrustDeviceAllocator<char>& The_ThrustCachedAllocator ();
     }
 
 // When not using CUDA, replace with standard allocator.
