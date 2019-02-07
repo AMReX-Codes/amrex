@@ -296,8 +296,6 @@ void MDParticleContainer::computeForces()
 
     const int lev = 0;
     const Geometry& geom = Geom(lev);
-    const auto plo = Geom(lev).ProbLoArray();
-    const auto phi = Geom(lev).ProbHiArray();
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
