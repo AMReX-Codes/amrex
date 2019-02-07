@@ -10,7 +10,7 @@ USE_CUDA = FALSE
 
 DEBUG=TRUE
 
-programs ?= fboxinfo
+programs ?= fboxinfo fvarnames
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
