@@ -75,7 +75,7 @@ namespace amrex {
 
     /**
 
-       This is another managed memory allocator that inherits from the device allocator
+       This is a managed memory allocator that inherits from the device allocator
        in thrust. Intended for use with thrust::device_vector.
 
     **/
@@ -89,26 +89,13 @@ namespace amrex {
         inline pointer allocate(size_t n)
         {
 	    value_type* result = nullptr;
-	    cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
-  
-	    if(error != cudaSuccess)
-	    {
-	        throw thrust::system_error(error, thrust::cuda_category(), 
-					   "ThrustManagedAllocator::allocate(): cudaMallocManaged");
-	    }
-  
+            result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));
 	    return thrust::device_pointer_cast(result);
 	}
   
         inline void deallocate(pointer ptr, size_t)
         {
-	    cudaError_t error = cudaFree(thrust::raw_pointer_cast(ptr));
-  
-	    if(error != cudaSuccess)
-	    {
-	        throw thrust::system_error(error, thrust::cuda_category(), 
-					   "ThrustManagedAllocator::deallocate(): cudaFree");
-	    }
+            The_Managed_Arena()->free(thrust::raw_pointer_cast(ptr));
 	}
     };
 
@@ -135,6 +122,32 @@ namespace amrex {
         inline void deallocate(pointer ptr, size_t)
         {
             The_Pinned_Arena()->free(thrust::raw_pointer_cast(ptr));
+	}
+    };
+
+    /**
+
+       This is a memory allocator that uses the Device memory Pool from AMReX.
+       It is intended for use with thrust::device_vector.
+
+    **/
+    template<class T>
+    class ThrustDeviceAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+    
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+	    value_type* result = nullptr;
+            result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));  
+	    return thrust::device_pointer_cast(result);
+	}
+  
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Device_Arena()->free(thrust::raw_pointer_cast(ptr));
 	}
     };
 
