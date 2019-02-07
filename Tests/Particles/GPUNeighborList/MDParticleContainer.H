@@ -46,8 +46,8 @@ public:
 protected:
     
     // This is the neighbor list data structure
-    amrex::Gpu::DeviceVector<unsigned int> m_nbor_offsets;
-    amrex::Gpu::DeviceVector<unsigned int> m_nbor_list;
+    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_offsets;
+    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_list;
 };
 
 #endif
