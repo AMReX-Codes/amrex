@@ -761,9 +761,6 @@ protected:
 
     //! buffers for communication in RedistributeGPU
     #ifdef AMREX_USE_CUDA
-    mutable ParticleVector m_aos_to_redistribute;
-    mutable std::array< RealVector, NArrayReal> m_real_arrays_to_redistribute;
-    mutable std::array< IntVector,  NArrayInt >  m_int_arrays_to_redistribute;
 
     mutable ParticleVector m_aos_r;
     mutable RealVector m_rdata_r;
