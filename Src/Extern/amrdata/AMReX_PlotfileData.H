@@ -47,6 +47,11 @@ public:
     MultiFab get (int level, const std::string& varname);
     MultiFab get (int level);
 
+    void fill (MultiFab& mf, int dcomp, int level, const std::string& varname);
+
+    void flush ();
+    void flush (const std::string& varname);
+
 private:
 
     std::unique_ptr<DataServices> m_ds;
