@@ -129,7 +129,7 @@ void
 WarpXParticleContainer::AddNParticles (int lev,
                                        int n, const Real* x, const Real* y, const Real* z,
 				       const Real* vx, const Real* vy, const Real* vz,
-				       int nattr, const Real* attr, int uniqueparticles)
+				       int nattr, const Real* attr, int uniqueparticles, int id)
 {	
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
@@ -160,7 +160,12 @@ WarpXParticleContainer::AddNParticles (int lev,
     for (int i = ibegin; i < iend; ++i)
     {
         ParticleType p;
-        p.id()  = ParticleType::NextID();
+	if (id==-1)
+	{
+	    p.id() = ParticleType::NextID();
+	} else {
+	    p.id() = NoSplitParticleID;
+	}
         p.cpu() = ParallelDescriptor::MyProc();
 #if (AMREX_SPACEDIM == 3)
         p.pos(0) = x[i];
@@ -886,14 +891,11 @@ WarpXParticleContainer::particlePostLocate(ParticleType& p,
 {
     // Tag particle if goes to higher level.
     // It will be split later in the loop
-    if (pld.m_lev == lev+1){
-        Print()<<"particle goes to higher level"<<'\n';
-        p.m_idata.id = SplitParticleID;
+    if (pld.m_lev == lev+1 and p.m_idata.id != NoSplitParticleID){
+        p.m_idata.id = DoSplitParticleID;
     }
     // For the moment, do not do anything if particles goes
     // to lower level.
     if (pld.m_lev == lev-1){
-        Print()<<"particle goes to lower level"<<'\n';
-        Print()<<"Do not do anything"<<'\n';
     }
 }

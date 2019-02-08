@@ -181,7 +181,7 @@ public:
     void AddNParticles (int lev,
                         int n, const amrex::Real* x, const amrex::Real* y, const amrex::Real* z,
 			const amrex::Real* vx, const amrex::Real* vy, const amrex::Real* vz,
-			int nattr, const amrex::Real* attr, int uniqueparticles);
+			int nattr, const amrex::Real* attr, int uniqueparticles, int id=-1);
 
     void AddOneParticle (int lev, int grid, int tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,
