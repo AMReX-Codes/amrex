@@ -2437,8 +2437,13 @@ Amr::coarseTimeStep (Real stop_time)
 
     if (check_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / check_per;
-      const int num_per_new = (cumtime            ) / check_per;
+      // Check to see whether we've reached the next check_per interval,
+      // with some simple integer arithmetic. But add a small buffer
+      // to avoid floating point issues that could cause the checkpoint
+      // to be a step late.
+      const Real dt_buffer = 1.e-6 * dt_level[0];
+      const int num_per_old = (cumtime-dt_level[0]+dt_buffer) / check_per;
+      const int num_per_new = (cumtime            +dt_buffer) / check_per;
 
       if (num_per_old != num_per_new)
       {
@@ -2559,8 +2564,13 @@ Amr::writePlotNow()
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / plot_per;
-      const int num_per_new = (cumtime            ) / plot_per;
+      // Check to see whether we've reached the next plot_per interval,
+      // with some simple integer arithmetic. But add a small buffer
+      // to avoid floating point issues that could cause the plotfile
+      // to be a step late.
+      const Real dt_buffer = 1.e-6 * dt_level[0];
+      const int num_per_old = (cumtime-dt_level[0]+dt_buffer) / plot_per;
+      const int num_per_new = (cumtime            +dt_buffer) / plot_per;
 
       if (num_per_old != num_per_new)
 	{
