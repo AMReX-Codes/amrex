@@ -24,7 +24,6 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
             allcontainers[i].reset(new RigidInjectedParticleContainer(amr_core, i, species_names[i]));
         }
         allcontainers[i]->deposit_on_main_grid = deposit_on_main_grid[i];
-        if (allcontainers[i]->do_splitting){ do_splitting=true; }
     }
     if (WarpX::use_laser) {
 	allcontainers[n-1].reset(new LaserParticleContainer(amr_core,n-1));
