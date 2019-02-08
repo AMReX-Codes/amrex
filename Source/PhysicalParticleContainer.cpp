@@ -1568,7 +1568,6 @@ PhysicalParticleContainer::SplitParticles(int lev)
             }
         }
     }
-    if (np_split_to_add>0){
 	// Add local arrays psplit_x etc. to the temporary
 	// particle container pctmp_split. Split particles
 	// are tagged with p.id()=NoSplitParticleID so that 
@@ -1587,10 +1586,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                                   psplit_w.dataPtr(),
                                   1, NoSplitParticleID);
 	// Copy particles from tmp to current particle container
-        addParticles(pctmp_split,1);
+    addParticles(pctmp_split,1);
 	// Clear tmp container
-        pctmp_split.clearParticles();
-    }
+    pctmp_split.clearParticles();
 }
 
 void
