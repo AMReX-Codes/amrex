@@ -388,7 +388,9 @@ else
 endif
 
 ifdef CRAY_CPU_TARGET
+ifneq ($(USE_CUDA),TRUE)
     archSuffix += .$(strip $(CRAY_CPU_TARGET))
+endif
 endif
 
 ifeq ($(LAZY),TRUE)

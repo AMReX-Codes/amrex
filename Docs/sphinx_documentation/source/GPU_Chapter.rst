@@ -9,9 +9,6 @@ users can use CUDA Fortran and/or OpenACC.  A recent version of CUDA
 (e.g., >= 9) is required, and the device must have compute capability
 >= 6.
 
-CUDA version 9.2.x is incompatible with AMReX's GPU support due to issues
-with required compiler flags.
-
 For complete details of CUDA, CUDA Fortran and OpenACC languages, see their
 respective documentations.
 
