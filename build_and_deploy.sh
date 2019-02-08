@@ -35,7 +35,7 @@ rm -rf out/docs_xml/**/* || exit 0
 
 # build the Doxygen documentation
 cd Docs/Doxygen
-doxygen doxygen.conf
+doxygen doxygen.conf &> doxygen.out
 cd ../..
 
 mkdir -p out/docs_html
@@ -50,18 +50,19 @@ mv Docs/Doxygen/xml/* out/docs_xml/doxygen/
 
 # run breathe and clean up
 cd Docs/sphinx_documentation
-breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
-python3.6 make_api.py
+
+#breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
+#python make_api.py
 
 # now do sphinx
-make SPHINX_BUILD="python3.6 -msphinx" latexpdf
-mv build/latex/amrex.pdf source/
-make SPHINX_BUILD="python3.6 -msphinx" html
+make SPHINX_BUILD="python -msphinx" latexpdf
+mv build/latex/amrex.pdf source/ 
+make SPHINX_BUILD="python -msphinx" html &> make_source_html.out
 
 cd ../sphinx_tutorials
-make SPHINX_BUILD="python3.6 -msphinx" latexpdf
+make SPHINX_BUILD="python -msphinx" latexpdf &> make_tutorials_latex.out
 mv build/latex/amrex.pdf source/
-make SPHINX_BUILD="python3.6 -msphinx" html
+make SPHINX_BUILD="python -msphinx" html &> make_tutorials_html.out
 cd ../../
 
 mv Docs/sphinx_documentation/build/html/* out/docs_html/
