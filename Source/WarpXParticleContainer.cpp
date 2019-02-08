@@ -164,7 +164,7 @@ WarpXParticleContainer::AddNParticles (int lev,
 	{
 	    p.id() = ParticleType::NextID();
 	} else {
-	    p.id() = NoSplitParticleID;
+	    p.id() = id;
 	}
         p.cpu() = ParallelDescriptor::MyProc();
 #if (AMREX_SPACEDIM == 3)
@@ -884,6 +884,7 @@ WarpXParticleContainer::PushX (int lev, Real dt)
     }
 }
 
+// This function is called in Redistribute, just after locate
 void 
 WarpXParticleContainer::particlePostLocate(ParticleType& p, 
                                            const ParticleLocData& pld,

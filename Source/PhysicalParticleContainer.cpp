@@ -1437,12 +1437,16 @@ PhysicalParticleContainer::Evolve (int lev,
     if (do_splitting){ SplitParticles(lev); }
 }
 
+// Loop over all particles in the particle container and
+// split particles tagged with p.id()=DoSplitParticleID
 void
 PhysicalParticleContainer::SplitParticles(int lev)
 {
     auto& mypc = WarpX::GetInstance().GetPartContainer();
     auto& pctmp_split = mypc.GetPCtmp();
     Cuda::DeviceVector<Real> xp, yp, zp;
+    RealVector psplit_x, psplit_y, psplit_z, psplit_w;
+    RealVector psplit_ux, psplit_uy, psplit_uz;
     long np_split_to_add = 0;
     long np_split;
     if(split_type==0)
@@ -1451,27 +1455,31 @@ PhysicalParticleContainer::SplitParticles(int lev)
     } else {
         np_split = 2*AMREX_SPACEDIM;
     }
-    RealVector psplit_x, psplit_y, psplit_z, psplit_w;
-    RealVector psplit_ux, psplit_uy, psplit_uz;
 
-	for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
+    // Loop over particle interator
+    for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         pti.GetPosition(xp, yp, zp);
+        const std::array<Real,3>& dx = WarpX::CellSize(lev);
+	// particle Array Of Structs data
+        auto& particles = pti.GetArrayOfStructs();
+	// particle Struct Of Arrays data
         auto& attribs = pti.GetAttribs();
         auto& wp  = attribs[PIdx::w ];
         auto& uxp = attribs[PIdx::ux];
         auto& uyp = attribs[PIdx::uy];
         auto& uzp = attribs[PIdx::uz];
         const long np = pti.numParticles();
-        const std::array<Real,3>& dx = WarpX::CellSize(lev);
-        auto& particles = pti.GetArrayOfStructs();
         for(int i=0; i<np; i++){
             auto& p = particles[i];
             if (p.id() == DoSplitParticleID){
-                Print()<<"split one particle\n";
+		// If particle is tagged, split it and put the 
+		// split particles in local arrays psplit_x etc.
                 np_split_to_add += np_split;
 #if (AMREX_SPACEDIM==2)
                 if (split_type==0){
+		    // Split particle in two along each axis
+		    // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         for (int kshift = -1; kshift < 2; kshift +=2 ){
                             // Add one particle with offset in x and z
@@ -1485,6 +1493,8 @@ PhysicalParticleContainer::SplitParticles(int lev)
                         }
                     }
                 } else {
+		    // Split particle in two along each diagonal
+		    // 4 particles in 2d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
                         psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
@@ -1506,6 +1516,8 @@ PhysicalParticleContainer::SplitParticles(int lev)
                 }
 #elif (AMREX_SPACEDIM==3)
 		if (split_type==0){
+		    // Split particle in two along each axis
+		    // 6 particles in 2d
 		    for (int ishift = -1; ishift < 2; ishift +=2 ){
 			for (int jshift = -1; jshift < 2; jshift +=2 ){
 			    for (int kshift = -1; kshift < 2; kshift +=2 ){
@@ -1521,6 +1533,8 @@ PhysicalParticleContainer::SplitParticles(int lev)
 			}
 		    }
 		} else {
+		    // Split particle in two along each diagonal
+		    // 8 particles in 3d
                     for (int ishift = -1; ishift < 2; ishift +=2 ){
                         // Add one particle with offset in x
                         psplit_x.push_back( xp[i] + ishift*dx[0]/2 );
@@ -1555,7 +1569,13 @@ PhysicalParticleContainer::SplitParticles(int lev)
         }
     }
     if (np_split_to_add>0){
-        pctmp_split.AddNParticles(lev, 
+	// Add local arrays psplit_x etc. to the temporary
+	// particle container pctmp_split. Split particles
+	// are tagged with p.id()=NoSplitParticleID so that 
+	// they are not re-split when entering a higher level
+	// AddNParticles calls Redistribute, so that particles
+	// in pctmp_split are in the proper grids and tiles
+	pctmp_split.AddNParticles(lev, 
                                   np_split_to_add,
                                   psplit_x.dataPtr(),
                                   psplit_y.dataPtr(),
@@ -1566,7 +1586,9 @@ PhysicalParticleContainer::SplitParticles(int lev)
                                   1,
                                   psplit_w.dataPtr(),
                                   1, NoSplitParticleID);
+	// Copy particles from tmp to current particle container
         addParticles(pctmp_split,1);
+	// Clear tmp container
         pctmp_split.clearParticles();
     }
 }

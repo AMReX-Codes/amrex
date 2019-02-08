@@ -308,7 +308,6 @@ MultiParticleContainer::Increment (MultiFab& mf, int lev)
     for (auto& pc : allcontainers) {
 	pc->Increment(mf,lev);
     }
-    pc_tmp->Increment(mf,lev);
 }
 
 void
@@ -317,7 +316,6 @@ MultiParticleContainer::SetParticleBoxArray (int lev, BoxArray& new_ba)
     for (auto& pc : allcontainers) {
 	pc->SetParticleBoxArray(lev,new_ba);
     }
-    pc_tmp->SetParticleBoxArray(lev,new_ba);
 }
 
 void
@@ -326,7 +324,6 @@ MultiParticleContainer::SetParticleDistributionMap (int lev, DistributionMapping
     for (auto& pc : allcontainers) {
 	pc->SetParticleDistributionMap(lev,new_dm);
     }
-    pc_tmp->SetParticleDistributionMap(lev,new_dm);
 }
 
 void
