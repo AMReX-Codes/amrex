@@ -8,19 +8,38 @@ endif
 
 
 ifdef PE_ENV
+ifneq ($(USE_CUDA),TRUE)
   lowercase_peenv := $(shell echo $(PE_ENV) | tr A-Z a-z)
   ifneq ($(lowercase_peenv),$(lowercase_comp))
     has_compiler_mismatch = COMP=$(COMP) does not match PrgEnv-$(lowercase_peenv)
   endif
 endif
+endif
 
 
 ifeq ($(USE_MPI),TRUE)
+ifeq ($(USE_CUDA),TRUE)
+  CC  = mpicc
+  CXX = mpic++
+  FC  = mpif90
+  F90 = mpif90
+  cori_mvapich_link_flags := $(shell mpicxx -link_info)
+  LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags)))) -lpmi -libumad -libverbs -ldl -lpmi -lpthread
+else
   CC  = cc
   CXX = CC
   FC  = ftn
   F90 = ftn
   LIBRARIES += -lmpichf90
+endif
+endif
+
+ifeq ($(USE_CUDA),TRUE)
+  SYSTEM_CUDA_PATH = $(CUDA_ROOT)
+  COMPILE_CUDA_PATH = $(CUDA_ROOT)
+  CUDA_ARCH = 70
+  GPUS_PER_NODE = 8
+  GPUS_PER_SOCKET = 4
 endif
 
 ifeq ($(USE_SENSEI_INSITU),TRUE)
