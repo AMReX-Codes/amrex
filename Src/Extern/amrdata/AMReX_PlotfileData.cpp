@@ -123,20 +123,37 @@ PlotfileData::get (int level, const std::string& varname)
 {
     MultiFab mf(m_ad->boxArray(level), m_ad->DistributionMap(level), 1, 0);
     m_ad->FillVar(mf, level, varname, 0);
-    m_ad->FlushGrids(m_ad->StateNumber(varname));
     return mf;
 }
 
 MultiFab
-PlotfileData:: get (int level)
+PlotfileData::get (int level)
 {
     MultiFab mf(boxArray(level), DistributionMap(level), nComp(), 0);
     const auto& varnames = varNames();
     for (int n = 0; n < nComp(); ++n) {
         m_ad->FillVar(mf, level, varnames[n], n);
-        m_ad->FlushGrids(m_ad->StateNumber(varnames[n]));
     }
     return mf;
+}
+
+void
+PlotfileData::fill (MultiFab& mf, int destcomp,
+                    int level, const std::string& varname)
+{
+    m_ad->FillVar(mf, level, varname, destcomp);
+}
+
+void
+PlotfileData::flush ()
+{
+    m_ad->FlushGrids();
+}
+
+void
+PlotfileData::flush (const std::string& varname)
+{
+    m_ad->FlushGrids(m_ad->StateNumber(varname));
 }
 
 }

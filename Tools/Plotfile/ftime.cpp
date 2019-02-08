@@ -1,6 +1,5 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
-#include <AMReX_AnyDimUtil.H>
 #include <AMReX_PlotfileData.H>
 
 using namespace amrex;

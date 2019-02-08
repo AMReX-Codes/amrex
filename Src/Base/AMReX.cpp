@@ -727,5 +727,9 @@ amrex::command_argument_count ()
 std::string
 amrex::get_command_argument (int number)
 {
-    return command_arguments[number];
+    if (number < static_cast<int>(command_arguments.size())) {
+        return command_arguments[number];
+    } else {
+        return std::string();
+    }
 }
