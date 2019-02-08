@@ -201,6 +201,10 @@ void RegularPosition::getPositionUnitBox(vec3& r, int i_part, int ref_fac)
   r[2] = (0.5+iz_part)/nz;
 }
 
+PlasmaInjector::PlasmaInjector(){
+    part_pos = NULL;
+}
+
 PlasmaInjector::PlasmaInjector(int ispecies, const std::string& name)
     : species_id(ispecies), species_name(name)
 {

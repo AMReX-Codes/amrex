@@ -79,7 +79,7 @@ WarpXParticleContainer::ReadParameters ()
 #else
         do_tiling = true;
 #endif
-	pp.query("do_tiling",  do_tiling);
+        pp.query("do_tiling",  do_tiling);
         pp.query("do_not_push", do_not_push);
 
 	initialized = true;
@@ -129,8 +129,8 @@ void
 WarpXParticleContainer::AddNParticles (int lev,
                                        int n, const Real* x, const Real* y, const Real* z,
 				       const Real* vx, const Real* vy, const Real* vz,
-				       int nattr, const Real* attr, int uniqueparticles)
-{
+				       int nattr, const Real* attr, int uniqueparticles, int id)
+{	
     BL_ASSERT(nattr == 1);
     const Real* weight = attr;
 
@@ -160,7 +160,12 @@ WarpXParticleContainer::AddNParticles (int lev,
     for (int i = ibegin; i < iend; ++i)
     {
         ParticleType p;
-        p.id()  = ParticleType::NextID();
+	if (id==-1)
+	{
+	    p.id() = ParticleType::NextID();
+	} else {
+	    p.id() = id;
+	}
         p.cpu() = ParallelDescriptor::MyProc();
 #if (AMREX_SPACEDIM == 3)
         p.pos(0) = x[i];
@@ -876,5 +881,22 @@ WarpXParticleContainer::PushX (int lev, Real dt)
                 });
             }
         }
+    }
+}
+
+// This function is called in Redistribute, just after locate
+void 
+WarpXParticleContainer::particlePostLocate(ParticleType& p, 
+                                           const ParticleLocData& pld,
+                                           const int lev)
+{
+    // Tag particle if goes to higher level.
+    // It will be split later in the loop
+    if (pld.m_lev == lev+1 and p.m_idata.id != NoSplitParticleID){
+        p.m_idata.id = DoSplitParticleID;
+    }
+    // For the moment, do not do anything if particles goes
+    // to lower level.
+    if (pld.m_lev == lev-1){
     }
 }

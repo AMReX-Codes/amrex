@@ -15,6 +15,9 @@ public:
     PhysicalParticleContainer (amrex::AmrCore* amr_core,
                                int ispecies,
                                const std::string& name);
+
+    PhysicalParticleContainer (amrex::AmrCore* amr_core);
+
     virtual ~PhysicalParticleContainer () {}
 
     virtual void InitData () override;
@@ -76,6 +79,8 @@ public:
                         const amrex::MultiFab& Bz) override;
 
     virtual void PostRestart () final {}
+
+    void SplitParticles(int lev);
 
     // Inject particles in Box 'part_box'
     virtual void AddParticles (int lev);
