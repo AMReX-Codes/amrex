@@ -622,6 +622,7 @@ MLMG::interpCorrection (int alev)
 					 &ncomp);
                 fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
             }
+	    fine_cor.FillBoundary(crse_geom.periodicity());
         }
     }
 }
@@ -1463,8 +1464,12 @@ MLMG::averageDownAndSync ()
             const auto& fmf = *sol[falev];
             auto&       cmf = *sol[falev-1];
 
-            MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), amrrr[falev-1]),
-                           fmf.DistributionMap(), ncomp, 2);
+	    BoxArray mybox = amrex::coarsen(fmf.boxArray(),amrrr[falev-1]);
+	    mybox.grow(-1);
+            MultiFab tmpmf(mybox,
+                           fmf.DistributionMap(), ncomp, 0);
+            //MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), amrrr[falev-1]),
+            //               fmf.DistributionMap(), ncomp, 0);
             amrex::average_down(fmf, tmpmf, 0, ncomp, amrrr[falev-1]);
             cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
             linop.nodalSync(falev-1, 0, cmf);
