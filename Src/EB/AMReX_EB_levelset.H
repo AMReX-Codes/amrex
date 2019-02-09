@@ -20,47 +20,46 @@ namespace amrex {
 class LSFactory {
     private:
 
-        // MultiFab pointers storing level-set data
-        //    -> ls_grid: nodal MultiFab storing signed distance function to the
-        //                nearest wall
-        //    -> ls_valid: cell-centered iMultiFab storing integer flags
-        //                 assuming the following values:
-        //         -1 : not all nodes around cell have been initialized
-        //          0 : none of the cell's neighbours contain negative vlaues of
-        //              ls_phi on its nodes
-        //          1 : the cell is in the neighbourhood of phi < 0
-
+        //! MultiFab pointers storing level-set data
+        //!    -> ls_grid: nodal MultiFab storing signed distance function to the
+        //!                nearest wall
+        //!    -> ls_valid: cell-centered iMultiFab storing integer flags
+        //!                 assuming the following values:
+        //!         -1 : not all nodes around cell have been initialized
+        //!          0 : none of the cell's neighbours contain negative vlaues of
+        //!              ls_phi on its nodes
+        //!          1 : the cell is in the neighbourhood of phi < 0
         std::unique_ptr<MultiFab>  ls_grid;
         std::unique_ptr<iMultiFab> ls_valid;
 
-        // AMR information (needed for EBISLevel)
+        //! AMR information (needed for EBISLevel)
         const int amr_lev;
 
         DistributionMapping ls_dm;
 
-        // Refined box array (over which the level-set MultiFab is constructed)
+        //! Refined box array (over which the level-set MultiFab is constructed)
         BoxArray ls_ba, cc_ba, eb_ba;
         const int ls_grid_ref, eb_grid_ref;
-        // Data structures encloding (padded) EB index space
+        //! Data structures encloding (padded) EB index space
         std::unique_ptr<MultiFab> eb_grid;
 
-        // Geometry objects reflecting refined (and padded) BoxArrays. This is
-        // required to prevent PeriodicFill operations from "spilling" refined
-        // indices over periodic boundaries
+        //! Geometry objects reflecting refined (and padded) BoxArrays. This is
+        //! required to prevent PeriodicFill operations from "spilling" refined
+        //! indices over periodic boundaries
         Geometry geom_ls, geom_eb;
 
-        // Padding of the leve-set and EB grids:
+        //! Padding of the leve-set and EB grids:
         const int ls_grid_pad, eb_grid_pad;
 
-        // Tiling for local level-set filling
+        //! Tiling for local level-set filling
         int eb_tile_size;
 
-        // Baseline BoxArray and Geometry from which refined quantities are
-        // derived. These are mainly kept around for the copy constructor.
+        //! Baseline BoxArray and Geometry from which refined quantities are
+        //! derived. These are mainly kept around for the copy constructor.
         BoxArray base_ba;
         Geometry base_geom;
 
-        // Cell size of the refined grids
+        //! Cell size of the refined grids
         const RealVect dx_vect, dx_eb_vect;
 
         //! Updates internal BoxArray and DistributionMapping given a
@@ -151,6 +150,27 @@ class LSFactory {
                                int eb_pad, const Geometry & eb_geom);
 
 
+        //! Updates the level-set MultiFab `data` with the result of
+        //! intersection operation between `data` and another level-set MultiFab
+        //! `data_in`, for all cells where `valid_in == 1`. The iMultiFab
+        //! `valid` is also updated with the new valid flags corresponding to
+        //! the intersection level-set.
+        static void intersect_data (MultiFab & data, iMultiFab & valid,
+                                    const MultiFab & data_in, const iMultiFab & valid_in,
+                                    const Geometry & geom_ls);
+
+
+        //! Updates the level-set MultiFab `data` with the result of union
+        //! operation between `data` and another level-set MultiFab `data_in`,
+        //! for all cells where `valid_in == 1`. The iMultiFab `valid` is also
+        //! updated with the new valid flags corresponding to the intersection
+        //! level-set.
+        static void union_data (MultiFab & data, iMultiFab & valid,
+                                const MultiFab & data_in, const iMultiFab & valid_in,
+                                const Geometry & geom_ls);
+
+
+
         /************************************************************************
          *                                                                      *
          * Public member functions to update level-set data                     *
@@ -201,31 +221,57 @@ class LSFactory {
         std::unique_ptr<iMultiFab> Fill(const MultiFab & mf_impfunc,
                                         bool apply_threshold = false);
 
+        //! Performs intersection operation with the level-set representation of
+        //! `eb_factory`. The implicit function (mf_impfunc) is needed to select
+        //! the inside/outside edge-cases where the level-set cannot be
+        //! determined by projection onto EB facets.
         std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc);
 
+        //! Performs intersection operation with the level-set representation of
+        //! `eb_factory`. The integer `ebt_size` specifies the (cubic) tile size
+        //! used to search of EB facets.
         std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc,
                                              int ebt_size);
 
+        //! Performs intersection operation with the level-set representation of
+        //! `eb_factory`. The IntVect `ebt_size` specifies the tile size used to
+        //! search of EB facets.
         std::unique_ptr<iMultiFab> Intersect(const EBFArrayBoxFactory & eb_factory,
                                              const MultiFab & mf_impfunc,
                                              const IntVect & ebt_size);
 
+        //! Performs intersection operation with the level-set given in the
+        //! MultiFab `mf_impfunc`. If the flag `apply_threshold == true`, then
+        //! the level-set in `mf_impfunc` will be thresholded.
         std::unique_ptr<iMultiFab> Intersect(const MultiFab & mf_impfunc,
                                              bool apply_threshold = false);
 
+        //! Performs union operation with the level-set representation of
+        //! `eb_factory`. The implicit function (mf_impfunc) is needed to select
+        //! the inside/outside edge-cases where the level-set cannot be
+        //! determined by projection onto EB facets.
         std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
                                          const MultiFab & mf_impfunc);
 
+        //! Performs union operation with the level-set representation of
+        //! `eb_factory`. The integer `ebt_size` specifies the (cubic) tile size
+        //! used to search of EB facets.
         std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
                                          const MultiFab & mf_impfunc,
                                          int ebt_size);
 
+        //! Performs union operation with the level-set representation of
+        //! `eb_factory`. The IntVect `ebt_size` specifies the tile size used to
+        //! search of EB facets.
         std::unique_ptr<iMultiFab> Union(const EBFArrayBoxFactory & eb_factory,
                                          const MultiFab & mf_impfunc,
                                          const IntVect & ebt_size);
 
+        //! Performs union operation with the level-set given in the MultiFab
+        //! `mf_impfunc`. If the flag `apply_threshold == true`, then the
+        //! level-set in `mf_impfunc` will be thresholded.
         std::unique_ptr<iMultiFab> Union(const MultiFab & mf_impfunc,
                                          bool apply_threshold = false);
 
@@ -269,14 +315,14 @@ class LSFactory {
         //! Return EB-grid ghost cells (in units of the refined eb-grid)
         int get_eb_pad() const {return eb_grid_pad;};
 
-        // Return AMR level
+        //! Return AMR level
         int get_amr_level() const {return amr_lev;};
 
 
-        // Return BoxArrays:
-        //    -> ls: levelset (nodal)
-        //    -> cc: cell-centered (dual to ls) used by valid
-        //    -> eb: BoxArray used by EBIS (cell-centered)
+        //! Return BoxArrays:
+        //!    -> ls: levelset (nodal)
+        //!    -> cc: cell-centered (dual to ls) used by valid
+        //!    -> eb: BoxArray used by EBIS (cell-centered)
         const BoxArray & get_ls_ba() const {return ls_ba;};
         const BoxArray & get_cc_ba() const {return cc_ba;};
         const BoxArray & get_eb_ba() const {return eb_ba;};
@@ -313,8 +359,30 @@ class GShopLSFactory {
 
         GShopLSFactory (const EB2::GeometryShop<F> & gshop, const Geometry & geom,
                         const BoxArray & ba, const DistributionMapping & dm, int ls_pad)
-            :m_gshop(gshop), m_geom(geom), m_ls_ba(ba), m_ls_dm(dm), m_ls_pad(ls_pad)
-        {}
+            : m_gshop(gshop), m_geom(geom), m_ls_ba(ba), m_ls_dm(dm), m_ls_pad(ls_pad)
+        {
+            // Ensure that the inputted (refence) BoxArray is nodal
+            BoxArray ba_nd = amrex::convert(ba, IntVect::TheNodeVector());
+            m_ls_ba = ba_nd;
+        }
+
+        GShopLSFactory (const EB2::GeometryShop<F> & gshop, const Geometry & geom_crse,
+                        const BoxArray & ba_crse, const DistributionMapping & dm,
+                        int ls_pad, int ls_ref)
+            : m_gshop(gshop), m_ls_dm(dm), m_ls_pad(ls_pad)
+        {
+            // Set up refined geometry
+            Box dom = geom_crse.Domain();
+            dom.refine(ls_ref);
+            Geometry geom(dom);
+            m_geom = geom;
+
+            // Set up refined BoxArray. NOTE: ensure that the inputted
+            // (reference) BoxArray is nodal
+            BoxArray ba = amrex::convert(ba_crse, IntVect::TheNodeVector());
+            ba.refine(ls_ref);
+            m_ls_ba = ba;
+        }
 
         //! Fill MultiFab (with the same CellSize, BoxArray,
         //! DistributionMapping, and number of ghost cells as the LSFactory)
@@ -324,9 +392,9 @@ class GShopLSFactory {
             std::unique_ptr<MultiFab> mf_impfunc = std::unique_ptr<MultiFab>(new MultiFab);
             mf_impfunc->define(m_ls_ba, m_ls_dm, 1, m_ls_pad);
 
-            #ifdef _OPENMP
-            #pragma omp parallel
-            #endif
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
             for(MFIter mfi(* mf_impfunc, true); mfi.isValid(); ++ mfi)
                 m_gshop.fillFab((* mf_impfunc)[mfi], m_geom);
 

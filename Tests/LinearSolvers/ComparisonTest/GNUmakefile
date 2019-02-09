@@ -44,10 +44,6 @@ include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 
-include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
-
 ifeq ($(USE_HYPRE), TRUE)
   # USE_MPI must be TRUE if USE_HYPRE
   USE_MPI=TRUE

@@ -1,0 +1,8 @@
+
+size = 16
+
+max_grid_size = 8
+
+nsteps = 10
+
+print_neighbor_list = false

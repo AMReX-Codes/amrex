@@ -84,6 +84,62 @@ used functions are
      // See AMReX_ParallelDescriptor.H for many other Reduce functions
      ParallelDescriptor::ReduceRealSum(x);
 
+ParallelContext
+===============
+
+Users can also use groups of MPI subcommunicators to perform
+simultaneous physics calculations.  These comms are managed by AMReX's
+:cpp:`ParallelContext` in ``AMReX_ParallelContext.H.``  It maintains a
+stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
+:cpp:`ParallelContext` stack during AMReX's initialization and
+additional subcommunicators can be handled by adding comms with 
+:cpp:`push(MPI_Comm)` and removed using :cpp:`pop()`.  This creates a
+hierarchy of :cpp:`MPI_Comm` objects that can be used to split work as
+the user sees fit. 
+ 
+:cpp:`ParallelContext` also tracks and returns information about the
+local (most recently added) and global :cpp:`MPI_Comm`.  The most common
+access functions are given below.  See ``AMReX_ParallelContext.H.`` for
+a full listing of the available functions.
+
+ .. highlight:: c++
+
+::
+
+     MPI_Comm subCommA = ....;
+     MPI_Comm subCommB = ....;
+     // Add a communicator to ParallelContext.
+     // After these pushes, subCommB becomes the 
+     //     "local" communicator.
+     ParallelContext::push(subCommA);
+     ParallelContext::push(subCommB);
+
+     // Get Global and Local communicator (subCommB).
+     MPI_Comm globalComm = ParallelContext::CommunicatorAll();
+     MPI_Comm localComm  = ParallelContext::CommunicatorSub();
+
+     // Get local number of ranks and global IO Processor Number.
+     int localRanks = ParallelContext::NProcsSub();
+     int globalIO     = ParallelContext::IOProcessorNumberAll();
+
+     if (ParallelContext::IOProcessorSub()) {
+         // Only the local I/O process executes this
+     }
+
+     // Translation of global rank to local communicator rank.
+     // Returns MPI_UNDEFINED if comms do not overlap.
+     int localRank = ParallelContext::global_to_local_rank(globalrank);
+
+     // Translations of MPI rank IDs using integer arrays.
+     // Returns MPI_UNDEFINED if comms do not overlap.
+     ParallelContext::global_to_local_rank(local_array, global_array, n);
+     ParallelContext::local_to_global_rank(global_array, local_array, n);
+
+     // Remove the last added subcommunicator.
+     // This would make "subCommA" the new local communicator.
+     // Note: The user still needs to free "subCommB". 
+     ParallelContext::pop();
+
 .. _sec:basics:print:
 
 Print
@@ -1528,6 +1584,21 @@ a tile. (Note that when tiling is disabled, :cpp:`tilebox` returns the same
 non-tiling version, whereas in the tiling version the kernel function is called
 8 times.
 
+It is important to use the correct :cpp:`Box` when implementing tiling, especially
+if the box is used to define a work region inside of the loop. For example: 
+
+.. highlight:: c++
+
+::
+
+    // MFIter loop with tiling on.
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox();     // Gets box of entire, untiled region.
+        calcOverBox(bx);             // ERROR! Works on entire box, not tiled box.
+                                     // Other iterations will redo many of the same cells.  
+    }
+
 The tile size can be explicitly set when defining :cpp:`MFIter`.
 
 .. highlight:: c++
@@ -1538,7 +1609,7 @@ The tile size can be explicitly set when defining :cpp:`MFIter`.
       for (MFIter mfi(mf,IntVect(1024000,16,32)); mfi.isValid(); ++mfi) {...}
 
 An :cpp:`IntVect` is used to specify the tile size for every dimension.  A tile
-size larger than the grid size simply means tiling is disable in that
+size larger than the grid size simply means tiling is disabled in that
 direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
 no tiling in 2D. This is used when tile size is not explicitly set but the
 tiling flag is on. One can change the default size using :cpp:`ParmParse`
@@ -1568,6 +1639,45 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
+
+Dynamic tiling, which runs one box per OpenMP thread, is also available. 
+This is useful when the underlying work cannot benefit from thread
+parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
+object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
+parallel region:
+
+.. highlight:: c++
+
+::
+
+  // Dynamic tiling, one box per OpenMP thread.
+  // No further tiling details,
+  //   so each thread works on a single tilebox. 
+  #ifdef _OPENMP 
+  #pragma omp parallel
+  #endif
+      for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+      {  
+          const Box& bx = mfi.validbox();
+          ...
+      }
+
+Dynamic tiling also allows explicit definition of a tile size:
+
+.. highlight:: c++
+
+::
+
+  // Dynamic tiling, one box per OpenMP thread.
+  // No tiling in x-direction. Tile size is 16 for y and 32 for z.
+  #ifdef _OPENMP 
+  #pragma omp parallel
+  #endif
+      for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
+      {  
+          const Box& bx = mfi.tilebox();
+          ...
+      }
 
 Usually :cpp:`MFIter` is used for accessing multiple MultiFabs like the second
 example, in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via

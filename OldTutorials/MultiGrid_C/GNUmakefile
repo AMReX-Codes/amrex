@@ -30,7 +30,6 @@ DIM	= 2
 COMP =gcc
 
 USE_HYPRE = FALSE
-USE_F90_SOLVERS = TRUE
 
 USE_HPGMG = TRUE
 USE_HPGMG = FALSE
@@ -73,22 +72,6 @@ vpathdir += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG
 
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG4
 vpathdir += $(AMREX_HOME)/Src/LinearSolvers/C_CellMG4
-
-ifeq ($(USE_F90_SOLVERS), TRUE)
-  include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG
-  vpathdir          += $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG
-
-  include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/F_MG
-  vpathdir          += $(AMREX_HOME)/Src/LinearSolvers/F_MG
-
-  include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
-  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
-  vpathdir          += $(AMREX_HOME)/Src/F_BaseLib
-
-  DEFINES += -DUSE_F90_SOLVERS
-endif
 
 ifeq ($(USE_HYPRE), TRUE)
   # hypre driver

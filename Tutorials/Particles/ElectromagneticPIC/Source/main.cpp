@@ -10,8 +10,6 @@
 #include "Constants.H"
 #include "IO.H"
 
-#include "em_pic_F.H"
-
 using namespace amrex;
 
 struct TestParams
@@ -78,7 +76,7 @@ void test_em_pic(const TestParams& parms)
     amrex::Print() << "Initializing particles... ";
 
     int num_species;
-    Vector<EMParticleContainer*> particles(2);
+    Vector<std::unique_ptr<EMParticleContainer> > particles(2);
 
     if (parms.problem_type == UniformPlasma)
     {
@@ -98,8 +96,8 @@ void test_em_pic(const TestParams& parms)
                                                       1, PhysConst::q_e, PhysConst::m_p);
         H_ions->InitParticles(parms.nppc, 0.01, 10.0, 1e25, H_ions_bounds, parms.problem_type);
 
-        particles[0] = electrons;
-        particles[1] = H_ions;
+        particles[0].reset(electrons);
+        particles[1].reset(H_ions);
     }
     else if (parms.problem_type == Langmuir)
     {
@@ -112,7 +110,7 @@ void test_em_pic(const TestParams& parms)
                                                          0, -PhysConst::q_e, PhysConst::m_e);
         electrons->InitParticles(parms.nppc, 0.01, 10.0, 1e25, electron_bounds, parms.problem_type);
 
-        particles[0] = electrons;
+        particles[0].reset(electrons);
     }
 
     amrex::Print() << "Done. " << std::endl;
@@ -174,7 +172,7 @@ void test_em_pic(const TestParams& parms)
 
         for (int i = 0; i < num_species; ++i)
         {
-            particles[i]->Redistribute();
+            particles[i]->RedistributeLocal();
         }
         
         time += dt;
@@ -198,35 +196,11 @@ void test_em_pic(const TestParams& parms)
     }
 }
 
-void check_solution(const MultiFab& jx, const Geometry& geom, Real time)
-{
-    BL_PROFILE("check_solution");
-
-    const Real* dx = geom.CellSize();
-
-    Box test_box = geom.Domain();
-    test_box.setSmall(IntVect(AMREX_D_DECL(2, 2, 2)));
-    test_box.setBig(IntVect(AMREX_D_DECL(30, 30, 30)));
-
-    Real max_error = 0.0;
-    for(MFIter mfi(jx); mfi.isValid(); ++mfi)
-    {
-        Real fab_max_error;
-        const Box& tbx  = mfi.tilebox();
-        check_langmuir_solution(BL_TO_FORTRAN_BOX(tbx),
-                                BL_TO_FORTRAN_BOX(test_box),
-                                BL_TO_FORTRAN_3D(jx[mfi]), time, &fab_max_error);
-        max_error += fab_max_error;
-    }
-
-    ParallelDescriptor::ReduceRealMax(max_error);
-
-    amrex::Print() << "Max error is: " << max_error << std::endl;
-}
-
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
+
+    {
 
     amrex::InitRandom(451);
 
@@ -255,6 +229,8 @@ int main(int argc, char* argv[])
     }
 
     test_em_pic(parms);
+
+    }
 
     amrex::Finalize();
 }

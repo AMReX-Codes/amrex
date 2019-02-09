@@ -35,14 +35,14 @@ namespace amrex {
 struct BLBackTrace
 {
     static void handler(int s);
-    // Abort backtrace. Used automatically.
+    //! Abort backtrace. Used automatically.
     static void print_backtrace_info (FILE* f);
-    // Non-abort backtrace. Prints to specified file and continues.
+    //! Non-abort backtrace. Prints to specified file and continues.
     static void print_backtrace_info (const std::string& filename);
 
 #ifdef BL_BACKTRACING
     static std::stack<std::pair<std::string, std::string> > bt_stack;
-// threadprivate here doesn't work with Cray and Intel 
+// threadprivate here doesn't work with Cray and Intel
 #if defined(_OPENMP) && !defined(_CRAYC) && !defined(__INTEL_COMPILER)
 #pragma omp threadprivate(bt_stack)
 #endif

@@ -904,7 +904,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			{
                             if (run_on_gpu)
                             {
-                                Gpu::AsyncFab asyncfab(lo_slab,num_comp);
+                                AsyncFab asyncfab(lo_slab,num_comp);
                                 FArrayBox* fab = asyncfab.fabPtr();
                                 const int ishift = -domain.length(dir);
                                 AMREX_LAUNCH_DEVICE_LAMBDA (lo_slab, tbx,
@@ -941,7 +941,7 @@ StateDataPhysBCFunct::FillBoundary (MultiFab& mf, int dest_comp, int num_comp, R
 			{
                             if (run_on_gpu)
                             {
-                                Gpu::AsyncFab asyncfab(hi_slab,num_comp);
+                                AsyncFab asyncfab(hi_slab,num_comp);
                                 FArrayBox* fab = asyncfab.fabPtr();
                                 const int ishift = domain.length(dir);
                                 AMREX_LAUNCH_DEVICE_LAMBDA (hi_slab, tbx,

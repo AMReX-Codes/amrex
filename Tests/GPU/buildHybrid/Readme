@@ -1,0 +1,17 @@
+Simple, AMReX independent test to explore building a CUDA code
+either as an executable or through a static library in the AMReX fashion.
+
+This version is a hybrid C++ & Fortran build test.
+
+Files
+----- 
+main.cpp contains the main which calls two C++ and one Fortran CUDA global functions.
+MyKernel.cpp and MyKernelB.cpp contains the two CUDA global functions.
+MyKernel_F.F90 contains a Fortran CUDA global function.
+
+Make targets
+------------
+make: Build an executable directly using pgifortran. Used to test the code.
+
+make exec: Build an executable through a static library using pgfortran. 
+make library: Just build the static library using ar and ranlib.

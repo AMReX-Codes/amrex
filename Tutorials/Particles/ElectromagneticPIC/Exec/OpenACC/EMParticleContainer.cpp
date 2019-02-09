@@ -174,29 +174,29 @@ PushAndDeposeParticles(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& E
         auto& Bzp  = attribs[PIdx::Bz];
         auto& ginv = attribs[PIdx::ginv];
         
-	FTOC(gather_magnetic_field)(np, structs.dataPtr(),
+	gather_magnetic_field(np, structs.dataPtr(),
                                     Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
         
-	FTOC(gather_electric_field)(np, structs.dataPtr(),
+	gather_electric_field(np, structs.dataPtr(),
                                     Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
                                     BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
         
-        FTOC(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
+        push_momentum_boris(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
                                   Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                   Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                   m_charge, m_mass, dt);
         
-        FTOC(push_position_boris)(np, structs.dataPtr(),
+        push_position_boris(np, structs.dataPtr(),
                                   uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
         
-        FTOC(deposit_current)(BL_TO_FORTRAN_3D(jx[pti]),
+        deposit_current(BL_TO_FORTRAN_3D(jx[pti]),
                               BL_TO_FORTRAN_3D(jy[pti]),
                               BL_TO_FORTRAN_3D(jz[pti]),
                               np, structs.dataPtr(),
@@ -235,48 +235,23 @@ PushParticleMomenta(const MultiFab& Ex, const MultiFab& Ey, const MultiFab& Ez,
         auto& Bzp  = attribs[PIdx::Bz];
         auto& ginv = attribs[PIdx::ginv];
 
-	FTOC(gather_magnetic_field)(np, structs.dataPtr(),
+	gather_magnetic_field(np, structs.dataPtr(),
                                     Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Bx[pti]),
                                     BL_TO_FORTRAN_3D(By[pti]),
                                     BL_TO_FORTRAN_3D(Bz[pti]),
                                     plo, dx);
         
-	FTOC(gather_electric_field)(np, structs.dataPtr(),
+	gather_electric_field(np, structs.dataPtr(),
                                     Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                     BL_TO_FORTRAN_3D(Ex[pti]),
                                     BL_TO_FORTRAN_3D(Ey[pti]),
                                     BL_TO_FORTRAN_3D(Ez[pti]),
                                     plo, dx);
         
-        FTOC(push_momentum_boris)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
+        push_momentum_boris(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(),
                                   Exp.dataPtr(), Eyp.dataPtr(), Ezp.dataPtr(),
                                   Bxp.dataPtr(), Byp.dataPtr(), Bzp.dataPtr(),
                                   m_charge, m_mass, dt);
-    }
-}
-
-void EMParticleContainer::PushParticlePositions(Real dt)
-{
-    BL_PROFILE("EMParticleContainer::PushParticlePositions");
-
-    const int lev = 0;
-    
-    for (EMParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int np  = pti.numParticles();
-        
-        auto& structs = pti.GetArrayOfStructs();
-
-        auto& attribs = pti.GetAttribs();
-        auto& uxp  = attribs[PIdx::ux];
-        auto& uyp  = attribs[PIdx::uy];
-        auto& uzp  = attribs[PIdx::uz];
-        auto& ginv = attribs[PIdx::ginv];
-
-        FTOC(set_gamma)(np, uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr());
-        
-        FTOC(push_position_boris)(np, structs.dataPtr(),
-                                  uxp.dataPtr(), uyp.dataPtr(), uzp.dataPtr(), ginv.dataPtr(), dt);
     }
 }

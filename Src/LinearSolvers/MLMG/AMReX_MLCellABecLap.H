@@ -32,8 +32,6 @@ public:
     }
     virtual void update () override;
 
-protected:
-
     virtual void prepareForSolve () override;
 
     virtual void getFluxes (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_flux,

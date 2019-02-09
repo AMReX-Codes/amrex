@@ -83,6 +83,12 @@ else
   USE_ASSERTION := FALSE
 endif
 
+ifdef BOUND_CHECK
+  BOUND_CHECK := $(strip $(BOUND_CHECK))
+else
+  BOUND_CHECK := FALSE
+endif
+
 ifdef BACKTRACE
   BACKTRACE := $(strip $(BACKTRACE))
 else
@@ -121,6 +127,10 @@ endif
 
 ifeq ($(USE_PMI), TRUE)
   DEFINES += -DAMREX_PMI
+endif
+
+ifeq ($(USE_OMP_OFFLOAD), TRUE)
+  DEFINES += -DAMREX_OMP_OFFLOAD
 endif
 
 ifdef USE_UPCXX
@@ -210,6 +220,12 @@ ifdef GPU_ERROR_CHECK
 else
   GPU_ERROR_CHECK := TRUE
 endif 
+
+ifdef FAB_IS_PINNED
+  FAB_IS_PINNED := $(strip $(FAB_IS_PINNED))
+else
+  FAB_IS_PINNED := FALSE
+endif
 
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
@@ -372,7 +388,9 @@ else
 endif
 
 ifdef CRAY_CPU_TARGET
+ifneq ($(USE_CUDA),TRUE)
     archSuffix += .$(strip $(CRAY_CPU_TARGET))
+endif
 endif
 
 ifeq ($(LAZY),TRUE)
@@ -481,6 +499,10 @@ ifeq ($(USE_CUDA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
     endif
 
+    ifeq ($(FAB_IS_PINNED),TRUE)
+        DEFINES += -DAMREX_FAB_IS_PINNED
+    endif
+
     CUDASuffix := .CUDA
 
     ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi))
@@ -581,6 +603,10 @@ else
 ifeq ($(USE_ASSERTION),TRUE)
   DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 endif
+endif
+
+ifeq ($(BOUND_CHECK),TRUE)
+  DEFINES += -DAMREX_BOUND_CHECK
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)
