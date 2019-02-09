@@ -285,12 +285,46 @@ int main_main()
         }
     }
 
-    if (save_var_a > 0) {
-        // xxxxx write diff in plotfile
+    if (save_var_a >= 0) {
+        Vector<Geometry> geom;
+        Vector<int> levsteps;
+        Vector<IntVect> rr;
+        for (int ilev = 0; ilev < nlevels; ++ilev) {
+            RealBox rb(pf_a.probLo(), pf_a.probHi());
+            Array<int,3> isper = {0,0,0};
+            geom.emplace_back(pf_a.probDomain(ilev), &rb,
+                              pf_a.coordSys(), isper.data());
+            levsteps.push_back(pf_a.levelStep(ilev));
+            rr.emplace_back(pf_a.refRatio(ilev));
+        }
+        WriteMultiLevelPlotfile ("diffs", nlevels, GetVecOfConstPtrs(mf_array),
+                                 plot_names, geom, pf_a.time(),
+                                 levsteps, rr);
     }
 
     if (zone_info) {
-        // xxxxx todo
+        if (err_zone.max_abs_err > 0.) {
+            ParallelDescriptor::Barrier();
+            const DistributionMapping& dmap = pf_a.DistributionMap(err_zone.level);
+            bool owner_proc = ParallelDescriptor::MyProc() == dmap[err_zone.grid_index];
+
+            if (owner_proc) {
+                amrex::AllPrint() << std::endl
+                                  << " maximum error in " << zone_info_var_name << "\n"
+                                  << "   level = " << err_zone.level << " (i,j,k) = " << err_zone.cell << "\n";
+            }
+
+            for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
+                MultiFab mf = pf_a.get(err_zone.level,names_a[icomp_a]);
+                if (owner_proc) {
+                    Real v = mf[err_zone.grid_index](err_zone.cell);
+                    amrex::AllPrint() << " " << std::setw(24)
+                                      << names_a[icomp_a] << "  "
+                                      << std::setw(24) << std::right
+                                      << v << "\n";
+                }
+            }
+        }
     }
 
     if (global_error == 0.0 and !any_nans) {
