@@ -181,6 +181,7 @@ namespace amrex
         IntVect nGrowVect (int level) const { return m_impl->nGrowVect(level); }
 
         MultiFab get (int level) { return m_impl->get(level); }
+        MultiFab get (int level, std::string const& varname) { return m_impl->get(level, varname); }
 
     private:
         std::unique_ptr<PlotFileDataImpl> m_impl;

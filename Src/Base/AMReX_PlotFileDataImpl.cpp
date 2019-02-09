@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <AMReX_PlotFileDataImpl.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
@@ -68,6 +69,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
     is >> bwidth;
 
     m_mf_name.resize(m_nlevels);
+    m_vismf.resize(m_nlevels);
     m_ba.resize(m_nlevels);
     m_dmap.resize(m_nlevels);
     m_ngrow.resize(m_nlevels);
@@ -85,10 +87,10 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
         std::string relname;
         is >> relname;
         m_mf_name[ilev] = m_plotfile_name + "/" + relname;
-        VisMF vismf(m_mf_name[ilev]);
-        m_ba[ilev] = vismf.boxArray();
+        m_vismf[ilev].reset(new VisMF(m_mf_name[ilev]));
+        m_ba[ilev] = m_vismf[ilev]->boxArray();
         m_dmap[ilev].define(m_ba[ilev]);
-        m_ngrow[ilev] = vismf.nGrowVect();
+        m_ngrow[ilev] = m_vismf[ilev]->nGrowVect();
     }
 }
 
@@ -107,6 +109,25 @@ PlotFileDataImpl::get (int level)
 {
     MultiFab mf(m_ba[level], m_dmap[level], m_ncomp, m_ngrow[level]);
     VisMF::Read(mf, m_mf_name[level]);
+    return mf;
+}
+
+MultiFab
+PlotFileDataImpl::get (int level, std::string const& varname)
+{
+    MultiFab mf(m_ba[level], m_dmap[level], 1, m_ngrow[level]);
+    auto r = std::find(std::begin(m_var_names), std::end(m_var_names), varname);
+    if (r == std::end(m_var_names)) {
+        amrex::Abort("PlotFileDataImpl::get: varname not found "+varname);
+    } else {
+        int icomp = std::distance(std::begin(m_var_names), r);
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            int gid = mfi.index();
+            FArrayBox& dstfab = mf[mfi];
+            std::unique_ptr<FArrayBox> srcfab(m_vismf[level]->readFAB(gid, icomp));
+            dstfab.copy(*srcfab);
+        }
+    }
     return mf;
 }
 
