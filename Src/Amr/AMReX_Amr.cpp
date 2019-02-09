@@ -886,6 +886,12 @@ Amr::writePlotFile ()
         amr_level[0]->setPlotVariables();
     }
 
+    // Don't continue if we have no variables to plot.
+
+    if (statePlotVars().size() == 0) {
+      return;
+    }
+
     Real dPlotFileTime0 = amrex::second();
 
     const std::string& pltfile = amrex::Concatenate(plot_file_root,level_steps[0],file_name_digits);
