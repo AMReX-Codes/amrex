@@ -614,7 +614,6 @@ MLMG::interpCorrection (int alev)
                 Box tmpbx = amrex::refine(cbx,2);
 		tmpbx.grow(2);
                 tmpfab.resize(tmpbx,ncomp);
-		
                 amrex_mlmg_lin_nd_interp(BL_TO_FORTRAN_BOX(cbx),
                                          BL_TO_FORTRAN_BOX(tmpbx),
                                          BL_TO_FORTRAN_ANYD(tmpfab),
@@ -1321,10 +1320,10 @@ MLMG::compResidual (const Vector<MultiFab*>& a_res, const Vector<MultiFab*>& a_s
             if (sol_raii[alev] == nullptr)
             {
                 sol_raii[alev].reset(new MultiFab(a_sol[alev]->boxArray(),
-                                                  a_sol[alev]->DistributionMap(), ncomp, 2,
+                                                  a_sol[alev]->DistributionMap(), ncomp, 1,
                                                   MFInfo(), *linop.Factory(alev)));
             }
-            MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 2);
+            MultiFab::Copy(*sol_raii[alev], *a_sol[alev], 0, 0, ncomp, 0);
             sol[alev] = sol_raii[alev].get();
         }
     }
@@ -1464,12 +1463,13 @@ MLMG::averageDownAndSync ()
             const auto& fmf = *sol[falev];
             auto&       cmf = *sol[falev-1];
 
-	    BoxArray mybox = amrex::coarsen(fmf.boxArray(),amrrr[falev-1]);
-	    mybox.grow(-1);
-            MultiFab tmpmf(mybox,
-                           fmf.DistributionMap(), ncomp, 0);
-            //MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), amrrr[falev-1]),
-            //               fmf.DistributionMap(), ncomp, 0);
+	    // BoxArray mybox = amrex::coarsen(fmf.boxArray(),amrrr[falev-1]);
+	    // mybox.grow(-1);
+	    // std::cout << "BOX is " << mybox << std::endl;
+            // MultiFab tmpmf(mybox,
+            //                fmf.DistributionMap(), ncomp, 0);
+	    
+            MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), amrrr[falev-1]), fmf.DistributionMap(), ncomp, 0);
             amrex::average_down(fmf, tmpmf, 0, ncomp, amrrr[falev-1]);
             cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
             linop.nodalSync(falev-1, 0, cmf);
