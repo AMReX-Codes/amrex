@@ -24,7 +24,7 @@ void main_main()
     for (int f = 1; f <= narg; ++f) {
         const auto& fname = amrex::get_command_argument(f);
         PlotFileData plotfile(fname);
-//        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << std::endl;
+        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << std::endl;
     }
 }
 

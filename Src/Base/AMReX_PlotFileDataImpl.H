@@ -27,6 +27,8 @@ public:
 
     const DistributionMapping& DistributionMap (int level) const { return m_dmap[level]; }
 
+    void syncDistributionMap (PlotFileDataImpl const& src);
+
     void syncDistributionMap (int level, PlotFileDataImpl const& src);
 
     int coordSys () const { return m_coordsys; }

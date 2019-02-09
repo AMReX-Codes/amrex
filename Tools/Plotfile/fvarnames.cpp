@@ -1,6 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
-#include <AMReX_PlotfileData.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -21,7 +21,7 @@ void main_main()
     }
 
     const auto& fname = amrex::get_command_argument(1);
-    PlotfileData plotfile(fname);
+    PlotFileData plotfile(fname);
     const auto& names = plotfile.varNames();
     int n = 0;
     for (auto const& name : names) {
