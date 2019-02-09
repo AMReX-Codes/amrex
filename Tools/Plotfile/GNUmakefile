@@ -13,15 +13,15 @@ DEBUG=TRUE
 programs ?=
 
 ifeq ($(strip $(programs)),)
-  programs += fboxinfo
-  programs += fcompare
+###  programs += fboxinfo
+###  programs += fcompare
 #  programs += fextract
 #  programs += fextreama
-  programs += fnan
+###  programs += fnan
 #  programs += fparticlecompare
 #  programs += fsnapshot
   programs += ftime
-  programs += fvarnames
+###  programs += fvarnames
 endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
@@ -31,7 +31,6 @@ default: $(multiple_executables)
 
 include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
-include $(AMREX_HOME)/Src/Extern/amrdata/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

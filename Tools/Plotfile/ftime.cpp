@@ -1,6 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
-#include <AMReX_PlotfileData.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 
@@ -23,8 +23,8 @@ void main_main()
 
     for (int f = 1; f <= narg; ++f) {
         const auto& fname = amrex::get_command_argument(f);
-        PlotfileData plotfile(fname);
-        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << std::endl;
+        PlotFileData plotfile(fname);
+//        amrex::Print().SetPrecision(17) << fname << "    " << plotfile.time() << std::endl;
     }
 }
 
