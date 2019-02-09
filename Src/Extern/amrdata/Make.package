@@ -1,8 +1,6 @@
 CEXE_sources += AMReX_AmrData.cpp AMReX_XYPlotDataList.cpp AMReX_DataServices.cpp
 CEXE_headers += AMReX_AmrData.H AMReX_AmrvisConstants.H AMReX_XYPlotDataList.H AMReX_DataServices.H
 FEXE_sources += AMReX_FABUTIL_${DIM}D.F
-CEXE_sources += AMReX_PlotfileData.cpp
-CEXE_headers += AMReX_PlotfileData.H
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/amrdata

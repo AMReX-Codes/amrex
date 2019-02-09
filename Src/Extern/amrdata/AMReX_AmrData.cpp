@@ -106,7 +106,6 @@ namespace amrex {
 bool AmrData::verbose = false;
 int  AmrData::skipPltLines  = 0;
 int  AmrData::sBoundaryWidth = 0;
-bool AmrData::dimensionAgnostic = false;
 
 // ---------------------------------------------------------------
 AmrData::AmrData() {
@@ -291,13 +290,14 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	return false;
       }
 
+      int spacedim;
       isPltIn >>  spacedim >> time >> finestLevel;
       if(ParallelDescriptor::IOProcessor()) {
         VSHOWVAL(verbose, spacedim);
         VSHOWVAL(verbose, time);
         VSHOWVAL(verbose, finestLevel);
       }
-      if(!dimensionAgnostic && spacedim != BL_SPACEDIM) {
+      if(spacedim != BL_SPACEDIM) {
         if(ParallelDescriptor::IOProcessor()) {
 	  cerr << endl << " ~~~~ Error:  You are using " << BL_SPACEDIM
 	       << "D amrvis "
@@ -311,7 +311,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	}
         return false;
       }
-      for(i = 0; i < spacedim; ++i) {
+      for(i = 0; i < BL_SPACEDIM; ++i) {
         isPltIn >> probLo[i];
         if(verbose) {
           if(ParallelDescriptor::IOProcessor()) {
@@ -319,20 +319,13 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	  }
 	}
       }
-      for(i = 0; i < spacedim; ++i) {
+      for(i = 0; i < BL_SPACEDIM; ++i) {
         isPltIn >> probHi[i];
         if(verbose) {
           if(ParallelDescriptor::IOProcessor()) {
 	    cout << "probHi[" << i << "] = " << probHi[i] << endl;
 	  }
 	}
-      }
-      if ( dimensionAgnostic ) {
-          for (i = spacedim; i < BL_SPACEDIM; ++i) {
-              probLo[i] = 0.0;
-              probHi[i] = 1.0;
-              probSize[i] = 1.0;
-          }
       }
       if(verbose) {
         if(ParallelDescriptor::IOProcessor()) {
@@ -439,8 +432,8 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
       
       dxLevel.resize(finestLevel + 1);
       for(i = 0; i <= finestLevel; ++i) {
-        dxLevel[i].resize(BL_SPACEDIM, 1.0);
-        for(k = 0; k < spacedim; ++k) {
+        dxLevel[i].resize(BL_SPACEDIM);
+        for(k = 0; k < BL_SPACEDIM; ++k) {
 	  isPltIn >> dxLevel[i][k];
 	  if(verbose) {
             if(ParallelDescriptor::IOProcessor()) {
@@ -462,7 +455,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
         }
       }
 
-      for(i = 0; i < spacedim; ++i) {
+      for(i = 0; i < BL_SPACEDIM; ++i) {
         probSize[i] = probHi[i] - probLo[i];
         if(probSize[i] <= 0.0 ) {
           if(ParallelDescriptor::IOProcessor()) {
@@ -575,9 +568,9 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
       gridLocLo[i].resize(nGrids);
       gridLocHi[i].resize(nGrids);
       for(int iloc = 0; iloc < nGrids; ++iloc) {
-        gridLocLo[i][iloc].resize(BL_SPACEDIM, 0.0);
-        gridLocHi[i][iloc].resize(BL_SPACEDIM, 1.0);
-	for(int iDim = 0; iDim < spacedim; ++iDim) {
+        gridLocLo[i][iloc].resize(BL_SPACEDIM);
+        gridLocHi[i][iloc].resize(BL_SPACEDIM);
+	for(int iDim = 0; iDim < BL_SPACEDIM; ++iDim) {
 	  isPltIn >> gridLocLo[i][iloc][iDim] >>  gridLocHi[i][iloc][iDim];
           if(ParallelDescriptor::IOProcessor()) {
             VSHOWVAL(verbose, gridLocLo[i][iloc][iDim]);
@@ -613,7 +606,7 @@ bool AmrData::ReadData(const string &filename, Amrvis::FileType filetype) {
 	const BoxArray& ba = visMF[i][currentVisMF]->boxArray();
 	if (!dmap) dmap.reset(new DistributionMapping(ba));
 	int iComp(currentIndexComp);
-        nGrow = visMF[i][currentVisMF]->nGrowVect();
+        nGrow = visMF[i][currentVisMF]->nGrow();
         currentIndexComp += visMF[i][currentVisMF]->nComp();
 	int currentVisMFComponent(0);
         for( ; iComp < currentIndexComp; ++iComp) {
@@ -934,7 +927,7 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
     fabBoxArray.resize(1);
     fabBoxArray.set(BoxZero, probDomain[LevelZero]);
 
-    IntVect mfNGrow(0);
+    int mfNGrow(0);
     const int N(64);
     char fabname[N];  // arbitrarily
     plotVars.resize(nComp);
@@ -1012,13 +1005,13 @@ bool AmrData::ReadNonPlotfileData(const string &filename, Amrvis::FileType filet
 	const BoxArray& ba = visMF[LevelOne][currentVisMF]->boxArray();
 	if (!dmap) dmap.reset(new DistributionMapping(ba));
         int iComp(currentIndexComp);
-        mfNGrow = visMF[LevelOne][currentVisMF]->nGrowVect();
+        mfNGrow = visMF[LevelOne][currentVisMF]->nGrow();
         currentIndexComp += visMF[LevelOne][currentVisMF]->nComp();
         for(int currentVisMFComponent(0); iComp < currentIndexComp; ++iComp) {
           // make single component multifabs for level one
           dataGrids[1][iComp] =
 	      new MultiFab(ba, *dmap,
-			   1, visMF[LevelOne][currentVisMF]->nGrowVect(),
+			   1, visMF[LevelOne][currentVisMF]->nGrow(),
                            Fab_noallocate);
           dataGridsDefined[LevelOne][iComp].resize(visMF[LevelOne][currentVisMF]->size(), false);
           compIndexToVisMFMap[iComp] = currentVisMF;
@@ -1758,7 +1751,7 @@ void AmrData::FlushGrids(int componentIndex) {
     {
       BoxArray ba = dataGrids[lev][componentIndex]->boxArray();
       DistributionMapping dm = dataGrids[lev][componentIndex]->DistributionMap();
-      IntVect flushNGrow = dataGrids[lev][componentIndex]->nGrowVect();
+      int flushNGrow = dataGrids[lev][componentIndex]->nGrow();
       delete dataGrids[lev][componentIndex];
       dataGrids[lev][componentIndex] = new MultiFab(ba, dm, 1, flushNGrow, Fab_noallocate);
       for(MFIter mfi(*dataGrids[lev][componentIndex]); mfi.isValid(); ++mfi) {
