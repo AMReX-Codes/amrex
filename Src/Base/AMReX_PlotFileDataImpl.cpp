@@ -97,6 +97,15 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
 PlotFileDataImpl::~PlotFileDataImpl () {}
 
 void
+PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src)
+{
+    int nlevs_min = std::min(m_nlevels, src.m_nlevels);
+    for (int ilev = 0; ilev < nlevs_min; ++ilev) {
+        syncDistributionMap(ilev, src);
+    }
+}
+
+void
 PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src)
 {
     if (level <= src.finestLevel() and m_dmap[level].size() == src.DistributionMap(level).size()) {

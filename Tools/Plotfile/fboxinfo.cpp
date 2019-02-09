@@ -1,9 +1,43 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
-#include <AMReX_AnyDimUtil.H>
-#include <AMReX_PlotfileData.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
+
+namespace {
+
+class BoxND
+{
+public:
+    friend std::ostream& operator<< (std::ostream& os, const BoxND& b);
+    BoxND (Box const& b, int dim) : m_box(b), m_dim(dim) {}
+private:
+    Box m_box;
+    int m_dim;
+};
+
+std::ostream&
+operator<< (std::ostream& os, const BoxND& b)
+{
+    if (b.m_dim == 1) {
+        os << "("
+           << "(" << b.m_box.smallEnd(0) << ")" << " "
+           << "(" << b.m_box.bigEnd(0) << ")" << " "
+           << "(" << b.m_box.type(0) << ")"
+           << ")";
+    } else if (b.m_dim == 2) {
+        os << "("
+           << "(" << b.m_box.smallEnd(0) << "," << b.m_box.smallEnd(1) << ")" << " "
+           << "(" << b.m_box.bigEnd(0) << "," << b.m_box.bigEnd(1) << ")" << " "
+           << "(" << b.m_box.type(0) << "," << b.m_box.type(1) << ")"
+           << ")";
+    } else {
+        os << b.m_box;
+    }
+    return os;
+}
+
+}
 
 void main_main()
 {
@@ -50,7 +84,7 @@ void main_main()
 
     for (int f = farg; f <= narg; ++f) {
         const auto& fname = amrex::get_command_argument(f);
-        PlotfileData plotfile(fname);
+        PlotFileData plotfile(fname);
 
         if (!b_gridfile and !b_levels) {
             amrex::Print() << " plotfile: " << fname << "\n";

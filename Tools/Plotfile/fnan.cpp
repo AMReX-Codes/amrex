@@ -1,6 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_Print.H>
-#include <AMReX_PlotfileData.H>
+#include <AMReX_PlotFileUtil.H>
 #include <algorithm>
 
 using namespace amrex;
@@ -23,7 +23,7 @@ void main_main()
     }
 
     const auto& fname = amrex::get_command_argument(1);
-    PlotfileData plotfile(fname);
+    PlotFileData plotfile(fname);
     const auto& names = plotfile.varNames();
     const int ncomp = plotfile.nComp();
     const int nlevels = plotfile.finestLevel() + 1;
@@ -38,7 +38,6 @@ void main_main()
             MultiFab mf = plotfile.get(ilev,varname);
             has_nan[ilev] = mf.contains_nan(0,1,0);
         }
-        plotfile.flush(varname);
 
         int num_nans = 0;
         for (int b : has_nan) {

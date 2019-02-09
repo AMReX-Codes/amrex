@@ -164,6 +164,8 @@ namespace amrex
 
         const DistributionMapping& DistributionMap (int level) const { return m_impl->DistributionMap(level); }
 
+        void syncDistributionMap (PlotFileData const& src) { m_impl->syncDistributionMap(*src.m_impl); }
+
         void syncDistributionMap (int level, PlotFileData const& src) { m_impl->syncDistributionMap(level, *src.m_impl); }
 
         int coordSys () const { return m_impl->coordSys(); }
