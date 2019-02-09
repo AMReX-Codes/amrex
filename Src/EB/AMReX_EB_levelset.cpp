@@ -112,7 +112,7 @@ void LSFactory::update_ba(const BoxArray & new_ba, const DistributionMapping & d
     base_ba = new_ba;
 
     // Refined versions of both the cell-centered and nodal (phi)
-    const BoxArray & phi_ba = amrex::convert(new_ba, IntVect::TheNodeVector());
+    const BoxArray phi_ba = amrex::convert(new_ba, IntVect::TheNodeVector());
 
     ls_dm = dm;
 
@@ -648,7 +648,7 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         // Don't do anything for the current tile if EB facets are ill-defined
         if (! bndrycent.ok(mfi)){
             auto & ls_tile = data[mfi];
-            ls_tile.setVal( min_dx * eb_pad , tile_box );
+            ls_tile.setVal( min_dx *( eb_pad + 1), tile_box );
 
             // Ensure that tile-wise assignment is validated
             const auto & if_tile = eb_impfunc[mfi];
@@ -812,6 +812,60 @@ void LSFactory::fill_data (MultiFab & data, iMultiFab & valid,
         }
     }
 
+}
+
+
+
+void LSFactory::intersect_data (MultiFab & data, iMultiFab & valid,
+                                const MultiFab & data_in, const iMultiFab & valid_in,
+                                const Geometry & geom_ls) {
+
+    BL_PROFILE("LSFactory::intersect_data()");
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(data, true); mfi.isValid(); ++mfi){
+        Box tile_box = mfi.growntilebox();
+
+        const auto & valid_in_tile = valid_in[mfi];
+        const auto & ls_in_tile = data_in[mfi];
+        auto & v_tile = valid[mfi];
+        auto & ls_tile = data[mfi];
+
+        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
+                                              BL_TO_FORTRAN_3D(valid_in_tile),
+                                              BL_TO_FORTRAN_3D(ls_in_tile),
+                                              BL_TO_FORTRAN_3D(v_tile),
+                                              BL_TO_FORTRAN_3D(ls_tile)              );
+    }
+}
+
+
+
+void LSFactory::union_data (MultiFab & data, iMultiFab & valid,
+                            const MultiFab & data_in, const iMultiFab & valid_in,
+                            const Geometry & geom_ls) {
+
+    BL_PROFILE("LSFactory::union_data()");
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(data, true); mfi.isValid(); ++mfi){
+        Box tile_box = mfi.growntilebox();
+
+        const auto & valid_in_tile = valid_in[mfi];
+        const auto & ls_in_tile = data_in[mfi];
+        auto & v_tile = valid[mfi];
+        auto & ls_tile = data[mfi];
+
+        amrex_eb_update_levelset_intersection(tile_box.loVect(), tile_box.hiVect(),
+                                              BL_TO_FORTRAN_3D(valid_in_tile),
+                                              BL_TO_FORTRAN_3D(ls_in_tile),
+                                              BL_TO_FORTRAN_3D(v_tile),
+                                              BL_TO_FORTRAN_3D(ls_tile)              );
+    }
 }
 
 

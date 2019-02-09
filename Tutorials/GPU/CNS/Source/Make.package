@@ -1,8 +1,8 @@
 
 CEXE_sources += main.cpp
 
-CEXE_headers += CNS.H CNS_K.H CNS_index_macros.H CNS_tagging.H
-CEXE_sources += CNS_advance.cpp CNS.cpp CNSBld.cpp CNS_io.cpp CNS_setup.cpp CNS_bcfill.cpp
+CEXE_headers += CNS.H CNS_K.H CNS_index_macros.H CNS_tagging.H CNS_derive.H
+CEXE_sources += CNS_advance.cpp CNS.cpp CNSBld.cpp CNS_io.cpp CNS_setup.cpp CNS_bcfill.cpp CNS_derive.cpp
 
 CEXE_headers += CNS_parm.H
 CEXE_sources += CNS_parm.cpp

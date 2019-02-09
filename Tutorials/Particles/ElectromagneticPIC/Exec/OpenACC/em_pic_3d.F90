@@ -26,7 +26,7 @@ module em_particle_module
 end module em_particle_module
 
 subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
-     ex, ey, ez, bx, by, bz, q, m, dt)
+     ex, ey, ez, bx, by, bz, q, m, dt) bind(c,name='push_momentum_boris')
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
@@ -92,7 +92,8 @@ subroutine push_momentum_boris(np, uxp, uyp, uzp, gaminv, &
 end subroutine push_momentum_boris
 
 
-subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
+subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt) &
+        bind(c,name='push_position_boris')
 
   use em_particle_module, only : particle_t
   use amrex_fort_module, only : amrex_real
@@ -109,15 +110,16 @@ subroutine push_position_boris(np, structs, uxp, uyp, uzp, gaminv, dt)
   !$acc loop gang vector
   do ip = 1, np
      structs(ip)%pos(1) = structs(ip)%pos(1) + uxp(ip)*gaminv(ip)*dt
-     structs(ip)%pos(2) = structs(ip)%pos(2) + uxp(ip)*gaminv(ip)*dt
-     structs(ip)%pos(3) = structs(ip)%pos(3) + uxp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(2) = structs(ip)%pos(2) + uyp(ip)*gaminv(ip)*dt
+     structs(ip)%pos(3) = structs(ip)%pos(3) + uzp(ip)*gaminv(ip)*dt
   end do
   !$acc end loop
   !$acc end parallel
   
 end subroutine push_position_boris
 
-subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
+subroutine set_gamma(np, uxp, uyp, uzp, gaminv) &
+        bind(c,name='set_gamma')
 
   use amrex_fort_module, only : amrex_real
   use constants, only : clight
@@ -143,7 +145,8 @@ subroutine set_gamma(np, uxp, uyp, uzp, gaminv)
 end subroutine set_gamma
 
 subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, structs, &
-     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx)
+     uxp, uyp, uzp, gaminv, w, q, plo, dt, dx) &
+     bind(c,name='deposit_current')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -302,7 +305,8 @@ subroutine deposit_current(jx, jxlo, jxhi, jy, jylo, jyhi, jz, jzlo, jzhi, np, s
 end subroutine deposit_current
 
 subroutine gather_magnetic_field(np, structs, bx, by, bz, &
-     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx)
+     bxg, bxglo, bxghi, byg, byglo, byghi, bzg, bzglo, bzghi, plo, dx) &
+     bind(c,name='gather_magnetic_field')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -435,7 +439,8 @@ subroutine gather_magnetic_field(np, structs, bx, by, bz, &
 end subroutine gather_magnetic_field
 
 subroutine gather_electric_field(np, structs, ex, ey, ez, &
-     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx)
+     exg, exglo, exghi, eyg, eyglo, eyghi, ezg, ezglo, ezghi, plo, dx) &
+     bind(c,name='gather_electric_field')
 
   use em_particle_module, only: particle_t
   use amrex_fort_module, only : amrex_real
@@ -566,7 +571,8 @@ subroutine gather_electric_field(np, structs, ex, ey, ez, &
 end subroutine gather_electric_field
 
 subroutine push_electric_field_x(xlo, xhi, ex, exlo, exhi,               &
-     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz)
+     by, bylo, byhi, bz, bzlo, bzhi, jx, jxlo, jxhi, mudt, dtsdy, dtsdz) &
+     bind(c,name='push_electric_field_x')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -601,7 +607,8 @@ end subroutine push_electric_field_x
 
 subroutine push_electric_field_y(ylo, yhi, &
      ey, eylo, eyhi, bx, bxlo, bxhi, bz, bzlo, bzhi, &
-     jy, jylo, jyhi, mudt, dtsdx, dtsdz)
+     jy, jylo, jyhi, mudt, dtsdx, dtsdz) &
+     bind(c,name='push_electric_field_y')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -636,7 +643,8 @@ end subroutine push_electric_field_y
 
 subroutine push_electric_field_z(zlo, zhi, &
      ez,ezlo, ezhi, bx, bxlo, bxhi, by, bylo, byhi, &
-     jz, jzlo, jzhi, mudt, dtsdx, dtsdy)
+     jz, jzlo, jzhi, mudt, dtsdx, dtsdy) &
+     bind(c,name='push_electric_field_z')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -671,7 +679,8 @@ subroutine push_electric_field_z(zlo, zhi, &
 end subroutine push_electric_field_z
 
 subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
-     ez, ezlo, ezhi, dtsdy, dtsdz)
+     ez, ezlo, ezhi, dtsdy, dtsdz) &
+     bind(c,name='push_magnetic_field_x')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -703,7 +712,8 @@ subroutine push_magnetic_field_x(xlo, xhi, bx, bxlo, bxhi, ey, eylo, eyhi, &
 end subroutine push_magnetic_field_x
 
 subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
-     ez, ezlo, ezhi, dtsdx, dtsdz)
+     ez, ezlo, ezhi, dtsdx, dtsdz) &
+     bind(c,name='push_magnetic_field_y')
 
   use amrex_fort_module, only : amrex_real
   implicit none
@@ -735,7 +745,8 @@ subroutine push_magnetic_field_y(ylo, yhi, by, bylo, byhi, ex, exlo, exhi, &
 end subroutine push_magnetic_field_y
 
 subroutine push_magnetic_field_z(zlo, zhi, bz, bzlo, bzhi, ex, exlo, exhi, &
-     ey, eylo, eyhi, dtsdx, dtsdy)
+     ey, eylo, eyhi, dtsdx, dtsdy) &
+     bind(c,name='push_magnetic_field_z')
 
   use amrex_fort_module, only : amrex_real
   implicit none

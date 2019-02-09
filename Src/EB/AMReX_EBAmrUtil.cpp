@@ -40,4 +40,29 @@ TagCutCells (TagBoxArray& tags, const MultiFab& state)
     }
 }
 
+
+void
+TagVolfrac (TagBoxArray& tags, const MultiFab& volfrac, Real tol)
+{
+    BL_PROFILE("amrex::TagVolfrac()");
+
+    const char clearval = TagBox::CLEAR;
+    const char   tagval = TagBox::SET;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(volfrac, true); mfi.isValid(); ++mfi) {
+        const Box &    tilebox = mfi.tilebox();
+              TagBox & tagfab  = tags[mfi];
+
+        //_______________________________________________________________________
+        // Tag cells for refinement
+        amrex_tag_volfrac ( BL_TO_FORTRAN_BOX(tilebox),
+                            BL_TO_FORTRAN_ANYD(tagfab),
+                            BL_TO_FORTRAN_ANYD(volfrac[mfi]),
+                            tagval, clearval, tol );
+    }
+}
+
 }

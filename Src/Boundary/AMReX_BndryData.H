@@ -115,7 +115,7 @@ public:
     const Geometry& getGeom () const { return geom; }
 
     //! set values of boundary Fab for given orientation on nth grid
-    void setValue (Orientation face, int n, Real val) { bndry[face][n].setVal(val); }
+    void setValue (Orientation face, int n, Real val);
 
     //! set boundary type specifier for given orientation on nth grid
     void setBoundCond (Orientation     face,

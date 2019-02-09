@@ -7,18 +7,18 @@
 extern "C" {
 #endif
 
-
-#ifdef AMREX_USE_CUDA_FORTRAN
 AMREX_GPU_DEVICE void plusone_cudafort (const int* lo, const int* hi,
                                         amrex_real* dat, const int* dlo, const int* dhi);
-#endif
-
 
 #ifdef AMREX_USE_ACC
 void plusone_acc (const int* lo, const int* hi,
                   amrex_real* dat, const int* dlo, const int* dhi);
 #endif
 
+#ifdef AMREX_OMP_OFFLOAD
+void plusone_omp (const int* lo, const int* hi,
+                  amrex_real* dat, const int* dlo, const int* dhi);
+#endif
 
 #ifdef __cplusplus
 }

@@ -43,9 +43,9 @@ main (int argc, char** argv)
     }
 
 // Convert to references.
-// umap.nPts() returns a long, fort_umap_norm expects an int
+// umap.numPts() returns a long, fort_umap_norm expects an int
 // Keytable location may not be quite right
-    int npts = umap.nPts();
+    int npts = umap.numPts();
     int max_mv = umap.MaxMV();
     int ncomp = umap.nComp();
     Real norm =  amrex_fort_umap_norm(AMREX_ARLIM_3D(umap.box().loVect()), AMREX_ARLIM_3D(umap.box().hiVect()),

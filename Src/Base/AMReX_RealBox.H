@@ -24,11 +24,11 @@ public:
 
     //! Construct region given diagonal points.
     AMREX_GPU_HOST_DEVICE
-    RealBox (const Real* lo, const Real* hi)
-        : xlo{AMREX_D_DECL(lo[0],lo[1],lo[2])}, xhi{AMREX_D_DECL(hi[0],hi[1],hi[2])} {}
+    RealBox (const Real* a_lo, const Real* a_hi)
+        : xlo{AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2])}, xhi{AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])} {}
 
-    RealBox (const std::array<Real,AMREX_SPACEDIM>& lo,
-             const std::array<Real,AMREX_SPACEDIM>& hi);
+    RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
+             const std::array<Real,AMREX_SPACEDIM>& a_hi);
 
     /**
     * \brief Construct region given index box, cell spacing
@@ -83,7 +83,7 @@ public:
 #endif
             ;
     }
-    //! Returns the volume of the RealBox. If this RealBox is invalid, 
+    //! Returns the volume of the RealBox. If this RealBox is invalid,
     //! it's volume is considered to be zero.
     AMREX_GPU_HOST_DEVICE
     Real volume () const {
@@ -111,7 +111,7 @@ public:
                              || (xlo[1] > bx.xhi[1]) || (xhi[1] < bx.xlo[1]),
                              || (xlo[2] > bx.xhi[2]) || (xhi[2] < bx.xlo[2])));
     }
-    
+
 private:
     //
     // The data.
@@ -121,12 +121,10 @@ private:
 };
 
 //
-// Nice ASCII output.
-//
+//! Nice ASCII output.
 std::ostream& operator<< (std::ostream&, const RealBox&);
 //
-// Nice ASCII input.
-//
+//! Nice ASCII input.
 std::istream& operator>> (std::istream&, RealBox&);
 
 }

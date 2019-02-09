@@ -21,9 +21,7 @@ namespace amrex {
 //
 // Set default values in Initialize()!!!
 //
-bool    FabArrayBase::do_async_sends;
 int     FabArrayBase::MaxComp;
-int     FabArrayBase::use_cuda_aware_mpi;
 
 #if defined(AMREX_USE_GPU) && defined(AMREX_USE_GPU_PRAGMA)
 
@@ -86,7 +84,6 @@ FabArrayBase::Initialize ()
     //
     // Set default values here!!!
     //
-    FabArrayBase::do_async_sends    = true;
     FabArrayBase::MaxComp           = 25;
 
     ParmParse pp("fabarray");
@@ -109,21 +106,15 @@ FabArrayBase::Initialize ()
     }
 
     pp.query("maxcomp",             FabArrayBase::MaxComp);
-    pp.query("do_async_sends",      FabArrayBase::do_async_sends);
 
-    if (MaxComp < 1)
+    if (MaxComp < 1) {
         MaxComp = 1;
+    }
 
-#ifdef AMREX_USE_CUDA
-    FabArrayBase::use_cuda_aware_mpi = 1;
-    pp.query("use_cuda_aware_mpi", FabArrayBase::use_cuda_aware_mpi);
-#else
-    FabArrayBase::use_cuda_aware_mpi = 0;
-#endif
-    if (FabArrayBase::use_cuda_aware_mpi) {
+    if (ParallelDescriptor::UseGpuAwareMpi()) {
         the_fa_arena = The_Device_Arena();
     } else {
-        the_fa_arena = new BArena;
+        the_fa_arena = The_Pinned_Arena();
     }
 
     amrex::ExecOnFinalize(FabArrayBase::Finalize);
@@ -1399,9 +1390,6 @@ FabArrayBase::Finalize ()
     
     m_FA_stats = FabArrayStats();
 
-    if (!FabArrayBase::use_cuda_aware_mpi) {
-        delete the_fa_arena;
-    }
     the_fa_arena = nullptr;
 
     initialized = false;

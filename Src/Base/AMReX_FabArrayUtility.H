@@ -19,7 +19,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_sm(&sm, 1);
+        AsyncArray<value_type> as_sm(&sm, 1);
         value_type* d_sm = as_sm.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -79,7 +79,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_sm(&sm, 1);
+        AsyncArray<value_type> as_sm(&sm, 1);
         value_type* d_sm = as_sm.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -140,7 +140,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_sm(&sm, 1);
+        AsyncArray<value_type> as_sm(&sm, 1);
         value_type* d_sm = as_sm.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -196,12 +196,13 @@ typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type r = std::numeric_limits<value_type>::max();
+    constexpr value_type value_max = std::numeric_limits<value_type>::max();
+    value_type r = value_max;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -218,7 +219,11 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
+#else
+                value_type tmin = value_max;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab);
                     tmin = amrex::min(tmin, local_tmin);
@@ -256,12 +261,13 @@ typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type r = std::numeric_limits<value_type>::max();
+    constexpr value_type value_max = std::numeric_limits<value_type>::max();
+    value_type r = value_max;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -279,7 +285,11 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmin = std::numeric_limits<value_type>::max();
+#else
+                value_type tmin = value_max;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmin = f(tbx, *fab1, *fab2);
                     tmin = amrex::min(tmin, local_tmin);
@@ -317,12 +327,13 @@ typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
 {
     using value_type = typename FAB::value_type;
-    value_type r = std::numeric_limits<value_type>::lowest();
+    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
+    value_type r = value_lowest;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -339,7 +350,11 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F f)
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
+#else
+                value_type tmax = value_lowest;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab);
                     tmax = amrex::max(tmax, local_tmax);
@@ -377,12 +392,13 @@ typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f)
 {
     using value_type = typename FAB1::value_type;
-    value_type r = std::numeric_limits<value_type>::lowest();
+    constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
+    value_type r = value_lowest;
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<value_type> as_r(&r, 1);
+        AsyncArray<value_type> as_r(&r, 1);
         value_type* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -400,7 +416,11 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F f
                 value_type* block_r = gsm.dataPtr();
                 value_type* sdata = block_r + 1;
 
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
                 value_type tmax = std::numeric_limits<value_type>::lowest();
+#else
+                value_type tmax = value_lowest;
+#endif
                 for (auto const tbx : Gpu::Range(bx)) {
                     value_type local_tmax = f(tbx, *fab1, *fab2);
                     tmax = amrex::max(tmax, local_tmax);
@@ -442,7 +462,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -501,7 +521,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -560,7 +580,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F f)
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
@@ -619,7 +639,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion())
     {
-        Gpu::AsyncArray<int> as_r(&r, 1);
+        AsyncArray<int> as_r(&r, 1);
         int* d_r = as_r.data();
 
         for (MFIter mfi(fa1); mfi.isValid(); ++mfi)
@@ -692,6 +712,166 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
                 amrex::AllPrint() << " At cell " << cell << " in Box " << bx
                                   << ": " << ss.str() << std::endl;
 	    }
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) += srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Copy (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,dstcomp+n) = srcFab(i,j,k,srccomp+n);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Subtract(dst,src,srccomp,dstcomp,numcomp,nghost);
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) -= srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) *= srcFab(i,j,k,n+srccomp);
+            });
+        }
+    }
+}
+
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
+{
+    Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
+}
+
+template <class FAB,
+          class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
+{
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(dst,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        if (bx.ok())
+        {
+            auto const srcFab = src.array(mfi);
+            auto       dstFab = dst.array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, numcomp, i, j, k, n,
+            {
+                dstFab(i,j,k,n+dstcomp) /= srcFab(i,j,k,n+srccomp);
+            });
         }
     }
 }

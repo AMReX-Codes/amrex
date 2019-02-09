@@ -9,28 +9,28 @@ module amrex_abec_module
 contains
 
 !-----------------------------------------------------------------------
-!      
-!     LINESOLVE 
-!     Apply the line solve to the state phi for the equation
-!     L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)
-!     central differenced, according to the arrays of boundary
-!     masks (m#) and auxiliary data (f#).
-!     
-!     In general, if the linear operator L=gamma*y-rho, the GS relaxation
-!     is y = (R - rho)/gamma.  Near a boundary, the ghost data is filled
-!     using a polynomial interpolant based on the "old" phi values, so
-!     L=(gamma-delta)*y - rho + delta*yOld.   The resulting iteration is
-!     
-!     y = (R - delta*yOld + rho)/(gamma - delta)
-!     
-!     This expression is valid additionally in the interior provided
-!     delta->0 there.  delta is constructed by summing all the
-!     contributions to the central stencil element coming from boundary 
-!     interpolants.  The f#s contain the corresponding coefficient of 
-!     the interpolating polynomial.  The masks are set > 0 if the boundary 
-!     value was filled with an interpolant involving the central stencil 
-!     element.
-!     
+!>
+!>     LINESOLVE
+!>     Apply the line solve to the state phi for the equation
+!>     ``L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)``
+!>     central differenced, according to the arrays of boundary
+!>     masks (m#) and auxiliary data (f#).
+!>
+!>     In general, if the linear operator`` L=gamma*y-rho``, the GS relaxation
+!>     is ``y = (R - rho)/gamma``.  Near a boundary, the ghost data is filled
+!>     using a polynomial interpolant based on the "old" phi values, so
+!>     ``L=(gamma-delta)*y - rho + delta*yOld``.   The resulting iteration is
+!>
+!>     ``y = (R - delta*yOld + rho)/(gamma - delta)``
+!>
+!>     This expression is valid additionally in the interior provided
+!>     delta->0 there.  delta is constructed by summing all the
+!>     contributions to the central stencil element coming from boundary
+!>     interpolants.  The f#s contain the corresponding coefficient of
+!>     the interpolating polynomial.  The masks are set > 0 if the boundary
+!>     value was filled with an interpolant involving the central stencil
+!>     element.
+!>
 !-----------------------------------------------------------------------
     subroutine amrex_abec_linesolve ( &
            phi,phi_l1,phi_h1, &
@@ -88,14 +88,14 @@ contains
       dhx = beta/h(1)**2
       do n = 1, nc
              do i = lo(1), hi(1)
-     
+
                cf0 = merge(f0(lo(1)), 0.0D0, &
                     (i .eq. lo(1)) .and. (m0(lo(1)-1).gt.0))
                cf2 = merge(f2(hi(1)), 0.0D0, &
                     (i .eq. hi(1)) .and. (m2(hi(1)+1).gt.0))
-     
+
                delta = dhx*(bX(i)*cf0 + bX(i+1)*cf2)
-     
+
                gamma = alpha*a(i) + dhx*( bX(i) + bX(i+1) )
 
                a_ls(i-lo(1)) = -dhx*bX(i)
@@ -120,9 +120,9 @@ contains
     end subroutine amrex_abec_linesolve
 
 !-----------------------------------------------------------------------
-!
-!     Fill in a matrix x vector operator here
-!
+!>
+!>     Fill in a matrix x vector operator here
+!>
     subroutine amrex_abec_adotx( &
            y,y_l1,y_h1, &
            x,x_l1,x_h1, &
@@ -162,9 +162,9 @@ contains
     end subroutine amrex_abec_adotx
 
 !-----------------------------------------------------------------------
-!
-!     Fill in a matrix x vector operator here
-!
+!>
+!>     Fill in a matrix x vector operator here
+!>
     subroutine amrex_abec_norma( &
            res, &
            alpha, beta, &
@@ -201,9 +201,9 @@ contains
     end subroutine amrex_abec_norma
 
 !-----------------------------------------------------------------------
-!
-!     Fill in fluxes
-!
+!>
+!>     Fill in fluxes
+!>
     subroutine amrex_abec_flux( &
            x,x_l1,x_h1, &
            alpha, beta, &

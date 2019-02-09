@@ -43,14 +43,8 @@ namespace amrex {
 //! Parallel frontend that abstracts functionalities needed to spawn processes and handle communication
 namespace ParallelDescriptor
 {
-#ifdef BL_USE_MPI3
-    extern MPI_Win cp_win;
-    extern MPI_Win fb_win;
-#endif
-
     //
-    // Used as default argument to ParallelDescriptor::Barrier().
-    //
+    //! Used as default argument to ParallelDescriptor::Barrier().
     const std::string Unnamed("Unnamed");
 
     //! Hold the description and status of communication data
@@ -94,12 +88,15 @@ namespace ParallelDescriptor
 			char*** argv = 0,
                         MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
+    void Initialize ();
+    void Finalize ();
+
+    extern int use_gpu_aware_mpi;
+    inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
+
     //! Split the process pool into teams
     void StartTeams ();
     void EndTeams ();
-
-    //! Return true if MPI one sided is enabled
-    bool MPIOneSided ();
 
     /**
     * \brief Perform any needed parallel finalization.  This MUST be the

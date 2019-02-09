@@ -15,14 +15,18 @@ amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
            amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto state = statefab.view(lo);
+    const auto lo = amrex::lbound(bx);
+    const auto hi = amrex::ubound(bx);
+    const auto state = statefab.array();
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     amrex::Real dt = std::numeric_limits<amrex::Real>::max();
+#else
+    amrex::Real dt = 1.e37;
+#endif
 
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 amrex::Real rho = state(i,j,k,URHO);
                 amrex::Real mx  = state(i,j,k,UMX);
                 amrex::Real my  = state(i,j,k,UMY);
@@ -49,25 +53,14 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
 AMREX_GPU_DEVICE
 inline
 void
-cns_compute_temperature (amrex::Box const& bx, amrex::FArrayBox& statefab)
+cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u)
 {
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto u = statefab.view(lo);
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                amrex::Real rhoinv = 1.0/u(i,j,k,URHO);
-                amrex::Real mx = u(i,j,k,UMX);
-                amrex::Real my = u(i,j,k,UMY);
-                amrex::Real mz = u(i,j,k,UMZ);
-                u(i,j,k,UEINT) = u(i,j,k,UEDEN) - 0.5 * rhoinv * (mx*mx+my*my+mz*mz);
-                u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (1.0/Parm::cv);
-            }
-        }
-    }
+    amrex::Real rhoinv = 1.0/u(i,j,k,URHO);
+    amrex::Real mx = u(i,j,k,UMX);
+    amrex::Real my = u(i,j,k,UMY);
+    amrex::Real mz = u(i,j,k,UMZ);
+    u(i,j,k,UEINT) = u(i,j,k,UEDEN) - 0.5 * rhoinv * (mx*mx+my*my+mz*mz);
+    u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (1.0/Parm::cv);
 }
 
 #endif

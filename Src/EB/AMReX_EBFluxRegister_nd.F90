@@ -1,11 +1,13 @@
 module amrex_eb_flux_reg_nd_module
   use amrex_fort_module, only : amrex_real
-  use amrex_ya_flux_reg_nd_module, only : crse_cell, crse_fine_boundary_cell, fine_cell
   implicit none
 
   public
 
-  real(amrex_real), save, public :: reredistribution_threshold = 1.d-14
+  integer, parameter :: crse_cell = 0
+  integer, parameter :: crse_fine_boundary_cell = 1
+  integer, parameter :: fine_cell = 2
+  real(amrex_real), save :: reredistribution_threshold = 1.d-14
 
 contains
 

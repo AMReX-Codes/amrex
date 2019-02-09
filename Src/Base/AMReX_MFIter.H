@@ -30,7 +30,7 @@ struct MFItInfo
     bool do_tiling;
     bool dynamic;
     IntVect tilesize;
-    MFItInfo () 
+    MFItInfo ()
         : do_tiling(false), dynamic(false), tilesize(IntVect::TheZeroVector()) {}
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) {
         do_tiling = true;
@@ -48,44 +48,44 @@ class MFIter
 public:
     //! Flags that specify tiling modes. All these flags are off by default.
     enum Flags {
-        //!Tiling: Enabling the tiling mode 
+        //!Tiling: Enabling the tiling mode
         Tiling        = 0x01,
-        /** 
+        /**
         * \brief AllBoxes: If on, all threads/workers loop over all boxes without tiling.
         * This essentially loops over indexMap.
         * Note that many functions won't work with this.
         */
-        AllBoxes      = 0x02, 
+        AllBoxes      = 0x02,
         //! NoTeamBarrier: This option is for Team only. If on, there is no barrier in MFIter dtor.
-        NoTeamBarrier = 0x04, 
+        NoTeamBarrier = 0x04,
         //! SkipInit: Used by MFGhostIter
-	SkipInit      = 0x08  
+	SkipInit      = 0x08
     };
 
 #ifdef AMREX_USE_GPU
     enum MFReducer { SUM = 0, MAX, MIN };
 #endif
 
-    /** 
-    * \brief The default constructor does not enable tiling (flags_ is set to 0 by default). 
-    * However, the tiling mode can be enabled by explicitly turning the tiling flag on (i.e. flags_ = Tiling). 
+    /**
+    * \brief The default constructor does not enable tiling (flags_ is set to 0 by default).
+    * However, the tiling mode can be enabled by explicitly turning the tiling flag on (i.e. flags_ = Tiling).
     * The tile size in this case is defined by FabArrayBase::mfiter_tile_size
     */
     explicit MFIter (const FabArrayBase& fabarray,
 		     unsigned char       flags_=0);
 
     //! Enable tiling with the default tile size, which is defined by FabArrayBase::mfiter_tile_size
-    MFIter (const FabArrayBase& fabarray, 
-	    bool                do_tiling); 
+    MFIter (const FabArrayBase& fabarray,
+	    bool                do_tiling);
 
     //! Enable tiling with explicit tile size and flags (See type Flags for more information)
-    MFIter (const FabArrayBase& fabarray, 
+    MFIter (const FabArrayBase& fabarray,
 	    const IntVect&      tilesize,
 	    unsigned char       flags_=0);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_=0);
 
-    MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling); 
+    MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling);
 
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
 	    const IntVect& tilesize, unsigned char flags_=0);
@@ -128,20 +128,7 @@ public:
     Box fabbox () const { return fabArray.fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
-#if defined(_OPENMP)
-    void operator++ () {
-        if (dynamic) {
-#pragma omp atomic capture
-            currentIndex = nextDynamicIndex++;
-        } else {
-            ++currentIndex;
-        }
-    }
-#elif !defined(AMREX_USE_GPU)
-    void operator++ () { ++currentIndex; }
-#else
     void operator++ ();
-#endif
 
     //! Is the iterator valid i.e. is it associated with a FAB?
     bool isValid () const { return currentIndex < endIndex; }
@@ -154,7 +141,7 @@ public:
 
     //! The current local tile index in the current grid;
     int LocalTileIndex () const {return local_tile_index_map ? (*local_tile_index_map)[currentIndex] : 0;}
-  
+
     //! The the number of tiles in the current grid;
     int numLocalTiles() const {return num_local_tiles ? (*num_local_tiles)[currentIndex] : 1;}
 
@@ -184,7 +171,7 @@ public:
 
 protected:
 
-    std::unique_ptr<FabArray<FArrayBox> > m_fa;  // This must be the first memeber!
+    std::unique_ptr<FabArray<FArrayBox> > m_fa;  //!< This must be the first memeber!
 
     const FabArrayBase& fabArray;
 
@@ -215,7 +202,7 @@ protected:
 #endif
 
     static int nextDynamicIndex;
-  
+
     void Initialize ();
 };
 

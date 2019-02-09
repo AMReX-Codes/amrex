@@ -121,23 +121,25 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     fabArray(*m_fa),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
-    dynamic(info.dynamic),
+#ifdef _OPENMP
+    dynamic(info.dynamic && (omp_get_num_threads() > 1)),
+#else
+    dynamic(false),
+#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-    if (dynamic) {
 #ifdef _OPENMP
+    if (dynamic) {
 #pragma omp barrier
 #pragma omp single
         nextDynamicIndex = omp_get_num_threads();
         // yes omp single has an implicit barrier and we need it because nextDynamicIndex is static.
-#else
-        dynamic = false;  // dynamic doesn't make sense if OMP is not used.
-#endif
     }
+#endif
 
     Initialize();
 }
@@ -147,23 +149,25 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     fabArray(fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
-    dynamic(info.dynamic),
+#ifdef _OPENMP
+    dynamic(info.dynamic && (omp_get_num_threads() > 1)),
+#else
+    dynamic(false),
+#endif
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
     local_tile_index_map(nullptr),
     num_local_tiles(nullptr)
 {
-    if (dynamic) {
 #ifdef _OPENMP
+    if (dynamic) {
 #pragma omp barrier
 #pragma omp single
         nextDynamicIndex = omp_get_num_threads();
         // yes omp single has an implicit barrier and we need it because nextDynamicIndex is static.
-#else
-        dynamic = false;  // dynamic doesn't make sense if OMP is not used.
-#endif
     }
+#endif
 
     Initialize();
 }
@@ -417,43 +421,70 @@ MFIter::growntilebox (const IntVect& ng) const
 Box
 MFIter::grownnodaltilebox (int dir, int a_ng) const
 {
+    IntVect ngv(a_ng);
+    if (a_ng < -100) ngv = fabArray.nGrowVect();
+    return grownnodaltilebox(dir, ngv);
+}
+
+Box
+MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const
+{
     BL_ASSERT(dir < AMREX_SPACEDIM);
     Box bx = nodaltilebox(dir);
-    IntVect ngv{a_ng};
-    if (a_ng < -100) ngv = fabArray.nGrowVect();
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	if (bx.smallEnd(d) == vbx.smallEnd(d)) {
-	    bx.growLo(d, ngv[d]);
+	    bx.growLo(d, a_ng[d]);
 	}
 	if (bx.bigEnd(d) >= vbx.bigEnd(d)) {
-	    bx.growHi(d, ngv[d]);
+	    bx.growHi(d, a_ng[d]);
 	}
     }
     return bx;
 }
 
-#if !defined(_OPENMP) && defined(AMREX_USE_GPU)
 void
 MFIter::operator++ ()
 {
-    if (Gpu::inLaunchRegion()) {
-        if (real_reduce_list.size() == currentIndex + 1) {
-            Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex],
-                                             real_device_reduce_list[currentIndex],
-                                             sizeof(Real));
-        }
+#ifdef _OPENMP
+    int numOmpThreads = omp_get_num_threads();
+#else
+    int numOmpThreads = 1;
+#endif
+
+#ifdef _OPENMP
+    if (dynamic)
+    {
+#pragma omp atomic capture
+        currentIndex = nextDynamicIndex++;
     }
+    else
+#endif
+    {
+#ifdef AMREX_USE_GPU
+        bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
+        if (use_gpu) {
+            if (real_reduce_list.size() == currentIndex + 1) {
+                Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex],
+                                               real_device_reduce_list[currentIndex],
+                                               sizeof(Real));
+            }
+        }
+#endif
 
-    ++currentIndex;
+        ++currentIndex;
 
-    Gpu::Device::setStreamIndex(currentIndex);
-    AMREX_GPU_ERROR_CHECK();
+#ifdef AMREX_USE_GPU
+        if (use_gpu) {
+            Gpu::Device::setStreamIndex(currentIndex);
+            AMREX_GPU_ERROR_CHECK();
 #ifdef DEBUG
-    Gpu::Device::synchronize();
+            Gpu::Device::synchronize();
 #endif
+        }
+#endif
+    }
 }
-#endif
 
 #ifdef AMREX_USE_GPU
 Real*

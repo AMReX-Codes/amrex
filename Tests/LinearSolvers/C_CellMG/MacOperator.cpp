@@ -8,10 +8,6 @@
 #include <AMReX_MultiGrid.H>
 #include <AMReX_ParmParse.H>
 
-#include <AMReX_MGT_Solver.H>
-#include <AMReX_stencil_types.H>
-#include <mg_cpp_f.h>
-
 using namespace amrex;
 
 #ifndef _NavierStokes_H_
@@ -392,70 +388,6 @@ mac_level_driver (AmrCore*        parent,
     {
         amrex::Error("mac_level_driver::HypreABec not in this build");
     }
-    else if (the_solver == 3 ) 
-    {
-        Vector<BoxArray> bav(1);
-        bav[0] = mac_phi->boxArray();
-        Vector<DistributionMapping> dmv(1);
-        dmv[0] = Rhs.DistributionMap();
-        bool nodal = false;
-	int stencil = CC_CROSS_STENCIL;
-        Vector<Geometry> geom(1);
-        geom[0] = mac_bndry.getGeom();
-
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        { 
-            if ( geom[0].isPeriodic(i) )
-            {
-                mg_bc[i*2 + 0] = 0;
-                mg_bc[i*2 + 1] = 0;
-            }
-            else
-            {
-                mg_bc[i*2 + 0] = phys_bc.lo(i)==PhysBCType::outflow? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = phys_bc.hi(i)==PhysBCType::outflow? MGT_BC_DIR : MGT_BC_NEU;
-            }
-        }
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
-
-        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Vector< Vector<Real> > xa(1);
-        Vector< Vector<Real> > xb(1);
- 
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
- 
-        if (level == 0) {
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.;
-            xb[0][i] = 0.;
-          }
-        } else {
-          const Real* dx_crse   = parent->Geom(level-1).CellSize();
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.5 * dx_crse[i];
-            xb[0][i] = 0.5 * dx_crse[i];
-          }
-        }
-
-        // Set alpha and beta as in (alpha - del dot beta grad)
-	Vector<Vector<MultiFab*> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM);
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0][i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
-        }
-
-        mgt_solver.set_mac_coefficients(bb_p, xa, xb);
-
-	Vector<MultiFab*> mac_phi_p = { mac_phi };
-	Vector<MultiFab*> Rhs_p = { &Rhs };
-
-	int always_use_bnorm = 0;
-        Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
-    }
     else
     {
         MultiGrid mac_mg(mac_op);
@@ -511,71 +443,6 @@ mac_sync_driver (AmrCore*            parent,
     else if ( the_solver == 2 )
     {
         amrex::Error("mac_sync_driver: HypreABec not in this build");
-    }
-    else if (the_solver == 3 )
-    {
-        Vector<BoxArray> bav(1);
-        bav[0] = mac_sync_phi->boxArray();
-        Vector<DistributionMapping> dmv(1);
-        dmv[0] = Rhs.DistributionMap();
-        bool nodal = false;
-	int stencil = CC_CROSS_STENCIL;
-        Vector<Geometry> geom(1);
-        geom[0] = mac_bndry.getGeom();
-
-        int mg_bc[2*BL_SPACEDIM];
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        { 
-            if ( geom[0].isPeriodic(i) )
-            {
-                mg_bc[i*2 + 0] = 0;
-                mg_bc[i*2 + 1] = 0;
-            }
-            else
-            {
-                mg_bc[i*2 + 0] = phys_bc.lo(i)==PhysBCType::outflow? MGT_BC_DIR : MGT_BC_NEU;
-                mg_bc[i*2 + 1] = phys_bc.hi(i)==PhysBCType::outflow? MGT_BC_DIR : MGT_BC_NEU;
-            }
-        }
-
-        MGT_Solver mgt_solver(geom, mg_bc, bav, dmv, nodal, stencil);
-
-        // Set xa and xb locally so we don't have to pass the mac_bndry to set_mac_coefficients
-        Vector< Vector<Real> > xa(1);
-        Vector< Vector<Real> > xb(1);
- 
-        xa[0].resize(BL_SPACEDIM);
-        xb[0].resize(BL_SPACEDIM);
- 
-        if (level == 0) {
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.;
-            xb[0][i] = 0.;
-          }
-        } else {
-          const Real* dx_crse   = parent->Geom(level-1).CellSize();
-          for ( int i = 0; i < BL_SPACEDIM; ++i ) {
-            xa[0][i] = 0.5 * dx_crse[i];
-            xb[0][i] = 0.5 * dx_crse[i];
-          }
-        }
-
-        // Set alpha and beta as in (alpha - del dot beta grad)
-	Vector<Vector<MultiFab*> > bb_p(1);
-	bb_p[0].resize(BL_SPACEDIM);
-        for ( int i = 0; i < BL_SPACEDIM; ++i )
-        {
-            bb_p[0][i] = const_cast<MultiFab*>(&(mac_op.bCoefficients(i)));
-        }
-
-        mgt_solver.set_mac_coefficients(bb_p, xa, xb);
-
-        Vector<MultiFab*> mac_phi_p = { mac_sync_phi };
-        Vector<MultiFab*> Rhs_p = { &Rhs };
-
-	int always_use_bnorm = 0;
-        Real final_resnorm;
-        mgt_solver.solve(mac_phi_p, Rhs_p, mac_bndry, mac_sync_tol, mac_abs_tol, always_use_bnorm, final_resnorm);
     }
     else
     {
