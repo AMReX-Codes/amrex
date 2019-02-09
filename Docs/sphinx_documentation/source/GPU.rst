@@ -465,6 +465,11 @@ that uses CUDA managed memory. This is provided by :cpp:`Gpu::ManagedDeviceVecto
 :cpp:`thrust::copy` is also commonly used in AMReX applications. It can be
 implemented portably using :cpp:`Gpu::thrust_copy`. 
 
+:cpp:`Gpu::DeviceVector` and :cpp:`Gpu::ManagedDeviceVector` are configured to 
+use the memory Arenas provided by AMReX (see :ref:`sec:gpu:memory:`). This
+means that you can create temporary versions of these containers on-the-fly
+without needing to performance expensive device memory allocate and free
+operations. 
 
 amrex::min and amrex::max
 -------------------------
