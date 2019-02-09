@@ -44,6 +44,7 @@ public:
     IntVect nGrowVect (int level) const { return m_ngrow[level]; }
 
     MultiFab get (int level);
+    MultiFab get (int level, std::string const& varname);
 
 private:
     std::string m_plotfile_name;
@@ -62,6 +63,7 @@ private:
     Vector<Array<Real,AMREX_SPACEDIM> > m_cell_size;
     int m_coordsys;
     Vector<std::string> m_mf_name;
+    Vector<std::unique_ptr<VisMF> > m_vismf;
     Vector<BoxArray> m_ba;
     Vector<DistributionMapping> m_dmap;
     Vector<IntVect> m_ngrow;
