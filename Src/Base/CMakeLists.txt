@@ -101,6 +101,8 @@ add_sources( AMReX_BCRec.H AMReX_PhysBCFunct.H AMReX_BC_TYPES.H AMReX_BCUtil.H )
 # 
 add_sources( AMReX_PlotFileUtil.cpp )
 add_sources( AMReX_PlotFileUtil.H )
+add_sources( AMReX_PlotFileDataImpl.H )
+add_sources( AMReX_PlotFileDataImpl.cpp )
 
 #
 # Fortran interface routines.
