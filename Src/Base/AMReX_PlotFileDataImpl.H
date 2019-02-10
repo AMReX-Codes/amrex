@@ -56,9 +56,9 @@ private:
     int m_spacedim;
     Real m_time;
     int m_finest_level, m_nlevels;
-    Array<Real,AMREX_SPACEDIM> m_prob_lo {AMREX_D_DECL(0.,0.,0.)};
-    Array<Real,AMREX_SPACEDIM> m_prob_hi {AMREX_D_DECL(1.,1.,1.)};
-    Array<Real,AMREX_SPACEDIM> m_prob_size {AMREX_D_DECL(1.,1.,1.)};
+    Array<Real,AMREX_SPACEDIM> m_prob_lo {{AMREX_D_DECL(0.,0.,0.)}};
+    Array<Real,AMREX_SPACEDIM> m_prob_hi {{AMREX_D_DECL(1.,1.,1.)}};
+    Array<Real,AMREX_SPACEDIM> m_prob_size {{AMREX_D_DECL(1.,1.,1.)}};
     Vector<int> m_ref_ratio;
     Vector<Box> m_prob_domain;
     Vector<int> m_level_steps;
