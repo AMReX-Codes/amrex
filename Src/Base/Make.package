@@ -62,6 +62,9 @@ C$(AMREX_BASE)_sources += AMReX_CudaAsyncFabImpl.cpp
 C$(AMREX_BASE)_headers += AMReX_CudaAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_CudaAsyncArray.cpp
 
+C$(AMREX_BASE)_headers += AMReX_CudaElixir.H
+C$(AMREX_BASE)_sources += AMReX_CudaElixir.cpp
+
 #
 # I/O stuff.
 #
