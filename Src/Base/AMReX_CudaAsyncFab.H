@@ -40,6 +40,7 @@ public:
     void clear ();
     AMREX_GPU_HOST_DEVICE FArrayBox* fabPtr () const { return m_fab; }
     AMREX_GPU_HOST_DEVICE FArrayBox& fab () const { return *m_fab; }
+    FArrayBox& hostFab () const;
 
     Array4<Real const> array () const;
     Array4<Real> array ();
