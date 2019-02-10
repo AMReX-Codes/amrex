@@ -177,5 +177,6 @@ add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
 add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
+add_sources( AMReX_CudaElixir.H AMReX_CudaElixir.cpp )
 #endif()
 

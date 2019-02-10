@@ -232,6 +232,8 @@ public:
     void resize (const Box& b,
                  int        N = 1);
 
+    Elixir elixir ();
+
     /**
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
@@ -1997,7 +1999,7 @@ BaseFab<T>::resize (const Box& b,
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0)
+    if (this->dptr == 0 || !this->ptr_owner)
     {
 	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
@@ -2013,6 +2015,15 @@ BaseFab<T>::resize (const Box& b,
 
         define();
     }
+}
+
+template <class T>
+Elixir
+BaseFab<T>::elixir ()
+{
+    bool o = this->ptr_owner;
+    this->ptr_owner = false;
+    return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
 }
 
 template <class T>
