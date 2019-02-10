@@ -16,7 +16,7 @@ ifeq ($(strip $(programs)),)
   programs += fboxinfo
   programs += fcompare
 #  programs += fextract
-#  programs += fextreama
+  programs += fextreama
   programs += fnan
 #  programs += fparticlecompare
 #  programs += fsnapshot
