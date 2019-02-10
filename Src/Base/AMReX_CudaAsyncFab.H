@@ -27,6 +27,10 @@ public:
     AsyncFab (AsyncFab const& rhs) = delete;
 #endif
 
+    AsyncFab (AsyncFab&& rhs) : m_impl(rhs.m_impl), m_fab(rhs.m_fab) {
+        rhs.m_impl = nullptr;  rhs.m_fab = nullptr;
+    }
+
     AMREX_GPU_HOST_DEVICE
     ~AsyncFab () {
 #ifndef __CUDA_ARCH__
