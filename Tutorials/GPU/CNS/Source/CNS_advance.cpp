@@ -75,6 +75,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                             S.DistributionMap(), ncomp, 0);
     }
 
+    FArrayBox qtmp, slopetmp;
     for (MFIter mfi(S); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -86,7 +87,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
                      auto const& fzfab = fluxes[2].array(mfi););
 
         const Box& bxg2 = amrex::grow(bx,2);
-        AsyncFab q(bxg2, nprim);
+        AsyncFab q(qtmp,bxg2, nprim);
         auto const& qfab = q.array();
 
         AMREX_PARALLEL_FOR_3D ( bxg2, i, j, k,
@@ -95,7 +96,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
         });
 
         const Box& bxg1 = amrex::grow(bx,1);
-        AsyncFab slope(bxg1,neqns);
+        AsyncFab slope(slopetmp,bxg1,neqns);
         auto const& slopefab = slope.array();
 
         // x-direction
@@ -140,6 +141,7 @@ CNS::compute_dSdt (const MultiFab& S, MultiFab& dSdt, Real dt,
             for (int n = neqns; n < ncons; ++n) fzfab(i,j,k,n) = 0.0;
         });
 
+        // don't have to do this, but we could
         q.clear(); // don't need them anymore
         slope.clear();
 
