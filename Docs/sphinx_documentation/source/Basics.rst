@@ -1990,15 +1990,16 @@ that is readable and easy to implement. An example is given below:
 
     void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2)
     {
-        const auto len = length(bx);
-        const auto lo  = lbound(bx);
-        const auto dst = fab1.view(lo);
-        const auto src = fab2.view(lo);
+        const Dim3 lo = amrex::lbound(bx);
+        const Dim3 hi = amrex::hbound(bx);
 
-        for         (int k = 0; k < len.z; ++k) {
-            for     (int j = 0; j < len.y; ++j) {
+        const Array4<Real> src = fab1.array();
+        const Array4<Real> dst = fab2.array();
+
+        for         (int k = lo.z; k < hi.z; ++k) {
+            for     (int j = lo.y; j < hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
-                for (int i = 0; i < len.x; ++i) {
+                for (int i = lo.x; i < hi.x; ++i) {
                     dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k))
                 }
             }
@@ -2011,40 +2012,35 @@ that is readable and easy to implement. An example is given below:
         f(box, mf1[mfi], mf2[mfi]);
     }
 
-A :cpp:`Box` and two :cpp:`FArrayBox`\ es are passed to a C++ kernel 
-function.  In the function, :cpp:`amrex::length` is called to calculate
-and store the three-dimensional length of the loops based on the size
-of ``bx``. :cpp:`amrex::lbound` is called to get the lower bound of 
-the :cpp:`Box`.  Both functions' return type is :cpp:`amrex::Dim3`, a 
-Plain Old Data type containing three integers.  The result of 
-:cpp:`amrex::lbound` is then passed to :cpp:`FArrayBox::view` to 
-create a :cpp:`FabView<FArrayBox>` that can be used to access the data.
+A :cpp:`Box` and two :cpp:`FArrayBox`\es are passed to a C++ kernel 
+function.  In the function, :cpp:`amrex::lbound` and :cpp:`amrex::hbound`
+are called to get the start and end of the loops from :cpp:`Box::smallend()`
+and :cpp:`Box::bigend` of ``bx``.  Both functions return a 
+:cpp:`amrex::Dim3`, a Plain Old Data (POD) type containing three integers.
+The individual components are accessed by using :cpp:`.x`, :cpp:`.y` and
+:cpp:`.z`, as shown in the :cpp:`for` loops. 
 
-:cpp:`FabView<FArrayBox>` is an AMReX class that contains a pointer to the
-appropriate place in the global :cpp:`FArrayBox` as well as an 
-:cpp:`operator()` that translates the three dimensional coordinates to 
-the appropriate location in the one-dimensional array.  It also translates
-between the global domain contained in the :cpp:`FArrayBox` and the local
-work space defined by the :cpp:`lo` array.   
+`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
+designed as an independent, :cpp:`operator()` based accessor to the
+:cpp:`BaseFab` data. :cpp:`Array4` is an AMReX class that contains a
+pointer to the :cpp:`FArrayBox` data and two :cpp:`Dim3` vectors that
+contain the bounds of the :cpp:`FArrayBox`.  The bounds are stored to 
+properly translate the three dimensional coordinates to the appropriate
+location in the one-dimensional array.  :cpp:`Array4`\'s :cpp:`operator()` 
+can also take a fourth integer to access across states of the 
+:cpp:`FArrayBox` and can be used in lower dimensions by passing `0` to
+the higher order dimensions.
 
-We put ``AMREX_PRAGMA_SIMD`` macro above the innermost loop to notify
-the compiler that it is safe to vectorize the loop.  This should be done
-whenever possible to achieve the best performacne. The macro generates
-a compiler dependent pragma and their exact effect on the compiler is
-also compiler dependent.  It should be emphasized that using the
-``AMREX_PRAGMA_SIMD`` macro on loops that are not safe for vectorization
-will lead to a variety of errors, so if unsure about the loop, test and
-verify before adding the macro.
+The ``AMREX_PRAGMA_SIMD`` macro is placed in the innermost loop to notify
+the compiler that loop iterations are independent and it is safe to
+vectorize the loop.  This should be done whenever possible to achieve the
+best performance. Be aware: the macro generates a compiler dependent
+pragma, so their exact effect on the resulting code is also compiler
+dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
+macro on loops that are not safe for vectorization will lead to a variety
+of errors, so if unsure about the independence of the iterations of a
+loop, test and verify before adding the macro.
 
-Note that the view is shifted such that index 0 points to the lower 
-end of the :cpp:`Box`.  To obtain the global index, the values needs to
-shifted back using the appropriate :cpp:`lo`. In the case of the example
-above, the global indices are: ``(i+lo.x, j+lo.y, k+lo.z)``. 
-
-Also: be careful to use the appropriate :cpp:`lo` array for each 
-:cpp:`FabView` object. If the loop works on two different global ranges,
-each :cpp:`FabView` object must be created with the corresponding 
-:cpp:`lo` to obtain the correct data pointers.
 
 Ghost Cells
 ===========
