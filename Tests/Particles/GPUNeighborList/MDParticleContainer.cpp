@@ -380,7 +380,7 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
                     }
                     pstruct[i].rdata(idim) *= -1; // flip velocity
                 }
-            }        
+            }
         });
-    }        
+    }
 }
