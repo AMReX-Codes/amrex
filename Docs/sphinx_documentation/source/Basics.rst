@@ -2000,7 +2000,7 @@ that is readable and easy to implement. An example is given below:
             for     (int j = lo.y; j < hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i < hi.x; ++i) {
-                    dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k))
+                    dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k));
                 }
             }
         }
