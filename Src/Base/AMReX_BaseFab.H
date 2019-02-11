@@ -2023,6 +2023,13 @@ BaseFab<T>::elixir ()
 {
     bool o = this->ptr_owner;
     this->ptr_owner = false;
+    if (o && this->dptr) {
+        if (this->nvar > 1) {
+            amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+        } else {
+            amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+        }
+    }
     return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
 }
 
