@@ -72,13 +72,12 @@ void main_main()
                     vvmax[ivar] = mf.max(0,0,false);
                 }
             } else {
-                MultiFab cmf(pf.boxArray(ilev), pf.DistributionMap(ilev),
-                             1, 0, MFInfo().SetAlloc(false));
                 IntVect ratio{pf.refRatio(ilev)};
                 for (int idim = dim; idim < AMREX_SPACEDIM; ++idim) {
                     ratio[idim] = 1;
                 }
-                iMultiFab mask = makeFineMask(cmf, pf.boxArray(ilev+1), ratio);
+                iMultiFab mask = makeFineMask(pf.boxArray(ilev), pf.DistributionMap(ilev),
+                                              pf.boxArray(ilev+1), ratio);
                 for (int ivar = 0; ivar < var_names.size(); ++ivar) {
                     MultiFab mf = pf.get(ilev, var_names[ivar]);
                     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
