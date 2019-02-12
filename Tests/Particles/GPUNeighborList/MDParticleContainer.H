@@ -44,6 +44,15 @@ public:
     void moveParticles(const amrex::Real& dt);
 
 protected:
+ 
+    void buildNeighborMask();
+
+    void sortParticlesByNeighborDest();
+
+    // These are used to keep track of which particles need to be ghosted to which grids
+    bool m_neighbor_mask_initialized = false;
+    std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
+    std::map<int, std::vector<std::vector<int> > > m_grid_map;
     
     // This is the neighbor list data structure
     std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_offsets;

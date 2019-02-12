@@ -33,6 +33,47 @@ namespace
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
     }
+
+    Vector<Box> getBoundaryBoxes(const Box& box, const int ncells)
+    {    
+
+        AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*ncells,
+                                  "Too many cells requested in getBoundaryBoxes");
+        
+        AMREX_ASSERT_WITH_MESSAGE(box.isCellCentered(), 
+                                  "Box must be cell-centered");
+        
+        Vector<Box> bl;
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            BoxList face_boxes;
+            Box hi_face_box = adjCellHi(box, i, ncells);
+            Box lo_face_box = adjCellLo(box, i, ncells);
+            face_boxes.push_back(hi_face_box); bl.push_back(hi_face_box);
+            face_boxes.push_back(lo_face_box); bl.push_back(lo_face_box);
+            for (auto face_box : face_boxes) {
+                for (int j = 0; j < AMREX_SPACEDIM; ++j) {
+                    if (i == j) continue;
+                    BoxList edge_boxes;
+                    Box hi_edge_box = adjCellHi(face_box, j, ncells);
+                    Box lo_edge_box = adjCellLo(face_box, j, ncells);
+                    edge_boxes.push_back(hi_edge_box); bl.push_back(hi_edge_box);
+                    edge_boxes.push_back(lo_edge_box); bl.push_back(lo_edge_box);
+                    for (auto edge_box : edge_boxes) {                    
+                        for (int k = 0; k < AMREX_SPACEDIM; ++k) {
+                            if ((j == k) or (i == k)) continue;
+                            Box hi_corner_box = adjCellHi(edge_box, k, ncells);
+                            Box lo_corner_box = adjCellLo(edge_box, k, ncells);
+                            bl.push_back(hi_corner_box);
+                            bl.push_back(lo_corner_box);
+                        }
+                    }
+                }
+            }
+        }
+        
+        RemoveDuplicates(bl);
+        return bl;
+    }
 }
 
 MDParticleContainer::
@@ -40,7 +81,90 @@ MDParticleContainer(const Geometry            & a_geom,
                     const DistributionMapping & a_dmap,
                     const BoxArray            & a_ba)
     : ParticleContainer<PIdx::ncomps>(a_geom, a_dmap, a_ba)
-{}
+{
+    BL_PROFILE("MDParticleContainer::MDParticleContainer");
+
+    buildNeighborMask();
+}
+
+void
+MDParticleContainer::
+buildNeighborMask()
+{    
+    BL_PROFILE("MDParticleContainer::buildNeighborMask");
+
+    m_neighbor_mask_initialized = true;
+
+    const int lev = 0;
+    const Geometry& geom = this->Geom(lev);
+    const BoxArray& ba = this->ParticleBoxArray(lev);
+    const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+
+    m_neighbor_mask_ptr.reset(new iMultiFab(ba, dmap, 1, 0));
+    m_neighbor_mask_ptr->setVal(-1);
+
+    const Periodicity& periodicity = geom.periodicity();
+    const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
+
+    for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
+    {
+        int grid = mfi.index();
+
+        std::set<std::pair<int, Box> > neighbor_grids;
+        for (auto pit=pshifts.cbegin(); pit!=pshifts.cend(); ++pit)
+        {
+            const Box box = ba[mfi] + *pit;
+
+            const int nGrow = 1;
+            const bool first_only = false;
+            auto isecs = ba.intersections(box, first_only, nGrow);
+        
+            for (auto& isec : isecs)
+            {
+                int nbor_grid = isec.first;
+                const Box isec_box = isec.second - *pit;
+                if (grid != nbor_grid) neighbor_grids.insert(std::make_pair(nbor_grid, isec_box));
+            }
+        }
+        
+        BoxList isec_bl;
+        std::vector<int> isec_grids;
+        for (auto nbor_grid : neighbor_grids)
+        {
+            isec_grids.push_back(nbor_grid.first);
+            isec_bl.push_back(nbor_grid.second);
+        }
+        BoxArray isec_ba(isec_bl);
+        
+        Vector<Box> bl = getBoundaryBoxes(amrex::grow(ba[mfi], -1), 1);
+        for (int i = 0; i < static_cast<int>(bl.size()); ++i) {
+            (*m_neighbor_mask_ptr)[mfi].setVal(i, bl[i]);
+        }
+        
+        m_grid_map[grid].resize(bl.size());
+        for (int i = 0; i < bl.size(); ++i)
+        {
+            const Box& box = bl[i];
+            
+            const int nGrow = 0;
+            const bool first_only = false;
+            auto isecs = isec_ba.intersections(box, first_only, nGrow);
+
+            for (auto& isec : isecs)
+            {
+                m_grid_map[grid][i].push_back(isec_grids[isec.first]);
+            }
+        }
+    }
+}
+
+void 
+MDParticleContainer::
+sortParticlesByNeighborDest()
+{
+    BL_PROFILE("MDParticleContainer::sortParticlesByNeighborDest");
+    
+}
 
 void
 MDParticleContainer::
