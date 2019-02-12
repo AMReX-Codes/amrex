@@ -1993,8 +1993,8 @@ that is readable and easy to implement. An example is given below:
         const Dim3 lo = amrex::lbound(bx);
         const Dim3 hi = amrex::hbound(bx);
 
-        const Array4<Real> src = fab1.array();
-        const Array4<Real> dst = fab2.array();
+        Array4<Real> const& src = fab1.array();
+        Array4<Real> const& dst = fab2.array();
 
         for         (int k = lo.z; k < hi.z; ++k) {
             for     (int j = lo.y; j < hi.y; ++j) {
