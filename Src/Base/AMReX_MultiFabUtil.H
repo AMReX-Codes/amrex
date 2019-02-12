@@ -129,6 +129,8 @@ namespace amrex
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
     //! are set to one, whereas other cells are set to zero.
     iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const BoxArray& fba, const IntVect& ratio);
 
     //! Computes divergence of face-data stored in the umac MultiFab. It is
     //! assumed that umac has at least 1 ghost cell and ghost cells have been
