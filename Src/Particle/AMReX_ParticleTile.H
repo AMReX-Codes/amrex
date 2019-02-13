@@ -70,6 +70,12 @@ struct ParticleTile
         m_aos_tile.setNumNeighbors(num_neighbors);
     }
 
+    int getNumNeighbors () 
+    {
+        AMREX_ASSERT( m_soa_tile.getNumNeighbors() == m_aos_tile.getNumNeighbors() );
+        return m_aos_tile.getNumNeighbors();
+    }
+
     void resize(std::size_t count)
     {
         m_soa_tile.resize(count);

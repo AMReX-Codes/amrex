@@ -55,6 +55,8 @@ public:
         m_num_neighbor_particles = num_neighbors;
         resize(numRealParticles() + numNeighborParticles());
     }
+
+    int getNumNeighbors () { return m_num_neighbor_particles; }
     
     bool empty () const { return m_data.empty(); }
     

@@ -82,6 +82,8 @@ struct StructOfArrays {
         resize(numRealParticles() + numNeighborParticles());
     }
 
+    int getNumNeighbors () { return m_num_neighbor_particles; }
+
     void resize(size_t count)
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
