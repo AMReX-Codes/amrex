@@ -18,10 +18,6 @@
 #include <AMReX_MLEBABecLap.H>
 #endif
 
-int cur_iter = 0;
-#define RET(x) //{std::cout << "Exit at " << __func__ << ":" << __LINE__ << "? (y/n)"; char usrinput; std::cin >> usrinput; if ( usrinput == 'y') {return x;}}
-//#define BL_PROFILE(x) std::cout << x << " (" << __LINE__ << ")" << std::endl;
-
 // sol: full solution
 // rhs: rhs of the original equation L(sol) = rhs
 // res: rhs of the residual equation L(cor) = res
@@ -112,7 +108,7 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
         const int niters = do_fixed_number_of_iters ? do_fixed_number_of_iters : max_iters;
         for (int iter = 0; iter < niters; ++iter)
         {
-            oneIter(iter); RET(0.0);
+            oneIter(iter);
 
             converged = false;
 
@@ -198,21 +194,18 @@ MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rh
 // out : sol on all AMR levels
 void MLMG::oneIter (int iter)
 {
-    RET();
     BL_PROFILE("MLMG::oneIter()");
 
     int ncomp = linop.getNComp();
 
     for (int alev = finest_amr_lev; alev > 0; --alev)
     {
-        RET();
         miniCycle(alev);
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 2);
 
         // compute residual for the coarse AMR level
         computeResWithCrseSolFineCor(alev-1,alev);
-        RET();
 
         if (alev != finest_amr_lev) {
             std::swap(cor_hold[alev][0], cor[alev][0]); // save it for the up cycle
@@ -229,7 +222,6 @@ void MLMG::oneIter (int iter)
 
         if (iter < max_fmg_iters) {
             mgFcycle ();
-            RET();
         } else {
             mgVcycle (0, 0);
         }
@@ -241,7 +233,6 @@ void MLMG::oneIter (int iter)
     {
         // (Fine AMR correction) = I(Coarse AMR correction)
         interpCorrection(alev);
-        RET();
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 2);
 
@@ -250,22 +241,17 @@ void MLMG::oneIter (int iter)
         }
 
         // Update fine AMR level correction
-	RET();
         computeResWithCrseCorFineCor(alev);
-        RET(); // checkerboarding occurs here
 
         miniCycle(alev);
-        RET();
 
         MultiFab::Add(*sol[alev], *cor[alev][0], 0, 0, ncomp, 2);
-        RET();
 
         if (alev != finest_amr_lev) {
 	  MultiFab::Add(*cor[alev][0], *cor_hold[alev][0], 0, 0, ncomp, 2);
         }
     }
 
-    RET();
     averageDownAndSync();
 }
 
@@ -301,9 +287,7 @@ MLMG::computeResidual (int alev)
     if (alev > 0) {
         crse_bcdata = sol[alev-1];
     }
-    RET();
     linop.solutionResidual(alev, r, x, b, crse_bcdata);
-    RET();
     r.FillBoundary(crse_geom.periodicity());
 }
 
@@ -334,10 +318,8 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 2);
 
-    RET();
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
 
-    RET();
     if (linop.isCellCentered()) {
         const int amrrr = linop.AMRRefRatio(calev);
 #ifdef AMREX_USE_EB
@@ -363,12 +345,9 @@ MLMG::computeResWithCrseCorFineCor (int falev)
     MultiFab& fine_rescor = rescor[falev][0];
 
     // fine_rescor = fine_res - L(fine_cor)
-    RET();
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
-    RET();
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 2);
-    RET();
 }
 
 void
@@ -429,7 +408,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
 
         // rescor = res - L(cor)
         computeResOfCorrection(amrlev, mglev);
-        RET();
 
         if (verbose >= 4)
         {
@@ -456,7 +434,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
-            RET();
             Real norm = rescor[amrlev][mglev_bottom].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
                            << "   UP: Norm after  bottom " << norm << "\n";
@@ -471,15 +448,12 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
                            << "       Norm before smooth " << norm << "\n";
         }
         cor[amrlev][mglev_bottom]->setVal(0.0);
-	RET();
         bool skip_fillboundary = true;
-	//        for (int i = 0; i < nu1; ++i) {
-        for (int i = 0; i < 1; ++i) {
+        for (int i = 0; i < nu1; ++i) {
             linop.smooth(amrlev, mglev_bottom, *cor[amrlev][mglev_bottom], res[amrlev][mglev_bottom],
                          skip_fillboundary);
             skip_fillboundary = false;
         }
-	RET();
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev_bottom);
@@ -499,7 +473,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         if (verbose >= 4)
         {
             computeResOfCorrection(amrlev, mglev);
-            RET();
             Real norm = rescor[amrlev][mglev].norm0();
             amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev
                            << "   UP: Norm before smooth " << norm << "\n";
@@ -537,15 +510,14 @@ MLMG::mgFcycle ()
     }
 
     bottomSolve();
-    RET();
 
     for (int mglev = mg_bottom_lev-1; mglev >= 0; --mglev)
     {
         // cor_fine = I(cor_crse)
-	    interpCorrection (amrlev, mglev);RET();
+        interpCorrection (amrlev, mglev);
 
         // rescor = res - L(cor)
-        computeResOfCorrection(amrlev, mglev);RET();
+        computeResOfCorrection(amrlev, mglev);
         // res = rescor; this provides b to the vcycle below
         MultiFab::Copy(res[amrlev][mglev], rescor[amrlev][mglev], 0,0,ncomp,2);
 
@@ -636,7 +608,6 @@ MLMG::interpCorrection (int alev)
 #pragma omp parallel
 #endif
         {
-	    RET();
             FArrayBox tmpfab;
             for (MFIter mfi(fine_cor, true); mfi.isValid(); ++mfi)
             {
@@ -653,7 +624,6 @@ MLMG::interpCorrection (int alev)
                 fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
             }
 	    fine_cor.FillBoundary(crse_geom.periodicity());
-	    RET();
         }
     }
 }
@@ -906,9 +876,7 @@ MLMG::actualBottomSolve ()
             
             const Real cg_rtol = bottom_reltol;
             const Real cg_atol = -1.0;
-	    RET();
             int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
-	    RET();
             if (ret != 0 && verbose > 1) {
                 amrex::Print() << "MLMG: Bottom solve failed.\n";
             }
