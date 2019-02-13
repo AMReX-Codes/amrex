@@ -16,7 +16,7 @@ ifeq ($(strip $(programs)),)
   programs += fextract
   programs += fextreama
   programs += fnan
-  programs += fsnapshot2d
+  programs += fsnapshot
   programs += ftime
   programs += fvarnames
 endif
