@@ -174,7 +174,7 @@ void main_main()
             const iMultiFab mask = makeFineMask(pf.boxArray(ilev), pf.DistributionMap(ilev),
                                                 pf.boxArray(ilev+1), ratio);
             for (int ivar = 0; ivar < var_names.size(); ++ivar) {
-                MultiFab mf = pf.get(ilev, var_names[ivar]);
+                const MultiFab& mf = pf.get(ilev, var_names[ivar]);
                 for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
                     const Box& bx = mfi.validbox() & slice_box;
                     if (bx.ok()) {
@@ -204,7 +204,7 @@ void main_main()
             rr *= ratio;
         } else {
             for (int ivar = 0; ivar < var_names.size(); ++ivar) {
-                MultiFab mf = pf.get(ilev, var_names[ivar]);
+                const MultiFab& mf = pf.get(ilev, var_names[ivar]);
                 for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
                     const Box& bx = mfi.validbox() & slice_box;
                     if (bx.ok()) {
