@@ -52,7 +52,7 @@ void main_main ()
     int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+        is_per[i] = 0;
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
@@ -66,14 +66,16 @@ void main_main ()
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    for (int step = 0; step < params.nsteps; ++step) {
+    pc.sortParticlesByNeighborDest();
 
-        pc.BuildNeighborList();
+    // for (int step = 0; step < params.nsteps; ++step) {
 
-        if (params.print_neighbor_list) pc.printNeighborList();
+    //     pc.BuildNeighborList();
 
-        pc.computeForces();
+    //     if (params.print_neighbor_list) pc.printNeighborList();
+
+    //     pc.computeForces();
         
-        pc.moveParticles(dt);
-    }
+    //     pc.moveParticles(dt);
+    // }
 }

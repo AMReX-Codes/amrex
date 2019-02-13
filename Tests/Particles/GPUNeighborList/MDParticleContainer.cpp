@@ -14,29 +14,28 @@ namespace
         int nx = nppc[0];
         int ny = nppc[1];
         int nz = nppc[2];
-
+        
         int ix_part = i_part/(ny * nz);
         int iy_part = (i_part % (ny * nz)) % ny;
         int iz_part = (i_part % (ny * nz)) / ny;
-
+        
         r[0] = (0.5+ix_part)/nx;
         r[1] = (0.5+iy_part)/ny;
         r[2] = (0.5+iz_part)/nz;
     }
-
+    
     void get_gaussian_random_momentum(Real* u, Real u_mean, Real u_std) {
         Real ux_th = amrex::RandomNormal(0.0, u_std);
         Real uy_th = amrex::RandomNormal(0.0, u_std);
         Real uz_th = amrex::RandomNormal(0.0, u_std);
-
+        
         u[0] = u_mean + ux_th;
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
     }
-
+    
     Vector<Box> getBoundaryBoxes(const Box& box, const int ncells)
-    {    
-
+    {            
         AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*ncells,
                                   "Too many cells requested in getBoundaryBoxes");
         
@@ -137,18 +136,17 @@ buildNeighborMask()
         BoxArray isec_ba(isec_bl);
         
         Vector<Box> bl = getBoundaryBoxes(amrex::grow(ba[mfi], -1), 1);
-        for (int i = 0; i < static_cast<int>(bl.size()); ++i) {
-            (*m_neighbor_mask_ptr)[mfi].setVal(i, bl[i]);
-        }
         
         m_grid_map[grid].resize(bl.size());
-        for (int i = 0; i < bl.size(); ++i)
+        for (int i = 0; i < static_cast<int>(bl.size()); ++i)
         {
             const Box& box = bl[i];
             
             const int nGrow = 0;
             const bool first_only = false;
             auto isecs = isec_ba.intersections(box, first_only, nGrow);
+
+            if (! isecs.empty() ) (*m_neighbor_mask_ptr)[mfi].setVal(i, box);
 
             for (auto& isec : isecs)
             {
@@ -163,7 +161,94 @@ MDParticleContainer::
 sortParticlesByNeighborDest()
 {
     BL_PROFILE("MDParticleContainer::sortParticlesByNeighborDest");
-    
+
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const auto dxi = Geom(lev).InvCellSizeArray();
+    const auto plo = Geom(lev).ProbLoArray();
+    const Box domain = Geom(lev).Domain();
+    auto& plev  = GetParticles(lev);
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int gid = mfi.index();
+        int tid = mfi.LocalTileIndex();        
+        auto index = std::make_pair(gid, tid);
+
+        const Box& bx = mfi.tilebox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        auto& ptile = plev[index];
+        auto& aos   = ptile.GetArrayOfStructs();
+        const size_t np = aos.numParticles();
+
+        Gpu::DeviceVector<int> neighbor_codes(np);
+        int* pcodes = neighbor_codes.dataPtr();
+
+        BaseFab<int>* mask_ptr = m_neighbor_mask_ptr->fabPtr(mfi);
+        
+        ParticleType* p_ptr = &(aos[0]);
+        AMREX_FOR_1D ( np, i,
+        {
+	    IntVect iv = IntVect(
+                AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
+                             floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
+                             floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
+                );
+            
+            iv += domain.smallEnd();
+            
+	    int code = (*mask_ptr)(iv);
+            
+            pcodes[i] = code;
+        });
+
+        thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                            neighbor_codes.begin(),
+                            neighbor_codes.end(),
+                            aos().begin());
+
+        int num_codes = m_grid_map[gid].size();
+        Gpu::DeviceVector<int> neighbor_code_begin(num_codes + 1);
+        Gpu::DeviceVector<int> neighbor_code_end  (num_codes + 1);
+
+        thrust::counting_iterator<int> search_begin(-1);
+        thrust::lower_bound(thrust::device,
+                            neighbor_codes.begin(),
+                            neighbor_codes.end(),
+                            search_begin,
+                            search_begin + num_codes + 1,
+                            neighbor_code_begin.begin());
+        
+        thrust::upper_bound(thrust::device,
+                            neighbor_codes.begin(),
+                            neighbor_codes.end(),
+                            search_begin,
+                            search_begin + num_codes + 1,
+                            neighbor_code_end.begin());
+        
+        m_start[gid].resize(num_codes + 1);
+        m_stop[gid].resize(num_codes + 1);
+
+        Cuda::thrust_copy(neighbor_code_begin.begin(),
+                          neighbor_code_begin.end(),
+                          m_start[gid].begin());
+
+        Cuda::thrust_copy(neighbor_code_end.begin(),
+                          neighbor_code_end.end(),
+                          m_stop[gid].begin());
+
+        amrex::Print() << "Grid " << gid << " has \n";
+        for (int i = 1; i < num_codes+1; ++i) {
+            amrex::Print() << "\t" << m_stop[gid][i] - m_start[gid][i] << " particles for grids ";
+            for (int j = 0; j < m_grid_map[gid][i-1].size(); ++j) {
+                amrex::Print() << m_grid_map[gid][i-1][j] << " ";
+            }
+            amrex::Print() << "\n";
+        }
+        amrex::Print() << "\n";
+    }
 }
 
 void
