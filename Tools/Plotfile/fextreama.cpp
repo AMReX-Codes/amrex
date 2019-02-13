@@ -72,13 +72,12 @@ void main_main()
                     vvmax[ivar] = mf.max(0,0,false);
                 }
             } else {
-                MultiFab cmf(pf.boxArray(ilev), pf.DistributionMap(ilev),
-                             1, 0, MFInfo().SetAlloc(false));
                 IntVect ratio{pf.refRatio(ilev)};
                 for (int idim = dim; idim < AMREX_SPACEDIM; ++idim) {
                     ratio[idim] = 1;
                 }
-                iMultiFab mask = makeFineMask(cmf, pf.boxArray(ilev+1), ratio);
+                iMultiFab mask = makeFineMask(pf.boxArray(ilev), pf.DistributionMap(ilev),
+                                              pf.boxArray(ilev+1), ratio);
                 for (int ivar = 0; ivar < var_names.size(); ++ivar) {
                     MultiFab mf = pf.get(ilev, var_names[ivar]);
                     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
@@ -105,20 +104,43 @@ void main_main()
         ParallelDescriptor::ReduceRealMin(vvmin.data(), vvmin.size());
         ParallelDescriptor::ReduceRealMax(vvmax.data(), vvmax.size());
 
-        amrex::Print() << " plotfile = " << filename << "\n"
-                       << " time = " << std::setprecision(17) << pf.time() << "\n"
-                       << " " << std::setw(22) << "variables"
-                       << " " << std::setw(22) << "minimum value"
-                       << " " << std::setw(22) << "maximum value"
-                       << "\n";
-        for (int i = 0; i < var_names.size(); ++i) {
-            amrex::Print().SetPrecision(11)
-                << " " << std::setw(22) << std::left << var_names[i]
-                << " " << std::setw(22) << std::right << vvmin[i]
-                << " " << std::setw(22) << std::right << vvmax[i]
-                << "\n";
+        if (ntime == 1) {
+            amrex::Print() << " plotfile = " << filename << "\n"
+                           << " time = " << std::setprecision(17) << pf.time() << "\n"
+                           << " " << std::setw(22) << "variables"
+                           << " " << std::setw(22) << "minimum value"
+                           << " " << std::setw(22) << "maximum value"
+                           << "\n";
+            for (int i = 0; i < var_names.size(); ++i) {
+                amrex::Print().SetPrecision(11)
+                    << " " << std::setw(22) << std::left << var_names[i]
+                    << " " << std::setw(22) << std::right << vvmin[i]
+                    << " " << std::setw(22) << std::right << vvmax[i]
+                    << "\n";
+            }
+            amrex::Print() << std::endl;
+        } else {
+            if (f == 0) {
+                amrex::Print() << "# " << std::setw(23) << std::right << "time ";
+                for (int i = 0; i < var_names.size(); ++i) {
+                    amrex::Print() << "|" << std::setw(44) << std::left << var_names[i];
+                }
+                amrex::Print() << "|\n";
+                amrex::Print() << "# " << std::setw(23) << " ";
+                for (int i = 0; i < var_names.size(); ++i) {
+                    amrex::Print() << "|" << std::setw(12) << std::right << "min" << std::setw(10) << " "
+                                   << std::setw(12) << "max" << std::setw(10) << " ";
+                }
+                amrex::Print() << "|\n";
+            }
+            amrex::Print() << std::setw(23) << std::setprecision(11) << pf.time() << "   ";
+            for  (int i = 0; i < var_names.size(); ++i) {
+                amrex::Print() << std::setw(21) << std::setprecision(10) << vvmin[i]
+                               << std::setw(21) << std::setprecision(10) << vvmax[i]
+                               << "   ";
+            }
+            amrex::Print() << "\n";
         }
-        amrex::Print() << std::endl;
     }
 }
 

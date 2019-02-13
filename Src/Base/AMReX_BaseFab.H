@@ -7,6 +7,7 @@
 #include <limits>
 #include <climits>
 #include <array>
+#include <type_traits>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -232,6 +233,7 @@ public:
     void resize (const Box& b,
                  int        N = 1);
 
+    template <class = typename std::enable_if<std::is_trivially_destructible<T>::value> >
     Elixir elixir ();
 
     /**
@@ -2018,11 +2020,19 @@ BaseFab<T>::resize (const Box& b,
 }
 
 template <class T>
+template <class>
 Elixir
 BaseFab<T>::elixir ()
 {
     bool o = this->ptr_owner;
     this->ptr_owner = false;
+    if (o && this->dptr) {
+        if (this->nvar > 1) {
+            amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+        } else {
+            amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+        }
+    }
     return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
 }
 
