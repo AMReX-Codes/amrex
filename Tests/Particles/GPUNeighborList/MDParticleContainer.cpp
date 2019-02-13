@@ -163,11 +163,13 @@ sortParticlesByNeighborDest()
     BL_PROFILE("MDParticleContainer::sortParticlesByNeighborDest");
 
     const int lev = 0;
-    const Geometry& geom = Geom(lev);
+    const auto& geom = Geom(lev);
     const auto dxi = Geom(lev).InvCellSizeArray();
     const auto plo = Geom(lev).ProbLoArray();
-    const Box domain = Geom(lev).Domain();
+    const auto domain = Geom(lev).Domain();
     auto& plev  = GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -212,7 +214,7 @@ sortParticlesByNeighborDest()
         int num_codes = m_grid_map[gid].size();
         Gpu::DeviceVector<int> neighbor_code_begin(num_codes + 1);
         Gpu::DeviceVector<int> neighbor_code_end  (num_codes + 1);
-
+        
         thrust::counting_iterator<int> search_begin(-1);
         thrust::lower_bound(thrust::device,
                             neighbor_codes.begin(),
@@ -230,15 +232,15 @@ sortParticlesByNeighborDest()
         
         m_start[gid].resize(num_codes + 1);
         m_stop[gid].resize(num_codes + 1);
-
+        
         Cuda::thrust_copy(neighbor_code_begin.begin(),
                           neighbor_code_begin.end(),
                           m_start[gid].begin());
-
+        
         Cuda::thrust_copy(neighbor_code_end.begin(),
                           neighbor_code_end.end(),
                           m_stop[gid].begin());
-
+        
         amrex::Print() << "Grid " << gid << " has \n";
         for (int i = 1; i < num_codes+1; ++i) {
             amrex::Print() << "\t" << m_stop[gid][i] - m_start[gid][i] << " particles for grids ";
@@ -247,7 +249,51 @@ sortParticlesByNeighborDest()
             }
             amrex::Print() << "\n";
         }
-        amrex::Print() << "\n";
+        amrex::Print() << "\n";    
+
+        std::map<int, int> grid_counts;
+        const int num_grids = ba.size();
+        for (int i = 0; i < num_grids; ++i)
+        {
+            const int dest_proc = dmap[i];
+            if (dest_proc != ParallelDescriptor::MyProc())
+            {
+                grid_counts[dest_proc] += 1;
+            }
+        }
+    
+        //
+        // Each destination grid, copy the appropriate particle data, passing the non-local data
+        // into not_ours
+        //
+        for (int i = 0; i < num_grids; ++i)
+        {
+            const int tid = 0;
+            auto pair_index = std::make_pair(i, tid);
+            
+            const size_t num_to_add = m_stop[gid][i+1] - m_start[gid][i+1];
+            
+            const int dest_proc = dmap[i];
+            if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
+            {
+                auto& ptile = plev[pair_index];
+                const size_t old_size = ptile.numParticles();
+                const size_t new_size = old_size + num_to_add;
+                ptile.resize(new_size);
+                
+                // copy structs
+                // {
+                //     auto& src = aos_to_redistribute;
+                //     auto& dst = ptile.GetArrayOfStructs();
+                //     thrust::copy(thrust::device,
+                //                  src.begin() + start[i+1], src.begin() + stop[i+1], 
+                //                  dst().begin() + old_size);
+                // }            
+            }
+            else { // this is the non-local case
+                amrex::Abort("Not implemented yet.");
+            }
+        }
     }
 }
 
