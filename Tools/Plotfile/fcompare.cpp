@@ -191,7 +191,7 @@ int main_main()
         Vector<int> has_nan_b(ncomp_a, false);
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
             if (ivar_b[icomp_a] >= 0) {
-                MultiFab mf_a = pf_a.get(ilev, names_a[icomp_a]);
+                const MultiFab& mf_a = pf_a.get(ilev, names_a[icomp_a]);
                 MultiFab mf_b;
                 if (grids_match) {
                     mf_b = pf_b.get(ilev, names_b[ivar_b[icomp_a]]);
@@ -315,7 +315,7 @@ int main_main()
             }
 
             for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
-                MultiFab mf = pf_a.get(err_zone.level,names_a[icomp_a]);
+                const MultiFab& mf = pf_a.get(err_zone.level,names_a[icomp_a]);
                 if (owner_proc) {
                     Real v = mf[err_zone.grid_index](err_zone.cell);
                     amrex::AllPrint() << " " << std::setw(24)
