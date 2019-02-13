@@ -59,16 +59,16 @@ struct StructOfArrays {
     }
     
     /**
-    * \brief Returns the total number of particles (real and neighbor)
+    * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numParticles () const { return size(); }
+    int numParticles () const { return numRealParticles(); }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numRealParticles () const { return numParticles()-m_num_neighbor_particles; }
+    int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
 
     /**
     * \brief Returns the number of neighbor particles (excluding reals)
@@ -76,10 +76,17 @@ struct StructOfArrays {
     */
     int numNeighborParticles () const { return m_num_neighbor_particles; }
 
+    /**
+    * \brief Returns the total number of particles (real and neighbor)
+    *
+    */
+    int numTotalParticles () const { return size(); }
+
     void setNumNeighbors (int num_neighbors)
     { 
+        auto nrp = numRealParticles();
         m_num_neighbor_particles = num_neighbors;
-        resize(numRealParticles() + numNeighborParticles());
+        resize(nrp + num_neighbors);
     }
 
     int getNumNeighbors () { return m_num_neighbor_particles; }

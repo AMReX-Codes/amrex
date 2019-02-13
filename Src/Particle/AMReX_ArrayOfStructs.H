@@ -33,16 +33,16 @@ public:
     std::size_t size () const { return m_data.size(); }
 
     /**
-    * \brief Returns the total number of particles (real and neighbor)
+    * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numParticles () const { return m_data.size(); }
+    int numParticles () const { return numRealParticles(); }
 
     /**
     * \brief Returns the number of real particles (excluding neighbors)
     *
     */
-    int numRealParticles () const { return numParticles()-m_num_neighbor_particles; }
+    int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
 
     /**
     * \brief Returns the number of neighbor particles (excluding reals)
@@ -50,10 +50,17 @@ public:
     */
     int numNeighborParticles () const { return m_num_neighbor_particles; }
 
+    /**
+    * \brief Returns the total number of particles (real and neighbor)
+    *
+    */
+    int numTotalParticles () const { return m_data.size(); }
+
     void setNumNeighbors (int num_neighbors)
     { 
+        auto nrp = numRealParticles();
         m_num_neighbor_particles = num_neighbors;
-        resize(numRealParticles() + numNeighborParticles());
+        resize(nrp + num_neighbors);
     }
 
     int getNumNeighbors () { return m_num_neighbor_particles; }

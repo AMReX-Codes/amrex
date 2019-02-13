@@ -47,7 +47,7 @@ struct ParticleTile
     std::size_t size () const { return m_aos_tile.size(); }
 
     /**
-    * \brief Returns the total number of particles (real and neighbor)
+    * \brief Returns the number of real particles (excluding neighbors)
     *
     */
     int numParticles () const { return m_aos_tile.numParticles(); }
@@ -63,6 +63,12 @@ struct ParticleTile
     *
     */
     int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }    
+
+    /**
+    * \brief Returns the total number of particles, real and neighbor
+    *
+    */
+    int numTotalParticles () const { return m_aos_tile.numTotalParticles() ; }
 
     void setNumNeighbors (int num_neighbors) 
     {
