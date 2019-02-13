@@ -76,6 +76,12 @@ struct StructOfArrays {
     */
     int numNeighborParticles () const { return m_num_neighbor_particles; }
 
+    void setNumNeighbors (int num_neighbors)
+    { 
+        m_num_neighbor_particles = num_neighbors;
+        resize(numRealParticles() + numNeighborParticles());
+    }
+
     void resize(size_t count)
     {
         for (int i = 0; i < NReal; ++i) m_rdata[i].resize(count);
