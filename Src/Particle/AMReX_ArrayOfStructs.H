@@ -49,6 +49,12 @@ public:
     *
     */
     int numNeighborParticles () const { return m_num_neighbor_particles; }
+
+    void setNumNeighbors (int num_neighbors)
+    { 
+        m_num_neighbor_particles = num_neighbors;
+        resize(numRealParticles() + numNeighborParticles());
+    }
     
     bool empty () const { return m_data.empty(); }
     

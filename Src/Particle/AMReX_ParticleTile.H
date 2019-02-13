@@ -64,6 +64,12 @@ struct ParticleTile
     */
     int numNeighborParticles () const { return m_aos_tile.numNeighborParticles(); }    
 
+    void setNumNeighbors (int num_neighbors) 
+    {
+        m_soa_tile.setNumNeighbors(num_neighbors);
+        m_aos_tile.setNumNeighbors(num_neighbors);
+    }
+
     void resize(std::size_t count)
     {
         m_soa_tile.resize(count);
