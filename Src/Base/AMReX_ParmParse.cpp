@@ -147,7 +147,7 @@ is (const std::string& str, T& val)
 {
     std::istringstream s(str);
     s >> val;
-    if ( !s ) return false;
+    if ( s.fail() or !s.eof() ) return false;
     return true;
 }
 
