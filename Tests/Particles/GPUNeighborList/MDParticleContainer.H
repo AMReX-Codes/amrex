@@ -46,6 +46,10 @@ public:
 
     void sortParticlesByNeighborDest();
 
+    void fillNeighbors();
+
+    void clearNeighbors();
+
 protected:
  
     void buildNeighborMask();

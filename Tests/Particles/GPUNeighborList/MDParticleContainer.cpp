@@ -240,38 +240,55 @@ sortParticlesByNeighborDest()
         Cuda::thrust_copy(neighbor_code_end.begin(),
                           neighbor_code_end.end(),
                           m_stop[gid].begin());
-        
-        amrex::Print() << "Grid " << gid << " has \n";
-        for (int i = 1; i < num_codes+1; ++i) {
-            amrex::Print() << "\t" << m_stop[gid][i] - m_start[gid][i] << " particles for grids ";
-            for (int j = 0; j < m_grid_map[gid][i-1].size(); ++j) {
-                amrex::Print() << m_grid_map[gid][i-1][j] << " ";
-            }
-            amrex::Print() << "\n";
-        }
-        amrex::Print() << "\n";    
+    }
+}
 
+void
+MDParticleContainer::
+fillNeighbors()
+{
+    BL_PROFILE("MDParticleContainer::fillNeighbors");
+
+    const int lev = 0;
+    auto& plev  = GetParticles(lev);
+    auto& ba = this->ParticleBoxArray(lev);
+    auto& dmap = this->ParticleDistributionMap(lev);
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int src_grid = mfi.index();
+        int src_tile = mfi.LocalTileIndex();
+        AMREX_ASSERT(src_tile == 0);
+        auto index = std::make_pair(src_grid, src_tile);
+
+        const Box& bx = mfi.tilebox();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+
+        auto& src_ptile = plev[index];
+
+        int num_codes = m_grid_map[src_grid].size();
         for (int i = 1; i < num_codes + 1; ++i)
         {
-            const size_t num_to_add = m_stop[gid][i] - m_start[gid][i];
-            for (auto dst_grid : m_grid_map[gid][i-1]) {
-                const int tid = 0;                
-                auto pair_index = std::make_pair(dst_grid, tid);            
+            const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
+            for (auto dst_grid : m_grid_map[src_grid][i-1]) {
+                const int dst_tile = 0;                
+                auto pair_index = std::make_pair(dst_grid, dst_tile);
                 const int dest_proc = dmap[dst_grid];
                 if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
                 {
-                    auto& dst_tile = plev[pair_index];
-                    const int nRParticles = dst_tile.numRealParticles();
-                    const int nNParticles = dst_tile.getNumNeighbors();
+                    auto& dst_ptile = plev[pair_index];
+                    const int nRParticles = dst_ptile.numRealParticles();
+                    const int nNParticles = dst_ptile.getNumNeighbors();
                     const int new_num_neighbors = nNParticles + num_to_add;
-                    dst_tile.setNumNeighbors(new_num_neighbors);
+                    dst_ptile.setNumNeighbors(new_num_neighbors);
                     
                     // copy structs
                     {
-                        auto& src = src_tile.GetArrayOfStructs();
-                        auto& dst = dst_tile.GetArrayOfStructs();
+                        auto& src = src_ptile.GetArrayOfStructs();
+                        auto& dst = dst_ptile.GetArrayOfStructs();
                         thrust::copy(thrust::device,
-                                     src.begin() + m_start[gid][i], src.begin() + m_stop[gid][i], 
+                                     src.begin() + m_start[src_grid][i], src.begin() + m_stop[src_grid][i], 
                                      dst().begin() + nRParticles);
                     }
                 }
@@ -285,13 +302,32 @@ sortParticlesByNeighborDest()
 
 void
 MDParticleContainer::
+clearNeighbors()
+{
+    BL_PROFILE("MDParticleContainer::clearNeighbors");
+
+    const int lev = 0;
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int src_grid = mfi.index();
+        int src_tile = mfi.LocalTileIndex();
+        AMREX_ASSERT(src_tile == 0);
+        auto index = std::make_pair(src_grid, src_tile);
+        auto& ptile = GetParticles(lev)[index];
+        ptile.setNumNeighbors(0);
+    }
+}
+
+void
+MDParticleContainer::
 InitParticles(const IntVect& a_num_particles_per_cell,
               const Real     a_thermal_momentum_std,
               const Real     a_thermal_momentum_mean)
 {
     BL_PROFILE("MDParticleContainer::InitParticles");
 
-    amrex::Print() << "Generating particles... \n";
+    amrex::Print() << "Generating particles... ";
 
     const int lev = 0;   
     const Real* dx = Geom(lev).CellSize();
@@ -350,6 +386,8 @@ InitParticles(const IntVect& a_num_particles_per_cell,
                           host_particles.end(),
                           particle_tile.GetArrayOfStructs().begin() + old_size);        
     }
+
+    amrex::Print() << "done. \n";
 }
 
 void MDParticleContainer::BuildNeighborList()
@@ -367,7 +405,7 @@ void MDParticleContainer::BuildNeighborList()
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();        
         auto index = std::make_pair(gid, tid);
-
+        
         const Box& bx = mfi.tilebox();
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
