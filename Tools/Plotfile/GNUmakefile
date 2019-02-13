@@ -8,14 +8,12 @@ USE_MPI = FALSE
 USE_OMP = FALSE
 USE_CUDA = FALSE
 
-DEBUG=TRUE
-
 programs ?=
 
 ifeq ($(strip $(programs)),)
   programs += fboxinfo
   programs += fcompare
-#  programs += fextract
+  programs += fextract
   programs += fextreama
   programs += fnan
 #  programs += fparticlecompare
