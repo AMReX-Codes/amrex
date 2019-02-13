@@ -71,9 +71,9 @@ void main_main ()
         amrex::Print() << "Taking step " << step << "\n";
 
         pc.sortParticlesByNeighborDest();
-        
+
         pc.fillNeighbors();
-        
+
         pc.BuildNeighborList();
 
         if (params.print_neighbor_list) pc.printNeighborList();
