@@ -36,10 +36,10 @@ namespace
     
     Vector<Box> getBoundaryBoxes(const Box& box, const int ncells)
     {            
-        AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*ncells,
+        AMREX_ASSERT_WITH_MESSAGE(box.size() > 2*IntVect(AMREX_D_DECL(ncells, ncells, ncells)),
                                   "Too many cells requested in getBoundaryBoxes");
         
-        AMREX_ASSERT_WITH_MESSAGE(box.isCellCentered(), 
+        AMREX_ASSERT_WITH_MESSAGE(box.ixType().cellCentered(), 
                                   "Box must be cell-centered");
         
         Vector<Box> bl;
@@ -406,13 +406,14 @@ void MDParticleContainer::BuildNeighborList()
         int tid = mfi.LocalTileIndex();        
         auto index = std::make_pair(gid, tid);
         
-        const Box& bx = mfi.tilebox();
+        Box bx = mfi.tilebox();
+        amrex::grow(bx, 1);
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
+        const size_t np = aos.numTotalParticles();
 
         Gpu::DeviceVector<unsigned int> cells(np);
         unsigned int* pcell = cells.dataPtr();
@@ -626,6 +627,7 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
     const Geometry& geom = Geom(lev);
     const auto plo = Geom(lev).ProbLoArray();
     const auto phi = Geom(lev).ProbHiArray();
+    const auto dx = Geom(lev).CellSizeArray();
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
