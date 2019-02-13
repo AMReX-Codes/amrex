@@ -24,6 +24,9 @@ void main_main()
     std::string pltfile;
     int ndir_pass = 3;
     bool origin = false;
+    Array<Real,3> location = {std::numeric_limits<Real>::lowest(),
+                              std::numeric_limits<Real>::lowest(),
+                              std::numeric_limits<Real>::lowest()};
     std::string compname = "density";
     int max_level = -1;
     bool ldef_mx = false;
@@ -47,12 +50,16 @@ void main_main()
         } else if (name == "-m" or name == "--min") {
             def_mn = std::stod(amrex::get_command_argument(++farg));
             ldef_mn = true;
-        } else if (name == "--max_level") {
+        } else if (name == "-L" or name == "--max_level") {
             max_level = std::stoi(amrex::get_command_argument(++farg));
         } else if (name == "-l" or name == "--log") {
             do_log = true;
         } else if (name == "-g" or name == "--origin") {
             origin = true;
+        } else if (name == "-c" or name == "--coordinates") {
+            location[0] = std::stod(amrex::get_command_argument(++farg));
+            location[1] = std::stod(amrex::get_command_argument(++farg));
+            location[2] = std::stod(amrex::get_command_argument(++farg));
         } else {
             break;
         }
@@ -73,11 +80,16 @@ void main_main()
             << "      [-p|--palette] pfname      : use the file pfname as the Palette (default ~/amrvis.Palette)\n"
             << "      -m val                     : set the minimum value of the data to val\n"
             << "      -M val                     : set the maximum value of the data to val\n"
-            << "      --max_level n              : max fine level to get data from (default: finest)\n"
+            << "      [-L|--max_level] n         : max fine level to get data from (default: finest)\n"
             << "      [-l|--log]                 : toggle log plot\n"
             << "      [-n|--normaldir] {0,1,2,3} : direction normal to slice. (default: 3, i.e., all directions)\n"
             << "                                   This option is for 3d plotfile only.\n"
             << "      [-g|--origin]              : slice through origin (i.e., lower-left corner) or center (default: center)\n"
+            << "                                   This option is for 3d plotfile only.\n"
+            << "      [-c|--coordinates] x y z   : coordinates on slice.  If specified, this will override the -g option\n"
+            << "                                   For slices of all three directions, this is the intersection of the three\n"
+            << "                                   planes.  Otherwise, the transverse coordinates are not used.\n"
+            << "                                   If specified, all three coordinates must be provided.\n"
             << "                                   This option is for 3d plotfile only.\n"
             << "\n";
         return;
@@ -139,6 +151,18 @@ void main_main()
         iloc[1] = (fhi.y-flo.y+1)/2 + flo.y;
         iloc[2] = (fhi.z-flo.z+1)/2 + flo.z;
     }
+
+    if (location[0] > -1.e36 or location[1] > -1.e36 or location[2] > -1.e36) {
+        Array<Real,AMREX_SPACEDIM> problo = pf.probLo();
+        Array<Real,AMREX_SPACEDIM> dx = pf.cellSize(max_level);
+        for (int idim = 0; idim < dim; ++idim) {
+            iloc[idim] = (location[idim]-problo[idim]) / dx[idim];
+        }
+    }
+
+    iloc[0] = std::max(flo.x,std::min(fhi.x,iloc[0]));
+    iloc[1] = std::max(flo.y,std::min(fhi.y,iloc[1]));
+    iloc[2] = std::max(flo.z,std::min(fhi.z,iloc[2]));
 
     int ndir_begin, ndir_end, ndirs;
     if (dim == 2) {
