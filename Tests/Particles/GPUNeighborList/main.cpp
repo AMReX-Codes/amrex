@@ -62,20 +62,28 @@ void main_main ()
     MDParticleContainer pc(geom, dm, ba);
 
     IntVect nppc = IntVect(AMREX_D_DECL(1, 1, 1));
-    constexpr Real dt = 0.1;
+    constexpr Real dt = 0.0005;
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
-    pc.sortParticlesByNeighborDest();
+    for (int step = 0; step < params.nsteps; ++step) {
 
-    // for (int step = 0; step < params.nsteps; ++step) {
+        amrex::Print() << "Taking step " << step << "\n";
 
-    //     pc.BuildNeighborList();
-
-    //     if (params.print_neighbor_list) pc.printNeighborList();
-
-    //     pc.computeForces();
+        pc.sortParticlesByNeighborDest();
         
-    //     pc.moveParticles(dt);
-    // }
+        pc.fillNeighbors();
+        
+        pc.BuildNeighborList();
+
+        if (params.print_neighbor_list) pc.printNeighborList();
+
+        pc.computeForces();
+
+        pc.clearNeighbors();
+        
+        pc.moveParticles(dt);
+
+        pc.RedistributeLocal();
+    }
 }
