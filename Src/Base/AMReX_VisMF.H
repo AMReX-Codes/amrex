@@ -221,7 +221,7 @@ public:
                         const std::string& fafabName);
     //! Read the specified fab component.
     FArrayBox* readFAB (int fabIndex,
-                        int ncomp);
+                        int icomp);
 
     static int  GetNOutFiles ();
     static void SetNOutFiles (int noutfiles);

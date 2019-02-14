@@ -23,8 +23,10 @@ ifeq ($(USE_CUDA),TRUE)
   CXX = mpic++
   FC  = mpif90
   F90 = mpif90
-  cori_mvapich_link_flags := $(shell mpicxx -link_info)
-  LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags)))) -lpmi -libumad -libverbs -ldl -lpmi -lpthread
+  cori_mvapich_link_flags := $(shell mpic++ -link_info)
+  ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+    LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags))))
+  endif
 else
   CC  = cc
   CXX = CC

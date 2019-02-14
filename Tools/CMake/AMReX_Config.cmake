@@ -129,11 +129,7 @@ function (configure_amrex)
    # Add third party libraries
    #
    if (ENABLE_3D_NODAL_MLMG)
-      # Add Algoim dependency
-      target_include_directories( amrex PRIVATE ${ALGOIM_INSTALL_DIR}/src )
-      #  Blitz dependency
-      target_include_directories( amrex PRIVATE ${BLITZ_INSTALL_DIR}/include )
-      target_link_libraries( amrex PUBLIC ${BLITZ_INSTALL_DIR}/lib/libblitz.a)
+      include(AMReX_InstallExternalLibs) 
    endif()
    
    #
@@ -216,8 +212,7 @@ function (print_amrex_configuration_summary)
    if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
       set (AMREX_LINK_LINE "")
    endif ()   
-   string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
-   
+   string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )   
    
    #
    # Config summary
