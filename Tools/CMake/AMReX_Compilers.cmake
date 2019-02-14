@@ -79,7 +79,7 @@ function ( set_amrex_compiler_flags )
       -N 255 -h list=a>>
       # PGI 
       $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -extend>> )
+      -Mextend>> )
 
    #
    # Set C++ Flags only if not provided by user
