@@ -289,7 +289,7 @@ fillNeighbors()
                         auto& dst = dst_ptile.GetArrayOfStructs();
                         thrust::copy(thrust::device,
                                      src.begin() + m_start[src_grid][i], src.begin() + m_stop[src_grid][i], 
-                                     dst().begin() + nRParticles);
+                                     dst().begin() + nRParticles + nNParticles);
                     }
                 }
                 else { // this is the non-local case
@@ -407,7 +407,7 @@ void MDParticleContainer::BuildNeighborList()
         auto index = std::make_pair(gid, tid);
         
         Box bx = mfi.tilebox();
-        amrex::grow(bx, 1);
+        bx.grow(1);
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
@@ -418,7 +418,7 @@ void MDParticleContainer::BuildNeighborList()
         Gpu::DeviceVector<unsigned int> cells(np);
         unsigned int* pcell = cells.dataPtr();
 
-        Gpu::DeviceVector<unsigned int> counts(bx.numPts());
+        Gpu::DeviceVector<unsigned int> counts(bx.numPts(), 0);
         unsigned int* pcount = counts.dataPtr();
 
         Gpu::DeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
