@@ -7,6 +7,7 @@
 #include <limits>
 #include <climits>
 #include <array>
+#include <type_traits>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -231,6 +232,9 @@ public:
     */
     void resize (const Box& b,
                  int        N = 1);
+
+    template <class = typename std::enable_if<std::is_trivially_destructible<T>::value> >
+    Elixir elixir ();
 
     /**
      * \brief The function returns the BaseFab to the invalid state.
@@ -1997,11 +2001,12 @@ BaseFab<T>::resize (const Box& b,
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0)
+    if (this->dptr == 0 || !this->ptr_owner)
     {
 	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
+        this->dptr = nullptr;
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize)
@@ -2013,6 +2018,28 @@ BaseFab<T>::resize (const Box& b,
 
         define();
     }
+}
+
+template <class T>
+template <class>
+Elixir
+BaseFab<T>::elixir ()
+{
+    bool o;
+    if (Gpu::inLaunchRegion()) {
+        o = this->ptr_owner;
+        this->ptr_owner = false;
+        if (o && this->dptr) {
+            if (this->nvar > 1) {
+                amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+            } else {
+                amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+            }
+        }
+    } else {
+        o = false;
+    }
+    return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
 }
 
 template <class T>

@@ -156,6 +156,7 @@ public:
     static void clearStateSmallPlotVarList ();
     //!  Fill the list of state_plot_vars with all of the state quantities.
     static void fillStatePlotVarList ();
+    static void fillStateSmallPlotVarList ();
     //!  Write out plotfiles (True/False)?
     static bool Plot_Files_Output ();
     /**

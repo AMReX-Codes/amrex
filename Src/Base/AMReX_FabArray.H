@@ -366,6 +366,12 @@ public:
                  const IntVect& nghost);
 
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void abs (int comp, int num_comp, int nghost = 0);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void abs (int comp, int num_comp, const IntVect& nghost);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void plus (value_type val, int comp, int num_comp, int nghost = 0);
 
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
@@ -1599,6 +1605,35 @@ FabArray<FAB>::setVal (value_type val,
                 fab(i,j,k,n+comp) = val;
             });
         }
+    }
+}
+
+template <class FAB>
+template <class FOO>  // FOO fools nvcc
+void
+FabArray<FAB>::abs (int comp, int ncomp, int nghost)
+{
+    abs(comp, ncomp, IntVect(nghost));
+}
+
+template <class FAB>
+template <class FOO>  // FOO fools nvcc
+void
+FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
+{
+    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    BL_ASSERT(comp+ncomp <= n_comp);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        auto fab = this->array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            fab(i,j,k,n+comp) = std::abs(fab(i,j,k,n+comp));
+        });
     }
 }
 
