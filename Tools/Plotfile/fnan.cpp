@@ -35,7 +35,7 @@ void main_main()
         const std::string& varname = names[n];
         Vector<int> has_nan(nlevels);
         for (int ilev = 0; ilev < nlevels; ++ilev) {
-            MultiFab mf = plotfile.get(ilev,varname);
+            const MultiFab& mf = plotfile.get(ilev,varname);
             has_nan[ilev] = mf.contains_nan(0,1,0);
         }
 

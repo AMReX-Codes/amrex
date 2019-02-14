@@ -16,8 +16,7 @@ ifeq ($(strip $(programs)),)
   programs += fextract
   programs += fextreama
   programs += fnan
-#  programs += fparticlecompare
-#  programs += fsnapshot
+  programs += fsnapshot
   programs += ftime
   programs += fvarnames
 endif
@@ -27,6 +26,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 multiple_executables = $(addsuffix .$(machineSuffix).ex, $(programs))
 default: $(multiple_executables)
 
+include ./Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
