@@ -173,6 +173,9 @@ int main_main()
     // go level-by-level and patch-by-patch and compare the data
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
+        if (pf_a.boxArray(ilev).empty() && pf_b.boxArray(ilev).empty()) {
+            continue;
+        }
         bool grids_match = pf_a.boxArray(ilev) == pf_b.boxArray(ilev);
         if (!grids_match && !allow_diff_grids) {
             amrex::Abort("ERROR: grids do not match");
