@@ -67,7 +67,7 @@ void main_main()
         for (int ilev = pf.finestLevel(); ilev >= 0; --ilev) {
             if (ilev == pf.finestLevel()) {
                 for (int ivar = 0; ivar < var_names.size(); ++ivar) {
-                    MultiFab mf = pf.get(ilev, var_names[ivar]);
+                    const MultiFab& mf = pf.get(ilev, var_names[ivar]);
                     vvmin[ivar] = mf.min(0,0,false);
                     vvmax[ivar] = mf.max(0,0,false);
                 }
@@ -79,7 +79,7 @@ void main_main()
                 iMultiFab mask = makeFineMask(pf.boxArray(ilev), pf.DistributionMap(ilev),
                                               pf.boxArray(ilev+1), ratio);
                 for (int ivar = 0; ivar < var_names.size(); ++ivar) {
-                    MultiFab mf = pf.get(ilev, var_names[ivar]);
+                    const MultiFab& mf = pf.get(ilev, var_names[ivar]);
                     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
                         const Box& bx = mfi.validbox();
                         const auto lo = amrex::lbound(bx);

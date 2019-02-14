@@ -2006,6 +2006,7 @@ BaseFab<T>::resize (const Box& b,
 	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
+        this->dptr = nullptr;
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize)
@@ -2024,14 +2025,19 @@ template <class>
 Elixir
 BaseFab<T>::elixir ()
 {
-    bool o = this->ptr_owner;
-    this->ptr_owner = false;
-    if (o && this->dptr) {
-        if (this->nvar > 1) {
-            amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
-        } else {
-            amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+    bool o;
+    if (Gpu::inLaunchRegion()) {
+        o = this->ptr_owner;
+        this->ptr_owner = false;
+        if (o && this->dptr) {
+            if (this->nvar > 1) {
+                amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+            } else {
+                amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+            }
         }
+    } else {
+        o = false;
     }
     return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
 }
