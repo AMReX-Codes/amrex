@@ -87,10 +87,12 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
         std::string relname;
         is >> relname;
         m_mf_name[ilev] = m_plotfile_name + "/" + relname;
-        m_vismf[ilev].reset(new VisMF(m_mf_name[ilev]));
-        m_ba[ilev] = m_vismf[ilev]->boxArray();
-        m_dmap[ilev].define(m_ba[ilev]);
-        m_ngrow[ilev] = m_vismf[ilev]->nGrowVect();
+        if (m_ncomp > 0) {
+            m_vismf[ilev].reset(new VisMF(m_mf_name[ilev]));
+            m_ba[ilev] = m_vismf[ilev]->boxArray();
+            m_dmap[ilev].define(m_ba[ilev]);
+            m_ngrow[ilev] = m_vismf[ilev]->nGrowVect();
+        }
     }
 }
 
