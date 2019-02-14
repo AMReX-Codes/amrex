@@ -9,6 +9,7 @@
 #SBATCH -n 16 
 #SBATCH -c 10
 #SBATCH --gres=gpu:8
+#SBATCH --ntasks-per-node=8
 
 # Note: Given exclusive configuration mode,
 #       you MUST specify your desired resources up top like this.
@@ -16,13 +17,15 @@
 #       (You can force lower than your full request in the srun line,
 #        or put the configuration again for safety, but shouldn't be needed.)
 # ============
-# -N = nodes
-# -n = tasks (MPI ranks)
-# -c = CPU per task (full coriGPU node, c*n <= 80)
-# -gres=gpu: = GPUs per node (full coriGPU node, 8)
+# -N =                nodes
+# -n =                tasks (MPI ranks)
+# -c =                CPU per task (full coriGPU node, c*n <= 80)
+# --gres=gpu: =       GPUs per node (full coriGPU node, 8)
+# --ntasks-per-node = number of tasks (MPI ranks) per node (full node, 8)
 #
-# For one node:  -N 1, -n  8, -c 10, --gres=gpu:8
-# For two nodes: -N 2, -n 16, -c 10, --gres=gpu:8
+
+# For one node:  -N 1, -n  8, -c 10, --gres=gpu:8 --ntasks-per-node 8
+# For two nodes: -N 2, -n 16, -c 10, --gres=gpu:8 --ntasks-per-node 8
 
 # salloc commands:
 # ================
