@@ -130,6 +130,7 @@ public:
     int getMaxOrder () const { return maxorder; }
 
     virtual int getNComp() const { return 1; }
+    virtual int getNGrow() const { return 0; }
 
     virtual bool needsUpdate () const { return false; }
     virtual void update () {}
