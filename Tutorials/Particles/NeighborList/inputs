@@ -1,4 +1,4 @@
-size = 256
+size = (256, 256, 256)
 max_grid_size = 128
 max_step = 100
 write_particles = 0

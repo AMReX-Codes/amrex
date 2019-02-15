@@ -2324,7 +2324,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
         grid_indices.resize(np);
         
         thrust::transform(thrust::device, 
-			  aos().begin(), aos().end(), grid_indices.begin(),
+			  aos().begin(), aos().begin() + np, grid_indices.begin(),
                           functors::assignParticleGrid(geom.data(),
                                          (*redistribute_mask_ptr)[mfi].box(),
                                          redistribute_mask_ptr->fabPtr(mfi)));
@@ -2340,7 +2340,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
             Gpu::HostVector<int> host_grids(np);
 
             Cuda::thrust_copy(aos().begin(),
-                              aos().end(),
+                              aos().begin() + np,
                               host_particles.begin());
 
             Cuda::thrust_copy(grid_indices.begin(),
