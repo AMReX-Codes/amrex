@@ -668,6 +668,30 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
     }
 }
 
+// TODO - Delete this entire function.
+// It is only here for testing purposes.
+void MLLinOp::RealFillBoundary(MultiFab &mf) const
+{
+	mf.FillBoundary(m_geom[0][0].periodicity());
+
+	// FArrayBox &mflo = mf[0];
+	// FArrayBox &mfhi = mf[1];
+
+	// mfhi(IntVect(14,30)) = mflo(IntVect(14,30));
+	// mfhi(IntVect(15,30)) = mflo(IntVect(15,30));
+
+	// mflo(IntVect(14,34)) = mfhi(IntVect(14,34));
+	// mflo(IntVect(15,34)) = mfhi(IntVect(15,34));
+
+	// mfhi(IntVect(49,30)) = mflo(IntVect(49,30));
+	// mfhi(IntVect(50,30)) = mflo(IntVect(50,30));
+
+	// mflo(IntVect(49,34)) = mfhi(IntVect(49,34));
+	// mflo(IntVect(50,34)) = mfhi(IntVect(50,34));
+}
+
+
+
 #ifdef AMREX_USE_PETSC
 std::unique_ptr<PETScABecLap>
 MLLinOp::makePETSc () const
