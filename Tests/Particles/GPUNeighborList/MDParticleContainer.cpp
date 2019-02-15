@@ -255,6 +255,24 @@ fillNeighbors()
     auto& dmap = this->ParticleDistributionMap(lev);
 
     std::map<int, SendBuffer> not_ours;
+    std::map<int, size_t> grid_counts;
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int src_grid = mfi.index();
+        int num_codes = m_grid_map[src_grid].size();
+        for (int i = 1; i < num_codes + 1; ++i)
+        {
+            for (auto dst_grid : m_grid_map[src_grid][i-1])
+            {            
+                const int dest_proc = dmap[dst_grid];
+                if (dest_proc != ParallelDescriptor::MyProc())
+                {
+                    grid_counts[dest_proc] += 1;
+                }
+            }
+        }
+    }
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -269,20 +287,7 @@ fillNeighbors()
 
         auto& src_ptile = plev[index];
 
-        std::map<int, size_t> grid_counts;
         int num_codes = m_grid_map[src_grid].size();
-        for (int i = 1; i < num_codes + 1; ++i)
-        {
-            for (auto dst_grid : m_grid_map[src_grid][i-1])
-            {            
-                const int dest_proc = dmap[dst_grid];
-                if (dest_proc != ParallelDescriptor::MyProc())
-                {
-                    grid_counts[dest_proc] += 1;
-                }
-            }
-        }
-
         for (int i = 1; i < num_codes + 1; ++i)
         {
             const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
