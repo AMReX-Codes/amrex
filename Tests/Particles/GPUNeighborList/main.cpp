@@ -9,7 +9,7 @@ using namespace amrex;
 
 struct TestParams
 {
-    int size;
+    IntVect size;
     int max_grid_size;
     int nsteps;
     bool print_neighbor_list;
@@ -44,11 +44,11 @@ void main_main ()
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size);
+        real_box.setHi(n, params.size[n]);
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
-    IntVect domain_hi(AMREX_D_DECL(params.size-1,params.size-1,params.size-1));
+    IntVect domain_hi(AMREX_D_DECL(params.size[0]-1,params.size[1]-1,params.size[2]-1));
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
