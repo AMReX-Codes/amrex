@@ -24,30 +24,11 @@ if (CMAKE_CUDA_COMPILER_VERSION VERSION_LESS "8.0")
       "This is unsupported. Please use CUDA toolkit version 8.0 or newer.")
 endif ()
 
-# string(REPLACE ";" " " NVCC_ARCH_FLAGS "${NVCC_ARCH_FLAGS}")
-# set(cuda_flags "--expt-relaxed-constexpr --expt-extended-lambda --std=c++11 -dc" )
-# set(cuda_flags "${cuda_flags} -Wno-deprecated-gpu-targets -m64 ${NVCC_ARCH_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT}")
-# set(cuda_flags "${cuda_flags} -Xcompiler=--std=c++11")
-
-# if (ENABLE_CUDA_FASTMATH)
-#    set(cuda_flags "${cuda_flags} --use_fast_math")
-# endif ()
 
 target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr --expt-extended-lambda>)
-target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:${cuda_flags} -Wno-deprecated-gpu-targets -m64 ${NVCC_ARCH_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT} -Xcompiler=--std=c++11 --use_fast_math>)
+target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:${cuda_flags} -Wno-deprecated-gpu-targets -m64 ${NVCC_ARCH_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT} --use_fast_math>)
 
-# set( CMAKE_CUDA_FLAGS "${cuda_flags}" CACHE
-#    STRING "Flags used by the CUDA compiler during all build types.")
-
-# set( CMAKE_CUDA_FLAGS_RELEASE "${CMAKE_CUDA_FLAGS_RELEASE} -lineinfo --ptxas-options=-O3,-v" CACHE
-#    STRING "Flags used by the CUDA compiler during RELEASE builds.")
-
-# set( CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G" CACHE
-#    STRING "Flags used by the CUDA compiler during DEBUG builds.")
-
-print(CMAKE_CUDA_SEPARABLE_COMPILATION)
-# set_property(TARGET amrex PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
-set_target_properties(amrex
+set_target_properties( amrex
    PROPERTIES
    CUDA_SEPARABLE_COMPILATION ON  # This adds -dc
    CUDA_STANDARD 11               # Adds -std=c++11
@@ -55,4 +36,17 @@ set_target_properties(amrex
    CUDA_RESOLVE_DEVICE_SYMBOLS OFF
    )
 
+#
+# Retrieve compile flags for the current configuration
+# I haven't find a way to set host compiler flags for all the
+# possible configurations.
+#
+get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
 
+evaluate_genex(_amrex_flags _amrex_cxx_flags
+   LANG   CXX
+   COMP   ${CMAKE_CXX_COMPILER_ID}
+   CONFIG ${CMAKE_BUILD_TYPE}
+   STRING )
+
+target_compile_options(amrex PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)

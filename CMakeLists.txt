@@ -1,10 +1,10 @@
-cmake_minimum_required (VERSION 3.11)
+cmake_minimum_required(VERSION 3.14)
 
 project (AMReX)
 
-enable_language (C)
-enable_language (CXX)
-enable_language (Fortran)
+enable_language(C)
+enable_language(CXX)
+enable_language(Fortran)
 
 #
 # Load required modules 
@@ -37,17 +37,10 @@ include( AMReX_Machines )
 # to be the C++ compiler. 
 # 
 if (ENABLE_CUDA)
+   include(AMReX_SetupCUDA)
    setup_cuda_host_compiler()
-
    enable_language(CUDA)
    setup_cuda_environment()
-   print(NVCC_ARCH_FLAGS)
-   print(CUDA_ARCH)
-   print(CUDA_HOME)
-   print(CMAKE_CUDA_COMPILER_VERSION)
-   print(CMAKE_CUDA_COMPILER_ID)
-   print(CMAKE_CUDA_HOST_COMPILER)
-   print(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES)
 endif ()
 
 #
@@ -83,12 +76,12 @@ unset (TMP)
 # 
 # Source files for all binaries and libraries found under src
 # 
-add_subdirectory (Src)
+add_subdirectory(Src)
 
 #
 # Tutorials and "test_install" target)
 #
-add_subdirectory (Tutorials)
+add_subdirectory(Tutorials)
 
 
 

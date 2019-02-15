@@ -120,6 +120,10 @@ if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
       COMMENT "Generating AMReX_buildInfo.cpp" )
    
    target_sources( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
+   if ( ENABLE_CUDA ) 
+      set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/AMReX_buildInfo.cpp 
+         PROPERTIES LANGUAGE CUDA )
+   endif ()
 endif ()
 
 #
