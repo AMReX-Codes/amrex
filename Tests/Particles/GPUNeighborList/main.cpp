@@ -9,10 +9,11 @@ using namespace amrex;
 
 struct TestParams
 {
-    int size;
+    IntVect size;
     int max_grid_size;
     int nsteps;
     bool print_neighbor_list;
+    bool write_particles;
 };
 
 void main_main();
@@ -31,6 +32,7 @@ void get_test_params(TestParams& params)
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("nsteps", params.nsteps);
     pp.get("print_neighbor_list", params.print_neighbor_list);
+    pp.get("write_particles", params.write_particles);
 }
 
 void main_main ()
@@ -42,17 +44,17 @@ void main_main ()
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, params.size);
+        real_box.setHi(n, params.size[n]);
     }
 
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
-    IntVect domain_hi(AMREX_D_DECL(params.size-1,params.size-1,params.size-1));
+    IntVect domain_hi(AMREX_D_DECL(params.size[0]-1,params.size[1]-1,params.size[2]-1));
     const Box domain(domain_lo, domain_hi);
 
     int coord = 0;
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++)
-        is_per[i] = 1;
+        is_per[i] = 0;
     Geometry geom(domain, &real_box, coord, is_per);
     
     BoxArray ba(domain);
@@ -62,18 +64,30 @@ void main_main ()
     MDParticleContainer pc(geom, dm, ba);
 
     IntVect nppc = IntVect(AMREX_D_DECL(1, 1, 1));
-    constexpr Real dt = 0.1;
+    constexpr Real dt = 0.0005;
 
     pc.InitParticles(nppc, 1.0, 0.0);
 
     for (int step = 0; step < params.nsteps; ++step) {
+
+        amrex::Print() << "Taking step " << step << "\n";
+
+        pc.sortParticlesByNeighborDest();
+
+        pc.fillNeighbors();
 
         pc.BuildNeighborList();
 
         if (params.print_neighbor_list) pc.printNeighborList();
 
         pc.computeForces();
+
+        pc.clearNeighbors();
         
         pc.moveParticles(dt);
+
+        pc.RedistributeLocal();
     }
+
+    if (params.write_particles) pc.writeParticles(params.nsteps);
 }

@@ -20,13 +20,38 @@ endif
 ifeq ($(USE_MPI),TRUE)
 ifeq ($(USE_CUDA),TRUE)
   CC  = mpicc
-  CXX = mpic++
+  CXX = mpic++ 
   FC  = mpif90
   F90 = mpif90
   cori_mvapich_link_flags := $(shell mpic++ -link_info)
-  ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
-    LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags))))
+
+# Using OPENMPI + UCX
+  ifeq ($(cori_mvapich_link_flags),)
+    CXX := nvcc
+    cori_openmpi_compile_flags := $(shell mpic++ --showme:compile)
+    cori_openmpi_link_flags := $(shell mpic++ --showme:link)
+
+    ifeq ($(findstring -pthread,$(cori_openmpi_compile_flags)),-pthread)
+       CXXFLAGS += -Xcompiler='-pthread'
+    endif
+
+    ifeq ($(findstring -pthread,$(cori_openmpi_link_flags)),-pthread)
+        LDFLAGS += -Xcompiler='-pthread'
+    endif
+
+    includes += $(wordlist 1,1024,$(filter-out -pthread,$(cori_openmpi_compile_flags)))
+#   NOTE: MUST be done in LIBRARIES so -Wl -> -Xlinker substitution occurs. 
+    LIBRARIES  += $(wordlist 1,1024,$(filter-out -pthread,$(cori_openmpi_link_flags)))
+
+# Using mvapich
+  else
+
+    ifneq ($(LINK_WITH_FORTRAN_COMPILER),TRUE)
+      LIBRARIES += --compiler-options '-fPIC' $(wordlist 2,1024,$(filter-out -m64,$(filter-out -fPIC,$(cori_mvapich_link_flags))))
+    endif
+
   endif
+
 else
   CC  = cc
   CXX = CC
