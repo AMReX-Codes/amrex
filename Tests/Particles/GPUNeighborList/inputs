@@ -6,3 +6,5 @@ max_grid_size = 32
 nsteps = 1000
 
 print_neighbor_list = false
+
+write_particles = true

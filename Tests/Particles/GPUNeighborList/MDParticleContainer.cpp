@@ -254,6 +254,8 @@ fillNeighbors()
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
 
+    std::map<int, SendBuffer> not_ours;
+
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int src_grid = mfi.index();
@@ -267,7 +269,20 @@ fillNeighbors()
 
         auto& src_ptile = plev[index];
 
+        std::map<int, size_t> grid_counts;
         int num_codes = m_grid_map[src_grid].size();
+        for (int i = 1; i < num_codes + 1; ++i)
+        {
+            for (auto dst_grid : m_grid_map[src_grid][i-1])
+            {            
+                const int dest_proc = dmap[dst_grid];
+                if (dest_proc != ParallelDescriptor::MyProc())
+                {
+                    grid_counts[dest_proc] += 1;
+                }
+            }
+        }
+
         for (int i = 1; i < num_codes + 1; ++i)
         {
             const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
@@ -293,11 +308,207 @@ fillNeighbors()
                     }
                 }
                 else { // this is the non-local case
-                    amrex::Abort("Not implemented yet.");
+                    char* dst;
+                    const size_t old_size = not_ours[dest_proc].size();
+                    const size_t new_size
+                        = old_size + num_to_add*sizeof(ParticleType) + sizeof(size_t) + 2*sizeof(int);
+                
+                    if (old_size == 0)
+                    {
+                        not_ours[dest_proc].resize(new_size + sizeof(size_t));
+                        cudaMemcpyAsync(thrust::raw_pointer_cast(not_ours[dest_proc].data()),
+                                        &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToHost);
+                        dst = thrust::raw_pointer_cast(
+                            not_ours[dest_proc].data() + old_size + sizeof(size_t));
+                    } else
+                    {
+                        not_ours[dest_proc].resize(new_size);
+                        dst = thrust::raw_pointer_cast(not_ours[dest_proc].data() + old_size);
+                    }
+                    
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                    &num_to_add, sizeof(size_t), cudaMemcpyHostToHost);
+                    dst += sizeof(size_t);
+                    
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &dst_grid, sizeof(int), 
+                                    cudaMemcpyHostToHost);
+                    dst += sizeof(int);
+                    
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                    &dest_proc, sizeof(int), cudaMemcpyHostToHost);
+                    dst += sizeof(int);
+                    
+                    // pack structs
+                    {
+                        auto& aos = src_ptile.GetArrayOfStructs();
+                        cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                        thrust::raw_pointer_cast(aos.data() + m_start[src_grid][i]),
+                                        num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
+                        dst += num_to_add*sizeof(ParticleType);
+                    }
                 }
             }
         }
     }
+
+    if (ParallelDescriptor::NProcs() == 1) {
+        BL_ASSERT(not_ours.empty());
+    }
+    else {
+        fillNeighborsMPIGPU(not_ours);
+    }    
+}
+
+void
+MDParticleContainer
+::fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
+{
+    BL_PROFILE("ParticleContainer::fillNeighborsMPIGPU()");
+
+#if BL_USE_MPI
+    const int NProcs = ParallelDescriptor::NProcs();
+    const int lev = 0;
+    
+    // We may now have particles that are rightfully owned by another CPU.
+    Vector<long> Snds(NProcs, 0), Rcvs(NProcs, 0);  // bytes!
+
+    long NumSnds = 0;
+
+    for (const auto& kv : not_ours)
+    {
+        const size_t nbytes = kv.second.size();
+        Snds[kv.first] = nbytes;
+        NumSnds += nbytes;
+    }
+    
+    ParallelDescriptor::ReduceLongMax(NumSnds);
+
+    if (NumSnds == 0) return;
+
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::BeforeCall());
+    
+    BL_MPI_REQUIRE( MPI_Alltoall(Snds.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 Rcvs.dataPtr(),
+                                 1,
+                                 ParallelDescriptor::Mpi_typemap<long>::type(),
+                                 ParallelDescriptor::Communicator()) );
+    
+    BL_ASSERT(Rcvs[ParallelDescriptor::MyProc()] == 0);
+    
+    BL_COMM_PROFILE(BLProfiler::Alltoall, sizeof(long),
+                    ParallelDescriptor::MyProc(), BLProfiler::AfterCall());
+
+    Vector<int> RcvProc;
+    Vector<std::size_t> rOffset; // Offset (in bytes) in the receive buffer
+    
+    std::size_t TotRcvBytes = 0;
+    for (int i = 0; i < NProcs; ++i) {
+        if (Rcvs[i] > 0) {
+            RcvProc.push_back(i);
+            rOffset.push_back(TotRcvBytes);
+            TotRcvBytes += Rcvs[i];
+        }
+    }
+    
+    const int nrcvs = RcvProc.size();
+    Vector<MPI_Status>  stats(nrcvs);
+    Vector<MPI_Request> rreqs(nrcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    
+    // Allocate data for rcvs as one big chunk.    
+    char* rcv_buffer;
+    if (ParallelDescriptor::UseGpuAwareMpi()) 
+    {
+        rcv_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotRcvBytes));
+    }
+    else 
+    {
+        rcv_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotRcvBytes));
+    }
+    
+    // Post receives.
+    for (int i = 0; i < nrcvs; ++i) {
+        const auto Who    = RcvProc[i];
+        const auto offset = rOffset[i];
+        const auto Cnt    = Rcvs[Who];
+        
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        
+        rreqs[i] = ParallelDescriptor::Arecv(rcv_buffer + offset,
+                                             Cnt, Who, SeqNum).req();
+    }
+    
+    // Send.
+    for (const auto& kv : not_ours) {
+        const auto Who = kv.first;
+        const auto Cnt = kv.second.size();
+
+        BL_ASSERT(Cnt > 0);
+        BL_ASSERT(Who >= 0 && Who < NProcs);
+        BL_ASSERT(Cnt < std::numeric_limits<int>::max());
+        
+        ParallelDescriptor::Send(thrust::raw_pointer_cast(kv.second.data()),
+                                 Cnt, Who, SeqNum);
+    }
+
+    if (nrcvs > 0) {
+        ParallelDescriptor::Waitall(rreqs, stats);
+
+        for (int i = 0; i < nrcvs; ++i) {
+            const int offset = rOffset[i];
+            char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
+            size_t num_grids, num_particles;
+            int gid, pid;
+            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyHostToHost);
+            buffer += sizeof(size_t);
+
+            for (int g = 0; g < num_grids; ++g) {
+                cudaMemcpyAsync(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
+                buffer += sizeof(size_t);
+                cudaMemcpyAsync(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
+                buffer += sizeof(int);
+                cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
+                buffer += sizeof(int);
+
+                Gpu::Device::streamSynchronize();
+
+                if (num_particles == 0) continue;
+
+                AMREX_ALWAYS_ASSERT(pid == ParallelDescriptor::MyProc());
+                {
+                    const int tid = 0;
+                    auto pair_index = std::make_pair(gid, tid);
+                    auto& ptile = GetParticles(lev)[pair_index];
+                    const int nRParticles = ptile.numRealParticles();
+                    const int nNParticles = ptile.getNumNeighbors();
+                    const int new_num_neighbors = nNParticles + num_particles;
+                    ptile.setNumNeighbors(new_num_neighbors);
+
+                    //copy structs
+                    auto& aos = ptile.GetArrayOfStructs();
+                    cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + nRParticles + nNParticles,
+                                    buffer, num_particles*sizeof(ParticleType),
+                                    cudaMemcpyHostToDevice);
+                    buffer += num_particles*sizeof(ParticleType);
+                }
+            }
+        }
+    }
+
+    if (ParallelDescriptor::UseGpuAwareMpi())
+    {
+        amrex::The_Device_Arena()->free(rcv_buffer);
+    } else {
+        amrex::The_Pinned_Arena()->free(rcv_buffer);
+    }
+
+#endif // MPI    
 }
 
 void
@@ -664,4 +875,11 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
             }
         });
     }
+}
+
+void MDParticleContainer::writeParticles(const int n)
+{
+    BL_PROFILE("MDParticleContainer::writeParticles");
+    const std::string& pltfile = amrex::Concatenate("particles", n, 5);
+    WriteAsciiFile(pltfile);
 }
