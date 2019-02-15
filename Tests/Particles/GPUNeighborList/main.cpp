@@ -13,6 +13,7 @@ struct TestParams
     int max_grid_size;
     int nsteps;
     bool print_neighbor_list;
+    bool write_particles;
 };
 
 void main_main();
@@ -31,6 +32,7 @@ void get_test_params(TestParams& params)
     pp.get("max_grid_size", params.max_grid_size);
     pp.get("nsteps", params.nsteps);
     pp.get("print_neighbor_list", params.print_neighbor_list);
+    pp.get("write_particles", params.write_particles);
 }
 
 void main_main ()
@@ -86,4 +88,6 @@ void main_main ()
 
         pc.RedistributeLocal();
     }
+
+    if (params.write_particles) pc.writeParticles(params.nsteps);
 }
