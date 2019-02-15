@@ -146,11 +146,19 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     {
      	    //const Box& bx = mfi.tilebox();
 	    Box bx = mfi.tilebox();
-     	    amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
-     					    BL_TO_FORTRAN_ANYD(resid[mfi]),
-     					    BL_TO_FORTRAN_ANYD(b[mfi]),
-     					    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-     					    &ncomp);
+	    //bx.grow(2);
+	    /*for (int n = 0 ; n < ncomp; n++)
+		    for (int m2 = bx.loVect()[1]-2; m2<=bx.hiVect()[1]+2; m2++)
+			    for (int m1 = bx.loVect()[0]-2; m1<=bx.hiVect()[0]+2; m1++)
+			    {
+				    amrex::IntVect m(m1, m2);
+				    resid[mfi](m,n) = b[mfi](m,n) - resid[mfi](m,n);
+			    }*/
+     	    // amrex_mlndlap_solution_residual(BL_TO_FORTRAN_BOX(bx),
+     	    // 				    BL_TO_FORTRAN_ANYD(resid[mfi]),
+     	    // 				    BL_TO_FORTRAN_ANYD(b[mfi]),
+     	    // 				    BL_TO_FORTRAN_ANYD(dmsk[mfi]),
+     	    // 				    &ncomp);
     }
 }
 
