@@ -347,7 +347,7 @@ fillNeighbors()
                     {
                         auto& aos = src_ptile.GetArrayOfStructs();
                         cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
-                                        thrust::raw_pointer_cast(aos.data() + m_start[src_grid][i]),
+                                        thrust::raw_pointer_cast(aos().data() + m_start[src_grid][i]),
                                         num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
                         dst += num_to_add*sizeof(ParticleType);
                     }
@@ -630,6 +630,13 @@ void MDParticleContainer::BuildNeighborList()
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numTotalParticles();
+
+        // amrex::AllPrintToFile("ghosts") << "Total number of particles is: " << np << "\n";
+        // const size_t nrp = aos.numRealParticles();
+        // for (int i = nrp; i < np; ++i) {
+        //     amrex::AllPrintToFile("ghosts") << "\t" << aos[i] << "\n";
+        // }
+        // amrex::AllPrintToFile("ghosts") << "\n";
 
         Gpu::DeviceVector<unsigned int> cells(np);
         unsigned int* pcell = cells.dataPtr();
