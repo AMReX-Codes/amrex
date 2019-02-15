@@ -19,7 +19,7 @@
 #endif
 
 int cur_iter = 0;
-#define RET(x) //{std::cout << "Exit at " << __func__ << ":" << __LINE__ << "? (y/n)"; char usrinput; std::cin >> usrinput; if ( usrinput == 'y') {return x;}}
+#define RET(x) //{std::cout << "Break here? " << __func__ << ":" << __LINE__ << "? (y/n) "; char usrinput; std::cin >> usrinput;if ( usrinput == 'y') {return x;}} 
 //#define BL_PROFILE(x) std::cout << x << " (" << __LINE__ << ")" << std::endl;
 
 // sol: full solution
@@ -304,7 +304,8 @@ MLMG::computeResidual (int alev)
     RET();
     linop.solutionResidual(alev, r, x, b, crse_bcdata);
     RET();
-    r.FillBoundary(crse_geom.periodicity());
+    //r.FillBoundary(crse_geom.periodicity());
+    linop.RealFillBoundary(r);
 }
 
 // Compute coarse AMR level composite residual with coarse solution and fine correction
@@ -330,13 +331,13 @@ MLMG::computeResWithCrseSolFineCor (int calev, int falev)
         crse_bcdata = sol[calev-1];
     }
     linop.solutionResidual(calev, crse_res, crse_sol, crse_rhs, crse_bcdata);
-
+    linop.RealFillBoundary(fine_cor);
+    linop.RealFillBoundary(fine_res);
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res, BCMode::Homogeneous);
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 2);
-
+    linop.RealFillBoundary(fine_res);
     RET();
     linop.reflux(calev, crse_res, crse_sol, crse_rhs, fine_res, fine_sol, fine_rhs);
-
     RET();
     if (linop.isCellCentered()) {
         const int amrrr = linop.AMRRefRatio(calev);
@@ -364,10 +365,14 @@ MLMG::computeResWithCrseCorFineCor (int falev)
 
     // fine_rescor = fine_res - L(fine_cor)
     RET();
+    linop.RealFillBoundary(fine_cor);
+    linop.RealFillBoundary(fine_res);
+
     linop.correctionResidual(falev, 0, fine_rescor, fine_cor, fine_res,
                              BCMode::Inhomogeneous, &crse_cor);
     RET();
     MultiFab::Copy(fine_res, fine_rescor, 0, 0, ncomp, 2);
+    linop.RealFillBoundary(fine_res);
     RET();
 }
 
@@ -652,7 +657,8 @@ MLMG::interpCorrection (int alev)
 					 &ncomp);
                 fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
             }
-	    fine_cor.FillBoundary(crse_geom.periodicity());
+	    //fine_cor.FillBoundary(crse_geom.periodicity());
+	    //linop.RealFillBoundary(fine_cor);
 	    RET();
         }
     }
@@ -808,7 +814,9 @@ MLMG::computeResOfCorrection (int amrlev, int mglev)
     MultiFab& x = *cor[amrlev][mglev];
     const MultiFab& b = res[amrlev][mglev];
     MultiFab& r = rescor[amrlev][mglev];
+    RET();
     linop.correctionResidual(amrlev, mglev, r, x, b, BCMode::Homogeneous);
+    RET();
 }
 
 // At the true bottom of the coarset AMR level.
