@@ -63,7 +63,7 @@ function (configure_amrex)
    #  
    if (ENABLE_MPI)
       find_package(MPI REQUIRED)
-      target_link_libraries(amrex PUBLIC MPI::MPI_CXX MPI::MPI_Fortran)   
+      target_link_libraries(amrex PUBLIC MPI::MPI_CXX MPI::MPI_Fortran)
    endif ()
    
    #
@@ -71,30 +71,8 @@ function (configure_amrex)
    #
    if (ENABLE_OMP)
       find_package(OpenMP REQUIRED)
-
-      #
-      # This is to allow building on macOS -- This is not needed with CMake 3.12+
-      # Check https://cliutils.gitlab.io/modern-cmake/chapters/packages/OpenMP.html
-      #
-      if(${CMAKE_MINIMUM_REQUIRED_VERSION} VERSION_GREATER_EQUAL "3.12.0") 
-         message(AUTHOR_WARNING "Remove CMAke legacy support for OpenMP")
-      else()
-         if(NOT TARGET OpenMP::OpenMP_CXX)
-            find_package(Threads REQUIRED)
-            add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
-            set_property(TARGET OpenMP::OpenMP_CXX
-               PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-            # Only works if the same flag is passed to the linker; use CMake 3.9+ otherwise (Intel, AppleClang)
-            set_property(TARGET OpenMP::OpenMP_CXX
-               PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
-         endif()       
-      endif()
-
-      # I don't think there's a specific Fortran library to link for pthreads
       target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
-
    else ()
-      # Cray compiler has OMP turned on by default
       target_compile_options( amrex PUBLIC
          $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
@@ -264,6 +242,14 @@ function (print_amrex_configuration_summary)
       CONFIG ${CMAKE_BUILD_TYPE}
       STRING )
 
+   if (ENABLE_CUDA)
+      evaluate_genex(AMREX_FLAGS AMREX_CUDA_FLAGS
+         LANG   CUDA
+         COMP   ${CMAKE_CUDA_COMPILER_ID}
+         CONFIG ${CMAKE_BUILD_TYPE}
+         STRING )
+   endif ()
+   
    # Add base flags
    string ( TOUPPER "${CMAKE_BUILD_TYPE}"  AMREX_BUILD_TYPE )
    set (AMREX_CXX_FLAGS  "${CMAKE_CXX_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CXX_FLAGS} ${AMREX_CXX_FLAGS}")
@@ -305,7 +291,8 @@ function (print_amrex_configuration_summary)
    message( STATUS "   C++ flags                = ${AMREX_CXX_FLAGS}")
    message( STATUS "   Fortran flags            = ${AMREX_Fortran_FLAGS}")
    if (ENABLE_CUDA)
-      message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}")
+      message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}
+                      ${AMREX_CUDA_FLAGS}")
    endif ()
    message( STATUS "   C++ include paths        = ${AMREX_CXX_INCLUDE_PATHS}")  
    message( STATUS "   Fortran include paths    = ${AMREX_Fortran_INCLUDE_PATHS}")

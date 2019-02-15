@@ -15,7 +15,6 @@ set(fortran_gnu      "$<AND:$<STREQUAL:\"${CMAKE_Fortran_COMPILER_ID}\",\"GNU\">
 set(fortran_gnu_dbg  "$<AND:$<CONFIG:Debug>,${fortran_gnu}>")
 set(fortran_gnu_rel  "$<AND:$<CONFIG:Release>,${fortran_gnu}>")
 
-
 #
 # Set Fortran Flags only if not provided by user
 #
@@ -42,14 +41,14 @@ if ( NOT CMAKE_CXX_FLAGS )
    target_compile_options ( amrex
       PUBLIC
       $<${cxx_gnu_dbg}:$<BUILD_INTERFACE:-O0 -ggdb -Wshadow -Wall -Wno-sign-compare
-      -Wno-unused-but-set-variable -Werror=return-type>>
+      -Wno-unused-but-set-variable -Werror=return-type>>    
       $<${cxx_gnu_rel}:$<BUILD_INTERFACE:>>
       )	  
 endif ()
 
 #
 # Floating-point exceptions flags only if enabled
-# (I think these flags could be added tp both Fortran and
+# (I think these flags could be added to both Fortran and
 # c++ without differentiating by language)
 # 
 if (ENABLE_FPE)
@@ -69,7 +68,7 @@ endif ()
 if (NOT ENABLE_3D_NODAL_MLMG)
    target_compile_options( amrex PUBLIC  $<${cxx_gnu}:-std=c++11> )
 else ()
-   target_compile_options( amrex PUBLIC  $<${cxx_gnu}:-std=c++14> )
+   target_compile_options( amrex PUBLIC  $<${cxx_gnu}:-std=c++14> $<${cuda_gnu}:-Xcompiler=-std=c++14>)
 endif ()
 
 #

@@ -88,8 +88,10 @@ if (ENABLE_CUDA)
          )
    endif ()
 
-   target_compile_definitions( amrex PUBLIC
-       $<${fortran_pgi}:AMREX_USE_CUDA_FORTRAN> )   
+   if (ENABLE_CUDA_FORTRAN)
+      target_compile_definitions( amrex PUBLIC
+         $<${fortran_pgi}:AMREX_USE_CUDA_FORTRAN> )
+   endif ()   
 endif ()
 
 
