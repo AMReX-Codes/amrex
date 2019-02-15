@@ -668,6 +668,32 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
     }
 }
 
+void MLLinOp::RealFillBoundary(MultiFab &mf) const
+{
+	mf.FillBoundary(m_geom[0][0].periodicity());
+	// MultiFab tmp1, tmp2;
+	// BoxArray grids = mf.boxArray();
+
+	// grids.grow(0);
+	// tmp1.define(mf.boxArray(),mf.DistributionMap(),mf.nComp(),2); // original but w/ 1 ghost node
+	// tmp1.copy(mf,0,0,mf.nComp());
+	// //MultiFab::Copy(tmp1,mf,0,0,mf.nComp(),1);
+	// tmp1.FillBoundary(m_geom[0][0].periodicity());
+
+	//grids.grow(0);
+	//tmp2.define(mf.boxArray(),mf.DistributionMap(),mf.nComp(),2); // bigger with 1 ghost node
+	//	MultiFab::Copy(tmp2,mf,0,0,mf.nComp(),0);
+	//tmp2.FillBoundary(m_geom[0][0].periodicity());
+
+	// mf.copy(tmp1,0,0,mf.nComp());
+	// //MultiFab::Copy(mf,tmp1,0,0,mf.nComp(),2);
+
+
+	//mf.FillBoundary(m_geom[0][0].periodicity());
+}
+
+
+
 #ifdef AMREX_USE_PETSC
 std::unique_ptr<PETScABecLap>
 MLLinOp::makePETSc () const

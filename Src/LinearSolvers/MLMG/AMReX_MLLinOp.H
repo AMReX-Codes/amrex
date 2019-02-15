@@ -44,6 +44,9 @@ class MLLinOp
 {
 public:
 
+	void RealFillBoundary(MultiFab &mf) const;
+		
+
     friend class MLMG;
     friend class MLCGSolver;
     friend class MLPoisson;

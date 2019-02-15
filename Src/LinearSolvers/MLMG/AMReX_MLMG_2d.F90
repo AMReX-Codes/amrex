@@ -64,6 +64,7 @@ contains
     
     integer :: i,j,n
 
+
     ! Interpolate from coarse grid to fine grid
     do n = 1, nc
        do    j = flo(2), fhi(2)
