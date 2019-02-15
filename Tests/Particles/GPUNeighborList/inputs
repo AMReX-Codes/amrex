@@ -7,4 +7,4 @@ nsteps = 1000
 
 print_neighbor_list = false
 
-write_particles = true
+write_particles = false
