@@ -671,25 +671,23 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
 void MLLinOp::RealFillBoundary(MultiFab &mf) const
 {
 	mf.FillBoundary(m_geom[0][0].periodicity());
-	// MultiFab tmp1, tmp2;
-	// BoxArray grids = mf.boxArray();
 
-	// grids.grow(0);
-	// tmp1.define(mf.boxArray(),mf.DistributionMap(),mf.nComp(),2); // original but w/ 1 ghost node
-	// tmp1.copy(mf,0,0,mf.nComp());
-	// //MultiFab::Copy(tmp1,mf,0,0,mf.nComp(),1);
-	// tmp1.FillBoundary(m_geom[0][0].periodicity());
+	// SURGERY
 
-	//grids.grow(0);
-	//tmp2.define(mf.boxArray(),mf.DistributionMap(),mf.nComp(),2); // bigger with 1 ghost node
-	//	MultiFab::Copy(tmp2,mf,0,0,mf.nComp(),0);
-	//tmp2.FillBoundary(m_geom[0][0].periodicity());
+	FArrayBox &mflo = mf[0];
+	FArrayBox &mfhi = mf[1];
 
-	// mf.copy(tmp1,0,0,mf.nComp());
-	// //MultiFab::Copy(mf,tmp1,0,0,mf.nComp(),2);
+	mfhi(IntVect(14,30)) = mflo(IntVect(14,30));
+	mfhi(IntVect(15,30)) = mflo(IntVect(15,30));
 
+	mflo(IntVect(14,34)) = mfhi(IntVect(14,34));
+	mflo(IntVect(15,34)) = mfhi(IntVect(15,34));
 
-	//mf.FillBoundary(m_geom[0][0].periodicity());
+	mfhi(IntVect(49,30)) = mflo(IntVect(49,30));
+	mfhi(IntVect(50,30)) = mflo(IntVect(50,30));
+
+	mflo(IntVect(49,34)) = mfhi(IntVect(49,34));
+	mflo(IntVect(50,34)) = mfhi(IntVect(50,34));
 }
 
 
