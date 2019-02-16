@@ -288,6 +288,7 @@ MLMG::computeResidual (int alev)
         crse_bcdata = sol[alev-1];
     }
     linop.solutionResidual(alev, r, x, b, crse_bcdata);
+    linop.RealFillBoundary(r);
 }
 
 // Compute coarse AMR level composite residual with coarse solution and fine correction
@@ -625,8 +626,9 @@ MLMG::interpCorrection (int alev)
 					 &ncomp);
                 fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
             }
-	    if (alev > 0) linop.RealFillBoundary(fine_cor);
-	    else fine_cor.FillBoundary(linop.Geom(alev,0).periodicity());
+	    // if (alev > 0)
+	    // 	    linop.RealFillBoundary(fine_cor);
+	    // else fine_cor.FillBoundary(linop.Geom(alev,0).periodicity());
         }
     }
 }
@@ -1401,7 +1403,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         }
         rh[alev].define(a_in[alev]->boxArray(),
                         a_in[alev]->DistributionMap(),
-                        a_in[alev]->nComp(), a_in[alev]->nComp(), MFInfo(),
+                        a_in[alev]->nComp(), a_in[alev]->nGrow(), MFInfo(),
                         *linop.Factory(alev));
         rh[alev].setVal(0.0);
     }
