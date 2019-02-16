@@ -96,8 +96,7 @@ private:
     AMREX_GPU_HOST_DEVICE
     Orientation (int v) : val(v) {}
     //
-    // The data.
-    //
+    //! The data.
     int val;
 };
 

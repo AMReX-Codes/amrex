@@ -7,10 +7,10 @@
 
 namespace amrex {
 
-//
-// This enum and the FabCopyDescriptor class should really be nested
-// in FabArrayCopyDescriptor (not done for portability reasons).
-//
+//!
+//! This enum and the FabCopyDescriptor class should really be nested
+//! in FabArrayCopyDescriptor (not done for portability reasons).
+//!
 
 enum FillType { FillLocally, FillRemotely, Unfillable };
 
@@ -82,9 +82,9 @@ struct FabCopyDescriptor
     bool     cacheDataAllocated;
 
 private:
-    //
-    // Disallowed.
-    //
+    //!
+    //! Disallowed.
+    //!
     FabCopyDescriptor (const FabCopyDescriptor&);
     FabCopyDescriptor& operator= (const FabCopyDescriptor&);
 };
@@ -143,9 +143,9 @@ class FabArrayCopyDescriptor
                       int        srccomp,
                       int        destcomp,
                       int        numcomp);
-    //
-    // Add a box but only from FabArray[fabarrayindex].
-    //
+    //!
+    //! Add a box but only from FabArray[fabarrayindex].
+    //!
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
                       BoxList*   unfilledBoxes,
@@ -179,15 +179,15 @@ class FabArrayCopyDescriptor
     int nFabCopyDescs () const { return fabCopyDescList.size(); }
 
 private:
-    //
-    // These are disallowed.
-    //
+    //!
+    //! These are disallowed.
+    //!
     FabArrayCopyDescriptor (const FabArrayCopyDescriptor<FAB>&);
 
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &);
-    //
-    // Helper function for AddBox() routines.
-    //
+    //!
+    //! Helper function for AddBox() routines.
+    //!
     void AddBoxDoIt (FabArrayId fabarrayid,
                      const Box& destFabBox,
                      BoxList*   returnedUnfilledBoxes,
@@ -197,15 +197,15 @@ private:
                      int        numcomp,
                      bool       bUseValidBox,
                      BoxDomain& unfilledBoxDomain);
-    //
-    // Some useful typedefs.
-    //
+    //!
+    //! Some useful typedefs.
+    //!
     typedef std::vector<FabArrayBase::FabComTag> FabComTagContainer;
 
     typedef std::vector<FabComTagContainer::const_iterator> FabComTagIterContainer;
-    //
-    // The data.
-    //
+    //!
+    //! The data.
+    //!
     std::vector<FabArray<FAB>*> fabArrays;
     std::vector<FCDMap>         fabCopyDescList;
     FabComTagContainer          fabComTagList;
@@ -584,7 +584,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    int cnt = it->second * Nints;
 	    md_icnts.push_back(cnt);
             md_offset.push_back(N);
-            N += cnt; 
+            N += cnt;
         }
 
 	md_recv_data = static_cast<int*>(amrex::The_Arena()->alloc(N*sizeof(int)));
@@ -594,7 +594,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    md_recv_reqs.push_back(ParallelDescriptor::Arecv(&md_recv_data[md_offset[i]],
 							     md_icnts[i], md_sender[i],
 							     SeqNum_md).req());
-	}	
+	}
     }
 
     if (N_rcvs > 0)
@@ -659,7 +659,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
     }
 
     // Wait on meta-data and do send
-    if (N_snds > 0) 
+    if (N_snds > 0)
     {
 	int send_counter = 0;
 	while (send_counter++ < N_snds)
@@ -689,14 +689,14 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 		scomp[i] = md[2];
 		ncomp[i] = md[3];
 		bxs.push_back(Box(IntVect(&md[4]),
-				  IntVect(&md[4+AMREX_SPACEDIM]), 
-				  IntVect(&md[4+AMREX_SPACEDIM*2]))); 
+				  IntVect(&md[4+AMREX_SPACEDIM]),
+				  IntVect(&md[4+AMREX_SPACEDIM*2])));
 		npts[i] = bxs.back().numPts()*ncomp[i];
 		N += npts[i];
 	    }
 
 	    BL_ASSERT(N < std::numeric_limits<int>::max());
-	    
+
 	    value_type* data = static_cast<value_type*>(amrex::The_Arena()->alloc(N*sizeof(value_type)));
 	    value_type* dptr = data;
 	    send_data.push_back(data);
@@ -705,7 +705,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	    {
 		(*fabArrays[faid[i]])[fidx[i]].copyToMem(bxs[i],scomp[i],ncomp[i],dptr);
 		dptr += npts[i];
-	    }	    
+	    }
 
 	    data_send_reqs.push_back(ParallelDescriptor::Asend(data,N,rank,SeqNum_data).req());
 	}
@@ -720,7 +720,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         ParallelDescriptor::Waitall(md_send_reqs, stats);
 	for (int i = 0; i < N_rcvs; ++i) {
-            amrex::The_Arena()->free(md_send_data[i]);	    
+            amrex::The_Arena()->free(md_send_data[i]);
 	}
 
         ParallelDescriptor::Waitall(data_recv_reqs, stats);
@@ -732,31 +732,31 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 	{
 	    const int         Who  = data_sender[k];
 	    const value_type* dptr = &recv_data[data_offset[k]];
-	    
+
 	    BL_ASSERT(dptr != 0);
-	    
+
 	    found = RcvTags.find(Who);
-	    
+
 	    BL_ASSERT(found != RcvTags.end());
-	    
+
 	    const FabComTagIterContainer& tags = found->second;
-	    
+
 	    for (FabComTagIterContainer::const_iterator it = tags.begin(), End = tags.end();
 		 it != End;
 		 ++it)
 	    {
-		const FabArrayBase::FabComTag& tag = **it;                  
-		
+		const FabArrayBase::FabComTag& tag = **it;
+
 		BL_ASSERT(tag.procThatHasData == Who);
-		
+
 		match = fabCopyDescList[tag.fabArrayId].equal_range(tag.fillBoxId);
-		
+
 		for (FCDMapIter fmi = match.first; fmi != match.second; ++fmi)
 		{
 		    FabCopyDescriptor<FAB>* fcdp = (*fmi).second;
-		    
+
 		    BL_ASSERT(fcdp->fillBoxId == tag.fillBoxId);
-		    
+
 		    if (fcdp->subBox == tag.box)
 		    {
 			BL_ASSERT(fcdp->localFabSource->dataPtr() != 0);

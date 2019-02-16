@@ -1,9 +1,10 @@
 
-ncell = (8, 8, 8)
-nppc  = (4, 4, 4)         # number of particles per cell
+size = (64, 64, 64)
 
-max_grid_size = 8
+max_grid_size = 32
 
-nsteps = 10
+nsteps = 1000
 
-write_plot = false
+print_neighbor_list = false
+
+write_particles = false

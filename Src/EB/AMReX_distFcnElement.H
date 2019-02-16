@@ -10,7 +10,7 @@ namespace amrex {
 
 class distFcnElement2d {
  public:
-  // Constructor
+  //! Constructor
   distFcnElement2d() {}
   ~distFcnElement2d() {}
 

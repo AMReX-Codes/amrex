@@ -96,12 +96,12 @@ public:
     const int* hi () const& { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
-    * \brief Return low-end boundary data in direction <dir>.
+    * \brief Return low-end boundary data in direction \<dir\>.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int lo (int dir) const { return bc[dir]; }
     /**
-    * \brief Return high-end boundary data in direction <dir>.
+    * \brief Return high-end boundary data in direction \<dir\>.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
