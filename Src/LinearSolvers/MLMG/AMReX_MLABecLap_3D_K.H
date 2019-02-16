@@ -178,5 +178,71 @@ void mlabeclap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real c
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void abec_gsrb (Box const& box, Array4<Real> const& phi,
+                Array4<Real const> const& rhs, Real alpha,
+                Real dhx, Real dhy, Real dhz, Array4<Real const> const& a,
+                Array4<Real const> const& bX,
+                Array4<Real const> const& bY,
+                Array4<Real const> const& bZ,
+                Array4<Real const> const& f0, Array4<int const> const& m0,
+                Array4<Real const> const& f1, Array4<int const> const& m1,
+                Array4<Real const> const& f2, Array4<int const> const& m2,
+                Array4<Real const> const& f3, Array4<int const> const& m3,
+                Array4<Real const> const& f4, Array4<int const> const& m4,
+                Array4<Real const> const& f5, Array4<int const> const& m5,
+                Box const& vbox, int nc, int redblack)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    constexpr Real omega = 1.15;
+
+    for (int n = 0; n < nc; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    if ((i+j+k+redblack)%2 == 0) {
+                        Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)
+                            ? f0(vlo.x,j,k) : 0.0;
+                        Real cf1 = (j == vlo.y and m1(i,vlo.y-1,k) > 0)
+                            ? f1(i,vlo.y,k) : 0.0;
+                        Real cf2 = (k == vlo.z and m2(i,j,vlo.z-1) > 0)
+                            ? f2(i,j,vlo.z) : 0.0;
+                        Real cf3 = (i == vhi.x and m3(vhi.x+1,j,k) > 0)
+                            ? f3(vhi.x,j,k) : 0.0;
+                        Real cf4 = (j == vhi.y and m4(i,vhi.y+1,k) > 0)
+                            ? f4(i,vhi.y,k) : 0.0;
+                        Real cf5 = (k == vhi.z and m5(i,j,vhi.z+1) > 0)
+                            ? f5(i,j,vhi.z) : 0.0;
+
+                        Real gamma = alpha*a(i,j,k)
+                            +   dhx*(bX(i,j,k)+bX(i+1,j,k))
+                            +   dhy*(bY(i,j,k)+bY(i,j+1,k))
+                            +   dhz*(bZ(i,j,k)+bZ(i,j,k+1));
+
+                        Real g_m_d = gamma
+                            - (dhx*(bX(i,j,k)*cf0 + bX(i+1,j,k)*cf3)
+                               +  dhy*(bY(i,j,k)*cf1 + bY(i,j+1,k)*cf4)
+                               +  dhz*(bZ(i,j,k)*cf2 + bZ(i,j,k+1)*cf5));
+
+                        Real rho =  dhx*( bX(i  ,j,k)*phi(i-1,j,k,n)
+                                  +       bX(i+1,j,k)*phi(i+1,j,k,n) )
+                                  + dhy*( bY(i,j  ,k)*phi(i,j-1,k,n)
+                                  +       bY(i,j+1,k)*phi(i,j+1,k,n) )
+                                  + dhz*( bZ(i,j,k  )*phi(i,j,k-1,n)
+                                  +       bZ(i,j,k+1)*phi(i,j,k+1,n) );
+
+                        Real res =  rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
+                        phi(i,j,k,n) = phi(i,j,k,n) + omega/g_m_d * res;
+                    }
+                }
+            }
+        }
+    }
+}
+
 }
 #endif
