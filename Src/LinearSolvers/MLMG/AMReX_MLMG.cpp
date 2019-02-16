@@ -625,7 +625,8 @@ MLMG::interpCorrection (int alev)
 					 &ncomp);
                 fine_cor[mfi].copy(tmpfab, tmpbx, 0, tmpbx, 0, ncomp);
             }
-	    fine_cor.FillBoundary(crse_geom.periodicity());
+	    if (alev > 0) linop.RealFillBoundary(fine_cor);
+	    else fine_cor.FillBoundary(linop.Geom(alev,0).periodicity());
         }
     }
 }
