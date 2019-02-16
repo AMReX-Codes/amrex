@@ -6,8 +6,8 @@
 
 namespace amrex {
 
-/*
-  A Laplacian tailors the description of a linear operator to apply
+/**
+  \brief A Laplacian tailors the description of a linear operator to apply
   the second-order central difference approximation to the laplacian
   differential operator on a cell-centered MultiFab of data
 
@@ -30,7 +30,7 @@ namespace amrex {
   implementations may therefore assume that boundary (ghost) nodes and
   other pertinent information are filled properly by the base class
   functions prior to call.
-        
+
   This class does NOT provide a copy constructor or assignment operator.
   */
 
@@ -39,28 +39,49 @@ class Laplacian
     public LinOp
 {
 public:
-    //
-    // constructor;
-    //
+
+    /**
+    * \brief constructor;
+    *
+    * \param bd
+    * \param _h
+    */
     Laplacian (const BndryData& bd,
                Real             _h);
-    //
-    // destructor
-    //
+
+    /**
+    * \brief destructor
+    */
     virtual ~Laplacian() override;
-    //
-    // Compute flux associated with the op
-    //
+
+    /**
+    * \brief Compute flux associated with the op
+    *
+    * \paramxflux
+    * \paramyflux
+    * \paramzflux)
+    * \param in
+    * \param bc_mode
+    * \param sComp
+    * \param dComp
+    * \param nComp
+    * \param bndComp
+    */
     virtual void compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
 			   int sComp=0, int dComp=0, int nComp=1, int bndComp=0) override;
-    
+
     virtual Real norm (int nm = 0, int level = 0, const bool local = false) override;
 
 protected:
-    //
-    // compute out=L(in) at level=level
-    //
+
+    /**
+    * \brief compute out=L(in) at level=level
+    *
+    * \param out
+    * \param in
+    * \param level
+    */
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
                          int             level) override;
@@ -70,16 +91,27 @@ protected:
 			 int             src_comp,
 			 int             num_comp,
                          int             level) override;
-    //
-    // apply GSRB smoother to improve residual to L(solnL)=rhsL
-    //
+
+    /**
+    * \brief apply GSRB smoother to improve residual to ``L(solnL)=rhsL``
+    *
+    * \param solnL
+    * \param rhsL
+    * \param level
+    * \param rgbflag
+    */
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag) override;
-    //
-    // apply Jacobi smoother to improve residual to L(solnL)=rhsL
-    //
+
+    /**
+    * \brief apply Jacobi smoother to improve residual to ``L(solnL)=rhsL``
+    *
+    * \param solnL
+    * \param rhsL
+    * \param level
+    */
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
                                  int             level) override;

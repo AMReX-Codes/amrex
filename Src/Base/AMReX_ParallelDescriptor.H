@@ -44,8 +44,7 @@ namespace amrex {
 namespace ParallelDescriptor
 {
     //
-    // Used as default argument to ParallelDescriptor::Barrier().
-    //
+    //! Used as default argument to ParallelDescriptor::Barrier().
     const std::string Unnamed("Unnamed");
 
     //! Hold the description and status of communication data

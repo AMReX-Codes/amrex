@@ -2,41 +2,19 @@
 #define MD_PARTICLE_CONTAINER_H_
 
 #include <AMReX_Particles.H>
+#include <AMReX_CudaContainers.H>
 
 struct PIdx
 {
     enum {
         vx = 0,
         vy, vz, ax, ay, az,
-        nattribs
+        ncomps
     };
 };
 
-class MDParIter
-    : public amrex::ParIter<0,0,PIdx::nattribs,0>
-{
-public:
-    using amrex::ParIter<0,0,PIdx::nattribs,0>::ParIter;
-
-    const std::array<RealVector, PIdx::nattribs>& GetAttribs () const { 
-        return GetStructOfArrays().GetRealData(); 
-    }
-
-    std::array<RealVector, PIdx::nattribs>& GetAttribs () { 
-        return GetStructOfArrays().GetRealData(); 
-    }
-
-    const RealVector& GetAttribs (int comp) const { 
-        return GetStructOfArrays().GetRealData(comp);
-    }
-
-    RealVector& GetAttribs (int comp) { 
-        return GetStructOfArrays().GetRealData(comp);
-    }
-};
-
 class MDParticleContainer
-    : public amrex::ParticleContainer<0, 0, PIdx::nattribs, 0>
+    : public amrex::ParticleContainer<PIdx::ncomps>
 {
 
 public:
@@ -45,11 +23,11 @@ public:
                          const amrex::DistributionMapping & a_dmap,
                          const amrex::BoxArray            & a_ba);
 
-    void InitParticles(const amrex::IntVect& a_num_particles_per_cell,
-                       const amrex::Real     a_thermal_momentum_std,
-                       const amrex::Real     a_thermal_momentum_mean);
+    void InitParticles (const amrex::IntVect& a_num_particles_per_cell,
+                        const amrex::Real     a_thermal_momentum_std,
+                        const amrex::Real     a_thermal_momentum_mean);
 
-    void RedistributeLocal()
+    void RedistributeLocal ()
     {
         const int lev_min = 0;
         const int lev_max = 0;
@@ -58,7 +36,38 @@ public:
         Redistribute(lev_min, lev_max, nGrow, local);
     }
 
-    void BuildNeighborList();
+    void BuildNeighborList ();
+
+    void printNeighborList ();
+
+    void computeForces ();
+
+    void moveParticles (const amrex::Real& dt);
+
+    void sortParticlesByNeighborDest ();
+
+    void fillNeighbors ();
+
+    void clearNeighbors ();
+
+    void writeParticles (const int n);
+
+protected:
+
+    void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
+ 
+    void buildNeighborMask ();
+
+    // These are used to keep track of which particles need to be ghosted to which grids
+    bool m_neighbor_mask_initialized = false;
+    std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
+    std::map<int, std::vector<std::vector<int> > > m_grid_map;
+    std::map<int, amrex::Gpu::HostVector<int> > m_start;
+    std::map<int, amrex::Gpu::HostVector<int> > m_stop;
+    
+    // This is the neighbor list data structure
+    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_offsets;
+    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_list;
 };
 
 #endif

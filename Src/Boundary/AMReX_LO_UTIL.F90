@@ -7,18 +7,18 @@ module amrex_lo_util_module
 
 contains
 
-!     polyInterpCoeff:
-!  
-!     This routine returns the Lagrange interpolating coefficients for a
-!     polynomial through N points, evaluated at xInt (see Numerical Recipes,
-!     v2, p102, e.g.):
-!
-!            (x-x2)(x-x3)...(x-xN)              (x-x1)(x-x2)...(x-x(N-1))
-!    P(x) = ----------------------- y1  + ... + ------------------------  yN
-!           (x1-x2)(x1-x3)...(x1-xN)            (x1-x2)(x1-x3)...(x1-xN)
-!
-!     P(xInt) = sum_(i=1)^(N) y[i]*c[i]
-!
+!>     polyInterpCoeff:
+!!
+!!     This routine returns the Lagrange interpolating coefficients for a
+!!     polynomial through N points, evaluated at xInt (see Numerical Recipes,
+!!     v2, p102, e.g.):
+!! ``
+!!            (x-x2)(x-x3)...(x-xN)              (x-x1)(x-x2)...(x-x(N-1))
+!!    P(x) = ----------------------- y1  + ... + ------------------------  yN
+!!           (x1-x2)(x1-x3)...(x1-xN)            (x1-x2)(x1-x3)...(x1-xN)
+!!
+!!     P(xInt) = sum_(i=1)^(N) y[i]*c[i]``
+!!
     subroutine polyInterpCoeff(xInt, x, N, c)
 
       implicit none
@@ -39,7 +39,7 @@ contains
          end do
 #ifdef AMREX_DEBUG
          if (den .eq. zero) STOP 'polyInterpCoeff::invalid data'
-#endif         
+#endif
          c(j) = num/den
       end do
 

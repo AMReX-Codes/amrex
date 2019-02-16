@@ -14,17 +14,17 @@ class CylinderIF
 public:
     // inside: is the fluid inside the cylinder?
 
-    // Overloaded constructor for infinite cylinder IF: if the user does not
-    // provide a cylinder height, the IF corresponds to a cylinder that spans
-    // the whole domain.
+    //! Overloaded constructor for infinite cylinder IF: if the user does not
+    //! provide a cylinder height, the IF corresponds to a cylinder that spans
+    //! the whole domain.
     CylinderIF (Real a_radius, int a_direction,
                 const RealArray& a_center, bool a_inside)
         : CylinderIF(a_radius, -1.0, a_direction, a_center, a_inside)
     { }
 
-    // Overloaded constructor for finite cylinder IF: if the user does specify a
-    // cylinder height (length), then the IF corresponds to a cylinder extending
-    // only to height/2 from it's center.
+    //! Overloaded constructor for finite cylinder IF: if the user does specify a
+    //! cylinder height (length), then the IF corresponds to a cylinder extending
+    //! only to height/2 from it's center.
     CylinderIF (Real a_radius, Real a_height, int a_direction,
                 const RealArray& a_center, bool a_inside)
         : m_radius(a_radius), m_height(a_height), m_direction(a_direction),
