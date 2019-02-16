@@ -326,42 +326,48 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 
     const int nc = 1;
     const Real* h = m_geom[amrlev][mglev].CellSize();
+    AMREX_D_TERM(const Real dhx = m_b_scalar/(h[0]*h[0]);,
+                 const Real dhy = m_b_scalar/(h[1]*h[1]);,
+                 const Real dhz = m_b_scalar/(h[2]*h[2]));
+    const Real alpha = m_a_scalar;
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(sol,MFItInfo().EnableTiling().SetDynamic(true));
-         mfi.isValid(); ++mfi)
+    for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const Mask& m0 = mm0[mfi];
-        const Mask& m1 = mm1[mfi];
+	const auto& m0 = mm0.array(mfi);
+        const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
-        const Mask& m2 = mm2[mfi];
-        const Mask& m3 = mm3[mfi];
+        const auto& m2 = mm2.array(mfi);
+        const auto& m3 = mm3.array(mfi);
 #if (AMREX_SPACEDIM > 2)
-        const Mask& m4 = mm4[mfi];
-        const Mask& m5 = mm5[mfi];
+        const auto& m4 = mm4.array(mfi);
+        const auto& m5 = mm5.array(mfi);
 #endif
 #endif
 
-	const Box&       tbx     = mfi.tilebox();
-        const Box&       vbx     = mfi.validbox();
-        FArrayBox&       solnfab = sol[mfi];
-        const FArrayBox& rhsfab  = rhs[mfi];
-        const FArrayBox& afab    = acoef[mfi];
+	const Box& tbx = mfi.tilebox();
+        const Box& vbx = mfi.validbox();
+        const auto& solnfab = sol.array(mfi);
+        const auto& rhsfab  = rhs.array(mfi);
+        const auto& afab    = acoef.array(mfi);
 
-        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                     const FArrayBox& byfab = bycoef[mfi];,
-                     const FArrayBox& bzfab = bzcoef[mfi];);
+        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
+                     const auto& byfab = bycoef.array(mfi);,
+                     const auto& bzfab = bzcoef.array(mfi););
 
-        const FArrayBox& f0fab = f0[mfi];
-        const FArrayBox& f1fab = f1[mfi];
+        const auto& f0fab = f0.array(mfi);
+        const auto& f1fab = f1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
-        const FArrayBox& f2fab = f2[mfi];
-        const FArrayBox& f3fab = f3[mfi];
+        const auto& f2fab = f2.array(mfi);
+        const auto& f3fab = f3.array(mfi);
 #if (AMREX_SPACEDIM > 2)
-        const FArrayBox& f4fab = f4[mfi];
-        const FArrayBox& f5fab = f5[mfi];
+        const auto& f4fab = f4.array(mfi);
+        const auto& f5fab = f5.array(mfi);
 #endif
 #endif
 
@@ -399,27 +405,18 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        amrex_abec_gsrb(solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
-                  rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
-                  &m_a_scalar, &m_b_scalar,
-                  afab.dataPtr(), AMREX_ARLIM(afab.loVect()), AMREX_ARLIM(afab.hiVect()),
-                  bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()), AMREX_ARLIM(bxfab.hiVect()),
-                  byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()), AMREX_ARLIM(byfab.hiVect()),
-                  bzfab.dataPtr(), AMREX_ARLIM(bzfab.loVect()), AMREX_ARLIM(bzfab.hiVect()),
-                  f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()), AMREX_ARLIM(f0fab.hiVect()),
-                  m0.dataPtr(), AMREX_ARLIM(m0.loVect()), AMREX_ARLIM(m0.hiVect()),
-                  f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()), AMREX_ARLIM(f1fab.hiVect()),
-                  m1.dataPtr(), AMREX_ARLIM(m1.loVect()), AMREX_ARLIM(m1.hiVect()),
-                  f2fab.dataPtr(), AMREX_ARLIM(f2fab.loVect()), AMREX_ARLIM(f2fab.hiVect()),
-                  m2.dataPtr(), AMREX_ARLIM(m2.loVect()), AMREX_ARLIM(m2.hiVect()),
-                  f3fab.dataPtr(), AMREX_ARLIM(f3fab.loVect()), AMREX_ARLIM(f3fab.hiVect()),
-                  m3.dataPtr(), AMREX_ARLIM(m3.loVect()), AMREX_ARLIM(m3.hiVect()),
-                  f4fab.dataPtr(), AMREX_ARLIM(f4fab.loVect()), AMREX_ARLIM(f4fab.hiVect()),
-                  m4.dataPtr(), AMREX_ARLIM(m4.loVect()), AMREX_ARLIM(m4.hiVect()),
-                  f5fab.dataPtr(), AMREX_ARLIM(f5fab.loVect()), AMREX_ARLIM(f5fab.hiVect()),
-                  m5.dataPtr(), AMREX_ARLIM(m5.loVect()), AMREX_ARLIM(m5.hiVect()),
-                  tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-                  &nc, h, &redblack);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            abec_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy, dhz,
+                      afab, bxfab, byfab, bzfab,
+                      f0fab, m0,
+                      f1fab, m1,
+                      f2fab, m2,
+                      f3fab, m3,
+                      f4fab, m4,
+                      f5fab, m5,
+                      vbx, nc, redblack);
+        });
 #endif
     }
 }
