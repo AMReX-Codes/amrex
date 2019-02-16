@@ -274,12 +274,12 @@ MLCGSolver::solve_cg (MultiFab&       sol,
     MultiFab p(ba, dm, ncomp, nghost, MFInfo(), factory);
     p.setVal(0.0);
 
-    MultiFab sorig(ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab r    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab z    (ba, dm, ncomp, 0, MFInfo(), factory);
-    MultiFab q    (ba, dm, ncomp, 0, MFInfo(), factory);
+    MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab r    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab z    (ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab q    (ba, dm, ncomp, nghost, MFInfo(), factory);
 
-    MultiFab::Copy(sorig,sol,0,0,ncomp,0);
+    MultiFab::Copy(sorig,sol,0,0,ncomp,nghost);
 
     Lp.correctionResidual(amrlev, mglev, r, sol, rhs, MLLinOp::BCMode::Homogeneous);
 
@@ -309,7 +309,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     for (; nit <= maxiter; ++nit)
     {
-        MultiFab::Copy(z,r,0,0,ncomp,0);
+        MultiFab::Copy(z,r,0,0,ncomp,nghost);
 
         Real rho = dotxy(z,r);
 
@@ -319,7 +319,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
         }
         if (nit == 1)
         {
-            MultiFab::Copy(p,z,0,0,ncomp,0);
+            MultiFab::Copy(p,z,0,0,ncomp,nghost);
         }
         else
         {
@@ -379,12 +379,12 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-        sol.plus(sorig, 0, ncomp, 0);
+	sol.plus(sorig, 0, ncomp, nghost);
     } 
     else 
     {
         sol.setVal(0);
-        sol.plus(sorig, 0, ncomp, 0);
+        sol.plus(sorig, 0, ncomp, nghost);
     }
 
     return ret;
