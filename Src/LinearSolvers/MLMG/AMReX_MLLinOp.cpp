@@ -672,7 +672,55 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
 // It is only here for testing purposes.
 void MLLinOp::RealFillBoundary(MultiFab &mf) const
 {
-	mf.FillBoundary(m_geom[0][0].periodicity());
+	if (mf.contains_nan(0, mf.nComp(), 1))
+		std::cout << "CONTAINS NAN" << std::endl;
+
+
+	Geometry geom = m_geom[0][0];
+	mf.FillBoundary(geom.periodicity());
+	const int ncomp = mf.nComp();
+	const int ng1 = 1;
+	const int ng2 = 2;
+	BoxArray ba = mf.boxArray();
+	MultiFab tmpmf(ba, mf.DistributionMap(), ncomp, ng1);
+	MultiFab::Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
+	mf.ParallelCopy(tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
+
+	
+
+	// The following may be unnecessay if the data are always consistent
+	// for valid + 1 ghost cell region. But if we want to make sure
+	// valid + 1 ghost cell do not change, we can do the following
+	// for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+	//   	const Box& bxg1 = amrex::grow(mfi.validbox(),1);
+	//   	mf[mfi].copy(tmpmf[mfi], bxg1, 0, bxg1, 0, ncomp);
+	// }
+
+
+
+	// const int ncomp = mf.nComp();
+	// MultiFab tmpmf(mf.boxArray(), mf.DistributionMap(), mf.nGrow(), ncomp);
+	// if (mf.contains_nan()) std::cout << "tmpmf CONTAINS INF - " << __LINE__ << std::endl;
+	// tmpmf.ParallelCopy(mf, 0, 0, mf.nComp(), 1, 2, geom.periodicity());
+	// if (mf.contains_nan()) std::cout << "tmpmf CONTAINS INF - " << __LINE__ << std::endl;
+	// for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+	// 	const Box& bxg1 = amrex::grow(mfi.validbox(),1);
+	// 	const Box& bxg2 = amrex::grow(mfi.validbox(),2);
+	// 	const BoxList& blst = amrex::boxDiff(bxg2,bxg1);
+	// 	FArrayBox& dst = mf[mfi];
+	// 	FArrayBox const& src = tmpmf[mfi];
+	// 	for (auto const& b : blst) {
+	// 		dst.copy(src, b, 0, b, 0, ncomp);
+	// 	}
+	// }
+	// if (mf.contains_inf()) std::cout << "mf CONTAINS INF - After" << std::endl;
+	// if (mf.contains_nan()) std::cout << "mf CONTAINS NAN - After" << std::endl;
+		
+	// mf.FillBoundary(geom.periodicity());
+
+	//mf.FillBoundary(geom.periodicity());
+
+	// std::cout << "ngrow = " << mf.nGrow() << std::endl;
 
 	// FArrayBox &mflo = mf[0];
 	// FArrayBox &mfhi = mf[1];
