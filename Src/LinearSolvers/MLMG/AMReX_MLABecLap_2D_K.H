@@ -118,5 +118,55 @@ void mlabeclap_flux_yface (Box const& box, Array4<Real> const& fy, Array4<Real c
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void abec_gsrb (Box const& box, Array4<Real> const& phi,
+                Array4<Real const> const& rhs, Real alpha,
+                Real dhx, Real dhy, Array4<Real const> const& a,
+                Array4<Real const> const& bX,
+                Array4<Real const> const& bY,
+                Array4<Real const> const& f0, Array4<int const> const& m0,
+                Array4<Real const> const& f1, Array4<int const> const& m1,
+                Array4<Real const> const& f2, Array4<int const> const& m2,
+                Array4<Real const> const& f3, Array4<int const> const& m3,
+                Box const& vbox, int nc, int redblack)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    for (int n = 0; n < nc; ++n) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if ((i+j+redblack)%2 == 0) {
+                    Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
+                        ? f0(vlo.x,j,0) : 0.0;
+                    Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
+                        ? f1(i,vlo.y,0) : 0.0;
+                    Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
+                        ? f2(vhi.x,j,0) : 0.0;
+                    Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
+                        ? f3(i,vhi.y,0) : 0.0;
+
+                    Real delta = dhx*(bX(i,j,0)*cf0 + bX(i+1,j,0)*cf2)
+                              +  dhy*(bY(i,j,0)*cf1 + bY(i,j+1,0)*cf3);
+
+                    Real gamma = alpha*a(i,j,0)
+                        +   dhx*( bX(i,j,0) + bX(i+1,j,0) )
+                        +   dhy*( bY(i,j,0) + bY(i,j+1,0) );
+
+                    Real rho = dhx*(bX(i  ,j  ,0)*phi(i-1,j  ,0,n)
+                                  + bX(i+1,j  ,0)*phi(i+1,j  ,0,n))
+                              +dhy*(bY(i  ,j  ,0)*phi(i  ,j-1,0,n)
+                                  + bY(i  ,j+1,0)*phi(i  ,j+1,0,n));
+
+                    phi(i,j,0,n) = (rhs(i,j,0,n) + rho - phi(i,j,0,n)*delta)
+                        / (gamma - delta);
+                }
+            }
+        }
+    }
+}
+
 }
 #endif

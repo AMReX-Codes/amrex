@@ -3,7 +3,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <AMReX_MLABecLap_K.H>
-#include <AMReX_ABec_F.H>
 
 namespace amrex {
 
@@ -289,8 +288,6 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 void
 MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
-    // todo: gpu
-
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
@@ -372,36 +369,27 @@ MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 #endif
 
 #if (AMREX_SPACEDIM == 1)
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(tbx == vbx, "MLABecLaplacian::Fsmooth: 1d tiling not supported");
-        amrex_abec_linesolve (solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
-                        rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
-                        &m_a_scalar, &m_b_scalar,
-                        afab.dataPtr(), AMREX_ARLIM(afab.loVect()),    AMREX_ARLIM(afab.hiVect()),
-                        bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()),   AMREX_ARLIM(bxfab.hiVect()),
-                        f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()),   AMREX_ARLIM(f0fab.hiVect()),
-                        m0.dataPtr(), AMREX_ARLIM(m0.loVect()),   AMREX_ARLIM(m0.hiVect()),
-                        f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()),   AMREX_ARLIM(f1fab.hiVect()),
-                        m1.dataPtr(), AMREX_ARLIM(m1.loVect()),   AMREX_ARLIM(m1.hiVect()),
-                        tbx.loVect(), tbx.hiVect(), &nc, h);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            abec_gsrb(thread_box, solnfab, rhsfab, alpha, dhx,
+                      afab, bxfab,
+                      f0fab, m0,
+                      f1fab, m1,
+                      vbx, nc, redblack);
+        });
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        amrex_abec_gsrb(solnfab.dataPtr(), AMREX_ARLIM(solnfab.loVect()),AMREX_ARLIM(solnfab.hiVect()),
-                  rhsfab.dataPtr(), AMREX_ARLIM(rhsfab.loVect()), AMREX_ARLIM(rhsfab.hiVect()),
-                  &m_a_scalar, &m_b_scalar,
-                  afab.dataPtr(), AMREX_ARLIM(afab.loVect()),    AMREX_ARLIM(afab.hiVect()),
-                  bxfab.dataPtr(), AMREX_ARLIM(bxfab.loVect()),   AMREX_ARLIM(bxfab.hiVect()),
-                  byfab.dataPtr(), AMREX_ARLIM(byfab.loVect()),   AMREX_ARLIM(byfab.hiVect()),
-                  f0fab.dataPtr(), AMREX_ARLIM(f0fab.loVect()),   AMREX_ARLIM(f0fab.hiVect()),
-                  m0.dataPtr(), AMREX_ARLIM(m0.loVect()),   AMREX_ARLIM(m0.hiVect()),
-                  f1fab.dataPtr(), AMREX_ARLIM(f1fab.loVect()),   AMREX_ARLIM(f1fab.hiVect()),
-                  m1.dataPtr(), AMREX_ARLIM(m1.loVect()),   AMREX_ARLIM(m1.hiVect()),
-                  f2fab.dataPtr(), AMREX_ARLIM(f2fab.loVect()),   AMREX_ARLIM(f2fab.hiVect()),
-                  m2.dataPtr(), AMREX_ARLIM(m2.loVect()),   AMREX_ARLIM(m2.hiVect()),
-                  f3fab.dataPtr(), AMREX_ARLIM(f3fab.loVect()),   AMREX_ARLIM(f3fab.hiVect()),
-                  m3.dataPtr(), AMREX_ARLIM(m3.loVect()),   AMREX_ARLIM(m3.hiVect()),
-                  tbx.loVect(), tbx.hiVect(), vbx.loVect(), vbx.hiVect(),
-                  &nc, h, &redblack);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            abec_gsrb(thread_box, solnfab, rhsfab, alpha, dhx, dhy,
+                      afab, bxfab, byfab,
+                      f0fab, m0,
+                      f1fab, m1,
+                      f2fab, m2,
+                      f3fab, m3,
+                      vbx, nc, redblack);
+        });
 #endif
 
 #if (AMREX_SPACEDIM == 3)
