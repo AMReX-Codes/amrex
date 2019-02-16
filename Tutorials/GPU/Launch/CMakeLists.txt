@@ -42,8 +42,8 @@ set_target_properties( ${EXENAME}
    "${amrex_fortran_flags}"
    CUDA_STANDARD 11               # Adds -std=c++11
    CUDA_STANDARD_REQUIRED ON
-   CUDA_SEPARABLE_COMPILATION ON  # This is crucial to avoid the device code linkage step
-   CUDA_RESOLVE_DEVICE_SYMBOLS OFF
+   CUDA_SEPARABLE_COMPILATION ON  
+   CUDA_RESOLVE_DEVICE_SYMBOLS OFF # This is crucial to avoid the device code linkage step
    )
 
 target_link_libraries(${EXENAME} amrex)
