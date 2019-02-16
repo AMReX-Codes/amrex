@@ -133,7 +133,6 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     if (resid.nGrow() != 2) amrex::Abort();
     if (x.nGrow() != 2) amrex::Abort();
     if (b.nGrow() != 2) amrex::Abort();
-    //std::cout << "solutionResidual nghosts: " << resid.nGrow() << " " << x.nGrow() << " " << b.nGrow() << std::endl; 
 
     MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 2);
     return;

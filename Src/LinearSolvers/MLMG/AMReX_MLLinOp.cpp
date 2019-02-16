@@ -672,21 +672,34 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
 // It is only here for testing purposes.
 void MLLinOp::RealFillBoundary(MultiFab &mf) const
 {
-	if (mf.contains_nan(0, mf.nComp(), 1))
-		std::cout << "CONTAINS NAN" << std::endl;
 
 
 	Geometry geom = m_geom[0][0];
-	mf.FillBoundary(geom.periodicity());
-	const int ncomp = mf.nComp();
 	const int ng1 = 1;
 	const int ng2 = 2;
-	BoxArray ba = mf.boxArray();
-	MultiFab tmpmf(ba, mf.DistributionMap(), ncomp, ng1);
-	MultiFab::Copy(tmpmf, mf, 0, 0, ncomp, ng1); 
-	mf.ParallelCopy(tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
+	const int ncomp = mf.nComp();
+	mf.FillBoundary(geom.periodicity()); 
 
-	
+	BoxArray ba = mf.boxArray();
+	ba.grow(1);
+	MultiFab tmpmf(ba, mf.DistributionMap(), ncomp, ng1);
+	for (MFIter mfi(tmpmf,true); mfi.isValid(); ++mfi)
+	{
+		Box bx  = mfi.tilebox();
+		bx.grow(1);
+		tmpmf[mfi].copy(mf[mfi],bx,0,bx,0,ncomp);
+	}
+
+	tmpmf.FillBoundary(geom.periodicity());
+
+	for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+	{
+	  	Box bx  = mfi.tilebox();
+		bx.grow(2);
+	  	mf[mfi].copy(tmpmf[mfi],bx,0,bx,0,ncomp);
+	}
+
+
 
 	// The following may be unnecessay if the data are always consistent
 	// for valid + 1 ghost cell region. But if we want to make sure
