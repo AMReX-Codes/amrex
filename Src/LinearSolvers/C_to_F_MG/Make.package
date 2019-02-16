@@ -1,6 +1,0 @@
-CEXE_sources += AMReX_MGT_Solver.cpp AMReX_FMultiGrid.cpp
-CEXE_headers += AMReX_MGT_Solver.H AMReX_FMultiGrid.H
-CEXE_headers += AMReX_stencil_types.H
-
-VPATH_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG

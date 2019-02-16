@@ -10,7 +10,7 @@
 AMREX_GPU_DEVICE
 inline
 void
-cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real>& state, amrex::GeometryData const& geomdata)
+cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state, amrex::GeometryData const& geomdata)
 {
     const amrex::Real* prob_lo = geomdata.ProbLo();
     const amrex::Real* dx      = geomdata.CellSize();

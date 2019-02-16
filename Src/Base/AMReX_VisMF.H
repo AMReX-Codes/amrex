@@ -55,23 +55,23 @@ public:
         //! Constructor that sets the two values.
         FabOnDisk (const std::string& name, long offset);
         //! The two data values in a FabOnDisk structure.
-        std::string m_name; // The name of file containing the FAB.
-        long    m_head;     // Offset to start of FAB in file.
+        std::string m_name; //!< The name of file containing the FAB.
+        long    m_head;     //!< Offset to start of FAB in file.
     };
     //! An on-disk FabArray<FArrayBox> contains this info in a header file.
     struct Header
     {
         //! The versions of the FabArray<FArrayBox> Header code.
         enum Version {
-	  Undefined_v1           = 0,  // ---- undefined
-	  Version_v1             = 1,  // ---- auto converting version with headers
-	                               // ---- for each fab in the data files and
-				       // ---- min and max values for each fab in the header
-	  NoFabHeader_v1         = 2,  // ---- no fab headers, no fab mins or maxes
-	  NoFabHeaderMinMax_v1   = 3,  // ---- no fab headers,
-				       // ---- min and max values for each fab in the header
-	  NoFabHeaderFAMinMax_v1 = 4   // ---- no fab headers, no fab mins or maxes,
-				       // ---- min and max values for each FabArray in the header
+	  Undefined_v1           = 0,  //!< ---- undefined
+	  Version_v1             = 1,  //!< ---- auto converting version with headers
+	                               //!< ---- for each fab in the data files and
+				       //!< ---- min and max values for each fab in the header
+	  NoFabHeader_v1         = 2,  //!< ---- no fab headers, no fab mins or maxes
+	  NoFabHeaderMinMax_v1   = 3,  //!< ---- no fab headers,
+				       //!< ---- min and max values for each fab in the header
+	  NoFabHeaderFAMinMax_v1 = 4   //!< ---- no fab headers, no fab mins or maxes,
+				       //!< ---- min and max values for each FabArray in the header
 	};
         //! The default constructor.
         Header ();
@@ -84,19 +84,19 @@ public:
         //
         // The data.
         //
-        int                  m_vers;  // The version of the Header.
-        How                  m_how;   // How the MF was written to disk.
-        int                  m_ncomp; // Number of components in MF.
-        IntVect              m_ngrow; // The number of ghost cells in MF.
-        BoxArray             m_ba;    // The BoxArray of the MF.
-        Vector< FabOnDisk >   m_fod;   // FabOnDisk info for contained FABs.
+        int                  m_vers;  //!< The version of the Header.
+        How                  m_how;   //!< How the MF was written to disk.
+        int                  m_ncomp; //!< Number of components in MF.
+        IntVect              m_ngrow; //!< The number of ghost cells in MF.
+        BoxArray             m_ba;    //!< The BoxArray of the MF.
+        Vector< FabOnDisk >   m_fod;   //!< FabOnDisk info for contained FABs.
 	//
 	// These are not defined if they are not in the header
 	//
-        Vector< Vector<Real> > m_min;   // The min()s of each component of FABs.  [findex][comp]
-        Vector< Vector<Real> > m_max;   // The max()s of each component of FABs.  [findex][comp]
-        Vector<Real>          m_famin; // The min()s of each component of the FabArray.  [comp]
-        Vector<Real>          m_famax; // The max()s of each component of the FabArray.  [comp]
+        Vector< Vector<Real> > m_min;   //!< The min()s of each component of FABs.  [findex][comp]
+        Vector< Vector<Real> > m_max;   //!< The max()s of each component of FABs.  [findex][comp]
+        Vector<Real>          m_famin; //!< The min()s of each component of the FabArray.  [comp]
+        Vector<Real>          m_famax; //!< The max()s of each component of the FabArray.  [comp]
 	RealDescriptor       m_writtenRD;
     };
 
@@ -205,7 +205,7 @@ public:
 		      const char *faHeader = nullptr,
 		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
 
-    // Does FabArray exist?
+    //! Does FabArray exist?
     static bool Exist (const std::string &name);
 
     //! Read only the header of a FabArray, header will be resized here.
@@ -221,7 +221,7 @@ public:
                         const std::string& fafabName);
     //! Read the specified fab component.
     FArrayBox* readFAB (int fabIndex,
-                        int ncomp);
+                        int icomp);
 
     static int  GetNOutFiles ();
     static void SetNOutFiles (int noutfiles);
@@ -339,8 +339,8 @@ private:
     static bool useSynchronousReads;
     static bool useDynamicSetSelection;
     static bool allowSparseWrites;
-    
-    static long ioBufferSize;   // ---- the settable buffer size
+
+    static long ioBufferSize;   //!< ---- the settable buffer size
 };
 
 //! Write a FabOnDisk to an ostream in ASCII.

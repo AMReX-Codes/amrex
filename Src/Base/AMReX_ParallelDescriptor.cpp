@@ -46,6 +46,12 @@ namespace amrex {
 
 namespace ParallelDescriptor
 {
+#ifdef AMREX_USE_GPU
+    int use_gpu_aware_mpi = false;
+#else
+    int use_gpu_aware_mpi = false;
+#endif
+
     ProcessTeam m_Team;
 
     MPI_Comm m_comm = MPI_COMM_NULL;    // communicator for all ranks, probably MPI_COMM_WORLD
@@ -54,11 +60,6 @@ namespace ParallelDescriptor
 
     const int ioProcessor = 0;
 
-#ifdef BL_USE_MPI3
-    MPI_Win cp_win;
-    MPI_Win fb_win;
-#endif
-  
     namespace util
     {
 	//
@@ -2038,6 +2039,24 @@ ParallelDescriptor::ReadAndBcastFile (const std::string& filename,
     charBuf[fileLength] = '\0';
 }
 
+void
+ParallelDescriptor::Initialize ()
+{
+#ifndef BL_AMRPROF
+    ParmParse pp("amrex");
+    pp.query("use_gpu_aware_mpi", use_gpu_aware_mpi);
+
+    StartTeams();
+#endif
+}
+
+void
+ParallelDescriptor::Finalize ()
+{
+#ifndef BL_AMRPROF
+    EndTeams();
+#endif
+}
 
 #ifndef BL_AMRPROF
 void
@@ -2099,27 +2118,6 @@ ParallelDescriptor::EndTeams ()
 {
     m_Team.clear();
 }
-
-
-bool
-ParallelDescriptor::MPIOneSided ()
-{
-    static bool do_onesided = false;
-
-#ifndef BL_AMRPROF
-#if defined(BL_USE_MPI3)
-    static bool first = true;
-    if (first) {
-	first = false;
-	ParmParse pp("mpi");
-	pp.query("onesided",do_onesided);
-    }
-#endif
-#endif
-
-    return do_onesided;
-}
-
 
 }
 

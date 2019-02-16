@@ -15,6 +15,7 @@
 #include <AMReX_CudaContainers.H>
 #include <AMReX_CudaAsyncFab.H>
 #include <AMReX_CudaAsyncArray.H>
+#include <AMReX_CudaElixir.H>
 
 namespace amrex {
     namespace Gpu = Cuda;

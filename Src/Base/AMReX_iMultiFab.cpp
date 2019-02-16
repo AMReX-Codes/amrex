@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <map>
 #include <limits>
+#include <climits>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_iMultiFab.H>
@@ -265,7 +266,11 @@ iMultiFab::min (const Box& region,
         if (b.ok()) {
             return fab.min(b,comp);
         } else {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
             return std::numeric_limits<int>::max();
+#else
+            return INT_MAX;
+#endif
         }
     });
 
@@ -309,7 +314,11 @@ iMultiFab::max (const Box& region,
         if (b.ok()) {
             return fab.max(b,comp);
         } else {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
             return std::numeric_limits<int>::lowest();
+#else
+            return INT_MIN;
+#endif
         }
     });
 

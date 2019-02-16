@@ -6,5 +6,5 @@ CEXE_headers += writePlotFile.H
 
 CEXE_sources += main.cpp
 CEXE_sources += writePlotFile.cpp
-CEXE_sources += solve_with_F90.cpp solve_with_hypre.cpp
+CEXE_sources += solve_with_hypre.cpp
 CEXE_sources += compute_norm.cpp

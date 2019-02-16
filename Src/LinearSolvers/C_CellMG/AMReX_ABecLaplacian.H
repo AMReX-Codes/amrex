@@ -7,10 +7,10 @@
 
 namespace amrex {
 
-/*
+/**
         An ABecLaplacian tailors the description of a linear operator to apply
         the second-order central difference approximation to the differential
-        operator, alpha*a(x).phi - beta*div[b(x).grad(phi)], on a cell-centered
+        operator, ``alpha*a(x).phi - beta*div[b(x).grad(phi)]``, on a cell-centered
         MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
         cell-centered MultiFab, and b(x) is a vector of wall-centered
         MultiFabs, 1 per dimension.  phi can have multiple components, but
@@ -21,7 +21,7 @@ namespace amrex {
         linear operators) to compute the second-order central difference
         approximation to the differential operator,
 
-              alpha*a(x).phi - beta*div[b(x).grad(phi)]
+              ``alpha*a(x).phi - beta*div[b(x).grad(phi)]``
 
         on a cell-centered
         MultiFab, phi.  Here, alpha and beta are constants, a(x) is a
@@ -31,7 +31,7 @@ namespace amrex {
         together.
 
         This class provides the necessary
-        implementations for applying the operator, and for 
+        implementations for applying the operator, and for
         smoothing a guessed solution to the linear equation system,
         L(phi) = rhs (where rhs is another cell-centered MultiFab).  This
         class also provides access functions to set/control the coefficient
@@ -51,11 +51,11 @@ namespace amrex {
 
         Defaults are as follows for the coefficients:
 
-         alpha = 1.0
+         ``alpha = 1.0
          beta = 1.0
          a (MultiFab) = 0.0
-         b (MultiFab) = 1.0
-        
+         b (MultiFab) = 1.0``
+
         This class does NOT provide a copy constructor or assignment operator.
 */
 
@@ -64,30 +64,54 @@ class ABecLaplacian
     public LinOp
 {
 public:
-    //
-    // constructor for box array, boundary data and scalar mesh spacing
-    //
+
+    /**
+    * \brief constructor for box array, boundary data and scalar mesh spacing
+    *
+    * \param bd
+    * \param _h
+    */
     ABecLaplacian (const BndryData& bd,
                    Real             _h);
-    //
-    // constructor for box array, boundary data and vector mesh spacing
-    //
+
+    /**
+    * \brief constructor for box array, boundary data and vector mesh spacing
+    *
+    * \param bd
+    * \param _h
+    */
     ABecLaplacian (const BndryData& bd,
                    const Real*      _h);
-    //
-    // constructor for box array, boundary data and vector mesh spacing
-    //
-    // The ABecLaplacian assumes ownership of the pointer.
-    //
+
+    /**
+    * \brief constructor for box array, boundary data and vector mesh spacing
+    *
+    * The ABecLaplacian assumes ownership of the pointer.
+    *
+    * \param bd
+    * \param _h
+    */
     ABecLaplacian (BndryData*   bd,
                    const Real* _h);
-    //
-    // destructor
-    //
+
+    /**
+    * \brief destructor
+    */
     virtual ~ABecLaplacian () override;
-    //
-    // Compute extensive (area-weighted) flux associated with the op
-    //
+
+    /**
+    * \brief Compute extensive (area-weighted) flux associated with the op
+    *
+    * \param xflux
+    * \param yflux
+    * \param zflux
+    * \param in
+    * \param bc_mode
+    * \param src_comp
+    * \param dst_comp
+    * \param num_comp
+    * \param bnd_comp
+    */
     virtual void compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
 			   MultiFab& in, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
 			   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0) override;
@@ -95,87 +119,143 @@ public:
     void compFlux (AMREX_D_DECL(MultiFab &xflux, MultiFab &yflux, MultiFab &zflux),
                    MultiFab& in, bool do_ApplyBC, const BC_Mode& bc_mode=LinOp::Inhomogeneous_BC,
 		   int src_comp=0, int dst_comp=0, int num_comp=1, int bnd_comp=0);
-    //
-    // Set scalar coefficients.
-    //
+
+    /**
+    * \brief Set scalar coefficients.
+    *
+    * \param _alpha
+    * \param _beta
+    */
     void setScalars (Real _alpha, Real _beta) { alpha = _alpha; beta = _beta;}
-    //
-    // get scalar alpha coefficient
-    //
+
+    /**
+    * \brief get scalar alpha coefficient
+    */
     virtual Real get_alpha () const override { return alpha; }
-    //
-    // get scalar beta coefficient
-    //
+
+    /**
+    * \brief get scalar beta coefficient
+    */
     virtual Real get_beta () const override { return beta; }
-    //
-    // return reference to "a" coefficients for base level
-    //
+
+    /**
+    * \brief return reference to "a" coefficients for base level
+    *
+    * \param level
+    */
     virtual const MultiFab& aCoefficients (int level = 0) override;
-    //
-    // return reference to "b" coefficients for base level
-    //
+
+    /**
+    * \brief return reference to "b" coefficients for base level
+    *
+    * \param dir
+    * \param level
+    */
     virtual const MultiFab& bCoefficients (int dir,
 					   int level=0) override;
-    //
-    // copy _a into "a" coeffs for base level
-    //
+
+    /**
+    * \brief copy _a into "a" coeffs for base level
+    *
+    * \param _a
+    */
     void aCoefficients (const MultiFab& _a);
-    //
-    // Zero out the "a" coeffs for base level.
-    //
+
+    /**
+    * \brief Zero out the "a" coeffs for base level.
+    */
     void ZeroACoefficients ();
-    //
-    // copy _b into "b" coeffs in "dir" coordinate direction for base level
-    //
+
+    /**
+    * \brief copy _b into "b" coeffs in "dir" coordinate direction for base level
+    *
+    * \param _b
+    * \param dir
+    */
     void bCoefficients (const MultiFab& _b,
                         int             dir);
-    //
-    // copy _b into "b" coeffs in "dir" coordinate direction for base level
-    // at supplied gridno
-    //
+
+    /**
+    * \brief copy _b into "b" coeffs in "dir" coordinate direction for base level
+    * at supplied gridno
+    *
+    * \param _b
+    * \param dir
+    * \param gridno
+    */
     void bCoefficients (const FArrayBox& _b,
                         int              dir,
                         int              gridno);
-    //
-    // alternative (older) version of above members
-    //
+
+    /**
+    * \brief alternative (older) version of above members
+    *
+    * \param _a
+    * \param _bX
+    * \param _bY
+    */
     void setCoefficients (const MultiFab& _a,
                           const MultiFab& _bX,
                           const MultiFab& _bY);
-    //
-    // collective version of above members (taking an array of MultiFabs for "b")
-    //
+
+    /**
+    * \brief collective version of above members (taking an array of MultiFabs for "b")
+    *
+    * \param _a
+    * \param _b
+    */
     void setCoefficients (const MultiFab& _a,
                           const MultiFab* _b);
     void setCoefficients (const MultiFab& _a,
                           const Vector<MultiFab*>& _b);
-    //
-    // allocate/fill internal data for new level
-    //
+
+    /**
+    * \brief allocate/fill internal data for new level
+    *
+    * \param level
+    */
     virtual void prepareForLevel (int level) override;
-    //
-    // remove internal data for this level and all levels above
-    //
+
+    /**
+    * \brief remove internal data for this level and all levels above
+    *
+    * \param level
+    */
     virtual void clearToLevel (int level) override;
-    //
-    // set flags so that a coeffs at lev and coarser require recalculation
-    //
+
+    /**
+    * \brief set flags so that a coeffs at lev and coarser require recalculation
+    *
+    * \param lev
+    */
     void invalidate_a_to_level (int lev);
-    //
-    // set flags so that b coeffs at lev and coarser require recalculation
-    //
+
+    /**
+    * \brief set flags so that b coeffs at lev and coarser require recalculation
+    *
+    * \param lev
+    */
     void invalidate_b_to_level (int lev);
 
     virtual Real norm (int nm = 0, int level = 0, const bool local = false) override;
-  
+
 protected:
-    //
-    // initialize a full set (a,b) of coefficients on the box array
-    //
+
+    /**
+    * \brief initialize a full set (a,b) of coefficients on the box array
+    *
+    * \param _ba
+    * \param _dm
+    */
     void initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm);
-    //
-    // compute out=L(in) at level=level
-    //
+
+    /**
+    * \brief compute out=L(in) at level=level
+    *
+    * \param out
+    * \param in
+    * \param level
+    */
     virtual void Fapply (MultiFab&       out,
                          const MultiFab& in,
                          int             level) override;
@@ -185,64 +265,66 @@ protected:
 			 int             src_comp,
 			 int             num_comp,
                          int             level) override;
-    //
-    // apply GSRB smoother to improve residual to L(solnL)=rhsL
-    //
+
+    /**
+    * \brief apply GSRB smoother to improve residual to L(solnL)=rhsL
+    *
+    * \param solnL
+    * \param rhsL
+    * \param level
+    * \param rgbflag
+    */
     virtual void Fsmooth (MultiFab&       solnL,
                           const MultiFab& rhsL,
                           int             level,
                           int             rgbflag) override;
-    //
-    // apply Jacobi smoother to improve residual to L(solnL)=rhsL
-    //
+
+    /**
+    * \brief apply Jacobi smoother to improve residual to L(solnL)=rhsL
+    *
+    * \param solnL
+    * \param rhsL
+    * \param level
+    */
     virtual void Fsmooth_jacobi (MultiFab&       solnL,
                                  const MultiFab& rhsL,
                                  int             level) override;
 private:
-    //
-    //
-    // Array (on level) of "a" coefficients
-    //
+
+    //! Array (on level) of "a" coefficients
     Vector< MultiFab* > acoefs;
-    //
-    // Array (on level) of Tuple (on dimension) of "b" coefficients
-    //
+
+    //! Array (on level) of Tuple (on dimension) of "b" coefficients
     Vector< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
-    //
-    // Scalar "alpha" coefficient
-    //
+
+    //! Scalar "alpha" coefficient
     Real alpha;
-    //
-    // Scalar "beta" coefficient
-    //
+
+    //! Scalar "beta" coefficient
     Real beta;
-    //
-    // Flag, can a coeffs be trusted at a level.
-    //
+
+    //! Flag, can a coeffs be trusted at a level.
     Vector<int> a_valid;
-    //
-    // Flag, can b coeffs be trusted at a level.
-    //
+
+    //! Flag, can b coeffs be trusted at a level.
     Vector<int> b_valid;
-    //
-    // Default value for a (MultiFab) coefficient.
-    //
+
+    //! Default value for a (MultiFab) coefficient.
     static Real a_def;
-    //
-    // Default value for b (MultiFab) coefficient.
-    //
+
+    //! Default value for b (MultiFab) coefficient.
     static Real b_def;
-    //
-    // Default value for alpha (scalar) coefficient.
-    //
+
+    //! Default value for alpha (scalar) coefficient.
     static Real alpha_def;
-    //
-    // Default value for beta (scalar) coefficient.
-    //
+
+    //! Default value for beta (scalar) coefficient.
     static Real beta_def;
-    //
-    // Disallow copy constructors (for now...to be fixed)
-    //
+
+    /**
+    * \brief Disallow copy constructors (for now...to be fixed)
+    *
+    */
     ABecLaplacian (const ABecLaplacian&);
     ABecLaplacian& operator= (const ABecLaplacian&);
 };

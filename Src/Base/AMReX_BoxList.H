@@ -26,7 +26,7 @@ namespace amrex
     //! Returns a new BoxList in which each Box is refined by the given ratio.
     BoxList refine (const BoxList&  bl, int ratio);
 
-    // Returns a new BoxList in which each Box is coarsened by the given ratio.
+    //! Returns a new BoxList in which each Box is coarsened by the given ratio.
     BoxList coarsen (const BoxList& bl, int ratio);
 
     //! Returns a BoxList defining the intersection of bl with b.
@@ -45,7 +45,7 @@ namespace amrex
 
 /** \brief A class for managing a List of Boxes that share a common
 * IndexType.  This class implements operations for sets of Boxes.
-** This is a concrete class, not a polymorphic one.
+* This is a concrete class, not a polymorphic one.
 */
 
 class BoxList
@@ -97,7 +97,7 @@ public:
 
     //! Join the BoxList to ourselves.
     void join (const BoxList& blist);
-    //! Join the Array of Boxes to ourselves.    
+    //! Join the Array of Boxes to ourselves.
     void join (const Vector<Box>& barr);
     //! Catenate the BoxList to ourselves. Removes entries from blist.
     void catenate (BoxList& blist);
@@ -114,7 +114,8 @@ public:
 
     iterator end () { return m_lbox.end(); }
     const_iterator end () const { return m_lbox.end(); }
-    /** \brief True if this BoxList is valid; i.e. all the Boxes are
+    /**
+    * \brief True if this BoxList is valid; i.e. all the Boxes are
     * valid and they all have the same IndexType.  Also returns
     * true if the BoxList is empty.
     */
@@ -182,7 +183,7 @@ public:
     IndexType ixType () const { return btype; }
     //! Set the type of the BoxList.  It's an error if the BoxList isn't empty.
     void set (IndexType ixtyp) { BL_ASSERT(m_lbox.empty()); btype = ixtyp; }
-    /** 
+    /**
     * \brief Applies surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
     */

@@ -7,8 +7,8 @@
 ! ------------------------------------------------------------------
 ! LLNS Copyright Start
 ! Copyright (c) 2014, Lawrence Livermore National Security
-! This work was performed under the auspices of the U.S. Department 
-! of Energy by Lawrence Livermore National Laboratory in part under 
+! This work was performed under the auspices of the U.S. Department
+! of Energy by Lawrence Livermore National Laboratory in part under
 ! Contract W-7405-Eng-48 and in part under Contract DE-AC52-07NA27344.
 ! Produced at the Lawrence Livermore National Laboratory.
 ! All rights reserved.
@@ -53,7 +53,7 @@ module cvode_interface
   ! -----------------------------------------------------------------
   ! CVODE return flags
   ! -----------------------------------------------------------------
-  
+
   integer(c_int), parameter :: CV_SUCCESS           =   0
   integer(c_int), parameter :: CV_TSTOP_RETURN      =   1
   integer(c_int), parameter :: CV_ROOT_RETURN       =   2
@@ -86,7 +86,7 @@ module cvode_interface
   ! =================================================================
   !              C V D I A G     C O N S T A N T S
   ! =================================================================
-  
+
   ! -----------------------------------------------------------------
   ! CVDIAG return values
   ! -----------------------------------------------------------------
@@ -96,7 +96,7 @@ module cvode_interface
   integer(c_int), parameter :: CVDIAG_LMEM_NULL       = -2
   integer(c_int), parameter :: CVDIAG_ILL_INPUT       = -3
   integer(c_int), parameter :: CVDIAG_MEM_FAIL        = -4
-  
+
   ! Additional last_flag values
   integer(c_int), parameter :: CVDIAG_INV_FAIL        = -5
   integer(c_int), parameter :: CVDIAG_RHSFUNC_UNRECVR = -6
@@ -107,7 +107,7 @@ module cvode_interface
   ! =================================================================
 
   ! -----------------------------------------------------------------
-  ! CVDLS return values 
+  ! CVDLS return values
   ! -----------------------------------------------------------------
 
   integer(c_int), parameter :: CVDLS_SUCCESS         =  0
@@ -115,7 +115,7 @@ module cvode_interface
   integer(c_int), parameter :: CVDLS_LMEM_NULL       = -2
   integer(c_int), parameter :: CVDLS_ILL_INPUT       = -3
   integer(c_int), parameter :: CVDLS_MEM_FAIL        = -4
-  
+
   ! Additional last_flag values
   integer(c_int), parameter :: CVDLS_JACFUNC_UNRECVR = -5
   integer(c_int), parameter :: CVDLS_JACFUNC_RECVR   = -6
@@ -125,7 +125,7 @@ module cvode_interface
   ! =================================================================
 
   ! -----------------------------------------------------------------
-  ! CVSLS return values 
+  ! CVSLS return values
   ! -----------------------------------------------------------------
 
   integer(c_int), parameter :: CVSLS_SUCCESS           =  0
@@ -139,7 +139,7 @@ module cvode_interface
   ! Additional last_flag values
   integer(c_int), parameter :: CVSLS_JACFUNC_UNRECVR   = -7
   integer(c_int), parameter :: CVSLS_JACFUNC_RECVR     = -8
-  
+
   ! Return values for the adjoint module
   integer(c_int), parameter :: CVSLS_NO_ADJ     = -101
   integer(c_int), parameter :: CVSLS_LMEMB_NULL = -102
@@ -149,7 +149,7 @@ module cvode_interface
   ! =================================================================
 
   ! -----------------------------------------------------------------
-  ! CVSPILS return values 
+  ! CVSPILS return values
   ! -----------------------------------------------------------------
 
   integer(c_int), parameter :: CVSPILS_SUCCESS   =  0
@@ -211,11 +211,11 @@ module cvode_interface
      ! FCVodeSetErrFile         | the file pointer for an error file
      !                          | where all CVODE warning and error
      !                          | messages will be written if the default
-     !                          | internal error handling function is used. 
-     !                          | This parameter can be stdout (standard 
-     !                          | output), stderr (standard error), or a 
-     !                          | file pointer (corresponding to a user 
-     !                          | error file opened for writing) returned 
+     !                          | internal error handling function is used.
+     !                          | This parameter can be stdout (standard
+     !                          | output), stderr (standard error), or a
+     !                          | file pointer (corresponding to a user
+     !                          | error file opened for writing) returned
      !                          | by fopen.
      !                          | If not called, then all messages will
      !                          | be written to the standard error stream.
@@ -294,9 +294,9 @@ module cvode_interface
      !                             |
      ! FCVodeSetNoInactiveRootWarn | disable warning about possible
      !                             | g==0 at beginning of integration
-     !                             | 
+     !                             |
      ! -----------------------------------------------------------------
-     
+
      ! -----------------------------------------------------------------
      ! Return flag:
      !   CV_SUCCESS   if successful
@@ -315,7 +315,7 @@ module cvode_interface
 
      ! >>> NOT CURRENTLY IMPLEMENTED IN FORTRAN INTERFACE
      ! int CVodeSetErrFile(void *cvode_mem, FILE *errfp);
-     
+
      integer(c_int) function FCVodeSetUserData(cvode_mem, user_data) &
           bind(C,name='CVodeSetUserData')
        use, intrinsic :: iso_c_binding
@@ -379,7 +379,7 @@ module cvode_interface
        type(c_ptr),    value :: cvode_mem
        real(c_double), value :: hmax
      end function FCVodeSetMaxStep
-          
+
      integer(c_int) function FCVodeSetStopTime(cvode_mem, tstop) &
           bind(C,name='CVodeSetStopTime')
        use, intrinsic :: iso_c_binding
@@ -448,23 +448,23 @@ module cvode_interface
      ! -----------------------------------------------------------------
      ! FCVodeInit allocates and initializes memory for a problem to
      ! to be solved by CVODE.
-     !  
+     !
      ! cvode_mem is pointer to CVODE memory returned by FCVodeCreate.
-     !  
+     !
      ! f       is the name of the C function defining the right-hand
      !         side function in y' = f(t,y).
-     !  
+     !
      ! t0      is the initial value of t.
-     !  
+     !
      ! y0      is the initial condition vector y(t0).
-     !  
+     !
      ! Return flag:
      !  CV_SUCCESS if successful
      !  CV_MEM_NULL if the cvode memory was NULL
      !  CV_MEM_FAIL if a memory allocation failed
      !  CV_ILL_INPUT f an argument has an illegal value.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVodeInit(cvode_mem, f, t0, y0) &
           bind(C,name='CVodeInit')
        use, intrinsic :: iso_c_binding
@@ -484,17 +484,17 @@ module cvode_interface
      ! and initializations that FCVodeInit does.
      ! But it does no memory allocation, assuming that the existing
      ! internal memory is sufficient for the new problem.
-     ! 
+     !
      ! The use of FCVodeReInit requires that the maximum method order,
      ! maxord, is no larger for the new problem than for the problem
      ! specified in the last call to FCVodeInit.  This condition is
      ! automatically fulfilled if the multistep method parameter lmm
      ! is unchanged (or changed from CV_ADAMS to CV_BDF) and the default
      ! value for maxord is specified.
-     ! 
+     !
      ! All of the arguments to FCVodeReInit have names and meanings
      ! identical to those of FCVodeInit.
-     ! 
+     !
      ! The return value of FCVodeReInit is equal to CV_SUCCESS = 0 if
      ! there were no errors; otherwise it is a negative int equal to:
      !   CV_MEM_NULL      indicating cvode_mem was NULL (i.e.,
@@ -521,17 +521,17 @@ module cvode_interface
      !             FCVodeSVtolerances
      !             FCVodeWFtolerances
      ! -----------------------------------------------------------------
-     ! 
+     !
      ! These functions specify the integration tolerances. One of them
      ! MUST be called before the first call to CVode.
-     ! 
+     !
      ! FCVodeSStolerances specifies scalar relative and absolute tolerances.
      ! FCVodeSVtolerances specifies scalar relative tolerance and a vector
-     !   absolute tolerance (a potentially different absolute tolerance 
+     !   absolute tolerance (a potentially different absolute tolerance
      !   for each vector component).
      ! FCVodeWFtolerances specifies a user-provides function (of type CVEwtFn)
      !   which will be called to set the error weight vector.
-     ! 
+     !
      ! The tolerances reltol and abstol define a vector of error weights,
      ! ewt, with components
      !   ewt[i] = 1/(reltol*abs(y[i]) + abstol)      (in the SS case), or
@@ -540,7 +540,7 @@ module cvode_interface
      ! use a weighted RMS norm on all error-like vectors v:
      !    WRMSnorm(v) = sqrt( (1/N) sum(i=1..N) (v[i]*ewt[i])^2 ),
      ! where N is the problem dimension.
-     ! 
+     !
      ! The return value of these functions is equal to CV_SUCCESS = 0 if
      ! there were no errors; otherwise it is a negative int equal to:
      !   CV_MEM_NULL      indicating cvode_mem was NULL (i.e.,
@@ -605,7 +605,7 @@ module cvode_interface
      !   CV_ILL_INPUT   indicating nrtfn > 0 but g = NULL.
      ! In case of an error return, an error message is also printed.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVodeRootInit(cvode_mem, nrtfn, g) &
           bind(C,name='CVodeRootInit')
        use, intrinsic :: iso_c_binding
@@ -629,7 +629,7 @@ module cvode_interface
      ! integration and the rough scale of the t variable. If tstop is
      ! enabled (through a call to FCVodeSetStopTime), then CVode returns
      ! the solution at tstop. Once the integrator returns at a tstop
-     ! time, any future testing for tstop is disabled (and can be 
+     ! time, any future testing for tstop is disabled (and can be
      ! reenabled only though a new call to FCVodeSetStopTime).
      ! The time reached by the solver is placed in (*tret). The
      ! user is responsible for allocating the memory for this value.
@@ -691,7 +691,7 @@ module cvode_interface
      !                  times (= MXNCF = 10) during one internal time
      !                  step or occurred with |h| = hmin.
      !
-     ! CV_LINIT_FAIL:   The linear solver's initialization function 
+     ! CV_LINIT_FAIL:   The linear solver's initialization function
      !                  failed.
      !
      ! CV_LSETUP_FAIL:  The linear solver's setup routine failed in an
@@ -747,7 +747,7 @@ module cvode_interface
      !
      !   CV_MEM_NULL: The cvode_mem argument was NULL.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVodeGetDky(cvode_mem, t, k, dky) &
           bind(C,name='CVodeGetDky')
        use, intrinsic :: iso_c_binding
@@ -799,18 +799,18 @@ module cvode_interface
      !                        for ele.
      ! FCVodeGetNumGEvals returns the number of calls to the user's
      !                   g function (for rootfinding)
-     ! FCVodeGetRootInfo returns the indices for which g_i was found to 
-     !                  have a root. The user must allocate space for 
-     !                  rootsfound. For i = 0 ... nrtfn-1, 
+     ! FCVodeGetRootInfo returns the indices for which g_i was found to
+     !                  have a root. The user must allocate space for
+     !                  rootsfound. For i = 0 ... nrtfn-1,
      !                  rootsfound[i] = 1 if g_i has a root, and = 0 if not.
-     ! 
+     !
      ! FCVodeGet* return values:
      !   CV_SUCCESS   if succesful
      !   CV_MEM_NULL  if the cvode memory was NULL
      !   CV_NO_SLDET  if stability limit was not turned on
      ! -----------------------------------------------------------------
-     
-     integer(c_int) function FCVodeGetWorkSpace(cvode_mem, lenrw, leniw) & 
+
+     integer(c_int) function FCVodeGetWorkSpace(cvode_mem, lenrw, leniw) &
           bind(C,name='CVodeGetWorkSpace')
        use, intrinsic :: iso_c_binding
        implicit none
@@ -951,7 +951,7 @@ module cvode_interface
      ! As a convenience, the following functions provides the
      ! optional outputs in one group.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVodeGetIntegratorStats(cvode_mem, nsteps, nfevals, &
           nlinsetups, netfails, qlast, qcur, hinused, hlast, hcur, tcur) &
           bind(C,name='CVodeGetIntegratorStats')
@@ -990,7 +990,7 @@ module cvode_interface
        integer(c_long)    :: nniters
      end function FCVodeGetNumNonlinSolvIters
 
-     integer(c_int) function FCVodeGetNumNonlinSolvConvFails(cvode_mem, nncfails) & 
+     integer(c_int) function FCVodeGetNumNonlinSolvConvFails(cvode_mem, nncfails) &
           bind(C,name='CVodeGetNumNonlinSolvConvFails')
        use, intrinsic :: iso_c_binding
        implicit none
@@ -1002,7 +1002,7 @@ module cvode_interface
      ! As a convenience, the following function provides the
      ! nonlinear solver optional outputs in a group.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVodeGetNonlinSolvStats(cvode_mem, nniters, nncfails) &
           bind(C,name='CVodeGetNonlinSolvStats')
        use, intrinsic :: iso_c_binding
@@ -1011,9 +1011,9 @@ module cvode_interface
        integer(c_long)    :: nniters
        integer(c_long)    :: nncfails
      end function FCVodeGetNonlinSolvStats
-     
+
      ! -----------------------------------------------------------------
-     ! The following function returns the name of the constant 
+     ! The following function returns the name of the constant
      ! associated with a CVODE return flag
      ! -----------------------------------------------------------------
 
@@ -1034,7 +1034,7 @@ module cvode_interface
        implicit none
        type(c_ptr) :: cvode_mem ! DO NOT use value attribute input is void**
      end subroutine FCVodeFree
-     
+
      ! =================================================================
      ! Interfaces from cvode_band.h
      ! =================================================================
@@ -1063,7 +1063,7 @@ module cvode_interface
      !    CVDLS_ILL_INPUT if a required vector operation is missing or
      !                       if a bandwidth has an illegal value.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVBand(cvode_mem, N, mupper, mlower) &
           bind(C,name='CVBand')
        use, intrinsic :: iso_c_binding
@@ -1142,7 +1142,7 @@ module cvode_interface
        integer(c_long)    :: lenrwLS
        integer(c_long)    :: leniwLS
      end function FCVBandPrecGetWorkSpace
-     
+
      integer(c_int) function FCVBandPrecGetNumRhsEvals(cvode_mem, nfevalsBP) &
           bind(C,name='CVBandPrecGetNumRhsEvals')
        use, intrinsic :: iso_c_binding
@@ -1211,15 +1211,15 @@ module cvode_interface
        type(c_funptr),  value :: gloc
        type(c_funptr),  value :: cfn
      end function FCVBBDPrecInit
-                   
+
      ! -----------------------------------------------------------------
      ! Function : FCVBBDPrecReInit
      ! -----------------------------------------------------------------
      ! FCVBBDPrecReInit re-initializes the BBDPRE module when solving a
      ! sequence of problems of the same size with CVSPGMR/CVBBDPRE or
-     ! CVSPBCG/CVBBDPRE or CVSPTFQMR/CVBBDPRE provided there is no change 
-     ! in Nlocal, mukeep, or mlkeep. After solving one problem, and after 
-     ! calling FCVodeReInit to re-initialize the integrator for a subsequent 
+     ! CVSPBCG/CVBBDPRE or CVSPTFQMR/CVBBDPRE provided there is no change
+     ! in Nlocal, mukeep, or mlkeep. After solving one problem, and after
+     ! calling FCVodeReInit to re-initialize the integrator for a subsequent
      ! problem, call FCVBBDPrecReInit.
      !
      ! All arguments have the same names and meanings as those
@@ -1241,7 +1241,7 @@ module cvode_interface
        integer(c_long), value :: mldq
        real(c_double),  value :: dqrely
      end function FCVBBDPrecReInit
-     
+
      ! -----------------------------------------------------------------
      ! BBDPRE optional output extraction routines
      ! -----------------------------------------------------------------
@@ -1255,7 +1255,7 @@ module cvode_interface
      !   CVSPILS_LMEM_NULL if the linear solver memory is NULL
      !   CVSPILS_PMEM_NULL if the preconditioner memory is NULL
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVBBDPrecGetWorkSpace(cvode_mem, lenrwLS, leniwLS) &
           bind(C,name='CVBBDPrecGetWorkSpace')
        use, intrinsic :: iso_c_binding
@@ -1272,7 +1272,7 @@ module cvode_interface
        type(c_ptr), value :: cvode_mem
        integer(c_long)    :: ngevalsBBDP
      end function FCVBBDPrecGetNumGfnEvals
-     
+
      ! =================================================================
      ! Interfaces from cvode_dense.h
      ! =================================================================
@@ -1294,11 +1294,11 @@ module cvode_interface
      !    CVDLS_MEM_FAIL  if there was a memory allocation failure
      !    CVDLS_ILL_INPUT if a required vector operation is missing
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVDense(cvode_mem, N) &
           bind(C,name='CVDense')
        use, intrinsic :: iso_c_binding
-       implicit none 
+       implicit none
        type(c_ptr),     value :: cvode_mem
        integer(c_long), value :: N
      end function FCVDense
@@ -1329,7 +1329,7 @@ module cvode_interface
        implicit none
        type(c_ptr), value :: cvode_mem
      end function FCVDiag
-     
+
      ! -----------------------------------------------------------------
      ! Optional outputs from the CVDIAG linear solver
      ! -----------------------------------------------------------------
@@ -1351,7 +1351,7 @@ module cvode_interface
      !    CVDIAG_MEM_NULL  if the cvode memory was NULL
      !    CVDIAG_LMEM_NULL if the cvdiag memory was NULL
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVDiagGetWorkSpace(cvode_mem, lenrwLS, leniwLS) &
           bind(C,name='CVDiagGetWorkSpace')
        use, intrinsic :: iso_c_binding
@@ -1369,7 +1369,7 @@ module cvode_interface
        integer(c_long)    :: nfevalsLS
      end function FCVDiagGetNumRhsEvals
 
-     integer(c_int) function FCVDiagGetLastFlag(cvode_mem, flag) & 
+     integer(c_int) function FCVDiagGetLastFlag(cvode_mem, flag) &
           bind(C,name='CVDiagGetLastFlag')
        use, intrinsic :: iso_c_binding
        implicit none
@@ -1378,7 +1378,7 @@ module cvode_interface
      end function FCVDiagGetLastFlag
 
      ! -----------------------------------------------------------------
-     ! The following function returns the name of the constant 
+     ! The following function returns the name of the constant
      ! associated with a CVDIAG return flag
      ! -----------------------------------------------------------------
 
@@ -1423,7 +1423,7 @@ module cvode_interface
        type(c_ptr),    value :: cvode_mem
        type(c_funptr), value :: jac
      end function FCVDlsSetBandJacFn
-     
+
      ! -----------------------------------------------------------------
      ! Optional outputs from the CVDLS linear solver
      ! -----------------------------------------------------------------
@@ -1452,7 +1452,7 @@ module cvode_interface
        integer(c_long)    :: lenrwLS
        integer(c_long)    :: leniwLS
      end function FCVDlsGetWorkSpace
-       
+
      integer(c_int) function FCVDlsGetNumJacEvals(cvode_mem, njevals) &
           bind(C,name='CVDlsGetNumJacEvals')
        use, intrinsic :: iso_c_binding
@@ -1472,16 +1472,16 @@ module cvode_interface
      integer(c_int) function FCVDlsGetLastFlag(cvode_mem, flag) &
           bind(C,name='CVDlsGetLastFlag')
        use, intrinsic :: iso_c_binding
-       implicit none 
+       implicit none
        type(c_ptr), value :: cvode_mem
        integer(c_long)    :: flag
      end function FCVDlsGetLastFlag
-     
+
      ! -----------------------------------------------------------------
-     ! The following function returns the name of the constant 
+     ! The following function returns the name of the constant
      ! associated with a CVDLS return flag
      ! -----------------------------------------------------------------
-     
+
      ! >>> NOT CURRENTLY IMPLEMENTED IN FORTRAN INTERFACE
      ! char* CVDlsGetReturnFlagName(long int flag);
 
@@ -1548,9 +1548,9 @@ module cvode_interface
      ! -----------------------------------------------------------------
      ! FCVBoomerAMGReInit re-initializes the HYPRE_BOOMERAMG module when solving a
      ! sequence of problems of the same size with CVSPGMR/CVHYPRE_BOOMERAMG or
-     ! CVSPBCG/CVHYPRE_BOOMERAMG or CVSPTFQMR/CVHYPRE_BOOMERAMG provided there is no change 
-     ! in Nlocal, mukeep, or mlkeep. After solving one problem, and after 
-     ! calling FCVodeReInit to re-initialize the integrator for a subsequent 
+     ! CVSPBCG/CVHYPRE_BOOMERAMG or CVSPTFQMR/CVHYPRE_BOOMERAMG provided there is no change
+     ! in Nlocal, mukeep, or mlkeep. After solving one problem, and after
+     ! calling FCVodeReInit to re-initialize the integrator for a subsequent
      ! problem, call FCVBoomerAMGReInit.
      !
      ! All arguments have the same names and meanings as those
@@ -1561,7 +1561,7 @@ module cvode_interface
      !   CVSPILS_MEM_NULL if the integrator memory is NULL
      !   CVSPILS_LMEM_NULL if the linear solver memory is NULL
      !   CVSPILS_PMEM_NULL if the preconditioner memory is NULL
-     ! -----------------------------------------------------------------    
+     ! -----------------------------------------------------------------
 
      integer(c_int) function FCVBoomerAMGReInit(cvode_mem, mudq, mldq, dqrely) &
           bind(C,name='CVBoomerAMGReInit')
@@ -1572,7 +1572,7 @@ module cvode_interface
        integer(c_long), value :: mldq
        real(c_double),  value :: dqrely
      end function FCVBoomerAMGReInit
-       
+
      ! -----------------------------------------------------------------
      ! HYPRE_BOOMERAMG optional output extraction routines
      ! -----------------------------------------------------------------
@@ -1603,27 +1603,27 @@ module cvode_interface
        type(c_ptr), value :: cvode_mem
        integer(c_long)    :: ngevalsBBDP
      end function FCVBoomerAMGGetNumGfnEvals
-     
+
      ! =================================================================
      ! Interfaces from cvode_klu.h
      ! =================================================================
-     
+
      ! -----------------------------------------------------------------
      ! Function : FCVKLU
      ! -----------------------------------------------------------------
-     ! A call to the FCVKLU function links the main integrator      
-     ! with the CVKLU linear solver module.                        
-     !                                                                
-     ! cv_mem is the pointer to integrator memory returned by        
-     !     FCVCreate.             
+     ! A call to the FCVKLU function links the main integrator
+     ! with the CVKLU linear solver module.
      !
-     !                                                                
-     ! FCVKLU returns:                                              
-     !     CVSLU_SUCCESS   = 0  if successful                              
-     !     CVSLU_LMEM_FAIL = -1 if there was a memory allocation failure   
-     !     CVSLU_ILL_INPUT = -2 if NVECTOR found incompatible           
-     !                                                                
-     ! NOTE: The KLU linear solver assumes a serial implementation  
+     ! cv_mem is the pointer to integrator memory returned by
+     !     FCVCreate.
+     !
+     !
+     ! FCVKLU returns:
+     !     CVSLU_SUCCESS   = 0  if successful
+     !     CVSLU_LMEM_FAIL = -1 if there was a memory allocation failure
+     !     CVSLU_ILL_INPUT = -2 if NVECTOR found incompatible
+     !
+     ! NOTE: The KLU linear solver assumes a serial implementation
      !       of the NVECTOR package. Therefore, CVKLU will first
      !       test for a compatible N_Vector internal representation
      !       by checking that the functions N_VGetArrayPointer and
@@ -1643,21 +1643,21 @@ module cvode_interface
      ! -----------------------------------------------------------------
      ! FCVKLUReInit
      ! -----------------------------------------------------------------
-     ! This routine reinitializes memory and flags for a new factorization 
+     ! This routine reinitializes memory and flags for a new factorization
      ! (symbolic and numeric) to be conducted at the next solver setup
-     ! call.  This routine is useful in the cases where the number of nonzeroes 
+     ! call.  This routine is useful in the cases where the number of nonzeroes
      ! has changed or if the structure of the linear system has changed
      ! which would require a new symbolic (and numeric factorization).
      !
      ! The reinit_type argumenmt governs the level of reinitialization:
      !
-     ! reinit_type = 1: The Jacobian matrix will be destroyed and 
+     ! reinit_type = 1: The Jacobian matrix will be destroyed and
      !                  a new one will be allocated based on the nnz
      !                  value passed to this call. New symbolic and
      !                  numeric factorizations will be completed at the next
      !                  solver setup.
      !
-     ! reinit_type = 2: Only symbolic and numeric factorizations will be 
+     ! reinit_type = 2: Only symbolic and numeric factorizations will be
      !                  completed.  It is assumed that the Jacobian size
      !                  has not exceeded the size of nnz given in the prior
      !                  call to FCVKLU.
@@ -1678,7 +1678,7 @@ module cvode_interface
        integer(c_int), value :: nnz
        integer(c_int), value :: reinit_type
      end function FCVKLUReInit
-     
+
      ! -----------------------------------------------------------------
      ! Optional Input Specification Functions
      ! -----------------------------------------------------------------
@@ -1717,7 +1717,7 @@ module cvode_interface
      !    CVLAPACK_MEM_FAIL  if there was a memory allocation failure
      !    CVLAPACK_ILL_INPUT if a required vector operation is missing
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVLapackDense(cvode_mem, N) &
           bind(C,name='CVLapackDense')
        use, intrinsic :: iso_c_binding
@@ -1730,7 +1730,7 @@ module cvode_interface
      ! Function : CVLapackBand
      ! -----------------------------------------------------------------
      ! A call to the FCVLapackBand function links the main integrator
-     ! with the CVLAPACK linear solver using banded Jacobians. 
+     ! with the CVLAPACK linear solver using banded Jacobians.
      !
      ! cvode_mem is the pointer to the integrator memory returned by
      !           FCVodeCreate.
@@ -1748,7 +1748,7 @@ module cvode_interface
      !    CVLAPACK_ILL_INPUT if a required vector operation is missing or
      !                       if a bandwidth has an illegal value.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVLapackBand(cvode_mem, N, mupper, mlower) &
           bind(C,name='CVLapackBand')
        use, intrinsic :: iso_c_binding
@@ -1805,7 +1805,7 @@ module cvode_interface
        type(c_ptr), value :: cvode_mem
        integer(c_long)    :: njevals
      end function FCVSlsGetNumJacEvals
-     
+
      integer(c_int) function FCVSlsGetLastFlag(cvode_mem, flag) &
           bind(C,name='CVSlsGetLastFlag')
        use, intrinsic :: iso_c_binding
@@ -1815,13 +1815,13 @@ module cvode_interface
      end function FCVSlsGetLastFlag
 
      ! -----------------------------------------------------------------
-     ! The following function returns the name of the constant 
+     ! The following function returns the name of the constant
      ! associated with a CVSLS return flag
      ! -----------------------------------------------------------------
 
      ! >>> NOT CURRENTLY IMPLEMENTED IN FORTRAN INTERFACE
      ! char* CVSlsGetReturnFlagName(long int flag);
-    
+
      ! =================================================================
      ! Interfaces from cvode_spbcgs.h
      ! =================================================================
@@ -1855,7 +1855,7 @@ module cvode_interface
      ! The above constants are defined in cvode_spils.h
      !
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVSpbcg(cvode_mem, pretype, maxl) &
           bind(C,name='CVSpbcg')
        use, intrinsic :: iso_c_binding
@@ -1864,7 +1864,7 @@ module cvode_interface
        integer(c_int), value :: pretype
        integer(c_int), value :: maxl
      end function FCVSpbcg
-     
+
      ! =================================================================
      ! Interfaces from cvode_spgmr.h
      ! =================================================================
@@ -1880,7 +1880,7 @@ module cvode_interface
      !
      ! pretype   is the type of user preconditioning to be done.
      !           This must be one of the four enumeration constants
-     !           PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined 
+     !           PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined
      !           in sundials_iterative.h.
      !           These correspond to no preconditioning,
      !           left preconditioning only, right preconditioning
@@ -1908,7 +1908,7 @@ module cvode_interface
        integer(c_int), value :: pretype
        integer(c_int), value :: maxl
      end function FCVSpgmr
-              
+
      ! =================================================================
      ! Interfaces from cvode_spils.h
      ! =================================================================
@@ -1916,12 +1916,12 @@ module cvode_interface
      ! -----------------------------------------------------------------
      ! Optional inputs to the CVSPILS linear solver
      ! -----------------------------------------------------------------
-     ! 
+     !
      ! FCVSpilsSetPrecType resets the type of preconditioner, pretype,
      !                from the value previously set.
-     !                This must be one of PREC_NONE, PREC_LEFT, 
+     !                This must be one of PREC_NONE, PREC_LEFT,
      !                PREC_RIGHT, or PREC_BOTH.
-     ! 
+     !
      ! FCVSpilsSetGSType specifies the type of Gram-Schmidt
      !                orthogonalization to be used. This must be one of
      !                the two enumeration constants MODIFIED_GS or
@@ -1929,22 +1929,22 @@ module cvode_interface
      !                to using modified Gram-Schmidt and classical
      !                Gram-Schmidt, respectively.
      !                Default value is MODIFIED_GS.
-     ! 
+     !
      ! FCVSpilsSetMaxl resets the maximum Krylov subspace size, maxl,
      !                from the value previously set.
      !                An input value <= 0, gives the default value.
-     ! 
+     !
      ! FCVSpilsSetEpsLin specifies the factor by which the tolerance on
      !                the nonlinear iteration is multiplied to get a
      !                tolerance on the linear iteration.
      !                Default value is 0.05.
-     ! 
+     !
      ! FCVSpilsSetPreconditioner specifies the PrecSetup and PrecSolve functions.
      !                Default is NULL for both arguments (no preconditioning)
-     ! 
-     ! FCVSpilsSetJacTimesVecFn specifies the jtimes function. Default is to 
+     !
+     ! FCVSpilsSetJacTimesVecFn specifies the jtimes function. Default is to
      !                use an internal finite difference approximation routine.
-     ! 
+     !
      ! The return value of FCVSpilsSet* is one of:
      !    CVSPILS_SUCCESS   if successful
      !    CVSPILS_MEM_NULL  if the cvode memory was NULL
@@ -1959,7 +1959,7 @@ module cvode_interface
        type(c_ptr),    value :: cvode_mem
        integer(c_int), value :: pretype
      end function FCVSpilsSetPrecType
-     
+
      integer(c_int) function FCVSpilsSetGSType(cvode_mem, gstype) &
           bind(C,name='CVspilsSetGSType')
        use, intrinsic :: iso_c_binding
@@ -1975,7 +1975,7 @@ module cvode_interface
        type(c_ptr),    value :: cvode_mem
        integer(c_int), value :: maxl
      end function FCVSpilsSetMaxl
-       
+
      integer(c_int) function FCVSpilsSetEpsLin(cvode_mem, eplifac) &
           bind(C,name='FCVSpilsSetEpsLin')
        use, intrinsic :: iso_c_binding
@@ -1983,7 +1983,7 @@ module cvode_interface
        type(c_ptr),    value :: cvode_mem
        real(c_double), value :: eplifac
      end function FCVSpilsSetEpsLin
-       
+
      integer(c_int) function FCVSpilsSetPreconditioner(cvode_mem, pset, psolve) &
           bind(C,name='CVSpilsSetPreconditioner')
        use, intrinsic :: iso_c_binding
@@ -2042,7 +2042,7 @@ module cvode_interface
        integer(c_long)    :: lenrwLS
        integer(c_long)    :: leniwLS
      end function FCVSpilsGetWorkSpace
-       
+
      integer(c_int) function FCVSpilsGetNumPrecEvals(cvode_mem, npevals) &
           bind(C,name='CVSpilsGetNumPrecEvals')
        use, intrinsic :: iso_c_binding
@@ -2074,7 +2074,7 @@ module cvode_interface
        type(c_ptr), value :: cvode_mem
        integer(c_long)    :: nlcfails
      end function FCVSpilsGetNumConvFails
-     
+
      integer(c_int) function FCVSpilsGetNumJtimesEvals(cvode_mem, njvevals) &
           bind(C,name='CVSpilsGetNumJtimesEvals')
        use, intrinsic :: iso_c_binding
@@ -2098,19 +2098,19 @@ module cvode_interface
        type(c_ptr), value :: cvode_mem
        integer(c_long)    :: flag
      end function FCVSpilsGetLastFlag
-          
+
      ! -----------------------------------------------------------------
-     ! The following function returns the name of the constant 
+     ! The following function returns the name of the constant
      ! associated with a CVSPILS return flag
      ! -----------------------------------------------------------------
-     
+
      ! >>> NOT CURRENTLY IMPLEMENTED IN FORTRAN INTERFACE
      ! char* CVSpilsGetReturnFlagName(long int flag);
 
      ! =================================================================
      ! Interfaces from cvode_sptfqmr.h
      ! =================================================================
-     
+
      ! -----------------------------------------------------------------
      ! Function : FCVSptfqmr
      ! -----------------------------------------------------------------
@@ -2140,7 +2140,7 @@ module cvode_interface
      ! The above constants are defined in cvode_spils.h
      !
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVSptfqmr(cvode_mem, pretype, maxl) &
           bind(C,name='CVSptfqmr')
        use, intrinsic :: iso_c_binding
@@ -2153,29 +2153,29 @@ module cvode_interface
      ! =================================================================
      ! Interfaces from cvode_superlumt.h
      ! =================================================================
-     
+
      ! -----------------------------------------------------------------
      ! Function : FCVSuperLUMT
      ! -----------------------------------------------------------------
-     ! A call to the FCVSuperLUMT function links the main integrator      
-     ! with the CVSuperLUMT linear solver module.                        
-     !                                                                
-     ! cv_mem is the pointer to integrator memory returned by        
-     !     FCVCreate.             
+     ! A call to the FCVSuperLUMT function links the main integrator
+     ! with the CVSuperLUMT linear solver module.
      !
-     !                                                                
-     ! FCVSuperLUMT returns:                                              
-     !     CVSLU_SUCCESS   = 0  if successful                              
-     !     CVSLU_LMEM_FAIL = -1 if there was a memory allocation failure   
-     !     CVSLU_ILL_INPUT = -2 if NVECTOR found incompatible           
-     !                                                                
-     ! NOTE: The CVSuperLUMT linear solver assumes a serial implementation  
+     ! cv_mem is the pointer to integrator memory returned by
+     !     FCVCreate.
+     !
+     !
+     ! FCVSuperLUMT returns:
+     !     CVSLU_SUCCESS   = 0  if successful
+     !     CVSLU_LMEM_FAIL = -1 if there was a memory allocation failure
+     !     CVSLU_ILL_INPUT = -2 if NVECTOR found incompatible
+     !
+     ! NOTE: The CVSuperLUMT linear solver assumes a serial implementation
      !       of the NVECTOR package. Therefore, CVSuperLUMT will first
      !       test for a compatible N_Vector internal representation
      !       by checking that the functions N_VGetArrayPointer and
      !       N_VSetArrayPointer exist.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVSuperLUMT(cvode_mem, num_threads, n, nnz) &
           bind(C,name='CVSuperLUMT')
        use, intrinsic :: iso_c_binding
@@ -2190,16 +2190,16 @@ module cvode_interface
      ! Optional Input Specification Functions
      ! -----------------------------------------------------------------
      !
-     ! FCVSuperLUMTSetOrdering sets the ordering used by CVSuperLUMT for 
+     ! FCVSuperLUMTSetOrdering sets the ordering used by CVSuperLUMT for
      ! reducing fill.
-     ! Options are: 
+     ! Options are:
      ! 0 for natural ordering
      ! 1 for minimal degree ordering on A'*A
      ! 2 for minimal degree ordering on A'+A
      ! 3 for approximate minimal degree ordering for unsymmetric matrices
      ! The default used in SUNDIALS is 3 for COLAMD.
      ! -----------------------------------------------------------------
-     
+
      integer(c_int) function FCVSuperLUMTSetOrdering(cvode_mem, ordering_choice) &
           bind(C,name='CVSuperLUMTSetOrdering')
        use, intrinsic :: iso_c_binding

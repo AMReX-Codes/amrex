@@ -21,9 +21,6 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MacBndry.H>
-#ifdef USE_F90_SOLVERS
-#include <AMReX_FMultiGrid.H>
-#endif
 
 #ifdef USEHYPRE
 #include <HypreABecLap.H>
@@ -85,11 +82,6 @@ void solve4(MultiFab& soln, const MultiFab& anaSoln,
 void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
 		    const Vector<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
 
-#ifdef USE_F90_SOLVERS
-void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
-		    const Vector<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
-#endif
-
 #ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, 
 		      const Vector<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom);
@@ -124,13 +116,6 @@ int main(int argc, char* argv[])
     }
     else if (solver_type_s == "BoxLib_C4") {
       solver_type = BoxLib_C4;
-    }
-    else if (solver_type_s == "BoxLib_F") {
-#ifdef USE_F90_SOLVERS
-      solver_type = BoxLib_F;      
-#else
-      amrex::Error("Set USE_FORTRAN=TRUE in GNUmakefile");
-#endif
     }
     else if (solver_type_s == "Hypre") {
 #ifdef USEHYPRE
@@ -330,18 +315,6 @@ int main(int argc, char* argv[])
     }
 
     solve4(soln4, anaSoln, a, b, alpha4, beta4, rhs, bs, geom);
-  }
-#endif
-
-#ifdef USE_F90_SOLVERS
-  if (solver_type == BoxLib_F || solver_type == All) {
-    if (ParallelDescriptor::IOProcessor()) {
-      std::cout << "----------------------------------------" << std::endl;
-      std::cout << "Solving with BoxLib F90 solver " << std::endl;
-    }
-
-    solve(soln, anaSoln, gphi, a, b, alpha, amrex::GetVecOfPtrs(beta),
-	  beta_cc, rhs, bs, geom, BoxLib_F);
   }
 #endif
 
@@ -647,12 +620,6 @@ void solve(MultiFab& soln, const MultiFab& anaSoln, MultiFab& gphi,
     ss = "CPP";
     solve_with_Cpp(soln, gphi, a, b, alpha, beta, rhs, bs, geom);
   }
-#ifdef USE_F90_SOLVERS
-  else if (solver == BoxLib_F) {
-    ss = "F90";
-    solve_with_F90(soln, gphi, a, b, alpha, beta, rhs, bs, geom);
-  }
-#endif
 #ifdef USEHYPRE
   else if (solver == Hypre) {
     ss = "Hyp";
@@ -743,61 +710,6 @@ void solve_with_Cpp(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& al
   // Average edge-centered gradients to cell centers.
   amrex::average_face_to_cellcenter(gphi, amrex::GetVecOfConstPtrs(grad_phi), geom);
 }
-
-#ifdef USE_F90_SOLVERS
-void solve_with_F90(MultiFab& soln, MultiFab& gphi, Real a, Real b, MultiFab& alpha, 
-		    const Vector<MultiFab*>& beta, MultiFab& rhs, const BoxArray& bs, const Geometry& geom)
-{
-  BL_PROFILE("solve_with_F90()");
-
-  FMultiGrid fmg(geom);
-
-  int mg_bc[2*BL_SPACEDIM];
-  if (bc_type == Periodic) {
-    // Define the type of boundary conditions to be periodic
-    for ( int n = 0; n < BL_SPACEDIM; ++n ) {
-      mg_bc[2*n + 0] = MGT_BC_PER;
-      mg_bc[2*n + 1] = MGT_BC_PER;
-    }
-  }
-  else if (bc_type == Neumann) {
-    // Define the type of boundary conditions to be Neumann
-    for ( int n = 0; n < BL_SPACEDIM; ++n ) {
-      mg_bc[2*n + 0] = MGT_BC_NEU;
-      mg_bc[2*n + 1] = MGT_BC_NEU;
-    }
-  }
-  else if (bc_type == Dirichlet) {
-    // Define the type of boundary conditions to be Dirichlet
-    for ( int n = 0; n < BL_SPACEDIM; ++n ) {
-      mg_bc[2*n + 0] = MGT_BC_DIR;
-      mg_bc[2*n + 1] = MGT_BC_DIR;
-    }
-  }
-
-  fmg.set_bc(mg_bc);
-  fmg.set_maxorder(maxorder);
-
-  fmg.set_scalars(a, b);
-  fmg.set_coefficients(alpha, beta);
-
-  int always_use_bnorm = 0;
-  int need_grad_phi = 1;
-  fmg.solve(soln, rhs, tolerance_rel, tolerance_abs, always_use_bnorm, need_grad_phi);
-
-  const DistributionMapping& dmap = soln.DistributionMap();
-
-  Vector<std::unique_ptr<MultiFab> > grad_phi(BL_SPACEDIM);
-  for (int n = 0; n < BL_SPACEDIM; ++n) {
-      grad_phi[n].reset(new MultiFab(BoxArray(soln.boxArray()).surroundingNodes(n), dmap, 1, 0));
-  }
-
-  fmg.get_fluxes(amrex::GetVecOfPtrs(grad_phi));
-
-  // Average edge-centered gradients to cell centers.
-  amrex::average_face_to_cellcenter(gphi, amrex::GetVecOfConstPtrs(grad_phi), geom);
-}
-#endif
 
 #ifdef USEHYPRE
 void solve_with_hypre(MultiFab& soln, Real a, Real b, MultiFab& alpha, 

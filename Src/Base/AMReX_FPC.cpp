@@ -1,9 +1,9 @@
 
 #include <AMReX_FPC.H>
 
-///
-/// Set up endian-ness macros
-///
+//
+// Set up endian-ness macros
+//
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && defined(__ORDER_BIG_ENDIAN__)
 
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)

@@ -168,13 +168,13 @@ Specifying your own compiler
 ----------------------------
 
 The ``amrex/Tools/GNUMake/Make.local`` file can also specify your own compile
-commands by setting the valiables ``CXX``, ``CC``, ``FC``, and ``F90``. This
-might be neccarry if your systems contains non-standard names for compiler
+commands by setting the variables ``CXX``, ``CC``, ``FC``, and ``F90``. This
+might be necessary if your systems contains non-standard names for compiler
 commands.
 
 For example, the following ``amrex/Tools/GNUMake/Make.local`` builds AMReX
 using a specific compiler (in this case ``gcc-8``) without MPI. Whenever
-``USE_MPI``  is true, this confguration defaults to the appropriate
+``USE_MPI``  is true, this configuration defaults to the appropriate
 ``mpixxx`` command:
 ::
 
@@ -200,7 +200,7 @@ GCC on macOS
 ------------
 
 The example configuration above should also run on the latest macOS. On macOS
-the default cxx compiler is clang, whereas the default fortran compiler is
+the default cxx compiler is clang, whereas the default Fortran compiler is
 gfortran. Sometimes it is good to avoid mixing compilers, in that case we can
 use the ``Make.local`` to force using GCC. However, macOS' Xcode ships with its
 own (woefully outdated) version of GCC (4.2.1). It is therefore recommended to
@@ -223,7 +223,7 @@ The additional ``INCLUDE_LOCATIONS`` are installed using homebrew also. Note
 that if you are building AMReX using homebrew's gcc, it is recommended that you
 use homebrew's mpich. Normally is it fine to simply install its binaries:
 ``brew install mpich``. But if you are experiencing problems, we suggest
-building mpich usinging homebrew's gcc: ``brew install mpich --cc=gcc-8``.
+building mpich using homebrew's gcc: ``brew install mpich --cc=gcc-8``.
 
 
 .. _sec:build:lib:
@@ -402,7 +402,7 @@ to include the following line in the appropriate CMakeLists.txt file:
     find_package (AMReX 18 [REQUIRED] [HINTS /path/to/installdir/] )
 
 
-In the above snippet, ``18`` refer to the mininum AMReX version supporting
+In the above snippet, ``18`` refer to the minimum AMReX version supporting
 the import feature discussed here.
 Linking AMReX to any target defined in your CMake project is done by including
 the following line in the appropriate CMakeLists.txt file
