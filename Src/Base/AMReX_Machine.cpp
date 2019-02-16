@@ -341,9 +341,13 @@ class Machine
     {
         hostname   = get_env_str("HOSTNAME");
         nersc_host = get_env_str("NERSC_HOST");
+#ifdef AMREX_USE_CUDA
+        flag_nersc_df = false;
+#else
         flag_nersc_df = (nersc_host == "edison" ||
                          nersc_host == "cori" ||
                          nersc_host == "saul");
+#endif
 
         if (flag_nersc_df) {
             partition  = get_env_str("SLURM_JOB_PARTITION");

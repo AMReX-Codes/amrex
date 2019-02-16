@@ -36,6 +36,9 @@ public:
     Mask& operator[] (const MFIter& mfi) { return m_fa[mfi]; }
     const Mask& operator[] (const MFIter& mfi) const { return m_fa[mfi]; }
 
+    Array4<int const> array (const MFIter& mfi) const { return m_fa.array(mfi); }
+    Array4<int      > array (const MFIter& mfi)       { return m_fa.array(mfi); }
+
     int nComp () const { return m_fa.nComp(); }
 
     const BoxArray& boxArray () const { return m_fa.boxArray(); }

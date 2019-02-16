@@ -383,7 +383,7 @@ contains
                    end if
  
                    fzm = -bZ(i,j,k)*phi(i,j,k-1)
-                   ozm =  bZ(i,j,k)*cf2
+                   ozm = -bZ(i,j,k)*cf2
                    szm =  bZ(i,j,k)
                    if(apz(i,j,k).ne.zero.and.apz(i,j,k).ne.one) then 
                       ii = i + int(sign(one,fcz(i,j,k,1)))
@@ -485,8 +485,8 @@ contains
           end do 
        end do 
     enddo        
- end subroutine amrex_mlebabeclap_gsrb
 
+  end subroutine amrex_mlebabeclap_gsrb
 
   subroutine amrex_mlebabeclap_normalize (lo, hi, x, xlo, xhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &

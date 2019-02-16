@@ -2206,6 +2206,10 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          m_lobc.data(), m_hibc.data());
         }
     }
+#if AMREX_USE_EB
+    // Make sure to zero out the residual on any nodes completely surrounded by covered cells
+    amrex::EB_set_covered(res,0.0);
+#endif
 }
 
 #ifdef AMREX_USE_EB

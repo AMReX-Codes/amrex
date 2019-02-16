@@ -1,0 +1,10 @@
+
+size = (64, 64, 64)
+
+max_grid_size = 32
+
+nsteps = 1000
+
+print_neighbor_list = false
+
+write_particles = false

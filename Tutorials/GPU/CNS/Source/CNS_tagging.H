@@ -9,8 +9,8 @@ AMREX_GPU_HOST_DEVICE
 inline
 void
 cns_tag_denerror (int i, int j, int k,
-                  amrex::Array4<char>&tag,
-                  amrex::Array4<amrex::Real> const& rho,
+                  amrex::Array4<char> const& tag,
+                  amrex::Array4<amrex::Real const> const& rho,
                   amrex::Real dengrad_threshold, char tagval)
 {
     amrex::Real ax = std::abs(rho(i+1,j,k) - rho(i,j,k));

@@ -11,21 +11,21 @@ class ForkJoin
   public:
 
     enum class Strategy {
-        single,     // one task gets a copy of whole MF
-        duplicate,  // all tasks get a copy of whole MF
-        split,      // split MF components across tasks
+        single,     //!< one task gets a copy of whole MF
+        duplicate,  //!< all tasks get a copy of whole MF
+        split,      //!< split MF components across tasks
     };
     enum class Intent { in, out, inout };
 
-    // if strategy == split, use this to specify how to split components across tasks
+    //! if strategy == split, use this to specify how to split components across tasks
     struct ComponentSet {
-        // for now, just support contiguous range of components
-        // only requires a single MultiFab::Copy() per task this way
-        // in the future, consider changing this to a true set for arbitrary components
+        //! for now, just support contiguous range of components
+        //! only requires a single MultiFab::Copy() per task this way
+        //! in the future, consider changing this to a true set for arbitrary components
         ComponentSet() {}
         ComponentSet(int lo_, int hi_) : lo(lo_), hi(hi_) {}
-        int lo; // inclusive bound
-        int hi; // exclusive bound
+        int lo; //!< inclusive bound
+        int hi; //!< exclusive bound
     };
 
     ForkJoin (const Vector<int> &task_rank_n);
@@ -58,8 +58,9 @@ class ForkJoin
         reg_mf(mf, name, 0, strategy, intent, owner);
     }
 
-    // these overloads are for in case the MultiFab argument is const
-    // intent must be in
+    //! these overloads are for in case the MultiFab argument is const
+    //! intent must be in
+    //!
     void reg_mf (const MultiFab &mf, const std::string &name, int idx,
                  Strategy strategy, Intent intent, int owner = -1) {
         AMREX_ASSERT_WITH_MESSAGE(intent == Intent::in,
@@ -79,7 +80,7 @@ class ForkJoin
         }
     }
 
-    // overload in case of vector of pointer to const MultiFab
+    //! overload in case of vector of pointer to const MultiFab
     void reg_mf_vec (const Vector<MultiFab const *> &mfs, const std::string &name,
                      Strategy strategy, Intent intent, int owner = -1) {
         data[name].reserve(mfs.size());
@@ -88,13 +89,13 @@ class ForkJoin
         }
     }
 
-    // modify the number of grow cells associated with the multifab
+    //! modify the number of grow cells associated with the multifab
     void modify_ngrow (const std::string &name, int idx, IntVect ngrow);
     void modify_ngrow (const std::string &name, IntVect ngrow) {
         modify_ngrow(name, 0, ngrow);
     }
 
-    // modify how the multifab is split along components across the tasks
+    //! modify how the multifab is split along components across the tasks
     void modify_split (const std::string &name, int idx, Vector<ComponentSet> comp_split);
     void modify_split (const std::string &name, Vector<ComponentSet> comp_split) {
         modify_split(name, 0, comp_split);
@@ -108,7 +109,7 @@ class ForkJoin
         return data[name][idx].forked[task_me];
     }
 
-    // vector of pointers to all MFs under a name
+    //! vector of pointers to all MFs under a name
     Vector<MultiFab *> get_mf_vec (const std::string &name) {
         int dim = data.at(name).size();
         Vector<MultiFab *> result(dim);
@@ -153,10 +154,10 @@ class ForkJoin
         MultiFab *orig = nullptr;
         Strategy strategy;
         Intent intent;
-        int owner_task; // only used if strategy == single or duplicate
+        int owner_task; //!< only used if strategy == single or duplicate
         IntVect ngrow;
-        Vector<ComponentSet> comp_split; // if strategy == split, how to split components to tasks
-        Vector<MultiFab> forked; // holds new multifab for each task in fork
+        Vector<ComponentSet> comp_split; //!< if strategy == split, how to split components to tasks
+        Vector<MultiFab> forked; //!< holds new multifab for each task in fork
 
         MFFork () = default;
         MFFork (const MFFork&) = delete;
@@ -171,37 +172,40 @@ class ForkJoin
         bool empty() const { return orig == nullptr; }
     };
 
-    bool flag_verbose = false; // for debugging
-    bool flag_invoked = false; // track if object has been invoked yet
-    Vector<int> split_bounds; // task i has ranks over the interval [result[i], result[i+1])
-    int task_me = -1; // which forked task the rank belongs to
-    std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; // DM cache
+    bool flag_verbose = false; //!< for debugging
+    bool flag_invoked = false; //!< track if object has been invoked yet
+    Vector<int> split_bounds; //!< task i has ranks over the interval [result[i], result[i+1])
+    int task_me = -1; //!< which forked task the rank belongs to
+    std::map<BoxArray::RefID, Vector<std::unique_ptr<DistributionMapping>>> dms; //!< DM cache
     std::unordered_map<std::string, Vector<MFFork>> data;
-    std::string task_output_dir = ""; // where to write task output
+    std::string task_output_dir = ""; //!< where to write task output
 
     void init(const Vector<int> &task_rank_n);
 
-    // multiple MultiFabs may share the same box array
-    // only compute the DM once per unique (box array, task) pair and cache it
-    // create map from box array RefID to vector of DistributionMapping indexed by task ID
+    //! multiple MultiFabs may share the same box array
+    //! only compute the DM once per unique (box array, task) pair and cache it
+    //! create map from box array RefID to vector of DistributionMapping indexed by task ID
+    //!
     const DistributionMapping &get_dm (const BoxArray& ba, int task_idx,
                                        const DistributionMapping& dm_orig);
 
-    // this is called before ParallelContext::split
-    // the parent task is the top frame in ParallelContext's stack
+    //! this is called before ParallelContext::split
+    //! the parent task is the top frame in ParallelContext's stack
+    //!
     void copy_data_to_tasks ();
 
-    // this is called after ParallelContext::unsplit
-    // the parent task is the top frame in ParallelContext's stack
+    //! this is called after ParallelContext::unsplit
+    //! the parent task is the top frame in ParallelContext's stack
+    //!
     void copy_data_from_tasks ();
 
-    // split top frame of stack
+    //! split top frame of stack
     MPI_Comm split_tasks ();
 
-    // create the task output directory
+    //! create the task output directory
     void create_task_output_dir ();
 
-    // unique output file for this sub-task
+    //! unique output file for this sub-task
     std::string get_io_filename (bool flag_unique = false);
 };
 

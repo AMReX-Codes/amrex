@@ -81,8 +81,7 @@ function (configure_amrex)
    # Add third party libraries
    #
    if (ENABLE_3D_NODAL_MLMG)
-      include(AMReX_InstallExternalLibs)
-      target_link_libraries(amrex PRIVATE algoim PUBLIC blitz)
+      include(AMReX_InstallExternalLibs) 
    endif()
    
    #
@@ -278,7 +277,7 @@ function (print_amrex_configuration_summary)
       set (AMREX_LINK_LINE "")
    endif ()   
    string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
-  
+
    
    #
    # Config summary

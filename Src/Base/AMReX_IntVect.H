@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <limits>
+#include <climits>
 #include <algorithm>
 
 #include <AMReX_ccse-mpi.H>
@@ -27,7 +28,7 @@ namespace amrex {
 * C++ array.  In addition, the basic arithmetic operators have been overloaded
 * to implement scaling and translation operations.
 */
-	
+
 class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
@@ -46,7 +47,7 @@ public:
 #elif AMREX_SPACEDIM == 2
 	    return ret0 ^ (ret1 << shift1);
 #else
-	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);	    
+	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
 #endif
 	}
     };
@@ -58,7 +59,7 @@ public:
        This is an IntVect all of whose components are equal to zero.
     */
     static const IntVect Zero;
-    
+
     ///
     /**
        This is an IntVect all of whose components are equal to one.
@@ -77,7 +78,7 @@ public:
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    AMREX_GPU_HOST_DEVICE 
+    AMREX_GPU_HOST_DEVICE
     constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
@@ -125,7 +126,7 @@ public:
         return retval;
     }
 
-    /// maximum (no absolute values) value
+    //! maximum (no absolute values) value
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int max() const
     {
@@ -139,7 +140,7 @@ public:
 #endif
     }
 
-    /// minimum (no absolute values) value
+    //! minimum (no absolute values) value
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int min() const
     {
@@ -243,7 +244,7 @@ public:
     /**
     * \brief Returns true if this is less than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
-    */	
+    */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool allLT (const IntVect& rhs) const
     {
@@ -432,7 +433,7 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     IntVect& coarsen (int p);
 
-    /// for serialization
+    //! for serialization
     static size_t AMREX_INLINE
     linearSize()
     {
@@ -440,7 +441,7 @@ public:
         return retval;
     }
 
-    /// for serialization
+    //! for serialization
     void linearOut(void* a_buffer ) const;
     void linearIn(void* a_buffer );
 
@@ -467,7 +468,7 @@ public:
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero except that
-    * the d-direction is set to one. 
+    * the d-direction is set to one.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheDimensionVector (int d) {
@@ -484,7 +485,7 @@ public:
     static constexpr IntVect TheNodeVector () {
         return IntVect(1);
     }
-    /** 
+    /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::CELL.
     * It is provided as a convenience to our users when defining Boxes.
@@ -496,11 +497,19 @@ public:
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheMaxVector () {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::max());
+#else
+        return IntVect(INT_MAX);
+#endif
     }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     static constexpr IntVect TheMinVector () {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::lowest());
+#else
+        return IntVect(INT_MIN);
+#endif
     }
 
 private:
@@ -569,7 +578,7 @@ IntVect::maxDir(bool a_doAbsValue) const
 }
 
 AMREX_INLINE
-void 
+void
 IntVect::linearOut(void* a_buffer ) const
 {
     int* intbuf = (int *) a_buffer;
@@ -582,7 +591,7 @@ IntVect::linearOut(void* a_buffer ) const
 }
 
 AMREX_INLINE
-void 
+void
 IntVect::linearIn(void* a_buffer )
 {
     int* intbuf = (int *) a_buffer;

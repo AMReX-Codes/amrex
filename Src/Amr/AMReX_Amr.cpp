@@ -612,6 +612,20 @@ Amr::clearStatePlotVarList ()
 }
 
 void
+Amr::fillStateSmallPlotVarList ()
+{
+    state_small_plot_vars.clear();
+    const DescriptorList &desc_lst = AmrLevel::get_desc_lst();
+    for (int typ(0); typ < desc_lst.size(); ++typ) {
+        for (int comp(0); comp < desc_lst[typ].nComp(); ++comp) {
+            if (desc_lst[typ].getType() == IndexType::TheCellType()) {
+                state_small_plot_vars.push_back(desc_lst[typ].name(comp));
+	    }
+	}
+    }
+}
+
+void
 Amr::clearStateSmallPlotVarList ()
 {
     state_small_plot_vars.clear();
@@ -870,6 +884,12 @@ Amr::writePlotFile ()
     if (first_plotfile) {
         first_plotfile = false;
         amr_level[0]->setPlotVariables();
+    }
+
+    // Don't continue if we have no variables to plot.
+
+    if (statePlotVars().size() == 0) {
+      return;
     }
 
     Real dPlotFileTime0 = amrex::second();

@@ -42,7 +42,7 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
 #endif
 
     if (run_on_gpu) {
-        AMREX_ALWAYS_ASSERT(Gpu::isManaged(&data));
+        AMREX_ASSERT(Gpu::isGpuPtr(&data));
         gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     } else {
         cpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);

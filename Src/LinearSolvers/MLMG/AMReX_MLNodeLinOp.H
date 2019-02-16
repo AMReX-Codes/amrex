@@ -30,8 +30,6 @@ public:
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override {}
 
-protected:
-
     virtual void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final override;
 
@@ -77,6 +75,8 @@ protected:
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,
                                                      const Geometry& geom);
+
+protected:
 
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_owner_mask;      // ownership of nodes
     Vector<Vector<std::unique_ptr<iMultiFab> > > m_dirichlet_mask;  // dirichlet?

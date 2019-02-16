@@ -17,7 +17,7 @@ namespace Extrapolater
     const int physbnd = 0;
     const int interior = 1;
 
-    // It is expected that FillBoundary (w/ periodicity) has been called on mf.
+    //! It is expected that FillBoundary (w/ periodicity) has been called on mf.
     void FirstOrderExtrap (MultiFab& mf, const Geometry& geom, int scomp, int ncomp);
 }
 
