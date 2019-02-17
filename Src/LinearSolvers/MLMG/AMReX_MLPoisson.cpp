@@ -73,9 +73,9 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
         const auto& yfab = out.array(mfi);
 
 #if (AMREX_SPACEDIM == 3)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
         {
-            mlpoisson_adotx(tbx, yfab, xfab, dhx, dhy, dhz);
+            mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, dhz);
         });
 #else
         const auto& mfac = *m_metric_factor[amrlev][mglev];
@@ -88,14 +88,14 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
         const auto& rc = mfac.cellCenters(mfi);
         AsyncArray<Real> aa_rc(rc.data(), rc.size());
         Real const* rcp = aa_rc.data();
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
         {
-            mlpoisson_adotx(tbx, yfab, xfab, dhx, dhy, rcp, rep, rlo);
+            mlpoisson_adotx(i, j, k, yfab, xfab, dhx, dhy, rcp, rep, rlo);
         });
 #elif (AMREX_SPACEDIM == 1)
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        AMREX_HOST_DEVICE_FOR_3D (bx, i, j, k,
         {
-            mlpoisson_adotx(tbx, yfab, xfab, dhx, rep, rlo);
+            mlpoisson_adotx(i, j, k, yfab, xfab, dhx, rep, rlo);
         });
 #endif
 #endif
