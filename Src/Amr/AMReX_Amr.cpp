@@ -2470,7 +2470,10 @@ Amr::coarseTimeStep (Real stop_time)
         // the counter, because we have indeed reached the next check_per interval
         // at this point.
 
-        if ((num_per_new == num_per_old) && std::abs(cumtime - (num_per_old + 1) * check_per) <= std::numeric_limits<Real>::epsilon())
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_chk_time = (num_per_old + 1) * check_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
         {
             num_per_new += 1;
         }
@@ -2479,7 +2482,7 @@ Amr::coarseTimeStep (Real stop_time)
         // machine epsilon of the beginning of this interval, so that we don't double
         // count that time threshold -- we already plotted at that time on the last timestep.
 
-        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - (num_per_old + 1) * check_per) <= std::numeric_limits<Real>::epsilon())
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_chk_time) <= eps)
         {
             num_per_old += 1;
         }
@@ -2617,7 +2620,10 @@ Amr::writePlotNow()
         // the counter, because we have indeed reached the next plot_per interval
         // at this point.
 
-        if ((num_per_new == num_per_old) && std::abs(cumtime - (num_per_old + 1) * plot_per) <= std::numeric_limits<Real>::epsilon())
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_plot_time = (num_per_old + 1) * plot_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
         {
             num_per_new += 1;
         }
@@ -2626,7 +2632,7 @@ Amr::writePlotNow()
         // machine epsilon of the beginning of this interval, so that we don't double
         // count that time threshold -- we already plotted at that time on the last timestep.
 
-        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - (num_per_old + 1) * plot_per) <= std::numeric_limits<Real>::epsilon())
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_plot_time) <= eps)
         {
             num_per_old += 1;
         }
@@ -2662,7 +2668,10 @@ Amr::writeSmallPlotNow()
         // the counter, because we have indeed reached the next small_plot_per interval
         // at this point.
 
-        if ((num_per_new == num_per_old) && std::abs(cumtime - (num_per_old + 1) * small_plot_per) <= std::numeric_limits<Real>::epsilon())
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_plot_time = (num_per_old + 1) * small_plot_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
         {
             num_per_new += 1;
         }
@@ -2671,7 +2680,7 @@ Amr::writeSmallPlotNow()
         // machine epsilon of the beginning of this interval, so that we don't double
         // count that time threshold -- we already plotted at that time on the last timestep.
 
-        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - (num_per_old + 1) * small_plot_per) <= std::numeric_limits<Real>::epsilon())
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_plot_time) <= eps)
         {
             num_per_old += 1;
         }
