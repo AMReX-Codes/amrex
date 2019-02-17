@@ -1,3 +1,1 @@
-CEXE_sources += main.cpp advance.cpp
-
-CEXE_headers += myfunc.H mykernel.H
+CEXE_sources += main.cpp

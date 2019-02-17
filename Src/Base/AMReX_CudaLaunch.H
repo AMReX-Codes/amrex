@@ -974,7 +974,7 @@ void For (Box const& box, T ncomp, L&& f)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    for (int n = 0; n < ncomp; ++n) {
+    for (T n = 0; n < ncomp; ++n) {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         for (int i = lo.x; i <= hi.x; ++i) {
@@ -989,7 +989,7 @@ void ParallelFor (Box const& box, T ncomp, L&& f)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
-    for (int n = 0; n < ncomp; ++n) {
+    for (T n = 0; n < ncomp; ++n) {
         for (int k = lo.z; k <= hi.z; ++k) {
         for (int j = lo.y; j <= hi.y; ++j) {
         AMREX_PRAGMA_SIMD

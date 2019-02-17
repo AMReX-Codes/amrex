@@ -12,7 +12,7 @@ void compute_norm(const Vector<MultiFab*>& soln,
 		  const Vector<MultiFab*>& exac, 
 		  const Vector<Geometry>& geom,
 		  const Vector<BoxArray>& grids,
-		  int nsoln, int iCpp, int iF90, int iHyp)
+		  int nsoln, int iCpp, int iHyp)
 {
   Vector<Real> twonorm(nsoln, 0.0);
   Vector<Real> maxnorm(nsoln, 0.0);
@@ -89,16 +89,6 @@ void compute_norm(const Vector<MultiFab*>& soln,
       std::cout << "BoxLib_C: not implemented yet. " << std::endl;
       //      std::cout << "BoxLib_C: max-norm error = "<< maxnorm[iCpp] << std::endl;
       //      std::cout << "BoxLib_C:   2-norm error = "<< twonorm[iCpp] << std::endl;
-    }
-    if (iF90 >= 0) {
-      std::cout << "----------------------------------------" << std::endl;
-      std::cout << "BoxLib_F: max-norm error = "<< maxnorm[iF90] << std::endl;
-      if (nlevel > 1) {
-          for (int ilev = 0; ilev < nlevel; ++ilev) {
-              std::cout << "    Lev " << ilev << " max-norm error = "<< levmaxnorm[ilev][iF90] << std::endl;
-          }
-      }
-      std::cout << "BoxLib_F:   2-norm error = "<< twonorm[iF90] << std::endl;
     }
     if (iHyp >= 0) {
       std::cout << "----------------------------------------" << std::endl;

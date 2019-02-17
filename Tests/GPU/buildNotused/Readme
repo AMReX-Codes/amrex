@@ -1,0 +1,35 @@
+Simple, AMReX independent test to explore building a CUDA code
+either as an executable or through a static library in the AMReX fashion.
+
+This version is the a C++ build test trying to determine how to
+build AMReX using a library with undefined copies of user-defined
+functions in part of the library that aren't being used.
+
+Files
+----- 
+main.cpp contains the main which calls two CUDA global functions.
+MyKernel.cpp and MyKernelB.cpp contain the CUDA global functions.
+
+Notused.H & Notused.cpp contain an unused CPU call to Notdefined.
+Extern.H defines an undefined external function to allow Notused.o to be compiled.
+main.cpp does not include either of these header files.
+
+
+Make targets
+------------
+
+Build using an executable, ignoring the unused object file.
+................................
+make: (nvcc + CUDA) 
+make gcc: (gcc, no CUDA).
+
+Build including Notused.o, which links to the undefined function and fails.
+............................
+make broke: (nvcc + CUDA)
+make gccbroke: (gcc, no CUDA)
+
+Build all, including Notused.o, into a library and compile.
+.............................
+make gccexec: (gcc, no CUDA)
+make nvccexec: (nvcc, no CUDA)
+make cudaexec: (nvcc, CUDA) <==== Includes link line of library & main, as desired for AMReX. Fails.

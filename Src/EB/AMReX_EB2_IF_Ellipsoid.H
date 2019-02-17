@@ -35,12 +35,12 @@ public:
     }
 
 protected:
-  
+
     RealArray m_radii;
     RealArray m_center;
     bool      m_inside;
     //
-    RealArray m_radii2_inv;  // precomputed radii squared
+    RealArray m_radii2_inv;  //!< precomputed radii squared
     Real      m_sign;
 };
 
