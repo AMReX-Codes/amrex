@@ -27,6 +27,10 @@ public:
     AsyncFab (AsyncFab const& rhs) = delete;
 #endif
 
+    AsyncFab (AsyncFab&& rhs) : m_impl(rhs.m_impl), m_fab(rhs.m_fab) {
+        rhs.m_impl = nullptr;  rhs.m_fab = nullptr;
+    }
+
     AMREX_GPU_HOST_DEVICE
     ~AsyncFab () {
 #ifndef __CUDA_ARCH__
@@ -40,6 +44,7 @@ public:
     void clear ();
     AMREX_GPU_HOST_DEVICE FArrayBox* fabPtr () const { return m_fab; }
     AMREX_GPU_HOST_DEVICE FArrayBox& fab () const { return *m_fab; }
+    FArrayBox& hostFab () const;
 
     Array4<Real const> array () const;
     Array4<Real> array ();
