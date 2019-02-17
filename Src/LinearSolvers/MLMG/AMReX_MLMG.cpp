@@ -1238,12 +1238,13 @@ MLMG::prepareForNSolve ()
     ns_linop = std::move(linop.makeNLinOp(nsolve_grid_size));
 
     const int ncomp = linop.getNComp();
+    const int nghost= linop.getNGrow();
 
     const BoxArray& ba = (*ns_linop).m_grids[0][0];
     const DistributionMapping& dm =(*ns_linop).m_dmap[0][0]; 
 
-    ns_sol.reset(new MultiFab(ba, dm, ncomp, 2, MFInfo(), *(ns_linop->Factory(0,0))));
-    ns_rhs.reset(new MultiFab(ba, dm, ncomp, 2, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_sol.reset(new MultiFab(ba, dm, ncomp, nghost, MFInfo(), *(ns_linop->Factory(0,0))));
+    ns_rhs.reset(new MultiFab(ba, dm, ncomp, nghost, MFInfo(), *(ns_linop->Factory(0,0))));
     ns_sol->setVal(0.0);
     ns_rhs->setVal(0.0);
 
@@ -1420,7 +1421,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
         {
             in_raii[alev].define(a_in[alev]->boxArray(),
                                  a_in[alev]->DistributionMap(),
-                                 a_in[alev]->nComp(), 2,
+                                 a_in[alev]->nComp(), a_in[alev]->nGrow(),
                                  MFInfo(), *linop.Factory(alev));
             MultiFab::Copy(in_raii[alev], *a_in[alev], 0, 0, a_in[alev]->nComp(), a_in[alev]->nGrow());
             in[alev] = &(in_raii[alev]);
@@ -1464,7 +1465,7 @@ MLMG::apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& a_in)
 #endif
 
     for (int alev = 0; alev <= finest_amr_lev; ++alev) {
-        out[alev]->negate(2);
+        out[alev]->negate(out[alev]->nGrow());
     }
 }
 

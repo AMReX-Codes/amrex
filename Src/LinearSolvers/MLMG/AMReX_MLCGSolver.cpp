@@ -379,7 +379,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 
     if ( ( ret == 0 || ret == 8 ) && (rnorm < rnorm0) )
     {
-	sol.plus(sorig, 0, ncomp, nghost);
+        sol.plus(sorig, 0, ncomp, nghost);
     } 
     else 
     {

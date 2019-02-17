@@ -668,7 +668,6 @@ MLLinOp::remapNeighborhoods (Vector<DistributionMapping> & dms)
     }
 }
 
-
 #ifdef AMREX_USE_PETSC
 std::unique_ptr<PETScABecLap>
 MLLinOp::makePETSc () const
