@@ -5,34 +5,9 @@ module amrex_mlpoisson_2d_module
   implicit none
 
   private
-  public :: amrex_mlpoisson_adotx, amrex_mlpoisson_normalize, amrex_mlpoisson_flux, amrex_mlpoisson_gsrb
+  public :: amrex_mlpoisson_normalize, amrex_mlpoisson_flux, amrex_mlpoisson_gsrb
 
 contains
-
-  subroutine amrex_mlpoisson_adotx (lo, hi, y, ylo, yhi, x, xlo, xhi, rc, re, rlo, rhi, dxinv) &
-       bind(c,name='amrex_mlpoisson_adotx')
-    integer, dimension(2), intent(in) :: lo, hi, ylo, yhi, xlo, xhi
-    integer, intent(in) :: rlo, rhi
-    real(amrex_real), intent(in) :: dxinv(2)
-    real(amrex_real), intent(inout) :: y(ylo(1):yhi(1),ylo(2):yhi(2))
-    real(amrex_real), intent(in   ) :: x(xlo(1):xhi(1),xlo(2):xhi(2))
-    real(amrex_real), intent(in) :: rc(rlo:rhi)
-    real(amrex_real), intent(in) :: re(rlo:rhi+1)
-    
-    integer :: i,j
-    real(amrex_real) :: dhx, dhy
-
-    dhx = dxinv(1)*dxinv(1)
-    dhy = dxinv(2)*dxinv(2)
-
-    do    j = lo(2), hi(2)
-       do i = lo(1), hi(1)
-          y(i,j) = dhx * (re(i)*x(i-1,j) - (re(i)+re(i+1))*x(i,j) + re(i+1)*x(i+1,j)) &
-               +   dhy * rc(i) * (x(i,j-1) - 2.d0*x(i,j) + x(i,j+1))
-       end do
-    end do
-  end subroutine amrex_mlpoisson_adotx
-
 
   subroutine amrex_mlpoisson_normalize (lo, hi, x, xlo, xhi, rc, re, rlo, rhi, dxinv) &
        bind(c,name='amrex_mlpoisson_normalize')

@@ -203,6 +203,7 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi,
     for (int n = 0; n < nc; ++n) {
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
                     if ((i+j+k+redblack)%2 == 0) {
                         Real cf0 = (i == vlo.x and m0(vlo.x-1,j,k) > 0)

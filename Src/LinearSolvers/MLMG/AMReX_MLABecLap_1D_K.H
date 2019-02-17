@@ -83,6 +83,7 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi,
     const auto vhi = amrex::ubound(vbox);
 
     for (int n = 0; n < nc; ++n) {
+        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             if ((i+redblack)%2 == 0) {
                 Real cf0 = (i == vlo.x and m0(vlo.x-1,0,0) > 0)

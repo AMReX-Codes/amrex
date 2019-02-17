@@ -5,35 +5,9 @@ module amrex_mlpoisson_3d_module
   implicit none
 
   private
-  public :: amrex_mlpoisson_adotx, amrex_mlpoisson_flux, amrex_mlpoisson_gsrb
+  public :: amrex_mlpoisson_flux, amrex_mlpoisson_gsrb
 
 contains
-
-  subroutine amrex_mlpoisson_adotx (lo, hi, y, ylo, yhi, x, xlo, xhi, dxinv) &
-       bind(c,name='amrex_mlpoisson_adotx')
-    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi
-    real(amrex_real), intent(in) :: dxinv(3)
-    real(amrex_real), intent(inout) :: y(ylo(1):yhi(1),ylo(2):yhi(2),ylo(3):yhi(3))
-    real(amrex_real), intent(in   ) :: x(xlo(1):xhi(1),xlo(2):xhi(2),xlo(3):xhi(3))
-    
-    integer :: i,j,k
-    real(amrex_real) :: dhx, dhy, dhz
-
-    dhx = dxinv(1)*dxinv(1)
-    dhy = dxinv(2)*dxinv(2)
-    dhz = dxinv(3)*dxinv(3)
-
-    do       k = lo(3), hi(3)
-       do    j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-             y(i,j,k) = dhx * (x(i-1,j,k) - 2.d0*x(i,j,k) + x(i+1,j,k)) &
-                  +     dhy * (x(i,j-1,k) - 2.d0*x(i,j,k) + x(i,j+1,k)) &
-                  +     dhz * (x(i,j,k-1) - 2.d0*x(i,j,k) + x(i,j,k+1))
-          end do
-       end do
-    end do
-  end subroutine amrex_mlpoisson_adotx
-
   
   subroutine amrex_mlpoisson_flux (lo, hi, fx, fxlo, fxhi, fy, fylo, fyhi, &
        fz, fzlo, fzhi, sol, slo, shi, dxinv, face_only) &
