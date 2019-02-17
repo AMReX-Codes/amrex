@@ -37,23 +37,23 @@ public:
 
 private:
     //! stats on a single process
-    struct Stats   
+    struct Stats
     {
-	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { } 
-	int  depth; // recursive depth
-	long n;     // number of calls
-	double dtin;  // inclusive dt
-	double dtex;  // exclusive dt
+	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { }
+	int  depth; //!< recursive depth
+	long n;     //!< number of calls
+	double dtin;  //!< inclusive dt
+	double dtex;  //!< exclusive dt
     };
 
     //! stats across processes
-    struct ProcStats 
+    struct ProcStats
     {
-	ProcStats () : nmin(std::numeric_limits<long>::max()), 
-		       navg(0L), nmax(0L), 
-		       dtinmin(std::numeric_limits<double>::max()), 
+	ProcStats () : nmin(std::numeric_limits<long>::max()),
+		       navg(0L), nmax(0L),
+		       dtinmin(std::numeric_limits<double>::max()),
 		       dtinavg(0.0), dtinmax(0.0),
-		       dtexmin(std::numeric_limits<double>::max()), 
+		       dtexmin(std::numeric_limits<double>::max()),
 		       dtexavg(0.0), dtexmax(0.0)  {}
 	long nmin, navg, nmax;
 	double dtinmin, dtinavg, dtinmax;

@@ -2010,7 +2010,12 @@ AmrLevel::setSmallPlotVariables ()
         {
             pp.get("small_plot_vars", nm, i);
 
-	    parent->addStateSmallPlotVar(nm);
+            if (nm == "ALL")
+                parent->fillStateSmallPlotVarList();
+            else if (nm == "NONE")
+                parent->clearStateSmallPlotVarList();
+            else
+                parent->addStateSmallPlotVar(nm);
         }
     }
     else 

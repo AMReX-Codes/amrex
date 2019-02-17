@@ -101,6 +101,8 @@ add_sources( AMReX_BCRec.H AMReX_PhysBCFunct.H AMReX_BC_TYPES.H AMReX_BCUtil.H )
 # 
 add_sources( AMReX_PlotFileUtil.cpp )
 add_sources( AMReX_PlotFileUtil.H )
+add_sources( AMReX_PlotFileDataImpl.H )
+add_sources( AMReX_PlotFileDataImpl.cpp )
 
 #
 # Fortran interface routines.
@@ -177,5 +179,6 @@ add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
 add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
+add_sources( AMReX_CudaElixir.H AMReX_CudaElixir.cpp )
 #endif()
 

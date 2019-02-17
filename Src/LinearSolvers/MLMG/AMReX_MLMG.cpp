@@ -4,6 +4,7 @@
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_MLMG_F.H>
+#include <AMReX_MLMG_K.H>
 #include <AMReX_MLABecLaplacian.H>
 
 #ifdef AMREX_USE_PETSC
@@ -530,6 +531,7 @@ MLMG::mgFcycle ()
 void
 MLMG::interpCorrection (int alev)
 {
+    // todo: gpu
     BL_PROFILE("MLMG::interpCorrection_1");
 
     const int ncomp = linop.getNComp();
@@ -559,10 +561,13 @@ MLMG::interpCorrection (int alev)
 
     if (linop.isCellCentered())
     {
+        Gpu::LaunchSafeGuard(!isEB); // turn off gpu for eb for now TODO
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
 #ifdef AMREX_USE_EB
@@ -591,11 +596,28 @@ MLMG::interpCorrection (int alev)
 #endif
             if (call_lincc)
             {
-                amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                         BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                         &refratio[0],
-                                         &ncomp);
+                const auto& ff = fine_cor.array(mfi);
+                const auto& cc = cfine.array(mfi);
+                switch(refratio[0]) {
+                case 2:
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                    });
+                    break;
+                }
+                case 4:
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_lin_cc_interp_r4(tbx, ff, cc, ncomp);
+                    });
+                    break;
+                }
+                default:
+                    amrex::Abort("mlmg_lin_cc_interp: only refratio 2 and 4 are supported");
+                }
             }
         }
     }
@@ -630,6 +652,7 @@ MLMG::interpCorrection (int alev)
 void
 MLMG::interpCorrection (int alev, int mglev)
 {
+    // todo: gpu
     BL_PROFILE("MLMG::interpCorrection_2");
 
     MultiFab& crse_cor = *cor[alev][mglev+1];
@@ -669,10 +692,13 @@ MLMG::interpCorrection (int alev, int mglev)
 
     if (linop.isCellCentered())
     {
+        Gpu::LaunchSafeGuard(!isEB); // turn off gpu for eb for now TODO
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
 #ifdef AMREX_USE_EB
@@ -700,10 +726,12 @@ MLMG::interpCorrection (int alev, int mglev)
 #endif
             if (call_lincc)
             {
-                amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                         BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
-                                         &refratio,&ncomp);
+                const auto& ff = fine_cor.array(mfi);
+                const auto& cc = cmf->array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                });
             }
         }
     }

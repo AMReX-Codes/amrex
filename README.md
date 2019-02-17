@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2555438.svg)](https://doi.org/10.5281/zenodo.2555438)
+
 ## License
 
 AMReX Copyright (c) 2017, The Regents of the University of California,
