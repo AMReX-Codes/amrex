@@ -156,7 +156,7 @@ void mlabeclap_flux_z (Box const& box, Array4<Real> const& fz, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_zface (Box const& box, Array4<Real> const& fz, Array4<Real const> const& sol,
-                           Array4<Real const> const& bz, Real fac, Real zlen)
+                           Array4<Real const> const& bz, Real fac, int zlen)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

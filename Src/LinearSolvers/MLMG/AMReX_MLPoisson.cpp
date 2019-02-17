@@ -269,21 +269,115 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
     const Box& box = mfi.tilebox();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
+    AMREX_D_TERM(const auto& fxarr = flux[0]->array();,
+                 const auto& fyarr = flux[1]->array();,
+                 const auto& fzarr = flux[2]->array(););
+    const auto& solarr = sol.array();
+
 #if (AMREX_SPACEDIM != 3)
     const auto& mfac = *m_metric_factor[amrlev][mglev];
-    const auto& rc = mfac.cellCenters(mfi);
     const auto& re = mfac.cellEdges(mfi);
-    const Box& vbx = m_grids[amrlev][mglev][mfi];
+    AsyncArray<Real> aa_re(re.data(), re.size());
+    Real const* rep = aa_re.data();
+    const int rlo = m_grids[amrlev][mglev][mfi].smallEnd(0);
 #endif
-    amrex_mlpoisson_flux(BL_TO_FORTRAN_BOX(box),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
-                                      BL_TO_FORTRAN_ANYD(*flux[1]),
-                                      BL_TO_FORTRAN_ANYD(*flux[2])),
-                         BL_TO_FORTRAN_ANYD(sol),
-#if (AMREX_SPACEDIM != 3)
-                         rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
+#if (AMREX_SPACEDIM == 2)
+    const auto& rc = mfac.cellCenters(mfi);
+    AsyncArray<Real> aa_rc(rc.data(), rc.size());
+    Real const* rcp = aa_rc.data();
 #endif
-                         dxinv, face_only);
+
+#if (AMREX_SPACEDIM == 3)
+    if (face_only) {
+        Real fac = dxinv[0];
+        Box blo = amrex::bdryLo(box, 0);
+        int blen = box.length(0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen);
+        });
+        fac = dxinv[1];
+        blo = amrex::bdryLo(box, 1);
+        blen = box.length(1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen);
+        });
+        fac = dxinv[2];
+        blo = amrex::bdryLo(box, 2);
+        blen = box.length(2);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlpoisson_flux_zface(tbox, fzarr, solarr, fac, blen);
+        });
+    } else {
+        Real fac = dxinv[0];
+        Box bflux = amrex::surroundingNodes(box, 0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlpoisson_flux_x(tbox, fxarr, solarr, fac);
+        });
+        fac = dxinv[1];
+        bflux = amrex::surroundingNodes(box, 1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlpoisson_flux_y(tbox, fyarr, solarr, fac);
+        });
+        fac = dxinv[2];
+        bflux = amrex::surroundingNodes(box, 2);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlpoisson_flux_z(tbox, fzarr, solarr, fac);
+        });
+    }
+#elif (AMREX_SPACEDIM == 2)
+    if (face_only) {
+        Real fac = dxinv[0];
+        Box blo = amrex::bdryLo(box, 0);
+        int blen = box.length(0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen, rep, rlo);
+        });
+        fac = dxinv[1];
+        blo = amrex::bdryLo(box, 1);
+        blen = box.length(1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlpoisson_flux_yface(tbox, fyarr, solarr, fac, blen, rcp, rlo);
+        });
+    } else {
+        Real fac = dxinv[0];
+        Box bflux = amrex::surroundingNodes(box, 0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlpoisson_flux_x(tbox, fxarr, solarr, fac, rep, rlo);
+        });
+        fac = dxinv[1];
+        bflux = amrex::surroundingNodes(box, 1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlpoisson_flux_y(tbox, fyarr, solarr, fac, rcp, rlo);
+        });
+    }
+#else
+    if (face_only) {
+        Real fac = dxinv[0];
+        Box blo = amrex::bdryLo(box, 0);
+        int blen = box.length(0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlpoisson_flux_xface(tbox, fxarr, solarr, fac, blen, rep, rlo);
+        });
+    } else {
+        Real fac = dxinv[0];
+        Box bflux = amrex::surroundingNodes(box, 0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlpoisson_flux_x(tbox, fxarr, solarr, fac, rep, rlo);
+        });
+    }
+#endif
 }
 
 std::unique_ptr<MLLinOp>
