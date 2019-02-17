@@ -19,22 +19,37 @@ void
 EB_set_covered (MultiFab& mf, Real val)
 {
     Vector<Real> vals(mf.nComp(), val);
-    EB_set_covered(mf, 0, mf.nComp(), vals);
+    EB_set_covered(mf, 0, mf.nComp(), 0, vals);
 }
 
 void
 EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& vals)
 {
+    EB_set_covered(mf, icomp, ncomp, 0, vals);
+}
+
+void
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, Real val)
+{
+    Vector<Real> vals(ncomp, val);
+    EB_set_covered(mf, icomp, ncomp, ngrow, vals);
+}
+
+void
+EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real>& vals)
+{
     AMREX_ALWAYS_ASSERT(mf.ixType().cellCentered() || mf.ixType().nodeCentered());
     bool is_cell_centered = mf.ixType().cellCentered();
+    int ng = std::min(mf.nGrow(),ngrow);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
     {
-        const Box& bx = mfi.tilebox();
+        const Box& bx = mfi.growntilebox(ng);
         FArrayBox& fab = mf[mfi];
         const auto& flagfab = amrex::getEBCellFlagFab(fab);
+
         if (is_cell_centered) {
             amrex_eb_set_covered(BL_TO_FORTRAN_BOX(bx),
                                  BL_TO_FORTRAN_N_ANYD(fab,icomp),
