@@ -7,7 +7,6 @@
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
 #endif
-#include <AMReX_PlotFileUtil.H>
 
 namespace amrex {
 
@@ -196,6 +195,7 @@ private:
     std::unique_ptr<MLMGBndry> petsc_bndry;
 #endif
 
+
     /**
     * \brief To avoid confusion, terms like sol, cor, rhs, res, ... etc. are
     * in the frame of the original equation, not the correction form
@@ -204,6 +204,8 @@ private:
     Vector<MultiFab*>         sol;      //!< alias to argument a_sol
     Vector<MultiFab>          rhs;      //!< Copy of original rhs
                                     //! L(sol) = rhs
+
+
     /**
     * \brief First Vector: Amr levels.  0 is the coarest level
     * Second Vector: MG levels.  0 is the finest level
