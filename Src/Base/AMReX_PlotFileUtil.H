@@ -2,9 +2,11 @@
 #define AMREX_PLOTFILEUTIL_H_
 
 #include <string>
+#include <memory>
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_PlotFileDataImpl.H>
 
 namespace amrex
 {
@@ -141,6 +143,51 @@ namespace amrex
                                      const Vector<std::string>& extra_dirs = Vector<std::string>());
 
 #endif
+
+    // helper class for reading plotfile
+    class PlotFileData
+    {
+    public:
+        PlotFileData (std::string const& plotfile_name) : m_impl(new PlotFileDataImpl(plotfile_name)) {}
+
+        int spaceDim () const { return m_impl->spaceDim(); }
+
+        Real time () const { return m_impl->time(); }
+
+        int finestLevel () const { return m_impl->finestLevel(); }
+
+        int refRatio (int level) const { return m_impl->refRatio(level); }
+
+        int levelStep (int level) const { return m_impl->levelStep(level); }
+
+        const BoxArray& boxArray (int level) const { return m_impl->boxArray(level); }
+
+        const DistributionMapping& DistributionMap (int level) const { return m_impl->DistributionMap(level); }
+
+        void syncDistributionMap (PlotFileData const& src) { m_impl->syncDistributionMap(*src.m_impl); }
+
+        void syncDistributionMap (int level, PlotFileData const& src) { m_impl->syncDistributionMap(level, *src.m_impl); }
+
+        int coordSys () const { return m_impl->coordSys(); }
+
+        Box probDomain (int level) const { return m_impl->probDomain(level); }
+
+        Array<Real,AMREX_SPACEDIM> probSize () const { return m_impl->probSize(); }
+        Array<Real,AMREX_SPACEDIM> probLo () const { return m_impl->probLo(); }
+        Array<Real,AMREX_SPACEDIM> probHi () const { return m_impl->probHi(); }
+        Array<Real,AMREX_SPACEDIM> cellSize (int level) const { return m_impl->cellSize(level); }
+
+        const Vector<std::string>& varNames () const { return m_impl->varNames(); }
+
+        int nComp () const { return m_impl->nComp(); }
+        IntVect nGrowVect (int level) const { return m_impl->nGrowVect(level); }
+
+        MultiFab get (int level) { return m_impl->get(level); }
+        MultiFab get (int level, std::string const& varname) { return m_impl->get(level, varname); }
+
+    private:
+        std::unique_ptr<PlotFileDataImpl> m_impl;
+    };
 }
 
 #endif

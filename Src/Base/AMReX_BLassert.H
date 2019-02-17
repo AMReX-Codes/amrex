@@ -1,6 +1,6 @@
 
-#ifndef BL_BLASSERT_H
-#define BL_BLASSERT_H
+#ifndef AMREX_BLASSERT_H_
+#define AMREX_BLASSERT_H_
 
 #include <AMReX.H>
 

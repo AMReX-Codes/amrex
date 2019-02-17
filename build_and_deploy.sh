@@ -50,8 +50,9 @@ mv Docs/Doxygen/xml/* out/docs_xml/doxygen/
 
 # run breathe and clean up
 cd Docs/sphinx_documentation
-breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
-python make_api.py
+
+#breathe-apidoc --o source ../../out/docs_xml/doxygen/ -g class,file
+#python make_api.py
 
 # now do sphinx
 make SPHINX_BUILD="python -msphinx" latexpdf

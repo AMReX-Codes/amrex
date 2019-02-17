@@ -5,55 +5,9 @@ module amrex_mlmg_interp_module
   implicit none
 
   private
-  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
+  public :: amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
 
 contains
-
-  subroutine amrex_mlmg_lin_cc_interp (lo, hi, ff, fflo, ffhi, cc, cclo, cchi, ratio, nc) &
-       bind(c,name='amrex_mlmg_lin_cc_interp')
-    integer, dimension(2), intent(in) :: lo, hi, fflo, ffhi, cclo, cchi
-    integer, intent(in) :: ratio, nc
-    real(amrex_real), intent(in   ) :: cc(cclo(1):cchi(1),cclo(2):cchi(2),nc)
-    real(amrex_real), intent(inout) :: ff(fflo(1):ffhi(1),fflo(2):ffhi(2),nc)
-
-    integer :: i,j,n, ic, jc, ioff, joff
-
-    if (ratio == 2) then
-       do n = 1, nc
-          do j = lo(2), hi(2)
-             jc = j/2
-             joff = 2*(j-jc*2)-1
-             do i = lo(1), hi(1)
-                ic = i/2
-                ioff = 2*(i-ic*2)-1
-                ff(i,j,n) = 0.5625d0*cc(ic     ,jc     ,n) &
-                       +    0.1875d0*cc(ic+ioff,jc     ,n) &
-                       +    0.1875d0*cc(ic     ,jc+joff,n) &
-                       +    0.0625d0*cc(ic+ioff,jc+joff,n)
-             end do
-          end do
-       end do
-       
-    else if (ratio == 4) then
-
-       do n = 1, 1
-          do j = lo(2), hi(2)
-             jc = j/4
-             do i = lo(1), hi(1)
-                ic = i/4
-                ff(i,j,n) = cc(ic,jc,n)
-             end do
-          end do
-       end do
-       
-    else
-
-       call amrex_abort("amrex_mlmg_lin_cc_interp: only ratio 2 and 4 are supported")
-
-    end if
-
-  end subroutine amrex_mlmg_lin_cc_interp
-
 
   subroutine amrex_mlmg_lin_nd_interp (clo, chi, flo, fhi, fine, fdlo, fdhi, crse, cdlo, cdhi, nc) &
        bind(c,name='amrex_mlmg_lin_nd_interp')

@@ -2,6 +2,8 @@ add_sources ( MLMG/AMReX_MLMG.H )
 add_sources ( MLMG/AMReX_MLMG.cpp )
 add_sources ( MLMG/AMReX_MLMG_F.H )
 add_sources ( MLMG/AMReX_MLMG_${DIM}d.F90 )
+add_sources ( MLMG/AMReX_MLMG_K.H )
+add_sources ( MLMG/AMReX_MLMG_${DIM}D_K.H )
 
 add_sources ( MLMG/AMReX_MLMGBndry.H )
 add_sources ( MLMG/AMReX_MLMGBndry.cpp )
@@ -26,8 +28,7 @@ add_sources ( MLMG/AMReX_MLCGSolver.cpp )
 
 add_sources ( MLMG/AMReX_MLABecLaplacian.H )
 add_sources ( MLMG/AMReX_MLABecLaplacian.cpp )
-add_sources ( MLMG/AMReX_MLABecLap_F.H )
-add_sources ( MLMG/AMReX_MLABecLap_${DIM}d.F90 )
+add_sources ( MLMG/AMReX_MLABecLap_K.H MLMG/AMReX_MLABecLap_${DIM}D_K.H )
 
 if (ENABLE_EB)
     add_sources ( MLMG/AMReX_MLEBABecLap.H )
