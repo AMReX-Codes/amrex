@@ -47,6 +47,7 @@ add_sources ( MLMG/AMReX_MLPoisson.H )
 add_sources ( MLMG/AMReX_MLPoisson.cpp )
 add_sources ( MLMG/AMReX_MLPoisson_F.H )
 add_sources ( MLMG/AMReX_MLPoisson_${DIM}d.F90 )
+add_sources ( MLMG/AMReX_MLPoisson_K.H MLMG/AMReX_MLPoisson_${DIM}D_K.H )
 
 add_sources ( MLMG/AMReX_MLNodeLaplacian.H )
 add_sources ( MLMG/AMReX_MLNodeLaplacian.cpp )

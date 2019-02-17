@@ -1,5 +1,6 @@
 
 #include <AMReX_MLPoisson.H>
+#include <AMReX_MLPoisson_K.H>
 #include <AMReX_MLPoisson_F.H>
 #include <AMReX_MLALaplacian.H>
 
@@ -54,33 +55,50 @@ MLPoisson::prepareForSolve ()
 void
 MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
-    // todo: gpu
     BL_PROFILE("MLPoisson::Fapply()");
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
 
+    AMREX_D_TERM(const Real dhx = dxinv[0]*dxinv[0];,
+                 const Real dhy = dxinv[1]*dxinv[1];,
+                 const Real dhz = dxinv[2]*dxinv[2];);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        const FArrayBox& xfab = in[mfi];
-        FArrayBox& yfab = out[mfi];
+        const auto& xfab = in.array(mfi);
+        const auto& yfab = out.array(mfi);
 
-#if (AMREX_SPACEDIM != 3)
+#if (AMREX_SPACEDIM == 3)
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            mlpoisson_adotx(tbx, yfab, xfab, dhx, dhy, dhz);
+        });
+#else
         const auto& mfac = *m_metric_factor[amrlev][mglev];
-        const auto& rc = mfac.cellCenters(mfi);
         const auto& re = mfac.cellEdges(mfi);
-        const Box& vbx = mfi.validbox();
+        AsyncArray<Real> aa_re(re.data(), re.size());
+        Real const* rep = aa_re.data();
+        const int rlo = mfi.validbox().smallEnd(0);
+
+#if (AMREX_SPACEDIM == 2)
+        const auto& rc = mfac.cellCenters(mfi);
+        AsyncArray<Real> aa_rc(rc.data(), rc.size());
+        Real const* rcp = aa_rc.data();
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlpoisson_adotx(tbx, yfab, xfab, dhx, dhy, rcp, rep, rlo);
+        });
+#elif (AMREX_SPACEDIM == 1)
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlpoisson_adotx(tbx, yfab, xfab, dhx, rep, rlo);
+        });
 #endif
-        amrex_mlpoisson_adotx(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_ANYD(yfab),
-                              BL_TO_FORTRAN_ANYD(xfab),
-#if (AMREX_SPACEDIM != 3)
-                              rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
 #endif
-                              dxinv);                                         
     }
 }
 
