@@ -191,7 +191,8 @@ MFIter::~MFIter ()
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
         for (int i = 0; i < real_reduce_list.size(); ++i)
-            amrex::The_MFIter_Arena()->free(real_device_reduce_list[i]);
+            for (int j = 0; j < real_reduce_list[i].size(); ++j)
+                amrex::The_MFIter_Arena()->free(real_device_reduce_list[i][j]);
     }
 #endif
 
@@ -464,10 +465,12 @@ MFIter::operator++ ()
 #ifdef AMREX_USE_GPU
         bool use_gpu = (numOmpThreads == 1) && Gpu::inLaunchRegion();
         if (use_gpu) {
-            if (real_reduce_list.size() == currentIndex + 1) {
-                Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex],
-                                               real_device_reduce_list[currentIndex],
-                                               sizeof(Real));
+            if (!real_reduce_list.empty()) {
+                for (int i = 0; i < real_reduce_list[currentIndex].size(); ++i) {
+                    Gpu::Device::dtoh_memcpy_async(&real_reduce_list[currentIndex][i],
+                                                   real_device_reduce_list[currentIndex][i],
+                                                   sizeof(Real));
+                }
             }
         }
 #endif
@@ -493,19 +496,48 @@ MFIter::add_reduce_value(Real* val, MFReducer r)
 
     if (Gpu::inLaunchRegion()) {
 
-        real_reduce_val = val;
-
         reducer = r;
 
+        // For the reduce lists, the outer vector is length
+        // (endIndex - beginIndex) and has a contribution from
+        // every tile. The inner vector is all of the individual
+        // variables to reduce over. While the former is a known
+        // quantity, the latter is not, so we'll push_back for
+        // each new quantity to reduce. Since the elements will
+        // be added in the same order in every MFIter iteration,
+        // we can access them in the same order in each entry
+        // of the reduce_list.
+
+        if (real_reduce_list.empty()) {
+            real_reduce_list.resize(length());
+            real_device_reduce_list.resize(length());
+        }
+
+        // Store the current value of the data.
+
         Real reduce_val = *val;
-        real_reduce_list.push_back(reduce_val);
+        real_reduce_list[currentIndex].push_back(reduce_val);
+
+        // Create a device copy of the data to update within
+        // the kernel.
 
         Real* dval = static_cast<Real*>(amrex::The_MFIter_Arena()->alloc(sizeof(Real)));
-        real_device_reduce_list.push_back(dval);
+        real_device_reduce_list[currentIndex].push_back(dval);
 
-        Gpu::Device::htod_memcpy_async(real_device_reduce_list[currentIndex],
-                                         &real_reduce_list[currentIndex],
-                                         sizeof(Real));
+        // Queue up a host to device copy of the input data,
+        // so that we start from the correct value.
+
+        const int list_idx = real_reduce_list[currentIndex].size() - 1;
+
+        Gpu::Device::htod_memcpy_async(real_device_reduce_list[currentIndex][list_idx],
+                                       &real_reduce_list[currentIndex][list_idx],
+                                       sizeof(Real));
+
+        // If we haven't already, store the address to the variable
+        // we will update at the end.
+
+        if (real_reduce_val.size() < real_reduce_list[currentIndex].size())
+            real_reduce_val.push_back(val);
 
         return dval;
 
@@ -533,30 +565,43 @@ MFIter::reduce()
 
     if (real_reduce_list.empty()) return;
 
-    if (real_reduce_list.size() < length()) return;
+    // Assume that the number of reductions we want is fixed
+    // in each vector, and just grab the number from the first
+    // entry.
 
-    Real result;
+    const int num_reductions = real_reduce_list[0].size();
 
-    if (reducer == MFReducer::SUM) {
-        result = 0.0;
-        for (int i = 0; i < real_reduce_list.size(); ++i) {
-            result += real_reduce_list[i];
-        }
-    }
-    else if (reducer == MFReducer::MIN) {
-        result = 1.e200;
-        for (int i = 0; i < real_reduce_list.size(); ++i) {
-            result = std::min(result, real_reduce_list[i]);
-        }
-    }
-    else if (reducer == MFReducer::MAX) {
-        result = -1.e200;
-        for (int i = 0; i < real_reduce_list.size(); ++i) {
-            result = std::max(result, real_reduce_list[i]);
-        }
-    }
+    BL_ASSERT(real_reduce_list.size() == length());
+    
+    for (int j = 0; j < num_reductions; ++j) {
 
-    *real_reduce_val = result;
+        Real result;
+
+        if (reducer == MFReducer::SUM) result = 0.0e0;
+        if (reducer == MFReducer::MIN) result = 1.e200;
+        if (reducer == MFReducer::MAX) result = -1.e200;
+
+        for (int i = 0; i < real_reduce_list.size(); ++i) {
+
+            // Double check our assumption from above.
+
+            BL_ASSERT(real_reduce_list[i].size() == num_reductions);
+
+            if (reducer == MFReducer::SUM) {
+                result += real_reduce_list[i][j];
+            }
+            else if (reducer == MFReducer::MIN) {
+                result = std::min(result, real_reduce_list[i][j]);
+            }
+            else if (reducer == MFReducer::MAX) {
+                result = std::max(result, real_reduce_list[i][j]);
+            }
+
+        }
+
+        *(real_reduce_val[j]) = result;
+
+    }
 
 }
 #endif
