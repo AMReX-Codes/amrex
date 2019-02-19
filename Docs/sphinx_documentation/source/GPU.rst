@@ -134,17 +134,16 @@ Building with GNU Make
 To build AMReX with GPU support, add ``USE_CUDA=TRUE`` to the 
 ``GNUmakefile`` or as a command line argument.
 
+Only IBM and PGI support CUDA Fortran, which is also built when
+``USE_CUDA=TRUE``.
+
 AMReX does not require OpenACC or CUDA Fortran, but application codes
 can use them if they are supported by the compiler.  For OpenACC support, add
 ``USE_ACC=TRUE``.  PGI, Cray and GNU compilers support OpenACC.  Thus, 
 for OpenACC, you must use ``COMP=pgi``, ``COMP=cray`` or ``COMP=gnu``.
 
-Only IBM and PGI support CUDA Fortran, which is also built when
-``USE_CUDA=TRUE``.
-
 Currently, only IBM is supported with OpenMP offloading. To use OpenMP
 offloading, make with ``USE_OMP_OFFLOAD=TRUE``.
-.. NOTE: IBM OpenMP is currently not supported with CUDA.
 
 Compiling AMReX with CUDA requires compiling the code through NVIDIA's 
 CUDA compiler driver in addition to the standard compiler.  This driver
@@ -1499,8 +1498,6 @@ AMReX for GPUs:
         }
     }
 
-.. NOTE: ADD DISCUSSION OF LOOP_4D vs. LOOP_3D UNROLLED BY COMPONENT (STATE?)
-
 .. ===================================================================
 
 
@@ -1528,5 +1525,3 @@ limitations:
 - Embedded boundary capability has not been ported to GPUs.
 
 - The Fortran interface of AMReX does not currently have GPU support.
-
-.. COMMENT: ADD SECTION ON isManagedPtr AND OTHER CHECKS.
