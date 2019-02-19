@@ -223,7 +223,7 @@ namespace amrex
                                 const InterpHook& pre_interp,
                                 const InterpHook& post_interp)
     {
-        PhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
+        NoOpPhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
         int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
         int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
         Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
