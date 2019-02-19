@@ -76,6 +76,19 @@ void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const>
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlpoisson_normalize (Box const& box, Array4<Real> const& x,
+                          Real const* AMREX_RESTRICT re, int rlo, Real dhx)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+
+    AMREX_PRAGMA_SIMD
+    for (int i = lo.x; i <= hi.x; ++i) {
+        x(i,0,0) /= (-dhx*(re[i-rlo]+re[i+1-rlo]));
+    }
+}
+
 }
 
 #endif
