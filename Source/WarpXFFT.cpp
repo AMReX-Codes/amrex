@@ -324,7 +324,7 @@ WarpX::InitFFTDataPlan (int lev)
         {
             warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
                                     (*dataptr_fp_fft[lev])[mfi].data, &FFTData::N,
-                                    dx_fp.data(), &dt[lev], &fftw_plan_measure );
+                                    dx_fp.data(), &dt[lev], &fftw_plan_measure, &WarpX::do_nodal );
         }
     }
     else if (Efield_fp_fft[lev][0]->local_size() == 0)
@@ -334,7 +334,8 @@ WarpX::InitFFTDataPlan (int lev)
 	nullfftdata.reset(new FFTData());
         warpx_fft_dataplan_init(&nox_fft, &noy_fft, &noz_fft,
                                 nullfftdata->data, &FFTData::N,
-                                dx_fp.data(), &dt[lev], &fftw_plan_measure );
+                                dx_fp.data(), &dt[lev], &fftw_plan_measure,
+                                &WarpX::do_nodal );
     }
     else
     {
