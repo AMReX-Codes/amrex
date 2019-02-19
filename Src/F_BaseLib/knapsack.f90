@@ -1,19 +1,7 @@
-
-module sfc_module
-  use box_module
-  !
-  ! This is more than a bit of a hack.  We're going to store a few values here
-  ! while inside the sfc_i() routine, so that they're accessible via
-  ! sfc_greater_i().
-  !
-  integer              :: dm, mpower
-  integer, allocatable :: boxkeys(:,:)
-  type(box), pointer   :: pbxs(:)
-end module sfc_module
-
 module knapsack_module
 
   use bl_types
+  use box_module
 
   implicit none
 
@@ -21,7 +9,11 @@ module knapsack_module
 
   real(kind=dp_t), private :: knapsack_threshold = 0.9_dp_t
 
-  private :: greater_d, sfc_greater_i
+  private :: greater_d, sfc_greater_i, dm, mpower, boxkeys, pbxs
+
+  integer              :: dm, mpower
+  integer, allocatable :: boxkeys(:,:)
+  type(box), pointer   :: pbxs(:)
 
 contains
 
@@ -116,7 +108,7 @@ contains
                 if ( w1n < w1o .AND. wjn < w1o ) then
                    !
                    ! If we decrease the overall load in both the processors by
-                   ! comparing to the most loaded processor, and we decrease 
+                   ! comparing to the most loaded processor, and we decrease
                    ! the load in the less loaded processor, move the box.
                    !
                    call swap_balls(1,i,j,k)
@@ -271,7 +263,7 @@ contains
     integer,           intent(out), dimension(:) :: prc
     integer,           intent(in ), dimension(:) :: ibxs
     integer,           intent(in )               :: np
-    integer(kind=ll_t),intent(in ), optional     :: prefill(np) 
+    integer(kind=ll_t),intent(in ), optional     :: prefill(np)
     real(kind=dp_t),   intent(in ), optional     :: threshold
     logical,           intent(in ), optional     :: verbose
 
@@ -299,7 +291,7 @@ contains
     allocate(procs(np), iprocs(np), lpf(np), pweights(np))
 
     if ( present(prefill) ) then
-       lpf = prefill     
+       lpf = prefill
     else
        lpf = 0._dp_t
     end if
@@ -331,7 +323,7 @@ contains
 
     outer: do
        imlp = iprocs(1)   ! the most loaded processor
-       w_mlp = pweights(iprocs(1))   ! weight on the most loaded processor  
+       w_mlp = pweights(iprocs(1))   ! weight on the most loaded processor
        efficiency = average_weight/real(w_mlp,dp_t)
        if ( efficiency > lthresh ) exit outer
        !
@@ -377,9 +369,9 @@ contains
           prc(ball(i,j)) = i
        end do
     end do
-    
+
     prc = prc - 1   ! Processor numbers start at 0.
-    
+
     if ( .false. .and. lverb .and. np > 1 .and. parallel_ioprocessor() ) then
        print *, 'np               = ', np
        print *, 'n                = ', size(ibxs)
@@ -414,7 +406,7 @@ contains
       integer :: i
       ia = (/(i,i=1,n)/)
       ! This loops over parent nodes from last (i.e., n/2) to first (i.e., 1)
-      do i = n/2, 1, -1  
+      do i = n/2, 1, -1
          call siftDown(a, ia, i, n)
       end do
     end subroutine heapify
@@ -453,7 +445,7 @@ contains
          pweights(i) = weight(i)
       end do
     end subroutine update_pweights
-    
+
     function weight(i) result(r)
       integer, intent(in) :: i
       integer(kind=ll_t)  :: r
@@ -497,20 +489,20 @@ contains
   end subroutine knapsack_pf
 
   subroutine make_sfc(iorder, bxs)
-    use sfc_module, only: dm, boxkeys, mpower, pbxs
+    ! use sfc_module, only: dm, boxkeys, mpower, pbxs
     use box_module
     use sort_i_module
     use bl_error_module
     use bl_prof_module
-    
+
     integer,   intent(out)           :: iorder(:)
     type(box), intent(in ), target   :: bxs(:)
-    
+
     integer :: i
     type(bl_prof_timer), save :: bpt
 
     call build(bpt, 'sfc')
-    
+
     call init_sfc_module()
 
     do i = 1, size(bxs)
@@ -518,7 +510,7 @@ contains
     end do
 
     call mergesort_i(iorder, sfc_greater_i)
-    
+
     call close_sfc_module()
 
     call destroy(bpt)
@@ -550,22 +542,22 @@ contains
     end function make_box_key
 
     function maxpower() result(r)
-      
+
       integer :: r, maxijk, i
-      
+
       maxijk = -Huge(1)
-      
+
       do i = 1,size(bxs)
          maxijk = max(maxijk, maxval(boxkeys(:,i)))
       end do
-      
+
       r = 0
       do while ( ishft(1,r) <= maxijk )
          r = r + 1
       end do
-      
+
     end function maxpower
-    
+
   end subroutine make_sfc
 
   subroutine distribute_sfc(prc, iorder, ibxs, np, verbose, sort_chunks)
@@ -593,31 +585,31 @@ contains
     allocate(whichcpu(nbxs))
 
     maxvol = -Huge(1.0_dp_t)
-    
+
     volpercpu = 0.0_dp_t
     do i = 1, size(ibxs)
        volpercpu = volpercpu + ibxs(i)
     end do
     volpercpu = volpercpu / np
-    
+
     k        = 1
     sz       = size(ibxs)
     totalvol = 0.0_dp_t
 
     do i = 1, np
-       
+
        cnt = 0
        vol = 0.0_dp_t
-       
+
        do while ( (k <= sz) .and. ((i == np) .or. (vol < volpercpu)) )
           whichcpu(k) = i
           vol = vol + ibxs(iorder(k))
           k   = k   + 1
           cnt = cnt + 1
        end do
-       
+
        totalvol = totalvol + vol
-       
+
        if (     (totalvol/i) > volpercpu &  ! Too much for this bin.
           .and. (cnt > 1)                &  ! More than one box in this bin.
           .and. (k <= sz)              ) &  ! Not the last bin, which has to take all.
@@ -626,15 +618,15 @@ contains
           vol      = vol - ibxs(iorder(k))
           totalvol = totalvol - ibxs(iorder(k))
        endif
-       
+
        maxvol = max(maxvol,vol)
-       
+
     end do
 
     do i = 1, nbxs
        prc(iorder(i)) = whichcpu(i)
     end do
-    
+
     if (lsort) then
        allocate(work(np), iwork(np), indxmap(np))
        work = 0_ll_t
@@ -652,7 +644,7 @@ contains
           prc(i) = indxmap(prc(i))
        end do
     end if
-    
+
     prc = prc - 1  ! make it 0-based
 
     efficiency = volpercpu / maxvol
@@ -665,7 +657,7 @@ contains
 
   function sfc_greater_i(ilhs,irhs) result(r)
 
-    use sfc_module
+    ! use sfc_module
 
     logical             :: r
     integer, intent(in) :: ilhs,irhs

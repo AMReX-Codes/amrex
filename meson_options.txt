@@ -1,0 +1,4 @@
+option('mpi', type: 'boolean', value: true)
+option('omp', type: 'boolean', value: false)
+option('cuda', type: 'boolean', value: false)
+option('dimension', type: 'combo', choices: ['1', '2', '3'], value: '3')
