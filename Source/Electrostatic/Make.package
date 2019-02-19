@@ -2,6 +2,9 @@ F90EXE_sources += WarpX_electrostatic.F90
 ifeq ($(DO_ELECTROSTATIC),TRUE)
   CEXE_sources += WarpXElectrostatic.cpp
 endif
+ifeq ($(USE_OPENBC_POISSON),TRUE)
+  F90EXE_sources += openbc_poisson_solver.F90
+endif
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Electrostatic
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Electrostatic

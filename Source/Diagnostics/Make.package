@@ -1,8 +1,8 @@
 CEXE_sources += WarpXIO.cpp
-CEXE_sources += WarpXBoostedFrameDiagnostic.cpp
+CEXE_sources += BoostedFrameDiagnostic.cpp
 CEXE_sources += ParticleIO.cpp
-CEXE_headers += WarpXBoostedFrameDiagnostic.H
-F90EXE_sources += WarpX_boosted_frame.F90
+CEXE_headers += BoostedFrameDiagnostic.H
+F90EXE_sources += BoostedFrame_module.F90
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Diagnostics
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Diagnostics

@@ -1,9 +1,6 @@
-CEXE_sources += WarpXPML.cpp
-CEXE_headers += WarpXPML.H
-F90EXE_sources += WarpX_pml.F90
-ifeq ($(USE_OPENBC_POISSON),TRUE)
-  F90EXE_sources += openbc_f.F90
-endif
+CEXE_sources += PML.cpp
+CEXE_headers += PML.H
+F90EXE_sources += PML_routines.F90
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/BoundaryConditions
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/BoundaryConditions

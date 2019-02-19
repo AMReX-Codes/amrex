@@ -1,4 +1,4 @@
-F90EXE_sources += WarpX_filter.F90
+F90EXE_sources += filter_module.F90
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Filter
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Filter
