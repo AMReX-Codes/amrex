@@ -1,7 +1,6 @@
 
 #include <AMReX_MLPoisson.H>
 #include <AMReX_MLPoisson_K.H>
-#include <AMReX_MLPoisson_F.H>
 #include <AMReX_MLALaplacian.H>
 
 namespace amrex {
@@ -105,28 +104,42 @@ MLPoisson::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) con
 void
 MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
-    // todo: gpu
 #if (AMREX_SPACEDIM != 3)
     BL_PROFILE("MLPoisson::normalize()");
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    AMREX_D_TERM(const Real dhx = dxinv[0]*dxinv[0];,
+                 const Real dhy = dxinv[1]*dxinv[1];,
+                 const Real dhz = dxinv[2]*dxinv[2];);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox& fab = mf[mfi];
+        const auto& fab = mf.array(mfi);
 
         const auto& mfac = *m_metric_factor[amrlev][mglev];
-        const auto& rc = mfac.cellCenters(mfi);
         const auto& re = mfac.cellEdges(mfi);
-        const Box& vbx = mfi.validbox();
-        amrex_mlpoisson_normalize(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD(fab),
-                                  rc.data(), re.data(), vbx.loVect(), vbx.hiVect(),
-                                  dxinv);                                     
+        AsyncArray<Real> aa_re(re.data(), re.size());
+        Real const* rep = aa_re.data();
+        const int rlo = mfi.validbox().smallEnd(0);
+
+#if (AMREX_SPACEDIM == 2)
+        const auto& rc = mfac.cellCenters(mfi);
+        AsyncArray<Real> aa_rc(rc.data(), rc.size());
+        Real const* rcp = aa_rc.data();
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, thread_box,
+        {
+            mlpoisson_normalize(thread_box, fab, rcp, rep, rlo, dhx, dhy);
+        });
+#else
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, thread_box,
+        {
+            mlpoisson_normalize(thread_box, fab, rep, rlo, dhx);
+        });
+#endif
     }
 #endif
 }
@@ -259,8 +272,6 @@ MLPoisson::FFlux (int amrlev, const MFIter& mfi,
                   const Array<FArrayBox*,AMREX_SPACEDIM>& flux,
                   const FArrayBox& sol, Location, const int face_only) const
 {
-    // todo: gpu
-    Gpu::LaunchSafeGuard(false);
     BL_PROFILE("MLPoisson::FFlux()");
 
     const int mglev = 0;
