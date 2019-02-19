@@ -1,0 +1,11 @@
+CEXE_sources += PhysicalParticleContainer.cpp
+CEXE_sources += ParticleContainer.cpp
+CEXE_sources += WarpXParticleContainer.cpp
+CEXE_sources += RigidInjectedParticleContainer.cpp
+CEXE_headers += ParticleContainer.H
+CEXE_headers += WarpXParticleContainer.H
+CEXE_headers += RigidInjectedParticleContainer.H
+CEXE_headers += PhysicalParticleContainer.H
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles

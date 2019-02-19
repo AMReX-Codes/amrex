@@ -1,0 +1,7 @@
+F90EXE_sources += WarpX_electrostatic.F90
+ifeq ($(DO_ELECTROSTATIC),TRUE)
+  CEXE_sources += WarpXElectrostatic.cpp
+endif
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Electrostatic
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Electrostatic
