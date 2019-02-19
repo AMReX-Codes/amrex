@@ -134,7 +134,6 @@ MLPoisson::normalize (int amrlev, int mglev, MultiFab& mf) const
 void
 MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
-    // todo: gpu
     BL_PROFILE("MLPoisson::Fsmooth()");
 
     const auto& undrrelxr = m_undrrelxr[amrlev][mglev];
@@ -165,93 +164,92 @@ MLPoisson::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, i
 #endif
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    AMREX_D_TERM(const Real dhx = dxinv[0]*dxinv[0];,
+                 const Real dhy = dxinv[1]*dxinv[1];,
+                 const Real dhz = dxinv[2]*dxinv[2];);
+
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(sol,MFItInfo().EnableTiling().SetDynamic(true));
-         mfi.isValid(); ++mfi)
+    for (MFIter mfi(sol,mfi_info); mfi.isValid(); ++mfi)
     {
-	const Mask& m0 = mm0[mfi];
-        const Mask& m1 = mm1[mfi];
+	const auto& m0 = mm0.array(mfi);
+        const auto& m1 = mm1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
-        const Mask& m2 = mm2[mfi];
-        const Mask& m3 = mm3[mfi];
+        const auto& m2 = mm2.array(mfi);
+        const auto& m3 = mm3.array(mfi);
 #if (AMREX_SPACEDIM > 2)
-        const Mask& m4 = mm4[mfi];
-        const Mask& m5 = mm5[mfi];
+        const auto& m4 = mm4.array(mfi);
+        const auto& m5 = mm5.array(mfi);
 #endif
 #endif
 
-	const Box&       tbx     = mfi.tilebox();
-        const Box&       vbx     = mfi.validbox();
-        FArrayBox&       solnfab = sol[mfi];
-        const FArrayBox& rhsfab  = rhs[mfi];
+	const Box& tbx = mfi.tilebox();
+        const Box& vbx = mfi.validbox();
+        const auto& solnfab = sol.array(mfi);
+        const auto& rhsfab  = rhs.array(mfi);
 
-        const FArrayBox& f0fab = f0[mfi];
-        const FArrayBox& f1fab = f1[mfi];
+        const auto& f0fab = f0.array(mfi);
+        const auto& f1fab = f1.array(mfi);
 #if (AMREX_SPACEDIM > 1)
-        const FArrayBox& f2fab = f2[mfi];
-        const FArrayBox& f3fab = f3[mfi];
+        const auto& f2fab = f2.array(mfi);
+        const auto& f3fab = f3.array(mfi);
 #if (AMREX_SPACEDIM > 2)
-        const FArrayBox& f4fab = f4[mfi];
-        const FArrayBox& f5fab = f5[mfi];
+        const auto& f4fab = f4.array(mfi);
+        const auto& f5fab = f5.array(mfi);
 #endif
+#endif
+
+#if (AMREX_SPACEDIM != 3)
+        const auto& mfac = *m_metric_factor[amrlev][mglev];
+        const auto& re = mfac.cellEdges(mfi);
+        AsyncArray<Real> aa_re(re.data(), re.size());
+        Real const* rep = aa_re.data();
+        const int rlo = mfi.validbox().smallEnd(0);
 #endif
 
 #if (AMREX_SPACEDIM == 1)
-        const auto& mfac = *m_metric_factor[amrlev][mglev];
-        const auto& rc = mfac.cellCenters(mfi);
-        const auto& re = mfac.cellEdges(mfi);
-        
-        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
-                             BL_TO_FORTRAN_ANYD(solnfab),
-                             BL_TO_FORTRAN_ANYD(rhsfab),
-                             BL_TO_FORTRAN_ANYD(f0fab),
-                             BL_TO_FORTRAN_ANYD(f1fab),
-                             BL_TO_FORTRAN_ANYD(m0),
-                             BL_TO_FORTRAN_ANYD(m1),
-                             rc.data(), re.data(),
-                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);            
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx,
+                           f0fab, m0,
+                           f1fab, m1,
+                           vbx, redblack,
+                           rep, rlo);
+        });
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-        const auto& mfac = *m_metric_factor[amrlev][mglev];
         const auto& rc = mfac.cellCenters(mfi);
-        const auto& re = mfac.cellEdges(mfi);
-        
-        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
-                             BL_TO_FORTRAN_ANYD(solnfab),
-                             BL_TO_FORTRAN_ANYD(rhsfab),
-                             BL_TO_FORTRAN_ANYD(f0fab),
-                             BL_TO_FORTRAN_ANYD(f1fab),
-                             BL_TO_FORTRAN_ANYD(f2fab),
-                             BL_TO_FORTRAN_ANYD(f3fab),
-                             BL_TO_FORTRAN_ANYD(m0),
-                             BL_TO_FORTRAN_ANYD(m1),
-                             BL_TO_FORTRAN_ANYD(m2),
-                             BL_TO_FORTRAN_ANYD(m3),
-                             rc.data(), re.data(),
-                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);            
+        AsyncArray<Real> aa_rc(rc.data(), rc.size());
+        Real const* rcp = aa_rc.data();
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy,
+                           f0fab, m0,
+                           f1fab, m1,
+                           f2fab, m2,
+                           f3fab, m3,
+                           vbx, redblack,
+                           rcp, rep, rlo);
+        });
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        amrex_mlpoisson_gsrb(BL_TO_FORTRAN_BOX(tbx),
-                             BL_TO_FORTRAN_ANYD(solnfab),
-                             BL_TO_FORTRAN_ANYD(rhsfab),
-                             BL_TO_FORTRAN_ANYD(f0fab),
-                             BL_TO_FORTRAN_ANYD(f1fab),
-                             BL_TO_FORTRAN_ANYD(f2fab),
-                             BL_TO_FORTRAN_ANYD(f3fab),
-                             BL_TO_FORTRAN_ANYD(f4fab),
-                             BL_TO_FORTRAN_ANYD(f5fab),
-                             BL_TO_FORTRAN_ANYD(m0),
-                             BL_TO_FORTRAN_ANYD(m1),
-                             BL_TO_FORTRAN_ANYD(m2),
-                             BL_TO_FORTRAN_ANYD(m3),
-                             BL_TO_FORTRAN_ANYD(m4),
-                             BL_TO_FORTRAN_ANYD(m5),
-                             BL_TO_FORTRAN_BOX(vbx), dxinv, redblack);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( tbx, thread_box,
+        {
+            mlpoisson_gsrb(thread_box, solnfab, rhsfab, dhx, dhy, dhz,
+                           f0fab, m0,
+                           f1fab, m1,
+                           f2fab, m2,
+                           f3fab, m3,
+                           f4fab, m4,
+                           f5fab, m5,
+                           vbx, redblack);
+        });
 #endif
     }
 }

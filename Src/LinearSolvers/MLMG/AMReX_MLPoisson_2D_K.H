@@ -85,6 +85,48 @@ void mlpoisson_flux_yface (Box const& box, Array4<Real> const& fy,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mlpoisson_gsrb (Box const& box, Array4<Real> const& phi, Array4<Real const> const& rhs,
+                     Real dhx, Real dhy,
+                     Array4<Real const> const& f0, Array4<int const> const& m0,
+                     Array4<Real const> const& f1, Array4<int const> const& m1,
+                     Array4<Real const> const& f2, Array4<int const> const& m2,
+                     Array4<Real const> const& f3, Array4<int const> const& m3,
+                     Box const& vbox, int redblack,
+                     Real const* AMREX_RESTRICT rc, Real const* AMREX_RESTRICT re, int rlo)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    for     (int j = lo.y; j <= hi.y; ++j) {
+        AMREX_PRAGMA_SIMD
+        for (int i = lo.x; i <= hi.x; ++i) {
+            if ((i+j+redblack)%2 == 0) {
+                Real cf0 = (i == vlo.x and m0(vlo.x-1,j,0) > 0)
+                    ? f0(vlo.x,j,0) : 0.0;
+                Real cf1 = (j == vlo.y and m1(i,vlo.y-1,0) > 0)
+                    ? f1(i,vlo.y,0) : 0.0;
+                Real cf2 = (i == vhi.x and m2(vhi.x+1,j,0) > 0)
+                    ? f2(vhi.x,j,0) : 0.0;
+                Real cf3 = (j == vhi.y and m3(i,vhi.y+1,0) > 0)
+                    ? f3(i,vhi.y,0) : 0.0;
+
+                Real gamma = -dhx*(re[i-rlo]+re[i+1-rlo]) - 2.0*dhy*rc[i-rlo];
+
+                Real g_m_d = gamma + dhx*(re[i-rlo]*cf0+re[i+1-rlo]*cf2) + dhy*rc[i-rlo]*(cf1+cf3);
+
+                Real res = rhs(i,j,0) - gamma*phi(i,j,0)
+                    - dhx*(re[i-rlo]*phi(i-1,j,0) + re[i+1-rlo]*phi(i+1,j,0))
+                    - dhy*rc[i-rlo]*(phi(i,j-1,0) + phi(i,j+1,0));
+
+                phi(i,j,0) = phi(i,j,0) + res /g_m_d;
+            }
+        }
+    }
+}
+
 }
 
 #endif
