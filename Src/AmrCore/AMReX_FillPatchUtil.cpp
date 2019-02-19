@@ -218,6 +218,26 @@ namespace amrex
     void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom,
+                                const IntVect& ratio,
+				Interpolater* mapper,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
+    {
+        PhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
+        int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+        int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+        Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+        InterpFromCoarseLevel(mf, time, cmf, scomp, dcomp, ncomp,
+                              cgeom, fgeom,
+                              cphysbc, 0, fphysbc, 0,
+                              ratio, mapper,
+                              bcs, 0,
+                              pre_interp, post_interp);
+    }
+    
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
+				int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom,
 				PhysBCFunctBase& cbc, int cbccomp,
                                 PhysBCFunctBase& fbc, int fbccomp,
                                 const IntVect& ratio,
