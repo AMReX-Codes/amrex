@@ -54,7 +54,7 @@ namespace amrex
 
 	if (smf.size() == 1)
 	{
-	    mf.copy(*smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
+	    mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, IntVect{0}, mf.nGrowVect(), geom.periodicity());
 	}
 	else if (smf.size() == 2)
 	{
@@ -115,10 +115,10 @@ namespace amrex
 	    }
 	    else
 	    {
-		int src_ngrow = 0;
-		int dst_ngrow = mf.nGrow();
+		IntVect src_ngrow = IntVect::TheZeroVector();
+		IntVect dst_ngrow = mf.nGrowVect();
 
-		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
+		mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
 	    }
 	}
 	else {
@@ -143,9 +143,9 @@ namespace amrex
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
-	int ngrow = mf.nGrow();
+	const IntVect& ngrow = mf.nGrowVect();
 
-	if (ngrow > 0 || mf.getBDKey() != fmf[0]->getBDKey())
+	if (ngrow.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
 	{
 	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -154,12 +154,12 @@ namespace amrex
 	    Box fdomain_g(fdomain);
 	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		if (fgeom.isPeriodic(i)) {
-		    fdomain_g.grow(i,ngrow);
+		    fdomain_g.grow(i,ngrow[i]);
 		}
 	    }
 
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
-                                                                      IntVect(ngrow),
+                                                                      ngrow,
                                                                       coarsener,
                                                                       amrex::coarsen(fgeom.Domain(),ratio));
 
@@ -218,6 +218,26 @@ namespace amrex
     void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
 				int scomp, int dcomp, int ncomp,
 				const Geometry& cgeom, const Geometry& fgeom,
+                                const IntVect& ratio,
+				Interpolater* mapper,
+                                const InterpHook& pre_interp,
+                                const InterpHook& post_interp)
+    {
+        NoOpPhysBCFunct<BndryFuncArray> cphysbc, fphysbc;
+        int lo_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+        int hi_bc[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+        Vector<BCRec> bcs(1, BCRec(lo_bc, hi_bc));
+        InterpFromCoarseLevel(mf, time, cmf, scomp, dcomp, ncomp,
+                              cgeom, fgeom,
+                              cphysbc, 0, fphysbc, 0,
+                              ratio, mapper,
+                              bcs, 0,
+                              pre_interp, post_interp);
+    }
+    
+    void InterpFromCoarseLevel (MultiFab& mf, Real time, const MultiFab& cmf,
+				int scomp, int dcomp, int ncomp,
+				const Geometry& cgeom, const Geometry& fgeom,
 				PhysBCFunctBase& cbc, int cbccomp,
                                 PhysBCFunctBase& fbc, int fbccomp,
                                 const IntVect& ratio,
@@ -230,7 +250,7 @@ namespace amrex
 
 	const BoxArray& ba = mf.boxArray();
 	const DistributionMapping& dm = mf.DistributionMap();
-	int ngrow = mf.nGrow();
+	const IntVect& ngrow = mf.nGrowVect();
 
 	const IndexType& typ = ba.ixType();
 
@@ -242,7 +262,7 @@ namespace amrex
 	Box fdomain_g(fdomain);
 	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	    if (fgeom.isPeriodic(i)) {
-		fdomain_g.grow(i,ngrow);
+		fdomain_g.grow(i,ngrow[i]);
 	    }
 	}
 
@@ -329,16 +349,16 @@ namespace amrex
     {
         BL_ASSERT(ref_ratio == 2);
 
-        int ngrow = fine[0]->nGrow();
+        const IntVect& ngrow = fine[0]->nGrowVect();
         for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
-            BL_ASSERT(ngrow == fine[idim]->nGrow());
+            BL_ASSERT(ngrow == fine[idim]->nGrowVect());
         }
 
-        if (ngrow == 0) return;
+        if (ngrow.max() == 0) return;
 
         bool include_periodic = true;
         bool include_physbndry = false;
-        const auto& cfinfo = FabArrayBase::TheCFinfo(*fine[0], fgeom, IntVect(ngrow),
+        const auto& cfinfo = FabArrayBase::TheCFinfo(*fine[0], fgeom, ngrow,
                                                      include_periodic, include_physbndry);
 
         if (! cfinfo.ba_cfb.empty())

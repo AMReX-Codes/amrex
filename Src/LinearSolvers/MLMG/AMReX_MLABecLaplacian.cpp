@@ -2,7 +2,7 @@
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
 
-#include <AMReX_MLABecLap_F.H>
+#include <AMReX_MLABecLap_K.H>
 #include <AMReX_ABec_F.H>
 
 namespace amrex {
@@ -225,30 +225,29 @@ MLABecLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+
+    const Real ascalar = m_a_scalar;
+    const Real bscalar = m_b_scalar;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(out, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        const FArrayBox& xfab = in[mfi];
-        FArrayBox& yfab = out[mfi];
-        const FArrayBox& afab = acoef[mfi];
-        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                     const FArrayBox& byfab = bycoef[mfi];,
-                     const FArrayBox& bzfab = bzcoef[mfi];);
+        const auto& xfab = in.array(mfi);
+        const auto& yfab = out.array(mfi);
+        const auto& afab = acoef.array(mfi);
+        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
+                     const auto& byfab = bycoef.array(mfi);,
+                     const auto& bzfab = bzcoef.array(mfi););
 
-        amrex_mlabeclap_adotx(BL_TO_FORTRAN_BOX(bx),
-                              BL_TO_FORTRAN_ANYD(yfab),
-                              BL_TO_FORTRAN_ANYD(xfab),
-                              BL_TO_FORTRAN_ANYD(afab),
-                              AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
-                                           BL_TO_FORTRAN_ANYD(byfab),
-                                           BL_TO_FORTRAN_ANYD(bzfab)),
-                              dxinv, m_a_scalar, m_b_scalar);
-
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                            dxinv, ascalar, bscalar);
+        });
     }
 }
 
@@ -262,34 +261,36 @@ MLABecLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
                  const MultiFab& bzcoef = m_b_coeffs[amrlev][mglev][2];);
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const auto dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+
+    const Real ascalar = m_a_scalar;
+    const Real bscalar = m_b_scalar;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(mf, true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(mf, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        FArrayBox& fab = mf[mfi];
-        const FArrayBox& afab = acoef[mfi];
-        AMREX_D_TERM(const FArrayBox& bxfab = bxcoef[mfi];,
-                     const FArrayBox& byfab = bycoef[mfi];,
-                     const FArrayBox& bzfab = bzcoef[mfi];);
+        const auto& fab = mf.array(mfi);
+        const auto& afab = acoef.array(mfi);
+        AMREX_D_TERM(const auto& bxfab = bxcoef.array(mfi);,
+                     const auto& byfab = bycoef.array(mfi);,
+                     const auto& bzfab = bzcoef.array(mfi););
 
-        amrex_mlabeclap_normalize(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD(fab),
-                                  BL_TO_FORTRAN_ANYD(afab),
-                                  AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bxfab),
-                                               BL_TO_FORTRAN_ANYD(byfab),
-                                               BL_TO_FORTRAN_ANYD(bzfab)),
-                                  dxinv, m_a_scalar, m_b_scalar);
-
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        {
+            mlabeclap_normalize(tbx, fab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                dxinv, ascalar, bscalar);
+        });
     }
 }
 
 void
 MLABecLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs, int redblack) const
 {
+    // todo: gpu
+
     BL_PROFILE("MLABecLaplacian::Fsmooth()");
 
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
@@ -431,21 +432,82 @@ MLABecLaplacian::FFlux (int amrlev, const MFIter& mfi,
     BL_PROFILE("MLABecLaplacian::FFlux()");
 
     const int mglev = 0;
-    AMREX_D_TERM(const auto& bx = m_b_coeffs[amrlev][mglev][0][mfi];,
-                 const auto& by = m_b_coeffs[amrlev][mglev][1][mfi];,
-                 const auto& bz = m_b_coeffs[amrlev][mglev][2][mfi];);
     const Box& box = mfi.tilebox();
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    FFlux(box, dxinv, m_b_scalar,
+          Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(m_b_coeffs[amrlev][mglev][0][mfi]),
+                                                              &(m_b_coeffs[amrlev][mglev][1][mfi]),
+                                                              &(m_b_coeffs[amrlev][mglev][2][mfi]))},
+          flux, sol, face_only);
+}
 
-    amrex_mlabeclap_flux(BL_TO_FORTRAN_BOX(box),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(*flux[0]),
-                                      BL_TO_FORTRAN_ANYD(*flux[1]),
-                                      BL_TO_FORTRAN_ANYD(*flux[2])),
-                         BL_TO_FORTRAN_ANYD(sol),
-                         AMREX_D_DECL(BL_TO_FORTRAN_ANYD(bx),
-                                      BL_TO_FORTRAN_ANYD(by),
-                                      BL_TO_FORTRAN_ANYD(bz)),
-                         dxinv, m_b_scalar, face_only);
+void
+MLABecLaplacian::FFlux (Box const& box, Real const* dxinv, Real bscalar,
+                        Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
+                        Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
+                        FArrayBox const& sol, int face_only)
+{
+    AMREX_D_TERM(const auto bx = bcoef[0]->array();,
+                 const auto by = bcoef[1]->array();,
+                 const auto bz = bcoef[2]->array(););
+    AMREX_D_TERM(const auto& fxarr = flux[0]->array();,
+                 const auto& fyarr = flux[1]->array();,
+                 const auto& fzarr = flux[2]->array(););
+    const auto& solarr = sol.array();
+
+    if (face_only)
+    {
+        Real fac = bscalar*dxinv[0];
+        Box blo = amrex::bdryLo(box, 0);
+        int blen = box.length(0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlabeclap_flux_xface(tbox, fxarr, solarr, bx, fac, blen);
+        });
+#if (AMREX_SPACEDIM >= 2)
+        fac = bscalar*dxinv[1];
+        blo = amrex::bdryLo(box, 1);
+        blen = box.length(1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlabeclap_flux_yface(tbox, fyarr, solarr, by, fac, blen);
+        });
+#endif
+#if (AMREX_SPACEDIM == 3)
+        fac = bscalar*dxinv[2];
+        blo = amrex::bdryLo(box, 2);
+        blen = box.length(2);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( blo, tbox,
+        {
+            mlabeclap_flux_zface(tbox, fzarr, solarr, bz, fac, blen);
+        });
+#endif
+    }
+    else
+    {
+        Real fac = bscalar*dxinv[0];
+        Box bflux = amrex::surroundingNodes(box, 0);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlabeclap_flux_x(tbox, fxarr, solarr, bx, fac);
+        });
+#if (AMREX_SPACEDIM >= 2)
+        fac = bscalar*dxinv[1];
+        bflux = amrex::surroundingNodes(box, 1);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlabeclap_flux_y(tbox, fyarr, solarr, by, fac);
+        });
+#endif
+#if (AMREX_SPACEDIM == 3)
+        fac = bscalar*dxinv[2];
+        bflux = amrex::surroundingNodes(box, 2);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bflux, tbox,
+        {
+            mlabeclap_flux_z(tbox, fzarr, solarr, bz, fac);
+        });
+#endif
+    }
 }
 
 void

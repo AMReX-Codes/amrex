@@ -9,7 +9,8 @@ void cns_derpres (const Box& bx, FArrayBox& pfab, int dcomp, int /*ncomp*/,
 {
     auto const rhoe = rhoefab.array();
     auto       p    = pfab.array();
-    AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
+    amrex::ParallelFor(bx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
         p(i,j,k,dcomp) = (Parm::eos_gamma-1.)*rhoe(i,j,k);
     });
@@ -21,7 +22,8 @@ void cns_dervel (const Box& bx, FArrayBox& velfab, int dcomp, int /*ncomp*/,
 {
     auto const dat = datfab.array();
     auto       vel = velfab.array();
-    AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
+    amrex::ParallelFor(bx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
         vel(i,j,k,dcomp) = vel(i,j,k,1)/vel(i,j,k,0);
     });

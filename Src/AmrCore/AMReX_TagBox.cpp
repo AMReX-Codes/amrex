@@ -46,9 +46,12 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
 
     const Box& cbox = amrex::coarsen(domain,ratio);
 
-    this->resize(cbox);
+    this->nvar = 1;
+    this->domain = cbox;
 
-    if (!owner) return;
+    if (!owner) {
+        return;
+    }
 
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
