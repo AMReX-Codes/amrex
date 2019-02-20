@@ -18,9 +18,9 @@ void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
 
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-       y(i,0,0) = alpha*a(i,0,0)*x(i,0,0)
-           - dhx * (bX(i+1,0,0)*(x(i+1,0,0) - x(i  ,0,0))
-                  - bX(i  ,0,0)*(x(i  ,0,0) - x(i-1,0,0)));
+        y(i,0,0) = alpha*a(i,0,0)*x(i,0,0)
+            - dhx * (bX(i+1,0,0)*(x(i+1,0,0) - x(i  ,0,0))
+                   - bX(i  ,0,0)*(x(i  ,0,0) - x(i-1,0,0)));
     }
 }
 
