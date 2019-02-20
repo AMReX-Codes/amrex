@@ -676,7 +676,7 @@ void MDParticleContainer::BuildNeighborList()
 
         AMREX_FOR_1D ( np, i,
         {
-            unsigned int index = atomicInc(&pcount[pcell[i]], max_unsigned_int);
+            unsigned int index = Cuda::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
             pperm[index] = i;
         });
 
