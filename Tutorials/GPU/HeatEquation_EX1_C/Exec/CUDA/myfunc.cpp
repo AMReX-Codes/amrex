@@ -35,17 +35,20 @@ void advance (MultiFab& phi_old,
         auto const& fluxz = flux[2].array(mfi);
         auto const& phi = phi_old.array(mfi);
 
-        AMREX_PARALLEL_FOR_3D ( xbx, i, j, k,
+        amrex::ParallelFor(xbx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             compute_flux_x(i,j,k,fluxx,phi,dxinv);
         });
 
-        AMREX_PARALLEL_FOR_3D ( ybx, i, j, k,
+        amrex::ParallelFor(ybx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             compute_flux_y(i,j,k,fluxy,phi,dyinv);
         });
 
-        AMREX_PARALLEL_FOR_3D ( zbx, i, j, k,
+        amrex::ParallelFor(zbx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             compute_flux_z(i,j,k,fluxz,phi,dzinv);
         });
@@ -61,7 +64,8 @@ void advance (MultiFab& phi_old,
         auto const& phiOld = phi_old.array(mfi);
         auto const& phiNew = phi_new.array(mfi);
 
-        AMREX_PARALLEL_FOR_3D ( vbx, i, j, k,
+        amrex::ParallelFor(vbx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             update_phi(i,j,k,phiOld,phiNew,fluxx,fluxy,fluxz,dt,dxinv,dyinv,dzinv);
         });
