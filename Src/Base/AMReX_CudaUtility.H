@@ -271,6 +271,26 @@ namespace Cuda {
 #endif
         }
 
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        unsigned int Inc (unsigned int* m, unsigned int value)
+        {
+#if defined(__CUDA_ARCH__)
+            return atomicInc(m, value);
+#else
+            return (*m)++;
+#endif
+        }
+
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        unsigned int Dec (unsigned int* m, unsigned int value)
+        {
+#if defined(__CUDA_ARCH__)
+            return atomicDec(m, value);
+#else
+            return (*m)--;
+#endif
+        }
+
     } // namespace Atomic
 
     template <class T>
