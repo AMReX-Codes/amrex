@@ -245,6 +245,18 @@ sortParticlesByNeighborDest()
 
 void
 MDParticleContainer::
+RedistributeLocal()
+{
+    const int lev_min = 0;
+    const int lev_max = 0;
+    const int nGrow = 0;
+    const int local = 1;
+    clearNeighbors();
+    Redistribute(lev_min, lev_max, nGrow, local);    
+}
+
+void
+MDParticleContainer::
 fillNeighbors()
 {
     BL_PROFILE("MDParticleContainer::fillNeighbors");

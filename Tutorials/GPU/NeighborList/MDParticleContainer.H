@@ -27,14 +27,7 @@ public:
                         const amrex::Real     a_thermal_momentum_std,
                         const amrex::Real     a_thermal_momentum_mean);
 
-    void RedistributeLocal ()
-    {
-        const int lev_min = 0;
-        const int lev_max = 0;
-        const int nGrow = 0;
-        const int local = 1;
-        Redistribute(lev_min, lev_max, nGrow, local);
-    }
+    void RedistributeLocal ();
 
     void BuildNeighborList ();
 
