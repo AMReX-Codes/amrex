@@ -5,7 +5,10 @@
 #include <array>
 #include <memory>
 #include <utility>
+#include <string>
 #include <iostream>
+#include <sstream>
+#include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
@@ -47,7 +50,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) const {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            AMREX_ALWAYS_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            index_assert(i,j,k);
 #endif
             return p[(i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))];
         }
@@ -55,7 +58,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k, int n) const {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            AMREX_ALWAYS_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            index_assert(i,j,k);
 #endif
             return p[(i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y))+static_cast<long>(n)*(((end.x-begin.x)*(end.y-begin.y))*(end.z-begin.z))];
         }
@@ -63,10 +66,25 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k) const {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            AMREX_ALWAYS_ASSERT(i>=begin.x && i<end.x && j>=begin.y && j<end.y && k>=begin.z && k<end.z);
+            index_assert(i,j,k);
 #endif
             return p + (i-begin.x+(j-begin.y)*(end.x-begin.x)+(k-begin.z)*(end.x-begin.x)*(end.y-begin.y));
         }
+
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+        AMREX_GPU_HOST_DEVICE inline
+        void index_assert (int i, int j, int k) const
+        {
+            if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z) {
+                std::stringstream ss;
+                ss << " (" << i << "," << j << "," << k << ") is out of bound ("
+                   << begin.x << ":" << end.x-1 << ","
+                   << begin.y << ":" << end.y-1 << ","
+                   << begin.z << ":" << end.z-1 << ")";
+                amrex::Abort(ss.str());
+            }
+        }
+#endif
     };
 
     inline std::ostream& operator<< (std::ostream& os, const Dim3& d) {
