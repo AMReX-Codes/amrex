@@ -8,6 +8,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <cstdio>
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_BLassert.H>
@@ -76,12 +77,18 @@ namespace amrex {
         void index_assert (int i, int j, int k) const
         {
             if (i<begin.x || i>=end.x || j<begin.y || j>=end.y || k<begin.z || k>=end.z) {
+#ifdef __CUDA_ARCH__
+                std::printf(" (%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d)\n",
+                            i, j, k, begin.x, end.x-1, begin.y, end.y-1, begin.z, end.z-1);
+                amrex::Abort();
+#else
                 std::stringstream ss;
                 ss << " (" << i << "," << j << "," << k << ") is out of bound ("
                    << begin.x << ":" << end.x-1 << ","
                    << begin.y << ":" << end.y-1 << ","
                    << begin.z << ":" << end.z-1 << ")";
                 amrex::Abort(ss.str());
+#endif
             }
         }
 #endif
