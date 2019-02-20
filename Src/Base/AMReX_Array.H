@@ -28,22 +28,22 @@ namespace amrex {
     struct Array4
     {
         T* AMREX_RESTRICT p;
-        Dim3 begin;
-        Dim3 end;
+        Dim3 const begin;
+        Dim3 const end;
 
         template <class = typename std::enable_if<std::is_const<T>::value> >
         AMREX_GPU_HOST_DEVICE
-        Array4 (Array4<typename std::remove_const<T>::type> const& rhs)
+        constexpr Array4 (Array4<typename std::remove_const<T>::type> const& rhs)
             : p(rhs.p), begin(rhs.begin), end(rhs.end)
             {}
 
         AMREX_GPU_HOST_DEVICE
-        Array4 (Array4<T> const& rhs)
+        constexpr Array4 (Array4<T> const& rhs)
             : p(rhs.p), begin(rhs.begin), end(rhs.end)
             {}
 
         AMREX_GPU_HOST_DEVICE
-        Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end)
+        constexpr Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end)
             : p(a_p), begin(a_begin), end(a_end)
             {}
 
