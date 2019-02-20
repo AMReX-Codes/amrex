@@ -249,6 +249,9 @@ fillNeighbors()
 {
     BL_PROFILE("MDParticleContainer::fillNeighbors");
 
+    clearNeighbors();
+    sortParticlesByNeighborDest();
+
     const int lev = 0;
     auto& plev  = GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
