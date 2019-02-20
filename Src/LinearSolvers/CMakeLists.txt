@@ -40,8 +40,7 @@ endif ()
 
 add_sources ( MLMG/AMReX_MLALaplacian.H )
 add_sources ( MLMG/AMReX_MLALaplacian.cpp )
-add_sources ( MLMG/AMReX_MLALap_F.H )
-add_sources ( MLMG/AMReX_MLALap_${DIM}d.F90 )
+add_sources ( MLMG/AMReX_MLALap_K.H MLMG/AMReX_MLALap_${DIM}D_K.H )
 
 add_sources ( MLMG/AMReX_MLPoisson.H )
 add_sources ( MLMG/AMReX_MLPoisson.cpp )

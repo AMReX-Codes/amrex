@@ -36,8 +36,7 @@ CEXE_headers   += AMReX_MLABecLap_K.H AMReX_MLABecLap_$(DIM)D_K.H
 
 CEXE_headers   += AMReX_MLALaplacian.H
 CEXE_sources   += AMReX_MLALaplacian.cpp
-CEXE_headers   += AMReX_MLALap_F.H
-F90EXE_sources += AMReX_MLALap_$(DIM)d.F90
+CEXE_headers   += AMReX_MLALap_K.H AMReX_MLALap_$(DIM)D_K.H
 
 
 CEXE_headers   += AMReX_MLPoisson.H
