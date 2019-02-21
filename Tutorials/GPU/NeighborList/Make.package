@@ -1,6 +1,6 @@
-CEXE_sources += main.cpp MDParticleContainer.cpp
+CEXE_sources += main.cpp MDParticleContainer.cpp NeighborList.cpp
 
-CEXE_headers += MDParticleContainer.H Constants.H md_K.H
+CEXE_headers += MDParticleContainer.H Constants.H md_K.H NeighborList.H
 
 
 
