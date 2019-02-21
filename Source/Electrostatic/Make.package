@@ -1,4 +1,0 @@
-F90EXE_sources += WarpX_electrostatic.F90
-
-INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Electrostatic
-VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Electrostatic

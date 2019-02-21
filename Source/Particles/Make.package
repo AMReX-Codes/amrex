@@ -6,6 +6,11 @@ CEXE_headers += ParticleContainer.H
 CEXE_headers += WarpXParticleContainer.H
 CEXE_headers += RigidInjectedParticleContainer.H
 CEXE_headers += PhysicalParticleContainer.H
+ifeq ($(DO_ELECTROSTATIC),TRUE)
+     F90EXE_sources += deposit_cic.F90
+     F90EXE_sources += interpolate_cic.F90
+     F90EXE_sources += push_particles_ES.F90
+endif
 
 INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
 VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles
