@@ -75,7 +75,7 @@ namespace amrex {
 
     /**
 
-       This is another managed memory allocator that inherits from the device allocator
+       This is a managed memory allocator that inherits from the device allocator
        in thrust. Intended for use with thrust::device_vector.
 
     **/
@@ -89,66 +89,112 @@ namespace amrex {
         inline pointer allocate(size_t n)
         {
 	    value_type* result = nullptr;
-	    cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
-  
-	    if(error != cudaSuccess)
-	    {
-	        throw thrust::system_error(error, thrust::cuda_category(), 
-					   "ThrustManagedAllocator::allocate(): cudaMallocManaged");
-	    }
-  
+            result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));
 	    return thrust::device_pointer_cast(result);
 	}
   
         inline void deallocate(pointer ptr, size_t)
         {
-	    cudaError_t error = cudaFree(thrust::raw_pointer_cast(ptr));
-  
-	    if(error != cudaSuccess)
-	    {
-	        throw thrust::system_error(error, thrust::cuda_category(), 
-					   "ThrustManagedAllocator::deallocate(): cudaFree");
-	    }
+            The_Managed_Arena()->free(thrust::raw_pointer_cast(ptr));
 	}
     };
 
     /**
 
-       This allocator implements caching and is intended to be used internally by thrust when it allocates
-       temporary storage.
-
-       See:
-           https://github.com/thrust/thrust/blob/master/examples/cuda/custom_temporary_allocation.cu
+       This is a memory allocator that uses the Pinned memory Pool from AMReX.
+       It is intended for use with thrust::device_vector.
 
     **/
-    class ThrustCachedAllocator
+    template<class T>
+    class ThrustPinnedAllocator : public thrust::device_malloc_allocator<T>
     {
     public:
-        typedef char value_type;
-
-        ThrustCachedAllocator() {}
-
-        char *allocate(std::ptrdiff_t num_bytes)
+        using value_type = T;
+    
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
         {
-	  return (char*) The_Device_Arena()->alloc(num_bytes);
+	    value_type* result = nullptr;
+            result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));  
+	    return thrust::device_pointer_cast(result);
 	}
-
-        void deallocate(char *ptr, size_t n)
-        {
-	    The_Device_Arena()->free(ptr);
-	}
-      
-    private:
-        typedef std::multimap<std::ptrdiff_t, char*> free_blocks_type;
-        typedef std::map<char *, std::ptrdiff_t>     allocated_blocks_type;
   
-        free_blocks_type      free_blocks;
-        allocated_blocks_type allocated_blocks; 
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Pinned_Arena()->free(thrust::raw_pointer_cast(ptr));
+	}
+    };
+
+    /**
+
+       This is a memory allocator that uses the Device memory Pool from AMReX.
+       It is intended for use with thrust::device_vector.
+
+    **/
+    template<class T>
+    class ThrustDeviceAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+    
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+	    value_type* result = nullptr;
+            result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));  
+	    return thrust::device_pointer_cast(result);
+	}
+  
+        inline void deallocate(pointer ptr, size_t)
+        {
+            The_Device_Arena()->free(thrust::raw_pointer_cast(ptr));
+	}
+    };
+
+    /**
+
+       This is a polymorphic memory allocator that uses either the 
+       Pinned or Device memory pool from AMReX, depending on the value of
+       amrex.use_gpu_aware_mpi. It is intended for use with thrust::device_vector.
+
+    **/
+    template<class T>
+    class ThrustPolymorphicAllocator : public thrust::device_malloc_allocator<T>
+    {
+    public:
+        using value_type = T;
+    
+        typedef thrust::device_ptr<T>  pointer;
+        inline pointer allocate(size_t n)
+        {
+	    value_type* result = nullptr;
+            if (ParallelDescriptor::UseGpuAwareMpi()) 
+            {
+                result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));
+            }
+            else
+            {
+                result = (value_type*) The_Pinned_Arena()->alloc(n * sizeof(T));
+            }
+	    return thrust::device_pointer_cast(result);
+	}
+  
+        inline void deallocate(pointer ptr, size_t)
+        {
+            if (ParallelDescriptor::UseGpuAwareMpi()) 
+            {
+                The_Device_Arena()->free(thrust::raw_pointer_cast(ptr));
+            }
+            else
+            {
+                The_Pinned_Arena()->free(thrust::raw_pointer_cast(ptr));
+            }
+	}
     };
 
     namespace Cuda
     {
-        ThrustCachedAllocator& The_ThrustCachedAllocator ();
+        ThrustDeviceAllocator<char>& The_ThrustCachedAllocator ();
     }
 
 // When not using CUDA, replace with standard allocator.

@@ -8,17 +8,17 @@ module amrex_eb_levelset_module
 
 contains
 
-    !-----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                 !
-    !   pure subroutine INIT_LEVELSET                                                                                 !
-    !                                                                                                                 !
-    !   Purpose: Initializes level-set array to the fortran huge(real(c_real)) value. This way these values of the    !
-    !   level-set function will be overwritten by the min() function (used in these levelset_update function).        !
-    !                                                                                                                 !
-    !   Comments: If you want to "clear" the whole level-set array (phi), make sure that lo and hi match the grown    !
-    !   tile box (i.e. mfi.growntilebox()).                                                                           !
-    !                                                                                                                 !
-    !-----------------------------------------------------------------------------------------------------------------!
+    !-----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine INIT_LEVELSET
+    !!
+    !!   Purpose: Initializes level-set array to the fortran huge(real(c_real)) value. This way these values of the
+    !!   level-set function will be overwritten by the min() function (used in these levelset_update function).
+    !!
+    !!   Comments: If you want to "clear" the whole level-set array (phi), make sure that lo and hi match the grown
+    !!   tile box (i.e. mfi.growntilebox()).
+    !!
+    !-----------------------------------------------------------------------------------------------------------------
 
     pure subroutine amrex_eb_init_levelset(lo,  hi,          &
                                            phi, phlo, phhi ) &
@@ -46,19 +46,19 @@ contains
 
 
 
-    !----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                !
-    !   pure subroutine FILL_LEVELSET                                                                                !
-    !                                                                                                                !
-    !   Purpose: given a list of EB-facets, fill the level-set MultiFab between `lo` and `hi` with the closets       !
-    !   distance to the EB-facests. Also fill a iMultiFab with 0's and 1's. 0 Indicating that the closest distance   !
-    !   was not the result of a projection onto a facet's plane, but instead onto an edge/corner.                    !
-    !                                                                                                                !
-    !   Comments: Distances are **signed** ( < 0 => inside an EB). Note that at this point the algorithm assumes an  !
-    !   edge case lies inside an EB (i.e. its distance is negative). These points are marked using valid = 0. We     !
-    !   recommend that the EB's implicit function is used to check these cases (i.e. validate the level-set).        !
-    !                                                                                                                !
-    !----------------------------------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine FILL_LEVELSET
+    !!
+    !!   Purpose: given a list of EB-facets, fill the level-set MultiFab between `lo` and `hi` with the closets
+    !!   distance to the EB-facests. Also fill a iMultiFab with 0's and 1's. 0 Indicating that the closest distance
+    !!   was not the result of a projection onto a facet's plane, but instead onto an edge/corner.
+    !!
+    !!   Comments: Distances are **signed** ( < 0 => inside an EB). Note that at this point the algorithm assumes an
+    !!   edge case lies inside an EB (i.e. its distance is negative). These points are marked using valid = 0. We
+    !!   recommend that the EB's implicit function is used to check these cases (i.e. validate the level-set).
+    !!
+    !----------------------------------------------------------------------------------------------------------------
 
     pure subroutine amrex_eb_fill_levelset(lo,      hi,          &
                                            eb_list, l_eb,        &
@@ -108,27 +108,27 @@ contains
     end subroutine amrex_eb_fill_levelset
 
 
-    !---------------------------------------------------------------------------!
-    !                                                                           !
-    !   pure subroutine FILL_LEVELSET_LOC                                       !
-    !                                                                           !
-    !   Purpose: given a list of EB-facets, fill the level-set MultiFab between !
-    !   `lo` and `hi` with the closets distance to the EB-facests. For all      !
-    !   `abs(ls_guess) > ls_thres `, level-set filling is aborted and the       !
-    !   level-set is set to +/- `ls_thres`. This avoid unnecessary filling far  !
-    !   from EB boundaries.                                                     !
-    !                                                                           !
-    !   Also fill a iMultiFab with 0's and 1's. 0 Indicating that the closest   !
-    !   distance was not the result of a projection onto a facet's plane, but   !
-    !   instead onto an edge/corner.                                            !
-    !                                                                           !
-    !   Comments: Distances are **signed** ( < 0 => inside an EB). Note that at !
-    !   this point the algorithm assumes an edge case lies inside an EB (i.e.   !
-    !   its distance is negative). These points are marked using valid = 0. We  !
-    !   recommend that the EB's implicit function is used to check these cases  !
-    !   (i.e. validate the level-set).                                          !
-    !                                                                           !
-    !---------------------------------------------------------------------------!
+    !---------------------------------------------------------------------------
+    !!
+    !>   pure subroutine FILL_LEVELSET_LOC
+    !!
+    !!   Purpose: given a list of EB-facets, fill the level-set MultiFab between
+    !!   `lo` and `hi` with the closets distance to the EB-facests. For all
+    !!   `abs(ls_guess) > ls_thres `, level-set filling is aborted and the
+    !!   level-set is set to +/- `ls_thres`. This avoid unnecessary filling far
+    !!   from EB boundaries.
+    !!
+    !!   Also fill a iMultiFab with 0's and 1's. 0 Indicating that the closest
+    !!   distance was not the result of a projection onto a facet's plane, but
+    !!   instead onto an edge/corner.
+    !!
+    !!   Comments: Distances are **signed** ( < 0 => inside an EB). Note that at
+    !!   this point the algorithm assumes an edge case lies inside an EB (i.e.
+    !!   its distance is negative). These points are marked using valid = 0. We
+    !!   recommend that the EB's implicit function is used to check these cases
+    !!   (i.e. validate the level-set).
+    !!
+    !---------------------------------------------------------------------------
 
     pure subroutine amrex_eb_fill_levelset_loc(lo,       hi,              &
                                                eb_list,  l_eb,            &
@@ -220,9 +220,9 @@ contains
 
         integer, dimension(3) :: lo, hi
 
-        !-------------------------------------------------------------------------------------------------------------!
-        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
-        !-------------------------------------------------------------------------------------------------------------!
+        !-------------------------------------------------------------------------------------------------------------
+        ! Iterate over each of the 6 "faces" of the rectangular domain
+        !-------------------------------------------------------------------------------------------------------------
 
         ! 2 i-j faces => k is in [philo(3), domlo(3)) U (domhi(3), phihi(3)]
 
@@ -319,20 +319,20 @@ contains
     end subroutine amrex_eb_fill_levelset_bcs
 
 
-    !------------------------------------------------------------------------------------------------------------!
-    !                                                                                                            !
-    !   pure subroutine CLOSEST_DIST                                                                             !
-    !                                                                                                            !
-    !   Purpose: Find the distance to the closets point on the surface defined by the EB-facet list (from the    !
-    !   point `pos`). Note that this distance is **signed** => if the vector `eb_center - pos` points            !
-    !   **towards** the surface.                                                                                 !
-    !                                                                                                            !
-    !   Comments: sometimes the closes point is on an EB-facet edge. In this case, the surface normal is not     !
-    !   trivial, and this algorithm defaults to a negative distance. However this point is given an `valid`      !
-    !   flag of false. It is recommended that the EB's implicit function is used to determine the weather the    !
-    !   lies in the EB interior.                                                                                 !
-    !                                                                                                            !
-    !----------------------------------------------------------------------------------------------------------- !
+    !------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine CLOSEST_DIST
+    !!
+    !!   Purpose: Find the distance to the closets point on the surface defined by the EB-facet list (from the
+    !!   point `pos`). Note that this distance is **signed** => if the vector `eb_center - pos` points
+    !!   **towards** the surface.
+    !!
+    !!   Comments: sometimes the closes point is on an EB-facet edge. In this case, the surface normal is not
+    !!   trivial, and this algorithm defaults to a negative distance. However this point is given an `valid`
+    !!   flag of false. It is recommended that the EB's implicit function is used to determine the weather the
+    !!   lies in the EB interior.
+    !!
+    !-----------------------------------------------------------------------------------------------------------
 
     pure subroutine closest_dist(min_dist, proj_valid,  &
                                  eb_data,  l_eb, dx_eb, &
@@ -412,18 +412,18 @@ contains
 
     end subroutine closest_dist
 
-    !---------------------------------------------------------------------------!
-    !                                                                           !
-    !   pure subroutine THRESHOLD_LEVELSET                                      !
-    !                                                                           !
-    !   PURPOSE: sets max/min threshold to the level-set function. This ensures !
-    !   that the level-set function is a local description near boundaries.     !
-    !                                                                           !
-    !   COMMENTS: some applications (such as filling level-set from discrete)   !
-    !   EB facets become less accurate far from the boundary. Thresholding can  !
-    !   therefore eliminate spurious level-set values                           !
-    !                                                                           !
-    !---------------------------------------------------------------------------!
+    !---------------------------------------------------------------------------
+    !!
+    !>   pure subroutine THRESHOLD_LEVELSET
+    !!
+    !!   PURPOSE: sets max/min threshold to the level-set function. This ensures
+    !!   that the level-set function is a local description near boundaries.
+    !!
+    !!   COMMENTS: some applications (such as filling level-set from discrete)
+    !!   EB facets become less accurate far from the boundary. Thresholding can
+    !!   therefore eliminate spurious level-set values
+    !!
+    !---------------------------------------------------------------------------
 
     pure subroutine amrex_eb_threshold_levelset(lo,  hi,     threshold, &
                                                 phi, phi_lo, phi_hi    )&
@@ -459,18 +459,18 @@ contains
 
     end subroutine amrex_eb_threshold_levelset
 
-    !----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                !
-    !   pure subroutine VALIDATE_LEVELSET                                                                            !
-    !                                                                                                                !
-    !   Purpose: ensure that the sign of the level-set (`phi`) function is the same as the sign of the implicit      !
-    !   function (`impf`), if `valid == 0`.                                                                          !
-    !                                                                                                                !
-    !   Comments: Note the role of `valid` above, `valid` is 0 for points where the closest distance to the surface  !
-    !   is on an edge. In that case, fill_levelset_eb defaults to negative distances. Hence this function can be     !
-    !   used for checking this assumption, and flipping the level-set value's sign if necessary.                     !
-    !                                                                                                                !
-    !----------------------------------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine VALIDATE_LEVELSET
+    !!
+    !!   Purpose: ensure that the sign of the level-set (`phi`) function is the same as the sign of the implicit
+    !!   function (`impf`), if `valid == 0`.
+    !!
+    !!   Comments: Note the role of `valid` above, `valid` is 0 for points where the closest distance to the surface
+    !!   is on an edge. In that case, fill_levelset_eb defaults to negative distances. Hence this function can be
+    !!   used for checking this assumption, and flipping the level-set value's sign if necessary.
+    !!
+    !----------------------------------------------------------------------------------------------------------------
 
     pure subroutine amrex_eb_validate_levelset(lo,    hi,   n_pad, &
                                                impf,  imlo, imhi,  &
@@ -521,9 +521,9 @@ contains
         real(c_real),          intent(in   ) :: impf(imlo(1):imhi(1), imlo(2):imhi(2), imlo(3):imhi(3))
 
         integer, dimension(3) :: lo, hi
-        !-------------------------------------------------------------------------------------------------------------!
-        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
-        !-------------------------------------------------------------------------------------------------------------!
+        !-------------------------------------------------------------------------------------------------------------
+        ! Iterate over each of the 6 "faces" of the rectangular domain
+        !-------------------------------------------------------------------------------------------------------------
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
@@ -614,16 +614,16 @@ contains
     end subroutine amrex_eb_validate_levelset_bcs
 
 
-    !----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                !
-    !   pure subroutine UPDATE_LEVELSET_INTERSECTION                                                                 !
-    !                                                                                                                !
-    !   Purpose: Update level set using the "intersection" selection rule: the minimum value between `phi` and       !
-    !   `ls_in` is stored in `phi`. This is the level-set equivalent of the `GeometryShop::IntersectionIF`.          !
-    !                                                                                                                !
-    !   Comments: The role of `valid` here is to flag cells near (or in) regions of negative level-set.              !
-    !                                                                                                                !
-    !----------------------------------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine UPDATE_LEVELSET_INTERSECTION
+    !!
+    !!   Purpose: Update level set using the "intersection" selection rule: the minimum value between `phi` and
+    !!   `ls_in` is stored in `phi`. This is the level-set equivalent of the `GeometryShop::IntersectionIF`.
+    !!
+    !!   Comments: The role of `valid` here is to flag cells near (or in) regions of negative level-set.
+    !!
+    !----------------------------------------------------------------------------------------------------------------
 
     pure subroutine amrex_eb_update_levelset_intersection(lo,    hi,           &
                                                           v_in,  vilo, vihi,   &
@@ -637,8 +637,8 @@ contains
         integer,      dimension(3), intent(in   ) :: lo, hi, vilo, vihi, lslo, lshi, vlo, vhi, phlo, phhi
         integer,                    intent(in   ) :: v_in  (vilo(1):vihi(1),vilo(2):vihi(2),vilo(3):vihi(3))
         real(c_real),               intent(in   ) :: ls_in (lslo(1):lshi(1),lslo(2):lshi(2),lslo(3):lshi(3))
-        integer,                    intent(  out) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
-        real(c_real),               intent(  out) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
+        integer,                    intent(inout) :: valid ( vlo(1):vhi(1),  vlo(2):vhi(2),  vlo(3):vhi(3) )
+        real(c_real),               intent(inout) :: phi   (phlo(1):phhi(1),phlo(2):phhi(2),phlo(3):phhi(3))
 
         real(c_real) :: ls_node, in_node
         integer      :: ii, jj, kk
@@ -684,9 +684,9 @@ contains
 
         integer, dimension(3) :: lo, hi
 
-        !-------------------------------------------------------------------------------------------------------------!
-        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
-        !-------------------------------------------------------------------------------------------------------------!
+        !-------------------------------------------------------------------------------------------------------------
+        ! Iterate over each of the 6 "faces" of the rectangular domain
+        !-------------------------------------------------------------------------------------------------------------
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
@@ -784,16 +784,16 @@ contains
 
 
 
-    !----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                !
-    !   pure subroutine UPDATE_LEVELSET_UNION                                                                        !
-    !                                                                                                                !
-    !   Purpose: Update level set using the "union" selection rule: the maximum value between `phi` and `ls_in` is   !
-    !   stored in `phi`. This is the level-set equivalent of the `GeometryShop::IntersectionIF`.                     !
-    !                                                                                                                !
-    !   Comments: The role of `valid` here is to flag cells near (or in) regions of negative level-set.              !
-    !                                                                                                                !
-    !----------------------------------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine UPDATE_LEVELSET_UNION
+    !!
+    !!   Purpose: Update level set using the "union" selection rule: the maximum value between `phi` and `ls_in` is
+    !!   stored in `phi`. This is the level-set equivalent of the `GeometryShop::IntersectionIF`.
+    !!
+    !!   Comments: The role of `valid` here is to flag cells near (or in) regions of negative level-set.
+    !!
+    !----------------------------------------------------------------------------------------------------------------
 
     pure subroutine amrex_eb_update_levelset_union(lo,    hi,           &
                                                    v_in,  vilo, vihi,   &
@@ -855,9 +855,9 @@ contains
 
         integer, dimension(3) :: lo, hi
 
-        !-------------------------------------------------------------------------------------------------------------!
-        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
-        !-------------------------------------------------------------------------------------------------------------!
+        !-------------------------------------------------------------------------------------------------------------
+        ! Iterate over each of the 6 "faces" of the rectangular domain
+        !-------------------------------------------------------------------------------------------------------------
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
         if ( (periodic(3).eq.0) .and. (phlo(3).lt.domlo(3)) ) then
@@ -952,14 +952,14 @@ contains
 
     end subroutine amrex_eb_update_levelset_union_bcs
 
-    !----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                !
-    !   pure subroutine FILL_VALID                                                                                   !
-    !                                                                                                                !
-    !   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set    !
-    !   value being negative (i.e. phi < 0), and 0 otherwise.                                                        !
-    !                                                                                                                !
-    !----------------------------------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine FILL_VALID
+    !!
+    !!   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set
+    !!   value being negative (i.e. phi < 0), and 0 otherwise.
+    !!
+    !----------------------------------------------------------------------------------------------------------------
 
     pure subroutine amrex_eb_fill_valid(       lo,     hi, &
                                         valid, vlo,   vhi, &
@@ -993,14 +993,14 @@ contains
 
 
 
-    !----------------------------------------------------------------------------------------------------------------!
-    !                                                                                                                !
-    !   pure subroutine FILL_VALID_BCS                                                                               !
-    !                                                                                                                !
-    !   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set    !
-    !   value being negative (i.e. phi < 0), and 0 otherwise. For all ghost cells outside the domain                 !
-    !                                                                                                                !
-    !----------------------------------------------------------------------------------------------------------------!
+    !----------------------------------------------------------------------------------------------------------------
+    !!
+    !>   pure subroutine FILL_VALID_BCS
+    !!
+    !!   Purpose: Fills elements of valid with 1 whenever it corresponds to a position with n_pad of the level set
+    !!   value being negative (i.e. phi < 0), and 0 otherwise. For all ghost cells outside the domain
+    !!
+!----------------------------------------------------------------------------------------------------------------
 
 
     pure subroutine amrex_eb_fill_valid_bcs( valid, vlo, vhi, periodic, domlo, domhi ) &
@@ -1013,9 +1013,9 @@ contains
 
         integer :: i, j, k
 
-        !-------------------------------------------------------------------------------------------------------------!
-        ! Itterate over each of the 6 "faces" of the rectangular domain                                               !
-        !-------------------------------------------------------------------------------------------------------------!
+        !-------------------------------------------------------------------------------------------------------------
+        ! Iterate over each of the 6 "faces" of the rectangular domain
+        !-------------------------------------------------------------------------------------------------------------
 
         ! 2 i-j faces => k is in [vlo(3), domlo(3)) U (domhi(3), vhi(3)]
 
@@ -1108,10 +1108,10 @@ contains
         integer :: ii, jj, kk, klo, khi, jlo, jhi, ilo, ihi
 
 
-        !----------------------------------------------------------------------------------------------------!
-        ! build neighbour stencil of size n_pad                                                              !
-        ! note: stencil could be out-of-bounds  => bounds-checking                                           !
-        !----------------------------------------------------------------------------------------------------!
+        !----------------------------------------------------------------------------------------------------
+        ! build neighbour stencil of size n_pad
+        ! note: stencil could be out-of-bounds  => bounds-checking
+        !----------------------------------------------------------------------------------------------------
 
         ilo = max(i-n_pad, phlo(1))
         ihi = min(i+n_pad, phhi(1))
@@ -1123,11 +1123,11 @@ contains
         khi = min(k+n_pad, phhi(3))
 
 
-        !---------------------------------------------------------------------------------------------------!
-        ! check members of neighbour stencil:                                                               !
-        !       cell is "valid" whenever at least one cell in the neighbour stencil has a level-set phi     !
-        !       less than, or equal to, 0                                                                   !
-        !---------------------------------------------------------------------------------------------------!
+        !---------------------------------------------------------------------------------------------------
+        ! check members of neighbour stencil:
+        !       cell is "valid" whenever at least one cell in the neighbour stencil has a level-set phi
+        !       less than, or equal to, 0
+        !---------------------------------------------------------------------------------------------------
 
         neighbour_is_valid = .false.
 

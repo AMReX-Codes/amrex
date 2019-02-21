@@ -165,7 +165,19 @@ AmrLevel::writePlotFile (const std::string& dir,
 	}
     }
 
-    int n_data_items = plot_var_map.size();
+    std::vector<std::string> derive_names;
+    const std::list<DeriveRec>& dlist = derive_lst.dlist();
+    for (std::list<DeriveRec>::const_iterator it = dlist.begin();
+	 it != dlist.end();
+	 ++it)
+    {
+        if (parent->isDerivePlotVar(it->name()))
+        {
+            derive_names.push_back(it->name());
+	}
+    }
+
+    int n_data_items = plot_var_map.size() + derive_names.size();
 
     // get the time from the first State_Type
     // if the State_Type is ::Interval, this will get t^{n+1/2} instead of t^n
@@ -191,6 +203,11 @@ AmrLevel::writePlotFile (const std::string& dir,
 	    int typ = plot_var_map[i].first;
 	    int comp = plot_var_map[i].second;
 	    os << desc_lst[typ].name(comp) << '\n';
+        }
+
+        // derived
+        for (auto const& dname : derive_names) {
+            os << derive_lst.get(dname)->variableName(0) << '\n';
         }
 
         os << AMREX_SPACEDIM << '\n';
@@ -277,7 +294,6 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     // We combine all of the multifabs -- state, derived, etc -- into one
     // multifab -- plotMF.
-    // NOTE: In this tutorial code, there is no derived data
     int       cnt   = 0;
     const int nGrow = 0;
     MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
@@ -292,6 +308,16 @@ AmrLevel::writePlotFile (const std::string& dir,
 	this_dat = &state[typ].newData();
 	MultiFab::Copy(plotMF,*this_dat,comp,cnt,1,nGrow);
 	cnt++;
+    }
+
+    // derived
+    if (derive_names.size() > 0)
+    {
+	for (auto const& dname : derive_names)
+	{
+            derive(dname, cur_time, plotMF, cnt);
+	    cnt++;
+	}
     }
 
     //
@@ -412,9 +438,7 @@ AmrLevel::setTimeLevel (Real time,
 }
 
 bool
-AmrLevel::isStateVariable (const std::string& name,
-                           int&           typ,
-                           int&            n)
+AmrLevel::isStateVariable (const std::string& name, int& typ, int& n)
 {
     for (typ = 0; typ < desc_lst.size(); typ++)
     {
@@ -1533,19 +1557,21 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
 	for (MFIter mfi(mf); mfi.isValid(); ++mfi)
 	{
-	    const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
+            const Box& dbx = amrex::grow(mfi.validbox(),nghost) & domain_g;
 	    
-	    Vector<BCRec> bcr(ncomp);
+            Vector<BCRec> bcr(ncomp);
 	    
-	    amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
-	    
-	    mapper->interp(crseMF[mfi],
+            amrex::setBC(dbx,pdomain,SComp,0,NComp,desc.getBCs(),bcr);
+
+            FArrayBox const* crsefab = crseMF.fabPtr(mfi);
+            FArrayBox* finefab = mf.fabPtr(mfi);
+	    mapper->interp(*crsefab,
 			   0,
-			   mf[mfi],
+			   *finefab,
 			   DComp,
 			   NComp,
 			   dbx,
@@ -1565,9 +1591,7 @@ AmrLevel::FillCoarsePatch (MultiFab& mf,
 }
 
 std::unique_ptr<MultiFab>
-AmrLevel::derive (const std::string& name,
-                  Real           time,
-                  int            ngrow)
+AmrLevel::derive (const std::string& name, Real time, int ngrow)
 {
     BL_ASSERT(ngrow >= 0);
 
@@ -1578,7 +1602,7 @@ AmrLevel::derive (const std::string& name,
     if (isStateVariable(name, index, scomp))
     {
         mf.reset(new MultiFab(state[index].boxArray(), dmap, 1, ngrow, MFInfo(), *m_factory));
-        FillPatch(*this,*mf,ngrow,time,index,scomp,1);
+        FillPatch(*this,*mf,ngrow,time,index,scomp,1,0);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1605,8 +1629,24 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
-        mf.reset(new MultiFab(dstBA, dmap, rec->numDerive(), ngrow, MFInfo(), *m_factory));
+        const int ncomp = rec->numDerive();
+        mf.reset(new MultiFab(dstBA, dmap, ncomp, ngrow, MFInfo(), *m_factory));
 
+        if (rec->derFuncFab() != nullptr)
+        {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(*mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(ngrow);
+                FArrayBox* derfab = mf->fabPtr(mfi);
+                FArrayBox const* datafab = srcMF.fabPtr(mfi);
+                rec->derFuncFab()(bx, *derfab, 0, ncomp, *datafab, geom, time, rec->getBC(), level);
+            }
+        }
+        else
+        {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1690,6 +1730,7 @@ AmrLevel::derive (const std::string& name,
 	    }
         }
 #endif
+        }
     }
     else
     {
@@ -1705,10 +1746,7 @@ AmrLevel::derive (const std::string& name,
 }
 
 void
-AmrLevel::derive (const std::string& name,
-                  Real           time,
-                  MultiFab&      mf,
-                  int            dcomp)
+AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 {
     BL_ASSERT(dcomp < mf.nComp());
 
@@ -1718,7 +1756,7 @@ AmrLevel::derive (const std::string& name,
 
     if (isStateVariable(name,index,scomp))
     {
-        FillPatch(*this,mf,ngrow,time,index,scomp,1);
+        FillPatch(*this,mf,ngrow,time,index,scomp,1,dcomp);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
@@ -1743,6 +1781,21 @@ AmrLevel::derive (const std::string& name,
             FillPatch(*this,srcMF,ngrow_src,time,index,scomp,ncomp,dc);
         }
 
+        if (rec->derFuncFab() != nullptr)
+        {
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox();
+                FArrayBox* derfab = mf.fabPtr(mfi);
+                FArrayBox const* datafab = srcMF.fabPtr(mfi);
+                rec->derFuncFab()(bx, *derfab, dcomp, ncomp, *datafab, geom, time, rec->getBC(), level);
+            }
+        }
+        else
+        {
 #if defined(AMREX_CRSEGRNDOMP) || (!defined(AMREX_XSDK) && defined(CRSEGRNDOMP))
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1826,6 +1879,7 @@ AmrLevel::derive (const std::string& name,
 	    }
         }
 #endif
+        }
     }
     else
     {
@@ -1956,7 +2010,12 @@ AmrLevel::setSmallPlotVariables ()
         {
             pp.get("small_plot_vars", nm, i);
 
-	    parent->addStateSmallPlotVar(nm);
+            if (nm == "ALL")
+                parent->fillStateSmallPlotVarList();
+            else if (nm == "NONE")
+                parent->clearStateSmallPlotVarList();
+            else
+                parent->addStateSmallPlotVar(nm);
         }
     }
     else 

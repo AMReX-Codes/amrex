@@ -1,5 +1,5 @@
 
 CEXE_sources += main.cpp
 CEXE_sources += MyTest.cpp initProb.cpp MyTestPlotfile.cpp
-CEXE_headers += MyTest.H MyTest_F.H
-F90EXE_sources += init_prob.F90
+CEXE_headers += MyTest.H
+CEXE_headers += initProb_K.H MyTest_K.H

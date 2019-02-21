@@ -90,24 +90,4 @@ IArrayBox::resize (const Box& b,
     }
 }
 
-#if 0
-int
-IArrayBox::norm (int p,
-                 int comp,
-                 int numcomp) const
-{
-    return norm(domain,p,comp,numcomp);
-}
-
-int
-IArrayBox::norm (const Box& subbox,
-                 int        p,
-                 int        comp,
-                 int        ncomp) const
-{
-    BL_ASSERT(p >= 0);
-    return BaseFab<int>::norm(subbox,p,comp,ncomp);
-}
-#endif
-
 }

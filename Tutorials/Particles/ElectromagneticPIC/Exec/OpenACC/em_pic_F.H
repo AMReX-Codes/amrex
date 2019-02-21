@@ -3,22 +3,12 @@
 
 #include <AMReX_BLFort.H>
 
-#ifdef IBM
-#define NOUNDERSCORE
-#endif
-
-#ifdef NOUNDERSCORE
-#define FTOC(x) x
-#else
-#define FTOC(x) x##_
-#endif
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    void FTOC(push_momentum_boris)
+    void push_momentum_boris
         (const int np,
          amrex::Real* uxp,
          amrex::Real* uyp,
@@ -34,7 +24,7 @@ extern "C"
          const amrex::Real m,
          const amrex::Real dt);
 
-    void FTOC(push_position_boris)
+    void push_position_boris
         (const int np, void* structs,
          const amrex::Real* uxp,
          const amrex::Real* uyp,
@@ -42,13 +32,13 @@ extern "C"
          const amrex::Real* gaminv,
          const amrex::Real dt);
 
-    void FTOC(set_gamma)(const int np,
+    void set_gamma(const int np,
                          const amrex::Real* uxp,
                          const amrex::Real* uyp,
                          const amrex::Real* uzp,
                          amrex::Real* gaminv);
 
-    void FTOC(deposit_current)(BL_FORT_FAB_ARG_3D(jx),
+    void deposit_current(BL_FORT_FAB_ARG_3D(jx),
                                BL_FORT_FAB_ARG_3D(jy),
                                BL_FORT_FAB_ARG_3D(jz),
                                const int np, const void* structs,
@@ -62,7 +52,7 @@ extern "C"
                                const amrex::Real dt,
                                const amrex::Real* dx);
 
-    void FTOC(gather_magnetic_field)(const int np, const void* structs,
+    void gather_magnetic_field(const int np, const void* structs,
                                      amrex::Real* bx,
                                      amrex::Real* by,
                                      amrex::Real* bz,
@@ -72,7 +62,7 @@ extern "C"
                                      const amrex::Real* plo, const amrex::Real* dx);
 
 
-    void FTOC(gather_electric_field)(const int np, const void* structs,
+    void gather_electric_field(const int np, const void* structs,
                                      amrex::Real* ex,
                                      amrex::Real* ey,
                                      amrex::Real* ez,
@@ -81,7 +71,7 @@ extern "C"
                                      const BL_FORT_FAB_ARG_3D(ezg),
                                      const amrex::Real* plo, const amrex::Real* dx);
 
-    void FTOC(push_electric_field_x)(const int* xlo, const int* xhi,
+    void push_electric_field_x(const int* xlo, const int* xhi,
                                      BL_FORT_FAB_ARG_3D(ex),
                                      const BL_FORT_FAB_ARG_3D(by),
                                      const BL_FORT_FAB_ARG_3D(bz),
@@ -90,7 +80,7 @@ extern "C"
                                      const amrex::Real dtsdy,
                                      const amrex::Real dtsdz);
 
-    void FTOC(push_electric_field_y)(const int* ylo, const int* yhi,
+    void push_electric_field_y(const int* ylo, const int* yhi,
                                      BL_FORT_FAB_ARG_3D(ey),
                                      const BL_FORT_FAB_ARG_3D(bx),
                                      const BL_FORT_FAB_ARG_3D(bz),
@@ -99,7 +89,7 @@ extern "C"
                                      const amrex::Real dtsdx,
                                      const amrex::Real dtsdz);
 
-    void FTOC(push_electric_field_z)(const int* zlo, const int* zhi,
+    void push_electric_field_z(const int* zlo, const int* zhi,
                                      BL_FORT_FAB_ARG_3D(ez),
                                      const BL_FORT_FAB_ARG_3D(bx),
                                      const BL_FORT_FAB_ARG_3D(by),
@@ -108,21 +98,21 @@ extern "C"
                                      const amrex::Real dtsdx,
                                      const amrex::Real dtsdy);
 
-    void FTOC(push_magnetic_field_x)(const int* xlo, const int* xhi,
+    void push_magnetic_field_x(const int* xlo, const int* xhi,
                                      BL_FORT_FAB_ARG_3D(bx),
                                      const BL_FORT_FAB_ARG_3D(ey),
                                      const BL_FORT_FAB_ARG_3D(ez),
                                      const amrex::Real dtsdy,
                                      const amrex::Real dtsdz);
 
-    void FTOC(push_magnetic_field_y)(const int* ylo, const int* yhi,
+    void push_magnetic_field_y(const int* ylo, const int* yhi,
                                      BL_FORT_FAB_ARG_3D(by),
                                      const BL_FORT_FAB_ARG_3D(ex),
                                      const BL_FORT_FAB_ARG_3D(ez),
                                      const amrex::Real dtsdx,
                                      const amrex::Real dtsdz);
 
-    void FTOC(push_magnetic_field_z)(const int* zlo, const int* zhi,
+    void push_magnetic_field_z(const int* zlo, const int* zhi,
                                      BL_FORT_FAB_ARG_3D(bz),
                                      const BL_FORT_FAB_ARG_3D(ex),
                                      const BL_FORT_FAB_ARG_3D(ey),

@@ -2,6 +2,12 @@
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_Machine.H>
+
+#ifdef AMREX_SOFT_PERF_COUNTERS
+// need for perf counters
+#include <AMReX_MLCellLinOp.H>
+#endif
 
 #include <prob_par.H>
 
@@ -69,6 +75,10 @@ int main (int argc, char* argv[])
         }
         
         solve_with_mlmg (geom, ref_ratio, soln, alpha, beta, rhs, exact);
+
+#ifdef AMREX_SOFT_PERF_COUNTERS
+        MLCellLinOp::perf_counters.print();
+#endif
 
         write_plotfile (geom, ref_ratio, soln, exact, alpha, beta, rhs);
     }

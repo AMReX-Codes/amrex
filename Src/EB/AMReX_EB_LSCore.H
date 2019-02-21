@@ -42,22 +42,29 @@ public:
      * public member functions                                                  *
      ***************************************************************************/
 
-    // Constructor - reads amr in parameters from inputs file
-    //             - sizes multilevel arrays and data structures
+    //! Constructor - reads amr in parameters from inputs file
+    //!             - sizes multilevel arrays and data structures
     LSCore (EB2::GeometryShop<F> gshop);
     LSCore (EB2::GeometryShop<F> a_gshop,
             const RealBox * rb, int max_level_in, const Vector<int> & n_cell_in, int coord=-1);
 
     virtual ~LSCore ();
 
-    // Delete level data. Overrides the pure virtual function in AmrCore
+    //! Delete level data. Overrides the pure virtual function in AmrCore
     virtual void ClearLevel (int lev) override;
 
-    // Make a new level from scratch using provided BoxArray and
-    // DistributionMapping. Only used during initialization. Overrides the pure
-    // virtual function in AmrCore
+    //! Make a new level from scratch using provided BoxArray and
+    //! DistributionMapping. Only used during initialization. Overrides the pure
+    //! virtual function in AmrCore
     virtual void MakeNewLevelFromScratch (int lev, Real time, const BoxArray & ba,
                                           const DistributionMapping & dm) override;
+
+    static const EB2::Level * BuildEBLevel (const EB2::GeometryShop<F> & gshop,
+                                            int lev, const Vector<Geometry> & geom );
+
+    static const EB2::Level * BuildEBLevel ( const EB2::GeometryShop<F> gshop,
+                                             int lev, const Vector<Geometry> & geom,
+                                             int max_crse_level, int required_crse_lev);
 
 private:
 
@@ -69,7 +76,7 @@ private:
      * private data members                                                     *
      ***************************************************************************/
 
-    // Used when building finer levels
+    //! Used when building finer levels
     EB2::GeometryShop<F> m_gshop;
 
     /****************************************************************************

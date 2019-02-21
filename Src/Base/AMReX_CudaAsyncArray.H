@@ -15,12 +15,14 @@ extern "C" {
 }
 #endif
 
-namespace amrex { namespace Cuda {
+namespace amrex {
+namespace Cuda {
 
 template <typename T, typename = amrex::EnableIf_t<AMREX_IS_TRIVIALLY_COPYABLE(T)> >
 class AsyncArray
 {
 public:
+
     AsyncArray (T const* h_p, const std::size_t n)
     {
         if (n == 0) return;
@@ -34,6 +36,22 @@ public:
                                                 cudaMemcpyHostToDevice, Device::cudaStream()));
         }
 #endif
+    }
+
+    template <typename U = T, typename = amrex::EnableIf_t<std::is_pod<U>::value> >
+    AsyncArray (const std::size_t n)
+    {
+        if (n == 0) return;
+#ifdef AMREX_USE_CUDA
+        if (inLaunchRegion())
+        {
+            d_data = static_cast<T*>(The_Device_Arena()->alloc(n*sizeof(T)));
+        }
+        else
+#endif
+        {
+            h_data = static_cast<T*>(std::malloc(n*sizeof(T)));
+        }
     }
 
     ~AsyncArray () { clear(); }
@@ -62,11 +80,30 @@ public:
         h_data = nullptr;
     }
 
+    void copyToHost (T* h_p, std::size_t n) const
+    {
+        if (n == 0) return;
+#ifdef AMREX_USE_CUDA
+        if (d_data)
+        {
+            AMREX_GPU_SAFE_CALL(cudaMemcpyAsync(h_p, d_data, n*sizeof(T),
+                                                cudaMemcpyDeviceToHost, Device::cudaStream()));
+        }
+        else
+#endif
+        {
+            std::memcpy(h_p, h_data, n*sizeof(T));
+        }
+    }
+
 private:
     T* d_data = nullptr;
     T* h_data = nullptr;
 };
 
-}}
+}
+
+using Cuda::AsyncArray;
+}
 
 #endif

@@ -1,21 +1,21 @@
 ! -----------------------------------------------------------------
 ! $Revision$
 ! $Date$
-! ----------------------------------------------------------------- 
-! Programmer(s): David J. Gardner @ LLNL 
+! -----------------------------------------------------------------
+! Programmer(s): David J. Gardner @ LLNL
 !                Daniel R. Reynolds @ SMU
 ! -----------------------------------------------------------------
 ! LLNS Copyright Start
 ! Copyright (c) 2014, Lawrence Livermore National Security
-! This work was performed under the auspices of the U.S. Department 
-! of Energy by Lawrence Livermore National Laboratory in part under 
+! This work was performed under the auspices of the U.S. Department
+! of Energy by Lawrence Livermore National Laboratory in part under
 ! Contract W-7405-Eng-48 and in part under Contract DE-AC52-07NA27344.
 ! Produced at the Lawrence Livermore National Laboratory.
 ! All rights reserved.
 ! For details, see the LICENSE file.
 ! LLNS Copyright End
 ! -----------------------------------------------------------------
-! This module implements the Fortran 2003 interface to the SUNDIALS 
+! This module implements the Fortran 2003 interface to the SUNDIALS
 ! serial NVECTOR structure.
 ! -----------------------------------------------------------------
 
@@ -50,7 +50,7 @@ module fnvector_serial
        implicit none
        integer(c_long), value :: vec_length
      end function N_VNewEmpty_Serial
-     
+
      ! -----------------------------------------------------------------
      ! Function : N_VMake_Serial
      ! -----------------------------------------------------------------
@@ -99,7 +99,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Subroutine : N_VDestroyVectorArray_Serial
      ! -----------------------------------------------------------------
-     ! This function frees an array of SERIAL vectors created with 
+     ! This function frees an array of SERIAL vectors created with
      ! N_VCloneVectorArray_Serial or N_VCloneVectorArrayEmpty_Serial.
      ! -----------------------------------------------------------------
 
@@ -110,7 +110,7 @@ module fnvector_serial
        type(c_ptr)    :: vs
        integer(c_int) :: count
      end subroutine N_VDestroyVectorArray_Serial
-     
+
      ! -----------------------------------------------------------------
      ! Function : N_VGetLength_Serial
      ! -----------------------------------------------------------------
@@ -123,7 +123,7 @@ module fnvector_serial
        implicit none
        type(c_ptr), value :: v
      end function N_VGetLength_Serial
-       
+
      ! -----------------------------------------------------------------
      ! Subroutine : N_VPrint_Serial
      ! -----------------------------------------------------------------
@@ -144,7 +144,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Function : N_VGetVectorID
      ! -----------------------------------------------------------------
-     ! Returns an identifier for the vector type from enumeration 
+     ! Returns an identifier for the vector type from enumeration
      ! N_Vector_ID.
      ! -----------------------------------------------------------------
 
@@ -203,7 +203,7 @@ module fnvector_serial
      ! Returns space requirements for one N_Vector (type 'realtype' in
      ! lrw and type 'long int' in liw).
      ! -----------------------------------------------------------------
-     
+
      subroutine N_VSpace_Serial(v, lrw, liw) &
           bind(C,name='N_VSpace_Serial')
        use, intrinsic :: iso_c_binding
@@ -224,7 +224,7 @@ module fnvector_serial
      ! solvers, as well as the interfaces to  the banded preconditioners
      ! distributed with SUNDIALS.
      ! -----------------------------------------------------------------
-          
+
      type(c_ptr) function N_VGetArrayPointer_Serial(vec) &
           bind(C,name='N_VGetArrayPointer_Serial')
        use, intrinsic :: iso_c_binding
@@ -256,7 +256,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Performs the operation z = a*x + b*y
      ! -----------------------------------------------------------------
-     
+
      subroutine N_VLinearSum_Serial(a, x, b, y, z) &
           bind(C,name='N_VLinearSum_Serial')
        use, intrinsic :: iso_c_binding
@@ -273,7 +273,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Performs the operation z[i] = c for i = 0, 1, ..., N-1
      ! -----------------------------------------------------------------
-     
+
      subroutine N_VConst_Serial(c, z) &
           bind(C,name='N_VConst_Serial')
        use, intrinsic :: iso_c_binding
@@ -281,7 +281,7 @@ module fnvector_serial
        real(c_double), value :: c
        type(c_ptr),    value :: z
      end subroutine N_VConst_Serial
-       
+
      ! -----------------------------------------------------------------
      ! Subroutine : N_VProd_Serial
      ! -----------------------------------------------------------------
@@ -327,7 +327,7 @@ module fnvector_serial
        type(c_ptr),    value :: z
      end subroutine N_VScale_Serial
 
-     ! -----------------------------------------------------------------         
+     ! -----------------------------------------------------------------
      ! Subroutine : N_VAbs_Serial
      ! -----------------------------------------------------------------
      ! Performs the operation z[i] = |x[i]| for i = 0, 1, ..., N-1
@@ -349,7 +349,7 @@ module fnvector_serial
      ! This routine does not check for division by 0. It should be
      ! called only with an N_Vector x which is guaranteed to have
      ! all non-zero components.
-     ! -----------------------------------------------------------------         
+     ! -----------------------------------------------------------------
 
      subroutine N_VInv_Serial(x, z) &
           bind(C,name='N_VInv_Serial')
@@ -364,7 +364,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Performs the operation z[i] = x[i] + b   for i = 0, 1, ..., N-1
      ! -----------------------------------------------------------------
-     
+
      subroutine N_VAddConst_Serial(x, b, z) &
           bind(C,name='N_VAddConst_Serial')
        use, intrinsic :: iso_c_binding
@@ -406,7 +406,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Function : N_VWrmsNorm_Serial
      ! -----------------------------------------------------------------
-     ! Returns the weighted root mean square norm of x with weight 
+     ! Returns the weighted root mean square norm of x with weight
      ! vector w:
      !     sqrt [(sum (i = 0 to N-1) {(x[i]*w[i])^2})/N]
      ! -----------------------------------------------------------------
@@ -455,7 +455,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Function : N_VWL2Norm_Serial
      ! -----------------------------------------------------------------
-     ! Returns the weighted Euclidean L2 norm of x with weight 
+     ! Returns the weighted Euclidean L2 norm of x with weight
      ! vector w:
      !     sqrt [(sum (i = 0 to N-1) {(x[i]*w[i])^2})]
      ! -----------------------------------------------------------------
@@ -502,10 +502,10 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Function : N_VInvTest_Serial
      ! -----------------------------------------------------------------
-     ! Performs the operation z[i] = 1/x[i] with a test for 
+     ! Performs the operation z[i] = 1/x[i] with a test for
      !     x[i] == 0.0 before inverting x[i].
      !
-     ! This routine returns TRUE if all components of x are non-zero 
+     ! This routine returns TRUE if all components of x are non-zero
      ! (successful inversion) and returns FALSE otherwise.
      ! -----------------------------------------------------------------
 
@@ -520,7 +520,7 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Function : N_VConstrMask_Serial
      ! -----------------------------------------------------------------
-     ! Performs the operation : 
+     ! Performs the operation :
      !     m[i] = 1.0 if constraint test fails for x[i]
      !     m[i] = 0.0 if constraint test passes for x[i]
      ! where the constraint tests are as follows:
@@ -537,7 +537,7 @@ module fnvector_serial
      ! This routine is specialized in that it is used only for
      ! constraint checking.
      ! -----------------------------------------------------------------
-          
+
      integer(c_int) function N_VConstrMask_Serial(c, x, m) &
           bind(C,name='N_VConstrMask_Serial')
        use, intrinsic :: iso_c_binding
@@ -550,15 +550,15 @@ module fnvector_serial
      ! -----------------------------------------------------------------
      ! Function : N_VMinQuotient_Serial
      ! -----------------------------------------------------------------
-     ! Performs the operation : 
-     !     minq  = min ( num[i]/denom[i]) over all i such that   
+     ! Performs the operation :
+     !     minq  = min ( num[i]/denom[i]) over all i such that
      !     denom[i] != 0.
      ! This routine returns the minimum of the quotients obtained
      ! by term-wise dividing num[i] by denom[i]. A zero element
      ! in denom will be skipped. If no such quotients are found,
      ! then the large value BIG_REAL is returned.
      ! -----------------------------------------------------------------
-     
+
      real(c_double) function N_VMinQuotient_Serial(num, denom) &
           bind(C,name='N_VMinQuotient_Serial')
        use, intrinsic :: iso_c_binding
@@ -566,9 +566,9 @@ module fnvector_serial
        type(c_ptr), value :: num
        type(c_ptr), value :: denom
      end function N_VMinQuotient_Serial
-     
+
   end interface
-  
+
 contains
 
   ! ================================================================
@@ -579,7 +579,7 @@ contains
     ! ----------------------------------------------------------------
     ! Description: Extracts data array from serial SUNDIALS N_Vector
     ! ----------------------------------------------------------------
-    
+
     !======= Inclusions ===========
     use, intrinsic :: iso_c_binding
 

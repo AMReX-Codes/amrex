@@ -66,11 +66,11 @@ public:
     virtual void init (Real strt_time, Real stop_time);
 
     //! First part of initialInit
-    void InitializeInit (Real strt_time, Real stop_time, 
+    void InitializeInit (Real strt_time, Real stop_time,
                          const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
 
     //! Second part of initialInit
-    void FinalizeInit (Real strt_time, Real stop_time); 
+    void FinalizeInit (Real strt_time, Real stop_time);
 
     //! Set the timestep on each level.
     void setDtLevel (const Vector<Real>& dt_lev);
@@ -90,10 +90,10 @@ public:
     //! How are we subcycling?
     const std::string& subcyclingMode() const { return subcycling_mode; }
 
-    /**  
+    /**
     * \brief What is "level" in Amr::timeStep?  This is only relevant if we are still in Amr::timeStep;
     *      it is set back to -1 on leaving Amr::timeStep.
-    */  
+    */
     int level_being_advanced () const { return which_level_being_advanced; }
     //! Physical time.
     Real cumTime () const { return cumtime; }
@@ -136,7 +136,7 @@ public:
     /**
     * \brief The names of state variables to output in the
     * plotfile.  They can be set using the amr.plot_vars variable
-    * in a ParmParse inputs file. 
+    * in a ParmParse inputs file.
     */
     static const std::list<std::string>& statePlotVars () { return state_plot_vars; }
     static const std::list<std::string>& stateSmallPlotVars () { return state_small_plot_vars; }
@@ -145,7 +145,7 @@ public:
     static bool isStateSmallPlotVar (const std::string& name);
     /**
     * \brief If the string is not the name of a variable in state_plot_vars,
-    * add it to state_plot_vars.  
+    * add it to state_plot_vars.
     */
     static void addStatePlotVar (const std::string& name);
     static void addStateSmallPlotVar (const std::string& name);
@@ -156,11 +156,12 @@ public:
     static void clearStateSmallPlotVarList ();
     //!  Fill the list of state_plot_vars with all of the state quantities.
     static void fillStatePlotVarList ();
+    static void fillStateSmallPlotVarList ();
     //!  Write out plotfiles (True/False)?
     static bool Plot_Files_Output ();
     /**
     * \brief The names of derived variables to output in the
-    * plotfile.  They can be set using the amr.derive_plot_vars 
+    * plotfile.  They can be set using the amr.derive_plot_vars
     * variable in a ParmParse inputs file.
     */
     static const std::list<std::string>& derivePlotVars () { return derive_plot_vars; }
@@ -169,8 +170,8 @@ public:
     static bool isDerivePlotVar (const std::string& name);
     static bool isDeriveSmallPlotVar (const std::string& name);
     /**
-    * \brief If the string is not the name of a variable in 
-    * derive_plot_vars, add it to derive_plot_vars.  
+    * \brief If the string is not the name of a variable in
+    * derive_plot_vars, add it to derive_plot_vars.
     */
     static void addDerivePlotVar (const std::string& name);
     static void addDeriveSmallPlotVar (const std::string& name);
@@ -205,9 +206,9 @@ public:
     //! Should we regrid this level?
     bool okToRegrid (int level);
     //! Array of BoxArrays read in to initially define grid hierarchy
-    static const BoxArray& initialBa (int level) 
+    static const BoxArray& initialBa (int level)
         { BL_ASSERT(level-1 < initial_ba.size()); return initial_ba[level-1]; }
-    //! Number of levels at which the grids are initially specified 
+    //! Number of levels at which the grids are initially specified
     static int initialBaLevels () { return initial_ba.size(); }
     //! Do a complete integration cycle.
     virtual void coarseTimeStep (Real stop_time);
@@ -232,14 +233,14 @@ public:
     /**
     * \brief Compute the optimal subcycling pattern.
     * This assumes that anything less than cycle_max[i] is a valid
-    * number of subcycles at level[i]. For example 
-    * if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid 
+    * number of subcycles at level[i]. For example
+    * if ref_ratio[i] = cycle_max[i] = 4, then 1,2,3,4 are all valid
     * values for n_cycles[i]
     */
-    static Real computeOptimalSubcycling (int   n, 
+    static Real computeOptimalSubcycling (int   n,
                                           int*  best,
-                                          Real* dt_max, 
-                                          Real* est_work, 
+                                          Real* dt_max,
+                                          Real* est_work,
                                           int*  cycle_max);
 
     //! Write the plot file to be used for visualization.
@@ -293,27 +294,27 @@ public:
         intersect_hiz = IntersectHiZ;
     };
 
-    BoundaryPointList& getIntersectLoX() 
+    BoundaryPointList& getIntersectLoX()
     {
         return intersect_lox;
     };
-    BoundaryPointList& getIntersectHiX() 
+    BoundaryPointList& getIntersectHiX()
     {
         return intersect_hix;
     };
-    BoundaryPointList& getIntersectLoY() 
+    BoundaryPointList& getIntersectLoY()
     {
         return intersect_loy;
     };
-    BoundaryPointList& getIntersectHiY() 
+    BoundaryPointList& getIntersectHiY()
     {
         return intersect_hiy;
     };
-    BoundaryPointList& getIntersectLoZ() 
+    BoundaryPointList& getIntersectLoZ()
     {
         return intersect_loz;
     };
-    BoundaryPointList& getIntersectHiZ() 
+    BoundaryPointList& getIntersectHiZ()
     {
         return intersect_hiz;
     };
@@ -330,7 +331,7 @@ public:
 protected:
 
     //! Initialize grid hierarchy -- called by Amr::init.
-    void initialInit (Real strt_time, Real stop_time, 
+    void initialInit (Real strt_time, Real stop_time,
                       const BoxArray* lev0_grids = 0, const Vector<int>* pmap = 0);
     //! Read the probin file.
     void readProbinFile (int& init);
@@ -346,7 +347,7 @@ protected:
     virtual void regrid (int  lbase,
                          Real time,
                          bool initial = false) override;
-    //! Regrid level 0 on restart. 
+    //! Regrid level 0 on restart.
     virtual void regrid_level_0_on_restart ();
     //! Define new grid locations (called from regrid) and put into new_grids.
     void grid_places (int              lbase,
@@ -393,7 +394,7 @@ protected:
     void setRecordRunInfoTerse (const std::string&);
 
     void setRecordDataInfo (int i, const std::string&);
-    
+
     void initSubcycle();
     void initPltAndChk();
 
@@ -404,36 +405,36 @@ protected:
     //
     // The data ...
     //
-    std::string      regrid_grids_file;   // Grids file that will bypass regridding.
-    std::string      initial_grids_file;  // Grids file that will bypass regridding only at initialization.
-    Vector<std::unique_ptr<AmrLevel> > amr_level;    // Vector of levels
-    Real             cumtime;      // Physical time variable.
-    Real             start_time;   // Physical time this simulation started.
-    Vector<Real>      dt_level;     // Timestep at this level.
-    Vector<int>       level_steps;  // Number of time steps at this level.
+    std::string      regrid_grids_file;   //!< Grids file that will bypass regridding.
+    std::string      initial_grids_file;  //!< Grids file that will bypass regridding only at initialization.
+    Vector<std::unique_ptr<AmrLevel> > amr_level;    //!< Vector of levels
+    Real             cumtime;      //!< Physical time variable.
+    Real             start_time;   //!< Physical time this simulation started.
+    Vector<Real>      dt_level;     //!< Timestep at this level.
+    Vector<int>       level_steps;  //!< Number of time steps at this level.
     Vector<int>       level_count;
     Vector<int>       n_cycle;
-    std::string      subcycling_mode; //Type of subcycling to use.
+    std::string      subcycling_mode; //!<Type of subcycling to use.
     Vector<Real>      dt_min;
-    bool             isPeriodic[AMREX_SPACEDIM];  // Domain periodic?
-    Vector<int>       regrid_int;      // Interval between regridding.
-    int              last_checkpoint; // Step number of previous checkpoint.
-    int              check_int;       // How often checkpoint (# time steps).
-    Real             check_per;       // How often checkpoint (units of time).
-    std::string      check_file_root; // Root name of checkpoint file.
-    int              last_plotfile;   // Step number of previous plotfile.
-    int              last_smallplotfile;   // Step number of previous small plotfile.
-    int              plot_int;        // How often plotfile (# of time steps)
-    Real             plot_per;        // How often plotfile (in units of time)
-    int              small_plot_int;  // How often small plotfile (# of time steps)
-    Real             small_plot_per;  // How often small plotfile (in units of time)
-    int              write_plotfile_with_checkpoint;  // Write out a plotfile whenever we checkpoint
-    int              file_name_digits; // How many digits to use in the plotfile and checkpoint names
-    int              message_int;     // How often checking messages touched by user, such as "stop_run"
-    std::string      plot_file_root;  // Root name of plotfile.
-    std::string      small_plot_file_root;  // Root name of small plotfile.
+    bool             isPeriodic[AMREX_SPACEDIM];  //!< Domain periodic?
+    Vector<int>       regrid_int;      //!< Interval between regridding.
+    int              last_checkpoint; //!< Step number of previous checkpoint.
+    int              check_int;       //!< How often checkpoint (# time steps).
+    Real             check_per;       //!< How often checkpoint (units of time).
+    std::string      check_file_root; //!< Root name of checkpoint file.
+    int              last_plotfile;   //!< Step number of previous plotfile.
+    int              last_smallplotfile;   //!< Step number of previous small plotfile.
+    int              plot_int;        //!< How often plotfile (# of time steps)
+    Real             plot_per;        //!< How often plotfile (in units of time)
+    int              small_plot_int;  //!< How often small plotfile (# of time steps)
+    Real             small_plot_per;  //!< How often small plotfile (in units of time)
+    int              write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
+    int              file_name_digits; //!< How many digits to use in the plotfile and checkpoint names
+    int              message_int;     //!< How often checking messages touched by user, such as "stop_run"
+    std::string      plot_file_root;  //!< Root name of plotfile.
+    std::string      small_plot_file_root;  //!< Root name of small plotfile.
 
-    int              which_level_being_advanced; // Only >=0 if we are in Amr::timeStep(level,...)
+    int              which_level_being_advanced; //!< Only >=0 if we are in Amr::timeStep(level,...)
 
     int              record_grid_info;
     int              record_run_info;
@@ -459,10 +460,10 @@ protected:
     //
     // The static data ...
     //
-    static std::list<std::string> state_plot_vars;  // State Vars to dump to plotfile 
-    static std::list<std::string> state_small_plot_vars;  // State Vars to dump to small plotfile 
-    static std::list<std::string> derive_plot_vars; // Derived Vars to dump to plotfile 
-    static std::list<std::string> derive_small_plot_vars; // Derived Vars to dump to small plotfile 
+    static std::list<std::string> state_plot_vars;  //!< State Vars to dump to plotfile
+    static std::list<std::string> state_small_plot_vars;  //!< State Vars to dump to small plotfile
+    static std::list<std::string> derive_plot_vars; //!< Derived Vars to dump to plotfile
+    static std::list<std::string> derive_small_plot_vars; //!< Derived Vars to dump to small plotfile
     static bool                   first_plotfile;
     //! Array of BoxArrays read in to initially define grid hierarchy
     static Vector<BoxArray> initial_ba;

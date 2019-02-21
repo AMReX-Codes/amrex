@@ -17,9 +17,10 @@ Package::Package()
     notified = false;
     served = false;
     request = 0;
+    tag=0;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
-//    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
 }
 
@@ -30,11 +31,11 @@ Package::~Package()
     if(databuf!= nullptr) 
       if(databuf.is_local())
       {
-#ifdef PERILLA_DEBUG
-//        memcheck.remove(memcheck.genKey(this));
-#endif
 	upcxx::delete_array(databuf);
       }
+#ifdef PERILLA_DEBUG
+        memcheck.remove(memcheck.genKey(this));
+#endif
 }
 
 Package::Package(int size)
@@ -48,9 +49,10 @@ Package::Package(int size)
     notified = false;
     served = false;
     request = 0;
+    tag=0;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
-//    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
 }
 
@@ -60,8 +62,14 @@ Package::Package(int src, int dest)
     databuf= nullptr;
     source = src;
     destination = dest;
+    completed = false;
+    notified = false;
+    served = false;
+    request = 0;
+    tag=0;
+    packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
-//    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
 }
 
@@ -78,9 +86,10 @@ Package::Package(int src, int dest, int size)
     notified = false;
     served = false;
     request = 0;
+    tag=0;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
-//    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
 }
 
@@ -124,9 +133,10 @@ void Package::generatePackage(int size)
     notified = false;
     served = false;
     request = 0;
+    tag=0;
     packageLock= PTHREAD_MUTEX_INITIALIZER;
 #ifdef PERILLA_DEBUG
-//    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
+    memcheck.add(memcheck.genKey(this), (void*)this, "Package");
 #endif
 }
 

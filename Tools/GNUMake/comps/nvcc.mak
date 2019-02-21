@@ -15,10 +15,6 @@ ifeq ($(nvcc_major_lt_8),1)
   $(error Your nvcc version is $(nvcc_version). This is unsupported. Please use CUDA toolkit version 8.0 or newer.)
 endif
 
-#ifeq ($(nvcc_version),9.2)
-#  $(warning --expt-relaxed-constexpr --expt-extended-lambda CUDA flags turned off. Incompatible with CUDA version 9.2.)
-#endif
-
 #
 # nvcc compiler driver does not always accept pgc++
 # as a host compiler at present. However, if we're using
@@ -44,12 +40,15 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
     CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
   endif
   CFLAGS_FROM_HOST := -ccbin=gcc -Xcompiler='$(CFLAGS)'
+else ifeq ($(lowercase_nvcc_host_comp),pgi)
+  CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=c++11
+  CFLAGS_FROM_HOST := -ccbin=pgcc -Xcompiler='$(CFLAGS)'
 else
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'
 endif
 
-NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH)
+NVCC_FLAGS = -Wno-deprecated-gpu-targets -m64 -arch=compute_$(CUDA_ARCH) -code=sm_$(CUDA_ARCH) -maxrregcount=$(CUDA_MAXREGCOUNT)
 
 ifeq ($(DEBUG),TRUE)
   NVCC_FLAGS += -g -G
@@ -64,7 +63,12 @@ endif
 CXXFLAGS = $(CXXFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 CFLAGS   =   $(CFLAGS_FROM_HOST) $(NVCC_FLAGS) -dc -x cu
 
-CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+ifeq ($(nvcc_version),9.2)
+  # relaxed constexpr not supported
+  CXXFLAGS += --expt-extended-lambda
+else
+  CXXFLAGS += --expt-relaxed-constexpr --expt-extended-lambda
+endif
 
 CXX = nvcc
 CC  = nvcc

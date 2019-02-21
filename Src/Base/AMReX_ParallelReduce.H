@@ -36,9 +36,11 @@ namespace detail {
         auto mpi_op = mpi_ops[static_cast<int>(op)];
         Vector<T> tmp(v, v+cnt);
         if (root == -1) {
+            // TODO: add BL_COMM_PROFILE commands
             MPI_Allreduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                           mpi_op, comm);
         } else {
+            // TODO: add BL_COMM_PROFILE commands
             MPI_Reduce(tmp.data(), v, cnt, ParallelDescriptor::Mpi_typemap<T>::type(),
                        mpi_op, root, comm);
         }
@@ -65,9 +67,15 @@ namespace detail {
     {
         auto mpi_type = ParallelDescriptor::Mpi_typemap<T>::type();
         if (root == -1) {
+            // TODO: check these BL_COMM_PROFILE commands
+            BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(T), BLProfiler::BeforeCall(),
+                            BLProfiler::NoTag());
             // const_cast for MPI-2
             MPI_Allgather(const_cast<T*>(v), cnt, mpi_type, vs, cnt, mpi_type, comm);
+            BL_COMM_PROFILE(BLProfiler::Allgather, sizeof(T), BLProfiler::AfterCall(),
+                            BLProfiler::NoTag());
         } else {
+            // TODO: add BL_COMM_PROFILE commands
             MPI_Gather(const_cast<T*>(v), cnt, mpi_type, vs, cnt, mpi_type, root, comm);
         }
     }

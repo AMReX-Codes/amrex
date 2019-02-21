@@ -18,12 +18,12 @@ namespace Cuda {
 template <class T>
 class DeviceVector
   :
-    public thrust::device_vector<T>
+        public thrust::device_vector<T, ThrustDeviceAllocator<T> >
 {
 public:
 
-    using thrust::device_vector<T>::device_vector;
-    
+    using thrust::device_vector<T, ThrustDeviceAllocator<T> >::device_vector;
+
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
     //! get access to the underlying data pointer
@@ -32,7 +32,7 @@ public:
     void assign(typename thrust::device_vector<T>::size_type count, const T& value )
     {
         thrust::fill(thrust::device, dataPtr(), dataPtr() + count, value);
-    }        
+    }
 };
 
 /**
@@ -48,7 +48,7 @@ class HostVector
 public:
 
     using thrust::host_vector<T>::host_vector;
-    
+
     //! get access to the underlying data pointer
     T* dataPtr () { return thrust::raw_pointer_cast(this->data()); }
     //! get access to the underlying data pointer
@@ -105,14 +105,14 @@ public:
 
     //! get access to the underlying data pointer
     T* data ()
-    { 
+    {
       return thrust::raw_pointer_cast(
        this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
     }
 
     //! get access to the underlying data pointer
     const T* data () const
-    { 
+    {
       return thrust::raw_pointer_cast(
        this->thrust::device_vector<T, ThrustManagedAllocator<T>>::data());
     }
@@ -133,7 +133,7 @@ public:
       return *thrust::raw_pointer_cast(
       &(this->thrust::device_vector<T, ThrustManagedAllocator<T>>::operator[](i)));
     }
-    
+
     void assign(typename thrust::host_vector<T>::size_type count, const T& value )
     {
         if (Cuda::inLaunchRegion())
@@ -149,8 +149,129 @@ public:
     }
 };
 
+/**
+
+   This is thrust::device_vector allocated using pinned memory.
+
+ **/
+template <class T>
+class PinnedDeviceVector
+    :
+    public thrust::device_vector<T, ThrustPinnedAllocator<T> >
+{
+public:
+
+    using thrust::device_vector<T, ThrustPinnedAllocator<T> >::device_vector;
+
+    //! get access to the underlying data pointer
+    T* data ()
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    const T* data () const
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    T* dataPtr () { return this->data(); }
+    //! get access to the underlying data pointer
+    const T* dataPtr () const { return this->data(); }
+
+    T& operator[] (std::size_t i)
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::operator[](i)));
+    }
+
+    const T& operator[] (std::size_t i) const
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustPinnedAllocator<T>>::operator[](i)));
+    }
+    
+    void assign(typename thrust::host_vector<T>::size_type count, const T& value )
+    {
+        if (Cuda::inLaunchRegion())
+        {
+            thrust::fill(thrust::device,
+                         thrust::raw_pointer_cast(this->data()),
+                         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+	    this->thrust::device_vector<T, ThrustPinnedAllocator<T> >::assign(count, value);
+        }
+    }
+};
+
+/**
+
+   This is thrust::device_vector allocated using either pinned or device memory, based on a
+   runtime switch.
+
+ **/
+template <class T>
+class PolymorphicDeviceVector
+    :
+    public thrust::device_vector<T, ThrustPolymorphicAllocator<T> >
+{
+public:
+
+    using thrust::device_vector<T, ThrustPolymorphicAllocator<T> >::device_vector;
+
+    //! get access to the underlying data pointer
+    T* data ()
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustPolymorphicAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    const T* data () const
+    { 
+      return thrust::raw_pointer_cast(
+       this->thrust::device_vector<T, ThrustPolymorphicAllocator<T>>::data());
+    }
+
+    //! get access to the underlying data pointer
+    T* dataPtr () { return this->data(); }
+    //! get access to the underlying data pointer
+    const T* dataPtr () const { return this->data(); }
+
+    T& operator[] (std::size_t i)
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustPolymorphicAllocator<T>>::operator[](i)));
+    }
+
+    const T& operator[] (std::size_t i) const
+    {
+      return *thrust::raw_pointer_cast(
+      &(this->thrust::device_vector<T, ThrustPolymorphicAllocator<T>>::operator[](i)));
+    }
+    
+    void assign(typename thrust::host_vector<T>::size_type count, const T& value )
+    {
+        if (Cuda::inLaunchRegion())
+        {
+            thrust::fill(thrust::device,
+                         thrust::raw_pointer_cast(this->data()),
+                         thrust::raw_pointer_cast(this->data() + count), value);
+        }
+        else
+        {
+	    this->thrust::device_vector<T, ThrustPolymorphicAllocator<T> >::assign(count, value);
+        }
+    }
+};
+
 #else
-    // When Cuda is off, all these containers revert to amrex::Vector. 
+    //! When Cuda is off, all these containers revert to amrex::Vector. 
     template <class T>
     using DeviceVector = Vector<T>;
 
@@ -162,6 +283,12 @@ public:
 
     template <class T>
     using ManagedDeviceVector = Vector<T>;
+
+    template <class T>
+    using PinnedDeviceVector = Vector<T>;
+
+    template <class T>
+    using PolymorphicDeviceVector = Vector<T>;
 #endif
 
     template<class InIter, class OutIter>
@@ -176,8 +303,8 @@ public:
 
 }
 
-    
+
 }
-    
+
 
 #endif

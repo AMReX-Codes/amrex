@@ -83,8 +83,8 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
     std::unique_ptr<MultiFab>  walls_mf_impfunc = walls_ls_gshop.fill_impfunc();
 
     Print() << "adding end caps" << std::endl;
-    ls_walls.intersection_impfunc(* walls_mf_impfunc);
-    level_set->union_impfunc(* walls_mf_impfunc);
+    ls_walls.Intersect(* walls_mf_impfunc);
+    level_set->Union(* walls_mf_impfunc);
     VisMF::Write(* ls_walls.get_data(), "LevelSet_EndCaps");
     VisMF::Write(* walls_mf_impfunc, "ImpFunc_EndCaps");
 
@@ -113,14 +113,14 @@ make_cylinder_eb2_geom(int dir, Real radius, Real length, const RealVect & trans
 
     Print() << "adding cylinder walls" << std::endl;
     std::unique_ptr<iMultiFab> flag_valid =
-        ls_cylinder.intersection_ebf(eb_factory_cylinder, * cylinder_mf_impfunc);
+        ls_cylinder.Intersect(eb_factory_cylinder, * cylinder_mf_impfunc);
 
     VisMF::Write(* ls_cylinder.get_data(), "LevelSet_SideWalls");
 
     //ls_walls.intersection_ebf(eb_factory_cylinder, * cylinder_mf_impfunc);
     //level_set->update_union(* ls_walls.get_data(), * flag_valid);
     //level_set->intersection_ebf(eb_factory_cylinder, * cylinder_mf_impfunc);
-    level_set->fill_ebf_loc(eb_factory_cylinder, * cylinder_mf_impfunc);
+    level_set->Fill(eb_factory_cylinder, * cylinder_mf_impfunc);
 
     std::unique_ptr<CappedCylinderIF> ret = std::unique_ptr<CappedCylinderIF>(
         new CappedCylinderIF(EB2::TranslationIF<EB2::UnionIF<EB2::PlaneIF,EB2::PlaneIF>>(walls_if),

@@ -8,34 +8,6 @@
 
 namespace amrex {
 
-std::size_t
-CutFab::copyFromMem (const Box&  dstbox,
-                     int         dstcomp,
-                     int         numcomp,
-                     const void* src)
-{
-    if (dptr != nullptr) {
-        return FArrayBox::copyFromMem(dstbox, dstcomp, numcomp, src);
-    } else {
-        return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
-    }
-}
-
-
-CutFab&
-CutFab::copy (const CutFab & src,
-              const Box&     srcbox,
-              int            srccomp,
-              const Box&     destbox,
-              int            destcomp,
-              int            numcomp)
-{
-    if (dptr != nullptr) {
-        FArrayBox::copy(src,srcbox,srccomp,destbox,destcomp,numcomp);
-    }
-    return *this;
-}
-
 MultiCutFab::MultiCutFab ()
 {}
 

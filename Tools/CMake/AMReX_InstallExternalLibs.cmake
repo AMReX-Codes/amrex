@@ -40,7 +40,7 @@ if (NOT BLITZ_INSTALL_DIR)
       message(FATAL_ERROR "Fatal error when running autoreconf for BLITZ ")
    endif()
 
-   if (DDEBUG)
+   if ( "${CMAKE_BUILD_TYPE}" MATCHES "Debug" )
       set(BLITZ_BUILD_TYPE_FLAG --enable-debug)
    else ()
       set(BLITZ_BUILD_TYPE_FLAG --enable-optimize)

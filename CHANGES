@@ -1,3 +1,24 @@
+# 19.02
+
+  -- Array4 class that contains the important information in BaseFab
+     class.  It can be captured by lambda and used on gpu.
+
+  -- A number of new macros for launching for loops: AMREX_FOR_1D,
+     AMREX_FOR_3D, AMREX_FOR_4D, AMREX_PARALLEL_FOR_1D,
+     AMREX_PARALLEL_FOR_3D, and AMREX_PARALLEL_FOR_4D.
+
+  -- Disable cuda aware MPI by default.  It can be enabled with
+     parameter amrex.use_gpu_aware_mpi.
+
+# 19.01
+
+  -- Documentation and Tutorials on GPU
+
+  -- EB implicit function using spline
+
+  -- FabArray::fabPtr() function takes MFIter and returns a device
+     pointer to BaseFab.
+
 # 18.12
 
   -- More GPU supports

@@ -6,16 +6,16 @@
 
 namespace amrex
 {
-  /// a one-thingy-per-box distributed object
+  //! a one-thingy-per-box distributed object
   template <class T>
   class LayoutData: public FabArrayBase
   {
   public:
 
-    ///
+    //!
     LayoutData() = default;
 
-    LayoutData(const BoxArray            & a_grids, 
+    LayoutData(const BoxArray            & a_grids,
                const DistributionMapping & a_dm)
       {
         define(a_grids, a_dm);
