@@ -7,6 +7,7 @@
 #include <new>
 #include <stack>
 #include <limits>
+#include <vector>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
@@ -19,6 +20,8 @@
 #include <AMReX_Arena.H>
 
 #include <AMReX_Gpu.H>
+
+#include <AMReX_Machine.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -69,6 +72,11 @@ namespace system
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
 }
+}
+
+namespace {
+    std::string command_line;
+    std::vector<std::string> command_arguments;
 }
 
 namespace {
@@ -390,6 +398,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     //
     prev_new_handler = std::set_new_handler(amrex::OutOfMemory);
 
+    command_line.clear();
+    command_arguments.clear();
+
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
@@ -403,6 +414,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             system::exename += "/";
         }
         system::exename += argv[0];
+
+        for (int i = 0; i < argc; ++i) {
+            if (i != 0) command_line.append(" ");
+            command_line.append(argv[i]);
+            command_arguments.push_back(std::string(argv[i]));
+        }
     }
 
 #if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
@@ -507,12 +524,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     }
 
+    ParallelDescriptor::Initialize();
+
     //
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-    ParallelDescriptor::StartTeams();
 
     Arena::Initialize();
     amrex_mempool_init();
@@ -533,6 +550,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
     BL_PROFILE_INITPARAMS();
 #endif
+    machine::Initialize();
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
@@ -569,11 +587,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
+
+    BL_TINY_PROFILE_INITIALIZE();
 }
 
 void
 amrex::Finalize (bool finalize_parallel)
 {
+    BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
 #ifdef BL_LAZY
@@ -629,8 +650,6 @@ amrex::Finalize (bool finalize_parallel)
 
     amrex_mempool_finalize();
     Arena::Finalize();
-
-    ParallelDescriptor::EndTeams();
 
 #ifndef BL_AMRPROF
     if (system::signal_handling)
@@ -691,4 +710,26 @@ std::ostream&
 amrex::ErrorStream ()
 {
     return *system::oserr;
+}
+
+std::string
+amrex::get_command ()
+{
+    return command_line;
+}
+
+int
+amrex::command_argument_count ()
+{
+    return command_arguments.size()-1;
+}
+
+std::string
+amrex::get_command_argument (int number)
+{
+    if (number < static_cast<int>(command_arguments.size())) {
+        return command_arguments[number];
+    } else {
+        return std::string();
+    }
 }

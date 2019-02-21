@@ -1,7 +1,1 @@
-CEXE_sources += main.cpp advance.cpp
-
-CEXE_headers += myfunc.H
-FEXE_headers += myfunc_F.H
-
-F90EXE_sources += init_phi_$(DIM)d.F90 
-F90EXE_sources += advance_$(DIM)d.F90
+CEXE_sources += main.cpp

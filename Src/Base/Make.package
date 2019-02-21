@@ -1,7 +1,7 @@
 
 AMREX_BASE=EXE
 
-C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H
+C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H
 
 #
 # Utility classes.
@@ -61,6 +61,9 @@ C$(AMREX_BASE)_sources += AMReX_CudaAsyncFabImpl.cpp
 
 C$(AMREX_BASE)_headers += AMReX_CudaAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_CudaAsyncArray.cpp
+
+C$(AMREX_BASE)_headers += AMReX_CudaElixir.H
+C$(AMREX_BASE)_sources += AMReX_CudaElixir.cpp
 
 #
 # I/O stuff.
@@ -145,8 +148,8 @@ C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 # Plotfile
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
-  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
+  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 endif
 
 #
@@ -211,6 +214,9 @@ ifeq ($(TINY_PROFILE),TRUE)
   C$(AMREX_BASE)_sources += AMReX_TinyProfiler.cpp
 endif
 
+# Machine model
+CEXE_headers += AMReX_Machine.H
+CEXE_sources += AMReX_Machine.cpp
 
 VPATH_LOCATIONS += $(AMREX_HOME)/Src/Base
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base

@@ -1,5 +1,5 @@
-! Miscellaneous functions for querying DVODE/CVODE integration statistics. Since DVODE and CVODE use different data structures to
-! track this data, we use our own data structure to capture the data from both solvers.
+!> Miscellaneous functions for querying DVODE/CVODE integration statistics. Since DVODE and CVODE use different data structures to
+!> track this data, we use our own data structure to capture the data from both solvers.
 
 module integrator_stats_mod
   use, intrinsic :: iso_c_binding

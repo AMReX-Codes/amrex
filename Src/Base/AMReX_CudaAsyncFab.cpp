@@ -72,5 +72,23 @@ AsyncFab::clear ()
     m_fab = nullptr;
 }
 
+FArrayBox&
+AsyncFab::hostFab () const
+{
+    return m_impl->hostFab();
+}
+
+Array4<Real const>
+AsyncFab::array () const
+{
+    return m_impl->hostFab().const_array();
+}
+
+Array4<Real>
+AsyncFab::array ()
+{
+    return m_impl->hostFab().array();
+}
+
 }
 }

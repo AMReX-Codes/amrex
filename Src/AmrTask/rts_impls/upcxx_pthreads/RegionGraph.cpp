@@ -556,7 +556,6 @@ void RegionGraph::graphTeardown()
 
     if(ParallelDescriptor::NProcs() == 1) return;
 
-#if 0
     for(int f=0; f<numfabs; f++)
     {
 	if(WorkerThread::isMyRegion(tg,f))
@@ -573,7 +572,7 @@ void RegionGraph::graphTeardown()
 			package->completed = false;
 			package->served = false;
 			package->notified = false;
-			package->request = 0;		    
+                        if(package->request) delete package->request;
 			cpDst->r_con.rcv[i].recycleQueue.enqueue(package);
 		    }
 		}
@@ -600,7 +599,7 @@ void RegionGraph::graphTeardown()
 			package->completed = false;
 			package->served = false;
 			package->notified = false;
-			package->request = 0;		    
+                        if(package->request) delete package->request;
 			cpSrc->r_con.snd[i].recycleQueue.enqueue(package);
 		    }
 		}
@@ -610,6 +609,7 @@ void RegionGraph::graphTeardown()
 	}
     }
 
+#if 0
     if(tg == 0)
     {
 	CopyMap* cpDst = rCopyMapHead;
@@ -628,7 +628,7 @@ void RegionGraph::graphTeardown()
 			package->completed = false;
 			package->served = false;
 			package->notified = false;
-			package->request = 0;
+                        if(package->request) delete package->request;
 			cpDst->map[f]->r_con.rcv[i].recycleQueue.enqueue(package);
 		    }
 		}
@@ -652,7 +652,7 @@ void RegionGraph::graphTeardown()
 			package->completed = false;
 			package->served = false;
 			package->notified = false;
-			package->request = 0;		    
+                        if(package->request) delete package->request;
 			cpSrc->map[f]->r_con.snd[i].recycleQueue.enqueue(package);
 		    }
 		}
@@ -660,11 +660,13 @@ void RegionGraph::graphTeardown()
 	    cpSrc = cpSrc->next;
 	}
     }
+#endif
 
     //if(WorkerThread::isTeamMasterThread(tid)) commented out b/c its already call by single thread in a team
     //Perilla::globalBarrier->sync(perilla::NUM_THREAD_TEAMS);
 
     // Parallel Copy Reset on Local tg
+#if 0
     if(lMap.size() > 0)
     {
 	for(int f=0; f<numfabs; f++)
@@ -678,7 +680,7 @@ void RegionGraph::graphTeardown()
 		    package->completed = false;
 		    package->served = false;
 		    package->notified = false;
-		    package->request = 0;
+                    if(package->request) delete package->request;
 		    lMap[f]->r_con.snd[i].recycleQueue.enqueue(package);
 		}
 
@@ -689,7 +691,7 @@ void RegionGraph::graphTeardown()
 		    package->completed = false;
 		    package->served = false;
 		    package->notified = false;
-		    package->request = 0;
+                    if(package->request) delete package->request;
 		    lMap[f]->r_con.rcv[i].recycleQueue.enqueue(package);
 		}
 	}
@@ -702,12 +704,11 @@ void RegionGraph::graphTeardown()
 	    for(int i=0; i< rMap[f]->r_con.nrcv; i++)
 		while( rMap[f]->r_con.rcv[i].pQueue.queueSize() >= 1)
 		{
-cout<<"AAAAAAAAAAAAAAAAAAA"<<endl;
 		    package =  rMap[f]->r_con.rcv[i].pQueue.dequeue();
 		    package->completed = false;
 		    package->served = false;
 		    package->notified = false;
-		    package->request = 0;
+                    if(package->request) delete package->request;
 		    rMap[f]->r_con.rcv[i].recycleQueue.enqueue(package);
 		}
 	    for(int i=0; i< sMap[f]->r_con.nsnd; i++)
@@ -717,9 +718,8 @@ cout<<"AAAAAAAAAAAAAAAAAAA"<<endl;
 		    package->completed = false;
 		    package->served = false;
 		    package->notified = false;
-		    package->request = 0;
+                    if(package->request) delete package->request;
 		    sMap[f]->r_con.snd[i].recycleQueue.enqueue(package);
-cout<<"BBBBBBBBBBBBBBBBBBBBBBBB"<<endl;
 		}
 	}
     }

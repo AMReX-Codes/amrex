@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <limits>
+#include <climits>
 #include <algorithm>
 
 #include <AMReX_ccse-mpi.H>
@@ -18,10 +19,6 @@
 
 namespace amrex {
 
-struct Dim3 { int x; int y; int z; };
-
-std::ostream& operator<< (std::ostream& os, const Dim3& d);
-
 /**
 * An Integer Vector in SPACEDIM-Dimensional Space
 *
@@ -31,7 +28,7 @@ std::ostream& operator<< (std::ostream& os, const Dim3& d);
 * C++ array.  In addition, the basic arithmetic operators have been overloaded
 * to implement scaling and translation operations.
 */
-	
+
 class IntVect
 {
     friend MPI_Datatype ParallelDescriptor::Mpi_typemap<IntVect>::type();
@@ -50,7 +47,7 @@ public:
 #elif AMREX_SPACEDIM == 2
 	    return ret0 ^ (ret1 << shift1);
 #else
-	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);	    
+	    return ret0 ^ (ret1 << shift1) ^ (ret2 << shift2);
 #endif
 	}
     };
@@ -62,7 +59,7 @@ public:
        This is an IntVect all of whose components are equal to zero.
     */
     static const IntVect Zero;
-    
+
     ///
     /**
        This is an IntVect all of whose components are equal to one.
@@ -74,19 +71,19 @@ public:
     * \brief Construct an IntVect whose components are all zero.
     */
     AMREX_GPU_HOST_DEVICE
-    IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
+    constexpr IntVect () : vect{AMREX_D_DECL(0,0,0)} {}
 
     /**
     * \brief Construct an IntVect given the specific values for its
     * coordinates.  AMREX_D_DECL is a macro that sets the constructor
     * to take AMREX_SPACEDIM arguments.
     */
-    AMREX_GPU_HOST_DEVICE 
-    IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
+    AMREX_GPU_HOST_DEVICE
+    constexpr IntVect (AMREX_D_DECL(int i, int j, int k)) : vect{AMREX_D_DECL(i,j,k)} {}
 
 #if (AMREX_SPACEDIM > 1)
     AMREX_GPU_HOST_DEVICE
-    explicit IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
+    explicit constexpr IntVect (int i) : vect{AMREX_D_DECL(i,i,i)} {}
 #endif
 
     /**
@@ -105,6 +102,19 @@ public:
         BL_ASSERT(a.size() == AMREX_SPACEDIM);
     }
 
+    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
+
+    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    Dim3 dim3 () const {
+#if (AMREX_SPACEDIM == 1)
+        return Dim3{vect[0],0,0};
+#elif (AMREX_SPACEDIM == 2)
+        return Dim3{vect[0],vect[1],0};
+#else
+        return Dim3{vect[0],vect[1],vect[2]};
+#endif
+    }
+
   ///
   /**
      Sum of all components of this IntVect.
@@ -116,7 +126,7 @@ public:
         return retval;
     }
 
-    /// maximum (no absolute values) value
+    //! maximum (no absolute values) value
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int max() const
     {
@@ -130,7 +140,7 @@ public:
 #endif
     }
 
-    /// minimum (no absolute values) value
+    //! minimum (no absolute values) value
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int min() const
     {
@@ -149,12 +159,11 @@ public:
     int maxDir(bool a_doAbsValue) const;
 
     //! Returns a reference to the i'th coordinate of the IntVect.
-    // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int& operator[] (int i) { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Returns the i'th coordinate of the IntVect.
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int& operator[] (int i) const { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
 
     //! Set i'th coordinate of IntVect to val.
@@ -235,7 +244,7 @@ public:
     /**
     * \brief Returns true if this is less than argument for all components.
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
-    */	
+    */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     bool allLT (const IntVect& rhs) const
     {
@@ -424,7 +433,7 @@ public:
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     IntVect& coarsen (int p);
 
-    /// for serialization
+    //! for serialization
     static size_t AMREX_INLINE
     linearSize()
     {
@@ -432,7 +441,7 @@ public:
         return retval;
     }
 
-    /// for serialization
+    //! for serialization
     void linearOut(void* a_buffer ) const;
     void linearIn(void* a_buffer );
 
@@ -443,7 +452,7 @@ public:
     * It is provided as a convenient way to specify the zero vector.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheZeroVector () {
+    static constexpr IntVect TheZeroVector () {
         return IntVect(0);
     }
     /**
@@ -453,19 +462,19 @@ public:
     * It is provided as a convenient way to specify the unit vector.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheUnitVector () {
+    static constexpr IntVect TheUnitVector () {
         return IntVect(1);
     }
     /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to zero except that
-    * the d-direction is set to one. 
+    * the d-direction is set to one.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheDimensionVector (int d) {
-        IntVect r(0);
-        r[d] = 1;
-        return r;
+    static constexpr IntVect TheDimensionVector (int d) {
+        return  (d==0) ? IntVect(AMREX_D_DECL(1,0,0)) :
+               ((d==1) ? IntVect(AMREX_D_DECL(0,1,0)) :
+                         IntVect(AMREX_D_DECL(0,0,1)));
     }
     /**
     * \brief This static member function returns a reference to a constant IntVect
@@ -473,26 +482,34 @@ public:
     * It is provided as a convenience to our users when defining Boxes.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheNodeVector () {
+    static constexpr IntVect TheNodeVector () {
         return IntVect(1);
     }
-    /** 
+    /**
     * \brief This static member function returns a reference to a constant IntVect
     * object, all of whose AMREX_SPACEDIM arguments are set to IndexType::CELL.
     * It is provided as a convenience to our users when defining Boxes.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheCellVector () {
+    static constexpr IntVect TheCellVector () {
         return IntVect(0);
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheMaxVector () {
+    static constexpr IntVect TheMaxVector () {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::max());
+#else
+        return IntVect(INT_MAX);
+#endif
     }
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    static IntVect TheMinVector () {
+    static constexpr IntVect TheMinVector () {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
         return IntVect(std::numeric_limits<int>::lowest());
+#else
+        return IntVect(INT_MIN);
+#endif
     }
 
 private:
@@ -561,7 +578,7 @@ IntVect::maxDir(bool a_doAbsValue) const
 }
 
 AMREX_INLINE
-void 
+void
 IntVect::linearOut(void* a_buffer ) const
 {
     int* intbuf = (int *) a_buffer;
@@ -574,7 +591,7 @@ IntVect::linearOut(void* a_buffer ) const
 }
 
 AMREX_INLINE
-void 
+void
 IntVect::linearIn(void* a_buffer )
 {
     int* intbuf = (int *) a_buffer;
@@ -587,12 +604,14 @@ IntVect::linearIn(void* a_buffer )
 }
 
 //! Returns p + s.
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect operator+ (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
 }
 //! Returns -p + s.
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 AMREX_GPU_HOST_DEVICE
 IntVect operator- (int s, const IntVect& p)
@@ -600,16 +619,18 @@ IntVect operator- (int s, const IntVect& p)
     return IntVect(AMREX_D_DECL(s - p[0], s - p[1], s - p[2]));
 }
 //! Returns p * s.
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect operator* (int s, const IntVect& p)
 {
     return IntVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
-    /**
-    * \brief Returns the IntVect that is the component-wise minimum of two
-    * argument IntVects.
-    */
+/**
+ * \brief Returns the IntVect that is the component-wise minimum of two
+ * argument IntVects.
+ */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 min (const IntVect& p1,
@@ -620,10 +641,11 @@ min (const IntVect& p1,
     return p;
 }
 
-    /**
-    * \brief Returns the IntVect that is the component-wise maximum of two
-    * argument IntVects.
-    */
+/**
+ * \brief Returns the IntVect that is the component-wise maximum of two
+ * argument IntVects.
+ */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 max (const IntVect& p1,
@@ -639,6 +661,7 @@ max (const IntVect& p1,
     * eg.  IntVect BASISV(1) == (0,1,0).  Note that the coordinate
     * directions are zero based.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 BASISV (int dir)
@@ -653,6 +676,7 @@ BASISV (int dir)
     * \brief Returns a IntVect obtained by multiplying each of the
     * components of this IntVect by s.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 scale (const IntVect& p, int s)
@@ -665,6 +689,7 @@ scale (const IntVect& p, int s)
     * plane which passes through ref_ix and normal to the
     * coordinate direction idir.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 reflect (const IntVect& a,
@@ -681,6 +706,7 @@ reflect (const IntVect& a,
     * \brief Returns IntVect obtained by adding s to each of the
     * components of this IntVect.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 diagShift (const IntVect& p, int s)
@@ -692,6 +718,7 @@ diagShift (const IntVect& p, int s)
     * \brief Returns an IntVect that is the component-wise integer
     * projection of p by s.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 coarsen (const IntVect& p,
@@ -707,6 +734,7 @@ coarsen (const IntVect& p,
     * \brief Returns an IntVect which is the component-wise integer
     * projection of IntVect p1 by IntVect p2.
     */
+AMREX_GPU_HOST_DEVICE
 AMREX_INLINE
 IntVect
 coarsen (const IntVect& p1,
@@ -726,6 +754,26 @@ Dim3 refine (Dim3 const& coarse, IntVect const& ratio)
     return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z};
 #else
     return {coarse.x*ratio[0], coarse.y*ratio[1], coarse.z*ratio[2]};
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+int coarsen (int i, int ratio)
+{
+    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Dim3 coarsen (Dim3 const& fine, IntVect const& ratio)
+{
+#if (AMREX_SPACEDIM == 1)
+    return {amrex::coarsen(fine.x,ratio[0]), fine.y, fine.z};
+#elif (AMREX_SPACEDIM == 2)
+    return {amrex::coarsen(fine.x,ratio[0]), amrex::coarsen(fine.y, ratio[1]), fine.z};
+#else
+    return {amrex::coarsen(fine.x, ratio[0]),
+            amrex::coarsen(fine.y, ratio[1]),
+            amrex::coarsen(fine.z, ratio[2])};
 #endif
 }
 

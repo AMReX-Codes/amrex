@@ -34,7 +34,7 @@ public:
     enum Side { low = 0, high = 1 };
     //! The default constructor.
     AMREX_GPU_HOST_DEVICE
-    Orientation ()
+    constexpr Orientation ()
         :
         val(-1) {}
     //! Set the orientation of a side.
@@ -96,8 +96,7 @@ private:
     AMREX_GPU_HOST_DEVICE
     Orientation (int v) : val(v) {}
     //
-    // The data.
-    //
+    //! The data.
     int val;
 };
 
@@ -112,7 +111,7 @@ class OrientationIter
 public:
     //! The default constructor.
     AMREX_GPU_HOST_DEVICE
-    OrientationIter ()
+    constexpr OrientationIter ()
         :
         face(0) {}
     //! Construct an iterator on the Orientation.

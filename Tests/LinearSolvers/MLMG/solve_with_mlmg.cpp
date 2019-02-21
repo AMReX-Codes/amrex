@@ -28,6 +28,9 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
                       Vector<MultiFab>& rhs, const Vector<MultiFab>& exact) {
   BL_PROFILE("solve_with_mlmg");
 
+  Real tol_rel = 1.e-10;
+  Real tol_abs = 0.0;
+
   {
     ParmParse pp;
     pp.query("composite_solve", composite_solve);
@@ -41,15 +44,14 @@ void solve_with_mlmg(const Vector<Geometry>& geom, int ref_ratio,
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
     pp.query("use_hypre", use_hypre);
+    pp.query("tol_rel", tol_rel);
+    pp.query("tol_abs", tol_abs);
   }
 
   LPInfo info;
   info.setAgglomeration(agglomeration);
   info.setConsolidation(consolidation);
   info.setMaxCoarseningLevel(max_coarsening_level);
-
-  const Real tol_rel = 1.e-10;
-  const Real tol_abs = 0.0;
 
   const int nlevels = geom.size();
 

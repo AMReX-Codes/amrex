@@ -31,4 +31,17 @@
                                                         AMREX_WRONG_NUM_ARGS, \
                                                         AMREX_WRONG_NUM_ARGS)(__VA_ARGS__)
 
+
+#define AMREX_FOR_1D(...)      AMREX_CUDA_DEVICE_FOR_1D(__VA_ARGS__)
+#define AMREX_FOR_3D(...)      AMREX_CUDA_DEVICE_FOR_3D(__VA_ARGS__)
+#define AMREX_FOR_4D(...)      AMREX_CUDA_DEVICE_FOR_4D(__VA_ARGS__)
+
+#define AMREX_PARALLEL_FOR_1D(...)      AMREX_CUDA_DEVICE_PARALLEL_FOR_1D(__VA_ARGS__)
+#define AMREX_PARALLEL_FOR_3D(...)      AMREX_CUDA_DEVICE_PARALLEL_FOR_3D(__VA_ARGS__)
+#define AMREX_PARALLEL_FOR_4D(...)      AMREX_CUDA_DEVICE_PARALLEL_FOR_4D(__VA_ARGS__)
+
+#define AMREX_HOST_DEVICE_FOR_1D(...) AMREX_CUDA_HOST_DEVICE_FOR_1D(__VA_ARGS__)
+#define AMREX_HOST_DEVICE_FOR_3D(...) AMREX_CUDA_HOST_DEVICE_FOR_3D(__VA_ARGS__)
+#define AMREX_HOST_DEVICE_FOR_4D(...) AMREX_CUDA_HOST_DEVICE_FOR_4D(__VA_ARGS__)
+
 #endif

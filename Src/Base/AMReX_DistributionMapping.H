@@ -156,7 +156,11 @@ class DistributionMapping
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
     static DistributionMapping makeSFC        (const MultiFab& weight, bool sort=true);
 
-    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba);
+    /**
+    * if use_box_vol is true, weight boxes by their volume in Distribute
+    * otherwise, all boxes will be treated with equal weight
+    */
+    static std::vector<std::vector<int> > makeSFC (const BoxArray& ba, bool use_box_vol=true);
 
 private:
 
@@ -245,13 +249,12 @@ private:
 
         void clear () { m_pmap.clear();  m_index_array.clear();   m_ownership.clear(); }
 
-        Vector<int> m_pmap; // index array for all boxes
-        Vector<int> m_index_array;  // index array for local boxes owned by the team
-        std::vector<bool> m_ownership; // true ownership
+        Vector<int> m_pmap; //!< index array for all boxes
+        Vector<int> m_index_array;  //!< index array for local boxes owned by the team
+        std::vector<bool> m_ownership; //!< true ownership
     };
     //
-    // The data -- a reference-counted pointer to a Ref.
-    //
+    //! The data -- a reference-counted pointer to a Ref.
     std::shared_ptr<Ref> m_ref;
 
 public:

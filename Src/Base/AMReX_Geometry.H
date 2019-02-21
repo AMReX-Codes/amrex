@@ -8,6 +8,7 @@
 #include <omp.h>
 #endif
 
+#include <AMReX_Array.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_RealBox.H>
@@ -52,7 +53,7 @@ struct GeometryData
  //! Returns whether the domain is periodic in the given direction.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int isPeriodic (const int i) const { return is_periodic[i]; }
- // Coordinates type
+ //! Coordinates type
     int Coord () const { return coord; }
 
 public:
@@ -82,7 +83,7 @@ public:
     Geometry& operator= (const Geometry& rhs) = default;
     Geometry& operator= (Geometry&& rhs) = default;
 
-    // Returns non-static copy of geometry's stored data.
+    //! Returns non-static copy of geometry's stored data.
     GeometryData data() const {
         return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
             {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
@@ -116,7 +117,7 @@ public:
     }
 
     static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () {
-        return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
+        return {AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))};
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
@@ -214,22 +215,35 @@ public:
                         const Box&      src,
                         Vector<IntVect>& out) const;
 
-    // Return domain box with non-periodic directions grown by ngrow.
+    //! Return domain box with non-periodic directions grown by ngrow.
     Box growNonPeriodicDomain (int ngrow) const;
-    // Return domain box with periodic directions grown by ngrow.
+    //! Return domain box with periodic directions grown by ngrow.
     Box growPeriodicDomain (int ngrow) const;
+
+    //! Set periodicity flags and return the old flags.
+    //! Note that, unlike Periodicity class, the flags are just boolean.
+    //!
+    static Array<bool,AMREX_SPACEDIM> setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) {
+        Array<bool,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
+                                                  is_periodic[1],
+                                                  is_periodic[2])};
+        AMREX_D_TERM(is_periodic[0] = period[0];,
+                     is_periodic[1] = period[1];,
+                     is_periodic[2] = period[2];);
+        return r;
+    }
 
 private:
     //! Helper functions.
     void read_params ();
-    //
-    // Static data.
-    //
+    //!
+    //! Static data.
+    //!
     static int     spherical_origin_fix;
-    static bool    is_periodic[AMREX_SPACEDIM]; // 0 means not periodic
+    static bool    is_periodic[AMREX_SPACEDIM]; //!< 0 means not periodic
     static RealBox prob_domain;
-    // Non-static data.
-    //
+    //! Non-static data.
+    //!
     Box domain;
 };
 

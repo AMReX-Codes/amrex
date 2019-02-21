@@ -23,7 +23,7 @@
 // iv - IntVect in absolute coordiantes
 // m - variable / component
 // l - multivalued index
-#define AMREX_BASEUMAP_KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv)) 
+#define AMREX_BASEUMAP_KIDX(iv,m,l) (l*domain.numPts()*nvar + m*domain.numPts() + domain.index(iv))
 
 namespace amrex
 {
@@ -84,36 +84,40 @@ namespace amrex
         const const_iterator end () const {return const_iterator(*this, data_key_tuple_map.end()->first);}
         size_t size() const {return data_key_tuple_map.size();}
 
-        // Constructor
-        // bx is index space covered by this Umap, which
-        //      ends up being the size of the array to lookup offsets
-        //      into the data array
-        // a_nvar is number of components
-        // lmax is maximum number of values in a multi valued cell
+        /**
+        * \brief Constructor
+        *
+        * \param bx         index space covered by this Umap, which
+        *      ends up being the size of the array to lookup offsets
+        *      into the data array
+        * \param a_nvar     number of components
+        * \param lmax       maximum number of values in a multi valued cell
+        */
         BaseUmap (const Box& bx, int a_nvar, int lmax = 5);
         ~BaseUmap ();
-    
+
         //! Returns the domain (box) where the array is defined
         const Box& box () const { return domain; }
- 
+
         //! Returns max_mv
         int MaxMV () const { return max_mv; }
- 
-        int nPts () const { return data.size();}
+
+        int numPts () const { return data.size();}
 
         int nComp () const {return nvar;}
 
-
-        // Build the key from the IntVect, component, and multi-valued index
-        // For array based implementation this is offset into array
+        /**
+        * \brief Build the key from the IntVect, component, and multi-valued index
+        * For array based implementation this is offset into array
+        */
         int key (const IntVect& pos, const int n, const int l) const;
 
-        void set_key (const IntVect& pos, 
+        void set_key (const IntVect& pos,
                       const int n,
                       const int l,
                       const int k );
 
-        // Store value at (IntVect, ncomp, l)
+        //! Store value at (IntVect, ncomp, l)
         void setVal (T val,
                      const IntVect& pos,
                      const int ncomp,
@@ -130,7 +134,7 @@ namespace amrex
         T& operator() (const IntVect& pos,
                        int            ncomp,
                        int            l);
- 
+
         const T& operator() (const IntVect& pos,
                              int            ncomp,
                              int            l) const;
@@ -147,9 +151,9 @@ namespace amrex
         //! Same as above except works on const UMaps.
         const key_table_type* keyTablePtr (int n = 0) const { BL_ASSERT(!(key_table == 0)); return key_table; }
 
-        
+
     protected:
-    
+
         //! Allocates memory for key_table and vector of data
         void define();
 
@@ -179,7 +183,7 @@ namespace amrex
     {
         return getVal(pos,ncomp,l);
     }
-    
+
     template <class T>
     inline
     const T&
@@ -189,7 +193,7 @@ namespace amrex
     {
         return getVal(pos,ncomp,l);
     }
-    
+
     template <class T>
     BaseUmap<T>::BaseUmap (const Box& bx, int a_nvar, int lmax)
         :
@@ -246,11 +250,11 @@ namespace amrex
     BaseUmap<T>::~BaseUmap ()
     {
         clear();
-    }   
+    }
 
     template <class T>
     int
-    BaseUmap<T>::key (const IntVect& pos, 
+    BaseUmap<T>::key (const IntVect& pos,
                       const int n,
                       const int l ) const
     {
@@ -265,7 +269,7 @@ namespace amrex
 
     template <class T>
     void
-    BaseUmap<T>::set_key (const IntVect& pos, 
+    BaseUmap<T>::set_key (const IntVect& pos,
                           const int n,
                           const int l,
                           const int k )

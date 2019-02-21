@@ -32,51 +32,55 @@ public:
     void set_ofs_name (std::string filename);
     std::ofstream * get_ofs_ptr ();
 
-    // sub-communicator associated with frame
+    //! sub-communicator associated with frame
     MPI_Comm comm = MPI_COMM_NULL;
-    MPI_Group group = MPI_GROUP_NULL; // to avoid repeatedly creating groups in rank translation
+    MPI_Group group = MPI_GROUP_NULL; //!< to avoid repeatedly creating groups in rank translation
 
 private:
-    int m_id      = -1; // frame ID
-    int m_rank_me = -1; // local rank
-    int m_nranks  =  0; // local # of ranks
+    int m_id      = -1; //!< frame ID
+    int m_rank_me = -1; //!< local rank
+    int m_nranks  =  0; //!< local # of ranks
     int m_mpi_tag = -1;
     int m_io_rank = -1;
     std::string m_out_filename;
     std::unique_ptr<std::ofstream> m_out;
 };
 
-extern Vector<Frame> frames; // stack of communicator frames
+extern Vector<Frame> frames; //!< stack of communicator frames
 
-// world communicator
+//! world communicator
 inline MPI_Comm CommunicatorAll () { return frames[0].comm; }
-// world group
+//! world group
 inline MPI_Group GroupAll () { return frames[0].group; }
-// number of ranks in world communicator
+//! number of ranks in world communicator
 inline int NProcsAll () { return frames[0].NProcs(); }
-// my rank in world communicator
+//! my rank in world communicator
 inline int MyProcAll () { return frames[0].MyProc(); }
-// IO rank in world communicator
+//! IO rank in world communicator
 inline int IOProcessorNumberAll () { return frames[0].IOProc(); }
-// Pointer to ofstream
+//! Am IO processor for world communicator?
+inline bool IOProcessorAll () { return MyProcAll() == IOProcessorNumberAll(); }
+//! Pointer to ofstream
 inline std::ofstream * OFSPtrAll () { return frames[0].get_ofs_ptr(); }
 
-// sub-communicator for current frame
+//! sub-communicator for current frame
 inline MPI_Comm CommunicatorSub () { return frames.back().comm; }
-// sub-group for current frame
+//! sub-group for current frame
 inline MPI_Group GroupSub () { return frames.back().group; }
-// number of ranks in current frame
+//! number of ranks in current frame
 inline int NProcsSub () { return frames.back().NProcs(); }
-// my sub-rank in current frame
+//! my sub-rank in current frame
 inline int MyProcSub () { return frames.back().MyProc(); }
-// IO sub-rank in current frame
+//! IO sub-rank in current frame
 inline int IOProcessorNumberSub () { return frames.back().IOProc(); }
-// Pointer to ofstream
+//! Am IO processor for current frame?
+inline bool IOProcessorSub () { return MyProcSub() == IOProcessorNumberSub(); }
+//! Pointer to ofstream
 inline std::ofstream * OFSPtrSub () { return frames.back().get_ofs_ptr(); }
 
-// get and increment mpi tag in current frame
+//! get and increment mpi tag in current frame
 inline int get_inc_mpi_tag () { return frames.back().get_inc_mpi_tag(); }
-// translate between local rank and global rank
+//! translate between local rank and global rank
 inline int local_to_global_rank (int rank) { return frames.back().local_to_global_rank(rank); }
 inline void local_to_global_rank (int* global, const int* local, int n)
     { frames.back().local_to_global_rank(global, local, n); }
@@ -89,7 +93,7 @@ inline void push (MPI_Comm c, int id, int io_rank) { frames.emplace_back(c, id, 
 inline void set_last_frame_ofs (const std::string & filename) {
     frames.back().set_ofs_name(filename);
 }
-// Note that it's the user's responsibility to free the MPI_Comm
+//! Note that it's the user's responsibility to free the MPI_Comm
 inline void pop () { frames.pop_back(); }
 
 }}

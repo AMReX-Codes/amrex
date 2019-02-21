@@ -8,27 +8,27 @@ module amrex_lp_module
 contains
 
 !-----------------------------------------------------------------------
-!      
-!     Gauss-Seidel Red-Black (GSRB):
-!     Apply the GSRB relaxation to the state phi for the equation
-!     L(phi) = Div(Grad(phi(x))) = rhs(x) central differenced, according
-!     to the arrays of boundary masks (m#) and auxiliary data (f#).
-!     
-!     In general, if the linear operator L=gamma*y-rho, the GS relaxation
-!     is y = (R - rho)/gamma.  Near a boundary, the ghost data is filled
-!     using a polynomial interpolant based on the "old" phi values, so
-!     L=(gamma-delta)*y - rho + delta*yOld.   The resulting iteration is
-!     
-!     y = (R - delta*yOld + rho)/(gamma - delta)
-!     
-!     This expression is valid additionally in the interior provided
-!     delta->0 there.  delta is constructed by summing all the
-!     contributions to the central stencil element coming from boundary 
-!     interpolants.  The f#s contain the corresponding coefficient of 
-!     the interpolating polynomial.  The masks are set > 0 if the boundary 
-!     value was filled with an interpolant involving the central stencil 
-!     element.
-!     
+!>
+!>     Gauss-Seidel Red-Black (GSRB):
+!>     Apply the GSRB relaxation to the state phi for the equation
+!>     ``L(phi) = Div(Grad(phi(x))) = rhs(x)`` central differenced, according
+!>     to the arrays of boundary masks (m#) and auxiliary data (f#).
+!>
+!>     In general, if the linear operator ``L=gamma*y-rho``, the GS relaxation
+!>     is ``y = (R - rho)/gamma``.  Near a boundary, the ghost data is filled
+!>     using a polynomial interpolant based on the "old" phi values, so
+!>     ``L=(gamma-delta)*y - rho + delta*yOld``.   The resulting iteration is
+!>
+!>     ``y = (R - delta*yOld + rho)/(gamma - delta)``
+!>
+!>     This expression is valid additionally in the interior provided
+!>     delta->0 there.  delta is constructed by summing all the
+!>     contributions to the central stencil element coming from boundary
+!>     interpolants.  The f#s contain the corresponding coefficient of
+!>     the interpolating polynomial.  The masks are set > 0 if the boundary
+!>     value was filled with an interpolant involving the central stencil
+!>     element.
+!>
 !-----------------------------------------------------------------------
     subroutine amrex_lp_gsrb ( &
            phi, phi_l1,phi_l2,phi_h1,phi_h2, &
@@ -79,7 +79,7 @@ contains
          do j = lo(2), hi(2)
             ioff = MOD(lo(1) + j +  redblack, 2)
             do i = lo(1) + ioff,hi(1),2
-     
+
                cf0 = merge(f0(blo(1),j), 0.0D0, &
                     (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
                cf1 = merge(f1(i,blo(2)), 0.0D0, &
@@ -100,12 +100,12 @@ contains
             end do
          end do
       end do
-      
+
     end subroutine amrex_lp_gsrb
 !-----------------------------------------------------------------------
-!
-!     Fill in a matrix x vector operator here
-!
+!>
+!>     Fill in a matrix x vector operator here
+!>
     subroutine amrex_lp_adotx( &
            y, y_l1,y_l2,y_h1,y_h2, &
            x, x_l1,x_l2,x_h1,x_h2, &
@@ -143,9 +143,9 @@ contains
     end subroutine amrex_lp_adotx
 
 !-----------------------------------------------------------------------
-!
-!     Fill in fluxes
-!
+!>
+!>     Fill in fluxes
+!>
     subroutine amrex_lp_flux( &
            x,x_l1,x_l2,x_h1,x_h2, &
            xlo,xhi, &

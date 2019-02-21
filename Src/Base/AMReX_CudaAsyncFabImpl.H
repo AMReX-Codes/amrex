@@ -20,23 +20,35 @@ public:
     void operator= (AsyncFabImpl const&) = delete;
 
     FArrayBox* fabPtr ();
+    FArrayBox& hostFab ();
 
     static void Initialize ();
     static void Finalize ();
 
 private:
-    FArrayBox                  m_cpu_fab;
+
 #ifdef AMREX_USE_CUDA
+
+#ifdef AMREX_FAB_IS_PINNED
+
+    std::unique_ptr<FArrayBox> m_gpu_fab;
+
+#else
+
+    FArrayBox                  m_cpu_fab;
     std::unique_ptr<FArrayBox> m_gpu_fab;
     BaseFabData<Real>          m_cpu_fab_data;
+
+    void copy_htod ();
+
+#endif
+
 #else
+    // cpu version
+    FArrayBox                  m_cpu_fab;
     FArrayBox*                 m_cpu_fab_alias = nullptr;
 #endif
 
-
-#ifdef AMREX_USE_CUDA
-    void copy_htod ();
-#endif
 };
 
 }

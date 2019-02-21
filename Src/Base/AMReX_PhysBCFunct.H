@@ -28,7 +28,7 @@ typedef void (*UserFillBox) (Box const& bx, FArrayBox& dest,
                              const BCRec* bcr, const int bcomp,
                              const int orig_comp);
 
-// This version calls function working on array
+//! This version calls function working on array
 class BndryFuncArray
 {
 public:
@@ -51,9 +51,11 @@ protected:
     bool m_run_on_gpu = false;
 };
 
-// In this gpu version, F is provided by the user.  It needs to have a
-// __device__ operator() that can work on a cell for boundaries not
-// handled by amrex_fab_filcc.
+/**
+* In this gpu version, F is provided by the user.  It needs to have a
+* __device__ operator() that can work on a cell for boundaries not
+* handled by amrex_fab_filcc.
+*/
 template <class F>
 class GpuBndryFuncFab
 {
@@ -70,7 +72,7 @@ protected:
     F m_user_f;
 };
 
-// This cpu version calls function working on FArrayBox
+//! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {
 public:
@@ -89,8 +91,9 @@ protected:
 
 class PhysBCFunctBase {
 public:
-    // note this is pure virtual and must be implemented in a derived class
-    // (see PhysBCFunct below for an example)
+    //! note this is pure virtual and must be implemented in a derived class
+    //! (see PhysBCFunct below for an example)
+    //!
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) = 0;
     virtual ~PhysBCFunctBase () = 0;
 };
@@ -127,14 +130,15 @@ public:
         const RealBox& prob_domain = m_geom.ProbDomain();
         const Real*    problo      = prob_domain.lo();
 
-        // create a grown domain box containing valid + periodic cells
+        //! create a grown domain box containing valid + periodic cells
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
+        const IntVect& ngrow = mf.nGrowVect();
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             if (m_geom.isPeriodic(i)) {
-                gdomain.grow(i, mf.nGrow());
+                gdomain.grow(i, ngrow[i]);
             }
         }
-        
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -142,17 +146,18 @@ public:
             Vector<BCRec> bcrs(ncomp);
             for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
-                FArrayBox* dest = Gpu::notInLaunchRegion() ? &(mf[mfi]) : mf.fabPtr(mfi);
+                FArrayBox* dest = mf.fabPtr(mfi);
                 const Box& bx = mfi.fabbox();
-                
-                // if there are cells not in the valid + periodic grown box
-                // we need to fill them here
+
+                //! if there are cells not in the valid + periodic grown box
+                //! we need to fill them here
+                //!
                 if (!gdomain.contains(bx))
                 {
-                    // Based on BCRec for the domain, we need to make BCRec for this Box
+                    //! Based on BCRec for the domain, we need to make BCRec for this Box
                     amrex::setBC(bx, domain, bccomp, 0, ncomp, m_bcr, bcrs);
 
-                    // Note that we pass 0 as starting component of bcrs.
+                    //! Note that we pass 0 as starting component of bcrs.
                     m_f(bx, *dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
                 }
             }
@@ -176,7 +181,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
     FArrayBox* fab = &dest;
     const auto geomdata = geom.data();
 
-    Gpu::AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
     BCRec* bcr_p = bcr_aa.data();
 
     const IntVect& len = bx.length();
@@ -209,7 +214,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         }
         const int n_face_boxes = face_boxes.size();
         if (n_face_boxes > 0) {
-            Gpu::AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
+            AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
             Box* boxes_p = face_boxes_aa.data();
 
             long ncells = 0;
@@ -262,7 +267,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         }
         const int n_edge_boxes = edge_boxes.size();
         if (n_edge_boxes > 0) {
-            Gpu::AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
+            AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
             Box* boxes_p = edge_boxes_aa.data();
 
             long ncells = 0;
@@ -302,7 +307,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
         }
         const int n_corner_boxes = corner_boxes.size();
         if (n_corner_boxes > 0) {
-            Gpu::AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
+            AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
             Box* boxes_p = corner_boxes_aa.data();
 
             long ncells = 0;

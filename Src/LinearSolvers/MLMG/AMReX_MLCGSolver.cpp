@@ -80,7 +80,7 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
                             Real            eps_rel,
                             Real            eps_abs)
 {
-    BL_PROFILE_REGION("MLCGSolver::bicgstab");
+    BL_PROFILE("MLCGSolver::bicgstab");
 
     const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
@@ -192,7 +192,9 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
         //
         Real tvals[2] = { dotxy(t,t,true), dotxy(t,s,true) };
 
+        BL_PROFILE_VAR("MLCGSolver::ParallelAllReduce", blp_par);
         ParallelAllReduce::Sum(tvals,2,Lp.BottomCommunicator());
+        BL_PROFILE_VAR_STOP(blp_par);
 
         if ( tvals[0] )
 	{
@@ -260,7 +262,7 @@ MLCGSolver::solve_cg (MultiFab&       sol,
                       Real            eps_rel,
                       Real            eps_abs)
 {
-    BL_PROFILE_REGION("MLCGSolver::cg");
+    BL_PROFILE("MLCGSolver::cg");
 
     const int nghost = sol.nGrow(), ncomp = sol.nComp();
 
@@ -390,7 +392,11 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 Real
 MLCGSolver::dotxy (const MultiFab& r, const MultiFab& z, bool local)
 {
-    return Lp.xdoty(amrlev, mglev, r, z, local);
+    BL_PROFILE_VAR_NS("MLCGSolver::ParallelAllReduce", blp_par);
+    if (!local) { BL_PROFILE_VAR_START(blp_par); }
+    Real result = Lp.xdoty(amrlev, mglev, r, z, local);
+    if (!local) { BL_PROFILE_VAR_STOP(blp_par); }
+    return result;
 }
 
 Real
@@ -402,6 +408,7 @@ MLCGSolver::norm_inf (const MultiFab& res, bool local)
       result = std::max(result,res.norm0(n,0,true));
 
     if (!local) {
+        BL_PROFILE("MLCGSolver::ParallelAllReduce");
         ParallelAllReduce::Max(result, Lp.BottomCommunicator());
     }
     return result;

@@ -16,7 +16,18 @@ namespace amrex
 
 namespace functors
 {
-  
+
+    struct tupleAdd
+    {
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE
+        T operator()(T v1, T v2)  {
+            thrust::get<0>(v1) = thrust::get<0>(v2) + thrust::get<0>(v1);
+            thrust::get<1>(v1) = thrust::get<1>(v2) + thrust::get<1>(v1);
+            return v1 ;
+        }
+    };
+    
     struct applyParticlePeriodicBCs
     {
         GeometryData domain;

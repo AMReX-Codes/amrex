@@ -7,14 +7,14 @@ module amrex_abec_util_module
 contains
 
 !-----------------------------------------------------------------------
-!
-!     Tridiagonal solve
-!
+!>
+!>     Tridiagonal solve
+!>
     subroutine tridiag(a,b,c,r,u,n)
- 
+
       integer n
       integer nmax
-  
+
       real(amrex_real) a(n)
       real(amrex_real) b(n)
       real(amrex_real) c(n)

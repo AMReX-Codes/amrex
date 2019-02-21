@@ -1,7 +1,7 @@
 #
 # Utility classes
 #
-add_sources( AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H )
+add_sources( AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H )
 add_sources( AMReX.cpp AMReX_error_fi.cpp )
 
 add_sources( AMReX.H AMReX_Exception.H )
@@ -101,6 +101,8 @@ add_sources( AMReX_BCRec.H AMReX_PhysBCFunct.H AMReX_BC_TYPES.H AMReX_BCUtil.H )
 # 
 add_sources( AMReX_PlotFileUtil.cpp )
 add_sources( AMReX_PlotFileUtil.H )
+add_sources( AMReX_PlotFileDataImpl.H )
+add_sources( AMReX_PlotFileDataImpl.cpp )
 
 #
 # Fortran interface routines.
@@ -128,6 +130,8 @@ add_sources( AMReX_io_mod.F90 )
 
 add_sources( AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 
+# Machine model
+add_sources ( AMReX_Machine.H AMReX_Machine.cpp )
 
 # LAZY mode not supported in CMake yet
 # ifeq ($(LAZY),TRUE)
@@ -175,5 +179,6 @@ add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
 add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
+add_sources( AMReX_CudaElixir.H AMReX_CudaElixir.cpp )
 #endif()
 

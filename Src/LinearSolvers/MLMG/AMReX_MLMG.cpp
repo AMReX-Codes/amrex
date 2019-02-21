@@ -4,6 +4,7 @@
 #include <AMReX_MLCGSolver.H>
 #include <AMReX_BC_TYPES.H>
 #include <AMReX_MLMG_F.H>
+#include <AMReX_MLMG_K.H>
 #include <AMReX_MLABecLaplacian.H>
 
 #ifdef AMREX_USE_PETSC
@@ -53,7 +54,6 @@ Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
              Real a_tol_rel, Real a_tol_abs)
 {
-    BL_PROFILE_REGION("MLMG::solve()");
     BL_PROFILE("MLMG::solve()");
 
     if (bottom_solver == BottomSolver::hypre) {
@@ -357,21 +357,38 @@ MLMG::miniCycle (int amrlev)
     mgVcycle(amrlev, mglev);
 }
 
+namespace {
+
+void make_str_helper (std::ostringstream & oss) { }
+
+template <class T, class... Ts>
+void make_str_helper (std::ostringstream & oss, T x, Ts... xs) {
+    oss << x;
+    make_str_helper(oss, xs...);
+}
+
+template <class... Ts>
+std::string make_str (Ts... xs) {
+    std::ostringstream oss;
+    make_str_helper(oss, xs...);
+    return oss.str();
+}
+
+}
+
 // in   : Residual (res) 
 // out  : Correction (cor) from bottom to this function's local top
 void
 MLMG::mgVcycle (int amrlev, int mglev_top)
 {
     BL_PROFILE("MLMG::mgVcycle()");
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_up", blp_up);
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_bottom", blp_bottom);
-    BL_PROFILE_VAR_NS("MLMG::mgVcycle_down", blp_down);
 
     const int mglev_bottom = linop.NMGLevels(amrlev) - 1;
 
-    BL_PROFILE_VAR_START(blp_down);
     for (int mglev = mglev_top; mglev < mglev_bottom; ++mglev)
     {
+        std::string blp_mgv_down_lev_str = make_str("MLMG::mgVcycle_down::", mglev);
+        BL_PROFILE_VAR(blp_mgv_down_lev_str, blp_mgv_down_lev);
 
         if (verbose >= 4)
         {
@@ -402,9 +419,8 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
         linop.restriction(amrlev, mglev+1, res[amrlev][mglev+1], rescor[amrlev][mglev]);
 
     }
-    BL_PROFILE_VAR_STOP(blp_down);
 
-    BL_PROFILE_VAR_START(blp_bottom);
+    BL_PROFILE_VAR("MLMG::mgVcycle_bottom", blp_bottom);
     if (amrlev == 0)
     {
         if (verbose >= 4)
@@ -414,6 +430,13 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
                            << "   DN: Norm before bottom " << norm << "\n";
         }
         bottomSolve();
+        if (verbose >= 4)
+        {
+            computeResOfCorrection(amrlev, mglev_bottom);
+            Real norm = rescor[amrlev][mglev_bottom].norm0();
+            amrex::Print() << "AT LEVEL "  << amrlev << " " << mglev_bottom
+                           << "   UP: Norm after  bottom " << norm << "\n";
+        }
     }
     else
     {
@@ -440,9 +463,10 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
     }
     BL_PROFILE_VAR_STOP(blp_bottom);
 
-    BL_PROFILE_VAR_START(blp_up);
     for (int mglev = mglev_bottom-1; mglev >= mglev_top; --mglev)
     {
+        std::string blp_mgv_up_lev_str = make_str("MLMG::mgVcycle_up::", mglev);
+        BL_PROFILE_VAR(blp_mgv_up_lev_str, blp_mgv_up_lev);
         // cor_fine += I(cor_crse)
         addInterpCorrection(amrlev, mglev);
         if (verbose >= 4)
@@ -463,7 +487,6 @@ MLMG::mgVcycle (int amrlev, int mglev_top)
                            << "   UP: Norm after  smooth " << norm << "\n";
         }
     }
-    BL_PROFILE_VAR_STOP(blp_up);
 }
 
 // FMG cycle on the coarsest AMR level.
@@ -508,6 +531,7 @@ MLMG::mgFcycle ()
 void
 MLMG::interpCorrection (int alev)
 {
+    // todo: gpu
     BL_PROFILE("MLMG::interpCorrection_1");
 
     const int ncomp = linop.getNComp();
@@ -537,10 +561,13 @@ MLMG::interpCorrection (int alev)
 
     if (linop.isCellCentered())
     {
+        Gpu::LaunchSafeGuard(!isEB); // turn off gpu for eb for now TODO
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
 #ifdef AMREX_USE_EB
@@ -569,11 +596,28 @@ MLMG::interpCorrection (int alev)
 #endif
             if (call_lincc)
             {
-                amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                         BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                         &refratio[0],
-                                         &ncomp);
+                const auto& ff = fine_cor.array(mfi);
+                const auto& cc = cfine.array(mfi);
+                switch(refratio[0]) {
+                case 2:
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                    });
+                    break;
+                }
+                case 4:
+                {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                    {
+                        mlmg_lin_cc_interp_r4(tbx, ff, cc, ncomp);
+                    });
+                    break;
+                }
+                default:
+                    amrex::Abort("mlmg_lin_cc_interp: only refratio 2 and 4 are supported");
+                }
             }
         }
     }
@@ -608,6 +652,7 @@ MLMG::interpCorrection (int alev)
 void
 MLMG::interpCorrection (int alev, int mglev)
 {
+    // todo: gpu
     BL_PROFILE("MLMG::interpCorrection_2");
 
     MultiFab& crse_cor = *cor[alev][mglev+1];
@@ -647,10 +692,13 @@ MLMG::interpCorrection (int alev, int mglev)
 
     if (linop.isCellCentered())
     {
+        Gpu::LaunchSafeGuard(!isEB); // turn off gpu for eb for now TODO
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(fine_cor, MFItInfo().EnableTiling().SetDynamic(true)); mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_cor, mfi_info); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
 #ifdef AMREX_USE_EB
@@ -678,10 +726,12 @@ MLMG::interpCorrection (int alev, int mglev)
 #endif
             if (call_lincc)
             {
-                amrex_mlmg_lin_cc_interp(BL_TO_FORTRAN_BOX(bx),
-                                         BL_TO_FORTRAN_ANYD(fine_cor[mfi]),
-                                         BL_TO_FORTRAN_ANYD(  (*cmf)[mfi]),
-                                         &refratio,&ncomp);
+                const auto& ff = fine_cor.array(mfi);
+                const auto& cc = cmf->array(mfi);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+                {
+                    mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                });
             }
         }
     }
@@ -851,9 +901,12 @@ MLMG::actualBottomSolve ()
             const Real cg_rtol = bottom_reltol;
             const Real cg_atol = -1.0;
             int ret = cg_solver.solve(x, *bottom_b, cg_rtol, cg_atol);
-            if (ret != 0 && verbose >= 1) {
+            if (ret != 0 && verbose > 1) {
                 amrex::Print() << "MLMG: Bottom solve failed.\n";
             }
+            // If the MLMG solve failed then set the correction to zero 
+            if (ret != 0)
+                cor[amrlev][mglev]->setVal(0.0);
             const int n = ret==0 ? nub : nuf;
             for (int i = 0; i < n; ++i) {
                 linop.smooth(amrlev, mglev, x, b);
@@ -1451,7 +1504,6 @@ MLMG::computeVolInv ()
 
     if (linop.isCellCentered())
     { 
-        Real temp1, temp2;    
         volinv.resize(namrlevs);
         for (int amrlev = 0; amrlev < namrlevs; ++amrlev) {
             volinv[amrlev].resize(linop.NMGLevels(amrlev));
@@ -1481,6 +1533,7 @@ MLMG::computeVolInv ()
         f(0,mgbottom);
 
 #ifdef AMREX_USE_EB
+        Real temp1, temp2;
         if (rhs[0].hasEBFabFactory())
         {
             ParallelAllReduce::Sum<Real>({volinv[0][0], volinv[0][mgbottom]},

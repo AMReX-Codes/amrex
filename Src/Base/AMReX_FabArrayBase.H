@@ -45,7 +45,7 @@ public:
 
     virtual ~FabArrayBase();
 
-    FabArrayBase (FabArrayBase&& rhs) noexcept = default;    
+    FabArrayBase (FabArrayBase&& rhs) noexcept = default;
     FabArrayBase (const FabArrayBase& rhs) = default;
     FabArrayBase& operator= (const FabArrayBase& rhs) = default;
     FabArrayBase& operator= (FabArrayBase&& rhs) = default;
@@ -70,7 +70,7 @@ public:
 
     //! Return index type.
     IndexType ixType () const { return boxarray.ixType(); }
-    
+
     //Return whether this FabArray is empty
     bool empty () const { return boxarray.empty(); }
 
@@ -102,7 +102,7 @@ public:
     const Vector<int> &IndexArray () const { return indexArray; }
 
     //! Return local index in the vector of FABs.
-    int localindex (int K) const { 
+    int localindex (int K) const {
         std::vector<int>::const_iterator low
             = std::lower_bound(indexArray.begin(), indexArray.end(), K);
         if (low != indexArray.end() && *low == K) {
@@ -119,24 +119,24 @@ public:
     //
     struct CacheStats
     {
-	int         size;     // current size: nbuild - nerase
-	int         maxsize;  // highest water mark of size
-	int         maxuse;   // max # of uses of a cached item
-	long        nuse;     // # of uses of the whole cache
-	long        nbuild;   // # of build operations
-	long        nerase;   // # of erase operations
+	int         size;     //!< current size: nbuild - nerase
+	int         maxsize;  //!< highest water mark of size
+	int         maxuse;   //!< max # of uses of a cached item
+	long        nuse;     //!< # of uses of the whole cache
+	long        nbuild;   //!< # of build operations
+	long        nerase;   //!< # of erase operations
 	long        bytes;
 	long        bytes_hwm;
-	std::string name;     // name of the cache
-	CacheStats (const std::string& name_) 
+	std::string name;     //!< name of the cache
+	CacheStats (const std::string& name_)
 	    : size(0),maxsize(0),maxuse(0),nuse(0),nbuild(0),nerase(0),
 	      bytes(0L),bytes_hwm(0L),name(name_) {;}
 	void recordBuild () {
-	    ++size;  
-	    ++nbuild;  
-	    maxsize = std::max(maxsize, size); 
+	    ++size;
+	    ++nbuild;
+	    maxsize = std::max(maxsize, size);
 	}
-	void recordErase (int n) { 
+	void recordErase (int n) {
 	    // n: how many times the item to be deleted has been used.
 	    --size;
 	    ++nerase;
@@ -153,8 +153,7 @@ public:
 	}
     };
     //
-    // Used by a bunch of routines when communicating via MPI.
-    //
+    //! Used by a bunch of routines when communicating via MPI.
     struct CopyComTag
     {
 	Box dbox;
@@ -186,9 +185,11 @@ public:
     //
     static long bytesOfMapOfCopyComTagContainers (const MapOfCopyComTagContainers&);
 
-    // Key for unique combination of BoxArray and DistributionMapping
-    // Note both BoxArray and DistributionMapping are reference counted.
-    // Objects with the same references have the same key.
+    /**
+    * Key for unique combination of BoxArray and DistributionMapping
+    * Note both BoxArray and DistributionMapping are reference counted.
+    * Objects with the same references have the same key.
+    */
     struct BDKey {
         BDKey () = default;
         BDKey (const BoxArray::RefID& baid, const DistributionMapping::RefID& dmid)
@@ -216,13 +217,12 @@ public:
     void updateBDKey ();
 
     //
-    // Tiling
-    //
+    //! Tiling
     struct TileArray
     {
 	int nuse;
 	Vector<int> numLocalTiles;
-	Vector<int> indexMap;	
+	Vector<int> indexMap;
 	Vector<int> localIndexMap;
 	Vector<int> localTileIndexMap;
 	Vector<Box> tileArray;
@@ -231,8 +231,7 @@ public:
     };
 
     //
-    // Used for collecting information used in communicating FABs.
-    //
+    //! Used for collecting information used in communicating FABs.
     struct FabComTag
     {
         int fromProc;
@@ -264,44 +263,25 @@ public:
             procThatNeedsData(0),
             procThatHasData(0) {}
     };
-    //
-    // Default tilesize in MFIter
-    //
+
+    //! Default tilesize in MFIter
     static IntVect mfiter_tile_size;
-    //
-    // Default tilesize in MFGhostIter
-    //
+
+    //! Default tilesize in MFGhostIter
     static IntVect mfghostiter_tile_size;
-    //
-    // The maximum number of components to copy() at a time.
-    //
+
+    //! The maximum number of components to copy() at a time.
     static int MaxComp;
-    //
-    // Whether to use CUDA-aware MPI.
-    // If true, MPI buffers will be staged on the GPU and sent
-    // directly from there; if false, the MPI staging buffers
-    // will be on the host.
-    //
-    static int use_cuda_aware_mpi;
-    //
-    // Use MPI_Asend() instead of MPI_Send() in CollectData() and copy().
-    //
-    // Turn off via ParmParse using "fabarray.do_async_sends=0" in inputs file.
-    //
-    // Default is true.
-    //
-    static bool do_async_sends;
-    //
-    // Initialize from ParmParse with "fabarray" prefix.
-    //
+
+    //! Initialize from ParmParse with "fabarray" prefix.
     static void Initialize ();
     static void Finalize ();
-    //
-    // To maximize thread efficiency we now can decompose things like
-    // intersections among boxes into smaller tiles. This sets
-    // their maximum size.
-    //
-    static IntVect comm_tile_size;  // communication tile size
+    /**
+    * To maximize thread efficiency we now can decompose things like
+    * intersections among boxes into smaller tiles. This sets
+    * their maximum size.
+    */
+    static IntVect comm_tile_size;  //!< communication tile size
 
     struct FPinfo
     {
@@ -347,8 +327,7 @@ public:
     void flushFPinfo (bool no_assertion=false);
 
     //
-    // coarse/fine boundary
-    //
+    //! coarse/fine boundary
     struct CFinfo
     {
         CFinfo (const FabArrayBase& finefa,
@@ -364,7 +343,7 @@ public:
 
         BoxArray            ba_cfb;
         DistributionMapping dm_cfb;
-        Vector<int>          fine_grid_idx; // local array
+        Vector<int>          fine_grid_idx; //!< local array
         //
         BDKey               m_fine_bdk;
         Box                 m_fine_domain;
@@ -391,8 +370,7 @@ public:
     void flushCFinfo (bool no_assertion=false);
 
     //
-    // parallel copy or add
-    //
+    //! parallel copy or add
     enum CpOp { COPY = 0, ADD = 1 };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
@@ -432,7 +410,7 @@ protected:
     // Tiling
     //
     // We use tile size as the key for the inner map.
-    
+
     using TAMap   = std::map<std::pair<IntVect,IntVect>, TileArray>;
     using TACache = std::map<BDKey, TAMap>;
     //
@@ -441,13 +419,12 @@ protected:
     //
     void buildTileArray (const IntVect& tilesize, TileArray& ta) const;
     //
-    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(), 
+    void flushTileArray (const IntVect& tilesize = IntVect::TheZeroVector(),
 			 bool no_assertion=false) const;
-    static void flushTileArrayCache (); // This flushes the entire cache.
+    static void flushTileArrayCache (); //!< This flushes the entire cache.
 
     //
-    // FillBoundary
-    //
+    //! FillBoundary
     struct FB
     {
         FB (const FabArrayBase& fa, const IntVect& nghost,
@@ -456,7 +433,7 @@ protected:
         ~FB ();
 
 	IndexType    m_typ;
-        IntVect      m_crse_ratio; // BoxArray in FabArrayBase may have crse_ratio.
+        IntVect      m_crse_ratio; //!< BoxArray in FabArrayBase may have crse_ratio.
         IntVect      m_ngrow;
         bool         m_cross;
 	bool         m_epo;
@@ -487,12 +464,11 @@ protected:
     const FB& getFB (const IntVect& nghost, const Periodicity& period,
                      bool cross=false, bool enforce_periodicity_only = false) const;
     //
-    void flushFB (bool no_assertion=false) const;       // This flushes its own FB.
-    static void flushFBCache (); // This flushes the entire cache.
+    void flushFB (bool no_assertion=false) const;       //!< This flushes its own FB.
+    static void flushFBCache (); //!< This flushes the entire cache.
 
     //
-    // parallel copy or add
-    //
+    //! parallel copy or add
 #ifdef AMREX_USE_CUDA
 public:
 #endif
@@ -501,16 +477,16 @@ public:
 	CPC (const FabArrayBase& dstfa, const IntVect& dstng,
 	     const FabArrayBase& srcfa, const IntVect& srcng,
 	     const Periodicity& period);
-	CPC (const BoxArray& dstba, const DistributionMapping& dstdm, 
+	CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
 	     const Vector<int>& dstidx, const IntVect& dstng,
-	     const BoxArray& srcba, const DistributionMapping& srcdm, 
+	     const BoxArray& srcba, const DistributionMapping& srcdm,
 	     const Vector<int>& srcidx, const IntVect& srcng,
 	     const Periodicity& period, int myproc);
         CPC (const BoxArray& ba, const IntVect& ng,
              const DistributionMapping& dstdm, const DistributionMapping& srcdm);
         ~CPC ();
 
-        long bytes () const;	
+        long bytes () const;
 
 	BDKey       m_srcbdk;
 	BDKey       m_dstbdk;
@@ -549,21 +525,18 @@ protected:
     //
     const CPC& getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
                        const Periodicity& period) const;
-    // 
-    void flushCPC (bool no_assertion=false) const;      // This flushes its own CPC.
-    static void flushCPCache (); // This flusheds the entire cache.
+    //
+    void flushCPC (bool no_assertion=false) const;      //!< This flushes its own CPC.
+    static void flushCPCache (); //!< This flusheds the entire cache.
 
     //
-    // Keep track of how many FabArrays are built with the same BDKey.
-    //
+    //! Keep track of how many FabArrays are built with the same BDKey.
     static std::map<BDKey, int> m_BD_count;
     //
-    // clear BD count and caches associated with this BD, if no other is using this BD. 
-    // 
+    //! clear BD count and caches associated with this BD, if no other is using this BD.
     void clearThisBD (bool no_assertion=false);
     //
-    // add the current BD into BD count database
-    //
+    //! add the current BD into BD count database
     void addThisBD ();
     //
     struct FabArrayStats
