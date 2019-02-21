@@ -1,3 +1,6 @@
+F90EXE_sources += deposit_cic.F90
+F90EXE_sources += interpolate_cic.F90
+F90EXE_sources += push_particles_ES.F90
 CEXE_sources += PhysicalParticleContainer.cpp
 CEXE_sources += ParticleContainer.cpp
 CEXE_sources += WarpXParticleContainer.cpp

@@ -34,7 +34,6 @@ endif
 include $(WARPX_HOME)/Source/Make.package
 include $(WARPX_HOME)/Source/BoundaryConditions/Make.package
 include $(WARPX_HOME)/Source/Diagnostics/Make.package
-include $(WARPX_HOME)/Source/Electrostatic/Make.package
 include $(WARPX_HOME)/Source/FieldSolver/Make.package
 include $(WARPX_HOME)/Source/Filter/Make.package
 include $(WARPX_HOME)/Source/FortranInterface/Make.package
@@ -44,6 +43,7 @@ include $(WARPX_HOME)/Source/Parallelization/Make.package
 include $(WARPX_HOME)/Source/Particles/Make.package
 include $(WARPX_HOME)/Source/Python/Make.package
 include $(WARPX_HOME)/Source/Utils/Make.package
+include $(WARPX_HOME)/Source/Evolve/Make.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package

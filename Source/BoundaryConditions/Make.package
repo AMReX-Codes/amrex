@@ -1,4 +1,4 @@
-CEXE_sources += PML.cpp
+CEXE_sources += PML.cpp WarpXEvolvePML.cpp
 CEXE_headers += PML.H
 F90EXE_sources += PML_routines.F90
 
