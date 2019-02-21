@@ -4,6 +4,8 @@
 #include <AMReX_Particles.H>
 #include <AMReX_CudaContainers.H>
 
+#include "NeighborList.H"
+
 struct PIdx
 {
     enum {
@@ -58,9 +60,7 @@ protected:
     std::map<int, amrex::Gpu::HostVector<int> > m_start;
     std::map<int, amrex::Gpu::HostVector<int> > m_stop;
     
-    // This is the neighbor list data structure
-    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_offsets;
-    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_list;
+    std::map<std::pair<int, int>, amrex::NeighborList > m_neighbor_list;
 };
 
 #endif

@@ -2,11 +2,10 @@
 #define MD_K_H_
 
 #include "Constants.H"
-#include "MDParticleContainer.H"
 
+template <class P>
 AMREX_GPU_DEVICE AMREX_INLINE
-bool check_pair(const MDParticleContainer::ParticleType& p1, 
-                const MDParticleContainer::ParticleType& p2)
+bool check_pair(const P& p1, const P& p2)
 {
     amrex::Real d0 = (p1.pos(0) - p2.pos(0));
     amrex::Real d1 = (p1.pos(1) - p2.pos(1));

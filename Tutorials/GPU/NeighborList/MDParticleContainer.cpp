@@ -627,8 +627,6 @@ void MDParticleContainer::BuildNeighborList()
 
     const int lev = 0;
     const Geometry& geom = Geom(lev);
-    const auto dxi = Geom(lev).InvCellSizeArray();
-    const auto plo = Geom(lev).ProbLoArray();
     auto& plev  = GetParticles(lev);
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
@@ -636,136 +634,14 @@ void MDParticleContainer::BuildNeighborList()
         int gid = mfi.index();
         int tid = mfi.LocalTileIndex();        
         auto index = std::make_pair(gid, tid);
-        
-        Box bx = mfi.tilebox();
-        bx.grow(1);
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
 
         auto& ptile = plev[index];
         auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numTotalParticles();
 
-        // amrex::AllPrintToFile("ghosts") << "Total number of particles is: " << np << "\n";
-        // const size_t nrp = aos.numRealParticles();
-        // for (int i = nrp; i < np; ++i) {
-        //     amrex::AllPrintToFile("ghosts") << "\t" << aos[i] << "\n";
-        // }
-        // amrex::AllPrintToFile("ghosts") << "\n";
+        Box bx = mfi.tilebox();
+        bx.grow(1);
 
-        Gpu::DeviceVector<unsigned int> cells(np);
-        unsigned int* pcell = cells.dataPtr();
-
-        Gpu::DeviceVector<unsigned int> counts(bx.numPts(), 0);
-        unsigned int* pcount = counts.dataPtr();
-
-        Gpu::DeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
-        unsigned int* poffset = offsets.dataPtr();
-
-        Gpu::DeviceVector<unsigned int> permutation(np);
-        unsigned int* pperm = permutation.dataPtr();
-
-        // First we build the cell list data structure
-        
-        ParticleType* pstruct = &(aos[0]);
-        AMREX_FOR_1D ( np, i,
-        {
-            int ix = (pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;            
-            unsigned int uix = amrex::min(nx,amrex::max(0,ix));
-            unsigned int uiy = amrex::min(ny,amrex::max(0,iy));
-            unsigned int uiz = amrex::min(nz,amrex::max(0,iz));
-            pcell[i] = (uix * ny + uiy) * nz + uiz; 
-            Cuda::Atomic::Add(&pcount[pcell[i]], 1u);
-        });
-
-        thrust::exclusive_scan(counts.begin(), counts.end(), offsets.begin());
-
-        thrust::copy(offsets.begin(), offsets.end()-1, counts.begin());
-
-        constexpr unsigned int max_unsigned_int = std::numeric_limits<unsigned int>::max();
-
-        AMREX_FOR_1D ( np, i,
-        {
-            unsigned int index = Cuda::Atomic::Inc(&pcount[pcell[i]], max_unsigned_int);
-            pperm[index] = i;
-        });
-
-        // Now count the number of neighbors for each particle
-
-        Gpu::DeviceVector<unsigned int> nbor_counts(np);
-        unsigned int* pnbor_counts = nbor_counts.dataPtr();
-        
-        AMREX_FOR_1D ( np, i,
-        {
-            int ix = (pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
-
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;            
-
-            int count = 0;
-
-            for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix+1, nx-1); ++ii) {
-                for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy+1, ny-1); ++jj) {
-                    for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz+1, nz-1); ++kk) {
-                        int index = (ii * ny + jj) * nz + kk;
-                        for (int p = poffset[index]; p < poffset[index+1]; ++p) {
-                            if (pperm[p] == i) continue;
-                            if (check_pair(pstruct[i], pstruct[pperm[p]]))
-                                count += 1;
-                        }
-                    }
-                }
-            }
-            
-            pnbor_counts[i] = count;
-        });
-
-        // Now we can allocate and build our neighbor list
-
-        const size_t total_nbors = thrust::reduce(nbor_counts.begin(), nbor_counts.end());
-        m_nbor_offsets[index].resize(np + 1, total_nbors);
-        unsigned int* pnbor_offset = m_nbor_offsets[index].dataPtr();
-
-        thrust::exclusive_scan(nbor_counts.begin(), nbor_counts.end(),
-                               m_nbor_offsets[index].begin());
-                
-        m_nbor_list[index].resize(total_nbors);
-        unsigned int* pm_nbor_list = m_nbor_list[index].dataPtr();
-
-        AMREX_FOR_1D ( np, i,
-        {
-            int ix = (pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
-            
-            int nx = hi.x-lo.x+1;
-            int ny = hi.y-lo.y+1;
-            int nz = hi.z-lo.z+1;            
-
-            int n = 0;            
-            for (int ii = amrex::max(ix-1, 0); ii <= amrex::min(ix+1, nx-1); ++ii) {
-                for (int jj = amrex::max(iy-1, 0); jj <= amrex::min(iy+1, ny-1); ++jj) {
-                    for (int kk = amrex::max(iz-1, 0); kk <= amrex::min(iz+1, nz-1); ++kk) {
-                        int index = (ii * ny + jj) * nz + kk;
-                        for (int p = poffset[index]; p < poffset[index+1]; ++p) {
-                            if (pperm[p] == i) continue;
-                            if (check_pair(pstruct[i], pstruct[pperm[p]])) {
-                                pm_nbor_list[pnbor_offset[i] + n] = pperm[p]; 
-                                ++n;
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        m_neighbor_list[index].build(aos, bx, geom);
     }
 }
 
@@ -783,28 +659,7 @@ void MDParticleContainer::printNeighborList()
         int tid = mfi.LocalTileIndex();
         auto index = std::make_pair(gid, tid);
 
-        auto& ptile = plev[index];
-        auto& aos   = ptile.GetArrayOfStructs();
-        const size_t np = aos.numParticles();
-
-        Gpu::HostVector<unsigned int> host_nbor_offsets(m_nbor_offsets[index].size());
-        Gpu::HostVector<unsigned int> host_nbor_list(m_nbor_list[index].size());
-
-        Cuda::thrust_copy(m_nbor_offsets[index].begin(),
-                          m_nbor_offsets[index].end(),
-                          host_nbor_offsets.begin());
-
-        Cuda::thrust_copy(m_nbor_list[index].begin(),
-                          m_nbor_list[index].end(),
-                          host_nbor_list.begin());
-
-        for (int i = 0; i < np; ++i) {
-            amrex::Print() << "Particle " << i << " will collide with: ";
-            for (int j = host_nbor_offsets[i]; j < host_nbor_offsets[i+1]; ++j) {
-                amrex::Print() << host_nbor_list[j] << " ";
-            }
-            amrex::Print() << "\n";
-        }
+        m_neighbor_list[index].print();
     }
 }
 
@@ -826,8 +681,8 @@ void MDParticleContainer::computeForces()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        unsigned int* pnbor_offset = m_nbor_offsets[index].dataPtr();
-        unsigned int* pm_nbor_list = m_nbor_list[index].dataPtr();
+        unsigned int* pnbor_offset = m_neighbor_list[index].offsetPtr();
+        unsigned int* pm_nbor_list = m_neighbor_list[index].nborPtr();
         ParticleType* pstruct = &(aos[0]);
 
        // now we loop over the neighbor list and compute the forces
@@ -851,7 +706,7 @@ void MDParticleContainer::computeForces()
                 Real coef = (1.0 - Params::cutoff / r) / r2 / Params::mass;
                 pstruct[i].rdata(PIdx::ax) += coef * dx;
                 pstruct[i].rdata(PIdx::ay) += coef * dy;
-                pstruct[i].rdata(PIdx::az) += coef * dz;                
+                pstruct[i].rdata(PIdx::az) += coef * dz;
             }
         });
     }
