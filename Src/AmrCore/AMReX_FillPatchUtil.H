@@ -55,14 +55,6 @@ namespace amrex
                                 const InterpHook& pre_interp = NullInterpHook(),
                                 const InterpHook& post_interp = NullInterpHook());
 
-    void InterpFromCoarseLevel (MultiFab& mf, Real time,
-				const MultiFab& cmf, int scomp, int dcomp, int ncomp,
-				const Geometry& cgeom, const Geometry& fgeom, 
-                                const IntVect& ratio, 
-				Interpolater* mapper,
-                                const InterpHook& pre_interp = NullInterpHook(),
-                                const InterpHook& post_interp = NullInterpHook());
-    
     enum InterpEM_t { InterpE, InterpB};
 
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,

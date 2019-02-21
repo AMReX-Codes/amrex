@@ -171,24 +171,6 @@ private:
 };
 
 template <class F>
-class NoOpPhysBCFunct
-    : public PhysBCFunctBase
-{
-public:
-    NoOpPhysBCFunct () {}
-
-    virtual ~NoOpPhysBCFunct () {}
-
-    virtual void FillBoundary (MultiFab& mf, int icomp, int ncomp, Real time, int bccomp) override
-    {}
-
-private:
-    Geometry      m_geom;
-    Vector<BCRec> m_bcr;
-    F             m_f;
-};
-    
-template <class F>
 void
 GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
                                 const int dcomp, const int numcomp,
