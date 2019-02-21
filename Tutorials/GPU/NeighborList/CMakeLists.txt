@@ -20,26 +20,15 @@ target_sources( ${EXENAME}
 
 set_source_files_properties(${SRC_DIR}/main.cpp ${SRC_DIR}/MDParticleContainer.cpp PROPERTIES LANGUAGE CUDA)
 
-# evaluate_genex(amrex_flags amrex_fortran_flags
-#    LANG   Fortran
-#    COMP   ${CMAKE_Fortran_COMPILER_ID}
-#    CONFIG ${CMAKE_BUILD_TYPE}
-#    STRING )
-
-# # Since we are forcing the use of fortran compiler to link
-# # we need to specify the flags to add at link phase since
-# # it won't propagate amrex ones
+# Since we are forcing the use of fortran compiler to link
+# we need to specify the flags to add at link phase since
+# it won't propagate amrex ones
 set_target_properties( ${EXENAME}
    PROPERTIES
-   # Fortran_MODULE_DIRECTORY
-   # ${CMAKE_CURRENT_BINARY_DIR}/mod_files
    RUNTIME_OUTPUT_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}/Launch
-   # LINKER_LANGUAGE
-   # Fortran
    LINK_FLAGS
-   -std=c++11
-   # "${amrex_fortran_flags}"
+   "-std=c++11 -Wl,--warn-unresolved-symbols"
    CXX_STANDARD 11               # Adds -std=c++11
    CXX_STANDARD_REQUIRED ON
    CUDA_STANDARD 11               # Adds -std=c++11
