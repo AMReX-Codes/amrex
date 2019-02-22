@@ -386,6 +386,315 @@ void mllinop_apply_bc_z (Box const& box, int blen, Array4<Real> const& phi,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& phi,
+                                  Array4<int const> const& masklo,
+                                  Array4<int const> const& maskhi,
+                                  BoundCond bctlo, BoundCond bcthi,
+                                  Real bcllo, Real bclhi,
+                                  Array4<Real const> const& bcvallo,
+                                  Array4<Real const> const& bcvalhi,
+                                  int maxorder, Real dxinv, int ncomp)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    int i = lo.x;
+    switch (bctlo) {
+    case AMREX_LO_NEUMANN:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    phi(i,j,k,n) = 1.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        Real x[4], coef[4];
+        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        x[0] = -bcllo * dxinv;
+        for (int m = 1; m < NX; ++m) {
+            x[m] = m - 0.5;
+        }
+        poly_interp_coeff(-0.5, x, NX, coef);
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+
+    i = lo.x + blen + 1;
+    switch (bcthi) {
+    case AMREX_LO_NEUMANN:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    phi(i,j,k,n) = 1.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        Real x[4], coef[4];
+        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        x[0] = -bclhi * dxinv;
+        for (int m = 1; m < NX; ++m) {
+            x[m] = m - 0.5;
+        }
+        poly_interp_coeff(-0.5, x, NX, coef);
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& phi,
+                                  Array4<int const> const& masklo,
+                                  Array4<int const> const& maskhi,
+                                  BoundCond bctlo, BoundCond bcthi,
+                                  Real bcllo, Real bclhi,
+                                  Array4<Real const> const& bcvallo,
+                                  Array4<Real const> const& bcvalhi,
+                                  int maxorder, Real dyinv, int ncomp)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    int j = lo.y;
+    switch (bctlo) {
+    case AMREX_LO_NEUMANN:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = 1.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        Real x[4], coef[4];
+        const int NX = amrex::min(hi.y-lo.y+2, maxorder);
+        x[0] = -bcllo * dyinv;
+        for (int m = 1; m < NX; ++m) {
+            x[m] = m - 0.5;
+        }
+        poly_interp_coeff(-0.5, x, NX, coef);
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+
+    j = lo.y + blen + 1;
+    switch (bcthi) {
+    case AMREX_LO_NEUMANN:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = 1.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        Real x[4], coef[4];
+        const int NX = amrex::min(hi.y-lo.y+2, maxorder);
+        x[0] = -bclhi * dyinv;
+        for (int m = 1; m < NX; ++m) {
+            x[m] = m - 0.5;
+        }
+        poly_interp_coeff(-0.5, x, NX, coef);
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int k = lo.z; k <= hi.z; ++k) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& phi,
+                                  Array4<int const> const& masklo,
+                                  Array4<int const> const& maskhi,
+                                  BoundCond bctlo, BoundCond bcthi,
+                                  Real bcllo, Real bclhi,
+                                  Array4<Real const> const& bcvallo,
+                                  Array4<Real const> const& bcvalhi,
+                                  int maxorder, Real dzinv, int ncomp)
+{
+    const auto lo = amrex::lbound(box);
+    const auto hi = amrex::ubound(box);
+    int k = lo.z;
+    switch (bctlo) {
+    case AMREX_LO_NEUMANN:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = 1.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        Real x[4], coef[4];
+        const int NX = amrex::min(hi.z-lo.z+2, maxorder);
+        x[0] = -bcllo * dzinv;
+        for (int m = 1; m < NX; ++m) {
+            x[m] = m - 0.5;
+        }
+        poly_interp_coeff(-0.5, x, NX, coef);
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+
+    k = lo.z + blen + 1;
+    switch (bcthi) {
+    case AMREX_LO_NEUMANN:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = 1.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_REFLECT_ODD:
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    case AMREX_LO_DIRICHLET:
+    {
+        Real x[4], coef[4];
+        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        x[0] = -bclhi * dzinv;
+        for (int m = 1; m < NX; ++m) {
+            x[m] = m - 0.5;
+        }
+        poly_interp_coeff(-0.5, x, NX, coef);
+        for (int n = 0; n < ncomp; ++n) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
+                }
+            }
+        }
+        break;
+    }
+    default: {}
+    }
+}
+
 }
 
 #endif
