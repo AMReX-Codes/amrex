@@ -47,7 +47,7 @@ public:
 
     void writeParticles (const int n);
 
-protected:
+private:
 
     void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
  
