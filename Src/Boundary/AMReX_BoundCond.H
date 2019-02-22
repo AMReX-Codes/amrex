@@ -3,6 +3,7 @@
 #define AMREX_BOUNDCOND_H_
 
 #include <AMReX_BLassert.H>
+#include <AMReX_GpuQualifiers.H>
 
 namespace amrex {
 
@@ -26,6 +27,7 @@ public:
     BoundCond (int _bctype) : bctype(_bctype) {}
     //
     //! Return index of boundary condition type.
+    AMREX_GPU_HOST_DEVICE
     operator int () const
     {
         BL_ASSERT(bctype != -1);
