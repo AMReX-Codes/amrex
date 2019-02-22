@@ -63,10 +63,10 @@ unset (TMP)
 # This is only required if ENABLE_3D_NODAL_MLMG is ON
 # and external libraries paths are not given 
 #
-if ( ENABLE_3D_NODAL_MLMG AND
-      NOT ( ALGOIM_INSTALL_DIR AND BLITZ_INSTALL_DIR ) )
-   include(AMReX_InstallExternalLibs) 
-endif ()
+# if ( ENABLE_3D_NODAL_MLMG AND
+#       NOT ( ALGOIM_INSTALL_DIR AND BLITZ_INSTALL_DIR ) )
+#    include(AMReX_InstallExternalLibs) 
+# endif ()
 
 
 # 
@@ -75,7 +75,7 @@ endif ()
 add_subdirectory (Src)
 
 #
-# Tutorials and "test_install" target)
+# Tutorials and "test_install" target
 #
 add_subdirectory (Tutorials)
 
