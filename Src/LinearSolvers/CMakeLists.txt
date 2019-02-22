@@ -10,9 +10,9 @@ add_sources ( MLMG/AMReX_MLMGBndry.cpp )
 
 add_sources ( MLMG/AMReX_MLLinOp.H )
 add_sources ( MLMG/AMReX_MLLinOp.cpp )
+add_sources ( MLMG/AMReX_MLLinOp_K.H )
 add_sources ( MLMG/AMReX_MLLinOp_F.H )
 add_sources ( MLMG/AMReX_MLLinOp_nd.F90 )
-add_sources ( MLMG/AMReX_MLLinOp_${DIM}d.F90 )
 
 add_sources ( MLMG/AMReX_MLCellLinOp.H )
 add_sources ( MLMG/AMReX_MLCellLinOp.cpp )
