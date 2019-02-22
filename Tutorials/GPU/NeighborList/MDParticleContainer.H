@@ -60,7 +60,7 @@ protected:
     std::map<int, amrex::Gpu::HostVector<int> > m_start;
     std::map<int, amrex::Gpu::HostVector<int> > m_stop;
     
-    std::map<std::pair<int, int>, amrex::NeighborList > m_neighbor_list;
+    std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 };
 
 #endif

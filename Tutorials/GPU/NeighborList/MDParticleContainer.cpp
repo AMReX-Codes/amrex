@@ -641,7 +641,7 @@ void MDParticleContainer::BuildNeighborList()
         Box bx = mfi.tilebox();
         bx.grow(1);
 
-        m_neighbor_list[index].build(aos, bx, geom);
+        m_neighbor_list[index].build(aos(), bx, geom);
     }
 }
 
@@ -681,32 +681,32 @@ void MDParticleContainer::computeForces()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        unsigned int* pnbor_offset = m_neighbor_list[index].offsetPtr();
-        unsigned int* pm_nbor_list = m_neighbor_list[index].nborPtr();
+        NeighborData<ParticleType> nbor_data = m_neighbor_list[index].data();
         ParticleType* pstruct = &(aos[0]);
 
        // now we loop over the neighbor list and compute the forces
         AMREX_FOR_1D ( np, i,
         {
-            pstruct[i].rdata(PIdx::ax) = 0.0;
-            pstruct[i].rdata(PIdx::ay) = 0.0;
-            pstruct[i].rdata(PIdx::az) = 0.0;
+            ParticleType& p1 = pstruct[i];
+            p1.rdata(PIdx::ax) = 0.0;
+            p1.rdata(PIdx::ay) = 0.0;
+            p1.rdata(PIdx::az) = 0.0;
 
-            for (int k = pnbor_offset[i]; k < pnbor_offset[i+1]; ++k) {
-                int j = pm_nbor_list[k];
+            const auto& neighbors = nbor_data.getNeighbors(i);
+            for (const auto& p2 : neighbors) {
                 
-                Real dx = pstruct[i].pos(0) - pstruct[j].pos(0);
-                Real dy = pstruct[i].pos(1) - pstruct[j].pos(1);
-                Real dz = pstruct[i].pos(2) - pstruct[j].pos(2);
+                Real dx = p1.pos(0) - p2.pos(0);
+                Real dy = p1.pos(1) - p2.pos(1);
+                Real dz = p1.pos(2) - p2.pos(2);
 
                 Real r2 = dx*dx + dy*dy + dz*dz;
                 r2 = amrex::max(r2, Params::min_r*Params::min_r);
                 Real r = sqrt(r2);
 
                 Real coef = (1.0 - Params::cutoff / r) / r2 / Params::mass;
-                pstruct[i].rdata(PIdx::ax) += coef * dx;
-                pstruct[i].rdata(PIdx::ay) += coef * dy;
-                pstruct[i].rdata(PIdx::az) += coef * dz;
+                p1.rdata(PIdx::ax) += coef * dx;
+                p1.rdata(PIdx::ay) += coef * dy;
+                p1.rdata(PIdx::az) += coef * dz;
             }
         });
     }
