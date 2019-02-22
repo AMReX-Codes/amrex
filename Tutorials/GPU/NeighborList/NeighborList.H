@@ -12,22 +12,100 @@
 namespace amrex
 {
 
+template <class ParticleType>
+struct Neighbors
+{    
+    struct iterator
+    {
+        AMREX_GPU_HOST_DEVICE
+        iterator (int start, int stop, const unsigned int * nbor_list_ptr, const ParticleType* pstruct) 
+            : m_index(start), m_stop(stop), m_nbor_list_ptr(nbor_list_ptr), m_pstruct(pstruct)   
+        {}
+        
+        AMREX_GPU_HOST_DEVICE
+        void operator++ () { ++m_index;; }
+        
+        AMREX_GPU_HOST_DEVICE
+        bool operator!= (iterator const& rhs) const { return m_index < m_stop; }
+        
+        AMREX_GPU_HOST_DEVICE
+        ParticleType operator* () const { return m_pstruct[m_nbor_list_ptr[m_index]];  }
+        
+    private:
+        const ParticleType* m_pstruct;
+        const unsigned int* m_nbor_list_ptr;
+        int m_index;
+        int m_stop;
+    };
+    
+    AMREX_GPU_HOST_DEVICE
+    iterator begin () const {
+        return iterator(m_nbor_offsets_ptr[m_i], m_nbor_offsets_ptr[m_i+1], 
+                        m_nbor_list_ptr, m_pstruct);
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    iterator end () const { 
+        return iterator(m_nbor_offsets_ptr[m_i+1], m_nbor_offsets_ptr[m_i+1], 
+                        m_nbor_list_ptr, m_pstruct);
+    }
+
+    AMREX_GPU_HOST_DEVICE    
+    Neighbors (int i, const unsigned int *nbor_offsets_ptr, const unsigned int *nbor_list_ptr,
+               const ParticleType* pstruct)
+        : m_i(i),
+          m_nbor_offsets_ptr(nbor_offsets_ptr),
+          m_nbor_list_ptr(nbor_list_ptr),
+          m_pstruct(pstruct)
+    {}
+    
+private:
+
+    const int m_i;
+    const unsigned int * m_nbor_offsets_ptr;
+    const unsigned int * m_nbor_list_ptr;
+    const ParticleType * m_pstruct;
+};
+
+template <class ParticleType>
+struct NeighborData
+{
+    NeighborData (const Gpu::DeviceVector<unsigned int>& offsets, 
+                  const Gpu::DeviceVector<unsigned int>& list,
+                  const ParticleType* pstruct)
+        : m_nbor_offsets_ptr(offsets.dataPtr()),
+          m_nbor_list_ptr(list.dataPtr()),
+          m_pstruct(pstruct)
+    {}
+    
+    AMREX_GPU_HOST_DEVICE
+    amrex::Neighbors<ParticleType> getNeighbors (int i) const
+    { return Neighbors<ParticleType>(i, m_nbor_offsets_ptr, m_nbor_list_ptr, m_pstruct); }
+    
+    const unsigned int * m_nbor_offsets_ptr;
+    const unsigned int * m_nbor_list_ptr;
+    const ParticleType * m_pstruct;
+};
+
+template <class ParticleType>
 class NeighborList
 {
 public:
 
-    template <class AoS>
-    void build (const AoS& aos, const amrex::Box& bx, const amrex::Geometry& geom)
+    void build (const Gpu::ManagedDeviceVector<ParticleType>& vec,
+                const amrex::Box& bx, const amrex::Geometry& geom)
     {
         BL_PROFILE("NeighborList::build");
         
+        m_pstruct = vec.dataPtr();
+
         const auto dxi = geom.InvCellSizeArray();
         const auto plo = geom.ProbLoArray();
                 
         const auto lo = amrex::lbound(bx);
         const auto hi = amrex::ubound(bx);
 
-        const size_t np = aos.numTotalParticles();
+        const size_t np = vec.size();
         
         Gpu::DeviceVector<unsigned int> cells(np);
         unsigned int* pcell = cells.dataPtr();
@@ -43,12 +121,12 @@ public:
         
         // First we build the cell list data structure
         
-        const typename AoS::ParticleType* pstruct = &(aos[0]);
+        m_pstruct = vec.dataPtr();
         AMREX_FOR_1D ( np, i,
         {
-            int ix = (pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = (m_pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (m_pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (m_pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
             int nz = hi.z-lo.z+1;            
@@ -78,9 +156,9 @@ public:
         
         AMREX_FOR_1D ( np, i,
         {
-            int ix = (pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = (m_pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (m_pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (m_pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
             
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -94,7 +172,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(pstruct[i], pstruct[pperm[p]]))
+                            if (check_pair(m_pstruct[i], m_pstruct[pperm[p]]))
                                 count += 1;
                         }
                     }
@@ -118,9 +196,9 @@ public:
         
         AMREX_FOR_1D ( np, i,
         {
-            int ix = (pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
-            int iy = (pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
-            int iz = (pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
+            int ix = (m_pstruct[i].pos(0)-plo[0])*dxi[0] - lo.x;
+            int iy = (m_pstruct[i].pos(1)-plo[1])*dxi[1] - lo.y;
+            int iz = (m_pstruct[i].pos(2)-plo[2])*dxi[2] - lo.z;
             
             int nx = hi.x-lo.x+1;
             int ny = hi.y-lo.y+1;
@@ -133,7 +211,7 @@ public:
                         int index = (ii * ny + jj) * nz + kk;
                         for (int p = poffset[index]; p < poffset[index+1]; ++p) {
                             if (pperm[p] == i) continue;
-                            if (check_pair(pstruct[i], pstruct[pperm[p]])) {
+                            if (check_pair(m_pstruct[i], m_pstruct[pperm[p]])) {
                                 pm_nbor_list[pnbor_offset[i] + n] = pperm[p]; 
                                 ++n;
                             }
@@ -144,21 +222,44 @@ public:
         });
     }
 
-          unsigned int * offsetPtr ()       { return m_nbor_offsets.dataPtr(); }
-    const unsigned int * offsetPtr () const { return m_nbor_offsets.dataPtr(); }
-
-          unsigned int * nborPtr ()       { return m_nbor_list.dataPtr(); }
-    const unsigned int * nborPtr () const { return m_nbor_list.dataPtr(); }
+    NeighborData<ParticleType> data () 
+    { 
+        return NeighborData<ParticleType>(m_nbor_offsets, m_nbor_list, m_pstruct); 
+    }
 
     int numParticles () { return m_nbor_offsets.size() - 1; }
 
-    void print ();
+    void print ()
+    {
+        BL_PROFILE("NeighborList::print");
+        
+        Gpu::HostVector<unsigned int> host_nbor_offsets(m_nbor_offsets.size());
+        Gpu::HostVector<unsigned int> host_nbor_list(m_nbor_list.size());
+        
+        Cuda::thrust_copy(m_nbor_offsets.begin(),
+                          m_nbor_offsets.end(),
+                          host_nbor_offsets.begin());
+        
+        Cuda::thrust_copy(m_nbor_list.begin(),
+                          m_nbor_list.end(),
+                          host_nbor_list.begin());
+        
+        for (int i = 0; i < numParticles(); ++i) {
+            amrex::Print() << "Particle " << i << " could collide with: ";
+            for (int j = host_nbor_offsets[i]; j < host_nbor_offsets[i+1]; ++j) {
+                amrex::Print() << host_nbor_list[j] << " ";
+            }
+            amrex::Print() << "\n";
+        }
+    }
 
 protected:
+    
+    const ParticleType* m_pstruct;
 
     // This is the neighbor list data structure
-    amrex::Gpu::DeviceVector<unsigned int> m_nbor_offsets;
-    amrex::Gpu::DeviceVector<unsigned int> m_nbor_list;
+    Gpu::DeviceVector<unsigned int> m_nbor_offsets;
+    Gpu::DeviceVector<unsigned int> m_nbor_list;
 };
 
 }
