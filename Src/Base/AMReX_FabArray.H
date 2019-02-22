@@ -134,13 +134,14 @@ public:
         typedef FAB value_type;
     };
 
-    // if FAB is a BaseFab or its child, value_type = FAB::value_type
-    // else                              value_type = FAB;
+    /*
+    * if FAB is a BaseFab or its child, value_type = FAB::value_type
+    * else                              value_type = FAB;
+    */
     using value_type = typename std::conditional<IsBaseFab<FAB>::value, FAB, FABType>::type::value_type;
 
     //
-    // Constructs an empty FabArray<FAB>.
-    //
+    //! Constructs an empty FabArray<FAB>.
     FabArray ();
 
     /**
@@ -256,7 +257,7 @@ public:
     //! Return a reference to the FAB associated with the Kth element.
     FAB& get (int K) { return *(this->fabHostPtr(K)); }
 
-    // Return pointer to FAB 
+    //! Return pointer to FAB
     FAB      * fabPtr (const MFIter& mfi);
     FAB const* fabPtr (const MFIter& mfi) const;
     FAB      * fabPtr (int K);
@@ -363,6 +364,12 @@ public:
     void setVal (value_type val,
                  const Box& region,
                  const IntVect& nghost);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void abs (int comp, int num_comp, int nghost = 0);
+
+    template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
+    void abs (int comp, int num_comp, const IntVect& nghost);
 
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     void plus (value_type val, int comp, int num_comp, int nghost = 0);
@@ -503,7 +510,7 @@ public:
                CpOp                 op = FabArrayBase::COPY)
         { ParallelCopy(src,src_comp,dest_comp,num_comp,src_nghost,dst_nghost,period,op); }
 
-    // Copy from src to this.  this and src have the same BoxArray, but different DistributionMapping
+    //! Copy from src to this.  this and src have the same BoxArray, but different DistributionMapping
     void Redistribute (const FabArray<FAB>& src,
                        int                  src_comp,
                        int                  dest_comp,
@@ -623,14 +630,13 @@ protected:
     bool define_function_called = false;
 
     //
-    // The data.
-    //
+    //! The data.
     std::vector<FAB*> m_fabs_v;
 #ifdef AMREX_USE_GPU
     std::vector<FAB*> m_host_fabs_v;
 #endif
 
-    // for shared memory
+    //! for shared memory
     struct ShMem {
 	ShMem () : alloc(false), n_values(0), n_points(0)
 #if defined(BL_USE_MPI3)
@@ -718,7 +724,7 @@ private:
 #endif
 
 public:
-    // Data used in non-blocking FillBoundary
+    //! Data used in non-blocking FillBoundary
     bool fb_cross, fb_epo;
     int fb_scomp, fb_ncomp;
     IntVect fb_nghost;
@@ -941,7 +947,7 @@ FabArray<FAB>::clear ()
     if (define_function_called)
     {
         define_function_called = false;
-        clearThisBD();  // addThisBD is called in define
+        clearThisBD();  //!< addThisBD is called in define
     }
 
     for (auto it = m_fabs_v.begin(); it != m_fabs_v.end(); ++it) {
@@ -1599,6 +1605,35 @@ FabArray<FAB>::setVal (value_type val,
                 fab(i,j,k,n+comp) = val;
             });
         }
+    }
+}
+
+template <class FAB>
+template <class FOO>  // FOO fools nvcc
+void
+FabArray<FAB>::abs (int comp, int ncomp, int nghost)
+{
+    abs(comp, ncomp, IntVect(nghost));
+}
+
+template <class FAB>
+template <class FOO>  // FOO fools nvcc
+void
+FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
+{
+    BL_ASSERT(nghost.allGE(IntVect::TheZeroVector()) && nghost.allLE(n_grow));
+    BL_ASSERT(comp+ncomp <= n_comp);
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(*this,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.growntilebox(nghost);
+        auto fab = this->array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+        {
+            fab(i,j,k,n+comp) = std::abs(fab(i,j,k,n+comp));
+        });
     }
 }
 

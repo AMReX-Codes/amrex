@@ -77,9 +77,7 @@ public:
             BL_ASSERT(typ.allGE(IntVect::TheZeroVector()) && typ.allLE(IntVect::TheUnitVector()));
         }
 
-    //
-    // Construct dimension specific Boxes.
-    //
+    //! Construct dimension specific Boxes.
     AMREX_GPU_HOST_DEVICE
     Box (const IntVect& small, const IntVect& big, IndexType t)
         : smallend(small),
@@ -493,14 +491,14 @@ public:
         return *this;
     }
 
-    /// for serialization
+    //! for serialization
     static size_t linearSize()
     {
         size_t retval = 2*IntVect::linearSize();
         return retval;
     }
 
-    /// for serialization
+    //! for serialization
     void linearOut(void* a_buffer ) const;
     void linearIn(void* a_buffer );
 
@@ -1149,7 +1147,7 @@ Box coarsen (const Box& b, const IntVect& ref_ratio)
     result.coarsen(ref_ratio);
     return result;
 }
-    
+
     /**
     * Refine Box by given (positive) refinement ratio.
     * NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -1165,7 +1163,7 @@ Box refine (const Box& b, int ref_ratio)
     result.refine(IntVect(ref_ratio));
     return result;
 }
-    
+
     /**
     * \brief Refine Box by given (positive) refinement ratio.
     * NOTE: if type(dir) = CELL centered: lo <- lo*ratio and
@@ -1536,10 +1534,12 @@ Box getThreadBox (Box index_bounds, Box const& work_domain)
     return index_bounds;
 }
 
-    // Returns a Box that covers all the argument Boxes in index
-    // space. The types are ignored. Thus, the arguments can have
-    // different index types, and the returned Box's index type has no
-    // meaning.
+    /**
+    * Returns a Box that covers all the argument Boxes in index
+    * space. The types are ignored. Thus, the arguments can have
+    * different index types, and the returned Box's index type has no
+    * meaning.
+    */
 inline
 Box getIndexBounds (Box const& b1, Box const& b2)
 {

@@ -20,11 +20,50 @@ public:
     
     static constexpr int SizeInReal = sizeof(ParticleType) / sizeof(RealType);
     
+    ArrayOfStructs() 
+        : m_num_neighbor_particles(0) {}
+
     const ParticleVector& operator()() const { return m_data; }
     ParticleVector& operator()()       { return m_data; }
-    
+
+    /**
+    * \brief Returns the total number of particles (real and neighbor)
+    *
+    */
     std::size_t size () const { return m_data.size(); }
-    int numParticles () const { return m_data.size(); }
+
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    int numParticles () const { return numRealParticles(); }
+
+    /**
+    * \brief Returns the number of real particles (excluding neighbors)
+    *
+    */
+    int numRealParticles () const { return numTotalParticles()-m_num_neighbor_particles; }
+
+    /**
+    * \brief Returns the number of neighbor particles (excluding reals)
+    *
+    */
+    int numNeighborParticles () const { return m_num_neighbor_particles; }
+
+    /**
+    * \brief Returns the total number of particles (real and neighbor)
+    *
+    */
+    int numTotalParticles () const { return m_data.size(); }
+
+    void setNumNeighbors (int num_neighbors)
+    { 
+        auto nrp = numRealParticles();
+        m_num_neighbor_particles = num_neighbors;
+        resize(nrp + num_neighbors);
+    }
+
+    int getNumNeighbors () { return m_num_neighbor_particles; }
     
     bool empty () const { return m_data.empty(); }
     
@@ -62,6 +101,8 @@ public:
     typename ParticleVector::iterator end () { return m_data.end(); }
     typename ParticleVector::const_iterator end () const { return m_data.end(); }
     typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
+
+    int m_num_neighbor_particles;
 
 private:
     ParticleVector m_data;

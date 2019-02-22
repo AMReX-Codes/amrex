@@ -6,7 +6,7 @@
 #include <AMReX_MultiFab.H>
 
 namespace amrex {
-// \cond CODEGEN 
+// \cond CODEGEN
 class AuxBoundaryData
 {
 public:
@@ -45,7 +45,7 @@ public:
 		     int             n_grow,
                      int             n_comp,
                      const Geometry& geom);
-    
+
     const BoxArray& equivBoxArray () const
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.boxArray();
@@ -93,7 +93,7 @@ private:
     bool     m_initialized;
     //
     // Not defined -- but could be if it's needed.
-    // 
+    //
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs);
 };
 // \endcond

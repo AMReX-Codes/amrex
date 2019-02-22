@@ -83,12 +83,10 @@ struct BARef
     }
 
     //
-    // The data.
-    //
+    //! The data.
     Vector<Box> m_abox;
     //
-    // Box hash stuff.
-    //
+    //! Box hash stuff.
     mutable Box bbox;
 
     mutable IntVect crsn;
@@ -125,10 +123,10 @@ struct BATransformer
     virtual IntVect crseRatio () const = 0;
     virtual void setCrseRatio (const IntVect& crse_ratio) = 0;
 
-    virtual IntVect doiLo () const = 0; // doi: Domain of Influence
-    virtual IntVect doiHi () const = 0; // doi: Domain of Influence
+    virtual IntVect doiLo () const = 0; //!< doi: Domain of Influence
+    virtual IntVect doiHi () const = 0; //!< doi: Domain of Influence
 
-    virtual bool simple () const = 0; // Is this simply a type transformer
+    virtual bool simple () const = 0; //!< Is this simply a type transformer
 
     virtual Box operator() (const Box& bx) const = 0;
 };
