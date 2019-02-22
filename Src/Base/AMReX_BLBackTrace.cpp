@@ -113,10 +113,10 @@ BLBackTrace::print_backtrace_info (FILE* f)
 	    fclose(fp);
 	    have_addr2line = 1;
 	}
-	cmd += " -Cfie " + amrex::system::exename;
+	cmd += " -Cpfie " + amrex::system::exename;
 
 	fprintf(f, "=== If no file names and line numbers are shown below, one can run\n");
-	fprintf(f, "            addr2line -Cfie my_exefile my_line_address\n");
+	fprintf(f, "            addr2line -Cpfie my_exefile my_line_address\n");
 	fprintf(f, "    to convert `my_line_address` (e.g., 0x4a6b) into file name and line number.\n\n");
 	fprintf(f, "=== Please note that the line number reported by addr2line may not be accurate.\n");
 	fprintf(f, "    One can use\n");
