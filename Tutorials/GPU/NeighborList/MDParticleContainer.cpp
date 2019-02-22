@@ -737,22 +737,23 @@ void MDParticleContainer::moveParticles(const amrex::Real& dt)
         // now we move the particles
         AMREX_FOR_1D ( np, i,
         {
-            pstruct[i].rdata(PIdx::vx) += pstruct[i].rdata(PIdx::ax) * dt;
-            pstruct[i].rdata(PIdx::vy) += pstruct[i].rdata(PIdx::ay) * dt;
-            pstruct[i].rdata(PIdx::vz) += pstruct[i].rdata(PIdx::az) * dt;
+            ParticleType& p = pstruct[i];            
+            p.rdata(PIdx::vx) += p.rdata(PIdx::ax) * dt;
+            p.rdata(PIdx::vy) += p.rdata(PIdx::ay) * dt;
+            p.rdata(PIdx::vz) += p.rdata(PIdx::az) * dt;
 
-            pstruct[i].pos(0) += pstruct[i].rdata(PIdx::vx) * dt;
-            pstruct[i].pos(1) += pstruct[i].rdata(PIdx::vy) * dt;
-            pstruct[i].pos(2) += pstruct[i].rdata(PIdx::vz) * dt;
+            p.pos(0) += p.rdata(PIdx::vx) * dt;
+            p.pos(1) += p.rdata(PIdx::vy) * dt;
+            p.pos(2) += p.rdata(PIdx::vz) * dt;
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                while ( (pstruct[i].pos(idim) < plo[idim]) or (pstruct[i].pos(idim) > phi[idim]) ) {
-                    if ( pstruct[i].pos(idim) < plo[idim] ) {
-                        pstruct[i].pos(idim) = 2*plo[idim] - pstruct[i].pos(idim);
+                while ( (p.pos(idim) < plo[idim]) or (p.pos(idim) > phi[idim]) ) {
+                    if ( p.pos(idim) < plo[idim] ) {
+                        p.pos(idim) = 2*plo[idim] - p.pos(idim);
                     } else {
-                        pstruct[i].pos(idim) = 2*phi[idim] - pstruct[i].pos(idim);
+                        p.pos(idim) = 2*phi[idim] - p.pos(idim);
                     }
-                    pstruct[i].rdata(idim) *= -1; // flip velocity
+                    p.rdata(idim) *= -1; // flip velocity
                 }
             }
         });
