@@ -387,7 +387,7 @@ void mllinop_apply_bc_z (Box const& box, int blen, Array4<Real> const& phi,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& phi,
+void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& den,
                                   Array4<int const> const& masklo,
                                   Array4<int const> const& maskhi,
                                   BoundCond bctlo, BoundCond bcthi,
@@ -405,7 +405,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    phi(i,j,k,n) = 1.0;
+                    den(i+1,j,k,n) = 1.0;
                 }
             }
         }
@@ -416,7 +416,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
+                    den(i+1,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
                 }
             }
         }
@@ -434,7 +434,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
+                    den(i+1,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
                 }
             }
         }
@@ -450,7 +450,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    phi(i,j,k,n) = 1.0;
+                    den(i-1,j,k,n) = 1.0;
                 }
             }
         }
@@ -461,7 +461,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
+                    den(i-1,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
                 }
             }
         }
@@ -479,7 +479,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
+                    den(i-1,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
                 }
             }
         }
@@ -490,7 +490,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& phi,
+void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& den,
                                   Array4<int const> const& masklo,
                                   Array4<int const> const& maskhi,
                                   BoundCond bctlo, BoundCond bcthi,
@@ -508,7 +508,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = 1.0;
+                    den(i,j+1,k,n) = 1.0;
                 }
             }
         }
@@ -519,7 +519,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
+                    den(i,j+1,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
                 }
             }
         }
@@ -537,7 +537,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
+                    den(i,j+1,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
                 }
             }
         }
@@ -553,7 +553,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = 1.0;
+                    den(i,j-1,k,n) = 1.0;
                 }
             }
         }
@@ -564,7 +564,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
+                    den(i,j-1,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
                 }
             }
         }
@@ -582,7 +582,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int k = lo.z; k <= hi.z; ++k) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
+                    den(i,j-1,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
                 }
             }
         }
@@ -593,7 +593,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
-void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& phi,
+void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& den,
                                   Array4<int const> const& masklo,
                                   Array4<int const> const& maskhi,
                                   BoundCond bctlo, BoundCond bcthi,
@@ -611,7 +611,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = 1.0;
+                    den(i,j,k+1,n) = 1.0;
                 }
             }
         }
@@ -622,7 +622,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
+                    den(i,j,k+1,n) = (masklo(i,j,k) > 0) ? 1.0 : 0.0;
                 }
             }
         }
@@ -640,7 +640,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
+                    den(i,j,k+1,n) = (masklo(i,j,k) > 0) ? coef[1] : 0.0;
                 }
             }
         }
@@ -656,7 +656,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = 1.0;
+                    den(i,j,k-1,n) = 1.0;
                 }
             }
         }
@@ -667,7 +667,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
+                    den(i,j,k-1,n) = (maskhi(i,j,k) > 0) ? 1.0 : 0.0;
                 }
             }
         }
@@ -685,7 +685,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
         for (int n = 0; n < ncomp; ++n) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    phi(i,j,k,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
+                    den(i,j,k-1,n) = (maskhi(i,j,k) > 0) ? coef[1] : 0.0;
                 }
             }
         }
