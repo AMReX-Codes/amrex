@@ -4,7 +4,7 @@
 #include <AMReX_Particles.H>
 #include <AMReX_CudaContainers.H>
 
-#include "NeighborList.H"
+#include <AMReX_NeighborList.H>
 
 struct PIdx
 {
