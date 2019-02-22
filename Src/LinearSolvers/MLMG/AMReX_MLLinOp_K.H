@@ -48,7 +48,7 @@ void mllinop_apply_bc_x (Box const& box, int blen, Array4<Real> const& phi,
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bcllo * dxinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -106,7 +106,7 @@ void mllinop_apply_bc_x (Box const& box, int blen, Array4<Real> const& phi,
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bclhi * dxinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -174,7 +174,7 @@ void mllinop_apply_bc_y (Box const& box, int blen, Array4<Real> const& phi,
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.y-lo.y+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bcllo * dyinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -232,7 +232,7 @@ void mllinop_apply_bc_y (Box const& box, int blen, Array4<Real> const& phi,
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.y-lo.y+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bclhi * dyinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -300,7 +300,7 @@ void mllinop_apply_bc_z (Box const& box, int blen, Array4<Real> const& phi,
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.z-lo.z+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bcllo * dzinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -358,7 +358,7 @@ void mllinop_apply_bc_z (Box const& box, int blen, Array4<Real> const& phi,
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bclhi * dzinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -425,7 +425,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bcllo * dxinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -470,7 +470,7 @@ void mllinop_comp_interp_coef0_x (Box const& box, int blen, Array4<Real> const& 
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bclhi * dxinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -528,7 +528,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.y-lo.y+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bcllo * dyinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -573,7 +573,7 @@ void mllinop_comp_interp_coef0_y (Box const& box, int blen, Array4<Real> const& 
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.y-lo.y+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bclhi * dyinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -631,7 +631,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.z-lo.z+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bcllo * dzinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
@@ -676,7 +676,7 @@ void mllinop_comp_interp_coef0_z (Box const& box, int blen, Array4<Real> const& 
     case AMREX_LO_DIRICHLET:
     {
         Real x[4], coef[4];
-        const int NX = amrex::min(hi.x-lo.x+2, maxorder);
+        const int NX = amrex::min(blen+1, maxorder);
         x[0] = -bclhi * dzinv;
         for (int m = 1; m < NX; ++m) {
             x[m] = m - 0.5;
