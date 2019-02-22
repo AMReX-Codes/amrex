@@ -7,7 +7,6 @@
 #include <thrust/reduce.h>
 
 #include "Constants.H"
-#include "md_K.H"
 
 namespace amrex
 {
@@ -92,8 +91,10 @@ class NeighborList
 {
 public:
 
+    template <class CheckPair>
     void build (const Gpu::ManagedDeviceVector<ParticleType>& vec,
-                const amrex::Box& bx, const amrex::Geometry& geom)
+                const amrex::Box& bx, const amrex::Geometry& geom,
+                CheckPair check_pair)
     {
         BL_PROFILE("NeighborList::build");
         

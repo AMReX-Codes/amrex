@@ -1,9 +1,7 @@
 #include "MDParticleContainer.H"
 #include "Constants.H"
 
-#include <thrust/reduce.h>
-
-#include "md_K.H"
+#include "CheckPair.H"
 
 using namespace amrex;
 
@@ -376,7 +374,7 @@ fillNeighbors()
     }
     else {
         fillNeighborsMPIGPU(not_ours);
-    }    
+    }
 }
 
 void
@@ -641,7 +639,7 @@ void MDParticleContainer::BuildNeighborList()
         Box bx = mfi.tilebox();
         bx.grow(1);
 
-        m_neighbor_list[index].build(aos(), bx, geom);
+        m_neighbor_list[index].build(aos(), bx, geom, CheckPair());
     }
 }
 
@@ -681,8 +679,8 @@ void MDParticleContainer::computeForces()
         auto& aos   = ptile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        NeighborData<ParticleType> nbor_data = m_neighbor_list[index].data();
-        ParticleType* pstruct = &(aos[0]);
+        auto nbor_data = m_neighbor_list[index].data();
+        ParticleType* pstruct = aos().dataPtr();
 
        // now we loop over the neighbor list and compute the forces
         AMREX_FOR_1D ( np, i,
@@ -692,17 +690,16 @@ void MDParticleContainer::computeForces()
             p1.rdata(PIdx::ay) = 0.0;
             p1.rdata(PIdx::az) = 0.0;
 
-            const auto& neighbors = nbor_data.getNeighbors(i);
-            for (const auto& p2 : neighbors) {
-                
+            for (const auto& p2 : nbor_data.getNeighbors(i))
+            {                
                 Real dx = p1.pos(0) - p2.pos(0);
                 Real dy = p1.pos(1) - p2.pos(1);
                 Real dz = p1.pos(2) - p2.pos(2);
-
+                
                 Real r2 = dx*dx + dy*dy + dz*dz;
                 r2 = amrex::max(r2, Params::min_r*Params::min_r);
                 Real r = sqrt(r2);
-
+                
                 Real coef = (1.0 - Params::cutoff / r) / r2 / Params::mass;
                 p1.rdata(PIdx::ax) += coef * dx;
                 p1.rdata(PIdx::ay) += coef * dy;
