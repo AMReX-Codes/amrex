@@ -42,7 +42,7 @@ public:
 
 private:
 
-    // save phys_bc for FMultiGrid
+    //! save phys_bc for FMultiGrid
     BCRec m_phys_bc;
 };
 

@@ -13,7 +13,8 @@ int main(int argc, char* argv[])
     
     ParmParse pp;
     
-    int size, max_step, max_grid_size, nlevs;
+    IntVect size;
+    int max_step, max_grid_size, nlevs;
     bool write_particles, do_nl;
     Real dt;
 
@@ -28,18 +29,18 @@ int main(int argc, char* argv[])
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++) {
         real_box.setLo(n, 0.0);
-        real_box.setHi(n, size);
+        real_box.setHi(n, size[n]);
     }
 
     RealBox fine_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
     {
-       fine_box.setLo(n,0.25*size);
-       fine_box.setHi(n,0.75*size);
+       fine_box.setLo(n,0.25*size[n]);
+       fine_box.setHi(n,0.75*size[n]);
     }
     
     IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
-    IntVect domain_hi(AMREX_D_DECL(size - 1, size - 1, size - 1));
+    IntVect domain_hi(AMREX_D_DECL(size[0] - 1, size[1] - 1, size[2] - 1));
     const Box domain(domain_lo, domain_hi);
 
     Vector<int> rr(nlevs-1);
@@ -48,7 +49,7 @@ int main(int argc, char* argv[])
     
     int is_per[BL_SPACEDIM];
     for (int i = 0; i < BL_SPACEDIM; i++) 
-        is_per[i] = 1;
+        is_per[i] = 0;
 
     // This defines a Geometry object which is useful for writing the plotfiles  
     Vector<Geometry> geom(nlevs);
@@ -63,9 +64,9 @@ int main(int argc, char* argv[])
     
     // Now we make the refined level be the center eighth of the domain
     if (nlevs > 1) {
-        int n_fine = size*rr[0];
-        IntVect refined_lo(D_DECL(n_fine/4,n_fine/4,n_fine/4)); 
-        IntVect refined_hi(D_DECL(3*n_fine/4-1,3*n_fine/4-1,3*n_fine/4-1));
+        IntVect n_fine = size*rr[0];
+        IntVect refined_lo(D_DECL(n_fine[0]/4,n_fine[1]/4,n_fine[2]/4)); 
+        IntVect refined_hi(D_DECL(3*n_fine[0]/4-1,3*n_fine[1]/4-1,3*n_fine[2]/4-1));
 
         // Build a box for the level 1 domain
         Box refined_patch(refined_lo, refined_hi);
@@ -89,6 +90,9 @@ int main(int argc, char* argv[])
     myPC.InitParticles();
 
     for (int i = 0; i < max_step; i++) {
+
+        amrex::Print() << "Taking step " << i << "\n";
+
         if (write_particles) myPC.writeParticles(i);
         
         myPC.fillNeighbors();

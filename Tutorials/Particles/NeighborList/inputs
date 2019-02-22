@@ -1,9 +1,9 @@
-size = 64
-max_grid_size = 32
+size = (256, 256, 256)
+max_grid_size = 128
 max_step = 100
-write_particles = 1
+write_particles = 0
 dt = 0.0005
 do_nl = 1
 nlevs = 1
 
-particles.do_tiling = 1
+particles.do_tiling = 0

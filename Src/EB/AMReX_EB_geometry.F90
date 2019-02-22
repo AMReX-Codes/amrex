@@ -6,16 +6,16 @@ module amrex_eb_geometry_module
 
 contains
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Function: DOT_3D_REAL                                          !
-   !                                                                      !
-   !  Purpose: Returns the cartesian dot product for two vectors in three !
-   !  dimensions.                                                         !
-   !                                                                      !
-   !  Comments: Vectors are represented as one-dimensional arrays of type !
-   !  real(c_real) and of dimension(3) (i.e. indices range from 1..3).    !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Function: DOT_3D_REAL
+   !!
+   !!  Purpose: Returns the cartesian dot product for two vectors in three
+   !!  dimensions.
+   !!
+   !!  Comments: Vectors are represented as one-dimensional arrays of type
+   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !----------------------------------------------------------------------
     pure function dot_3d_real (v1, v2)
         implicit none
 
@@ -27,16 +27,16 @@ contains
 
     end function dot_3d_real
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Function: CROSS_3D_REAL                                        !
-   !                                                                      !
-   !  Purpose: Returns the cartesian cross product for two vectors in     !
-   !  three dimensions.                                                   !
-   !                                                                      !
-   !  Comments: Vectors are represented as one-dimensional arrays of type !
-   !  real(c_real) and of dimension(3) (i.e. indices range from 1..3).    !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Function: CROSS_3D_REAL
+   !!
+   !!  Purpose: Returns the cartesian cross product for two vectors in
+   !!  three dimensions.
+   !!
+   !!  Comments: Vectors are represented as one-dimensional arrays of type
+   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !----------------------------------------------------------------------
     pure function cross_3d_real (v1, v2)
         implicit none
 
@@ -49,20 +49,20 @@ contains
 
     end function cross_3d_real
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Function: PT_IN_BOX                                            !
-   !                                                                      !
-   !  Purpose: Returns true if the coordinate vector represents a point   !
-   !  inside a three-dimensional cube of size dx and origin specified by  !
-   !  integer vector. As a final input, the user specifies a dimension    !
-   !  (axis) to ignore. This allows IN-BOX checking on a box face.        !
-   !                                                                      !
-   !  Comments: Position vectors are represented as one-dimensional arrays!
-   !  of type real(c_real) and of dimension(3) (i.e. indices range        !
-   !  from 1..3). Cells are enumerated using arrays of type integer and   !
-   !  dimension(3).
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Function: PT_IN_BOX
+   !!
+   !!  Purpose: Returns true if the coordinate vector represents a point
+   !!  inside a three-dimensional cube of size dx and origin specified by
+   !!  integer vector. As a final input, the user specifies a dimension
+   !!  (axis) to ignore. This allows IN-BOX checking on a box face.
+   !!
+   !!  Comments: Position vectors are represented as one-dimensional arrays
+   !!  of type real(c_real) and of dimension(3) (i.e. indices range
+   !!  from 1..3). Cells are enumerated using arrays of type integer and
+   !!  dimension(3).
+   !----------------------------------------------------------------------
    ! pure function pt_in_box (pt, id, id_ignore)
    !     implicit none
 
@@ -97,20 +97,20 @@ contains
 
    ! end function pt_in_box
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Subroutine: CALC_FACET_EDGE                                    !
-   !                                                                      !
-   !  Purpose: Calculates the line (represented by a position and a       !
-   !  direction vector) given by the intersection of two planes (defined  !
-   !  by two normal (n1, n2) and two positions (h1 = n1.p1, h2 = n2.p2).  !
-   !                                                                      !
-   !  When one plane is the EB surface, and the other is a face of the    !
-   !  cell. Then this line represents the edge of the EB facet.           !
-   !                                                                      !
-   !  Comments: Vectors are represented as one-dimensional arrays of type !
-   !  real(c_real) and of dimension(3) (i.e. indices range from 1..3).    !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Subroutine: CALC_FACET_EDGE
+   !!
+   !!  Purpose: Calculates the line (represented by a position and a
+   !!  direction vector) given by the intersection of two planes (defined
+   !!  by two normal (n1, n2) and two positions (h1 = n1.p1, h2 = n2.p2).
+   !!
+   !!  When one plane is the EB surface, and the other is a face of the
+   !!  cell. Then this line represents the edge of the EB facet.
+   !!
+   !!  Comments: Vectors are represented as one-dimensional arrays of type
+   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !----------------------------------------------------------------------
     pure subroutine calc_facet_edge (p0, v, h1, h2, n1, n2)
         implicit none
 
@@ -131,17 +131,17 @@ contains
 
     end subroutine calc_facet_edge
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Subroutine: LINES_NEAREST_PT                                   !
-   !                                                                      !
-   !  Purpose: Given an a line an a point, this subroutine finds the point!
-   !  one the line which minimizes the cartesian distance. It also finds  !
-   !  the corresponing distance along the line corresponding to this point!
-   !                                                                      !
-   !  Comments: Vectors are represented as one-dimensional arrays of type !
-   !  real(c_real) and of dimension(3) (i.e. indices range from 1..3).    !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Subroutine: LINES_NEAREST_PT
+   !!
+   !!  Purpose: Given an a line an a point, this subroutine finds the point
+   !!  one the line which minimizes the cartesian distance. It also finds
+   !!  the corresponing distance along the line corresponding to this point
+   !!
+   !!  Comments: Vectors are represented as one-dimensional arrays of type
+   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !----------------------------------------------------------------------
     pure subroutine lines_nearest_pt (lambda_min, nearest_pt, p0, v, pt)
         implicit none
 
@@ -158,16 +158,16 @@ contains
 
     end subroutine lines_nearest_pt
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Subroutine: SWAP_REALS                                         !
-   !                                                                      !
-   !  Purpose: Stupid little subroutine which swaps the values of its     !
-   !  inputs.                                                             !
-   !                                                                      !
-   !  Comments: Inputs are of type real(c_real)                           !
-   !                                                                      !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Subroutine: SWAP_REALS
+   !!
+   !!  Purpose: Stupid little subroutine which swaps the values of its
+   !!  inputs.
+   !!
+   !!  Comments: Inputs are of type real(c_real)
+   !!
+   !----------------------------------------------------------------------
     pure subroutine swap_reals(a, b)
         implicit none
 
@@ -180,19 +180,19 @@ contains
 
     end subroutine swap_reals
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Subroutine: LAMBDA_BOUNDS                                      !
-   !                                                                      !
-   !  Purpose: Given a line which passes through a box in three dimensions!
-   !  (it can pass through the edges). Let lambda be a real value         !
-   !  representing the coordinate along the line. This subroutine finds   !
-   !  teh min/max values of lambda, in order for the point described by   !
-   !  lambda to be contained within the box.                              !
-   !                                                                      !
-   !  Comments: Vectors are represented as one-dimensional arrays of type !
-   !  real(c_real) and of dimension(3) (i.e. indices range from 1..3).    !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Subroutine: LAMBDA_BOUNDS
+   !!
+   !!  Purpose: Given a line which passes through a box in three dimensions
+   !!  (it can pass through the edges). Let lambda be a real value
+   !!  representing the coordinate along the line. This subroutine finds
+   !!  teh min/max values of lambda, in order for the point described by
+   !!  lambda to be contained within the box.
+   !!
+   !!  Comments: Vectors are represented as one-dimensional arrays of type
+   !!  real(c_real) and of dimension(3) (i.e. indices range from 1..3).
+   !----------------------------------------------------------------------
     pure subroutine lambda_bounds(lambda_min, lambda_max, id_cell, p0, v, dx)
         implicit none
 
@@ -248,21 +248,21 @@ contains
 
     end subroutine lambda_bounds
 
-   !----------------------------------------------------------------------!
-   !                                                                      !
-   !  Pure Function: FACETS_NEAREST_PT                                    !
-   !                                                                      !
-   !  Purpose: Given a collision between particle and EB surface, and     !
-   !  given that a neighbour cell owns the EB surface, a collision between!
-   !  the particle and the EDGE of the EB facet might occur. This         !
-   !  function returns the coordinates of the closest point on the edge of!
-   !  an EB facet. This function does not check of collisions.            !
-   !                                                                      !
-   !  Comments: Position and normal vectors are represented as            !
-   !  one-dimensional arrays of type real(c_real) and of dimension(3)     !
-   !  (i.e. indices range from 1..3). Cells are enumerated using arrays of!
-   !  type integer and of dimension(3).                                   !
-   !----------------------------------------------------------------------!
+   !----------------------------------------------------------------------
+   !!
+   !>  Pure Function: FACETS_NEAREST_PT
+   !!
+   !!  Purpose: Given a collision between particle and EB surface, and
+   !!  given that a neighbour cell owns the EB surface, a collision between
+   !!  the particle and the EDGE of the EB facet might occur. This
+   !!  function returns the coordinates of the closest point on the edge of
+   !!  an EB facet. This function does not check of collisions.
+   !!
+   !!  Comments: Position and normal vectors are represented as
+   !!  one-dimensional arrays of type real(c_real) and of dimension(3)
+   !!  (i.e. indices range from 1..3). Cells are enumerated using arrays of
+   !!  type integer and of dimension(3).
+   !----------------------------------------------------------------------
     pure function facets_nearest_pt(ind_pt, ind_loop, r_vec, eb_normal, eb_p0, dx)
         implicit none
 

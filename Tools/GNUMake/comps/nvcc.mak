@@ -40,6 +40,9 @@ ifeq ($(lowercase_nvcc_host_comp),gnu)
     CXXFLAGS_FROM_HOST := -ccbin=g++ -Xcompiler='$(CXXFLAGS) --std=c++14' --std=c++14
   endif
   CFLAGS_FROM_HOST := -ccbin=gcc -Xcompiler='$(CFLAGS)'
+else ifeq ($(lowercase_nvcc_host_comp),pgi)
+  CXXFLAGS_FROM_HOST := -ccbin=pgc++ -Xcompiler='$(CXXFLAGS)' --std=c++11
+  CFLAGS_FROM_HOST := -ccbin=pgcc -Xcompiler='$(CFLAGS)'
 else
   CXXFLAGS_FROM_HOST := -ccbin=$(CXX) -Xcompiler='$(CXXFLAGS)'
   CFLAGS_FROM_HOST := -ccbin=$(CC) -Xcompiler='$(CFLAGS)'

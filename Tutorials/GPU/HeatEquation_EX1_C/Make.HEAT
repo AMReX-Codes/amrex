@@ -1,0 +1,27 @@
+AMREX_HOME ?= ../../../
+HEAT_DIR  ?= $(AMREX_HOME)/Tutorials/GPU/HeatEquation_EX1_C/
+
+TOP := $(HEAT_DIR)
+
+EBASE := main
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.defs
+
+Bdirs   := Source
+Bpack   += $(foreach dir, $(Bdirs), $(TOP)/$(dir)/Make.package)
+Blocs   += $(foreach dir, $(Bdirs), $(TOP)/$(dir))
+
+include $(Bpack)
+
+INCLUDE_LOCATIONS += $(Blocs)
+VPATH_LOCATIONS   += $(Blocs)
+
+Pdirs             := Base
+Ppack             += $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
+
+include $(Ppack)
+
+all: $(executable)
+	@echo SUCCESS
+
+include $(AMREX_HOME)/Tools/GNUMake/Make.rules

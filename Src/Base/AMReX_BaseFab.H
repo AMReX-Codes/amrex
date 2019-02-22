@@ -7,6 +7,7 @@
 #include <limits>
 #include <climits>
 #include <array>
+#include <type_traits>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -33,10 +34,10 @@
 
 namespace amrex
 {
-    extern long private_total_bytes_allocated_in_fabs;     // total bytes at any given time
-    extern long private_total_bytes_allocated_in_fabs_hwm; // high-water-mark over a given interval
-    extern long private_total_cells_allocated_in_fabs;     // total cells at any given time
-    extern long private_total_cells_allocated_in_fabs_hwm; // high-water-mark over a given interval
+    extern long private_total_bytes_allocated_in_fabs;     //!< total bytes at any given time
+    extern long private_total_bytes_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
+    extern long private_total_cells_allocated_in_fabs;     //!< total cells at any given time
+    extern long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over a given interval
 #ifdef _OPENMP
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs)
 #pragma omp threadprivate(private_total_bytes_allocated_in_fabs_hwm)
@@ -119,12 +120,12 @@ struct BaseFabData
           truesize(a_truesize), ptr_owner(a_ptr_owner), shared_memory(a_shared_memory)
         {}
     BaseFabData () = default;
-    T*      dptr;     // The data pointer.
-    Box     domain;   // My index space.
-    int     nvar;     // Number components.
-    long    truesize; // nvar*numpts that was allocated on heap.
-    bool    ptr_owner;// Owner of T*?
-    bool    shared_memory;  // Is the memory allocated in shared memory?
+    T*      dptr;     //!< The data pointer.
+    Box     domain;   //!< My index space.
+    int     nvar;     //!< Number components.
+    long    truesize; //!< nvar*numpts that was allocated on heap.
+    bool    ptr_owner;//!< Owner of T*?
+    bool    shared_memory;  //!< Is the memory allocated in shared memory?
     void setOwner (bool b) { ptr_owner = b; }
 };
 
@@ -231,6 +232,9 @@ public:
     */
     void resize (const Box& b,
                  int        N = 1);
+
+    template <class = typename std::enable_if<std::is_trivially_destructible<T>::value> >
+    Elixir elixir ();
 
     /**
      * \brief The function returns the BaseFab to the invalid state.
@@ -1248,197 +1252,203 @@ public:
     AMREX_GPU_HOST_DEVICE
     void SetBoxType (const IndexType& typ) { this->domain.setType(typ); }
 
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& b, int c, int nc, F f) {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& b, int c, int nc, F f) const {
         ForEachImpl(*this, b, c, nc, f);
     }
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEachIV (const Box& b, int c, int nc, F f) {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEachIV (const Box& b, int c, int nc, F f) const {
         ForEachIVImpl(*this, b, c, nc, f);
     }
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                   const BaseFab<T>& src, int srccomp, F f);
 
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void ForEach (const Box& dstbox, int dstcomp, int numcomp,
                   const BaseFab<T>& src, const Box& srcbox, int srccomp, F f);
 
-    template <typename P, class F> // AMREX_GPU_HOST_DEVICE
+    template <typename P, class F> //!< AMREX_GPU_HOST_DEVICE
     P Accumulate (const Box& b, int c, int nc, P init, F f) const;
 
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void Transform (T* dst, const Box& b, int c, int nc, F f) const;
 
-    template <class F> // AMREX_GPU_HOST_DEVICE
+    template <class F> //!< AMREX_GPU_HOST_DEVICE
     void Transform (const Box& b, int c, int nc, T const* src, F f);
 
     //
     // New interfaces
     //
 
-    // Set value on the whole domain and all components
+    //! Set value on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     void setVal (T val);
-    // 
-    // Do nothing if bx is empty.
+    //
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     void setVal (T val, Box bx, DestComp dcomp, NumComps ncomp);
 
     AMREX_GPU_HOST_DEVICE
     void setValIf (T val, const BaseFab<int>& mask);
     //
-    // Do nothing if bx is empty.
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     void setValIf (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp);
 
     AMREX_GPU_HOST_DEVICE
     void setValIfNot (T val, const BaseFab<int>& mask);
     //
-    // Do nothing if bx is empty.
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     void setValIfNot (T val, Box bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp);
 
-    // setVal on the complement of bx in the fab's domain
+    //! setVal on the complement of bx in the fab's domain
     void setComplement (T val, Box const& bx, DestComp dcomp, NumComps ncomp);
 
-    // copy is performed on the intersection of dest and src fabs.
-    // All components of dest fab are copied. src fab must have enough
-    // components (more is OK).
+    /**
+    * copy is performed on the intersection of dest and src fabs.
+    * All components of dest fab are copied. src fab must have enough
+    * components (more is OK).
+    */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src);
     //
-    // Do nothing if bx does not intersect with src fab.
+    //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp);
 
-    // Scalar addition on the whole domain and all components
+    //! Scalar addition on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& plus (T val);
     //
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& operator+= (T val);
     //
-    // Do nothing if bx is empty.
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& plus (T val, Box bx, DestComp dcomp, NumComps ncomp);
-    //
-    // Fab addition is performed on the intersection of dest and src fabs.
-    // All components of dest fab are copied. src fab must have enough
-    // components (more is OK).
+    /**
+    * Fab addition is performed on the intersection of dest and src fabs.
+    * All components of dest fab are copied. src fab must have enough
+    * components (more is OK).
+    */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src);
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& operator+= (const BaseFab<T>& src);    
+    BaseFab<T>& operator+= (const BaseFab<T>& src);
     //
-    // Do nothing if bx does not intersect with src fab.
+    //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& plus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp);
 
-    // Scalar subtraction on the whole domain and all components
+    //! Scalar subtraction on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& minus (T val);
     //
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& operator-= (T val);
     //
-    // Do nothing if bx is empty.
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& minus (T val, Box bx, DestComp dcomp, NumComps ncomp);
-    //
-    // Fab subtraction is performed on the intersection of dest and src fabs.
-    // All components of dest fab are copied. src fab must have enough
-    // components (more is OK).
+    /**
+    * Fab subtraction is performed on the intersection of dest and src fabs.
+    * All components of dest fab are copied. src fab must have enough
+    * components (more is OK).
+    */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src);
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& operator-= (const BaseFab<T>& src);    
+    BaseFab<T>& operator-= (const BaseFab<T>& src);
     //
-    // Do nothing if bx does not intersect with src fab.
+    //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& minus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp);
 
-    // Scalar multiplication on the whole domain and all components
+    //! Scalar multiplication on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& mult (T val);
     //
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& operator*= (T val);
     //
-    // Do nothing if bx is empty.
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& mult (T val, Box bx, DestComp dcomp, NumComps ncomp);
-    //
-    // Fab multiplication is performed on the intersection of dest and src fabs.
-    // All components of dest fab are copied. src fab must have enough
-    // components (more is OK).
+    /**
+    * Fab multiplication is performed on the intersection of dest and src fabs.
+    * All components of dest fab are copied. src fab must have enough
+    * components (more is OK).
+    */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src);
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& operator*= (const BaseFab<T>& src);    
+    BaseFab<T>& operator*= (const BaseFab<T>& src);
     //
-    // Do nothing if bx does not intersect with src fab.
+    //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& mult (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp);
 
-    // Scalar division on the whole domain and all components
+    //! Scalar division on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& divide (T val);
     //
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& operator/= (T val);
     //
-    // Do nothing if bx is empty.
+    //! Do nothing if bx is empty.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& divide (T val, Box bx, DestComp dcomp, NumComps ncomp);
-    //
-    // Fab division is performed on the intersection of dest and src fabs.
-    // All components of dest fab are copied. src fab must have enough
-    // components (more is OK).
+    /**
+    * Fab division is performed on the intersection of dest and src fabs.
+    * All components of dest fab are copied. src fab must have enough
+    * components (more is OK).
+    */
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src);
     //
     AMREX_GPU_HOST_DEVICE
-    BaseFab<T>& operator/= (const BaseFab<T>& src);    
+    BaseFab<T>& operator/= (const BaseFab<T>& src);
     //
-    // Do nothing if bx does not intersect with src fab.
+    //! Do nothing if bx does not intersect with src fab.
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& divide (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp);
 
-    // on the whole domain and all components
+    //! on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& negate ();
     //
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& negate (const Box& bx, DestComp dcomp, NumComps ncomp);
 
-    // Fab <- Fab/r on the whole domain and all components
+    //! Fab <- Fab/r on the whole domain and all components
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& invert (T r);
     //
     AMREX_GPU_HOST_DEVICE
     BaseFab<T>& invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp);
-    
-    // Sum
+
+    //! Sum
     AMREX_GPU_HOST_DEVICE
     T sum (const Box& bx, DestComp dcomp, NumComps ncomp) const;
 
-    // Dot product of two Fabs
+    //! Dot product of two Fabs
     AMREX_GPU_HOST_DEVICE
     T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const;
 
-    // Dot product of two Fabs with mask
+    //! Dot product of two Fabs with mask
     AMREX_GPU_HOST_DEVICE
     T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
                SrcComp scomp, DestComp dcomp, NumComps ncomp) const;
@@ -1991,11 +2001,12 @@ BaseFab<T>::resize (const Box& b,
     this->nvar   = n;
     this->domain = b;
 
-    if (this->dptr == 0)
+    if (this->dptr == 0 || !this->ptr_owner)
     {
 	if (this->shared_memory)
 	    amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
 
+        this->dptr = nullptr;
         define();
     }
     else if (this->nvar*this->domain.numPts() > this->truesize)
@@ -2007,6 +2018,28 @@ BaseFab<T>::resize (const Box& b,
 
         define();
     }
+}
+
+template <class T>
+template <class>
+Elixir
+BaseFab<T>::elixir ()
+{
+    bool o;
+    if (Gpu::inLaunchRegion()) {
+        o = this->ptr_owner;
+        this->ptr_owner = false;
+        if (o && this->dptr) {
+            if (this->nvar > 1) {
+                amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
+            } else {
+                amrex::update_fab_stats(0, -this->truesize, sizeof(T));
+            }
+        }
+    } else {
+        o = false;
+    }
+    return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
 }
 
 template <class T>
@@ -2419,7 +2452,7 @@ BaseFab<T>::minIndex (const Box& subbox, int comp) const
     const auto len  = amrex::length(subbox);
     const auto lo   = amrex::lbound(subbox);
     const auto dp   = view(lo, comp);
- 
+
 #if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
     AMREX_D_DECL(int imin, jmin, kmin);
     T min_val = std::numeric_limits<T>::max();
@@ -2879,8 +2912,8 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
     const auto xp  =   view(xlo, xcomp);
-    const auto yp  = y.view(ylo, ycomp);    
-    
+    const auto yp  = y.view(ylo, ycomp);
+
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -2916,9 +2949,9 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
     const auto xp  =      view(xlo, xcomp);
-    const auto yp  =    y.view(ylo, ycomp); 
-    const auto mp  = mask.view(xlo);   
-    
+    const auto yp  =    y.view(ylo, ycomp);
+    const auto mp  = mask.view(xlo);
+
     for (int n = 0; n < numcomp; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -3370,16 +3403,16 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src,
     return *this;
 }
 
-//
-// Linear Interpolation / Extrapolation
-// Result is (t2-t)/(t2-t1)*f1 + (t-t1)/(t2-t1)*f2
-// Data is taken from b1 region of f1, b2 region of f2
-// and stored in b region of this FAB.
-// Boxes b, b1 and b2 must be the same size.
-// Data is taken from component comp1 of f1, comp2 of f2,
-// and stored in component comp of this FAB.
-// This fab is returned as a reference for chaining.
-//
+/**
+* Linear Interpolation / Extrapolation
+* Result is (t2-t)/(t2-t1)*f1 + (t-t1)/(t2-t1)*f2
+* Data is taken from b1 region of f1, b2 region of f2
+* and stored in b region of this FAB.
+* Boxes b, b1 and b2 must be the same size.
+* Data is taken from component comp1 of f1, comp2 of f2,
+* and stored in component comp of this FAB.
+* This fab is returned as a reference for chaining.
+*/
 
 template <class T>
 BaseFab<T>&
@@ -3555,7 +3588,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, Box bx,
     const auto  lo = amrex::lbound(bx);
     const auto dp  =     view(lo, dcomp.i);
     const auto sp  = src.view(lo, scomp.i);
-        
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -3637,7 +3670,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, Box bx,
     const auto  lo = amrex::lbound(bx);
     const auto dp  =     view(lo, dcomp.i);
     const auto sp  = src.view(lo, scomp.i);
-        
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -3719,7 +3752,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, Box bx,
     const auto  lo = amrex::lbound(bx);
     const auto dp  =     view(lo, dcomp.i);
     const auto sp  = src.view(lo, scomp.i);
-        
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -3801,7 +3834,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, Box bx,
     const auto  lo = amrex::lbound(bx);
     const auto dp  =     view(lo, dcomp.i);
     const auto sp  = src.view(lo, scomp.i);
-        
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -3883,7 +3916,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, Box bx,
     const auto  lo = amrex::lbound(bx);
     const auto dp  =     view(lo, dcomp.i);
     const auto sp  = src.view(lo, scomp.i);
-        
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -3949,7 +3982,7 @@ BaseFab<T>::invert (T r, const Box& bx, DestComp dcomp, NumComps ncomp)
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
-                AMREX_PRAGMA_SIMD 
+                AMREX_PRAGMA_SIMD
                 for (int i = 0; i < len.x; ++i) {
                     dp(i,j,k,n) = r / dp(i,j,k,n);
                 }
@@ -3999,8 +4032,8 @@ BaseFab<T>::dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp d
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
     const auto dp  =     view(lo, dcomp.i);
-    const auto sp  = src.view(lo, scomp.i);    
-    
+    const auto sp  = src.view(lo, scomp.i);
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
@@ -4031,9 +4064,9 @@ BaseFab<T>::dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& m
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);
     const auto dp  =      view(lo, dcomp.i);
-    const auto sp  =  src.view(lo, scomp.i);    
-    const auto mp  = mask.view(lo);   
-    
+    const auto sp  =  src.view(lo, scomp.i);
+    const auto mp  = mask.view(lo);
+
     for (int n = 0; n < ncomp.n; ++n) {
         for         (int k = 0; k < len.z; ++k) {
             for     (int j = 0; j < len.y; ++j) {
