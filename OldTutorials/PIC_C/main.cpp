@@ -22,7 +22,6 @@ int main(int argc, char* argv[])
     const Real strt_total = ParallelDescriptor::second();
 
     int    nx, ny, nz;
-    double hx, hy, hz;
 
     ParmParse pp;
 
