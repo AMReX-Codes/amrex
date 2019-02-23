@@ -523,7 +523,7 @@ MultiFab::~MultiFab()
 }
 
 void
-MultiFab::operator= (const Real& r)
+MultiFab::operator= (Real r)
 {
     setVal(r);
 }
