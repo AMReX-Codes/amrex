@@ -79,5 +79,3 @@ WarpX::DampPML (int lev, PatchType patch_type)
         }
     }
 }
-
-

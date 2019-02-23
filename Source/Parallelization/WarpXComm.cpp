@@ -489,7 +489,7 @@ WarpX::SyncCurrent ()
         const auto& period = Geom(lev).periodicity();
         current_fp[lev][0]->OverrideSync(*current_fp_owner_masks[lev][0], period);
         current_fp[lev][1]->OverrideSync(*current_fp_owner_masks[lev][1], period);
-        current_fp[lev][2]->OverrideSync(*current_fp_owner_masks[lev][2],period);
+        current_fp[lev][2]->OverrideSync(*current_fp_owner_masks[lev][2], period);
     }
     for (int lev = 1; lev <= finest_level; ++lev)
     {

@@ -476,7 +476,7 @@ extern "C"
     void warpx_fft_dataplan_init (const int* nox, const int* noy, const int* noz,
                                   void* fft_data, const int* ndata,
                                   const amrex_real* dx_w, const amrex_real* dt_w,
-                                  const int* fftw_plan_measure );
+                                  const int* fftw_plan_measure, const int* do_nodal );
     void warpx_fft_nullify ();
     void warpx_fft_push_eb (amrex_real* ex_w, const int* exlo, const int* exhi,
                             amrex_real* ey_w, const int* eylo, const int* eyhi,

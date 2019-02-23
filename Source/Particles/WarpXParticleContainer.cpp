@@ -223,6 +223,8 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
   // WarpX assumes the same number of guard cells for Jx, Jy, Jz
   long ngJ = jx.nGrow();
 
+  bool j_is_nodal = jx.is_nodal() and jy.is_nodal() and jz.is_nodal();
+
   // Deposit charge for particles that are not in the current buffers
   if (np_current > 0)
     {
@@ -261,7 +263,68 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       auto jzntot = local_jz[thread_num]->length();
 
       BL_PROFILE_VAR_START(blp_pxr_cd);
-      warpx_current_deposition(
+      if (j_is_nodal) {
+          const Real* p_wp = wp.dataPtr();
+          const Real* p_gaminv = m_giv[thread_num].dataPtr();
+          const Real* p_uxp = uxp.dataPtr();
+          const Real* p_uyp = uyp.dataPtr();
+          const Real* p_uzp = uzp.dataPtr();
+          AsyncArray<Real> wptmp_aa(np_current);
+          Real* const wptmp = wptmp_aa.data();
+          const Box& tile_box = pti.tilebox();
+#if (AMREX_SPACEDIM == 3)
+          const long nx = tile_box.length(0);
+          const long ny = tile_box.length(1);
+          const long nz = tile_box.length(2);
+#else
+          const long nx = tile_box.length(0);
+          const long ny = 0;
+          const long nz = tile_box.length(1);
+#endif
+          amrex::ParallelFor (np_current, [=] (long ip) {
+                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uxp[ip];
+          });
+          warpx_charge_deposition(jx_ptr, &np_current,
+                                  m_xp[thread_num].dataPtr(),
+                                  m_yp[thread_num].dataPtr(),
+                                  m_zp[thread_num].dataPtr(),
+                                  wptmp,
+                                  &this->charge,
+                                  &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                                  &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                  &ngJ, &ngJ, &ngJ,
+                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                  &lvect, &WarpX::current_deposition_algo);
+          amrex::ParallelFor (np_current, [=] (long ip) {
+                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uyp[ip];
+          });
+          warpx_charge_deposition(jy_ptr, &np_current,
+                                  m_xp[thread_num].dataPtr(),
+                                  m_yp[thread_num].dataPtr(),
+                                  m_zp[thread_num].dataPtr(),
+                                  wptmp,
+                                  &this->charge,
+                                  &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                                  &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                  &ngJ, &ngJ, &ngJ,
+                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                  &lvect, &WarpX::current_deposition_algo);
+          amrex::ParallelFor (np_current, [=] (long ip) {
+                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uzp[ip];
+          });
+          warpx_charge_deposition(jz_ptr, &np_current,
+                                  m_xp[thread_num].dataPtr(),
+                                  m_yp[thread_num].dataPtr(),
+                                  m_zp[thread_num].dataPtr(),
+                                  wptmp,
+                                  &this->charge,
+                                  &xyzmin[0], &xyzmin[1], &xyzmin[2],
+                                  &dx[0], &dx[1], &dx[2], &nx, &ny, &nz,
+                                  &ngJ, &ngJ, &ngJ,
+                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                  &lvect, &WarpX::current_deposition_algo);
+      } else {
+          warpx_current_deposition(
                                jx_ptr, &ngJ, jxntot.getVect(),
                                jy_ptr, &ngJ, jyntot.getVect(),
                                jz_ptr, &ngJ, jzntot.getVect(),
@@ -276,6 +339,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &dt, &dx[0], &dx[1], &dx[2],
                                &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                &lvect,&WarpX::current_deposition_algo);
+      }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
       BL_PROFILE_VAR_START(blp_accumulate);
@@ -349,7 +413,68 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
 
       long ncrse = np - np_current;
       BL_PROFILE_VAR_START(blp_pxr_cd);
-      warpx_current_deposition(
+      if (j_is_nodal) {
+          const Real* p_wp = wp.dataPtr() + np_current;
+          const Real* p_gaminv = m_giv[thread_num].dataPtr() + np_current;
+          const Real* p_uxp = uxp.dataPtr() + np_current;
+          const Real* p_uyp = uyp.dataPtr() + np_current;
+          const Real* p_uzp = uzp.dataPtr() + np_current;
+          AsyncArray<Real> wptmp_aa(ncrse);
+          Real* const wptmp = wptmp_aa.data();
+          const Box& tile_box = pti.tilebox();
+#if (AMREX_SPACEDIM == 3)
+          const long nx = tile_box.length(0);
+          const long ny = tile_box.length(1);
+          const long nz = tile_box.length(2);
+#else
+          const long nx = tile_box.length(0);
+          const long ny = 0;
+          const long nz = tile_box.length(1);
+#endif
+          amrex::ParallelFor (ncrse, [=] (long ip) {
+                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uxp[ip];
+          });
+          warpx_charge_deposition(jx_ptr, &ncrse,
+                                  m_xp[thread_num].dataPtr() +np_current,
+                                  m_yp[thread_num].dataPtr() +np_current,
+                                  m_zp[thread_num].dataPtr() +np_current,
+                                  wptmp,
+                                  &this->charge,
+                                  &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                                  &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
+                                  &ngJ, &ngJ, &ngJ,
+                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                  &lvect, &WarpX::current_deposition_algo);
+          amrex::ParallelFor (ncrse, [=] (long ip) {
+                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uyp[ip];
+          });
+          warpx_charge_deposition(jy_ptr, &ncrse,
+                                  m_xp[thread_num].dataPtr() +np_current,
+                                  m_yp[thread_num].dataPtr() +np_current,
+                                  m_zp[thread_num].dataPtr() +np_current,
+                                  wptmp,
+                                  &this->charge,
+                                  &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                                  &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
+                                  &ngJ, &ngJ, &ngJ,
+                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                  &lvect, &WarpX::current_deposition_algo);
+          amrex::ParallelFor (ncrse, [=] (long ip) {
+                  wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uzp[ip];
+          });
+          warpx_charge_deposition(jz_ptr, &ncrse,
+                                  m_xp[thread_num].dataPtr() +np_current,
+                                  m_yp[thread_num].dataPtr() +np_current,
+                                  m_zp[thread_num].dataPtr() +np_current,
+                                  wptmp,
+                                  &this->charge,
+                                  &cxyzmin_tile[0], &cxyzmin_tile[1], &cxyzmin_tile[2],
+                                  &cdx[0], &cdx[1], &cdx[2], &nx, &ny, &nz,
+                                  &ngJ, &ngJ, &ngJ,
+                                  &WarpX::nox,&WarpX::noy,&WarpX::noz,
+                                  &lvect, &WarpX::current_deposition_algo);
+      } else {
+          warpx_current_deposition(
                                jx_ptr, &ngJ, jxntot.getVect(),
                                jy_ptr, &ngJ, jyntot.getVect(),
                                jz_ptr, &ngJ, jzntot.getVect(),
@@ -366,6 +491,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &dt, &cdx[0], &cdx[1], &cdx[2],
                                &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                &lvect,&WarpX::current_deposition_algo);
+      }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
       BL_PROFILE_VAR_START(blp_accumulate);

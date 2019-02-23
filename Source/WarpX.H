@@ -501,7 +501,7 @@ private:
     bool plot_part_per_proc = false;
     bool plot_proc_number   = false;
     bool plot_dive          = false;
-    bool plot_divb          = true;
+    bool plot_divb          = false;
     bool plot_rho           = false;
     bool plot_F             = false;
     bool plot_finepatch     = false;

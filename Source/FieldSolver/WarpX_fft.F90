@@ -81,7 +81,7 @@ contains
 !!
 !! Note: fft_data is a stuct containing 22 pointers to arrays
 !! 1-11: padded arrays in real space ; 12-22 arrays for the fields in Fourier space
-  subroutine warpx_fft_dataplan_init (nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx, fftw_measure) &
+  subroutine warpx_fft_dataplan_init (nox, noy, noz, fft_data, ndata, dx_wrpx, dt_wrpx, fftw_measure, do_nodal) &
        bind(c,name='warpx_fft_dataplan_init')
     USE picsar_precision, only: idp
     use shared_data, only : c_dim,  p3dfft_flag, fftw_plan_measure, &
@@ -104,6 +104,7 @@ contains
 
     integer, intent(in) :: nox, noy, noz, ndata
     integer, intent(in) :: fftw_measure
+    integer, intent(in) :: do_nodal
     type(c_ptr), intent(inout) :: fft_data(ndata)
     real(c_double), intent(in) :: dx_wrpx(3), dt_wrpx
 
@@ -119,7 +120,11 @@ contains
     nzguards = 0_idp
 
     ! For the calculation of the modified [k] vectors
-    l_staggered = .TRUE.
+    if (do_nodal == 0) then
+       l_staggered = .TRUE.
+    else
+       l_staggered = .FALSE.
+    endif
     norderx = int(nox, idp)
     nordery = int(noy, idp)
     norderz = int(noz, idp)

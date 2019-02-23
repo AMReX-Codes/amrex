@@ -82,4 +82,4 @@ plt.tight_layout()
 plt.savefig('langmuir_multi_2d_analysis.png')
 
 # Automatically check the validity
-assert overall_max_error < 0.02
+assert overall_max_error < 0.04
