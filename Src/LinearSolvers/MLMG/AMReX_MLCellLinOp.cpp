@@ -472,7 +472,11 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     const auto& foo = foofab.array();
 
     MFItInfo mfi_info;
+
     if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || Gpu::notInLaunchRegion(),
+                                     "non-cross stencil not support for gpu");
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -543,7 +547,6 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         }
         else
         {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Gpu::notInLaunchRegion(), "cross stencil not support for gpu");
             for (OrientationIter oitr; oitr; ++oitr)
             {
                 const Orientation ori = oitr();
