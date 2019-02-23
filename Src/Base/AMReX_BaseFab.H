@@ -214,7 +214,7 @@ public:
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    BaseFab& operator= (const T&);
+    BaseFab& operator= (T);
 
     static void Initialize();
     static void Finalize();
@@ -1987,7 +1987,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::operator= (const T& t)
+BaseFab<T>::operator= (T t)
 {
     setVal(t);
     return *this;

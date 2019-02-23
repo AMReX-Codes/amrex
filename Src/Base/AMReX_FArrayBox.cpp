@@ -184,7 +184,7 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
 }
 
 FArrayBox&
-FArrayBox::operator= (const Real& v)
+FArrayBox::operator= (Real v)
 {
     BaseFab<Real>::operator=(v);
     return *this;
