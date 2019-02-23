@@ -5,7 +5,6 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
-#include <WarpX_K.H>
 #ifdef WARPX_USE_PY
 #include <WarpX_py.H>
 #endif
