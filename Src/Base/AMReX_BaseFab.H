@@ -97,11 +97,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Array4<T>
 makeArray4 (T* p, Box const& bx)
 {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    AMREX_ASSERT(bx.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-#else
-    AMREX_ASSERT(bx.numPts() < static_cast<long>(INT_MAX));
-#endif
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx)};
 }
 
