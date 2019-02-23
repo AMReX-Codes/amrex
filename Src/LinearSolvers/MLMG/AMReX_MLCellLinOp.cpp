@@ -906,7 +906,6 @@ MLCellLinOp::BndryCondLoc::setLOBndryConds (const Geometry& geom, const Real* dx
 void
 MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
-    // todo: gpu
 #if (AMREX_SPACEDIM != 3)
     
     if (Geometry::IsCartesian() || !info.has_metric_term) return;
@@ -918,19 +917,22 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
         const Vector<Real>& r = (nextra==0) ? mfac.cellCenters(mfi) : mfac.cellEdges(mfi);
         const Box& vbx = mfi.validbox();
         const int rlo = vbx.loVect()[0];
         const int rhi = vbx.hiVect()[0] + nextra;
-        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
-                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                   r.data(), &rlo, &rhi,
-				   ncomp);
+        AsyncArray<Real> r_as(r.data(),rhi-rlo+1);
+        Real const* rp = r_as.data();
+        const auto& rhsfab = rhs.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+        {
+            rhsfab(i,j,k,n) *= rp[i-rlo];
+        });
     }
 #endif
 }
@@ -938,7 +940,6 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 void
 MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 {
-    // todo: gpu
 #if (AMREX_SPACEDIM != 3)
 
     if (Geometry::IsCartesian() || !info.has_metric_term) return;
@@ -949,19 +950,22 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
         const Vector<Real>& r = (nextra==0) ? mfac.invCellCenters(mfi) : mfac.invCellEdges(mfi);
         const Box& vbx = mfi.validbox();
         const int rlo = vbx.loVect()[0];
         const int rhi = vbx.hiVect()[0] + nextra;
-        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
-                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                   r.data(), &rlo, &rhi,
-				   ncomp);
+        AsyncArray<Real> r_as(r.data(), rhi-rlo+1);
+        Real const* rp = r_as.data();
+        const auto& rhsfab = rhs.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+        {
+            rhsfab(i,j,k,n) *= rp[i-rlo];
+        });
     }
 #endif
 }

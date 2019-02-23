@@ -25,7 +25,7 @@ module amrex_mllinop_nd_module
 #endif
   
   private
-  public :: amrex_mllinop_apply_bc, amrex_mllinop_apply_metric
+  public :: amrex_mllinop_apply_bc
 
 contains
 
@@ -306,28 +306,5 @@ contains
 
     end do
   end subroutine amrex_mllinop_apply_bc
-
-
-  subroutine amrex_mllinop_apply_metric (lo, hi, &
-       d, dlo, dhi, &
-       r, rlo, rhi, &
-       nc) &
-       bind(c,name='amrex_mllinop_apply_metric')
-    integer, intent(in) :: lo(3), hi(3), dlo(3), dhi(3), rlo, rhi
-    integer, intent(in), value :: nc
-    real(amrex_real), intent(inout) :: d(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3),nc)
-    real(amrex_real), intent(in) :: r(rlo:rhi)
-
-    integer :: i,j,k,n
-    do n = 1, nc
-       do       k = lo(3), hi(3)
-          do    j = lo(2), hi(2)
-             do i = lo(1), hi(1)
-                d(i,j,k,n) = d(i,j,k,n) * r(i)
-             end do
-          end do
-       end do
-    end do
-  end subroutine amrex_mllinop_apply_metric
   
 end module amrex_mllinop_nd_module
