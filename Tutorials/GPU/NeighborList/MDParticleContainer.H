@@ -43,6 +43,8 @@ public:
 
     void fillNeighbors ();
 
+    void updateNeighbors ();
+
     void clearNeighbors ();
 
     void writeParticles (const int n);

@@ -259,17 +259,26 @@ fillNeighbors()
 {
     BL_PROFILE("MDParticleContainer::fillNeighbors");
 
-    clearNeighbors();
     sortParticlesByNeighborDest();
+    updateNeighbors();
+}
+
+void
+MDParticleContainer::
+updateNeighbors()
+{
+    BL_PROFILE("MDParticleContainer::updateNeighbors");
+
+    clearNeighbors();
 
     const int lev = 0;
     auto& plev  = GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
-
+    
     std::map<int, SendBuffer> not_ours;
     std::map<int, size_t> grid_counts;
-
+    
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
         int src_grid = mfi.index();
