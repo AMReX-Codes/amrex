@@ -49,13 +49,6 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
 
-#if defined(BL_USE_FORTRAN_MPI)
-extern "C" {
-    void bl_fortran_mpi_comm_init (int fcomm);
-    void bl_fortran_mpi_comm_free ();
-}
-#endif
-
 namespace amrex {
 namespace system
 {
@@ -496,11 +489,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     }
 
-#if defined(BL_USE_FORTRAN_MPI)
-    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_mpi_comm_init (fcomm);
-#endif
-
     if (system::verbose > 0)
     {
 #ifdef BL_USE_MPI
@@ -617,9 +605,6 @@ amrex::Finalize (bool finalize_parallel)
     bool is_ioproc = ParallelDescriptor::IOProcessor();
 
     if (finalize_parallel) {
-#if defined(BL_USE_FORTRAN_MPI)
-	bl_fortran_mpi_comm_free();
-#endif
     /* Don't shut down MPI if GASNet is still using MPI */
 #ifndef GASNET_CONDUIT_MPI
         ParallelDescriptor::EndParallel();
