@@ -1,7 +1,5 @@
 #include <AMReX_BArena.H>
-#if !defined(AMREX_FORTRAN_BOXLIB)
 #include <AMReX_Gpu.H>
-#endif
 
 void*
 amrex::BArena::alloc (std::size_t sz_)
