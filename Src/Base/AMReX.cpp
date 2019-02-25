@@ -40,9 +40,6 @@
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
-#ifdef BL_USE_F_BASELIB
-#include <MemProfiler_f.H>
-#endif
 #endif
 
 #ifdef _OPENMP
@@ -564,10 +561,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #if defined(BL_USE_FORTRAN_MPI)
     int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
     bl_fortran_mpi_comm_init (fcomm);
-#endif
-
-#if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
-    MemProfiler_f::initialize();
 #endif
 
     if (system::verbose > 0)

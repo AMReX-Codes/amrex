@@ -152,14 +152,12 @@ void amrex_mempool_get_stats (int& mp_min, int& mp_max, int& mp_tot) // min, max
   mp_tot = hsu_tot/(1024*1024);
 }
 
-// We should eventually use Real instead of double.
-// We cannot do it now because of F_BaseLib.
-void amrex_real_array_init (double* p, size_t nelems)
+void amrex_real_array_init (Real* p, size_t nelems)
 {
     if (init_snan) amrex_array_init_snan(p, nelems);
 }
 
-void amrex_array_init_snan (double* p, size_t nelems)
+void amrex_array_init_snan (Real* p, size_t nelems)
 {
 #ifdef UINT64_MAX
     const uint64_t snan = UINT64_C(0x7ff0000080000001);
