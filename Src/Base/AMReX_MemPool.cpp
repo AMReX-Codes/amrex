@@ -18,9 +18,7 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
-#ifndef AMREX_FORTRAN_BOXLIB
 #include <AMReX_ParmParse.H>
-#endif
 
 #ifdef USE_PERILLA
 #include <WorkerThread.H>
@@ -47,10 +45,8 @@ void amrex_mempool_init ()
     {
 	initialized = true;
 
-#ifndef AMREX_FORTRAN_BOXLIB
         ParmParse pp("fab");
 	pp.query("init_snan", init_snan);
-#endif
 
 	int nthreads = 1;
 

@@ -4,10 +4,7 @@
 
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
-
-#if !defined(AMREX_FORTRAN_BOXLIB)
 #include <AMReX_Gpu.H>
-#endif
 
 namespace amrex {
 
