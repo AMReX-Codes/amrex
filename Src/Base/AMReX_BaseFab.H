@@ -1938,7 +1938,9 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
     auto src = static_cast<BaseFabData<T>const*>(&rhs);
 #ifndef AMREX_FAB_IS_PINNED
     if (Gpu::isDevicePtr(&rhs)) {
+#ifdef AMREX_USE_CUDA
         AMREX_GPU_SAFE_CALL(cudaMemcpy(dst, src, sizeof(BaseFabData<T>), cudaMemcpyDeviceToHost));
+#endif
     }
     else
 #endif
