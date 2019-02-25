@@ -12,4 +12,9 @@ extern "C"
     {
 	amrex::Abort(message);
     }
+
+    void amrex_fi_warning (const char* message)
+    {
+	amrex::Warning(message);
+    }
 }
