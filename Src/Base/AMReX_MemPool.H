@@ -1,6 +1,8 @@
 #ifndef BL_MEMPOOL_H
 #define BL_MEMPOOL_H
 
+#include <AMReX_REAL.H>
+
 extern "C" {
     void  amrex_mempool_init ();
     void  amrex_mempool_finalize ();
