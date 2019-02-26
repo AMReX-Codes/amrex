@@ -281,7 +281,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
           const long ny = 0;
           const long nz = tile_box.length(1);
 #endif
-          amrex::ParallelFor (np_current, [=] (long ip) {
+          amrex::ParallelFor (np_current, [=] AMREX_GPU_DEVICE (long ip) {
                   wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uxp[ip];
           });
           warpx_charge_deposition(jx_ptr, &np_current,
@@ -295,7 +295,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   &ngJ, &ngJ, &ngJ,
                                   &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                   &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (np_current, [=] (long ip) {
+          amrex::ParallelFor (np_current, [=] AMREX_GPU_DEVICE (long ip) {
                   wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uyp[ip];
           });
           warpx_charge_deposition(jy_ptr, &np_current,
@@ -309,7 +309,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   &ngJ, &ngJ, &ngJ,
                                   &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                   &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (np_current, [=] (long ip) {
+          amrex::ParallelFor (np_current, [=] AMREX_GPU_DEVICE (long ip) {
                   wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uzp[ip];
           });
           warpx_charge_deposition(jz_ptr, &np_current,
@@ -431,7 +431,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
           const long ny = 0;
           const long nz = tile_box.length(1);
 #endif
-          amrex::ParallelFor (ncrse, [=] (long ip) {
+          amrex::ParallelFor (ncrse, [=] AMREX_GPU_DEVICE (long ip) {
                   wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uxp[ip];
           });
           warpx_charge_deposition(jx_ptr, &ncrse,
@@ -445,7 +445,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   &ngJ, &ngJ, &ngJ,
                                   &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                   &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (ncrse, [=] (long ip) {
+          amrex::ParallelFor (ncrse, [=] AMREX_GPU_DEVICE (long ip) {
                   wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uyp[ip];
           });
           warpx_charge_deposition(jy_ptr, &ncrse,
@@ -459,7 +459,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                   &ngJ, &ngJ, &ngJ,
                                   &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                   &lvect, &WarpX::current_deposition_algo);
-          amrex::ParallelFor (ncrse, [=] (long ip) {
+          amrex::ParallelFor (ncrse, [=] AMREX_GPU_DEVICE (long ip) {
                   wptmp[ip] = p_wp[ip] * p_gaminv[ip] * p_uzp[ip];
           });
           warpx_charge_deposition(jz_ptr, &ncrse,
