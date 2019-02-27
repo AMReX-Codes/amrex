@@ -3,11 +3,9 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 
-#ifndef AMREX_FORTRAN_BOXLIB
 #include <AMReX.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
-#endif
 
 namespace amrex {
 
@@ -35,7 +33,6 @@ Arena::align (std::size_t s)
 void
 Arena::Initialize ()
 {
-#ifndef AMREX_FORTRAN_BOXLIB
     if (initialized) return;
     initialized = true;
 
@@ -88,14 +85,11 @@ Arena::Initialize ()
 
     p = the_pinned_arena->alloc(N);
     the_pinned_arena->free(p);
-
-#endif
 }
 
 void
 Arena::PrintUsage ()
 {
-#ifndef AMREX_FORTRAN_BOXLIB
     if (amrex::Verbose() > 0) {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         if (The_Arena()) {
@@ -159,7 +153,6 @@ Arena::PrintUsage ()
             }
         }
     }
-#endif
 }
     
 void
@@ -167,7 +160,6 @@ Arena::Finalize ()
 {
     PrintUsage();
     
-#ifndef AMREX_FORTRAN_BOXLIB
     initialized = false;
     
     delete the_arena;
@@ -181,11 +173,8 @@ Arena::Finalize ()
     
     delete the_pinned_arena;
     the_pinned_arena = nullptr;
-#endif
 }
     
-#ifndef AMREX_FORTRAN_BOXLIB
-
 Arena*
 The_Arena ()
 {
@@ -214,5 +203,4 @@ The_Pinned_Arena ()
     return the_pinned_arena;
 }
 
-#endif
 }

@@ -73,6 +73,11 @@ public:
 
     void applyMetricTermsCoeffs ();
 
+    static void FFlux (Box const& box, Real const* dxinv, Real bscalar,
+                       Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
+                       Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
+                       FArrayBox const& sol, int face_only);
+
 protected:
 
     bool m_needs_update = true;

@@ -126,6 +126,7 @@ void
 MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                const MultiFab* crse_bcdata)
 {
+    // todo: gpu
     const int mglev = 0;
     const int ncomp = b.nComp();
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
@@ -182,8 +183,9 @@ MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y,
     const int nghost = 0;
     MultiFab tmp(x.boxArray(), x.DistributionMap(), ncomp, 0);
     MultiFab::Copy(tmp, x, 0, 0, ncomp, nghost);
-    for (int i = 0; i < ncomp; i++)
-	    MultiFab::Multiply(tmp, mask, 0, i, 1, nghost);
+    for (int i = 0; i < ncomp; i++) {
+        MultiFab::Multiply(tmp, mask, 0, i, 1, nghost);
+    }
     Real result = MultiFab::Dot(tmp,0,y,0,ncomp,nghost,true);
     if (!local) {
         ParallelAllReduce::Sum(result, Communicator(amrlev, mglev));

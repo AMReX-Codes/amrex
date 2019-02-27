@@ -5,11 +5,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_MacBndry.H>
-#include <AMReX_MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <AMReX_stencil_types.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include "AMReX_AmrParticles.H"
 #include "AMReX_Particles.H"
 
 using namespace amrex;
@@ -28,6 +26,8 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
+    {
+        
     int max_grid_size = 32;
     int min_grid_size = 4;
 
@@ -178,7 +178,8 @@ int main(int argc, char* argv[])
 
     // Initialize "num_particles" number of particles, each with mass/charge "mass"
     bool serialize = true;
-    MyPC->InitRandom(num_particles,iseed,mass,serialize,left_corner);
+    MyParticleContainer::ParticleInitData pdata = {mass, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    MyPC->InitRandom(num_particles,iseed,pdata,serialize,left_corner);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_before");
@@ -290,7 +291,7 @@ int main(int argc, char* argv[])
     PartMF[0]->setVal(0.0);
 
 //  MyPC->AssignDensity(0, PartMF, false, base_level, 1, finest_level);
-    MyPC->AssignDensitySingleLevel(0, *PartMF[0], 0, 1, 0);
+    MyPC->AssignCellDensitySingleLevel(0, *PartMF[0], 0, 1, 0);
 
     for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
         amrex::average_down(*PartMF[lev+1],*PartMF[lev],0,1,rr[lev]);
@@ -369,7 +370,7 @@ int main(int argc, char* argv[])
     MyPC->Redistribute();
 
     // Use the PIC approach to deposit the "mass" onto the grid
-    MyPC->AssignDensity(0, false, rhs, base_level,1,finest_level);
+    MyPC->AssignDensity(0, rhs, base_level,1,finest_level);
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     solve_for_accel(amrex::GetVecOfPtrs(rhs),
@@ -388,6 +389,8 @@ int main(int argc, char* argv[])
 
     } // end if (nlevs > 1)
 
+    }
+    
     amrex::Finalize();
 }
 

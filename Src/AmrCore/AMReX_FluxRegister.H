@@ -303,6 +303,15 @@ public:
                  int             numcomp,
                  const Geometry& crse_geom);
 
+    void Reflux (MultiFab&       mf,
+                 const MultiFab& volume,
+                 int             dir,
+                 Real            scale,
+                 int             srccomp,
+                 int             destcomp,
+                 int             numcomp,
+                 const Geometry& crse_geom);
+
     /**
     * \brief Constant volume version of Reflux().  Note that this takes the coarse Geometry.
     *
@@ -314,6 +323,14 @@ public:
     * \param crse_geom
     */
     void Reflux (MultiFab&       mf,
+                 Real            scale,
+                 int             srccomp,
+                 int             destcomp,
+                 int             numcomp,
+                 const Geometry& crse_geom);
+
+    void Reflux (MultiFab&       mf,
+                 int             dir,
                  Real            scale,
                  int             srccomp,
                  int             destcomp,
@@ -347,6 +364,11 @@ public:
     * \param is
     */
     void read (const std::string& name, std::istream& is);
+
+// public for cuda
+public:
+    void Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
+                 Real scale, int scomp, int dcomp, int nc, const Geometry& geom);
 
 private:
 

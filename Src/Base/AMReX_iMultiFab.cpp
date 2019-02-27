@@ -185,7 +185,7 @@ iMultiFab::iMultiFab (const iMultiFab& rhs, MakeType maketype, int scomp, int nc
 }
 
 void
-iMultiFab::operator= (const int& r)
+iMultiFab::operator= (int r)
 {
     setVal(r);
 }

@@ -300,7 +300,7 @@ public:
 
     //! Set all components in the entire region of each FAB to val.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
-    void operator= (const value_type& val);
+    void operator= (value_type val);
 
     /**
     * \brief Set the value of num_comp components in the valid region of
@@ -1522,7 +1522,7 @@ FabArray<FAB>::setVal (value_type val)
 template <class FAB>
 template <class>
 void
-FabArray<FAB>::operator= (const value_type& val)
+FabArray<FAB>::operator= (value_type val)
 {
     setVal(val);
 }
