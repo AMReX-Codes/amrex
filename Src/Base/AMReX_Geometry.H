@@ -75,7 +75,9 @@ public:
     explicit Geometry (const Box&     dom,
 		       const RealBox* rb     =  nullptr,
 		       int            coord  = -1,
-		       int*           is_per =  nullptr);
+		       int const*     is_per =  nullptr);
+    Geometry (const Box& dom, const RealBox& rb, int coord,
+              Array<int,AMREX_SPACEDIM> const& is_per);
 
     ~Geometry () = default;
     Geometry (const Geometry& rhs) = default;
@@ -92,9 +94,9 @@ public:
 
     static void Finalize ();
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = nullptr, int coord = -1, int* is_per = nullptr);
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr);
     //! Set the rectangular domain after using default constructor.
-    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int* is_per = 0);
+    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr);
     //! Returns the problem domain.
     static const RealBox& ProbDomain () { return prob_domain; }
     //! Sets the problem domain.

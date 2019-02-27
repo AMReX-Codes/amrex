@@ -1,6 +1,7 @@
 
 #include <AMReX_MLCellLinOp.H>
 #include <AMReX_MG_K.H>
+#include <AMReX_MLLinOp_K.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_MultiFabUtil.H>
 #ifdef AMREX_USE_EB
@@ -457,44 +458,115 @@ MLCellLinOp::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     }
 
     int flagbc = (bc_mode == BCMode::Homogeneous) ? 0 : 1;
+    const int imaxorder = maxorder;
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
+    const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
+    const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
     const auto& bcondloc = *m_bcondloc[amrlev][mglev];
 
-    FArrayBox foo(Box::TheUnitBox(),ncomp);
+    FArrayBox foofab(Box::TheUnitBox(),ncomp);
+    const auto& foo = foofab.array();
+
+    MFItInfo mfi_info;
+
+    if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cross || Gpu::notInLaunchRegion(),
+                                     "non-cross stencil not support for gpu");
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(in, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+    for (MFIter mfi(in, mfi_info); mfi.isValid(); ++mfi)
     {
         const Box& vbx   = mfi.validbox();
-        FArrayBox& iofab = in[mfi];
+        const auto& iofab = in.array(mfi);
 
         const RealTuple & bdl = bcondloc.bndryLocs(mfi);
         const BCTuple   & bdc = bcondloc.bndryConds(mfi);
 
-        for (OrientationIter oitr; oitr; ++oitr)
+        if (cross)
         {
-            const Orientation ori = oitr();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                const Orientation olo(idim,Orientation::low);
+                const Orientation ohi(idim,Orientation::high);
+                const Box blo = amrex::adjCellLo(vbx, idim);
+                const Box bhi = amrex::adjCellHi(vbx, idim);
+                const int blen = vbx.length(idim);
+                const auto& mlo = maskvals[olo].array(mfi);
+                const auto& mhi = maskvals[ohi].array(mfi);
+                const BoundCond bctlo = bdc[olo];
+                const BoundCond bcthi = bdc[ohi];
+                const Real bcllo = bdl[olo];
+                const Real bclhi = bdl[ohi];
+                const auto& bvlo = (bndry != nullptr) ? bndry->bndryValues(olo).array(mfi) : foo;
+                const auto& bvhi = (bndry != nullptr) ? bndry->bndryValues(ohi).array(mfi) : foo;
+                if (idim == 0) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                    blo, tboxlo, {
+                        mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
+                                           bctlo, bcllo, bvlo,
+                                           imaxorder, dxi, flagbc, ncomp);
+                    },
+                    bhi, tboxhi, {
+                        mllinop_apply_bc_x(1, tboxhi, blen, iofab, mhi,
+                                           bcthi, bclhi, bvhi,
+                                           imaxorder, dxi, flagbc, ncomp);
+                    });
+                } else if (idim == 1) {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                    blo, tboxlo, {
+                        mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
+                                           bctlo, bcllo, bvlo,
+                                           imaxorder, dyi, flagbc, ncomp);
+                    },
+                    bhi, tboxhi, {
+                        mllinop_apply_bc_y(1, tboxhi, blen, iofab, mhi,
+                                           bcthi, bclhi, bvhi,
+                                           imaxorder, dyi, flagbc, ncomp);
+                    });
+                } else {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                    blo, tboxlo, {
+                        mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
+                                           bctlo, bcllo, bvlo,
+                                           imaxorder, dzi, flagbc, ncomp);
+                    },
+                    bhi, tboxhi, {
+                        mllinop_apply_bc_z(1, tboxhi, blen, iofab, mhi,
+                                           bcthi, bclhi, bvhi,
+                                           imaxorder, dzi, flagbc, ncomp);
+                    });
+                }
+            }
+        }
+        else
+        {
+            for (OrientationIter oitr; oitr; ++oitr)
+            {
+                const Orientation ori = oitr();
 
-            int  cdr = ori;
-            Real bcl = bdl[ori];
-            int  bct = bdc[ori];
+                int  cdr = ori;
+                Real bcl = bdl[ori];
+                int  bct = bdc[ori];
 
-	    foo.setVal(10.0);
-            const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foo;
+                foofab.setVal(10.0);
+                const FArrayBox& fsfab = (bndry != nullptr) ? bndry->bndryValues(ori)[mfi] : foofab;
 
-            const Mask& m = maskvals[ori][mfi];
+                const Mask& m = maskvals[ori][mfi];
 
-            amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
-                                   BL_TO_FORTRAN_ANYD(iofab),
-                                   BL_TO_FORTRAN_ANYD(m),
-                                   cdr, bct, bcl,
-                                   BL_TO_FORTRAN_ANYD(fsfab),
-                                   maxorder, dxinv, flagbc, ncomp, cross);
+                amrex_mllinop_apply_bc(BL_TO_FORTRAN_BOX(vbx),
+                                       BL_TO_FORTRAN_ANYD(in[mfi]),
+                                       BL_TO_FORTRAN_ANYD(m),
+                                       cdr, bct, bcl,
+                                       BL_TO_FORTRAN_ANYD(fsfab),
+                                       maxorder, dxinv, flagbc, ncomp, cross);
+            }
         }
     }
 }
@@ -520,24 +592,43 @@ MLCellLinOp::reflux (int crse_amrlev,
     applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[fine_amrlev].get());
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
         Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
         Array<FArrayBox const*,AMREX_SPACEDIM> cpflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
 
-        for (MFIter mfi(crse_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             if (fluxreg.CrseHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
-                FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
-                fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
+                if (Gpu::inLaunchRegion()) {
+                    AMREX_D_TERM(AsyncFab f0(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 AsyncFab f1(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 AsyncFab f2(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(crse_amrlev, mfi,
+                          Array<FArrayBox*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                        &(f1.fab()),
+                                                                        &(f2.fab()))},
+                          crse_sol[mfi], Location::FaceCentroid);
+                    fluxreg.CrseAdd(mfi,
+                                    Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                                        &(f1.fab()),
+                                                                                        &(f2.fab()))},
+                                    crse_dx, dt);
+                } else {
+                    AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(crse_amrlev, mfi, pflux, crse_sol[mfi], Location::FaceCentroid);
+                    fluxreg.CrseAdd(mfi, cpflux, crse_dx, dt);
+                }
             }
         }
 
@@ -545,17 +636,33 @@ MLCellLinOp::reflux (int crse_amrlev,
 #pragma omp barrier
 #endif
 
-        for (MFIter mfi(fine_sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(fine_sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             if (fluxreg.FineHasWork(mfi))
             {
                 const Box& tbx = mfi.tilebox();
-                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
-                             flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
-                             flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
                 const int face_only = true;
-                FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
-                fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);            
+                if (Gpu::inLaunchRegion()) {
+                    AMREX_D_TERM(AsyncFab f0(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 AsyncFab f1(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 AsyncFab f2(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(fine_amrlev, mfi,
+                          Array<FArrayBox*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                        &(f1.fab()),
+                                                                        &(f2.fab()))},
+                          fine_sol[mfi], Location::FaceCentroid, face_only);
+                    fluxreg.FineAdd(mfi,
+                                    Array<FArrayBox const*,AMREX_SPACEDIM>{AMREX_D_DECL(&(f0.fab()),
+                                                                                        &(f1.fab()),
+                                                                                        &(f2.fab()))},
+                                    fine_dx, dt);
+                } else {
+                    AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0),ncomp);,
+                                 flux[1].resize(amrex::surroundingNodes(tbx,1),ncomp);,
+                                 flux[2].resize(amrex::surroundingNodes(tbx,2),ncomp););
+                    FFlux(fine_amrlev, mfi, pflux, fine_sol[mfi], Location::FaceCentroid, face_only);
+                    fluxreg.FineAdd(mfi, cpflux, fine_dx, dt);
+                }
             }
         }
     }
@@ -574,22 +681,45 @@ MLCellLinOp::compFlux (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& fluxes
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[amrlev].get());
 
+    MFItInfo mfi_info;
+    if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
         Array<FArrayBox,AMREX_SPACEDIM> flux;
         Array<FArrayBox*,AMREX_SPACEDIM> pflux { AMREX_D_DECL(&flux[0], &flux[1], &flux[2]) };
-        for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+        for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
             const Box& tbx = mfi.tilebox();
-            AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
-                         flux[1].resize(amrex::surroundingNodes(tbx,1));,
-                         flux[2].resize(amrex::surroundingNodes(tbx,2)););
-            FFlux(amrlev, mfi, pflux, sol[mfi], loc);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                const Box& nbx = mfi.nodaltilebox(idim);
-                (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, ncomp);
+            if (Gpu::inLaunchRegion()) {
+                AMREX_D_TERM(AsyncFab f0(amrex::surroundingNodes(tbx,0),ncomp);,
+                             AsyncFab f1(amrex::surroundingNodes(tbx,1),ncomp);,
+                             AsyncFab f2(amrex::surroundingNodes(tbx,2),ncomp););
+                Array<FArrayBox*,AMREX_SPACEDIM> pf{AMREX_D_DECL(&(f0.fab()),
+                                                                 &(f1.fab()),
+                                                                 &(f2.fab()))};
+                FFlux(amrlev, mfi, pf, sol[mfi], loc);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    const Box& nbx = mfi.nodaltilebox(idim);
+                    const auto& dst = fluxes[idim]->array(mfi);
+                    const auto& src = pf[idim]->array();
+                    amrex::ParallelFor(nbx, ncomp,
+                    [=] AMREX_GPU_DEVICE (int i, int j, int k, int n)
+                    {
+                        dst(i,j,k,n) = src(i,j,k,n);
+                    });
+                }
+            } else {
+                AMREX_D_TERM(flux[0].resize(amrex::surroundingNodes(tbx,0));,
+                             flux[1].resize(amrex::surroundingNodes(tbx,1));,
+                             flux[2].resize(amrex::surroundingNodes(tbx,2)););
+                FFlux(amrlev, mfi, pflux, sol[mfi], loc);
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    const Box& nbx = mfi.nodaltilebox(idim);
+                    (*fluxes[idim])[mfi].copy(flux[idim], nbx, 0, nbx, 0, ncomp);
+                }
             }
         }
     }
@@ -608,23 +738,38 @@ MLCellLinOp::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
             m_bndry_sol[amrlev].get());
 
-    const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    AMREX_D_TERM(const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);,
+                 const Real dyi = m_geom[amrlev][mglev].InvCellSize(1);,
+                 const Real dzi = m_geom[amrlev][mglev].InvCellSize(2););
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(sol, MFItInfo().EnableTiling().SetDynamic(true));  mfi.isValid(); ++mfi)
+    for (MFIter mfi(sol, TilingIfNotGPU());  mfi.isValid(); ++mfi)
     {
         AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
                      const Box& ybx = mfi.nodaltilebox(1);,
                      const Box& zbx = mfi.nodaltilebox(2););
-        amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(xbx),
-                                        BL_TO_FORTRAN_BOX(ybx),
-                                        BL_TO_FORTRAN_BOX(zbx)),
-                           BL_TO_FORTRAN_ANYD(sol[mfi]),
-                           AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
-                                        BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
-                                        BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
-                           dxinv);
+        const auto& s = sol.array(mfi);
+        AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
+                     const auto& gy = grad[1]->array(mfi);,
+                     const auto& gz = grad[2]->array(mfi););
+
+        AMREX_HOST_DEVICE_FOR_3D ( xbx, i, j, k,
+        {
+            gx(i,j,k) = dxi*(s(i,j,k) - s(i-1,j,k));
+        });
+#if (AMREX_SPACEDIM >= 2)
+        AMREX_HOST_DEVICE_FOR_3D ( ybx, i, j, k,
+        {
+            gy(i,j,k) = dyi*(s(i,j,k) - s(i,j-1,k));
+        });
+#endif
+#if (AMREX_SPACEDIM == 3)
+        AMREX_HOST_DEVICE_FOR_3D ( zbx, i, j, k,
+        {
+            gz(i,j,k) = dzi*(s(i,j,k) - s(i,j,k-1));
+        });
+#endif
     }
 }
 
@@ -633,6 +778,7 @@ MLCellLinOp::prepareForSolve ()
 {
     BL_PROFILE("MLCellLinOp::prepareForSolve()");
 
+    const int imaxorder = maxorder;
     const int ncomp = getNComp();
     for (int amrlev = 0;  amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -640,35 +786,81 @@ MLCellLinOp::prepareForSolve ()
         {
             const auto& bcondloc = *m_bcondloc[amrlev][mglev];
             const auto& maskvals = m_maskvals[amrlev][mglev];
-            const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+
+            const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);
+            const Real dyi = (AMREX_SPACEDIM >= 2) ? m_geom[amrlev][mglev].InvCellSize(1) : 1.0;
+            const Real dzi = (AMREX_SPACEDIM == 3) ? m_geom[amrlev][mglev].InvCellSize(2) : 1.0;
 
             BndryRegister& undrrelxr = m_undrrelxr[amrlev][mglev];
             MultiFab foo(m_grids[amrlev][mglev], m_dmap[amrlev][mglev], ncomp, 0, MFInfo().SetAlloc(false));
+
+            MFItInfo mfi_info;
+            if (Gpu::notInLaunchRegion()) mfi_info.SetDynamic(true);
+
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(foo, MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+            for (MFIter mfi(foo, mfi_info); mfi.isValid(); ++mfi)
             {
                 const Box& vbx = mfi.validbox();
 
                 const RealTuple & bdl = bcondloc.bndryLocs(mfi);
                 const BCTuple   & bdc = bcondloc.bndryConds(mfi);
 
-                for (OrientationIter oitr; oitr; ++oitr)
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                 {
-                    const Orientation ori = oitr();
-                    
-                    int  cdr = ori;
-                    Real bcl = bdl[ori];
-                    int  bct = bdc[ori];
-                    
-                    FArrayBox& ffab = undrrelxr[ori][mfi];
-                    const Mask& m   =  maskvals[ori][mfi];
+                    const Orientation olo(idim,Orientation::low);
+                    const Orientation ohi(idim,Orientation::high);
+                    const Box blo = amrex::adjCellLo(vbx, idim);
+                    const Box bhi = amrex::adjCellHi(vbx, idim);
+                    const int blen = vbx.length(idim);
+                    const auto& mlo = maskvals[olo].array(mfi);
+                    const auto& mhi = maskvals[ohi].array(mfi);
+                    const BoundCond bctlo = bdc[olo];
+                    const BoundCond bcthi = bdc[ohi];
+                    const Real bcllo = bdl[olo];
+                    const Real bclhi = bdl[ohi];
 
-                    amrex_mllinop_comp_interp_coef0(BL_TO_FORTRAN_BOX(vbx),
-                                                    BL_TO_FORTRAN_ANYD(ffab),
-                                                    BL_TO_FORTRAN_ANYD(m),
-                                                    cdr, bct, bcl, maxorder, dxinv, ncomp);
+                    const auto& flo = undrrelxr[olo].array(mfi);
+                    const auto& fhi = undrrelxr[ohi].array(mfi);
+
+                    if (idim == 0) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                        blo, tboxlo, {
+                            mllinop_comp_interp_coef0_x
+                                (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                 imaxorder, dxi, ncomp);
+                        },
+                        bhi, tboxhi, {
+                            mllinop_comp_interp_coef0_x
+                                (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                 imaxorder, dxi, ncomp);
+                        });
+                    } else if (idim == 1) {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                        blo, tboxlo, {
+                            mllinop_comp_interp_coef0_y
+                                (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                 imaxorder, dyi, ncomp);
+                        },
+                        bhi, tboxhi, {
+                            mllinop_comp_interp_coef0_y
+                                (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                 imaxorder, dyi, ncomp);
+                        });
+                    } else {
+                        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
+                        blo, tboxlo, {
+                            mllinop_comp_interp_coef0_z
+                                (0, tboxlo, blen, flo, mlo, bctlo, bcllo,
+                                 imaxorder, dzi, ncomp);
+                        },
+                        bhi, tboxhi, {
+                            mllinop_comp_interp_coef0_z
+                                (1, tboxhi, blen, fhi, mhi, bcthi, bclhi,
+                                 imaxorder, dzi, ncomp);
+                        });
+                    }
                 }
             }
         }
@@ -728,19 +920,22 @@ MLCellLinOp::applyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
         const Vector<Real>& r = (nextra==0) ? mfac.cellCenters(mfi) : mfac.cellEdges(mfi);
         const Box& vbx = mfi.validbox();
         const int rlo = vbx.loVect()[0];
         const int rhi = vbx.hiVect()[0] + nextra;
-        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
-                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                   r.data(), &rlo, &rhi,
-				   ncomp);
+        AsyncArray<Real> r_as(r.data(),rhi-rlo+1);
+        Real const* rp = r_as.data();
+        const auto& rhsfab = rhs.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+        {
+            rhsfab(i,j,k,n) *= rp[i-rlo];
+        });
     }
 #endif
 }
@@ -758,19 +953,22 @@ MLCellLinOp::unapplyMetricTerm (int amrlev, int mglev, MultiFab& rhs) const
 
     int nextra = rhs.ixType().cellCentered(0) ? 0 : 1;
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(rhs,true); mfi.isValid(); ++mfi)
+    for (MFIter mfi(rhs,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& tbx = mfi.tilebox();
         const Vector<Real>& r = (nextra==0) ? mfac.invCellCenters(mfi) : mfac.invCellEdges(mfi);
         const Box& vbx = mfi.validbox();
         const int rlo = vbx.loVect()[0];
         const int rhi = vbx.hiVect()[0] + nextra;
-        amrex_mllinop_apply_metric(BL_TO_FORTRAN_BOX(tbx),
-                                   BL_TO_FORTRAN_ANYD(rhs[mfi]),
-                                   r.data(), &rlo, &rhi,
-				   ncomp);
+        AsyncArray<Real> r_as(r.data(), rhi-rlo+1);
+        Real const* rp = r_as.data();
+        const auto& rhsfab = rhs.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( tbx, ncomp, i, j, k, n,
+        {
+            rhsfab(i,j,k,n) *= rp[i-rlo];
+        });
     }
 #endif
 }

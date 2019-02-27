@@ -523,7 +523,7 @@ MultiFab::~MultiFab()
 }
 
 void
-MultiFab::operator= (const Real& r)
+MultiFab::operator= (Real r)
 {
     setVal(r);
 }
@@ -1396,8 +1396,12 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 void
 FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period)
 {
-    Vector<FabArray<FArrayBox>*> fa{mf.begin(),mf.end()};
-    FillBoundary(fa,period);
+    for (auto x : mf) {
+        x->FillBoundary(period);
+    }
+// The following is actually slower on summit
+//    Vector<FabArray<FArrayBox>*> fa{mf.begin(),mf.end()};
+//    FillBoundary(fa,period);
 }
 
 }

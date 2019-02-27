@@ -192,13 +192,13 @@ protected:
     const Vector<int>* num_local_tiles;
 
 #ifdef AMREX_USE_GPU
-    mutable Real* real_reduce_val;
+    mutable Vector<Real*> real_reduce_val;
 
     mutable MFReducer reducer;
 
-    mutable Vector<Real> real_reduce_list;
+    mutable Vector<Vector<Real> > real_reduce_list;
 
-    mutable Vector<Real*> real_device_reduce_list;
+    mutable Vector<Vector<Real*> > real_device_reduce_list;
 #endif
 
     static int nextDynamicIndex;

@@ -116,7 +116,7 @@ public:
                          const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
 #endif
 
-    void operator= (const Real& r);
+    void operator= (Real r);
     //
     //! Initialize FArrayBoxes
     void initVal ();

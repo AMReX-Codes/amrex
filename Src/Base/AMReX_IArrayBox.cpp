@@ -73,7 +73,7 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type)
 #endif
 
 IArrayBox&
-IArrayBox::operator= (const int& v)
+IArrayBox::operator= (int v)
 {
     BaseFab<int>::operator=(v);
     return *this;

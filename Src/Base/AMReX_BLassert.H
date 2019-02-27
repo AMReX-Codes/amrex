@@ -39,15 +39,9 @@
 
 #else
 
-#if defined(AMREX_FORTRAN_BOXLIB)
-#define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) ((void)0)
-#define AMREX_ASSERT(EX) ((void)0)
-#define    BL_ASSERT(EX) ((void)0)
-#else
 #define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , # MSG)
 #define AMREX_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 #define    BL_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
-#endif
 
 #endif
 

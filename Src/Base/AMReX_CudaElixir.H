@@ -10,15 +10,25 @@ class Elixir
 {
 public:
 
+    Elixir () : m_p(nullptr), m_arena(nullptr) {}
+
     Elixir (void* p, Arena* arena) : m_p(p), m_arena(arena) {}
 
     Elixir (Elixir const&) = delete;
     void operator= (Elixir const&) = delete;
-    void operator= (Elixir &&) = delete;
 
     Elixir (Elixir && rhs)
         : m_p(rhs.m_p), m_arena(rhs.m_arena)
     {
+        rhs.m_p = nullptr;
+        rhs.m_arena = nullptr;
+    }
+
+    void operator= (Elixir && rhs)
+    {
+        clear();
+        m_p = rhs.m_p;
+        m_arena = rhs.m_arena;
         rhs.m_p = nullptr;
         rhs.m_arena = nullptr;
     }

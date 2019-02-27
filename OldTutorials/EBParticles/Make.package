@@ -1,6 +1,0 @@
-CEXE_headers += EBParticleContainer.H
-CEXE_sources += main.cpp EBParticleContainer.cpp
-
-FEXE_headers += ebparticles_F.H
-f90EXE_sources += ebparticles_$(DIM)d.f90
-
