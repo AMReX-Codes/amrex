@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <array>
+#include <mutex>
 
 #include <AMReX_Arena.H>
 
@@ -41,6 +42,8 @@ private:
     std::size_t m_max_size;
     std::size_t m_block_size;
     int m_max_order;
+    std::mutex m_mutex;
+    bool warning_printed = false;
 
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p);

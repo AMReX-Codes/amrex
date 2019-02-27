@@ -1,10 +1,12 @@
 
-#include <mutex>
 #include <cstdlib>
 #include <cmath>
 
 #include <AMReX_DArena.H>
+#include <AMReX_BLassert.H>
+#include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
+#include <AMReX.H>
 
 namespace amrex {
 
@@ -18,8 +20,8 @@ namespace {
 }
 
 DArena::DArena (std::size_t max_size, std::size_t max_block_size)
-    : m_max_order(0)
 {
+    m_max_order = 0;
     while (max_size%2 == 0) {
         max_size /= 2;
         ++m_max_order;
@@ -37,13 +39,17 @@ DArena::DArena (std::size_t max_size, std::size_t max_block_size)
     m_block_size = (max_size/a)*a;  // proper alignment
     m_max_size = m_block_size * (1u << m_max_order);
 
+    if (amrex::Verbose()) {
+        amrex::Print() << "DArena: Allocating " << m_max_size << " bytes\n";
+    }
+
     m_baseptr = (char*)allocate_system(m_max_size);
     m_free[m_max_order].insert(0);
 }
 
 DArena::~DArena ()
 {
-    std::free(m_baseptr);
+    deallocate_system(m_baseptr);
 }
 
 void*
@@ -64,12 +70,22 @@ DArena::alloc (std::size_t nbytes)
     }
     // We have found the miminal order that satisfies 2^order >= nblocks
 
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     std::ptrdiff_t offset = allocate_order(order);
     if (offset >= 0) {
         offset *= m_block_size; // # of order 0 blocks -> # of bytes
         m_used.insert({offset,order});
         return m_baseptr + offset;
     } else {
+        if (amrex::Verbose()) {
+            if (!warning_printed) {
+                amrex::AllPrint() << "WARNING: DArena on proc. "
+                                  << ParallelDescriptor::MyProc()
+                                  << " calls system allocator.\n";
+                warning_printed = true;
+            }
+        }
         return allocate_system(nbytes); // use the system malloc as backup.
     }
 }
@@ -77,6 +93,8 @@ DArena::alloc (std::size_t nbytes)
 void
 DArena::free (void* p)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     std::ptrdiff_t offset = (char*)p - m_baseptr;
     auto r = m_used.find(offset);
     if (r != m_used.end()) {
@@ -124,13 +142,39 @@ DArena::deallocate_order (int order, std::ptrdiff_t offset)
 void*
 DArena::allocate_system (std::size_t nbytes)
 {
+#ifdef AMREX_USE_CUDA
+    void * p;
+    if (device_use_hostalloc) {
+        AMREX_GPU_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
+    } else if (device_use_managed_memory) {
+        AMREX_GPU_SAFE_CALL(cudaMallocManaged(&p, nbytes));
+        if (device_set_readonly)
+            Gpu::Device::mem_advise_set_readonly(p, nbytes);
+        if (device_set_preferred) {
+            const int device = Gpu::Device::deviceId();
+            Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
+        }
+    } else {
+        AMREX_GPU_SAFE_CALL(cudaMalloc(&p, nbytes));
+    }
+    return p;
+#else
     return std::malloc(nbytes);
+#endif
 }
 
 void
 DArena::deallocate_system (void* p)
 {
+#ifdef AMREX_USE_CUDA
+    if (device_use_hostalloc) {
+        AMREX_GPU_SAFE_CALL(cudaFreeHost(p));
+    } else {
+        AMREX_GPU_SAFE_CALL(cudaFree(p));
+    }
+#else
     std::free(p);
+#endif
 }
 
 }
