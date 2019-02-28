@@ -1110,6 +1110,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
+    static_assert(amrex::IsFabAllocatorSafe<FAB>::value, "sizeof(FAB) is too big for FabAllocator");
     m_FA_stats.recordDelete();
     clear();
 }
