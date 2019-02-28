@@ -26,6 +26,8 @@ add_sources( AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp )
 
 add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp )
 add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H )
+add_sources( AMReX_FabAllocator.H )
+add_sources( AMReX_FabAllocator.cpp )
 
 add_sources( AMReX_BLProfiler.H AMReX_BLBackTrace.H AMReX_BLFort.H )
 
