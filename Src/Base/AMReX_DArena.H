@@ -32,6 +32,9 @@ public:
     virtual void* alloc (std::size_t nbytes) override final;
     virtual void free (void* p) override final;
 
+    std::size_t totalMem () const { return m_max_size; }
+    std::size_t freeMem () const;
+
 private:
     static constexpr int m_max_max_order = 30;
     // buckets of free blocks
