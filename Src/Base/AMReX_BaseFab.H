@@ -24,6 +24,7 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_MakeType.H>
+#include <AMReX_FabAllocator.H>
 
 #include <AMReX_Gpu.H>
 
@@ -102,11 +103,7 @@ makeArray4 (T* p, Box const& bx)
 
 template <typename T>
 struct BaseFabData
-#ifdef AMREX_FAB_IS_PINNED
-    : public Gpu::Pinned
-#else
-    : public Gpu::Managed
-#endif
+    : public FabAllocator
 {
     AMREX_GPU_HOST_DEVICE
     BaseFabData (T* a_dptr, Box const& a_domain, int a_nvar,
