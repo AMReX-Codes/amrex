@@ -232,7 +232,7 @@ public:
     FArrayBox& operator= (FArrayBox&&) = delete;
 
     //! Set the fab to the value r.
-    FArrayBox& operator= (const Real& r);
+    FArrayBox& operator= (Real r);
     //
     void initVal ();
     /**

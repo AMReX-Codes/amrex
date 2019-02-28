@@ -4,10 +4,7 @@
 
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
-
-#if !defined(AMREX_FORTRAN_BOXLIB)
 #include <AMReX_Gpu.H>
-#endif
 
 namespace amrex {
 
@@ -26,7 +23,7 @@ CArena::CArena (std::size_t hunk_size)
 CArena::~CArena ()
 {
     for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_CUDA
 	if (device_use_hostalloc) {
 	    AMREX_GPU_SAFE_CALL(cudaFreeHost(m_alloc[i]));
         } else {
@@ -58,7 +55,7 @@ CArena::alloc (std::size_t nbytes)
     {
         const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
-#if defined(AMREX_USE_GPU)
+#if defined(AMREX_USE_CUDA)
         if (device_use_hostalloc) {
 
 	    AMREX_GPU_SAFE_CALL(cudaHostAlloc(&vp, N, cudaHostAllocMapped));

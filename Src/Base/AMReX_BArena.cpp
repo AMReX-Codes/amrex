@@ -1,7 +1,5 @@
 #include <AMReX_BArena.H>
-#if !defined(AMREX_FORTRAN_BOXLIB)
 #include <AMReX_Gpu.H>
-#endif
 
 void*
 amrex::BArena::alloc (std::size_t sz_)
@@ -40,7 +38,7 @@ amrex::BArena::alloc (std::size_t sz_)
 void
 amrex::BArena::free (void* pt)
 {
-#if defined(AMREX_USE_GPU)
+#if defined(AMREX_USE_CUDA)
     if (!device_use_hostalloc) {
 	AMREX_GPU_SAFE_CALL(cudaFree(pt));
     } else {

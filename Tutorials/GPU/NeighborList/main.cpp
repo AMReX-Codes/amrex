@@ -72,8 +72,6 @@ void main_main ()
 
         amrex::Print() << "Taking step " << step << "\n";
 
-        pc.sortParticlesByNeighborDest();
-
         pc.fillNeighbors();
 
         pc.BuildNeighborList();
@@ -82,8 +80,6 @@ void main_main ()
 
         pc.computeForces();
 
-        pc.clearNeighbors();
-        
         pc.moveParticles(dt);
 
         pc.RedistributeLocal();

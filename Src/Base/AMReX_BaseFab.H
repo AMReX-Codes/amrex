@@ -97,11 +97,6 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Array4<T>
 makeArray4 (T* p, Box const& bx)
 {
-#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
-    AMREX_ASSERT(bx.numPts() < static_cast<long>(std::numeric_limits<int>::max()));
-#else
-    AMREX_ASSERT(bx.numPts() < static_cast<long>(INT_MAX));
-#endif
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx)};
 }
 
@@ -214,7 +209,7 @@ public:
     BaseFab (BaseFab<T>&& rhs) noexcept;
 
     AMREX_GPU_HOST_DEVICE
-    BaseFab& operator= (const T&);
+    BaseFab& operator= (T);
 
     static void Initialize();
     static void Finalize();
@@ -1943,7 +1938,9 @@ BaseFab<T>::BaseFab (const BaseFab<T>& rhs, MakeType make_type)
     auto src = static_cast<BaseFabData<T>const*>(&rhs);
 #ifndef AMREX_FAB_IS_PINNED
     if (Gpu::isDevicePtr(&rhs)) {
+#ifdef AMREX_USE_CUDA
         AMREX_GPU_SAFE_CALL(cudaMemcpy(dst, src, sizeof(BaseFabData<T>), cudaMemcpyDeviceToHost));
+#endif
     }
     else
 #endif
@@ -1987,7 +1984,7 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
 
 template <class T>
 BaseFab<T>&
-BaseFab<T>::operator= (const T& t)
+BaseFab<T>::operator= (T t)
 {
     setVal(t);
     return *this;

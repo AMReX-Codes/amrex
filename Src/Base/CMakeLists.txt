@@ -24,8 +24,8 @@ add_sources( AMReX_ParallelReduce.H )
 add_sources( AMReX_ForkJoin.H AMReX_ParallelContext.H )
 add_sources( AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp )
 
-add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp )
-add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H )
+add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp )
+add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H )
 
 add_sources( AMReX_BLProfiler.H AMReX_BLBackTrace.H AMReX_BLFort.H )
 
@@ -111,8 +111,7 @@ add_sources( AMReX_PlotFileDataImpl.cpp )
 add_sources( AMReX_COORDSYS_${DIM}D_C.H )
 add_sources( AMReX_COORDSYS_C.H AMReX_filcc_f.H )
 
-add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
-   AMReX_BLProfiler_F.F90)
+add_sources( AMReX_BLutil_F.F90 AMReX_BLProfiler_F.F90)
 
 add_sources( AMReX_FILCC_${DIM}D.F90 )
 add_sources( AMReX_MultiFabUtil_${DIM}D_C.H AMReX_MultiFabUtil_nd_C.H )

@@ -64,8 +64,8 @@ endif
 
 ifeq ($(which_computer),$(filter $(which_computer),sierra butte rzansel lassen))
 
-  XLC_ROOT = /usr/tce/packages/xl/xl-2018.11.26/xlC/16.1.1/
-  XLF_ROOT = /usr/tce/packages/xl/xl-2018.11.26/xlf/16.1.1/
+  XLC_ROOT = /usr/tce/packages/xl/xl-2019.02.07/xlC/16.1.1/
+  XLF_ROOT = /usr/tce/packages/xl/xl-2019.02.07/xlf/16.1.1/
   MPIROOT=/usr/tce/packages/spectrum-mpi/ibm/spectrum-mpi-rolling-release
 
   ifeq ($(USE_MPI),TRUE)

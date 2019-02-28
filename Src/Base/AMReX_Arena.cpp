@@ -2,12 +2,13 @@
 #include <AMReX_Arena.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
+#include <AMReX_DArena.H>
 
-#ifndef AMREX_FORTRAN_BOXLIB
 #include <AMReX.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
-#endif
+#include <AMReX_ParmParse.H>
+#include <AMReX_Gpu.H>
 
 namespace amrex {
 
@@ -18,6 +19,9 @@ namespace {
     Arena* the_device_arena = nullptr;
     Arena* the_managed_arena = nullptr;
     Arena* the_pinned_arena = nullptr;
+
+    bool use_buddy_allocator = false;
+    long buddy_allocator_size = 0L;
 }
 
 const unsigned int Arena::align_size;
@@ -35,7 +39,6 @@ Arena::align (std::size_t s)
 void
 Arena::Initialize ()
 {
-#ifndef AMREX_FORTRAN_BOXLIB
     if (initialized) return;
     initialized = true;
 
@@ -43,18 +46,36 @@ Arena::Initialize ()
     BL_ASSERT(the_device_arena == nullptr);
     BL_ASSERT(the_managed_arena == nullptr);
     BL_ASSERT(the_pinned_arena == nullptr);
-    
-#if defined(BL_COALESCE_FABS)
-    the_arena = new CArena;
-#else
-    the_arena = new BArena;
+
+    ParmParse pp("amrex");
+    pp.query("use_buddy_allocator", use_buddy_allocator);
+    pp.query("buddy_allocator_size", buddy_allocator_size);
+
+#ifdef AMREX_USE_GPU
+    if (use_buddy_allocator)
+    {
+        if (buddy_allocator_size <= 0) {
+            buddy_allocator_size = Gpu::Device::totalGlobalMem() / 4 * 3;
+        }
+        std::size_t chunk = 512*1024*1024;
+        buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
+        the_arena = new DArena(buddy_allocator_size);
+    }
+    else
 #endif
-    
+    {
+#if defined(BL_COALESCE_FABS)
+        the_arena = new CArena;
+#else
+        the_arena = new BArena;
+#endif
+    }
+
 #ifdef AMREX_USE_GPU
     the_arena->SetPreferred();
 #endif
 
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     the_device_arena = new CArena;
     the_device_arena->SetDeviceMemory();
 #else
@@ -88,14 +109,11 @@ Arena::Initialize ()
 
     p = the_pinned_arena->alloc(N);
     the_pinned_arena->free(p);
-
-#endif
 }
 
 void
 Arena::PrintUsage ()
 {
-#ifndef AMREX_FORTRAN_BOXLIB
     if (amrex::Verbose() > 0) {
         const int IOProc   = ParallelDescriptor::IOProcessorNumber();
         if (The_Arena()) {
@@ -159,7 +177,6 @@ Arena::PrintUsage ()
             }
         }
     }
-#endif
 }
     
 void
@@ -167,7 +184,6 @@ Arena::Finalize ()
 {
     PrintUsage();
     
-#ifndef AMREX_FORTRAN_BOXLIB
     initialized = false;
     
     delete the_arena;
@@ -181,11 +197,8 @@ Arena::Finalize ()
     
     delete the_pinned_arena;
     the_pinned_arena = nullptr;
-#endif
 }
     
-#ifndef AMREX_FORTRAN_BOXLIB
-
 Arena*
 The_Arena ()
 {
@@ -214,5 +227,4 @@ The_Pinned_Arena ()
     return the_pinned_arena;
 }
 
-#endif
 }

@@ -89,13 +89,13 @@ namespace amrex {
         inline pointer allocate(size_t n)
         {
 	    value_type* result = nullptr;
-            result = (value_type*) The_Managed_Arena()->alloc(n * sizeof(T));
+            result = (value_type*) The_Arena()->alloc(n * sizeof(T));
 	    return thrust::device_pointer_cast(result);
 	}
   
         inline void deallocate(pointer ptr, size_t)
         {
-            The_Managed_Arena()->free(thrust::raw_pointer_cast(ptr));
+            The_Arena()->free(thrust::raw_pointer_cast(ptr));
 	}
     };
 
@@ -141,13 +141,13 @@ namespace amrex {
         inline pointer allocate(size_t n)
         {
 	    value_type* result = nullptr;
-            result = (value_type*) The_Device_Arena()->alloc(n * sizeof(T));  
+            result = (value_type*) The_Arena()->alloc(n * sizeof(T));  
 	    return thrust::device_pointer_cast(result);
 	}
   
         inline void deallocate(pointer ptr, size_t)
         {
-            The_Device_Arena()->free(thrust::raw_pointer_cast(ptr));
+            The_Arena()->free(thrust::raw_pointer_cast(ptr));
 	}
     };
 

@@ -28,7 +28,12 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
+  GENERIC_PGI_FLAGS += -acc -Minfo=accel -mcmodel=medium
+  ifneq ($(CUDA_ARCH),)
+    GENERIC_PGI_FLAGS += -ta=tesla:cc$(CUDA_ARCH)
+  else
+    GENERIC_PGI_FLAGS += -ta=tesla
+  endif
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
