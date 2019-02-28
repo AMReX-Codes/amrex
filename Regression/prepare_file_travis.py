@@ -18,6 +18,8 @@ with open('WarpX-tests.ini') as f:
 
 # Replace default folder name
 text = re.sub('/home/regtester/AMReX_RegTesting', test_dir, text)
+# Remove the web directory
+text = re.sub('[\w\-\/]*/web', '', text)
 
 # Add doComparison = 0 for each test
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
