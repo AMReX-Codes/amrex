@@ -35,7 +35,8 @@ DArena::DArena (std::size_t max_size, std::size_t max_block_size)
     if (m_max_order > m_max_max_order) {
         amrex::Abort("DArena: too many orders");
     }
-    const std::size_t a = alignof(std::max_align_t);
+    //    const std::size_t a = alignof(std::max_align_t);
+    const std::size_t a = 16;
     m_block_size = (max_size/a)*a;  // proper alignment
     m_max_size = m_block_size * (1u << m_max_order);
 
@@ -82,7 +83,10 @@ DArena::alloc (std::size_t nbytes)
             if (!warning_printed) {
                 amrex::AllPrint() << "WARNING: DArena on proc. "
                                   << ParallelDescriptor::MyProc()
-                                  << " calls system allocator.\n";
+                                  << " calls system allocator to allocate "
+                                  << nbytes << " bytes.\n"
+                                  << "         DArena free memory size "
+                                  << freeMem() << " bytes\n";
                 warning_printed = true;
             }
         }
@@ -175,6 +179,18 @@ DArena::deallocate_system (void* p)
 #else
     std::free(p);
 #endif
+}
+
+std::size_t
+DArena::freeMem () const
+{
+    std::size_t r = 0;
+    std::size_t bs = 1;
+    for (int order = 0; order <= m_max_order; ++order) {
+        r += bs*m_free[order].size();
+        bs *= 2;
+    }
+    return r*m_block_size;
 }
 
 }
