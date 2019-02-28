@@ -1363,7 +1363,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (int i = 0; i < num_grids; ++i)
         {
             const int dest_proc = dmap[i];
-            if (dest_proc != ParallelDescriptor::MyProc())
+            const size_t num_to_add = stop[i+1] - start[i+1];
+            if (dest_proc != ParallelDescriptor::MyProc() and num_to_add > 0)
             {
                 grid_counts[dest_proc] += 1;
             }
@@ -1379,6 +1380,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto pair_index = std::make_pair(i, tid);
             
             const size_t num_to_add = stop[i+1] - start[i+1];
+
+            if (num_to_add == 0) continue;
 
             const int dest_proc = dmap[i];
             if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
