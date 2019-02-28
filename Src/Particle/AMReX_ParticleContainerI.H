@@ -221,25 +221,25 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         if (!geom.isPeriodic(i)) continue;
 
         if (iv[i] > dmn.bigEnd(i))
-        {                        
-            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);            
-            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));            
+        {
+            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);
+            if (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] = geom.ProbLo(i); // clamp to avoid precision issues;
             shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i); 
+            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);
 
-            // This is necessary when the arithmetic (esp. single precision) is such that the particle 
-            //    starts only slightly outside the low boundary (eg slightly negative)
-            //    ends up exactly on the high boundary 
-            //    needs to get shifted back to the low boundary or it will be deemed out of bounds
-            if (p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i]  = geom.ProbLo(i);
+            // clamp to avoid precision issues
+            if ( p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i] = geom.ProbLo(i);
+            if ((p.m_rdata.pos[i] > geom.ProbHi(i))) 
+                p.m_rdata.pos[i] = geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
 
-            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
             shifted = true;
         }
     }
+
+    AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
 
     return shifted;
 }
