@@ -14,7 +14,7 @@ ifeq ($(strip $(programs)),)
   programs += fboxinfo
   programs += fcompare
   programs += fextract
-  programs += fextreama
+  programs += fextrema
   programs += fnan
   programs += fsnapshot
   programs += ftime

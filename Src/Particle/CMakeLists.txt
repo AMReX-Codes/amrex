@@ -1,6 +1,6 @@
 add_sources( AMReX_TracerParticles.cpp AMReX_LoadBalanceKD.cpp AMReX_ParticleMPIUtil.cpp )
 add_sources( AMReX_Particles.H AMReX_ParGDB.H AMReX_TracerParticles.H )
-add_sources( AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H )
+add_sources( AMReX_NeighborParticles.H AMReX_NeighborParticlesI.H AMReX_NeighborList.H)
 add_sources( AMReX_Particle.H AMReX_ParticleInit.H AMReX_ParticleContainerI.H )
 add_sources( AMReX_LoadBalanceKD.H AMReX_KDTree_F.H )
 add_sources( AMReX_ParIterI.H  AMReX_ParticleMPIUtil.H AMReX_ParticleUtil.H AMReX_ParticleUtil.cpp)

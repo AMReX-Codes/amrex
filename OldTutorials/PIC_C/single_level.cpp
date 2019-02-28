@@ -6,9 +6,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_MacBndry.H>
-#include <AMReX_MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <AMReX_stencil_types.H>
 #include <AMReX_MultiFabUtil.H>
 
 #include "AMReX_Particles.H"
@@ -122,7 +119,8 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
     bool serialize = false;
 
     strt_init = ParallelDescriptor::second();
-    MyPC->InitRandom(num_particles,iseed,mass,serialize);
+    MyParticleContainer::ParticleInitData pdata = {mass, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    MyPC->InitRandom(num_particles,iseed,pdata,serialize);
     end_init = ParallelDescriptor::second() - strt_init;
 
     // Write out the positions, masses and accelerations of each particle.
@@ -151,7 +149,7 @@ int single_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc,
 
     strt_assd = ParallelDescriptor::second();
 
-    MyPC->AssignDensitySingleLevel(0,*PartMF[0],0,1,0); 
+    MyPC->AssignCellDensitySingleLevel(0, *PartMF[0], 0, 1, 0);
 
     end_assd = ParallelDescriptor::second() - strt_assd;
 

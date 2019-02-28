@@ -63,7 +63,7 @@ public:
     IArrayBox& operator= (IArrayBox&&) = delete;
 
     //! Set the fab to the value r.
-    IArrayBox& operator= (const int& r);
+    IArrayBox& operator= (int r);
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
