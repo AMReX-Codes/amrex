@@ -237,9 +237,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
             shifted = true;
         }
+        AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
     }
-
-    AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
 
     return shifted;
 }
