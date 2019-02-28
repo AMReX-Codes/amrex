@@ -1,17 +1,19 @@
 
 #include <AMReX_FabAllocator.H>
+#include <AMReX_Print.H>
 
 #ifdef AMREX_USE_GPU
 
 namespace amrex {
 
-namespace {
-    constexpr std::size_t nblocks = 682;
-}
-
 FabPoolAllocator* fab_pool_allocator = nullptr;
 
 constexpr std::size_t FabPoolAllocator::block_size;
+
+namespace {
+    constexpr std::size_t alloc_bulk_size = 64*1024; // 64K
+    constexpr int nblocks = alloc_bulk_size / FabPoolAllocator::block_size;
+}
 
 FabPoolAllocator::FabPoolAllocator ()
 #ifdef AMREX_FAB_IS_PINNED
@@ -20,9 +22,9 @@ FabPoolAllocator::FabPoolAllocator ()
     : m_arena(The_Managed_Arena())
 #endif    
 {
-    void* p = m_arena->alloc(block_size*nblocks);
+    void* p = m_arena->alloc(alloc_bulk_size);
     m_orig.push_back(p);
-    for (std::size_t i = 0; i < nblocks; ++i) {
+    for (int i = 0; i < nblocks; ++i) {
         m_pool.push_back(p);
         p = (void*)((char*)p + block_size);
     }
@@ -45,9 +47,9 @@ FabPoolAllocator::alloc (std::size_t nbytes)
         p = m_pool.back();
         m_pool.pop_back();
     } else {
-        p = m_arena->alloc(block_size*nblocks);
+        p = m_arena->alloc(alloc_bulk_size);
         m_orig.push_back(p);
-        for (std::size_t i = 1; i < nblocks; ++i) {
+        for (int i = 1; i < nblocks; ++i) {
             m_pool.push_back(p);
             p = (void*)((char*)p + block_size);
         }
