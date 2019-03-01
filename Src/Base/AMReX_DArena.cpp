@@ -19,8 +19,10 @@ namespace {
     }
 }
 
-DArena::DArena (std::size_t max_size, std::size_t max_block_size)
+DArena::DArena (std::size_t max_size, std::size_t max_block_size, ArenaInfo info)
 {
+    arena_info = info;
+
     m_max_order = 0;
     while (max_size%2 == 0) {
         max_size /= 2;
@@ -141,44 +143,6 @@ DArena::deallocate_order (int order, std::ptrdiff_t offset)
     } else {
         m_free[order].insert(offset);
     }
-}
-
-void*
-DArena::allocate_system (std::size_t nbytes)
-{
-#ifdef AMREX_USE_CUDA
-    void * p;
-    if (device_use_hostalloc) {
-        AMREX_GPU_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
-    } else if (device_use_managed_memory) {
-        AMREX_GPU_SAFE_CALL(cudaMallocManaged(&p, nbytes));
-        if (device_set_readonly)
-            Gpu::Device::mem_advise_set_readonly(p, nbytes);
-        if (device_set_preferred) {
-            const int device = Gpu::Device::deviceId();
-            Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
-        }
-    } else {
-        AMREX_GPU_SAFE_CALL(cudaMalloc(&p, nbytes));
-    }
-    return p;
-#else
-    return std::malloc(nbytes);
-#endif
-}
-
-void
-DArena::deallocate_system (void* p)
-{
-#ifdef AMREX_USE_CUDA
-    if (device_use_hostalloc) {
-        AMREX_GPU_SAFE_CALL(cudaFreeHost(p));
-    } else {
-        AMREX_GPU_SAFE_CALL(cudaFree(p));
-    }
-#else
-    std::free(p);
-#endif
 }
 
 std::size_t

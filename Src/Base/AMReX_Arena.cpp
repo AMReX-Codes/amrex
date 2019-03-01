@@ -36,6 +36,55 @@ Arena::align (std::size_t s)
     return x;
 }
 
+void*
+Arena::allocate_system (std::size_t nbytes)
+{
+#ifdef AMREX_USE_CUDA
+    void * p;
+    if (arena_info.device_use_hostalloc)
+    {
+        AMREX_GPU_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));
+    }
+    else if (arena_info.device_use_managed_memory)
+    {
+        AMREX_GPU_SAFE_CALL(cudaMallocManaged(&p, nbytes));
+        if (arena_info.device_set_readonly)
+        {
+            Gpu::Device::mem_advise_set_readonly(p, nbytes);
+        }
+        if (arena_info.device_set_preferred)
+        {
+            const int device = Gpu::Device::deviceId();
+            Gpu::Device::mem_advise_set_preferred(p, nbytes, device);
+        }
+    }
+    else
+    {
+        AMREX_GPU_SAFE_CALL(cudaMalloc(&p, nbytes));
+    }
+    return p;
+#else
+    return std::malloc(nbytes);
+#endif
+}
+
+void
+Arena::deallocate_system (void* p)
+{
+#ifdef AMREX_USE_CUDA
+    if (arena_info.device_use_hostalloc)
+    {
+        AMREX_GPU_SAFE_CALL(cudaFreeHost(p));
+    }
+    else
+    {
+        AMREX_GPU_SAFE_CALL(cudaFree(p));
+    }
+#else
+    std::free(p);
+#endif
+}
+
 void
 Arena::Initialize ()
 {
@@ -59,25 +108,20 @@ Arena::Initialize ()
         }
         std::size_t chunk = 512*1024*1024;
         buddy_allocator_size = (buddy_allocator_size/chunk) * chunk;
-        the_arena = new DArena(buddy_allocator_size);
+        the_arena = new DArena(buddy_allocator_size, 512, ArenaInfo().SetPreferred());
     }
     else
 #endif
     {
-#if defined(BL_COALESCE_FABS)
-        the_arena = new CArena;
+#if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
+        the_arena = new CArena(0, ArenaInfo().SetPreferred());
 #else
         the_arena = new BArena;
 #endif
     }
 
 #ifdef AMREX_USE_GPU
-    the_arena->SetPreferred();
-#endif
-
-#ifdef AMREX_USE_GPU
-    the_device_arena = new CArena;
-    the_device_arena->SetDeviceMemory();
+    the_device_arena = new CArena(0, ArenaInfo().SetDeviceMemory());
 #else
     the_device_arena = new BArena;
 #endif
@@ -91,8 +135,7 @@ Arena::Initialize ()
 #if defined(AMREX_USE_GPU)
 //    const std::size_t hunk_size = 64 * 1024;
 //    the_pinned_arena = new CArena(hunk_size);
-    the_pinned_arena = new CArena();
-    the_pinned_arena->SetHostAlloc();
+    the_pinned_arena = new CArena(0, ArenaInfo().SetHostAlloc());
 #else
     the_pinned_arena = new BArena;
 #endif
