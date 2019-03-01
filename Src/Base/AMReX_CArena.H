@@ -27,7 +27,7 @@ public:
     * minimum size of hunks of memory to allocate from the heap.
     * If hunk_size == 0 we use DefaultHunkSize as specified below.
     */
-    CArena (std::size_t hunk_size = 0);
+    CArena (std::size_t hunk_size = 0, ArenaInfo info = ArenaInfo());
 
     CArena (const CArena& rhs) = delete;
     CArena& operator= (const CArena& rhs) = delete;
