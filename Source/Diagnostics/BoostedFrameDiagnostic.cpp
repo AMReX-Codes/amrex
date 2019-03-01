@@ -1,4 +1,4 @@
-#include "WarpXBoostedFrameDiagnostic.H"
+#include "BoostedFrameDiagnostic.H"
 #include <AMReX_MultiFabUtil.H>
 #include "WarpX_f.H"
 #include "WarpX.H"

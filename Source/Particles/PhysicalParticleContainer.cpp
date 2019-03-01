@@ -1,7 +1,7 @@
 #include <limits>
 #include <sstream>
 
-#include <ParticleContainer.H>
+#include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 #include <WarpXConst.H>

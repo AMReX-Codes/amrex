@@ -1,0 +1,11 @@
+ifeq ($(USE_PYTHON_MAIN),TRUE)
+  CEXE_sources += WarpXWrappers.cpp
+  CEXE_headers += WarpXWrappers.h
+endif
+CEXE_sources += WarpXWrappers.cpp
+CEXE_sources += WarpX_py.cpp
+CEXE_headers += WarpXWrappers.h
+CEXE_headers += WarpX_py.H
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Python
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Python

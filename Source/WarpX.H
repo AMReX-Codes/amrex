@@ -19,9 +19,9 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <ParticleContainer.H>
-#include <WarpXPML.H>
-#include <WarpXBoostedFrameDiagnostic.H>
+#include <MultiParticleContainer.H>
+#include <PML.H>
+#include <BoostedFrameDiagnostic.H>
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>

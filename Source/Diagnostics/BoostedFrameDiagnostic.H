@@ -7,7 +7,7 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#include "ParticleContainer.H"
+#include "MultiParticleContainer.H"
 #include "WarpXConst.H"
 
 ///

@@ -851,6 +851,21 @@ WarpX::RefRatio (int lev)
 }
 
 void
+WarpX::Evolve (int numsteps) {
+    BL_PROFILE_REGION("WarpX::Evolve()");
+
+#ifdef WARPX_DO_ELECTROSTATIC
+    if (do_electrostatic) {
+        EvolveES(numsteps);
+    } else {
+      EvolveEM(numsteps);
+    }
+#else
+    EvolveEM(numsteps);
+#endif // WARPX_DO_ELECTROSTATIC
+}
+
+void
 WarpX::ComputeDivB (MultiFab& divB, int dcomp,
                     const std::array<const MultiFab*, 3>& B,
                     const std::array<Real,3>& dx)
