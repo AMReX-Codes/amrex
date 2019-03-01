@@ -1,3 +1,25 @@
+# 19.03
+
+  -- Deprecated Fortran framework F_BaseLib and linear solver F_MG
+     have been removed.  A number of tools written in F_BaseLib have
+     been migrated to Tools/Plotfile/.  Note that the Fortran wrappers
+     to C++ (F_Interfaces) are still there.
+
+  -- In addition to launch macros, there are now functions for
+     lauching, amrex::launch, amrex::For and amrex::ParallelFor.
+     These improves debuggability. 
+
+  -- If compiled with BASEFAB_IS_PINNED, pinned memory will be used
+     for BaseFab meta-data.  On systems with nvlink, this improves the
+     performance a little bit.
+
+  -- Performance improvement in particle redistribution.
+
+  -- Particle NeighborList has been moved from tutorial to AMReX
+     proper.
+
+  -- Cell-centered MLMG linear solver have been ported to GPU.
+
 # 19.02
 
   -- Array4 class that contains the important information in BaseFab
