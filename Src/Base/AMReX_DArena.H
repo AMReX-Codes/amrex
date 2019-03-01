@@ -20,7 +20,7 @@ class DArena
 {
 public:
 
-    DArena (std::size_t max_size, std::size_t max_block_size = 512);
+    DArena (std::size_t max_size, std::size_t max_block_size, ArenaInfo info);
 
     DArena (DArena const&) = delete;
     DArena (DArena &&) = delete;
@@ -48,8 +48,6 @@ private:
     std::mutex m_mutex;
     bool warning_printed = false;
 
-    void* allocate_system (std::size_t nbytes);
-    void deallocate_system (void* p);
     std::ptrdiff_t allocate_order (int order);
     void deallocate_order (int order, std::ptrdiff_t offset);
 };
