@@ -19,7 +19,7 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <ParticleContainer.H>
+#include <MultiParticleContainer.H>
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
 
