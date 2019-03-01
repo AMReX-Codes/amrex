@@ -7,7 +7,7 @@
 #include <WarpX.H>
 #include <WarpXConst.H>
 #include <WarpX_f.H>
-#include <ParticleContainer.H>
+#include <MultiParticleContainer.H>
 
 using namespace amrex;
 

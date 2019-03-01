@@ -1,7 +1,7 @@
 
 #include <limits>
 
-#include <ParticleContainer.H>
+#include <MultiParticleContainer.H>
 #include <WarpXParticleContainer.H>
 #include <AMReX_AmrParGDB.H>
 #include <WarpX_f.H>

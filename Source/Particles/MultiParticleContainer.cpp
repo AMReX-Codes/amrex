@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <string>
 
-#include <ParticleContainer.H>
+#include <MultiParticleContainer.H>
 #include <WarpX_f.H>
 #include <WarpX.H>
 

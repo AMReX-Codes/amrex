@@ -1,5 +1,5 @@
 
-#include <ParticleContainer.H>
+#include <MultiParticleContainer.H>
 #include <WarpX.H>
 
 using namespace amrex;
