@@ -106,5 +106,5 @@ Advanced building instructions
 
    spectral
    cori
-   summitdev
+   summit
    spack
