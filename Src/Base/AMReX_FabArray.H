@@ -782,7 +782,9 @@ FabArray<FAB>::fabDevicePtr (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    return m_fabs_v[mfi.LocalIndex()];
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
+    return m_fabs_v[li];
 }
 
 template <class FAB>
@@ -791,7 +793,9 @@ FabArray<FAB>::fabDevicePtr (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    return m_fabs_v[mfi.LocalIndex()];
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
+    return m_fabs_v[li];
 }
 
 template <class FAB>
@@ -800,6 +804,7 @@ FabArray<FAB>::fabDevicePtr (int K)
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
     return m_fabs_v[li];
 }
 
@@ -818,10 +823,12 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
 #if AMREX_USE_GPU
-    return m_host_fabs_v[mfi.LocalIndex()];
+    return m_host_fabs_v[li];
 #else
-    return m_fabs_v[mfi.LocalIndex()];
+    return m_fabs_v[li];
 #endif
 }
 
@@ -831,10 +838,12 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
 #if AMREX_USE_GPU
-    return m_host_fabs_v[mfi.LocalIndex()];
+    return m_host_fabs_v[li];
 #else
-    return m_fabs_v[mfi.LocalIndex()];
+    return m_fabs_v[li];
 #endif
 }
 
@@ -844,6 +853,7 @@ FabArray<FAB>::fabHostPtr (int K)
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
 #if AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
@@ -857,6 +867,7 @@ FabArray<FAB>::fabHostPtr (int K) const
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_GPU_ASSERT(m_fabs_v[li]->dataPtr() == m_host_fabs_v[li]->dataPtr());
 #if AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else

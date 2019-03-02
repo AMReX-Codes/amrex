@@ -301,8 +301,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
             if (Gpu::inLaunchRegion())
             {
-                LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
-                    dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
                     FAB* dfab = this->fabPtr(mfi);
@@ -318,7 +316,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             gbx_lo.grow(jdim,nghost[jdim]);
                         }
                         const int ncells_to_hi = vbx.length(idim)+nghost[idim];
-                        const Box gbx_hi = gbx_lo + IntVect{ncells_to_hi};
+                        const Box gbx_hi = amrex::shift(gbx_lo, idim, ncells_to_hi);
 
                         Vector<FabCopyTag<FAB> > tags_lo, tags_hi;
                         for (const auto& lc_tag : lc_tags) {
@@ -1503,8 +1501,6 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 
                     if (Gpu::inLaunchRegion())
                     {
-                        LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
-                            dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
                         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
                         {
                             FAB* dfab = fa.fabPtr(mfi);
@@ -1520,7 +1516,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                                     gbx_lo.grow(jdim,ng[jdim]);
                                 }
                                 const int ncells_to_hi = vbx.length(idim)+ng[idim];
-                                const Box gbx_hi = gbx_lo + IntVect{ncells_to_hi};
+                                const Box gbx_hi = amrex::shift(gbx_lo, idim, ncells_to_hi);
 
                                 Vector<FabCopyTag<FAB> > vtags_lo, vtags_hi;
                                 for (const auto& lc_tag : lc_tags) {
