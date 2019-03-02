@@ -116,7 +116,7 @@ CArena::free (void* vp)
     //
     // `vp' had better be in the busy list.
     //
-    NL::iterator busy_it = m_busylist.find(Node(vp,0,0));
+    auto busy_it = m_busylist.find(Node(vp,0,0));
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());

@@ -561,7 +561,7 @@ MLMG::interpCorrection (int alev)
 
     if (linop.isCellCentered())
     {
-        Gpu::LaunchSafeGuard(!isEB); // turn off gpu for eb for now TODO
+        Gpu::LaunchSafeGuard lg(!isEB); // turn off gpu for eb for now TODO
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
@@ -692,7 +692,7 @@ MLMG::interpCorrection (int alev, int mglev)
 
     if (linop.isCellCentered())
     {
-        Gpu::LaunchSafeGuard(!isEB); // turn off gpu for eb for now TODO
+        Gpu::LaunchSafeGuard lg(!isEB); // turn off gpu for eb for now TODO
         MFItInfo mfi_info;
         if (Gpu::notInLaunchRegion()) mfi_info.EnableTiling().SetDynamic(true);
 #ifdef _OPENMP
