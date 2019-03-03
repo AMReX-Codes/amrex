@@ -4,12 +4,13 @@
 #include <cassert>
 
 #include <AMReX.H>
-#include <AMReX_MGT_Solver.H>
-#include <AMReX_stencil_types.H>
+
+#include <AMReX_MLNodeLaplacian.H>
+#include <AMReX_MLMG.H>
 #include <AMReX_InterpBndryData.H>
 #include <AMReX_MacBndry.H>
-#include "AMReX_FillPatchUtil.H"
-#include "AMReX_PlotFileUtil.H"
+#include <AMReX_FillPatchUtil.H>
+#include <AMReX_PlotFileUtil.H>
 
 #include "ElectrostaticParticleContainer.H"
 
@@ -191,21 +192,15 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
     IntVect ratio(D_DECL(2, 2, 2));
     fixRHSForSolve(tmp_rhs, masks, geom, ratio);
 
-    bool nodal = true;
-    bool have_rhcc = false;
-    int  nc = 0;
-    int Ncomp = 1;
-    int stencil = ND_CROSS_STENCIL;
-    int verbose = 0;
-    Vector<int> mg_bc(2*BL_SPACEDIM, 1); // this means Dirichlet
-    Real rel_tol = 1.0e-14;
+    int verbose = 2;
+    Real rel_tol = 1.0e-12;
     Real abs_tol = 1.0e-14;
 
     Vector<Geometry>            level_geom(1);
     Vector<BoxArray>            level_grids(1);
     Vector<DistributionMapping> level_dm(1);
     Vector<MultiFab*>           level_phi(1);
-    Vector<MultiFab*>           level_rhs(1);
+    Vector<const MultiFab*>     level_rhs(1);
     
     for (int lev = 0; lev < num_levels; ++lev) {
         level_phi[0]   = phi[lev].get();
@@ -213,14 +208,29 @@ void computePhi(ScalarMeshData& rhs, ScalarMeshData& phi,
         level_geom[0]  = geom[lev];
         level_grids[0] = grids[lev];
         level_dm[0]    = dm[lev];
+
+        MLNodeLaplacian linop(level_geom, level_grids, level_dm);
+
+        linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                        LinOpBCType::Dirichlet,
+                                        LinOpBCType::Dirichlet)},
+            {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                          LinOpBCType::Dirichlet,
+                          LinOpBCType::Dirichlet)});
+
+        linop.setLevelBC(0, nullptr);
+
+        MultiFab sigma(level_grids[0], level_dm[0], 1, 0);
+        sigma.setVal(1.0);
+        linop.setSigma(0, sigma);
         
-        MGT_Solver solver(level_geom, mg_bc.dataPtr(), level_grids, 
-                          level_dm, nodal,
-                          stencil, have_rhcc, nc, Ncomp, verbose);
-        
-        solver.set_nodal_const_coefficients(1.0);
-        
-        solver.solve_nodal(level_phi, level_rhs, rel_tol, abs_tol);
+        MLMG mlmg(linop);
+        mlmg.setMaxIter(100);
+        mlmg.setMaxFmgIter(0);
+        mlmg.setVerbose(verbose);
+        mlmg.setBottomVerbose(0);
+
+        mlmg.solve(level_phi, level_rhs, rel_tol, abs_tol);
 
         if (lev < num_levels-1) {
 
@@ -281,10 +291,7 @@ getLevelMasks(Vector<std::unique_ptr<FabArray<BaseFab<int> > > >& masks,
     }
 }
 
-int main(int argc, char* argv[])
-{
-    amrex::Initialize(argc, argv);
-
+void main_main () {
     int max_level, n_cell, max_grid_size, particle_output_int, n_buffer, max_step, is_periodic[BL_SPACEDIM];
     Real dt;
 
@@ -400,6 +407,13 @@ int main(int argc, char* argv[])
 
         myPC.Redistribute();        
     }
-    
+}
+
+int main(int argc, char* argv[])
+{
+    amrex::Initialize(argc, argv);
+
+    main_main();
+
     amrex::Finalize();
 }
