@@ -85,7 +85,7 @@ public:
     iMultiFab (const iMultiFab& rhs) = delete;
     iMultiFab& operator= (const iMultiFab& rhs) = delete;
 
-    void operator= (const int& r);
+    void operator= (int r);
 
     /**
     * \brief Returns the minimum value contained in component comp of the

@@ -8,6 +8,7 @@
 #include <AMReX_MG_K.H>
 #include <AMReX_MLABecLap_K.H>
 #include <AMReX_MLEBABecLap_F.H>
+#include <AMReX_MLLinOp_K.H>
 #include <AMReX_MLLinOp_F.H>
 #include <AMReX_ABec_F.H>
 #include <AMReX_EBMultiFabUtil_F.H>
@@ -602,7 +603,7 @@ MLEBABecLap::FFlux (int amrlev, const MFIter& mfi, const Array<FArrayBox*,AMREX_
                     const FArrayBox& sol, Location loc, const int face_only) const
 {
     // todo: gpu
-    Gpu::LaunchSafeGuard(false);
+    Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::FFlux()");
     const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
     const int mglev = 0; 
@@ -664,7 +665,7 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                        MultiFab& sol, Location loc) const
 {
     // todo: gpu
-    Gpu::LaunchSafeGuard(false);
+    Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::compGrad()");
 
     const int at_centroid = (Location::FaceCentroid == loc) ? 1 : 0;
@@ -673,6 +674,9 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
             m_bndry_sol[amrlev].get());
 
     const Real* dxinv = m_geom[amrlev][mglev].InvCellSize();
+    AMREX_D_TERM(const Real dxi = m_geom[amrlev][mglev].InvCellSize(0);,
+                 const Real dyi = m_geom[amrlev][mglev].InvCellSize(1);,
+                 const Real dzi = m_geom[amrlev][mglev].InvCellSize(2););
     const iMultiFab& ccmask = m_cc_mask[amrlev][mglev];
 
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get()); 
@@ -697,14 +701,26 @@ MLEBABecLap::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                 grad[idim]->setVal(0.0, fbx[idim], 0, 1);
             }
         } else if(fabtyp == FabType::regular || !at_centroid) {
-            amrex_mllinop_grad(AMREX_D_DECL(BL_TO_FORTRAN_BOX(fbx[0]),
-                                            BL_TO_FORTRAN_BOX(fbx[1]),
-                                            BL_TO_FORTRAN_BOX(fbx[2])),
-                               BL_TO_FORTRAN_ANYD(sol[mfi]),
-                               AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*grad[0])[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*grad[1])[mfi]),
-                                            BL_TO_FORTRAN_ANYD((*grad[2])[mfi])),
-                               dxinv);
+            const auto& s = sol.array(mfi);
+            AMREX_D_TERM(const auto& gx = grad[0]->array(mfi);,
+                         const auto& gy = grad[1]->array(mfi);,
+                         const auto& gz = grad[2]->array(mfi););
+            AMREX_HOST_DEVICE_FOR_3D ( fbx[0], i, j, k,
+            {
+                gx(i,j,k) = dxi*(s(i,j,k) - s(i-1,j,k));
+            });
+#if (AMREX_SPACEDIM >= 2)
+            AMREX_HOST_DEVICE_FOR_3D ( fbx[1], i, j, k,
+            {
+                gy(i,j,k) = dyi*(s(i,j,k) - s(i,j-1,k));
+            });
+#endif
+#if (AMREX_SPACEDIM == 3)
+            AMREX_HOST_DEVICE_FOR_3D ( fbx[2], i, j, k,
+            {
+                gz(i,j,k) = dzi*(s(i,j,k) - s(i,j,k-1));
+            });
+#endif
             if (fabtyp != FabType::regular) {
                 for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                     amrex_eb_set_covered_faces(BL_TO_FORTRAN_BOX(fbx[idim]),
@@ -737,7 +753,7 @@ void
 MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
     // todo: gpu
-    Gpu::LaunchSafeGuard(false);
+    Gpu::LaunchSafeGuard lg(false);
     const MultiFab& acoef = m_a_coeffs[amrlev][mglev];
     AMREX_D_TERM(const MultiFab& bxcoef = m_b_coeffs[amrlev][mglev][0];,
                  const MultiFab& bycoef = m_b_coeffs[amrlev][mglev][1];,
@@ -824,7 +840,7 @@ void
 MLEBABecLap::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
     // todo: gpu
-    Gpu::LaunchSafeGuard(false);
+    Gpu::LaunchSafeGuard lg(false);
     auto factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][fmglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
@@ -875,7 +891,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                       const MLMGBndry* bndry, bool skip_fillboundary) const
 {
     // todo: gpu
-    Gpu::LaunchSafeGuard(false);
+    Gpu::LaunchSafeGuard lg(false);
     BL_PROFILE("MLEBABecLap::applyBC()");
 
     // No coarsened boundary values, cannot apply inhomog at mglev>0.

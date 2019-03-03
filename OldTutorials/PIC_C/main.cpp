@@ -5,9 +5,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_MacBndry.H>
-#include <AMReX_MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <AMReX_stencil_types.H>
 #include <AMReX_MultiFabUtil.H>
 
 #include "AMReX_Particles.H"
@@ -25,7 +22,6 @@ int main(int argc, char* argv[])
     const Real strt_total = ParallelDescriptor::second();
 
     int    nx, ny, nz;
-    double hx, hy, hz;
 
     ParmParse pp;
 
