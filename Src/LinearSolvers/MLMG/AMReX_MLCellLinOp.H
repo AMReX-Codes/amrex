@@ -29,8 +29,6 @@ public:
 
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) final override;
 
-    virtual int getNGrow() const { return 1; }
-
     virtual bool needsUpdate () const override {
         return MLLinOp::needsUpdate();
     }
