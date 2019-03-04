@@ -42,8 +42,6 @@ text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
 
 # Remove Langmuir_x/y/z test (too long; not that useful)
 text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*', '', text)
-# Skip unit tests (too long; not that useful)
-text = re.sub( '\[UnitTest_[a-zA-Z]+\]\n(.+\n)*', '', text)
 
 # Remove tests that do not have the right dimension
 if dim is not None:
