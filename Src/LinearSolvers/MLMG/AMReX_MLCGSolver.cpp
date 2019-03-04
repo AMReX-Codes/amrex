@@ -83,14 +83,14 @@ MLCGSolver::solve_bicgstab (MultiFab&       sol,
 {
     BL_PROFILE("MLCGSolver::bicgstab");
 
-    const int nghost = sol.nGrow(), ncomp = sol.nComp();
+    const int ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab ph(ba, dm, ncomp, nghost, MFInfo(), factory);
-    MultiFab sh(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab ph(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
+    MultiFab sh(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
     ph.setVal(0.0);
     sh.setVal(0.0);
 
@@ -265,13 +265,13 @@ MLCGSolver::solve_cg (MultiFab&       sol,
 {
     BL_PROFILE("MLCGSolver::cg");
 
-    const int nghost = sol.nGrow(), ncomp = sol.nComp();
+    const int ncomp = sol.nComp();
 
     const BoxArray& ba = sol.boxArray();
     const DistributionMapping& dm = sol.DistributionMap();
     const auto& factory = sol.Factory();
 
-    MultiFab p(ba, dm, ncomp, nghost, MFInfo(), factory);
+    MultiFab p(ba, dm, ncomp, sol.nGrow(), MFInfo(), factory);
     p.setVal(0.0);
 
     MultiFab sorig(ba, dm, ncomp, nghost, MFInfo(), factory);

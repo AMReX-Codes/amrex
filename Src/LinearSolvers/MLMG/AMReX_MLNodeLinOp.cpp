@@ -152,7 +152,7 @@ MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFa
 {
     apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
     int ncomp = b.nComp();
-    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, resid.nGrow());
+    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
 }
 
 void
