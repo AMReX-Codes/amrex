@@ -500,7 +500,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         switch (typ_in)
         {
@@ -527,7 +529,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         fio = new FABio_binary(rd);
     }
@@ -575,7 +579,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         switch (typ_in)
         {
@@ -604,7 +610,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         fio = new FABio_binary(rd);
     }

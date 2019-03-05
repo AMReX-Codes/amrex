@@ -22,7 +22,7 @@ publicly and display publicly, and to permit other to do so.
 
 License for AMReX can be found at [license.txt](license.txt).
 
-## Development Model:
+## Development Model
 
 Development generally follows the following ideas:
 
