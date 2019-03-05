@@ -1455,7 +1455,7 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
 #ifdef AMREX_USE_GPU
                                 Gpu::Device::setStreamIndex(cuda_stream++);
 #endif
-                                AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                                AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, nc, i, j, k, n,
                                 {
                                     dfab(i,j,k,sc+n) = sfab(i+offset.x,j+offset.y,k+offset.z,sc+n);
                                 });
