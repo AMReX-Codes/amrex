@@ -62,27 +62,27 @@ int main(int argc, char* argv[])
         mf2_max[icomp] = mf2.max(icomp,ngrow);
     }
 
-    DistributionMapping dmap(mf1.boxArray());
-    MultiFab mfdiff(mf1.boxArray(), dmap, ncomp, ngrow);
+    MultiFab mfdiff(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
+    mfdiff.setVal(0.); 
 
-    MultiFab::Copy(mfdiff, mf1, 0, 0, ncomp, ngrow);
+    mfdiff.copy(mf1);
     mfdiff.minus(mf2, 0, ncomp, ngrow);
 
     for (int icomp = 0; icomp < ncomp; ++icomp) {
         Print() << "diff Min,max: " << mfdiff.min(icomp,ngrow) 
 		  << ", " << mfdiff.max(icomp,ngrow);
-	if (ncomp > 1) {
-	    Print() << " for component " << icomp;
-	}
-	Print() << " 1st mf min,max: " << mf1_min[icomp]
-		  << ", " << mf1_max[icomp]
-                  << ", 2nd mf min,max: ";
-	Print() << mf2_min[icomp]
-		  << ", " << mf2_max[icomp] << "\n";
+    	if (ncomp > 1) {
+    	    Print() << " for component " << icomp;
+    	}
+    	Print() << " 1st mf min,max: " << mf1_min[icomp]
+    		  << ", " << mf1_max[icomp]
+                      << ", 2nd mf min,max: ";
+    	Print() << mf2_min[icomp]
+    		  << ", " << mf2_max[icomp] << "\n";
     }
 
-    Print() << "Writing mfdiff" << std::endl;
-    VisMF::Write(mfdiff, "mfdiff");
+        Print() << "Writing mfdiff" << std::endl;
+     VisMF::Write(mfdiff, "mfdiff");
 
     amrex::Finalize();
 }

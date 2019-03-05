@@ -4,6 +4,8 @@
 #include <AMReX_Particles.H>
 #include <AMReX_CudaContainers.H>
 
+#include <AMReX_NeighborList.H>
+
 struct PIdx
 {
     enum {
@@ -27,14 +29,7 @@ public:
                         const amrex::Real     a_thermal_momentum_std,
                         const amrex::Real     a_thermal_momentum_mean);
 
-    void RedistributeLocal ()
-    {
-        const int lev_min = 0;
-        const int lev_max = 0;
-        const int nGrow = 0;
-        const int local = 1;
-        Redistribute(lev_min, lev_max, nGrow, local);
-    }
+    void RedistributeLocal ();
 
     void BuildNeighborList ();
 
@@ -48,11 +43,13 @@ public:
 
     void fillNeighbors ();
 
+    void updateNeighbors ();
+
     void clearNeighbors ();
 
     void writeParticles (const int n);
 
-protected:
+private:
 
     void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
  
@@ -65,9 +62,7 @@ protected:
     std::map<int, amrex::Gpu::HostVector<int> > m_start;
     std::map<int, amrex::Gpu::HostVector<int> > m_stop;
     
-    // This is the neighbor list data structure
-    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_offsets;
-    std::map<std::pair<int, int>, amrex::Gpu::DeviceVector<unsigned int> > m_nbor_list;
+    std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > m_neighbor_list;
 };
 
 #endif

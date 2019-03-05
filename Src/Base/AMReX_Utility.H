@@ -105,7 +105,7 @@ namespace amrex
     /**
     * \brief Aborts after printing message indicating out-of-memory;
     * i.e. operator new has failed. This is the "supported"
-    * set_new_handler() function for BoxLib applications.
+    * set_new_handler() function for AMReX applications.
     */
     void OutOfMemory ();
     /**

@@ -214,10 +214,10 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow(),
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
                   MFInfo(), mflx.Factory());
 
-    area.setVal(1, 0, 1, area.nGrow());
+    area.setVal(1, 0, 1, 0);
 
     CrseInit(mflx,area,dir,srccomp,destcomp,numcomp,mult,op);
 }
@@ -275,10 +275,10 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= mflx.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, mflx.nGrow(),
+    MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
                   MFInfo(), mflx.Factory());
 
-    area.setVal(1, 0, 1, area.nGrow());
+    area.setVal(1, 0, 1, 0);
 
     CrseAdd(mflx,area,dir,srccomp,destcomp,numcomp,mult,geom);
 }
@@ -435,7 +435,7 @@ FluxRegister::FineSetVal (int              dir,
     hireg.setVal(val, hireg.box(), destcomp, numcomp);
 }
 
-void 
+void
 FluxRegister::Reflux (MultiFab&       mf,
 		      const MultiFab& volume,
 		      Real            scale,
@@ -444,37 +444,32 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      int             nc,
 		      const Geometry& geom)
 {
-    BL_PROFILE("FluxRegister::Reflux()");
-
     for (OrientationIter fi; fi; ++fi)
     {
 	const Orientation& face = fi();
-	int idir = face.coordDir();
-
-        MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
-                      mf.DistributionMap(), nc, 0, MFInfo(), mf.Factory());
-	flux.setVal(0.0);
-
-	bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());
-
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-	for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
-            FArrayBox* sfab = mf.fabPtr(mfi);
-            FArrayBox const* ffab = flux.fabPtr(mfi);
-            FArrayBox const* vfab = volume.fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
-            {
-                fluxreg_reflux(tbx, *sfab, dcomp, *ffab, *vfab, nc, scale, face);
-            });
-	}
+        Reflux(mf, volume, face, scale, scomp, dcomp, nc, geom);
     }
 }
 
-void 
+void
+FluxRegister::Reflux (MultiFab&       mf,
+                      const MultiFab& volume,
+                      int             dir,
+		      Real            scale,
+		      int             scomp,
+		      int             dcomp,
+		      int             nc,
+		      const Geometry& geom)
+{
+    for (int s = 0; s < 2; ++s)
+    {
+        Orientation::Side side = (s==0) ? Orientation::low : Orientation::high;
+	Orientation face(dir, side);
+        Reflux(mf, volume, face, scale, scomp, dcomp, nc, geom);
+    }
+}
+
+void
 FluxRegister::Reflux (MultiFab&       mf,
 		      Real            scale,
 		      int             scomp,
@@ -483,13 +478,62 @@ FluxRegister::Reflux (MultiFab&       mf,
 		      const Geometry& geom)
 {
     const Real* dx = geom.CellSize();
-    
-    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, mf.nGrow(),
+
+    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
                     MFInfo(), mf.Factory());
-    
-    volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, mf.nGrow());
+
+    volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
 
     Reflux(mf,volume,scale,scomp,dcomp,nc,geom);
+}
+
+void 
+FluxRegister::Reflux (MultiFab&       mf,
+                      int             dir,
+		      Real            scale,
+		      int             scomp,
+		      int             dcomp,
+		      int             nc,
+		      const Geometry& geom)
+{
+    const Real* dx = geom.CellSize();
+    
+    MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
+                    MFInfo(), mf.Factory());
+    
+    volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
+
+    Reflux(mf,volume,dir,scale,scomp,dcomp,nc,geom);
+}
+
+void
+FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
+                      Real scale, int scomp, int dcomp, int nc, const Geometry& geom)
+{
+    BL_PROFILE("FluxRegister::Reflux()");
+
+    int idir = face.coordDir();
+
+    MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
+                  mf.DistributionMap(), nc, 0, MFInfo(), mf.Factory());
+    flux.setVal(0.0);
+
+    bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());
+
+#ifdef _OPENMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        FArrayBox* sfab = mf.fabPtr(mfi);
+        FArrayBox const* ffab = flux.fabPtr(mfi);
+        FArrayBox const* vfab = volume.fabPtr(mfi);
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        {
+            fluxreg_reflux(tbx, *sfab, dcomp, *ffab, *vfab, nc, scale, face);
+        });
+    }
 }
 
 void
