@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.13)
 
 project (AMReX)
 
@@ -37,6 +37,9 @@ include( AMReX_Machines )
 # to be the C++ compiler. 
 # 
 if (ENABLE_CUDA)
+   if(${CMAKE_VERSION} VERSION_LESS "3.14.0") 
+      message(FATAL_ERROR "CUDA support requires CMake >= 3.14.0")
+   endif()
    include(AMReX_SetupCUDA)
    setup_cuda_host_compiler()
    enable_language(CUDA)
