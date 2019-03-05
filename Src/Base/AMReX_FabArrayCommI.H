@@ -293,90 +293,31 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
                 {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 
             FillBoundary_test();
 
-            if (Gpu::inLaunchRegion())
-            {
-                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-                {
-                    FAB* dfab = this->fabPtr(mfi);
-                    const Box& vbx = mfi.validbox();
-
-                    const auto& lc_tags = loc_copy_tags[mfi];
-
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                    {
-                        Box gbx_lo = vbx;
-                        gbx_lo.setRange(idim,vbx.smallEnd(idim)-nghost[idim],nghost[idim]);
-                        for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
-                            gbx_lo.grow(jdim,nghost[jdim]);
-                        }
-                        const int ncells_to_hi = vbx.length(idim)+nghost[idim];
-                        const Box gbx_hi = amrex::shift(gbx_lo, idim, ncells_to_hi);
-
-                        Vector<FabCopyTag<FAB> > tags_lo, tags_hi;
-                        for (const auto& lc_tag : lc_tags) {
-                            Box b = gbx_lo & lc_tag.dbox;
-                            if (b.ok()) {
-                                tags_lo.push_back({lc_tag.sfab,b,lc_tag.offset});
-                            }
-                            b = gbx_hi & lc_tag.dbox;
-                            if (b.ok()) {
-                                tags_hi.push_back({lc_tag.sfab,b,lc_tag.offset});
-                            }
-                        }
-                        const int ntags_lo = tags_lo.size();
-                        const int ntags_hi = tags_hi.size();
-                        if (ntags_lo > 0 || ntags_hi > 0)
-                        {
-                            AsyncArray<FabCopyTag<FAB> > async_tags_lo(tags_lo.data(), ntags_lo);
-                            AsyncArray<FabCopyTag<FAB> > async_tags_hi(tags_hi.data(), ntags_hi);
-                            FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
-                            FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
-
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                gbx_lo, tbx_lo,
-                                {
-                                    for (int i = 0; i < ntags_lo; ++i) {
-                                        const auto& tag = ptags_lo[i];
-                                        const Box dbx = tbx_lo & tag.dbox;
-                                        if (dbx.ok()) {
-                                            const Box sbx = dbx + tag.offset;
-                                            dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
-                                        }
-                                    }
-                                },
-                                gbx_hi, tbx_hi,
-                                {
-                                    for (int i = 0; i < ntags_hi; ++i) {
-                                        const auto& tag = ptags_hi[i];
-                                        const Box dbx = tbx_hi & tag.dbox;
-                                        if (dbx.ok()) {
-                                            const Box sbx = dbx + tag.offset;
-                                            dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
-                                        }
-                                    }
-                                });
-                        }
-                    }
-                }
-            }
-            else
-            {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+            {
+                int cuda_stream = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
                     const auto& tags = loc_copy_tags[mfi];
-                    FAB* dfab = &((*this)[mfi]);
+                    const auto& dfab = this->array(mfi);
                     for (const auto& tag : tags ) {
-                        const Box sbx = tag.dbox + tag.offset;
-                        dfab->copy(*tag.sfab, sbx, scomp, tag.dbox, scomp, ncomp);
+                        const Dim3 offset = tag.offset.dim3();
+                        const auto sfab = tag.sfab->array();
+#ifdef AMREX_USE_GPU
+                        Gpu::Device::setStreamIndex(cuda_stream++);
+#endif
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,scomp+n) = sfab(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                        });
                     }
                 }
             }
@@ -1495,88 +1436,29 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                         if (dm[tag.dstIndex] == myproc)
                         {
                             loc_copy_tags[tag.dstIndex].push_back
-                                ({fa.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                                ({fa.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                         }
                     }
 
-                    if (Gpu::inLaunchRegion())
-                    {
-                        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-                        {
-                            FAB* dfab = fa.fabPtr(mfi);
-                            const Box& vbx = mfi.validbox();
-
-                            const auto& lc_tags = loc_copy_tags[mfi];
-
-                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                            {
-                                Box gbx_lo = vbx;
-                                gbx_lo.setRange(idim,vbx.smallEnd(idim)-ng[idim],ng[idim]);
-                                for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
-                                    gbx_lo.grow(jdim,ng[jdim]);
-                                }
-                                const int ncells_to_hi = vbx.length(idim)+ng[idim];
-                                const Box gbx_hi = amrex::shift(gbx_lo, idim, ncells_to_hi);
-
-                                Vector<FabCopyTag<FAB> > vtags_lo, vtags_hi;
-                                for (const auto& lc_tag : lc_tags) {
-                                    Box b = gbx_lo & lc_tag.dbox;
-                                    if (b.ok()) {
-                                        vtags_lo.push_back({lc_tag.sfab,b,lc_tag.offset});
-                                    }
-                                    b = gbx_hi & lc_tag.dbox;
-                                    if (b.ok()) {
-                                        vtags_hi.push_back({lc_tag.sfab,b,lc_tag.offset});
-                                    }
-                                }
-                                const int ntags_lo = vtags_lo.size();
-                                const int ntags_hi = vtags_hi.size();
-                                if (ntags_lo > 0 || ntags_hi > 0)
-                                {
-                                    AsyncArray<FabCopyTag<FAB> > async_tags_lo(vtags_lo.data(), ntags_lo);
-                                    AsyncArray<FabCopyTag<FAB> > async_tags_hi(vtags_hi.data(), ntags_hi);
-                                    FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
-                                    FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
-
-                                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                        gbx_lo, tbx_lo,
-                                        {
-                                            for (int i = 0; i < ntags_lo; ++i) {
-                                                const auto& tag = ptags_lo[i];
-                                                const Box dbx = tbx_lo & tag.dbox;
-                                                if (dbx.ok()) {
-                                                    const Box sbx = dbx + tag.offset;
-                                                    dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
-                                                }
-                                            }
-                                        },
-                                        gbx_hi, tbx_hi,
-                                        {
-                                            for (int i = 0; i < ntags_hi; ++i) {
-                                                const auto& tag = ptags_hi[i];
-                                                const Box dbx = tbx_hi & tag.dbox;
-                                                if (dbx.ok()) {
-                                                    const Box sbx = dbx + tag.offset;
-                                                    dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
-                                                }
-                                            }
-                                        });
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+                    {
+                        int cuda_stream = 0;
                         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
                         {
                             const auto& lc_tags = loc_copy_tags[mfi];
-                            FAB* dfab = &(fa[mfi]);
+                            const auto& dfab = fa.array(mfi);
                             for (const auto& tag : lc_tags) {
-                                const Box& sbx = tag.dbox + tag.offset;
-                                dfab->copy(*tag.sfab, sbx, sc, tag.dbox, sc, nc);
+                                const Dim3 offset = tag.offset.dim3();
+                                const auto sfab = tag.sfab->array();
+#ifdef AMREX_USE_GPU
+                                Gpu::Device::setStreamIndex(cuda_stream++);
+#endif
+                                AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, nc, i, j, k, n,
+                                {
+                                    dfab(i,j,k,sc+n) = sfab(i+offset.x,j+offset.y,k+offset.z,sc+n);
+                                });
                             }
                         }
                     }
