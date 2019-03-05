@@ -5,6 +5,8 @@
 #include <set>
 #include <vector>
 #include <mutex>
+#include <unordered_set>
+#include <functional>
 
 #include <AMReX_Arena.H>
 
@@ -89,6 +91,12 @@ protected:
             return m_owner == rhs.m_owner;
         }
 
+        struct hash {
+            std::size_t operator() (const Node& n) const noexcept {
+                return std::hash<void*>{}(n.m_block);
+            }
+        };
+
     private:
         //! The block of memory we reference.
         void* m_block;
@@ -117,7 +125,8 @@ protected:
     * \brief The list of busy blocks.
     * A block is either on the freelist or on the blocklist, but not on both.
     */
-    NL m_busylist;
+//    NL m_busylist;
+    std::unordered_set<Node, Node::hash> m_busylist;
     //! The minimal size of hunks to request via ::operator new().
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
