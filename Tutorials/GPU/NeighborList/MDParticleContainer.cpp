@@ -112,9 +112,8 @@ buildNeighborMask()
         {
             const Box box = ba[mfi] + *pit;
 
-            const int nGrow = 1;
             const bool first_only = false;
-            auto isecs = ba.intersections(box, first_only, nGrow);
+            auto isecs = ba.intersections(box, first_only, m_ncells);
         
             for (auto& isec : isecs)
             {
@@ -133,7 +132,7 @@ buildNeighborMask()
         }
         BoxArray isec_ba(isec_bl);
         
-        Vector<Box> bl = getBoundaryBoxes(amrex::grow(ba[mfi], -1), 1);
+        Vector<Box> bl = getBoundaryBoxes(amrex::grow(ba[mfi], -m_ncells), m_ncells);
         
         m_grid_map[grid].resize(bl.size());
         for (int i = 0; i < static_cast<int>(bl.size()); ++i)
@@ -646,7 +645,7 @@ void MDParticleContainer::BuildNeighborList()
         auto& aos   = ptile.GetArrayOfStructs();
 
         Box bx = mfi.tilebox();
-        bx.grow(1);
+        bx.grow(m_ncells);
 
         m_neighbor_list[index].build(aos(), bx, geom, CheckPair());
     }
