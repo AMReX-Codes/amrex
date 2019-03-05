@@ -54,16 +54,22 @@ Geometry::Geometry () {}
 Geometry::Geometry (const Box&     dom,
                     const RealBox* rb,
                     int            coord,
-                    int*           is_per)
+                    int const*     is_per)
 {
     define(dom,rb,coord,is_per);
+}
+
+Geometry::Geometry (const Box& dom, const RealBox& rb, int coord,
+                    Array<int,AMREX_SPACEDIM> const& is_per)
+{
+    define(dom, &rb, coord, is_per.data());
 }
 
 void
 Geometry::define (const Box&     dom,
                   const RealBox* rb,
                   int            coord,
-                  int*           is_per)
+                  int const*     is_per)
 {
     if (c_sys == undef)
         Setup(rb,coord,is_per);
@@ -102,7 +108,7 @@ Geometry::Finalize ()
 }
 
 void
-Geometry::Setup (const RealBox* rb, int coord, int* isper)
+Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 {
 #ifdef _OPENMP
     BL_ASSERT(!omp_in_parallel());

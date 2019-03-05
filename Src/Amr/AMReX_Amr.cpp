@@ -2457,13 +2457,41 @@ Amr::coarseTimeStep (Real stop_time)
 
     if (check_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / check_per;
-      const int num_per_new = (cumtime            ) / check_per;
 
-      if (num_per_old != num_per_new)
-      {
-	check_test = 1;
-      }
+        // Check to see if we've crossed a check_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = (cumtime-dt_level[0]) / check_per;
+        int num_per_new = (cumtime            ) / check_per;
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next check_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_chk_time = (num_per_old + 1) * check_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_chk_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            check_test = 1;
+        }
+
     }
 
     int to_stop       = 0;    
@@ -2579,13 +2607,41 @@ Amr::writePlotNow()
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / plot_per;
-      const int num_per_new = (cumtime            ) / plot_per;
 
-      if (num_per_old != num_per_new)
-	{
-	  plot_test = 1;
-	}
+        // Check to see if we've crossed a plot_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = (cumtime-dt_level[0]) / plot_per;
+        int num_per_new = (cumtime            ) / plot_per;
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next plot_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_plot_time = (num_per_old + 1) * plot_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_plot_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            plot_test = 1;
+        }
+
     }
 
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
@@ -2599,13 +2655,41 @@ Amr::writeSmallPlotNow()
     int plot_test = 0;
     if (small_plot_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
-      const int num_per_new = (cumtime            ) / small_plot_per;
 
-      if (num_per_old != num_per_new)
+        // Check to see if we've crossed a small_plot_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
+        int num_per_new = (cumtime            ) / small_plot_per;
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next small_plot_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_plot_time = (num_per_old + 1) * small_plot_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_plot_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
 	{
-	  plot_test = 1;
+            plot_test = 1;
 	}
+
     }
 
     return ( (small_plot_int > 0 && level_steps[0] % small_plot_int == 0) || 

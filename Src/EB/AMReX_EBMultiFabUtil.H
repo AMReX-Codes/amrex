@@ -7,8 +7,11 @@
 
 namespace amrex
 {
-    void EB_set_covered (MultiFab& mf, Real val);    
-    void EB_set_covered (MultiFab& mf, int icomp, int ncomp, const Vector<Real>& val);
+    void EB_set_covered (MultiFab& mf,                                               Real   val);    
+    void EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow,              Real   val);
+    void EB_set_covered (MultiFab& mf, int icomp, int ncomp,            const Vector<Real>& vals);
+    void EB_set_covered (MultiFab& mf, int icomp, int ncomp, int ngrow, const Vector<Real>& vals);
+
     void EB_set_covered_faces (const Array<MultiFab*,AMREX_SPACEDIM>& umac, Real val);
 
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,

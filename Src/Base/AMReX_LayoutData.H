@@ -95,7 +95,7 @@ namespace amrex
         return (m_data[a_mfi.LocalIndex()]);
       }
 
-    T& operator[](const int & a_box_index)
+    T& operator[](int a_box_index)
       {
         int local_index = this->localindex(a_box_index);
         BL_ASSERT(local_index < m_data.size());
@@ -103,7 +103,7 @@ namespace amrex
       }
 
 
-    const T& operator[](const int & a_box_index) const
+    const T& operator[](int a_box_index) const
       {
         int local_index = this->localindex(a_box_index);
         BL_ASSERT(local_index < m_data.size());

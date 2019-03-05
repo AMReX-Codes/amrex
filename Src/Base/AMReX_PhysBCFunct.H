@@ -132,9 +132,10 @@ public:
 
         //! create a grown domain box containing valid + periodic cells
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
+        const IntVect& ngrow = mf.nGrowVect();
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             if (m_geom.isPeriodic(i)) {
-                gdomain.grow(i, mf.nGrow());
+                gdomain.grow(i, ngrow[i]);
             }
         }
 

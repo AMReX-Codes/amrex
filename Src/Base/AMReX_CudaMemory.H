@@ -14,12 +14,12 @@ struct Managed {
 
 #ifdef AMREX_USE_CUDA
 
-    void *operator new(size_t len)
+    void *operator new (std::size_t len)
     {
         return The_Managed_Arena()->alloc(len);
     }
     
-    void operator delete(void *ptr)
+    void operator delete (void *ptr)
     {
         The_Managed_Arena()->free(ptr);
     }
@@ -31,12 +31,12 @@ struct Pinned {
     
 #ifdef AMREX_USE_CUDA
 
-    void *operator new(size_t len)
+    void *operator new (std::size_t len)
     {
         return The_Pinned_Arena()->alloc(len);
     }
     
-    void operator delete(void *ptr)
+    void operator delete (void *ptr)
     {
         The_Pinned_Arena()->free(ptr);
     }

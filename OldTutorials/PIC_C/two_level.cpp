@@ -6,12 +6,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_MacBndry.H>
-#include <AMReX_MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <AMReX_stencil_types.H>
 #include <AMReX_MultiFabUtil.H>
-
-#include "AMReX_Particles.H"
+#include <AMReX_AmrParticles.H>
+#include <AMReX_Particles.H>
 
 using namespace amrex;
 
@@ -164,7 +161,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     Real mass  = 10.0;
 
     if (ParallelDescriptor::IOProcessor())
-       std::cout << "Total number of particles = " << num_particles << std::endl;
+        std::cout << "Total number of particles = " << num_particles << std::endl;
 
     // Here we do a set of two experiments.  
     // 1) Do a single-level solve on level 0 as if there is no level 1, then 
@@ -179,8 +176,8 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
 
     // Initialize "num_particles" number of particles, each with mass/charge "mass"
     bool serialize = false;
-    MyPC->InitRandom(num_particles,iseed,mass,serialize,fine_box);
-//  MyPC->InitRandom(num_particles,iseed,mass,serialize,left_corner);
+    MyParticleContainer::ParticleInitData pdata = {mass, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    MyPC->InitRandom(num_particles,iseed,pdata,serialize,fine_box);
 
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_before");
@@ -205,40 +202,32 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     int finest_level = nlevs-1;
 
     Vector<std::unique_ptr<MultiFab> > PartMF;
-    MyPC->AssignDensity(0, false, PartMF, base_level, 1, finest_level);
-    MyPC->AssignDensitySingleLevel(0, *PartMF[0],0,1,0); 
-
-    for (int lev = finest_level - 1 - base_level; lev >= 0; lev--)
-        amrex::average_down(*PartMF[lev+1],*PartMF[lev],0,1,rr[lev]);
-
-    for (int lev = 0; lev < nlevs; lev++)
-        MultiFab::Add(*rhs[base_level+lev], *PartMF[lev], 0, 0, 1, 0);
+    MyPC->AssignDensity(0, PartMF, base_level, 1, finest_level);
  
     // **************************************************************************
     // Define this to be solve at level 0 only
     // **************************************************************************
-
     base_level   = 0;
     finest_level = 0;
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())
-       std::cout << "Solving for phi at level 0 ... " << std::endl;
+        std::cout << "Solving for phi at level 0 ... " << std::endl;
     solve_for_accel(amrex::GetVecOfPtrs(rhs),
 		    amrex::GetVecOfPtrs(phi),
 		    amrex::GetVecOfPtrs(grad_phi),
 		    geom,base_level,finest_level,offset);
     if (ParallelDescriptor::IOProcessor())
-       std::cout << "Solved  for phi at level 0 ... " << std::endl;
-
+        std::cout << "Solved  for phi at level 0 ... " << std::endl;
+    
     // Fill the particle data with the acceleration at the particle location
     // Note that we are calling moveKick with accel_comp > BL_SPACEDIM
     //      which means with dt = 0 we don't move the particle or set a velocity
     MyPC->moveKick(*grad_phi[0],nlevs-1,dummy_dt,1.0,1.0,accel_comp);
-
+    
     // Write out the positions, masses and accelerations of each particle.
     MyPC->WriteAsciiFile("Particles_after_level0_solve");
-
+    
     if (nlevs > 1)
     {
 
@@ -287,7 +276,7 @@ two_level(int nlevs, int nx, int ny, int nz, int max_grid_size, int nppc, bool v
     MyPC->Redistribute();
 
     // Use the PIC approach to deposit the "mass" onto the grid
-    MyPC->AssignDensity(0, false, rhs, base_level,1,finest_level);
+    MyPC->AssignDensity(0, rhs, base_level,1,finest_level);
 
     // Use multigrid to solve Lap(phi) = rhs with periodic boundary conditions (set above)
     if (ParallelDescriptor::IOProcessor())

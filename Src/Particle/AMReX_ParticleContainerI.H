@@ -221,24 +221,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         if (!geom.isPeriodic(i)) continue;
 
         if (iv[i] > dmn.bigEnd(i))
-        {                        
-            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);            
-            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));            
+        {
+            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);
+            if (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] = geom.ProbLo(i); // clamp to avoid precision issues;
             shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i); 
+            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);
 
-            // This is necessary when the arithmetic (esp. single precision) is such that the particle 
-            //    starts only slightly outside the low boundary (eg slightly negative)
-            //    ends up exactly on the high boundary 
-            //    needs to get shifted back to the low boundary or it will be deemed out of bounds
-            if (p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i]  = geom.ProbLo(i);
+            // clamp to avoid precision issues
+            if ( p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i] = geom.ProbLo(i);
+            if ((p.m_rdata.pos[i] > geom.ProbHi(i))) 
+                p.m_rdata.pos[i] = geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
 
-            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
             shifted = true;
         }
+        AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
     }
 
     return shifted;
@@ -933,12 +932,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
     auto& plev  = m_particles[lev];
 
     // temporaries
-    Gpu::DeviceVector<amrex::IntVect> cells_tmp;
-    Gpu::DeviceVector<int> index_sequence_tmp;
+    Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
+    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
     ParticleVector aos_r;
     RealVector rdata_r;
     IntVector  idata_r;
-    Gpu::DeviceVector<int> grids_r;
+    Gpu::ManagedDeviceVector<int> grids_r;
 
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
@@ -1004,8 +1003,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
-		    Cuda::DeviceVector<int>& bin_start, 
-		    Cuda::DeviceVector<int>& bin_stop, 
+		    Gpu::ManagedDeviceVector<int>& bin_start, 
+		    Gpu::ManagedDeviceVector<int>& bin_stop, 
 		    const IntVect& bin_size)
 {
 #ifdef AMREX_USE_CUDA
@@ -1056,19 +1055,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ParticleVector aos_r;
     RealVector rdata_r;
     IntVector  idata_r;
-    Gpu::DeviceVector<int> grids_r;
+    Gpu::ManagedDeviceVector<int> grids_r;
 
-    Gpu::DeviceVector<int> lo;
-    Gpu::DeviceVector<int> hi;
-    Gpu::DeviceVector<int> output;
+    Gpu::ManagedDeviceVector<int> lo;
+    Gpu::ManagedDeviceVector<int> hi;
+    Gpu::ManagedDeviceVector<int> output;
 
-    Gpu::DeviceVector<int> grids_tmp;
-    Gpu::DeviceVector<int> index_sequence_tmp;
+    Gpu::ManagedDeviceVector<int> grids_tmp;
+    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
 
     ParticleVector aos_to_redistribute;
     std::array< RealVector, NArrayReal> real_arrays_to_redistribute;
     std::array< IntVector,  NArrayInt > int_arrays_to_redistribute;
-    Gpu::DeviceVector<int> grids_to_redistribute;
+    Gpu::ManagedDeviceVector<int> grids_to_redistribute;
 
     std::map<int, SendBuffer> not_ours;
 
@@ -1293,8 +1292,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (num_to_move > 0)
     {
-        Gpu::DeviceVector<int> grid_begin(num_grids+1);
-        Gpu::DeviceVector<int> grid_end(num_grids+1);        
+        Gpu::ManagedDeviceVector<int> grid_begin(num_grids+1);
+        Gpu::ManagedDeviceVector<int> grid_end(num_grids+1);        
 
         index_sequence_tmp.resize(num_to_move);
         thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
@@ -1363,7 +1362,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         for (int i = 0; i < num_grids; ++i)
         {
             const int dest_proc = dmap[i];
-            if (dest_proc != ParallelDescriptor::MyProc())
+            const size_t num_to_add = stop[i+1] - start[i+1];
+            if (dest_proc != ParallelDescriptor::MyProc() and num_to_add > 0)
             {
                 grid_counts[dest_proc] += 1;
             }
@@ -1379,6 +1379,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto pair_index = std::make_pair(i, tid);
             
             const size_t num_to_add = stop[i+1] - start[i+1];
+
+            if (num_to_add == 0) continue;
 
             const int dest_proc = dmap[i];
             if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
