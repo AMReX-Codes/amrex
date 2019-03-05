@@ -183,7 +183,7 @@ sortParticlesByNeighborDest()
         auto& aos   = src_tile.GetArrayOfStructs();
         const size_t np = aos.numParticles();
 
-        Gpu::DeviceVector<int> neighbor_codes(np);
+        Gpu::ManagedDeviceVector<int> neighbor_codes(np);
         int* pcodes = neighbor_codes.dataPtr();
 
         BaseFab<int>* mask_ptr = m_neighbor_mask_ptr->fabPtr(mfi);
@@ -210,8 +210,8 @@ sortParticlesByNeighborDest()
                             aos().begin());
 
         int num_codes = m_grid_map[gid].size();
-        Gpu::DeviceVector<int> neighbor_code_begin(num_codes + 1);
-        Gpu::DeviceVector<int> neighbor_code_end  (num_codes + 1);
+        Gpu::ManagedDeviceVector<int> neighbor_code_begin(num_codes + 1);
+        Gpu::ManagedDeviceVector<int> neighbor_code_end  (num_codes + 1);
         
         thrust::counting_iterator<int> search_begin(-1);
         thrust::lower_bound(thrust::device,
