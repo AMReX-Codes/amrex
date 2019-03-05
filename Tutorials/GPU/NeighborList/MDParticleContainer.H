@@ -48,13 +48,15 @@ public:
     void clearNeighbors ();
 
     void writeParticles (const int n);
-
+    
 private:
-
+    
     void fillNeighborsMPIGPU(std::map<int, SendBuffer>& not_ours);
- 
+    
     void buildNeighborMask ();
-
+    
+    static constexpr int m_ncells = 1;
+    
     // These are used to keep track of which particles need to be ghosted to which grids
     bool m_neighbor_mask_initialized = false;
     std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
