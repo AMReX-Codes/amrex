@@ -15,8 +15,10 @@ target_sources( ${EXENAME}
    ${SRC_DIR}/Constants.H
    ${SRC_DIR}/MDParticleContainer.H
    ${SRC_DIR}/MDParticleContainer.cpp
-   ${SRC_DIR}/md_K.H
+   ${SRC_DIR}/CheckPair.H
    ${SRC_DIR}/main.cpp)
+
+target_include_directories(${EXENAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR} )
 
 set_source_files_properties(${SRC_DIR}/main.cpp ${SRC_DIR}/MDParticleContainer.cpp PROPERTIES LANGUAGE CUDA)
 
