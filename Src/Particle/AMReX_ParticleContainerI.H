@@ -932,12 +932,12 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
     auto& plev  = m_particles[lev];
 
     // temporaries
-    Gpu::DeviceVector<amrex::IntVect> cells_tmp;
-    Gpu::DeviceVector<int> index_sequence_tmp;
+    Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
+    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
     ParticleVector aos_r;
     RealVector rdata_r;
     IntVector  idata_r;
-    Gpu::DeviceVector<int> grids_r;
+    Gpu::ManagedDeviceVector<int> grids_r;
 
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
@@ -1055,19 +1055,19 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     ParticleVector aos_r;
     RealVector rdata_r;
     IntVector  idata_r;
-    Gpu::DeviceVector<int> grids_r;
+    Gpu::ManagedDeviceVector<int> grids_r;
 
-    Gpu::DeviceVector<int> lo;
-    Gpu::DeviceVector<int> hi;
-    Gpu::DeviceVector<int> output;
+    Gpu::ManagedDeviceVector<int> lo;
+    Gpu::ManagedDeviceVector<int> hi;
+    Gpu::ManagedDeviceVector<int> output;
 
-    Gpu::DeviceVector<int> grids_tmp;
-    Gpu::DeviceVector<int> index_sequence_tmp;
+    Gpu::ManagedDeviceVector<int> grids_tmp;
+    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
 
     ParticleVector aos_to_redistribute;
     std::array< RealVector, NArrayReal> real_arrays_to_redistribute;
     std::array< IntVector,  NArrayInt > int_arrays_to_redistribute;
-    Gpu::DeviceVector<int> grids_to_redistribute;
+    Gpu::ManagedDeviceVector<int> grids_to_redistribute;
 
     std::map<int, SendBuffer> not_ours;
 
@@ -1292,8 +1292,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     if (num_to_move > 0)
     {
-        Gpu::DeviceVector<int> grid_begin(num_grids+1);
-        Gpu::DeviceVector<int> grid_end(num_grids+1);        
+        Gpu::ManagedDeviceVector<int> grid_begin(num_grids+1);
+        Gpu::ManagedDeviceVector<int> grid_end(num_grids+1);        
 
         index_sequence_tmp.resize(num_to_move);
         thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
