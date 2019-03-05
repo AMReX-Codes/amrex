@@ -1003,8 +1003,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
-		    Cuda::DeviceVector<int>& bin_start, 
-		    Cuda::DeviceVector<int>& bin_stop, 
+		    Gpu::ManagedDeviceVector<int>& bin_start, 
+		    Gpu::ManagedDeviceVector<int>& bin_stop, 
 		    const IntVect& bin_size)
 {
 #ifdef AMREX_USE_CUDA
