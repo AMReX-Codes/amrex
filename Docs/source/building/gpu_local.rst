@@ -39,4 +39,5 @@ Finally, WarpX can be compiled with
 
   ::
 
+    spack load mvapich2%pgi
     make -j 4 USE_GPU=TRUE COMP=pgi
