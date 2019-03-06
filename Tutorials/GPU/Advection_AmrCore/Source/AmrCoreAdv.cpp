@@ -275,8 +275,8 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         GeometryData geomData = geom[lev].data();
         const Box& box = mfi.validbox();
 
-        amrex::launch(box, tbx,
-        [=] AMREX_GPU_DEVICE ()
+        amrex::launch(box,
+        [=] AMREX_GPU_DEVICE (Box const& tbx)
         {
             initdata(tbx, fab, geomData);
         });
@@ -649,10 +649,9 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          const Box& ngbxy = amrex::grow(mfi.nodaltilebox(1),1);,
                          const Box& ngbxz = amrex::grow(mfi.nodaltilebox(2),1););
 
-            GpuArray<Array4<Real>, AMREX_SPACEDIM> vel;
-            AMREX_D_TERM(vel[0] = facevel[0].array(mfi);,
-                         vel[1] = facevel[1].array(mfi);,
-                         vel[2] = facevel[2].array(mfi););
+            GpuArray<Array4<Real>, AMREX_SPACEDIM> vel{ AMREX_D_DECL( facevel[0].array(mfi),
+                                                                      facevel[1].array(mfi),
+                                                                      facevel[2].array(mfi)) };
 
             const Box& psibox = Box(IntVect(AMREX_D_DECL(std::min(ngbxx.smallEnd(0)-1, ngbxy.smallEnd(0)-1),
                                                          std::min(ngbxx.smallEnd(1)-1, ngbxy.smallEnd(0)-1),
@@ -668,7 +667,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             AMREX_LAUNCH_DEVICE_LAMBDA(psibox, tbx,
             {
                 get_face_velocity_psi(tbx, ctr_time,
-                                      psifab,
+                                      psi,
                                       geomdata); 
             });
 
@@ -705,10 +704,9 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             Array4<Real> statein  = Sborder.array(mfi);
             Array4<Real> stateout = S_new.array(mfi);
 
-            GpuArray<Array4<Real>, AMREX_SPACEDIM> flux;
-            AMREX_D_TERM(flux[0] = fluxcalc[0].array(mfi);,
-                         flux[1] = fluxcalc[1].array(mfi);,
-                         flux[2] = fluxcalc[2].array(mfi););
+            GpuArray<Array4<Real>, AMREX_SPACEDIM> flux{ AMREX_D_DECL(fluxcalc[0].array(mfi),
+                                                                      fluxcalc[1].array(mfi),
+                                                                      fluxcalc[2].array(mfi)) };
 
             AMREX_D_TERM(const Box& dqbxx = amrex::grow(bx, IntVect{2, 1, 1});,
                          const Box& dqbxy = amrex::grow(bx, IntVect{1, 2, 1});,
@@ -762,7 +760,7 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
 
             // z -------------------------
             AsyncFab phizfab (gbx, 1);
-            FArrayBox* phiz = phizfab.array();
+            Array4<Real> phiz = phizfab.array();
 
             AMREX_LAUNCH_DEVICE_LAMBDA(dqbxz, tbx,
             {
@@ -836,8 +834,8 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
             // zx & zy --------------------
             AsyncFab phiz_xfab (gbx, 1);
             AsyncFab phiz_yfab (gbx, 1);
-            Array4<Real> phiz_x = phiz_xfab.fabPtr();
-            Array4<Real> phiz_y = phiz_yfab.fabPtr();
+            Array4<Real> phiz_x = phiz_xfab.array();
+            Array4<Real> phiz_y = phiz_yfab.array();
 
             AMREX_LAUNCH_DEVICE_LAMBDA(amrex::growHi(gbxy, 2, 1), tbx,
             {
@@ -922,16 +920,18 @@ AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle)
                          });
                         );
 
-            GpuArray<FArrayBox*, AMREX_SPACEDIM> fluxout;
-            AMREX_D_TERM(fluxout[0] = fluxes[0].array(mfi);,
-                         fluxout[1] = fluxes[1].array(mfi);,
-                         fluxout[2] = fluxes[2].array(mfi););
-           
+            GpuArray<FArrayBox*, AMREX_SPACEDIM> fluxout{ AMREX_D_DECL(fluxes[0].fabPtr(mfi),
+                                                                       fluxes[1].fabPtr(mfi),
+                                                                       fluxes[2].fabPtr(mfi)) };
+            GpuArray<FArrayBox*, AMREX_SPACEDIM> fluxes{ AMREX_D_DECL(fluxcalc[0].fabPtr(mfi),
+                                                                      fluxcalc[1].fabPtr(mfi),
+                                                                      fluxcalc[2].fabPtr(mfi)) };
+          
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM; i++) {
                     AMREX_LAUNCH_DEVICE_LAMBDA(nbx[i], tbx,
                     {
-                        fluxout[i] = copy(fluxcalc[0].fabPtr(), tbx);
+                        fluxout[i]->copy(*fluxes[i], tbx);
                     });
                 }
             }
@@ -1042,11 +1042,9 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                          const Box& nbxy = mfi.nodaltilebox(1);,
                          const Box& nbxz = mfi.nodaltilebox(2););
 
-            GpuArray<Array4<Real>, AMREX_SPACEDIM> vel;
-            AMREX_D_TERM(velface[0] = facevel[0].array(mfi);,
-                         velface[1] = facevel[1].array(mfi);,
-                         velface[2] = facevel[2].array(mfi););
-
+            GpuArray<Array4<Real>, AMREX_SPACEDIM> vel { AMREX_D_DECL(facevel[0].array(mfi),
+                                                                      facevel[1].array(mfi),
+                                                                      facevel[2].array(mfi)) };
 /*
             // Setup for size of psi FArrayBox in Fortran, for reference.
             plo(1) = min(vx_l1-1, vy_l1-1)
@@ -1066,8 +1064,8 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
 
-            amrex::launch(psibox, tbx,
-            [=] AMREX_GPU_DEVICE ()
+            amrex::launch(psibox, 
+            [=] AMREX_GPU_DEVICE (Box const& tbx)
             {
                 get_face_velocity_psi(tbx, cur_time,
                                       psi,
@@ -1075,24 +1073,24 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
             });
 
             AMREX_D_TERM(
-                         amrex::launch(nbxx, tbx,
-                         [=] AMREX_GPU_DEVICE ()
+                         amrex::launch(nbxx,
+                         [=] AMREX_GPU_DEVICE (Box const& tbx)
                          {
                              get_face_velocity_x(tbx,
                                                  vel[0], psi,
                                                  geomdata); 
                          });,
 
-                         amrex::launch(nbxy, tbx,
-                         [=] AMREX_GPU_DEVICE ()
+                         amrex::launch(nbxy,
+                         [=] AMREX_GPU_DEVICE (Box const& tbx)
                          {
                              get_face_velocity_y(tbx,
                                                  vel[1], psi,
                                                  geomdata);
                          });,
 
-                         amrex::launch(nbxz, tbx,
-                         [=] AMREX_GPU_DEVICE ()
+                         amrex::launch(nbxz,
+                         [=] AMREX_GPU_DEVICE (Box const& tbx)
                          {
                              get_face_velocity_z(tbx,
                                                  vel[2], psi,
@@ -1100,7 +1098,7 @@ AmrCoreAdv::EstTimeStep (int lev, bool local) const
                          });
                         );
 
-            psi.clear();
+            psifab.clear();
 	}
     }
 

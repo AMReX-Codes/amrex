@@ -24,8 +24,8 @@ void flux_x(Box const& bx,
         for     (int j = lo.y; j < hi.y; ++j) {
             for (int i = lo.x; i < hi.x; ++i) {
                 px(i,j,k) = ( (vx(i,j,k) < 0) ? 
-                               phi(i  ,j,k) - del(i  ,j,k)*(0.5 + 0.5*dtdx[0]*vx(i,j,k)) : 
-                               phi(i-1,j,k) + del(i-1,j,k)*(0.5 - 0.5*dtdx[0]*vx(i,j,k)) );
+                               phi(i  ,j,k) - slope(i  ,j,k)*(0.5 + 0.5*dtdx[0]*vx(i,j,k)) : 
+                               phi(i-1,j,k) + slope(i-1,j,k)*(0.5 - 0.5*dtdx[0]*vx(i,j,k)) );
             }
         }
     }
@@ -47,8 +47,8 @@ void flux_y(Box const& bx,
         for     (int j = lo.y; j < hi.y; ++j) {
             for (int i = lo.x; i < hi.x; ++i) {
                 py(i,j,k) = ( (vy(i,j,k) < 0) ? 
-                               phi(i,j  ,k) - del(i,j  ,k)*(0.5 + 0.5*dtdx[0]*vy(i,j,k)) : 
-                               phi(i,j-1,k) + del(i,j-1,k)*(0.5 - 0.5*dtdx[0]*vy(i,j,k)) );
+                               phi(i,j  ,k) - slope(i,j  ,k)*(0.5 + 0.5*dtdx[0]*vy(i,j,k)) : 
+                               phi(i,j-1,k) + slope(i,j-1,k)*(0.5 - 0.5*dtdx[0]*vy(i,j,k)) );
             }
         }
     }
@@ -70,8 +70,8 @@ void flux_z(Box const& bx,
         for     (int j = lo.y; j < hi.y; ++j) {
             for (int i = lo.x; i < hi.x; ++i) {
                 pz(i,j,k) = ( (vz(i,j,k) < 0) ? 
-                               phi(i,j,k  ) - del(i,j,k  )*(0.5 + 0.5*dtdx[0]*vz(i,j,k)) : 
-                               phi(i,j,k-1) + del(i,j,k-1)*(0.5 - 0.5*dtdx[0]*vz(i,j,k)) );
+                               phi(i,j,k  ) - slope(i,j,k  )*(0.5 + 0.5*dtdx[0]*vz(i,j,k)) : 
+                               phi(i,j,k-1) + slope(i,j,k-1)*(0.5 - 0.5*dtdx[0]*vz(i,j,k)) );
             }
         }
     }
@@ -277,7 +277,7 @@ void combine_flux_y(Box const& bx,
                     Array4<Real> const& py,
                     Array4<Real> const& pxz,
                     Array4<Real> const& pzx,
-                    Array4<Real> const& fx,
+                    Array4<Real> const& fy,
                     const GpuArray<Real, AMREX_SPACEDIM>& dtdx)
 {
     const auto lo = lbound(bx);
@@ -328,3 +328,4 @@ void combine_flux_z(Box const& bx,
     }
 }
 
+#endif

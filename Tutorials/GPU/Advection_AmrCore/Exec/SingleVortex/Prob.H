@@ -42,3 +42,4 @@ initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
     }
 }
 
+#endif
