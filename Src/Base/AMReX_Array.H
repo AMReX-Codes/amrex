@@ -37,7 +37,7 @@ namespace amrex {
 
         template <class = typename std::enable_if<std::is_const<T>::value> >
         AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (Array4<typename std::remove_const<T>::type> const& rhs)
+        constexpr Array4 (Array4<typename std::remove_const<T>::type> const& rhs) noexcept
             : p(rhs.p),
               jstride(rhs.jstride),
               kstride(rhs.kstride),
@@ -47,7 +47,7 @@ namespace amrex {
             {}
 
         AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (Array4<T> const& rhs)
+        constexpr Array4 (Array4<T> const& rhs) noexcept
             : p(rhs.p),
               jstride(rhs.jstride),
               kstride(rhs.kstride),
@@ -57,7 +57,7 @@ namespace amrex {
             {}
 
         AMREX_GPU_HOST_DEVICE
-        constexpr Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end)
+        constexpr Array4 (T* a_p, Dim3 const& a_begin, Dim3 const& a_end) noexcept
             : p(a_p),
               jstride(a_end.x-a_begin.x),
               kstride(jstride*(a_end.y-a_begin.y)),
@@ -67,7 +67,7 @@ namespace amrex {
             {}
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i, int j, int k) const {
+        T& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(i,j,k);
 #endif
@@ -75,7 +75,7 @@ namespace amrex {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i, int j, int k, int n) const {
+        T& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(i,j,k);
 #endif
@@ -83,7 +83,7 @@ namespace amrex {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* ptr (int i, int j, int k) const {
+        T* ptr (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(i,j,k);
 #endif

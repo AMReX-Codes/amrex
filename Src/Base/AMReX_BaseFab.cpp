@@ -64,7 +64,7 @@ BaseFab_Finalize()
 
 
 long 
-TotalBytesAllocatedInFabs()
+TotalBytesAllocatedInFabs () noexcept
 {
 #ifdef _OPENMP
     long r=0;
@@ -79,7 +79,7 @@ TotalBytesAllocatedInFabs()
 }
 
 long 
-TotalBytesAllocatedInFabsHWM()
+TotalBytesAllocatedInFabsHWM () noexcept
 {
 #ifdef _OPENMP
     long r=0;
@@ -94,7 +94,7 @@ TotalBytesAllocatedInFabsHWM()
 }
 
 long 
-TotalCellsAllocatedInFabs()
+TotalCellsAllocatedInFabs () noexcept
 {
 #ifdef _OPENMP
     long r=0;
@@ -109,7 +109,7 @@ TotalCellsAllocatedInFabs()
 }
 
 long 
-TotalCellsAllocatedInFabsHWM()
+TotalCellsAllocatedInFabsHWM () noexcept
 {
 #ifdef _OPENMP
     long r=0;
@@ -124,7 +124,7 @@ TotalCellsAllocatedInFabsHWM()
 }
 
 void 
-ResetTotalBytesAllocatedInFabsHWM()
+ResetTotalBytesAllocatedInFabsHWM () noexcept
 {
 #ifdef _OPENMP
 #pragma omp parallel
@@ -135,7 +135,7 @@ ResetTotalBytesAllocatedInFabsHWM()
 }
 
 void
-update_fab_stats (long n, long s, size_t szt)
+update_fab_stats (long n, long s, size_t szt) noexcept
 {
     long tst = s*szt;
     amrex::private_total_bytes_allocated_in_fabs += tst;
