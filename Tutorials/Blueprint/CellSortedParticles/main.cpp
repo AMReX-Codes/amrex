@@ -104,7 +104,7 @@ void test_cell_sorted(const TestParams& parms)
     ///////////////////////////////////////////////////////////////////
     Node scenes;
     scenes["s1/plots/p1/type"]  = "pseudocolor";
-    scenes["s1/plots/p1/params/field"] = "vx";
+    scenes["s1/plots/p1/field"] = "vx";
 
     Node actions;
     Node &add_plots = actions.append();

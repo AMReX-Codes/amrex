@@ -174,7 +174,7 @@ void test_assign_density(TestParams& parms)
     // add a scene with a pseudocolor plot
     Node scenes;
     scenes["s1/plots/p1/type"] = "pseudocolor";
-    scenes["s1/plots/p1/params/field"] = "density";
+    scenes["s1/plots/p1/field"] = "density";
     // Set the output file name (ascent will add ".png")
     scenes["s1/image_prefix"] = "ascent_render_mesh_";
 
@@ -196,7 +196,7 @@ void test_assign_density(TestParams& parms)
     // add a scene with a pseudocolor plot
     scenes.reset();
     scenes["s1/plots/p1/type"] = "pseudocolor";
-    scenes["s1/plots/p1/params/field"] = "mass";
+    scenes["s1/plots/p1/field"] = "mass";
     // Set the output file name (ascent will add ".png")
     scenes["s1/image_prefix"] = "ascent_render_particle_";
 
