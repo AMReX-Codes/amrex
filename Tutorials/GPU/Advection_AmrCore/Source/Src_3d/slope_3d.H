@@ -42,7 +42,7 @@ void slopex4(Box const& bx,
              Array4<Real> const& dq4)
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubount(bx);
+    const auto hi = amrex::ubound(bx);
 
     for         (int k = lo.z; k < hi.z; ++k) {
         for     (int j = lo.y; j < hi.y; ++j) {
@@ -70,7 +70,7 @@ void slopey2(Box const& bx,
              Array4<Real> const& dq)
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubount(bx);
+    const auto hi = amrex::ubound(bx);
 
     for         (int k = lo.z; k < hi.z; ++k) {
         for     (int j = lo.y; j < hi.y; ++j) {
@@ -96,7 +96,7 @@ void slopey4(Box const& bx,
              Array4<Real> const& dq4)
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubount(bx);
+    const auto hi = amrex::ubound(bx);
 
     for         (int k = lo.z; k < hi.z; ++k) {
         for     (int j = lo.y; j < hi.y; ++j) {
@@ -120,11 +120,11 @@ void slopey4(Box const& bx,
 AMREX_GPU_DEVICE
 AMREX_INLINE
 void slopez2(Box const& bx,
-             Array4<Real> const& &q,
+             Array4<Real> const&  q,
              Array4<Real> const& dq)
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubount(bx);
+    const auto hi = amrex::ubound(bx);
 
     for         (int k = lo.z; k < hi.z; ++k) {
         for     (int j = lo.y; j < hi.y; ++j) {
@@ -150,7 +150,7 @@ void slopez4(Box const& bx,
              Array4<Real> const& dq4)
 {
     const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubount(bx);
+    const auto hi = amrex::ubound(bx);
 
     for         (int k = lo.z; k < hi.z; ++k) {
         for     (int j = lo.y; j < hi.y; ++j) {
