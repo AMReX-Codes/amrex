@@ -1,3 +1,4 @@
 
-CEXE_sources += cns_hydro.cpp
+CEXE_headers += CNS_hydro_K.H
+
 

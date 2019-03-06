@@ -181,7 +181,11 @@ Device::Initialize ()
 #endif
 
     if (amrex::Verbose()) {
+#ifdef AMREX_USE_MPI
         amrex::Print() << "CUDA initialized with 1 GPU per MPI rank\n";
+#else
+        amrex::Print() << "CUDA initialized with 1 GPU\n";
+#endif
     }
 
     cudaProfilerStart();
@@ -475,6 +479,18 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads)
 }
 
 #endif
+
+std::size_t
+Device::freeMemAvailable ()
+{
+#ifdef AMREX_USE_CUDA
+    std::size_t f, t;
+    AMREX_GPU_SAFE_CALL(cudaMemGetInfo(&f,&t));
+    return f;
+#else
+    return 0;
+#endif
+}
 
 }}
 

@@ -1,6 +1,5 @@
 
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_MultiFabUtil_F.H>
 #include <AMReX_MultiFabUtil_C.H>
 #include <sstream>
 #include <iostream>
@@ -57,54 +56,23 @@ namespace {
 
 namespace amrex
 {
-    void average_node_to_cellcenter (MultiFab& cc, int dcomp, const MultiFab& nd, int scomp, int ncomp)
-    {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-            const Box& bx = mfi.tilebox();
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
-        }
-    }
-
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            amrex_fort_avg_nd_to_cc(bx.loVect(), bx.hiVect(), &ncomp,
-                                    BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                                    BL_TO_FORTRAN_N(nd[mfi],scomp));
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = cc.fabPtr(mfi);
+            FArrayBox const* ndfab = nd.fabPtr(mfi);
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_nd_to_cc(tbx, *ccfab, *ndfab, dcomp, scomp, ncomp);
+            });
         }
-    }
-
-    void average_edge_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& edge)
-    {
-	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
-	AMREX_ASSERT(edge[0]->nComp() == 1);
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
-
-	    BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
-			BL_TO_FORTRAN((*edge[1])[mfi]),
-			BL_TO_FORTRAN((*edge[2])[mfi])));
-	}
     }
 
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
@@ -114,25 +82,21 @@ namespace amrex
         AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
         AMREX_ASSERT(edge[0]->nComp() == 1);
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            BL_FORT_PROC_CALL(BL_AVG_EG_TO_CC,bl_avg_eg_to_cc)
-                (bx.loVect(), bx.hiVect(),
-                BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                AMREX_D_DECL(BL_TO_FORTRAN((*edge[0])[mfi]),
-                BL_TO_FORTRAN((*edge[1])[mfi]),
-                BL_TO_FORTRAN((*edge[2])[mfi])));
-        }
-    }
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* exfab = edge[0]->fabPtr(mfi);,
+                         FArrayBox const* eyfab = edge[1]->fabPtr(mfi);,
+                         FArrayBox const* ezfab = edge[2]->fabPtr(mfi););
 
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp, const Vector<const MultiFab*>& fc)
-    {
-        average_face_to_cellcenter(cc, dcomp,
-                                   Array<MultiFab const*,AMREX_SPACEDIM>
-                                                  {AMREX_D_DECL(fc[0],fc[1],fc[2])});
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avg_eg_to_cc(tbx, *ccfab, AMREX_D_DECL(*exfab,*eyfab,*ezfab), dcomp);
+            });
+        }
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
@@ -153,55 +117,30 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc)
-    {
-	AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
-	AMREX_ASSERT(fc[0]->nComp() == 1);
-
-	Real dx[3] = {1.0,1.0,1.0};
-	Real problo[3] = {0.,0.,0.};
-	int coord_type = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
-
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN_N(cc[mfi],dcomp),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
-    }
-
-    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
+                                     const Array<const MultiFab*,AMREX_SPACEDIM>& fc, int ngrow)
     {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(fc[0]->nComp() == 1);
 
-        Real dx[3] = {1.0,1.0,1.0};
-        Real problo[3] = {0.,0.,0.};
-        int coord_type = 0;
-
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            Box bx = mfi.growntilebox(ngrow);
-            BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-                (bx.loVect(), bx.hiVect(),
-                BL_TO_FORTRAN_N(cc[mfi],dcomp),
-                AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-                BL_TO_FORTRAN((*fc[1])[mfi]),
-                BL_TO_FORTRAN((*fc[2])[mfi])),
-                dx, problo, coord_type);
+            const Box bx = mfi.growntilebox(ngrow);
+            FArrayBox* ccfab = cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* fxfab = fc[0]->fabPtr(mfi);,
+                         FArrayBox const* fyfab = fc[1]->fabPtr(mfi);,
+                         FArrayBox const* fzfab = fc[2]->fabPtr(mfi););
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+#if (AMREX_SPACEDIM == 1)
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp, GeometryData());
+#else
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), dcomp);
+#endif
+            });
         }
     }
 
@@ -212,25 +151,28 @@ namespace amrex
 	AMREX_ASSERT(cc.nComp() >= AMREX_SPACEDIM);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+        const GeometryData gd = geom.data();
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
-	{
-	    const Box& bx = mfi.tilebox();
+        for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box bx = mfi.tilebox();
+            FArrayBox* ccfab = cc.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* fxfab = fc[0]->fabPtr(mfi);,
+                         FArrayBox const* fyfab = fc[1]->fabPtr(mfi);,
+                         FArrayBox const* fzfab = fc[2]->fabPtr(mfi););
 
-	    BL_FORT_PROC_CALL(BL_AVG_FC_TO_CC,bl_avg_fc_to_cc)
-		(bx.loVect(), bx.hiVect(),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 dx, problo, coord_type);
-	}
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+#if (AMREX_SPACEDIM == 1)
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0, gd);
+#else
+                amrex_avg_fc_to_cc(tbx, *ccfab, AMREX_D_DECL(*fxfab,*fyfab,*fzfab), 0);
+#endif
+            });
+        }
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
@@ -248,36 +190,35 @@ namespace amrex
 	AMREX_ASSERT(cc.nGrow() >= 1);
 	AMREX_ASSERT(fc[0]->nComp() == 1); // We only expect fc to have the gradient perpendicular to the face
 
-	const Real* dx     = geom.CellSize();
-	const Real* problo = geom.ProbLo();
-	int coord_type = Geometry::Coord();
+#if (AMREX_SPACEDIM == 1)
+        const GeometryData& gd = geom.data();
+#endif
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	for (MFIter mfi(cc,true); mfi.isValid(); ++mfi)
+	for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
-	    const Box& xbx = mfi.nodaltilebox(0);
-#if (AMREX_SPACEDIM > 1)
-	    const Box& ybx = mfi.nodaltilebox(1);
-#endif
-#if (AMREX_SPACEDIM == 3)
-	    const Box& zbx = mfi.nodaltilebox(2);
-#endif
+            AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
+                         const Box& ybx = mfi.nodaltilebox(1);,
+                         const Box& zbx = mfi.nodaltilebox(2););
+            const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
-	    BL_FORT_PROC_CALL(BL_AVG_CC_TO_FC,bl_avg_cc_to_fc)
-		(xbx.loVect(), xbx.hiVect(),
-#if (AMREX_SPACEDIM > 1)
-		 ybx.loVect(), ybx.hiVect(),
+            AMREX_D_TERM(FArrayBox* fxfab = fc[0]->fabPtr(mfi);,
+                         FArrayBox* fyfab = fc[1]->fabPtr(mfi);,
+                         FArrayBox* fzfab = fc[2]->fabPtr(mfi););
+            FArrayBox const* ccfab = cc.fabPtr(mfi);
+            
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (index_bounds, tbx,
+            {
+#if (AMREX_SPACEDIM == 1)
+                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab, gd);
+#else
+                amrex_avg_cc_to_fc(tbx, AMREX_D_DECL(xbx,ybx,zbx),
+                                   AMREX_D_DECL(*fxfab,*fyfab,*fzfab), *ccfab);
 #endif
-#if (AMREX_SPACEDIM == 3)
-		 zbx.loVect(), zbx.hiVect(),
-#endif
-		 AMREX_D_DECL(BL_TO_FORTRAN((*fc[0])[mfi]),
-			BL_TO_FORTRAN((*fc[1])[mfi]),
-			BL_TO_FORTRAN((*fc[2])[mfi])),
-		 BL_TO_FORTRAN(cc[mfi]),
-		 dx, problo, coord_type);
+            });
 	}
     }
 
@@ -297,6 +238,7 @@ namespace amrex
 		       const Geometry& fgeom, const Geometry& cgeom,
                        int scomp, int ncomp, const IntVect& ratio)
     {
+        BL_PROFILE("amrex::average_down_w_geom");
 
         if (S_fine.is_nodal() || S_crse.is_nodal())
         {
@@ -324,22 +266,21 @@ namespace amrex
 	fgeom.GetVolume(fvolume, fine_BA, fine_dm, 0);
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
-            const Box& tbx = mfi.tilebox();
+            const Box& bx = mfi.tilebox();
+            FArrayBox* crsefab = crse_S_fine.fabPtr(mfi);
+            FArrayBox const* finefab = S_fine.fabPtr(mfi);
+            FArrayBox const* finevolfab = fvolume.fabPtr(mfi);
 
-            //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
-            //        because the crse fab is a temporary which was made starting at comp 0, it is
-            //        not part of the actual crse multifab which came in.
-            BL_FORT_PROC_CALL(BL_AVGDOWN_WITH_VOL,bl_avgdown_with_vol)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                 BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                 BL_TO_FORTRAN(fvolume[mfi]),
-                 ratio.getVect(),&ncomp);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avgdown_with_vol(tbx,*crsefab,*finefab,*finevolfab,
+                                       0,scomp,ncomp,ratio);
+            });
 	}
 
         S_crse.copy(crse_S_fine,0,scomp,ncomp);
@@ -375,18 +316,19 @@ namespace amrex
         MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, nGrow, MFInfo(), FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse_S_fine, true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_S_fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             //  NOTE: The tilebox is defined at the coarse level.
-            const Box& tbx = mfi.growntilebox(nGrow);
+            const Box& bx = mfi.growntilebox(nGrow);
+            FArrayBox* crsefab = crse_S_fine.fabPtr(mfi);
+            FArrayBox const* finefab = S_fine.fabPtr(mfi);
 
-            BL_FORT_PROC_CALL(BL_AVGDOWN, bl_avgdown)
-                (tbx.loVect(), tbx.hiVect(),
-                 BL_TO_FORTRAN_N(S_fine[mfi] , scomp),
-                 BL_TO_FORTRAN_N(crse_S_fine[mfi], 0),
-                 ratio.getVect(),&ncomp);
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+            {
+                amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+            });
         }
 
         S_crse.copy(crse_S_fine, 0, scomp, ncomp, nGrow, 0,
@@ -396,6 +338,7 @@ namespace amrex
     void average_down (const MultiFab& S_fine, MultiFab& S_crse,
                        int scomp, int ncomp, const IntVect& ratio)
     {
+        BL_PROFILE("amrex::average_down");
         AMREX_ASSERT(S_crse.nComp() == S_fine.nComp());
         AMREX_ASSERT((S_crse.is_cell_centered() && S_fine.is_cell_centered()) ||
                      (S_crse.is_nodal()         && S_fine.is_nodal()));
@@ -410,25 +353,25 @@ namespace amrex
         if (crse_S_fine_BA == S_crse.boxArray() and S_fine.DistributionMap() == S_crse.DistributionMap())
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(S_crse,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(S_crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 //  NOTE: The tilebox is defined at the coarse level.
-                const Box& tbx = mfi.tilebox();
+                const Box& bx = mfi.tilebox();
+                FArrayBox* crsefab = S_crse.fabPtr(mfi);
+                FArrayBox const* finefab = S_fine.fabPtr(mfi);
 
                 if (is_cell_centered) {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(S_crse[mfi],scomp),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown(tbx,*crsefab,*finefab,scomp,scomp,ncomp,ratio);
+                    });
                 } else {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
-                        (tbx.loVect(),tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(S_crse[mfi],scomp),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown_nodes(tbx,*crsefab,*finefab,scomp,scomp,ncomp,ratio);
+                    });
                 }
             }
         }
@@ -437,29 +380,29 @@ namespace amrex
             MultiFab crse_S_fine(crse_S_fine_BA, S_fine.DistributionMap(), ncomp, 0, MFInfo(), FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (MFIter mfi(crse_S_fine,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse_S_fine,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
                 //  NOTE: The tilebox is defined at the coarse level.
-                const Box& tbx = mfi.tilebox();
+                const Box& bx = mfi.tilebox();
+                FArrayBox* crsefab = crse_S_fine.fabPtr(mfi);
+                FArrayBox const* finefab = S_fine.fabPtr(mfi);
 
                 //  NOTE: We copy from component scomp of the fine fab into component 0 of the crse fab
                 //        because the crse fab is a temporary which was made starting at comp 0, it is
                 //        not part of the actual crse multifab which came in.
 
                 if (is_cell_centered) {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN,bl_avgdown)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                    });
                 } else {
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
-                        (tbx.loVect(), tbx.hiVect(),
-                         BL_TO_FORTRAN_N(S_fine[mfi],scomp),
-                         BL_TO_FORTRAN_N(crse_S_fine[mfi],0),
-                         ratio.getVect(),&ncomp);
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        amrex_avgdown_nodes(tbx,*crsefab,*finefab,0,scomp,ncomp,ratio);
+                    });
                 }
             }
 
@@ -498,42 +441,51 @@ namespace amrex
                              const Array<MultiFab*,AMREX_SPACEDIM>& crse,
 			     const IntVect& ratio, int ngcrse)
     {
-	AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            average_down_faces(*fine[idim], *crse[idim], ratio, ngcrse);
+        }
+    }
 
-	int ncomp = crse[0]->nComp();
-
-        if (isMFIterSafe(*fine[0], *crse[0]))
+    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, int ngcrse)
+    {
+	AMREX_ASSERT(crse.nComp() == fine.nComp());
+        AMREX_ASSERT(fine.ixType() == crse.ixType());
+        const auto type = fine.ixType();
+        int dir;
+        for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+            if (type.nodeCentered(dir)) break;
+        }
+        auto tmptype = type;
+        tmptype.unset(dir);
+        if (dir >= AMREX_SPACEDIM or !tmptype.cellCentered()) {
+            amrex::Abort("average_down_faces: not face index type");
+        }
+        const int ncomp = crse.nComp();
+        if (isMFIterSafe(fine, crse))
         {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-            for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
-                {
-                    const Box& tbx = mfi.growntilebox(ngcrse);
+            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.growntilebox(ngcrse);
+                FArrayBox* crsefab = crse.fabPtr(mfi);
+                FArrayBox const* finefab = fine.fabPtr(mfi);
 
-                    BL_FORT_PROC_CALL(BL_AVGDOWN_FACES,bl_avgdown_faces)
-                        (tbx.loVect(),tbx.hiVect(),
-                         BL_TO_FORTRAN((*fine[n])[mfi]),
-                         BL_TO_FORTRAN((*crse[n])[mfi]),
-                         ratio.getVect(),n,ncomp);
-                }
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown_faces(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, dir);
+                });
             }
         }
         else
         {
-            std::array<MultiFab,AMREX_SPACEDIM> ctmp;
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                BoxArray cba = fine[idim]->boxArray();
-                cba.coarsen(ratio);
-                ctmp[idim].define(cba, fine[idim]->DistributionMap(), ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
-            }
-            average_down_faces(fine, amrex::GetArrOfPtrs(ctmp), ratio, ngcrse);
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-            {
-                crse[idim]->ParallelCopy(ctmp[idim],0,0,ncomp,ngcrse,ngcrse);
-            }
+            MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
+                          ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            average_down_faces(fine, ctmp, ratio, ngcrse);
+            crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
         }
     }
 
@@ -542,26 +494,61 @@ namespace amrex
     void average_down_edges (const Vector<const MultiFab*>& fine, const Vector<MultiFab*>& crse,
                              const IntVect& ratio, int ngcrse)
     {
-	AMREX_ASSERT(crse.size()  == AMREX_SPACEDIM);
-	AMREX_ASSERT(fine.size()  == AMREX_SPACEDIM);
-	AMREX_ASSERT(crse[0]->nComp() == fine[0]->nComp());
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            average_down_edges(*fine[idim], *crse[idim], ratio, ngcrse);
+        }
+    }
 
-	int ncomp = crse[0]->nComp();
+    void average_down_edges (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio, int ngcrse)
+    {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+        {
+            average_down_edges(*fine[idim], *crse[idim], ratio, ngcrse);
+        }
+    }
 
+    void average_down_edges (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, int ngcrse)
+    {
+	AMREX_ASSERT(crse.nComp() == fine.nComp());
+        AMREX_ASSERT(fine.ixType() == crse.ixType());
+        const auto type = fine.ixType();
+        int dir;
+        for (dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+            if (type.cellCentered(dir)) break;
+        }
+        auto tmptype = type;
+        tmptype.set(dir);
+        if (dir >= AMREX_SPACEDIM or !tmptype.nodeCentered()) {
+            amrex::Abort("average_down_edges: not face index type");
+        }
+        const int ncomp = crse.nComp();
+        if (isMFIterSafe(fine, crse))
+        {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
-        for (int n=0; n<AMREX_SPACEDIM; ++n) {
-            for (MFIter mfi(*crse[n],true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.growntilebox(ngcrse);
+                const Box& bx = mfi.growntilebox(ngcrse);
+                FArrayBox* crsefab = crse.fabPtr(mfi);
+                FArrayBox const* finefab = fine.fabPtr(mfi);
 
-                BL_FORT_PROC_CALL(BL_AVGDOWN_EDGES,bl_avgdown_edges)
-                    (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN((*fine[n])[mfi]),
-                     BL_TO_FORTRAN((*crse[n])[mfi]),
-                     ratio.getVect(),n,ncomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown_edges(tbx, *crsefab, *finefab, 0, 0, ncomp, ratio, dir);
+                });
             }
+        }
+        else
+        {
+            MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
+                          ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            average_down_edges(fine, ctmp, ratio, ngcrse);
+            crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
         }
     }
 
@@ -575,48 +562,36 @@ namespace amrex
 
 	int ncomp = crse.nComp();
 
+        if (isMFIterSafe(fine, crse))
+        {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(crse,true); mfi.isValid(); ++mfi)
+            for (MFIter mfi(crse,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box& tbx = mfi.growntilebox(ngcrse);
+                const Box& bx = mfi.growntilebox(ngcrse);
+                FArrayBox* crsefab = crse.fabPtr(mfi);
+                FArrayBox const* finefab = fine.fabPtr(mfi);
 
-                BL_FORT_PROC_CALL(BL_AVGDOWN_NODES,bl_avgdown_nodes)
-                    (tbx.loVect(),tbx.hiVect(),
-                     BL_TO_FORTRAN(fine[mfi]),
-                     BL_TO_FORTRAN(crse[mfi]),
-                     ratio.getVect(),&ncomp);
+                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                {
+                    amrex_avgdown_nodes(tbx,*crsefab,*finefab,0,0,ncomp,ratio);
+                });
             }
+        }
+        else
+        {
+            MultiFab ctmp(amrex::coarsen(fine.boxArray(),ratio), fine.DistributionMap(),
+                          ncomp, ngcrse, MFInfo(), FArrayBoxFactory());
+            average_down_nodal(fine, ctmp, ratio, ngcrse);
+            crse.ParallelCopy(ctmp,0,0,ncomp,ngcrse,ngcrse);
+        }
     }
 
 
-    void print_state(const MultiFab& mf, const IntVect& cell, const int n)
+    void print_state(const MultiFab& mf, const IntVect& cell, const int n, const IntVect& ng)
     {
-
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-      for (MFIter mfi(mf); mfi.isValid(); ++mfi)
-	{
-	  if (mfi.validbox().contains(cell)) {
-	    if (n >= 0) {
-	      amrex::AllPrint().SetPrecision(17) << mf[mfi](cell, n) << std::endl;
-	    } else {
-	      std::ostringstream ss;
-	      ss.precision(17);
-	      const int ncomp = mf.nComp();
-	      for (int i = 0; i < ncomp-1; ++i)
-		{
-		  ss << mf[mfi](cell,i) << ", ";
-		}
-	      ss << mf[mfi](cell,ncomp-1);
-	      amrex::AllPrint() << ss.str() << std::endl;
-	    }
-	  }
-	}
-
+        printCell(mf, cell, n, ng);
     }
 
     void writeFabs (const MultiFab& mf, const std::string& name)
@@ -634,25 +609,12 @@ namespace amrex
 
     MultiFab ToMultiFab (const iMultiFab& imf)
     {
-        MultiFab mf(imf.boxArray(), imf.DistributionMap(), imf.nComp(), imf.nGrow(),
-                    MFInfo(), FArrayBoxFactory());
+        return amrex::cast<MultiFab>(imf);
+    }
 
-        const int ncomp = imf.nComp();
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-        for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            const Box& gbx = mfi.growntilebox();
-            FArrayBox      * rfab = &( mf[mfi]);
-            IArrayBox const* ifab = &(imf[mfi]);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (gbx, tbx,
-            {
-                amrex_int_to_real(tbx, *rfab, *ifab, 0, 0, ncomp);
-            });
-        }
-
-        return mf;
+    FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf)
+    {
+        return amrex::cast<FabArray<BaseFab<long> > > (imf);
     }
 
     std::unique_ptr<MultiFab> get_slice_data(int dir, Real coord, const MultiFab& cc, const Geometry& geom, int start_comp, int ncomp, bool interpolate) {
@@ -675,8 +637,8 @@ namespace amrex
         {
             int slice_gid = mfi.index();
             int full_gid = slice_to_full_ba_map[slice_gid];
-            FArrayBox* slice_fab = &((*slice)[mfi]);
-            FArrayBox const* full_fab = &(cc[full_gid]);
+            FArrayBox* slice_fab = slice->fabPtr(mfi);
+            FArrayBox const* full_fab = cc.fabPtr(full_gid);
 
             const Box& tile_box  = mfi.tilebox();
 
@@ -703,7 +665,13 @@ namespace amrex
 
     iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio)
     {
-        iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, 0);
+        return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), fba, ratio);
+    }
+
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const BoxArray& fba, const IntVect& ratio)
+    {
+        iMultiFab mask(cba, cdm, 1, 0);
         const BoxArray& cfba = amrex::coarsen(fba,ratio);
 
 #ifdef _OPENMP
@@ -731,19 +699,22 @@ namespace amrex
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                             const Geometry& geom)
     {
-        const Real* dxinv = geom.InvCellSize();
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(divu,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(divu,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.tilebox();
-            amrex_compute_divergence (BL_TO_FORTRAN_BOX(bx),
-                                      BL_TO_FORTRAN_ANYD(divu[mfi]),
-                                      AMREX_D_DECL(BL_TO_FORTRAN_ANYD((*umac[0])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*umac[1])[mfi]),
-                                                   BL_TO_FORTRAN_ANYD((*umac[2])[mfi])),
-                                      dxinv);
+            FArrayBox* divufab = divu.fabPtr(mfi);
+            AMREX_D_TERM(FArrayBox const* ufab = umac[0]->fabPtr(mfi);,
+                         FArrayBox const* vfab = umac[1]->fabPtr(mfi);,
+                         FArrayBox const* wfab = umac[2]->fabPtr(mfi););
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            {
+                amrex_compute_divergence(bx,*divufab,AMREX_D_DECL(*ufab,*vfab,*wfab),dxinv);
+            });
         }
     }
 }

@@ -14,9 +14,9 @@ contains
 #define BC_ORDER_5
 
 !-----------------------------------------------------------------------
-!
-!     Fill in a matrix x vector operator here
-!
+!>
+!>     Fill in a matrix x vector operator here
+!>
       subroutine amrex_ab4_adotx( &
           y,y_l1,y_l2,y_l3,y_h1,y_h2,y_h3, &
           x,x_l1,x_l2,x_l3,x_h1,x_h2,x_h3, &
@@ -96,9 +96,9 @@ contains
     end subroutine amrex_ab4_adotx
 
 !-----------------------------------------------------------------------
-!
-!     Fill in fluxes
-!
+!>
+!>     Fill in fluxes
+!>
       subroutine amrex_ab4_flux( &
           x,x_l1,x_l2,x_l3,x_h1,x_h2,x_h3, &
           alpha, beta, &
@@ -293,10 +293,10 @@ contains
 !     If the boundary is of Neumann type, set the ghost cell value to
 !     that of the outermost point in the valid data (2nd order accurate)
 !     and then fill the "den" array with the value "1"
-!     
-!     
+!
+!
 !     If flagbc==1:
-!     
+!
 !     If the boundary is of Dirichlet type, construct a polynomial
 !     interpolation through the boundary location and internal points
 !     (at locations x(-1:len-2) that generates the ghost cell value (at
@@ -304,10 +304,10 @@ contains
 !     If flagden==1, load the "den" array with the interpolation
 !     coefficient corresponding to outermost point in the valid region
 !     ( the coef(0) corresponding to the location x(0) )
-!      
-!     Note: 
+!
+!     Note:
 !     The bc type = LO_REFLECT_ODD is a special type of boundary condition.
-!      
+!
       integer maxorder
       integer nc, cdir, flagden, flagbc
       integer lo(BL_SPACEDIM), hi(BL_SPACEDIM)
@@ -446,12 +446,12 @@ contains
                   enddo
                enddo
             endif
-         else 
+         else
             print *,'UNKNOWN BC ON LEFT FACE IN APPLYBC'
             call bl_error("stop")
          end if
       end if
-!     
+!
 !     The Right face of the grid
 !
       if(cdir .eq. 3) then

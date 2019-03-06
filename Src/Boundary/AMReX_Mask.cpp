@@ -16,6 +16,12 @@ Mask::Mask (const Box& bx,
     :
     BaseFab<int>(bx,nc,alloc,shared) {}
 
+#ifdef AMREX_USE_GPU
+Mask::Mask (Mask const& rhs, MakeType make_type)
+    :
+    BaseFab<int>(rhs,make_type) {}
+#endif
+
 Mask::Mask (std::istream& is)
 {
     readFrom(is);
@@ -93,110 +99,6 @@ Mask::readFrom (std::istream& is)
     int len = domain.numPts();
     is.read( (char*) ptr, len*sizeof(int) );
     is.ignore(BL_IGNORE_MAX, '\n');
-}
-
-Mask&
-Mask::And (const Mask& src)
-{
-    return this->And(src,domain,domain,0,0,nvar);
-}
-
-Mask&
-Mask::And (const Mask& src,
-           int         srccomp,
-           int         destcomp,
-           int         numcomp)
-{
-    return this->And(src,domain,domain,srccomp,destcomp,numcomp);
-}
-
-Mask&
-Mask::And (const Mask& src,
-           const Box&  subbox,
-           int         srccomp,
-           int         destcomp,
-           int         numcomp)
-{
-    return this->And(src,subbox,subbox,srccomp,destcomp,numcomp);
-}
-
-Mask&
-Mask::And (const Mask& src,
-           const Box&  srcbox,
-           const Box&  destbox,
-           int         srccomp,
-           int         destcomp,
-           int         numcomp)
-{
-    const auto dp0 = this->stridedPtr(destbox,destcomp);
-    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
-    const auto len = destbox.length3d();
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len[2]; ++k) {
-            for     (int j = 0; j < len[1]; ++j) {
-                value_type       * AMREX_RESTRICT dp = dp0(0,j,k,n);
-                value_type const * AMREX_RESTRICT sp = sp0(0,j,k,n);
-                for (int i = 0; i < len[0]; ++i) {
-                    dp[i] = dp[i] ? sp[0] : 0;
-                }
-            }
-        }
-    }
-
-    return *this;
-}
-
-Mask&
-Mask::Or (const Mask& src)
-{
-    return this->Or(src,domain,domain,0,0,nvar);
-}
-
-Mask&
-Mask::Or (const Mask& src,
-          int         srccomp,
-          int         destcomp,
-          int         numcomp)
-{
-    return this->Or(src,domain,domain,srccomp,destcomp,numcomp);
-}
-
-Mask&
-Mask::Or (const Mask& src,
-          const Box&  subbox,
-          int         srccomp,
-          int         destcomp,
-          int         numcomp)
-{
-    return this->Or(src,subbox,subbox,srccomp,destcomp,numcomp);
-}
-
-Mask&
-Mask::Or (const Mask& src,
-          const Box&  srcbox,
-          const Box&  destbox,
-          int         srccomp,
-          int         destcomp,
-          int         numcomp)
-{
-    const auto dp0 = this->stridedPtr(destbox,destcomp);
-    const auto sp0 =   src.stridedPtr( srcbox, srccomp);
-    const auto len = destbox.length3d();
-
-    for (int n = 0; n < numcomp; ++n) {
-        for         (int k = 0; k < len[2]; ++k) {
-            for     (int j = 0; j < len[1]; ++j) {
-                value_type       * AMREX_RESTRICT dp = dp0(0,j,k,n);
-                value_type const * AMREX_RESTRICT sp = sp0(0,j,k,n);
-                for (int i = 0; i < len[0]; ++i) {
-                    dp[i] = dp[i] ? 1: sp[0];
-                }
-            }
-        }
-    }
-
-    return *this;
 }
 
 }

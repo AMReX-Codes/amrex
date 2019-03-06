@@ -13,7 +13,6 @@ BndryFuncArray::operator () (Box const& /*bx*/, FArrayBox& dest,
 {
     BL_ASSERT(m_func != nullptr || m_func3D != nullptr);
 
-    const Box&  bx = dest.box();
     const int*  lo = dest.loVect();
     const int*  hi = dest.hiVect();
     const Box& domain = geom.Domain();

@@ -13,13 +13,6 @@ const IntVect IntVect::Zero = IntVect::TheZeroVector();
 const IntVect IntVect::Unit = IntVect::TheUnitVector();
 
 std::ostream&
-operator<< (std::ostream& os, const Dim3& d)
-{
-    os << '(' << d.x << ' ' << d.y << ' ' << d.z << ')';
-    return os;
-}
-
-std::ostream&
 operator<< (std::ostream&  os,
             const IntVect& p)
 {

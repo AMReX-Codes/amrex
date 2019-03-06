@@ -7,7 +7,7 @@
 #include <AMReX_MultiFab.H>
 
 namespace amrex {
-				      
+
 class ParGDBBase
 {
 public:
@@ -16,9 +16,9 @@ public:
     virtual ~ParGDBBase () {;}
 
     virtual const Geometry& Geom (int level) const = 0;
-    virtual const DistributionMapping& ParticleDistributionMap 
+    virtual const DistributionMapping& ParticleDistributionMap
                                              (int level) const = 0;
-    virtual const DistributionMapping&         DistributionMap 
+    virtual const DistributionMapping&         DistributionMap
                                              (int level) const = 0;
     virtual const BoxArray& ParticleBoxArray (int level) const = 0;
     virtual const BoxArray&         boxArray (int level) const = 0;
@@ -40,8 +40,7 @@ public:
 };
 
 //
-// we use this for non-Amr particle code
-//
+//! we use this for non-Amr particle code
 class ParGDB
     : public ParGDBBase
 {
@@ -49,11 +48,11 @@ public:
 
     ParGDB () { ; }
 
-    ParGDB (const Geometry            & geom, 
+    ParGDB (const Geometry            & geom,
 	    const DistributionMapping & dmap,
 	    const BoxArray            & ba);
 
-    ParGDB (const Vector<Geometry>            & geom, 
+    ParGDB (const Vector<Geometry>            & geom,
 	    const Vector<DistributionMapping> & dmap,
 	    const Vector<BoxArray>            & ba,
 	    const Vector<int>                 & rr);
@@ -61,9 +60,9 @@ public:
     virtual ~ParGDB () {;}
 
     virtual const Geometry& Geom (int level) const override;
-    virtual const DistributionMapping& ParticleDistributionMap 
+    virtual const DistributionMapping& ParticleDistributionMap
                                              (int level) const override;
-    virtual const DistributionMapping&         DistributionMap 
+    virtual const DistributionMapping&         DistributionMap
                                              (int level) const override;
     virtual const BoxArray& ParticleBoxArray (int level) const override;
     virtual const BoxArray&         boxArray (int level) const override;
@@ -100,7 +99,7 @@ ParGDBBase::OnSameGrids (int level, const MultiFab& mf) const
 }
 
 inline
-ParGDB::ParGDB (const Geometry            & geom, 
+ParGDB::ParGDB (const Geometry            & geom,
 		const DistributionMapping & dmap,
 		const BoxArray            & ba)
     :
@@ -111,7 +110,7 @@ ParGDB::ParGDB (const Geometry            & geom,
 { }
 
 inline
-ParGDB::ParGDB (const Vector<Geometry>            & geom, 
+ParGDB::ParGDB (const Vector<Geometry>            & geom,
 		const Vector<DistributionMapping> & dmap,
 		const Vector<BoxArray>            & ba,
 		const Vector<int>                 & rr)
@@ -123,28 +122,28 @@ ParGDB::ParGDB (const Vector<Geometry>            & geom,
     m_nlevels(ba.size())
 { }
 
-inline 
-const Geometry& 
+inline
+const Geometry&
 ParGDB::Geom (int level) const
 {
     return m_geom[level];
 }
 
-inline 
-const DistributionMapping& 
+inline
+const DistributionMapping&
 ParGDB::ParticleDistributionMap (int level) const
 {
     return m_dmap[level];
 }
 
-inline 
-const DistributionMapping& 
+inline
+const DistributionMapping&
 ParGDB::DistributionMap (int level) const
 {
     return m_dmap[level];
 }
 
-inline 
+inline
 const BoxArray&
 ParGDB::ParticleBoxArray (int level) const
 {
@@ -159,7 +158,7 @@ ParGDB::boxArray (int level) const
 }
 
 inline
-void 
+void
 ParGDB::SetParticleBoxArray (int level, const BoxArray& new_ba)
 {
     BL_ASSERT(level < m_nlevels);
@@ -167,7 +166,7 @@ ParGDB::SetParticleBoxArray (int level, const BoxArray& new_ba)
 }
 
 inline
-void 
+void
 ParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dm)
 {
     BL_ASSERT(level < m_nlevels);
@@ -175,7 +174,7 @@ ParGDB::SetParticleDistributionMap (int level, const DistributionMapping& new_dm
 }
 
 inline
-void 
+void
 ParGDB::ClearParticleBoxArray (int level)
 {
     BL_ASSERT(level < m_nlevels);
@@ -183,43 +182,43 @@ ParGDB::ClearParticleBoxArray (int level)
 }
 
 inline
-void 
+void
 ParGDB::ClearParticleDistributionMap (int level)
 {
     BL_ASSERT(level < m_nlevels);
     m_dmap[level] = DistributionMapping();
 }
 
-inline 
-bool 
+inline
+bool
 ParGDB::LevelDefined (int level) const
 {
     return (level < m_nlevels);
 }
 
-inline 
-int 
+inline
+int
 ParGDB::finestLevel () const
 {
     return m_nlevels-1;
 }
 
-inline 
-int 
+inline
+int
 ParGDB::maxLevel () const
 {
     return m_nlevels-1;
 }
- 
-inline 
-IntVect 
+
+inline
+IntVect
 ParGDB::refRatio (int level) const
 {
     return m_rr[level]*IntVect::TheUnitVector();
 }
 
-inline 
-int 
+inline
+int
 ParGDB::MaxRefRatio (int level) const
 {
     int max_ref_ratio = 0;
@@ -231,5 +230,3 @@ ParGDB::MaxRefRatio (int level) const
 }
 
 #endif
-
-

@@ -23,6 +23,8 @@ preprocessing or do
 
 The coordinate directions are zero based.
 
+.. _sec:basics:vecandarr:
+
 Vector and Array
 ================
 
@@ -81,6 +83,62 @@ used functions are
 
      // See AMReX_ParallelDescriptor.H for many other Reduce functions
      ParallelDescriptor::ReduceRealSum(x);
+
+ParallelContext
+===============
+
+Users can also use groups of MPI subcommunicators to perform
+simultaneous physics calculations.  These comms are managed by AMReX's
+:cpp:`ParallelContext` in ``AMReX_ParallelContext.H.``  It maintains a
+stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
+:cpp:`ParallelContext` stack during AMReX's initialization and
+additional subcommunicators can be handled by adding comms with 
+:cpp:`push(MPI_Comm)` and removed using :cpp:`pop()`.  This creates a
+hierarchy of :cpp:`MPI_Comm` objects that can be used to split work as
+the user sees fit. 
+ 
+:cpp:`ParallelContext` also tracks and returns information about the
+local (most recently added) and global :cpp:`MPI_Comm`.  The most common
+access functions are given below.  See ``AMReX_ParallelContext.H.`` for
+a full listing of the available functions.
+
+ .. highlight:: c++
+
+::
+
+     MPI_Comm subCommA = ....;
+     MPI_Comm subCommB = ....;
+     // Add a communicator to ParallelContext.
+     // After these pushes, subCommB becomes the 
+     //     "local" communicator.
+     ParallelContext::push(subCommA);
+     ParallelContext::push(subCommB);
+
+     // Get Global and Local communicator (subCommB).
+     MPI_Comm globalComm = ParallelContext::CommunicatorAll();
+     MPI_Comm localComm  = ParallelContext::CommunicatorSub();
+
+     // Get local number of ranks and global IO Processor Number.
+     int localRanks = ParallelContext::NProcsSub();
+     int globalIO     = ParallelContext::IOProcessorNumberAll();
+
+     if (ParallelContext::IOProcessorSub()) {
+         // Only the local I/O process executes this
+     }
+
+     // Translation of global rank to local communicator rank.
+     // Returns MPI_UNDEFINED if comms do not overlap.
+     int localRank = ParallelContext::global_to_local_rank(globalrank);
+
+     // Translations of MPI rank IDs using integer arrays.
+     // Returns MPI_UNDEFINED if comms do not overlap.
+     ParallelContext::global_to_local_rank(local_array, global_array, n);
+     ParallelContext::local_to_global_rank(global_array, local_array, n);
+
+     // Remove the last added subcommunicator.
+     // This would make "subCommA" the new local communicator.
+     // Note: The user still needs to free "subCommB". 
+     ParallelContext::pop();
 
 .. _sec:basics:print:
 
@@ -233,6 +291,13 @@ parameter is :cpp:`false`.  In the second version, one can pass a
 function that adds ParmParse parameters to the database instead of
 reading from command line or input file.
 
+Because many AMReX classes and functions (including destructors
+inserted by the compiler) do not function properly after
+:cpp:`amrex:Finalize` is called, it's best to put the codes between
+:cpp:`amrex::Initialize` and :cpp:`amrex::Finalize` into its scope
+(e.g., a pair of curly braces or a separate function) to make sure
+resources are properly freed.
+
 .. _sec:basics:amrgrids:
 
 Example of AMR Grids
@@ -283,7 +348,7 @@ IntVect
 -------
 
 :cpp:`IntVec` is a dimension-dependent class representing an integer vector in
-:cpp:`AMREX SPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
+:cpp:`AMREXSPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
 as follows,
 
 .. highlight:: c++
@@ -396,7 +461,7 @@ Box
 
 A ``Box`` is an abstraction for defining discrete regions of
 :cpp:`AMREX_SPACEDIM`-dimensional indexing space. Boxes have an
-:cpp:`IndexType` and two :cpp:`IntVects` representing the lower and upper
+:cpp:`IndexType` and two :cpp:`IntVect`\ s representing the lower and upper
 corners. Boxes can exist in positive and negative indexing space. Typical ways
 of defining a :cpp:`Box` are
 
@@ -1037,7 +1102,7 @@ ways to define a MultiFab. For example,
       MultiFab mf(ba, dm, ncomp, ngrow);
 
 Here we define a :cpp:`MultiFab` with 4 components and 1 ghost cell. A MultiFab
-contains a number of :cpp:`FArrayBoxes` (see the section
+contains a number of :cpp:`FArrayBox`\ es (see the section
 on :ref:`sec:basics:fab`) defined on Boxes grown by the number of ghost cells
 (1 in this example). That is the :cpp:`Box` in the :cpp:`FArrayBox` is not
 exactly the same as in the :cpp:`BoxArray`.  If the :cpp:`BoxArray` has a
@@ -1121,7 +1186,7 @@ face averaged variables.
       MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
-Here all :cpp:`MultiFabs` use the same :cpp:`DistributionMapping`, but their
+Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
 :cpp:`BoxArrays` have different index types. The state is cell-based, whereas
 the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
@@ -1132,7 +1197,7 @@ fluxes are arrays with slightly different indices. For example, the
 :math:`x`-direction.
 
 The :cpp:`MultiFab` class provides many functions performing common arithmetic
-operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
+operations on a :cpp:`MultiFab` or between :cpp:`MultiFab`\ s  built with the
 *same* :cpp:`BoxArray` and :cpp:`DistributionMap`.  For example,
 
 .. highlight:: c++
@@ -1157,7 +1222,7 @@ operations on a :cpp:`MultiFab` or between :cpp:`MultiFabs` built with the
 
 We refer the reader to ``amrex/Src/Base/AMReX_MultiFab.H`` and
 ``amrex/Src/Base/AMReX_FabArray.H`` for more details. It should be noted again
-it is a runtime error if the two :cpp:`MultiFabs` passed to functions like
+it is a runtime error if the two :cpp:`MultiFab`\ s  passed to functions like
 :cpp:`MultiFab::Copy` are not built with the *same* :cpp:`BoxArray` (including
 index type) and :cpp:`DistributionMapping`.
 
@@ -1519,6 +1584,21 @@ a tile. (Note that when tiling is disabled, :cpp:`tilebox` returns the same
 non-tiling version, whereas in the tiling version the kernel function is called
 8 times.
 
+It is important to use the correct :cpp:`Box` when implementing tiling, especially
+if the box is used to define a work region inside of the loop. For example: 
+
+.. highlight:: c++
+
+::
+
+    // MFIter loop with tiling on.
+    for (MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox();     // Gets box of entire, untiled region.
+        calcOverBox(bx);             // ERROR! Works on entire box, not tiled box.
+                                     // Other iterations will redo many of the same cells.  
+    }
+
 The tile size can be explicitly set when defining :cpp:`MFIter`.
 
 .. highlight:: c++
@@ -1529,7 +1609,7 @@ The tile size can be explicitly set when defining :cpp:`MFIter`.
       for (MFIter mfi(mf,IntVect(1024000,16,32)); mfi.isValid(); ++mfi) {...}
 
 An :cpp:`IntVect` is used to specify the tile size for every dimension.  A tile
-size larger than the grid size simply means tiling is disable in that
+size larger than the grid size simply means tiling is disabled in that
 direction. AMReX has a default tile size :cpp:`IntVect{1024000,8,8}` in 3D and
 no tiling in 2D. This is used when tile size is not explicitly set but the
 tiling flag is on. One can change the default size using :cpp:`ParmParse`
@@ -1559,6 +1639,45 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | not overlap, because they belong to seperate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
+
+Dynamic tiling, which runs one box per OpenMP thread, is also available. 
+This is useful when the underlying work cannot benefit from thread
+parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
+object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
+parallel region:
+
+.. highlight:: c++
+
+::
+
+  // Dynamic tiling, one box per OpenMP thread.
+  // No further tiling details,
+  //   so each thread works on a single tilebox. 
+  #ifdef _OPENMP 
+  #pragma omp parallel
+  #endif
+      for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
+      {  
+          const Box& bx = mfi.validbox();
+          ...
+      }
+
+Dynamic tiling also allows explicit definition of a tile size:
+
+.. highlight:: c++
+
+::
+
+  // Dynamic tiling, one box per OpenMP thread.
+  // No tiling in x-direction. Tile size is 16 for y and 32 for z.
+  #ifdef _OPENMP 
+  #pragma omp parallel
+  #endif
+      for (MFIter mfi(mf,MFItInfo().SetDynamic(true).EnableTiling(1024000,16,32)); mfi.isValid(); ++mfi)
+      {  
+          const Box& bx = mfi.tilebox();
+          ...
+      }
 
 Usually :cpp:`MFIter` is used for accessing multiple MultiFabs like the second
 example, in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
@@ -1641,20 +1760,21 @@ But :cpp:`Box& bx = mfi.validbox()` is not legal and will not compile.
 
 .. _sec:basics:fortran:
 
-Calling Fortran or C
-====================
+Fortran, C and C++ Kernels
+==========================
 
-In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
+In the section on :ref:`sec:basics:mfiter`, we have shown that a typical
 pattern for working with MultiFabs is to use :cpp:`MFIter` to iterate over the
 data. In each iteration, a kernel function is called to work on the data and
 the work region is specified by a :cpp:`Box`.  When tiling is used, the work
 region is a tile. The tiling is logical in the sense that there is no data
 layout transformation. The kernel function still gets the whole arrays in
-:cpp:`FArrayBoxes`, even though it is supposed to work on a tile region of the
-arrays. To C++, these kernel functions are C functions, whose function
-signatures are typically declared in a header file named ``*_f.H`` or
-``*_F.H``. We recommend the users to follow this convention.  Examples of these
-function declarations are as follows.
+:cpp:`FArrayBox`\ es, even though it is supposed to work on a tile region of the
+arrays.  Fortran is often used for writing these kernels because of its
+native multi-dimensional array support.  To C++, these kernel functions are 
+C functions, whose function signatures are typically declared in a header file
+named ``*_f.H`` or ``*_F.H``. We recommend the users to follow this convention.
+Examples of these function declarations are as follows.
 
 .. highlight:: c++
 
@@ -1769,7 +1889,7 @@ For example,
 
 Here for simplicity we have omitted passing the tile Box.
 
-Usually :cpp:`MultiFabs` have multiple components. Thus we often also need to
+Usually :cpp:`MultiFab`\ s  have multiple components. Thus we often also need to
 pass the number of component into Fortran functions. We can obtain the number
 by calling the :cpp:`MultiFab::nComp()` function, and pass it to Fortran as we
 have seen in the section on :ref:`sec:basics:mfiter`.  We can also use the
@@ -1858,35 +1978,100 @@ details can be found at ``amrex/Docs/Readme.typecheck``.  Despite
 these limitations, it is recommended to use the type check tool and
 report issues to us.
 
+.. _sec:basics:cppkernel:
+
+Writing kernels in C++ is also an option.  AMReX provides a
+multi-dimensional array type of syntax, similar to Fortran,
+that is readable and easy to implement. An example is given below: 
+
+.. highlight:: c++
+
+::
+
+    void f (Box const& bx, FArrayBox& fab1, FArrayBox const& fab2)
+    {
+        const Dim3 lo = amrex::lbound(bx);
+        const Dim3 hi = amrex::hbound(bx);
+
+        Array4<Real> const& src = fab1.array();
+        Array4<Real> const& dst = fab2.array();
+
+        for         (int k = lo.z; k < hi.z; ++k) {
+            for     (int j = lo.y; j < hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i < hi.x; ++i) {
+                    dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k));
+                }
+            }
+        }
+    }
+
+    for (MFIter mfi(mf1,true); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.tilebox();
+        f(box, mf1[mfi], mf2[mfi]);
+    }
+
+A :cpp:`Box` and two :cpp:`FArrayBox`\es are passed to a C++ kernel 
+function.  In the function, :cpp:`amrex::lbound` and :cpp:`amrex::hbound`
+are called to get the start and end of the loops from :cpp:`Box::smallend()`
+and :cpp:`Box::bigend` of ``bx``.  Both functions return a 
+:cpp:`amrex::Dim3`, a Plain Old Data (POD) type containing three integers.
+The individual components are accessed by using :cpp:`.x`, :cpp:`.y` and
+:cpp:`.z`, as shown in the :cpp:`for` loops. 
+
+`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
+designed as an independent, :cpp:`operator()` based accessor to the
+:cpp:`BaseFab` data. :cpp:`Array4` is an AMReX class that contains a
+pointer to the :cpp:`FArrayBox` data and two :cpp:`Dim3` vectors that
+contain the bounds of the :cpp:`FArrayBox`.  The bounds are stored to 
+properly translate the three dimensional coordinates to the appropriate
+location in the one-dimensional array.  :cpp:`Array4`\'s :cpp:`operator()` 
+can also take a fourth integer to access across states of the 
+:cpp:`FArrayBox` and can be used in lower dimensions by passing `0` to
+the higher order dimensions.
+
+The ``AMREX_PRAGMA_SIMD`` macro is placed in the innermost loop to notify
+the compiler that loop iterations are independent and it is safe to
+vectorize the loop.  This should be done whenever possible to achieve the
+best performance. Be aware: the macro generates a compiler dependent
+pragma, so their exact effect on the resulting code is also compiler
+dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
+macro on loops that are not safe for vectorization will lead to a variety
+of errors, so if unsure about the independence of the iterations of a
+loop, test and verify before adding the macro.
+
 
 Ghost Cells
 ===========
 
-AMReX uses :cpp:`MultiFab` as the data container for floating point data on
-multiple Boxes on a single AMR level. Each rectangular Box has its own
-boundaries. A :cpp:`MultiFab` can have ghost cells for storing data outside its
-grid Box boundaries. This allows us to perform stencil type of operations on
+AMReX uses a :cpp:`MultiFab` as a container for floating point data on
+multiple Boxes at a single level of refinement. Each rectangular Box has its own boundaries
+on the low and high side in each coordinate direction.
+Each Box within a :cpp:`MultiFab` can have ghost cells for storing data outside
+the Box's valid region. This allows us to, e.g., perform stencil-type operations on
 regular arrays. There are three basic types of boundaries:
 
     #. interior boundary
     #. coarse/fine boundary
-    #. physical boundary. 
-           
-Periodic boundary is not considered a basic type in the discussion here because
-after periodic transformation it becomes either interior boundary or
-coarse/fine boundary.
+    #. physical boundary
 
 Interior boundary is the border among the grid Boxes themselves.  For example,
 in :numref:`fig:basics:amrgrids`, the two blue grid Boxes on level 1 share an
 interior boundary that is 10 cells long. For a :cpp:`MultiFab` with ghost cells
 on level 1, we can use the :cpp:`MultiFab::FillBoundary` function introduced in
-the section on :ref:`sec:basics:multifab` to fill ghost cells at the interior
-boundary with valid cell data from other Boxes.
+the section on :ref:`sec:basics:multifab` to fill ghost cells at the interior
+boundary with valid cell data from other Boxes.  :cpp:`MultiFab::FillBoundary`
+can optionally fill periodic boundary ghost cells as well.
 
 A coarse/fine boundary is the border between two AMR levels.
 :cpp:`FillBoundary` does not fill these ghost cells. These ghost cells on the
 fine level need to be interpolated from the coarse level data.  This is a
-subject that will be discussed in the section on  :ref:`sec:amrcore:fillpatch`.
+subject that will be discussed in the section on :ref:`sec:amrcore:fillpatch`.
+
+Note that periodic boundary is not considered a basic type in the discussion here because
+after periodic transformation it becomes either interior boundary or
+coarse/fine boundary.
 
 The third type of boundary is the physical boundary at the physical domain.
 Note that both coarse and fine AMR levels could have grids touching the
@@ -1896,6 +2081,139 @@ common operations.  See the section on :ref:`sec:basics:boundary` for a
 discussion on domain boundary conditions in general, including how to implement
 physical (non-periodic) boundary conditions.
 
+.. _sec:basics:boundary:
+
+Boundary Conditions
+===================
+
+This section describes how to implement domain boundary conditions in AMReX.  A
+ghost cell that is outside of the valid region can be thought of as either
+“interior” (which includes periodic and coarse-fine ghost cells), or “physical”.
+Physical boundary conditions can occur on domain boundaries and can
+be characterized as inflow, outflow, slip/no-slip walls, etc., and are
+ultimately linked to mathematical Dirichlet or Neumann conditions.
+
+The basic idea behind physical boundary conditions is as follows:
+
+-  Create a :cpp:`BCRec` object, which is essentially a multidimensional
+   integer array of :cpp:`2*DIM` components. Each component defines a boundary
+   condition type for the lo/hi side of the domain, for each direction.  See
+   ``amrex/Src/Base/AMReX_BC_TYPES.H`` for common physical and mathematical
+   types.  If there is more than one variable, we can create an array of BCRec
+   objects, and pass in a pointer to the 0-index component since the arrays for
+   all the components are contiguous in memory.  Here we need to provide
+   boundary types to each component of the :cpp:`MultiFab`. Below is an example
+   of setting up :cpp:`Vector<BCRec>` before the call to ghost cell routines.
+   
+   .. highlight:: c++
+
+   ::
+
+         // Set up BC; see ``amrex/Src/Base/AMReX_BC_TYPES.H`` for supported types
+         Vector<BCRec> bc(phi.nComp());
+         for (int n = 0; n < phi.nComp(); ++n)
+         {
+             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+             {
+                 if (Geometry::isPeriodic(idim))
+                 {
+                     bc[n].setLo(idim, BCType::int_dir); // interior
+                     bc[n].setHi(idim, BCType::int_dir);
+                 }
+                 else
+                 {
+                     bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
+                     bc[n].setHi(idim, BCType::foextrap);
+                 }
+             }
+         }
+
+   :cpp:`amrex::BCType` has the following types,
+
+       int_dir
+           Interior, including periodic boundary
+
+       ext_dir
+           “External Dirichlet”. It is the user’s responsibility to write a routine
+           to fill ghost cells (more details below).
+
+       foextrap
+           “First Order Extrapolation”
+           First order extrapolation from last cell in interior.
+
+       reflect_even
+           Reflection from interior cells with sign
+           unchanged, :math:`q(-i) = q(i)`.
+
+       reflect_odd
+           Reflection from interior cells with sign
+           changed, :math:`q(-i) = -q(i)`.
+
+-  We have interfaces to a fortran routine that fills ghost cells at domain
+   boundaries based on the boundary condition type defined in the :cpp:`BCRec`
+   object.  It is the user’s responsibility to have a consisent definition of
+   what the ghost cells represent. A common option used in AMReX codes is to
+   fill the domain ghost cells with the value that lies on the boundary (as
+   opposed to another common option where the value in the ghost cell represents
+   an extrapolated value based on the boundary condition type). Then in our
+   stencil based “work” codes, we also pass in the :cpp:`BCRec` object and use
+   modified stencils near the domain boundary that know the value in the first
+   ghost cell represents the value on the boundary.
+
+Depending on the level of complexity of your code, there are various options
+for filling domain boundary ghost cells.
+
+For single-level codes built from ``amrex/Src/Base`` (excluding the
+``amrex/Src/AmrCore`` and ``amrex/Src/Amr`` source code directories), you will
+have single-level MultiFabs filled with data in the valid region where you need
+to fill the ghost cells on each grid. There are essentially three ways to fill
+the ghost cells. (refer to ``amrex/Tutorials/Basic/HeatEquation_EX2_C`` for an
+example).
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf;
+    Geometry geom;
+    Vector<BCRec> bc;
+
+    // ...
+
+    // fills interior and periodic domain boundary ghost cells
+    mf.FillBoundary(geom.periodicity());
+
+    // fills interior (but not periodic domain boundary) ghost cells
+    mf.FillBoundary();
+
+    // fills physical domain boundary ghost cells for a cell-centered multifab
+    // except for external Dirichlet
+    FillDomainBoundary(mf, geom, bc);
+
+:cpp:`FillDomainBoundary()` is a function in
+``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
+boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
+for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
+use it as a template and insert their own function for
+:cpp:`BCType:ext_dir` like below
+
+.. highlight:: c++
+
+::
+
+    if (! grown_domain_box.contains(fab_box))
+    {
+        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                        BL_TO_FORTRAN_BOX(domain_box),
+                        dx, prob_lo,
+                        bc[0].data());
+        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
+                       BL_TO_FORTRAN_BOX(domain_box),
+                       dx, prob_lo,
+                       bc[0].data());
+    }
+
+    
 Memory Allocation
 =================
 
@@ -2021,141 +2339,7 @@ For example,
 ::
 
     mpiexec -n 4 valgrind --leak-check=yes --track-origins=yes --log-file=vallog.%p ./foo.exe ...
-
-
-
-.. _sec:basics:boundary:
-
-Boundary Conditions
-===================
-
-This section describes how to implement domain boundary conditions in AMReX.  A
-ghost cell that is outside of the valid region can be thought of as either
-“interior” (for periodic and coarse-fine ghost cells), or “physical”.  Physical
-boundary conditions can include inflow, outflow, slip/no-slip walls, but are
-ultimately linked to mathematical Dirichlet or Neumann conditions.
-
-The basic idea behind physical boundary conditions is as follows:
-
--  Create a :cpp:`BCRec` object, which is essentially a multidimensional
-   integer array of :cpp:`2*DIM` components. Each component defines a boundary
-   condition type for the lo/hi side of the domain, for each direction.  See
-   ``amrex/Src/Base/AMReX_BC_TYPES.H`` for common physical and mathematical
-   types.  If there is more than one variable, we can create an array of BCRec
-   objects, and pass in a pointer to the 0-index component since the arrays for
-   all the components are contiguous in memory.  Here we need to provide
-   boundary types to each component of the :cpp:`MultiFab`. Below is an example
-   of setting up :cpp:`Vector<BCRec>` before the call to ghost cell routines.
-   
-   .. highlight:: c++
-
-   ::
-
-         // Set up BC; see ``amrex/Src/Base/AMReX_BC_TYPES.H`` for supported types
-         Vector<BCRec> bc(phi.nComp());
-         for (int n = 0; n < phi.nComp(); ++n)
-         {
-             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-             {
-                 if (Geometry::isPeriodic(idim))
-                 {
-                     bc[n].setLo(idim, BCType::int_dir); // interior
-                     bc[n].setHi(idim, BCType::int_dir);
-                 }
-                 else
-                 {
-                     bc[n].setLo(idim, BCType::foextrap); // first-order extrapolation
-                     bc[n].setHi(idim, BCType::foextrap);
-                 }
-             }
-         }
-
-   :cpp:`amrex::BCType` has the following types,
-
-       int_dir
-           Interior, including periodic boundary
-
-       ext_dir
-           “External Dirichlet”. It is the user’s responsibility to write a routine
-           to fill ghost cells (more details below).
-
-       foextrap
-           “First Order Extrapolation”
-           First order extrapolation from last cell in interior.
-
-       reflect_even
-           Reflection from interior cells with sign
-           unchanged, :math:`q(-i) = q(i)`.
-
-       reflect_odd
-           Reflection from interior cells with sign
-           changed, :math:`q(-i) = -q(i)`.
-
--  We have interfaces to a fortran routine that fills ghost cells at domain
-   boundaries based on the boundary condition type defined in the :cpp:`BCRec`
-   object.  It is the user’s responsibility to have a consisent definition of
-   what the ghost cells represent. A common option used in AMReX codes is to
-   fill the domain ghost cells with the value that lies on the boundary (as
-   opposed to another common option where the value in the ghost cell represents
-   an extrapolated value based on the boundary condition type). Then in our
-   stencil based “work” codes, we also pass in the :cpp:`BCRec` object and use
-   modified stencils near the domain boundary that know the value in the first
-   ghost cell represents the value on the boundary.
-
-Depending on the level of complexity of your code, there are various options
-for filling domain boundary ghost cells.
-
-For single-level codes built from ``amrex/Src/Base`` (excluding the
-``amrex/Src/AmrCore`` and ``amrex/Src/Amr`` source code directories), you will
-have single-level MultiFabs filled with data in the valid region where you need
-to fill the ghost cells on each grid. There are essentially three ways to fill
-the ghost cells. (refer to ``amrex/Tutorials/Basic/HeatEquation_EX2_C`` for an
-example).
-
-.. highlight:: c++
-
-::
-
-    MultiFab mf;
-    Geometry geom;
-    Vector<BCRec> bc;
-
-    // ...
-
-    // fills interior and periodic domain boundary ghost cells
-    mf.FillBoundary(geom.periodicity());
-
-    // fills interior (but not periodic domain boundary) ghost cells
-    mf.FillBoundary();
-
-    // fills physical domain boundary ghost cells for a cell-centered multifab
-    // except for external Dirichlet
-    FillDomainBoundary(mf, geom, bc);
-
-:cpp:`FillDomainBoundary()` is a function in
-``amrex/Src/Base/AMReX_BCUtil.cpp`` that fills the physical domain
-boundary ghost cells with Fortran function ``amrex_fab_filcc`` except
-for external Dirichlet (i.e., :cpp:`BCType:ext_dir`).  The user can
-use it as a template and insert their own function for
-:cpp:`BCType:ext_dir` like below
-
-.. highlight:: c++
-
-::
-
-    if (! grown_domain_box.contains(fab_box))
-    {
-        amrex_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                        BL_TO_FORTRAN_BOX(domain_box),
-                        dx, prob_lo,
-                        bc[0].data());
-        user_fab_filcc(BL_TO_FORTRAN_FAB(fab),
-                       BL_TO_FORTRAN_BOX(domain_box),
-                       dx, prob_lo,
-                       bc[0].data());
-    }
-
-
+    
 .. _sec:basics:heat1:
 
 Example: HeatEquation_EX1_C

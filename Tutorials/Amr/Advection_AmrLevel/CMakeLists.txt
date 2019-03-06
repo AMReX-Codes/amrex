@@ -55,7 +55,6 @@ file ( GLOB_RECURSE inputs LIST_DIRECTORIES false
 # Copy input files to corresponding build dir
 #
 file ( COPY ${inputs} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
-file ( COPY ${EXE_DIR}/sensei DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/SingleVortex )
 
 add_tutorial (${EXENAME})   
 

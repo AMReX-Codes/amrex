@@ -1,6 +1,0 @@
--- There are a lot of routines that use lbound() and ubound() on the
-   pointer to get the box limits -- this is unsafe if the plotfile has
-   ghost cells but we don't want to deal with the ghost cells.
-
-   We need to switch those out to use get_box() on the pf object
-   itself.

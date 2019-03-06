@@ -23,7 +23,7 @@
 
 namespace amrex {
 
-class BLProfiler 
+class BLProfiler
 {
   public:
     struct ProfStats {
@@ -72,7 +72,7 @@ class BLProfiler
 
     struct RStartStop {
       RStartStop()
-        : rssTime(0.0), rssRNumber(-2), rssStart(false)  { }   
+        : rssTime(0.0), rssRNumber(-2), rssStart(false)  { }
       RStartStop(Real t, int r, bool s)
         : rssTime(t), rssRNumber(r), rssStart(s)  { }
       Real rssTime;
@@ -255,8 +255,8 @@ class BLProfiler
     static Vector<Box> probDomain;
 #endif
     static std::stack<Real> nestedTimeStack;
-    static std::map<int, Real> mStepMap;  // [step, time]
-    static std::map<std::string, ProfStats> mProfStats;  // [fname, pstats]
+    static std::map<int, Real> mStepMap;  //!< [step, time]
+    static std::map<std::string, ProfStats> mProfStats;  //!< [fname, pstats]
     static Vector<CommStats> vCommStats;
     static std::string procName;
     static int procNumber;
@@ -267,18 +267,18 @@ class BLProfiler
     static bool OnExcludeList(CommFuncType cft);
     static int  NameTagNameIndex(const std::string &name);
 
-    static std::map<std::string, int> mFNameNumbers;  // [fname, fnamenumber]
+    static std::map<std::string, int> mFNameNumbers;  //!< [fname, fnamenumber]
     static Vector<CallStats> vCallTrace;
 
-    // region support
-    static std::map<std::string, int> mRegionNameNumbers;  // [rname, rnamenumber]
+    //! region support
+    static std::map<std::string, int> mRegionNameNumbers;  //!< [rname, rnamenumber]
     static int inNRegions;
     static Vector<RStartStop> rStartStop;
     static const std::string noRegionName;
 
     static bool bFirstTraceWrite;
 
-    static Vector<CallStatsStack> callIndexStack;  // need Array for iterator
+    static Vector<CallStatsStack> callIndexStack;  //!< need Array for iterator
     static Vector<CallStatsPatch> callIndexPatch;
 
 #ifdef BL_TRACE_PROFILING
@@ -393,16 +393,19 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 #define BL_PROFILE_INITPARAMS()  amrex::BLProfiler::InitParams();
 #define BL_PROFILE_FINALIZE()    amrex::BLProfiler::Finalize();
 
+#define BL_TINY_PROFILE_INITIALIZE()
+#define BL_TINY_PROFILE_FINALIZE()
+
 #define BL_PROFILE(fname) amrex::BLProfiler bl_profiler__((fname));
-#define BL_PROFILE_T(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#define BL_PROFILE_T(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));
 #ifdef BL_PROFILING_SPECIAL
 #define BL_PROFILE_S(fname) amrex::BLProfiler bl_profiler__((fname));
-#define BL_PROFILE_T_S(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));                
+#define BL_PROFILE_T_S(fname, T) amrex::BLProfiler bl_profiler__((std::string(fname) + typeid(T).name()));
 #else
 #define BL_PROFILE_S(fname)
 #define BL_PROFILE_T_S(fname, T)
 #endif
- 
+
 #define BL_PROFILE_VAR(fname, vname) amrex::BLProfiler bl_profiler__##vname((fname));
 #define BL_PROFILE_VAR_NS(fname, vname) amrex::BLProfiler bl_profiler__##vname(fname, false);
 #define BL_PROFILE_VAR_START(vname) bl_profiler__##vname.start();
@@ -469,9 +472,13 @@ inline std::string BLProfiler::CommStats::CFTToString(CommFuncType cft) {
 
 #include <AMReX_TinyProfiler.H>
 
-#define BL_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
+#define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE_INITPARAMS()
-#define BL_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
+#define BL_PROFILE_FINALIZE()
+
+#define BL_TINY_PROFILE_INITIALIZE()   amrex::TinyProfiler::Initialize();
+#define BL_TINY_PROFILE_FINALIZE()     amrex::TinyProfiler::Finalize();
+
 #define BL_PROFILE(fname)         amrex::TinyProfiler tiny_profiler__((fname));
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
@@ -526,6 +533,10 @@ class BLProfiler
 #define BL_PROFILE_INITIALIZE()
 #define BL_PROFILE_INITPARAMS()
 #define BL_PROFILE_FINALIZE()
+
+#define BL_TINY_PROFILE_INITIALIZE()
+#define BL_TINY_PROFILE_FINALIZE()
+
 #define BL_PROFILE(a)
 #define BL_PROFILE_T(a, T)
 #define BL_PROFILE_S(fname)
@@ -603,7 +614,7 @@ amrex::Print() << "CrayPat regional recording has been stopped.\n";
 #elif defined(AMREX_FORGE)
 
 #define BL_TP_PROFILE_REGION_START()   allinea_start_sampling(); \
-amrex::Print() << "MAP regional recording has begun.\n"; 
+amrex::Print() << "MAP regional recording has begun.\n";
 #define BL_TP_PROFILE_REGION_STOP()    allinea_stop_sampling(); \
 amrex::Print() << "MAP regional recording has begun.\n";
 

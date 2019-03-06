@@ -169,6 +169,14 @@ FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int n
 {
 }
 
+#ifdef AMREX_USE_GPU
+FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type)
+    :
+    BaseFab<Real>(rhs,make_type)
+{
+}
+#endif
+
 FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
     :
     BaseFab<Real>(b,ncomp,p)
@@ -176,7 +184,7 @@ FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
 }
 
 FArrayBox&
-FArrayBox::operator= (const Real& v)
+FArrayBox::operator= (Real v)
 {
     BaseFab<Real>::operator=(v);
     return *this;
@@ -195,7 +203,7 @@ FArrayBox::initVal ()
 // #ifdef UINT64_MAX
 //             const uint64_t snan = UINT64_C(0x7ff0000080000001);
 // #else
-//             static_assert(sizeof(double) == sizeof(long long), "MemPool: sizeof double != sizeof long long");
+//             static_assert(sizeof(double) == sizeof(long long), "sizeof double != sizeof long long");
 //             const long long snan = 0x7ff0000080000001LL;
 // #endif
 //             double* pi = p + i;
@@ -209,126 +217,6 @@ FArrayBox::initVal ()
     } else if (do_initval) {
 	setVal(initval);
     }
-}
-
-bool 
-FArrayBox::contains_nan () const
-{
-    const Real* dp = dptr;
-    for (int i = 0; i < numpts*nvar; i++)
-        if (amrex::isnan(*dp++))
-            return true;
-    return false;
-}
-
-bool 
-FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isnan(this->operator()(p,scomp+i)))
-                return true;
-        }
-    }
-    return false;
-}
-
-bool 
-FArrayBox::contains_nan (IntVect& where) const
-{
-    return contains_nan(domain, 0, nComp(), where);
-}
-
-bool 
-FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isnan(this->operator()(p,scomp+i)))
-            {
-                where = p;
-
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool 
-FArrayBox::contains_inf () const
-{
-    const Real* dp = dptr;
-    for (int i = 0; i < numpts*nvar; i++)
-        if (amrex::isinf(*dp++))
-            return true;
-    return false;
-}
-
-bool 
-FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isinf(this->operator()(p,scomp+i)))
-                return true;
-        }
-    }
-    return false;
-}
-
-bool 
-FArrayBox::contains_inf (IntVect& where) const
-{
-    return contains_inf(domain,0,nComp(),where);
-}
-
-bool 
-FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const
-{
-    BL_ASSERT(scomp >= 0);
-    BL_ASSERT(ncomp >= 1);
-    BL_ASSERT(scomp <  nComp());
-    BL_ASSERT(ncomp <= nComp());
-    BL_ASSERT(domain.contains(bx));
-
-    for (int i = 0; i < ncomp; i++)
-    {
-        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
-        {
-            if (amrex::isinf(this->operator()(p,scomp+i)))
-            {
-                where = p;
-
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 void
@@ -612,7 +500,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         switch (typ_in)
         {
@@ -639,7 +529,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         fio = new FABio_binary(rd);
     }
@@ -687,7 +579,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         switch (typ_in)
         {
@@ -716,7 +610,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         fio = new FABio_binary(rd);
     }

@@ -172,7 +172,7 @@ class IntVect;
 *  from the command line and an arbitrary collection of input files.  The
 *  parameters are stored in static table that can be queried by any object
 *  of type ParmParse.  A parameter is a  "definition".  A definition is
-*  of the form "<name> = <value><value>...<value>".  It is stored in the table
+*  of the form "\<name\> = \<value\>\<value\>...\<value\>".  It is stored in the table
 *  as a name, value-list pair.
 *
 *  In the following example, niter is a definition with the single
@@ -190,7 +190,7 @@ class IntVect;
 *  exists) with the command line arguments added to the end of the table.
 *  The order of a definition in the table is significant, so command line
 *  parameters can be used to override definitions in the input file.  A
-*  definition of the explicit form: FILE=<filename> is not added to the table
+*  definition of the explicit form: FILE=\<filename\> is not added to the table
 *  but is a directive to include the named file at that point in the table.
 *
 *  The second constructor is generally used by other classes in the code.  It
@@ -198,13 +198,13 @@ class IntVect;
 *  Both constructors have an optional prefix argument that narrows the search
 *  to entries in the table with the same prefix.  For example, let PlanR be a
 *  ParmParse object with code prefix "ope".  PlanR.get("val",v) will look for
-*  an entry in the parameter list of the form: ope.val==<value>, and will
+*  an entry in the parameter list of the form: ope.val==\<value\>, and will
 *  reject all entries not starting with the correct code prefix.
 *
 *  The query functions search the table for definition names that match a given
 *  string (and prefix) and return values from the corresponding value list.
-*  The values can be returned as ints, Vector<int>s, floats, Vector<float>s,
-*  doubles, Vector<double>s, std::strings, or Vector<aSring>s.  All values in the
+*  The values can be returned as ints, Vector\<int\>s, floats, Vector\<float\>s,
+*  doubles, Vector\<double\>s, std::strings, or Vector\<aSring\>s.  All values in the
 *  table are stored as std::string objects, but if an int, float, or double is
 *  requested, the translation is done automatically.  In the previous example,
 *  the value of niter could be returned as either an std::string, an int, a double,
@@ -228,7 +228,7 @@ class IntVect;
 *
 *                9 10 11 12
 *
-*     aBox    = ((0,0) (5,5))		
+*     aBox    = ((0,0) (5,5))
 *
 *     test = apple "boy blue" 10 20 30 40
 *
@@ -463,7 +463,7 @@ public:
                  int         k,
                  std::string&    ref,
                  int         ival = FIRST) const;
-    
+
     //! Same as getkth() but searches for the last occurrence of name.
     void get (const char* name,
               std::string&    ref,
@@ -557,11 +557,11 @@ public:
     void add (const char* name,
               const Box&  val);
     /**
-    * \brief Gets an std::vector<int> of num_val values from kth occurrence of
+    * \brief Gets an std::vector\<int\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an int
-    * and stored in the std::vector<int> object ref.  ref is resized (if
+    * and stored in the std::vector\<int\> object ref.  ref is resized (if
     * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector<int>[0], std::vector<int>[1]
+    * indexed by start_ix is copied into std::vector\<int\>[0], std::vector\<int\>[1]
     * holds start_ix+1, etc.  If the kth occurrence does not exist
     * or there are fewer than start_ix + num_val values associated
     * with the kth occurrence, or if some of the values cannot be
@@ -594,11 +594,11 @@ public:
                 const std::vector<int>&  ptr);
 
     /**
-    * \brief Gets an std::vector<long> of num_val values from kth occurrence of
+    * \brief Gets an std::vector\<long\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a long
-    * and stored in the std::vector<long> object ref.  ref is resized (if
+    * and stored in the std::vector\<long\> object ref.  ref is resized (if
     * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector<long>[0], std::vector<long>[1]
+    * indexed by start_ix is copied into std::vector\<long\>[0], std::vector\<long\>[1]
     * holds start_ix+1, etc.  If the kth occurrence does not exist
     * or there are fewer than start_ix + num_val values associated
     * with the kth occurrence, or if some of the values cannot be
@@ -631,12 +631,12 @@ public:
                 const std::vector<long>&  ptr);
 
     /**
-    * \brief Gets an std::vector<float> of num_val values from kth occurrence of
+    * \brief Gets an std::vector\<float\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a float
-    * and stored in the std::vector<float> object ref.  ref is resized (if
+    * and stored in the std::vector\<float\> object ref.  ref is resized (if
     * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector<float>[0],
-    * std::vector<float>[1] holds start_ix+1, etc.  If the kth occurrence
+    * indexed by start_ix is copied into std::vector\<float\>[0],
+    * std::vector\<float\>[1] holds start_ix+1, etc.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to a float, an error message is
@@ -667,12 +667,12 @@ public:
     void addarr (const char* name,
                 const std::vector<float>&  ptr);
     /**
-    * \brief Gets an std::vector<double> of num_val values from kth occurrence of
+    * \brief Gets an std::vector\<double\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a double
-    * and stored in the std::vector<double> object ref.  ref is resized (if
+    * and stored in the std::vector\<double\> object ref.  ref is resized (if
     * necessary) to hold num_val values.  The value in the list
-    * indexed by start_ix is copied into std::vector<double>[0],
-    * std::vector<double>[1] holds start_ix+1, etc.  If the kth occurrence
+    * indexed by start_ix is copied into std::vector\<double\>[0],
+    * std::vector\<double\>[1] holds start_ix+1, etc.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to a double, an error message is
@@ -739,12 +739,12 @@ public:
     void addarr (const char* name,
                 const std::vector<std::string>&  ptr);
     /**
-    * \brief Gets an std::vector<IntVect> of num_val values from kth occurrence of
+    * \brief Gets an std::vector\<IntVect\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
-    * IntVect and stored in the std::vector<IntVect> object ref.  ref is
+    * IntVect and stored in the std::vector\<IntVect\> object ref.  ref is
     * resized (if necessary) to hold num_val values.  The value in
-    * the list indexed by start_ix is copied into std::vector<IntVect>[0],
-    * std::vector<IntVect>[1] holds start_ix+1, etc.  If the kth occurrence
+    * the list indexed by start_ix is copied into std::vector\<IntVect\>[0],
+    * std::vector\<IntVect\>[1] holds start_ix+1, etc.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to an IntVect, an error message is
@@ -775,12 +775,12 @@ public:
     void addarr (const char* name,
                 const std::vector<IntVect>&  ptr);
     /**
-    * \brief Gets an std::vector<Box> of num_val values from kth occurrence of
+    * \brief Gets an std::vector\<Box\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
-    * Box and stored in the std::vector<Box> object ref.  ref is
+    * Box and stored in the std::vector\<Box\> object ref.  ref is
     * resized (if necessary) to hold num_val values.  The value in
-    * the list indexed by start_ix is copied into std::vector<Box>[0],
-    * std::vector<Box>[1] holds start_ix+1, etc.  If the kth occurrence
+    * the list indexed by start_ix is copied into std::vector\<Box\>[0],
+    * std::vector\<Box\>[1] holds start_ix+1, etc.  If the kth occurrence
     * does not exist or there are fewer than start_ix + num_val
     * values associated with the kth occurrence, or if some of the
     * values cannot be converted to an Box, an error message is
@@ -856,7 +856,7 @@ public:
     typedef std::list<PP_entry> Table;
     static void appendTable(ParmParse::Table& tab);
     const Table& table() const {return m_table;}
-  
+
 private:
     //
     // Don't allow one ParmParse object to be assigned to another.
@@ -875,16 +875,14 @@ private:
 
     explicit ParmParse (const Table& tbl);
     //
-    // Set/Get the prefix.
-    //
+    //! Set/Get the prefix.
     std::string getPrefix() const;
     std::string setPrefix(const std::string& str);
     void pushPrefix(const std::string& str);
     void popPrefix();
     std::string prefixedName (const std::string& str) const;
     //
-    // Prefix used in keyword search.
-    //
+    //! Prefix used in keyword search.
     std::stack<std::string> m_pstack;
     const Table& m_table;
 };
@@ -894,7 +892,7 @@ struct ParmParse::PP_entry
     PP_entry (const std::string&            name,
               const std::list<std::string>& vals);
     PP_entry (const std::string& name,
-              const std::string& vals);              
+              const std::string& vals);
     PP_entry (const std::string& name,
 	      const Table& table);
     PP_entry (const PP_entry& pe);

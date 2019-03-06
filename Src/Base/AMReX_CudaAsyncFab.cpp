@@ -31,24 +31,24 @@ AsyncFab::Finalize ()
 }
 
 AsyncFab::AsyncFab ()
-{
-    m_impl.reset(new AsyncFabImpl());
-}
+    : m_impl(new AsyncFabImpl()),
+      m_fab(m_impl->fabPtr())
+{}
 
 AsyncFab::AsyncFab (Box const& bx, int ncomp)
-{
-    m_impl.reset(new AsyncFabImpl(bx,ncomp));
-}
+    : m_impl(new AsyncFabImpl(bx,ncomp)),
+      m_fab(m_impl->fabPtr())
+{}
 
 AsyncFab::AsyncFab (FArrayBox& a_fab)
-{
-    m_impl.reset(new AsyncFabImpl(a_fab));
-}
+    : m_impl(new AsyncFabImpl(a_fab)),
+      m_fab(m_impl->fabPtr())
+{}
 
 AsyncFab::AsyncFab (FArrayBox& a_fab, Box const& bx, int ncomp)
-{
-    m_impl.reset(new AsyncFabImpl(a_fab, bx, ncomp));
-}
+    : m_impl(new AsyncFabImpl(a_fab, bx, ncomp)),
+      m_fab(m_impl->fabPtr())
+{}
 
 void
 AsyncFab::clear ()
@@ -57,28 +57,37 @@ AsyncFab::clear ()
     if (inLaunchRegion())
     {
         if (m_impl != nullptr) {
-            AsyncFabImpl* p = m_impl.release();
 // CUDA 10        AMREX_GPU_SAFE_CALL(cudaLaunchHostFunc(Device::cudaStream(), amrex_devicefab_delete, p));
             AMREX_GPU_SAFE_CALL(cudaStreamAddCallback(Device::cudaStream(),
-                                                      amrex_devicefab_delete, p, 0));
+                                                      amrex_devicefab_delete,
+                                                      m_impl, 0));
         }
     }
     else
 #endif
     {
-        m_impl.reset();
+        delete m_impl;
     }
+    m_impl = nullptr;
+    m_fab = nullptr;
 }
 
-FArrayBox*
-AsyncFab::fabPtr ()
+FArrayBox&
+AsyncFab::hostFab () const
 {
-    return m_impl->fabPtr();
+    return m_impl->hostFab();
 }
 
-AsyncFab::~AsyncFab ()
+Array4<Real const>
+AsyncFab::array () const
 {
-    clear();
+    return m_impl->hostFab().const_array();
+}
+
+Array4<Real>
+AsyncFab::array ()
+{
+    return m_impl->hostFab().array();
 }
 
 }

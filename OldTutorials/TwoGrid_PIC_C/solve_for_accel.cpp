@@ -5,17 +5,14 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_MacBndry.H>
-#include <AMReX_MGT_Solver.H>
-#include <mg_cpp_f.h>
-#include <AMReX_stencil_types.H>
 #include <AMReX_VisMF.H>
 
 using namespace amrex;
 
-void solve_with_f90  (const Vector<MultiFab*>& rhs,
-		      const Vector<MultiFab*>& phi,
-		      const Vector< Vector<MultiFab*> >& grad_phi_edge, 
-                      const Vector<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
+void solve_with_mlmg  (const Vector<MultiFab*>& rhs,
+                       const Vector<MultiFab*>& phi,
+                       const Vector< Vector<MultiFab*> >& grad_phi_edge, 
+                       const Vector<Geometry>& geom, int base_level, int finest_level, Real tol, Real abs_tol);
 void 
 solve_for_accel(const Vector<MultiFab*>& rhs,
 		const Vector<MultiFab*>& phi,
@@ -62,8 +59,8 @@ solve_for_accel(const Vector<MultiFab*>& rhs,
     // Solve for phi and return both phi and grad_phi_edge
     // ***************************************************
 
-    solve_with_f90(rhs,phi,amrex::GetVecOfVecOfPtrs(grad_phi_edge),
-		   geom,base_level,finest_level,tol,abs_tol);
+    solve_with_mlmg(rhs,phi,amrex::GetVecOfVecOfPtrs(grad_phi_edge),
+                    geom,base_level,finest_level,tol,abs_tol);
 
     // Average edge-centered gradients to cell centers and fill the values in ghost cells.
     for (int lev = base_level; lev <= finest_level; lev++)

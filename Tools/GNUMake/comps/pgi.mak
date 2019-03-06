@@ -28,7 +28,12 @@ ifeq ($(USE_OMP),TRUE)
 endif
 
 ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
+  GENERIC_PGI_FLAGS += -acc -Minfo=accel -mcmodel=medium
+  ifneq ($(CUDA_ARCH),)
+    GENERIC_PGI_FLAGS += -ta=tesla:cc$(CUDA_ARCH)
+  else
+    GENERIC_PGI_FLAGS += -ta=tesla
+  endif
 else
   GENERIC_PGI_FLAGS += -noacc
 endif
@@ -71,18 +76,6 @@ else ifeq ($(shell expr $(gcc_major_version) \>= 4), 1)
   CXXFLAGS += -std=c++11
 endif
 CFLAGS   += -c99
-
-GENERIC_PGI_FLAGS =
-
-ifeq ($(USE_OMP),TRUE)
-  GENERIC_PGI_FLAGS += -mp=nonuma -Minfo=mp
-endif
-
-ifeq ($(USE_ACC),TRUE)
-  GENERIC_PGI_FLAGS += -acc -ta=tesla:cc$(CUDA_ARCH) -Minfo=accel -mcmodel=medium
-else
-  GENERIC_PGI_FLAGS += -noacc
-endif
 
 CXXFLAGS += $(GENERIC_PGI_FLAGS)
 CFLAGS   += $(GENERIC_PGI_FLAGS)

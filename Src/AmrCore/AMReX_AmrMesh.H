@@ -87,7 +87,7 @@ public:
     void SetGridEff (Real eff) { grid_eff = eff; }
     void SetNProper (int n) { n_proper = n; }
 
-    // Set ref_ratio would require rebuiling Geometry objects.
+    //! Set ref_ratio would require rebuiling Geometry objects.
 
     void SetFinestLevel (int new_finest_level) { finest_level = new_finest_level; }
     void SetDistributionMap (int lev, const DistributionMapping& dmap_in);
@@ -165,27 +165,39 @@ public:
 protected:
 
     int              verbose;
-    int              max_level;    // Maximum allowed level.
-    Vector<IntVect>   ref_ratio;    // Refinement ratios [0:finest_level-1]
+    int              max_level;    //!< Maximum allowed level.
+    Vector<IntVect>   ref_ratio;    //!< Refinement ratios [0:finest_level-1]
 
-    int              finest_level; // Current finest level.
+    int              finest_level; //!< Current finest level.
 
-    Vector<int>       n_error_buf;     // Buffer cells around each tagged cell.
-    Vector<IntVect>   blocking_factor; // Blocking factor in grid generation (by level).
-    Vector<IntVect>   max_grid_size;   // Maximum allowable grid size (by level).
-    Real             grid_eff;        // Grid efficiency.
-    int              n_proper;        // # cells required for proper nesting.
+    Vector<int>       n_error_buf;     //!< Buffer cells around each tagged cell.
+    Vector<IntVect>   blocking_factor; //!< Blocking factor in grid generation (by level).
+    Vector<IntVect>   max_grid_size;   //!< Maximum allowable grid size (by level).
+    Real             grid_eff;        //!< Grid efficiency.
+    int              n_proper;        //!< # cells required for proper nesting.
 
     bool use_fixed_coarse_grids;
     int  use_fixed_upto_level;
-    bool refine_grid_layout; // chop up grids to have the number of grids no less the number of procs
+    bool refine_grid_layout; //!< chop up grids to have the number of grids no less the number of procs
     bool check_input;
+
+    bool iterate_on_new_grids;
+    bool use_new_chop;
 
     Vector<Geometry>            geom;
     Vector<DistributionMapping> dmap;
     Vector<BoxArray>            grids;
 
     void checkInput();
+
+     void SetIterateToFalse ()
+     {
+         iterate_on_new_grids = false;
+     }
+     void SetUseNewChop ()
+     {
+         use_new_chop = true;
+     }
 
 private:
   void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,

@@ -444,7 +444,6 @@ int main(int argc, char* argv[])
                        << "                         or: " << double(iters)/timer <<  " ops/second." << std::endl << std::endl; 
     }
 
-
     // ===================================================================
     // protected_divide 
     {
@@ -452,11 +451,11 @@ int main(int argc, char* argv[])
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
         BaseFab<Real> fab1(bx1,ncomps);
-        fab1.setVal(5.5);
+        fab1.setVal(11.0);
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
-        fab2.setVal(2.75);
+        fab2.setVal(2.0);
 
         timer = second();
         for (int i=0; i<iters; ++i)
@@ -471,6 +470,37 @@ int main(int argc, char* argv[])
                        << " or, completed at a rate of: " <<         timer/iters << " seconds/ops." << std::endl
                        << "                         or: " << double(iters)/timer   <<  " ops/second." << std::endl << std::endl; 
     }
+
+    // ===================================================================
+    // protected_divide w/ zeros
+    {
+        double timer;
+
+        Box bx1(IntVect(0), IntVect(boxsize-1));
+        BaseFab<Real> fab1(bx1,ncomps);
+        fab1.setVal(5.5);
+
+        Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
+        BaseFab<Real> fab2(bx2,ncomps);
+        fab2.setVal(0.0);
+
+        timer = second();
+        for (int i=0; i<iters; ++i)
+        {
+           fab1.protected_divide(fab2, bx2, bx1, 0, 0, ncomps);
+        }
+        timer = second() - timer;
+
+        amrex::Print() << "BaseFab<Real>::protected_divide() test with zeroes." << std::endl
+                       << "Result: " << fab1(IntVect::TheZeroVector())  << std::endl
+                       << "Completed in: "                <<  timer << " seconds." << std::endl
+                       << " or, completed at a rate of: " <<         timer/iters << " seconds/ops." << std::endl
+                       << "                         or: " << double(iters)/timer   <<  " ops/second." << std::endl << std::endl; 
+    }
+
+
+
+
     // ===================================================================
     // dot 
     {
@@ -506,7 +536,7 @@ int main(int argc, char* argv[])
 
         Box bx1(IntVect(0), IntVect(boxsize-1));
         BaseFab<Real> fab1(bx1,ncomps);
-        fab1.setVal(1.0);
+        fab1.setVal(2.75/boxsize);
 
         Box bx2(IntVect(1000), IntVect(1000+boxsize-1));
         BaseFab<Real> fab2(bx2,ncomps);
@@ -560,7 +590,7 @@ int main(int argc, char* argv[])
 
         amrex::Print() << "BaseFab<Real>::maskLT() test." << std::endl
                        << "Results (LT/LE/EQ/GE/GT): " << totalLT << "/" << totalLE << "/" << totalEQ << "/"
-                                                       << totalGE << "/" << totalGT << " of " << fab1.nPts() << " points." << std::endl 
+                                                       << totalGE << "/" << totalGT << " of " << fab1.numPts() << " points." << std::endl 
                        << "Completed in: "                <<  timer << " seconds." << std::endl
                        << " or, completed at a rate of: " <<         timer/(double(iters)/5) << " seconds/ops." << std::endl
                        << "                         or: " << double(iters)/(5*timer) << " ops/second." << std::endl << std::endl; 

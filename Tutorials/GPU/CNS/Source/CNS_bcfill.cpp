@@ -21,6 +21,7 @@ struct CnsFillExtDir
 namespace {
     static CnsFillExtDir cns_fill_ext_dir;
     static GpuBndryFuncFab<CnsFillExtDir> gpu_bndry_func(cns_fill_ext_dir);
+    static CpuBndryFuncFab cpu_bndry_func(nullptr); // Without EXT_DIR (e.g., inflow), we can pass a nullptr
 }
 
 // bx                  : Cells outside physical domain and inside bx are filled.
@@ -41,9 +42,9 @@ void cns_bcfill (Box const& bx, FArrayBox& data,
 #endif
 
     if (run_on_gpu) {
+        AMREX_ASSERT(Gpu::isGpuPtr(&data));
         gpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     } else {
-        // Without EXT_DIR (e.g., inflow), we can pass a nullptr
-        CpuBndryFuncFab(nullptr)(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
+        cpu_bndry_func(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
     }
 }

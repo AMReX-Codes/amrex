@@ -18,7 +18,7 @@ contains
 
   subroutine eb_to_polygon (dx, lo, hi, flag, fglo, fghi, bcent, blo, bhi, &
        apx, axlo, axhi,  apy, aylo, ayhi, apz, azlo, azhi) &
-       bind(C, name="mfix_eb_to_polygon")
+       bind(C, name="eb_to_polygon")
 
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell, is_single_valued_cell
 
@@ -193,7 +193,7 @@ end subroutine eb_to_polygon
 !                                                                      !
 !                                                                      !
 !----------------------------------------------------------------------!
-subroutine write_eb_vtp(myID) bind(C, name="mfix_write_eb_vtp")
+subroutine write_eb_vtp(myID) bind(C, name="write_eb_vtp")
 
   implicit none
 
@@ -268,7 +268,7 @@ end subroutine write_eb_vtp
 !                                                                      !
 !                                                                      !
 !----------------------------------------------------------------------!
-subroutine write_pvtp(nProcs) bind(C, name="mfix_write_pvtp")
+subroutine write_pvtp(nProcs) bind(C, name="write_pvtp")
 
   implicit none
 
@@ -556,7 +556,7 @@ end subroutine write_pvtp
 !                                                                       !
 !.......................................................................!
   subroutine eb_grid_coverage (myID, dx, lo, hi, flag, fglo, fghi)&
-       bind(C, name="mfix_eb_grid_coverage")
+       bind(C, name="eb_grid_coverage")
 
   use amrex_ebcellflag_module, only : is_regular_cell, is_covered_cell
 

@@ -39,12 +39,3 @@ amr.plot_int   = 10     # number of timesteps between plot files
 amr.chk_file = chk      # root name of checkpoint file
 amr.chk_int  = 10       # number of timesteps between checkpoint files
 #amr.restart  = chk00060 # restart from this checkpoint file
-
-# SENSEI in situ
-# enable and choose the configuration based on your build
-sensei.enabled = 0
-sensei.config = sensei/render_iso_catalyst_2d.xml
-#sensei.config = sensei/render_iso_catalyst_3d.xml
-#sensei.config = sensei/render_iso_libsim_2d.xml
-#sensei.config = sensei/render_iso_libsim_3d.xml
-sensei.frequency = 2
