@@ -201,21 +201,84 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
     int num_domains = 0;
 
     // loop over levels
-    for (int lev = 0; lev < num_levels; lev++)
-    {
-        // loop over particle tiles
-        for (const auto& kv : pc.GetParticles(lev)) 
-        {
-            // get each particle tile
-            const auto& ptile = kv.second;
-            
-            // TODO: We need more info to provide unique domain ids 
-            // across mpi tasks
-            int domain_id = num_domains;
 
+    int rank   = ParallelDescriptor::MyProc();
+    int nprocs = ParallelDescriptor::NProcs();
+    
+    using MyParConstIter = ParConstIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+
+    //
+    // blueprint expects unique ids for each domain published
+    // for particle data, this means we need a unique id for each
+    // tile across levels.
+    //
+    // to generate unique domain ids, we use a counting loop to
+    // calculate a per-level, per-rank offset
+    //
+    
+    // this holds our unique offset for each level for the current rank
+    std::vector<int> my_lvl_offsets;
+    my_lvl_offsets.resize(num_levels);
+
+    // these hold the values we need to do a scan to calc offsets
+    std::vector<int> within_lvl_counts;
+    std::vector<int> within_lvl_offsets;
+    within_lvl_counts.resize(nprocs);
+    within_lvl_offsets.resize(nprocs);
+
+    int total_num_domains = 0;
+    for (int lev = 0; lev < num_levels; ++lev) 
+    {
+        // count how many tiles this mpi task has
+        long level_num_domains = 0;
+        for (MyParConstIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            level_num_domains+=1;
+        }
+
+        // clear the within_lvl_counts and offsets data
+        for(int rank_idx = 0; rank_idx < nprocs ; rank_idx++)
+        {
+            within_lvl_counts[rank_idx]  = 0;
+            within_lvl_offsets[rank_idx] = 0;
+        }
+        
+        // set number of domains for current rank at current level
+        within_lvl_counts[rank] = level_num_domains;
+        // mpi sum reduce to get all rank's counts for this level
+        ParallelDescriptor::ReduceIntSum(&within_lvl_counts[0],
+                                         nprocs);
+            
+        long level_total_num_domains = 0;
+        // scan to calc offset and total number of domains
+        for(int rank_idx = 0; rank_idx < nprocs ; rank_idx++)
+        {
+            within_lvl_offsets[rank_idx] = level_total_num_domains;
+            level_total_num_domains += within_lvl_counts[rank_idx];
+        }
+
+        // the offset for this rank at this level is the current 
+        // total number of domains + the offset for this level
+        my_lvl_offsets[lev] = within_lvl_offsets[rank] + total_num_domains;
+
+        total_num_domains += level_num_domains;
+    }
+
+    for (int lev = 0; lev < num_levels; ++lev) 
+    {
+        // get our unique global offset for this rank at this level
+        int lvl_offset = my_lvl_offsets[lev];
+        // keep a counter of local # of tiles
+        int num_lvl_local_tiles = 0;
+        for (MyParConstIter pti(pc, lev); pti.isValid(); ++pti)
+        {
+            // this will give us a unique id across levels for each tile
+            int domain_id = lvl_offset + num_lvl_local_tiles;
+
+            const auto& ptile = pti.GetParticleTile();
             const std::string& patch_name = amrex::Concatenate("domain_",
                                                                domain_id,
-                                                               6); 
+                                                               6);
             conduit::Node &patch = res[patch_name];
             // add basic state info
             patch["state/domain_id"] = domain_id;
@@ -223,7 +286,7 @@ ParticleContainerToBlueprint(const ParticleContainer<NStructReal,
                                     real_comp_names,
                                     int_comp_names,
                                     patch);
-            num_domains++;
+            num_lvl_local_tiles += 1;
         }
     }
 
