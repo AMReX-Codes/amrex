@@ -3,6 +3,8 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 
+#include "CheckPair.H"
+
 #include "MDParticleContainer.H"
 
 using namespace amrex;
@@ -61,7 +63,8 @@ void main_main ()
     ba.maxSize(params.max_grid_size);
     DistributionMapping dm(ba);
 
-    MDParticleContainer pc(geom, dm, ba);
+    const int ncells = 1;
+    MDParticleContainer pc(geom, dm, ba, ncells);
 
     IntVect nppc = IntVect(AMREX_D_DECL(1, 1, 1));
     constexpr Real dt = 0.0005;
@@ -74,7 +77,7 @@ void main_main ()
 
         pc.fillNeighbors();
 
-        pc.BuildNeighborList();
+        pc.buildNeighborList(CheckPair());
 
         if (params.print_neighbor_list) pc.printNeighborList();
 
