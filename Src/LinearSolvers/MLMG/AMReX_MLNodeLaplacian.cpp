@@ -5,6 +5,10 @@
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
+#include <AMReX_EBMultiFabUtil.H>
+#endif
+
+#ifdef AMREX_USE_EB
 #ifdef USE_ALGOIM
 #include <AMReX_algoim_integrals.H>
 #endif
@@ -121,6 +125,7 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
 void
 MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>& vel)
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::compDivergence()");
 
     if (!m_masks_built) buildMasks();
@@ -303,8 +308,11 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
         crhs.setVal(0.0);
         crhs.ParallelAdd(*frhs[ilev], cgeom.periodicity());
 
-        const Box& cccdom = cgeom.Domain();
-        const Box& cnddom = amrex::surroundingNodes(cccdom);
+        Box cnddom = amrex::surroundingNodes(cgeom.Domain());
+
+        if (m_coarsening_strategy != CoarseningStrategy::Sigma) 
+            cnddom.grow(1000); // hack to avoid masks being modified at Neuman boundary
+
         const Real* cdxinv = cgeom.InvCellSize();
         const iMultiFab& cdmsk = *m_dirichlet_mask[ilev][0];
         const iMultiFab& c_nd_mask = *m_nd_fine_mask[ilev];
@@ -342,6 +350,11 @@ MLNodeLaplacian::compDivergence (const Vector<MultiFab*>& rhs, const Vector<Mult
                                               m_lobc.data(), m_hibc.data());
             }
         }
+
+#if AMREX_USE_EB
+        // Make sure to zero out the RHS on any nodes completely surrounded by covered cells
+        amrex::EB_set_covered((*rhs[ilev]),0.0);
+#endif
     }
 }
 
@@ -350,6 +363,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
                           const Vector<const MultiFab*>& rhnd,
                           const Vector<MultiFab*>& a_rhcc)
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::compRHS()");
 
     if (!m_masks_built) buildMasks();
@@ -615,6 +629,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 void
 MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<MultiFab const*>& sol) const
 {
+    // todo: gpu
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -672,6 +687,7 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
 void
 MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<MultiFab*>& a_sol) const
 {
+    // todo: gpu
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
 #ifdef _OPENMP
@@ -806,6 +822,7 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
 void
 MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 {
+    // todo: gpu
     if (m_coarsening_strategy != CoarseningStrategy::Sigma) return;
 
     const int nsigma = (m_use_harmonic_average) ? AMREX_SPACEDIM : 1;
@@ -847,6 +864,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 void
 MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::FillBoundaryCoeff()");
 
     sigma.FillBoundary(geom.periodicity());
@@ -873,6 +891,7 @@ MLNodeLaplacian::FillBoundaryCoeff (MultiFab& sigma, const Geometry& geom)
 void
 MLNodeLaplacian::buildMasks ()
 {
+    // todo: gpu
     if (m_masks_built) return;
 
     BL_PROFILE("MLNodeLaplacian::buildMasks()");
@@ -1072,6 +1091,7 @@ MLNodeLaplacian::buildMasks ()
 void
 MLNodeLaplacian::buildStencil ()
 {
+    // todo:gpu
     m_stencil.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -1244,6 +1264,7 @@ MLNodeLaplacian::buildStencil ()
 void
 MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
 {
+    // todo: gpu
     if (!m_masks_built) buildMasks();
 
     const iMultiFab& cfmask = *m_nd_fine_mask[amrlev];
@@ -1265,9 +1286,6 @@ MLNodeLaplacian::prepareForSolve ()
 {
     BL_PROFILE("MLNodeLaplacian::prepareForSolve()");
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_amr_levels == 1 || m_coarsening_strategy != CoarseningStrategy::RAP,
-                                     "MLNodeLaplacian::prepareForSolve RAP TODO");
-
     MLNodeLinOp::prepareForSolve();
 
     buildMasks();
@@ -1288,11 +1306,10 @@ MLNodeLaplacian::prepareForSolve ()
 void
 MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::restriction()");
 
     applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
-
-    const Box& nd_domain = amrex::surroundingNodes(m_geom[amrlev][cmglev].Domain());
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
     MultiFab cfine;
@@ -1317,9 +1334,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
             amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
                                       BL_TO_FORTRAN_ANYD((*pcrse)[mfi]),
                                       BL_TO_FORTRAN_ANYD(fine[mfi]),
-                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]),
-                                      BL_TO_FORTRAN_BOX(nd_domain),
-                                      m_lobc.data(), m_hibc.data());
+                                      BL_TO_FORTRAN_ANYD(dmsk[mfi]));
         }
         else
         {
@@ -1339,6 +1354,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
 void
 MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::interpolation()");
 
     const auto& sigma = m_sigma[amrlev][fmglev];
@@ -1427,6 +1443,7 @@ MLNodeLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiF
 void
 MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a_frhs) const
 {
+    // todo: gpu
     const BoxArray& fba = a_frhs.boxArray();
     const DistributionMapping& fdm = a_frhs.DistributionMap();
 
@@ -1445,9 +1462,9 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     const Geometry& cgeom = m_geom[camrlev  ][0];
     const Box& c_cc_domain = cgeom.Domain();
-    const Box& c_nd_domain = amrex::surroundingNodes(c_cc_domain);
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[camrlev+1][0];
+    const auto& stencil    =  m_stencil[camrlev+1][0];
 
     MultiFab cfine(amrex::coarsen(fba, 2), fdm, 1, 0);
 
@@ -1459,12 +1476,18 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
     for (MFIter mfi(cfine, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD(cfine[mfi]),
-                                  BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                  BL_TO_FORTRAN_BOX(c_nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                      BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        } else {
+            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(cfine[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*frhs)[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        }
     }
 
     MultiFab tmp_crhs(crhs.boxArray(), crhs.DistributionMap(), 1, 0);
@@ -1498,6 +1521,7 @@ void
 MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/, StateMode,
                           bool skip_fillboundary) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::applyBC()");
 
     const Geometry& geom = m_geom[amrlev][mglev];
@@ -1506,8 +1530,6 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
     if (!skip_fillboundary) {
         phi.FillBoundary(geom.periodicity());
     }
-
-//    int inhom = (bc_mode == BCMode::Inhomogeneous);
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
@@ -1529,6 +1551,7 @@ MLNodeLaplacian::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode
 void
 MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::Fapply()");
 
     const auto& sigma = m_sigma[amrlev][mglev];
@@ -1589,6 +1612,7 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 void
 MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::Fsmooth()");
 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
@@ -1738,6 +1762,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
 void
 MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::normalize()");
 
     const auto& sigma = m_sigma[amrlev][mglev];
@@ -1791,6 +1816,7 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                                          const MultiFab& vold, const MultiFab* rhcc,
                                          const BoxArray& fine_grids, const IntVect& ref_ratio)
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::SyncResCrse()");
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
@@ -1973,6 +1999,7 @@ void
 MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
                                        const MultiFab* rhcc)
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::SyncResFine()");
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coarsening_strategy != CoarseningStrategy::RAP,
@@ -2080,6 +2107,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                          MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
                          MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const
 {
+    // todo: gpu
     BL_PROFILE("MLNodeLaplacian::reflux()");
 
     const Geometry& cgeom = m_geom[crse_amrlev  ][0];
@@ -2093,6 +2121,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const DistributionMapping& fdm = fine_sol.DistributionMap();
 
     const iMultiFab& fdmsk = *m_dirichlet_mask[crse_amrlev+1][0];
+    const auto& stencil    =  m_stencil[crse_amrlev+1][0];
 
     MultiFab fine_res_for_coarse(amrex::coarsen(fba, 2), fdm, 1, 0);
 
@@ -2104,12 +2133,18 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     for (MFIter mfi(fine_res_for_coarse, true); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
-                                  BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fine_res[mfi]),
-                                  BL_TO_FORTRAN_ANYD(fdmsk[mfi]),
-                                  BL_TO_FORTRAN_BOX(c_nd_domain),
-                                  m_lobc.data(), m_hibc.data());
+        if (m_coarsening_strategy == CoarseningStrategy::Sigma) {
+            amrex_mlndlap_restriction(BL_TO_FORTRAN_BOX(bx),
+                                      BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                      BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        } else {
+            amrex_mlndlap_restriction_rap(BL_TO_FORTRAN_BOX(bx),
+                                          BL_TO_FORTRAN_ANYD(fine_res_for_coarse[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fine_res[mfi]),
+                                          BL_TO_FORTRAN_ANYD((*stencil)[mfi]),
+                                          BL_TO_FORTRAN_ANYD(fdmsk[mfi]));
+        }
     }
     res.ParallelCopy(fine_res_for_coarse, cgeom.periodicity());
 
@@ -2190,12 +2225,17 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                                          m_lobc.data(), m_hibc.data());
         }
     }
+#if AMREX_USE_EB
+    // Make sure to zero out the residual on any nodes completely surrounded by covered cells
+    amrex::EB_set_covered(res,0.0);
+#endif
 }
 
 #ifdef AMREX_USE_EB
 void
 MLNodeLaplacian::buildIntegral ()
 {
+    // todo: gpu
     if (m_integral_built) return;
 
     BL_PROFILE("MLNodeLaplacian::buildIntegral()");

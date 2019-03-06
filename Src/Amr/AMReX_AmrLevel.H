@@ -385,21 +385,21 @@ public:
     virtual void particle_redistribute (int lbase = 0, bool a_init = false) {;}
 #endif
 
-    static void FillPatch(AmrLevel& amrlevel,
-			  MultiFab& leveldata,
-			  int       boxGrow,
-			  Real      time,
-			  int       index,
-			  int       scomp,
-			  int       ncomp,
-	                  int       dcomp=0);
+    static void FillPatch (AmrLevel& amrlevel,
+                           MultiFab& leveldata,
+                           int       boxGrow,
+                           Real      time,
+                           int       index,
+                           int       scomp,
+                           int       ncomp,
+                           int       dcomp=0);
 
-    static void FillPatchAdd(AmrLevel& amrlevel,
-                             MultiFab& leveldata,
-                             int       boxGrow,
-                             Real      time,
-                             int       index,
-                             int       scomp,
+    static void FillPatchAdd (AmrLevel& amrlevel,
+                              MultiFab& leveldata,
+                              int       boxGrow,
+                              Real      time,
+                              int       index,
+                              int       scomp,
                              int       ncomp,
                              int       dcomp=0);
     

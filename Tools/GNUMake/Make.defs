@@ -83,6 +83,12 @@ else
   USE_ASSERTION := FALSE
 endif
 
+ifdef BOUND_CHECK
+  BOUND_CHECK := $(strip $(BOUND_CHECK))
+else
+  BOUND_CHECK := FALSE
+endif
+
 ifdef BACKTRACE
   BACKTRACE := $(strip $(BACKTRACE))
 else
@@ -123,6 +129,10 @@ ifeq ($(USE_PMI), TRUE)
   DEFINES += -DAMREX_PMI
 endif
 
+ifeq ($(USE_OMP_OFFLOAD), TRUE)
+  DEFINES += -DAMREX_OMP_OFFLOAD
+endif
+
 ifdef USE_UPCXX
   USE_UPCXX := $(strip $(USE_UPCXX))
 else
@@ -152,10 +162,6 @@ ifdef USE_CUDA_FAST_MATH
   USE_CUDA_FAST_MATH := $(strip $(USE_CUDA_FAST_MATH))
 else
   USE_CUDA_FAST_MATH := TRUE
-endif
-
-ifndef NO_DEVICE_LAUNCH
-  NO_DEVICE_LAUNCH = FALSE
 endif
 
 ifeq ($(USE_CUDA),TRUE)
@@ -193,6 +199,12 @@ else
   EBASE := main
 endif
 
+ifdef USE_FORCE_INLINE
+  USE_FORCE_INLINE := $(strip $(USE_FORCE_INLINE))
+else
+  USE_FORCE_INLINE := FALSE
+endif
+
 ifdef USE_GPU_PRAGMA
   USE_GPU_PRAGMA := $(strip $(USE_GPU_PRAGMA))
 else
@@ -208,6 +220,12 @@ ifdef GPU_ERROR_CHECK
 else
   GPU_ERROR_CHECK := TRUE
 endif 
+
+ifdef FAB_IS_PINNED
+  FAB_IS_PINNED := $(strip $(FAB_IS_PINNED))
+else
+  FAB_IS_PINNED := FALSE
+endif
 
 SKIP_LINKING ?= FALSE
 USE_COMPILE_PIC ?= FALSE
@@ -370,7 +388,9 @@ else
 endif
 
 ifdef CRAY_CPU_TARGET
+ifneq ($(USE_CUDA),TRUE)
     archSuffix += .$(strip $(CRAY_CPU_TARGET))
+endif
 endif
 
 ifeq ($(LAZY),TRUE)
@@ -418,6 +438,10 @@ ifeq ($(USE_OMP),TRUE)
     CPPFLAGS	+= -DBL_USE_OMP -DAMREX_USE_OMP
 else
     OMPSuffix	:=
+endif
+
+ifeq ($(USE_FORCE_INLINE),TRUE)
+    CPPFLAGS += -DAMREX_USE_FORCE_INLINE
 endif
 
 USE_GPU := FALSE
@@ -475,9 +499,13 @@ ifeq ($(USE_CUDA),TRUE)
         DEFINES += -DAMREX_USE_GPU_PRAGMA
     endif
 
+    ifeq ($(FAB_IS_PINNED),TRUE)
+        DEFINES += -DAMREX_FAB_IS_PINNED
+    endif
+
     CUDASuffix := .CUDA
 
-    ifneq ($(NO_DEVICE_LAUNCH),TRUE)
+    ifeq ($(lowercase_comp),$(filter $(lowercase_comp),ibm pgi))
       DEFINES += -DAMREX_LAUNCH='attributes(global)'
       DEFINES += -DAMREX_DEVICE='attributes(device)'
       DEFINES += -DAMREX_CUDA_FORT_GLOBAL='attributes(global)'
@@ -489,7 +517,6 @@ ifeq ($(USE_CUDA),TRUE)
       DEFINES += -DAMREX_CUDA_FORT_GLOBAL=""
       DEFINES += -DAMREX_CUDA_FORT_DEVICE=""
       DEFINES += -DAMREX_CUDA_FORT_HOST=""
-      DEFINES += -DAMREX_NO_DEVICE_LAUNCH
     endif
 
 else
@@ -576,6 +603,10 @@ else
 ifeq ($(USE_ASSERTION),TRUE)
   DEFINES += -DBL_USE_ASSERTION -DAMREX_USE_ASSERTION
 endif
+endif
+
+ifeq ($(BOUND_CHECK),TRUE)
+  DEFINES += -DAMREX_BOUND_CHECK
 endif
 
 ifeq ($(USE_PARTICLES),TRUE)
@@ -731,6 +762,8 @@ ifeq ($(USE_CUDA),TRUE)
     else ifneq ($(SYSTEM_CUDA_PATH),)
         MAKE_CUDA_PATH := $(SYSTEM_CUDA_PATH)
     endif
+
+    LIBRARIES += -lcuda
 
     ifneq ($(MAKE_CUDA_PATH),)
         LIBRARY_LOCATIONS += $(MAKE_CUDA_PATH)/lib64

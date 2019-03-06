@@ -26,7 +26,7 @@ if sys.version[0] == "2":
 import os
 import re
 import argparse
-
+import shutil
 import find_files_vpath as ffv
 import preprocess
 
@@ -83,7 +83,7 @@ class CppFile(object):
 
 
 
-def find_targets_from_pragmas(cxx_files, macro_list):
+def find_targets_from_pragmas(outdir, cxx_files, macro_list, cpp):
     """read through the C++ files and look for the functions marked with
     #pragma gpu -- these are the routines we intend to offload (the targets),
     so make a list of them"""
@@ -93,11 +93,56 @@ def find_targets_from_pragmas(cxx_files, macro_list):
     for c in cxx_files:
         cxx = "/".join([c[1], c[0]])
 
-        # open the original C++ file
+        # Make a temporary copy of the original C++ file,
+        # and do a bit of manual preprocessing. We want to
+        # preprocess out all of the -D defines, but keep
+        # things like BL_TO_FORTRAN_ANYD. A trick to do this
+        # is to manually go through and remove all of the #include
+        # statements, so that the file doesn't know how to replace
+        # those macros, and then run it through cpp to remove
+        # everything else not defined with -D.
+
+        temp_cxx = "/".join([outdir, "temp-" + c[0]])
+        shutil.copyfile(cxx, temp_cxx)
+
+        noinclude_cxx = "/".join([outdir, "temp-noinclude-" + c[0]])
+
         try:
-            hin = open(cxx, "r")
+            hin = open(temp_cxx, "r")
         except IOError:
-            sys.exit("Cannot open header {}".format(cxx))
+            sys.exit("Cannot open temporary C++ file {}".format(temp_cxx))
+
+        try:
+            hout = open(noinclude_cxx, "w")
+        except IOError:
+            sys.exit("Cannot open temporary C++ file {}".format(noinclude_cxx))
+
+        line = hin.readline()
+        while line:
+            if not ("#" in line and "include" in line):
+                hout.write(line)
+            line = hin.readline()
+
+        hin.close()
+        hout.close()
+        os.remove(temp_cxx)
+
+        # Now run the noinclude file through cpp.
+
+        cppf = CppFile(noinclude_cxx)
+
+        # preprocess -- this will create a new file in our temp_dir that
+        # was run through cpp and has the name CPP-filename
+        cpp.preprocess(cppf, add_name="CPP")
+        preprocessed_cxx = "/".join([outdir, "CPP-temp-noinclude-" + c[0]])
+
+        os.remove(noinclude_cxx)
+
+        # Now re-open the preprocessed C++ file as input
+        try:
+            hin = open(preprocessed_cxx, "r")
+        except IOError:
+            sys.exit("Cannot open temporary C++ file {}".format(preprocessed_cxx))
 
         # look for the appropriate pragma, and once found, capture the
         # function call following it
@@ -169,6 +214,8 @@ def find_targets_from_pragmas(cxx_files, macro_list):
                             i += 1
 
             line = hin.readline()
+
+        os.remove(preprocessed_cxx)
 
     return targets
 
@@ -659,7 +706,7 @@ if __name__ == "__main__":
     macro_list = ['AMREX_INT_ANYD', 'AMREX_REAL_ANYD', 'BL_TO_FORTRAN_ANYD', 'BL_TO_FORTRAN_N_ANYD', 'BL_TO_FORTRAN_BOX', 'BL_TO_FORTRAN_FAB']
 
     # look through the C++ for routines launched with #pragma gpu
-    targets = find_targets_from_pragmas(cxx, macro_list)
+    targets = find_targets_from_pragmas(args.output_dir, cxx, macro_list, cpp_pass)
 
     # copy the headers to the output directory, replacing the
     # signatures of the target Fortran routines with the CUDA pair

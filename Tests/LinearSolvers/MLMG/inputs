@@ -26,3 +26,10 @@ max_fmg_iter = 0     # # of F-cycles before switching to V.  To do pure V-cycle,
 linop_maxorder = 2
 agglomeration = 1    # Do agglomeration on AMR Level 0?
 consolidation = 1    # Do consolidation?
+
+mg.verbose_linop = 1
+mg.comm_cache = 1
+mg.consolidation_ratio = 2
+mg.mota = 0
+mg.remap_nbh_lb = 1
+machine.verbose = 1

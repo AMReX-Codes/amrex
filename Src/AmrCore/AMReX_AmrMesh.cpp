@@ -62,6 +62,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
     refine_grid_layout     = true;
     check_input            = true;
 
+    use_new_chop         = false;
+    iterate_on_new_grids = true;
+
     ParmParse pp("amr");
 
     pp.query("v",verbose);
@@ -636,7 +639,12 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
             // Construct initial cluster.
             //
             ClusterList clist(&tagvec[0], tagvec.size());
-            clist.chop(grid_eff);
+            if (use_new_chop)
+            {
+               clist.new_chop(grid_eff);
+            } else {
+               clist.chop(grid_eff);
+            }
             BoxDomain bd;
             bd.add(p_n[levc]);
             clist.intersect(bd);
@@ -740,31 +748,34 @@ AmrMesh::MakeNewGrids (Real time)
 	while (finest_level < max_level);
 
 	// Iterate grids to ensure fine grids encompass all interesting junk.
-	for (int it=0; it<4; ++it)  // try at most 4 times
+        if (iterate_on_new_grids)
 	{
-	    for (int i = 1; i <= finest_level; ++i) {
-		new_grids[i] = grids[i];
+	    for (int it=0; it<4; ++it)  // try at most 4 times
+    	    {
+	        for (int i = 1; i <= finest_level; ++i) {
+		    new_grids[i] = grids[i];
+	        }
+
+	        int new_finest;
+	        MakeNewGrids(0, time, new_finest, new_grids);
+
+	        if (new_finest < finest_level) break;
+	        finest_level = new_finest;
+
+	        bool grids_the_same = true;
+	        for (int lev = 1; lev <= new_finest; ++lev) {
+		    if (new_grids[lev] != grids[lev]) {
+		        grids_the_same = false;
+		        DistributionMapping dm(new_grids[lev]);
+
+                        MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
+
+		        SetBoxArray(lev, new_grids[lev]);
+		        SetDistributionMap(lev, dm);
+		    }
+	        }
+	        if (grids_the_same) break;
 	    }
-
-	    int new_finest;
-	    MakeNewGrids(0, time, new_finest, new_grids);
-
-	    if (new_finest < finest_level) break;
-	    finest_level = new_finest;
-
-	    bool grids_the_same = true;
-	    for (int lev = 1; lev <= new_finest; ++lev) {
-		if (new_grids[lev] != grids[lev]) {
-		    grids_the_same = false;
-		    DistributionMapping dm(new_grids[lev]);
-
-                    MakeNewLevelFromScratch(lev, time, new_grids[lev], dm);
-
-		    SetBoxArray(lev, new_grids[lev]);
-		    SetDistributionMap(lev, dm);
-		}
-	    }
-	    if (grids_the_same) break;
 	}
     }
 }

@@ -7,6 +7,7 @@
 #include <new>
 #include <stack>
 #include <limits>
+#include <vector>
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
@@ -19,6 +20,8 @@
 #include <AMReX_Arena.H>
 
 #include <AMReX_Gpu.H>
+
+#include <AMReX_Machine.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
@@ -37,9 +40,6 @@
 
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
-#ifdef BL_USE_F_BASELIB
-#include <MemProfiler_f.H>
-#endif
 #endif
 
 #ifdef _OPENMP
@@ -48,13 +48,6 @@
 
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
-
-#if defined(BL_USE_FORTRAN_MPI)
-extern "C" {
-    void bl_fortran_mpi_comm_init (int fcomm);
-    void bl_fortran_mpi_comm_free ();
-}
-#endif
 
 namespace amrex {
 namespace system
@@ -69,6 +62,11 @@ namespace system
     std::ostream* oserr = &std::cerr;
     ErrorHandler error_handler = nullptr;
 }
+}
+
+namespace {
+    std::string command_line;
+    std::vector<std::string> command_arguments;
 }
 
 namespace {
@@ -166,68 +164,6 @@ void
 amrex::Error (const std::string& msg)
 {
     Error(msg.c_str());
-}
-
-namespace
-{
-  const int EOS = -1;
-
-  std::string
-  Trim (const std::string& str)
-  {
-    int n;
-    for ( n = str.size(); --n >= 0; )
-      {
-	if ( str[n] != ' ' ) break;
-      }
-    std::string result;
-    for (int i = 0; i <= n; ++i )
-      {
-	result += str[i];
-      }
-    return result;
-  }
-
-  std::string
-  Fint_2_string (const int* iarr, int nlen)
-  {
-    std::string res;
-    for ( int i = 0; i < nlen && *iarr != EOS; ++i )
-      {
-	res += *iarr++;
-      }
-    return Trim(res);
-  }
-}
-
-BL_FORT_PROC_DECL(BL_ERROR_CPP,bl_error_cpp)
-  (
-   const int istr[], const int* NSTR
-   )
-{
-  std::string res = "FORTRAN:";
-  res += Fint_2_string(istr, *NSTR);
-  amrex::Error(res.c_str());
-}
-
-BL_FORT_PROC_DECL(BL_WARNING_CPP,bl_warning_cpp)
-  (
-   const int istr[], const int* NSTR
-   )
-{
-  std::string res = "FORTRAN:";
-  res += Fint_2_string(istr, *NSTR);
-  amrex::Warning(res.c_str());
-}
-
-BL_FORT_PROC_DECL(BL_ABORT_CPP,bl_abort_cpp)
-  (
-   const int istr[], const int* NSTR
-   )
-{
-  std::string res = "FORTRAN:";
-  res += Fint_2_string(istr, *NSTR);
-  amrex::Abort(res.c_str());
 }
 
 void
@@ -390,6 +326,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     //
     prev_new_handler = std::set_new_handler(amrex::OutOfMemory);
 
+    command_line.clear();
+    command_arguments.clear();
+
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
@@ -403,6 +342,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             system::exename += "/";
         }
         system::exename += argv[0];
+
+        for (int i = 0; i < argc; ++i) {
+            if (i != 0) command_line.append(" ");
+            command_line.append(argv[i]);
+            command_arguments.push_back(std::string(argv[i]));
+        }
     }
 
 #if defined(PERILLA_USE_UPCXX) || defined(AMREX_USE_UPCXX)
@@ -507,12 +452,12 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         }
     }
 
+    ParallelDescriptor::Initialize();
+
     //
     // Initialize random seed after we're running in parallel.
     //
     amrex::InitRandom(ParallelDescriptor::MyProc()+1, ParallelDescriptor::NProcs());
-
-    ParallelDescriptor::StartTeams();
 
     Arena::Initialize();
     amrex_mempool_init();
@@ -533,6 +478,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
     BL_PROFILE_INITPARAMS();
 #endif
+    machine::Initialize();
 
     if (double(std::numeric_limits<long>::max()) < 9.e18)
     {
@@ -542,15 +488,6 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                            << ", might be too small for big runs.\n!\n";
         }
     }
-
-#if defined(BL_USE_FORTRAN_MPI)
-    int fcomm = MPI_Comm_c2f(ParallelDescriptor::Communicator());
-    bl_fortran_mpi_comm_init (fcomm);
-#endif
-
-#if defined(BL_MEM_PROFILING) && defined(BL_USE_F_BASELIB)
-    MemProfiler_f::initialize();
-#endif
 
     if (system::verbose > 0)
     {
@@ -569,11 +506,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
         amrex::Print() << "AMReX (" << amrex::Version() << ") initialized" << std::endl;
     }
+
+    BL_TINY_PROFILE_INITIALIZE();
 }
 
 void
 amrex::Finalize (bool finalize_parallel)
 {
+    BL_TINY_PROFILE_FINALIZE();
     BL_PROFILE_FINALIZE();
 
 #ifdef BL_LAZY
@@ -630,8 +570,6 @@ amrex::Finalize (bool finalize_parallel)
     amrex_mempool_finalize();
     Arena::Finalize();
 
-    ParallelDescriptor::EndTeams();
-
 #ifndef BL_AMRPROF
     if (system::signal_handling)
     {
@@ -667,9 +605,6 @@ amrex::Finalize (bool finalize_parallel)
     bool is_ioproc = ParallelDescriptor::IOProcessor();
 
     if (finalize_parallel) {
-#if defined(BL_USE_FORTRAN_MPI)
-	bl_fortran_mpi_comm_free();
-#endif
     /* Don't shut down MPI if GASNet is still using MPI */
 #ifndef GASNET_CONDUIT_MPI
         ParallelDescriptor::EndParallel();
@@ -691,4 +626,26 @@ std::ostream&
 amrex::ErrorStream ()
 {
     return *system::oserr;
+}
+
+std::string
+amrex::get_command ()
+{
+    return command_line;
+}
+
+int
+amrex::command_argument_count ()
+{
+    return command_arguments.size()-1;
+}
+
+std::string
+amrex::get_command_argument (int number)
+{
+    if (number < static_cast<int>(command_arguments.size())) {
+        return command_arguments[number];
+    } else {
+        return std::string();
+    }
 }

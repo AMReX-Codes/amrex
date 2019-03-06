@@ -14,10 +14,10 @@ class RotationIF
 {
 public:
 
-    RotationIF (F&& a_f, const Real& angle, const int dir)
+    RotationIF (F&& a_f, const Real angle, const int dir)
         : m_f(std::move(a_f)), m_angle(angle), m_dir(dir)
         {}
-    RotationIF (F const& a_f, const Real& angle, const int dir)
+    RotationIF (F const& a_f, const Real angle, const int dir)
         : m_f(a_f), m_angle(angle), m_dir(dir)
         {}
 
@@ -69,7 +69,7 @@ protected:
 
 template <class F>
 constexpr RotationIF<typename std::decay<F>::type>
-rotate (F&&f, const Real& angle, const int dir)
+rotate (F&&f, const Real angle, const int dir)
 {
     return RotationIF<typename std::decay<F>::type>(std::forward<F>(f),angle, dir);
 }

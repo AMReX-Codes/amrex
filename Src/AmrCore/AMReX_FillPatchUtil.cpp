@@ -54,7 +54,7 @@ namespace amrex
 
 	if (smf.size() == 1)
 	{
-	    mf.copy(*smf[0], scomp, dcomp, ncomp, 0, mf.nGrow(), geom.periodicity());
+	    mf.ParallelCopy(*smf[0], scomp, dcomp, ncomp, IntVect{0}, mf.nGrowVect(), geom.periodicity());
 	}
 	else if (smf.size() == 2)
 	{
@@ -77,21 +77,34 @@ namespace amrex
 	    }
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-	    for (MFIter mfi(*dmf,true); mfi.isValid(); ++mfi)
+	    for (MFIter mfi(*dmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	    {
 		const Box& bx = mfi.tilebox();
-		(*dmf)[mfi].linInterp((*smf[0])[mfi],
-				      scomp,
-				      (*smf[1])[mfi],
-				      scomp,
-				      stime[0],
-				      stime[1],
-				      time,
-				      bx,
-				      destcomp,
-				      ncomp);
+                const Real t0 = stime[0];
+                const Real t1 = stime[1];
+                auto const sfab0 = smf[0]->array(mfi);
+                auto const sfab1 = smf[1]->array(mfi);
+                auto       dfab  = dmf->array(mfi);
+
+                if (std::abs(t1-t0) > 1.e-16)
+                {
+                    Real alpha = (t1-time)/(t1-t0);
+                    Real beta = (time-t0)/(t1-t0);
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n+destcomp) = alpha*sfab0(i,j,k,n+scomp)
+                            +                     beta*sfab1(i,j,k,n+scomp);
+                    });
+                }
+                else
+                {
+                    AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
+                    {
+                        dfab(i,j,k,n+destcomp) = sfab0(i,j,k,n+scomp);
+                    });
+                }
 	    }
 
 	    if (sameba)
@@ -102,10 +115,10 @@ namespace amrex
 	    }
 	    else
 	    {
-		int src_ngrow = 0;
-		int dst_ngrow = mf.nGrow();
+		IntVect src_ngrow = IntVect::TheZeroVector();
+		IntVect dst_ngrow = mf.nGrowVect();
 
-		mf.copy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
+		mf.ParallelCopy(*dmf, 0, dcomp, ncomp, src_ngrow, dst_ngrow, geom.periodicity());
 	    }
 	}
 	else {
@@ -130,9 +143,9 @@ namespace amrex
     {
 	BL_PROFILE("FillPatchTwoLevels");
 
-	int ngrow = mf.nGrow();
+	const IntVect& ngrow = mf.nGrowVect();
 
-	if (ngrow > 0 || mf.getBDKey() != fmf[0]->getBDKey())
+	if (ngrow.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey())
 	{
 	    const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
@@ -141,12 +154,12 @@ namespace amrex
 	    Box fdomain_g(fdomain);
 	    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 		if (fgeom.isPeriodic(i)) {
-		    fdomain_g.grow(i,ngrow);
+		    fdomain_g.grow(i,ngrow[i]);
 		}
 	    }
 
 	    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf, fdomain_g,
-                                                                      IntVect(ngrow),
+                                                                      ngrow,
                                                                       coarsener,
                                                                       amrex::coarsen(fgeom.Domain(),ratio));
 
@@ -163,7 +176,7 @@ namespace amrex
 		bool cc = fpc.ba_crse_patch.ixType().cellCentered();
                 ignore_unused(cc);
 #ifdef _OPENMP
-#pragma omp parallel if (cc)
+#pragma omp parallel if (cc && Gpu::notInLaunchRegion())
 #endif
                 {
                     Vector<BCRec> bcr(ncomp);
@@ -173,15 +186,17 @@ namespace amrex
                         int li = mfi.LocalIndex();
                         int gi = fpc.dst_idxs[li];
                         FArrayBox& dfab = mf[gi];
-                        const Box& dbx = fpc.dst_boxes[li];
+                        const Box& dbx = fpc.dst_boxes[li] & dfab.box();
 
                         amrex::setBC(dbx,fdomain,bcscomp,0,ncomp,bcs,bcr);
 
                         pre_interp(sfab, sfab.box(), 0, ncomp);
-
-                        mapper->interp(sfab,
+                        
+                        FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
+                        FArrayBox* dfabp = mf.fabPtr(gi);
+                        mapper->interp(*sfabp,
                                        0,
-                                       dfab,
+                                       *dfabp,
                                        dcomp,
                                        ncomp,
                                        dbx,
@@ -215,7 +230,7 @@ namespace amrex
 
 	const BoxArray& ba = mf.boxArray();
 	const DistributionMapping& dm = mf.DistributionMap();
-	int ngrow = mf.nGrow();
+	const IntVect& ngrow = mf.nGrowVect();
 
 	const IndexType& typ = ba.ixType();
 
@@ -227,7 +242,7 @@ namespace amrex
 	Box fdomain_g(fdomain);
 	for (int i = 0; i < AMREX_SPACEDIM; ++i) {
 	    if (fgeom.isPeriodic(i)) {
-		fdomain_g.grow(i,ngrow);
+		fdomain_g.grow(i,ngrow[i]);
 	    }
 	}
 
@@ -257,7 +272,7 @@ namespace amrex
 	int idummy1=0, idummy2=0;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
 	    Vector<BCRec> bcr(ncomp);
@@ -272,9 +287,11 @@ namespace amrex
 
                 pre_interp(sfab, sfab.box(), 0, ncomp);
 
-                mapper->interp(sfab,
+                FArrayBox const* sfabp = mf_crse_patch.fabPtr(mfi);
+                FArrayBox* dfabp = mf.fabPtr(mfi);
+                mapper->interp(*sfabp,
                                0,
-                               dfab,
+                               *dfabp,
                                dcomp,
                                ncomp,
                                dbx,
@@ -293,23 +310,35 @@ namespace amrex
 
     // B fields are assumed to be on staggered grids.
     void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
-                                     const std::array<MultiFab,AMREX_SPACEDIM>& crse,
-                                     std::array<MultiFab,AMREX_SPACEDIM>& fine,
+                                     const Array<MultiFab,AMREX_SPACEDIM>& crse,
+                                     Array<MultiFab,AMREX_SPACEDIM>& fine,
+                                     const Geometry& cgeom, const Geometry& fgeom,
+                                     int ref_ratio)
+    {
+        InterpCrseFineBndryEMfield(interp_type,
+                                   {AMREX_D_DECL(&crse[0],&crse[1],&crse[2])},
+                                   {AMREX_D_DECL(&fine[0],&fine[1],&fine[2])},
+                                   cgeom, fgeom, ref_ratio);
+    }
+
+    void InterpCrseFineBndryEMfield (InterpEM_t interp_type,
+                                     const Array<MultiFab const*,AMREX_SPACEDIM>& crse,
+                                     const Array<MultiFab*,AMREX_SPACEDIM>& fine,
                                      const Geometry& cgeom, const Geometry& fgeom,
                                      int ref_ratio)
     {
         BL_ASSERT(ref_ratio == 2);
 
-        int ngrow = fine[0].nGrow();
+        const IntVect& ngrow = fine[0]->nGrowVect();
         for (int idim = 1; idim < AMREX_SPACEDIM; ++idim) {
-            BL_ASSERT(ngrow == fine[idim].nGrow());
+            BL_ASSERT(ngrow == fine[idim]->nGrowVect());
         }
 
-        if (ngrow == 0) return;
+        if (ngrow.max() == 0) return;
 
         bool include_periodic = true;
         bool include_physbndry = false;
-        const auto& cfinfo = FabArrayBase::TheCFinfo(fine[0], fgeom, IntVect(ngrow),
+        const auto& cfinfo = FabArrayBase::TheCFinfo(*fine[0], fgeom, ngrow,
                                                      include_periodic, include_physbndry);
 
         if (! cfinfo.ba_cfb.empty())
@@ -317,7 +346,7 @@ namespace amrex
             std::array<MultiFab, AMREX_SPACEDIM> cmf;
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
             {
-                const BoxArray& fine_ba = fine[idim].boxArray();
+                const BoxArray& fine_ba = fine[idim]->boxArray();
                 BoxArray fba = cfinfo.ba_cfb;
                 fba.convert(fine_ba.ixType());
                 BoxArray cba = fba;
@@ -328,9 +357,9 @@ namespace amrex
                 amrex::Abort("InterpCrseFineBndryEMfield: EB is allowed");
 #endif
 
-                cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0].Factory());
+                cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0]->Factory());
 
-                cmf[idim].copy(crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
+                cmf[idim].copy(*crse[idim], 0, 0, 1, 0, 1, cgeom.periodicity());
             }
 
             const Real* dx = cgeom.CellSize();
@@ -338,7 +367,7 @@ namespace amrex
             const int use_limiter = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             {
                 std::array<FArrayBox,AMREX_SPACEDIM> bfab;
@@ -346,19 +375,19 @@ namespace amrex
                 {
                     const int fi = cfinfo.fine_grid_idx[mfi.LocalIndex()];
 
-                    Box ccbx = amrex::grow(fine[0].boxArray()[fi], ngrow);
+                    Box ccbx = amrex::grow(fine[0]->boxArray()[fi], ngrow);
                     ccbx.enclosedCells();
                     ccbx.coarsen(ref_ratio).refine(ref_ratio);  // so that ccbx is coarsenable
 
                     const FArrayBox& cxfab = cmf[0][mfi];
-                    bfab[0].resize(amrex::convert(ccbx,fine[0].ixType()));
+                    bfab[0].resize(amrex::convert(ccbx,fine[0]->ixType()));
 #if (AMREX_SPACEDIM > 1)
                     const FArrayBox& cyfab = cmf[1][mfi];
-                    bfab[1].resize(amrex::convert(ccbx,fine[1].ixType()));
+                    bfab[1].resize(amrex::convert(ccbx,fine[1]->ixType()));
 #endif
 #if (AMREX_SPACEDIM > 2)
                     const FArrayBox& czfab = cmf[2][mfi];
-                    bfab[2].resize(amrex::convert(ccbx,fine[2].ixType()));
+                    bfab[2].resize(amrex::convert(ccbx,fine[2]->ixType()));
 #endif
                     // interpolate from cmf to fmf
                     if (interp_type == InterpB)
@@ -390,12 +419,12 @@ namespace amrex
 
                     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                     {
-                        const BoxArray& fine_ba = fine[idim].boxArray();
+                        const BoxArray& fine_ba = fine[idim]->boxArray();
                         const Box& fine_valid_box = fine_ba[fi];
                         Box b = bfab[idim].box();
                         b &= fine_valid_box;
                         const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
-                        FArrayBox& fine_fab = fine[idim][fi];
+                        FArrayBox& fine_fab = (*fine[idim])[fi];
                         for (const auto& x : diff)
                         {
                             fine_fab.copy(bfab[idim], x, 0, x, 0, 1);

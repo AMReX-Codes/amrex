@@ -6,11 +6,11 @@
 
 namespace amrex {
 
-/*
+/**
 
-  A DivVis tailors the description of a linear operator to apply
+  \brief A DivVis tailors the description of a linear operator to apply
   the second-order central difference approximation to the differential
-  operator, alpha*a(x).u(x) - beta*div[tau(u(x))], on a cell-centered
+  operator, ``alpha*a(x).u(x) - beta*div[tau(u(x))]``, on a cell-centered
   MultiFab, u(x).  Here, alpha and beta are constants, a(x) is a
   cell-centered MultiFab, and b(x) is a vector of wall-centered
   MultiFabs, 1 per dimension.  u(x) can have multiple components, but
@@ -18,13 +18,13 @@ namespace amrex {
   together.
   tau is a three by three tensor
 
-  b(x)*(u_{i,j}+u_{j,i})
+  ``b(x)*(u_{i,j}+u_{j,i})``
 
   A DivVis tailors a LinOp (a virtual base class for general
   linear operators) to compute the second-order central difference
   approximation to the differential operator,
 
-  alpha*a(x).u(x) - beta*div[tau(u(x))]
+  ``alpha*a(x).u(x) - beta*div[tau(u(x))]``
 
   on a cell-centered
   MultiFab, u(x).  Here, alpha and beta are constants, a(x) is a
@@ -34,11 +34,11 @@ namespace amrex {
   together.
   Tau is the 3 by 3 tensor
 
-  b(x)*(u_{i,j}+u_{j,i})
+  ``b(x)*(u_{i,j}+u_{j,i})``
 
 
   This class provides the necessary
-  implementations for applying the operator, and for 
+  implementations for applying the operator, and for
   smoothing a guessed solution to the linear equation system,
   L(u(x)) = rhs (where rhs is another cell-centered MultiFab).  This
   class also provides access functions to set/control the coefficient
@@ -58,10 +58,10 @@ namespace amrex {
 
   Defaults are as follows for the coefficients:
 
-   alpha = 1.0
+   ``alpha = 1.0
    beta = 1.0
    a (MultiFab) = 0.0
-   b (MultiFab) = 1.0
+   b (MultiFab) = 1.0``
   */
 
 class DivVis
@@ -69,65 +69,99 @@ class DivVis
     public MCLinOp
 {
 public:
-    //
-    // Constructor for box array, boundary data and scalar mesh spacing.
-    //
+
+    /**
+    * \brief Constructor for box array, boundary data and scalar mesh spacing.
+    *
+    * \param bd
+    * \param _h
+    */
     DivVis (const BndryData& bd,
 	    Real             _h);
-    //
-    // Constructor for box array, boundary data and vector mesh spacing.
-    //
+
+    /**
+    * \brief Constructor for box array, boundary data and vector mesh spacing.
+    *
+    * \param bd
+    * \param _h
+    */
     DivVis (const BndryData& bd,
 	    const Real*      _h);
-    //
-    // The destructor.
-    //
+
+    /**
+    * \brief The destructor.
+    */
     virtual ~DivVis () override;
-    //
-    // Set scalar coefficients.
-    //
+
+    /**
+    * \brief Set scalar coefficients.
+    *
+    * \param _alpha
+    * \param _beta
+    */
     void setScalars (Real _alpha,
 		     Real _beta);
-    //
-    // Get scalar alpha coefficient.
-    //
+
+    /**
+    * \brief Get scalar alpha coefficient.
+    */
     Real get_alpha () const;
-    //
-    // Get scalar beta coefficient.
-    //
+
+    /**
+    * \brief Get scalar beta coefficient.
+    */
     Real get_beta () const;
-    //
-    // Return reference to "a" coefficients for base level.
-    //
+
+    /**
+    * \brief Return reference to "a" coefficients for base level.
+    *
+    * \param level
+    */
     const MultiFab& aCoefficients (int level = 0);
-    //
-    // Return reference to "b" coefficients for base level.
-    //
+
+    /**
+    * \brief Return reference to "b" coefficients for base level.
+    *
+    * \param dir
+    * \param level
+    */
     const MultiFab& bCoefficients (int dir,
 				   int level = 0);
-    //
-    // Copy _a into "a" coeffs for base level.
-    //
+
+    /**
+    * \brief Copy _a into "a" coeffs for base level.
+    *
+    * \param _a
+    */
     void aCoefficients (const MultiFab& _a);
-    //
-    // Zero out the "a" coeffs for base level.
-    //
+
+    /**
+    * \brief Zero out the "a" coeffs for base level.
+    */
     void ZeroACoefficients ();
-    //
-    // Copy _b into "b" coeffs in "dir" coordinate direction for base level.
-    //
+
+    /**
+    * \brief Copy _b into "b" coeffs in "dir" coordinate direction for base level.
+    *
+    * \param _b
+    * \param dir
+    */
     void bCoefficients (const MultiFab& _b,
 			int             dir);
-    //
-    // copy _b into "b" coeffs in "dir" coordinate direction for base level
-    // at supplied gridno
-    //
+
+    /**
+    * \brief copy _b into "b" coeffs in "dir" coordinate direction for base level
+    * at supplied gridno
+    *
+    * \param _b
+    * \param dir
+    * \param gridno
+    */
     void bCoefficients (const FArrayBox& _b,
                         int              dir,
                         int              gridno);
-    //
-    // Alternative (older) version of above members.
-    //
+
+    //! Alternative (older) version of above members.
     void setCoefficients (const MultiFab &_a,
 			  const MultiFab &_bX,
 			  const MultiFab &_bY
@@ -135,114 +169,141 @@ public:
 			  ,const MultiFab &_bZ
 #endif
 	);
-    //
-    // Collective version of above members (taking an array of MultiFabs for "b").
-    //
+
+    /**
+    * \brief Collective version of above members (taking an array of MultiFabs for "b").
+    *
+    * \param _a
+    * \param _b
+    */
     void setCoefficients (const MultiFab& _a,
 			  const MultiFab* _b);
-    //
-    // Allocate/fill internal data for new level.
-    //
+
+    /**
+    * \brief Allocate/fill internal data for new level.
+    *
+    * \param level
+    */
     virtual void prepareForLevel (int level) override;
-    //
-    // Remove internal data for this level and all levels above.
-    //
+
+    /**
+    * \brief Remove internal data for this level and all levels above.
+    *
+    * \param level
+    */
     virtual void clearToLevel (int level) override;
-    //
-    // Set flags so that a coeffs at lev and coarser require recalculation.
-    //
+
+    /**
+    * \brief Set flags so that a coeffs at lev and coarser require recalculation.
+    *
+    * \param lev
+    */
     void invalidate_a_to_level (int lev);
-    //
-    // Set flags so that b coeffs at lev and coarser require recalculation.
-    //
+
+    /**
+    * \brief Set flags so that b coeffs at lev and coarser require recalculation.
+    *
+    * \param lev
+    */
     void invalidate_b_to_level (int lev);
-    //
-    // Computes flux associated with operator.
-    //
-    void compFlux (MultiFab &xflux, 
-		   MultiFab &yflux, 
+
+    //! Computes flux associated with operator.
+    void compFlux (MultiFab &xflux,
+		   MultiFab &yflux,
 #if BL_SPACEDIM>2
-		   MultiFab &zflux, 
+		   MultiFab &zflux,
 #endif
-		   MultiFab& in); 
-    
+		   MultiFab& in);
+
 protected:
-    //
-    // Initialize a full set (a,b) of coefficients on the box array.
-    //
+
+    /**
+    * \brief Initialize a full set (a,b) of coefficients on the box array.
+    *
+    * \param &_ba
+    * \param _dm
+    */
     void initCoefficients (const BoxArray &_ba, const DistributionMapping& _dm);
-    //
-    // Compute out=L (in) at level=level.
-    //
+
+    /**
+    * \brief Compute out=L (in) at level=level.
+    *
+    * \param out
+    * \param in
+    * \param level
+    */
     virtual void Fapply (MultiFab&       out,
 			 const MultiFab& in,
 			 int             level) override;
-    //
-    // Apply smoother to improve residual to L(solnL)=rhsL.
-    //
+
+    /**
+    * \brief Apply smoother to improve residual to L(solnL)=rhsL.
+    *
+    * \param solnL
+    * \param rhsL
+    * \param level
+    * \param phaseflag
+    */
     virtual void Fsmooth (MultiFab&       solnL,
 			  const MultiFab& rhsL,
 			  int             level,
 			  int             phaseflag) override;
-    //
-    // Return number of components.  This is virtual since only the derived knows.
-    //
+
+    /**
+    * \brief Return number of components.  This is virtual since only the derived knows.
+    */
     virtual int numberComponents () override;
-    //
-    // Number of relaxation phases.  On derived class knows.
-    //
+
+    /**
+    * \brief Number of relaxation phases.  On derived class knows.
+    */
     virtual int numberPhases () override;
-    //
-    // Helper function for object construction.
-    //
+
+    /**
+    * \brief Helper function for object construction.
+    *
+    * \param _h
+    */
     void initConstruct (const Real* _h);
 
 protected:
-    //
-    // Array (on level) of "a" coefficients
-    //
+
+    //! Array (on level) of "a" coefficients
     Vector< MultiFab* > acoefs;
-    //
-    // Array (on level) of Tuple (on dimension) of "b" coefficients
-    //
+
+    //! Array (on level) of Tuple (on dimension) of "b" coefficients
     Vector< Tuple< MultiFab*, BL_SPACEDIM> > bcoefs;
-    //
-    // Scalar "alpha" coefficient
-    //
+
+    //! Scalar "alpha" coefficient
     Real alpha;
-    //
-    // Scalar "beta" coefficient
-    //
+
+    //! Scalar "beta" coefficient
     Real beta;
 
 private:
-    //
-    // Flag, can a coeffs be trusted at a level.
-    //
+
+    //! Flag, can a coeffs be trusted at a level.
     Vector<int> a_valid;
-    //
-    // Flag, can b coeffs be trusted at a level.
-    //
+
+    //! Flag, can b coeffs be trusted at a level.
     Vector<int> b_valid;
-    //
-    // Default value for a (MultiFab) coeficient.
-    //
+
+    //! Default value for a (MultiFab) coeficient.
     static Real a_def;
-    //
-    // Default value for b (MultiFab) coeficient.
-    //
+
+    //! Default value for b (MultiFab) coeficient.
     static Real b_def;
-    //
-    // Default value for alpha (scalar) coeficient.
-    //
+
+    //! Default value for alpha (scalar) coeficient.
     static Real alpha_def;
-    //
-    // Default value for beta (scalar) coeficient.
-    //
+
+    //! Default value for beta (scalar) coeficient.
     static Real beta_def;
-    //
-    // Disallow copy constructors (for now...to be fixed).
-    //
+
+    /**
+    * \brief Disallow copy constructors (for now...to be fixed).
+    *
+    */
     DivVis (const DivVis&);
     DivVis& operator = (const DivVis&);
 };

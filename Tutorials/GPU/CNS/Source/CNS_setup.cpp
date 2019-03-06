@@ -1,19 +1,8 @@
 
 #include <CNS.H>
+#include <CNS_derive.H>
 
 using namespace amrex;
-
-void cns_bcfill_single (Box const& bx, FArrayBox& data,
-                        const int dcomp, const int numcomp,
-                        Geometry const& geom, const Real time,
-                        const Vector<BCRec>& bcr, const int bcomp,
-                        const int scomp);
-
-void cns_bcfill_group (Box const& bx, FArrayBox& data,
-                       const int dcomp, const int numcomp,
-                       Geometry const& geom, const Real time,
-                       const Vector<BCRec>& bcr, const int bcomp,
-                       const int scomp);
 
 int CNS::num_state_data_types = NUM_STATE_DATA_TYPE;
 
@@ -111,16 +100,6 @@ CNS::variableSetUp ()
 {
     read_params();
 
-    // xxxxx
-
-#if 0
-    cns_init_fort(phys_bc.lo(), phys_bc.hi(),
-                  PhysBCType::interior, PhysBCType::inflow, PhysBCType::outflow,
-                  PhysBCType::symmetry, PhysBCType::slipwall, PhysBCType::noslipwall,
-                  ParallelDescriptor::MyProc(),
-                  Geometry::ProbLo(), Geometry::ProbHi());
-#endif
-
     bool state_data_extrap = false;
     bool store_in_checkpoint = true;
     desc_lst.addDescriptor(State_Type,IndexType::TheCellType(),
@@ -152,7 +131,6 @@ CNS::variableSetUp ()
 
     // DEFINE DERIVED QUANTITIES
 
-#if 0
     // Pressure
     derive_lst.add("pressure",IndexType::TheCellType(),1,
                    cns_derpres,the_same_box);
@@ -173,11 +151,11 @@ CNS::variableSetUp ()
                    cns_dervel,the_same_box);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Density,1);
     derive_lst.addComponent("z_velocity",desc_lst,State_Type,Zmom,1);
-#endif
 }
 
 void
 CNS::variableCleanUp ()
 {
     desc_lst.clear();
+    derive_lst.clear();
 }

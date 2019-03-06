@@ -23,7 +23,7 @@ struct BndryBATransformer
     virtual IntVect doiHi () const override { return m_doihi; }
 
     virtual Box operator() (const Box& bx) const override;
-    
+
     bool operator== (const BndryBATransformer& rhs) const;
 
 private:
@@ -78,14 +78,13 @@ public:
                    int             extent_rad,
                    int             ncomp);
     //
-    // The copy constructor.
-    //
+    //! The copy constructor.
     BndryRegister (const BndryRegister& src);
 
     //! The copy assignment operator.
     BndryRegister& operator= (const BndryRegister& src);
 
-    // The destructor.
+    //! The destructor.
     virtual ~BndryRegister();
 
     BndryRegister (BndryRegister&& rhs) noexcept = default;
@@ -170,9 +169,10 @@ public:
     //! Local copy function
     static void Copy (BndryRegister& dst, const BndryRegister& src);
 
-protected:
     //! Used by the copy constructor and assignment operator.
     void init (const BndryRegister& src);
+
+protected:
 
     //! The data.
     FabSet    bndry[2*AMREX_SPACEDIM];

@@ -15,7 +15,8 @@ module amrex_multifab_module
 
   private
 
-  public :: amrex_multifab_build, amrex_multifab_swap, amrex_multifab_destroy, amrex_multifab_write
+  public :: amrex_multifab_build, amrex_multifab_swap, amrex_multifab_destroy
+  public :: amrex_multifab_write, amrex_multifab_read
   public :: amrex_multifab_build_alias, amrex_imultifab_build_alias
   public :: amrex_imultifab_build_owner_mask
   public :: amrex_imultifab_build, amrex_imultifab_destroy
@@ -336,6 +337,13 @@ module amrex_multifab_module
        type(c_ptr), value :: mf
        character(kind=c_char), intent(in) :: name(*)
      end subroutine amrex_fi_write_multifab
+
+     subroutine amrex_fi_read_multifab (mf, name) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: mf
+       character(kind=c_char), intent(in) :: name(*)
+     end subroutine amrex_fi_read_multifab
 
      subroutine amrex_fi_build_owner_imultifab (msk, ba, dm, data, geom) bind(c)
        import
@@ -880,6 +888,17 @@ contains
     character(*), intent(in) :: name
     call amrex_fi_write_multifab(mf%p, amrex_string_f_to_c(name))
   end subroutine amrex_multifab_write
+
+  subroutine amrex_multifab_read (mf, name)
+    type(amrex_multifab), intent(inout) :: mf
+    character(*), intent(in) :: name
+    call amrex_fi_read_multifab(mf%p, amrex_string_f_to_c(name))
+    mf%owner = .true.
+    mf%nc    = amrex_fi_multifab_ncomp(mf%p)
+    mf%ng    = amrex_fi_multifab_ngrow(mf%p)
+    mf%ba    = amrex_fi_multifab_boxarray(mf%p)
+    mf%dm    = amrex_fi_multifab_distromap(mf%p)
+  end subroutine amrex_multifab_read
 
   subroutine amrex_imultifab_build_owner_mask (msk, data, geom)
     type(amrex_imultifab), intent(inout) :: msk

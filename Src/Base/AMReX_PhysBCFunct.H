@@ -28,7 +28,7 @@ typedef void (*UserFillBox) (Box const& bx, FArrayBox& dest,
                              const BCRec* bcr, const int bcomp,
                              const int orig_comp);
 
-// This version calls function working on array
+//! This version calls function working on array
 class BndryFuncArray
 {
 public:
@@ -51,9 +51,11 @@ protected:
     bool m_run_on_gpu = false;
 };
 
-// In this gpu version, F is provided by the user.  It needs to have a
-// __device__ operator() that can work on a cell for boundaries not
-// handled by amrex_fab_filcc.
+/**
+* In this gpu version, F is provided by the user.  It needs to have a
+* __device__ operator() that can work on a cell for boundaries not
+* handled by amrex_fab_filcc.
+*/
 template <class F>
 class GpuBndryFuncFab
 {
@@ -70,7 +72,7 @@ protected:
     F m_user_f;
 };
 
-// This cpu version calls function working on FArrayBox
+//! This cpu version calls function working on FArrayBox
 class CpuBndryFuncFab
 {
 public:
@@ -89,8 +91,9 @@ protected:
 
 class PhysBCFunctBase {
 public:
-    // note this is pure virtual and must be implemented in a derived class
-    // (see PhysBCFunct below for an example)
+    //! note this is pure virtual and must be implemented in a derived class
+    //! (see PhysBCFunct below for an example)
+    //!
     virtual void FillBoundary (MultiFab& mf, int dcomp, int ncomp, Real time, int bccomp) = 0;
     virtual ~PhysBCFunctBase () = 0;
 };
@@ -127,14 +130,15 @@ public:
         const RealBox& prob_domain = m_geom.ProbDomain();
         const Real*    problo      = prob_domain.lo();
 
-        // create a grown domain box containing valid + periodic cells
+        //! create a grown domain box containing valid + periodic cells
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
+        const IntVect& ngrow = mf.nGrowVect();
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             if (m_geom.isPeriodic(i)) {
-                gdomain.grow(i, mf.nGrow());
+                gdomain.grow(i, ngrow[i]);
             }
         }
-        
+
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
@@ -142,18 +146,19 @@ public:
             Vector<BCRec> bcrs(ncomp);
             for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
-                FArrayBox& dest = mf[mfi];
+                FArrayBox* dest = mf.fabPtr(mfi);
                 const Box& bx = mfi.fabbox();
-                
-                // if there are cells not in the valid + periodic grown box
-                // we need to fill them here
+
+                //! if there are cells not in the valid + periodic grown box
+                //! we need to fill them here
+                //!
                 if (!gdomain.contains(bx))
                 {
-                    // Based on BCRec for the domain, we need to make BCRec for this Box
+                    //! Based on BCRec for the domain, we need to make BCRec for this Box
                     amrex::setBC(bx, domain, bccomp, 0, ncomp, m_bcr, bcrs);
 
-                    // Note that we pass 0 as starting component of bcrs.
-                    m_f(bx, dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
+                    //! Note that we pass 0 as starting component of bcrs.
+                    m_f(bx, *dest, icomp, ncomp, m_geom, time, bcrs, 0, bccomp);
                 }
             }
         }
@@ -176,41 +181,151 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
     FArrayBox* fab = &dest;
     const auto geomdata = geom.data();
 
-    Gpu::AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
+    AsyncArray<BCRec> bcr_aa(bcr.data()+bcomp, numcomp);
     BCRec* bcr_p = bcr_aa.data();
+
+    const IntVect& len = bx.length();
 
     Box gdomain = geom.Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (Geometry::isPeriodic(idim)) {
-            gdomain.grow(idim,bx.length(idim));
+            gdomain.grow(idim,len[idim]);
         }
     }
 
-    const auto& bl = amrex::boxDiff(bx, gdomain);
-    if (bl.isEmpty()) return;
-
-    const Vector<Box>& boxes = bl.data();
-    const int nboxes = boxes.size();
-    Gpu::AsyncArray<Box> boxes_aa(boxes.data(), nboxes);
-    Box* boxes_p = boxes_aa.data();
-
-    long ncells = 0;
-    for (const auto& b : boxes) {
-        ncells += b.numPts();
-    }
+    if (gdomain.contains(bx)) return;
 
     const auto f_user = m_user_f;
 
-    AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+    // filcc on the faces first
     {
-        const auto& cell = getCell(boxes_p, nboxes, icell);
+        Array<Box,2*AMREX_SPACEDIM> dom_face_boxes
+            = { AMREX_D_DECL(amrex::adjCellLo(gdomain, 0, len[0]),
+                             amrex::adjCellLo(gdomain, 1, len[1]),
+                             amrex::adjCellLo(gdomain, 2, len[2])),
+                AMREX_D_DECL(amrex::adjCellHi(gdomain, 0, len[0]),
+                             amrex::adjCellHi(gdomain, 1, len[1]),
+                             amrex::adjCellHi(gdomain, 2, len[2])) };
 
-        filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
-                   bcr_p, 0, orig_comp);
+        Vector<Box> face_boxes;
+        for (const Box& b : dom_face_boxes) {
+            Box tmp = b & bx;
+            if (tmp.ok()) face_boxes.push_back(tmp);
+        }
+        const int n_face_boxes = face_boxes.size();
+        if (n_face_boxes > 0) {
+            AsyncArray<Box> face_boxes_aa(face_boxes.data(), n_face_boxes);
+            Box* boxes_p = face_boxes_aa.data();
 
-        f_user(cell, *fab, dcomp, numcomp, geomdata, time,
-               bcr_p, 0, orig_comp);
-    });
+            long ncells = 0;
+            for (const auto& b : face_boxes) {
+                ncells += b.numPts();
+            }
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+            {
+                const auto& cell = getCell(boxes_p, n_face_boxes, icell);
+                filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        }
+    }
+
+#if (AMREX_SPACEDIM >= 2)
+    // filcc on the edges
+    {
+#if (AMREX_SPACEDIM == 2)
+        Array<Box,4> dom_edge_boxes
+            = { amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]) };
+#else
+        Array<Box,12> dom_edge_boxes
+            = { amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),
+                //
+                amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),2,len[2]),
+                //
+                amrex::adjCellLo(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(gdomain,1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(gdomain,1,len[1]),2,len[2]) };
+#endif
+
+        Vector<Box> edge_boxes;
+        for (const Box& b : dom_edge_boxes) {
+            Box tmp = b & bx;
+            if (tmp.ok()) edge_boxes.push_back(tmp);
+        }
+        const int n_edge_boxes = edge_boxes.size();
+        if (n_edge_boxes > 0) {
+            AsyncArray<Box> edge_boxes_aa(edge_boxes.data(), n_edge_boxes);
+            Box* boxes_p = edge_boxes_aa.data();
+
+            long ncells = 0;
+            for (const auto& b : edge_boxes) {
+                ncells += b.numPts();
+            }
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+            {
+                const auto& cell = getCell(boxes_p, n_edge_boxes, icell);
+                filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        }
+    }
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+    // filcc on corners
+    {
+        Array<Box,8> dom_corner_boxes
+            = { amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellLo(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellLo(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellLo(gdomain,0,len[0]),1,len[1]),2,len[2]),
+                amrex::adjCellHi(amrex::adjCellHi(amrex::adjCellHi(gdomain,0,len[0]),1,len[1]),2,len[2]) };
+
+        Vector<Box> corner_boxes;
+        for (const Box& b : dom_corner_boxes) {
+            Box tmp = b & bx;
+            if (tmp.ok()) corner_boxes.push_back(tmp);
+        }
+        const int n_corner_boxes = corner_boxes.size();
+        if (n_corner_boxes > 0) {
+            AsyncArray<Box> corner_boxes_aa(corner_boxes.data(), n_corner_boxes);
+            Box* boxes_p = corner_boxes_aa.data();
+
+            long ncells = 0;
+            for (const auto& b : corner_boxes) {
+                ncells += b.numPts();
+            }
+
+            AMREX_LAUNCH_DEVICE_LAMBDA (ncells, icell,
+            {
+                const auto& cell = getCell(boxes_p, n_corner_boxes, icell);
+                filcc_cell(cell, *fab, dcomp, numcomp, geomdata, time,
+                           bcr_p, 0, orig_comp);
+                f_user(cell, *fab, dcomp, numcomp, geomdata, time,
+                       bcr_p, 0, orig_comp);
+            });
+        }
+    }
+#endif
 }
 
 }

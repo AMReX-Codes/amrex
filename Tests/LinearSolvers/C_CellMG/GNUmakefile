@@ -25,8 +25,4 @@ include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
 
-include $(AMREX_HOME)/Src/LinearSolvers/C_to_F_MG/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/F_MG/FParallelMG.mak
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
-
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

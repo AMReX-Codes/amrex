@@ -14,8 +14,8 @@
 
 namespace amrex {
 
-/*
-        An MCInterpBndryData object adds to a BndryData object the ability to
+/**
+        \brief An MCInterpBndryData object adds to a BndryData object the ability to
 	manipulate and set the data stored in the boundary cells.
 
         The "Interpbndrydata" class is a virtual base class derived from
@@ -43,13 +43,20 @@ class MCInterpBndryData
     public BndryData
 {
 public:
-    //
-    // Default constructor.
-    //
+
+    /**
+    * \brief Default constructor.
+    */
     MCInterpBndryData () : BndryData() {}
-    //
-    // Constructor for given BoxArray, etc.
-    //
+
+    /**
+    * \brief Constructor for given BoxArray, etc.
+    *
+    * \param _grids
+    * \param _dmap
+    * \param _ncomp
+    * \param geom
+    */
     MCInterpBndryData (const BoxArray& _grids,
 		       const DistributionMapping& _dmap,
 		       int             _ncomp,
@@ -62,23 +69,45 @@ public:
     MCInterpBndryData& operator= (const MCInterpBndryData& rhs) = delete;
     MCInterpBndryData& operator= (MCInterpBndryData&& rhs) = delete;
 
-    //
-    // Interpret user BCs to those expected by LinOp.
-    //
+
+    /**
+    * \brief Interpret user BCs to those expected by LinOp.
+    *
+    * \param phys_bc
+    * \param ratio
+    * \param comp
+    */
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio,
                                 int          comp=0) = 0;
-    //
-    // Set bndry values at coarse level (non interpolation performed).
-    //
+
+    /**
+    * \brief Set bndry values at coarse level (non interpolation performed).
+    *
+    * \param mf
+    * \param mf_start
+    * \param bnd_start
+    * \param num_comp
+    * \param phys_bc
+    */
     void setBndryValues (const MultiFab&     mf,
 			 int                 mf_start,
 			 int                 bnd_start,
 			 int                 num_comp,
 			 const Vector<BCRec>& phys_bc);
-    //
-    // Set bndry values at fine level, performing necessary interpolations.
-    //
+
+    /**
+    * \brief Set bndry values at fine level, performing necessary interpolations.
+    *
+    * \param crse
+    * \param c_start
+    * \param fine
+    * \param f_start
+    * \param bnd_start
+    * \param num_comp
+    * \param ratio
+    * \param phys_bc
+    */
     void setBndryValues (const BndryRegister& crse,
 			 int                  c_start,
 			 const MultiFab&      fine,

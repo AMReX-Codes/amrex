@@ -39,6 +39,9 @@ endif
 #
 # Rules for building executable.
 #
+ifeq ($(multiple_executables),)
+
+# only one executable
 $(executable): $(objForExecs)
 ifneq ($(SKIP_LINKING),TRUE)
 	@echo Linking $@ ...
@@ -49,9 +52,17 @@ else
 endif
 #	@echo SUCCESS
 endif
-
 ifdef CRAY_CPU_TARGET
 	@echo "Built for target ===> $(CRAY_CPU_TARGET) <==="
+endif
+
+else
+
+# multiple executables
+%.$(machineSuffix).ex:%.cpp $(objForExecs)
+	@echo "Linking $@ ..."
+	$(SLIENT) $(AMREX_LINKER) $(LINKFLAGS) $(CPPFLAGS) $(includes) $(LDFLAGS) -o $@ $^ $(libraries)
+
 endif
 
 ifeq ($(USE_PROFPARSER),TRUE)
@@ -111,7 +122,7 @@ $(amrexIncludeDir)/AMReX_Config.H: FORCE
 clean::
 	@echo Cleaning...
 	$(SILENT) $(RM) $(f77EXETempDir)/*.f $(f77EXETempDir)/*.f90 $(f77EXETempDir)/*.F90
-	$(SILENT) $(RM) $(srcTempDir)/* $(objEXETempDir)/*.o
+	$(SILENT) $(RM) $(srcTempDir)/* $(objEXETempDir)/*.o $(objEXETempDir)/*.mod
 	$(SILENT) $(RM) $(tmpEXETempDir)/*
 	$(SILENT) $(RM) *.optrpt $(objEXETempDir)/*.optrpt
 	$(SILENT) $(RM) $(executable)
@@ -312,7 +323,6 @@ $(depEXETempDir)/f90.depends: $(f90EXE_sources) $(F90EXE_sources)
 
 # $(CEXE_sources)
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-ifneq ($(NO_DEVICE_LAUNCH),TRUE)
 $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'touch $(TmpBuildDir)/$(optionsSuffix)_cuda_done' # So that the rule always gets updated
@@ -324,7 +334,6 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
              --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
-endif
 endif
 
 #
@@ -360,6 +369,8 @@ $(tmpEXETempDir)/%-cppd.h: %.H
 	               sed -i -e '\''s/amrex_real/$(amrex_real)/g'\''  $@ ; \
 	               sed -i -e '\''s/amrex_particle_real/$(amrex_particle_real)/g'\''  $@ ; \
 	               sed -i -e '\''/typedef\s*$(amrex_real)/d'\''    $@ ; \
+	               sed -i -e '\''s/AMREX_GPU_DEVICE/ /g'\'' $@ ; \
+	               sed -i -e '\''s/AMREX_GPU_HOST_DEVICE/ /g'\'' $@ ; \
 	               sed -i -e '\''s/\&/*/g'\'' $@'
 
 typecheck: $(fortran_ir_sources) $(fortran_fdecl_headers_cppd)
@@ -382,9 +393,7 @@ ifneq ($(MAKECMDGOALS),distclean)
 ifneq ($(findstring print-,$(MAKECMDGOALS)),print-)
 
 ifeq ($(USE_GPU_PRAGMA),TRUE)
-ifneq ($(NO_DEVICE_LAUNCH),TRUE)
 include $(TmpBuildDir)/$(optionsSuffix)_cuda_done
-endif
 endif
 
 ifdef CEXE_sources

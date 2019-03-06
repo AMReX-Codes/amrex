@@ -7,10 +7,6 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_PhysBCFunct.H>
 
-#ifdef BL_USE_SENSEI_INSITU
-#include <AMReX_AmrMeshInSituBridge.H>
-#endif
-
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
@@ -87,18 +83,10 @@ AmrCoreAdv::AmrCoreAdv ()
     // with the lev/lev-1 interface (and has grid spacing associated with lev-1)
     // therefore flux_reg[0] is never actually used in the reflux operation
     flux_reg.resize(nlevs_max+1);
-
-#ifdef BL_USE_SENSEI_INSITU
-    insitu_bridge = new amrex::AmrMeshInSituBridge;
-    insitu_bridge->initialize();
-#endif
 }
 
 AmrCoreAdv::~AmrCoreAdv ()
 {
-#ifdef BL_USE_SENSEI_INSITU
-    delete insitu_bridge;
-#endif
 }
 
 // advance solution to final time
@@ -137,11 +125,6 @@ AmrCoreAdv::Evolve ()
             WriteCheckpointFile();
         }
 
-#ifdef BL_USE_SENSEI_INSITU
-        insitu_bridge->update(step, cur_time,
-            static_cast<amrex::AmrMesh*>(this), {&phi_new}, {{"phi"}});
-#endif
-
 #ifdef BL_MEM_PROFILING
         {
             std::ostringstream ss;
@@ -156,10 +139,6 @@ AmrCoreAdv::Evolve ()
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
 	WritePlotFile();
     }
-
-#ifdef BL_USE_SENSEI_INSITU
-    insitu_bridge->finalize();
-#endif
 }
 
 // initializes multilevel data

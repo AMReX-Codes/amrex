@@ -83,14 +83,6 @@ public:
     const int* data () const& { return bc; }
     const int* data () && = delete;
 
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    int vectSize () const { return (2 * AMREX_SPACEDIM); }
-    AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    void setVect (const int *bcvect) {
-        for(int i(0); i < vectSize(); ++i) {
-            bc[i] = bcvect[i];
-        }
-    }
     /**
     * \brief Return low-end boundary data.
     */
@@ -104,12 +96,12 @@ public:
     const int* hi () const& { return bc+AMREX_SPACEDIM; }
     const int* hi () && = delete;
     /**
-    * \brief Return low-end boundary data in direction <dir>.
+    * \brief Return low-end boundary data in direction \<dir\>.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int lo (int dir) const { return bc[dir]; }
     /**
-    * \brief Return high-end boundary data in direction <dir>.
+    * \brief Return high-end boundary data in direction \<dir\>.
     */
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
     int hi (int dir) const { return bc[AMREX_SPACEDIM+dir]; }
@@ -142,24 +134,35 @@ private:
     int bc[2*AMREX_SPACEDIM];
 };
 
-    /**
-    * \brief Function for setting a BC.
-    */
-    AMREX_GPU_HOST_DEVICE
-    void setBC (const Box&   bx, 
-                const Box&   domain,
-                const BCRec& bc_dom, 
-                BCRec&       bcr);
-    /**
-    * \brief Function for setting array of BCs.
-    */
-    void setBC (const Box&           bx,
-                const Box&           domain,
-                int                  src_comp,
-                int                  dest_comp,
-                int                  ncomp,
-                const Vector<BCRec>& bc_dom,
-                Vector<BCRec>&       bcr);
+/**
+ * \brief Function for setting a BC.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+void
+setBC (const Box& bx, const Box& domain, const BCRec& bc_dom, BCRec& bcr)
+{
+    const int* bxlo = bx.loVect();
+    const int* bxhi = bx.hiVect();
+    const int* dlo  = domain.loVect();
+    const int* dhi  = domain.hiVect();
+    for (int dir = 0; dir < AMREX_SPACEDIM; dir++)
+    {
+        bcr.setLo(dir, ( bxlo[dir]<=dlo[dir] ? bc_dom.lo(dir) : BCType::int_dir ));
+        bcr.setHi(dir, ( bxhi[dir]>=dhi[dir] ? bc_dom.hi(dir) : BCType::int_dir ));
+    }
+}
+
+/**
+ * \brief Function for setting array of BCs.
+ */
+void
+setBC (const Box&           bx,
+       const Box&           domain,
+       int                  src_comp,
+       int                  dest_comp,
+       int                  ncomp,
+       const Vector<BCRec>& bc_dom,
+       Vector<BCRec>&       bcr);
 }
 
 #endif /*_BCREC_H_*/

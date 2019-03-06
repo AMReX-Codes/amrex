@@ -7,6 +7,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_FabFactory.H>
+#include <cmath>
 
 namespace amrex {
 
@@ -215,6 +216,10 @@ public:
 
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+#ifdef AMREX_USE_GPU
+    FArrayBox (const FArrayBox& rhs, MakeType make_type);
+#endif
+
     FArrayBox (const Box& b, int ncomp, Real* p);
 
     //!  The destructor.
@@ -227,7 +232,7 @@ public:
     FArrayBox& operator= (FArrayBox&&) = delete;
 
     //! Set the fab to the value r.
-    FArrayBox& operator= (const Real& r);
+    FArrayBox& operator= (Real r);
     //
     void initVal ();
     /**
@@ -409,6 +414,150 @@ protected:
 
 using FArrayBoxFactory = DefaultFabFactory<FArrayBox>;
 
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_nan () const
+{
+    const Real* dp = dptr;
+    const long n = numPts()*nvar;
+    for (long i = 0; i < n; i++) {
+        if (amrex::isnan(*dp++)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (amrex::isnan(this->operator()(p,scomp+i))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_nan (IntVect& where) const
+{
+    return contains_nan(domain, 0, nComp(), where);
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (amrex::isnan(this->operator()(p,scomp+i)))
+            {
+                where = p;
+
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_inf () const
+{
+    const Real* dp = dptr;
+    const long n = numPts()*nvar;
+    for (long i = 0; i < n; i++) {
+        if (amrex::isinf(*dp++)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (amrex::isinf(this->operator()(p,scomp+i))) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_inf (IntVect& where) const
+{
+    return contains_inf(domain,0,nComp(),where);
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+bool
+FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const
+{
+    BL_ASSERT(scomp >= 0);
+    BL_ASSERT(ncomp >= 1);
+    BL_ASSERT(scomp <  nComp());
+    BL_ASSERT(ncomp <= nComp());
+    BL_ASSERT(domain.contains(bx));
+
+    for (int i = 0; i < ncomp; i++)
+    {
+        for (IntVect p = bx.smallEnd(); p <= bx.bigEnd(); bx.next(p))
+        {
+            if (amrex::isinf(this->operator()(p,scomp+i)))
+            {
+                where = p;
+
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 }
 

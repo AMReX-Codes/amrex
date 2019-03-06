@@ -1,56 +1,32 @@
 
-#include "cns_prob.H"
-#include "CNS_K.H"
-#include "CNS_index_macros.H"
+#include <AMReX_PROB_AMR_F.H>
+#include <AMReX_ParmParse.H>
+#include "cns_prob_parm.H"
 
-using namespace amrex;
+namespace ProbParm
+{
+    AMREX_GPU_DEVICE_MANAGED amrex::Real p_l = 1.0;
+    AMREX_GPU_DEVICE_MANAGED amrex::Real p_r = 0.1;
+    AMREX_GPU_DEVICE_MANAGED amrex::Real rho_l = 1.0;
+    AMREX_GPU_DEVICE_MANAGED amrex::Real rho_r = 0.125;
+    AMREX_GPU_DEVICE_MANAGED amrex::Real u_l = 0.0;
+    AMREX_GPU_DEVICE_MANAGED amrex::Real u_r = 0.0;
+}
 
 extern "C" {
     void amrex_probinit (const int* init,
                          const int* name,
                          const int* namelen,
                          const amrex_real* problo,
-                         const amrex_real* probhi) {}
-}
+                         const amrex_real* probhi)
+    {
+        amrex::ParmParse pp("prob");
 
-
-AMREX_GPU_DEVICE
-void
-cns_initdata (Box const& bx, FArrayBox& statefab, GeometryData const& geomdata)
-{
-    const auto len = length(bx);
-    const auto lo  = lbound(bx);
-    const auto state = statefab.view(lo);
-    const Real* prob_lo = geomdata.ProbLo();
-    const Real* dx      = geomdata.CellSize();
-
-    const Real gamma = 1.4;
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = 0; i < len.x; ++i) {
-                Real x = prob_lo[0] + (i+lo.x+0.5)*dx[0];
-                Real Pt, rhot, uxt;
-                if (x < 0.5) {
-                    Pt = 1.0;  // xxxxx parameterize them later
-                    rhot = 1.0;
-                    uxt = 0.0;
-                } else {
-                    Pt = 0.1;
-                    rhot = 0.125;
-                    uxt = 0.0;
-                }
-                state(i,j,k,URHO ) = rhot;
-                state(i,j,k,UMX  ) = rhot*uxt;
-                state(i,j,k,UMY  ) = 0.0;
-                state(i,j,k,UMZ  ) = 0.0;
-                Real et = Pt/(gamma-1.0);
-                state(i,j,k,UEINT) = et;
-                state(i,j,k,UEDEN) = et + 0.5*rhot*uxt*uxt;
-                state(i,j,k,UTEMP) = 0.0;
-            }
-        }
+        pp.query("p_l", ProbParm::p_l);
+        pp.query("p_r", ProbParm::p_r);
+        pp.query("rho_l", ProbParm::rho_l);
+        pp.query("rho_r", ProbParm::rho_r);
+        pp.query("u_l", ProbParm::u_l);
+        pp.query("u_r", ProbParm::u_r);
     }
 }
-

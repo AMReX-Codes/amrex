@@ -15,6 +15,11 @@ public:
     CutFab (const Box& b, int ncomps, bool alloc=true, bool shared=false)
         : FArrayBox(b, ncomps, alloc, shared) {}
 
+#ifdef AMREX_USE_GPU
+    CutFab (CutFab const& rhs, MakeType make_type)
+        : FArrayBox(rhs, make_type) {}
+#endif
+
     ~CutFab () = default;
 
     CutFab (CutFab&& rhs) noexcept = default;
@@ -32,7 +37,14 @@ public:
     std::size_t copyFromMem (const Box&  dstbox,
                              int         dstcomp,
                              int         numcomp,
-                             const void* src);
+                             const void* src)
+    {
+        if (dptr != nullptr) {
+            return FArrayBox::copyFromMem(dstbox, dstcomp, numcomp, src);
+        } else {
+            return sizeof(CutFab::value_type)*static_cast<std::size_t>(dstbox.numPts()*numcomp);
+        }
+    }
 
     AMREX_GPU_HOST_DEVICE
     CutFab& copy (const CutFab & src,
@@ -40,7 +52,22 @@ public:
                   int            srccomp,
                   const Box&     destbox,
                   int            destcomp,
-                  int            numcomp);
+                  int            numcomp)
+    {
+        if (dptr != nullptr) {
+            FArrayBox::copy(src,srcbox,srccomp,destbox,destcomp,numcomp);
+        }
+        return *this;
+    }
+
+    AMREX_GPU_HOST_DEVICE
+    CutFab& copy (const CutFab & src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp)
+    {
+        if (dptr != nullptr) {
+            FArrayBox::copy(src, bx, scomp, dcomp, ncomp);
+        }
+        return *this;
+    }
 };
 
 class MultiCutFab

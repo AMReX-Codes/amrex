@@ -16,11 +16,12 @@ namespace
     constexpr int GhostParticleID    = std::numeric_limits<int>::max();
     constexpr int VirtualParticleID  = std::numeric_limits<int>::max()-1;
     constexpr int LastParticleID     = std::numeric_limits<int>::max()-2;
+    constexpr int DoSplitParticleID  = std::numeric_limits<int>::max()-3;
+    constexpr int NoSplitParticleID  = std::numeric_limits<int>::max()-4;
 }
 
 //
-// The struct used to store particles.
-//
+//! The struct used to store particles.
 template<int NReal, int NInt=0>
 struct Particle
 {
@@ -29,28 +30,27 @@ struct Particle
     Particle() {};
 
     //
-    // The floating point type used for the particles.
-    //
+    //! The floating point type used for the particles.
 #ifdef BL_SINGLE_PRECISION_PARTICLES
     typedef float RealType;
 #else
     typedef double RealType;
 #endif
-    
-    //
-    // The real data. We always have SPACEDIM position coordinates,
-    // and optionally we have NReal additional real attributes.
-    //
+
+    /**
+    * The real data. We always have SPACEDIM position coordinates,
+    * and optionally we have NReal additional real attributes.
+    */
     union rm_t
     {
       RealType pos[AMREX_SPACEDIM];
       RealType arr[AMREX_SPACEDIM+NReal];
     };
 
-    //
-    // The integer data. We always have id and cpu, and optionally we
-    // have NInt additional integer attributes.
-    //
+    /**
+    * The integer data. We always have id and cpu, and optionally we
+    * have NInt additional integer attributes.
+    */
     union im_t
     {
       struct {int id; int cpu;};
@@ -62,19 +62,19 @@ struct Particle
 
     static int the_next_id;
 
-    int&  id()       & {return m_idata.id;}
-    int   id() const & {return m_idata.id;}
-    int& cpu()       & {return m_idata.cpu;}
-    int  cpu() const & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int&  id()       & {return m_idata.id;}
+    AMREX_GPU_HOST_DEVICE int   id() const & {return m_idata.id;}
+    AMREX_GPU_HOST_DEVICE int& cpu()       & {return m_idata.cpu;}
+    AMREX_GPU_HOST_DEVICE int  cpu() const & {return m_idata.cpu;}
 
-    RealType& pos(int index)       & {return m_rdata.pos[index];}
-    RealType  pos(int index) const & {return m_rdata.pos[index];}
+    AMREX_GPU_HOST_DEVICE RealType& pos(int index)       & {return m_rdata.pos[index];}
+    AMREX_GPU_HOST_DEVICE RealType  pos(int index) const & {return m_rdata.pos[index];}
 
-    RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
-    RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+    AMREX_GPU_HOST_DEVICE RealType& rdata(int index)       & {return m_rdata.arr[AMREX_SPACEDIM + index];}
+    AMREX_GPU_HOST_DEVICE RealType  rdata(int index) const & {return m_rdata.arr[AMREX_SPACEDIM + index];}
 
-    int& idata(int index)       & {return m_idata.arr[2 + index];}
-    int  idata(int index) const & {return m_idata.arr[2 + index];}
+    AMREX_GPU_HOST_DEVICE int& idata(int index)       & {return m_idata.arr[2 + index];}
+    AMREX_GPU_HOST_DEVICE int  idata(int index) const & {return m_idata.arr[2 + index];}
 
     static Real InterpDoit (const FArrayBox& fab, const Real* fracs, const IntVect* cells, int comp);
 
@@ -92,48 +92,77 @@ struct Particle
 
     static long MaxParticlesPerRead ();
 
-    //
-    // Returns the next particle ID for this processor.
-    // Particle IDs start at 1 and are never reused.
-    // The pair, consisting of the ID and the CPU on which the particle is "born",
-    // is a globally unique identifier for a particle.  The maximum of this value
-    // across all processors must be checkpointed and then restored on restart
-    // so that we don't reuse particle IDs.
-    //
+
+    /**
+    * \brief Returns the next particle ID for this processor.
+    * Particle IDs start at 1 and are never reused.
+    * The pair, consisting of the ID and the CPU on which the particle is "born",
+    * is a globally unique identifier for a particle.  The maximum of this value
+    * across all processors must be checkpointed and then restored on restart
+    * so that we don't reuse particle IDs.
+    */
     static int NextID ();
 
-    // This version can only be used inside omp critical.
+
+    /**
+    * \brief This version can only be used inside omp critical.
+    */
     static int UnprotectedNextID ();
 
-    //
-    // Reset on restart.
-    //
+
+    /**
+    * \brief Reset on restart.
+    *
+    * \param nextid
+    */
     static void NextID (int nextid);
 
     static void CIC_Fracs (const Real* frac, Real* fracs);
 
     static void CIC_Cells (const IntVect& hicell, IntVect* cells);
 
-    //
-    // Old, *-based CIC for use in Interp.
-    //
+
+    /**
+    * \brief Old, *-based CIC for use in Interp.
+    *
+    * \param p
+    * \param plo
+    * \param dx
+    * \param fracs
+    * \param cells
+    */
     static void CIC_Cells_Fracs_Basic (const Particle<NReal, NInt>& p,
                                        const Real*                  plo,
                                        const Real*                  dx,
                                        Real*                        fracs,
                                        IntVect*                     cells);
 
-    //
-    // Wraps the arbitrary dx function.
-    //
+
+    /**
+    * \brief Wraps the arbitrary dx function.
+    *
+    * \param p
+    * \param plo
+    * \param dx
+    * \param fracs
+    * \param cells
+    */
     static int CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                 const Real*                  plo,
                                 const Real*                  dx,
                                 Vector<Real>&                 fracs,
                                 Vector<IntVect>&              cells);
-    //
-    // Does CIC computations for arbitrary particle/grid dx's.
-    //
+
+    /**
+    * \brief Does CIC computations for arbitrary particle/grid dx's.
+    *
+    * \param p
+    * \param plo
+    * \param dx_geom
+    * \param dx_part
+    * \param fracs
+    * \param cells
+    */
     static int CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                 const Real*                  plo,
                                 const Real*                  dx_geom,
@@ -154,27 +183,30 @@ Particle<NReal, NInt>::CIC_Fracs (const Real* frac, Real* fracs)
     // "fracs" should be dimensioned: Real fracs[AMREX_D_TERM(2,+2,+4)]
     //
 #if (AMREX_SPACEDIM == 1)
-    // High
+
+    //! High
     fracs[0] = frac[0];
 
     // Low
     fracs[1] = (1-frac[0]);
 
 #elif (AMREX_SPACEDIM == 2)
-    // HH
+
+    //! HH
     fracs[0] = frac[0] * frac[1] ;
-    
+
     // LH
     fracs[1] = (1-frac[0]) * frac[1];
-    
+
     // LL
     fracs[2] = (1-frac[0]) * (1-frac[1]);
-    
+
     // HL
     fracs[3] = frac[0] * (1-frac[1]);
 
 #elif (AMREX_SPACEDIM == 3)
-    // HHH
+
+    //! HHH
     fracs[0] = frac[0] * frac[1] * frac[2];
 
     // LHH
@@ -182,19 +214,19 @@ Particle<NReal, NInt>::CIC_Fracs (const Real* frac, Real* fracs)
 
     // LLH
     fracs[2] = (1-frac[0]) * (1-frac[1]) * frac[2];
-    
+
     // HLH
     fracs[3] = frac[0] * (1-frac[1]) * frac[2];
 
     // HHL
     fracs[4] = frac[0] * frac[1] * (1-frac[2]);
-    
+
     // LHL
     fracs[5] = (1-frac[0]) * frac[1] * (1-frac[2]);
 
     // LLL
     fracs[6] = (1-frac[0]) * (1-frac[1]) * (1-frac[2]);
-    
+
     // HLL
     fracs[7] = frac[0] * (1-frac[1]) * (1-frac[2]);
 #endif
@@ -205,13 +237,13 @@ inline
 void
 Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
 {
-    //
-    // "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
-    //
+
+    //! "cells" should be dimensioned: IntVect cells[AMREX_D_TERM(2,+2,+4)]
     IntVect cell = hicell;
 
 #if (AMREX_SPACEDIM == 1)
-    // High
+
+    //! High
     cells[0] = cell;
 
     // Low
@@ -219,23 +251,25 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     cells[1] = cell;
 
 #elif (AMREX_SPACEDIM == 2)
-    // HH
+
+    //! HH
     cells[0] = cell;
-    
+
     // LH
     cell[0]  = cell[0] - 1;
     cells[1] = cell;
-    
+
     // LL
     cell[1]  = cell[1] - 1;
     cells[2] = cell;
-    
+
     // HL
     cell[0]  = cell[0] + 1;
     cells[3] = cell;
 
 #elif (AMREX_SPACEDIM == 3)
-    // HHH
+
+    //! HHH
     cells[0] = cell;
 
     // LHH
@@ -245,7 +279,7 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     // LLH
     cell[1]  = cell[1] - 1;
     cells[2] = cell;
-    
+
     // HLH
     cell[0]  = cell[0] + 1;
     cells[3] = cell;
@@ -255,7 +289,7 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     // HHL
     cell[2]  = cell[2] - 1;
     cells[4] = cell;
-    
+
     // LHL
     cell[0]  = cell[0] - 1;
     cells[5] = cell;
@@ -263,7 +297,7 @@ Particle<NReal, NInt>::CIC_Cells (const IntVect& hicell, IntVect* cells)
     // LLL
     cell[1]  = cell[1] - 1;
     cells[6] = cell;
-    
+
     // HLL
     cell[0]  = cell[0] + 1;
     cells[7] = cell;
@@ -318,6 +352,7 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                         Vector<IntVect>&     cells)
 {
     BL_PROFILE("Particle<NReal, NInt>::CIC_Cells_Fracs()");
+
     if (dx_geom == dx_part)
     {
         const int M = AMREX_D_TERM(2,+2,+4);
@@ -338,18 +373,17 @@ Particle<NReal, NInt>::CIC_Cells_Fracs (const Particle<NReal, NInt>& p,
                                              (p.m_rdata.pos[2]-plo[2]-dx_part[2]/2)/dx_geom[2]) };
 
     const IntVect hicell(AMREX_D_DECL(floor(hilen[0]), floor(hilen[1]), floor(hilen[2])));
-    
+
     const IntVect locell(AMREX_D_DECL(floor(lolen[0]), floor(lolen[1]), floor(lolen[2])));
-    
+
     const Real cell_density = AMREX_D_TERM(dx_geom[0]/dx_part[0],*dx_geom[1]/dx_part[1],*dx_geom[2]/dx_part[2]);
-    
+
     const int M = AMREX_D_TERM((hicell[0]-locell[0]+1),*(hicell[1]-locell[1]+1),*(hicell[2]-locell[2]+1));
 
     fracs.resize(M);
     cells.resize(M);
-    //
-    // This portion might be slightly inefficient. Feel free to redo it if need be.
-    //
+
+    //! This portion might be slightly inefficient. Feel free to redo it if need be.
     int i = 0;
 #if (AMREX_SPACEDIM == 1)
     for (int xi = locell[0]; xi <= hicell[0]; xi++)
@@ -425,9 +459,10 @@ template <int NReal, int NInt>
 long
 Particle<NReal, NInt>::MaxParticlesPerRead ()
 {
+
     //
     // This is the maximum particles that "each" reader will attempt to read
-    // before doing a Redistribute(). 
+    // before doing a Redistribute().
     //
     const long Max_Particles_Per_Read_def = 100000;
 

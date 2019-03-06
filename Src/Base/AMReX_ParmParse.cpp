@@ -147,7 +147,10 @@ is (const std::string& str, T& val)
 {
     std::istringstream s(str);
     s >> val;
-    if ( !s ) return false;
+    if ( s.fail() ) return false;
+    std::string left;
+    std::getline(s, left);
+    if ( !left.empty() ) return false;
     return true;
 }
 

@@ -5,67 +5,9 @@ module amrex_mlmg_interp_module
   implicit none
 
   private
-  public :: amrex_mlmg_lin_cc_interp, amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
+  public :: amrex_mlmg_lin_nd_interp, amrex_mlmg_eb_cc_interp
 
 contains
-
-  subroutine amrex_mlmg_lin_cc_interp (lo, hi, ff, fflo, ffhi, cc, cclo, cchi, ratio, nc) &
-       bind(c,name='amrex_mlmg_lin_cc_interp')
-    integer, dimension(3), intent(in) :: lo, hi, fflo, ffhi, cclo, cchi
-    integer, intent(in) :: ratio, nc
-    real(amrex_real), intent(in   ) :: cc(cclo(1):cchi(1),cclo(2):cchi(2),cclo(3):cchi(3),nc)
-    real(amrex_real), intent(inout) :: ff(fflo(1):ffhi(1),fflo(2):ffhi(2),fflo(3):ffhi(3),nc)
-
-    integer :: i,j,k,n, ic, jc, kc, ioff, joff, koff
-
-    if (ratio == 2) then
-
-       do n = 1, nc
-          do k = lo(3), hi(3)
-             kc = k/2
-             koff = 2*(k-kc*2)-1
-             do j = lo(2), hi(2)
-                jc = j/2
-                joff = 2*(j-jc*2)-1
-                do i = lo(1), hi(1)
-                   ic = i/2
-                   ioff = 2*(i-ic*2)-1
-                   ff(i,j,k,n) = 0.421875d0*cc(ic     ,jc     ,kc     ,n) &
-                          +      0.140625d0*cc(ic+ioff,jc     ,kc     ,n) &
-                          +      0.140625d0*cc(ic     ,jc+joff,kc     ,n) &
-                          +      0.140625d0*cc(ic     ,jc     ,kc+koff,n) &
-                          +      0.046875d0*cc(ic     ,jc+joff,kc+koff,n) &
-                          +      0.046875d0*cc(ic+ioff,jc     ,kc+koff,n) &
-                          +      0.046875d0*cc(ic+ioff,jc+joff,kc     ,n) &
-                          +      0.015625d0*cc(ic+ioff,jc+joff,kc+koff,n)
-                end do
-             end do
-          end do
-       end do
-       
-    else if (ratio == 4) then
-
-       do n = 1, nc
-          do k = lo(3), hi(3)
-             kc = k/4
-             do j = lo(2), hi(2)
-                jc = j/4
-                do i = lo(1), hi(1)
-                   ic = i/4
-                   ff(i,j,k,n) = cc(ic,jc,kc,n)
-                end do
-             end do
-          end do
-       end do
-       
-    else
-
-       call amrex_abort("amrex_mlmg_lin_cc_interp: only ratio 2 and 4 are supported")
-
-    end if
-
-  end subroutine amrex_mlmg_lin_cc_interp
-
 
   subroutine amrex_mlmg_lin_nd_interp (clo, chi, flo, fhi, fine, fdlo, fdhi, crse, cdlo, cdhi, nc) &
        bind(c,name='amrex_mlmg_lin_nd_interp')

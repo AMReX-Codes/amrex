@@ -52,7 +52,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summitdev))
     FC  := mpifort
     F90 := mpifort
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
 
   endif
 
@@ -97,7 +97,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
     FC  := mpif90
     F90 := mpif90
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
 
   endif
 
@@ -141,7 +141,7 @@ ifeq ($(which_computer),$(filter $(which_computer),ascent))
     FC  := mpif90
     F90 := mpif90
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
 
   endif
 

@@ -1,7 +1,7 @@
 #
 # Utility classes
 #
-add_sources( AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_BaseIndex.H AMReX_Tuple.H )
+add_sources( AMReX_ccse-mpi.H AMReX_Array.H AMReX_Vector.H AMReX_Tuple.H )
 add_sources( AMReX.cpp AMReX_error_fi.cpp )
 
 add_sources( AMReX.H AMReX_Exception.H )
@@ -24,8 +24,10 @@ add_sources( AMReX_ParallelReduce.H )
 add_sources( AMReX_ForkJoin.H AMReX_ParallelContext.H )
 add_sources( AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp )
 
-add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp )
-add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H )
+add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp )
+add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H )
+add_sources( AMReX_FabAllocator.H )
+add_sources( AMReX_FabAllocator.cpp )
 
 add_sources( AMReX_BLProfiler.H AMReX_BLBackTrace.H AMReX_BLFort.H )
 
@@ -67,6 +69,7 @@ add_sources( AMReX_BoxList.H AMReX_BoxArray.H AMReX_BoxDomain.H )
 add_sources( AMReX_FArrayBox.cpp AMReX_IArrayBox.cpp AMReX_BaseFab.cpp )
 add_sources( AMReX_FArrayBox.H AMReX_IArrayBox.H AMReX_MakeType.H
    AMReX_TypeTraits.H AMReX_BaseFab.H AMReX_FabFactory.H )
+add_sources( AMReX_BaseFabUtility.H )
 
 #
 # Fortran data defined on unions of rectangles.
@@ -100,23 +103,23 @@ add_sources( AMReX_BCRec.H AMReX_PhysBCFunct.H AMReX_BC_TYPES.H AMReX_BCUtil.H )
 # 
 add_sources( AMReX_PlotFileUtil.cpp )
 add_sources( AMReX_PlotFileUtil.H )
+add_sources( AMReX_PlotFileDataImpl.H )
+add_sources( AMReX_PlotFileDataImpl.cpp )
 
 #
 # Fortran interface routines.
 # In GNUMake system, this is included only if BL_NO_FORT=FALSE
 #
-add_sources( AMReX_COORDSYS_${DIM}D.cpp )
+add_sources( AMReX_COORDSYS_${DIM}D_C.H )
 add_sources( AMReX_COORDSYS_C.H AMReX_filcc_f.H )
 
-add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
-   AMReX_BLProfiler_F.F90)
+add_sources( AMReX_BLutil_F.F90 AMReX_BLProfiler_F.F90)
 
-add_sources( AMReX_MultiFabUtil_${DIM}d.f90 AMReX_FILCC_${DIM}D.F90 )
-add_sources( AMReX_MultiFabUtil_F.H )
-add_sources( AMReX_MultiFabUtil_${DIM}D_C.cpp AMReX_MultiFabUtil_nd_C.cpp )
+add_sources( AMReX_FILCC_${DIM}D.F90 )
+add_sources( AMReX_MultiFabUtil_${DIM}D_C.H AMReX_MultiFabUtil_nd_C.H )
 add_sources( AMReX_MultiFabUtil_C.H )
 
-add_sources( AMReX_FilCC_${DIM}D_C.cpp )
+add_sources( AMReX_FilCC_${DIM}D_C.H )
 add_sources( AMReX_FilCC_C.H )
 
 add_sources( AMReX_filcc_mod.F90 AMReX_omp_mod.F90 AMReX_acc_mod.F90 AMReX_fort_mod.F90 AMReX_constants_mod.f90 )
@@ -128,6 +131,8 @@ add_sources( AMReX_io_mod.F90 )
 
 add_sources( AMReX_BLProfiler.cpp AMReX_BLBackTrace.cpp )
 
+# Machine model
+add_sources ( AMReX_Machine.H AMReX_Machine.cpp )
 
 # LAZY mode not supported in CMake yet
 # ifeq ($(LAZY),TRUE)
@@ -175,5 +180,6 @@ add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
 add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
+add_sources( AMReX_CudaElixir.H AMReX_CudaElixir.cpp )
 #endif()
 
