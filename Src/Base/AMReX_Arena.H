@@ -21,22 +21,22 @@ struct ArenaInfo
     bool device_set_readonly = false;
     bool device_set_preferred = false;
     bool device_use_hostalloc = false;
-    ArenaInfo& SetDeviceMemory () {
+    ArenaInfo& SetDeviceMemory () noexcept {
         device_use_managed_memory = false;
         device_use_hostalloc = false;
         return *this;
     }
-    ArenaInfo& SetReadOnly () {
+    ArenaInfo& SetReadOnly () noexcept {
         BL_ASSERT(device_use_managed_memory);
         device_set_readonly = true;
         return *this;
     }
-    ArenaInfo& SetPreferred () {
+    ArenaInfo& SetPreferred () noexcept {
         BL_ASSERT(device_use_managed_memory);
         device_set_preferred = true;
         return *this;
     }
-    ArenaInfo& SetHostAlloc () {
+    ArenaInfo& SetHostAlloc () noexcept {
         device_use_hostalloc = true;
         device_use_managed_memory = false;
         return *this;
