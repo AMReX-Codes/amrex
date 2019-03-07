@@ -6,8 +6,6 @@
 
 #include <thrust/reduce.h>
 
-#include "Constants.H"
-
 namespace amrex
 {
 
