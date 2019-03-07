@@ -30,20 +30,8 @@ include( AMReX_Machines )
 #
 # Enable CUDA if requested
 #
-# CMake let you decide which host compiler to use
-# via the env variable CUDAHOSTCXX and the CMake
-# variable CMAKE_CUDA_HOST_COMPILER.
-# For the time being we force the CUDA host compiler
-# to be the C++ compiler. 
-# 
 if (ENABLE_CUDA)
-   if(${CMAKE_VERSION} VERSION_LESS "3.14.0") 
-      message(FATAL_ERROR "CUDA support requires CMake >= 3.14.0")
-   endif()
    include(AMReX_SetupCUDA)
-   setup_cuda_host_compiler()
-   enable_language(CUDA)
-   setup_cuda_environment()
 endif ()
 
 #

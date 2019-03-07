@@ -39,10 +39,98 @@ function (configure_amrex)
    # Set properties for target "amrex"
    # 
    set_amrex_defines()
-   setup_amrex_compilers()
+   
+   #
+   # Setup compilers
+   #
+  
+   # Exit if Cray compiler is in use -- Support for Cray is currently broken   
+   if ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray") OR
+         ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
+      message(FATAL_ERROR "Support for Cray compiler is currently broken")
+   endif()
+
+   # Load flags preset
+   include(AMReX_Compilers)
+   set_compiler_flags_preset(amrex)
+
+   if (ENABLE_CUDA)
+      # After we load the setups for ALL the supported compilers
+      # we can load the setup for NVCC if required
+      # This is necessary because we need to know the C++ flags
+      # to pass to the Xcompiler option.
+      # include(${CMAKE_MODULE_PATH}/comps/AMReX_NVIDIA.cmake)
+      target_compile_definitions( amrex PUBLIC
+         AMREX_NVCC_VERSION=${CMAKE_CUDA_COMPILER_VERSION}
+         AMREX_NVCC_MAJOR_VERSION=${NVCC_VERSION_MAJOR}
+         AMREX_NVCC_MINOR_VERSION=${NVCC_VERSION_MINOR} )
+      
+      set_target_properties( amrex
+         PROPERTIES
+         CUDA_SEPARABLE_COMPILATION ON      # This adds -dc
+         CUDA_RESOLVE_DEVICE_SYMBOLS OFF
+         )
+      
+      if (NOT ENABLE_3D_NODAL_MLMG)
+         set_target_properties( amrex
+            PROPERTIES
+            CUDA_STANDARD 11     # Adds -std=<standard>
+            CUDA_STANDARD_REQUIRED ON
+            )
+      else ()
+         set_target_properties( amrex
+            PROPERTIES
+            CUDA_STANDARD 14     # Adds -std=<standard>
+            CUDA_STANDARD_REQUIRED ON
+            )
+      endif ()
+      
+      #
+      # Retrieve compile flags for the current configuration
+      # I haven't find a way to set host compiler flags for all the
+      # possible configurations.
+      #
+      get_target_property( _amrex_flags amrex COMPILE_OPTIONS)
+
+      evaluate_genex(_amrex_flags _amrex_cxx_flags
+         LANG   CXX
+         COMP   ${CMAKE_CXX_COMPILER_ID}
+         CONFIG ${CMAKE_BUILD_TYPE}
+         STRING )
+
+      target_compile_options(amrex PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=${_amrex_cxx_flags}>)
+
+   endif ()
+   
+
+   #
+   # GNU-specific defines
+   # 
+   if ( ${CMAKE_C_COMPILER_ID} STREQUAL "GNU" ) 
+      
+      if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.8" )
+         message( WARNING
+            " Your default GCC is version ${CMAKE_CXX_COMPILER_VERSION}.This might break during build. GCC>=4.8 is recommended.")
+      endif ()
+      
+      string( REPLACE "." ";" VERSION_LIST ${CMAKE_CXX_COMPILER_VERSION})
+      list( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
+      list( GET VERSION_LIST 1 GCC_VERSION_MINOR )
+
+      target_compile_definitions( amrex PUBLIC
+         BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+         BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}
+         BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}
+         )
+   endif ()
+
 
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
+   endif ()
+
+   if (ENABLE_CUDA OR BUILD_SHARED_LIBS)
+      set_target_properties( amrex PROPERTIES INTERFACE_LINK_OPTIONS "-Wl,--warn-unresolved-symbols")
    endif ()
       
    # 
@@ -58,23 +146,22 @@ function (configure_amrex)
       PUBLIC "$<BUILD_INTERFACE:${AMREX_Fortran_MODULE_DIR}>" )
    
    #
-   # Setup MPI (CMake >= 3.11 allows to import MPI as an imported TARGET)
-   # Check https://cliutils.gitlab.io/modern-cmake/chapters/packages/MPI.html
+   # Setup MPI
    #  
    if (ENABLE_MPI)
       find_package(MPI REQUIRED)
       target_link_libraries(amrex PUBLIC MPI::MPI_CXX MPI::MPI_Fortran)
-   endif ()
+   endif ()  
    
    #
-   # Setup OpenMP (CMake >= 3.9 allows to import MPI as an imported TARGET)
+   # Setup OpenMP 
    #
    if (ENABLE_OMP)
       find_package(OpenMP REQUIRED)
       target_link_libraries(amrex PUBLIC OpenMP::OpenMP_CXX)
    else ()
       target_compile_options( amrex PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> $<$<C_COMPILER_ID:Cray>:-h;noomp> )     
+         $<$<CXX_COMPILER_ID:Cray>:-h;noomp> )     
    endif ()
    
    #
@@ -108,102 +195,6 @@ function (configure_amrex)
    print_amrex_configuration_summary ()
 
 endfunction ()
-
-
-
-# 
-#
-# FUNCTION: setup_amrex_compilers
-# 
-# Load the configurations for all the supported compilers suite.
-# This function requires target "amrex" to be already existent.
-#
-# Author: Michele Rosso
-# Date  : January 24, 2019
-#
-# 
-function ( setup_amrex_compilers )
-
-   # 
-   # Check if target "amrex" has been defined before
-   # calling this function
-   #
-   if ( NOT TARGET amrex )
-      message(FATAL_ERROR "Target 'amrex' must be defined before calling function 'setup_amrex_compilers'" )
-   endif ()
-
-   #
-   # Exit if Cray compiler is in use -- Support for Cray is currently broken
-   # 
-   if ( ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray") OR
-         ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray") )
-      message(FATAL_ERROR "Support for Cray compiler is currently broken")
-   endif()
-
-   # Load all compilers comfiguration
-   include(${CMAKE_MODULE_PATH}/comps/AMReX_GNU.cmake)
-   include(${CMAKE_MODULE_PATH}/comps/AMReX_PGI.cmake)
-   include(${CMAKE_MODULE_PATH}/comps/AMReX_Intel.cmake)
-   include(${CMAKE_MODULE_PATH}/comps/AMReX_Cray.cmake)
-
-   if (ENABLE_CUDA)
-      # After we load the setups for ALL the supported compilers
-      # we can load the setup for NVCC if required
-      # This is necessary because we need to know the C++ flags
-      # to pass to the Xcompiler option.
-      include(${CMAKE_MODULE_PATH}/comps/AMReX_NVIDIA.cmake)
-   endif ()
-   
-   # 
-   # Define some handy variables for handling generator expression
-   # Since genex "Fortran_COMPILER_ID" is not supported, we use genex
-   # "STREQUAL" as workaround 
-   #
-   set(cxx_lang       "$<COMPILE_LANGUAGE:CXX>"    )
-   set(fortran_lang   "$<COMPILE_LANGUAGE:Fortran>")
-   set(cuda_lang      "$<COMPILE_LANGUAGE:CUDA>"   )
-   set(debug_build    "$<CONFIG:Debug>")
-   set(release_build  "$<CONFIG:Release>")  
-   
-   # #
-   # # Set CUDA flags  
-   # #
-   # if (ENABLE_CUDA)
-   #    set_property(TARGET amrex PROPERTY CUDA_STANDARD 11)
-
-   #    if (CMAKE_VERSION VERSION_LESS 3.12 )
-   #       set( CMAKE_CUDA_COMPILER_LOADED 1 )
-   #       include(select_gpu_arch)
-   #       get_nvcc_arch_flags(nvcc_arch_flags "Auto")
-   #    endif ()
-
-   #    print(nvcc_arch_flags)
-   #    target_compile_options( amrex
-   #       PUBLIC
-   #       $<${cuda_lang}:--expt-relaxed-constexpr --expt-extended-lambda -dc --ptxas-options=-O3,-v -Wno-deprecated-gpu-targets -m64
-   #       ${nvcc_arch_flags} -lineinfo  --use_fast_math
-   #       -Xcompiler=-g,-O3,-std=c++11,--std=c++11>   
-   #       )
-
-   #    target_compile_options( amrex
-   #       PUBLIC
-   #       $<${fortran_pgi}:-Mcuda=ptxinfo,fastmath,charstring>     
-   #       )
-   # endif ()
-
-   # #
-   # # Openacc
-   # # 
-   # if (NOT ENABLE_ACC)
-   #    target_compile_options( amrex
-   #       PUBLIC
-   #       $<${fortran_pgi}:-noacc>     
-   #       )
-   # endif ()
-
-   
-endfunction () 
-
 
 # 
 #
@@ -295,8 +286,8 @@ function (print_amrex_configuration_summary)
    message( STATUS "   C++ flags                = ${AMREX_CXX_FLAGS}")
    message( STATUS "   Fortran flags            = ${AMREX_Fortran_FLAGS}")
    if (ENABLE_CUDA)
-      message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}
-                      ${AMREX_CUDA_FLAGS}")
+      message( STATUS "   CUDA flags               = ${CMAKE_CUDA_FLAGS_${AMREX_BUILD_TYPE}} ${CMAKE_CUDA_FLAGS}"
+         "${AMREX_CUDA_FLAGS}")
    endif ()
    message( STATUS "   C++ include paths        = ${AMREX_CXX_INCLUDE_PATHS}")  
    message( STATUS "   Fortran include paths    = ${AMREX_Fortran_INCLUDE_PATHS}")
