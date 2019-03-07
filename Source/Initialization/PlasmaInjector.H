@@ -58,6 +58,24 @@ private:
 };
 
 ///
+/// This describes predefined density distributions.
+///
+class PredefinedDensityProfile : public PlasmaDensityProfile
+{
+public:
+    PredefinedDensityProfile(const std::string& species_name);
+    virtual amrex::Real getDensity(amrex::Real x,
+                                   amrex::Real y,
+                                   amrex::Real z) const override;
+    amrex::Real ParabolicChannel(amrex::Real x,
+                                 amrex::Real y,
+                                 amrex::Real z) const;
+private:
+    std::string which_profile;
+    amrex::Vector<amrex::Real> params;
+};
+
+///
 /// This describes a density function parsed in the input file. 
 ///
 class ParseDensityProfile : public PlasmaDensityProfile

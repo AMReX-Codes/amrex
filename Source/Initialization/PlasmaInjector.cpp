@@ -69,6 +69,13 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
     pp.getarr("custom_profile_params", params);
 }
 
+PredefinedDensityProfile::PredefinedDensityProfile(const std::string& species_name)
+{
+    ParmParse pp(species_name);
+    pp.getarr("predefined_profile_params", params);
+    pp.query("predefined_profile_name", which_profile);
+}
+
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
 {
@@ -309,6 +316,8 @@ void PlasmaInjector::parseDensity(ParmParse pp){
         rho_prof.reset(new ConstantDensityProfile(density));
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
+    } else if (rho_prof_s == "predefined") {
+        rho_prof.reset(new PredefinedDensityProfile(species_name));
     } else if (rho_prof_s == "parse_density_function") {
         // Serialize particle initialization
         WarpX::serialize_ics = true;
