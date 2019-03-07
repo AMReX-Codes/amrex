@@ -7,6 +7,12 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_ParmParse.H>
 
+#ifdef AMREX_USE_MPI
+#define MY_USE_MPI 1 
+#else 
+#define MY_USE_MPI 0
+#endif 
+
 using namespace amrex;
 
 void 
@@ -21,6 +27,7 @@ print_usage (int,
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
+    static_assert(MY_USE_MPI!=1, "cannot work with MPI" ); 
 
     if (argc < 3)
         print_usage(argc,argv);
@@ -43,9 +50,13 @@ int main(int argc, char* argv[])
     VisMF::Read(mf2, name2);
 
     if (ngrow < 0) ngrow = std::min(mf1.nGrow(), mf2.nGrow());
-
+    if (ngrow > mf1.nGrow())
+        Abort(" ngrow bigger than infile1's ngrow! ");
+     if (ngrow > mf2.nGrow())
+        Abort(" ngrow bigger than infile2's ngrow! ");
+   
     if (mf1.boxArray() != mf2.boxArray()) {
-	Abort("The two multifabs have different BoxArray");
+    	Abort("The two multifabs have different BoxArray");
     }
 
     const int ncomp = mf1.nComp();
@@ -63,10 +74,9 @@ int main(int argc, char* argv[])
     }
 
     MultiFab mfdiff(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
-    mfdiff.setVal(0.); 
 
-    mfdiff.copy(mf1);
-    mfdiff.minus(mf2, 0, ncomp, ngrow);
+    MultiFab::Copy(mfdiff, mf1, 0, 0, ncomp, ngrow);
+    MultiFab::Subtract(mfdiff, mf2, 0, 0, ncomp, ngrow);
 
     for (int icomp = 0; icomp < ncomp; ++icomp) {
         Print() << "diff Min,max: " << mfdiff.min(icomp,ngrow) 
