@@ -18,6 +18,8 @@ with open('WarpX-tests.ini') as f:
 
 # Replace default folder name
 text = re.sub('/home/regtester/AMReX_RegTesting', test_dir, text)
+# Remove the web directory
+text = re.sub('[\w\-\/]*/web', '', text)
 
 # Add doComparison = 0 for each test
 text = re.sub( '\[(?P<name>.*)\]\nbuildDir = ',
@@ -42,8 +44,6 @@ text = re.sub( '\[Python_Langmuir\]\n(.+\n)*', '', text)
 
 # Remove Langmuir_x/y/z test (too long; not that useful)
 text = re.sub( '\[Langmuir_[xyz]\]\n(.+\n)*', '', text)
-# Skip unit tests (too long; not that useful)
-text = re.sub( '\[UnitTest_[a-zA-Z]+\]\n(.+\n)*', '', text)
 
 # Remove tests that do not have the right dimension
 if dim is not None:

@@ -208,6 +208,15 @@ Particle initialization
     Inject a backward-propagating beam to reduce the effect of charge-separation
     fields when running in the boosted frame. See examples.
 
+* ``<species_name>.do_splitting`` (`bool`) optional (default `0`)
+    Split particles of the species when crossing the boundary from a lower 
+    resolution domain to a higher resolution domain.
+
+* ``<species_name>.split_type`` (`int`) optional (default `0`)
+    Splitting technique. When `0`, particles are split along the simulation
+    axes (4 particles in 2D, 6 particles in 3D). When `1`, particles are split
+    along the diagonals (4 particles in 2D, 8 particles in 3D).
+
 * ``warpx.serialize_ics`` (`0 or 1`)
     Whether or not to use OpenMP threading for particle initialization.
 
@@ -392,6 +401,7 @@ Numerics and algorithms
 
      - ``0``: Vectorized version
      - ``1``: Non-optimized version
+
     .. warning::
 
         The vectorized version does not run on GPU. Use 

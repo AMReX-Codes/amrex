@@ -19,9 +19,9 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
-#include <ParticleContainer.H>
-#include <WarpXPML.H>
-#include <WarpXBoostedFrameDiagnostic.H>
+#include <MultiParticleContainer.H>
+#include <PML.H>
+#include <BoostedFrameDiagnostic.H>
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>
@@ -501,7 +501,7 @@ private:
     bool plot_part_per_proc = false;
     bool plot_proc_number   = false;
     bool plot_dive          = false;
-    bool plot_divb          = true;
+    bool plot_divb          = false;
     bool plot_rho           = false;
     bool plot_F             = false;
     bool plot_finepatch     = false;

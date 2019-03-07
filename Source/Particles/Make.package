@@ -1,0 +1,14 @@
+F90EXE_sources += deposit_cic.F90
+F90EXE_sources += interpolate_cic.F90
+F90EXE_sources += push_particles_ES.F90
+CEXE_sources += PhysicalParticleContainer.cpp
+CEXE_sources += MultiParticleContainer.cpp
+CEXE_sources += WarpXParticleContainer.cpp
+CEXE_sources += RigidInjectedParticleContainer.cpp
+CEXE_headers += MultiParticleContainer.H
+CEXE_headers += WarpXParticleContainer.H
+CEXE_headers += RigidInjectedParticleContainer.H
+CEXE_headers += PhysicalParticleContainer.H
+
+INCLUDE_LOCATIONS += $(WARPX_HOME)/Source/Particles
+VPATH_LOCATIONS   += $(WARPX_HOME)/Source/Particles
