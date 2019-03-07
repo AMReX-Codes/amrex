@@ -254,7 +254,8 @@ updateNeighborsGPU()
             for (auto dst_grid : m_grid_map[src_grid][i-1])
             {            
                 const int dest_proc = dmap[dst_grid];
-                if (dest_proc != ParallelDescriptor::MyProc())
+                const int num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
+                if ( (dest_proc != ParallelDescriptor::MyProc() ) and (num_to_add > 0) )
                 {
                     grid_counts[dest_proc] += 1;
                 }
@@ -279,6 +280,7 @@ updateNeighborsGPU()
         for (int i = 1; i < num_codes + 1; ++i)
         {
             const size_t num_to_add = m_stop[src_grid][i] - m_start[src_grid][i];
+            if (num_to_add == 0) continue;
             for (auto dst_grid : m_grid_map[src_grid][i-1]) {
                 const int dst_tile = 0;                
                 auto pair_index = std::make_pair(dst_grid, dst_tile);
