@@ -19,7 +19,6 @@ target_sources( ${EXENAME}
    ${SRC_DIR}/main.cpp)
 
 target_include_directories(${EXENAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR} )
-
 set_source_files_properties(${SRC_DIR}/main.cpp ${SRC_DIR}/MDParticleContainer.cpp PROPERTIES LANGUAGE CUDA)
 
 # Since we are forcing the use of fortran compiler to link
@@ -29,11 +28,11 @@ set_target_properties( ${EXENAME}
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY
    ${CMAKE_CURRENT_BINARY_DIR}/Launch
-   LINK_FLAGS
-   "-std=c++11 -Wl,--warn-unresolved-symbols"
-   CXX_STANDARD 11               # Adds -std=c++11
+   # LINK_FLAGS
+   # "-Wl,--warn-unresolved-symbols"
+   CXX_STANDARD 14               # Adds -std=c++11
    CXX_STANDARD_REQUIRED ON
-   CUDA_STANDARD 11               # Adds -std=c++11
+   CUDA_STANDARD 14               # Adds -std=c++11
    CUDA_STANDARD_REQUIRED ON
    CUDA_SEPARABLE_COMPILATION ON  # This add -dc flag
    )
