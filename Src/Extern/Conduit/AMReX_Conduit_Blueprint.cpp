@@ -316,7 +316,8 @@ MultiLevelToBlueprint (int n_levels,
     {
         // ERROR -- doesn't conform to the mesh blueprint
         // show what went wrong
-        amrex::Print() << info.to_json();
+        amrex::Print() << "ERROR: Conduit Mesh Blueprint Verify Failed!\n"
+                       << info.to_json();
     }
 
 

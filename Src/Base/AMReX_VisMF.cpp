@@ -915,13 +915,15 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
     // ---- add stream retry
     // ---- add stream buffer (to nfiles)
-    RealDescriptor *whichRD;
+    RealDescriptor *whichRD = nullptr;
     if(FArrayBox::getFormat() == FABio::FAB_NATIVE) {
       whichRD = FPC::NativeRealDescriptor().clone();
     } else if(FArrayBox::getFormat() == FABio::FAB_NATIVE_32) {
       whichRD = FPC::Native32RealDescriptor().clone();
     } else if(FArrayBox::getFormat() == FABio::FAB_IEEE_32) {
       whichRD = FPC::Ieee32NormalRealDescriptor().clone();
+    } else {
+      Abort("VisMF::Write unable to execute with the current fab.format setting.  Use NATIVE, NATIVE_32 or IEEE_32");
     }
     bool doConvert(*whichRD != FPC::NativeRealDescriptor());
 

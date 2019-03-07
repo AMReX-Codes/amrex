@@ -54,6 +54,8 @@ public:
     static int maxBlocksPerGrid (int dir) { return device_prop.maxGridSize[dir]; }
 #endif
 
+    static std::size_t freeMemAvailable ();
+
 private:
 
     static void initialize_cuda ();
