@@ -3,6 +3,67 @@
 
 using namespace amrex;
 
+/** \brief Takes an array of 3 MultiFab `vector_field`
+  * (representing the x, y, z components of a vector),
+  * averages it to the cell center, and stores the
+  * resulting MultiFab in mf_avg (in the components dcomp to dcomp+2)
+  */
+void
+AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> > mf_avg,
+    Vector<std::array< std::unique_ptr<MultiFab>, 3 >> vector_field,
+    const int dcomp, const int lev, const int ngrow )
+{
+
+    // Needed since `average_edge_to_cellcenter` requires fields to
+    // be passed as Vector
+    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
+
+    // Check the type of staggering of the 3-component `vector_field`
+    // and average accordingly:
+    // - Fully cell-centered field (no average needed; simply copy)
+    if ( std::all_of( 0, AMREX_SPACEDIM,
+        [](int i){ return vector_field[lev][i]->is_cell_centered(); } ) ){
+
+        MultiFab::Copy(*mf_avg[lev], *vector_field[lev][0], 0, dcomp  , 1, ngrow);
+        MultiFab::Copy(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
+        MultiFab::Copy(*mf_avg[lev], *vector_field[lev][2], 0, dcomp+2, 1, ngrow);
+
+    // - Fully nodal
+    } else if ( std::all_of( 0, AMREX_SPACEDIM,
+        [](int i){ return vector_field[lev][i]->is_nodal(); } ) ){
+
+        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *vector_field[lev][0], 0, 1);
+        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *vector_field[lev][1], 0, 1);
+        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *vector_field[lev][2], 0, 1);
+
+    // - Staggered, in the same way as E on a Yee grid
+    } else if ( std::all_of( 0, AMREX_SPACEDIM,
+        [](int i){ return vector_field[lev][i]->is_cell_centered(i); } ) ){
+
+        PackPlotDataPtrs(srcmf, vector);
+        amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
+        MultiFab::average_node_to_cellcenter(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+
+    // - Staggered, in the same way as B on a Yee grid
+    } else if ( std::all_of( 0, AMREX_SPACEDIM,
+        [](int i){ return vector_field[lev][i]->is_nodal(i); } ) ){
+
+        PackPlotDataPtrs(srcmf, vector);
+        amrex::average_face_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
+        MultiFab::Copy(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+
+    } else {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "Unknown staggering.");
+    }
+}
+
+
 /** \brief Write the different fields of the simulation,
 * averaged to the cell center of each cell (default WarpX output)
 */
@@ -34,7 +95,6 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
     const int ngrow = 0;
     mf_avg[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-    Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
     int dcomp = 0;
 
     // j
@@ -355,4 +415,4 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
     rfs
   );
 
-}
+};
