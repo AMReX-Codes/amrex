@@ -188,6 +188,7 @@ public:
 
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
+    void WriteAveragedFields ( const std::string& plotfilename ) const;
     void UpdateInSitu () const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
