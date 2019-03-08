@@ -1,11 +1,3 @@
 CEXE_headers += Adv_$(DIM)d.H
 CEXE_headers += computer_flux_$(DIM)d.H
 CEXE_headers += slope_$(DIM)d.H
-
-CEXE_sources += Adv_$(DIM)d.cpp
-CEXE_sources += compute_flux_$(DIM)d.cpp
-CEXE_sources += slope_$(DIM)d.cpp
-
-#f90EXE_sources += Adv_$(DIM)d.f90
-#f90EXE_sources += slope_$(DIM)d.f90
-#f90EXE_sources += compute_flux_$(DIM)d.f90
