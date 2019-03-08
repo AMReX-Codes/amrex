@@ -157,6 +157,11 @@ function ( set_amrex_defines )
 
    # SENSEI Insitu
    add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
+  
+
+   # Conduit Support
+   add_amrex_define( AMREX_USE_CONDUIT IF ENABLE_CONDUIT )
+  
    
 endfunction ()
 

@@ -145,6 +145,11 @@ function (configure_amrex)
    endif()
 
    #
+   # Setup other third party libs
+   #
+   include(AMReX_SetupThirdPartyLibs)
+
+   #
    # Print out summary
    # 
    print_amrex_configuration_summary ()

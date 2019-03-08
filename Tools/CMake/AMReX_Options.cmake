@@ -143,6 +143,15 @@ endif ()
 option ( ENABLE_SENSEI_INSITU "Enable SENSEI in situ infrastructure" OFF )
 print_option ( ENABLE_SENSEI_INSITU )
 
+
+#
+# Conduit Support (for features in Src/Extern/Conduit)
+# Note: ENABLE_CONDUIT = ON, requires CONDUIT_DIR.
+#
+option ( ENABLE_CONDUIT "Enable Conduit support" OFF )
+print_option ( ENABLE_CONDUIT )
+
+
 if (ENABLE_LINEAR_SOLVERS AND (DIM EQUAL 3) AND (NOT USE_XSDK_DEFAULTS) )
    option(ENABLE_3D_NODAL_MLMG "Enable 3D nodal MLMG" OFF)
    print_option(ENABLE_3D_NODAL_MLMG)
