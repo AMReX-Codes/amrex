@@ -72,8 +72,12 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
 PredefinedDensityProfile::PredefinedDensityProfile(const std::string& species_name)
 {
     ParmParse pp(species_name);
+    std::string which_profile_s;
     pp.getarr("predefined_profile_params", params);
-    pp.query("predefined_profile_name", which_profile);
+    pp.query("predefined_profile_name", which_profile_s);
+    if (which_profile_s == "parabolic_channel"){
+        which_profile = predefined_profile_flag::parabolic_channel;
+    }
 }
 
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)

@@ -7,7 +7,7 @@ using namespace amrex;
 
 Real PredefinedDensityProfile::getDensity(Real x, Real y, Real z) const {
     Real n;
-    if ( which_profile == "parabolic_channel" ) {
+    if ( which_profile == predefined_profile_flag::parabolic_channel ) {
         n = ParabolicChannel(x,y,z);
     }
     return n;

@@ -9,6 +9,8 @@
 #include "AMReX_ParmParse.H"
 #include "AMReX_Utility.H"
 
+enum class predefined_profile_flag { Null, parabolic_channel };
+
 ///
 /// PlasmaDensityProfile describes how the charge density
 /// is set in particle initialization. Subclasses must define a
@@ -71,7 +73,7 @@ public:
                                  amrex::Real y,
                                  amrex::Real z) const;
 private:
-    std::string which_profile;
+    predefined_profile_flag which_profile = predefined_profile_flag::Null;
     amrex::Vector<amrex::Real> params;
 };
 
