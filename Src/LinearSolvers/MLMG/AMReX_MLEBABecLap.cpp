@@ -616,7 +616,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         }
         else
         {
-            FArrayBox const& phiebfab = (is_eb_dirichlet && m_is_eb_inhomog) ? (*m_eb_phi[amrlev])[mfi] : foo;
             FArrayBox const& bebfab = (is_eb_dirichlet) ? (*m_eb_b_coeffs[amrlev][mglev])[mfi] : foo;
 
             amrex_mlebabeclap_gsrb(BL_TO_FORTRAN_BOX(tbx),
@@ -651,7 +650,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                    BL_TO_FORTRAN_ANYD((*bcent)[mfi]),
                                    BL_TO_FORTRAN_ANYD(bebfab), 
                                    is_dirichlet, is_ho_dirichlet,
-                                   BL_TO_FORTRAN_ANYD(phiebfab), m_is_eb_inhomog,
                                    dxinv, m_a_scalar, m_b_scalar, redblack);
         }
     }
