@@ -275,8 +275,8 @@ contains
      flag, flo, fhi, vfrc, vlo, vhi, & 
      apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
      fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-     is_dirichlet, is_ho_dirichlet, phieb, p_lo, p_hi, &
-     is_inhomog, dxinv, alpha, beta, redblack) & 
+     is_dirichlet, is_ho_dirichlet, &
+     dxinv, alpha, beta, redblack) & 
      bind(c,name='amrex_mlebabeclap_gsrb') 
 
     integer, dimension(3), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
@@ -284,9 +284,9 @@ contains
          m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, m4lo, m4hi, m5lo, m5hi,  &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, f4lo, f4hi ,f5lo, f5hi, flo, fhi, vlo, vhi,&
          axlo, axhi, aylo, ayhi, azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, &
-         balo, bahi, bclo, bchi, elo, ehi, p_lo, p_hi
+         balo, bahi, bclo, bchi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(3)
-    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet, is_inhomog
+    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     integer         , value, intent(in) :: redblack
     real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2), hlo(3): hhi(3)  )
@@ -319,7 +319,6 @@ contains
     real(amrex_real), intent(in   ) ::  ba (balo(1):bahi(1),balo(2):bahi(2),balo(3):bahi(3))
     real(amrex_real), intent(in   ) ::  bc (bclo(1):bchi(1),bclo(2):bchi(2),bclo(3):bchi(3),3)
     real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2), elo(3): ehi(3))
-    real(amrex_real), intent(in   ) ::phieb(p_lo(1):p_hi(1),p_lo(2):p_hi(2),p_lo(3):p_hi(3))
 
     integer :: i, j, k, ioff, ii, jj, kk
     real(amrex_real) :: cf0, cf1, cf2, cf3, cf4, cf5,  delta, gamma, rho, res, vfrcinv
@@ -329,12 +328,9 @@ contains
     real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
     real(amrex_real) :: bctx, bcty, bctz
-    logical :: is_inhomogeneous
     real(amrex_real), parameter :: omega = 1.15_amrex_real ! over-relaxation
 
     real(amrex_real) :: dphidn, phib
-
-    is_inhomogeneous = is_inhomog .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1) 
     dhy = beta*dxinv(2)*dxinv(2) 
@@ -504,6 +500,9 @@ contains
                        anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
                        anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
 
+                       ! In gsrb we are always in residual-correction form so phib = 0
+                       phib = zero 
+
                        call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
                                               phi,  hlo,  hhi, &
                                               flag, flo,  fhi, &
@@ -555,14 +554,8 @@ contains
                             + (gxy + gxyz) * phi(ii,jj,k) &
                             + (-gxyz) * phi(ii,jj,kk)
 
-                       if (is_inhomogeneous) then
-                          phib = phieb(i,j,k)
-                       else
-                          phib = zero
-                       end if
-
                        feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k)
-                       feb       = (phib-phig)/dg * ba(i,j,k) * beb(i,j,k)
+                       feb       = (    -phig)/dg * ba(i,j,k) * beb(i,j,k)
                     
                        gamma = gamma + vfrcinv*(-dhx)*feb_gamma
                        rho = rho - vfrcinv*(-dhx)*feb
@@ -1047,27 +1040,11 @@ contains
       real(amrex_real),        intent(  out) :: dudn
 
       ! Local variable
-      real(amrex_real) :: dapx, dapy, dapz
       real(amrex_real) :: anrm
       real(amrex_real) :: xit, yit, zit, s, s2
       real(amrex_real) :: d1, d2, ddinv
       real(amrex_real) :: u1, u2
       integer          :: ixit, iyit, izit, is, is2, ivar
-
-      ! dapx = apx(i+1,j,k)-apx(i,j,k)
-      ! dapy = apy(i,j+1,k)-apy(i,j,k)
-      ! dapz = apz(i,j,k+1)-apz(i,j,k)
-
-      ! apnorm = sqrt(dapx**2+dapy**2+dapz**2)
-
-      ! if ( apnorm == zero ) then
-      !    call amrex_abort("compute_diff_wallflux: we are in trouble.")
-      ! end if
-
-      ! apnorminv = one/apnorm
-      ! anrmx = -dapx * apnorminv  ! unit vector pointing toward the wall
-      ! anrmy = -dapy * apnorminv
-      ! anrmz = -dapz * apnorminv
 
       if (abs(anrmx).ge.abs(anrmy) .and. abs(anrmx).ge.abs(anrmz)) then
          anrm = anrmx
