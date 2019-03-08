@@ -179,8 +179,9 @@ function (configure_amrex)
    #
    # If CUDA is enabled, add manually libcuda because CMake does not find it
    #
-   target_link_libraries(amrex PUBLIC cuda)   
-
+   if (ENABLE_CUDA)
+      target_link_libraries(amrex PUBLIC cuda)   
+   endif ()
    #
    # Setup SENSEI
    #
