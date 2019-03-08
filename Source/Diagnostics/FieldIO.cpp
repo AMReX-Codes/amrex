@@ -21,24 +21,21 @@ AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> > mf_avg,
     // Check the type of staggering of the 3-component `vector_field`
     // and average accordingly:
     // - Fully cell-centered field (no average needed; simply copy)
-    if ( std::all_of( 0, AMREX_SPACEDIM,
-        [](int i){ return vector_field[lev][i]->is_cell_centered(); } ) ){
+    if ( vector_field[lev][0]->is_cell_centered() ){
 
         MultiFab::Copy(*mf_avg[lev], *vector_field[lev][0], 0, dcomp  , 1, ngrow);
         MultiFab::Copy(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
         MultiFab::Copy(*mf_avg[lev], *vector_field[lev][2], 0, dcomp+2, 1, ngrow);
 
     // - Fully nodal
-    } else if ( std::all_of( 0, AMREX_SPACEDIM,
-        [](int i){ return vector_field[lev][i]->is_nodal(); } ) ){
+} else if ( vector_field[lev][0]->is_nodal() ){
 
         amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *vector_field[lev][0], 0, 1);
         amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *vector_field[lev][1], 0, 1);
         amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *vector_field[lev][2], 0, 1);
 
-    // - Staggered, in the same way as E on a Yee grid
-    } else if ( std::all_of( 0, AMREX_SPACEDIM,
-        [](int i){ return vector_field[lev][i]->is_cell_centered(i); } ) ){
+    // - Edge centered, in the same way as E on a Yee grid
+} else if ( vector_field[lev][0]->is_cell_centered(0) ){
 
         PackPlotDataPtrs(srcmf, vector);
         amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
@@ -47,9 +44,8 @@ AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> > mf_avg,
         MultiFab::average_node_to_cellcenter(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
 #endif
 
-    // - Staggered, in the same way as B on a Yee grid
-    } else if ( std::all_of( 0, AMREX_SPACEDIM,
-        [](int i){ return vector_field[lev][i]->is_nodal(i); } ) ){
+    // - Face centered, in the same way as B on a Yee grid
+} else if ( vector_field[lev][0]->is_nodal(0) ){
 
         PackPlotDataPtrs(srcmf, vector);
         amrex::average_face_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
