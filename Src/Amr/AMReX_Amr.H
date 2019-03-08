@@ -202,7 +202,7 @@ public:
     //! More work to be done?
     int okToContinue ();
     //! Regrid only!
-    void RegridOnly (Real time);
+    void RegridOnly (Real time, bool do_io = true);
     //! Should we regrid this level?
     bool okToRegrid (int level);
     //! Array of BoxArrays read in to initially define grid hierarchy
