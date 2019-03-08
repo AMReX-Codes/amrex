@@ -73,7 +73,7 @@ RigidInjectedParticleContainer::RemapParticles()
                 // Note that the particles are already in the boosted frame.
                 // This value is saved to advance the particles not injected yet
 
-                Cuda::DeviceVector<Real> xp, yp, zp;
+                Cuda::ManagedDeviceVector<Real> xp, yp, zp;
 
                 for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
                 {
@@ -134,7 +134,7 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp;
+        Cuda::ManagedDeviceVector<Real> xp, yp, zp;
 
         for (WarpXParIter pti(*this, 0); pti.isValid(); ++pti)
         {
@@ -205,10 +205,10 @@ RigidInjectedParticleContainer::BoostandRemapParticles()
 
 void
 RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
-	                               Cuda::DeviceVector<Real>& xp,
-                                       Cuda::DeviceVector<Real>& yp,
-                                       Cuda::DeviceVector<Real>& zp,
-                                       Cuda::DeviceVector<Real>& giv,
+	                               Cuda::ManagedDeviceVector<Real>& xp,
+                                       Cuda::ManagedDeviceVector<Real>& yp,
+                                       Cuda::ManagedDeviceVector<Real>& zp,
+                                       Cuda::ManagedDeviceVector<Real>& giv,
                                        Real dt)
 {
 
@@ -241,7 +241,7 @@ RigidInjectedParticleContainer::PushPX(WarpXParIter& pti,
 #endif
 
     // Save the position and momenta, making copies
-    Cuda::DeviceVector<Real> xp_save, yp_save, zp_save;
+    Cuda::ManagedDeviceVector<Real> xp_save, yp_save, zp_save;
     RealVector uxp_save, uyp_save, uzp_save;
 
     if (!done_injecting_lev) {
@@ -362,7 +362,7 @@ RigidInjectedParticleContainer::PushP (int lev, Real dt,
 #pragma omp parallel
 #endif
     {
-        Cuda::DeviceVector<Real> xp, yp, zp, giv;
+        Cuda::ManagedDeviceVector<Real> xp, yp, zp, giv;
 
         for (WarpXParIter pti(*this, lev); pti.isValid(); ++pti)
         {
