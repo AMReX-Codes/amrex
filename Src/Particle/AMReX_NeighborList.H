@@ -6,8 +6,6 @@
 
 #include <thrust/reduce.h>
 
-#include "Constants.H"
-
 namespace amrex
 {
 
@@ -69,8 +67,8 @@ private:
 template <class ParticleType>
 struct NeighborData
 {
-    NeighborData (const Gpu::DeviceVector<unsigned int>& offsets, 
-                  const Gpu::DeviceVector<unsigned int>& list,
+    NeighborData (const Gpu::ManagedDeviceVector<unsigned int>& offsets, 
+                  const Gpu::ManagedDeviceVector<unsigned int>& list,
                   const ParticleType* pstruct)
         : m_nbor_offsets_ptr(offsets.dataPtr()),
           m_nbor_list_ptr(list.dataPtr()),
@@ -108,16 +106,16 @@ public:
 
         const size_t np = vec.size();
         
-        Gpu::DeviceVector<unsigned int> cells(np);
+        Gpu::ManagedDeviceVector<unsigned int> cells(np);
         unsigned int* pcell = cells.dataPtr();
         
-        Gpu::DeviceVector<unsigned int> counts(bx.numPts(), 0);
+        Gpu::ManagedDeviceVector<unsigned int> counts(bx.numPts(), 0);
         unsigned int* pcount = counts.dataPtr();
         
-        Gpu::DeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
+        Gpu::ManagedDeviceVector<unsigned int> offsets(bx.numPts() + 1, np);
         unsigned int* poffset = offsets.dataPtr();
     
-        Gpu::DeviceVector<unsigned int> permutation(np);
+        Gpu::ManagedDeviceVector<unsigned int> permutation(np);
         unsigned int* pperm = permutation.dataPtr();
         
         // First we build the cell list data structure
@@ -152,7 +150,7 @@ public:
     
         // Now count the number of neighbors for each particle
         
-        Gpu::DeviceVector<unsigned int> nbor_counts(np);
+        Gpu::ManagedDeviceVector<unsigned int> nbor_counts(np);
         unsigned int* pnbor_counts = nbor_counts.dataPtr();
         
         AMREX_FOR_1D ( np, i,
@@ -259,8 +257,8 @@ protected:
     const ParticleType* m_pstruct;
 
     // This is the neighbor list data structure
-    Gpu::DeviceVector<unsigned int> m_nbor_offsets;
-    Gpu::DeviceVector<unsigned int> m_nbor_list;
+    Gpu::ManagedDeviceVector<unsigned int> m_nbor_offsets;
+    Gpu::ManagedDeviceVector<unsigned int> m_nbor_list;
 };
 
 }

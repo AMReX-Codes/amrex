@@ -75,7 +75,9 @@ public:
     explicit Geometry (const Box&     dom,
 		       const RealBox* rb     =  nullptr,
 		       int            coord  = -1,
-		       int*           is_per =  nullptr);
+		       int const*     is_per =  nullptr);
+    Geometry (const Box& dom, const RealBox& rb, int coord,
+              Array<int,AMREX_SPACEDIM> const& is_per);
 
     ~Geometry () = default;
     Geometry (const Geometry& rhs) = default;
@@ -92,9 +94,9 @@ public:
 
     static void Finalize ();
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = nullptr, int coord = -1, int* is_per = nullptr);
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr);
     //! Set the rectangular domain after using default constructor.
-    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int* is_per = 0);
+    void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr);
     //! Returns the problem domain.
     static const RealBox& ProbDomain () { return prob_domain; }
     //! Sets the problem domain.
@@ -233,6 +235,22 @@ public:
         return r;
     }
 
+    void coarsen (IntVect const& rr) {
+        domain.coarsen(rr);
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
+            inv_dx[i] = 1./dx[i];
+        }
+    }
+
+    void refine (IntVect const& rr) {
+        domain.refine(rr);
+        for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+            dx[i] = (ProbHi(i) - ProbLo(i)) / domain.length(i);
+            inv_dx[i] = 1./dx[i];
+        }
+    }
+
 private:
     //! Helper functions.
     void read_params ();
@@ -252,6 +270,30 @@ private:
 std::ostream& operator<< (std::ostream&, const Geometry&);
 //! Nice ASCII input.
 std::istream& operator>> (std::istream&, Geometry&);
+
+inline
+Geometry
+coarsen (Geometry const& fine, IntVect const& rr) {
+    Geometry r{fine};
+    r.coarsen(rr);
+    return r;
+}
+
+inline
+Geometry
+coarsen (Geometry const& fine, int rr) { return coarsen(fine, IntVect(rr)); }
+
+inline
+Geometry
+refine (Geometry const& fine, IntVect const& rr) {
+    Geometry r{fine};
+    r.refine(rr);
+    return r;
+}
+
+inline
+Geometry
+refine (Geometry const& fine, int rr) { return refine(fine, IntVect(rr)); }
 
 }
 

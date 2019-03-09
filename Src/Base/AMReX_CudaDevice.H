@@ -46,12 +46,15 @@ public:
     static void c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
     static void grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads);
 
+    static std::size_t totalGlobalMem () { return device_prop.totalGlobalMem; }
     static int numMultiProcessors () { return device_prop.multiProcessorCount; }
     static int maxThreadsPerMultiProcessor () { return device_prop.maxThreadsPerMultiProcessor; }
     static int maxThreadsPerBlock () { return device_prop.maxThreadsPerBlock; }
     static int maxThreadsPerBlock (int dir) { return device_prop.maxThreadsDim[dir]; }
     static int maxBlocksPerGrid (int dir) { return device_prop.maxGridSize[dir]; }
 #endif
+
+    static std::size_t freeMemAvailable ();
 
 private:
 

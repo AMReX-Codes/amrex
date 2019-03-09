@@ -84,8 +84,8 @@ struct ParticleTile
 
     void resize(std::size_t count)
     {
-        m_soa_tile.resize(count);
         m_aos_tile.resize(count);
+        m_soa_tile.resize(count);
     }
 
     ///

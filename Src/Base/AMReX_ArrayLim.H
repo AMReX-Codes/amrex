@@ -19,7 +19,7 @@
 #define ARLIM_3D(x) amrex::GpuArray<int,3>{(x)[0], 0, 0}.data()
 #define ARLIM_ANYD(x) amrex::GpuArray<int,3>{(x)[0], 0, 0}.data()
 #define ZFILL(x) amrex::GpuArray<amrex::Real,3>{(x)[0], 0., 0.}.data()
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define AMREX_REAL_ANYD(x) (x)[0], 0., 0.
 #else
 #define AMREX_REAL_ANYD(x) AMREX_ZFILL(x)
@@ -30,7 +30,7 @@
 #define ARLIM_3D(x) amrex::GpuArray<int,3>{(x)[0], (x)[1], 0}.data()
 #define ARLIM_ANYD(x) amrex::GpuArray<int,3>{(x)[0], (x)[1], 0}.data()
 #define ZFILL(x) amrex::GpuArray<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define AMREX_REAL_ANYD(x) (x)[0], (x)[1], 0.
 #else
 #define AMREX_REAL_ANYD(x) AMREX_ZFILL(x)
@@ -41,7 +41,7 @@
 #define ARLIM_3D(x) x
 #define ARLIM_ANYD(x) x
 #define ZFILL(x) x
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define AMREX_REAL_ANYD(x) (x)[0], (x)[1], (x)[2]
 #else
 #define AMREX_REAL_ANYD(x) AMREX_ZFILL(x)
@@ -58,7 +58,7 @@
 #define AMREX_ARLIM_3D(x) amrex::GpuArray<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ARLIM_ANYD(x) amrex::GpuArray<int,3>{(x)[0], 0, 0}.data()
 #define AMREX_ZFILL(x) amrex::GpuArray<amrex::Real,3>{(x)[0], 0., 0.}.data()
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define AMREX_ARLIM_ARG(x) x[0], 0, 0
 #else
 #define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
@@ -71,7 +71,7 @@
 #define AMREX_ARLIM_3D(x) amrex::GpuArray<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ARLIM_ANYD(x) amrex::GpuArray<int,3>{(x)[0], (x)[1], 0}.data()
 #define AMREX_ZFILL(x) amrex::GpuArray<amrex::Real,3>{(x)[0], (x)[1], 0.}.data()
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define AMREX_ARLIM_ARG(x) x[0], x[1], 0
 #else
 #define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
@@ -84,14 +84,14 @@
 #define AMREX_ZFILL(x) x
 #define AMREX_BCREC_3D(x) x
 #define AMREX_BCREC_ANYD(x) x
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define AMREX_ARLIM_ARG(x) x[0], x[1], x[2]
 #else
 #define AMREX_ARLIM_ARG(x) AMREX_ARLIM_3D(x)
 #endif
 #endif
 
-#ifndef AMREX_USE_GPU
+#ifndef AMREX_USE_GPU_PRAGMA
 #define AMREX_INT_ANYD(x) AMREX_ARLIM_ANYD(x)
 #else
 #define AMREX_INT_ANYD(x) AMREX_ARLIM_ARG(x)
@@ -111,7 +111,7 @@
 // versions at this time. These macros are not intended for use by the developer
 // but rather are inserted by the GPU code generation script.
 
-#ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU_PRAGMA
 #define BL_TO_FORTRAN_GPU_FAB(x) (x).dataPtr(), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect()), (x).nCompPtr()
 #define BL_TO_FORTRAN_GPU_BOX(x) AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
 #define BL_TO_FORTRAN_GPU_3D(x) (x).dataPtr(), AMREX_INT_ANYD((x).loVect()), AMREX_INT_ANYD((x).hiVect())
