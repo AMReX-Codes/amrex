@@ -24,8 +24,8 @@ PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
   * resulting MultiFab in mf_avg (in the components dcomp to dcomp+2)
   */
 void
-AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> > mf_avg,
-    Vector<std::array< std::unique_ptr<MultiFab>, 3 >> vector_field,
+AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> >& mf_avg,
+    const Vector<std::array< std::unique_ptr<MultiFab>, 3 >>& vector_field,
     const int dcomp, const int lev, const int ngrow,
     Vector<std::string>& varnames,
     const std::string field_name, const std::string field_subscript )
