@@ -78,10 +78,42 @@ AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> >& mf_avg,
 #endif
 
     } else {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "Unknown staggering.");
+       amrex::Abort("Unknown staggering.");
     }
 }
 
+/** \brief Take a MultiFab `scalar_field`
+  * averages it to the cell center, and stores the
+  * resulting MultiFab in mf_avg (in the components dcomp)
+  */
+void
+AverageAndPackScalarField( Vector<std::unique_ptr<MultiFab> >& mf_avg,
+    const MultiFab & scalar_field,
+    const int dcomp, const int lev, const int ngrow,
+    Vector<std::string>& varnames,
+    const std::string field_name )
+{
+    // Append the name to the list of names
+    if (lev == 0){
+        varnames.push_back(field_name);
+    }
+
+    // Check the type of staggering of the 3-component `vector_field`
+    // and average accordingly:
+    // - Fully cell-centered field (no average needed; simply copy)
+    if ( vector_field[0]->is_cell_centered() ){
+
+        MultiFab::Copy(*mf_avg[lev], *scalar_field, 0, dcomp, 1, ngrow);
+
+    // - Fully nodal
+    } else if ( vector_field[0]->is_nodal() ){
+
+        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp, *scalar_field, 0, 1);
+
+    } else {
+        amrex::Abort("Unknown staggering.");
+    }
+}
 
 /** \brief Write the different fields of the simulation,
 * averaged to the cell center of each cell (default WarpX output)
@@ -132,11 +164,7 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
 
       // MultiFab containing number of particles in each cell
       mypc->Increment(temp_dat, lev);
-      MultiFab::Copy(*mf_avg[lev], temp_dat, 0, dcomp, 1, 0);
-      if (lev == 0)
-      {
-        varnames.push_back("part_per_cell");
-      }
+      AverageAndPackScalarField( mf_avg, temp_data, dcomp, lev, ngrow, varnames, "part_per_cell" );
       dcomp += 1;
     }
 
@@ -198,7 +226,10 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
     if (plot_divb)
     {
       if (do_nodal) amrex::Abort("TODO: do_nodal && plot_divb");
-      ComputeDivB(*mf_avg[lev], dcomp, {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()}, WarpX::CellSize(lev));
+      ComputeDivB(*mf_avg[lev], dcomp,
+          {Bfield_aux[lev][0].get(),Bfield_aux[lev][1].get(),Bfield_aux[lev][2].get()},
+          WarpX::CellSize(lev)
+      );
       if (lev == 0)
       {
         varnames.push_back("divB");
@@ -215,31 +246,19 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
         {Efield_aux[lev][0].get(), Efield_aux[lev][1].get(), Efield_aux[lev][2].get()},
         WarpX::CellSize(lev)
       );
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp, dive, 0, 1);
-      if (lev == 0)
-      {
-        varnames.push_back("divE");
-      }
+      AverageAndPackScalarField( mf_avg, dive, dcomp, lev, ngrow, varnames, "divE" );
       dcomp += 1;
     }
 
     if (plot_rho)
     {
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp, *rho_fp[lev], 0, 1);
-      if (lev == 0)
-      {
-        varnames.push_back("rho");
-      }
+      AverageAndPackScalarField( mf_avg, *rho_fp[lev], dcomp, lev, ngrow, varnames, "rho" );
       dcomp += 1;
     }
 
     if (plot_F)
     {
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp, *F_fp[lev], 0, 1);
-      if (lev == 0)
-      {
-        varnames.push_back("F");
-      }
+      AverageAndPackScalarField( mf_avg, *F_fp[lev], dcomp, lev, ngrow, varnames, "F" );
       dcomp += 1;
     }
 
@@ -288,11 +307,7 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
 
     if (costs[0] != nullptr)
     {
-      MultiFab::Copy(*mf_avg[lev], *costs[lev], 0, dcomp, 1, 0);
-      if (lev == 0)
-      {
-        varnames.push_back("costs");
-      }
+      AverageAndPackScalarField( mf_avg, *costs[lev], dcomp, lev, ngrow, varnames, "costs" );
       dcomp += 1;
     }
 
