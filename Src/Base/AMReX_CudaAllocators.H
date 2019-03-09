@@ -14,6 +14,7 @@
 #include <driver_types.h>
 #include <cuda_runtime.h>
 #include <thrust/system/cuda/vector.h>
+#include <thrust/device_malloc_allocator.h>
 #endif // AMREX_USE_CUDA
 
 namespace amrex {
