@@ -306,7 +306,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
 
   if (plot_coarsening_ratio != 1) {
 
-    for (int lev=0 ; lev <= finest_level + 1 ; lev++ ){
+    for (int lev=0 ; lev <= finest_level ; lev++ ){
 
       geom[lev] = amrex::coarsen(Geom(lev), IntVect(plot_coarsening_ratio));
 
@@ -319,7 +319,7 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
 
   } else {
 
-    geom = Geom();
+    geom = WarpX::Geom();
 
   }
 
