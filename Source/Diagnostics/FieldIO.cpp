@@ -296,5 +296,31 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         }
 
     BL_ASSERT(dcomp == ncomp);
-    } // end loop over levels of refinement
+
+  } // end loop over levels of refinement
+
+  // Finally, reduce the size of all the fields by `plot_coarsening_ratio`
+  // (since mf_avg[lev] is purely cell-centered, this is a simple call
+  // to amrex::average_down)
+  amrex::Vector<amrex::Geometry> geom;
+
+  if (plot_coarsening_ratio != 1) {
+
+    for (int lev=0 ; lev <= finest_level + 1 ; lev++ ){
+
+      geom[lev] = amrex::coarsen(Geom(lev), IntVect(plot_coarsening_ratio));
+
+      BoxArray small_box = amrex::coarsen(mf_avg[lev].boxArray(),plot_coarsening_ratio);
+      MultiFab mf_avg_small(small_box, mf_avg[lev].DistributionMap(), ncomp, 0);
+      average_down(mf_avg[lev], mf_avg_small, 0, ncomp, IntVect(plot_coarsening_ratio));
+      mf_avg[lev] = mf_avg_small;
+
+    }
+
+  } else {
+
+    geom = Geom();
+
+  }
+
 };
