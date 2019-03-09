@@ -3,6 +3,21 @@
 
 using namespace amrex;
 
+void
+PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
+                         const std::array<std::unique_ptr<MultiFab>,3>& data)
+{
+    BL_ASSERT(pmf.size() == AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM == 3)
+    pmf[0] = data[0].get();
+    pmf[1] = data[1].get();
+    pmf[2] = data[2].get();
+#elif (AMREX_SPACEDIM == 2)
+    pmf[0] = data[0].get();
+    pmf[1] = data[2].get();
+#endif
+}
+
 /** \brief Takes an array of 3 MultiFab `vector_field`
   * (representing the x, y, z components of a vector),
   * averages it to the cell center, and stores the
@@ -11,11 +26,19 @@ using namespace amrex;
 void
 AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> > mf_avg,
     Vector<std::array< std::unique_ptr<MultiFab>, 3 >> vector_field,
-    const int dcomp, const int lev, const int ngrow )
+    const int dcomp, const int lev, const int ngrow,
+    Vector<std::string>& varnames,
+    const std::string field_name, const std::string field_subscript )
 {
+    // Append the names of the current vector field to the list of names
+    if (lev == 0){
+        varnames.push_back(field_name + "x" + field_subscript);
+        varnames.push_back(field_name + "y" + field_subscript);
+        varnames.push_back(field_name + "z" + field_subscript);
+    }
 
-    // Needed since `average_edge_to_cellcenter` requires fields to
-    // be passed as Vector
+    // The object below is temporary, and is needed because
+    // `average_edge_to_cellcenter` requires fields to be passed as Vector
     Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
 
     // Check the type of staggering of the 3-component `vector_field`
@@ -34,24 +57,24 @@ AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> > mf_avg,
         amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *vector_field[lev][1], 0, 1);
         amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *vector_field[lev][2], 0, 1);
 
-    // - Edge centered, in the same way as E on a Yee grid
-} else if ( vector_field[lev][0]->is_cell_centered(0) ){
-
-        PackPlotDataPtrs(srcmf, vector);
-        amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
-#if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-        MultiFab::average_node_to_cellcenter(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
-#endif
-
     // - Face centered, in the same way as B on a Yee grid
 } else if ( vector_field[lev][0]->is_nodal(0) ){
 
-        PackPlotDataPtrs(srcmf, vector);
+        PackPlotDataPtrs(srcmf, vector_field[lev]);
         amrex::average_face_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
         MultiFab::Copy(*mf_avg[lev], *vector_field[lev][1], 0, dcomp+1, 1, ngrow);
+#endif
+
+    // - Edge centered, in the same way as E on a Yee grid
+} else if ( !vector_field[lev][0]->is_nodal(0) ){
+
+        PackPlotDataPtrs(srcmf, vector_field[lev]);
+        amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
+#if (AMREX_SPACEDIM == 2)
+        MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
+        MultiFab::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *vector_field[lev][1], 0, 1);
 #endif
 
     } else {
@@ -85,84 +108,21 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
   + static_cast<int>(plot_crsepatch)*6
   + static_cast<int>(costs[0] != nullptr);
 
+  const int ngrow = 0;
+
   // Loop over levels of refinement
   for (int lev = 0; lev <= finest_level; ++lev)
   {
-    const int ngrow = 0;
+    // Allocate pointers to the `ncomp` fields that will be added
     mf_avg[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
+    // Go through the different fields, pack them into mf_avg[lev], and increment dcomp
     int dcomp = 0;
-
-    // j
-    if (do_nodal)
-    {
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *current_fp[lev][0], 0, 1);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *current_fp[lev][1], 0, 1);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *current_fp[lev][2], 0, 1);
-    }
-    else
-    {
-      PackPlotDataPtrs(srcmf, current_fp[lev]);
-      amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
-      #if (AMREX_SPACEDIM == 2)
-      MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *current_fp[lev][1], 0, 1);
-      #endif
-    }
-    if (lev == 0)
-    {
-      varnames.push_back("jx");
-      varnames.push_back("jy");
-      varnames.push_back("jz");
-    }
+    AverageAndPackVectorField( mf_avg, current_fp, dcomp, lev, ngrow, varnames, "j", "" );
     dcomp += 3;
-
-    // E
-    if (do_nodal)
-    {
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *Efield_aux[lev][0], 0, 1);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *Efield_aux[lev][2], 0, 1);
-    }
-    else
-    {
-      PackPlotDataPtrs(srcmf, Efield_aux[lev]);
-      amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
-      #if (AMREX_SPACEDIM == 2)
-      MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
-      #endif
-    }
-    if (lev == 0)
-    {
-      varnames.push_back("Ex");
-      varnames.push_back("Ey");
-      varnames.push_back("Ez");
-    }
+    AverageAndPackVectorField( mf_avg, Efield_aux, dcomp, lev, ngrow, varnames, "E", "" );
     dcomp += 3;
-
-    // B
-    if (do_nodal)
-    {
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *Bfield_aux[lev][0], 0, 1);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *Bfield_aux[lev][1], 0, 1);
-      amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *Bfield_aux[lev][2], 0, 1);
-    }
-    else
-    {
-      PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-      amrex::average_face_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
-      #if (AMREX_SPACEDIM == 2)
-      MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-      MultiFab::Copy(*mf_avg[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ngrow);
-      #endif
-    }
-    if (lev == 0)
-    {
-      varnames.push_back("Bx");
-      varnames.push_back("By");
-      varnames.push_back("Bz");
-    }
+    AverageAndPackVectorField( mf_avg, Bfield_aux, dcomp, lev, ngrow, varnames, "B", "" );
     dcomp += 3;
 
     if (plot_part_per_cell)
@@ -285,59 +245,23 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
 
     if (plot_finepatch)
     {
-      if (do_nodal)
-      {
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *Efield_fp[lev][0], 0, 1);
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *Efield_fp[lev][2], 0, 1);
-      }
-      else
-      {
-        PackPlotDataPtrs(srcmf, Efield_fp[lev]);
-        amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
-        #if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *Efield_fp[lev][1], 0, 1);
-        #endif
-      }
-      if (lev == 0)
-      {
-        varnames.push_back("Ex_fp");
-        varnames.push_back("Ey_fp");
-        varnames.push_back("Ez_fp");
-      }
+      AverageAndPackVectorField( mf_avg, Efield_fp, dcomp, lev, ngrow, varnames, "E", "_fp" );
       dcomp += 3;
-
-      if (do_nodal)
-      {
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp  , *Bfield_fp[lev][0], 0, 1);
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *Bfield_fp[lev][1], 0, 1);
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+2, *Bfield_fp[lev][2], 0, 1);
-      }
-      else
-      {
-        PackPlotDataPtrs(srcmf, Bfield_fp[lev]);
-        amrex::average_face_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
-        #if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-        MultiFab::Copy(*mf_avg[lev], *Bfield_fp[lev][1], 0, dcomp+1, 1, ngrow);
-        #endif
-      }
-      if (lev == 0)
-      {
-        varnames.push_back("Bx_fp");
-        varnames.push_back("By_fp");
-        varnames.push_back("Bz_fp");
-      }
+      AverageAndPackVectorField( mf_avg, Bfield_fp, dcomp, lev, ngrow, varnames, "B", "_fp" );
       dcomp += 3;
     }
 
     if (plot_crsepatch)
     {
-      // First the electric field
+      Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
+
+      dcomp += 3;
       if (lev == 0)
       {
         mf_avg[lev]->setVal(0.0, dcomp, 3, ngrow);
+        varnames.push_back("Ex_cp");
+        varnames.push_back("Ey_cp");
+        varnames.push_back("Ez_cp");
       }
       else
       {
@@ -350,18 +274,15 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
         amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *E[1], 0, 1);
         #endif
       }
-      if (lev == 0)
-      {
-        varnames.push_back("Ex_cp");
-        varnames.push_back("Ey_cp");
-        varnames.push_back("Ez_cp");
-      }
       dcomp += 3;
 
       // now the magnetic field
       if (lev == 0)
       {
         mf_avg[lev]->setVal(0.0, dcomp, 3, ngrow);
+        varnames.push_back("Bx_cp");
+        varnames.push_back("By_cp");
+        varnames.push_back("Bz_cp");
       }
       else
       {
@@ -373,12 +294,6 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
         MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
         MultiFab::Copy(*mf_avg[lev], *B[1], 0, dcomp+1, 1, ngrow);
         #endif
-      }
-      if (lev == 0)
-      {
-        varnames.push_back("Bx_cp");
-        varnames.push_back("By_cp");
-        varnames.push_back("Bz_cp");
       }
       dcomp += 3;
     }
