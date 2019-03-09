@@ -4,6 +4,7 @@
 #include <AMReX_FillPatchUtil_F.H>
 
 #include <WarpX.H>
+#include <FieldIO.cpp>
 
 #include "AMReX_buildInfo.H"
 

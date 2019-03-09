@@ -351,9 +351,6 @@ private:
 
     std::array<std::unique_ptr<amrex::MultiFab>, 3> getInterpolatedB(int lev) const;
 
-    static void PackPlotDataPtrs (amrex::Vector<const amrex::MultiFab*>& pmf,
-				  const std::array<std::unique_ptr<amrex::MultiFab>,3>& data);
-
     static void ComputeDivB (amrex::MultiFab& divB, int dcomp,
                              const std::array<const amrex::MultiFab*, 3>& B,
                              const std::array<amrex::Real,3>& dx);

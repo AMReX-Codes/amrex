@@ -25,7 +25,7 @@ PackPlotDataPtrs (Vector<const MultiFab*>& pmf,
   */
 void
 AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> >& mf_avg,
-    std::array< std::unique_ptr<MultiFab>, 3 >& vector_field,
+    const std::array< std::unique_ptr<MultiFab>, 3 >& vector_field,
     const int dcomp, const int lev, const int ngrow,
     Vector<std::string>& varnames,
     const std::string field_name, const std::string field_subscript )
@@ -74,7 +74,7 @@ AverageAndPackVectorField( Vector<std::unique_ptr<MultiFab> >& mf_avg,
         amrex::average_edge_to_cellcenter(*mf_avg[lev], dcomp, srcmf);
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(*mf_avg[lev], *mf_avg[lev], dcomp+1, dcomp+2, 1, ngrow);
-        MultiFab::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *vector_field[1], 0, 1);
+        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp+1, *vector_field[1], 0, 1);
 #endif
 
     } else {
