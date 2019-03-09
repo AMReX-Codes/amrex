@@ -273,6 +273,16 @@ public:
     FAB      * fabDevicePtr (int K);
     FAB const* fabDevicePtr (int K) const;
 
+    template <class T, typename std::enable_if<!IsBaseFab<T>::value,int>::type = 0 >
+    bool checkDataPtrConsistence (T const* d, T const* h) const {
+        return true;
+    }
+    //
+    template <class T, typename std::enable_if<IsBaseFab<T>::value,int>::type = 0 >
+    bool checkDataPtrConsistence (T const* d, T const* h) const {
+        return d->dataPtr() == h->dataPtr();
+    }
+
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
     Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi) const;
     //
@@ -300,7 +310,7 @@ public:
 
     //! Set all components in the entire region of each FAB to val.
     template <class = typename std::enable_if<IsBaseFab<FAB>::value> >
-    void operator= (const value_type& val);
+    void operator= (value_type val);
 
     /**
     * \brief Set the value of num_comp components in the valid region of
@@ -782,7 +792,9 @@ FabArray<FAB>::fabDevicePtr (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    return m_fabs_v[mfi.LocalIndex()];
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
+    return m_fabs_v[li];
 }
 
 template <class FAB>
@@ -791,7 +803,9 @@ FabArray<FAB>::fabDevicePtr (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
-    return m_fabs_v[mfi.LocalIndex()];
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
+    return m_fabs_v[li];
 }
 
 template <class FAB>
@@ -800,6 +814,7 @@ FabArray<FAB>::fabDevicePtr (int K)
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
     return m_fabs_v[li];
 }
 
@@ -818,10 +833,12 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi)
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
 #if AMREX_USE_GPU
-    return m_host_fabs_v[mfi.LocalIndex()];
+    return m_host_fabs_v[li];
 #else
-    return m_fabs_v[mfi.LocalIndex()];
+    return m_fabs_v[li];
 #endif
 }
 
@@ -831,10 +848,12 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi) const
 {
     BL_ASSERT(mfi.LocalIndex() < indexArray.size());
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
+    int li = mfi.LocalIndex();
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
 #if AMREX_USE_GPU
-    return m_host_fabs_v[mfi.LocalIndex()];
+    return m_host_fabs_v[li];
 #else
-    return m_fabs_v[mfi.LocalIndex()];
+    return m_fabs_v[li];
 #endif
 }
 
@@ -844,6 +863,7 @@ FabArray<FAB>::fabHostPtr (int K)
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
 #if AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
@@ -857,6 +877,7 @@ FabArray<FAB>::fabHostPtr (int K) const
 {
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
+    AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
 #if AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
@@ -1110,6 +1131,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
 template <class FAB>
 FabArray<FAB>::~FabArray ()
 {
+    static_assert(amrex::IsFabAllocatorSafe<FAB>::value, "sizeof(FAB) is too big for FabAllocator");
     m_FA_stats.recordDelete();
     clear();
 }
@@ -1522,7 +1544,7 @@ FabArray<FAB>::setVal (value_type val)
 template <class FAB>
 template <class>
 void
-FabArray<FAB>::operator= (const value_type& val)
+FabArray<FAB>::operator= (value_type val)
 {
     setVal(val);
 }

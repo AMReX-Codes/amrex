@@ -27,6 +27,10 @@ BaseFab_Initialize ()
     {
         basefab_initialized = true;
 
+#ifdef AMREX_USE_GPU
+        makeFabPoolAllocator();
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel
         {
@@ -53,6 +57,9 @@ void
 BaseFab_Finalize()
 {
     basefab_initialized = false;
+#ifdef AMREX_USE_GPU
+    destroyFabPoolAllocator();
+#endif
 }
 
 

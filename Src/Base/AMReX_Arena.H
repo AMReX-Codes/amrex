@@ -4,6 +4,7 @@
 
 #include <AMReX_BLassert.H>
 #include <cstddef>
+#include <cstdlib>
 
 namespace amrex {
 
@@ -13,6 +14,34 @@ Arena* The_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
+
+struct ArenaInfo
+{
+    bool device_use_managed_memory = true;
+    bool device_set_readonly = false;
+    bool device_set_preferred = false;
+    bool device_use_hostalloc = false;
+    ArenaInfo& SetDeviceMemory () {
+        device_use_managed_memory = false;
+        device_use_hostalloc = false;
+        return *this;
+    }
+    ArenaInfo& SetReadOnly () {
+        BL_ASSERT(device_use_managed_memory);
+        device_set_readonly = true;
+        return *this;
+    }
+    ArenaInfo& SetPreferred () {
+        BL_ASSERT(device_use_managed_memory);
+        device_set_preferred = true;
+        return *this;
+    }
+    ArenaInfo& SetHostAlloc () {
+        device_use_hostalloc = true;
+        device_use_managed_memory = false;
+        return *this;
+    }
+};
 
 /**
 * \brief 
@@ -41,13 +70,6 @@ public:
     */
     static std::size_t align (std::size_t sz);
 
-#ifdef AMREX_USE_GPU
-    void SetDeviceMemory() { device_use_managed_memory = false; device_use_hostalloc = false; return; }
-    void SetReadOnly() { BL_ASSERT(device_use_managed_memory); device_set_readonly = true; return; }
-    void SetPreferred() { BL_ASSERT(device_use_managed_memory); device_set_preferred = true; return; }
-    void SetHostAlloc() { device_use_hostalloc = true; device_use_managed_memory = false; return; }
-#endif
-
     static void Initialize ();
     static void PrintUsage ();
     static void Finalize ();
@@ -67,13 +89,10 @@ protected:
 
     static const unsigned int align_size = 16;
 
-#ifdef AMREX_USE_GPU
-    bool device_use_managed_memory = true;
-    bool device_set_readonly = false;
-    bool device_set_preferred = false;
-    bool device_use_hostalloc = false;
-#endif
+    ArenaInfo arena_info;
 
+    void* allocate_system (std::size_t nbytes);
+    void deallocate_system (void* p);
 };
 
 }
