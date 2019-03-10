@@ -360,6 +360,13 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz) {
 #if defined(AMREX_USE_CUDA)
 
 void
+Device::setNumThreadsMin(int nx, int ny, int nz) {
+    numThreadsMin.x = nx;
+    numThreadsMin.y = ny;
+    numThreadsMin.z = nz;
+}
+
+void
 Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 {
     numThreads = AMREX_CUDA_MAX_THREADS;
