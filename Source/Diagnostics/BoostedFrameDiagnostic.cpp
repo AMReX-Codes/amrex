@@ -58,8 +58,7 @@ namespace
       Should be run only by the root process.
     */
     void output_write_metadata(const std::string& file_path,
-                               const int istep, const Real time, const Real dt,
-                               const int nx, const int ny, const int nz)
+                               const int istep, const Real time, const Real dt)
     {
         BL_PROFILE("output_write_metadata");
         hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
@@ -95,9 +94,8 @@ namespace
       Should be run only by the master rank.
     */
     void output_create_field(const std::string& file_path, const std::string& field_path,
-                             const int nx, const int ny, const int nz)
-    {
-
+                             const unsigned nx, const unsigned ny, const unsigned nz)
+    {        
         BL_PROFILE("output_create_field");
 
         // Open the output.
@@ -174,9 +172,9 @@ namespace
 
             const Real *fab_data = mf[mfi].dataPtr();
 
-            int nx = hi_vec[0] - lo_vec[0] + 1;
-            int ny = hi_vec[1] - lo_vec[1] + 1;
-            int nz = hi_vec[2] - lo_vec[2] + 1;
+            unsigned nx = hi_vec[0] - lo_vec[0] + 1;
+            unsigned ny = hi_vec[1] - lo_vec[1] + 1;
+            unsigned nz = hi_vec[2] - lo_vec[2] + 1;
 
             // Set slab offset and shape.
             slab_offsets[0] = lo_vec[0];
@@ -228,25 +226,25 @@ namespace
     {
         AMREX_ALWAYS_ASSERT(nlevels == 1);
         const Box& domain = geom[0].Domain();
-        const int nx = domain.length(0);
-        const int ny = domain.length(1);
-        const int nz = domain.length(2);
-        if (ParallelDescriptor::IOProcessor()) {
+        const unsigned nx = domain.length(0);
+        const unsigned ny = domain.length(1);
+        const unsigned nz = domain.length(2);
+        if (ParallelDescriptor::IOProcessor())
+        {
             output_create(plotfilename);
-            output_write_metadata(plotfilename, level_steps[0], time, dt, nx, ny, nz);
+            output_write_metadata(plotfilename, level_steps[0], time, dt);
         }
         ParallelDescriptor::Barrier();
 
         const int nc = mf[0]->nComp();
         for (int i = 0; i < nc; ++i) {
             std::string field_path = "data/" + std::to_string(level_steps[0]) + "/fields/" + varnames[i];
-
             if (ParallelDescriptor::IOProcessor())
-                {
-                    output_create_field(plotfilename, field_path, nx, ny, nz);
-                }
+            {
+                output_create_field(plotfilename, field_path, nx, ny, nz);
+            }
             ParallelDescriptor::Barrier();
-
+            
             output_write_field(plotfilename, field_path, *mf[0], i);
         }
     }
