@@ -1,9 +1,258 @@
-#include "BoostedFrameDiagnostic.H"
 #include <AMReX_MultiFabUtil.H>
+
+#include "BoostedFrameDiagnostic.H"
 #include "WarpX_f.H"
 #include "WarpX.H"
 
 using namespace amrex;
+
+#ifdef WARPX_USE_HDF5
+
+#include <hdf5.h>
+
+namespace
+{
+    /*
+      Creates the HDF5 file in truncate mode and closes it.
+      Should be run only by the root process.
+    */
+    void output_create(const std::string& file_path) {
+        BL_PROFILE("output_create");
+        hid_t file = H5Fcreate(file_path.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        if (file < 0) {
+            amrex::Abort("Error: could not create file at " + file_path);
+        }
+        H5Fclose(file);
+    }
+
+    void write_string_attribute(hid_t& group, const std::string& key, const std::string& val)
+    {
+        hid_t str_type     = H5Tcopy(H5T_C_S1);
+        hid_t scalar_space = H5Screate(H5S_SCALAR);
+
+        // Fix the str_type length for the format string.
+        H5Tset_size(str_type, strlen(val.c_str()));
+
+        hid_t attr = H5Acreate(group, key.c_str(), str_type, scalar_space, H5P_DEFAULT, H5P_DEFAULT);
+        H5Awrite(attr, str_type, val.c_str());
+
+        H5Aclose(attr);
+        H5Sclose(scalar_space);
+        H5Tclose(str_type);
+    }
+
+    void write_double_attribute(hid_t& group, const std::string& key, const double val)
+    {
+        hid_t scalar_space = H5Screate(H5S_SCALAR);
+
+        hid_t attr = H5Acreate(group, key.c_str(), H5T_IEEE_F32LE, scalar_space,
+                               H5P_DEFAULT, H5P_DEFAULT);
+        H5Awrite(attr, H5T_NATIVE_DOUBLE, &val);
+
+        H5Aclose(attr);
+        H5Sclose(scalar_space);
+    }
+
+    /*
+      Opens the output file and writes all of metadata attributes.
+      Should be run only by the root process.
+    */
+    void output_write_metadata(const std::string& file_path,
+                               const int istep, const Real time, const Real dt,
+                               const int nx, const int ny, const int nz)
+    {
+        BL_PROFILE("output_write_metadata");
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+
+        write_string_attribute(file, "software", "warpx");
+        write_string_attribute(file, "softwareVersion", "0.0.0");
+        write_string_attribute(file, "meshesPath", "fields/");
+        write_string_attribute(file, "iterationEncoding", "fileBased");
+        write_string_attribute(file, "iterationFormat", "data%T.h5");
+        write_string_attribute(file, "openPMD", "1.1.0");
+        write_string_attribute(file, "basePath", "/data/%T/");
+
+        hid_t group = H5Gcreate(file, "data", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        group = H5Gcreate(group, std::to_string(istep).c_str(),
+                          H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+        write_double_attribute(group, "time", time);
+        write_double_attribute(group, "timeUnitSI", 1.0);
+        write_double_attribute(group, "dt", dt);
+
+        // Field groups
+        group = H5Gcreate(group, "fields", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+        // Close all resources.
+        H5Gclose(group);
+        H5Fclose(file);
+        H5close();
+    }
+
+    /*
+      Creates a dataset with the given cell dimensions, at the path
+      "/native_fields/(field_name)".
+      Should be run only by the master rank.
+    */
+    void output_create_field(const std::string& file_path, const std::string& field_path,
+                             const int nx, const int ny, const int nz)
+    {
+
+        BL_PROFILE("output_create_field");
+
+        // Open the output.
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        // Create a 3D, nx x ny x nz dataspace.
+        hsize_t dims[3] = {nx, ny, nz};
+        hid_t grid_space = H5Screate_simple(3, dims, NULL);
+        // Create the dataset.
+        hid_t dataset = H5Dcreate(file, field_path.c_str(), H5T_IEEE_F64LE,
+                                  grid_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+        if (dataset < 0) {
+            amrex::Abort("Error: could not create dataset. H5 returned " + std::to_string(dataset) + "\n");
+        }
+
+        // Close resources.
+        H5Dclose(dataset);
+        H5Sclose(grid_space);
+        H5Fclose(file);
+    }
+
+    /*
+      Write the only component in the multifab to the dataset given by field_name.
+      Uses hdf5-parallel.
+    */
+    void output_write_field(const std::string& file_path,
+                            const std::string& field_path,
+                            const MultiFab& mf, const int comp)
+    {
+
+        BL_PROFILE("output_write_field");
+
+        MPI_Comm comm = MPI_COMM_WORLD;
+        MPI_Info info = MPI_INFO_NULL;
+        int mpi_rank;
+        MPI_Comm_rank(comm, &mpi_rank);
+
+        // Create the file access prop list.
+        hid_t pa_plist = H5Pcreate(H5P_FILE_ACCESS);
+        H5Pset_fapl_mpio(pa_plist, comm, info);
+
+        // Open the file, and the group.
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, pa_plist);
+        // Open the field dataset.
+        hid_t dataset = H5Dopen(file, field_path.c_str(), H5P_DEFAULT);
+
+        // Make sure the dataset is there.
+        if (dataset < 0) {
+            amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
+                         ". Count not find dataset " + field_path + "\n");
+        }
+
+        // Grab the dataspace of the field dataset from file.
+        hid_t file_dataspace = H5Dget_space(dataset);
+
+        // Create collective io prop list.
+        hid_t collective_plist = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(collective_plist, H5FD_MPIO_COLLECTIVE);
+
+        // Iterate over Fabs, select matching hyperslab and write.
+        hid_t status;
+        // slab lo index and shape.
+        hsize_t slab_offsets[3], slab_dims[3];
+        hid_t slab_dataspace;
+
+        int write_count = 0;
+
+        const int nc = mf.nComp();
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+            // Get fab, lo and hi vectors.
+            const Box& box = mfi.validbox();
+            const int *lo_vec = box.loVect();
+            const int *hi_vec = box.hiVect();
+
+            const Real *fab_data = mf[mfi].dataPtr();
+
+            int nx = hi_vec[0] - lo_vec[0] + 1;
+            int ny = hi_vec[1] - lo_vec[1] + 1;
+            int nz = hi_vec[2] - lo_vec[2] + 1;
+
+            // Set slab offset and shape.
+            slab_offsets[0] = lo_vec[0];
+            slab_offsets[1] = lo_vec[1];
+            slab_offsets[2] = lo_vec[2];
+            slab_dims[0] = nx;
+            slab_dims[1] = ny;
+            slab_dims[2] = nz;
+
+            // Create the slab space.
+            slab_dataspace = H5Screate_simple(3, slab_dims, NULL);
+
+            // Select the hyperslab matching this fab.
+            status = H5Sselect_hyperslab(file_dataspace, H5S_SELECT_SET,
+                                         slab_offsets, NULL, slab_dims, NULL);
+            if (status < 0) {
+                amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
+                             " could not select hyperslab.\n");
+            }
+
+            // Write this pencil.
+            status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, slab_dataspace,
+                              file_dataspace, collective_plist, fab_data);
+            if (status < 0) {
+                amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
+                             " could not write hyperslab.\n");
+            }
+
+            H5Sclose(slab_dataspace);
+            write_count++;
+        }
+
+        // Close HDF5 resources.
+        H5Pclose(collective_plist);
+        H5Sclose(file_dataspace);
+        H5Dclose(dataset);
+        H5Fclose(file);
+        H5Pclose(pa_plist);
+    }
+
+    void write_hdf5_plotfile(const std::string& plotfilename,
+                             const int nlevels,
+                             const Vector<const MultiFab*>& mf,
+                             const Vector<std::string>& varnames,
+                             const Vector<Geometry> &geom,
+                             Real time, Real dt,
+                             const Vector<int> &level_steps,
+                             const Vector<IntVect> &ref_ratio)
+    {
+        AMREX_ALWAYS_ASSERT(nlevels == 1);
+        const Box& domain = geom[0].Domain();
+        const int nx = domain.length(0);
+        const int ny = domain.length(1);
+        const int nz = domain.length(2);
+        if (ParallelDescriptor::IOProcessor()) {
+            output_create(plotfilename);
+            output_write_metadata(plotfilename, level_steps[0], time, dt, nx, ny, nz);
+        }
+        ParallelDescriptor::Barrier();
+
+        const int nc = mf[0]->nComp();
+        for (int i = 0; i < nc; ++i) {
+            std::string field_path = "data/" + std::to_string(level_steps[0]) + "/fields/" + varnames[i];
+
+            if (ParallelDescriptor::IOProcessor())
+                {
+                    output_create_field(plotfilename, field_path, nx, ny, nz);
+                }
+            ParallelDescriptor::Barrier();
+
+            output_write_field(plotfilename, field_path, *mf[0], i);
+        }
+    }
+}
+
+#endif
 
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
