@@ -101,14 +101,14 @@ AverageAndPackScalarField( Vector<std::unique_ptr<MultiFab> >& mf_avg,
     // Check the type of staggering of the 3-component `vector_field`
     // and average accordingly:
     // - Fully cell-centered field (no average needed; simply copy)
-    if ( vector_field[0]->is_cell_centered() ){
+    if ( scalar_field.is_cell_centered() ){
 
-        MultiFab::Copy(*mf_avg[lev], *scalar_field, 0, dcomp, 1, ngrow);
+        MultiFab::Copy(*mf_avg[lev], scalar_field, 0, dcomp, 1, ngrow);
 
     // - Fully nodal
-    } else if ( vector_field[0]->is_nodal() ){
+    } else if ( scalar_field.is_nodal() ){
 
-        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp, *scalar_field, 0, 1);
+        amrex::average_node_to_cellcenter(*mf_avg[lev], dcomp, scalar_field, 0, 1);
 
     } else {
         amrex::Abort("Unknown staggering.");
@@ -164,7 +164,7 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
 
       // MultiFab containing number of particles in each cell
       mypc->Increment(temp_dat, lev);
-      AverageAndPackScalarField( mf_avg, temp_data, dcomp, lev, ngrow, varnames, "part_per_cell" );
+      AverageAndPackScalarField( mf_avg, temp_dat, dcomp, lev, ngrow, varnames, "part_per_cell" );
       dcomp += 1;
     }
 
