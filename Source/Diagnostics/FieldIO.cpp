@@ -1,5 +1,6 @@
 
 #include <WarpX.H>
+#include <FieldIO.H>
 
 using namespace amrex;
 
