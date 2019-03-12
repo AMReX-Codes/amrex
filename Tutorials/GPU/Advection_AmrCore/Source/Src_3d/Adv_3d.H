@@ -1,7 +1,6 @@
 #ifndef _Adv_3d_H_
 #define _Adv_3d_H_
 
-#include <Adv_3d.H>
 #include <AmrCoreAdv_F.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
