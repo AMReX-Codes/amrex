@@ -275,18 +275,20 @@ public:
     amrex::Real q_tot;
     long npart;
 
+    bool radially_weighted = true;
+
     std::string str_density_function;
     std::string str_momentum_function_ux;
     std::string str_momentum_function_uy;
     std::string str_momentum_function_uz;
 
-protected:
-
-    amrex::Real mass, charge;
-
     amrex::Real xmin, xmax;
     amrex::Real ymin, ymax;
     amrex::Real zmin, zmax;
+
+protected:
+
+    amrex::Real mass, charge;
 
     amrex::Real density;
 

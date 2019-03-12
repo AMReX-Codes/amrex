@@ -257,6 +257,9 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
+#ifdef WARPX_RZ
+    Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
+#endif
 
     const Real* dx = geom.CellSize();
 
@@ -424,7 +427,21 @@ PhysicalParticleContainer::AddPlasmaCPU (int lev, RealBox part_realbox)
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+#ifdef WARPX_RZ
+                    if (plasma_injector->radially_weighted) {
+                      weight *= 2*MathConst::pi*x;
+                    } else {
+                      // This is not correct since it might shift the particle
+                      // out of the local grid
+                      x = std::sqrt(x*rmax);
+                      weight *= dx[0];
+                    }
+                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    y = x*std::sin(theta);
+                    x = x*std::cos(theta);
+#endif
+                    attribs[PIdx::w ] = weight;
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
@@ -466,6 +483,9 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
     if (!part_realbox.ok()) part_realbox = geom.ProbDomain();
 
     int num_ppc = plasma_injector->num_particles_per_cell;
+#ifdef WARPX_RZ
+    Real rmax = std::min(plasma_injector->xmax, part_realbox.hi(0));
+#endif
 
     const Real* dx = geom.CellSize();
 
@@ -636,7 +656,22 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
                       dens = gamma_boost * dens * ( 1 - beta_boost*betaz_lab );
                       u[2] = gamma_boost * ( u[2] -beta_boost*c*gamma_lab );
                     }
-                    attribs[PIdx::w ] = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+                    Real weight = dens * scale_fac / (AMREX_D_TERM(fac, *fac, *fac));
+#ifdef WARPX_RZ
+                    Real r = x;
+                    if (plasma_injector->radially_weighted) {
+                      weight *= 2*MathConst::pi*r;
+                    } else {
+                      // This is not correct since it might shift the particle
+                      // out of the local grid
+                      x = std::sqrt(r*rmax);
+                      weight *= dx[0];
+                    }
+                    Real theta = 2.*MathConst::pi*amrex::Random();
+                    x = r*std::cos(theta);
+                    y = r*std::sin(theta);
+#endif
+                    attribs[PIdx::w ] = weight;
                     attribs[PIdx::ux] = u[0];
                     attribs[PIdx::uy] = u[1];
                     attribs[PIdx::uz] = u[2];
@@ -659,6 +694,10 @@ PhysicalParticleContainer::AddPlasmaGPU (int lev, RealBox part_realbox)
 		    p.pos(1) = y;
 		    p.pos(2) = z;
 #elif (AMREX_SPACEDIM == 2)
+#ifdef WARPX_RZ
+                    attribs[PIdx::theta] = theta;
+                    x = r;
+#endif
 		    p.pos(0) = x;
 		    p.pos(1) = z;
 #endif

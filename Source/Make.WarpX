@@ -83,7 +83,8 @@ ifeq ($(USE_PSATD),TRUE)
   endif
 endif
 
-ifeq ($(WARPX_RZ),TRUE)
+ifeq ($(USE_RZ),TRUE)
+  USERSuffix += .RZ
   DEFINES += -DWARPX_RZ
 endif
 

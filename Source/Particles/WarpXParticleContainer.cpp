@@ -39,14 +39,17 @@ void
 WarpXParIter::SetPosition (const Cuda::DeviceVector<Real>& x, const Cuda::DeviceVector<Real>& y, const Cuda::DeviceVector<Real>& z)
 {
 #ifdef WARPX_RZ
-    const auto& attribs = GetAttribs();
-    const auto& theta = attribs[PIdx::theta];
+    auto& attribs = GetAttribs();
+    auto& theta = attribs[PIdx::theta];
+    Cuda::DeviceVector<Real> r(x.size());
     for (unsigned int i=0 ; i < x.size() ; i++) {
         theta[i] = std::atan2(y[i], x[i]);
-        x[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
+        r[i] = std::sqrt(x[i]*x[i] + y[i]*y[i]);
     }
-#endif
+    amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(r, z);
+#else
     amrex::ParIter<0,0,PIdx::nattribs>::SetPosition(x, z);
+#endif
 }
 #endif
 
@@ -117,7 +120,7 @@ WarpXParticleContainer::AllocData ()
 void
 WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
                                         Real x, Real y, Real z,
-                                        const std::array<Real,PIdx::nattribs>& attribs)
+                                        std::array<Real,PIdx::nattribs>& attribs)
 {
     auto& particle_tile = GetParticles(lev)[std::make_pair(grid,tile)];
     AddOneParticle(particle_tile, x, y, z, attribs);
@@ -126,7 +129,7 @@ WarpXParticleContainer::AddOneParticle (int lev, int grid, int tile,
 void
 WarpXParticleContainer::AddOneParticle (ParticleTileType& particle_tile,
                                         Real x, Real y, Real z,
-                                        const std::array<Real,PIdx::nattribs>& attribs)
+                                        std::array<Real,PIdx::nattribs>& attribs)
 {
     ParticleType p;
     p.id()  = ParticleType::NextID();
@@ -223,7 +226,7 @@ WarpXParticleContainer::AddNParticles (int lev,
         {
 #ifdef WARPX_RZ
             if (comp == PIdx::theta) {
-                particle_tile.push_back_real(comp, theta.data, theta.data+np);
+                particle_tile.push_back_real(comp, theta.front(), theta.back());
             }
             else {
                 particle_tile.push_back_real(comp, np, 0.0);
@@ -383,6 +386,14 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
+#ifdef WARPX_RZ
+      warpx_current_deposition_rz_volume_scaling(
+                               jx_ptr, &ngJ, jxntot.getVect(),
+                               jy_ptr, &ngJ, jyntot.getVect(),
+                               jz_ptr, &ngJ, jzntot.getVect(),
+                               &WarpX::nmodes, &xyzmin[0], &dx[0]);
+#endif
+
       BL_PROFILE_VAR_START(blp_accumulate);
 
       FArrayBox const* local_jx_const_ptr = local_jx[thread_num].get();
@@ -534,6 +545,14 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &lvect,&WarpX::current_deposition_algo);
       }
       BL_PROFILE_VAR_STOP(blp_pxr_cd);
+
+#ifdef WARPX_RZ
+      warpx_current_deposition_rz_volume_scaling(
+                               jx_ptr, &ngJ, jxntot.getVect(),
+                               jy_ptr, &ngJ, jyntot.getVect(),
+                               jz_ptr, &ngJ, jzntot.getVect(),
+                               &WarpX::nmodes, &xyzmin[0], &dx[0]);
+#endif
 
       BL_PROFILE_VAR_START(blp_accumulate);
 

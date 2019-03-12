@@ -11,7 +11,7 @@ struct PIdx
     enum { // Particle Attributes stored in amrex::ParticleContainer's struct of array
 	w = 0,  // weight
 	ux, uy, uz, Ex, Ey, Ez, Bx, By, Bz,
-#if (BL_SPACEDIM == 2) && WARPX_RZ
+#ifdef WARPX_RZ
         theta, // RZ needs all three position components
 #endif
 #ifdef WARPX_STORE_OLD_PARTICLE_ATTRIBS
@@ -188,11 +188,11 @@ public:
 
     void AddOneParticle (int lev, int grid, int tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,
-                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+                         std::array<amrex::Real,PIdx::nattribs>& attribs);
 
     void AddOneParticle (ParticleTileType& particle_tile,
                          amrex::Real x, amrex::Real y, amrex::Real z,
-                         const std::array<amrex::Real,PIdx::nattribs>& attribs);
+                         std::array<amrex::Real,PIdx::nattribs>& attribs);
 
     void ReadHeader (std::istream& is);
 

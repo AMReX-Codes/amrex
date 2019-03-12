@@ -10,13 +10,26 @@
 
 #elif (AMREX_SPACEDIM == 2)
 
-#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2dxz_energy_conserving_generic
-#define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
-#define WRPX_PXR_PUSH_BVEC                pxrpush_em2d_bvec
 #define WRPX_PXR_PUSH_BVEC_CKC            pxrpush_em2d_bvec_ckc
 #define WRPX_PXR_PUSH_EVEC_F              pxrpush_em2d_evec_f
 #define WRPX_PXR_PUSH_EVEC_F_CKC          pxrpush_em2d_evec_f_ckc
+
+#ifdef WARPX_RZ
+
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2drz_energy_conserving_generic
+#define WRPX_PXR_CURRENT_DEPOSITION       depose_jrjtjz_generic_rz
+#define WRPX_PXR_RZ_VOLUME_SCALING        apply_rz_volume_scaling
+#define WRPX_PXR_PUSH_BVEC                pxrpush_emrz_bvec
+#define WRPX_PXR_PUSH_EVEC                pxrpush_emrz_evec
+
+#else
+
+#define WRPX_PXR_GETEB_ENERGY_CONSERVING  geteb2dxz_energy_conserving_generic
+#define WRPX_PXR_CURRENT_DEPOSITION       depose_jxjyjz_generic_2d
+#define WRPX_PXR_PUSH_BVEC                pxrpush_em2d_bvec
 #define WRPX_PXR_PUSH_EVEC                pxrpush_em2d_evec
+
+#endif
 
 #endif
 
@@ -304,6 +317,58 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
   ! _________________________________________________________________
   !>
   !> @brief
+  !> Applies the inverse volume scaling for RZ current deposition
+  !>
+  !> @details
+  !> The scaling is done for both single mode (FDTD) and
+  !> multi mode (spectral)
+  !
+  !> @param[inout] jx,jy,jz current arrays
+  !> @param[in] nmodes number of spectral modes
+  !> @param[in] rmin tile grid minimum radius
+  !> @param[in] dr radial space discretization steps
+  !> @param[in] nx,ny,nz number of cells
+  !> @param[in] nxguard,nyguard,nzguard number of guard cells
+  !>
+  subroutine warpx_current_deposition_rz_volume_scaling( &
+    jx,jx_ng,jx_ntot,jy,jy_ng,jy_ntot,jz,jz_ng,jz_ntot,nmodes, &
+    rmin,dr) &
+    bind(C, name="warpx_current_deposition_rz_volume_scaling")
+
+    integer, intent(in) :: jx_ntot(AMREX_SPACEDIM), jy_ntot(AMREX_SPACEDIM), jz_ntot(AMREX_SPACEDIM)
+    integer(c_long), intent(in) :: jx_ng, jy_ng, jz_ng
+    integer(c_long), intent(IN) :: nmodes
+    real(amrex_real), intent(IN OUT):: jx(*), jy(*), jz(*)
+    real(amrex_real), intent(IN) :: rmin, dr
+
+    integer(c_long) :: type_rz_depose = 1
+
+    ! Compute the number of valid cells and guard cells
+    integer(c_long) :: jx_nvalid(AMREX_SPACEDIM), jy_nvalid(AMREX_SPACEDIM), jz_nvalid(AMREX_SPACEDIM), &
+                       jx_nguards(AMREX_SPACEDIM), jy_nguards(AMREX_SPACEDIM), jz_nguards(AMREX_SPACEDIM)
+    jx_nvalid = jx_ntot - 2*jx_ng
+    jy_nvalid = jy_ntot - 2*jy_ng
+    jz_nvalid = jz_ntot - 2*jz_ng
+    jx_nguards = jx_ng
+    jy_nguards = jy_ng
+    jz_nguards = jz_ng
+
+#ifdef WARPX_RZ
+    CALL WRPX_PXR_RZ_VOLUME_SCALING(   &
+                 jx,jx_nguards,jx_nvalid, &
+                 jy,jy_nguards,jy_nvalid, &
+                 jz,jz_nguards,jz_nvalid, &
+#ifdef WARPX_USE_PSATD
+                 nmodes, &
+#endif
+                 rmin,dr,type_rz_depose)
+#endif
+
+  end subroutine warpx_current_deposition_rz_volume_scaling
+
+  ! _________________________________________________________________
+  !>
+  !> @brief
   !> Main subroutine for the particle pusher (velocity and position)
   !>
   !> @param[in] np number of super-particles
@@ -473,7 +538,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     jx, jxlo, jxhi, &
     jy, jylo, jyhi, &
     jz, jzlo, jzhi, &
-    mudt, dtsdx, dtsdy, dtsdz) bind(C, name="warpx_push_evec")
+    mudt, dtsdx, dtsdy, dtsdz, xmin, dx) bind(C, name="warpx_push_evec")
 
     integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
       ylo(BL_SPACEDIM), yhi(BL_SPACEDIM), zlo(BL_SPACEDIM), zhi(BL_SPACEDIM), &
@@ -489,6 +554,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
     real(amrex_real), intent(IN) :: mudt, dtsdx, dtsdy, dtsdz
 
+    real(amrex_real), intent(IN) :: xmin, dx
+
     CALL WRPX_PXR_PUSH_EVEC(&
         xlo, xhi, ylo, yhi, zlo, zhi, &
         ex, exlo, exhi,&
@@ -500,7 +567,11 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
         jx, jxlo, jxhi,&
         jy, jylo, jyhi,&
         jz, jzlo, jzhi,&
-        mudt, dtsdx, dtsdy, dtsdz);
+        mudt, dtsdx, dtsdy, dtsdz &
+#ifdef WARPX_RZ
+        ,xmin,dx &
+#endif
+        )
 
   end subroutine warpx_push_evec
 
@@ -526,7 +597,7 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
     bx, bxlo, bxhi, &
     by, bylo, byhi, &
     bz, bzlo, bzhi, &
-    dtsdx, dtsdy, dtsdz, &
+    dtsdx, dtsdy, dtsdz, xmin, dx, &
     maxwell_fdtd_solver_id) bind(C, name="warpx_push_bvec")
 
     integer(c_int), intent(in) :: xlo(BL_SPACEDIM), xhi(BL_SPACEDIM), &
@@ -542,6 +613,8 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
 
     real(amrex_real), intent(IN) :: dtsdx, dtsdy, dtsdz
 
+    real(amrex_real), intent(IN) :: xmin, dx
+
     IF (maxwell_fdtd_solver_id .eq. 0) THEN
       ! Yee FDTD solver
       CALL WRPX_PXR_PUSH_BVEC( &
@@ -552,7 +625,11 @@ subroutine warpx_charge_deposition(rho,np,xp,yp,zp,w,q,xmin,ymin,zmin,dx,dy,dz,n
       	bx, bxlo, bxhi, &
       	by, bylo, byhi, &
       	bz, bzlo, bzhi, &
-      	dtsdx,dtsdy,dtsdz)
+      	dtsdx,dtsdy,dtsdz &
+#ifdef WARPX_RZ
+        ,xmin,dx &
+#endif
+        )
     ELSE IF (maxwell_fdtd_solver_id .eq. 1) THEN
       ! Cole-Karkkainen FDTD solver
       CALL WRPX_PXR_PUSH_BVEC_CKC( &
