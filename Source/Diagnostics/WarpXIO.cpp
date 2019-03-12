@@ -544,42 +544,39 @@ WarpX::UpdateInSitu () const
             dcomp += 1;
         }
 
-        if (plot_part_per_grid || plot_part_per_proc)
+        if (plot_part_per_grid)
         {
             const Vector<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
-
-            if (plot_part_per_grid)
-            {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-                for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
-                    (mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
-
-                if (lev == 0)
-                    varnames.push_back("part_per_grid");
-
-                dcomp += 1;
-           }
-
-           if (plot_part_per_proc)
-           {
-               long n_per_proc = 0;
+            for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
+                (mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
+            
+            if (lev == 0)
+                varnames.push_back("part_per_grid");
+            
+            dcomp += 1;
+        }
+        
+        if (plot_part_per_proc)
+        {
+            const Vector<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
+            long n_per_proc = 0;
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:n_per_proc)
 #endif
-                for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
-                    n_per_proc += npart_in_grid[mfi.index()];
-
-                mf[lev].setVal(static_cast<Real>(n_per_proc), dcomp, ngrow);
-
-                if (lev == 0)
-                    varnames.push_back("part_per_proc");
-
-                dcomp += 1;
-            }
+            for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
+                n_per_proc += npart_in_grid[mfi.index()];
+            
+            mf[lev].setVal(static_cast<Real>(n_per_proc), dcomp, ngrow);
+            
+            if (lev == 0)
+                varnames.push_back("part_per_proc");
+            
+            dcomp += 1;
         }
-
+        
         if (plot_proc_number)
         {
             Real procid = static_cast<Real>(ParallelDescriptor::MyProc());
