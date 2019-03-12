@@ -37,7 +37,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support == EBSupport::full)
     {
-        const int ng = m_ngrow[2];
+        const int ng = m_ngrow[0];
+        AMREX_ASSERT(AMREX_D_TERM(ng == m_ngrow[0], && ng == m_ngrow[1], && ng == m_ngrow[2]));
 
         m_bndrycent = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
         a_level.fillBndryCent(*m_bndrycent, m_geom);
