@@ -1,7 +1,6 @@
 #ifndef _FACE_VELOCITY_H_
 #define _FACE_VELOCITY_H_
 
-#include <face_velocity.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_REAL.H>
@@ -38,7 +37,7 @@ AMREX_INLINE
 void get_face_velocity_x(Box const& bx,
                          Array4<Real> const& vx,
                          Array4<Real> const& psi,
-                         GeometryData const& geomdata)
+			 GeometryData const& geomdata)
 {
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
@@ -52,7 +51,7 @@ void get_face_velocity_x(Box const& bx,
             for (int i = lo.x; i <= hi.x; ++i) {
                 vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
             }
-        }
+	}
     }
 }
 
