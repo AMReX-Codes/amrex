@@ -161,8 +161,10 @@ function ( set_amrex_defines )
 
    # Conduit Support
    add_amrex_define( AMREX_USE_CONDUIT IF ENABLE_CONDUIT )
-  
-   
+
+   # Ascent Support
+   add_amrex_define( AMREX_USE_ASCENT IF ENABLE_ASCENT )
+
 endfunction ()
 
 # 

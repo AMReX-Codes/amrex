@@ -19,8 +19,8 @@ if ( ENABLE_CONDUIT )
     #
     # Use CMake's find_package to import conduit's targets
     #
-    find_package(Conduit REQUIRED
-                 NO_DEFAULT_PATH 
+    find_package(Conduit REQUIRED QUIET
+                 NO_DEFAULT_PATH
                  PATHS ${CONDUIT_DIR}/lib/cmake)
 
     target_link_libraries( amrex PUBLIC conduit::conduit)
@@ -49,8 +49,8 @@ if ( ENABLE_ASCENT )
     #
     # Use CMake's find_package to import ascent's targets
     #
-    find_package(Ascent REQUIRED
-                 NO_DEFAULT_PATH 
+    find_package(Ascent REQUIRED QUIET
+                 NO_DEFAULT_PATH
                  PATHS ${ASCENT_DIR}/lib/cmake)
 
 
