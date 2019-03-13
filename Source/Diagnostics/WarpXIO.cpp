@@ -493,11 +493,11 @@ WarpX::WritePlotFile () const
 
 
 #ifdef WARPX_USE_OPENPMD
-      // Write openPMD format: only for level 0
-      std::string filename = amrex::Concatenate("data", istep[0]);
-      filename += ".h5";
-      WriteOpenPMDFields( filename, ncomp, varnames,
-                    *output_mf[0], output_geom[0], istep[0], t_new[0] );
+    // Write openPMD format: only for level 0
+    std::string filename = amrex::Concatenate("diags/hdf5/data", istep[0]);
+    filename += ".h5";
+    WriteOpenPMDFields( filename, ncomp, varnames,
+                  *output_mf[0], output_geom[0], istep[0], t_new[0] );
 #endif
 
 

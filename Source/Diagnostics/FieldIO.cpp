@@ -14,6 +14,8 @@ WriteOpenPMDFields( const std::string& filename,
                   const MultiFab& mf, const Geometry& geom,
                   const int iteration, const double time )
 {
+  BL_PROFILE("WriteOpenPMDFields()");
+
   // Create a few vectors that store info on the global domain
   // Swap the indices for each of them, since AMReX data is Fortran order
   // and since the openPMD API assumes contiguous C order
@@ -50,7 +52,6 @@ WriteOpenPMDFields( const std::string& filename,
   auto series = openPMD::Series( filename,
                                  openPMD::AccessType::CREATE,
                                  MPI_COMM_WORLD );
-  Print() << "New file " << filename << std::endl;
 
   // Loop through the different components, i.e. different fields stored in mf
   for (int icomp=0; icomp<ncomp; icomp++){
@@ -99,12 +100,13 @@ WriteOpenPMDFields( const std::string& filename,
 
       // Write local data
       const double* local_data = fab.dataPtr(icomp);
-      Print() << " new chunk: " << chunk_offset[0] << " " << chunk_length[0] << std::endl;
       mesh_record.storeChunk(openPMD::shareRaw(local_data),
                              chunk_offset, chunk_length);
       series.flush(); // TODO: move out for performance
     };
   };
+
+
 };
 #endif // WARPX_USE_OPENPMD
 
