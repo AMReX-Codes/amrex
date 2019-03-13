@@ -30,8 +30,6 @@ int main (int argc, char* argv[])
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
 
-    amrex::Cuda::ExecutionConfig simple_config(1,1);
-
     // ===================================
 
     int* n_cpy;
@@ -42,7 +40,8 @@ int main (int argc, char* argv[])
 
     amrex::Gpu::setLaunchRegion(false);
 
-    AMREX_CUDA_LAUNCH_HOST_DEVICE(simple_config,
+
+    amrex::launch_global<<<1,1>>>(
     [=] AMREX_GPU_HOST_DEVICE ()
     {
        *n_cpy = 1;
@@ -56,7 +55,7 @@ int main (int argc, char* argv[])
 
     amrex::Gpu::setLaunchRegion(true);
 
-    AMREX_CUDA_LAUNCH_HOST_DEVICE(simple_config,
+    amrex::launch_global<<<1,1>>>(
     [=] AMREX_GPU_HOST_DEVICE ()
     {
        *n_cpy = 3;

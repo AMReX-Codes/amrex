@@ -18,9 +18,9 @@ void slopex2(Box const& bx,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real dlft = q(i,j,k) - q(i-1,j,k);
                 Real drgt = q(i+1,j,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
@@ -44,9 +44,9 @@ void slopex4(Box const& bx,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real dlft = q(i,j,k) - q(i-1,j,k);
                 Real drgt = q(i+1,j,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
@@ -72,9 +72,9 @@ void slopey2(Box const& bx,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real dlft = q(i,j,k) - q(i,j-1,k);
                 Real drgt = q(i,j+1,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
@@ -98,9 +98,9 @@ void slopey4(Box const& bx,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real dlft = q(i,j,k) - q(i,j-1,k);
                 Real drgt = q(i,j+1,k) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
@@ -126,9 +126,9 @@ void slopez2(Box const& bx,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real dlft = q(i,j,k) - q(i,j,k-1);
                 Real drgt = q(i,j,k+1) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);
@@ -152,9 +152,9 @@ void slopez4(Box const& bx,
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real dlft = q(i,j,k) - q(i,j,k-1);
                 Real drgt = q(i,j,k+1) - q(i,j,k);
                 Real dcen = 0.5*(dlft+drgt);

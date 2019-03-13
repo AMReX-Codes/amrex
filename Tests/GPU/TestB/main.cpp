@@ -39,8 +39,6 @@ int main (int argc, char* argv[])
     amrex::Print() << "Hello world from AMReX version " << amrex::Version() << ". GPU devices: " << devices << "\n";
     amrex::Print() << "**********************************\n"; 
 
-    amrex::Cuda::ExecutionConfig simple_config(1,1);
-
     // Malloc
     {
 
@@ -51,7 +49,7 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << n << std::endl << std::endl;
 
-      AMREX_CUDA_LAUNCH_DEVICE(simple_config,
+      amrex::launch_global<<<1,1>>>(
       [=] AMREX_GPU_DEVICE () mutable
       {
 
