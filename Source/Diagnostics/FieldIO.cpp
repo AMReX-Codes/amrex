@@ -1,8 +1,114 @@
 
 #include <WarpX.H>
 #include <FieldIO.H>
+#ifdef WARPX_USE_OPENPMD
+#include <openPMD/openPMD.hpp>
+#endif
 
 using namespace amrex;
+
+#ifdef WARPX_USE_OPENPMD
+void
+WriteOpenPMDFields( const std::string& filename,
+                  const int ncomp, const std::vector<std::string>& varnames,
+                  const MultiFab& mf, const Geometry& geom,
+                  const int iteration, const double time )
+{
+  // Create a few vectors that store info on the global domain
+  // Swap the indices for each of them, since AMReX data is Fortran order
+  // and since the openPMD API assumes contiguous C order
+  // - Size of the box, in integer number of cells
+  const Box& global_box = geom.Domain();
+  std::vector<unsigned long> global_length = {
+    AMREX_D_DECL(
+                 static_cast<unsigned long>(global_box.length(0)),
+                 static_cast<unsigned long>(global_box.length(1)),
+                 static_cast<unsigned long>(global_box.length(2))
+                 )
+  };
+  std::reverse( global_length.begin(), global_length.end() );
+  // - Grid spacing
+  std::vector<double> grid_spacing = {
+    AMREX_D_DECL(geom.CellSize(0), geom.CellSize(1), geom.CellSize(2))};
+  std::reverse( grid_spacing.begin(), grid_spacing.end() );
+  // - Global offset
+  std::vector<double> global_offset = {
+    AMREX_D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2))};
+  std::reverse( global_offset.begin(), global_offset.end() );
+  // - AxisLabels
+#if AMREX_SPACEDIM==3
+  std::vector<std::string> axis_labels{"x", "y", "z"};
+#else
+  std::vector<std::string> axis_labels{"x", "z"};
+#endif
+
+  // Prepare the type of dataset that will be written
+  openPMD::Datatype datatype = openPMD::determineDatatype<Real>();
+  auto dataset = openPMD::Dataset(datatype, global_length);
+
+  // Create new file
+  auto series = openPMD::Series( filename,
+                                 openPMD::AccessType::CREATE,
+                                 MPI_COMM_WORLD );
+  Print() << "New file " << filename << std::endl;
+
+  // Loop through the different components, i.e. different fields stored in mf
+  for (int icomp=0; icomp<ncomp; icomp++){
+
+    // Create an openPMD mesh, and store the associated metadata
+    const std::string& field_name = varnames[icomp];
+    auto mesh = series.iterations[iteration].meshes[field_name];
+    mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab are Fortran order
+    mesh.setAxisLabels( axis_labels );
+    mesh.setGridSpacing( grid_spacing );
+    mesh.setGridGlobalOffset( global_offset );
+
+    // TODO: Add support for vectors
+    // TODO: Set units
+    // Create a new mesh record, and store the associated metadata
+    auto mesh_record = mesh[openPMD::MeshRecordComponent::SCALAR];
+    mesh_record.resetDataset( dataset );
+    // Cell-centered data: position is at 0.5 of a cell size.
+    mesh_record.setPosition( std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)} );
+
+    // Loop through the multifab, and store each box as a chunk,
+    // in the openPMD file.
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+
+      const FArrayBox& fab = mf[mfi];
+      const Box& local_box = fab.box();
+
+      // Determine the offset indices of this chunk
+      IntVect offset = local_box.smallEnd() - global_box.smallEnd();
+      std::vector<unsigned long> chunk_offset = {
+        AMREX_D_DECL(
+                     static_cast<unsigned long>(offset[0]),
+                     static_cast<unsigned long>(offset[1]),
+                     static_cast<unsigned long>(offset[2])
+                     )
+      };
+      std::reverse( chunk_offset.begin(), chunk_offset.end() );
+      std::vector<unsigned long> chunk_length = {
+        AMREX_D_DECL(
+                     static_cast<unsigned long>(local_box.length(0)),
+                     static_cast<unsigned long>(local_box.length(1)),
+                     static_cast<unsigned long>(local_box.length(2))
+                     )
+      };
+      std::reverse( chunk_length.begin(), chunk_length.end() ); // Fortran order
+
+      // Write local data
+      const double* local_data = fab.dataPtr(icomp);
+      Print() << " new chunk: " << chunk_offset[0] << " " << chunk_length[0] << std::endl;
+      mesh_record.storeChunk(openPMD::shareRaw(local_data),
+                             chunk_offset, chunk_length);
+      series.flush(); // TODO: move out for performance
+    };
+  };
+};
+#endif // WARPX_USE_OPENPMD
+
+
 
 void
 PackPlotDataPtrs (Vector<const MultiFab*>& pmf,

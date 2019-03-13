@@ -65,6 +65,18 @@ ifeq ($(USE_OPENBC_POISSON),TRUE)
   DEFINES += -DFFT_FFTW -DMPIPARALLEL -DUSE_OPENBC_POISSON
 endif
 
+ifeq ($(USE_OPENPMD), TRUE)
+   OPENPMD_HOME ?= NOT_SET
+   ifneq ($(OPENPMD_HOME),NOT_SET)
+     VPATH_LOCATIONS += $(OPENPMD_HOME)/include  # Is this required?
+     INCLUDE_LOCATIONS += $(OPENPMD_HOME)/include
+     LIBRARY_LOCATIONS += $(OPENPMD_HOME)/lib
+   endif
+   DEFINES += -DWARPX_USE_OPENPMD -DopenPMD_HAVE_MPI=1
+   LIBRARIES += -lopenPMD
+endif
+   
+
 ifeq ($(USE_PSATD),TRUE)
   FFTW_HOME ?= NOT_SET
   ifneq ($(FFTW_HOME),NOT_SET)
