@@ -151,6 +151,12 @@ else ()
 endif ()
 
 #
+# External packages
+#
+option(ENABLE_SUNDIALS "Enable SUNDIALS3 interfaces" OFF)
+print_option(ENABLE_SUNDIALS)
+
+#
 # This options are paths to external libraries installation directories
 #
 if (USE_XSDK_DEFAULTS)
