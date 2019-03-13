@@ -251,8 +251,49 @@ class BinomialSmoother(picmistandard.PICMI_BinomialSmoother):
 
 
 class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
+    """This assumes that WarpX was compiled with USE_RZ = TRUE
+    """
     def init(self, kw):
-        raise Exception('WarpX does not support CylindricalGrid')
+        self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
+        self.blocking_factor = kw.pop('warpx_blocking_factor', None)
+        self.coord_sys = kw.pop('warpx_coord_sys', 0)
+
+    def initialize_inputs(self):
+        pywarpx.amr.n_cell = self.number_of_cells
+
+        # Maximum allowable size of each subdomain in the problem domain;
+        #    this is used to decompose the domain for parallel calculations.
+        pywarpx.amr.max_grid_size = self.max_grid_size
+
+        assert self.lower_bound[0] >= 0., Exception('Lower radial boundary must be >= 0.')
+        assert self.bc_rmin != 'periodic' and self.bc_rmax != 'periodic', Exception('Radial boundaries can not be periodic')
+        assert self.n_azimuthal_modes is None or self.n_azimuthal_modes == 1, Exception('Only one azimuthal mode supported')
+
+        # Geometry
+        pywarpx.geometry.coord_sys = 1  # RZ
+        pywarpx.geometry.is_periodic = '0 %d'%(self.bc_zmin=='periodic')  # Is periodic?
+        pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
+        pywarpx.geometry.prob_hi = self.upper_bound
+
+        if self.moving_window_velocity is not None and np.any(np.not_equal(self.moving_window_velocity, 0.)):
+            pywarpx.warpx.do_moving_window = 1
+            if self.moving_window_velocity[0] != 0.:
+                raise Exception('In cylindrical coordinates, a moving window in x can not be done')
+            if self.moving_window_velocity[1] != 0.:
+                pywarpx.warpx.moving_window_dir = 'z'
+                pywarpx.warpx.moving_window_v = self.moving_window_velocity[1]/c  # in units of the speed of light
+
+        """Not implemented in standard yet
+        if self.refined_regions:
+            assert len(self.refined_regions) == 1, Exception('WarpX only supports one refined region.')
+            assert self.refined_regions[0][0] == 1, Exception('The one refined region can only be level 1')
+            pywarpx.amr.max_level = 1
+            pywarpx.warpx.fine_tag_lo = self.refined_regions[0][1]
+            pywarpx.warpx.fine_tag_hi = self.refined_regions[0][2]
+            # The refinement_factor is ignored (assumed to be [2,2])
+        else:
+            pywarpx.amr.max_level = 0
+        """
 
 
 class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):

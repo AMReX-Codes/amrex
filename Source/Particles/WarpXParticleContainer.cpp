@@ -384,7 +384,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                &lvect,&WarpX::current_deposition_algo);
       }
-      BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 #ifdef WARPX_RZ
       warpx_current_deposition_rz_volume_scaling(
@@ -393,6 +392,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                jz_ptr, &ngJ, jzntot.getVect(),
                                &WarpX::nmodes, &xyzmin[0], &dx[0]);
 #endif
+      BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
       BL_PROFILE_VAR_START(blp_accumulate);
 
@@ -544,7 +544,6 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                &WarpX::nox,&WarpX::noy,&WarpX::noz,
                                &lvect,&WarpX::current_deposition_algo);
       }
-      BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
 #ifdef WARPX_RZ
       warpx_current_deposition_rz_volume_scaling(
@@ -553,6 +552,7 @@ WarpXParticleContainer::DepositCurrent(WarpXParIter& pti,
                                jz_ptr, &ngJ, jzntot.getVect(),
                                &WarpX::nmodes, &xyzmin[0], &dx[0]);
 #endif
+      BL_PROFILE_VAR_STOP(blp_pxr_cd);
 
       BL_PROFILE_VAR_START(blp_accumulate);
 
