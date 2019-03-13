@@ -22,9 +22,9 @@ void conservative(Box const& bx,
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 uout(i,j,k) = uin(i,j,k) + 
                     ( (flxx(i,j,k) - flxx(i+1,j,k)) * dtdx[0] 
                     + (flxy(i,j,k) - flxy(i,j+1,k)) * dtdx[1] 
@@ -44,9 +44,9 @@ void flux_scale_x(Box const& bx,
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 flxx(i,j,k) = flxx(i,j,k) * (dt * dx[1]*dx[2]);
             }
         }
@@ -63,9 +63,9 @@ void flux_scale_y(Box const& bx,
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 flxy(i,j,k) = flxy(i,j,k) * (dt * dx[0]*dx[2]);
             }
         }
@@ -82,9 +82,9 @@ void flux_scale_z(Box const& bx,
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
-            for (int i = lo.x; i < hi.x; ++i) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 flxz(i,j,k) = flxz(i,j,k) * (dt * dx[0]*dx[1]);
             }
         }

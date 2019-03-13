@@ -99,7 +99,7 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << n << std::endl;
 
-      AMREX_CUDA_LAUNCH_DEVICE(simple_config,
+      amrex::launch_global<<<1,1>>>(
       [=] AMREX_GPU_DEVICE () mutable
       {
          *n_d = *n_d / 10;
@@ -124,7 +124,7 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << *n << std::endl;
 
-      AMREX_CUDA_LAUNCH_DEVICE(simple_config,
+      amrex::launch_global<<<1,1>>>(
       [=] AMREX_GPU_DEVICE () mutable
       {
          *n = *n / 10;
@@ -151,7 +151,7 @@ int main (int argc, char* argv[])
 
       std::cout << "n before = " << *n << std::endl;
 
-      AMREX_CUDA_LAUNCH_DEVICE(simple_config,
+      amrex::launch_global<<<1,1>>>(
       [=] AMREX_GPU_DEVICE () mutable
       {
          *n = *n / 10;
@@ -176,7 +176,7 @@ int main (int argc, char* argv[])
       auto q  = n5.devicePtr();
       std::cout << "n before = " << *p << std::endl;
 
-      AMREX_CUDA_LAUNCH_DEVICE(simple_config,
+      amrex::launch_global<<<1,1>>>(
       [=] AMREX_GPU_DEVICE () mutable
       {
          (*q)[0] = 4;

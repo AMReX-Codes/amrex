@@ -93,6 +93,9 @@ if (ENABLE_SUNDIALS)
    include(Extern/SUNDIALS3/CMakeLists.txt)   
 endif ()
 
+if (ENABLE_CONDUIT)
+   include (Extern/Conduit/CMakeLists.txt)
+endif ()
 
 #
 # Here we generate AMReX_BuildInfo.cpp

@@ -1996,10 +1996,10 @@ that is readable and easy to implement. An example is given below:
         Array4<Real> const& src = fab1.array();
         Array4<Real> const& dst = fab2.array();
 
-        for         (int k = lo.z; k < hi.z; ++k) {
-            for     (int j = lo.y; j < hi.y; ++j) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
                 AMREX_PRAGMA_SIMD
-                for (int i = lo.x; i < hi.x; ++i) {
+                for (int i = lo.x; i <= hi.x; ++i) {
                     dst(i,j,k) = 0.5*(src(i,j,k)+src(i+1,j,k));
                 }
             }
@@ -2020,7 +2020,7 @@ and :cpp:`Box::bigend` of ``bx``.  Both functions return a
 The individual components are accessed by using :cpp:`.x`, :cpp:`.y` and
 :cpp:`.z`, as shown in the :cpp:`for` loops. 
 
-`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
+:cpp:`BaseFab::array()` is called to obtain an :cpp:`Array4` object that is
 designed as an independent, :cpp:`operator()` based accessor to the
 :cpp:`BaseFab` data. :cpp:`Array4` is an AMReX class that contains a
 pointer to the :cpp:`FArrayBox` data and two :cpp:`Dim3` vectors that
@@ -2040,6 +2040,10 @@ dependent.  It should be emphasized that using the ``AMREX_PRAGMA_SIMD``
 macro on loops that are not safe for vectorization will lead to a variety
 of errors, so if unsure about the independence of the iterations of a
 loop, test and verify before adding the macro.
+
+These loops should always use :cpp:`i <= hi.x`, not :cpp:`i < hi.x`, when 
+defining the loop bounds. If not, the highest index cells will be left out
+of the calculation. 
 
 
 Ghost Cells

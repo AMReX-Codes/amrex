@@ -22,10 +22,10 @@ void get_face_velocity_psi(Box const& bx,
     const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize(); 
 
-    for     (int j = lo.y; j < hi.y; ++j) {
+    for     (int j = lo.y; j <= hi.y; ++j) {
         Real y = dx[1]*(0.5+j) + prob_lo[1]; 
         AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i < hi.x; ++i) {
+        for (int i = lo.x; i <= hi.x; ++i) {
             Real x = dx[0]*(0.5+i) + prob_lo[0];
             psi(i,j,0) = pow(sin(M_PI*x), 2) * pow(sin(M_PI*y), 2)
                        * cos(M_PI*time/2.0) * 1.0/M_PI; 
@@ -46,10 +46,10 @@ void get_face_velocity_x(Box const& bx,
     const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize(); 
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i < hi.x; ++i) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 vx(i,j,k) = -( (psi(i,j+1,0)+psi(i-1,j+1,0)) - (psi(i,j-1,0)+psi(i-1,j-1,0)) ) * (0.25/dx[1]); 
             }
         }
@@ -69,10 +69,10 @@ void get_face_velocity_y(Box const& bx,
     const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize(); 
 
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i < hi.x; ++i) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 vy(i,j,k) =  ( (psi(i+1,j,0)+psi(i+1,j-1,0)) - (psi(i-1,j,0)+psi(i-1,j-1,0)) ) * (0.25/dx[0]); 
             }
         }
@@ -89,10 +89,10 @@ void get_face_velocity_z(Box const& bx,
      const auto lo = lbound(bx);
      const auto hi = ubound(bx);
 
-     for        (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
+     for        (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i < hi.x; ++i) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 vz(i,j,k) =  1.0; 
             }
         }
