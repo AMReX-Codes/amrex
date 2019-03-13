@@ -256,7 +256,6 @@ class CylindricalGrid(picmistandard.PICMI_CylindricalGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.blocking_factor = kw.pop('warpx_blocking_factor', None)
-        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -300,7 +299,6 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.blocking_factor = kw.pop('warpx_blocking_factor', None)
-        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -310,7 +308,7 @@ class Cartesian2DGrid(picmistandard.PICMI_Cartesian2DGrid):
         pywarpx.amr.max_grid_size = self.max_grid_size
 
         # Geometry
-        pywarpx.geometry.coord_sys = self.coord_sys
+        pywarpx.geometry.coord_sys = 0  # Cartesian
         pywarpx.geometry.is_periodic = '%d %d'%(self.bc_xmin=='periodic', self.bc_ymin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
@@ -339,7 +337,6 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
     def init(self, kw):
         self.max_grid_size = kw.pop('warpx_max_grid_size', 32)
         self.blocking_factor = kw.pop('warpx_blocking_factor', None)
-        self.coord_sys = kw.pop('warpx_coord_sys', 0)
 
     def initialize_inputs(self):
         pywarpx.amr.n_cell = self.number_of_cells
@@ -351,7 +348,7 @@ class Cartesian3DGrid(picmistandard.PICMI_Cartesian3DGrid):
         pywarpx.amr.blocking_factor = self.blocking_factor
 
         # Geometry
-        pywarpx.geometry.coord_sys = self.coord_sys
+        pywarpx.geometry.coord_sys = 0  # Cartesian
         pywarpx.geometry.is_periodic = '%d %d %d'%(self.bc_xmin=='periodic', self.bc_ymin=='periodic', self.bc_zmin=='periodic')  # Is periodic?
         pywarpx.geometry.prob_lo = self.lower_bound  # physical domain
         pywarpx.geometry.prob_hi = self.upper_bound
