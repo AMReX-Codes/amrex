@@ -48,17 +48,20 @@ WriteOpenPMDFields( const std::string& filename,
   openPMD::Datatype datatype = openPMD::determineDatatype<Real>();
   auto dataset = openPMD::Dataset(datatype, global_length);
 
-  // Create new file
+  // Create new file and store the time/iteration info
   auto series = openPMD::Series( filename,
                                  openPMD::AccessType::CREATE,
                                  MPI_COMM_WORLD );
+  auto series_iteration = series.iterations[iteration];
+  series_iteration.setTime( time );
 
   // Loop through the different components, i.e. different fields stored in mf
   for (int icomp=0; icomp<ncomp; icomp++){
 
     // Create an openPMD mesh, and store the associated metadata
     const std::string& field_name = varnames[icomp];
-    auto mesh = series.iterations[iteration].meshes[field_name];
+
+    auto mesh = series_iteration.meshes[field_name];
     mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab are Fortran order
     mesh.setAxisLabels( axis_labels );
     mesh.setGridSpacing( grid_spacing );
@@ -102,11 +105,10 @@ WriteOpenPMDFields( const std::string& filename,
       const double* local_data = fab.dataPtr(icomp);
       mesh_record.storeChunk(openPMD::shareRaw(local_data),
                              chunk_offset, chunk_length);
-      series.flush(); // TODO: move out for performance
     };
   };
-
-
+  // Flush data to disk after looping over all components
+  series.flush();
 };
 #endif // WARPX_USE_OPENPMD
 
