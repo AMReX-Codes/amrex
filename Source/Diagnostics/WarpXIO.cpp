@@ -448,7 +448,7 @@ WarpX::UpdateInSitu () const
     const int ngrow = 1;
     Vector<std::string> varnames; // Name of the written fields
     // mf_avg will contain the averaged, cell-centered fields
-    Vector<std::unique_ptr<MultiFab> > mf_avg;
+    Vector<std::unique_ptr<MultiFab> > mf_avg(finest_level+1);
     WarpX::AverageAndPackFields( varnames, mf_avg, ngrow );
 
     if (insitu_bridge->update(istep[0], t_new[0],
@@ -476,7 +476,7 @@ WarpX::WritePlotFile () const
     const int ngrow = 1;
     Vector<std::string> varnames; // Name of the written fields
     // mf_avg will contain the averaged, cell-centered fields
-    Vector<std::unique_ptr<MultiFab> > mf_avg;
+    Vector<std::unique_ptr<MultiFab> > mf_avg(finest_level+1);
     WarpX::AverageAndPackFields( varnames, mf_avg, ngrow );
 
     // Write the fields contained in `mf_avg`, and corresponding to the
