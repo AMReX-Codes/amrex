@@ -46,17 +46,17 @@ AverageAndPackVectorField( const std::unique_ptr<MultiFab>& mf_avg,
     } else if ( vector_field[0]->is_nodal() ){
 
         amrex::average_node_to_cellcenter(*mf_avg, dcomp  ,
-                                          *vector_field[0], 0, 1);
+                                          *vector_field[0], 0, 1, ngrow);
         amrex::average_node_to_cellcenter(*mf_avg, dcomp+1,
-                                          *vector_field[1], 0, 1);
+                                          *vector_field[1], 0, 1, ngrow);
         amrex::average_node_to_cellcenter(*mf_avg, dcomp+2,
-                                          *vector_field[2], 0, 1);
+                                          *vector_field[2], 0, 1, ngrow);
 
         // - Face centered, in the same way as B on a Yee grid
     } else if ( vector_field[0]->is_nodal(0) ){
 
         PackPlotDataPtrs(srcmf, vector_field);
-        amrex::average_face_to_cellcenter(*mf_avg, dcomp, srcmf);
+        amrex::average_face_to_cellcenter(*mf_avg, dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(*mf_avg, *mf_avg, dcomp+1, dcomp+2, 1, ngrow);
         MultiFab::Copy(*mf_avg, *vector_field[1], 0, dcomp+1, 1, ngrow);
@@ -66,11 +66,11 @@ AverageAndPackVectorField( const std::unique_ptr<MultiFab>& mf_avg,
     } else if ( !vector_field[0]->is_nodal(0) ){
 
         PackPlotDataPtrs(srcmf, vector_field);
-        amrex::average_edge_to_cellcenter(*mf_avg, dcomp, srcmf);
+        amrex::average_edge_to_cellcenter(*mf_avg, dcomp, srcmf, ngrow);
 #if (AMREX_SPACEDIM == 2)
         MultiFab::Copy(*mf_avg, *mf_avg, dcomp+1, dcomp+2, 1, ngrow);
         amrex::average_node_to_cellcenter(*mf_avg, dcomp+1,
-                                          *vector_field[1], 0, 1);
+                                          *vector_field[1], 0, 1, ngrow);
 #endif
 
     } else {
@@ -97,7 +97,7 @@ AverageAndPackScalarField( std::unique_ptr<MultiFab>& mf_avg,
         // - Fully nodal
     } else if ( scalar_field.is_nodal() ){
 
-        amrex::average_node_to_cellcenter(*mf_avg, dcomp, scalar_field, 0, 1);
+        amrex::average_node_to_cellcenter(*mf_avg, dcomp, scalar_field, 0, 1, ngrow);
 
     } else {
         amrex::Abort("Unknown staggering.");
