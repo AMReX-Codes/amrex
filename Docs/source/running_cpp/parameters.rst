@@ -167,6 +167,10 @@ Particle initialization
       user-defined constant, see above. Note that using this density profile will turn
       ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
 
+    * ``predefined``: use one of WarpX predefined plasma profiles. It requires additional
+      arguments ``<species_name>.predefined_profile_name`` and 
+      ``<species_name>.predefined_profile_params`` (see below).
+
 * ``<species_name>.momentum_distribution_type`` (`string`)
     Distribution of the normalized momentum (`u=p/mc`) for this species. The options are:
 
@@ -203,6 +207,37 @@ Particle initialization
 
     * If ``true``, each particle is advanced with the average speed of the species
       ``vzbar`` until it reaches ``zinject_plane``.
+
+* ``species_name.predefined_profile_name`` (`string`)
+    Only read of ``<species_name>.electrons.profile`` is `predefined`.
+
+    * If ``parabolic_channel``, the plasma profile is a parabolic profile with linear ramps
+      at the beginning and the end of the profile. The density is given by
+
+      .. math::
+
+          n = n_0 n(x,y) n(z)
+
+      with
+
+      .. math::
+
+          n(x,y) = 1 + 4\frac{x^2+y^2}{k_p^2 R_c^4}
+
+      where :math:`k_p` is the plasma wavenumber associated with density :math:`n_0`. 
+      Here, :math:`n(z)` is a linear up-ramp from :math:`0` to :math:`L_{ramp,up}`, 
+      constant to :math:`1` from :math:`L_{ramp,up}` to :math:`L_{ramp,up} + L_{plateau}`
+      and a linear down-ramp from :math:`L_{ramp,up} + L_{plateau}` to 
+      :math:`L_{ramp,up} + L_{plateau}+L_{ramp,down}`. All parameters are given
+      in ``predefined_profile_params``.
+
+* ``<species_name>.predefined_profile_params`` (list of `float`)
+    Parameters for the predefined profiles.
+
+    * If ``species_name.predefined_profile_name`` is ``parabolic_channel``, 
+      ``predefined_profile_params`` contains a space-separated list of the 
+      following parameters, in this order: :math:`L_{ramp,up}` :math:`L_{plateau}` 
+      :math:`L_{ramp,down}` :math:`R_c` :math:`n_0`
 
 * ``<species_name>.do_backward_injection`` (`bool`)
     Inject a backward-propagating beam to reduce the effect of charge-separation
