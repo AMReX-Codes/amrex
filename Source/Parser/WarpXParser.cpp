@@ -12,18 +12,14 @@ WarpXParser::define (std::string const& func_body)
     clear();
 
     m_expression = func_body;
-
-#ifdef _OPENMP
-    int nthreads = omp_get_max_threads();
-#else
-    int nthreads = 1;
-#endif
-    m_parser.resize(nthreads);
-
     std::string f = m_expression + "\n";
-    m_parser[0] = wp_c_parser_new(f.c_str());
 
 #ifdef _OPENMP
+
+    int nthreads = omp_get_max_threads();
+    m_variables.resize(nthreads);
+    m_parser.resize(nthreads);
+    m_parser[0] = wp_c_parser_new(f.c_str());
 #pragma omp parallel
     {
         int tid = omp_get_thread_num();
@@ -31,6 +27,11 @@ WarpXParser::define (std::string const& func_body)
             m_parser[tid] = wp_parser_dup(m_parser[0]);
         }
     }
+
+#else
+
+    m_parser = wp_c_parser_new(f.c_str());
+
 #endif
 }
 
@@ -42,21 +43,26 @@ WarpXParser::~WarpXParser ()
 void
 WarpXParser::clear ()
 {
+    m_expression.clear();
+
+#ifdef _OPENMP
+
     if (!m_parser.empty())
     {
-#ifdef _OPENMP
 #pragma omp parallel
         {
-            int tid = omp_get_thread_num();
-            wp_parser_delete(m_parser[tid]);
+            wp_parser_delete(m_parser[omp_get_thread_num()]);
         }
-#else
-        wp_parser_delete(m_parser[0]);
-#endif
     }
-    m_expression.clear();
     m_parser.clear();
     m_variables.clear();
+
+#else
+
+    if (m_parser) wp_parser_delete(m_parser);
+    m_parser = nullptr;
+
+#endif
 }
 
 void
@@ -64,47 +70,53 @@ WarpXParser::registerVariable (std::string const& name, double& var)
 {
     // We assume this is called inside OMP parallel region
 #ifdef _OPENMP
-    const int tid = omp_get_thread_num();
+    wp_parser_regvar(m_parser[omp_get_thread_num()], name.c_str(), &var);
 #else
-    const int tid = 0;
+    wp_parser_regvar(m_parser, name.c_str(), &var);
 #endif
-    wp_parser_regvar(m_parser[tid], name.c_str(), &var);
 }
 
-// This must be called outside OpenMP parallel region.
 void
 WarpXParser::registerVariables (std::vector<std::string> const& names)
 {
 #ifdef _OPENMP
-    const int nthreads = omp_get_max_threads();
-#else
-    const int nthreads = 1;
-#endif
-    m_variables.resize(nthreads);
-    const int nnames = names.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-    for (int i = 0; i < nthreads; ++i) {
-        m_variables[i].resize(nnames);
-        for (int j = 0; j < nnames; ++j) {
-            wp_parser_regvar(m_parser[i], names[j].c_str(), &(m_variables[i][j]));
+
+// This must be called outside OpenMP parallel region.
+#pragma omp parallel
+    {
+        const int tid = omp_get_thread_num();
+        struct wp_parser* p = m_parser[tid];
+        auto& v = m_variables[tid];
+        for (int j = 0; j < names.size(); ++j) {
+            wp_parser_regvar(p, names[j].c_str(), &(v[j]));
         }
     }
+
+#else
+
+    for (int j = 0; j < names.size(); ++j) {
+        wp_parser_regvar(m_parser, names[j].c_str(), &(m_variables[j]));
+    }
+
+#endif
 }
 
 void
 WarpXParser::setConstant (std::string const& name, double c)
 {
-    // We don't know if this is inside OMP parallel region or not
 #ifdef _OPENMP
+
     bool in_parallel = omp_in_parallel();
+    // We don't know if this is inside OMP parallel region or not
 #pragma omp parallel if (!in_parallel)
     {
         wp_parser_setconst(m_parser[omp_get_thread_num()], name.c_str(), c);
     }
+
 #else
-    wp_parser_setconst(m_parser[0], name.c_str(), c);
+
+    wp_parser_setconst(m_parser, name.c_str(), c);
+
 #endif
 }
 
@@ -115,7 +127,7 @@ WarpXParser::print () const
 #pragma omp critical(warpx_parser_pint)
     wp_ast_print(m_parser[omp_get_thread_num()]->ast);
 #else
-    wp_ast_print(m_parser[0]->ast);
+    wp_ast_print(m_parser->ast);
 #endif
 }
 

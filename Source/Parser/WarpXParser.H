@@ -1,6 +1,7 @@
 #ifndef WARPX_PARSER_H_
 #define WARPX_PARSER_H_
 
+#include <array>
 #include <vector>
 #include <string>
 #include <cstdarg>
@@ -12,14 +13,8 @@
 #include <omp.h>
 #endif
 
-
 class WarpXParser
 {
-private:
-    std::string m_expression;
-    std::vector<struct wp_parser*> m_parser;
-    mutable std::vector<std::vector<double> > m_variables;
-
 public:
     WarpXParser (std::string const& func_body);
     WarpXParser () = default;
@@ -34,14 +29,7 @@ public:
     //           Call eval().
     void registerVariable (std::string const& name, double& var);
     //
-    inline double eval () const noexcept {
-#ifdef _OPENMP
-        const int tid = omp_get_thread_num();
-#else
-        const int tid = 0;
-#endif
-        return wp_ast_eval(m_parser[tid]->ast);
-    }
+    inline double eval () const noexcept;
 
     //
     // Option 2: Register all variables at once. Parser will create
@@ -49,23 +37,8 @@ public:
     //           Call eval(...) with variable values.
     void registerVariables (std::vector<std::string> const& names);
     //
-    inline double eval (double x, ...) const noexcept {
-#ifdef _OPENMP
-        const int tid = omp_get_thread_num();
-#else
-        const int tid = 0;
-#endif
-        auto& v = m_variables[tid];
-        va_list args;
-        va_start(args, x);
-        v[0] = x;
-        for (int i = 1; i < v.size(); ++i) {
-            v[i] = va_arg(args, double);
-        }
-        va_end(args);
-
-        return wp_ast_eval(m_parser[tid]->ast);
-    }
+    template <typename T, typename... Ts> inline
+    double eval (T x, Ts... yz) const noexcept;
 
     void print () const;
 
@@ -73,6 +46,62 @@ public:
 
 private:
     void clear ();
+
+    template <typename T> inline
+    void unpack (double* p, T x) const noexcept;
+
+    template <typename T, typename... Ts> inline
+    void unpack (double* p, T x, Ts... yz) const noexcept;
+
+    std::string m_expression;
+#ifdef _OPENMP
+    std::vector<struct wp_parser*> m_parser;
+    mutable std::vector<std::array<double,16> > m_variables;
+#else
+    struct wp_parser* m_parser = nullptr;
+    mutable std::array<double,16> m_variables;
+#endif
 };
+
+inline
+double
+WarpXParser::eval () const noexcept
+{
+#ifdef _OPENMP
+    return wp_ast_eval(m_parser[omp_get_thread_num()]->ast);
+#else
+    return wp_ast_eval(m_parser->ast);
+#endif
+}
+
+template <typename T, typename... Ts>
+inline
+double
+WarpXParser::eval (T x, Ts... yz) const noexcept
+{
+#ifdef _OPENMP
+    unpack(m_variables[omp_get_thread_num()].data(), x, yz...);
+#else
+    unpack(m_variables.data(), x, yz...);
+#endif
+    return eval();
+}
+
+template <typename T>
+inline
+void
+WarpXParser::unpack (double* p, T x) const noexcept
+{
+    *p = x;
+}
+
+template <typename T, typename... Ts>
+inline
+void
+WarpXParser::unpack (double* p, T x, Ts... yz) const noexcept
+{
+    *p++ = x;
+    unpack(p, yz...);
+}
 
 #endif
