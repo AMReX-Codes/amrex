@@ -298,8 +298,6 @@ void PlasmaInjector::parseDensity(ParmParse pp){
     } else if (rho_prof_s == "custom") {
         rho_prof.reset(new CustomDensityProfile(species_name));
     } else if (rho_prof_s == "parse_density_function") {
-        // Serialize particle initialization
-        WarpX::serialize_ics = true;
         pp.get("density_function(x,y,z)", str_density_function);
         rho_prof.reset(new ParseDensityProfile(str_density_function));
     } else {
@@ -345,8 +343,6 @@ void PlasmaInjector::parseMomentum(ParmParse pp){
         pp.query("u_over_r", u_over_r);
         mom_dist.reset(new RadialExpansionMomentumDistribution(u_over_r));
     } else if (mom_dist_s == "parse_momentum_function") {
-        // Serialize particle initialization
-        WarpX::serialize_ics = true;
         pp.get("momentum_function_ux(x,y,z)", str_momentum_function_ux);
         pp.get("momentum_function_uy(x,y,z)", str_momentum_function_uy);
         pp.get("momentum_function_uz(x,y,z)", str_momentum_function_uz);
