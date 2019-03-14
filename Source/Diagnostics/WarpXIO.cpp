@@ -473,7 +473,7 @@ WarpX::WritePlotFile () const
     amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
 
     // Average the fields from the simulation to the cell centers
-    const int ngrow = 1;
+    const int ngrow = 0;
     Vector<std::string> varnames; // Name of the written fields
     // mf_avg will contain the averaged, cell-centered fields
     Vector<std::unique_ptr<MultiFab> > mf_avg(finest_level+1);
