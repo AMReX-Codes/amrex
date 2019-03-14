@@ -49,16 +49,18 @@ public:
     //           Call eval(...) with variable values.
     void registerVariables (std::vector<std::string> const& names);
     //
-    inline double eval (double xyz...) const noexcept {
+    inline double eval (double x, ...) const noexcept {
 #ifdef _OPENMP
         const int tid = omp_get_thread_num();
 #else
         const int tid = 0;
 #endif
+        auto& v = m_variables[tid];
         va_list args;
-        va_start(args, xyz);
-        for (auto& v : m_variables[tid]) {
-            v = va_arg(args, double);
+        va_start(args, x);
+        v[0] = x;
+        for (int i = 1; i < v.size(); ++i) {
+            v[i] = va_arg(args, double);
         }
         va_end(args);
 
