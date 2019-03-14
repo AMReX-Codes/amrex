@@ -8,6 +8,57 @@
 using namespace amrex;
 
 #ifdef WARPX_USE_OPENPMD
+/** \brief 
+ * Convert an IntVect to a std::vector<unsigned long>,
+ * and reverse the order of the elements
+ * (used for compatibility with the openPMD API)
+ */
+std::vector<unsigned long>
+getReversedVec( const IntVect& v )
+{
+  // Convert the IntVect v to and std::vector u
+  std::vector<unsigned long> u = {
+    AMREX_D_DECL(
+                 static_cast<unsigned long>(v[0]),
+                 static_cast<unsigned long>(v[1]),
+                 static_cast<unsigned long>(v[2])
+                 )
+  };
+  // Reverse the order of elements, if v corresponds to the indices of a
+  // Fortran-order array (like an AMReX FArrayBox)
+  // but u is intended to be used with a C-order API (like openPMD)
+  std::reverse( u.begin(), u.end() );
+
+  return u;
+}
+
+/** \brief 
+ * Convert Real* pointer to a std::vector<double>,
+ * and reverse the order of the elements
+ * (used for compatibility with the openPMD API)
+ */
+std::vector<double>
+getReversedVec( const Real* v )
+{
+  // Convert Real* v to and std::vector u
+  std::vector<double> u = {
+    AMREX_D_DECL(
+                 static_cast<double>(v[0]),
+                 static_cast<double>(v[1]),
+                 static_cast<double>(v[2])
+                 )
+  };
+  // Reverse the order of elements, if v corresponds to the indices of a
+  // Fortran-order array (like an AMReX FArrayBox)
+  // but u is intended to be used with a C-order API (like openPMD)
+  std::reverse( u.begin(), u.end() );
+
+  return u;
+}
+
+/** \brief Write the `ncomp` components of `mf` (with names `varnames`)
+ * into a file `filename` in openPMD format.
+ **/
 void
 WriteOpenPMDFields( const std::string& filename,
                   const int ncomp, const std::vector<std::string>& varnames,
@@ -21,22 +72,11 @@ WriteOpenPMDFields( const std::string& filename,
   // and since the openPMD API assumes contiguous C order
   // - Size of the box, in integer number of cells
   const Box& global_box = geom.Domain();
-  std::vector<unsigned long> global_length = {
-    AMREX_D_DECL(
-                 static_cast<unsigned long>(global_box.length(0)),
-                 static_cast<unsigned long>(global_box.length(1)),
-                 static_cast<unsigned long>(global_box.length(2))
-                 )
-  };
-  std::reverse( global_length.begin(), global_length.end() );
+  std::vector<unsigned long> global_size = getReversedVec(global_box.size());
   // - Grid spacing
-  std::vector<double> grid_spacing = {
-    AMREX_D_DECL(geom.CellSize(0), geom.CellSize(1), geom.CellSize(2))};
-  std::reverse( grid_spacing.begin(), grid_spacing.end() );
+  std::vector<double> grid_spacing = getReversedVec(geom.CellSize());
   // - Global offset
-  std::vector<double> global_offset = {
-    AMREX_D_DECL(geom.ProbLo(0), geom.ProbLo(1), geom.ProbLo(2))};
-  std::reverse( global_offset.begin(), global_offset.end() );
+  std::vector<double> global_offset = getReversedVec(geom.ProbLo());
   // - AxisLabels
 #if AMREX_SPACEDIM==3
   std::vector<std::string> axis_labels{"x", "y", "z"};
@@ -46,7 +86,7 @@ WriteOpenPMDFields( const std::string& filename,
 
   // Prepare the type of dataset that will be written
   openPMD::Datatype datatype = openPMD::determineDatatype<Real>();
-  auto dataset = openPMD::Dataset(datatype, global_length);
+  auto dataset = openPMD::Dataset(datatype, global_size);
 
   // Create new file and store the time/iteration info
   auto series = openPMD::Series( filename,
@@ -62,7 +102,7 @@ WriteOpenPMDFields( const std::string& filename,
     const std::string& field_name = varnames[icomp];
 
     auto mesh = series_iteration.meshes[field_name];
-    mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab are Fortran order
+    mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab: Fortran order
     mesh.setAxisLabels( axis_labels );
     mesh.setGridSpacing( grid_spacing );
     mesh.setGridGlobalOffset( global_offset );
@@ -73,7 +113,7 @@ WriteOpenPMDFields( const std::string& filename,
     auto mesh_record = mesh[openPMD::MeshRecordComponent::SCALAR];
     mesh_record.resetDataset( dataset );
     // Cell-centered data: position is at 0.5 of a cell size.
-    mesh_record.setPosition( std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)} );
+    mesh_record.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
 
     // Loop through the multifab, and store each box as a chunk,
     // in the openPMD file.
@@ -82,34 +122,20 @@ WriteOpenPMDFields( const std::string& filename,
       const FArrayBox& fab = mf[mfi];
       const Box& local_box = fab.box();
 
-      // Determine the offset indices of this chunk
-      IntVect offset = local_box.smallEnd() - global_box.smallEnd();
-      std::vector<unsigned long> chunk_offset = {
-        AMREX_D_DECL(
-                     static_cast<unsigned long>(offset[0]),
-                     static_cast<unsigned long>(offset[1]),
-                     static_cast<unsigned long>(offset[2])
-                     )
-      };
-      std::reverse( chunk_offset.begin(), chunk_offset.end() );
-      std::vector<unsigned long> chunk_length = {
-        AMREX_D_DECL(
-                     static_cast<unsigned long>(local_box.length(0)),
-                     static_cast<unsigned long>(local_box.length(1)),
-                     static_cast<unsigned long>(local_box.length(2))
-                     )
-      };
-      std::reverse( chunk_length.begin(), chunk_length.end() ); // Fortran order
+      // Determine the offset and size of this chunk
+      IntVect box_offset = local_box.smallEnd() - global_box.smallEnd();
+      std::vector<unsigned long> chunk_offset = getReversedVec(box_offset);
+      std::vector<unsigned long> chunk_size = getReversedVec(local_box.size());
 
       // Write local data
       const double* local_data = fab.dataPtr(icomp);
       mesh_record.storeChunk(openPMD::shareRaw(local_data),
-                             chunk_offset, chunk_length);
-    };
-  };
+                             chunk_offset, chunk_size);
+    }
+  }
   // Flush data to disk after looping over all components
   series.flush();
-};
+}
 #endif // WARPX_USE_OPENPMD
 
 
