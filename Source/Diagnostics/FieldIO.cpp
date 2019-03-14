@@ -108,13 +108,9 @@ AverageAndPackScalarField( std::unique_ptr<MultiFab>& mf_avg,
  * averaged to the cell center of each cell (default WarpX output)
  */
 void
-WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
+WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
+    amrex::Vector<std::unique_ptr<MultiFab>>& mf_avg, const int ngrow) const
 {
-
-    Vector<std::string> varnames; // Name of the written fields
-    // mf_avg will contain the averaged, cell-centered fields
-    Vector<std::unique_ptr<MultiFab> > mf_avg(finest_level+1);
-
     // Count how many different fields should be written (ncomp)
     const int ncomp = 3*3
         + static_cast<int>(plot_part_per_cell)
@@ -128,8 +124,6 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
         + static_cast<int>(plot_finepatch)*6
         + static_cast<int>(plot_crsepatch)*6
         + static_cast<int>(costs[0] != nullptr);
-
-    const int ngrow = 0;
 
     // Loop over levels of refinement
     for (int lev = 0; lev <= finest_level; ++lev)
@@ -300,23 +294,6 @@ WarpX::WriteAveragedFields ( const std::string& plotfilename ) const
             dcomp += 1;
         }
 
-        BL_ASSERT(dcomp == ncomp);
-        } // end loop over levels of refinement
-
-    // Write the fields contained in `mf_avg`, and corresponding to the
-    // names `varnames`, into a plotfile.
-    // Prepare extra directory (filled later), for the raw fields
-    Vector<std::string> rfs;
-    if (plot_raw_fields) rfs.emplace_back("raw_fields");
-    amrex::WriteMultiLevelPlotfile(
-                                   plotfilename, finest_level+1,
-                                   amrex::GetVecOfConstPtrs(mf_avg),
-                                   varnames, Geom(), t_new[0], istep,
-                                   refRatio(),
-                                   "HyperCLaw-V1.1",
-                                   "Level_",
-                                   "Cell",
-                                   rfs
-                                   );
-
+    BL_ASSERT(dcomp == ncomp);
+    } // end loop over levels of refinement
 };

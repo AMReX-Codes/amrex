@@ -88,7 +88,7 @@ public:
 
     static bool use_fdtd_nci_corr;
     static int  l_lower_order_in_v;
-    
+
     static bool use_laser;
     static bool use_filter;
     static bool serialize_ics;
@@ -188,8 +188,9 @@ public:
 
     void WriteCheckPointFile () const;
     void WritePlotFile () const;
-    void WriteAveragedFields ( const std::string& plotfilename ) const;
     void UpdateInSitu () const;
+    void AverageAndPackFields( amrex::Vector<std::string>& varnames,
+        amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_avg, const int ngrow) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
@@ -444,7 +445,7 @@ private:
 
     amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_fp_owner_masks;
     amrex::Vector<std::array<std::unique_ptr<amrex::iMultiFab>, 3 > > current_cp_owner_masks;
-    
+
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_fp_owner_masks;
     amrex::Vector<std::unique_ptr<amrex::iMultiFab> > rho_cp_owner_masks;
 
