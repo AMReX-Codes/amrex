@@ -101,14 +101,21 @@ namespace
         // Open the output.
         hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
         // Create a 3D, nx x ny x nz dataspace.
+#if (AMREX_SPACEDIM == 3)
         hsize_t dims[3] = {nx, ny, nz};
-        hid_t grid_space = H5Screate_simple(3, dims, NULL);
+#else
+        hsize_t dims[3] = {nx, nz};
+#endif
+        hid_t grid_space = H5Screate_simple(AMREX_SPACEDIM, dims, NULL);
+        
         // Create the dataset.
         hid_t dataset = H5Dcreate(file, field_path.c_str(), H5T_IEEE_F64LE,
                                   grid_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-        if (dataset < 0) {
-            amrex::Abort("Error: could not create dataset. H5 returned " + std::to_string(dataset) + "\n");
+        if (dataset < 0)
+        {
+            amrex::Abort("Error: could not create dataset. H5 returned "
+                         + std::to_string(dataset) + "\n");
         }
 
         // Close resources.
@@ -143,11 +150,12 @@ namespace
         hid_t dataset = H5Dopen(file, field_path.c_str(), H5P_DEFAULT);
 
         // Make sure the dataset is there.
-        if (dataset < 0) {
+        if (dataset < 0)
+        {
             amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
                          ". Count not find dataset " + field_path + "\n");
         }
-
+        
         // Grab the dataspace of the field dataset from file.
         hid_t file_dataspace = H5Dget_space(dataset);
 
@@ -158,47 +166,56 @@ namespace
         // Iterate over Fabs, select matching hyperslab and write.
         hid_t status;
         // slab lo index and shape.
+#if (AMREX_SPACEDIM == 3)
         hsize_t slab_offsets[3], slab_dims[3];
+#else
+        hsize_t slab_offsets[2], slab_dims[2];
+#endif
         hid_t slab_dataspace;
 
         int write_count = 0;
 
-        const int nc = mf.nComp();
-        for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-            // Get fab, lo and hi vectors.
+        VisMF::Write(mf, "test");
+
+        for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+        {
             const Box& box = mfi.validbox();
             const int *lo_vec = box.loVect();
             const int *hi_vec = box.hiVect();
-
-            const Real *fab_data = mf[mfi].dataPtr();
-
-            unsigned nx = hi_vec[0] - lo_vec[0] + 1;
-            unsigned ny = hi_vec[1] - lo_vec[1] + 1;
-            unsigned nz = hi_vec[2] - lo_vec[2] + 1;
-
+            
+            std::vector<Real> transposed_data(box.numPts(), 0.0);
+            
             // Set slab offset and shape.
-            slab_offsets[0] = lo_vec[0];
-            slab_offsets[1] = lo_vec[1];
-            slab_offsets[2] = lo_vec[2];
-            slab_dims[0] = nx;
-            slab_dims[1] = ny;
-            slab_dims[2] = nz;
-
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+            {
+                AMREX_ASSERT(lo_vec[idim] >= 0);
+                AMREX_ASSERT(hi_vec[idim] > lo_vec[idim]);
+                slab_offsets[idim] = lo_vec[idim];
+                slab_dims[idim] = hi_vec[idim] - lo_vec[idim] + 1;
+            }
+            
+            int cnt = 0;
+            for (int i = lo_vec[0]; i <= hi_vec[0]; ++i)
+                for (int j = lo_vec[1]; j <= hi_vec[1]; ++j)
+                    transposed_data[cnt++] = mf[mfi](IntVect(i, j), comp);
+            
             // Create the slab space.
-            slab_dataspace = H5Screate_simple(3, slab_dims, NULL);
+            slab_dataspace = H5Screate_simple(AMREX_SPACEDIM, slab_dims, NULL);
 
             // Select the hyperslab matching this fab.
             status = H5Sselect_hyperslab(file_dataspace, H5S_SELECT_SET,
                                          slab_offsets, NULL, slab_dims, NULL);
-            if (status < 0) {
+            if (status < 0)
+            {
                 amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
                              " could not select hyperslab.\n");
             }
 
             // Write this pencil.
             status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, slab_dataspace,
-                              file_dataspace, collective_plist, fab_data);
-            if (status < 0) {
+                              file_dataspace, collective_plist, transposed_data.data());
+            if (status < 0)
+            {
                 amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
                              " could not write hyperslab.\n");
             }
@@ -214,49 +231,14 @@ namespace
         H5Fclose(file);
         H5Pclose(pa_plist);
     }
-
-    void write_hdf5_plotfile(const std::string& plotfilename,
-                             const int nlevels,
-                             const Vector<const MultiFab*>& mf,
-                             const Vector<std::string>& varnames,
-                             const Vector<Geometry> &geom,
-                             Real time, Real dt,
-                             const Vector<int> &level_steps,
-                             const Vector<IntVect> &ref_ratio)
-    {
-        AMREX_ALWAYS_ASSERT(nlevels == 1);
-        const Box& domain = geom[0].Domain();
-        const unsigned nx = domain.length(0);
-        const unsigned ny = domain.length(1);
-        const unsigned nz = domain.length(2);
-        if (ParallelDescriptor::IOProcessor())
-        {
-            output_create(plotfilename);
-            output_write_metadata(plotfilename, level_steps[0], time, dt);
-        }
-        ParallelDescriptor::Barrier();
-
-        const int nc = mf[0]->nComp();
-        for (int i = 0; i < nc; ++i) {
-            std::string field_path = "data/" + std::to_string(level_steps[0]) + "/fields/" + varnames[i];
-            if (ParallelDescriptor::IOProcessor())
-            {
-                output_create_field(plotfilename, field_path, nx, ny, nz);
-            }
-            ParallelDescriptor::Barrier();
-            
-            output_write_field(plotfilename, field_path, *mf[0], i);
-        }
-    }
 }
-
 #endif
 
 BoostedFrameDiagnostic::
 BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
                        Real dt_snapshots_lab, int N_snapshots, 
                        Real gamma_boost, Real t_boost, Real dt_boost, 
-                       int boost_direction)
+                       int boost_direction, const Geometry& geom)
     : gamma_boost_(gamma_boost),
       dt_snapshots_lab_(dt_snapshots_lab),
       dt_boost_(dt_boost),
@@ -275,17 +257,23 @@ BoostedFrameDiagnostic(Real zmin_lab, Real zmax_lab, Real v_window_lab,
     
     dz_lab_ = PhysConst::c * dt_boost_ * inv_beta_boost_ * inv_gamma_boost_;
     inv_dz_lab_ = 1.0 / dz_lab_;
-    Nz_lab_ = static_cast<int>((zmax_lab - zmin_lab) * inv_dz_lab_);
-
+    Nx_lab_ = geom.Domain().length(0);
+#if (AMREX_SPACEDIM == 3)
+    Ny_lab_ = geom.Domain().length(1);
+#else
+    Ny_lab_ = 1;
+#endif
+    Nz_lab_ = static_cast<unsigned>((zmax_lab - zmin_lab) * inv_dz_lab_);
+        
     writeMetaData();
 
     if (WarpX::do_boosted_frame_fields) data_buffer_.resize(N_snapshots);
     if (WarpX::do_boosted_frame_particles) particles_buffer_.resize(N_snapshots);
     for (int i = 0; i < N_snapshots; ++i) {
         Real t_lab = i * dt_snapshots_lab_;
-        LabSnapShot snapshot(t_lab, zmin_lab + v_window_lab * t_lab,
-                             zmax_lab + v_window_lab * t_lab, i);
-        snapshot.updateCurrentZPositions(t_boost, inv_gamma_boost_, inv_beta_boost_);
+        LabSnapShot snapshot(t_lab, t_boost,
+                             zmin_lab + v_window_lab * t_lab,
+                             zmax_lab + v_window_lab * t_lab, i, *this);
         snapshots_.push_back(snapshot);
         buff_counter_.push_back(0);
         if (WarpX::do_boosted_frame_fields) data_buffer_[i].reset( nullptr );
@@ -327,10 +315,19 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                 MultiFab tmp(buff_ba, buff_dm, ncomp, 0);
                 
                 tmp.copy(*data_buffer_[i], 0, 0, ncomp);
-                
+
+#ifdef WARPX_USE_HDF5
+                std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
+                                                        "Bx", "By", "Bz",
+                                                        "jx", "jy", "jz",
+                                                        "rho"};
+                for (int comp = 0; comp < ncomp; ++comp)
+                    output_write_field(snapshots_[i].file_name, field_paths[comp], tmp, comp);
+#else                
                 std::stringstream ss;
                 ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
                 VisMF::Write(tmp, ss.str());
+#endif
             }
             
             if (WarpX::do_boosted_frame_particles) {
@@ -443,9 +440,19 @@ writeLabFrameData(const MultiFab* cell_centered_data,
         if (buff_counter_[i] == num_buffer_) {
 
             if (WarpX::do_boosted_frame_fields) {
+#ifdef WARPX_USE_HDF5
+                std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
+                                                        "Bx", "By", "Bz",
+                                                        "jx", "jy", "jz",
+                                                        "rho"};
+                for (int comp = 0; comp < data_buffer_[i]->nComp(); ++comp)
+                    output_write_field(snapshots_[i].file_name, field_paths[comp],
+                                       *data_buffer_[i], comp);
+#else
                 std::stringstream mesh_ss;
                 mesh_ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
                 VisMF::Write(*data_buffer_[i], mesh_ss.str());
+#endif
             }
             
             if (WarpX::do_boosted_frame_particles) {
@@ -516,7 +523,7 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, c
 
 void
 BoostedFrameDiagnostic::
-writeMetaData() 
+writeMetaData () 
 {
     BL_PROFILE("BoostedFrameDiagnostic::writeMetaData");
 
@@ -548,17 +555,39 @@ writeMetaData()
 }
 
 BoostedFrameDiagnostic::LabSnapShot::
-LabSnapShot(Real t_lab_in, Real zmin_lab_in, 
-            Real zmax_lab_in, int file_num_in) 
+LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in, 
+            Real zmax_lab_in, int file_num_in, const BoostedFrameDiagnostic& bfd)
     : t_lab(t_lab_in),
       zmin_lab(zmin_lab_in),
       zmax_lab(zmax_lab_in),
-      file_num(file_num_in) 
+      file_num(file_num_in),
+      my_bfd(bfd)
 {
     current_z_lab = 0.0;
     current_z_boost = 0.0;
+    updateCurrentZPositions(t_boost, my_bfd.inv_gamma_boost_, my_bfd.inv_beta_boost_);
+    initial_i = (current_z_lab - zmin_lab) / my_bfd.dz_lab_;
     file_name = Concatenate("lab_frame_data/snapshot", file_num, 5);
-    
+
+#ifdef WARPX_USE_HDF5
+    if (ParallelDescriptor::IOProcessor())
+    {
+        output_create(file_name);
+    }
+    if (ParallelDescriptor::IOProcessor())
+    {
+        std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
+                                                "Bx", "By", "Bz",
+                                                "jx", "jy", "jz",
+                                                "rho"};
+        for (int comp = 0; comp < static_cast<int>(field_paths.size()); ++comp) {
+            output_create_field(file_name, field_paths[comp],
+                                my_bfd.Nx_lab_,
+                                my_bfd.Ny_lab_,
+                                my_bfd.Nz_lab_+1);
+        }
+    }    
+#else    
     if (ParallelDescriptor::IOProcessor()) {
         
         if (!UtilCreateDirectory(file_name, 0755))
@@ -582,10 +611,10 @@ LabSnapShot(Real t_lab_in, Real zmin_lab_in,
                 CreateDirectoryFailed(fullpath);
         }
     }
-    
+#endif
     ParallelDescriptor::Barrier();
 
-    if (ParallelDescriptor::IOProcessor()) writeSnapShotHeader();
+    writeSnapShotHeader();
 }
 
 void
@@ -598,6 +627,7 @@ updateCurrentZPositions(Real t_boost, Real inv_gamma, Real inv_beta) {
 void
 BoostedFrameDiagnostic::LabSnapShot::
 writeSnapShotHeader() {
+#ifndef WARPX_USE_HDF5
     if (ParallelDescriptor::IOProcessor()) {
         VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
         std::ofstream HeaderFile;
@@ -615,4 +645,5 @@ writeSnapShotHeader() {
         HeaderFile << zmin_lab << "\n";
         HeaderFile << zmax_lab << "\n";
     }
+#endif
 }
