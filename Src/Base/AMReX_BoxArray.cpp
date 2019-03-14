@@ -426,7 +426,7 @@ BoxArray::resize (long len)
 }
 
 long
-BoxArray::numPts () const
+BoxArray::numPts () const noexcept
 {
     long result = 0;
     const int N = size();
@@ -441,7 +441,7 @@ BoxArray::numPts () const
 }
 
 double
-BoxArray::d_numPts () const
+BoxArray::d_numPts () const noexcept
 {
     double result = 0;
     const int N = size();
@@ -490,7 +490,7 @@ BoxArray::writeOn (std::ostream& os) const
 }
 
 bool
-BoxArray::operator== (const BoxArray& rhs) const
+BoxArray::operator== (const BoxArray& rhs) const noexcept
 {
     if (m_simple && rhs.m_simple) {
         return m_typ == rhs.m_typ && m_crse_ratio == rhs.m_crse_ratio &&
@@ -505,13 +505,13 @@ BoxArray::operator== (const BoxArray& rhs) const
 }
 
 bool
-BoxArray::operator!= (const BoxArray& rhs) const
+BoxArray::operator!= (const BoxArray& rhs) const noexcept
 {
     return !operator==(rhs);
 }
 
 bool
-BoxArray::CellEqual (const BoxArray& rhs) const
+BoxArray::CellEqual (const BoxArray& rhs) const noexcept
 {
     return m_crse_ratio == rhs.m_crse_ratio
         && (m_ref == rhs.m_ref || m_ref->m_abox == rhs.m_ref->m_abox);
@@ -804,7 +804,7 @@ BoxArray::set (int        i,
 }
 
 Box
-BoxArray::operator[] (const MFIter& mfi) const
+BoxArray::operator[] (const MFIter& mfi) const noexcept
 {
     return (*this)[mfi.index()];
 }
@@ -1338,13 +1338,13 @@ BoxArray::type_update ()
 }
 
 IntVect
-BoxArray::getDoiLo () const
+BoxArray::getDoiLo () const noexcept
 {
     return m_simple ? IntVect::TheZeroVector() : m_transformer->doiLo();
 }
 
 IntVect
-BoxArray::getDoiHi () const
+BoxArray::getDoiHi () const noexcept
 {
     return m_simple ?           m_typ.ixType() : m_transformer->doiHi();
 }
