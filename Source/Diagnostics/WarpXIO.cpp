@@ -414,6 +414,7 @@ WarpX::GetCellCenteredData() {
     {
         cc[lev].reset( new MultiFab(grids[lev], dmap[lev], nc, ng) );
 
+        int dcomp = 0;
         // first the electric field
         AverageAndPackVectorField( cc[lev], Efield_aux[lev], dcomp, ng );
         dcomp += 3;
