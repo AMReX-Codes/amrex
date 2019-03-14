@@ -414,38 +414,17 @@ WarpX::GetCellCenteredData() {
     {
         cc[lev].reset( new MultiFab(grids[lev], dmap[lev], nc, ng) );
 
-        Vector<const MultiFab*> srcmf(AMREX_SPACEDIM);
-        int dcomp = 0;
-
         // first the electric field
-        PackPlotDataPtrs(srcmf, Efield_aux[lev]);
-        amrex::average_edge_to_cellcenter(*cc[lev], dcomp, srcmf);
-#if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy(*cc[lev], *cc[lev], dcomp+1, dcomp+2, 1, ng);
-        amrex::average_node_to_cellcenter(*cc[lev], dcomp+1, *Efield_aux[lev][1], 0, 1);
-#endif
+        AverageAndPackVectorField( cc[lev], Efield_aux[lev], dcomp, ng );
         dcomp += 3;
-
         // then the magnetic field
-        PackPlotDataPtrs(srcmf, Bfield_aux[lev]);
-        amrex::average_face_to_cellcenter(*cc[lev], dcomp, srcmf);
-#if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy(*cc[lev], *cc[lev], dcomp+1, dcomp+2, 1, ng);
-        MultiFab::Copy(*cc[lev], *Bfield_aux[lev][1], 0, dcomp+1, 1, ng);
-#endif
+        AverageAndPackVectorField( cc[lev], Efield_aux[lev], dcomp, ng );
         dcomp += 3;
-
         // then the current density
-        PackPlotDataPtrs(srcmf, current_fp[lev]);
-        amrex::average_edge_to_cellcenter(*cc[lev], dcomp, srcmf);
-#if (AMREX_SPACEDIM == 2)
-        MultiFab::Copy(*cc[lev], *cc[lev], dcomp+1, dcomp+2, 1, ng);
-        amrex::average_node_to_cellcenter(*cc[lev], dcomp+1, *current_fp[lev][1], 0, 1);
-#endif
+        AverageAndPackVectorField( cc[lev], current_fp[lev], dcomp, ng );
         dcomp += 3;
-
         const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
-        amrex::average_node_to_cellcenter(*cc[lev], dcomp, *charge_density, 0, 1);
+        AverageAndPackScalarField( cc[lev], *charge_density, dcomp, ng );
 
         cc[lev]->FillBoundary(geom[lev].periodicity());
     }
@@ -552,13 +531,13 @@ WarpX::UpdateInSitu () const
 #endif
             for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
                 (mf[lev])[mfi].setVal(static_cast<Real>(npart_in_grid[mfi.index()]), dcomp);
-            
+
             if (lev == 0)
                 varnames.push_back("part_per_grid");
-            
+
             dcomp += 1;
         }
-        
+
         if (plot_part_per_proc)
         {
             const Vector<long>& npart_in_grid = mypc->NumberOfParticlesInGrid(lev);
@@ -568,15 +547,15 @@ WarpX::UpdateInSitu () const
 #endif
             for (MFIter mfi(mf[lev]); mfi.isValid(); ++mfi)
                 n_per_proc += npart_in_grid[mfi.index()];
-            
+
             mf[lev].setVal(static_cast<Real>(n_per_proc), dcomp, ngrow);
-            
+
             if (lev == 0)
                 varnames.push_back("part_per_proc");
-            
+
             dcomp += 1;
         }
-        
+
         if (plot_proc_number)
         {
             Real procid = static_cast<Real>(ParallelDescriptor::MyProc());
