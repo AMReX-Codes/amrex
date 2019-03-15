@@ -84,6 +84,8 @@ class BoostedFrameDiagnostic {
     
     void writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                            const std::string& name, const int i_lab);
+
+    void writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata);
     
 public:
     

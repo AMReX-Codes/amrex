@@ -384,9 +384,13 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             
             if (WarpX::do_boosted_frame_particles) {
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
+#ifdef WARPX_USE_HDF5
+                    writeParticleDataHDF5(particles_buffer_[i][j]);
+#else
                     std::stringstream part_ss;
                     part_ss << snapshots_[i].file_name + "/" + species_names[j] + "/";
                     writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+#endif
                 }
                 particles_buffer_[i].clear();
             }
@@ -509,9 +513,13 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             
             if (WarpX::do_boosted_frame_particles) {
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
+#ifdef WARPX_USE_HDF5
+                    writeParticleDataHDF5(particles_buffer_[i][j]);
+#else
                     std::stringstream part_ss;
                     part_ss << snapshots_[i].file_name + "/" + species_names[j] + "/";
                     writeParticleData(particles_buffer_[i][j], part_ss.str(), i_lab);
+#endif
                 }            
                 particles_buffer_[i].clear();
             }
@@ -524,8 +532,14 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
 void
 BoostedFrameDiagnostic::
-writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, const std::string& name,
-                  const int i_lab)
+writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata)
+{
+}
+
+void
+BoostedFrameDiagnostic::
+writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
+                  const std::string& name, const int i_lab)
 {
     BL_PROFILE("BoostedFrameDiagnostic::writeParticleData");
     
