@@ -175,7 +175,7 @@ namespace
 
         int write_count = 0;
 
-        VisMF::Write(mf, "test");
+        std::vector<Real> transposed_data;
 
         for (MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
@@ -183,7 +183,7 @@ namespace
             const int *lo_vec = box.loVect();
             const int *hi_vec = box.hiVect();
             
-            std::vector<Real> transposed_data(box.numPts(), 0.0);
+            transposed_data.resize(box.numPts(), 0.0);
             
             // Set slab offset and shape.
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
@@ -195,10 +195,12 @@ namespace
             }
             
             int cnt = 0;
-            for (int i = lo_vec[0]; i <= hi_vec[0]; ++i)
-                for (int j = lo_vec[1]; j <= hi_vec[1]; ++j)
-                    transposed_data[cnt++] = mf[mfi](IntVect(i, j), comp);
-            
+            AMREX_D_TERM(
+                         for (int i = lo_vec[0]; i <= hi_vec[0]; ++i),
+                         for (int j = lo_vec[1]; j <= hi_vec[1]; ++j),
+                         for (int k = lo_vec[2]; k <= hi_vec[2]; ++k))
+                transposed_data[cnt++] = mf[mfi](IntVect(AMREX_D_DECL(i, j, k)), comp);
+
             // Create the slab space.
             slab_dataspace = H5Screate_simple(AMREX_SPACEDIM, slab_dims, NULL);
 
@@ -484,7 +486,10 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, c
     auto np = pdata.GetRealData(DiagIdx::w).size();
 
     if (np == 0) return;
-    
+
+#ifdef WARPX_USE_HDF5
+
+#else
     field_name = name + Concatenate("w_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
     writeRealData(pdata.GetRealData(DiagIdx::w).data(), np, ofs);
@@ -518,7 +523,8 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata, c
     field_name = name + Concatenate("uz_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
     writeRealData(pdata.GetRealData(DiagIdx::uz).data(), np, ofs);
-    ofs.close();    
+    ofs.close();
+#endif
 }
 
 void
@@ -576,15 +582,28 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     }
     if (ParallelDescriptor::IOProcessor())
     {
-        std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
-                                                "Bx", "By", "Bz",
-                                                "jx", "jy", "jz",
-                                                "rho"};
-        for (int comp = 0; comp < static_cast<int>(field_paths.size()); ++comp) {
-            output_create_field(file_name, field_paths[comp],
-                                my_bfd.Nx_lab_,
-                                my_bfd.Ny_lab_,
-                                my_bfd.Nz_lab_+1);
+        if (WarpX::do_boosted_frame_fields)
+        {
+            std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
+                                                    "Bx", "By", "Bz",
+                                                    "jx", "jy", "jz",
+                                                    "rho"};
+            for (int comp = 0; comp < static_cast<int>(field_paths.size()); ++comp) {
+                output_create_field(file_name, field_paths[comp],
+                                    my_bfd.Nx_lab_,
+                                    my_bfd.Ny_lab_,
+                                    my_bfd.Nz_lab_+1);
+            }
+        }
+
+        if (WarpX::do_boosted_frame_particles)
+        {
+            auto & mypc = WarpX::GetInstance().GetPartContainer();
+            const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+            for (int j = 0; j < mypc.nSpecies(); ++j)
+            {
+                
+            }
         }
     }    
 #else    
