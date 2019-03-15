@@ -190,7 +190,7 @@ public:
     void WritePlotFile () const;
     void UpdateInSitu () const;
     void AverageAndPackFields( amrex::Vector<std::string>& varnames,
-        amrex::Vector<std::unique_ptr<amrex::MultiFab> >& mf_avg, const int ngrow) const;
+        amrex::Vector<amrex::MultiFab>& mf_avg, const int ngrow) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
