@@ -82,10 +82,15 @@ int main (int argc, char* argv[])
         // How Boxes are distrubuted among MPI processes
         DistributionMapping dm(ba);
 
+        // Malloc value for setval testing.
+        Real* val;
+        cudaMallocManaged(&val, sizeof(Real));
+        *val = 0.0;
+
         // Create the MultiFab and touch the data.
         // Ensures the data in on the GPU for all further testing.
         MultiFab x(ba, dm, Ncomp, Nghost);
-        x.setVal(0.0);
+        x.setVal(*val);
 
         Real points = ba.numPts();
 
@@ -94,7 +99,7 @@ int main (int argc, char* argv[])
 
         {
             BL_PROFILE("Standard");
-            Real val = 1.0;
+            *val = 1.0;
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -104,11 +109,11 @@ int main (int argc, char* argv[])
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
-                    a(i,j,k) = val;
+                    a(i,j,k) = *val;
                 });
             }
 
-            amrex::Print() << "No Graph sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+            amrex::Print() << "No Graph sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -116,7 +121,7 @@ int main (int argc, char* argv[])
 
         {
             BL_PROFILE("cudaGraph-iter");
-            Real val = 2.0;
+            *val = 2.0;
 
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec[x.local_size()];
@@ -133,7 +138,7 @@ int main (int argc, char* argv[])
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
-                    a(i,j,k) = val;
+                    a(i,j,k) = *val;
                 });
 
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
@@ -158,7 +163,7 @@ int main (int argc, char* argv[])
             amrex::Gpu::Device::synchronize();
             BL_PROFILE_VAR_STOP(cgl);
 
-            amrex::Print() << "Graph-per-iter sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+            amrex::Print() << "Graph-per-iter sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -166,7 +171,7 @@ int main (int argc, char* argv[])
 
         {
             BL_PROFILE("cudaGraph-stream");
-            Real val = 3.0;
+            *val = 3.0;
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec[amrex::Gpu::Device::numCudaStreams()];
@@ -191,7 +196,7 @@ int main (int argc, char* argv[])
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
-                    a(i,j,k) = val;
+                    a(i,j,k) = *val;
                 });
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
@@ -226,7 +231,7 @@ int main (int argc, char* argv[])
 
             amrex::Gpu::Device::resetStreamIndex();
 
-            amrex::Print() << "Graph-per-stream sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+            amrex::Print() << "Graph-per-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -235,7 +240,7 @@ int main (int argc, char* argv[])
 
         {
             BL_PROFILE("cudaGraph-linked-iter");
-            Real val = 4.0;
+            *val = 4.0;
 
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec;
@@ -252,7 +257,7 @@ int main (int argc, char* argv[])
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
-                    a(i,j,k) = val;
+                    a(i,j,k) = *val;
                 });
 
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
@@ -284,7 +289,7 @@ int main (int argc, char* argv[])
 
             amrex::Gpu::Device::resetStreamIndex();
 
-            amrex::Print() << "Full-graph-iter sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+            amrex::Print() << "Full-graph-iter sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -293,7 +298,7 @@ int main (int argc, char* argv[])
 
         {
             BL_PROFILE("cudaGraph-linked-stream");
-            Real val = 5.0;
+            *val = 5.0;
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec;
@@ -318,7 +323,7 @@ int main (int argc, char* argv[])
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
-                    a(i,j,k) = val;
+                    a(i,j,k) = *val;
                 });
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
@@ -357,7 +362,17 @@ int main (int argc, char* argv[])
 
             amrex::Gpu::Device::resetStreamIndex();
 
-            amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+            amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
+
+            *val = 10.0;
+
+            amrex::Gpu::Device::setStreamIndex(0); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
+            amrex::Gpu::Device::synchronize();
+
+            amrex::Print() << "Rerun with different val = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
+
+
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
