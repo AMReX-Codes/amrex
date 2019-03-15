@@ -234,13 +234,71 @@ int main (int argc, char* argv[])
 //        an empty node at the start linked to each individually captured stream graph.
 
         {
-            BL_PROFILE("cudaGraph-linked");
+            BL_PROFILE("cudaGraph-linked-iter");
             Real val = 4.0;
+
+            cudaGraph_t     graph[x.local_size()];
+            cudaGraphExec_t graphExec;
+
+            BL_PROFILE_VAR("cudaGraph-linked-iter-create", cgc);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
+
+                const Box bx = mfi.validbox();
+                Array4<Real> a = x.array(mfi);
+
+                amrex::ParallelFor(bx,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k)
+                {
+                    a(i,j,k) = val;
+                });
+
+                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
+            }
+
+            cudaGraph_t     graphFull;
+            cudaGraphNode_t emptyNode, placeholder;
+
+            AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+            AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
+            for (int i=0; i<x.local_size(); ++i)
+            {
+                AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
+            }
+
+            BL_PROFILE_VAR_STOP(cgc);
+            BL_PROFILE_VAR("cudaGraph-linked-instantiate", cgi);
+
+            AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
+
+            BL_PROFILE_VAR_STOP(cgi);
+            BL_PROFILE_VAR("cudaGraph-linked-launch", cgl);
+
+            amrex::Gpu::Device::setStreamIndex(0); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
+            amrex::Gpu::Device::synchronize();
+
+            BL_PROFILE_VAR_STOP(cgl);
+
+            amrex::Gpu::Device::resetStreamIndex();
+
+            amrex::Print() << "Full-graph-iter sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+        }
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+//      Create a single graph for the MFIter loop:
+//        an empty node at the start linked to each individually captured stream graph.
+
+        {
+            BL_PROFILE("cudaGraph-linked-stream");
+            Real val = 5.0;
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec;
 
-            BL_PROFILE_VAR("cudaGraph-linked-create", cgc);
+            BL_PROFILE_VAR("cudaGraph-linked-stream-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -284,12 +342,12 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-linked-instantiate", cgi);
+            BL_PROFILE_VAR("cudaGraph-linked-stream-instantiate", cgi);
 
             AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-linked-launch", cgl);
+            BL_PROFILE_VAR("cudaGraph-linked-stream-launch", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
@@ -299,7 +357,7 @@ int main (int argc, char* argv[])
 
             amrex::Gpu::Device::resetStreamIndex();
 
-            amrex::Print() << "Graph-per-stream sum = " << x.sum() << ". Expected = " << points*val << std::endl;
+            amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*val << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
