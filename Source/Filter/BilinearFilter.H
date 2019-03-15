@@ -7,7 +7,7 @@ public:
     BilinearFilter () = default;
     
     void ComputeStencils();
-    void ApplyStencil();
+    void ApplyStencils();
     amrex::IntVect npass_each_dir;
 
 private:

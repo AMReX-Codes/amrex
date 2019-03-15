@@ -40,6 +40,7 @@ void compute_stencil(Vector<Real> &stencil, int npass){
 }
 
 void BilinearFilter::ComputeStencils(){
+    Print()<<"npass_each_dir "<<npass_each_dir<<'\n';
 #if (AMREX_SPACEDIM == 3)
     // npass_each_dir = npass_x npass_y npass_z
     stencil_x.resize( 1 + npass_each_dir[0] );
@@ -56,3 +57,6 @@ void BilinearFilter::ComputeStencils(){
     compute_stencil(stencil_z, npass_each_dir[1]);
 #endif
 }
+
+//void BilinearFilter::ApplyStencils(amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf){    
+//}
