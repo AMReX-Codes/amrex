@@ -109,6 +109,8 @@ int main (int argc, char* argv[])
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec[x.local_size()];
 
+            BL_PROFILE_VAR("cudaGraph-iter-create", cgc);
+
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
@@ -125,10 +127,16 @@ int main (int argc, char* argv[])
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
 
+            BL_PROFILE_VAR_STOP(cgc);
+            BL_PROFILE_VAR("cudaGraph-iter-instantiate", cgi);
+
             for (int i = 0; i<x.local_size(); ++i)
             {
                 AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec[i], graph[i], NULL, NULL, 0));
             }
+
+            BL_PROFILE_VAR_STOP(cgi);
+            BL_PROFILE_VAR("cudaGraph-iter-launch", cgl);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -136,6 +144,7 @@ int main (int argc, char* argv[])
             }
 
             amrex::Gpu::Device::synchronize();
+            BL_PROFILE_VAR_STOP(cgl);
 
             amrex::Print() << "Sum = " << x.sum() << std::endl;
         }
@@ -145,6 +154,8 @@ int main (int argc, char* argv[])
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec[amrex::Gpu::Device::numCudaStreams()];
+
+            BL_PROFILE_VAR("cudaGraph-stream-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -177,10 +188,16 @@ int main (int argc, char* argv[])
                 }
             }
 
+            BL_PROFILE_VAR_STOP(cgc);
+            BL_PROFILE_VAR("cudaGraph-stream-instantiate", cgi);
+
             for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
             {
                 AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec[i], graph[i], NULL, NULL, 0));
             }
+
+            BL_PROFILE_VAR_STOP(cgi);
+            BL_PROFILE_VAR("cudaGraph-stream-launch", cgl);
 
             for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
             {
@@ -188,9 +205,10 @@ int main (int argc, char* argv[])
                 AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[i], amrex::Cuda::Device::cudaStream())); 
             }
 
-            amrex::Gpu::Device::resetStreamIndex();
- 
             amrex::Gpu::Device::synchronize();
+            BL_PROFILE_VAR_STOP(cgl);
+
+            amrex::Gpu::Device::resetStreamIndex();
 
             amrex::Print() << "Sum = " << x.sum() << std::endl;
         }
