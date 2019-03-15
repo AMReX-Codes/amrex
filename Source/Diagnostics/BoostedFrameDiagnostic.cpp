@@ -166,8 +166,8 @@ namespace
         }
 
         // Close resources.
-        H5Dclose(dataset);
         H5Sclose(filespace);
+        H5Dclose(dataset);
         H5Fclose(file);
     }
 
@@ -178,7 +178,7 @@ namespace
     void output_write_particle_field(const std::string& file_path, const std::string& field_path,
                                      const Real* data_ptr, const long count, const long index)
     {        
-        BL_PROFILE("output_resize_particle_field");
+        BL_PROFILE("output_write_particle_field");
 
         MPI_Comm comm = MPI_COMM_WORLD;
         MPI_Info info = MPI_INFO_NULL;
@@ -197,7 +197,7 @@ namespace
         hsize_t dims[1];
         herr_t status;
         
-        hid_t dataset = H5Dopen2 (file, field_path.c_str(), H5P_DEFAULT);
+        hid_t dataset = H5Dopen (file, field_path.c_str(), H5P_DEFAULT);
 
         // Make sure the dataset is there.
         if (dataset < 0)
