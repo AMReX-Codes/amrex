@@ -36,7 +36,7 @@ class IArrayBox
 {
 public:
     //! Construct an invalid FAB with no memory.
-    IArrayBox ();
+    IArrayBox () noexcept;
     /**
     * \brief Construct an initial FAB with the data space allocated but
     * not inititialized. ncomp is the number of components
@@ -63,7 +63,7 @@ public:
     IArrayBox& operator= (IArrayBox&&) = delete;
 
     //! Set the fab to the value r.
-    IArrayBox& operator= (int r);
+    IArrayBox& operator= (int r) noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b,
