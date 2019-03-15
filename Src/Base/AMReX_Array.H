@@ -133,13 +133,13 @@ namespace amrex {
     struct GpuArray
     {
         AMREX_GPU_HOST_DEVICE
-        inline const T& operator [] (int i) const { return arr[i]; }
+        inline const T& operator [] (int i) const noexcept { return arr[i]; }
         AMREX_GPU_HOST_DEVICE
-        inline T& operator [] (int i) { return arr[i]; }
+        inline T& operator [] (int i) noexcept { return arr[i]; }
         AMREX_GPU_HOST_DEVICE
-        inline const T* data() const { return arr; };
+        inline const T* data() const noexcept { return arr; };
         AMREX_GPU_HOST_DEVICE
-        inline std::size_t size() const { return N; };
+        inline std::size_t size() const noexcept { return N; };
 
         T arr[N];
     };
@@ -157,31 +157,31 @@ namespace amrex {
 namespace amrex
 {
     template <class T, typename = typename T::FABType>
-    std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a)
+    std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
         return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
     }
 
     template <class T>
-    std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a)
+    std::array<T*,AMREX_SPACEDIM> GetArrOfPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a) noexcept
     {
         return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
     }
     
     template <class T>
-    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a)
+    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T,AMREX_SPACEDIM>& a) noexcept
     {
         return {AMREX_D_DECL(&a[0], &a[1], &a[2])};
     }
 
     template <class T>
-    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T*,AMREX_SPACEDIM>& a)
+    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<T*,AMREX_SPACEDIM>& a) noexcept
     {
        return {AMREX_D_DECL(a[0], a[1], a[2])};
     }
 
     template <class T>
-    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a)
+    std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a) noexcept
     {
         return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
     }

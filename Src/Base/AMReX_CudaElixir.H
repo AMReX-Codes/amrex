@@ -10,21 +10,21 @@ class Elixir
 {
 public:
 
-    Elixir () : m_p(nullptr), m_arena(nullptr) {}
+    Elixir () noexcept : m_p(nullptr), m_arena(nullptr) {}
 
-    Elixir (void* p, Arena* arena) : m_p(p), m_arena(arena) {}
+    Elixir (void* p, Arena* arena) noexcept : m_p(p), m_arena(arena) {}
 
     Elixir (Elixir const&) = delete;
     void operator= (Elixir const&) = delete;
 
-    Elixir (Elixir && rhs)
+    Elixir (Elixir && rhs) noexcept
         : m_p(rhs.m_p), m_arena(rhs.m_arena)
     {
         rhs.m_p = nullptr;
         rhs.m_arena = nullptr;
     }
 
-    void operator= (Elixir && rhs)
+    void operator= (Elixir && rhs) noexcept
     {
         clear();
         m_p = rhs.m_p;
@@ -35,7 +35,7 @@ public:
 
     ~Elixir () { clear(); }
 
-    void clear ();
+    void clear () noexcept;
 
 private:
     void* m_p;
