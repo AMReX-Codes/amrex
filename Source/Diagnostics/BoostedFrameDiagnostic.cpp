@@ -138,7 +138,7 @@ namespace
       Creates an extendible dataset, suitable for storing particle data.
       Should be run only by the master rank.
     */
-    void output_resize_particle_field(const std::string& file_path, const std::string& field_path,
+    long output_resize_particle_field(const std::string& file_path, const std::string& field_path,
                                       const long num_to_add)
     {        
         BL_PROFILE("output_resize_particle_field");
@@ -169,6 +169,8 @@ namespace
         H5Sclose(filespace);
         H5Dclose(dataset);
         H5Fclose(file);
+
+        return dims[0];
     }
 
     /*
@@ -207,7 +209,7 @@ namespace
         }
         
         hid_t filespace = H5Dget_space (dataset);
-
+        
         offset[0] = index;
         dims[0] = count;
 
@@ -674,17 +676,18 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
     
     std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
 
+    long old_np = 0;
     if (ParallelDescriptor::IOProcessor())
     {
         for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
         {
             std::string field_path = species_name + "/" + field_names[k];
-            output_resize_particle_field(name, field_path, total_np);
+            old_np = output_resize_particle_field(name, field_path, total_np);
         }
     }
-    
-    ParallelDescriptor::Barrier();
 
+    ParallelDescriptor::ReduceLongMax(old_np);
+    
     // Write data here
     for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
     {
@@ -692,7 +695,7 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
         output_write_particle_field(name, field_path,
                                     pdata.GetRealData(k).data(),
                                     particle_counts[ParallelDescriptor::MyProc()],
-                                    particle_offsets[ParallelDescriptor::MyProc()]);
+                                    particle_offsets[ParallelDescriptor::MyProc()] + old_np);
     }    
 }
 
