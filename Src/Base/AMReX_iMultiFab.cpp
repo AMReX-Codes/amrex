@@ -211,26 +211,6 @@ iMultiFab::define (const BoxArray&            bxs,
 {
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
 }
-    
-const IArrayBox&
-iMultiFab::operator[] (int K) const
-{
-    BL_ASSERT(defined(K));
-
-    const IArrayBox& fab = this->FabArray<IArrayBox>::get(K);
-
-    return fab;
-}
-
-IArrayBox&
-iMultiFab::operator[] (int K)
-{
-    BL_ASSERT(defined(K));
-
-    IArrayBox& fab = this->FabArray<IArrayBox>::get(K);
-
-    return fab;
-}
 
 int
 iMultiFab::min (int comp,

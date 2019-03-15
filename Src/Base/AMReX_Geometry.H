@@ -31,30 +31,30 @@ struct GeometryData
 {
  //! Returns the cellsize for each coordinate direction.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const Real* CellSize () const { return dx; }
+    const Real* CellSize () const noexcept { return dx; }
     //
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real CellSize (int dir) const { return dx[dir]; }
+    Real CellSize (int dir) const noexcept { return dx[dir]; }
  //! Returns the lo end of the problem domain in each dimension.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const Real* ProbLo () const { return prob_domain.lo(); }
+    const Real* ProbLo () const noexcept { return prob_domain.lo(); }
     //
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real ProbLo (int dir) const { return prob_domain.lo(dir); }
+    Real ProbLo (int dir) const noexcept { return prob_domain.lo(dir); }
  //! Returns the hi end of the problem domain in each dimension.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const Real* ProbHi () const { return prob_domain.hi(); }
+    const Real* ProbHi () const noexcept { return prob_domain.hi(); }
     //
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    Real ProbHi (int dir) const { return prob_domain.hi(dir); }
+    Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
  //! Returns our rectangular domain.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    const Box& Domain () const { return domain; }
+    const Box& Domain () const noexcept { return domain; }
  //! Returns whether the domain is periodic in the given direction.
     AMREX_GPU_HOST_DEVICE AMREX_INLINE
-    int isPeriodic (const int i) const { return is_periodic[i]; }
+    int isPeriodic (const int i) const noexcept { return is_periodic[i]; }
  //! Coordinates type
-    int Coord () const { return coord; }
+    int Coord () const noexcept { return coord; }
 
 public:
     RealBox prob_domain;
@@ -70,23 +70,23 @@ class Geometry
 {
 public:
     //! The default constructor.
-    Geometry ();
+    Geometry () noexcept;
     //! Constructor taking the rectangular domain.
     explicit Geometry (const Box&     dom,
 		       const RealBox* rb     =  nullptr,
 		       int            coord  = -1,
-		       int const*     is_per =  nullptr);
+		       int const*     is_per =  nullptr) noexcept;
     Geometry (const Box& dom, const RealBox& rb, int coord,
-              Array<int,AMREX_SPACEDIM> const& is_per);
+              Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
 
     ~Geometry () = default;
     Geometry (const Geometry& rhs) = default;
     Geometry (Geometry&& rhs) noexcept = default;
     Geometry& operator= (const Geometry& rhs) = default;
-    Geometry& operator= (Geometry&& rhs) = default;
+    Geometry& operator= (Geometry&& rhs) noexcept = default;
 
     //! Returns non-static copy of geometry's stored data.
-    GeometryData data() const {
+    GeometryData data() const noexcept {
         return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
             {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
                 static_cast<int>(c_sys) };
@@ -98,41 +98,41 @@ public:
     //! Set the rectangular domain after using default constructor.
     void define (const Box& dom, const RealBox* rb = 0, int coord = -1, int const* is_per = nullptr);
     //! Returns the problem domain.
-    static const RealBox& ProbDomain () { return prob_domain; }
+    static const RealBox& ProbDomain () noexcept { return prob_domain; }
     //! Sets the problem domain.
-    static void ProbDomain (const RealBox& rb)
+    static void ProbDomain (const RealBox& rb) noexcept
     {
         prob_domain = rb;
         SetOffset(rb.lo());
     }
     //! Returns the lo end of the problem domain in each dimension.
-    static const Real* ProbLo ()  { return prob_domain.lo(); }
+    static const Real* ProbLo () noexcept { return prob_domain.lo(); }
     //! Returns the hi end of the problem domain in each dimension.
-    static const Real* ProbHi () { return prob_domain.hi(); }
+    static const Real* ProbHi () noexcept { return prob_domain.hi(); }
     //! Returns the lo end of the problem domain in specified direction.
-    static Real ProbLo (int dir) { return prob_domain.lo(dir); }
+    static Real ProbLo (int dir) noexcept { return prob_domain.lo(dir); }
     //! Returns the hi end of the problem domain in specified direction.
-    static Real ProbHi (int dir) { return prob_domain.hi(dir); }
+    static Real ProbHi (int dir) noexcept { return prob_domain.hi(dir); }
 
-    static GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () {
+    static GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () noexcept {
         return {AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))};
     }
 
-    static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () {
+    static GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () noexcept {
         return {AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))};
     }
 
     //! Returns the overall size of the domain by multiplying the ProbLength's together
-    static Real ProbSize ()
+    static Real ProbSize () noexcept
     {
         return AMREX_D_TERM(prob_domain.length(0),*prob_domain.length(1),*prob_domain.length(2));
     }
     //! Returns length of problem domain in specified dimension.
-    static Real ProbLength (int dir) { return prob_domain.length(dir); }
+    static Real ProbLength (int dir) noexcept { return prob_domain.length(dir); }
     //! Returns our rectangular domain.
-    const Box& Domain () const { return domain; }
+    const Box& Domain () const noexcept { return domain; }
     //! Sets our rectangular domain.
-    void Domain (const Box& bx) { domain = bx; }
+    void Domain (const Box& bx) noexcept { domain = bx; }
     //! Define a multifab of areas and volumes with given grow factor.
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
@@ -173,32 +173,32 @@ public:
                       int             dir,
                       int             grow) const;
     //! Is the domain periodic in the specified direction?
-    static bool isPeriodic (int dir) { return is_periodic[dir] != 0; }
+    static bool isPeriodic (int dir) noexcept { return is_periodic[dir] != 0; }
     //! Is domain periodic in any direction?
-    static bool isAnyPeriodic ()
+    static bool isAnyPeriodic () noexcept
     {
         return AMREX_D_TERM(isPeriodic(0),||isPeriodic(1),||isPeriodic(2));
     }
     //! Is domain periodic in all directions?
-    static bool isAllPeriodic ()
+    static bool isAllPeriodic () noexcept
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
-    static GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () {
+    static GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () noexcept {
         return {AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                              static_cast<int>(is_periodic[1]),
                              static_cast<int>(is_periodic[2]))};
     }
     //! What's period in specified direction?
-    int period (int dir) const { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
+    int period (int dir) const noexcept { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
-    Periodicity periodicity () const {
+    Periodicity periodicity () const noexcept {
 	return Periodicity(IntVect(AMREX_D_DECL(domain.length(0) * is_periodic[0],
 					  domain.length(1) * is_periodic[1],
 					  domain.length(2) * is_periodic[2])));
     }
 
-    static Periodicity periodicity (const Box& b) {
+    static Periodicity periodicity (const Box& b) noexcept {
         AMREX_ASSERT(b.cellCentered());
 	return Periodicity(IntVect(AMREX_D_DECL(b.length(0) * is_periodic[0],
                                                 b.length(1) * is_periodic[1],
@@ -215,17 +215,17 @@ public:
     */
     void periodicShift (const Box&      target,
                         const Box&      src,
-                        Vector<IntVect>& out) const;
+                        Vector<IntVect>& out) const noexcept;
 
     //! Return domain box with non-periodic directions grown by ngrow.
-    Box growNonPeriodicDomain (int ngrow) const;
+    Box growNonPeriodicDomain (int ngrow) const noexcept;
     //! Return domain box with periodic directions grown by ngrow.
-    Box growPeriodicDomain (int ngrow) const;
+    Box growPeriodicDomain (int ngrow) const noexcept;
 
     //! Set periodicity flags and return the old flags.
     //! Note that, unlike Periodicity class, the flags are just boolean.
     //!
-    static Array<bool,AMREX_SPACEDIM> setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) {
+    static Array<bool,AMREX_SPACEDIM> setPeriodicity (Array<bool,AMREX_SPACEDIM> const& period) noexcept {
         Array<bool,AMREX_SPACEDIM> r{AMREX_D_DECL(is_periodic[0],
                                                   is_periodic[1],
                                                   is_periodic[2])};

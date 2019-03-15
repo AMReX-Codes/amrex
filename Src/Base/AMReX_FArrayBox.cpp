@@ -151,7 +151,7 @@ FABio::Format FArrayBox::format;
 
 FABio* FArrayBox::fabio = 0;
 
-FArrayBox::FArrayBox () {}
+FArrayBox::FArrayBox () noexcept {}
 
 FArrayBox::FArrayBox (const Box& b,
                       int        n,
@@ -177,21 +177,21 @@ FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type)
 }
 #endif
 
-FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
+FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p) noexcept
     :
     BaseFab<Real>(b,ncomp,p)
 {
 }
 
 FArrayBox&
-FArrayBox::operator= (Real v)
+FArrayBox::operator= (Real v) noexcept
 {
     BaseFab<Real>::operator=(v);
     return *this;
 }
 
 void
-FArrayBox::initVal ()
+FArrayBox::initVal () noexcept
 {
     if (init_snan) {
 #ifdef BL_USE_DOUBLE
