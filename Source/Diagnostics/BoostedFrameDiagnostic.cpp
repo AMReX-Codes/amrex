@@ -133,6 +133,124 @@ namespace
         H5Fclose(file);
 
     }
+
+    /*
+      Creates an extendible dataset, suitable for storing particle data.
+      Should be run only by the master rank.
+    */
+    void output_resize_particle_field(const std::string& file_path, const std::string& field_path,
+                                      const long num_to_add)
+    {        
+        BL_PROFILE("output_resize_particle_field");
+
+        // Open the output.
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+
+        int rank;
+        hsize_t dims[1];
+
+        hid_t dataset = H5Dopen2 (file, field_path.c_str(), H5P_DEFAULT);
+        hid_t filespace = H5Dget_space (dataset);
+        rank = H5Sget_simple_extent_ndims (filespace);
+        herr_t status = H5Sget_simple_extent_dims (filespace, dims, NULL);
+
+        // set new size
+        hsize_t new_size[1];
+        new_size[0] = dims[0] + num_to_add;
+        status = H5Dset_extent (dataset, new_size);
+        
+        if (status < 0)
+        {
+            amrex::Abort("Error: set extent filed on dataset "
+                         + std::to_string(dataset) + "\n");
+        }
+
+        // Close resources.
+        H5Dclose(dataset);
+        H5Sclose(filespace);
+        H5Fclose(file);
+    }
+
+    /*
+      Creates an extendible dataset, suitable for storing particle data.
+      Should be run only by the master rank.
+    */
+    void output_write_particle_field(const std::string& file_path, const std::string& field_path,
+                                     const Real* data_ptr, const long count, const long index)
+    {        
+        BL_PROFILE("output_resize_particle_field");
+
+        MPI_Comm comm = MPI_COMM_WORLD;
+        MPI_Info info = MPI_INFO_NULL;
+        int mpi_rank;
+        MPI_Comm_rank(comm, &mpi_rank);
+
+        // Create the file access prop list.
+        hid_t pa_plist = H5Pcreate(H5P_FILE_ACCESS);
+        H5Pset_fapl_mpio(pa_plist, comm, info);
+        
+        // Open the output.
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, pa_plist);
+        
+        int RANK = 1;
+        hsize_t offset[1];
+        hsize_t dims[1];
+        herr_t status;
+        
+        hid_t dataset = H5Dopen2 (file, field_path.c_str(), H5P_DEFAULT);
+
+        // Make sure the dataset is there.
+        if (dataset < 0)
+        {
+            amrex::Abort("Error on rank " + std::to_string(mpi_rank) +
+                         ". Count not find dataset " + field_path + "\n");
+        }
+        
+        hid_t filespace = H5Dget_space (dataset);
+
+        offset[0] = index;
+        dims[0] = count;
+
+        // Create collective io prop list.
+        hid_t collective_plist = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(collective_plist, H5FD_MPIO_INDEPENDENT);
+
+        if (count > 0) {
+        
+            /* Define memory space */
+            hid_t memspace = H5Screate_simple (RANK, dims, NULL);
+            
+            status = H5Sselect_hyperslab (filespace, H5S_SELECT_SET, offset, NULL,
+                                          dims, NULL);
+            
+            if (status < 0)
+            {
+                amrex::Abort("Error on rank " + std::to_string(ParallelDescriptor::MyProc()) +
+                             " could not select hyperslab.\n");
+            }
+            
+            /* Write the data to the extended portion of dataset  */
+            status = H5Dwrite(dataset, H5T_NATIVE_DOUBLE, memspace,
+                              filespace, collective_plist, data_ptr);
+        
+            if (status < 0)
+            {
+                amrex::Abort("Error on rank " + std::to_string(ParallelDescriptor::MyProc()) +
+                             " could not write hyperslab.\n");
+            }
+
+            status = H5Sclose (memspace);
+        }
+        
+        ParallelDescriptor::Barrier();
+        
+        // Close resources.
+        H5Pclose(collective_plist);
+        H5Sclose(filespace);
+        H5Dclose(dataset);
+        H5Fclose(file);
+        H5Pclose(pa_plist);
+    }
     
     /*
       Creates an extendible dataset, suitable for storing particle data.
@@ -156,7 +274,7 @@ namespace
         hid_t prop = H5Pcreate (H5P_DATASET_CREATE);
         herr_t status = H5Pset_chunk (prop, RANK, chunk_dims);
 
-        hid_t dataset = H5Dcreate2 (file, field_path.c_str(), H5T_NATIVE_INT, dataspace,
+        hid_t dataset = H5Dcreate2 (file, field_path.c_str(), H5T_NATIVE_DOUBLE, dataspace,
                                     H5P_DEFAULT, prop, H5P_DEFAULT);
         
         if (dataset < 0)
@@ -385,7 +503,9 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
             if (WarpX::do_boosted_frame_particles) {
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
 #ifdef WARPX_USE_HDF5
-                    writeParticleDataHDF5(particles_buffer_[i][j]);
+                    writeParticleDataHDF5(particles_buffer_[i][j],
+                                          snapshots_[i].file_name,
+                                          species_names[j]);
 #else
                     std::stringstream part_ss;
                     part_ss << snapshots_[i].file_name + "/" + species_names[j] + "/";
@@ -514,7 +634,9 @@ writeLabFrameData(const MultiFab* cell_centered_data,
             if (WarpX::do_boosted_frame_particles) {
                 for (int j = 0; j < mypc.nSpecies(); ++j) {
 #ifdef WARPX_USE_HDF5
-                    writeParticleDataHDF5(particles_buffer_[i][j]);
+                    writeParticleDataHDF5(particles_buffer_[i][j],
+                                          snapshots_[i].file_name,
+                                          species_names[j]);
 #else
                     std::stringstream part_ss;
                     part_ss << snapshots_[i].file_name + "/" + species_names[j] + "/";
@@ -532,8 +654,46 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
 void
 BoostedFrameDiagnostic::
-writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata)
+writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata,
+                      const std::string& name, const std::string& species_name)
 {
+    auto np = pdata.GetRealData(DiagIdx::w).size();
+    
+    Vector<long> particle_counts(ParallelDescriptor::NProcs(), 0);
+    Vector<long> particle_offsets(ParallelDescriptor::NProcs(), 0);
+    
+    ParallelAllGather::AllGather(np, particle_counts.data(), ParallelContext::CommunicatorAll());
+    
+    long total_np = 0;
+    for (int i = 0; i < ParallelDescriptor::NProcs(); ++i) {
+        particle_offsets[i] = total_np;
+        total_np += particle_counts[i];
+    }
+
+    if (total_np == 0) return;
+    
+    std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
+
+    if (ParallelDescriptor::IOProcessor())
+    {
+        for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
+        {
+            std::string field_path = species_name + "/" + field_names[k];
+            output_resize_particle_field(name, field_path, total_np);
+        }
+    }
+    
+    ParallelDescriptor::Barrier();
+
+    // Write data here
+    for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
+    {
+        std::string field_path = species_name + "/" + field_names[k];
+        output_write_particle_field(name, field_path,
+                                    pdata.GetRealData(k).data(),
+                                    particle_counts[ParallelDescriptor::MyProc()],
+                                    particle_offsets[ParallelDescriptor::MyProc()]);
+    }    
 }
 
 void
@@ -551,9 +711,6 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
 
     if (np == 0) return;
 
-#ifdef WARPX_USE_HDF5
-
-#else
     field_name = name + Concatenate("w_", i_lab, 5) + "_" + std::to_string(MyProc);
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
     writeRealData(pdata.GetRealData(DiagIdx::w).data(), np, ofs);
@@ -588,7 +745,6 @@ writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
     ofs.open(field_name.c_str(), std::ios::out|std::ios::binary);
     writeRealData(pdata.GetRealData(DiagIdx::uz).data(), np, ofs);
     ofs.close();
-#endif
 }
 
 void

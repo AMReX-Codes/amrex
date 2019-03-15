@@ -75,7 +75,7 @@ class BoostedFrameDiagnostic {
     int boost_direction_;
 
     amrex::Vector<std::unique_ptr<amrex::MultiFab> > data_buffer_;
-    amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_; 
+    amrex::Vector<amrex::Vector<WarpXParticleContainer::DiagnosticParticleData> > particles_buffer_;
     int num_buffer_ = 256;
     int max_box_size_ = 256;
     amrex::Vector<int> buff_counter_;
@@ -85,7 +85,8 @@ class BoostedFrameDiagnostic {
     void writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                            const std::string& name, const int i_lab);
 
-    void writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata);
+    void writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata,
+                               const std::string& name, const std::string& species_name);
     
 public:
     
