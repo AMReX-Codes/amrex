@@ -105,6 +105,7 @@ Advanced building instructions
    :maxdepth: 1
 
    spectral
+   openpmd
    cori
    summit
    spack

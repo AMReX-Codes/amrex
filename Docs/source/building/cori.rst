@@ -79,5 +79,6 @@ Finally, compile WarpX:
 ::
 
     cd ../WarpX
-    export OPENPMD_HOME=../openPMD-install/
+    export OPENPMD_LIB_PATH=../openPMD-install/lib64
+    export OPENPMD_INCLUDE_PATH=../openPMD-install/include
     make -j 16 COMP=gnu USE_OPENPMD=TRUE
