@@ -416,16 +416,16 @@ WarpX::GetCellCenteredData() {
 
         int dcomp = 0;
         // first the electric field
-        AverageAndPackVectorField( cc[lev], Efield_aux[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dcomp, ng );
         dcomp += 3;
         // then the magnetic field
-        AverageAndPackVectorField( cc[lev], Efield_aux[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], Efield_aux[lev], dcomp, ng );
         dcomp += 3;
         // then the current density
-        AverageAndPackVectorField( cc[lev], current_fp[lev], dcomp, ng );
+        AverageAndPackVectorField( *cc[lev], current_fp[lev], dcomp, ng );
         dcomp += 3;
         const std::unique_ptr<MultiFab>& charge_density = mypc->GetChargeDensity(lev);
-        AverageAndPackScalarField( cc[lev], *charge_density, dcomp, ng );
+        AverageAndPackScalarField( *cc[lev], *charge_density, dcomp, ng );
 
         cc[lev]->FillBoundary(geom[lev].periodicity());
     }
