@@ -124,6 +124,54 @@ namespace
         H5Fclose(file);
     }
 
+    void output_create_species_group(const std::string& file_path, const std::string& species_name)
+    {
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        hid_t group = H5Gcreate(file, species_name.c_str(),
+                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Gclose(group);
+        H5Fclose(file);
+
+    }
+    
+    /*
+      Creates an extendible dataset, suitable for storing particle data.
+      Should be run only by the master rank.
+    */
+    void output_create_particle_field(const std::string& file_path, const std::string& field_path)
+    {        
+        BL_PROFILE("output_create_particle_field");
+
+        // Open the output.
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+
+        constexpr int RANK = 1;
+        hsize_t dims[1] = {0};
+        hsize_t maxdims[1] = {H5S_UNLIMITED};
+        hsize_t      chunk_dims[2] = {4};
+        
+        hid_t dataspace = H5Screate_simple (RANK, dims, maxdims);
+
+        // Enable chunking
+        hid_t prop = H5Pcreate (H5P_DATASET_CREATE);
+        herr_t status = H5Pset_chunk (prop, RANK, chunk_dims);
+
+        hid_t dataset = H5Dcreate2 (file, field_path.c_str(), H5T_NATIVE_INT, dataspace,
+                                    H5P_DEFAULT, prop, H5P_DEFAULT);
+        
+        if (dataset < 0)
+        {
+            amrex::Abort("Error: could not create dataset. H5 returned "
+                         + std::to_string(dataset) + "\n");
+        }
+
+        // Close resources.
+        H5Dclose(dataset);
+        H5Pclose(prop);
+        H5Sclose(dataspace);
+        H5Fclose(file);
+    }
+    
     /*
       Write the only component in the multifab to the dataset given by field_name.
       Uses hdf5-parallel.
@@ -602,9 +650,15 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
         {
             auto & mypc = WarpX::GetInstance().GetPartContainer();
             const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+            std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
             for (int j = 0; j < mypc.nSpecies(); ++j)
             {
-                
+                output_create_species_group(file_name, species_names[j]);
+                for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
+                {
+                    std::string field_path = species_names[j] + "/" + field_names[k];
+                    output_create_particle_field(file_name, field_path);
+                }
             }
         }
     }    
