@@ -102,7 +102,7 @@ int main (int argc, char* argv[])
     }
 
     {
-        BL_PROFILE("cudaGraph");
+        BL_PROFILE("cudaGraph-iter");
         MultiFab x(ba, dm, Ncomp, Nghost);
 
         cudaGraph_t     graph[x.local_size()];
@@ -136,10 +136,66 @@ int main (int argc, char* argv[])
 
         amrex::Gpu::Device::synchronize();
 
-        amrex::Print() << "Sum = " << x.sum();
+        amrex::Print() << "Sum = " << x.sum() << std::endl;
     }
 
-    amrex::Print() << std::endl << "Test Completed." << std::endl << std::endl;
+    {
+        BL_PROFILE("cudaGraph-stream");
+        MultiFab x(ba, dm, Ncomp, Nghost);
+
+        cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
+        cudaGraphExec_t graphExec[amrex::Gpu::Device::numCudaStreams()];
+
+        for (MFIter mfi(x); mfi.isValid(); ++mfi)
+        {
+            if (mfi.LocalIndex() == 0)
+            {
+                for (int i=0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
+                {
+                    amrex::Gpu::Device::setStreamIndex(i);
+                    AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
+                }
+                amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
+            } 
+
+            const Box bx = mfi.validbox();
+            Array4<Real> a = x.array(mfi);
+
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                a(i,j,k) = 3.0;
+            });
+
+            if (mfi.LocalIndex() == (x.local_size() - 1) )
+            { 
+                for (int i=0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
+                {
+                    amrex::Gpu::Device::setStreamIndex(i); 
+                    AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[i])));
+                }
+            }
+        }
+
+        for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
+        {
+            AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec[i], graph[i], NULL, NULL, 0));
+        }
+
+        for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
+        {
+            amrex::Gpu::Device::setStreamIndex(i); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[i], amrex::Cuda::Device::cudaStream())); 
+        }
+
+        amrex::Gpu::Device::resetStreamIndex();
+
+        amrex::Gpu::Device::synchronize();
+
+        amrex::Print() << "Sum = " << x.sum() << std::endl;
+    }
+
+    amrex::Print() << "Test Completed." << std::endl;
     }
 
     amrex::Finalize();
