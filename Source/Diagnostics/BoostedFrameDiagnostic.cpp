@@ -161,7 +161,7 @@ namespace
 
         // Create collective io prop list.
         hid_t collective_plist = H5Pcreate(H5P_DATASET_XFER);
-        H5Pset_dxpl_mpio(collective_plist, H5FD_MPIO_COLLECTIVE);
+        H5Pset_dxpl_mpio(collective_plist, H5FD_MPIO_INDEPENDENT);
 
         // Iterate over Fabs, select matching hyperslab and write.
         hid_t status;
@@ -226,6 +226,8 @@ namespace
             write_count++;
         }
 
+        ParallelDescriptor::Barrier();
+        
         // Close HDF5 resources.
         H5Pclose(collective_plist);
         H5Sclose(file_dataspace);
