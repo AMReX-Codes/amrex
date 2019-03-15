@@ -1,0 +1,39 @@
+=32714== NVPROF is profiling process 32714, command: ./main3d.gnu.CUDA.ex
+==32714== Profiling application: ./main3d.gnu.CUDA.ex
+==32714== Profiling result:
+            Type  Time(%)      Time     Calls       Avg       Min       Max  Name
+ GPU activities:   99.37%  142.155s        10  14.2155s  14.2093s  14.2226s  _ZN5amrex13launch_globalIZ12RandomNumGenvEUlvE0_EEvT_
+                    0.63%  903.76ms         1  903.76ms  903.76ms  903.76ms  _ZN5amrex13launch_globalIZ12RandomNumGenvEUlvE_EEvT_
+                    0.00%  1.8785ms        30  62.618us  61.892us  62.916us  [CUDA memcpy DtoH]
+                    0.00%  278.58us         1  278.58us  278.58us  278.58us  void thrust::cuda_cub::core::_kernel_agent<thrust::cuda_cub::__parallel_for::ParallelForAgent<thrust::cuda_cub::__uninitialized_fill::functor<thrust::device_ptr<curandStateXORWOW>, curandStateXORWOW>, unsigned long>, thrust::cuda_cub::__uninitialized_fill::functor<thrust::device_ptr<curandStateXORWOW>, curandStateXORWOW>, unsigned long>(thrust::device_ptr<curandStateXORWOW>, curandStateXORWOW)
+                    0.00%  24.642us         3  8.2140us  7.7120us  8.8650us  void thrust::cuda_cub::core::_kernel_agent<thrust::cuda_cub::__parallel_for::ParallelForAgent<thrust::cuda_cub::__uninitialized_fill::functor<thrust::device_ptr<double>, double>, unsigned long>, thrust::cuda_cub::__uninitialized_fill::functor<thrust::device_ptr<double>, double>, unsigned long>(thrust::device_ptr<double>, double)
+      API calls:   99.88%  143.063s        30  4.76878s  131.83us  15.1191s  cudaMemcpy
+                    0.10%  138.88ms         1  138.88ms  138.88ms  138.88ms  cudaDeviceSetCacheConfig
+                    0.01%  20.460ms         3  6.8201ms  27.341us  20.403ms  cudaMallocManaged
+                    0.00%  1.8058ms         1  1.8058ms  1.8058ms  1.8058ms  cudaHostAlloc
+                    0.00%  1.2018ms         1  1.2018ms  1.2018ms  1.2018ms  cudaFreeHost
+                    0.00%  1.1620ms        15  77.468us  6.4390us  809.91us  cudaLaunchKernel
+                    0.00%  932.71us        97  9.6150us     478ns  406.11us  cuDeviceGetAttribute
+                    0.00%  877.95us         8  109.74us  9.2260us  237.13us  cudaFree
+                    0.00%  858.41us         1  858.41us  858.41us  858.41us  cudaGetDeviceProperties
+                    0.00%  683.47us         5  136.69us  8.9800us  202.63us  cudaMalloc
+                    0.00%  320.90us         4  80.224us  12.316us  282.93us  cudaDeviceSynchronize
+                    0.00%  308.67us         1  308.67us  308.67us  308.67us  cuDeviceTotalMem
+                    0.00%  226.96us        16  14.184us  1.0010us  199.68us  cudaStreamCreate
+                    0.00%  133.02us         1  133.02us  133.02us  133.02us  cuDeviceGetName
+                    0.00%  15.407us         1  15.407us  15.407us  15.407us  cudaSetDevice
+                    0.00%  12.681us         1  12.681us  12.681us  12.681us  cudaMemAdvise
+                    0.00%  12.097us         4  3.0240us  2.0690us  5.0370us  cudaFuncGetAttributes
+                    0.00%  6.1290us         3  2.0430us     571ns  3.6260us  cuDeviceGetCount
+                    0.00%  4.0400us         1  4.0400us  4.0400us  4.0400us  cudaSetDeviceFlags
+                    0.00%  3.4780us        15     231ns     110ns     350ns  cudaGetLastError
+                    0.00%  2.8660us         2  1.4330us     810ns  2.0560us  cuDeviceGet
+                    0.00%  2.6510us         1  2.6510us  2.6510us  2.6510us  cudaProfilerStart
+                    0.00%  2.6270us         1  2.6270us  2.6270us  2.6270us  cuDeviceGetPCIBusId
+                    0.00%  2.5050us         1  2.5050us  2.5050us  2.5050us  cudaGetDeviceCount
+                    0.00%  2.2400us         4     560ns     278ns  1.2040us  cudaDeviceGetAttribute
+                    0.00%  1.9190us         4     479ns     324ns     868ns  cudaGetDevice
+                    0.00%  1.0170us         8     127ns      84ns     221ns  cudaPeekAtLastError
+                    0.00%     932ns         1     932ns     932ns     932ns  cuDeviceGetUuid
+                    0.00%     898ns         1     898ns     898ns     898ns  cudaDeviceSetSharedMemConfig
+
