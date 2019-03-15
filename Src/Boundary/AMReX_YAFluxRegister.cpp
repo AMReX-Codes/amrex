@@ -238,7 +238,7 @@ YAFluxRegister::reset ()
 void
 YAFluxRegister::CrseAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                         const Real* dx, Real dt)
+                         const Real* dx, Real dt) noexcept
 {
     BL_ASSERT(m_crse_data.nComp() == flux[0]->nComp());
 
@@ -277,7 +277,7 @@ YAFluxRegister::CrseAdd (const MFIter& mfi,
 void
 YAFluxRegister::FineAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& a_flux,
-                         const Real* dx, Real dt)
+                         const Real* dx, Real dt) noexcept
 {
     BL_ASSERT(m_cfpatch.nComp() == a_flux[0]->nComp());
 
