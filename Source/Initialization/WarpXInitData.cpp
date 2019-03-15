@@ -6,6 +6,7 @@
 
 #include <WarpX.H>
 #include <WarpX_f.H>
+#include <BilinearFilter.H>
 
 #ifdef BL_USE_SENSEI_INSITU
 #include <AMReX_AmrMeshInSituBridge.H>
@@ -36,6 +37,11 @@ WarpX::InitData ()
 
     if (WarpX::use_fdtd_nci_corr) {
         WarpX::InitNCICorrector();
+    }
+
+    Print()<<"HERE I AM\n";
+    if (WarpX::use_filter) {
+        WarpX::InitFilter();
     }
 
     BuildBufferMasks();
@@ -174,6 +180,14 @@ WarpX::InitNCICorrector ()
                                     mypc->nstencilz_fdtd_nci_corr, cdtodz,
                                     WarpX::l_lower_order_in_v);
         }
+    }
+}
+
+void
+WarpX::InitFilter (){
+    if (WarpX::use_filter){
+        WarpX::bilinear_filter.npass_each_dir = WarpX::filter_npass_each_dir;
+        WarpX::bilinear_filter.ComputeStencils();
     }
 }
 
