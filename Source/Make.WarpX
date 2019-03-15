@@ -68,12 +68,11 @@ endif
 ifeq ($(USE_OPENPMD), TRUE)
    OPENPMD_HOME ?= NOT_SET
    ifneq ($(OPENPMD_HOME),NOT_SET)
-     VPATH_LOCATIONS += $(OPENPMD_HOME)/include  # Is this required?
      INCLUDE_LOCATIONS += $(OPENPMD_HOME)/include
      LIBRARY_LOCATIONS += $(OPENPMD_HOME)/lib
    endif
    DEFINES += -DWARPX_USE_OPENPMD -DopenPMD_HAVE_MPI=1
-   LIBRARIES += -lopenPMD
+   LIBRARIES += -lopenPMD -lhdf5
 endif
    
 
