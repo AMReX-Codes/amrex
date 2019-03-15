@@ -35,10 +35,10 @@ public:
     void setHomogValues (const BCRec&   bc,
                          const IntVect& ratio);
 
-    int phys_bc_lo (int dir) const {return m_phys_bc.lo(dir);}
-    int phys_bc_hi (int dir) const {return m_phys_bc.hi(dir);}
+    int phys_bc_lo (int dir) const noexcept {return m_phys_bc.lo(dir);}
+    int phys_bc_hi (int dir) const noexcept {return m_phys_bc.hi(dir);}
 
-    const BCRec& PhysBC () const { return m_phys_bc; }
+    const BCRec& PhysBC () const noexcept { return m_phys_bc; }
 
 private:
 
