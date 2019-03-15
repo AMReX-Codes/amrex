@@ -25,6 +25,7 @@ public:
 #endif
     static void setStreamIndex (const int idx);
     static void resetStreamIndex () { setStreamIndex(-1); }
+    static int numCudaStreams () { return max_cuda_streams; }
 
     static int deviceId ();
 
