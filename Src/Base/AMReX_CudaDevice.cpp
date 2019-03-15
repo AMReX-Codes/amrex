@@ -270,13 +270,13 @@ Device::initialize_cuda ()
 }
 
 int
-Device::deviceId ()
+Device::deviceId () noexcept
 {
     return device_id;
 }
 
 void
-Device::setStreamIndex (const int idx)
+Device::setStreamIndex (const int idx) noexcept
 {
 #ifdef AMREX_USE_CUDA
     if (idx < 0) {
@@ -360,7 +360,7 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz) {
 #if defined(AMREX_USE_CUDA)
 
 void
-Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
+Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept
 {
     numThreads = AMREX_CUDA_MAX_THREADS;
     numBlocks = std::max((N + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS, 1L); // in case N = 0
@@ -368,14 +368,14 @@ Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 
 void
 Device::c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
-                                    dim3& numBlocks, dim3& numThreads)
+                                    dim3& numBlocks, dim3& numThreads) noexcept
 {
     c_threads_and_blocks(lo, hi, numBlocks, numThreads);
     numBlocks.x *= static_cast<unsigned>(comps);
 }
 
 void
-Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads)
+Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) noexcept
 {
     // Our threading strategy will be to allocate thread blocks
     //preferring the x direction first to guarantee coalesced accesses.
@@ -433,7 +433,7 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 }
 
 void
-Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads)
+Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexcept
 {
     int num_SMs = device_prop.multiProcessorCount;
 

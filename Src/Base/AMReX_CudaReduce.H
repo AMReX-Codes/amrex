@@ -14,7 +14,7 @@ namespace Cuda {
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceSum_lt7 (volatile T* data, int tid)
+void warpReduceSum_lt7 (volatile T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ < 700
     if (blockSize >= 64) data[tid] += data[tid + 32];
@@ -28,7 +28,7 @@ void warpReduceSum_lt7 (volatile T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceSum_ge7 (T* data, int tid)
+void warpReduceSum_ge7 (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     if (blockSize >= 64) { if (tid < 32) { data[tid] += data[tid + 32]; } __syncwarp(); }
@@ -42,7 +42,7 @@ void warpReduceSum_ge7 (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceSum (T* data, int tid)
+void warpReduceSum (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     warpReduceSum_ge7<blockSize>(data, tid);
@@ -53,7 +53,7 @@ void warpReduceSum (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void blockReduceSum (T* data, T& sum)
+void blockReduceSum (T* data, T& sum) noexcept
 {
     int tid = threadIdx.x;
     if (blockSize >= 1024) {
@@ -75,7 +75,7 @@ void blockReduceSum (T* data, T& sum)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceMin_lt7 (volatile T* data, int tid)
+void warpReduceMin_lt7 (volatile T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ < 700
     if (blockSize >= 64) data[tid] = amrex::min(data[tid],data[tid + 32]);
@@ -89,7 +89,7 @@ void warpReduceMin_lt7 (volatile T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceMin_ge7 (T* data, int tid)
+void warpReduceMin_ge7 (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     if (blockSize >= 64) { if (tid < 32) { data[tid] = amrex::min(data[tid],data[tid + 32]); } __syncwarp(); }
@@ -103,7 +103,7 @@ void warpReduceMin_ge7 (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceMin (T* data, int tid)
+void warpReduceMin (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     warpReduceMin_ge7<blockSize>(data, tid);
@@ -114,7 +114,7 @@ void warpReduceMin (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void blockReduceMin (T* data, T& dmin)
+void blockReduceMin (T* data, T& dmin) noexcept
 {
     int tid = threadIdx.x;
     if (blockSize >= 1024) {
@@ -136,7 +136,7 @@ void blockReduceMin (T* data, T& dmin)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceMax_lt7 (volatile T* data, int tid)
+void warpReduceMax_lt7 (volatile T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ < 700
     if (blockSize >= 64) data[tid] = amrex::max(data[tid],data[tid + 32]);
@@ -150,7 +150,7 @@ void warpReduceMax_lt7 (volatile T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceMax_ge7 (T* data, int tid)
+void warpReduceMax_ge7 (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     if (blockSize >= 64) { if (tid < 32) { data[tid] = amrex::max(data[tid],data[tid + 32]); } __syncwarp(); }
@@ -164,7 +164,7 @@ void warpReduceMax_ge7 (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceMax (T* data, int tid)
+void warpReduceMax (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     warpReduceMax_ge7<blockSize>(data, tid);
@@ -175,7 +175,7 @@ void warpReduceMax (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void blockReduceMax (T* data, T& dmax)
+void blockReduceMax (T* data, T& dmax) noexcept
 {
     int tid = threadIdx.x;
     if (blockSize >= 1024) {
@@ -197,7 +197,7 @@ void blockReduceMax (T* data, T& dmax)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceAnd_lt7 (volatile T* data, int tid)
+void warpReduceAnd_lt7 (volatile T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ < 700
     if (blockSize >= 64) data[tid] = data[tid] && data[tid + 32];
@@ -211,7 +211,7 @@ void warpReduceAnd_lt7 (volatile T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceAnd_ge7 (T* data, int tid)
+void warpReduceAnd_ge7 (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     if (blockSize >= 64) { if (tid < 32) { data[tid] = data[tid] && data[tid + 32]; } __syncwarp(); }
@@ -225,7 +225,7 @@ void warpReduceAnd_ge7 (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceAnd (T* data, int tid)
+void warpReduceAnd (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     warpReduceAnd_ge7<blockSize>(data, tid);
@@ -236,7 +236,7 @@ void warpReduceAnd (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void blockReduceAnd (T* data, T& r)
+void blockReduceAnd (T* data, T& r) noexcept
 {
     int tid = threadIdx.x;
     if (blockSize >= 1024) {
@@ -258,7 +258,7 @@ void blockReduceAnd (T* data, T& r)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceOr_lt7 (volatile T* data, int tid)
+void warpReduceOr_lt7 (volatile T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ < 700
     if (blockSize >= 64) data[tid] = data[tid] || data[tid + 32];
@@ -272,7 +272,7 @@ void warpReduceOr_lt7 (volatile T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceOr_ge7 (T* data, int tid)
+void warpReduceOr_ge7 (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     if (blockSize >= 64) { if (tid < 32) { data[tid] = data[tid] || data[tid + 32]; } __syncwarp(); }
@@ -286,7 +286,7 @@ void warpReduceOr_ge7 (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void warpReduceOr (T* data, int tid)
+void warpReduceOr (T* data, int tid) noexcept
 {
 #if __CUDA_ARCH__ >= 700
     warpReduceOr_ge7<blockSize>(data, tid);
@@ -297,7 +297,7 @@ void warpReduceOr (T* data, int tid)
 
 template <unsigned int blockSize, typename T>
 AMREX_GPU_DEVICE AMREX_INLINE
-void blockReduceOr (T* data, T& r)
+void blockReduceOr (T* data, T& r) noexcept
 {
     int tid = threadIdx.x;
     if (blockSize >= 1024) {

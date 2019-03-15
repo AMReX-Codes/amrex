@@ -766,7 +766,7 @@ namespace Cuda {
 
     AMREX_GPU_HOST_DEVICE
     inline
-    Box getThreadBox (const Box& bx, long offset)
+    Box getThreadBox (const Box& bx, long offset) noexcept
     {
 #if defined(AMREX_USE_CUDA) && defined(__CUDA_ARCH__)
         const auto len = bx.length3d();
@@ -787,10 +787,10 @@ namespace Cuda {
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__)
     struct ExecutionConfig {
-        ExecutionConfig () {
+        ExecutionConfig () noexcept {
             Cuda::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
-        ExecutionConfig (const Box& box) {
+        ExecutionConfig (const Box& box) noexcept {
             // If we change this, we must make sure it doesn't break say getGridSize, which
             // assumes the decomposition is 1D.  FabArrayUtility Reduce* as well.
             Cuda::Device::n_threads_and_blocks( ((box.numPts()+AMREX_CUDA_NCELLS_PER_THREAD-1)/AMREX_CUDA_NCELLS_PER_THREAD), numBlocks, numThreads );
@@ -801,14 +801,15 @@ namespace Cuda {
             Cuda::Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
 #endif
         }
-        ExecutionConfig (const Box& box, int comps) {
+        ExecutionConfig (const Box& box, int comps) noexcept {
             const Box& b = amrex::surroundingNodes(box);
             Cuda::Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
-        ExecutionConfig (long N) {
+        ExecutionConfig (long N) noexcept {
             Cuda::Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
-        ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm=0) : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
+        ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm=0) noexcept
+            : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
         
         dim3 numBlocks;
         dim3 numThreads;

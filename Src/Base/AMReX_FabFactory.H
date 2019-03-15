@@ -24,12 +24,12 @@ struct FabInfo
     bool alloc = true;
     bool shared = false;
 
-    FabInfo& SetAlloc (bool a) {
+    FabInfo& SetAlloc (bool a) noexcept {
         alloc = a;
         return *this;
     }
 
-    FabInfo& SetShared (bool s) {
+    FabInfo& SetShared (bool s) noexcept {
         shared = s;
         return *this;
     }

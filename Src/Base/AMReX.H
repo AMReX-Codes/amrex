@@ -123,8 +123,8 @@ namespace amrex
     std::ostream& OutStream ();
     std::ostream& ErrorStream ();
 
-    int Verbose ();
-    void SetVerbose (int v);
+    int Verbose () noexcept;
+    void SetVerbose (int v) noexcept;
 
     // ! Get the entire command line including the executable
     std::string get_command ();

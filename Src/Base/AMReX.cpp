@@ -92,9 +92,9 @@ std::string amrex::Version ()
 #endif
 }
 
-int amrex::Verbose () { return amrex::system::verbose; }
+int amrex::Verbose () noexcept { return amrex::system::verbose; }
 
-void amrex::SetVerbose (int v) { amrex::system::verbose = v; }
+void amrex::SetVerbose (int v) noexcept { amrex::system::verbose = v; }
 
 void amrex::SetErrorHandler (amrex::ErrorHandler f) {
     amrex::system::error_handler = f;

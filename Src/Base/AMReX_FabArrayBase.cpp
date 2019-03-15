@@ -197,7 +197,7 @@ FabArrayBase::clear ()
 }
 
 Box
-FabArrayBase::fabbox (int K) const
+FabArrayBase::fabbox (int K) const noexcept
 {
     return amrex::grow(boxarray[K], n_grow);
 }

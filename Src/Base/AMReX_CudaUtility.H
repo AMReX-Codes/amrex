@@ -17,7 +17,7 @@ namespace Cuda {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T LDG (Array4<T> const& a, int i, int j, int k) {
+    T LDG (Array4<T> const& a, int i, int j, int k) noexcept {
 #ifdef __CUDA_ARCH__
         return __ldg(a.ptr(i,j,k,n));
 #else
@@ -27,7 +27,7 @@ namespace Cuda {
 
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T LDG (Array4<T> const& a, int i, int j, int k, int n) {
+    T LDG (Array4<T> const& a, int i, int j, int k, int n) noexcept {
 #ifdef __CUDA_ARCH__
         return __ldg(a.ptr(i,j,k,n));
 #else
@@ -35,7 +35,7 @@ namespace Cuda {
 #endif
     }
 
-    inline bool isManaged (void const* p) {
+    inline bool isManaged (void const* p) noexcept {
 #ifdef AMREX_USE_CUDA
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_IS_MANAGED;
         unsigned int is_managed = 0;
@@ -47,7 +47,7 @@ namespace Cuda {
 #endif
     }
 
-    inline bool isDevicePtr (void const* p) {
+    inline bool isDevicePtr (void const* p) noexcept {
 #ifdef AMREX_USE_CUDA
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
@@ -59,7 +59,7 @@ namespace Cuda {
 #endif
     }
 
-    inline bool isPinnedPtr (void const* p) {
+    inline bool isPinnedPtr (void const* p) noexcept {
 #ifdef AMREX_USE_CUDA
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
@@ -71,7 +71,7 @@ namespace Cuda {
 #endif
     }
 
-    inline bool isGpuPtr (void const* p) {
+    inline bool isGpuPtr (void const* p) noexcept {
 #ifdef AMREX_USE_CUDA
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);
@@ -93,7 +93,7 @@ namespace Cuda {
         namespace detail {
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            float atomicMax(float* address, float val)
+            float atomicMax(float* address, float val) noexcept
             {
                 int* address_as_i = (int*) address;
                 int old = *address_as_i, assumed;
@@ -106,7 +106,7 @@ namespace Cuda {
             }
             
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            double atomicMax(double* address, double val)
+            double atomicMax(double* address, double val) noexcept
             {
                 unsigned long long int* address_as_ull = 
                     (unsigned long long int*) address;
@@ -120,7 +120,7 @@ namespace Cuda {
             }
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            float atomicMin(float* address, float val)
+            float atomicMin(float* address, float val) noexcept
             {
                 int* address_as_i = (int*) address;
                 int old = *address_as_i, assumed;
@@ -133,7 +133,7 @@ namespace Cuda {
             }
 
             AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-            double atomicMin(double* address, double val)
+            double atomicMin(double* address, double val) noexcept
             {
                 unsigned long long int* address_as_ull = 
                     (unsigned long long int*) address;
@@ -150,7 +150,7 @@ namespace Cuda {
 
         template<class T>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Add (T* sum, T value)
+        void Add (T* sum, T value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicAdd(sum, value);
@@ -160,7 +160,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Add (long* sum, long value)
+        void Add (long* sum, long value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicAdd((unsigned long long*)sum, static_cast<unsigned long long>(value));
@@ -171,7 +171,7 @@ namespace Cuda {
         
         template<class T>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (T* m, T value)
+        void Min (T* m, T value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             detail::atomicMin(m, value);
@@ -181,7 +181,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (int* m, int value)
+        void Min (int* m, int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicMin(m, value);
@@ -191,7 +191,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (unsigned int* m, unsigned int value)
+        void Min (unsigned int* m, unsigned int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicMin(m, value);
@@ -201,7 +201,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Min (unsigned long long int* m, unsigned long long int value)
+        void Min (unsigned long long int* m, unsigned long long int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicMin(m, value);
@@ -212,7 +212,7 @@ namespace Cuda {
         
         template<class T>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (T* m, T value)
+        void Max (T* m, T value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             detail::atomicMax(m, value);
@@ -222,7 +222,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (int* m, int value)
+        void Max (int* m, int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicMax(m, value);
@@ -232,7 +232,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (unsigned int* m, unsigned int value)
+        void Max (unsigned int* m, unsigned int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicMax(m, value);
@@ -242,7 +242,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Max (unsigned long long int* m, unsigned long long int value)
+        void Max (unsigned long long int* m, unsigned long long int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicMax(m, value);
@@ -252,7 +252,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void Or (int* m, int value)
+        void Or (int* m, int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicOr(m, value);
@@ -262,7 +262,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void And (int* m, int value)
+        void And (int* m, int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             atomicAnd(m, value);
@@ -272,7 +272,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned int Inc (unsigned int* m, unsigned int value)
+        unsigned int Inc (unsigned int* m, unsigned int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             return atomicInc(m, value);
@@ -282,7 +282,7 @@ namespace Cuda {
         }
 
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        unsigned int Dec (unsigned int* m, unsigned int value)
+        unsigned int Dec (unsigned int* m, unsigned int value) noexcept
         {
 #if defined(__CUDA_ARCH__)
             return atomicDec(m, value);
@@ -295,7 +295,7 @@ namespace Cuda {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool isnan(T m)
+    bool isnan(T m) noexcept
     {
 #if defined(__CUDA_ARCH__)
         return isnan(m);
@@ -306,7 +306,7 @@ namespace Cuda {
 
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool isinf(T m)
+    bool isinf(T m) noexcept
     {
 #ifdef __CUDA_ARCH__
         return isinf(m);
@@ -318,7 +318,7 @@ namespace Cuda {
     class StreamIter
     {
     public:
-        StreamIter (const int n, bool is_thread_safe=true);
+        StreamIter (const int n, bool is_thread_safe=true) noexcept;
         ~StreamIter ();
 
         StreamIter (StreamIter const&) = delete;
@@ -326,14 +326,14 @@ namespace Cuda {
         void operator= (StreamIter const&) = delete;
         void operator= (StreamIter &&) = delete;
 
-        int operator() () const { return m_i; }
+        int operator() () const noexcept { return m_i; }
 
-        bool isValid () const { return m_i < m_n; }
+        bool isValid () const noexcept { return m_i < m_n; }
 
 #if !defined(AMREX_USE_CUDA)
-        void operator++ () { ++m_i; }
+        void operator++ () noexcept { ++m_i; }
 #else
-        void operator++ ();
+        void operator++ () noexcept;
 #endif
 
     private:

@@ -80,8 +80,8 @@ protected:
     union Word
     {
         void*  p;
-        double d;
-        long   l;
+        long long ll;
+        long double ld;
         void (*f) ();
     };
     static const unsigned int align_size = sizeof(Word);

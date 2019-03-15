@@ -21,12 +21,12 @@ public:
     static void Finalize ();
 
 #if defined(AMREX_USE_CUDA)
-    static cudaStream_t cudaStream () { return cuda_stream; }
+    static cudaStream_t cudaStream () noexcept { return cuda_stream; }
 #endif
-    static void setStreamIndex (const int idx);
-    static void resetStreamIndex () { setStreamIndex(-1); }
+    static void setStreamIndex (const int idx) noexcept;
+    static void resetStreamIndex () noexcept { setStreamIndex(-1); }
 
-    static int deviceId ();
+    static int deviceId () noexcept;
 
     static void synchronize ();
     static void streamSynchronize ();
@@ -40,18 +40,18 @@ public:
     static void mem_advise_set_readonly (void* p, const std::size_t sz);
 
 #if defined(AMREX_USE_CUDA)
-    static void n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads);
+    static void n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
-                                            dim3& numBlocks, dim3& numThreads);
-    static void c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads);
-    static void grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads);
+                                            dim3& numBlocks, dim3& numThreads) noexcept;
+    static void c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) noexcept;
+    static void grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexcept;
 
-    static std::size_t totalGlobalMem () { return device_prop.totalGlobalMem; }
-    static int numMultiProcessors () { return device_prop.multiProcessorCount; }
-    static int maxThreadsPerMultiProcessor () { return device_prop.maxThreadsPerMultiProcessor; }
-    static int maxThreadsPerBlock () { return device_prop.maxThreadsPerBlock; }
-    static int maxThreadsPerBlock (int dir) { return device_prop.maxThreadsDim[dir]; }
-    static int maxBlocksPerGrid (int dir) { return device_prop.maxGridSize[dir]; }
+    static std::size_t totalGlobalMem () noexcept { return device_prop.totalGlobalMem; }
+    static int numMultiProcessors () noexcept { return device_prop.multiProcessorCount; }
+    static int maxThreadsPerMultiProcessor () noexcept { return device_prop.maxThreadsPerMultiProcessor; }
+    static int maxThreadsPerBlock () noexcept { return device_prop.maxThreadsPerBlock; }
+    static int maxThreadsPerBlock (int dir) noexcept { return device_prop.maxThreadsDim[dir]; }
+    static int maxBlocksPerGrid (int dir) noexcept { return device_prop.maxGridSize[dir]; }
 #endif
 
     static std::size_t freeMemAvailable ();
