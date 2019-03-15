@@ -37,7 +37,7 @@ public:
     * time using the define member functions inherited
     * from FabArray.
     */
-    MultiFab ();
+    MultiFab () noexcept;
     /**
     * \brief
     * Constructs a MultiFab
@@ -580,15 +580,15 @@ public:
     /**
     * \brief This tests on whether the MultiFab is fully nodal.
     */
-    bool is_nodal () const;
+    bool is_nodal () const noexcept;
     /**
     * \brief This tests on whether the MultiFab is nodal in direction dir.
     */
-    bool is_nodal (int dir) const;
+    bool is_nodal (int dir) const noexcept;
     /**
     * \brief This tests on whether the MultiFab is cell-centered.
     */
-    bool is_cell_centered () const;
+    bool is_cell_centered () const noexcept;
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     /**

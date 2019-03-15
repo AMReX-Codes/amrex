@@ -8,7 +8,7 @@ namespace amrex {
 
 RealBox::RealBox (const Box&  bx,
                   const Real* dx,
-                  const Real* base)
+                  const Real* base) noexcept
 {
     const int* blo = bx.loVect();
     const int* bhi = bx.hiVect();
@@ -21,7 +21,7 @@ RealBox::RealBox (const Box&  bx,
 }
 
 RealBox::RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
-                  const std::array<Real,AMREX_SPACEDIM>& a_hi)
+                  const std::array<Real,AMREX_SPACEDIM>& a_hi) noexcept
 {
     AMREX_D_EXPR(xlo[0] = a_lo[0] , xlo[1] = a_lo[1] , xlo[2] = a_lo[2]);
     AMREX_D_EXPR(xhi[0] = a_hi[0] , xhi[1] = a_hi[1] , xhi[2] = a_hi[2]);

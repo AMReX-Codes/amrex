@@ -521,79 +521,6 @@ int amrex::CRRBetweenLevels(int fromlevel, int tolevel,
   return rr;
 }
 
-// -------------------------------------------------------------------
-int amrex::HashDistributionMap(const DistributionMapping &dm, int hashSize)
-{
-  BL_ASSERT(hashSize > 0);
-
-  const Vector<int> &dmArrayMap = dm.ProcessorMap();
-  Vector<long> hash(hashSize, 0);
-
-  // Create hash by summing processer map over
-  //   a looped hash array of given size. 
-  for (int i=0; i<dmArrayMap.size(); i++)
-  {
-    int hashIndex = (i%hashSize);
-    hash[hashIndex] += dmArrayMap[i];
-  }
-
-  // Output hash is the ones digit of each element
-  //   of the hash array.
-  ostringstream outstr;
-  for (int j=0; j<hashSize; j++)
-  {
-     outstr << (hash[j]%10); 
-  }
-
-  //
-  return ( std::atoi(outstr.str().c_str()) );
-}
-
-// -------------------------------------------------------------------
-int amrex::HashBoxArray(const BoxArray & ba, int hashSize)
-{
-  BL_ASSERT(hashSize > 0);
-
-  Vector<long> hash(hashSize, 0);
-  int hashSum(0), hashCount(0);
-
-  // Create hash by summing smallEnd, bigEnd and type
-  //   over a looped hash array of given size.
-  // For any empty boxes, skip AMREX_SPACEDIM inputs.
-  // For an empty box array, hash=0, regardless of size.
-  if (!ba.empty())
-  {
-    for (int i=0; i<ba.size(); i++)
-    {
-      if (!ba[i].isEmpty())
-      {
-        for (int j=0; j<AMREX_SPACEDIM; j++)
-        {
-           hashSum = ba[i].smallEnd(j) + ba[i].bigEnd(j) + ba[i].ixType()[j];
-           hash[(hashCount%hashSize)] += hashSum;
-           hashCount++;
-        }
-      }
-      else
-      {
-        hashCount+=AMREX_SPACEDIM;
-      }
-    }
-  }
-
-  // Output hash is the ones digit of each element
-  //   of the hash array.
-  ostringstream outstr;
-  for (int j=0; j<hashSize; j++)
-  {
-     outstr << (hash[j]%10); 
-  }
-
-  return ( std::atoi(outstr.str().c_str()) );
-} 
-
-
-
 //
 // Fortran entry points for amrex::Random().
 //
@@ -1316,7 +1243,7 @@ namespace {
     static auto clock_time_begin = amrex::MaxResSteadyClock::now();
 }
 
-double amrex::second ()
+double amrex::second () noexcept
 {
     return std::chrono::duration_cast<std::chrono::duration<double> >
         (amrex::MaxResSteadyClock::now() - clock_time_begin).count();

@@ -39,7 +39,7 @@ private:
     //! stats on a single process
     struct Stats
     {
-	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { }
+	Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0) { }
 	int  depth; //!< recursive depth
 	long n;     //!< number of calls
 	double dtin;  //!< inclusive dt
