@@ -25,4 +25,10 @@ coarsenCellCenteredFields(
 	const Vector<MultiFab>& source_mf, const Vector<Geometry>& source_geom,
 	int coarse_ratio, int finest_level );
 
+void
+WriteOpenPMDFields( const std::string& filename,
+                    const std::vector<std::string>& varnames,
+                    const MultiFab& mf, const Geometry& geom,
+                    const int iteration, const double time );
+
 #endif

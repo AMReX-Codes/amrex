@@ -61,12 +61,14 @@ getReversedVec( const Real* v )
  **/
 void
 WriteOpenPMDFields( const std::string& filename,
-                  const int ncomp, const std::vector<std::string>& varnames,
+                  const std::vector<std::string>& varnames,
                   const MultiFab& mf, const Geometry& geom,
                   const int iteration, const double time )
 {
   BL_PROFILE("WriteOpenPMDFields()");
 
+  const int ncomp = mf.nComp();
+  
   // Create a few vectors that store info on the global domain
   // Swap the indices for each of them, since AMReX data is Fortran order
   // and since the openPMD API assumes contiguous C order
