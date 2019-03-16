@@ -1,4 +1,3 @@
-
 #include <WarpX.H>
 #include <WarpX_f.H>
 
@@ -381,6 +380,47 @@ WarpX::SyncCurrent ()
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             IntVect ng = current_fp[lev][0]->nGrowVect();
+            ng += bilinear_filter.stencil_length_each_dir-1;
+            //ng += 1;
+            for (int idim = 0; idim < 3; ++idim) {
+                j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
+                                                   current_fp[lev][idim]->DistributionMap(),
+                                                   1, ng));
+                bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
+                std::swap(j_fp[lev][idim], current_fp[lev][idim]);
+            }
+        }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            IntVect ng = current_cp[lev][0]->nGrowVect();
+            ng += 1;
+            for (int idim = 0; idim < 3; ++idim) {
+                j_cp[lev][idim].reset(new MultiFab(current_cp[lev][idim]->boxArray(),
+                                                   current_cp[lev][idim]->DistributionMap(),
+                                                   1, ng));
+                // applyFilter(*j_cp[lev][idim], *current_cp[lev][idim]);
+                bilinear_filter.ApplyStencil(*j_cp[lev][idim], *current_cp[lev][idim]);
+                std::swap(j_cp[lev][idim], current_cp[lev][idim]);
+            }
+        }
+        for (int lev = 1; lev <= finest_level; ++lev) {
+            if (current_buf[lev][0]) {
+                IntVect ng = current_buf[lev][0]->nGrowVect();
+                ng += 1;
+                for (int idim = 0; idim < 3; ++idim) {
+                    j_buf[lev][idim].reset(new MultiFab(current_buf[lev][idim]->boxArray(),
+                                                        current_buf[lev][idim]->DistributionMap(),
+                                                        1, ng));
+                    //applyFilter(*j_buf[lev][idim], *current_buf[lev][idim]);
+                    bilinear_filter.ApplyStencil(*j_buf[lev][idim], *current_buf[lev][idim]);
+                    std::swap(*j_buf[lev][idim], *current_buf[lev][idim]);
+                }
+            }
+        }
+    }
+    /*
+    if (WarpX::use_filter) {
+        for (int lev = 0; lev <= finest_level; ++lev) {
+            IntVect ng = current_fp[lev][0]->nGrowVect();
             ng += 1;
             for (int idim = 0; idim < 3; ++idim) {
                 j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
@@ -415,7 +455,7 @@ WarpX::SyncCurrent ()
             }
         }
     }
-
+    */
     // Sum up fine patch
     for (int lev = 0; lev <= finest_level; ++lev)
     {
