@@ -472,12 +472,24 @@ WarpX::WritePlotFile () const
     const std::string& plotfilename = amrex::Concatenate(plot_file,istep[0]);
     amrex::Print() << "  Writing plotfile " << plotfilename << "\n";
 
-    // Average the fields from the simulation to the cell centers
+    // Average the fields from the simulation grid to the cell centers
     const int ngrow = 0;
     Vector<std::string> varnames; // Name of the written fields
     // mf_avg will contain the averaged, cell-centered fields
     Vector<MultiFab> mf_avg;
     WarpX::AverageAndPackFields( varnames, mf_avg, ngrow );
+
+    // Coarsen the fields, if requested by the user
+    Vector<const MultiFab*> output_mf;
+    Vector<Geometry> output_geom;
+    if (plot_coarsening_ratio != 1) {
+        int i=0;
+        coarsenCellCenteredFields( output_mf, output_geom, mf_avg, Geom(),
+                                    plot_coarsening_ratio, finest_level );
+    } else {  // No averaging necessary, simply point to mf_avg
+        output_mf = amrex::GetVecOfConstPtrs(mf_avg);
+        output_geom = Geom();
+    }
 
     // Write the fields contained in `mf_avg`, and corresponding to the
     // names `varnames`, into a plotfile.
@@ -486,11 +498,9 @@ WarpX::WritePlotFile () const
     VisMF::Header::Version current_version = VisMF::GetHeaderVersion();
     VisMF::SetHeaderVersion(plotfile_headerversion);
     if (plot_raw_fields) rfs.emplace_back("raw_fields");
-    amrex::WriteMultiLevelPlotfile(
-                                   plotfilename, finest_level+1,
-                                   amrex::GetVecOfConstPtrs(mf_avg),
-                                   varnames, Geom(), t_new[0], istep,
-                                   refRatio(),
+    amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1,
+                                   output_mf, varnames, output_geom,
+                                   t_new[0], istep, refRatio(),
                                    "HyperCLaw-V1.1",
                                    "Level_",
                                    "Cell",

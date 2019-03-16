@@ -299,27 +299,33 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
 
   } // end loop over levels of refinement
 
-  // Finally, reduce the size of all the fields by `plot_coarsening_ratio`
-  // (since mf_avg[lev] is purely cell-centered, this is a simple call
-  // to amrex::average_down)
-  amrex::Vector<amrex::Geometry> output_geom(finest_level+1);
+};
 
-  if (plot_coarsening_ratio != 1) {
+/** \brief Reduce the size of all the fields in `source_mf`
+  * by `coarse_ratio` and store the results in `output_mf`.
+  * Calculate the corresponding coarse Geometry from `source_geom`
+  * and store the results in `output_geom` */
+void
+coarsenCellCenteredFields(
+    Vector<const MultiFab*>& output_mf, Vector<Geometry>& output_geom,
+    const Vector<MultiFab>& source_mf, const Vector<Geometry>& source_geom,
+    int coarse_ratio, int finest_level )
+{
+    // Check that the Vectors to be filled have an initial size of 0
+    AMREX_ALWAYS_ASSERT( output_mf.size()==0 );
+    AMREX_ALWAYS_ASSERT( output_geom.size()==0 );
 
-    for (int lev=0 ; lev <= finest_level ; lev++ ){
+    // Fill the vectors with one element per level
+    int ncomp = source_mf[0].nComp();
+    for (int lev=0; lev<=finest_level; lev++) {
+        AMREX_ALWAYS_ASSERT( source_mf[lev].is_cell_centered() );
 
-      output_geom[lev] = amrex::coarsen(Geom(lev), IntVect(plot_coarsening_ratio));
+        output_geom.push_back(amrex::coarsen( source_geom[lev], IntVect(coarse_ratio)));
 
-      BoxArray small_box = amrex::coarsen(mf_avg[lev].boxArray(),plot_coarsening_ratio);
-      MultiFab mf_avg_small(small_box, mf_avg[lev].DistributionMap(), ncomp, 0);
-      average_down(mf_avg[lev], mf_avg_small, 0, ncomp, IntVect(plot_coarsening_ratio));
-      mf_avg[lev] = mf_avg_small;
+        BoxArray small_ba = amrex::coarsen(source_mf[lev].boxArray(), coarse_ratio);
+        MultiFab small_mf = MultiFab(small_ba, source_mf[lev].DistributionMap(), ncomp, 0);
+        average_down(source_mf[lev], small_mf, 0, ncomp, IntVect(coarse_ratio));
+        output_mf.push_back( &small_mf );
 
     }
-
-  } else {
-      // No averaging necessary, simply transfer ownership to output_mf
-      output_geom = Geom();
-  }
-
 };
