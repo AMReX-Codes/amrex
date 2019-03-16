@@ -15,7 +15,7 @@ public :
 
     enum struct CoarseningStrategy { Sigma, RAP };
 
-    MLNodeLaplacian () {}
+    MLNodeLaplacian () noexcept {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
@@ -49,7 +49,7 @@ public :
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 #endif
 
-    void setRZCorrection (bool rz) { m_is_rz = rz; }
+    void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
@@ -68,10 +68,10 @@ public :
     void compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi, const MultiFab& vold,
                                const MultiFab* rhcc);
 
-    void setGaussSeidel (bool flag) { m_use_gauss_seidel = flag; }
-    void setHarmonicAverage (bool flag) { m_use_harmonic_average = flag; }
+    void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
+    void setHarmonicAverage (bool flag) noexcept { m_use_harmonic_average = flag; }
 
-    void setCoarseningStrategy (CoarseningStrategy cs) { m_coarsening_strategy = cs; }
+    void setCoarseningStrategy (CoarseningStrategy cs) noexcept { m_coarsening_strategy = cs; }
 
     virtual void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final override;
     virtual void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final override;
