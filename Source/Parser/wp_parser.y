@@ -38,7 +38,7 @@
 %left '+' '-'
 %left '*' '/'
 %left '<' '>'
-%nonassoc NEG
+%nonassoc NEG UPLUS
 %right POW
 
 /* This specifies the type of `exp` (i.e., struct wp_node*).  Rules
@@ -75,6 +75,7 @@ exp:
 | exp '<' exp                { $$ = wp_newf2(WP_LT, $1, $3); }
 | exp '>' exp                { $$ = wp_newf2(WP_GT, $1, $3); }
 | '-'exp %prec NEG           { $$ = wp_newnode(WP_NEG, $2, NULL); }
+| '+'exp %prec UPLUS         { $$ = $2; }
 | exp POW exp                { $$ = wp_newf2(WP_POW, $1, $3); }
 | F1 '(' exp ')'             { $$ = wp_newf1($1, $3); }
 | F2 '(' exp ',' exp ')'     { $$ = wp_newf2($1, $3, $5); }

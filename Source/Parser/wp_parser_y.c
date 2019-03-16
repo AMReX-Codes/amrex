@@ -443,7 +443,8 @@ wp_ast_optimize (struct wp_node* node)
         if (node->l->type == WP_NUMBER &&
             node->r->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = ((struct wp_number*)(node->l))->value
+                +      ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -505,7 +506,8 @@ wp_ast_optimize (struct wp_node* node)
         if (node->l->type == WP_NUMBER &&
             node->r->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = ((struct wp_number*)(node->l))->value
+                -      ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -567,7 +569,8 @@ wp_ast_optimize (struct wp_node* node)
         if (node->l->type == WP_NUMBER &&
             node->r->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = ((struct wp_number*)(node->l))->value
+                *      ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -629,7 +632,8 @@ wp_ast_optimize (struct wp_node* node)
         if (node->l->type == WP_NUMBER &&
             node->r->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = ((struct wp_number*)(node->l))->value
+                /      ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -688,7 +692,7 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->l);
         if (node->l->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = -((struct wp_number*)(node->l))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }

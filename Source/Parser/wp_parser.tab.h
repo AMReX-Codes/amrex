@@ -52,7 +52,8 @@ extern int yydebug;
     F2 = 262,
     EOL = 263,
     POW = 264,
-    NEG = 265
+    NEG = 265,
+    UPLUS = 266
   };
 #endif
 
@@ -69,7 +70,7 @@ union YYSTYPE
     enum wp_f1_t f1;
     enum wp_f2_t f2;
 
-#line 73 "wp_parser.tab.h" /* yacc.c:1909  */
+#line 74 "wp_parser.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
