@@ -145,12 +145,10 @@ wp_parser_dup (struct wp_parser* source)
     return dest;
 }
 
-static
 double
-wp_call_f1 (struct wp_f1* f1)
+wp_call_f1 (enum wp_f1_t type, double a)
 {
-    double a = wp_ast_eval(f1->l);
-    switch (f1->ftype) {
+    switch (type) {
     case WP_SQRT:        return sqrt(a);
     case WP_EXP:         return exp(a);
     case WP_LOG:         return log(a);
@@ -172,18 +170,15 @@ wp_call_f1 (struct wp_f1* f1)
     case WP_POW_P2:      return a*a;
     case WP_POW_P3:      return a*a*a;
     default:
-        yyerror("wp_call_f1: Unknow function %d", f1->ftype);
+        yyerror("wp_call_f1: Unknow function %d", type);
         return 0.0;
     }
 }
 
-static
 double
-wp_call_f2 (struct wp_f2* f2)
+wp_call_f2 (enum wp_f2_t type, double a, double b)
 {
-    double a = wp_ast_eval(f2->l);
-    double b = wp_ast_eval(f2->r);
-    switch (f2->ftype) {
+    switch (type) {
     case WP_POW:
         return pow(a,b);
     case WP_GT:
@@ -197,77 +192,9 @@ wp_call_f2 (struct wp_f2* f2)
     case WP_MAX:
         return (a > b) ? a : b;
     default:
-        yyerror("wp_call_f2: Unknow function %d", f2->ftype);
+        yyerror("wp_call_f2: Unknow function %d", type);
         return 0.0;
     }
-}
-
-double
-wp_ast_eval (struct wp_node* node)
-{
-    double result;
-
-    switch (node->type)
-    {
-    case WP_NUMBER:
-        result = ((struct wp_number*)node)->value;
-        break;
-    case WP_SYMBOL:
-        result = *(((struct wp_symbol*)node)->pointer);
-        break;
-    case WP_ADD:
-        result = wp_ast_eval(node->l) + wp_ast_eval(node->r);
-        break;
-    case WP_SUB:
-        result = wp_ast_eval(node->l) - wp_ast_eval(node->r);
-        break;
-    case WP_MUL:
-        result = wp_ast_eval(node->l) * wp_ast_eval(node->r);
-        break;
-    case WP_DIV:
-        result = wp_ast_eval(node->l) / wp_ast_eval(node->r);
-        break;
-    case WP_NEG:
-        result = -wp_ast_eval(node->l);
-        break;
-    case WP_F1:
-        result = wp_call_f1((struct wp_f1*)node);
-        break;
-    case WP_F2:
-        result = wp_call_f2((struct wp_f2*)node);
-        break;
-    case WP_ADD_VP:
-        result = node->lvp.v + *(node->rp);
-        break;
-    case WP_ADD_PP:
-        result = *(node->lvp.p) + *(node->rp);
-        break;
-    case WP_SUB_VP:
-        result = node->lvp.v - *(node->rp);
-        break;
-    case WP_SUB_PP:
-        result = *(node->lvp.p) - *(node->rp);
-        break;
-    case WP_MUL_VP:
-        result = node->lvp.v * *(node->rp);
-        break;
-    case WP_MUL_PP:
-        result = *(node->lvp.p) * *(node->rp);
-        break;
-    case WP_DIV_VP:
-        result = node->lvp.v / *(node->rp);
-        break;
-    case WP_DIV_PP:
-        result = *(node->lvp.p) / *(node->rp);
-        break;
-    case WP_NEG_P:
-        result = -*(node->lvp.p);
-        break;
-    default:
-        yyerror("wp_ast_eval: unknown node type %d\n", node->type);
-    }
-
-    return result;
 }
 
 size_t
@@ -451,14 +378,14 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_SYMBOL)
         {
-            node->lvp.v = wp_ast_eval(node->l);
+            node->lvp.v = ((struct wp_number*)(node->l))->value;
             node->rp = ((struct wp_symbol*)(node->r))->pointer;
             node->type = WP_ADD_VP;
         }
         else if (node->l->type == WP_SYMBOL &&
                  node->r->type == WP_NUMBER)
         {
-            node->lvp.v = wp_ast_eval(node->r);
+            node->lvp.v = ((struct wp_number*)(node->r))->value;
             node->rp = ((struct wp_symbol*)(node->l))->pointer;
             node->r = node->l;
             node->type = WP_ADD_VP;
@@ -473,28 +400,28 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_ADD_VP)
         {
-            double v = wp_ast_eval(node->l) + WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value + WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_ADD_VP;
         }
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_SUB_VP)
         {
-            double v = wp_ast_eval(node->l) + WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value + WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_SUB_VP;
         }
         else if (node->l->type == WP_ADD_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) + wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) + ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_ADD_VP;
         }
         else if (node->l->type == WP_SUB_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) + wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) + ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_SUB_VP;
         }
@@ -514,14 +441,14 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_SYMBOL)
         {
-            node->lvp.v = wp_ast_eval(node->l);
+            node->lvp.v = ((struct wp_number*)(node->l))->value;
             node->rp = ((struct wp_symbol*)(node->r))->pointer;
             node->type = WP_SUB_VP;
         }
         else if (node->l->type == WP_SYMBOL &&
                  node->r->type == WP_NUMBER)
         {
-            node->lvp.v = -wp_ast_eval(node->r);
+            node->lvp.v = -((struct wp_number*)(node->r))->value;
             node->rp = ((struct wp_symbol*)(node->l))->pointer;
             node->r = node->l;
             node->type = WP_ADD_VP;
@@ -536,28 +463,28 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_ADD_VP)
         {
-            double v = wp_ast_eval(node->l) - WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value - WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_SUB_VP;
         }
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_SUB_VP)
         {
-            double v = wp_ast_eval(node->l) - WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value - WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_ADD_VP;
         }
         else if (node->l->type == WP_ADD_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) - wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) - ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_ADD_VP;
         }
         else if (node->l->type == WP_SUB_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) - wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) - ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_SUB_VP;
         }
@@ -577,14 +504,14 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_SYMBOL)
         {
-            node->lvp.v = wp_ast_eval(node->l);
+            node->lvp.v = ((struct wp_number*)(node->l))->value;
             node->rp = ((struct wp_symbol*)(node->r))->pointer;
             node->type = WP_MUL_VP;
         }
         else if (node->l->type == WP_SYMBOL &&
                  node->r->type == WP_NUMBER)
         {
-            node->lvp.v = wp_ast_eval(node->r);
+            node->lvp.v = ((struct wp_number*)(node->r))->value;
             node->rp = ((struct wp_symbol*)(node->l))->pointer;
             node->r = node->l;
             node->type = WP_MUL_VP;
@@ -599,28 +526,28 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_MUL_VP)
         {
-            double v = wp_ast_eval(node->l) * WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value * WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_MUL_VP;
         }
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_DIV_VP)
         {
-            double v = wp_ast_eval(node->l) * WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value * WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_DIV_VP;
         }
         else if (node->l->type == WP_MUL_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) * wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) * ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_MUL_VP;
         }
         else if (node->l->type == WP_DIV_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) * wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) * ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_DIV_VP;
         }
@@ -640,14 +567,14 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_SYMBOL)
         {
-            node->lvp.v = wp_ast_eval(node->l);
+            node->lvp.v = ((struct wp_number*)(node->l))->value;
             node->rp = ((struct wp_symbol*)(node->r))->pointer;
             node->type = WP_DIV_VP;
         }
         else if (node->l->type == WP_SYMBOL &&
                  node->r->type == WP_NUMBER)
         {
-            node->lvp.v = 1./wp_ast_eval(node->r);
+            node->lvp.v = 1./((struct wp_number*)(node->r))->value;
             node->rp = ((struct wp_symbol*)(node->l))->pointer;
             node->r = node->l;
             node->type = WP_MUL_VP;
@@ -662,28 +589,28 @@ wp_ast_optimize (struct wp_node* node)
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_MUL_VP)
         {
-            double v = wp_ast_eval(node->l) / WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value / WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_DIV_VP;
         }
         else if (node->l->type == WP_NUMBER &&
                  node->r->type == WP_DIV_VP)
         {
-            double v = wp_ast_eval(node->l) / WP_EVAL_R(node);
+            double v = ((struct wp_number*)(node->l))->value / WP_EVAL_R(node);
             WP_MOVEUP_R(node, v);
             node->type = WP_MUL_VP;
         }
         else if (node->l->type == WP_MUL_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) / wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) / ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_MUL_VP;
         }
         else if (node->l->type == WP_DIV_VP &&
                  node->r->type == WP_NUMBER)
         {
-            double v = WP_EVAL_L(node) / wp_ast_eval(node->r);
+            double v = WP_EVAL_L(node) / ((struct wp_number*)(node->r))->value;
             WP_MOVEUP_L(node, v);
             node->type = WP_DIV_VP;
         }
@@ -726,7 +653,9 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->l);
         if (node->l->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = wp_call_f1
+                (((struct wp_f1*)node)->ftype,
+                 ((struct wp_number*)(((struct wp_f1*)node)->l))->value);
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -737,14 +666,17 @@ wp_ast_optimize (struct wp_node* node)
         if (node->l->type == WP_NUMBER &&
             node->r->type == WP_NUMBER)
         {
-            double v = wp_ast_eval(node);
+            double v = wp_call_f2
+                (((struct wp_f2*)node)->ftype,
+                 ((struct wp_number*)(((struct wp_f2*)node)->l))->value,
+                 ((struct wp_number*)(((struct wp_f2*)node)->r))->value);
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
         else if (node->r->type == WP_NUMBER && ((struct wp_f2*)node)->ftype == WP_POW)
         {
             struct wp_node* n = node->l;
-            double v = wp_ast_eval(node->r);
+            double v = ((struct wp_number*)(node->r))->value;
             if (-3.0 == v) {
                 ((struct wp_f1*)node)->type = WP_F1;
                 ((struct wp_f1*)node)->l = n;
@@ -779,7 +711,7 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->r);
         if (node->r->type == WP_NUMBER)
         {
-            double v = node->lvp.v + wp_ast_eval(node->r);
+            double v = node->lvp.v + ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -788,7 +720,7 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->r);
         if (node->r->type == WP_NUMBER)
         {
-            double v = node->lvp.v - wp_ast_eval(node->r);
+            double v = node->lvp.v - ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -797,7 +729,7 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->r);
         if (node->r->type == WP_NUMBER)
         {
-            double v = node->lvp.v * wp_ast_eval(node->r);
+            double v = node->lvp.v * ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -806,7 +738,7 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->r);
         if (node->r->type == WP_NUMBER)
         {
-            double v = node->lvp.v / wp_ast_eval(node->r);
+            double v = node->lvp.v / ((struct wp_number*)(node->r))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -815,7 +747,7 @@ wp_ast_optimize (struct wp_node* node)
         wp_ast_optimize(node->l);
         if (node->l->type == WP_NUMBER)
         {
-            double v = -wp_ast_eval(node->l);
+            double v = -((struct wp_number*)(node->l))->value;
             ((struct wp_number*)node)->type = WP_NUMBER;
             ((struct wp_number*)node)->value = v;
         }
@@ -893,7 +825,7 @@ wp_ast_print (struct wp_node* node)
     switch (node->type)
     {
     case WP_NUMBER:
-        printf("NUMBER:  %.17g\n", wp_ast_eval(node));
+        printf("NUMBER:  %.17g\n", ((struct wp_number*)node)->value);
         break;
     case WP_SYMBOL:
         printf("VARIABLE:  %s\n", ((struct wp_symbol*)node)->name);
