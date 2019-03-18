@@ -37,9 +37,9 @@ public:
     * \brief Another constructor.
     */
     AMREX_GPU_HOST_DEVICE
-    BCRec (const int* lo, const int* hi) noexcept
-        : bc {AMREX_D_DECL(lo[0],lo[1],lo[2]),
-              AMREX_D_DECL(hi[0],hi[1],hi[2])}
+    BCRec (const int* a_lo, const int* a_hi) noexcept
+        : bc {AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2]),
+              AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])}
         {}
     /*
     * \brief Yet another constructor.  Inherits bndry types from bc_domain
