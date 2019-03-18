@@ -21,7 +21,7 @@ wp_defexpr (struct wp_node* body)
 struct wp_node*
 wp_newnumber (double d)
 {
-    struct wp_number* r = malloc(sizeof(struct wp_number));
+    struct wp_number* r = (struct wp_number*) malloc(sizeof(struct wp_number));
     r->type = WP_NUMBER;
     r->value = d;
     return (struct wp_node*) r;
@@ -30,7 +30,7 @@ wp_newnumber (double d)
 struct wp_symbol*
 wp_makesymbol (char* name)
 {
-    struct wp_symbol* symbol = malloc(sizeof(struct wp_symbol));
+    struct wp_symbol* symbol = (struct wp_symbol*) malloc(sizeof(struct wp_symbol));
     symbol->type = WP_SYMBOL;
     symbol->name = strdup(name);
     symbol->pointer = NULL;
@@ -46,7 +46,7 @@ wp_newsymbol (struct wp_symbol* symbol)
 struct wp_node*
 wp_newnode (enum wp_node_t type, struct wp_node* l, struct wp_node* r)
 {
-    struct wp_node* tmp = malloc(sizeof(struct wp_node));
+    struct wp_node* tmp = (struct wp_node*) malloc(sizeof(struct wp_node));
     tmp->type = type;
     tmp->l = l;
     tmp->r = r;
@@ -56,7 +56,7 @@ wp_newnode (enum wp_node_t type, struct wp_node* l, struct wp_node* r)
 struct wp_node*
 wp_newf1 (enum wp_f1_t ftype, struct wp_node* l)
 {
-    struct wp_f1* tmp = malloc(sizeof(struct wp_f1));
+    struct wp_f1* tmp = (struct wp_f1*) malloc(sizeof(struct wp_f1));
     tmp->type = WP_F1;
     tmp->l = l;
     tmp->ftype = ftype;
@@ -66,7 +66,7 @@ wp_newf1 (enum wp_f1_t ftype, struct wp_node* l)
 struct wp_node*
 wp_newf2 (enum wp_f2_t ftype, struct wp_node* l, struct wp_node* r)
 {
-    struct wp_f2* tmp = malloc(sizeof(struct wp_f2));
+    struct wp_f2* tmp = (struct wp_f2*) malloc(sizeof(struct wp_f2));
     tmp->type = WP_F2;
     tmp->l = l;
     tmp->r = r;
@@ -89,7 +89,7 @@ yyerror (char const *s, ...)
 struct wp_parser*
 wp_parser_new (void)
 {
-    struct wp_parser* my_parser = malloc(sizeof(struct wp_parser));
+    struct wp_parser* my_parser = (struct wp_parser*) malloc(sizeof(struct wp_parser));
 
     my_parser->sz_mempool = wp_ast_size(wp_root);
     my_parser->p_root = malloc(my_parser->sz_mempool);
@@ -135,7 +135,7 @@ wp_parser_allocate (struct wp_parser* my_parser, size_t N)
 struct wp_parser*
 wp_parser_dup (struct wp_parser* source)
 {
-    struct wp_parser* dest = malloc(sizeof(struct wp_parser));
+    struct wp_parser* dest = (struct wp_parser*) malloc(sizeof(struct wp_parser));
     dest->sz_mempool = source->sz_mempool;
     dest->p_root = malloc(dest->sz_mempool);
     dest->p_free = dest->p_root;
@@ -267,7 +267,7 @@ wp_parser_ast_dup (struct wp_parser* my_parser, struct wp_node* node, int move)
     case WP_SYMBOL:
         result = wp_parser_allocate(my_parser, sizeof(struct wp_symbol));
         memcpy(result, node                  , sizeof(struct wp_symbol));
-        ((struct wp_symbol*)result)->name = wp_parser_allocate
+        ((struct wp_symbol*)result)->name = (char*) wp_parser_allocate
             (my_parser, strlen(((struct wp_symbol*)node)->name)+1);
         strcpy(((struct wp_symbol*)result)->name,
                ((struct wp_symbol*)node  )->name);
