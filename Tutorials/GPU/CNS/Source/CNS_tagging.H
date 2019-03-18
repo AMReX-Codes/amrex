@@ -11,7 +11,7 @@ void
 cns_tag_denerror (int i, int j, int k,
                   amrex::Array4<char> const& tag,
                   amrex::Array4<amrex::Real const> const& rho,
-                  amrex::Real dengrad_threshold, char tagval)
+                  amrex::Real dengrad_threshold, char tagval) noexcept
 {
     amrex::Real ax = std::abs(rho(i+1,j,k) - rho(i,j,k));
     amrex::Real ay = std::abs(rho(i,j+1,k) - rho(i,j,k));
