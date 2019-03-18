@@ -1,20 +1,17 @@
 #include <cuda_device_runtime_api.h>
-#include <thrust/device_vector.h>
 
 #include <iostream>
 #include <AMReX.H>
 #include <AMReX_Print.H>
 
-#include <AMReX_Device.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BaseFab.H>
-#include <AMReX_BaseFab_f.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_CudaAllocators.H>
+#include <AMReX_Gpu.H>
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
