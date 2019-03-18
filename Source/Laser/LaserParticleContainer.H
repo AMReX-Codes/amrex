@@ -5,6 +5,7 @@
 
 #include <WarpXParticleContainer.H>
 #include <WarpXConst.H>
+#include <WarpXParser.H>
 
 enum class laser_t { Null, Gaussian, Harris, parse_field_function };
 
@@ -77,7 +78,7 @@ private:
     amrex::Real theta_stc = 0.;
 
     // parse_field_function profile
-    int parser_instance_number = 0;
+    WarpXParser parser;
     std::string field_function;
 
     // laser particle domain

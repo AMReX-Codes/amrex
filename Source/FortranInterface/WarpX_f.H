@@ -178,8 +178,6 @@ extern "C"
                                  amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
                                  amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
 
-        void parse_function_laser( const long* np, amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* amplitude, const int parser_instance_number );
-
   void calculate_laser_plane_coordinates( const long* np,
        amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
        amrex::Real* plane_Xp, amrex::Real* plane_Yp,
@@ -463,11 +461,6 @@ extern "C"
                                   amrex_real* fou, const int* olo, const int* ohi,
                                   const amrex_real* fin, const int* ilo, const int* ihi,
                                   const amrex_real* stencil, const int* nsten);
-
-    int parser_initialize_function(const char *str_func, const int len_func,
-                                   const char *str_var, const int len_var);
-
-    amrex::Real parser_evaluate_function(const amrex::Real*, const int, const int);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);

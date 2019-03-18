@@ -40,6 +40,7 @@ include $(WARPX_HOME)/Source/FortranInterface/Make.package
 include $(WARPX_HOME)/Source/Initialization/Make.package
 include $(WARPX_HOME)/Source/Laser/Make.package
 include $(WARPX_HOME)/Source/Parallelization/Make.package
+include $(WARPX_HOME)/Source/Parser/Make.package
 include $(WARPX_HOME)/Source/Particles/Make.package
 include $(WARPX_HOME)/Source/Python/Make.package
 include $(WARPX_HOME)/Source/Utils/Make.package
