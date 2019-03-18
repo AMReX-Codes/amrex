@@ -456,7 +456,7 @@ public:
     */
     DescriptorList () noexcept;
 
-    DescriptorList (const DescriptorList&) = delete;;
+    DescriptorList (const DescriptorList&) = delete;
     DescriptorList& operator= (const DescriptorList&) = delete;
 
     /**
