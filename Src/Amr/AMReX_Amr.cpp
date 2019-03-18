@@ -128,7 +128,7 @@ namespace
 
 
 bool
-Amr::UsingPrecreateDirectories()
+Amr::UsingPrecreateDirectories () noexcept
 {
     return precreateDirectories;
 }
@@ -188,38 +188,38 @@ Amr::DataLog (int i)
 }
 
 int
-Amr::NumDataLogs ()
+Amr::NumDataLogs () noexcept
 {
     return datalog.size();
 }
 
 bool
-Amr::RegridOnRestart () const
+Amr::RegridOnRestart () const noexcept
 {
     return regrid_on_restart;
 }
 
 void
-Amr::setDtMin (const Vector<Real>& dt_min_in)
+Amr::setDtMin (const Vector<Real>& dt_min_in) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
 }
 
 Vector<std::unique_ptr<AmrLevel> >&
-Amr::getAmrLevels ()
+Amr::getAmrLevels () noexcept
 {
     return amr_level;
 }
 
 long
-Amr::cellCount (int lev)
+Amr::cellCount (int lev) noexcept
 {
     return amr_level[lev]->countCells();
 }
 
 int
-Amr::numGrids (int lev)
+Amr::numGrids (int lev) noexcept
 {
     return amr_level[lev]->numGrids();
 }
@@ -655,7 +655,7 @@ Amr::deleteStatePlotVar (const std::string& name)
 }
 
 bool
-Amr::isDerivePlotVar (const std::string& name)
+Amr::isDerivePlotVar (const std::string& name) noexcept
 {
     for (std::list<std::string>::const_iterator li = derive_plot_vars.begin(), End = derive_plot_vars.end();
          li != End;
@@ -670,7 +670,7 @@ Amr::isDerivePlotVar (const std::string& name)
 }
 
 bool
-Amr::isDeriveSmallPlotVar (const std::string& name)
+Amr::isDeriveSmallPlotVar (const std::string& name) noexcept
 {
     for (std::list<std::string>::const_iterator li = derive_small_plot_vars.begin(), End = derive_small_plot_vars.end();
          li != End;
@@ -818,27 +818,27 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 }
 
 void
-Amr::setDtLevel (const Vector<Real>& dt_lev)
+Amr::setDtLevel (const Vector<Real>& dt_lev) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         dt_level[i] = dt_lev[i];
 }
 
 void
-Amr::setDtLevel (Real dt, int lev)
+Amr::setDtLevel (Real dt, int lev) noexcept
 {
     dt_level[lev] = dt;
 }
 
 void
-Amr::setNCycle (const Vector<int>& ns)
+Amr::setNCycle (const Vector<int>& ns) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         n_cycle[i] = ns[i];
 }
 
 long
-Amr::cellCount ()
+Amr::cellCount () noexcept
 {
     long cnt = 0;
     for (int i = 0; i <= finest_level; i++)
@@ -847,7 +847,7 @@ Amr::cellCount ()
 }
 
 int
-Amr::numGrids ()
+Amr::numGrids () noexcept
 {
     int cnt = 0;
     for (int i = 0; i <= finest_level; i++)
@@ -856,7 +856,7 @@ Amr::numGrids ()
 }
 
 int
-Amr::okToContinue ()
+Amr::okToContinue () noexcept
 {
     int ok = true;
     for (int i = 0; ok && (i <= finest_level); i++)
@@ -2602,7 +2602,7 @@ Amr::coarseTimeStep (Real stop_time)
 }
 
 bool
-Amr::writePlotNow()
+Amr::writePlotNow() noexcept
 {
     int plot_test = 0;
     if (plot_per > 0.0)
@@ -2650,7 +2650,7 @@ Amr::writePlotNow()
 } 
 
 bool
-Amr::writeSmallPlotNow()
+Amr::writeSmallPlotNow() noexcept
 {
     int plot_test = 0;
     if (small_plot_per > 0.0)
@@ -3474,7 +3474,7 @@ Amr::initPltAndChk ()
 
 
 bool
-Amr::okToRegrid(int level)
+Amr::okToRegrid(int level) noexcept
 {
     if (regrid_int[level] < 0)
         return false;
@@ -3529,7 +3529,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     return best_dt;
 }
 
-const Vector<BoxArray>& Amr::getInitialBA()
+const Vector<BoxArray>& Amr::getInitialBA() noexcept
 {
   return initial_ba;
 }
