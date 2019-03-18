@@ -13,7 +13,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 amrex::Real
 cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
-           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
+           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -53,7 +53,7 @@ cns_estdt (amrex::Box const& bx, amrex::FArrayBox const& statefab,
 AMREX_GPU_DEVICE
 inline
 void
-cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u)
+cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& u) noexcept
 {
     amrex::Real rhoinv = 1.0/u(i,j,k,URHO);
     amrex::Real mx = u(i,j,k,UMX);
