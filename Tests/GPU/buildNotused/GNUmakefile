@@ -85,7 +85,7 @@ nvcclibrary: $(srcs) $(bsrcs)
 
 cudaexec: cudalibrary $(main)
 	nvcc -ccbin=g++ -Xcompiler=-fPIC --std=c++11 -m64 -arch=compute_70 -code=sm_70 -dlink main.o $(lib) -o link.o
-	g++ -gopt -m64 -I. -I/sw/summit/cuda/9.1.85/include -L. -L/sw/summit/cuda/9.1.85/lib64 -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(bsrcs) $(lib) link.o -o $(app).gpp
+	g++ -gopt -m64 -Wl,--unresolved-symbols=ignore-in-object-files -I. -I/sw/summit/cuda/9.2.148/include -L. -L/sw/summit/cuda/9.2.148/lib64 -L/usr/lib64/nvidia -lcuda -lcudart -lcudadevrt -lnvidia-ml -lstdc++ -latomic $(main) $(bsrcs) $(lib) link.o -o $(app).gpp
 
 cudaexec: CXX = nvcc
 cudaexec: CXXFLAGS = -ccbin=g++ -Xcompiler='-g -O3 -std=c++11 --std=c++11' --std=c++11 -m64 -arch=compute_70 -code=sm_70 -dc -x cu -DUSE_CUDA 

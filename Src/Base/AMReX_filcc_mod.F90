@@ -133,6 +133,8 @@ contains
     integer :: i, j, k, n
     integer :: imin, imax, jmin, jmax, kmin, kmax
 
+    !$gpu
+
     is = max(q_lo(1), domlo(1))
     ie = min(q_hi(1), domhi(1))
     ilo = domlo(1)
@@ -278,6 +280,15 @@ contains
 
        end if
 
+       ! For CUDA we need to synchronize the threadblock after each
+       ! dimension, since the results for the corners depend
+       ! on the i, j, and k directions being done in order.
+       ! Note: this will only work if the threadblock size is
+       ! larger in each dimension than the number of ghost zones.
+
+#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
+       call syncthreads()
+#endif
 
 #if AMREX_SPACEDIM >= 2
 
@@ -404,6 +415,10 @@ contains
           end if
 
        end if
+#endif
+
+#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
+       call syncthreads()
 #endif
 
 
@@ -533,6 +548,10 @@ contains
           end if
 
        end if
+#endif
+
+#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
+       call syncthreads()
 #endif
 
 

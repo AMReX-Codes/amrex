@@ -1927,7 +1927,7 @@ Amr::checkPoint ()
 }
 
 void
-Amr::RegridOnly (Real time)
+Amr::RegridOnly (Real time, bool do_io)
 {
     BL_ASSERT(regrid_on_restart == 1);
 
@@ -1936,14 +1936,18 @@ Amr::RegridOnly (Real time)
     for (int i = 0; i <= lev_top; i++)
        regrid(i,time);
 
-    if (plotfile_on_restart)
-	writePlotFile();
+    if (do_io) {
 
-    if (checkpoint_on_restart)
-       checkPoint();
+        if (plotfile_on_restart)
+            writePlotFile();
 
-    if (insitu_on_restart)
-        updateInSitu();
+        if (checkpoint_on_restart)
+            checkPoint();
+
+        if (insitu_on_restart)
+            updateInSitu();
+
+    }
 }
 
 void

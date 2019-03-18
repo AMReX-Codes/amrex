@@ -40,6 +40,7 @@ public:
     static void mem_advise_set_readonly (void* p, const std::size_t sz);
 
 #if defined(AMREX_USE_CUDA)
+    static void setNumThreadsMin (int nx, int ny, int nz) noexcept;
     static void n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept;
     static void c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
                                             dim3& numBlocks, dim3& numThreads) noexcept;

@@ -161,7 +161,7 @@ void main_main ()
 
         Node scenes;
         scenes["s1/plots/p1/type"] = "pseudocolor";
-        scenes["s1/plots/p1/params/field"] = "phi";
+        scenes["s1/plots/p1/field"] = "phi";
         // Set the output file name (ascent will add ".png")
         const std::string& png_out = amrex::Concatenate("ascent_render_",0,5);
         scenes["s1/image_prefix"] = png_out;
@@ -232,7 +232,7 @@ void main_main ()
             // add a scene with a pseudocolor plot
             Node scenes;
             scenes["s1/plots/p1/type"] = "pseudocolor";
-            scenes["s1/plots/p1/params/field"] = "phi";
+            scenes["s1/plots/p1/field"] = "phi";
             // Set the output file name (ascent will add ".png")
             const std::string& png_out = amrex::Concatenate("ascent_render_",n,5);
             scenes["s1/image_prefix"] = png_out;
