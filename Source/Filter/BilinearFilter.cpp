@@ -1,6 +1,7 @@
 #include <WarpX.H>
 #include <BilinearFilter.H>
 #include <Filter_Kernels.H>
+#include <WarpX_f.H>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -72,10 +73,8 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
     {
         Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
         Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
-        Print()<<"here --- 1\n";
         FArrayBox tmpfab;
         for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi){
-            Print()<<"here --- 2\n";
             const auto& srcfab = srcmf[mfi];
             auto& dstfab = dstmf[mfi];
             const Box& tbx = mfi.growntilebox();
@@ -84,29 +83,35 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            Print()<<"here --- 3\n";
             
-            const int* loVect = gbx.loVect();
-            const int* hiVect = gbx.hiVect();
-            Print()<<"here --- 4\n";
-            
-            Array4<Real> const& tmparr = tmpfab.array();
-            Array4<Real> const& dstarr = dstfab.array();
-            
-            Print()<<"here --- 5\n";
-            
-            for(int i=loVect[0]; i<hiVect[0]; i++){
-            for(int j=loVect[1]; j<hiVect[1]; j++){
-                for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
-                for (int iz=-stencil_length_each_dir[1]+1; iz<stencil_length_each_dir[1]; iz++){
-                    dstarr(i,j,0) = tmparr(i,j,0) + stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
-                }
-                }
-            }
-            }
-            Print()<<"here --- 6\n";
+            //WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
+            //            BL_TO_FORTRAN_ANYD(tmpfab),
+            //            BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
+            //            ncomp);
+            filter_2d(tbx, gbx, tmpfab, dstfab, ncomp);
         }
     }
+}
+
+void BilinearFilter::filter_2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab, FArrayBox &dstfab, int ncomp)
+{
+    const int* loVect = gbx.loVect();
+    const int* hiVect = gbx.hiVect();
+    Print()<<"loVect: "; for(int i=0; i<2;i++){Print()<<loVect[i]<<" ";} Print()<<'\n';
+    Print()<<"hiVect: "; for(int i=0; i<2;i++){Print()<<hiVect[i]<<" ";} Print()<<'\n';
+    Array4<Real> const& tmparr = tmpfab.array();
+    Array4<Real> const& dstarr = dstfab.array();
+    // filter_2d()
+    for(int i=loVect[0]; i<hiVect[0]; i++){
+    for(int j=loVect[1]; j<hiVect[1]; j++){
+        for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
+        for (int iz=-stencil_length_each_dir[1]+1; iz<stencil_length_each_dir[1]; iz++){
+            dstarr(i,j,0) = tmparr(i,j,0) + stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
+        }
+        }
+    }
+    }
+    Print()<<"here --- 6\n";
 }
 
 /*

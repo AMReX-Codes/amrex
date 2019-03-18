@@ -745,6 +745,7 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
 void
 WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
 {
+    Print()<<"HERE AND SHOULD NOT BE\n";
     const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
     const auto& period = Geom(glev).periodicity();
     auto& j = (patch_type == PatchType::fine) ? current_fp[lev] : current_cp[lev];
