@@ -27,7 +27,7 @@ int main (int argc, char* argv[])
     // ===================================
 
     {
-        // Malloc value for setval testing.
+        // Malloc value for double testing
         double *p, *q;
         cudaMallocManaged(&p, sizeof(double));
         cudaMallocManaged(&q, sizeof(double));
@@ -78,6 +78,7 @@ int main (int argc, char* argv[])
                 cudaGraph_t empty;
                 cudaGraphCreate(&empty, 0);
                 cudaGraphAddEmptyNode(&emptyNode, empty, NULL, 0);
+                cudaGraphDestroy(empty);
             }
 
 // ------------------------------------------------------------------------------- 
@@ -125,7 +126,7 @@ int main (int argc, char* argv[])
         std::cout << "**********************************\n"; 
         // ===================================
 
-        // Malloc value for setval testing.
+        // Malloc values for lambda testing.
         double *p, *q;
         cudaMallocManaged(&p, sizeof(double));
         cudaMallocManaged(&q, sizeof(double));
