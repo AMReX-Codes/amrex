@@ -560,7 +560,7 @@ void LSCoreBase::FillLevelSet( MultiFab & level_set, const MultiFab & ls_crse,
     Real min_dx       = LSUtility::min_dx(geom);
     Real ls_threshold = min_dx * (eb_pad + 1);
 
-    const IntVect max_grow{eb_pad, eb_pad, eb_pad};
+    const IntVect max_grow{AMREX_D_DECL(eb_pad, eb_pad, eb_pad)};
 
 #ifdef _OPENMP
 #pragma omp parallel

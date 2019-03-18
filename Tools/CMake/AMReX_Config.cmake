@@ -45,7 +45,15 @@ function (configure_amrex)
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
-   
+
+   if(BUILD_SHARED_LIBS)
+      if(APPLE)
+         target_link_options(amrex PUBLIC -Wl,-undefined,warning)
+      else()
+         target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
+      endif()
+   endif()
+  
    
    # 
    # Location of Fortran modules
@@ -143,6 +151,11 @@ function (configure_amrex)
    if (ENABLE_SENSEI_INSITU)
       find_package(SENSEI REQUIRED)
    endif()
+
+   #
+   # Setup other third party libs
+   #
+   include(AMReX_SetupThirdPartyLibs)
 
    #
    # Print out summary

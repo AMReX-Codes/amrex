@@ -1,8 +1,7 @@
-
 module amrex_mlebabeclap_3d_module
   
   use amrex_error_module 
-  use amrex_constants_module, only: zero, one, third
+  use amrex_constants_module, only: zero, one, third, half
   use amrex_fort_module, only : amrex_real
   use amrex_ebcellflag_module, only: is_regular_cell, is_covered_cell, is_single_valued_cell, &
        get_neighbor_cells_int_single
@@ -12,7 +11,8 @@ module amrex_mlebabeclap_3d_module
 
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 
-       amrex_eb_mg_interp, amrex_mlebabeclap_grad, amrex_mlebabeclap_flux
+            amrex_eb_mg_interp, amrex_mlebabeclap_grad, amrex_mlebabeclap_flux, &
+            compute_dphidn_3d
 
 contains
 
@@ -20,13 +20,15 @@ contains
        a, alo, ahi, bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, & 
        vfrc, vlo, vhi, apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, &
        fcy, cylo, cyhi, fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-       is_eb_dirichlet, phieb, plo, phi, is_inhomog, dxinv, alpha, beta) & 
+       is_dirichlet, is_ho_dirichlet, phieb, plo, phi, is_inhomog, dxinv, alpha, beta) & 
        bind(c, name='amrex_mlebabeclap_adotx') 
+
    integer, dimension(3), intent(in) :: lo, hi, ylo, yhi, xlo, xhi, alo, ahi, bxlo,&
         bxhi, bylo, byhi, bzlo, bzhi, cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, &
         azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, balo, bahi, bclo, bchi, elo, ehi, plo, phi
+
    real(amrex_real), intent(in) :: dxinv(3) 
-   integer         , value, intent(in) :: is_eb_dirichlet, is_inhomog
+   integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet, is_inhomog
    real(amrex_real), value, intent(in) :: alpha, beta
    real(amrex_real), intent(inout) ::    y( ylo(1): yhi(1), ylo(2): yhi(2), ylo(3): yhi(3))
    real(amrex_real), intent(in   ) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3))
@@ -52,9 +54,10 @@ contains
    real(amrex_real) :: feb, phib, phig, gx, gy, gz, dg, gxy, gxz, gyz, gxyz
    real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
    real(amrex_real) :: bctx, bcty, bctz
-   logical :: is_dirichlet, is_inhomogeneous
+   logical :: is_inhomogeneous
 
-   is_dirichlet = is_eb_dirichlet .ne. 0
+   real(amrex_real) :: dphidn
+
    is_inhomogeneous = is_inhomog .ne. 0
 
    dhx = beta*dxinv(1)*dxinv(1) 
@@ -64,9 +67,13 @@ contains
    do         k = lo(3), hi(3) 
        do     j = lo(2), hi(2) 
            do i = lo(1), hi(1) 
+
              if(is_covered_cell(flag(i,j,k))) then 
+
                  y(i,j,k) = zero
+
               else if (is_regular_cell(flag(i,j,k))) then 
+
                  y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) & 
                             - dhx * (bX(i+1,j,k)*(x(i+1,j,k) - x(i  ,j,k))  & 
                             &       -bX(i  ,j,k)*(x(i  ,j,k) - x(i-1,j,k))) & 
@@ -74,6 +81,7 @@ contains
                             &       -bY(i,j  ,k)*(x(i,j  ,k) - x(i,j-1,k))) &
                             - dhz * (bZ(i,j,k+1)*(x(i,j,k+1) - x(i,j,k  ))  & 
                             &       -bZ(i,j,k  )*(x(i,j,k  ) - x(i,j,k-1)))
+                    
               else 
                 fxm = bX(i,j,k)*(x(i,j,k) - x(i-1,j,k))
                 if (apx(i,j,k).ne.zero.and.apx(i,j,k).ne.one) then 
@@ -146,8 +154,60 @@ contains
                          & fracy*(one-fracx)*bZ(i ,jj,k+1)*(x(i ,jj,k+1)-x(i ,jj,k)) + &
                          & fracx*     fracy *bZ(ii,jj,k+1)*(x(ii,jj,k+1)-x(ii,jj,k))
                 endif 
+                   
+                y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) + (one/vfrc(i,j,k))*&
+                       (dhx*(apx(i,j,k)*fxm - apx(i+1,j,k)*fxp) + &
+                        dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
+                        dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp) )
+              endif
+          enddo
+       enddo 
+   enddo 
 
-                if (is_dirichlet) then
+   if (is_ho_dirichlet .ne. 0 ) then
+       do k = lo(3), hi(3) 
+       do j = lo(2), hi(2) 
+       do i = lo(1), hi(1) 
+
+         if (is_single_valued_cell(flag(i,j,k))) then
+
+            anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
+                 +       (apy(i,j,k)-apy(i,j+1,k))**2 &
+                 +       (apz(i,j,k)-apz(i,j,k+1))**2)
+            anorminv = one/anorm
+            anrmx = (apx(i,j,k)-apx(i+1,j,k)) * anorminv
+            anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
+            anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
+
+            if (is_inhomogeneous) then
+               phib = phieb(i,j,k)
+            else
+               phib = zero
+            end if
+
+            call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
+                                   x,    xlo,  xhi, &
+                                   flag, flo,  fhi, &
+                                   bc(i,j,k,:),  phib, &
+                                   anrmx, anrmy, anrmz)
+
+            feb = dphidn * ba(i,j,k) * beb(i,j,k) 
+
+            y(i,j,k) = y(i,j,k) - (one/vfrc(i,j,k)) * dhx*feb
+
+          endif
+
+       enddo 
+       enddo 
+       enddo 
+   
+   else if (is_dirichlet .ne. 0) then
+       do k = lo(3), hi(3) 
+       do j = lo(2), hi(2) 
+       do i = lo(1), hi(1) 
+
+             if (is_single_valued_cell(flag(i,j,k))) then
+
                    anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                         +       (apy(i,j,k)-apy(i,j+1,k))**2 &
                         +       (apz(i,j,k)-apz(i,j,k+1))**2)
@@ -155,9 +215,11 @@ contains
                    anrmx = (apx(i,j,k)-apx(i+1,j,k)) * anorminv
                    anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
                    anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
+
                    bctx = bc(i,j,k,1)
                    bcty = bc(i,j,k,2)
                    bctz = bc(i,j,k,3)
+
                    dg = dx_eb / max(abs(anrmx),abs(anrmy),abs(anrmz))
                    gx = bctx - dg*anrmx
                    gy = bcty - dg*anrmy
@@ -192,19 +254,15 @@ contains
                    end if
 
                    feb = (phib-phig)/dg * ba(i,j,k) * beb(i,j,k)
-                else
-                   feb = zero
-                end if
 
-                y(i,j,k) = alpha*a(i,j,k)*x(i,j,k) + (one/vfrc(i,j,k))*&
-                       (dhx*(apx(i,j,k)*fxm - apx(i+1,j,k)*fxp) + &
-                        dhy*(apy(i,j,k)*fym - apy(i,j+1,k)*fyp) + &
-                        dhz*(apz(i,j,k)*fzm - apz(i,j,k+1)*fzp) &
-                        - dhx*feb)
-              endif 
-          enddo
+                   y(i,j,k) = y(i,j,k) - (one/vfrc(i,j,k)) * dhx*feb
+
+              endif
        enddo 
-   enddo 
+       enddo 
+       enddo 
+   end if
+
   end subroutine amrex_mlebabeclap_adotx
 
   subroutine amrex_mlebabeclap_gsrb(lo, hi, phi, hlo, hhi, rhs, rlo, rhi, a, alo, ahi, & 
@@ -217,7 +275,8 @@ contains
      flag, flo, fhi, vfrc, vlo, vhi, & 
      apx, axlo, axhi, apy, aylo, ayhi, apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
      fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-     is_eb_dirichlet, dxinv, alpha, beta, redblack) & 
+     is_dirichlet, is_ho_dirichlet, &
+     dxinv, alpha, beta, redblack) & 
      bind(c,name='amrex_mlebabeclap_gsrb') 
 
     integer, dimension(3), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
@@ -227,7 +286,7 @@ contains
          axlo, axhi, aylo, ayhi, azlo, azhi, cxlo, cxhi, cylo, cyhi, czlo, czhi, &
          balo, bahi, bclo, bchi, elo, ehi
     real(amrex_real), intent(in) :: dxinv(3)
-    integer         , value, intent(in) :: is_eb_dirichlet
+    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     integer         , value, intent(in) :: redblack
     real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2), hlo(3): hhi(3)  )
@@ -269,10 +328,9 @@ contains
     real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
     real(amrex_real) :: bctx, bcty, bctz
-    logical :: is_dirichlet
     real(amrex_real), parameter :: omega = 1.15_amrex_real ! over-relaxation
 
-    is_dirichlet = is_eb_dirichlet .ne. 0
+    real(amrex_real) :: dphidn, phib
 
     dhx = beta*dxinv(1)*dxinv(1) 
     dhy = beta*dxinv(2)*dxinv(2) 
@@ -432,7 +490,33 @@ contains
                           dhy*(apy(i,j,k)*oym-apy(i,j+1,k)*oyp) + &
                           dhz*(apz(i,j,k)*ozm-apz(i,j,k+1)*ozp))
 
-                    if (is_dirichlet) then
+                    if (is_ho_dirichlet .ne. 0) then
+
+                       anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
+                            +       (apy(i,j,k)-apy(i,j+1,k))**2 &
+                            +       (apz(i,j,k)-apz(i,j,k+1))**2)
+                       anorminv = one/anorm
+                       anrmx = (apx(i,j,k)-apx(i+1,j,k)) * anorminv
+                       anrmy = (apy(i,j,k)-apy(i,j+1,k)) * anorminv
+                       anrmz = (apz(i,j,k)-apz(i,j,k+1)) * anorminv
+
+                       ! In gsrb we are always in residual-correction form so phib = 0
+                       phib = zero 
+
+                       call compute_dphidn_3d(dphidn, dxinv, i, j, k, &
+                                              phi,  hlo,  hhi, &
+                                              flag, flo,  fhi, &
+                                              bc(i,j,k,:), phib,     &
+                                              anrmx, anrmy, anrmz)
+
+                       feb = dphidn * ba(i,j,k) * beb(i,j,k)
+
+                       ! feb_gamma = -phig_gamma * (ba(i,j,k)*beb(i,j,k)/dg)
+                       ! gamma = gamma + vfrcinv*(-dhx)*feb_gamma
+
+                       rho = rho - vfrcinv*(-dhx)*feb
+
+                    else if (is_dirichlet .ne. 0) then
                        anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                             +       (apy(i,j,k)-apy(i,j+1,k))**2 &
                             +       (apz(i,j,k)-apz(i,j,k+1))**2)
@@ -470,8 +554,8 @@ contains
                             + (gxy + gxyz) * phi(ii,jj,k) &
                             + (-gxyz) * phi(ii,jj,kk)
 
-                       feb_gamma = -phig_gamma * (ba(i,j,k)*beb(i,j,k)/dg)
-                       feb = -phig * (ba(i,j,k)*beb(i,j,k)/dg)
+                       feb_gamma = -phig_gamma/dg * ba(i,j,k) * beb(i,j,k)
+                       feb       = (    -phig)/dg * ba(i,j,k) * beb(i,j,k)
                     
                        gamma = gamma + vfrcinv*(-dhx)*feb_gamma
                        rho = rho - vfrcinv*(-dhx)*feb
@@ -481,6 +565,7 @@ contains
 
                  res = rhs(i,j,k) - (gamma*phi(i,j,k) - rho)
                  phi(i,j,k) = phi(i,j,k) + omega*res/(gamma-delta)
+
               endif
           end do 
        end do 
@@ -492,13 +577,13 @@ contains
        bx, bxlo, bxhi, by, bylo, byhi, bz, bzlo, bzhi, ccm, cmlo, cmhi, flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi,apz, azlo, azhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
        fcz, czlo, czhi, ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-       is_eb_dirichlet, dxinv, alpha, beta) &
+       is_dirichlet, is_ho_dirichlet, dxinv, alpha, beta) &
        bind(c,name='amrex_mlebabeclap_normalize')
 
     integer, dimension(3), intent(in) :: lo, hi, xlo, xhi, alo, ahi, bxlo, bxhi, bylo, byhi, bzlo, bzhi, &
          cmlo, cmhi, flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi,azlo, azhi, &
          cxlo, cxhi, cylo, cyhi, czlo, czhi, balo, bahi, bclo, bchi, elo, ehi
-    integer         , value, intent(in) :: is_eb_dirichlet
+    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet
     real(amrex_real), intent(in) :: dxinv(3)
     real(amrex_real), value, intent(in) :: alpha, beta
     real(amrex_real), intent(inout) ::    x( xlo(1): xhi(1), xlo(2): xhi(2), xlo(3): xhi(3)  )
@@ -525,9 +610,6 @@ contains
     real(amrex_real) :: feb_gamma, phig_gamma
     real(amrex_real) :: anrmx, anrmy, anrmz, anorm, anorminv, sx, sy, sz
     real(amrex_real) :: bctx, bcty, bctz
-    logical :: is_dirichlet
-
-    is_dirichlet = is_eb_dirichlet .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -602,7 +684,7 @@ contains
                    dhy*(apy(i,j,k)*sym-apy(i,j+1,k)*syp) + & 
                    dhz*(apz(i,j,k)*szm-apz(i,j,k+1)*szp))
 
-             if (is_dirichlet) then
+             if (is_dirichlet .ne. 0 .or. is_ho_dirichlet .ne. 0) then
                 anorm = sqrt((apx(i,j,k)-apx(i+1,j,k))**2 &
                      +       (apy(i,j,k)-apy(i,j+1,k))**2 &
                      +       (apz(i,j,k)-apz(i,j,k+1))**2)
@@ -930,5 +1012,199 @@ contains
        enddo
     enddo
   end subroutine amrex_mlebabeclap_grad
+
+  subroutine compute_dphidn_3d (dudn, dxinv, i, j, k, &
+        phi,  p_lo, p_hi,     &
+        flag,  flo,  fhi,     &
+        bct, phib, anrmx, anrmy, anrmz)
+
+      ! Cell indices 
+      integer, intent(in   ) :: i, j, k
+
+      ! Grid spacing
+      real(amrex_real),       intent(in   ) :: dxinv(3)
+
+      ! Array bounds
+      integer, intent(in   ) :: p_lo(3), p_hi(3)
+      integer, intent(in   ) ::  flo(3),  fhi(3)
+
+      ! Arrays
+      real(amrex_real),  intent(in   ) ::                            &
+           & phi(p_lo(1):p_hi(1),p_lo(2):p_hi(2),p_lo(3):p_hi(3))
+
+      integer, intent(in   ) :: flag( flo(1): fhi(1), flo(2): fhi(2), flo(3): fhi(3)) 
+
+      real(amrex_real),  intent(in   ) :: bct(3), phib
+      real(amrex_real),  intent(in   ) :: anrmx, anrmy, anrmz
+
+      real(amrex_real),        intent(  out) :: dudn
+
+      ! Local variable
+      real(amrex_real) :: anrm
+      real(amrex_real) :: xit, yit, zit, s, s2
+      real(amrex_real) :: d1, d2, ddinv
+      real(amrex_real) :: u1, u2
+      integer          :: ixit, iyit, izit, is, is2, ivar
+
+      if (abs(anrmx).ge.abs(anrmy) .and. abs(anrmx).ge.abs(anrmz)) then
+         anrm = anrmx
+         ivar = 1
+      else if (abs(anrmy).ge.abs(anrmx) .and. abs(anrmy).ge.abs(anrmz)) then
+         anrm = anrmy
+         ivar = 2
+      else 
+         anrm = anrmz
+         ivar = 3
+      end if
+
+      ! s is -1. or 1.
+        s = sign(one,-anrm)
+       s2 = 2*s
+
+      ! is is -1 or 1
+      is  = nint(s)
+      is2 = 2*is
+
+      d1 = (bct(ivar) - s ) * (one/anrm)
+      d2 = (bct(ivar) - s2) * (one/anrm)
+
+      if (abs(anrmx).ge.abs(anrmy) .and. abs(anrmx).ge.abs(anrmz)) then
+         ! y-z plane: x = const
+         ! the equation for the line:  x = bct(1) - d*anrmx
+         !                             y = bct(2) - d*anrmy
+         !                             z = bct(3) - d*anrmz
+
+         !
+         ! the line intersects the y-z plane (x = s) at ...
+         !
+         yit = bct(2) - d1*anrmy
+         zit = bct(3) - d1*anrmz
+         iyit = j + nint(yit)
+         izit = k + nint(zit)
+         yit = yit - nint(yit)  ! shift so that the center of the nine cells are (0.,0.)
+         zit = zit - nint(zit)
+
+         call interp2d(u1,yit,zit,phi(i+is,iyit-1:iyit+1,izit-1:izit+1),flag(i+is,iyit-1:iyit+1,izit-1:izit+1))
+
+         !
+         ! the line intersects the y-z plane (x = 2*s) at ...
+         !
+         yit = bct(2) - d2*anrmy
+         zit = bct(3) - d2*anrmz
+         iyit = j + nint(yit)
+         izit = k + nint(zit)
+         yit = yit - nint(yit)  ! shift so that the center of the nine cells are (0.,0.)
+         zit = zit - nint(zit)
+
+         call interp2d(u2,yit,zit,phi(i+is2,iyit-1:iyit+1,izit-1:izit+1),flag(i+is2,iyit-1:iyit+1,izit-1:izit+1))
+
+      else if (abs(anrmy).ge.abs(anrmx) .and. abs(anrmy).ge.abs(anrmz)) then
+
+         xit = bct(1) - d1*anrmx
+         zit = bct(3) - d1*anrmz
+         ixit = i + nint(xit)
+         izit = k + nint(zit)
+         xit = xit - nint(xit)
+         zit = zit - nint(zit)
+
+         call interp2d(u1,xit,zit,phi(ixit-1:ixit+1,j+is,izit-1:izit+1),flag(ixit-1:ixit+1,j+is,izit-1:izit+1))
+
+         xit = bct(1) - d2*anrmx
+         zit = bct(3) - d2*anrmz
+         ixit = i + nint(xit)
+         izit = k + nint(zit)
+         xit = xit - nint(xit)
+         zit = zit - nint(zit)
+
+         call interp2d(u2,xit,zit,phi(ixit-1:ixit+1,j+is2,izit-1:izit+1),flag(ixit-1:ixit+1,j+is2,izit-1:izit+1))
+
+      else
+
+         xit = bct(1) - d1*anrmx
+         yit = bct(2) - d1*anrmy
+         ixit = i + nint(xit)
+         iyit = j + nint(yit)
+         xit = xit - nint(xit)
+         yit = yit - nint(yit)
+
+         call interp2d(u1,xit,yit,phi(ixit-1:ixit+1,iyit-1:iyit+1,k+is),flag(ixit-1:ixit+1,iyit-1:iyit+1,k+is))
+
+         xit = bct(1) - d2*anrmx
+         yit = bct(2) - d2*anrmy
+         ixit = i + nint(xit)
+         iyit = j + nint(yit)
+         xit = xit - nint(xit)
+         yit = yit - nint(yit)
+
+         call interp2d(u2,xit,yit,phi(ixit-1:ixit+1,iyit-1:iyit+1,k+is2),flag(ixit-1:ixit+1,iyit-1:iyit+1,k+is2))
+
+      end if
+
+      !
+      ! compute derivatives on the wall given that phi is zero on the wall.
+      !
+      ddinv = one/(d1*d2*(d2-d1))
+      dudn = -ddinv*( d2*d2*(u1-phib) - d1*d1*(u2-phib) )  ! note that the normal vector points toward the wall
+
+  end subroutine compute_dphidn_3d
+
+  subroutine interp2d(phi_interp,yit,zit,v,flag)
+
+      real(amrex_real), intent(in   ) :: yit,zit,v(3,3)
+      integer         , intent(in   ) :: flag(3,3)
+      real(amrex_real), intent(  out) :: phi_interp
+
+      real(amrex_real)             :: cym,cy0,cyp,czm,cz0,czp
+      real(amrex_real)             :: val(3)
+
+      ! Coefficents for quadratic interpolation
+      cym = half*yit*(yit-one)
+      cy0 = one-yit*yit
+      cyp = half*yit*(yit+one)
+
+      ! Coefficents for quadratic interpolation
+      czm = half*zit*(zit-one)
+      cz0 = one-zit*zit
+      czp = half*zit*(zit+one)
+
+      if (any(is_covered_cell(flag(1,1:3)))) then
+
+         val(1:3) = (one-yit)*v(2,1:3) + yit*v(3,1:3)
+
+         if (any(is_covered_cell(flag(2:3,1)))) then
+            phi_interp = (one-yit)*val(2) + yit*val(3)
+         else if (any(is_covered_cell(flag(2:3,3)))) then
+            phi_interp = -yit*val(1) + (one+yit)*val(2)
+         else 
+            phi_interp =  czm*val(1) + cz0*val(2) + czp*val(3)
+         end if
+
+      else if (any(is_covered_cell(flag(3,1:3)))) then
+
+         val(1:3) = -yit*v(1,1:3) + (one+yit)*v(2,1:3)
+
+         if (any(is_covered_cell(flag(1:2,1)))) then
+            phi_interp = (one-yit)*val(2) + yit*val(3)
+         else if (any(is_covered_cell(flag(1:2,3)))) then
+            phi_interp = -yit*val(1) + (one+yit)*val(2)
+         else 
+            phi_interp =  czm*val(1) + cz0*val(2) + czp*val(3)
+         end if
+
+      else
+
+         val(1:3) =  cym*v(1,1:3) + cy0*v(2,1:3) + cyp*v(3,1:3)
+
+         if (any(is_covered_cell(flag(1:3,1)))) then
+            phi_interp = (one-yit)*val(2) + yit*val(3)
+         else if (any(is_covered_cell(flag(1:3,3)))) then
+            phi_interp = -yit*val(1) + (one+yit)*val(2)
+         else 
+            phi_interp =  czm*val(1) + cz0*val(2) + czp*val(3)
+         end if
+
+      end if
+
+  end subroutine interp2d
 
 end module amrex_mlebabeclap_3d_module

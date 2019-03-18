@@ -1,11 +1,4 @@
 #
-# Does not work if amrex is built in shared mode
-#
-if (BUILD_SHARED_LIBS)
-  return()
-endif ()
-
-#
 # This test works for both 2D and 3D builds 
 #
 set ( EXENAME  "Advection_AmrCore.exe" )
