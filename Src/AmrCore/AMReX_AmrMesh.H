@@ -24,100 +24,100 @@ public:
 
     virtual ~AmrMesh ();
 
-    int Verbose () const { return verbose; }
+    int Verbose () const noexcept { return verbose; }
 
     //! Return the max level
-    int maxLevel () const { return max_level; }
+    int maxLevel () const noexcept { return max_level; }
 
     //! Return the finest level
-    int finestLevel () const { return finest_level; }
+    int finestLevel () const noexcept { return finest_level; }
 
     //! Return the refinement ratio for level lev
-    IntVect refRatio (int lev) const { return ref_ratio[lev]; }
+    IntVect refRatio (int lev) const noexcept { return ref_ratio[lev]; }
 
     //! Return the maximum refinement ratio in any direction.
-    int MaxRefRatio (int lev) const;
+    int MaxRefRatio (int lev) const noexcept;
 
     //! Return refinement ratios between all levels.
-    const Vector<IntVect>& refRatio () const { return ref_ratio; }
+    const Vector<IntVect>& refRatio () const noexcept { return ref_ratio; }
 
-    const Vector<Geometry>& Geom () const { return geom; }
-    const Vector<DistributionMapping>& DistributionMap () const { return dmap; }
-    const Vector<BoxArray>& boxArray () const { return grids; }
+    const Vector<Geometry>& Geom () const noexcept { return geom; }
+    const Vector<DistributionMapping>& DistributionMap () const noexcept { return dmap; }
+    const Vector<BoxArray>& boxArray () const noexcept { return grids; }
 
-    const Geometry& Geom (int lev) const { return geom[lev]; }
-    const DistributionMapping& DistributionMap (int lev) const { return dmap[lev]; }
-    const BoxArray& boxArray (int lev) const { return grids[lev]; }
+    const Geometry& Geom (int lev) const noexcept { return geom[lev]; }
+    const DistributionMapping& DistributionMap (int lev) const noexcept { return dmap[lev]; }
+    const BoxArray& boxArray (int lev) const noexcept { return grids[lev]; }
 
-    Vector<Geometry>& Geom () { return geom; }
-    Geometry& Geom (int lev) { return geom[lev]; }
+    Vector<Geometry>& Geom () noexcept { return geom; }
+    Geometry& Geom (int lev) noexcept { return geom[lev]; }
 
-    void SetMaxGridSize (int new_mgs) {
+    void SetMaxGridSize (int new_mgs) noexcept {
         max_grid_size.assign(max_level+1, IntVect{AMREX_D_DECL(new_mgs,new_mgs,new_mgs)});
     }
-    void SetMaxGridSize (const IntVect& new_mgs) {
+    void SetMaxGridSize (const IntVect& new_mgs) noexcept {
         max_grid_size.assign(max_level+1, new_mgs);
     }
-    void SetMaxGridSize (const Vector<int>& new_mgs) {
+    void SetMaxGridSize (const Vector<int>& new_mgs) noexcept {
         max_grid_size.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
             max_grid_size[i] = IntVect{AMREX_D_DECL(new_mgs[i],new_mgs[i],new_mgs[i])};
         }
     }
-    void SetMaxGridSize (const Vector<IntVect>& new_mgs) {
+    void SetMaxGridSize (const Vector<IntVect>& new_mgs) noexcept {
         max_grid_size.assign(new_mgs.cbegin(), new_mgs.cbegin()+max_level+1);
     }
 
-    void SetBlockingFactor (int new_bf) {
+    void SetBlockingFactor (int new_bf) noexcept {
         blocking_factor.assign(max_level+1, IntVect{AMREX_D_DECL(new_bf,new_bf,new_bf)});
     }
-    void SetBlockingFactor (const IntVect& new_bf) {
+    void SetBlockingFactor (const IntVect& new_bf) noexcept {
         blocking_factor.assign(max_level+1, new_bf);
     }
-    void SetBlockingFactor (const Vector<int>& new_bf) {
+    void SetBlockingFactor (const Vector<int>& new_bf) noexcept {
         blocking_factor.resize(max_level+1);
         for (int i = 0; i <= max_level; ++i) {
             blocking_factor[i] = IntVect{AMREX_D_DECL(new_bf[i],new_bf[i],new_bf[i])};
         }
     }
-    void SetBlockingFactor (const Vector<IntVect>& new_bf) {
+    void SetBlockingFactor (const Vector<IntVect>& new_bf) noexcept {
         blocking_factor.assign(new_bf.cbegin(), new_bf.cend()+max_level+1);
     }
 
-    void SetGridEff (Real eff) { grid_eff = eff; }
-    void SetNProper (int n) { n_proper = n; }
+    void SetGridEff (Real eff) noexcept { grid_eff = eff; }
+    void SetNProper (int n) noexcept { n_proper = n; }
 
     //! Set ref_ratio would require rebuiling Geometry objects.
 
-    void SetFinestLevel (int new_finest_level) { finest_level = new_finest_level; }
-    void SetDistributionMap (int lev, const DistributionMapping& dmap_in);
-    void SetBoxArray (int lev, const BoxArray& ba_in);
+    void SetFinestLevel (int new_finest_level) noexcept { finest_level = new_finest_level; }
+    void SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept;
+    void SetBoxArray (int lev, const BoxArray& ba_in) noexcept;
 
-    void ClearDistributionMap (int lev);
-    void ClearBoxArray (int lev);
+    void ClearDistributionMap (int lev) noexcept;
+    void ClearBoxArray (int lev) noexcept;
 
     //! Return the number of buffer cells in error estimator.
-    int nErrorBuf (int lev) const { return n_error_buf[lev]; }
+    int nErrorBuf (int lev) const noexcept { return n_error_buf[lev]; }
 
     //! Return the minimum allowable grid efficiency.
-    Real gridEff () const { return grid_eff; }
+    Real gridEff () const noexcept { return grid_eff; }
 
     //! Return the number of cells to define proper nesting
-    int nProper () const { return n_proper; }
+    int nProper () const noexcept { return n_proper; }
 
     //! Return the blocking factor at level lev
-    const IntVect& blockingFactor (int lev) const { return blocking_factor[lev]; }
+    const IntVect& blockingFactor (int lev) const noexcept { return blocking_factor[lev]; }
 
     //! Return the largest allowable grid.
-    const IntVect& maxGridSize (int lev) const { return max_grid_size[lev]; }
+    const IntVect& maxGridSize (int lev) const noexcept { return max_grid_size[lev]; }
 
-    bool LevelDefined (int lev);
+    bool LevelDefined (int lev) noexcept;
 
     //! Should we keep the coarser grids fixed (and not regrid those levels) at all?
-    bool useFixedCoarseGrids () const { return use_fixed_coarse_grids; }
+    bool useFixedCoarseGrids () const noexcept { return use_fixed_coarse_grids; }
 
     //! Up to what level should we keep the coarser grids fixed (and not regrid those levels)?
-    int useFixedUpToLevel () const { return use_fixed_upto_level; }
+    int useFixedUpToLevel () const noexcept { return use_fixed_upto_level; }
 
     //! "Try" to chop up grids so that the number of boxes in the BoxArray is greater than the target_size.
     void ChopGrids (int lev, BoxArray& ba, int target_size) const;
@@ -157,7 +157,7 @@ public:
 
     virtual BoxArray GetAreaNotToTag (int lev) { return BoxArray(); }
 
-    long CountCells (int lev);
+    long CountCells (int lev) noexcept;
 
     static void Initialize ();
     static void Finalize ();
@@ -190,18 +190,18 @@ protected:
 
     void checkInput();
 
-     void SetIterateToFalse ()
+     void SetIterateToFalse () noexcept
      {
          iterate_on_new_grids = false;
      }
-     void SetUseNewChop ()
+     void SetUseNewChop () noexcept
      {
          use_new_chop = true;
      }
 
 private:
-  void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
-                    std::vector<int> refrat = std::vector<int>());
+    void InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
+                      std::vector<int> refrat = std::vector<int>());
 
     static void ProjPeriodic (BoxList& bd, const Geometry& geom);
 };

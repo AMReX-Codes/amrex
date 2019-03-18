@@ -25,7 +25,7 @@ namespace amrex {
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineadd (Box const& bx, FArrayBox& regfab, const int rcomp,
                  FArrayBox const& flxfab, const int fcomp, const int ncomp,
-                 const int dir, IntVect const& ratio, const Real mult)
+                 const int dir, IntVect const& ratio, const Real mult) noexcept
 {
     const auto lo  = amrex::lbound(bx);
     const auto hi  = amrex::ubound(bx);
@@ -89,7 +89,7 @@ AMREX_GPU_HOST_DEVICE inline void
 fluxreg_fineareaadd (Box const& bx, FArrayBox& regfab, const int rcomp,
                      FArrayBox const& areafab,
                      FArrayBox const& flxfab, const int fcomp, const int ncomp,
-                     const int dir, IntVect const& ratio, const Real mult)
+                     const int dir, IntVect const& ratio, const Real mult) noexcept
 {
     const auto lo  = amrex::lbound(bx);
     const auto hi  = amrex::ubound(bx);
@@ -138,7 +138,7 @@ fluxreg_fineareaadd (Box const& bx, FArrayBox& regfab, const int rcomp,
 AMREX_GPU_HOST_DEVICE inline void
 fluxreg_reflux (Box const& bx, FArrayBox& sfab, const int scomp,
                 FArrayBox const& ffab, FArrayBox const& vfab,
-                const int ncomp, const Real mult, const Orientation face)
+                const int ncomp, const Real mult, const Orientation face) noexcept
 {
     const auto len = amrex::length(bx);
     const auto lo  = amrex::lbound(bx);

@@ -292,7 +292,7 @@ StateData::allocOldData ()
 }
 
 BCRec
-StateData::getBC (int comp, int i) const
+StateData::getBC (int comp, int i) const noexcept
 {
     BCRec bcr;
     amrex::setBC(grids[i],domain,desc->getBC(comp),bcr);

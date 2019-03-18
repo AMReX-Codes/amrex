@@ -100,7 +100,7 @@ StateDescriptor::BndryFunc::operator () (Box const& bx, FArrayBox& data,
     m_funcfab(bx,data,dcomp,numcomp,geom,time,bcr,bcomp,scomp);
 }
 
-DescriptorList::DescriptorList ()
+DescriptorList::DescriptorList () noexcept
 {}
 
 void
@@ -110,7 +110,7 @@ DescriptorList::clear ()
 }
 
 int
-DescriptorList::size () const
+DescriptorList::size () const noexcept
 {
     return desc.size();
 }
@@ -154,7 +154,7 @@ DescriptorList::setComponent (int                               indx,
 }
 
 const StateDescriptor&
-DescriptorList::operator[] (int k) const
+DescriptorList::operator[] (int k) const noexcept
 {
     return *desc[k];
 }
@@ -175,7 +175,7 @@ DescriptorList::addDescriptor (int                         indx,
 }  
 
 
-StateDescriptor::StateDescriptor ()
+StateDescriptor::StateDescriptor () noexcept
     :
     t_type(Point),
     id(-1),
@@ -233,80 +233,80 @@ StateDescriptor::resetComponentBCs (int              comp,
 }
 
 IndexType
-StateDescriptor::getType () const
+StateDescriptor::getType () const noexcept
 {
     return type;
 }
 
 StateDescriptor::TimeCenter
-StateDescriptor::timeType () const
+StateDescriptor::timeType () const noexcept
 {
     return t_type;
 }
 
 int
-StateDescriptor::nComp () const
+StateDescriptor::nComp () const noexcept
 {
     return ncomp;
 }
 
 int
-StateDescriptor::nExtra () const
+StateDescriptor::nExtra () const noexcept
 {
     return ngrow;
 }
 
 Interpolater*
-StateDescriptor::interp () const
+StateDescriptor::interp () const noexcept
 {
     return mapper;
 }
 
 Interpolater*
-StateDescriptor::interp (int i) const
+StateDescriptor::interp (int i) const noexcept
 {
     return mapper_comp[i] == 0 ? mapper : mapper_comp[i];
 }
 
 const std::string&
-StateDescriptor::name (int i) const
+StateDescriptor::name (int i) const noexcept
 {
     return names[i];
 }
 
 const BCRec&
-StateDescriptor::getBC (int i) const
+StateDescriptor::getBC (int i) const noexcept
 {
     return bc[i];
 }
 
 const Vector<BCRec>&
-StateDescriptor::getBCs () const
+StateDescriptor::getBCs () const noexcept
 {
     return bc;
 }
 
 bool
-StateDescriptor::extrap () const
+StateDescriptor::extrap () const noexcept
 {
     return m_extrap;
 }
 
 bool
-StateDescriptor::store_in_checkpoint () const
+StateDescriptor::store_in_checkpoint () const noexcept
 {
     return m_store_in_checkpoint;
 }
 
 
 const StateDescriptor::BndryFunc&
-StateDescriptor::bndryFill (int i) const
+StateDescriptor::bndryFill (int i) const noexcept
 {
     return *bc_func[i];
 }
 
 int
-StateDescriptor::inRange (int sc, int nc) const
+StateDescriptor::inRange (int sc, int nc) const noexcept
 {
     return sc>=0 && sc+nc<=ncomp;
 }
@@ -523,7 +523,7 @@ StateDescriptor::cleanUpMaps (Interpolater**& maps,
 
 bool
 StateDescriptor::identicalInterps (int a_scomp,
-                                   int a_ncomp) const
+                                   int a_ncomp) const noexcept
 {
     BL_ASSERT(a_scomp >= 0);
     BL_ASSERT(a_ncomp >= 1);

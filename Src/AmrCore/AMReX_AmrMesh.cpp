@@ -325,7 +325,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in, std::vecto
 }
 
 int
-AmrMesh::MaxRefRatio (int lev) const
+AmrMesh::MaxRefRatio (int lev) const noexcept
 {
     int maxval = 0;
     for (int n = 0; n<AMREX_SPACEDIM; n++)
@@ -334,31 +334,31 @@ AmrMesh::MaxRefRatio (int lev) const
 }
 
 void
-AmrMesh::SetDistributionMap (int lev, const DistributionMapping& dmap_in)
+AmrMesh::SetDistributionMap (int lev, const DistributionMapping& dmap_in) noexcept
 {
     if (dmap[lev] != dmap_in) dmap[lev] = dmap_in;
 }
 
 void
-AmrMesh::SetBoxArray (int lev, const BoxArray& ba_in)
+AmrMesh::SetBoxArray (int lev, const BoxArray& ba_in) noexcept
 {
     if (grids[lev] != ba_in) grids[lev] = ba_in;
 }
 
 void
-AmrMesh::ClearDistributionMap (int lev)
+AmrMesh::ClearDistributionMap (int lev) noexcept
 {
     dmap[lev] = DistributionMapping();
 }
 
 void
-AmrMesh::ClearBoxArray (int lev)
+AmrMesh::ClearBoxArray (int lev) noexcept
 {
     grids[lev] = BoxArray();
 }
 
 bool
-AmrMesh::LevelDefined (int lev)
+AmrMesh::LevelDefined (int lev) noexcept
 {
     return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
 }
@@ -896,7 +896,7 @@ AmrMesh::checkInput ()
 }
 
 long
-AmrMesh::CountCells (int lev)
+AmrMesh::CountCells (int lev) noexcept
 {
     return grids[lev].numPts();
 }
