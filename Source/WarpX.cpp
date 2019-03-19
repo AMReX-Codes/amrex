@@ -1041,3 +1041,24 @@ WarpX::RestoreCurrent (int lev)
         }
     }
 }
+
+std::string
+WarpX::Version ()
+{
+#ifdef WARPX_GIT_VERSION
+    return std::string(WARPX_GIT_VERSION);
+#else
+    return std::string("Unknown");
+#endif
+}
+
+std::string
+WarpX::PicsarVersion ()
+{
+#ifdef WARPX_GIT_VERSION
+    return std::string(PICSAR_GIT_VERSION);
+#else
+    return std::string("Unknown");
+#endif
+}
+
