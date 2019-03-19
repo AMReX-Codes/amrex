@@ -85,9 +85,10 @@ class BoostedFrameDiagnostic {
     void writeParticleData(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                            const std::string& name, const int i_lab);
 
+#ifdef WARPX_USE_HDF5
     void writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata,
                                const std::string& name, const std::string& species_name);
-    
+#endif
 public:
     
     BoostedFrameDiagnostic(amrex::Real zmin_lab, amrex::Real zmax_lab, 

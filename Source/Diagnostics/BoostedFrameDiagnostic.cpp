@@ -674,6 +674,7 @@ writeLabFrameData(const MultiFab* cell_centered_data,
     VisMF::SetHeaderVersion(current_version);    
 }
 
+#ifdef WARPX_USE_HDF5
 void
 BoostedFrameDiagnostic::
 writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdata,
@@ -718,6 +719,7 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
                                     particle_offsets[ParallelDescriptor::MyProc()] + old_np);
     }    
 }
+#endif
 
 void
 BoostedFrameDiagnostic::
