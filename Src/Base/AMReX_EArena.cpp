@@ -33,7 +33,7 @@ EArena::alloc (std::size_t nbytes)
 
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
 
-    auto fit = m_freelist.upper_bound(Node{nbytes});
+    auto fit = m_freelist.lower_bound(Node{nbytes});
 
     void* vp = nullptr;
 
