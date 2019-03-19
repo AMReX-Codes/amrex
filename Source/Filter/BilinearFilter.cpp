@@ -1,6 +1,5 @@
 #include <WarpX.H>
 #include <BilinearFilter.H>
-#include <Filter_Kernels.H>
 #include <WarpX_f.H>
 
 #ifdef _OPENMP
@@ -96,9 +95,10 @@ void BilinearFilter::filter_2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab
     Array4<Real> const& dstarr = dstfab.array();
     for(int i=loVector[0]; i<=hiVector[0]; i++){
     for(int j=loVector[1]; j<=hiVector[1]; j++){
+        dstarr(i,j,0) = 0.;
         for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
         for (int iz=-stencil_length_each_dir[1]+1; iz<stencil_length_each_dir[1]; iz++){
-            dstarr(i,j,0) = stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
+            dstarr(i,j,0) += stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
         }
         }
     }
