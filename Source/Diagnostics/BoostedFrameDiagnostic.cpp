@@ -126,7 +126,18 @@ namespace
 
     void output_create_species_group(const std::string& file_path, const std::string& species_name)
     {
-        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        MPI_Comm comm = MPI_COMM_WORLD;
+        MPI_Info info = MPI_INFO_NULL;
+        int mpi_rank;
+        MPI_Comm_rank(comm, &mpi_rank);
+
+        // Create the file access prop list.
+        hid_t pa_plist = H5Pcreate(H5P_FILE_ACCESS);
+        H5Pset_fapl_mpio(pa_plist, comm, info);
+        
+        // Open the output.
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, pa_plist);
+        
         hid_t group = H5Gcreate(file, species_name.c_str(),
                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         H5Gclose(group);
@@ -262,8 +273,17 @@ namespace
     {        
         BL_PROFILE("output_create_particle_field");
 
+        MPI_Comm comm = MPI_COMM_WORLD;
+        MPI_Info info = MPI_INFO_NULL;
+        int mpi_rank;
+        MPI_Comm_rank(comm, &mpi_rank);
+
+        // Create the file access prop list.
+        hid_t pa_plist = H5Pcreate(H5P_FILE_ACCESS);
+        H5Pset_fapl_mpio(pa_plist, comm, info);
+        
         // Open the output.
-        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        hid_t file = H5Fopen(file_path.c_str(), H5F_ACC_RDWR, pa_plist);
 
         constexpr int RANK = 1;
         hsize_t dims[1] = {0};
@@ -803,6 +823,9 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     {
         output_create(file_name);
     }
+
+    ParallelDescriptor::Barrier();
+    
     if (ParallelDescriptor::IOProcessor())
     {
         if (WarpX::do_boosted_frame_fields)
@@ -818,20 +841,22 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
                                     my_bfd.Nz_lab_+1);
             }
         }
+    }
 
-        if (WarpX::do_boosted_frame_particles)
+    ParallelDescriptor::Barrier();
+    
+    if (WarpX::do_boosted_frame_particles)
+    {
+        auto & mypc = WarpX::GetInstance().GetPartContainer();
+        const std::vector<std::string> species_names = mypc.GetSpeciesNames();
+        std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
+        for (int j = 0; j < mypc.nSpecies(); ++j)
         {
-            auto & mypc = WarpX::GetInstance().GetPartContainer();
-            const std::vector<std::string> species_names = mypc.GetSpeciesNames();
-            std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
-            for (int j = 0; j < mypc.nSpecies(); ++j)
+            output_create_species_group(file_name, species_names[j]);
+            for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
             {
-                output_create_species_group(file_name, species_names[j]);
-                for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
-                {
-                    std::string field_path = species_names[j] + "/" + field_names[k];
-                    output_create_particle_field(file_name, field_path);
-                }
+                std::string field_path = species_names[j] + "/" + field_names[k];
+                output_create_particle_field(file_name, field_path);
             }
         }
     }    
