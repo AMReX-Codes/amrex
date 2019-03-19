@@ -186,7 +186,7 @@ namespace
 
     /*
       Creates an extendible dataset, suitable for storing particle data.
-      Should be run only by the master rank.
+      Should be run on all ranks collectively.
     */
     void output_write_particle_field(const std::string& file_path, const std::string& field_path,
                                      const Real* data_ptr, const long count, const long index)
@@ -267,7 +267,7 @@ namespace
     
     /*
       Creates an extendible dataset, suitable for storing particle data.
-      Should be run only by the master rank.
+      Should be run on all ranks collectively.
     */
     void output_create_particle_field(const std::string& file_path, const std::string& field_path)
     {        
