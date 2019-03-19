@@ -16,6 +16,7 @@
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/tuple.h>
+#include <curand_kernel.h>
 #endif
 
 namespace amrex {
