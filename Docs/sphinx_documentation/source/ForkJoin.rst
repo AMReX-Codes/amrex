@@ -4,8 +4,8 @@
 .. role:: fortran(code)
    :language: fortran
 
-Fork-Join Overview
-==================
+Fork-Join
+=========
 
 An AMReX program consists of a set of MPI ranks cooperating together on
 distributed data.
