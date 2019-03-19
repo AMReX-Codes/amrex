@@ -480,12 +480,14 @@ WarpX::WritePlotFile () const
     WarpX::AverageAndPackFields( varnames, mf_avg, ngrow );
 
     // Coarsen the fields, if requested by the user
-    Vector<const MultiFab*> output_mf;
+    Vector<const MultiFab*> output_mf; // will point to the data to be written
+    Vector<MultiFab> coarse_mf; // will remain empty if there is no coarsening
     Vector<Geometry> output_geom;
     if (plot_coarsening_ratio != 1) {
         int i=0;
-        coarsenCellCenteredFields( output_mf, output_geom, mf_avg, Geom(),
+        coarsenCellCenteredFields( coarse_mf, output_geom, mf_avg, Geom(),
                                     plot_coarsening_ratio, finest_level );
+        output_mf = amrex::GetVecOfConstPtrs(coarse_mf);
     } else {  // No averaging necessary, simply point to mf_avg
         output_mf = amrex::GetVecOfConstPtrs(mf_avg);
         output_geom = Geom();
