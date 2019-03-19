@@ -2360,8 +2360,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
         }
     }
 
-    ParallelDescriptor::ReduceLongMax(total_np);
-    ParallelDescriptor::ReduceLongMax(total_wrong);
+    ParallelDescriptor::ReduceLongSum(total_np);
+    ParallelDescriptor::ReduceLongSum(total_wrong);
 
     amrex::Print() << "I have " << total_np << " particles in OK(). \n"; 
     amrex::Print() << "I have " << total_wrong << " particles in the wrong place. \n"; 
