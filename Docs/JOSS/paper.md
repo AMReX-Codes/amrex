@@ -83,6 +83,7 @@ conditions on current and emerging architectures.
 AMR reduces the computational cost and memory footprint
 compared to a uniform mesh while preserving the essentially 
 local descriptions of different physical processes in complex multiphysics algorithms. 
+The origins of AMReX trace back to the BoxLib software framework.
 
 AMReX supplies data containers and iterators for mesh-based fields,
 particle data and irregular embedded boundary (cut cell) representations of complex geometries.
@@ -97,9 +98,12 @@ and spatial discretizations.  Solution strategies supported by AMReX range
 from level-by-level approaches (with or without subcycling in time) with
 multilevel synchronization to full-hierarchy approaches, and any combination thereof.
 
-Block-structured AMR provides the basis for the temporal and spatial discretization strategy for a large number of applications.
-Current AMReX-based application codes target accelerator design, astrophysics, combustion, cosmology,
-microfluidics, materials science and multiphase flow. 
+Block-structured AMR provides the basis for the temporal and spatial 
+discretization strategy for a large number of applications.
+Current AMReX-based application codes target accelerator design, astrophysics, 
+combustion, cosmology, microfluidics, materials science and multiphase flow. 
+
+AMReX is part of the 2018 xSDK software release.
 
 # Particles
 
