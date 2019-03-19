@@ -5,7 +5,7 @@ all:
     -V repository="https://github.com/amrex-codes/amrex" \
     -V archive_doi="http://dx.doi.org/10.5281/zenodo.2555438" \
     -V paper_url="http://joss.theoj.org/papers/10.xxxxx/joss.xxxxx" \
-    -V formatted_doi="10.xxxxx/joss.xxxxx"  
+    -V formatted_doi="10.xxxxx/joss.xxxxx"  \
     -V review_issue_url="https://github.com/openjournals/joss-reviews/issues/588" \
     -V graphics="true" \
 	-V journal_name="Journal of Open Source Software" \
@@ -27,7 +27,7 @@ tex:
     -V repository="https://github.com/amrex-codes/amrex" \
     -V archive_doi="http://dx.doi.org/10.5281/zenodo.2555438" \
     -V paper_url="http://joss.theoj.org/papers/10.xxxxx/joss.xxxxx" \
-    -V formatted_doi="10.xxxxx/joss.xxxxx"  
+    -V formatted_doi="10.xxxxx/joss.xxxxx" \
     -V review_issue_url="https://github.com/openjournals/joss-reviews/issues/588" \
     -V graphics="true" \
 	-V journal_name="Journal of Open Source Software" \
