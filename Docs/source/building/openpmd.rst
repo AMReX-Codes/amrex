@@ -11,7 +11,7 @@ the openPMD-api library:
 
 ::
 
-    spack spec openpmd-api -shared -json -python ^hdf5+mpi ^openmpi
+    spack install openpmd-api -shared -json -python ^hdf5+mpi ^openmpi
 
 Then, ``cd`` into the ``WarpX`` folder, and type:
 
