@@ -58,6 +58,11 @@ endif
 
 include $(PICSAR_HOME)/src/Make.package
 
+WARPX_GIT_VERSION := $(shell cd $(WARPX_HOME); git describe --abbrev=12 --dirty --always --tags)
+PICSAR_GIT_VERSION := $(shell cd $(PICSAR_HOME); git describe --abbrev=12 --dirty --always --tags)
+DEFINES += -DWARPX_GIT_VERSION=\"$(WARPX_GIT_VERSION)\"
+DEFINES += -DPICSAR_GIT_VERSION=\"$(PICSAR_GIT_VERSION)\"
+
 DEFINES += -DPICSAR_NO_ASSUMED_ALIGNMENT
 DEFINES += -DWARPX
 

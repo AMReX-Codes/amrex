@@ -59,6 +59,9 @@ public:
     WarpX ();
     ~WarpX ();
 
+    static std::string Version ();
+    static std::string PicsarVersion ();
+
     int Verbose () const { return verbose; }
 
     void InitData ();
