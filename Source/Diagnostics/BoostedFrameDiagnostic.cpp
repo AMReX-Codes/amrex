@@ -12,6 +12,10 @@ using namespace amrex;
 
 namespace
 {
+    const std::vector<std::string> particle_field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
+    const std::vector<std::string> mesh_field_names =
+        {"Ex", "Ey", "Ez", "Bx", "By", "Bz", "jx", "jy", "jz", "rho"};
+        
     /*
       Creates the HDF5 file in truncate mode and closes it.
       Should be run only by the root process.
@@ -509,12 +513,8 @@ void BoostedFrameDiagnostic::Flush(const Geometry& geom)
                 tmp.copy(*data_buffer_[i], 0, 0, ncomp);
 
 #ifdef WARPX_USE_HDF5
-                std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
-                                                        "Bx", "By", "Bz",
-                                                        "jx", "jy", "jz",
-                                                        "rho"};
                 for (int comp = 0; comp < ncomp; ++comp)
-                    output_write_field(snapshots_[i].file_name, field_paths[comp], tmp, comp);
+                    output_write_field(snapshots_[i].file_name, mesh_field_names[comp], tmp, comp);
 #else                
                 std::stringstream ss;
                 ss << snapshots_[i].file_name << "/Level_0/" << Concatenate("buffer", i_lab, 5);
@@ -639,12 +639,8 @@ writeLabFrameData(const MultiFab* cell_centered_data,
 
             if (WarpX::do_boosted_frame_fields) {
 #ifdef WARPX_USE_HDF5
-                std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
-                                                        "Bx", "By", "Bz",
-                                                        "jx", "jy", "jz",
-                                                        "rho"};
                 for (int comp = 0; comp < data_buffer_[i]->nComp(); ++comp)
-                    output_write_field(snapshots_[i].file_name, field_paths[comp],
+                    output_write_field(snapshots_[i].file_name, mesh_field_names[comp],
                                        *data_buffer_[i], comp);
 #else
                 std::stringstream mesh_ss;
@@ -695,14 +691,12 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
 
     if (total_np == 0) return;
     
-    std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
-
     long old_np = 0;
     if (ParallelDescriptor::IOProcessor())
     {
-        for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
+        for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
         {
-            std::string field_path = species_name + "/" + field_names[k];
+            std::string field_path = species_name + "/" + particle_field_names[k];
             old_np = output_resize_particle_field(name, field_path, total_np);
         }
     }
@@ -710,9 +704,9 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
     ParallelDescriptor::ReduceLongMax(old_np);
     
     // Write data here
-    for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
+    for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
     {
-        std::string field_path = species_name + "/" + field_names[k];
+        std::string field_path = species_name + "/" + particle_field_names[k];
         output_write_particle_field(name, field_path,
                                     pdata.GetRealData(k).data(),
                                     particle_counts[ParallelDescriptor::MyProc()],
@@ -832,12 +826,8 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     {
         if (WarpX::do_boosted_frame_fields)
         {
-            std::vector<std::string> field_paths = {"Ex", "Ey", "Ez",
-                                                    "Bx", "By", "Bz",
-                                                    "jx", "jy", "jz",
-                                                    "rho"};
-            for (int comp = 0; comp < static_cast<int>(field_paths.size()); ++comp) {
-                output_create_field(file_name, field_paths[comp],
+            for (int comp = 0; comp < static_cast<int>(mesh_field_names.size()); ++comp) {
+                output_create_field(file_name, mesh_field_names[comp],
                                     my_bfd.Nx_lab_,
                                     my_bfd.Ny_lab_,
                                     my_bfd.Nz_lab_+1);
@@ -851,13 +841,12 @@ LabSnapShot(Real t_lab_in, Real t_boost, Real zmin_lab_in,
     {
         auto & mypc = WarpX::GetInstance().GetPartContainer();
         const std::vector<std::string> species_names = mypc.GetSpeciesNames();
-        std::vector<std::string> field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
         for (int j = 0; j < mypc.nSpecies(); ++j)
         {
             output_create_species_group(file_name, species_names[j]);
-            for (int k = 0; k < static_cast<int>(field_names.size()); ++k)
+            for (int k = 0; k < static_cast<int>(particle_field_names.size()); ++k)
             {
-                std::string field_path = species_names[j] + "/" + field_names[k];
+                std::string field_path = species_names[j] + "/" + particle_field_names[k];
                 output_create_particle_field(file_name, field_path);
             }
         }
