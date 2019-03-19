@@ -759,6 +759,27 @@ protected:
     mutable std::string HdrFileNamePrePost;
     mutable Vector<std::string> filePrefixPrePost;
 
+#ifdef AMREX_USE_CUDA
+    ParticleVector m_aos_r;
+    RealVector m_rdata_r;
+    IntVector  m_idata_r;
+    Gpu::ManagedDeviceVector<int> m_grids_r;
+
+    Gpu::ManagedDeviceVector<int> m_lo;
+    Gpu::ManagedDeviceVector<int> m_hi;
+    Gpu::ManagedDeviceVector<int> m_output;
+
+    Gpu::ManagedDeviceVector<int> m_grids_tmp;
+    Gpu::ManagedDeviceVector<int> m_index_sequence_tmp;
+
+    ParticleVector m_aos_to_redistribute;
+    std::array< RealVector, NArrayReal> m_real_arrays_to_redistribute;
+    std::array< IntVector,  NArrayInt > m_int_arrays_to_redistribute;
+    Gpu::ManagedDeviceVector<int> m_grids_to_redistribute;
+
+    std::map<int, SendBuffer> m_not_ours;
+#endif
+
 private:
     virtual void particlePostLocate(ParticleType& p, const ParticleLocData& pld,
                                     const int lev) {};
