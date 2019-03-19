@@ -380,7 +380,6 @@ WarpX::SyncCurrent ()
     if (WarpX::use_filter) {
         for (int lev = 0; lev <= finest_level; ++lev) {
             IntVect ng = current_fp[lev][0]->nGrowVect();
-            //ng += bilinear_filter.stencil_length_each_dir-1;
             ng += 1;
             for (int idim = 0; idim < 3; ++idim) {
                 Print()<<"idim "<<idim<<'\n';

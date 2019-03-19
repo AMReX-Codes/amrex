@@ -83,110 +83,25 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            
-
-            //#define BL_TO_FORTRAN_N_ANYD(x,n) (x).dataPtr(n), AMREX_ARLIM_ANYD((x).loVect()), AMREX_ARLIM_ANYD((x).hiVect())
-
-            //WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
-            //            BL_TO_FORTRAN_ANYD(tmpfab),
-            //            BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
-            //            ncomp);
-            filter_2d(tbx, gbx, tmpfab, dstfab, ncomp);
+            filter_2d(tbx, gbx, tmpfab, dstfab, dcomp, ncomp);
         }
     }
 }
 
-void BilinearFilter::filter_2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab, FArrayBox &dstfab, int ncomp)
+void BilinearFilter::filter_2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab, FArrayBox &dstfab, int dcomp, int ncomp)
 {
-    //    ncomp = std::min(ncomp, srcmf.nComp());
-    Print()<<"ncomp "<<ncomp<<'\n';
-    //const int* loVect = gbx.loVect();
-    //const int* hiVect = gbx.hiVect();
-    const int* loVector = gbx.loVect();
-    const int* hiVector = gbx.hiVect();
-    //const int* loVect = amrex::lbound(tbx);
-    //const int* hiVect = amrex::hbound(tbx);
-    Print()<<"loVector: "; for(int i=0; i<2;i++){Print()<<loVector[i]<<" ";} Print()<<'\n';
-    Print()<<"hiVector: "; for(int i=0; i<2;i++){Print()<<hiVector[i]<<" ";} Print()<<'\n';
-    Print()<<"stencil_length_each_dir: "; for(int i=0; i<2;i++){Print()<<stencil_length_each_dir[i]<<" ";} Print()<<'\n';
-    Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
-    Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
-    Print()<<"above toto\n";
+    const int* loVector = tbx.loVect();
+    const int* hiVector = tbx.hiVect();
     Array4<Real> const& tmparr = tmpfab.array();
     Array4<Real> const& dstarr = dstfab.array();
-    //    for(int c=0; c<ncomp; c++){
-    for(int i=loVector[0]; i<hiVector[0]; i++){
-    for(int j=loVector[1]; j<hiVector[1]; j++){
+    for(int i=loVector[0]; i<=hiVector[0]; i++){
+    for(int j=loVector[1]; j<=hiVector[1]; j++){
         for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
         for (int iz=-stencil_length_each_dir[1]+1; iz<stencil_length_each_dir[1]; iz++){
-            //Print()<<"ix "<<ix<<" "<<stencil_x[abs(ix)]<<" "<<"iz "<<iz<<" "<<stencil_z[abs(iz)]<<"\n";
-            // dstarr(i,j,0) = tmparr(i,j,0) + stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
             dstarr(i,j,0) = stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
-            //Print()<<tmparr(i+ix,j+iz,c)<<' '<<dstarr(i,j,c)<<'\n';
         }
         }
     }
     }
-    //}
-    Print()<<"here --- 6\n";
 }
 
-/*
-void
-WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
-{
-    ncomp = std::min(ncomp, srcmf.nComp());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        FArrayBox tmpfab;
-        for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi)
-            {
-                const auto& srcfab = srcmf[mfi];
-                auto& dstfab = dstmf[mfi];
-                const Box& tbx = mfi.growntilebox();
-                const Box& gbx = amrex::grow(tbx,1);
-                tmpfab.resize(gbx,ncomp);
-                tmpfab.setVal(0.0, gbx, 0, ncomp);
-                const Box& ibx = gbx & srcfab.box();
-                tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-                WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
-                            BL_TO_FORTRAN_ANYD(tmpfab),
-                            BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
-                            ncomp);
-            }
-    }
-}
-
-*/
- /*
-void BilinearFilter::ApplyStencils(amrex::MultiFab* dstmf, amrex::MultiFab* srcmf){
-#ifdef _OPENMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
-    {
-        //FArrayBox tmpfab;
-        for ( MFIter mfi(*dstmf, TilingIfNotGPU()); mfi.isValid(); ++mfi ){
-            //const auto& srcfab = srcmf[mfi];
-            //auto& dstfab = dstmf[mfi];
-            const Box& tbx = mfi.growntilebox();
-            //const Box& gbx = amrex::grow(tbx,1);
-            //tmpfab.resize(gbx,ncomp);
-            //tmpfab.setVal(0.0, gbx, 0, ncomp);
-            //const Box& ibx = gbx & srcfab.box();
-            //tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            auto const& dstmf_fab = dstmf->array(mfi);
-            auto const& srcmf_fab = srcmf->array(mfi);
-
-            amrex::ParallelFor(tbx,
-                [=] AMREX_GPU_DEVICE (int j, int k, int l){
-                warpx_apply_filter_2d(j,k,l,dstmf_fab, srcmf_fab,
-                                      stencil_x,stencil_z,
-                                      stencil_length_each_dir[0],
-                                      stencil_length_each_dir[1]);
-                               });
-        }
-    }
-}
- */

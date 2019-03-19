@@ -980,7 +980,7 @@ WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp
                         ncomp);
         }
     }
-}
+    }
 
 void
 WarpX::BuildBufferMasks ()
