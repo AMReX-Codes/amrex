@@ -195,7 +195,7 @@ namespace amrex {
 
     namespace Cuda
     {
-        ThrustDeviceAllocator<char>& The_ThrustCachedAllocator ();
+        ThrustManagedAllocator<char>& The_ThrustCachedAllocator ();
     }
 
 // When not using CUDA, replace with standard allocator.
