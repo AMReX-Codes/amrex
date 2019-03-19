@@ -129,10 +129,14 @@ public:
     int plotInt () const noexcept { return plot_int; }
     //! Time between plot files.
     Real plotPer () const noexcept { return plot_per; }
+    //! Spacing in log10(time) of logarithmically spaced plot files
+    Real plotLogPer () const noexcept { return plot_log_per; }
     //! Number of time steps between small plot files.
     int smallplotInt () const noexcept { return small_plot_int; }
     //! Time between plot files.
     Real smallplotPer () const noexcept { return small_plot_per; }
+    //! Spacing in log10(time) of logarithmically spaced small plot files
+    Real smallplotLogPer () const noexcept { return small_plot_log_per; }
     /**
     * \brief The names of state variables to output in the
     * plotfile.  They can be set using the amr.plot_vars variable
@@ -426,8 +430,10 @@ protected:
     int              last_smallplotfile;   //!< Step number of previous small plotfile.
     int              plot_int;        //!< How often plotfile (# of time steps)
     Real             plot_per;        //!< How often plotfile (in units of time)
+    Real             plot_log_per;    //!< How often plotfile (in units of log10(time))
     int              small_plot_int;  //!< How often small plotfile (# of time steps)
     Real             small_plot_per;  //!< How often small plotfile (in units of time)
+    Real             small_plot_log_per;  //!< How often small plotfile (in units of log10(time))
     int              write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
     int              file_name_digits; //!< How many digits to use in the plotfile and checkpoint names
     int              message_int;     //!< How often checking messages touched by user, such as "stop_run"
