@@ -1211,11 +1211,11 @@ Amr::init (Real strt_time,
         initialInit(strt_time,stop_time);
         checkPoint();
 
-        if(plot_int > 0 || plot_per > 0) {
+        if(plot_int > 0 || plot_per > 0 || plot_log_per > 0) {
             writePlotFile();
         }
 
-        if (small_plot_int > 0 || small_plot_per > 0)
+        if (small_plot_int > 0 || small_plot_per > 0 || small_plot_log_per > 0)
 	        writeSmallPlotFile();
 
         updateInSitu();
@@ -2648,6 +2648,31 @@ Amr::writePlotNow() noexcept
 
     }
 
+    if (plot_log_per > 0.0)
+    {
+
+        // Check to see if we've crossed a plot_log_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+        // This only works when cumtime > 0.
+
+        int num_per_old = 0;
+        int num_per_new = 0;
+
+        if (cumtime-dt_level[0] > 0.) {
+            num_per_old = log10(cumtime-dt_level[0]) / plot_log_per;
+        }
+        if (cumtime > 0.) {
+            num_per_new = log10(cumtime) / plot_log_per;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            plot_test = 1;
+        }
+
+    }
+
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
               plot_test == 1 ||
               amr_level[0]->writePlotNow());
@@ -2693,6 +2718,31 @@ Amr::writeSmallPlotNow() noexcept
 	{
             plot_test = 1;
 	}
+
+    }
+
+    if (small_plot_log_per > 0.0)
+    {
+
+        // Check to see if we've crossed a small_plot_log_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+        // This only works when cumtime > 0.
+
+        int num_per_old = 0;
+        int num_per_new = 0;
+
+        if (cumtime-dt_level[0] > 0.) {
+            num_per_old = log10(cumtime-dt_level[0]) / small_plot_log_per;
+        }
+        if (cumtime > 0.) {
+            num_per_new = log10(cumtime) / small_plot_log_per;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            plot_test = 1;
+        }
 
     }
 
@@ -3431,6 +3481,9 @@ Amr::initPltAndChk ()
     plot_per = -1.0;
     pp.query("plot_per",plot_per);
 
+    plot_log_per = -1.0;
+    pp.query("plot_log_per",plot_log_per);
+
     if (plot_int > 0 && plot_per > 0)
     {
         if (ParallelDescriptor::IOProcessor())
@@ -3445,6 +3498,9 @@ Amr::initPltAndChk ()
 
     small_plot_per = -1.0;
     pp.query("small_plot_per",small_plot_per);
+
+    small_plot_log_per = -1.0;
+    pp.query("small_plot_log_per",small_plot_log_per);
 
     if (small_plot_int > 0 && small_plot_per > 0)
     {
