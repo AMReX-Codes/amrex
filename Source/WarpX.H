@@ -388,9 +388,6 @@ private:
 
     void LoadBalance ();
 
-    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf,
-                             int scomp = 0, int dcomp = 0, int ncomp = 10000);
-
     void BuildBufferMasks ();
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
         return current_buffer_masks[lev].get();

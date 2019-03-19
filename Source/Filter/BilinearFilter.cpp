@@ -70,14 +70,14 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
 #pragma omp parallel
 #endif
     {
-        Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
-        Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
+        //Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
+        //Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
         FArrayBox tmpfab;
         for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi){
             const auto& srcfab = srcmf[mfi];
             auto& dstfab = dstmf[mfi];
             const Box& tbx = mfi.growntilebox();
-            const Box& gbx = amrex::grow(tbx,1);
+            const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
             tmpfab.resize(gbx,ncomp);
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
@@ -87,7 +87,7 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
     }
 }
 
-void BilinearFilter::filter_2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab, FArrayBox &dstfab, int dcomp, int ncomp)
+void BilinearFilter::Filter2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab, FArrayBox &dstfab, int dcomp, int ncomp)
 {
     const int* loVector = tbx.loVect();
     const int* hiVector = tbx.hiVect();
@@ -104,4 +104,3 @@ void BilinearFilter::filter_2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab
     }
     }
 }
-

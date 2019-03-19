@@ -956,33 +956,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 }
 
 void
-WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
-{
-    ncomp = std::min(ncomp, srcmf.nComp());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        FArrayBox tmpfab;
-        for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi)
-        {
-            const auto& srcfab = srcmf[mfi];
-            auto& dstfab = dstmf[mfi];
-            const Box& tbx = mfi.growntilebox();
-            const Box& gbx = amrex::grow(tbx,1);
-            tmpfab.resize(gbx,ncomp);
-            tmpfab.setVal(0.0, gbx, 0, ncomp);
-            const Box& ibx = gbx & srcfab.box();
-            tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
-                        BL_TO_FORTRAN_ANYD(tmpfab),
-                        BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
-                        ncomp);
-        }
-    }
-    }
-
-void
 WarpX::BuildBufferMasks ()
 {
     int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
