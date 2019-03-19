@@ -9,6 +9,9 @@ tags:
 - partial differential equations
 
 authors:
+- name: Weiqun Zhang
+  orcid: 0000-0001-8092-1974
+  affiliation: 1
 - name: Ann Almgren
   orcid: 0000-0003-2103-312X
   affiliation: 1
@@ -50,9 +53,6 @@ authors:
 - name: Samuel Williams
   orcid: 0000-0002-8327-5717
   affiliation: 2
-- name: Weiqun Zhang
-  orcid: 0000-0001-8092-1974
-  affiliation: 1
 - name: Michael Zingale
   orcid: 0000-0001-8401-030X
   affiliation: 5
