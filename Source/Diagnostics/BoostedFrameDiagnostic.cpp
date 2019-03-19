@@ -10,6 +10,10 @@ using namespace amrex;
 
 #include <hdf5.h>
 
+/*
+  Helper functions for doing the HDF5 IO.
+
+ */
 namespace
 {
     const std::vector<std::string> particle_field_names = {"w", "x", "y", "z", "ux", "uy", "uz"};
@@ -29,6 +33,10 @@ namespace
         H5Fclose(file);
     }
 
+    /*
+      Writes a single string attribute to the given group. 
+      Should only be called by the root process.
+    */
     void write_string_attribute(hid_t& group, const std::string& key, const std::string& val)
     {
         hid_t str_type     = H5Tcopy(H5T_C_S1);
@@ -45,6 +53,10 @@ namespace
         H5Tclose(str_type);
     }
 
+    /*
+      Writes a single double attribute to the given group. 
+      Should only be called by the root process.
+    */
     void write_double_attribute(hid_t& group, const std::string& key, const double val)
     {
         hid_t scalar_space = H5Screate(H5S_SCALAR);
@@ -128,6 +140,10 @@ namespace
         H5Fclose(file);
     }
 
+    /*
+      Creates a group associated with a single particle species.
+      Should be run by all processes collectively.
+    */    
     void output_create_species_group(const std::string& file_path, const std::string& species_name)
     {
         MPI_Comm comm = MPI_COMM_WORLD;
