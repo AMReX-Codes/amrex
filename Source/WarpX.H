@@ -139,7 +139,6 @@ public:
     }
 
     static amrex::IntVect filter_npass_each_dir;
-    // static amrex::Vector<int> filter_npass_each_dir;
     BilinearFilter bilinear_filter;
 
     void ComputeDt ();

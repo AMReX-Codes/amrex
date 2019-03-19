@@ -82,7 +82,7 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            filter_2d(tbx, gbx, tmpfab, dstfab, dcomp, ncomp);
+            Filter2d(tbx, gbx, tmpfab, dstfab, dcomp, ncomp);
         }
     }
 }

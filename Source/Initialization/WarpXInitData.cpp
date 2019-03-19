@@ -39,7 +39,6 @@ WarpX::InitData ()
         WarpX::InitNCICorrector();
     }
 
-    Print()<<"HERE I AM\n";
     if (WarpX::use_filter) {
         WarpX::InitFilter();
     }

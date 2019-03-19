@@ -387,6 +387,7 @@ WarpX::SyncCurrent ()
                 j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
                                                    current_fp[lev][idim]->DistributionMap(),
                                                    1, ng));
+                // applyFilter(*j_fp[lev][idim], *current_fp[lev][idim]);
                 bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
             }
