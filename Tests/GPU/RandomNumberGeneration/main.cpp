@@ -43,6 +43,7 @@ void RandomNumGen ()
     int timesteps = 10; // just for example
     for (int i=0; i<timesteps; i++)
     {
+        
         AMREX_PARALLEL_FOR_1D (N, idx,
         {
 #ifdef AMREX_USE_CUDA    
