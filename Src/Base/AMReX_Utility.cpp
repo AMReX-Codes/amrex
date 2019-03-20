@@ -36,15 +36,12 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#ifdef AMREX_USE_CUDA
-#include <curand_kernel.h>
-#endif
 
 
 using std::ostringstream;
 
-
 using namespace amrex;
+
 #ifdef AMREX_USE_CUDA
 using namespace Gpu;
 #endif
@@ -435,13 +432,14 @@ amrex::RandomNormal (double mean, double stddev)
 AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
+    double rand;
 
 #ifdef AMREX_USE_CUDA
 
 #ifdef __CUDA_ARCH__
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    double loc_rand = curand_uniform_double(&glo_RandStates[tid]);
-    return loc_rand;
+    double loc_rand = curand_uniform_double(&glo_RandStates[tid]); 
+    rand = loc_rand;
 #endif
    
 #else
@@ -452,10 +450,11 @@ amrex::Random ()
     int tid = 0;
 #endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
-    return distribution(generators[tid]);
+    rand = distribution(generators[tid]);
 
 #endif
 
+    return rand;
 }
 
 
@@ -555,7 +554,6 @@ amrex::ResizeRandomSeed (int N)
   AMREX_PARALLEL_FOR_1D (N, idx,
   {
      unsigned long seed = idx + 10*idx;
-     int tid = blockDim.x * blockIdx.x + threadIdx.x;
      curand_init(seed, seed, 0, &glo_RandStates[idx]);
   }); 
 #endif
