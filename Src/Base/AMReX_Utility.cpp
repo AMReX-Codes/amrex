@@ -40,15 +40,7 @@
 
 using std::ostringstream;
 
-using namespace amrex;
 
-#ifdef AMREX_USE_CUDA
-using namespace Gpu;
-#endif
-
-#ifdef AMREX_USE_CUDA
-__device__ curandState *glo_RandStates;
-#endif
 
 namespace {
     const char* path_sep_str = "/";
@@ -380,11 +372,10 @@ namespace
     /**
     * \brief The random seed array is allocated with an extra buffer space to 
     *        reduce the computational cost of dynamic memory allocation and 
-    *        random seed generation. NrandMax is the size of the seed array
+    *        random seed generation. 
     */
-    int NrandMax;
-
-    DeviceVector<curandState> dev_RandStates_Seed;
+    __device__ curandState_t *glo_RandStates;
+    amrex::Gpu::DeviceVector<curandState_t> dev_RandStates_Seed;
 #endif
 
 }
@@ -533,7 +524,7 @@ void
 amrex::CheckSeedArraySizeAndResize (int N)
 {
 #ifdef AMREX_USE_CUDA
-  if ( NrandMax < N) {
+  if ( dev_RandStates_Seed.size() < N) {
      ResizeRandomSeed(N);
   }
 #endif
@@ -544,12 +535,11 @@ amrex::ResizeRandomSeed (int N)
 {
 
 #ifdef AMREX_USE_CUDA  
-  NrandMax = N * 2; 
-  N = NrandMax;
+  int Nbuffer = N * 2;
 
-  dev_RandStates_Seed.resize(N);
-  curandState *d_RS_Seed = dev_RandStates_Seed.dataPtr();
-  cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState *));
+  dev_RandStates_Seed.resize(Nbuffer);
+  curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
+  cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
  
   AMREX_PARALLEL_FOR_1D (N, idx,
   {
