@@ -3,10 +3,13 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Amr.H>
+#include <AMReX_EB2.H>
 
-//#include <CNS.H>
+#include <CNS.H>
 
 using namespace amrex;
+
+void initialize_EB2 (const Geometry& geom, const int required_level, const int max_level);
 
 int main (int argc, char* argv[])
 {
@@ -46,6 +49,11 @@ int main (int argc, char* argv[])
         timer_init = amrex::second();
 
 	Amr amr;
+        AmrLevel::SetEBSupportLevel(EBSupport::full);
+        AmrLevel::SetEBMaxGrowCells(CNS::numGrow(),4,2);
+
+        initialize_EB2(amr.Geom(amr.maxLevel()), amr.maxLevel(), amr.maxLevel());
+
 	amr.init(strt_time,stop_time);
 
         timer_init = amrex::second() - timer_init;
