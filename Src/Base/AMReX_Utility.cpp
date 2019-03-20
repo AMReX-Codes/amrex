@@ -45,7 +45,9 @@ using std::ostringstream;
 
 
 using namespace amrex;
+#ifdef AMREX_USE_CUDA
 using namespace Gpu;
+#endif
 
 #ifdef AMREX_USE_CUDA
 __device__ curandState *glo_RandStates;
@@ -531,9 +533,11 @@ amrex::InitRandSeedOnDevice (int N)
 void 
 amrex::CheckSeedArraySizeAndResize (int N)
 {
+#ifdef AMREX_USE_CUDA
   if ( NrandMax < N) {
      ResizeRandomSeed(N);
   }
+#endif
 }
 
 void 
