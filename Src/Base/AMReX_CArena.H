@@ -13,7 +13,7 @@
 namespace amrex {
 
 /**
-* \brief A Concrete Class for Dynamic Memory Management
+* \brief A Concrete Class for Dynamic Memory Management using first fit.
 * This is a coalescing memory manager.  It allocates (possibly) large
 * chunks of heap space and apportions it out as requested.  It merges
 * together neighboring chunks on each free().
@@ -38,13 +38,13 @@ public:
     virtual ~CArena () override;
 
     //! Allocate some memory.
-    virtual void* alloc (std::size_t nbytes) override;
+    virtual void* alloc (std::size_t nbytes) override final;
 
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
     */
-    virtual void free (void* ap) override;
+    virtual void free (void* ap) override final;
 
     //! The current amount of heap space used by the CArena object.
     std::size_t heap_space_used () const noexcept;
@@ -127,7 +127,7 @@ protected:
     */
 //    NL m_busylist;
     std::unordered_set<Node, Node::hash> m_busylist;
-    //! The minimal size of hunks to request via ::operator new().
+    //! The minimal size of hunks to request from system
     std::size_t m_hunk;
     //! The amount of heap space currently allocated.
     std::size_t m_used;
