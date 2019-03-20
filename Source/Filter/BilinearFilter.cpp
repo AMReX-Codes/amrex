@@ -65,12 +65,12 @@ void
 BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
     ncomp = std::min(ncomp, srcmf.nComp());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dcomp==0,
+                                     "TODO: multi-pass bilinear filter with dcomp>0!");        
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dcomp==0,
-                                         "TODO: multi-pass bilinear filter with dcomp>0!");        
         FArrayBox tmpfab;
         for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi){
             const auto& srcfab = srcmf[mfi];
@@ -98,6 +98,35 @@ void BilinearFilter::Filter2d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstf
     Array4<Real> const& dstarr = dstfab.array();
     for(int i=loVector[0]; i<=hiVector[0]; i++){
     for(int j=loVector[1]; j<=hiVector[1]; j++){
+        dstarr(i,j,0) = stencil_x[0]*stencil_z[0]*tmparr(i,j,0);
+        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
+            dstarr(i,j,0) += stencil_x[ix]*stencil_z[0]*tmparr(i+ix,j,0);
+            dstarr(i,j,0) += stencil_x[ix]*stencil_z[0]*tmparr(i-ix,j,0);
+        }
+        for (int iz=1; iz<stencil_length_each_dir[1]; iz++){
+            dstarr(i,j,0) += stencil_x[0]*stencil_z[iz]*tmparr(i,j+iz,0);
+            dstarr(i,j,0) += stencil_x[0]*stencil_z[iz]*tmparr(i,j-iz,0);
+        }
+        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
+        for (int iz=1; iz<stencil_length_each_dir[1]; iz++){
+            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i+ix,j+iz,0);
+            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i+ix,j-iz,0);
+            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i-ix,j+iz,0);
+            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i-ix,j-iz,0);
+        }
+        }
+    }
+    }
+}
+
+void BilinearFilter::Filter2d_slow(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
+{
+    const int* loVector = tbx.loVect();
+    const int* hiVector = tbx.hiVect();
+    Array4<Real> const& tmparr = tmpfab.array();
+    Array4<Real> const& dstarr = dstfab.array();
+    for(int i=loVector[0]; i<=hiVector[0]; i++){
+    for(int j=loVector[1]; j<=hiVector[1]; j++){
         dstarr(i,j,0) = 0.;
         for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
         for (int iz=-stencil_length_each_dir[1]+1; iz<stencil_length_each_dir[1]; iz++){
@@ -109,6 +138,71 @@ void BilinearFilter::Filter2d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstf
 }
 
 void BilinearFilter::Filter3d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
+{
+    const int* loVector = tbx.loVect();
+    const int* hiVector = tbx.hiVect();
+    Array4<Real> const& tmparr = tmpfab.array();
+    Array4<Real> const& dstarr = dstfab.array();
+    for(int i=loVector[0]; i<=hiVector[0]; i++){
+    for(int j=loVector[1]; j<=hiVector[1]; j++){
+    for(int k=loVector[2]; k<=hiVector[2]; k++){
+        dstarr(i,j,k) = stencil_x[0]*stencil_y[0]*stencil_z[0]*tmparr(i,j,k);
+        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[0]*tmparr(i+ix,j,k);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[0]*tmparr(i-ix,j,k);
+        }
+        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[0]*tmparr(i,j+iy,k);
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[0]*tmparr(i,j-iy,k);
+        }
+        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[0]*stencil_z[iz]*tmparr(i,j,k+iz);
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[0]*stencil_z[iz]*tmparr(i,j,k-iz);
+        }
+        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
+        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i+ix,j+iy,k);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i+ix,j-iy,k);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i-ix,j+iy,k);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i-ix,j-iy,k);
+        }
+        }
+        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
+        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j+iy,k+iz);
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j+iy,k-iz);
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j-iy,k+iz);
+            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j-iy,k-iz);
+        }
+        }
+        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
+        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i+ix,j,k+iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i+ix,j,k-iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i-ix,j,k+iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i-ix,j,k-iz);
+        }
+        }
+        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
+        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
+        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j+iy,k+iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j+iy,k-iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j-iy,k+iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j-iy,k-iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j+iy,k+iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j+iy,k-iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j-iy,k+iz);
+            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j-iy,k-iz);
+        }
+        }
+        }
+    }
+    }
+    }
+}
+
+void BilinearFilter::Filter3d_slow(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
 {
     const int* loVector = tbx.loVect();
     const int* hiVector = tbx.hiVect();
