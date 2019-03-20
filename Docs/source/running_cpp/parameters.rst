@@ -485,7 +485,8 @@ Diagnostics and output
 
 * ``warpx.plot_coarsening_ratio`` (`int`)
     Reduce size of the field output by this ratio in each dimension.
-    (This is done by averaging the field.)
+    (This is done by averaging the field.) The ratio should be a integer 
+    power of 2 (e.g. 2, 4, 8, ...).
     
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `plotfiles/plt`
