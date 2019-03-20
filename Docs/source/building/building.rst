@@ -83,6 +83,7 @@ Advanced building instructions
    :maxdepth: 1
 
    spectral
+   rzgeometry
    gpu_local
    python
    spack
