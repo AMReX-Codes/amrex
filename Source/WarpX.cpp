@@ -623,6 +623,10 @@ WarpX::AllocLevelData (int lev, const BoxArray& ba, const DistributionMapping& d
         ngJz = std::max(ngJz,2);
     }
 
+    //Print()<<"ngz "<<ngz<<'\n';
+    //ngz = 2;
+    //Print()<<"ngz "<<ngz<<'\n';
+
 #if (AMREX_SPACEDIM == 3)
     IntVect ngE(ngx,ngy,ngz);
     IntVect ngJ(ngJx,ngJy,ngJz);

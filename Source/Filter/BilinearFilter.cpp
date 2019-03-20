@@ -70,8 +70,11 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
 #pragma omp parallel
 #endif
     {
-        //Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
-        //Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
+        Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
+        Print()<<"stencil_y: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_y[i]<<" ";} Print()<<'\n';
+        Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[2];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dcomp==0,
+                                         "TODO: multi-pass bilinear filter with dcomp>0!");        
         FArrayBox tmpfab;
         for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi){
             const auto& srcfab = srcmf[mfi];
@@ -82,15 +85,21 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            Filter2d(tbx, gbx, tmpfab, dstfab, dcomp, ncomp);
+#if (AMREX_SPACEDIM == 3)
+            Filter3d(tbx, tmpfab, dstfab);
+#elif (AMREX_SPACEDIM == 2)
+            Filter2d(tbx, tmpfab, dstfab);
+#endif
         }
     }
 }
 
-void BilinearFilter::Filter2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab, FArrayBox &dstfab, int dcomp, int ncomp)
+void BilinearFilter::Filter2d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
 {
     const int* loVector = tbx.loVect();
     const int* hiVector = tbx.hiVect();
+    // const int* loVectorg = gbx.loVect();
+    // const int* hiVectorg = gbx.hiVect();
     Array4<Real> const& tmparr = tmpfab.array();
     Array4<Real> const& dstarr = dstfab.array();
     for(int i=loVector[0]; i<=hiVector[0]; i++){
@@ -101,6 +110,30 @@ void BilinearFilter::Filter2d(const Box& tbx, const Box& gbx, FArrayBox &tmpfab,
             dstarr(i,j,0) += stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
         }
         }
+    }
+    }
+}
+
+void BilinearFilter::Filter3d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
+{
+    const int* loVector = tbx.loVect();
+    const int* hiVector = tbx.hiVect();
+    // const int* loVectorg = gbx.loVect();
+    // const int* hiVectorg = gbx.hiVect();
+    Array4<Real> const& tmparr = tmpfab.array();
+    Array4<Real> const& dstarr = dstfab.array();
+    for(int i=loVector[0]; i<=hiVector[0]; i++){
+    for(int j=loVector[1]; j<=hiVector[1]; j++){
+    for(int k=loVector[2]; k<=hiVector[2]; k++){
+        dstarr(i,j,k) = 0.;
+        for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
+        for (int iy=-stencil_length_each_dir[1]+1; iy<stencil_length_each_dir[1]; iy++){
+        for (int iz=-stencil_length_each_dir[2]+1; iz<stencil_length_each_dir[2]; iz++){
+            dstarr(i,j,k) += stencil_x[abs(ix)]*stencil_y[abs(iy)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iy,k+iz);
+        }
+        }
+        }
+    }
     }
     }
 }

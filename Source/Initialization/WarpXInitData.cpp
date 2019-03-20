@@ -22,7 +22,7 @@ WarpX::InitData ()
     if (restart_chkfile.empty())
     {
         ComputeDt();
-	InitFromScratch();
+        InitFromScratch();
     }
     else
     {
