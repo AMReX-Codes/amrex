@@ -292,7 +292,7 @@ StateData::allocOldData ()
 }
 
 BCRec
-StateData::getBC (int comp, int i) const
+StateData::getBC (int comp, int i) const noexcept
 {
     BCRec bcr;
     amrex::setBC(grids[i],domain,desc->getBC(comp),bcr);
@@ -488,6 +488,12 @@ StateData::FillBoundary (FArrayBox&     dest,
             i++;
         }
     }
+
+#ifdef AMREX_USE_CUDA
+    // Add a synchronize here in case the user code launched kernels
+    // to handle the boundary fills.
+    AMREX_GPU_SAFE_CALL(cudaDeviceSynchronize());
+#endif
 }
 
 void

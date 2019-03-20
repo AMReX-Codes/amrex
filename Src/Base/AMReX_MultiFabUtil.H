@@ -61,18 +61,28 @@ namespace amrex
                              const Array<MultiFab*,AMREX_SPACEDIM>& crse,
                              int ratio,
                              int ngcrse = 0);
+    //! This version does average down for one direction.
+    //! It uses the IndexType of MultiFabs to determine the direction.
+    //! It is expected that one direction is nodal and the rest are cell-centered.
+    void average_down_faces (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, int ngcrse=0);
 
-    //! Average fine edge-based MultiFab onto crse edge-based MultiFab. This
-    //! routine assumes that the crse BoxArray is a coarsened version of the
-    //! fine BoxArray.
+    //! Average fine edge-based MultiFab onto crse edge-based MultiFab.
     void average_down_edges (const Vector<const MultiFab*>& fine,
                              const Vector<MultiFab*>& crse,
                              const IntVect& ratio,
                              int ngcrse = 0);
+    void average_down_edges (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
+                             const Array<MultiFab*,AMREX_SPACEDIM>& crse,
+                             const IntVect& ratio,
+                             int ngcrse = 0);
+    //! This version does average down for one direction.
+    //! It uses the IndexType of MultiFabs to determine the direction.
+    //! It is expected that one direction is cell-centered and the rest are nodal.
+    void average_down_edges (const MultiFab& fine, MultiFab& crse,
+                             const IntVect& ratio, int ngcrse=0);
 
-    //! Average fine node-based MultiFab onto crse node-centered MultiFab. This
-    //! routine assumes that the crse BoxArray is a coarsened version of the
-    //! fine BoxArray.
+    //! Average fine node-based MultiFab onto crse node-centered MultiFab.
     void average_down_nodal (const MultiFab& S_fine,
                              MultiFab& S_crse,
                              const IntVect& ratio,
@@ -129,6 +139,8 @@ namespace amrex
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
     //! are set to one, whereas other cells are set to zero.
     iMultiFab makeFineMask (const MultiFab& cmf, const BoxArray& fba, const IntVect& ratio);
+    iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
+                            const BoxArray& fba, const IntVect& ratio);
 
     //! Computes divergence of face-data stored in the umac MultiFab. It is
     //! assumed that umac has at least 1 ghost cell and ghost cells have been
@@ -141,7 +153,7 @@ namespace amrex
     //! Convert iMultiFab to long
     FabArray<BaseFab<long> > ToLongMultiFab (const iMultiFab& imf);
 
-    // example: auto mf = amrex::cast<MultiFab>(imf);
+    //! example: auto mf = amrex::cast<MultiFab>(imf);
     template <typename T, typename U>
     T cast (U const& mf_in)
     {

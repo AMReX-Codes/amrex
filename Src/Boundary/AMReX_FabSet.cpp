@@ -10,7 +10,7 @@
 
 namespace amrex {
 
-FabSet::FabSet () {}
+FabSet::FabSet () noexcept {}
 
 FabSet::FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp)
     :
@@ -32,11 +32,11 @@ FabSet::copyFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 #endif
 	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
             const Box& bx = fsi.validbox();
-            FArrayBox const* srcfab =   src.fabPtr(fsi);
-            FArrayBox      * dstfab = this->fabPtr(fsi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            auto const srcfab =   src.array(fsi);
+            auto       dstfab = this->array(fsi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
-                dstfab->copy(*srcfab, tbx, scomp, tbx, dcomp, ncomp);
+                dstfab(i,j,k,n+dcomp) = srcfab(i,j,k,n+scomp);
             });
 	}
     } else {
@@ -63,11 +63,11 @@ FabSet::plusFrom (const FabSet& src, int scomp, int dcomp, int ncomp)
 #endif
 	for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
             const Box& bx = fsi.validbox();
-            FArrayBox const* srcfab =   src.fabPtr(fsi);
-            FArrayBox      * dstfab = this->fabPtr(fsi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            auto const srcfab =   src.array(fsi);
+            auto       dstfab = this->array(fsi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
-                dstfab->plus(*srcfab, tbx, tbx, scomp, dcomp, ncomp);
+                dstfab(i,j,k,n+dcomp) += srcfab(i,j,k,n+scomp);
             });
 	}
     } else {
@@ -110,10 +110,10 @@ FabSet::setVal (Real val)
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
         const Box& bx = fsi.validbox();
-        FArrayBox* fab = this->fabPtr(fsi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto fab = this->array(fsi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            fab->setVal(val, tbx, 0, ncomp);
+            fab(i,j,k,n) = val;
         });
     }
 }
@@ -126,10 +126,10 @@ FabSet::setVal (Real val, int comp, int num_comp)
 #endif
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi) {
         const Box& bx = fsi.validbox();
-        FArrayBox* fab = this->fabPtr(fsi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto fab = this->array(fsi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, num_comp, i, j, k, n,
         {
-            fab->setVal(val, tbx, comp, num_comp);
+            fab(i,j,k,n+comp) = val;
         });
     }
 }
@@ -147,12 +147,11 @@ FabSet::linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int nc
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         const Box& bx = fsi.validbox();
-        FArrayBox const* srcfab =   src.fabPtr(fsi);
-        FArrayBox      * dstfab = this->fabPtr(fsi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto const srcfab =   src.array(fsi);
+        auto       dstfab = this->array(fsi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            dstfab->mult(a, tbx, dcomp, ncomp);
-            dstfab->saxpy(b, *srcfab, tbx, tbx, scomp, dcomp, ncomp);
+            dstfab(i,j,k,n+dcomp) = a*dstfab(i,j,k,n+dcomp) + b*srcfab(i,j,k,n+scomp);
         });
     }
     return *this;
@@ -180,12 +179,12 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     for (MFIter mfi(bdrya); mfi.isValid(); ++mfi) // tiling is not safe for this BoxArray
     {
         const Box& bx = mfi.validbox();
-        FArrayBox* afab = bdrya.fabPtr(mfi);
-        FArrayBox* bfab = bdryb.fabPtr(mfi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto afab = bdrya.array(mfi);
+        auto bfab = bdryb.array(mfi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            afab->setVal(1.e200, tbx, 0, ncomp);
-            bfab->setVal(1.e200, tbx, 0, ncomp);
+            afab(i,j,k,n) = 1.e200;
+            bfab(i,j,k,n) = 1.e200;
         });
     }
 
@@ -198,14 +197,12 @@ FabSet::linComb (Real a, const MultiFab& mfa, int a_comp,
     for (FabSetIter fsi(*this); fsi.isValid(); ++fsi)
     {
         const Box& bx = fsi.validbox();
-        FArrayBox const* afab = bdrya.fabPtr(fsi);
-        FArrayBox const* bfab = bdryb.fabPtr(fsi);
-        FArrayBox* dfab = this->fabPtr(fsi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+        auto const afab = bdrya.array(fsi);
+        auto const bfab = bdryb.array(fsi);
+        auto       dfab = this->array(fsi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            dfab->linComb(*afab, tbx, 0,
-                          *bfab, tbx, 0,
-                          a, b, tbx, dcomp, ncomp);
+            dfab(i,j,k,n+dcomp) = a*afab(i,j,k,n) + b*bfab(i,j,k,n);
         });
     }
 
@@ -238,11 +235,11 @@ FabSet::Copy (FabSet& dst, const FabSet& src)
 #endif
     for (FabSetIter fsi(dst); fsi.isValid(); ++fsi) {
         const Box& bx = fsi.validbox();
-        FArrayBox const* srcfab = src.fabPtr(fsi);
-        FArrayBox      * dstfab = dst.fabPtr(fsi);
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+        auto const srcfab = src.array(fsi);
+        auto       dstfab = dst.array(fsi);
+        AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
         {
-            dstfab->copy(*srcfab, tbx, 0, tbx, 0, ncomp);
+            dstfab(i,j,k,n) = srcfab(i,j,k,n);
         });
     }
 }

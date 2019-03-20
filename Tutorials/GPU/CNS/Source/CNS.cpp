@@ -89,7 +89,8 @@ CNS::initData ()
         const Box& box = mfi.validbox();
         auto sfab = S_new.array(mfi);
 
-        AMREX_PARALLEL_FOR_3D ( box, i, j, k,
+        amrex::ParallelFor(box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_initdata(i, j, k, sfab, geomdata);
         });
@@ -312,7 +313,8 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
             const auto rhofab = rho.array(mfi);
             auto tag = tags.array(mfi);
 
-            AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 cns_tag_denerror(i, j, k, tag, rhofab, dengrad_threshold, tagval);
             });
@@ -393,7 +395,7 @@ CNS::estTimeStep ()
     const MultiFab& S = get_new_data(State_Type);
 
     Real estdt = amrex::ReduceMin(S, 0,
-    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) -> Real
+    [=] AMREX_GPU_HOST_DEVICE (Box const& bx, FArrayBox const& fab) noexcept -> Real
     {
         return cns_estdt(bx, fab, dx);
     });
@@ -422,8 +424,10 @@ CNS::computeTemp (MultiFab& State, int ng)
     for (MFIter mfi(State,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.growntilebox(ng);
-        Array4<Real> sfab = State.array(mfi);
-        AMREX_PARALLEL_FOR_3D ( bx, i, j, k,
+        auto const& sfab = State.array(mfi);
+
+        amrex::ParallelFor(bx,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cns_compute_temperature(i,j,k,sfab);
         });

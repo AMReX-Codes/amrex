@@ -7,15 +7,14 @@ C$(BNDRYLIB_BASE)_headers += AMReX_FabSet.H AMReX_BndryRegister.H AMReX_Mask.H A
 			     AMReX_BndryData.H AMReX_BoundCond.H AMReX_InterpBndryData.H \
 			     AMReX_LO_BCTYPES.H AMReX_MacBndry.H 
 
-F$(BNDRYLIB_BASE)_headers += AMReX_INTERPBNDRYDATA_F.H
+C$(BNDRYLIB_BASE)_headers += AMReX_InterpBndryData_K.H AMReX_InterpBndryData_$(DIM)D_K.H
 
-F90$(BNDRYLIB_BASE)_sources += AMReX_INTERPBNDRYDATA_$(DIM)D.F90 AMReX_LO_UTIL.F90
+F90$(BNDRYLIB_BASE)_sources += AMReX_LO_UTIL.F90
+CEXE_headers += AMReX_LOUtil_K.H
 
-CEXE_headers += AMReX_YAFluxRegister_F.H
+CEXE_headers += AMReX_YAFluxRegister_K.H AMReX_YAFluxRegister_$(DIM)D_K.H
 CEXE_headers += AMReX_YAFluxRegister.H
 CEXE_sources += AMReX_YAFluxRegister.cpp
-F90EXE_sources += AMReX_YAFluxRegister_$(DIM)d.F90
-F90EXE_sources += AMReX_YAFluxRegister_nd.F90
 
 F90EXE_sources += AMReX_lo_bctypes_mod.F90
 

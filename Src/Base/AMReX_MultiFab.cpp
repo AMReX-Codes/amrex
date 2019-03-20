@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <map>
 #include <limits>
+#include <cfloat>
 
 #include <AMReX_BLassert.H>
 #include <AMReX_MultiFab.H>
@@ -462,7 +463,7 @@ MultiFab::Finalize ()
     initialized = false;
 }
 
-MultiFab::MultiFab ()
+MultiFab::MultiFab () noexcept
 {
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -522,7 +523,7 @@ MultiFab::~MultiFab()
 }
 
 void
-MultiFab::operator= (const Real& r)
+MultiFab::operator= (Real r)
 {
     setVal(r);
 }
@@ -626,19 +627,19 @@ MultiFab::contains_inf (bool local) const
 }
 
 bool 
-MultiFab::is_nodal () const
+MultiFab::is_nodal () const noexcept
 {
     return boxArray().ixType().nodeCentered();
 }
 
 bool 
-MultiFab::is_nodal (int dir) const
+MultiFab::is_nodal (int dir) const noexcept
 {
     return boxArray().ixType().nodeCentered(dir);
 }
 
 bool 
-MultiFab::is_cell_centered () const
+MultiFab::is_cell_centered () const noexcept
 {
     return boxArray().ixType().cellCentered();
 }
@@ -677,7 +678,13 @@ MultiFab::min (const Box& region,
         if (b.ok()) {
             return fab.min(b,comp);
         } else {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
             return std::numeric_limits<Real>::max();
+#elif defined(BL_USE_DOUBLE)
+            return DBL_MAX;
+#else
+            return FLT_MAX;
+#endif
         }
     });
 
@@ -722,7 +729,13 @@ MultiFab::max (const Box& region,
         if (b.ok()) {
             return fab.max(b,comp);
         } else {
+#if !defined(__CUDACC__) || (__CUDACC_VER_MAJOR__ != 9) || (__CUDACC_VER_MINOR__ != 2)
             return std::numeric_limits<Real>::lowest();
+#elif defined(BL_USE_DOUBLE)
+            return -DBL_MAX;
+#else
+            return -FLT_MAX;
+#endif
         }
     });
 
@@ -1383,8 +1396,12 @@ MultiFab::OverrideSync (const iMultiFab& msk, const Periodicity& period)
 void
 FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period)
 {
-    Vector<FabArray<FArrayBox>*> fa{mf.begin(),mf.end()};
-    FillBoundary(fa,period);
+    for (auto x : mf) {
+        x->FillBoundary(period);
+    }
+// The following is actually slower on summit
+//    Vector<FabArray<FArrayBox>*> fa{mf.begin(),mf.end()};
+//    FillBoundary(fa,period);
 }
 
 }

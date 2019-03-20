@@ -32,13 +32,6 @@ void setup_coef(const Vector<MultiFab*> &exac,
 		const Vector<Geometry>& geom, 
 		const Vector<BoxArray>& grids,
 		Real a, Real b, Real sigma, Real w);
-void solve_with_F90(const Vector<MultiFab*>& soln, Real a, Real b, 
-		    const Vector<MultiFab*>& alph, 
-		    const Vector<MultiFab*>& beta, 
-		    const Vector<MultiFab*>& rhs, 
-		    const Vector<Geometry>& geom, 
-		    const Vector<BoxArray>& grids,
-		    int ibnd);
 #ifdef USEHYPRE
 void solve_with_hypre(const Vector<MultiFab*>& soln, Real a, Real b, 
 		      const Vector<MultiFab*>& alph, 
@@ -51,7 +44,7 @@ void solve_with_hypre(const Vector<MultiFab*>& soln, Real a, Real b,
 void compute_norm(const Vector<MultiFab*>& soln,
 		  const Vector<MultiFab*>& exac, 
 		  const Vector<Geometry>& geom, const Vector<BoxArray>& grids,
-		  int nsoln, int iCpp, int iF90, int iHyp);
+		  int nsoln, int iCpp, int iHyp);
 
 int main(int argc, char* argv[])
 {
@@ -124,16 +117,12 @@ int main(int argc, char* argv[])
   Vector<std::unique_ptr<MultiFab> >  beta(nlevel);
   Vector<std::unique_ptr<MultiFab> >   rhs(nlevel);
 
-  int nsoln=-1, iF90=-1, iCpp=-1, iHyp=-1;
+  int nsoln=-1, iCpp=-1, iHyp=-1;
   switch (solver_type) 
     {
     case BoxLib_C:
       nsoln = 1;
       iCpp = 0;
-      break;
-    case BoxLib_F:
-      nsoln = 1;
-      iF90 = 0;
       break;
     case Hypre:
       nsoln = 1;
@@ -143,12 +132,10 @@ int main(int argc, char* argv[])
 #ifdef USEHYPRE
       nsoln = 3;
       iCpp = 0;
-      iF90 = 1;
       iHyp = 2;
 #else
       nsoln = 2;
       iCpp = 0;
-      iF90 = 1;
 #endif
       break;
     }
@@ -192,18 +179,6 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (solver_type == BoxLib_F || solver_type == All) {
-    for (int ilev=0; ilev < nlevel; ilev++) {
-	soln1[ilev]->setVal(0.0);
-    }    
-
-    solve_with_F90(psoln1, a, b, palph, pbeta, prhs, geom, grids, ibnd);
-
-    for (int ilev=0; ilev < nlevel; ilev++) {
-	MultiFab::Copy(*soln[ilev], *soln1[ilev], 0, iF90, 1, 1);
-    }
-  }
-
 #ifdef USEHYPRE
   if (solver_type == Hypre || solver_type == All) {
     for (int ilev=0; ilev < nlevel; ilev++) {
@@ -221,13 +196,13 @@ int main(int argc, char* argv[])
   int write_plot = 0;
   pp.query("write_plot", write_plot);
   if (write_plot) {
-      writePlotFile("plot", psoln, pexac, palph, pbeta, prhs, geom, grids, nsoln, iCpp, iF90, iHyp);
+      writePlotFile("plot", psoln, pexac, palph, pbeta, prhs, geom, grids, nsoln, iCpp, iHyp);
   }
 
   int comp_norm = 1;
   pp.query("comp_norm", comp_norm);
   if (comp_norm) {
-      compute_norm(psoln, pexac, geom, grids, nsoln, iCpp, iF90, iHyp);
+      compute_norm(psoln, pexac, geom, grids, nsoln, iCpp, iHyp);
   }
 
   }

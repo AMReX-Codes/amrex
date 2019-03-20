@@ -31,10 +31,8 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    void setScalars (Real a, Real b);
+    void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
-
-protected:
 
     virtual void prepareForSolve () final override;
     virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
@@ -60,6 +58,10 @@ protected:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a);
+    void averageDownCoeffs ();
+    void averageDownCoeffsToCoarseAmrLevel (int flev);
+
 private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
@@ -67,14 +69,6 @@ private:
     Vector<Vector<MultiFab> > m_a_coeffs;
 
     Vector<int> m_is_singular;
-
-    //
-    // functions
-    //
-
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a);
-    void averageDownCoeffs ();
-    void averageDownCoeffsToCoarseAmrLevel (int flev);
 };
 
 }

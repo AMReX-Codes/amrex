@@ -459,7 +459,7 @@ MLLinOp::make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const
 
 void
 MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
-                      const Array<BCType,AMREX_SPACEDIM>& a_hibc)
+                      const Array<BCType,AMREX_SPACEDIM>& a_hibc) noexcept
 {
     m_lobc = a_lobc;
     m_hibc = a_hibc;
@@ -476,7 +476,7 @@ MLLinOp::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
 }
 
 void
-MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio)
+MLLinOp::setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept
 {
     m_coarse_data_for_bc = crse;
     m_coarse_data_crse_ratio = crse_ratio;

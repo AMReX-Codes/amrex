@@ -3,13 +3,13 @@
 Welcome to AMReX's documentation
 ================================
 
-AMReX is a software framework library containing all the functionality to write
+AMReX is a software framework containing all the functionality to write
 massively parallel, block-structured adaptive mesh refinement (AMR)
 applications. AMReX is freely available `on Github
 <https://github.com/AMReX-Codes/amrex>`_.
 
 AMReX is developed at LBNL, NREL, and ANL as part of the Block-Structured AMR
-Co-Design Center in DOE's Exascale Computing Project. 
+Co-Design Center in DOE's Exascale Computing Project.
 
 All of AMReX's development is done in the github repository under the
 development branch; anyone can see the latest updates. Changes are merged into
@@ -19,7 +19,7 @@ We are always happy to have users contribute to the AMReX source code. To
 contribute, issue a pull request against the development branch (details `here
 <https://help.github.com/articles/creating-a-pull-request/>`_).  Any level of
 changes are welcomed: documentation, bug fixes, new test problems, new solvers,
-etc.  To obtain help, simply post an 
+etc.  To obtain help, simply post an
 `issue <https://github.com/AMReX-Codes/amrex/issues>`_
 on the AMReX GitHub webpage.
 
@@ -42,6 +42,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    AmrCore_Chapter
    AmrLevel_Chapter
    AsyncIter_Chapter
+   ForkJoin
    IO_Chapter
    LinearSolvers_Chapter
    Particle_Chapter
@@ -52,6 +53,13 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    AMReX_Profiling_Tools_Chapter
    External_Profiling_Tools_Chapter
    External_Frameworks_Chapter
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API
+
+   filelist
+   classlist
 
 Indices and tables
 ==================

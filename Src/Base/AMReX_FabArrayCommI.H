@@ -98,12 +98,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
 #ifdef BL_USE_MPI
 
-#if defined(BL_USE_MPI3)
-    BL_ASSERT(FAB::preAllocatable());
-#else
-    BL_ASSERT(!ParallelDescriptor::MPIOneSided());
-#endif
-
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
@@ -136,9 +130,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
     fb_tag = SeqNum;
 
-#if defined (BL_USE_MPI3)
-    int actual_n_snds = 0;
-#endif
     if (N_snds > 0)
     {
         fb_send_data.clear();
@@ -198,10 +189,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
             }
         }
-
-#if defined(BL_USE_MPI3)
-        actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
-#endif
     }
 
     if (!FAB::preAllocatable())
@@ -220,29 +207,12 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
     //
-#ifdef BL_USE_MPI3
-    MPI_Group tgroup, rgroup, sgroup;
-    if (ParallelDescriptor::MPIOneSided()) {
-	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
-    }
-#endif
-
     fb_the_recv_data = nullptr;
 
     if (N_rcvs > 0) {
-	if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-	    PostRcvs_MPI_Onesided(*TheFB.m_RcvTags, fb_the_recv_data, fb_recv_data,
-                                  fb_recv_size, fb_recv_from, fb_recv_reqs, fb_recv_disp,
-                                  scomp, ncomp, SeqNum, ParallelDescriptor::fb_win);
-	    MPI_Group_incl(tgroup, fb_recv_from.size(), fb_recv_from.dataPtr(), &rgroup);
-	    MPI_Win_post(rgroup, 0, ParallelDescriptor::fb_win);
-#endif
-	} else {
-	    PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
-                     fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
-                     scomp, ncomp, SeqNum, preSeqNum);
-	}
+        PostRcvs(*TheFB.m_RcvTags, fb_the_recv_data,
+                 fb_recv_data, fb_recv_size, fb_recv_from, fb_recv_reqs,
+                 scomp, ncomp, SeqNum, preSeqNum);
         fb_recv_stat.resize(N_rcvs);
     }
 
@@ -277,75 +247,30 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             }
         }
 
-	if (ParallelDescriptor::MPIOneSided())
-	{
-#if defined(BL_USE_MPI3)
-	    Vector<MPI_Aint> send_disp(N_snds,0);
-            send_reqs.clear();
-	    
-	    for (int i=0; i<N_snds; ++i) {
-                if (send_size[i] > 0) {
-                    send_reqs.push_back(ParallelDescriptor::Arecv
-                                        (&send_disp[i],1,send_rank[i],SeqNum).req());
-                }
-	    }
-		
-	    MPI_Group_incl(tgroup, N_snds, send_rank.dataPtr(), &sgroup);
-	    MPI_Win_start(sgroup,0,ParallelDescriptor::fb_win);
-	    
-	    int send_counter = 0;	
-	    while (send_counter < actual_n_snds) {
-		MPI_Status status;
-		int index;
-	
-                ParallelDescriptor::Waitany(send_reqs, index, status);	
-		
-		BL_ASSERT(status.MPI_TAG == SeqNum);
-		BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-
-                MPI_Put(send_data[index], send_size[index], MPI_CHAR, send_rank[index],
-                        send_disp[index], send_size[index], MPI_CHAR, ParallelDescriptor::fb_win);
-		
-		++send_counter;
-	    }
-#endif // BL_USE_MPI3
-	} 
-	else 
-	{
-            int send_counter = 0;
-            while (send_counter < N_snds)
+        int send_counter = 0;
+        while (send_counter < N_snds)
+        {
+            int j;
+            if (FAB::preAllocatable())
             {
-                int j;
-                
-                if (FAB::preAllocatable())
-                {
-                    j = send_counter;
-                }
-                else
-                {
-                    MPI_Status status;
-                    ParallelDescriptor::Waitany(pre_reqs, j, status);
-                }
-                        
-                BL_ASSERT(send_size[j] > 0);
-
-                send_reqs[j] = ParallelDescriptor::Asend
-                    (send_data[j], send_size[j],
-                     ParallelContext::global_to_local_rank(send_rank[j]),
-                     SeqNum,
-                     ParallelContext::CommunicatorSub()).req();
-
-                ++send_counter;
+                j = send_counter;
             }
-	}
-    }
+            else
+            {
+                MPI_Status status;
+                ParallelDescriptor::Waitany(pre_reqs, j, status);
+            }
 
-    if (ParallelDescriptor::MPIOneSided()) {
-#ifdef BL_USE_MPI3
-	MPI_Group_free(&tgroup);
-	if (N_rcvs > 0) MPI_Group_free(&rgroup);
-	if (N_snds > 0) MPI_Group_free(&sgroup);
-#endif
+            BL_ASSERT(send_size[j] > 0);
+
+            send_reqs[j] = ParallelDescriptor::Asend
+                (send_data[j], send_size[j],
+                 ParallelContext::global_to_local_rank(send_rank[j]),
+                 SeqNum,
+                 ParallelContext::CommunicatorSub()).req();
+
+            ++send_counter;
+	}
     }
 
     FillBoundary_test();
@@ -353,34 +278,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     //
     // Do the local work.  Hope for a bit of communication/computation overlap.
     //
-    if (ParallelDescriptor::TeamSize() > 1 && TheFB.m_threadsafe_loc)
-    {
-#ifdef BL_USE_TEAM
-#ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
-#endif
-	ParallelDescriptor::team_for(0, N_locs, [&] (int i) 
-        {
-	    const auto& tag = (*TheFB.m_LocTags)[i];
-
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.dstIndex]));
-	    BL_ASSERT(ParallelDescriptor::sameTeam(distributionMap[tag.srcIndex]));
-
-            auto const sfab = this->array(tag.srcIndex);
-            auto       dfab = this->array(tag.dstIndex);
-            const Dim3 offset = (tag.sbox.smallEnd() - tag.dbox.smallEnd()).dim3();
-
-            AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, ii, jj, kk, n,
-            {
-                dfab(ii,jj,kk,n+scomp) = sfab(ii+offset.x,jj+offset.y,kk+offset.z,n+scomp);
-            });
-	});
-#ifdef AMREX_USE_GPU
-        Gpu::Device::synchronize();
-#endif
-#endif
-    }
-    else
     {
         bool is_thread_safe = FAB::isCopyOMPSafe() && TheFB.m_threadsafe_loc;
         if (Gpu::inLaunchRegion() || !is_thread_safe)
@@ -396,92 +293,31 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 if (distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc())
                 {
                     loc_copy_tags[tag.dstIndex].push_back
-                        ({this->fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                        ({this->fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                 }
             }
 
             FillBoundary_test();
 
-            if (Gpu::inLaunchRegion())
-            {
-                LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
-                    dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
-                for (MFIter mfi(*this); mfi.isValid(); ++mfi)
-                {
-                    FAB* dfab = this->fabPtr(mfi);
-                    const Box& vbx = mfi.validbox();
-
-                    const auto& lc_tags = loc_copy_tags[mfi];
-
-                    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                    {
-                        Box gbx_lo = vbx;
-                        gbx_lo.setRange(idim,vbx.smallEnd(idim)-nghost[idim],nghost[idim]);
-                        for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
-                            gbx_lo.grow(jdim,nghost[jdim]);
-                        }
-                        const int ncells_to_hi = vbx.length(idim)+nghost[idim];
-                        const Box gbx_hi = gbx_lo + IntVect{ncells_to_hi};
-
-                        Vector<FabCopyTag<FAB> > tags_lo, tags_hi;
-                        for (const auto& lc_tag : lc_tags) {
-                            Box b = gbx_lo & lc_tag.dbox;
-                            if (b.ok()) {
-                                tags_lo.push_back({lc_tag.sfab,b,lc_tag.offset});
-                            }
-                            b = gbx_hi & lc_tag.dbox;
-                            if (b.ok()) {
-                                tags_hi.push_back({lc_tag.sfab,b,lc_tag.offset});
-                            }
-                        }
-                        const int ntags_lo = tags_lo.size();
-                        const int ntags_hi = tags_hi.size();
-                        if (ntags_lo > 0 || ntags_hi > 0)
-                        {
-                            AsyncArray<FabCopyTag<FAB> > async_tags_lo(tags_lo.data(), ntags_lo);
-                            AsyncArray<FabCopyTag<FAB> > async_tags_hi(tags_hi.data(), ntags_hi);
-                            FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
-                            FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
-
-                            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                gbx_lo, tbx_lo,
-                                {
-                                    for (int i = 0; i < ntags_lo; ++i) {
-                                        const auto& tag = ptags_lo[i];
-                                        const Box dbx = tbx_lo & tag.dbox;
-                                        if (dbx.ok()) {
-                                            const Box sbx = dbx + tag.offset;
-                                            dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
-                                        }
-                                    }
-                                },
-                                gbx_hi, tbx_hi,
-                                {
-                                    for (int i = 0; i < ntags_hi; ++i) {
-                                        const auto& tag = ptags_hi[i];
-                                        const Box dbx = tbx_hi & tag.dbox;
-                                        if (dbx.ok()) {
-                                            const Box sbx = dbx + tag.offset;
-                                            dfab->copy(*tag.sfab, sbx, scomp, dbx, scomp, ncomp);
-                                        }
-                                    }
-                                });
-                        }
-                    }
-                }
-            }
-            else
-            {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+            {
+                int cuda_stream = 0;
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
                     const auto& tags = loc_copy_tags[mfi];
-                    FAB* dfab = &((*this)[mfi]);
+                    const auto& dfab = this->array(mfi);
                     for (const auto& tag : tags ) {
-                        const Box sbx = tag.dbox + tag.offset;
-                        dfab->copy(*tag.sfab, sbx, scomp, tag.dbox, scomp, ncomp);
+                        const Dim3 offset = tag.offset.dim3();
+                        const auto sfab = tag.sfab->array();
+#ifdef AMREX_USE_GPU
+                        Gpu::Device::setStreamIndex(cuda_stream++);
+#endif
+                        AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
+                        {
+                            dfab(i,j,k,scomp+n) = sfab(i+offset.x,j+offset.y,k+offset.z,scomp+n);
+                        });
                     }
                 }
             }
@@ -525,10 +361,6 @@ FabArray<FAB>::FillBoundary_finish ()
 
 #ifdef BL_USE_MPI
 
-#if !defined(BL_USE_MPI3)
-    BL_ASSERT(!ParallelDescriptor::MPIOneSided());
-#endif
-
     const FB& TheFB = getFB(fb_nghost,fb_period,fb_cross,fb_epo);
 
     const int N_rcvs = TheFB.m_RcvTags->size();
@@ -569,21 +401,14 @@ FabArray<FAB>::FillBoundary_finish ()
 
     int actual_n_rcvs = N_rcvs - std::count(fb_recv_data.begin(), fb_recv_data.end(), nullptr);
 
-    if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-	if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::fb_win);
-	if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::fb_win);
-#endif
-    } else {
-	if (actual_n_rcvs > 0) {
-            ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
+    if (actual_n_rcvs > 0) {
+        ParallelDescriptor::Waitall(fb_recv_reqs, fb_recv_stat);
 #ifdef AMREX_DEBUG
-	    if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
-            {
-                amrex::Abort("FillBoundary_finish failed with wrong message size");
-            }
+        if (!CheckRcvStats(fb_recv_stat, fb_recv_size, MPI_CHAR, fb_tag))
+        {
+            amrex::Abort("FillBoundary_finish failed with wrong message size");
+        }
 #endif
-	}
     }
 
     if (N_rcvs > 0)
@@ -636,28 +461,17 @@ FabArray<FAB>::FillBoundary_finish ()
 
         if (fb_the_recv_data)
         {
-            if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-                MPI_Win_detach(ParallelDescriptor::fb_win, fb_the_recv_data);
-#endif
-            }
 	    amrex::The_FA_Arena()->free(fb_the_recv_data);
             fb_the_recv_data = nullptr;
 	}
     }
 
     if (N_snds > 0) {
-	if (!ParallelDescriptor::MPIOneSided()) {
-            Vector<MPI_Status> stats;
-            FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
-        }
+        Vector<MPI_Status> stats;
+        FabArrayBase::WaitForAsyncSends(N_snds,fb_send_reqs,fb_send_data,stats);
         amrex::The_FA_Arena()->free(fb_the_send_data);
         fb_the_send_data = nullptr;
     }
-
-#ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
 
 #endif // MPI
 }
@@ -804,12 +618,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
 #ifdef BL_USE_MPI
 
-#if defined(BL_USE_MPI3)
-    BL_ASSERT(FAB::preAllocatable());
-#else
-    BL_ASSERT(!ParallelDescriptor::MPIOneSided());
-#endif
-
     //
     // Do this before prematurely exiting if running in parallel.
     // Otherwise sequence numbers will not match across MPI processes.
@@ -824,18 +632,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
     const int N_rcvs = thecpc.m_RcvTags->size();
     const int N_locs = thecpc.m_LocTags->size();
 
-    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0)
+    if (N_locs == 0 && N_rcvs == 0 && N_snds == 0) {
         //
         // No work to do.
         //
         return;
-
-#ifdef BL_USE_MPI3
-    MPI_Group tgroup, rgroup, sgroup;
-    if (ParallelDescriptor::MPIOneSided()) {
-	MPI_Comm_group(ParallelDescriptor::Communicator(), &tgroup);
     }
-#endif
 
     //
     // Send/Recv at most MaxComp components at a time to cut down memory usage.
@@ -858,9 +660,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         Vector<Vector<int> >                indv_send_size;
         Vector<MPI_Request>                 pre_reqs;
 
-#if defined(BL_USE_MPI3)
-        int actual_n_snds = 0;
-#endif
 	if (N_snds > 0)
 	{
 	    send_data.reserve(N_snds);
@@ -917,10 +716,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                     }
                 }
             }
-
-#if defined(BL_USE_MPI3)
-            actual_n_snds = N_snds - std::count(send_size.begin(), send_size.end(), 0);
-#endif
         }
 
         if (!FAB::preAllocatable())
@@ -940,9 +735,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         Vector<char*>       recv_data;
         Vector<int>         recv_size;
         Vector<MPI_Request> recv_reqs;
-#ifdef BL_USE_MPI3
-	Vector<MPI_Aint>    recv_disp;
-#endif
         //
         // Post rcvs. Allocate one chunk of space to hold'm all.
         //
@@ -950,18 +742,8 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
         int actual_n_rcvs = 0;
 	if (N_rcvs > 0) {
-	    if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-                PostRcvs_MPI_Onesided(*thecpc.m_RcvTags, the_recv_data, recv_data, 
-                                      recv_size, recv_from, recv_reqs, recv_disp,
-                                      SC, NC, SeqNum, ParallelDescriptor::cp_win);
-		MPI_Group_incl(tgroup, recv_from.size(), recv_from.dataPtr(), &rgroup);
-		MPI_Win_post(rgroup, 0, ParallelDescriptor::cp_win);
-#endif
-	    } else {
-                PostRcvs(*thecpc.m_RcvTags, the_recv_data,
-                         recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
-	    }
+            PostRcvs(*thecpc.m_RcvTags, the_recv_data,
+                     recv_data, recv_size, recv_from, recv_reqs, SC, NC, SeqNum, preSeqNum);
             actual_n_rcvs = N_rcvs - std::count(recv_size.begin(), recv_size.end(), 0);
 	}
 
@@ -997,125 +779,37 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 		}
 	    }
 
-	    if (ParallelDescriptor::MPIOneSided())
-	    {
-#if defined(BL_USE_MPI3)
-		Vector<MPI_Aint> send_disp(N_snds,0);
-                send_reqs.clear();
-
-		for (int i=0; i<N_snds; ++i) {
-                    if (send_size[i] > 0) {
-                        send_reqs[i] = ParallelDescriptor::Arecv
-                            (&send_disp[i],1,send_rank[i],SeqNum).req();
-                    }
-		}
-		
-		MPI_Group_incl(tgroup, N_snds, send_rank.data(), &sgroup);
-		MPI_Win_start(sgroup,0,ParallelDescriptor::cp_win);
-		
-		int send_counter = 0;	
-		while (send_counter < actual_n_snds) {
-		    MPI_Status status;
-		    int index;
-		   
-                    ParallelDescriptor::Waitany(send_reqs, index, status); 
-		    
-		    BL_ASSERT(status.MPI_TAG == SeqNum);
-		    BL_ASSERT(status.MPI_SOURCE == send_rank[index]);
-		    
-		    MPI_Put(send_data[index], send_size[index], MPI_CHAR, send_rank[index],
-			    send_disp[index], send_size[index], MPI_CHAR, ParallelDescriptor::cp_win);
-		    
-		    ++send_counter;
-		}
-#endif
-	    }
-            else
+            int send_counter = 0;
+            while (send_counter < N_snds)
             {
-                int send_counter = 0;
-                while (send_counter < N_snds)
+                int j;
+
+                if (FAB::preAllocatable())
                 {
-                    int j;
+                    j = send_counter;
+                }
+                else
+                {
+                    MPI_Status status;
+                    ParallelDescriptor::Waitany(pre_reqs, j, status);
+                }
 
-                    if (FAB::preAllocatable())
-                    {
-                        j = send_counter;
-                    }
-                    else
-                    {
-                        MPI_Status status;
-                        ParallelDescriptor::Waitany(pre_reqs, j, status);
-                    }
-                        
-                    if (send_size[j] > 0)
-                    {
-                        if (FabArrayBase::do_async_sends)
-                        {
-                            send_reqs[j] = ParallelDescriptor::Asend
-                                (send_data[j], send_size[j],
-                                 ParallelContext::global_to_local_rank(send_rank[j]),
-                                 SeqNum,
-                                 ParallelContext::CommunicatorSub()).req();
-                        }
-                        else
-                        {
-                            ParallelDescriptor::Send
-                                (send_data[j], send_size[j],
-                                 ParallelContext::global_to_local_rank(send_rank[j]),
-                                 SeqNum,
-                                 ParallelContext::CommunicatorSub());
-                        }
-                    }
+                if (send_size[j] > 0)
+                {
+                    send_reqs[j] = ParallelDescriptor::Asend
+                        (send_data[j], send_size[j],
+                         ParallelContext::global_to_local_rank(send_rank[j]),
+                         SeqNum,
+                         ParallelContext::CommunicatorSub()).req();
+                }
 
-                    ++send_counter;
-		}
+                ++send_counter;
 	    }
 	}
-
-#ifdef BL_USE_MPI3
-	if (ParallelDescriptor::MPIOneSided()) {
-	    if (N_rcvs > 0) MPI_Group_free(&rgroup);
-	    if (N_snds > 0) MPI_Group_free(&sgroup);
-	}
-#endif
 
         //
         // Do the local work.  Hope for a bit of communication/computation overlap.
         //
-	if (ParallelDescriptor::TeamSize() > 1 && thecpc.m_threadsafe_loc)
-	{
-#ifdef BL_USE_TEAM
-#ifdef _OPENMP
-#pragma omp parallel if (FAB::isCopyOMPSafe() && Gpu::notInLaunchRegion())
-#endif
-	    ParallelDescriptor::team_for(0, N_locs, [&] (int j) 
-            {
-		const CopyComTag& tag = (*thecpc.m_LocTags)[j];
-                // avoid self copy or plus
-		if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
-                    auto const sfab = src.array(tag.srcIndex);
-                    auto       dfab = this->array(tag.dstIndex);
-                    Dim3 offset = (tag.dbox.smallEnd() - tag.sbox.smallEnd()).dim3();
-
-		    if (op == FabArrayBase::COPY) {
-                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, ii, jj, kk, n,
-                        {
-                            dfab(ii+offset.x,jj+offset.y,kk+offset.z,DC+n) = sfab(ii,jj,kk,SC+n);
-                        });
-		    } else {
-                        AMREX_HOST_DEVICE_FOR_4D ( tag.sbox, NC, ii, jj, kk, n,
-                        {
-                            dfab(ii+offset.x,jj+offset.y,kk+offset.z,DC+n) += sfab(ii,jj,kk,SC+n);
-                        });
-		    }
-		}
-	    });
-#ifdef AMREX_USE_GPU
-            Gpu::Device::synchronize();
-#endif
-#endif	    
-	}
-	else
 	{
             bool is_thread_safe = FAB::isCopyOMPSafe() && thecpc.m_threadsafe_loc;
             if (Gpu::inLaunchRegion() || !is_thread_safe)
@@ -1219,20 +913,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 	//
 	//  wait and unpack
 	//
-	if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-	    if (N_snds > 0) MPI_Win_complete(ParallelDescriptor::cp_win);
-	    if (N_rcvs > 0) MPI_Win_wait    (ParallelDescriptor::cp_win);
-#endif
-	} else {
-	    if (actual_n_rcvs > 0) {
-		Vector<MPI_Status> stats(N_rcvs);
-                ParallelDescriptor::Waitall(recv_reqs, stats);
-		if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
-                {
-                    amrex::Abort("ParallelCopy failed with wrong message size");
-                }
-	    }
+        if (actual_n_rcvs > 0) {
+            Vector<MPI_Status> stats(N_rcvs);
+            ParallelDescriptor::Waitall(recv_reqs, stats);
+            if (!CheckRcvStats(stats, recv_size, MPI_CHAR, SeqNum))
+            {
+                amrex::Abort("ParallelCopy failed with wrong message size");
+            }
 	}
 
 	if (N_rcvs > 0)
@@ -1298,22 +985,15 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
 
             if (the_recv_data)
             {
-                if (ParallelDescriptor::MPIOneSided()) {
-#if defined(BL_USE_MPI3)
-                    MPI_Win_detach(ParallelDescriptor::cp_win, the_recv_data);
-#endif
-                }
                 amrex::The_FA_Arena()->free(the_recv_data);
                 the_recv_data = nullptr;
             }
 	}
 	
         if (N_snds > 0) {
-	    if (!ParallelDescriptor::MPIOneSided()) {
-		if (FabArrayBase::do_async_sends && ! thecpc.m_SndTags->empty()) {
-		    Vector<MPI_Status> stats;
-		    FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
-		}
+            if (! thecpc.m_SndTags->empty()) {
+                Vector<MPI_Status> stats;
+                FabArrayBase::WaitForAsyncSends(N_snds,send_reqs,send_data,stats);
 	    }
             amrex::The_FA_Arena()->free(the_send_data);
             the_send_data = nullptr;
@@ -1324,16 +1004,6 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
         DC        += NC;
         NCompLeft -= NC;
     }
-
-#ifdef BL_USE_MPI3
-    if (ParallelDescriptor::MPIOneSided()) {
-	MPI_Group_free(&tgroup);
-    }
-#endif
-
-#ifdef BL_USE_TEAM
-    ParallelDescriptor::MyTeam().MemoryBarrier();
-#endif
 
     return;
 
@@ -1514,76 +1184,6 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  m_RcvTags,
     }
 }
 #endif
-
-
-#ifdef BL_USE_MPI3
-template <class FAB>
-void
-FabArray<FAB>::PostRcvs_MPI_Onesided (const MapOfCopyComTagContainers&  m_RcvTags,
-                                      char*&                            the_recv_data,
-                                      Vector<char*>&                    recv_data,
-                                      Vector<int>&                      recv_size,
-                                      Vector<int>&                      recv_from,
-                                      Vector<MPI_Request>&              recv_reqs,
-                                      Vector<MPI_Aint> &                recv_disp,
-                                      int                               icomp,
-                                      int                               ncomp,
-                                      int                               SeqNum,
-                                      MPI_Win &                         win)
-{
-    recv_data.clear();
-    recv_size.clear();
-    recv_from.clear();
-    recv_reqs.clear();
-    recv_disp.clear();
-
-    std::size_t TotalRcvsVolume = 0;
-    for (const auto& kv : m_RcvTags) // loop over senders
-    {
-        std::size_t nbytes = 0;
-        for (const auto& cct : kv.second)
-        {
-            nbytes += (*this)[cct.dstIndex].nBytes(cct.dbox,icomp,ncomp);
-        }
-
-        BL_ASSERT(nbytes < std::numeric_limits<int>::max());
-
-        TotalRcvsVolume += nbytes;
-
-        recv_data.push_back(nullptr);
-        recv_size.push_back(static_cast<int>(nbytes));
-        recv_from.push_back(kv.first);
-        recv_reqs.push_back(MPI_REQUEST_NULL);
-        recv_disp.push_back(0);
-    }
-
-    if (TotalRcvsVolume == 0)
-    {
-        the_recv_data = nullptr;
-    }
-    else
-    {
-        the_recv_data = static_cast<char*>(amrex::The_FA_Arena()->alloc(TotalRcvsVolume));
-
-        MPI_Win_attach(win, the_recv_data, TotalRcvsVolume);
-
-        int nrecv = recv_from.size();
-        
-        std::size_t offset = 0;
-        for (int i = 0; i < nrecv; ++i)
-        {
-            if (recv_size[i] > 0)
-            {
-                recv_data[i] = the_recv_data + offset;
-                MPI_Get_address(recv_data[i], &recv_disp[i]);
-                recv_reqs[i] = ParallelDescriptor::Asend(&recv_disp[i],1,recv_from[i],SeqNum).req();
-                offset += recv_size[i];
-            }
-        }
-    }
-}
-#endif   // BL_USE_MPI3
-
 
 template <class FAB>
 void
@@ -1836,90 +1436,29 @@ FillBoundary (Vector<FabArray<FAB>*> const& mf, const Periodicity& period)
                         if (dm[tag.dstIndex] == myproc)
                         {
                             loc_copy_tags[tag.dstIndex].push_back
-                                ({fa.fabPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+                                ({fa.fabHostPtr(tag.srcIndex), tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
                         }
                     }
 
-                    if (Gpu::inLaunchRegion())
-                    {
-                        LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
-                            dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
-                        for (MFIter mfi(fa); mfi.isValid(); ++mfi)
-                        {
-                            FAB* dfab = fa.fabPtr(mfi);
-                            const Box& vbx = mfi.validbox();
-
-                            const auto& lc_tags = loc_copy_tags[mfi];
-
-                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
-                            {
-                                Box gbx_lo = vbx;
-                                gbx_lo.setRange(idim,vbx.smallEnd(idim)-ng[idim],ng[idim]);
-                                for (int jdim = idim+1; jdim < AMREX_SPACEDIM; ++jdim) {
-                                    gbx_lo.grow(jdim,ng[jdim]);
-                                }
-                                const int ncells_to_hi = vbx.length(idim)+ng[idim];
-                                const Box gbx_hi = gbx_lo + IntVect{ncells_to_hi};
-
-                                Vector<FabCopyTag<FAB> > vtags_lo, vtags_hi;
-                                for (const auto& lc_tag : lc_tags) {
-                                    Box b = gbx_lo & lc_tag.dbox;
-                                    if (b.ok()) {
-                                        vtags_lo.push_back({lc_tag.sfab,b,lc_tag.offset});
-                                    }
-                                    b = gbx_hi & lc_tag.dbox;
-                                    if (b.ok()) {
-                                        vtags_hi.push_back({lc_tag.sfab,b,lc_tag.offset});
-                                    }
-                                }
-                                const int ntags_lo = vtags_lo.size();
-                                const int ntags_hi = vtags_hi.size();
-                                if (ntags_lo > 0 || ntags_hi > 0)
-                                {
-                                    AsyncArray<FabCopyTag<FAB> > async_tags_lo(vtags_lo.data(), ntags_lo);
-                                    AsyncArray<FabCopyTag<FAB> > async_tags_hi(vtags_hi.data(), ntags_hi);
-                                    FabCopyTag<FAB>* ptags_lo = async_tags_lo.data();
-                                    FabCopyTag<FAB>* ptags_hi = async_tags_hi.data();
-
-                                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                        gbx_lo, tbx_lo,
-                                        {
-                                            for (int i = 0; i < ntags_lo; ++i) {
-                                                const auto& tag = ptags_lo[i];
-                                                const Box dbx = tbx_lo & tag.dbox;
-                                                if (dbx.ok()) {
-                                                    const Box sbx = dbx + tag.offset;
-                                                    dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
-                                                }
-                                            }
-                                        },
-                                        gbx_hi, tbx_hi,
-                                        {
-                                            for (int i = 0; i < ntags_hi; ++i) {
-                                                const auto& tag = ptags_hi[i];
-                                                const Box dbx = tbx_hi & tag.dbox;
-                                                if (dbx.ok()) {
-                                                    const Box sbx = dbx + tag.offset;
-                                                    dfab->copy(*tag.sfab, sbx, sc, dbx, sc, nc);
-                                                }
-                                            }
-                                        });
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+                    {
+                        int cuda_stream = 0;
                         for (MFIter mfi(fa); mfi.isValid(); ++mfi)
                         {
                             const auto& lc_tags = loc_copy_tags[mfi];
-                            FAB* dfab = &(fa[mfi]);
+                            const auto& dfab = fa.array(mfi);
                             for (const auto& tag : lc_tags) {
-                                const Box& sbx = tag.dbox + tag.offset;
-                                dfab->copy(*tag.sfab, sbx, sc, tag.dbox, sc, nc);
+                                const Dim3 offset = tag.offset.dim3();
+                                const auto sfab = tag.sfab->array();
+#ifdef AMREX_USE_GPU
+                                Gpu::Device::setStreamIndex(cuda_stream++);
+#endif
+                                AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, nc, i, j, k, n,
+                                {
+                                    dfab(i,j,k,sc+n) = sfab(i+offset.x,j+offset.y,k+offset.z,sc+n);
+                                });
                             }
                         }
                     }

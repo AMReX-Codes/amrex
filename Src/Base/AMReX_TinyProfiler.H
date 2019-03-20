@@ -20,40 +20,40 @@ namespace amrex {
 class TinyProfiler
 {
 public:
-    TinyProfiler (std::string funcname);
-    TinyProfiler (std::string funcname, bool start_);
-    TinyProfiler (const char* funcname);
-    TinyProfiler (const char* funcname, bool start_);
+    TinyProfiler (std::string funcname) noexcept;
+    TinyProfiler (std::string funcname, bool start_) noexcept;
+    TinyProfiler (const char* funcname) noexcept;
+    TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
 
-    void start ();
-    void stop ();
+    void start () noexcept;
+    void stop () noexcept;
 
-    static void Initialize ();
-    static void Finalize (bool bFlushing = false);
+    static void Initialize () noexcept;
+    static void Finalize (bool bFlushing = false) noexcept;
 
-    static void StartRegion (std::string regname);
-    static void StopRegion (const std::string& regname);
+    static void StartRegion (std::string regname) noexcept;
+    static void StopRegion (const std::string& regname) noexcept;
 
 private:
     //! stats on a single process
-    struct Stats   
+    struct Stats
     {
-	Stats () : depth(0), n(0L), dtin(0.0), dtex(0.0) { } 
-	int  depth; // recursive depth
-	long n;     // number of calls
-	double dtin;  // inclusive dt
-	double dtex;  // exclusive dt
+	Stats () noexcept : depth(0), n(0L), dtin(0.0), dtex(0.0) { }
+	int  depth; //!< recursive depth
+	long n;     //!< number of calls
+	double dtin;  //!< inclusive dt
+	double dtex;  //!< exclusive dt
     };
 
     //! stats across processes
-    struct ProcStats 
+    struct ProcStats
     {
-	ProcStats () : nmin(std::numeric_limits<long>::max()), 
-		       navg(0L), nmax(0L), 
-		       dtinmin(std::numeric_limits<double>::max()), 
+	ProcStats () : nmin(std::numeric_limits<long>::max()),
+		       navg(0L), nmax(0L),
+		       dtinmin(std::numeric_limits<double>::max()),
 		       dtinavg(0.0), dtinmax(0.0),
-		       dtexmin(std::numeric_limits<double>::max()), 
+		       dtexmin(std::numeric_limits<double>::max()),
 		       dtexavg(0.0), dtexmax(0.0)  {}
 	long nmin, navg, nmax;
 	double dtinmin, dtinavg, dtinmax;
@@ -86,8 +86,8 @@ private:
 class TinyProfileRegion
 {
 public:
-    TinyProfileRegion (std::string a_regname);
-    TinyProfileRegion (const char* a_regname);
+    TinyProfileRegion (std::string a_regname) noexcept;
+    TinyProfileRegion (const char* a_regname) noexcept;
     ~TinyProfileRegion ();
 private:
     std::string regname;

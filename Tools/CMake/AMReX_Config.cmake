@@ -45,7 +45,15 @@ function (configure_amrex)
    if ( ENABLE_PIC OR BUILD_SHARED_LIBS )
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
-   
+
+   if(BUILD_SHARED_LIBS)
+      if(APPLE)
+         target_link_options(amrex PUBLIC -Wl,-undefined,warning)
+      else()
+         target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
+      endif()
+   endif()
+  
    
    # 
    # Location of Fortran modules
@@ -129,11 +137,7 @@ function (configure_amrex)
    # Add third party libraries
    #
    if (ENABLE_3D_NODAL_MLMG)
-      # Add Algoim dependency
-      target_include_directories( amrex PRIVATE ${ALGOIM_INSTALL_DIR}/src )
-      #  Blitz dependency
-      target_include_directories( amrex PRIVATE ${BLITZ_INSTALL_DIR}/include )
-      target_link_libraries( amrex PUBLIC ${BLITZ_INSTALL_DIR}/lib/libblitz.a)
+      include(AMReX_InstallExternalLibs) 
    endif()
    
    #
@@ -147,6 +151,11 @@ function (configure_amrex)
    if (ENABLE_SENSEI_INSITU)
       find_package(SENSEI REQUIRED)
    endif()
+
+   #
+   # Setup other third party libs
+   #
+   include(AMReX_SetupThirdPartyLibs)
 
    #
    # Print out summary
@@ -216,8 +225,7 @@ function (print_amrex_configuration_summary)
    if (NOT AMREX_LINK_LINE) # LINK_LIBRARIES property can return "NOT_FOUND"
       set (AMREX_LINK_LINE "")
    endif ()   
-   string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )
-   
+   string ( REPLACE ";" " " AMREX_LINK_LINE "${AMREX_LINK_LINE}" )   
    
    #
    # Config summary

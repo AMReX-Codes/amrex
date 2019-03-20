@@ -1,28 +1,7 @@
 
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_InterpBndryData.H>
-#include <AMReX_INTERPBNDRYDATA_F.H>
-
-#if (AMREX_SPACEDIM == 1)
-#define NUMDERIV 2
-#endif
-
-#if (AMREX_SPACEDIM == 2)
-#define NUMDERIV 2
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-#define NUMDERIV 5
-#endif
-
-#define DEF_LIMITS(fab,fabdat,fablo,fabhi)   \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-Real* fabdat = (fab).dataPtr();
-#define DEF_CLIMITS(fab,fabdat,fablo,fabhi)  \
-const int* fablo = (fab).loVect();           \
-const int* fabhi = (fab).hiVect();           \
-const Real* fabdat = (fab).dataPtr();
+#include <AMReX_InterpBndryData_K.H>
 
 namespace amrex {
 
@@ -31,39 +10,7 @@ namespace amrex {
 //
 int InterpBndryData::IBD_max_order_DEF = 3;
 
-namespace
-{
-    bool initialized = false;
-
-    BDInterpFunc* bdfunc[2*AMREX_SPACEDIM];
-}
-
-static
-void
-bdfunc_init ()
-{
-    const Orientation xloface(0,Orientation::low);
-    const Orientation xhiface(0,Orientation::high);
-
-    bdfunc[xloface] = amrex_bdinterpxlo;
-    bdfunc[xhiface] = amrex_bdinterpxhi;
-
-#if (AMREX_SPACEDIM > 1)
-    const Orientation yloface(1,Orientation::low);
-    const Orientation yhiface(1,Orientation::high);
-    bdfunc[yloface] = amrex_bdinterpylo;
-    bdfunc[yhiface] = amrex_bdinterpyhi;
-#endif
-
-#if (AMREX_SPACEDIM > 2)
-    const Orientation zloface(2,Orientation::low);
-    const Orientation zhiface(2,Orientation::high);
-    bdfunc[zloface] = amrex_bdinterpzlo;
-    bdfunc[zhiface] = amrex_bdinterpzhi;
-#endif
-}
-
-InterpBndryData::InterpBndryData ()
+InterpBndryData::InterpBndryData () noexcept
     :
     BndryData()
 {}
@@ -145,9 +92,8 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
 	setBndryConds(bc, ref_ratio, n);
     }
 
-    // TODO: tiling - wqz
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
     for (MFIter mfi(mf,MFItInfo().SetDynamic(true)); mfi.isValid(); ++mfi)
     {
@@ -162,8 +108,15 @@ InterpBndryData::setBndryValues (const MultiFab& mf,
                 //
                 // Physical bndry, copy from grid.
                 //
-                FArrayBox& bnd_fab = bndry[face][mfi];
-                bnd_fab.copy(mf[mfi],mf_start,bnd_start,num_comp);
+                auto bnd_fab = bndry[face].fabHostPtr(mfi);
+                auto src_fab = mf.fabHostPtr(mfi);
+                auto bnd_array = bnd_fab->array();
+                auto const src_array = src_fab->array();
+                const Box& b = src_fab->box() & bnd_fab->box();
+                AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, i, j, k, n,
+                {
+                    bnd_array(i,j,k,n+bnd_start) = src_array(i,j,k,n+mf_start);
+                });
             }
         }
     }
@@ -188,10 +141,6 @@ InterpBndryData::setBndryValues (BndryRegister& crse,
                                  const BCRec&    bc,
                                  int             max_order)
 {
-    if (!initialized) {
-        bdfunc_init();
-    }
-
     BndryValuesDoIt (crse, c_start, &fine, f_start, bnd_start, num_comp, ratio, &bc, max_order);
 }
 
@@ -231,7 +180,7 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
         MultiFab foo(grids,bndry[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false), FArrayBoxFactory());
 
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         {
         Vector<Real> derives;
@@ -242,11 +191,6 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 
             const Box&       fine_bx  = mfi.validbox();
             const Box&       crse_bx  = amrex::coarsen(fine_bx,ratio);
-            const int*       cblo     = crse_bx.loVect();
-            const int*       cbhi     = crse_bx.hiVect();
-            const int        mxlen    = crse_bx.longside() + 2;
-            const int*       lo       = fine_bx.loVect();
-            const int*       hi       = fine_bx.hiVect();
 
             for (int i = 0; i < 2*AMREX_SPACEDIM; i++)
             {
@@ -257,52 +201,176 @@ InterpBndryData::BndryValuesDoIt (BndryRegister&  crse,
 
                 if (fine_bx[face] != fine_domain[face] || geom.isPeriodic(dir))
                 {
+                    auto const crse_array = crse[face].array(mfi);
+                    auto       bdry_array = bndry[face].array(mfi);
+                    const int dirside = dir*2 + side;
+                    const auto rr = ratio.dim3();
                     //
                     // Internal or periodic edge, interpolate from crse data.
                     //
-                    derives.resize(AMREX_D_TERM(1,*mxlen,*mxlen)*NUMDERIV);
-
-                    const Mask&      mask           = masks[face][mfi];
-                    const int*       mlo            = mask.loVect();
-                    const int*       mhi            = mask.hiVect();
-                    const int*       mdat           = mask.dataPtr();
-                    const FArrayBox& crse_fab       = crse[face][mfi];
-                    const int*       clo            = crse_fab.loVect();
-                    const int*       chi            = crse_fab.hiVect();
-                    const Real*      cdat           = crse_fab.dataPtr(c_start);
-                    FArrayBox&       bnd_fab        = bndry[face][mfi];
-                    const int*       blo            = bnd_fab.loVect();
-                    const int*       bhi            = bnd_fab.hiVect();
-                    Real*            bdat           = bnd_fab.dataPtr(bnd_start);
-                    int              is_not_covered = BndryData::not_covered;
-                    //
-                    // The quadratic interp needs crse data in 2 grow cells tangential
-                    // to face.  This checks to be sure the source data is large enough.
-                    //
-                    Box crsebnd = amrex::adjCell(crse_bx,face,1);
-
-                    if (max_order == 3) 
+                    if (max_order == 1)
                     {
-                        for (int k=0;k<AMREX_SPACEDIM;k++)
-                            if (k!=dir)
-                                crsebnd.grow(k,2);
-                        BL_ASSERT(crse_fab.box().contains(crsebnd));
+                        switch (dirside) {
+                        case 0:
+                        {
+                            const Box& b = amrex::adjCellLo(crse_bx, 0);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_x_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
+                            });
+                            break;
+                        }
+                        case 1:
+                        {
+                            const Box& b = amrex::adjCellHi(crse_bx, 0);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_x_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
+                            });
+                            break;
+                        }
+#if (AMREX_SPACEDIM >= 2)
+                        case 2:
+                        {
+                            const Box& b = amrex::adjCellLo(crse_bx, 1);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_y_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
+                            });
+                            break;
+                        }
+                        case 3:
+                        {
+                            const Box& b = amrex::adjCellHi(crse_bx, 1);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_y_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
+                            });
+                            break;
+                        }
+#if (AMREX_SPACEDIM == 3)
+                        case 4:
+                        {
+                            const Box& b = amrex::adjCellLo(crse_bx, 2);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_z_o1(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
+                            });
+                            break;
+                        }
+                        case 5:
+                        {
+                            const Box& b = amrex::adjCellHi(crse_bx, 2);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_z_o1(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr);
+                            });
+                            break;
+                        }
+#endif
+#endif
+                        default: {}
+                        }
                     }
-
-                    bdfunc[face](bdat,AMREX_ARLIM(blo),AMREX_ARLIM(bhi),
-                                 lo,hi,AMREX_ARLIM(cblo),AMREX_ARLIM(cbhi),
-                                 &num_comp,ratio.getVect(),&is_not_covered,
-                                 mdat,AMREX_ARLIM(mlo),AMREX_ARLIM(mhi),
-                                 cdat,AMREX_ARLIM(clo),AMREX_ARLIM(chi),derives.dataPtr(),&max_order);
+                    else
+                    {
+                        auto const mask_array = masks[face].array(mfi);
+                        int is_not_covered = BndryData::not_covered;
+                        switch (dirside) {
+                        case 0:
+                        {
+                            const Box& b = amrex::adjCellLo(crse_bx, 0);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_x_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
+                                                     mask_array, is_not_covered);
+                            });
+                            break;
+                        }
+                        case 1:
+                        {
+                            const Box& b = amrex::adjCellHi(crse_bx, 0);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_x_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
+                                                     mask_array, is_not_covered);
+                            });
+                            break;
+                        }
+#if (AMREX_SPACEDIM >= 2)
+                        case 2:
+                        {
+                            const Box& b = amrex::adjCellLo(crse_bx, 1);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_y_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
+                                                     mask_array, is_not_covered);
+                            });
+                            break;
+                        }
+                        case 3:
+                        {
+                            const Box& b = amrex::adjCellHi(crse_bx, 1);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_y_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
+                                                     mask_array, is_not_covered);
+                            });
+                            break;
+                        }
+#if (AMREX_SPACEDIM == 3)
+                        case 4:
+                        {
+                            const Box& b = amrex::adjCellLo(crse_bx, 2);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_z_o3(1,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
+                                                     mask_array, is_not_covered);
+                            });
+                            break;
+                        }
+                        case 5:
+                        {
+                            const Box& b = amrex::adjCellHi(crse_bx, 2);
+                            AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ic, jc, kc, n,
+                            {
+                                interpbndrydata_z_o3(0,ic,jc,kc,n,bdry_array,bnd_start,
+                                                     crse_array,c_start,rr,
+                                                     mask_array, is_not_covered);
+                            });
+                            break;
+                        }
+#endif
+#endif
+                        default: {}
+                        }
+                    }
                 }
                 else if (fine != nullptr)
                 {
                     //
                     // Physical bndry, copy from ghost region of corresponding grid
                     //
-                    const FArrayBox& fine_grd = (*fine)[mfi];
-                    FArrayBox& bnd_fab = bndry[face][mfi];
-                    bnd_fab.copy(fine_grd,f_start,bnd_start,num_comp);
+                    auto bnd_fab = bndry[face].fabHostPtr(mfi);
+                    auto src_fab = fine->fabHostPtr(mfi);
+                    auto bnd_array = bnd_fab->array();
+                    auto const src_array = src_fab->array();
+                    const Box& b = bnd_fab->box() & src_fab->box();
+                    AMREX_HOST_DEVICE_FOR_4D ( b, num_comp, ii, jj, kk, nn,
+                    {
+                        bnd_array(ii,jj,kk,nn+bnd_start) = src_array(ii,jj,kk,nn+f_start);
+                    });
                 }
             }
         }
@@ -346,15 +414,7 @@ InterpBndryData::updateBndryValues (BndryRegister& crse, int c_start, int bnd_st
 void
 InterpBndryData::setHomogValues ()
 {
-    for (OrientationIter fi; fi; ++fi)
-    {
-        const Orientation face  = fi();
-        
-        for (FabSetIter fsi(bndry[face]); fsi.isValid(); ++fsi)
-        {
-            bndry[face][fsi].setVal(0.);
-        }
-    }
+    setVal(0.);
 }
 
 }

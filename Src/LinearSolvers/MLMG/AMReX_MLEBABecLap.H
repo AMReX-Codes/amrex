@@ -39,20 +39,23 @@ public:
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
-    void setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& beta);
+    // Tells the solver that EB boundaries have Dirichlet bc's specified by "phi"
+    void setEBDirichlet      (int amrlev, const MultiFab& phi, const MultiFab& beta);
+
+    // Tells the solver that EB boundaries have homogeneous Dirichlet bc's
+    void setEBHomogDirichlet (int amrlev,                      const MultiFab& beta);
+
+    // Tells the solver to use the Higher Order Dirichlet stencil at EB boundaries 
+    void setEBHODirichlet    ();
 
     virtual bool needsUpdate () const final override {
         return (m_needs_update || MLCellABecLap::needsUpdate());
     }
     virtual void update () final override;
 
-protected:
-
-    bool m_needs_update = true;
-
     virtual std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final override;
 
-    virtual bool isCrossStencil () const { return false; }
+    virtual bool isCrossStencil () const override { return false; }
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, StateMode s_mode,
                           const MLMGBndry* bndry=nullptr, bool skip_fillboundary=false) const final override;
@@ -100,6 +103,10 @@ protected:
     virtual std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
+protected:
+
+    bool m_needs_update = true;
+
 private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
@@ -114,11 +121,13 @@ private:
     Vector<int> m_is_singular;
 
     mutable int m_is_eb_inhomog;
+    mutable int m_is_eb_ho_dir = false;
 
     //
     // functions
     //
-    bool isEBDirichlet () const { return m_eb_phi[0] != nullptr; }
+    bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
+    bool isHOEBDirichlet () const noexcept { return m_is_eb_ho_dir;}
 
     void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,

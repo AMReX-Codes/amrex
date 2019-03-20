@@ -1,11 +1,13 @@
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 bool
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::do_tiling = false;
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::do_tiling = false;
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 IntVect
-ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::tile_size { AMREX_D_DECL(1024000,8,8) };
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+::tile_size { AMREX_D_DECL(1024000,8,8) };
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
@@ -219,24 +221,23 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         if (!geom.isPeriodic(i)) continue;
 
         if (iv[i] > dmn.bigEnd(i))
-        {                        
-            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);            
-            BL_ASSERT(p.m_rdata.pos[i] >= geom.ProbLo(i));            
+        {
+            while (p.m_rdata.pos[i] >= geom.ProbHi(i)) p.m_rdata.pos[i] -= geom.ProbLength(i);
+            if (p.m_rdata.pos[i] < geom.ProbLo(i)) p.m_rdata.pos[i] = geom.ProbLo(i); // clamp to avoid precision issues;
             shifted = true;
         }
         else if (iv[i] < dmn.smallEnd(i))
         {
-            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i); 
+            while (p.m_rdata.pos[i] <  geom.ProbLo(i)) p.m_rdata.pos[i] += geom.ProbLength(i);
 
-            // This is necessary when the arithmetic (esp. single precision) is such that the particle 
-            //    starts only slightly outside the low boundary (eg slightly negative)
-            //    ends up exactly on the high boundary 
-            //    needs to get shifted back to the low boundary or it will be deemed out of bounds
-            if (p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i]  = geom.ProbLo(i);
+            // clamp to avoid precision issues
+            if ( p.m_rdata.pos[i] == geom.ProbHi(i)) p.m_rdata.pos[i] = geom.ProbLo(i);
+            if ((p.m_rdata.pos[i] > geom.ProbHi(i))) 
+                p.m_rdata.pos[i] = geom.ProbHi(i) - std::numeric_limits<typename ParticleType::RealType>::epsilon();
 
-            BL_ASSERT(p.m_rdata.pos[i] <= geom.ProbHi(i));
             shifted = true;
         }
+        AMREX_ASSERT( (p.m_rdata.pos[i] >= geom.ProbLo(i) ) and ( p.m_rdata.pos[i] < geom.ProbHi(i) ));
     }
 
     return shifted;
@@ -835,12 +836,20 @@ clearParticles()
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-copyParticles(const ParticleContainerType& other)
+copyParticles(const ParticleContainerType& other, bool local)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
+    clearParticles();   
+    addParticles(other, local);
+}
 
-    clearParticles();
-    
+template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+void
+ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+addParticles(const ParticleContainerType& other, bool local)
+{
+    BL_PROFILE("ParticleContainer::addParticles");
+
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
         const auto& plevel_other = other.GetParticles(lev);
@@ -881,7 +890,7 @@ copyParticles(const ParticleContainerType& other)
         }
     }
     
-    Redistribute();
+    if (not local) Redistribute();
 }
 
 //
@@ -923,12 +932,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
     auto& plev  = m_particles[lev];
 
     // temporaries
-    m_cells_tmp.resize(0);
-    m_index_sequence_tmp.resize(0);
-    m_aos_r.resize(0);
-    m_grids_r.resize(0);
-    m_rdata_r.resize(0);
-    m_idata_r.resize(0);
+    Gpu::ManagedDeviceVector<amrex::IntVect> cells_tmp;
+    Gpu::ManagedDeviceVector<int> index_sequence_tmp;
+    ParticleVector aos_r;
+    RealVector rdata_r;
+    IntVector  idata_r;
 
     for(MFIter mfi(*redistribute_mask_ptr, false); mfi.isValid(); ++mfi)
     {
@@ -939,51 +947,51 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::SortParticles
         auto& soa   = ptile.GetStructOfArrays();
         const size_t np = aos.numParticles();
 
-        m_cells_tmp.resize(np);
-        m_index_sequence_tmp.resize(np);
+        cells_tmp.resize(np);
+        index_sequence_tmp.resize(np);
 
-        thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
+        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
 
         thrust::transform(thrust::device, 
-			  aos().begin(), aos().end(), m_cells_tmp.begin(),
+			  aos().begin(), aos().end(), cells_tmp.begin(),
                           functors::assignParticleCell(geom.data()));
 
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                            m_cells_tmp.begin(),
-                            m_cells_tmp.end(),
-                            m_index_sequence_tmp.begin());
+                            cells_tmp.begin(),
+                            cells_tmp.end(),
+                            index_sequence_tmp.begin());
 
         //
         // Reorder the particle data 
         //
         {
 	    // reorder structs
-	    m_aos_r.resize(np);
+	    aos_r.resize(np);
             thrust::gather(thrust::device,
-                           m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
-                           aos().begin(), m_aos_r.begin());
-            aos().swap(m_aos_r);
+                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                           aos().begin(), aos_r.begin());
+            aos().swap(aos_r);
 
             // reorder real arrays
-	    m_rdata_r.resize(np);
+	    rdata_r.resize(np);
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
                 thrust::gather(thrust::device,
-                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
-                               rdata.begin(), m_rdata_r.begin());
-                rdata.swap(m_rdata_r);
+                               index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                               rdata.begin(), rdata_r.begin());
+                rdata.swap(rdata_r);
             }
 
             // reorder int arrays
-	    m_idata_r.resize(np);
+	    idata_r.resize(np);
             for (int j = 0; j < NArrayInt; ++j)
             {
                 auto& idata = ptile.GetStructOfArrays().GetIntData(j);
                 thrust::gather(thrust::device,
-                               m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
-                               idata.begin(), m_idata_r.begin());
-                idata.swap(m_idata_r);
+                               index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                               idata.begin(), idata_r.begin());
+                idata.swap(idata_r);
             }
         }
     }
@@ -994,8 +1002,8 @@ template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
 SortParticlesByBin (const ParIterBase<false,NStructReal,NStructInt,NArrayReal,NArrayInt>& pti, int ng, 
-		    Cuda::DeviceVector<int>& bin_start, 
-		    Cuda::DeviceVector<int>& bin_stop, 
+		    Gpu::ManagedDeviceVector<int>& bin_start, 
+		    Gpu::ManagedDeviceVector<int>& bin_stop, 
 		    const IntVect& bin_size)
 {
 #ifdef AMREX_USE_CUDA
@@ -1023,13 +1031,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     AMREX_ASSERT(do_tiling == false);
 
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
-    BL_PROFILE_VAR_NS("compute_grid", blp_transform);
-    BL_PROFILE_VAR_NS("compute_partition", blp_compute_partition);
-    BL_PROFILE_VAR_NS("copy_partition", blp_copy_partition);
-    BL_PROFILE_VAR_NS("copy_buffer", blp_copy_buffer);
-    BL_PROFILE_VAR_NS("sort_by_dest", blp_sort);
-    BL_PROFILE_VAR_NS("final_copy", blp_copy);
-    BL_PROFILE_VAR_NS("resize", blp_resize);
 
     if (local > 0) BuildRedistributeMask(0, local);
 
@@ -1037,7 +1038,10 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     const Geometry& geom = Geom(lev);
     const BoxArray& ba   = ParticleBoxArray(lev);
     const DistributionMapping& dmap = ParticleDistributionMap(lev);
-    auto& plev  = m_particles[lev];
+    auto& plev       = m_particles[lev];
+    const auto plo   = Geom(lev).ProbLoArray();
+    const auto dxi   = Geom(lev).InvCellSizeArray();
+    const Box domain = Geom(lev).Domain();
 
     if ( (ba.size() == 1) and geom.isAllPeriodic() )
     {
@@ -1046,21 +1050,25 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         return;
     }
 
+    // temporaries
+    m_aos_r.resize(0);
+    m_rdata_r.resize(0);
+    m_idata_r.resize(0);
+    m_grids_r.resize(0);
+
+    m_lo.resize(0);
+    m_hi.resize(0);
+    m_output.resize(0);
+    
     m_grids_tmp.resize(0);
     m_index_sequence_tmp.resize(0);
     
-    // temporaries
-    m_grids_tmp.resize(0);
-    m_index_sequence_tmp.resize(0);
-    m_aos_r.resize(0);
-    m_grids_r.resize(0);
-    m_rdata_r.resize(0);
-    m_idata_r.resize(0);
-
     m_aos_to_redistribute.resize(0);
     for (int k = 0; k < NArrayReal; ++k) m_real_arrays_to_redistribute[k].resize(0);
     for (int k = 0; k < NArrayInt; ++k) m_int_arrays_to_redistribute[k].resize(0);
     m_grids_to_redistribute.resize(0);
+
+    m_not_ours.clear();
 
     //
     // First pass - figure out what grid each particle should be on, and copy
@@ -1075,72 +1083,154 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         auto& soa   = ptile.GetStructOfArrays();
         const size_t old_np = aos.numParticles();
 
+        if (old_np == 0) continue;
+
         m_grids_tmp.resize(old_np);
         m_index_sequence_tmp.resize(old_np);
 
-        thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
+        constexpr bool do_custom_partition = true;
+        size_t old_size, new_size, new_np, num_moved;
 
-        BL_PROFILE_VAR_START(blp_transform);
-        //
-        // Compute the grid each particle belongs to
-        //
-        thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
-                          functors::assignParticleGrid(geom.data(),
-					 (*redistribute_mask_ptr)[mfi].box(),
-                                         redistribute_mask_ptr->fabPtr(mfi)));
+        if (do_custom_partition)
+        {
 
-        BL_PROFILE_VAR_STOP(blp_transform);
+        m_lo.resize(old_np); 
+        m_hi.resize(old_np);
+        m_output.resize(old_np);
 
-        BL_PROFILE_VAR_START(blp_compute_partition);
+        int* grids_ptr  = thrust::raw_pointer_cast(m_grids_tmp.data());
+        int* index_ptr  = thrust::raw_pointer_cast(m_index_sequence_tmp.data());
+        int* lo_ptr     = thrust::raw_pointer_cast(m_lo.data());
+        int* hi_ptr     = thrust::raw_pointer_cast(m_hi.data());
+        int* output_ptr = thrust::raw_pointer_cast(m_output.data());
+        BaseFab<int>* mask_ptr = redistribute_mask_ptr->fabPtr(mfi);
+        ParticleType* p_ptr = &(aos[0]);
+
         //
         // Partition the particle data so that particles that stay come first,
         // those that move go to the end.
         //
-        auto mid   = thrust::partition(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
-                                       m_index_sequence_tmp.begin(),
-				       m_index_sequence_tmp.end(), 
-				       m_grids_tmp.begin(), 
-				       functors::grid_is(gid));
-        BL_PROFILE_VAR_STOP(blp_compute_partition);
+        
+        AMREX_FOR_1D ( old_np, i,
+        {
+            index_ptr[i] = i;
+            
+	    IntVect iv = IntVect(
+                                 AMREX_D_DECL(floor((p_ptr[i].pos(0)-plo[0])*dxi[0]),
+                                              floor((p_ptr[i].pos(1)-plo[1])*dxi[1]),
+                                              floor((p_ptr[i].pos(2)-plo[2])*dxi[2]))
+				 );
 
-        const size_t num_moved = thrust::distance(mid, m_index_sequence_tmp.end());
-        const size_t new_np   = old_np - num_moved;
+            iv += domain.smallEnd();
+
+	    int grid_id = (*mask_ptr)(iv);
+
+            grids_ptr[i] = grid_id;
+
+            if (grid_id == gid)
+            {
+                lo_ptr[i] = 1; hi_ptr[i] = 0;
+            }
+            else 
+            {
+                lo_ptr[i] = 0; hi_ptr[i] = 1;
+            }
+        });
+
+        thrust::exclusive_scan(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()), 
+            thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
+            thrust::make_zip_iterator(thrust::make_tuple(m_lo.end(),   m_hi.end())),
+            thrust::make_zip_iterator(thrust::make_tuple(m_lo.begin(), m_hi.begin())),
+            thrust::tuple<int, int>(0, 0), functors::tupleAdd());
+
+        if (m_grids_tmp[old_np-1] == gid) {
+            new_np = m_lo[old_np-1] + 1;
+        } else {
+            new_np = m_lo[old_np-1];
+        }
+            
+        num_moved = old_np - new_np;
 
         if (num_moved == 0) continue;  // early exit if everything is already in right place
         
-        const size_t old_size = m_aos_to_redistribute.size();
-        const size_t new_size = old_size + num_moved;
+        AMREX_FOR_1D ( old_np, i,
+        {
+            if (grids_ptr[i] == gid)
+            {
+                output_ptr[lo_ptr[i]] = index_ptr[i];
+            }
+            else 
+            {
+                output_ptr[hi_ptr[i] + new_np] = index_ptr[i];
+            }
+        });
+        m_index_sequence_tmp.swap(m_output);
+
+        old_size = m_aos_to_redistribute.size();
+        new_size = old_size + num_moved;
+
+        } 
+        else 
+        {
+            thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
+
+            //
+            // Compute the grid each particle belongs to
+            //
+            thrust::transform(thrust::device, aos().begin(), aos().end(), m_grids_tmp.begin(),
+                              functors::assignParticleGrid(geom.data(),
+                                                           (*redistribute_mask_ptr)[mfi].box(),
+                                                           redistribute_mask_ptr->fabPtr(mfi)));
+
+            //
+            // Partition the particle data so that particles that stay come first,
+            // those that move go to the end.
+            //
+            auto mid   = thrust::partition(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                                           m_index_sequence_tmp.begin(),
+                                           m_index_sequence_tmp.end(), 
+                                           m_grids_tmp.begin(), 
+                                           functors::grid_is(gid));
+
+            num_moved = thrust::distance(mid, m_index_sequence_tmp.end());
+            new_np   = old_np - num_moved;
+
+            if (num_moved == 0) continue;  // early exit if everything is already in right place
+        
+            old_size = m_aos_to_redistribute.size();
+            new_size = old_size + num_moved;
+        }
         
         m_aos_to_redistribute.resize(new_size);	
         for (int k = 0; k < NArrayReal; ++k) m_real_arrays_to_redistribute[k].resize(new_size);
         for (int k = 0; k < NArrayInt; ++k) m_int_arrays_to_redistribute[k].resize(new_size);
         m_grids_to_redistribute.resize(new_size);
 
-        BL_PROFILE_VAR_START(blp_copy_partition);        
         //
         // Reorder the particle data based on the partition we just computed
         //
         {
 	    // reorder structs
             m_aos_r.resize(old_np);
-            thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+            thrust::gather(thrust::device,
                            m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                            aos().begin(), m_aos_r.begin());
-            aos().swap(m_aos_r);
-
+            
             // reorder grids
             m_grids_r.resize(old_np);
-            thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+            thrust::gather(thrust::device,
                            m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                            m_grids_tmp.begin(), m_grids_r.begin());
+            
+            aos().swap(m_aos_r);
             m_grids_tmp.swap(m_grids_r);
-
+            
             // reorder real arrays
 	    m_rdata_r.resize(old_np);
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = ptile.GetStructOfArrays().GetRealData(j);
-                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                thrust::gather(thrust::device,
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                rdata.begin(), m_rdata_r.begin());
                 rdata.swap(m_rdata_r);
@@ -1151,15 +1241,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayInt; ++j)
             {
 	        auto& idata = ptile.GetStructOfArrays().GetIntData(j);
-                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                thrust::gather(thrust::device,
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                idata.begin(), m_idata_r.begin());
                 idata.swap(m_idata_r);
             }
         }
-        BL_PROFILE_VAR_STOP(blp_copy_partition);
 
-        BL_PROFILE_VAR_START(blp_copy_buffer);
         //
         // copy the particle data to be moved into temp buffers
         //
@@ -1190,8 +1278,6 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         }
 
         ptile.resize(new_np);
-
-        BL_PROFILE_VAR_STOP(blp_copy_buffer);
     }
 
     //
@@ -1200,16 +1286,13 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     // Note that a negative grid id means the particle has left the domain in a non-
     // periodic direction - we remove those from the simulation volume here.
     //
-    for (auto& kv : m_not_ours) kv.second.resize(0);
     const int num_grids = ba.size();
     const int num_to_move = m_grids_to_redistribute.size();
 
     if (num_to_move > 0)
     {
-        BL_PROFILE_VAR_START(blp_sort);
-
-        m_grid_begin.resize(num_grids + 1);
-        m_grid_end.resize(num_grids + 1);
+        Gpu::ManagedDeviceVector<int> grid_begin(num_grids+1);
+        Gpu::ManagedDeviceVector<int> grid_end(num_grids+1);        
 
         m_index_sequence_tmp.resize(num_to_move);
         thrust::sequence(thrust::device, m_index_sequence_tmp.begin(), m_index_sequence_tmp.end());
@@ -1225,7 +1308,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             // reorder structs
             auto& aos = m_aos_to_redistribute;
             m_aos_r.resize(num_to_move);
-            thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+            thrust::gather(thrust::device,
                            m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                            aos.begin(), m_aos_r.begin());
             aos.swap(m_aos_r);
@@ -1235,7 +1318,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayReal; ++j)
             {
                 auto& rdata = m_real_arrays_to_redistribute[j];
-                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                thrust::gather(thrust::device,
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                rdata.begin(), m_rdata_r.begin());
                 rdata.swap(m_rdata_r);
@@ -1246,7 +1329,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             for (int j = 0; j < NArrayInt; ++j)
             {
 	        auto& idata = m_int_arrays_to_redistribute[j];
-                thrust::gather(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
+                thrust::gather(thrust::device,
                                m_index_sequence_tmp.begin(), m_index_sequence_tmp.end(),
                                idata.begin(), m_idata_r.begin());
                 idata.swap(m_idata_r);
@@ -1262,34 +1345,32 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             m_grids_to_redistribute.end(),
                             search_begin,
                             search_begin + num_grids + 1,
-                            m_grid_begin.begin());
+                            grid_begin.begin());
         
         thrust::upper_bound(thrust::device,
                             m_grids_to_redistribute.begin(),
                             m_grids_to_redistribute.end(),
                             search_begin,
                             search_begin + num_grids + 1,
-                            m_grid_end.begin());
+                            grid_end.begin());
         
-        thrust::host_vector<int> start(m_grid_begin);
-        thrust::host_vector<int> stop(m_grid_end);
+        thrust::host_vector<int> start(grid_begin);
+        thrust::host_vector<int> stop(grid_end);
         
         std::map<int, size_t> grid_counts;
         for (int i = 0; i < num_grids; ++i)
         {
             const int dest_proc = dmap[i];
-            if (dest_proc != ParallelDescriptor::MyProc())
+            const size_t num_to_add = stop[i+1] - start[i+1];
+            if (dest_proc != ParallelDescriptor::MyProc() and num_to_add > 0)
             {
                 grid_counts[dest_proc] += 1;
             }
         }
-        BL_PROFILE_VAR_STOP(blp_sort);
 
-        BL_PROFILE_VAR_START(blp_copy);
-        
         //
         // Each destination grid, copy the appropriate particle data, passing the non-local data
-        // into m_not_ours
+        // into not_ours
         //
         for (int i = 0; i < num_grids; ++i)
         {
@@ -1297,6 +1378,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             auto pair_index = std::make_pair(i, tid);
             
             const size_t num_to_add = stop[i+1] - start[i+1];
+
+            if (num_to_add == 0) continue;
 
             const int dest_proc = dmap[i];
             if (dest_proc == ParallelDescriptor::MyProc())  // this is a local copy
@@ -1312,7 +1395,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     auto& dst = ptile.GetArrayOfStructs();
                     thrust::copy(thrust::device,
                                  src.begin() + start[i+1], src.begin() + stop[i+1], 
-				 dst().begin() + old_size);
+                                 dst().begin() + old_size);
                 }
                 
                 // copy real arrays
@@ -1321,8 +1404,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		    auto& src = m_real_arrays_to_redistribute[j];
 		    auto& dst = ptile.GetStructOfArrays().GetRealData(j);
                     thrust::copy(thrust::device,
-				 src.begin() + start[i+1], src.begin() + stop[i+1],
-				 dst.begin() + old_size);
+                                 src.begin() + start[i+1], src.begin() + stop[i+1],
+                                 dst.begin() + old_size);
                 }
 
 		// copy int arrays
@@ -1331,8 +1414,8 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 		    auto& src = m_int_arrays_to_redistribute[j];
 		    auto& dst = ptile.GetStructOfArrays().GetIntData(j);
                     thrust::copy(thrust::device,
-				 src.begin() + start[i+1], src.begin() + stop[i+1],
-				 dst.begin() + old_size);
+                                 src.begin() + start[i+1], src.begin() + stop[i+1],
+                                 dst.begin() + old_size);
                 }
             }
             else // this is the non-local case
@@ -1341,37 +1424,37 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 const size_t old_size = m_not_ours[dest_proc].size();
                 const size_t new_size
                     = old_size + num_to_add*superparticle_size + sizeof(size_t) + 2*sizeof(int);
-
+                
                 if (old_size == 0)
                 {
                     m_not_ours[dest_proc].resize(new_size + sizeof(size_t));
-                    cudaMemcpy(thrust::raw_pointer_cast(m_not_ours[dest_proc].data()), 
-                               &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(m_not_ours[dest_proc].data()),
+                                    &grid_counts[dest_proc], sizeof(size_t), cudaMemcpyHostToHost);
                     dst = thrust::raw_pointer_cast(
-				      m_not_ours[dest_proc].data() + old_size + sizeof(size_t));
+                           m_not_ours[dest_proc].data() + old_size + sizeof(size_t));
                 } else
                 {
                     m_not_ours[dest_proc].resize(new_size);
                     dst = thrust::raw_pointer_cast(m_not_ours[dest_proc].data() + old_size);
                 }
-
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           &num_to_add, sizeof(size_t), cudaMemcpyHostToDevice);
+                
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                &num_to_add, sizeof(size_t), cudaMemcpyHostToHost);
                 dst += sizeof(size_t);
-                
-                cudaMemcpy(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToDevice);
+
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), &i, sizeof(int), cudaMemcpyHostToHost);
                 dst += sizeof(int);
-                
-                cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                           &dest_proc, sizeof(int), cudaMemcpyHostToDevice);
+
+                cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                &dest_proc, sizeof(int), cudaMemcpyHostToHost);
                 dst += sizeof(int);
                 
                 // pack structs
                 {
 		    auto& aos = m_aos_to_redistribute;
-                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                               thrust::raw_pointer_cast(aos.data() + start[i+1]),
-                               num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst), 
+                                    thrust::raw_pointer_cast(aos.data() + start[i+1]),
+                                    num_to_add*sizeof(ParticleType), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(ParticleType);
                 }
 
@@ -1380,9 +1463,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_real_comp[j]) continue;
                     auto& attrib = m_real_arrays_to_redistribute[j];
-                    cudaMemcpy(thrust::raw_pointer_cast(dst), 
-                               thrust::raw_pointer_cast(attrib.data() + start[i+1]),
-                               num_to_add*sizeof(Real), cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst),
+                                    thrust::raw_pointer_cast(attrib.data() + start[i+1]),
+                                    num_to_add*sizeof(Real), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(Real);
                 }
                 
@@ -1391,20 +1474,26 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                 {
                     if (not communicate_int_comp[j]) continue;
                     auto& attrib = m_int_arrays_to_redistribute[j];
-                    cudaMemcpy(thrust::raw_pointer_cast(dst),
-                               thrust::raw_pointer_cast(attrib.data() + start[i+1]),
-                               num_to_add*sizeof(int), cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(thrust::raw_pointer_cast(dst),
+                                    thrust::raw_pointer_cast(attrib.data() + start[i+1]),
+                                    num_to_add*sizeof(int), cudaMemcpyDeviceToHost);
                     dst += num_to_add*sizeof(int);
                 }
             }
         }
-        BL_PROFILE_VAR_STOP(blp_copy);
     }
 
-    RedistributeMPIGPU();
+    //    amrex::Arena::PrintUsage();
 
+    if (ParallelDescriptor::NProcs() == 1) {
+        BL_ASSERT(m_not_ours.empty());
+    }
+    else {
+        RedistributeMPIGPU(m_not_ours);
+    }
+    
     EnforcePeriodicGPU();
-
+    
     AMREX_ASSERT(OK());
 
 #endif // AMREX_USE_CUDA
@@ -1419,6 +1508,9 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     BL_PROFILE("ParticleContainer::EnforcePeriodicGPU()");
     const int lev = 0;
     const Geometry& geom = Geom(lev);
+    const auto plo = Geom(lev).ProbLoArray();
+    const auto phi = Geom(lev).ProbHiArray();
+    const auto is_per = Geom(lev).isPeriodicArray();
 
     BuildRedistributeMask(0, 1);
 
@@ -1427,11 +1519,20 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
         auto& particles = ParticlesAt(lev, grid_id, tile_id);
-        auto& aos = particles.GetArrayOfStructs();
 
-        thrust::transform(thrust::device, 
-			  aos().begin(), aos().end(), aos().begin(),
-                          functors::applyParticlePeriodicBCs(geom.data()));
+        const int np = particles.size();
+        ParticleType* pstruct = &(particles.GetArrayOfStructs()[0]);
+        AMREX_FOR_1D ( np, i,
+        {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (not is_per[idim]) continue;
+                if (pstruct[i].pos(idim) > phi[idim]) { 
+                    pstruct[i].pos(idim) -= (phi[idim] - plo[idim]); 
+                } else if (pstruct[i].pos(idim) < plo[idim]) {
+                    pstruct[i].pos(idim) += (phi[idim] - plo[idim]);
+                }
+            }
+        });
     }
 }
 #endif //AMREX_USE_CUDA
@@ -1440,7 +1541,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void
 ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-::RedistributeMPIGPU ()
+::RedistributeMPIGPU (std::map<int, SendBuffer>& not_ours)
 {
     BL_PROFILE("ParticleContainer::RedistributeMPIGPU()");
 
@@ -1453,11 +1554,11 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     long NumSnds = 0;
 
-    for (const auto& kv : m_not_ours)
+    for (const auto& kv : not_ours)
     {
-        const int np = kv.second.size(); 
-        Snds[kv.first] = np;
-        NumSnds += np;
+        const size_t nbytes = kv.second.size();
+        Snds[kv.first] = nbytes;
+        NumSnds += nbytes;
     }
     
     ParallelDescriptor::ReduceLongMax(NumSnds);
@@ -1498,27 +1599,36 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     
-    // Allocate data for rcvs as one big chunk.
-    m_recvdata.resize(TotRcvBytes);
+    // Allocate data for rcvs as one big chunk.    
+    char* rcv_buffer;
+    if (ParallelDescriptor::UseGpuAwareMpi()) 
+    {
+        rcv_buffer = static_cast<char*>(amrex::The_Device_Arena()->alloc(TotRcvBytes));
+    }
+    else 
+    {
+        rcv_buffer = static_cast<char*>(amrex::The_Pinned_Arena()->alloc(TotRcvBytes));
+    }
     
     // Post receives.
     for (int i = 0; i < nrcvs; ++i) {
         const auto Who    = RcvProc[i];
         const auto offset = rOffset[i];
         const auto Cnt    = Rcvs[Who];
+        
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
         BL_ASSERT(Who >= 0 && Who < NProcs);
         
-        rreqs[i] = ParallelDescriptor::Arecv(thrust::raw_pointer_cast(m_recvdata.data() + offset),
+        rreqs[i] = ParallelDescriptor::Arecv(rcv_buffer + offset,
                                              Cnt, Who, SeqNum).req();
     }
     
     // Send.
-    for (const auto& kv : m_not_ours) {
+    for (const auto& kv : not_ours) {
         const auto Who = kv.first;
         const auto Cnt = kv.second.size();
-        
+
         BL_ASSERT(Cnt > 0);
         BL_ASSERT(Who >= 0 && Who < NProcs);
         BL_ASSERT(Cnt < std::numeric_limits<int>::max());
@@ -1532,19 +1642,21 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (int i = 0; i < nrcvs; ++i) {
             const int offset = rOffset[i];
-            char* buffer = thrust::raw_pointer_cast(m_recvdata.data() + offset);
+            char* buffer = thrust::raw_pointer_cast(rcv_buffer + offset);
             size_t num_grids, num_particles;
             int gid, pid;
-            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyDeviceToHost); 
+            cudaMemcpy(&num_grids, buffer, sizeof(size_t), cudaMemcpyHostToHost);
             buffer += sizeof(size_t);
 
             for (int g = 0; g < num_grids; ++g) {
-                cudaMemcpy(&num_particles, buffer, sizeof(size_t), cudaMemcpyDeviceToHost);
+                cudaMemcpyAsync(&num_particles, buffer, sizeof(size_t), cudaMemcpyHostToHost);
                 buffer += sizeof(size_t);
-                cudaMemcpy(&gid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpyAsync(&gid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
-                cudaMemcpy(&pid, buffer, sizeof(int), cudaMemcpyDeviceToHost);
+                cudaMemcpyAsync(&pid, buffer, sizeof(int), cudaMemcpyHostToHost);
                 buffer += sizeof(int);
+
+                Gpu::Device::streamSynchronize();
 
                 if (num_particles == 0) continue;
 
@@ -1560,17 +1672,17 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     ptile.resize(new_size);
                    
                     //copy structs
-                    cudaMemcpy(static_cast<ParticleType*>(aos().data()) + old_size,
-                               buffer, num_particles*sizeof(ParticleType),
-                               cudaMemcpyDeviceToDevice);
+                    cudaMemcpyAsync(static_cast<ParticleType*>(aos().data()) + old_size,
+                                    buffer, num_particles*sizeof(ParticleType),
+                                    cudaMemcpyHostToDevice);
                     buffer += num_particles*sizeof(ParticleType);
 
                     // copy real arrays 
                     for (int j = 0; j < NArrayReal; ++j) {
                         if (not communicate_real_comp[j]) continue;
                         auto& attrib = soa.GetRealData(j);
-                        cudaMemcpy(attrib.data() + old_size, buffer, num_particles*sizeof(Real),
-                                   cudaMemcpyDeviceToDevice);
+                        cudaMemcpyAsync(attrib.data() + old_size, buffer, num_particles*sizeof(Real),
+                                        cudaMemcpyHostToDevice);
                         buffer += num_particles*sizeof(Real);
                     }
 
@@ -1578,14 +1690,22 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                     for (int j = 0; j < NArrayInt; ++j) {
                         if (not communicate_int_comp[j]) continue;
                         auto& attrib = soa.GetIntData(j);
-                        cudaMemcpy(attrib.data() + old_size, buffer, num_particles*sizeof(int),
-                                   cudaMemcpyDeviceToDevice);
+                        cudaMemcpyAsync(attrib.data() + old_size, buffer, num_particles*sizeof(int),
+                                        cudaMemcpyHostToDevice);
                         buffer += num_particles*sizeof(int);
                     }
-                }       
+                }
             }
         }
-    }        
+    }
+
+    if (ParallelDescriptor::UseGpuAwareMpi())
+    {
+        amrex::The_Device_Arena()->free(rcv_buffer);
+    } else {
+        amrex::The_Pinned_Arena()->free(rcv_buffer);
+    }
+
 #endif // MPI    
 }
 #endif // AMREX_USE_CUDA
@@ -1985,16 +2105,6 @@ BuildRedistributeMask (int lev, int nghost) const {
             }
             
             RemoveDuplicates(neighbor_procs);
-
-#ifdef AMREX_USE_CUDA
-	    Box bx = ba[0];	    
-	    m_aos_to_redistribute.reserve(bx.numPts());
-	    for (int k = 0; k < NArrayReal; ++k) 
-	        m_real_arrays_to_redistribute[k].reserve(bx.numPts());
-	    for (int k = 0; k < NArrayInt; ++k)  
-	        m_int_arrays_to_redistribute[k].reserve(bx.numPts());
-	    m_grids_to_redistribute.reserve(bx.numPts());
-#endif
         }
 }
 
@@ -2217,7 +2327,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
         grid_indices.resize(np);
         
         thrust::transform(thrust::device, 
-			  aos().begin(), aos().end(), grid_indices.begin(),
+			  aos().begin(), aos().begin() + np, grid_indices.begin(),
                           functors::assignParticleGrid(geom.data(),
                                          (*redistribute_mask_ptr)[mfi].box(),
                                          redistribute_mask_ptr->fabPtr(mfi)));
@@ -2227,10 +2337,31 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::OKGPU (int le
                                      functors::grid_is_not(i));
 
         total_wrong += count;
+
+        if (count != 0) {
+            Gpu::HostVector<ParticleType> host_particles(np);
+            Gpu::HostVector<int> host_grids(np);
+
+            Cuda::thrust_copy(aos().begin(),
+                              aos().begin() + np,
+                              host_particles.begin());
+
+            Cuda::thrust_copy(grid_indices.begin(),
+                              grid_indices.end(),
+                              host_grids.begin());
+
+            Gpu::Device::streamSynchronize();
+
+            for (int j = 0; j < np; ++j) {
+                if (grid_indices[j] != i) 
+                    amrex::AllPrint() << host_particles[j] << " ";
+            }
+            amrex::AllPrint() << "\n";                        
+        }
     }
 
-    ParallelDescriptor::ReduceLongMax(total_np);
-    ParallelDescriptor::ReduceLongMax(total_wrong);
+    ParallelDescriptor::ReduceLongSum(total_np);
+    ParallelDescriptor::ReduceLongSum(total_wrong);
 
     amrex::Print() << "I have " << total_np << " particles in OK(). \n"; 
     amrex::Print() << "I have " << total_wrong << " particles in the wrong place. \n"; 

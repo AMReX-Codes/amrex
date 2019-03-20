@@ -1,6 +1,6 @@
 
-#ifndef BL_BLASSERT_H
-#define BL_BLASSERT_H
+#ifndef AMREX_BLASSERT_H_
+#define AMREX_BLASSERT_H_
 
 #include <AMReX.H>
 
@@ -39,19 +39,20 @@
 
 #else
 
-#if defined(AMREX_FORTRAN_BOXLIB)
-#define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) ((void)0)
-#define AMREX_ASSERT(EX) ((void)0)
-#define    BL_ASSERT(EX) ((void)0)
-#else
 #define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , # MSG)
 #define AMREX_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 #define    BL_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
-#endif
 
 #endif
 
 #define AMREX_ALWAYS_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , # MSG)
 #define AMREX_ALWAYS_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
+
+
+#if !defined(AMREX_USE_GPU) || !defined(AMREX_DEBUG) && !defined(AMREX_USE_ASSERTION)
+#define AMREX_GPU_ASSERT(EX) ((void)0)
+#else
+#define AMREX_GPU_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
+#endif
 
 #endif /*BL_BL_ASSERT_H*/

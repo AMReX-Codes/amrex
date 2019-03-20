@@ -32,12 +32,12 @@ class MultiFab
     public FabArray<FArrayBox>
 {
 public:
-    //
-    // Constructs an empty MultiFab.  Data can be defined at a later
-    // time using the define member functions inherited
-    // from FabArray.
-    //
-    MultiFab ();
+    /**
+    * \brief Constructs an empty MultiFab.  Data can be defined at a later
+    * time using the define member functions inherited
+    * from FabArray.
+    */
+    MultiFab () noexcept;
     /**
     * \brief
     * Constructs a MultiFab
@@ -116,10 +116,9 @@ public:
                          const FabFactory<FArrayBox>& factory = FArrayBoxFactory()) override;
 #endif
 
-    void operator= (const Real& r);
+    void operator= (Real r);
     //
-    // Initialize FArrayBoxes
-    //
+    //! Initialize FArrayBoxes
     void initVal ();
     //
     /**
@@ -319,7 +318,7 @@ public:
     void invert (Real numerator,
                  int  nghost);
     /**
-    * Replaces the value of each cell in the specified subregion of
+    * \brief Replaces the value of each cell in the specified subregion of
     * the MultiFab, that also intersects the Box region, with its
     * reciprocal multiplied by the value of numerator.  The value
     * of nghost specifies the number of cells in the boundary region
@@ -581,15 +580,15 @@ public:
     /**
     * \brief This tests on whether the MultiFab is fully nodal.
     */
-    bool is_nodal () const;
+    bool is_nodal () const noexcept;
     /**
     * \brief This tests on whether the MultiFab is nodal in direction dir.
     */
-    bool is_nodal (int dir) const;
+    bool is_nodal (int dir) const noexcept;
     /**
     * \brief This tests on whether the MultiFab is cell-centered.
     */
-    bool is_cell_centered () const;
+    bool is_cell_centered () const noexcept;
 
     bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
     /**
@@ -603,14 +602,14 @@ public:
      * \brief Return a mask indicating how many duplicates are in each point.
      */
     std::unique_ptr<MultiFab> OverlapMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
-    // Owner is the grid with the lowest grid number containing the data.
+    //! Owner is the grid with the lowest grid number containing the data.
     std::unique_ptr<iMultiFab> OwnerMask (const Periodicity& period = Periodicity::NonPeriodic()) const;
 
-    // Sync up nodal data via averaging
+    //! Sync up nodal data via averaging
     void AverageSync (const Periodicity& period = Periodicity::NonPeriodic());
-    // Sync up nodal data with weights
+    //! Sync up nodal data with weights
     void WeightedSync (const MultiFab& wgt, const Periodicity& period = Periodicity::NonPeriodic());
-    // Sync up nodal data with owners overriding non-owners
+    //! Sync up nodal data with owners overriding non-owners
     void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
@@ -619,8 +618,7 @@ public:
 
 private:
     //
-    // Some useful typedefs.
-    //
+    //! Some useful typedefs.
     typedef FabArrayBase::CopyComTagsContainer CopyComTagsContainer;
     typedef FabArrayBase::MapOfCopyComTagContainers MapOfCopyComTagContainers;
 };
@@ -633,7 +631,7 @@ inline void GccPlacaterMF ()
     std::allocator<FabArray<FArrayBox> const*> a4;
 }
 
-//  This is a special version of FillBoundary for warpx
+//!  This is a special version of FillBoundary for warpx
 void FillBoundary (Vector<MultiFab*> const& mf, const Periodicity& period);
 
 }

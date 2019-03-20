@@ -24,15 +24,15 @@ public:
     MLCGSolver (const MLCGSolver& rhs) = delete;
     MLCGSolver& operator= (const MLCGSolver& rhs) = delete;
 
-    void setSolver (Type _typ) { solver_type = _typ; }
+    void setSolver (Type _typ) noexcept { solver_type = _typ; }
 
-    //
-    // solve the system, Lp(solnL)=rhsL to relative err, tolerance
-    // RETURNS AN INT!!!! indicating success or failure.  
-    // 0 means success
-    // 1 means failed for loss of precision
-    // 2 means iterations exceeded
-    //
+    /**
+    * solve the system, Lp(solnL)=rhsL to relative err, tolerance
+    * RETURNS AN INT!!!! indicating success or failure.
+    * 0 means success
+    * 1 means failed for loss of precision
+    * 2 means iterations exceeded
+    */
     int solve (MultiFab&       solnL,
 	       const MultiFab& rhsL,
 	       Real            eps_rel,
@@ -44,16 +44,6 @@ public:
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
     int getMaxIter () const { return maxiter; }
 
-private:
-
-    MLMG* mlmg;
-    MLLinOp& Lp;
-    Type solver_type;
-    const int amrlev;
-    const int mglev;
-    int    verbose   = 0;
-    int    maxiter   = 100;
-
     Real dotxy (const MultiFab& r, const MultiFab& z, bool local = false);
     Real norm_inf (const MultiFab& res, bool local = false);
     int solve_bicgstab (MultiFab&       solnL,
@@ -64,6 +54,16 @@ private:
                   const MultiFab& rhsL,
                   Real            eps_rel,
                   Real            eps_abs);
+
+private:
+
+    MLMG* mlmg;
+    MLLinOp& Lp;
+    Type solver_type;
+    const int amrlev;
+    const int mglev;
+    int    verbose   = 0;
+    int    maxiter   = 100;
 };
 
 }

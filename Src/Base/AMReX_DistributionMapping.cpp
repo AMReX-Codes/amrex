@@ -45,7 +45,7 @@ DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapp
 DistributionMapping::PVMF DistributionMapping::m_BuildMap = 0;
 
 const Vector<int>&
-DistributionMapping::ProcessorMap () const
+DistributionMapping::ProcessorMap () const noexcept
 {
     return m_ref->m_pmap;
 }
@@ -93,13 +93,13 @@ DistributionMapping::SFC_Threshold ()
 }
 
 bool
-DistributionMapping::operator== (const DistributionMapping& rhs) const
+DistributionMapping::operator== (const DistributionMapping& rhs) const noexcept
 {
     return m_ref == rhs.m_ref || m_ref->m_pmap == rhs.m_ref->m_pmap;
 }
 
 bool
-DistributionMapping::operator!= (const DistributionMapping& rhs) const
+DistributionMapping::operator!= (const DistributionMapping& rhs) const noexcept
 {
     return !operator==(rhs);
 }

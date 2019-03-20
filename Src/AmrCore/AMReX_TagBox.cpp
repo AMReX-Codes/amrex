@@ -11,7 +11,7 @@
 
 namespace amrex {
 
-TagBox::TagBox () {}
+TagBox::TagBox () noexcept {}
 
 TagBox::TagBox (const Box& bx,
                 int        n,
@@ -32,7 +32,7 @@ TagBox::TagBox (const TagBox& rhs, MakeType make_type)
 #endif
 
 void
-TagBox::coarsen (const IntVect& ratio, bool owner)
+TagBox::coarsen (const IntVect& ratio, bool owner) noexcept
 {
     BL_ASSERT(nComp() == 1);
 
@@ -46,9 +46,12 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
 
     const Box& cbox = amrex::coarsen(domain,ratio);
 
-    this->resize(cbox);
+    this->nvar = 1;
+    this->domain = cbox;
 
-    if (!owner) return;
+    if (!owner) {
+        return;
+    }
 
     const int* clo      = cbox.loVect();
     IntVect    cbox_len = cbox.size();
@@ -111,8 +114,7 @@ TagBox::coarsen (const IntVect& ratio, bool owner)
 }
 
 void 
-TagBox::buffer (int nbuff,
-                int nwid)
+TagBox::buffer (int nbuff, int nwid) noexcept
 {
     //
     // Note: this routine assumes cell with TagBox::SET tag are in
@@ -165,7 +167,7 @@ TagBox::buffer (int nbuff,
 }
 
 void 
-TagBox::merge (const TagBox& src)
+TagBox::merge (const TagBox& src) noexcept
 {
     //
     // Compute intersections.
@@ -212,7 +214,7 @@ TagBox::merge (const TagBox& src)
 }
 
 long
-TagBox::numTags () const
+TagBox::numTags () const noexcept
 {
     long nt = 0L;
     long len = domain.numPts();
@@ -226,7 +228,7 @@ TagBox::numTags () const
 }
 
 long
-TagBox::numTags (const Box& b) const
+TagBox::numTags (const Box& b) const noexcept
 {
    TagBox tempTagBox(b,1);
    tempTagBox.copy(*this);
@@ -234,7 +236,7 @@ TagBox::numTags (const Box& b) const
 }
 
 long
-TagBox::collate (Vector<IntVect>& ar, int start) const
+TagBox::collate (Vector<IntVect>& ar, int start) const noexcept
 {
     BL_ASSERT(start >= 0);
     //
@@ -268,7 +270,7 @@ TagBox::collate (Vector<IntVect>& ar, int start) const
 }
 
 Vector<int>
-TagBox::tags () const
+TagBox::tags () const noexcept
 {
     Vector<int> ar(domain.numPts(), TagBox::CLEAR);
 
@@ -288,7 +290,7 @@ TagBox::tags () const
 // Set values as specified by the array -- this only tags.
 // It's an error if ar.length() != domain.numPts().
 void
-TagBox::tags (const Vector<int>& ar)
+TagBox::tags (const Vector<int>& ar) noexcept
 {
     BL_ASSERT(ar.size() == domain.numPts());
 
@@ -305,7 +307,7 @@ TagBox::tags (const Vector<int>& ar)
 // Set values as specified by the array -- this tags and untags.
 // It's an error if ar.length() != domain.numPts().
 void
-TagBox::tags_and_untags (const Vector<int>& ar)
+TagBox::tags_and_untags (const Vector<int>& ar) noexcept
 {
     BL_ASSERT(ar.size() == domain.numPts());
 
@@ -323,7 +325,7 @@ TagBox::tags_and_untags (const Vector<int>& ar)
 // function to allocate an integer array to have the same number 
 // of elements as cells in tilebx
 void 
-TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const
+TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const noexcept
 {
     auto dlen = length();
     int Lbx[] = {1,1,1};
@@ -364,7 +366,7 @@ TagBox::get_itags(Vector<int>& ar, const Box& tilebx) const
 // Set values as specified by the array -- this only tags.
 // only changes values in the tilebx region
 void 
-TagBox::tags (const Vector<int>& ar, const Box& tilebx)
+TagBox::tags (const Vector<int>& ar, const Box& tilebx) noexcept
 {
     auto dlen = length();
     int Lbx[] = {1,1,1};
@@ -398,7 +400,7 @@ TagBox::tags (const Vector<int>& ar, const Box& tilebx)
 // Set values as specified by the array -- this tags and untags.
 // only changes values in the tilebx region
 void 
-TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx)
+TagBox::tags_and_untags (const Vector<int>& ar, const Box& tilebx) noexcept
 {
     auto dlen = length();
     int Lbx[] = {1,1,1};
@@ -438,7 +440,7 @@ TagBoxArray::TagBoxArray (const BoxArray& ba,
 }
 
 int
-TagBoxArray::borderSize () const
+TagBoxArray::borderSize () const noexcept
 {
     return n_grow[0];
 }
@@ -485,7 +487,7 @@ TagBoxArray::mapPeriodic (const Geometry& geom)
 }
 
 long
-TagBoxArray::numTags () const 
+TagBoxArray::numTags () const
 {
     long ntag = 0;
 

@@ -10,28 +10,28 @@ module amrex_abec_module
 contains
 
 !-----------------------------------------------------------------------
-!      
-!     Gauss-Seidel Red-Black (GSRB):
-!     Apply the GSRB relaxation to the state phi for the equation
-!     L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)
-!     central differenced, according to the arrays of boundary
-!     masks (m#) and auxiliary data (f#).
-!     
-!     In general, if the linear operator L=gamma*y-rho, the GS relaxation
-!     is y = (R - rho)/gamma.  Near a boundary, the ghost data is filled
-!     using a polynomial interpolant based on the "old" phi values, so
-!     L=(gamma-delta)*y - rho + delta*yOld.   The resulting iteration is
-!     
-!     y = (R - delta*yOld + rho)/(gamma - delta)
-!     
-!     This expression is valid additionally in the interior provided
-!     delta->0 there.  delta is constructed by summing all the
-!     contributions to the central stencil element coming from boundary 
-!     interpolants.  The f#s contain the corresponding coefficient of 
-!     the interpolating polynomial.  The masks are set > 0 if the boundary 
-!     value was filled with an interpolant involving the central stencil 
-!     element.
-!     
+!>
+!>     Gauss-Seidel Red-Black (GSRB):
+!>     Apply the GSRB relaxation to the state phi for the equation
+!>     ``L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)``
+!>     central differenced, according to the arrays of boundary
+!>     masks (m#) and auxiliary data (f#).
+!>
+!>     In general, if the linear operator ``L=gamma*y-rho``, the GS relaxation
+!>     is ``y = (R - rho)/gamma``.  Near a boundary, the ghost data is filled
+!>     using a polynomial interpolant based on the "old" phi values, so
+!>     ``L=(gamma-delta)*y - rho + delta*yOld``.   The resulting iteration is
+!>
+!>     ``y = (R - delta*yOld + rho)/(gamma - delta)``
+!>
+!>     This expression is valid additionally in the interior provided
+!>     delta->0 there.  delta is constructed by summing all the
+!>     contributions to the central stencil element coming from boundary
+!>     interpolants.  The f#s contain the corresponding coefficient of
+!>     the interpolating polynomial.  The masks are set > 0 if the boundary
+!>     value was filled with an interpolant involving the central stencil
+!>     element.
+!>
 !-----------------------------------------------------------------------
     subroutine amrex_abec_gsrb ( &
            phi,phi_l1,phi_l2,phi_h1,phi_h2, &
@@ -103,8 +103,8 @@ contains
 
       integer do_line
       integer ilen,jlen
-      
-      if (h(2) .gt. 1.5D0*h(1)) then 
+
+      if (h(2) .gt. 1.5D0*h(1)) then
         do_line = 1
         ilen = hi(1)-lo(1)+1
         if (ilen .gt. LSDIM) then
@@ -122,7 +122,7 @@ contains
 #endif
           call bl_error("stop")
         end if
-      else 
+      else
         do_line = 0
       end if
 
@@ -133,7 +133,7 @@ contains
          do j = lo(2), hi(2)
             ioff = MOD(lo(1) + j + redblack, 2)
             do i = lo(1) + ioff,hi(1),2
-     
+
                cf0 = merge(f0(blo(1),j), 0.0D0, &
                     (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
                cf1 = merge(f1(i,blo(2)), 0.0D0, &
@@ -142,7 +142,7 @@ contains
                     (i .eq. bhi(1)) .and. (m2(bhi(1)+1,j).gt.0))
                cf3 = merge(f3(i,bhi(2)), 0.0D0, &
                     (j .eq. bhi(2)) .and. (m3(i,bhi(2)+1).gt.0))
- 
+
                delta = dhx*(bX(i,j)*cf0 + bX(i+1,j)*cf2) &
                     +  dhy*(bY(i,j)*cf1 + bY(i,j+1)*cf3)
 
@@ -162,7 +162,7 @@ contains
          ioff = MOD(lo(1) + redblack, 2)
          do i = lo(1) + ioff,hi(1),2
              do j = lo(2), hi(2)
-     
+
                cf0 = merge(f0(blo(1),j), 0.0D0, &
                     (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
                cf1 = merge(f1(i,blo(2)), 0.0D0, &
@@ -206,7 +206,7 @@ contains
            joff = MOD(lo(2) + redblack, 2)
            do j = lo(2) + joff,hi(2),2
              do i = lo(1), hi(1)
-     
+
                cf0 = merge(f0(blo(1),j), 0.0D0, &
                     (i .eq. blo(1)) .and. (m0(blo(1)-1,j).gt.0))
                cf1 = merge(f1(i,blo(2)), 0.0D0, &
@@ -255,28 +255,28 @@ contains
     end subroutine amrex_abec_gsrb
 
 !-----------------------------------------------------------------------
-!      
-!     JACOBI:
-!     Apply the JACOBI relaxation to the state phi for the equation
-!     L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)
-!     central differenced, according to the arrays of boundary
-!     masks (m#) and auxiliary data (f#).
-!     
-!     In general, if the linear operator L=gamma*y-rho, the GS relaxation
-!     is y = (R - rho)/gamma.  Near a boundary, the ghost data is filled
-!     using a polynomial interpolant based on the "old" phi values, so
-!     L=(gamma-delta)*y - rho + delta*yOld.   The resulting iteration is
-!     
-!     y = (R - delta*yOld + rho)/(gamma - delta)
-!     
-!     This expression is valid additionally in the interior provided
-!     delta->0 there.  delta is constructed by summing all the
-!     contributions to the central stencil element coming from boundary 
-!     interpolants.  The f#s contain the corresponding coefficient of 
-!     the interpolating polynomial.  The masks are set > 0 if the boundary 
-!     value was filled with an interpolant involving the central stencil 
-!     element.
-!     
+!>
+!>     JACOBI:
+!>     Apply the JACOBI relaxation to the state phi for the equation
+!>     ``L(phi) = alpha*a(x)*phi(x) - beta*Div(b(x)Grad(phi(x))) = rhs(x)``
+!>     central differenced, according to the arrays of boundary
+!>     masks (m#) and auxiliary data (f#).
+!>
+!>     In general, if the linear operator ``L=gamma*y-rho``, the GS relaxation
+!>     is ``y = (R - rho)/gamma``.  Near a boundary, the ghost data is filled
+!>     using a polynomial interpolant based on the "old" phi values, so
+!>     ``L=(gamma-delta)*y - rho + delta*yOld``.   The resulting iteration is
+!>
+!>     ``y = (R - delta*yOld + rho)/(gamma - delta)``
+!>
+!>     This expression is valid additionally in the interior provided
+!>     delta->0 there.  delta is constructed by summing all the
+!>     contributions to the central stencil element coming from boundary
+!>     interpolants.  The f#s contain the corresponding coefficient of
+!>     the interpolating polynomial.  The masks are set > 0 if the boundary
+!>     value was filled with an interpolant involving the central stencil
+!>     element.
+!>
 !-----------------------------------------------------------------------
     subroutine amrex_abec_jacobi ( &
            phi,phi_l1,phi_l2,phi_h1,phi_h2, &
@@ -345,7 +345,7 @@ contains
       do n = 1, nc
          do j = lo(2), hi(2)
             do i = lo(1),hi(1)
-     
+
                cf0 = merge(f0(lo(1),j), 0.0D0, &
                     (i .eq. lo(1)) .and. (m0(lo(1)-1,j).gt.0))
                cf1 = merge(f1(i,lo(2)), 0.0D0, &
@@ -380,9 +380,9 @@ contains
     end subroutine amrex_abec_jacobi
 
 !-----------------------------------------------------------------------
-!
-!     Fill in a matrix x vector operator here
-!
+!>
+!>     Fill in a matrix x vector operator here
+!>
     subroutine amrex_abec_adotx( &
            y,y_l1,y_l2,y_h1,y_h2, &
            x,x_l1,x_l2,x_h1,x_h2, &
@@ -433,9 +433,9 @@ contains
     end subroutine amrex_abec_adotx
 
 !-----------------------------------------------------------------------
-!
-!     Fill in a matrix x vector operator here
-!
+!>
+!>     Fill in a matrix x vector operator here
+!>
     subroutine amrex_abec_norma( &
            res, &
            alpha, beta, &
@@ -482,9 +482,9 @@ contains
     end subroutine amrex_abec_norma
 
 !-----------------------------------------------------------------------
-!
-!     Fill in fluxes
-!
+!>
+!>     Fill in fluxes
+!>
     subroutine amrex_abec_flux( &
            x,x_l1,x_l2,x_h1,x_h2, &
            alpha, beta, &

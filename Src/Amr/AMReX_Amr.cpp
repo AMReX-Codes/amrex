@@ -128,7 +128,7 @@ namespace
 
 
 bool
-Amr::UsingPrecreateDirectories()
+Amr::UsingPrecreateDirectories () noexcept
 {
     return precreateDirectories;
 }
@@ -188,38 +188,38 @@ Amr::DataLog (int i)
 }
 
 int
-Amr::NumDataLogs ()
+Amr::NumDataLogs () noexcept
 {
     return datalog.size();
 }
 
 bool
-Amr::RegridOnRestart () const
+Amr::RegridOnRestart () const noexcept
 {
     return regrid_on_restart;
 }
 
 void
-Amr::setDtMin (const Vector<Real>& dt_min_in)
+Amr::setDtMin (const Vector<Real>& dt_min_in) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
 }
 
 Vector<std::unique_ptr<AmrLevel> >&
-Amr::getAmrLevels ()
+Amr::getAmrLevels () noexcept
 {
     return amr_level;
 }
 
 long
-Amr::cellCount (int lev)
+Amr::cellCount (int lev) noexcept
 {
     return amr_level[lev]->countCells();
 }
 
 int
-Amr::numGrids (int lev)
+Amr::numGrids (int lev) noexcept
 {
     return amr_level[lev]->numGrids();
 }
@@ -612,6 +612,20 @@ Amr::clearStatePlotVarList ()
 }
 
 void
+Amr::fillStateSmallPlotVarList ()
+{
+    state_small_plot_vars.clear();
+    const DescriptorList &desc_lst = AmrLevel::get_desc_lst();
+    for (int typ(0); typ < desc_lst.size(); ++typ) {
+        for (int comp(0); comp < desc_lst[typ].nComp(); ++comp) {
+            if (desc_lst[typ].getType() == IndexType::TheCellType()) {
+                state_small_plot_vars.push_back(desc_lst[typ].name(comp));
+	    }
+	}
+    }
+}
+
+void
 Amr::clearStateSmallPlotVarList ()
 {
     state_small_plot_vars.clear();
@@ -641,7 +655,7 @@ Amr::deleteStatePlotVar (const std::string& name)
 }
 
 bool
-Amr::isDerivePlotVar (const std::string& name)
+Amr::isDerivePlotVar (const std::string& name) noexcept
 {
     for (std::list<std::string>::const_iterator li = derive_plot_vars.begin(), End = derive_plot_vars.end();
          li != End;
@@ -656,7 +670,7 @@ Amr::isDerivePlotVar (const std::string& name)
 }
 
 bool
-Amr::isDeriveSmallPlotVar (const std::string& name)
+Amr::isDeriveSmallPlotVar (const std::string& name) noexcept
 {
     for (std::list<std::string>::const_iterator li = derive_small_plot_vars.begin(), End = derive_small_plot_vars.end();
          li != End;
@@ -804,27 +818,27 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 }
 
 void
-Amr::setDtLevel (const Vector<Real>& dt_lev)
+Amr::setDtLevel (const Vector<Real>& dt_lev) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         dt_level[i] = dt_lev[i];
 }
 
 void
-Amr::setDtLevel (Real dt, int lev)
+Amr::setDtLevel (Real dt, int lev) noexcept
 {
     dt_level[lev] = dt;
 }
 
 void
-Amr::setNCycle (const Vector<int>& ns)
+Amr::setNCycle (const Vector<int>& ns) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         n_cycle[i] = ns[i];
 }
 
 long
-Amr::cellCount ()
+Amr::cellCount () noexcept
 {
     long cnt = 0;
     for (int i = 0; i <= finest_level; i++)
@@ -833,7 +847,7 @@ Amr::cellCount ()
 }
 
 int
-Amr::numGrids ()
+Amr::numGrids () noexcept
 {
     int cnt = 0;
     for (int i = 0; i <= finest_level; i++)
@@ -842,7 +856,7 @@ Amr::numGrids ()
 }
 
 int
-Amr::okToContinue ()
+Amr::okToContinue () noexcept
 {
     int ok = true;
     for (int i = 0; ok && (i <= finest_level); i++)
@@ -870,6 +884,12 @@ Amr::writePlotFile ()
     if (first_plotfile) {
         first_plotfile = false;
         amr_level[0]->setPlotVariables();
+    }
+
+    // Don't continue if we have no variables to plot.
+
+    if (statePlotVars().size() == 0) {
+      return;
     }
 
     Real dPlotFileTime0 = amrex::second();
@@ -1907,7 +1927,7 @@ Amr::checkPoint ()
 }
 
 void
-Amr::RegridOnly (Real time)
+Amr::RegridOnly (Real time, bool do_io)
 {
     BL_ASSERT(regrid_on_restart == 1);
 
@@ -1916,14 +1936,18 @@ Amr::RegridOnly (Real time)
     for (int i = 0; i <= lev_top; i++)
        regrid(i,time);
 
-    if (plotfile_on_restart)
-	writePlotFile();
+    if (do_io) {
 
-    if (checkpoint_on_restart)
-       checkPoint();
+        if (plotfile_on_restart)
+            writePlotFile();
 
-    if (insitu_on_restart)
-        updateInSitu();
+        if (checkpoint_on_restart)
+            checkPoint();
+
+        if (insitu_on_restart)
+            updateInSitu();
+
+    }
 }
 
 void
@@ -2437,13 +2461,41 @@ Amr::coarseTimeStep (Real stop_time)
 
     if (check_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / check_per;
-      const int num_per_new = (cumtime            ) / check_per;
 
-      if (num_per_old != num_per_new)
-      {
-	check_test = 1;
-      }
+        // Check to see if we've crossed a check_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = (cumtime-dt_level[0]) / check_per;
+        int num_per_new = (cumtime            ) / check_per;
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next check_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_chk_time = (num_per_old + 1) * check_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_chk_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_chk_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            check_test = 1;
+        }
+
     }
 
     int to_stop       = 0;    
@@ -2554,18 +2606,46 @@ Amr::coarseTimeStep (Real stop_time)
 }
 
 bool
-Amr::writePlotNow()
+Amr::writePlotNow() noexcept
 {
     int plot_test = 0;
     if (plot_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / plot_per;
-      const int num_per_new = (cumtime            ) / plot_per;
 
-      if (num_per_old != num_per_new)
-	{
-	  plot_test = 1;
-	}
+        // Check to see if we've crossed a plot_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = (cumtime-dt_level[0]) / plot_per;
+        int num_per_new = (cumtime            ) / plot_per;
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next plot_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_plot_time = (num_per_old + 1) * plot_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_plot_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            plot_test = 1;
+        }
+
     }
 
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
@@ -2574,18 +2654,46 @@ Amr::writePlotNow()
 } 
 
 bool
-Amr::writeSmallPlotNow()
+Amr::writeSmallPlotNow() noexcept
 {
     int plot_test = 0;
     if (small_plot_per > 0.0)
     {
-      const int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
-      const int num_per_new = (cumtime            ) / small_plot_per;
 
-      if (num_per_old != num_per_new)
+        // Check to see if we've crossed a small_plot_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+
+        int num_per_old = (cumtime-dt_level[0]) / small_plot_per;
+        int num_per_new = (cumtime            ) / small_plot_per;
+
+        // Before using these, however, we must test for the case where we're
+        // within machine epsilon of the next interval. In that case, increment
+        // the counter, because we have indeed reached the next small_plot_per interval
+        // at this point.
+
+        const Real eps = std::numeric_limits<Real>::epsilon() * 10.0 * std::abs(cumtime);
+        const Real next_plot_time = (num_per_old + 1) * small_plot_per;
+
+        if ((num_per_new == num_per_old) && std::abs(cumtime - next_plot_time) <= eps)
+        {
+            num_per_new += 1;
+        }
+
+        // Similarly, we have to account for the case where the old time is within
+        // machine epsilon of the beginning of this interval, so that we don't double
+        // count that time threshold -- we already plotted at that time on the last timestep.
+
+        if ((num_per_new != num_per_old) && std::abs((cumtime - dt_level[0]) - next_plot_time) <= eps)
+        {
+            num_per_old += 1;
+        }
+
+        if (num_per_old != num_per_new)
 	{
-	  plot_test = 1;
+            plot_test = 1;
 	}
+
     }
 
     return ( (small_plot_int > 0 && level_steps[0] % small_plot_int == 0) || 
@@ -3370,7 +3478,7 @@ Amr::initPltAndChk ()
 
 
 bool
-Amr::okToRegrid(int level)
+Amr::okToRegrid(int level) noexcept
 {
     if (regrid_int[level] < 0)
         return false;
@@ -3425,7 +3533,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     return best_dt;
 }
 
-const Vector<BoxArray>& Amr::getInitialBA()
+const Vector<BoxArray>& Amr::getInitialBA() noexcept
 {
   return initial_ba;
 }

@@ -37,15 +37,15 @@ void evolve_electric_field(      MultiFab& Ex,       MultiFab& Ey,       MultiFa
         const Box& tby  = mfi.tilebox(YeeGrid::Ey_nodal_flag);
         const Box& tbz  = mfi.tilebox(YeeGrid::Ez_nodal_flag);
 
-        auto       Exfab = Ex.array(mfi);
-        auto       Eyfab = Ey.array(mfi);
-        auto       Ezfab = Ez.array(mfi);
-        auto const Bxfab = Bx.array(mfi);
-        auto const Byfab = By.array(mfi);
-        auto const Bzfab = Bz.array(mfi);
-        auto const jxfab = jx.array(mfi);
-        auto const jyfab = jy.array(mfi);
-        auto const jzfab = jz.array(mfi);
+        auto const& Exfab = Ex.array(mfi);
+        auto const& Eyfab = Ey.array(mfi);
+        auto const& Ezfab = Ez.array(mfi);
+        auto const& Bxfab = Bx.array(mfi);
+        auto const& Byfab = By.array(mfi);
+        auto const& Bzfab = Bz.array(mfi);
+        auto const& jxfab = jx.array(mfi);
+        auto const& jyfab = jy.array(mfi);
+        auto const& jzfab = jz.array(mfi);
 
         AMREX_PARALLEL_FOR_3D ( tbx, j, k, l,
         {
@@ -84,12 +84,12 @@ void evolve_magnetic_field(const MultiFab& Ex, const MultiFab& Ey, const MultiFa
         const Box& tby = mfi.tilebox(YeeGrid::By_nodal_flag);
         const Box& tbz = mfi.tilebox(YeeGrid::Bz_nodal_flag);
 
-        auto       Bxfab = Bx.array(mfi);
-        auto       Byfab = By.array(mfi);
-        auto       Bzfab = Bz.array(mfi);
-        auto const Exfab = Ex.array(mfi);
-        auto const Eyfab = Ey.array(mfi);
-        auto const Ezfab = Ez.array(mfi);
+        auto const& Bxfab = Bx.array(mfi);
+        auto const& Byfab = By.array(mfi);
+        auto const& Bzfab = Bz.array(mfi);
+        auto const& Exfab = Ex.array(mfi);
+        auto const& Eyfab = Ey.array(mfi);
+        auto const& Ezfab = Ez.array(mfi);
 
         AMREX_PARALLEL_FOR_3D ( tbx, j, k, l,
         {

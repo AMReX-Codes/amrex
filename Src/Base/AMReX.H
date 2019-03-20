@@ -123,8 +123,21 @@ namespace amrex
     std::ostream& OutStream ();
     std::ostream& ErrorStream ();
 
-    int Verbose ();
-    void SetVerbose (int v);
+    int Verbose () noexcept;
+    void SetVerbose (int v) noexcept;
+
+    // ! Get the entire command line including the executable
+    std::string get_command ();
+
+    // ! Get number of command line arguments after the executable
+    int command_argument_count ();
+
+    /**
+    * \brief Get command line arguments. The executable name is the
+    * zero-th argument.  Return empty string if there are not that
+    * many arguments.  std::string
+    */
+    std::string get_command_argument (int number);
 
     inline void GccPlacater ()
     {

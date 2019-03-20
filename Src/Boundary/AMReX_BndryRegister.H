@@ -23,8 +23,8 @@ struct BndryBATransformer
     virtual IntVect doiHi () const override { return m_doihi; }
 
     virtual Box operator() (const Box& bx) const override;
-    
-    bool operator== (const BndryBATransformer& rhs) const;
+
+    bool operator== (const BndryBATransformer& rhs) const noexcept;
 
 private:
     int     m_dir;
@@ -68,7 +68,7 @@ class BndryRegister
 
 public:
     //! The default constructor.
-    BndryRegister ();
+    BndryRegister () noexcept;
 
     //! The constructor, given number of cells in/out, extent and number of components (assumes cell-centered boxes, and allocates cell-centered FABs)
     BndryRegister (const BoxArray& grids_,
@@ -78,14 +78,13 @@ public:
                    int             extent_rad,
                    int             ncomp);
     //
-    // The copy constructor.
-    //
+    //! The copy constructor.
     BndryRegister (const BndryRegister& src);
 
     //! The copy assignment operator.
     BndryRegister& operator= (const BndryRegister& src);
 
-    // The destructor.
+    //! The destructor.
     virtual ~BndryRegister();
 
     BndryRegister (BndryRegister&& rhs) noexcept = default;
@@ -110,16 +109,16 @@ public:
     void clear ();
 
     //! Get box domain (as an array of boxes).
-    const BoxArray& boxes () const { return grids; }
+    const BoxArray& boxes () const noexcept { return grids; }
 
     //! Return the number of grids in this domain.
-    int size () const { return grids.size(); }
+    int size () const noexcept { return grids.size(); }
 
     //! Return const set of FABs bounding the domain grid boxes on a given orientation
-    const FabSet& operator[] (Orientation face) const { return bndry[face]; }
+    const FabSet& operator[] (Orientation face) const noexcept { return bndry[face]; }
 
     //! Return set of FABs bounding the domain grid boxes on a given orientation
-    FabSet& operator[] (Orientation face) { return bndry[face]; }
+    FabSet& operator[] (Orientation face) noexcept { return bndry[face]; }
 
     //! Set all boundary FABs to given value.
     void setVal (Real v);
@@ -159,7 +158,7 @@ public:
     void setBoxes (const BoxArray& grids);
 
     //! Returns constant reference to associated DistributionMapping.
-    const DistributionMapping& DistributionMap () const { return bndry[0].DistributionMap(); }
+    const DistributionMapping& DistributionMap () const noexcept { return bndry[0].DistributionMap(); }
 
     //! Write (used for writing to checkpoint)
     void write (const std::string& name, std::ostream& os) const;

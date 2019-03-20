@@ -33,14 +33,17 @@ public:
     void define (const BoxArray& regba, const DistributionMapping& dm, const Geometry& geom,
 		 Orientation face, int in_rad, int out_rad, int extent_rad, int ncomp, bool initval);
 
-    Mask& operator[] (const MFIter& mfi) { return m_fa[mfi]; }
-    const Mask& operator[] (const MFIter& mfi) const { return m_fa[mfi]; }
+    Mask& operator[] (const MFIter& mfi) noexcept { return m_fa[mfi]; }
+    const Mask& operator[] (const MFIter& mfi) const  noexcept { return m_fa[mfi]; }
 
-    int nComp () const { return m_fa.nComp(); }
+    Array4<int const> array (const MFIter& mfi) const noexcept { return m_fa.array(mfi); }
+    Array4<int      > array (const MFIter& mfi)       noexcept { return m_fa.array(mfi); }
 
-    const BoxArray& boxArray () const { return m_fa.boxArray(); }
+    int nComp () const noexcept { return m_fa.nComp(); }
 
-    const DistributionMapping& DistributionMap () const { return m_fa.DistributionMap(); }
+    const BoxArray& boxArray () const noexcept { return m_fa.boxArray(); }
+
+    const DistributionMapping& DistributionMap () const noexcept { return m_fa.DistributionMap(); }
 
     static void Copy (MultiMask& dst, const MultiMask& src);
 

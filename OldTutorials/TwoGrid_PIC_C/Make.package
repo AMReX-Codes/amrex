@@ -1,5 +1,5 @@
 CEXE_sources += main.cpp
 CEXE_sources += solve_for_accel.cpp
-CEXE_sources += solve_with_f90.cpp
+CEXE_sources += solve_with_mlmg.cpp
 CEXE_sources += split_boxes.cpp
 

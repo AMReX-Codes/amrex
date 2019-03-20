@@ -13,6 +13,7 @@ COMP	   = gnu
 
 USE_MPI    = TRUE
 USE_OMP    = FALSE 
+USE_CUDA   = TRUE
 
 USE_SENSEI_INSITU = FALSE
 

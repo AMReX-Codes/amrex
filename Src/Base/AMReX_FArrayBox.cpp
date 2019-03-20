@@ -151,7 +151,7 @@ FABio::Format FArrayBox::format;
 
 FABio* FArrayBox::fabio = 0;
 
-FArrayBox::FArrayBox () {}
+FArrayBox::FArrayBox () noexcept {}
 
 FArrayBox::FArrayBox (const Box& b,
                       int        n,
@@ -177,21 +177,21 @@ FArrayBox::FArrayBox (const FArrayBox& rhs, MakeType make_type)
 }
 #endif
 
-FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p)
+FArrayBox::FArrayBox (const Box& b, int ncomp, Real* p) noexcept
     :
     BaseFab<Real>(b,ncomp,p)
 {
 }
 
 FArrayBox&
-FArrayBox::operator= (const Real& v)
+FArrayBox::operator= (Real v) noexcept
 {
     BaseFab<Real>::operator=(v);
     return *this;
 }
 
 void
-FArrayBox::initVal ()
+FArrayBox::initVal () noexcept
 {
     if (init_snan) {
 #ifdef BL_USE_DOUBLE
@@ -500,7 +500,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         switch (typ_in)
         {
@@ -527,7 +529,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         fio = new FABio_binary(rd);
     }
@@ -575,7 +579,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         switch (typ_in)
         {
@@ -604,7 +610,9 @@ FABio::read_header (std::istream& is,
         //
         // Set the FArrayBox to the appropriate size.
         //
-        f.resize(bx,nvar);
+        if (f.box() != bx || f.nComp() != nvar) {
+            f.resize(bx,nvar);
+        }
         is.ignore(BL_IGNORE_MAX, '\n');
         fio = new FABio_binary(rd);
     }
