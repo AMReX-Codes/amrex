@@ -41,7 +41,6 @@ void compute_stencil(Vector<Real> &stencil, int npass){
 }
 
 void BilinearFilter::ComputeStencils(){
-    Print()<<"npass_each_dir "<<npass_each_dir<<'\n';
     stencil_length_each_dir = npass_each_dir;
     stencil_length_each_dir += 1.;
 #if (AMREX_SPACEDIM == 3)
@@ -70,9 +69,6 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
 #pragma omp parallel
 #endif
     {
-        Print()<<"stencil_x: "; for(int i=0; i<stencil_length_each_dir[0];i++){Print()<<stencil_x[i]<<" ";} Print()<<'\n';
-        Print()<<"stencil_y: "; for(int i=0; i<stencil_length_each_dir[1];i++){Print()<<stencil_y[i]<<" ";} Print()<<'\n';
-        Print()<<"stencil_z: "; for(int i=0; i<stencil_length_each_dir[2];i++){Print()<<stencil_z[i]<<" ";} Print()<<'\n';
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dcomp==0,
                                          "TODO: multi-pass bilinear filter with dcomp>0!");        
         FArrayBox tmpfab;
@@ -98,8 +94,6 @@ void BilinearFilter::Filter2d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstf
 {
     const int* loVector = tbx.loVect();
     const int* hiVector = tbx.hiVect();
-    // const int* loVectorg = gbx.loVect();
-    // const int* hiVectorg = gbx.hiVect();
     Array4<Real> const& tmparr = tmpfab.array();
     Array4<Real> const& dstarr = dstfab.array();
     for(int i=loVector[0]; i<=hiVector[0]; i++){
@@ -118,8 +112,6 @@ void BilinearFilter::Filter3d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstf
 {
     const int* loVector = tbx.loVect();
     const int* hiVector = tbx.hiVect();
-    // const int* loVectorg = gbx.loVect();
-    // const int* hiVectorg = gbx.hiVect();
     Array4<Real> const& tmparr = tmpfab.array();
     Array4<Real> const& dstarr = dstfab.array();
     for(int i=loVector[0]; i<=hiVector[0]; i++){
