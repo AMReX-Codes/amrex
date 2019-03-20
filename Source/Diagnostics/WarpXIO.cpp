@@ -484,7 +484,6 @@ WarpX::WritePlotFile () const
     Vector<MultiFab> coarse_mf; // will remain empty if there is no coarsening
     Vector<Geometry> output_geom;
     if (plot_coarsening_ratio != 1) {
-        int i=0;
         coarsenCellCenteredFields( coarse_mf, output_geom, mf_avg, Geom(),
                                     plot_coarsening_ratio, finest_level );
         output_mf = amrex::GetVecOfConstPtrs(coarse_mf);
