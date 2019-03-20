@@ -1,91 +1,81 @@
-#include <AMReX.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Gpu.H>
-#include <AMReX_Utility.H>
-#include <AMReX_Array.H>
-#include <AMReX_CudaContainers.H>
-#include <curand_kernel.h>
+#include "main.H"
 
 using namespace amrex;
 
-void RandomNumGen ();
-AMREX_GPU_DEVICE void InitializePositions(double *d_xpos_ptr, double *d_ypos_ptr, double *d_zpos_ptr, int idx, curandState *d_RandStates_ptr);
-AMREX_GPU_DEVICE void SetRandSeedOnDevice(curandState *d_RandStates_ptr, int idx);
+
+void RandomNumGen();
 
 int main (int argc, char* argv[])
 {
+
     amrex::Initialize(argc,argv);
     RandomNumGen();
     amrex::Finalize();
+
 }
 
 void RandomNumGen ()
 {
     int N = 1E5;
 
-    Gpu::DeviceVector<curandState> dev_RandStates_Seed(N*2);
-    curandState *d_RandStates_ptr = dev_RandStates_Seed.dataPtr();
+#ifdef AMREX_USE_CUDA    
+    amrex::InitRandSeedOnDevice(N);
 
-    Gpu::DeviceVector<double> d_xpos(N); 
-    Gpu::DeviceVector<double> d_ypos(N); 
-    Gpu::DeviceVector<double> d_zpos(N); 
+    Gpu::DeviceVector<double> d_xpos(N);
+    Gpu::DeviceVector<double> d_ypos(N);
+    Gpu::DeviceVector<double> d_zpos(N);
 
-    double *d_xpos_ptr = d_xpos.dataPtr();
-    double *d_ypos_ptr = d_ypos.dataPtr();
-    double *d_zpos_ptr = d_zpos.dataPtr();
-
-    double *h_xpos = new double[N];
-    double *h_ypos = new double[N];
-    double *h_zpos = new double[N];
+    double *dxpos = d_xpos.dataPtr();    
+    double *dypos = d_ypos.dataPtr();    
+    double *dzpos = d_zpos.dataPtr();    
+#else
+    amrex::InitRandom(1024UL,1);
+#endif
  
-    AMREX_PARALLEL_FOR_1D (N, idx,
-    {
-       SetRandSeedOnDevice(d_RandStates_ptr, idx);
-    });
+    amrex::Vector<double> hx(N);
+    amrex::Vector<double> hy(N);
+    amrex::Vector<double> hz(N);
+    double *hxpos = hx.dataPtr();    
+    double *hypos = hy.dataPtr();    
+    double *hzpos = hz.dataPtr();    
 
-    for (int i=0; i<10; i++){
+
+    int timesteps = 10; // just for example
+    for (int i=0; i<timesteps; i++)
+    {
         AMREX_PARALLEL_FOR_1D (N, idx,
         {
-           InitializePositions(d_xpos_ptr,d_ypos_ptr,d_zpos_ptr,idx,d_RandStates_ptr);
+#ifdef AMREX_USE_CUDA    
+           dxpos[idx] = amrex::Random();
+           dypos[idx] = amrex::Random();
+           dzpos[idx] = amrex::Random();
+#else
+           hx[idx] = amrex::Random();
+           hy[idx] = amrex::Random();
+           hz[idx] = amrex::Random();
+#endif
         });
    
-        cudaMemcpy( h_xpos, d_xpos_ptr, sizeof(double)*N, cudaMemcpyDeviceToHost); 
-        cudaMemcpy( h_ypos, d_ypos_ptr, sizeof(double)*N, cudaMemcpyDeviceToHost); 
-        cudaMemcpy( h_zpos, d_zpos_ptr, sizeof(double)*N, cudaMemcpyDeviceToHost); 
+#ifdef AMREX_USE_CUDA    
+        cudaMemcpy(hxpos,dxpos,sizeof(double)*N,cudaMemcpyDeviceToHost);
+        cudaMemcpy(hypos,dypos,sizeof(double)*N,cudaMemcpyDeviceToHost);
+        cudaMemcpy(hzpos,dzpos,sizeof(double)*N,cudaMemcpyDeviceToHost);
+#endif
 
-        for ( int i = 0; i < N; i++ ){
-            amrex::Print() <<  i << " " << h_xpos[i] << " " << h_ypos[i] << " " << h_zpos[i] << "\n" ;
+        for (int i = 0; i < N; i++ )
+        {
+           amrex::Print() << i << " " << hx[i]  << " " << hy[i] << " " << hz[i]<< "\n";
         }
+
     }
 
-    delete[] h_xpos;
-    delete[] h_ypos;
-    delete[] h_zpos;
-    h_xpos = NULL;
-    h_ypos = NULL;
-    h_zpos = NULL;
+#ifdef AMREX_USE_CUDA    
+    amrex::DeallocateRandomSeedDevArray();
+#endif
+
 }
 
 
-AMREX_GPU_DEVICE void InitializePositions(double *d_xpos_ptr, double *d_ypos_ptr, double *d_zpos_ptr, int idx, curandState *d_RandStates_ptr)
-{
-    double loc_rand; 
-
-    loc_rand = curand_uniform_double( &d_RandStates_ptr[idx] );
-    d_xpos_ptr[idx] = loc_rand;
-
-    loc_rand = curand_uniform_double( &d_RandStates_ptr[idx] );
-    d_ypos_ptr[idx] = loc_rand;
-
-    loc_rand = curand_uniform_double( &d_RandStates_ptr[idx] );
-    d_zpos_ptr[idx] = loc_rand;
-}
-
-AMREX_GPU_DEVICE void SetRandSeedOnDevice(curandState *d_RandStates_ptr, int idx)
-{
-    unsigned long seed = idx + 10*idx;
-    curand_init( seed, seed, 0, &d_RandStates_ptr[idx]);
-}
 
 
 
