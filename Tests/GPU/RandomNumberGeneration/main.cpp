@@ -1,4 +1,9 @@
-#include "main.H"
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Gpu.H>
+#include <AMReX_Utility.H>
+#include <AMReX_Array.H>
+#include <AMReX_CudaContainers.H>
 
 using namespace amrex;
 
