@@ -1,4 +1,3 @@
-
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
@@ -243,14 +242,6 @@ namespace amrex
     /* \brief cumulative refinement ratio between levels */
     int CRRBetweenLevels(int fromlevel, int tolevel,
                          const Vector<int> &refratios);
-
-    /* \brief Create a semi-unique hash output to compare Distribution Maps.
-              Use multiple hashes of different sizes to ensure uniqueness. */
-    int HashDistributionMap(const DistributionMapping & dm, int hashSize);
-
-    /* \brief Create a semi-unique hash output to compare BoxArrays
-              Use multiple hashes of different sizes to ensure uniqueness. */
-    int HashBoxArray(const BoxArray & ba, int hashSize);
 
     /**
     * \brief Set the seeds of the random number generator for each CUDA thread .
