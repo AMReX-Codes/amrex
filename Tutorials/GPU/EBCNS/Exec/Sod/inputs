@@ -49,3 +49,15 @@ prob.rho_l = 1.0
 prob.rho_r = 0.125
 prob.u_l   = 0.0
 prob.u_r   = 0.0
+
+# EB
+eb2.geom_type = sphere
+eb2.sphere_center = 0.5 0.5 0.5
+eb2.sphere_radius = 0.2
+eb2.sphere_has_fluid_inside = false
+
+eb2.geom_type = all_regular
+max_step = 1
+amr.plot_files_output = 1
+
+amrex.fpe_trap_invalid=1
