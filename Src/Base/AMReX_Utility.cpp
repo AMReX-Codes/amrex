@@ -541,7 +541,7 @@ amrex::ResizeRandomSeed (int N)
   curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
   cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
  
-  AMREX_PARALLEL_FOR_1D (N, idx,
+  AMREX_PARALLEL_FOR_1D (Nbuffer, idx,
   {
      unsigned long seed = idx + 10*idx;
      curand_init(seed, seed, 0, &glo_RandStates[idx]);
