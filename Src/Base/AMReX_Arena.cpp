@@ -3,6 +3,7 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 #include <AMReX_DArena.H>
+#include <AMReX_EArena.H>
 
 #include <AMReX.H>
 #include <AMReX_Print.H>
