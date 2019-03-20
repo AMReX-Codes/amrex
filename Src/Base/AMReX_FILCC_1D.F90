@@ -1,21 +1,20 @@
 
-! ::: -----------------------------------------------------------
-! ::: This routine is intended to be a generic fill function
-! ::: for cell-centered data.  It knows how to extrapolate
-! ::: and reflect data and is used to supplement the problem-specific
-! ::: fill functions which call it.
-! ::: 
-! ::: INPUTS/OUTPUTS:
-! ::: q           <=  array to fill
-! ::: lo,hi        => index extent of q array
-! ::: domlo,domhi  => index extent of problem domain
-! ::: dx           => cell spacing
-! ::: xlo          => physical location of lower left hand
-! :::	              corner of q array
-! ::: bc	   => array of boundary flags bc(SPACEDIM,lo:hi)
-! ::: 
-! ::: NOTE: all corner as well as edge data is filled if not EXT_DIR
-! ::: -----------------------------------------------------------
+! -----------------------------------------------------------
+!> This routine is intended to be a generic fill function
+!! for cell-centered data.  It knows how to extrapolate
+!! and reflect data and is used to supplement the problem-specific
+!! fill functions which call it.
+!!
+!! \param q           <=  array to fill
+!! \param lo,hi        => index extent of q array
+!! \param domlo,domhi  => index extent of problem domain
+!! \param dx           => cell spacing
+!! \param xlo          => physical location of lower left hand
+!!	              corner of q array
+!! \param bc	   => array of boundary flags bc(SPACEDIM,lo:hi)
+!!
+!! NOTE: all corner as well as edge data is filled if not EXT_DIR
+! -----------------------------------------------------------
 
 #ifndef AMREX_XSDK
 

@@ -12,7 +12,7 @@
 
 namespace amrex {
 
-/*
+/**
         A CGColver solves the linear equation, L(phi)=rhs, for a MCLinOp L and
         MultiFabs rhs and phi, using the conjugate gradient algorithm, either
         vanilla, or preconditioned via a single V-cycle of multigrid.
@@ -70,130 +70,175 @@ namespace amrex {
 class MCCGSolver
 {
 public:
-    //
-    // Constructor.
-    //
+
+    /**
+    * \brief Constructor.
+    *
+    * \param _lp
+    * \param _use_mg_precond
+    * \param _lev
+    */
     MCCGSolver (MCLinOp& _lp,
 		bool     _use_mg_precond = false,
 		int      _lev=0);
-    //
-    // Destructor.
-    //
+
+    /**
+    * \brief Destructor.
+    */
     virtual ~MCCGSolver ();
-    //
-    // Solve the system, Lp(solnL)=rhsL to relative err, tolerance.
-    //
+
+    /**
+    * \brief Solve the system, Lp(solnL)=rhsL to relative err, tolerance.
+    *
+    * \param solnL
+    * \param rhsL
+    * \param eps_rel
+    * \param eps_abs
+    * \param bc_mode
+    */
     virtual void solve (MultiFab&       solnL,
 			const MultiFab& rhsL,
 			Real            eps_rel = -1.0,
 			Real            eps_abs = -1.0,
 			MCBC_Mode       bc_mode = MCInhomogeneous_BC);
-    //
-    // Set maximum allowed number of CG iterations.
-    //
+
+    /**
+    * \brief Set maximum allowed number of CG iterations.
+    *
+    * \param _maxiter
+    */
     void setMaxIter (int _maxiter);
-    //
-    // Get maximum allowed number of CG iterations.
-    //
+
+    /**
+    * \brief Get maximum allowed number of CG iterations.
+    */
     int getMaxIter () const;
-    //
-    // Set expert mode.
-    //
+
+    /**
+    * \brief Set expert mode.
+    *
+    * \param flag
+    */
     void setExpert( bool flag ) { isExpert = flag; }
-    //
-    // Get expert flag.
-    //
+
+    /**
+    * \brief Get expert flag.
+    */
     bool getExpert() { return isExpert; }
-    //
-    // Set flag determining whether MG preconditioning is used.
-    //
+
+    /**
+    * \brief Set flag determining whether MG preconditioning is used.
+    *
+    * \param _use_mg_precond
+    */
     void setUseMGPrecond (bool _use_mg_precond);
-    //
-    // Get flag determining whether MG preconditioning is used.
-    //
+
+    /**
+    * \brief Get flag determining whether MG preconditioning is used.
+    */
     bool getUseMGPrecond () const;
-    //
-    // Set the verbosity value.
-    //
+
+    /**
+    * \brief Set the verbosity value.
+    *
+    * \param _verbose
+    */
     void setVerbose (int _verbose);
-    //
-    // Return the verbosity value.
-    //
+
+    /**
+    * \brief Return the verbosity value.
+    */
     int getVerbose ();
 
 protected:
-    //
-    // Construct work space, initialize parameters.
-    //
+
+    /**
+    * \brief Construct work space, initialize parameters.
+    */
     static void Initialize ();
 
     static void Finalize ();
-    //
-    // if (use_mg_precond == 1) then define the MCMultiGrid * mg_precond
-    //
+
+    /**
+    * \brief if (use_mg_precond == 1) then define the MCMultiGrid * mg_precond
+    */
     void set_mg_precond ();
-    //
-    // Compute p = z  +  beta p in the CG algorithm.
-    //
+
+    /**
+    * \brief Compute ``p = z  +  beta p`` in the CG algorithm.
+    *
+    * \param p
+    * \param beta
+    * \param z
+    */
     void advance (MultiFab&       p,
 		  Real            beta,
 		  const MultiFab& z);
-    //
-    // Compute x =+ alpha p  and  r -= alpha w in the CG algorithm.
-    //
+
+    /**
+    * \brief Compute ``x =+ alpha p``  and  ``r -= alpha w`` in the CG algorithm.
+    *
+    * \param sol
+    * \param alpha
+    * \param r
+    * \param p
+    * \param w
+    */
     void update (MultiFab&       sol,
 		 Real            alpha,
 		 MultiFab&       r,
 		 const MultiFab& p,
 		 const MultiFab& w);
-    //
-    // Compute w = A.p, and return Transpose(p).w in the CG algorithm.
-    //
+
+    /**
+    * \brief Compute ``w = A.p``, and return ``Transpose(p).w`` in the CG algorithm.
+    *
+    * \param w
+    * \param p
+    * \param bc_mode
+    */
     Real axp (MultiFab& w,
 	      MultiFab& p,
 	      MCBC_Mode bc_mode);
-    //
-    // Compute a suitable norm of the residual, used to check stopping criteria.
-    //
+
+    /**
+    * \brief Compute a suitable norm of the residual, used to check stopping criteria.
+    *
+    * \param res
+    */
     Real norm (const MultiFab& res);
-    //
-    // MCMultiGrid solver to be used as preconditioner.
-    //
+
+    //! MCMultiGrid solver to be used as preconditioner.
     MCMultiGrid* mg_precond;
-    //
-    // Default maximum number of allowed iterations, verbosity.
-    //
+
+    //! Default maximum number of allowed iterations, verbosity.
     static int def_maxiter, def_verbose;
-    //
-    // Flag: use multigrid as a preconditioner.
-    //
+
+    //! Flag: use multigrid as a preconditioner.
     bool use_mg_precond;
-    //
-    // Default unstable_criterion used to test for loss of accuracy in.
-    //
+
+    //! Default unstable_criterion used to test for loss of accuracy in.
     static double def_unstable_criterion;
-    //
-    // Flag determining action when error conditions are hit.
-    //
+
+    //! Flag determining action when error conditions are hit.
     static int def_isExpert;
     bool isExpert;
-    //
-    // Current maximum number of allowed iterations, verbosity.
-    //
+
+    //! Current maximum number of allowed iterations, verbosity.
     int maxiter, verbose;
-    //
-    // Reference to operator for linear system to be solved.
-    //
+
+    //! Reference to operator for linear system to be solved.
     MCLinOp &Lp;
-    //
-    // Integer to choose which "level" of the linear operator to use.
-    //
+
+    //! Integer to choose which "level" of the linear operator to use.
     int lev;
-    
+
 private:
-    //
-    // Disable copy constructor, = operator.
-    //
+
+    /**
+    * \brief Disable copy constructor, = operator.
+    *
+    */
     MCCGSolver (const MCCGSolver&);
     MCCGSolver& operator= (const MCCGSolver&);
 };

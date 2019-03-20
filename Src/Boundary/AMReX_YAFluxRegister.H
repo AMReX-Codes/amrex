@@ -8,7 +8,7 @@
 
 namespace amrex {
 
-/*
+/**
   YAFluxRegister is yet another Flux Register for refluxing.
 
   At the beginning of a coarse step, `reset()` is called.  In MFIter
@@ -22,7 +22,7 @@ namespace amrex {
 class YAFluxRegister
 {
 public:
-    
+
     YAFluxRegister () = default;
 
     YAFluxRegister (const BoxArray& fba, const BoxArray& cba,
@@ -39,23 +39,24 @@ public:
 
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt);
+                  const Real* dx, Real dt) noexcept;
 
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
-                  const Real* dx, Real dt);
+                  const Real* dx, Real dt) noexcept;
 
     void Reflux (MultiFab& state, int dc = 0);
 
-    bool CrseHasWork (const MFIter& mfi) const {
+    bool CrseHasWork (const MFIter& mfi) const noexcept {
         return m_crse_fab_flag[mfi.LocalIndex()] != crse_cell;
     }
 
-    bool FineHasWork (const MFIter& mfi) const {
+    bool FineHasWork (const MFIter& mfi) const noexcept {
         return !(m_cfp_fab[mfi.LocalIndex()].empty());
     }
 
     enum CellType : int {
+        // must be same as in AMReX_YAFluxRegiser_K.H
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
 
@@ -64,10 +65,10 @@ protected:
     MultiFab m_crse_data;
     iMultiFab m_crse_flag;
     Vector<int> m_crse_fab_flag;
-    
-    MultiFab m_cfpatch;                   // This is built on crse/fine patches
+
+    MultiFab m_cfpatch;                   //!< This is built on crse/fine patches
     MultiFab m_cfp_mask;
-    Vector<Vector<FArrayBox*> > m_cfp_fab;  // The size of this is (# of local fine grids (# of crse/fine patches for that grid))
+    Vector<Vector<FArrayBox*> > m_cfp_fab;  //!< The size of this is (# of local fine grids (# of crse/fine patches for that grid))
     Vector<int> m_cfp_localindex;
 
     Geometry m_fine_geom;

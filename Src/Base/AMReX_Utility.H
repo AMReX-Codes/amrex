@@ -107,7 +107,7 @@ namespace amrex
     /**
     * \brief Aborts after printing message indicating out-of-memory;
     * i.e. operator new has failed. This is the "supported"
-    * set_new_handler() function for BoxLib applications.
+    * set_new_handler() function for AMReX applications.
     */
     void OutOfMemory ();
     /**
@@ -335,35 +335,35 @@ namespace amrex
     using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
                                                std::chrono::high_resolution_clock,
                                                std::chrono::steady_clock>::type;
-    double second ();
+    double second () noexcept;
 
-    template<typename T> void hash_combine (uint64_t & seed, const T & val);
-    template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF);
+    template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
+    template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF) noexcept;
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& min (const T& a, const T& b)
+    AMREX_INLINE const T& min (const T& a, const T& b) noexcept
     {
         return (b < a) ? b : a;
     }
 
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& min (const T& a, const T& b, const Ts& ... c)
+    AMREX_INLINE const T& min (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return min(min(a,b),c...);
     }
 
     template <class T>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& max (const T& a, const T& b)
+    AMREX_INLINE const T& max (const T& a, const T& b) noexcept
     {
         return (a < b) ? b : a;
     }
 
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE
-    AMREX_INLINE const T& max (const T& a, const T& b, const Ts& ... c)
+    AMREX_INLINE const T& max (const T& a, const T& b, const Ts& ... c) noexcept
     {
         return max(max(a,b),c...);
     }
@@ -497,14 +497,14 @@ DEALINGS IN THE SOFTWARE.
 */
 template<typename T>
 void
-amrex::hash_combine (uint64_t & seed, const T & val)
+amrex::hash_combine (uint64_t & seed, const T & val) noexcept
 {
     seed ^= std::hash<T>()(val) + 0x9e3779b9 + (seed<<6) + (seed>>2);
 }
 
 template<typename T>
 uint64_t
-amrex::hash_vector (const Vector<T> & vec, uint64_t seed)
+amrex::hash_vector (const Vector<T> & vec, uint64_t seed) noexcept
 {
     for (const auto & x: vec) {
         hash_combine(seed, x);

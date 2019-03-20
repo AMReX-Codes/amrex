@@ -14,7 +14,7 @@ class MLPoisson
 {
 public:
 
-    MLPoisson () {}
+    MLPoisson () noexcept {}
     MLPoisson (const Vector<Geometry>& a_geom,
                const Vector<BoxArray>& a_grids,
                const Vector<DistributionMapping>& a_dmap,
@@ -32,8 +32,6 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
-
-protected:
 
     virtual void prepareForSolve () final override;
     virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }

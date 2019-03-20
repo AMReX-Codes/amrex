@@ -4,15 +4,13 @@
 
 #include <AMReX_CArena.H>
 #include <AMReX_BLassert.H>
-
-#if !defined(AMREX_FORTRAN_BOXLIB)
 #include <AMReX_Gpu.H>
-#endif
 
 namespace amrex {
 
-CArena::CArena (std::size_t hunk_size)
+CArena::CArena (std::size_t hunk_size, ArenaInfo info)
 {
+    arena_info = info;
     //
     // Force alignment of hunksize.
     //
@@ -25,16 +23,9 @@ CArena::CArena (std::size_t hunk_size)
 
 CArena::~CArena ()
 {
-    for (unsigned int i = 0, N = m_alloc.size(); i < N; i++)
-#ifdef AMREX_USE_GPU
-	if (device_use_hostalloc) {
-	    AMREX_GPU_SAFE_CALL(cudaFreeHost(m_alloc[i]));
-        } else {
-	    AMREX_GPU_SAFE_CALL(cudaFree(m_alloc[i]));
-        }
-#else
-        ::operator delete(m_alloc[i]);
-#endif
+    for (unsigned int i = 0, N = m_alloc.size(); i < N; i++) {
+        deallocate_system(m_alloc[i]);
+    }
 }
 
 void*
@@ -48,9 +39,11 @@ CArena::alloc (std::size_t nbytes)
     //
     NL::iterator free_it = m_freelist.begin();
 
-    for ( ; free_it != m_freelist.end(); ++free_it)
-        if ((*free_it).size() >= nbytes)
+    for ( ; free_it != m_freelist.end(); ++free_it) {
+        if ((*free_it).size() >= nbytes) {
             break;
+        }
+    }
 
     void* vp = 0;
 
@@ -58,31 +51,7 @@ CArena::alloc (std::size_t nbytes)
     {
         const std::size_t N = nbytes < m_hunk ? m_hunk : nbytes;
 
-#if defined(AMREX_USE_GPU)
-        if (device_use_hostalloc) {
-
-	    AMREX_GPU_SAFE_CALL(cudaHostAlloc(&vp, N, cudaHostAllocMapped));
-
-	}
-	else if (device_use_managed_memory) {
-
-	    AMREX_GPU_SAFE_CALL(cudaMallocManaged(&vp, N));
-	    if (device_set_readonly)
-		Gpu::Device::mem_advise_set_readonly(vp, N);
-	    if (device_set_preferred) {
-		const int device = Gpu::Device::deviceId();
-		Gpu::Device::mem_advise_set_preferred(vp, N, device);
-	    }
-
-	}
-	else {
-
-	    AMREX_GPU_SAFE_CALL(cudaMalloc(&vp, N));
-
-	}
-#else
-        vp = ::operator new(N);
-#endif
+        vp = allocate_system(N);
 
         m_used += N;
 
@@ -147,7 +116,7 @@ CArena::free (void* vp)
     //
     // `vp' had better be in the busy list.
     //
-    NL::iterator busy_it = m_busylist.find(Node(vp,0,0));
+    auto busy_it = m_busylist.find(Node(vp,0,0));
 
     BL_ASSERT(!(busy_it == m_busylist.end()));
     BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
@@ -214,7 +183,7 @@ CArena::free (void* vp)
 }
 
 std::size_t
-CArena::heap_space_used () const
+CArena::heap_space_used () const noexcept
 {
     return m_used;
 }

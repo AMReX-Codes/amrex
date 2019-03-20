@@ -33,7 +33,7 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    void setScalars (Real a, Real b);
+    void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
     void setBCoeffs (int amrlev, const Array<MultiFab const*,AMREX_SPACEDIM>& beta);
 
@@ -41,10 +41,6 @@ public:
         return (m_needs_update || MLCellABecLap::needsUpdate());
     }
     virtual void update () final override;
-
-protected:
-
-    bool m_needs_update = true;
 
     virtual void prepareForSolve () final override;
     virtual bool isSingular (int amrlev) const final override { return m_is_singular[amrlev]; }
@@ -70,6 +66,22 @@ protected:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
+                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
+    void averageDownCoeffs ();
+    void averageDownCoeffsToCoarseAmrLevel (int flev);
+
+    void applyMetricTermsCoeffs ();
+
+    static void FFlux (Box const& box, Real const* dxinv, Real bscalar,
+                       Array<FArrayBox const*, AMREX_SPACEDIM> const& bcoef,
+                       Array<FArrayBox*,AMREX_SPACEDIM> const& flux,
+                       FArrayBox const& sol, int face_only);
+
+protected:
+
+    bool m_needs_update = true;
+
 private:
 
     Real m_a_scalar = std::numeric_limits<Real>::quiet_NaN();
@@ -78,17 +90,6 @@ private:
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
 
     Vector<int> m_is_singular;
-
-    //
-    // functions
-    //
-
-    void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
-                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b);
-    void averageDownCoeffs ();
-    void averageDownCoeffsToCoarseAmrLevel (int flev);
-
-    void applyMetricTermsCoeffs ();
 };
 
 }

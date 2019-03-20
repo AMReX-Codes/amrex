@@ -15,7 +15,7 @@ module amrex_error_module
 
   private
 
-  public :: amrex_error, amrex_abort
+  public :: amrex_error, amrex_abort, amrex_warning
 
   interface
      subroutine amrex_fi_error (message) bind(c)
@@ -27,6 +27,11 @@ module amrex_error_module
        import
        character(kind=c_char), intent(in) :: message(*)
      end subroutine amrex_fi_abort       
+
+     subroutine amrex_fi_warning (message) bind(c)
+       import
+       character(kind=c_char), intent(in) :: message(*)
+     end subroutine amrex_fi_warning
   end interface
 
 contains
@@ -63,4 +68,31 @@ contains
     call amrex_fi_abort(amrex_string_f_to_c(message))
   end subroutine amrex_abort
 
+  subroutine amrex_warning (message)
+    character(len=*), intent(in) :: message
+    call amrex_fi_warning(amrex_string_f_to_c(message))
+  end subroutine amrex_warning
+
 end module amrex_error_module
+
+! For backward compatibility
+subroutine bl_error (message)
+  use amrex_error_module
+  implicit none
+  character(len=*), intent(in) :: message
+  call amrex_error(message)
+end subroutine bl_error
+
+subroutine bl_abort (message)
+  use amrex_error_module
+  implicit none
+  character(len=*), intent(in) :: message
+  call amrex_abort(message)
+end subroutine bl_abort
+
+subroutine bl_warning (message)
+  use amrex_error_module
+  implicit none
+  character(len=*), intent(in) :: message
+  call amrex_warning(message)
+end subroutine bl_warning

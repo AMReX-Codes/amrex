@@ -12,11 +12,11 @@
 
 namespace amrex {
 
-/*
+/**
         An InterpBndryData object adds to a BndryData object the ability to
         manipulate and set the data stored in the boundary cells.
 
-        The Interpbndrydata class is a virtual base class derived from
+        The InterpBndryData class is a virtual base class derived from
         BndryData.  It is intended to provide a more physical method for
         filling boundary-related data.  Boundary values in a BndryData object
         are stored in FabSets around each grid in the domain, and the
@@ -42,46 +42,71 @@ class InterpBndryData
     public BndryData
 {
 public:
-    //
-    // default constructor
-    //
-    InterpBndryData ();
-    //
-    // constructor for given BoxArray, etc
-    //
+
+    /**
+    * \brief default constructor
+    */
+    InterpBndryData () noexcept;
+
+    /**
+    * \brief constructor for given BoxArray, etc
+    *
+    * \param _grids
+    * \param _dmap
+    * \param _ncomp
+    * \param geom
+    */
     InterpBndryData (const BoxArray& _grids,
 		     const DistributionMapping& _dmap,
                      int             _ncomp,
                      const Geometry& geom);
-    //
-    // Copy constructor.
-    //
+
+    /**
+    * \brief Copy constructor.
+    *
+    * \param rhs
+    */
     InterpBndryData (const InterpBndryData& rhs);
 
     virtual ~InterpBndryData () override;
     //
-    // Copy assignment operator.
-    //
+    //! Copy assignment operator.
     InterpBndryData& operator= (const InterpBndryData& rhs);
 
     InterpBndryData (InterpBndryData&& rhs) = delete;
     InterpBndryData& operator= (InterpBndryData&& rhs) = delete;
 
-    //
-    // interpret user BCs to those expected by LinOp: takes integer ratio and
-    // is a wrapper to the IntVect version
-    //
+
+    /**
+    * \brief interpret user BCs to those expected by LinOp: takes integer ratio and
+    * is a wrapper to the IntVect version
+    *
+    * \param phys_bc
+    * \param ratio
+    */
     virtual void setBndryConds (const BCRec& phys_bc,
                                 int          ratio);
-    //
-    // interpret user BCs to those expected by LinOp: takes IntVect ratio
-    //
+
+    /**
+    * \brief interpret user BCs to those expected by LinOp: takes IntVect ratio
+    *
+    * \param phys_bc
+    * \param ratio
+    * \param comp
+    */
     virtual void setBndryConds (const BCRec&   phys_bc,
                                 const IntVect& ratio,
 				int            comp = 0) {}
-    //
-    // set bndry values at coarse level (non interpolation performed)
-    //
+
+    /**
+    * \brief set bndry values at coarse level (non interpolation performed)
+    *
+    * \param mf
+    * \param mf_start
+    * \param bnd_start
+    * \param num_comp
+    * \param phys_bc
+    */
     virtual void setBndryValues (const MultiFab& mf,
                                  int             mf_start,
                                  int             bnd_start,
@@ -101,28 +126,50 @@ public:
                                  int             num_comp,
                                  const IntVect&  ratio,
                                  const BCRec&    phys_bc);
-    //
-    // set bndry values at fine level, performing necessary interpolations
-    //
+
+    /**
+    * \brief set bndry values at fine level, performing necessary interpolations
+    *
+    * \param crse
+    * \param c_start
+    * \param fine
+    * \param f_start
+    * \param bnd_start
+    * \param num_comp
+    * \param ratio
+    * \param phys_bc
+    * \param max_order
+    */
     virtual void setBndryValues (BndryRegister&  crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,
                                  int             bnd_start,
                                  int             num_comp,
-                                 int             ratio, 
+                                 int             ratio,
                                  const BCRec&    phys_bc,
-                                 int             max_order = IBD_max_order_DEF);    
-    //
-    // set bndry values at fine level, performing necessary interpolations
-    //
+                                 int             max_order = IBD_max_order_DEF);
+
+    /**
+    * \brief set bndry values at fine level, performing necessary interpolations
+    *
+    * \param crse
+    * \param c_start
+    * \param fine
+    * \param f_start
+    * \param bnd_start
+    * \param num_comp
+    * \param ratio
+    * \param phys_bc
+    * \param max_order
+    */
     virtual void setBndryValues (BndryRegister&  crse,
                                  int             c_start,
                                  const MultiFab& fine,
                                  int             f_start,
                                  int             bnd_start,
                                  int             num_comp,
-                                 const IntVect&  ratio, 
+                                 const IntVect&  ratio,
                                  const BCRec&    phys_bc,
                                  int             max_order = IBD_max_order_DEF);
 
@@ -133,12 +180,12 @@ public:
                             int ratio, int max_order = IBD_max_order_DEF);
 
     void setHomogValues ();
-    
+
     static int IBD_max_order_DEF;
 
     static int maxOrderDEF() {return IBD_max_order_DEF;}
 
-private:
+// private:  // public for cuda
 
     void BndryValuesDoIt (BndryRegister&  crse,
                           int             c_start,
@@ -146,7 +193,7 @@ private:
                           int             f_start,
                           int             bnd_start,
                           int             num_comp,
-                          const IntVect&  ratio, 
+                          const IntVect&  ratio,
                           const BCRec*    phys_bc,
                           int             max_order);
 };
@@ -154,4 +201,3 @@ private:
 }
 
 #endif /*_INTERPBNDRYDATA_H_*/
-

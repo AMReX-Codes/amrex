@@ -7,8 +7,10 @@
 
 namespace amrex {
 
-/*
-        A FabSet is a group of FArrayBox's.  The grouping is designed
+class FabSetIter;
+
+/**
+        \brief A FabSet is a group of FArrayBox's.  The grouping is designed
         specifically to represent regions along the boundary of Box's,
         and are used to implement boundary conditions to discretized
         partial differential equations.
@@ -32,21 +34,17 @@ namespace amrex {
         manipulated by more sophisticated control classes.
 */
 
-class FabSetIter;
-
 class FabSet
 {
     friend class FabSetIter;
     friend class FluxRegister;
 public:
     //
-    // The default constructor -- you must later call define().
+    //! The default constructor -- you must later call define().
+    FabSet () noexcept;
     //
-    FabSet ();
-    //
-    // Construct a FabSet of specified number of components on the grids.
-    //
-    FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp); 
+    //! Construct a FabSet of specified number of components on the grids.
+    FabSet (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
     ~FabSet () = default;
 
@@ -57,43 +55,44 @@ public:
     FabSet& operator= (FabSet&& rhs) = delete;
 
     //
-    // Define a FabSet constructed via default constructor.
-    //
+    //! Define a FabSet constructed via default constructor.
     void define (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
-    FArrayBox const& operator[] (const MFIter& mfi) const { return m_mf[mfi]; }
-    FArrayBox      & operator[] (const MFIter& mfi)       { return m_mf[mfi]; }
-    FArrayBox const& operator[] (int i)             const { return m_mf[i]; }
-    FArrayBox      & operator[] (int i)                   { return m_mf[i]; }
+    FArrayBox const& operator[] (const MFIter& mfi) const noexcept { return m_mf[mfi]; }
+    FArrayBox      & operator[] (const MFIter& mfi)       noexcept { return m_mf[mfi]; }
+    FArrayBox const& operator[] (int i)             const noexcept { return m_mf[i]; }
+    FArrayBox      & operator[] (int i)                   noexcept { return m_mf[i]; }
 
-    FArrayBox const* fabPtr (const MFIter& mfi) const { return m_mf.fabPtr(mfi); }
-    FArrayBox      * fabPtr (const MFIter& mfi)       { return m_mf.fabPtr(mfi); }
-    FArrayBox const* fabPtr (int i)             const { return m_mf.fabPtr(i); }
-    FArrayBox      * fabPtr (int i)                   { return m_mf.fabPtr(i); }
+    FArrayBox const* fabPtr (const MFIter& mfi) const noexcept { return m_mf.fabPtr(mfi); }
+    FArrayBox      * fabPtr (const MFIter& mfi)       noexcept { return m_mf.fabPtr(mfi); }
+    FArrayBox const* fabPtr (int i)             const noexcept { return m_mf.fabPtr(i); }
+    FArrayBox      * fabPtr (int i)                   noexcept { return m_mf.fabPtr(i); }
 
-    FArrayBox const* fabHostPtr (const MFIter& mfi) const { return m_mf.fabHostPtr(mfi); }
-    FArrayBox      * fabHostPtr (const MFIter& mfi)       { return m_mf.fabHostPtr(mfi); }
-    FArrayBox const* fabHostPtr (int i)             const { return m_mf.fabHostPtr(i); }
-    FArrayBox      * fabHostPtr (int i)                   { return m_mf.fabHostPtr(i); }
+    FArrayBox const* fabHostPtr (const MFIter& mfi) const noexcept { return m_mf.fabHostPtr(mfi); }
+    FArrayBox      * fabHostPtr (const MFIter& mfi)       noexcept { return m_mf.fabHostPtr(mfi); }
+    FArrayBox const* fabHostPtr (int i)             const noexcept { return m_mf.fabHostPtr(i); }
+    FArrayBox      * fabHostPtr (int i)                   noexcept { return m_mf.fabHostPtr(i); }
 
-    FArrayBox const* fabDevicePtr (const MFIter& mfi) const { return m_mf.fabDevicePtr(mfi); }
-    FArrayBox      * fabDevicePtr (const MFIter& mfi)       { return m_mf.fabDevicePtr(mfi); }
-    FArrayBox const* fabDevicePtr (int i)             const { return m_mf.fabDevicePtr(i); }
-    FArrayBox      * fabDevicePtr (int i)                   { return m_mf.fabDevicePtr(i); }
+    FArrayBox const* fabDevicePtr (const MFIter& mfi) const noexcept { return m_mf.fabDevicePtr(mfi); }
+    FArrayBox      * fabDevicePtr (const MFIter& mfi)       noexcept { return m_mf.fabDevicePtr(mfi); }
+    FArrayBox const* fabDevicePtr (int i)             const noexcept { return m_mf.fabDevicePtr(i); }
+    FArrayBox      * fabDevicePtr (int i)                   noexcept { return m_mf.fabDevicePtr(i); }
 
-    Array4<Real> array(const MFIter& mfi) const { return m_mf.array(mfi); }
-    Array4<Real> array(int i)             const { return m_mf.array(i);   }
+    Array4<Real const> array (const MFIter& mfi) const noexcept { return m_mf.array(mfi); }
+    Array4<Real      > array (const MFIter& mfi)       noexcept { return m_mf.array(mfi); }
+    Array4<Real const> array (int i)             const noexcept { return m_mf.array(i);   }
+    Array4<Real      > array (int i)                   noexcept { return m_mf.array(i);   }
 
-    Box fabbox (int K) const { return m_mf.fabbox(K); }
+    Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
 
-    int size () const { return m_mf.size(); }
+    int size () const noexcept { return m_mf.size(); }
 
-    const BoxArray& boxArray () const { return m_mf.boxArray(); }
+    const BoxArray& boxArray () const noexcept { return m_mf.boxArray(); }
 
-    const DistributionMapping& DistributionMap () const 
+    const DistributionMapping& DistributionMap () const noexcept
 	{ return m_mf.DistributionMap(); }
 
-    int nComp () const { return m_mf.nComp(); }
+    int nComp () const noexcept { return m_mf.nComp(); }
 
     void clear () { m_mf.clear(); }
 
@@ -117,24 +116,22 @@ public:
 
     void setVal (Real val, int comp, int num_comp);
 
-    // Linear combination: this := a*this + b*src (FabSets must be commensurate).
+    //!< Linear combination: this := a*this + b*src (FabSets must be commensurate).
     FabSet& linComb (Real a, Real b, const FabSet& src, int scomp, int dcomp, int ncomp);
 
-    // Linear combination: this := a*mfa + b*mfb
+    //!< Linear combination: this := a*mfa + b*mfb
     FabSet& linComb (Real a, const MultiFab& mfa, int a_comp,
 		     Real b, const MultiFab& mfb, int b_comp,
                      int dcomp, int ncomp, int ngrow);
 
     //
-    // Write (used for writing to checkpoint)
-    //
+    //! Write (used for writing to checkpoint)
     void write (const std::string& name) const;
     //
-    // Read (used for reading from checkpoint)
-    //
+    //! Read (used for reading from checkpoint)
     void read (const std::string& name);
 
-    // Local copy function
+    //!< Local copy function
     static void Copy (FabSet& dst, const FabSet& src);
 
 private:
@@ -145,7 +142,7 @@ class FabSetIter
     : public MFIter
 {
 public:
-    explicit FabSetIter (const FabSet& fs) 
+    explicit FabSetIter (const FabSet& fs)
 	: MFIter(fs.m_mf) { }
 };
 

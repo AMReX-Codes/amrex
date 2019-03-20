@@ -24,8 +24,10 @@ add_sources( AMReX_ParallelReduce.H )
 add_sources( AMReX_ForkJoin.H AMReX_ParallelContext.H )
 add_sources( AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp )
 
-add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp )
-add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H )
+add_sources( AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp )
+add_sources( AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H )
+add_sources( AMReX_FabAllocator.H )
+add_sources( AMReX_FabAllocator.cpp )
 
 add_sources( AMReX_BLProfiler.H AMReX_BLBackTrace.H AMReX_BLFort.H )
 
@@ -101,6 +103,8 @@ add_sources( AMReX_BCRec.H AMReX_PhysBCFunct.H AMReX_BC_TYPES.H AMReX_BCUtil.H )
 # 
 add_sources( AMReX_PlotFileUtil.cpp )
 add_sources( AMReX_PlotFileUtil.H )
+add_sources( AMReX_PlotFileDataImpl.H )
+add_sources( AMReX_PlotFileDataImpl.cpp )
 
 #
 # Fortran interface routines.
@@ -109,8 +113,7 @@ add_sources( AMReX_PlotFileUtil.H )
 add_sources( AMReX_COORDSYS_${DIM}D_C.H )
 add_sources( AMReX_COORDSYS_C.H AMReX_filcc_f.H )
 
-add_sources( AMReX_BLutil_F.F90 AMReX_BLBoxLib_F.F90
-   AMReX_BLProfiler_F.F90)
+add_sources( AMReX_BLutil_F.F90 AMReX_BLProfiler_F.F90)
 
 add_sources( AMReX_FILCC_${DIM}D.F90 )
 add_sources( AMReX_MultiFabUtil_${DIM}D_C.H AMReX_MultiFabUtil_nd_C.H )
@@ -177,5 +180,6 @@ add_sources( AMReX_CudaDevice.H AMReX_CudaDevice.cpp )
 add_sources( AMReX_CudaUtility.H AMReX_CudaUtility.cpp )
 add_sources( AMReX_CudaAsyncFab.H AMReX_CudaAsyncFab.cpp AMReX_CudaAsyncFabImpl.H AMReX_CudaAsyncFabImpl.cpp )
 add_sources( AMReX_CudaAsyncArray.H AMReX_CudaAsyncArray.cpp )
+add_sources( AMReX_CudaElixir.H AMReX_CudaElixir.cpp )
 #endif()
 

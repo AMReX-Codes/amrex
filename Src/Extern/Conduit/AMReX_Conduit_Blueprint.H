@@ -3,7 +3,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 //
-// Conduit Mesh Blueprint Support for AMReX Meshes
+// Conduit Mesh Blueprint Support for AMReX
 //
 // This file is only included when USE_CONDUIT = TRUE
 //
@@ -13,12 +13,17 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
+#ifdef AMREX_PARTICLES
+#include <AMReX_Particles.H>
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// These functions generate a Conduit Blueprint Mesh representation of an 
-// AMReX AMR mesh. The data from the MultiFABs is zero copied into the Conduit
-// Node Tree. This is the format used to pass meshes to ALPINE Ascent for 
-// in situ rendering and analysis. 
+// These functions generate a Conduit Blueprint Mesh representation of
+// AMReX AMR meshes and particle containers. 
+// 
+// Data from MultiFABs and ParticleContainers are zero copied and annotated
+// in Conduit Node Trees. This is the format used to pass meshes to ALPINE
+// Ascent for in situ rendering and analysis.
 //
 // For more details, please see:
 //
@@ -31,7 +36,7 @@
 //  Ascent Repo: http://github.com/alpine-dav/ascent
 //  Ascent Docs: http://ascent.readthedocs.io/en/latest/
 //
-// 
+//
 // Or ping Cyrus Harrison <cyrush@llnl.gov> or Matt Larsen <<larsen30@llnl.gov>
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -40,10 +45,10 @@
 ///  * 2D + 3D
 ///  * single + multi-level (w/o nesting)
 ///  * ghosts (indicator field created using `grow`)
+///  * particles
 ///
 /// TODO:
-///  * AMR nesting 
-///  * Particles
+///  * AMR nesting
 ///
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -52,11 +57,11 @@
 namespace amrex
 {
 
-    // Creates an in-memory Mesh Blueprint representation of a single level 
+    // Creates an in-memory Mesh Blueprint representation of a single level
     // AMReX mesh.
     //
-    // This method's signature mirrors WriteSingleLevelPlotfile(), sans the 
-    // file name parameters. 
+    // This method's signature mirrors WriteSingleLevelPlotfile(), sans the
+    // file name parameters.
     void SingleLevelToBlueprint (const MultiFab &mf,
                                  const Vector<std::string> &varnames,
                                  const Geometry &geom,
@@ -64,11 +69,11 @@ namespace amrex
                                  int level_step,
                                  conduit::Node &bp_mesh);
 
-    // Creates an in-memory Mesh Blueprint representation of a multi-level 
+    // Creates an in-memory Mesh Blueprint representation of a multi-level
     // AMReX mesh.
     //
-    // This method's signature mirrors WriteMultiLevelPlotfile(), sans the 
-    // file name parameters. 
+    // This method's signature mirrors WriteMultiLevelPlotfile(), sans the
+    // file name parameters.
     void MultiLevelToBlueprint (int n_levels,
                                 const Vector<const MultiFab*> &mfs,
                                 const Vector<std::string> &varnames,
@@ -78,7 +83,25 @@ namespace amrex
                                 const Vector<IntVect> &ref_ratio,
                                 conduit::Node &bp_mesh);
 
-    // Writes a Mesh Blueprint representation to a set of files that 
+#ifdef AMREX_PARTICLES
+    // Creates an in-memory Mesh Blueprint representation of an AMReX
+    // particle container.
+    //
+    //  This method's signature is similar to ParticleContainer::Checkpoint()
+    //   real_comp_names are first mapped in order to the aos then soa reals
+    //   int_comp_names are first mapped in order to the aos then soa ints
+    //
+    template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+    void ParticleContainerToBlueprint (const ParticleContainer<NStructReal,
+                                                               NStructInt,
+                                                               NArrayReal,
+                                                               NArrayInt> &pc,
+                                       const Vector<std::string> &real_comp_names,
+                                       const Vector<std::string> &int_comp_names,
+                                       conduit::Node &bp_mesh);
+#endif
+
+    // Writes a Mesh Blueprint representation to a set of files that
     // can be visualized in VisIt using the Blueprint plugin.
     //
     // Note: The default protocol "json", is ASCII-based, which is great
@@ -93,5 +116,10 @@ namespace amrex
                               const std::string &protocol = "json");
 
 }
+
+#ifdef AMREX_PARTICLES
+    #include "AMReX_Conduit_Blueprint_ParticlesI.H"
+#endif
+
 
 #endif

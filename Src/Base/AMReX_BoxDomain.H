@@ -32,7 +32,7 @@ namespace amrex
 
     /**
     * \brief Compute the intersection of BoxDomain fin with Box b
-    *           and place the result into BoxDomain dest. 
+    *           and place the result into BoxDomain dest.
     */
     void intersect (BoxDomain&       dest,
                     const BoxDomain& fin,
@@ -91,8 +91,10 @@ public:
     //! Remove a box from the domain.
     BoxDomain& rmBox (const Box& b);
 
-    //! Returns True if this BoxDomain is valid.  Checks for
-    // disjointness. Returns true if the BoxDomain is empty.
+    /**
+    * Returns True if this BoxDomain is valid.  Checks for
+    * disjointness. Returns true if the BoxDomain is empty.
+    */
     bool ok () const;
 
     //! Promoted from BoxList.

@@ -10,7 +10,7 @@ namespace {
     static const Real BL_SAFE_BOGUS = std::numeric_limits<Real>::quiet_NaN();
 }
 
-BndryRegister::BndryRegister () {}
+BndryRegister::BndryRegister () noexcept {}
 
 BndryRegister::~BndryRegister () {}
 
@@ -72,11 +72,11 @@ BndryRegister::init (const BndryRegister& src)
         for (FabSetIter mfi(src.bndry[i]); mfi.isValid(); ++mfi)
         {
             const Box& bx = mfi.validbox();
-            FArrayBox const* sfab = src.bndry[i].fabPtr(mfi);
-            FArrayBox      * dfab =     bndry[i].fabPtr(mfi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            auto const sfab = src.bndry[i].array(mfi);
+            auto       dfab =     bndry[i].array(mfi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
-                dfab->copy(*sfab, tbx, 0, tbx, 0, ncomp);
+                dfab(i,j,k,n) = sfab(i,j,k,n);
             });
         }
     }
@@ -165,7 +165,7 @@ BndryBATransformer::operator() (const Box& a_bx) const
 }
 
 bool 
-BndryBATransformer::operator== (const BndryBATransformer& rhs) const
+BndryBATransformer::operator== (const BndryBATransformer& rhs) const noexcept
 {
     // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
     return m_typ == rhs.m_typ 
@@ -238,11 +238,11 @@ BndryRegister::operator+= (const BndryRegister& rhs)
 #endif
 	for (FabSetIter bfsi(rhs[f]); bfsi.isValid(); ++bfsi) {
             const Box& bx = bfsi.validbox();
-            FArrayBox const* sfab =   rhs[f].fabPtr(bfsi);
-            FArrayBox      * dfab = bndry[f].fabPtr(bfsi);
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA (bx, tbx,
+            auto const sfab =   rhs[f].array(bfsi);
+            auto       dfab = bndry[f].array(bfsi);
+            AMREX_HOST_DEVICE_FOR_4D ( bx, ncomp, i, j, k, n,
             {
-                dfab->plus(*sfab, tbx, tbx, 0, 0, ncomp);
+                dfab(i,j,k,n) += sfab(i,j,k,n);
             });
 	}
     }

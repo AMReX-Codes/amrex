@@ -97,7 +97,7 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
     FC  := mpif90
     F90 := mpif90
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
 
   endif
 
@@ -110,8 +110,9 @@ ifeq ($(which_computer),$(filter $(which_computer),summit))
   endif
 
   # If the cuda module is loaded, CUDAPATH is set as the toolkit location.
-
-  SYSTEM_CUDA_PATH=$(CUDAPATH)
+  # No longer the case
+  # SYSTEM_CUDA_PATH=$(CUDAPATH)
+  SYSTEM_CUDA_PATH=$(OLCF_CUDA_ROOT)
 
   SYSTEM_NVML_PATH=/usr/lib64/nvidia
 
@@ -141,7 +142,7 @@ ifeq ($(which_computer),$(filter $(which_computer),ascent))
     FC  := mpif90
     F90 := mpif90
 
-    LIBRARIES += -lmpi_ibm_mpifh
+    LIBRARIES += -lmpi_ibm_mpifh -lmpi_ibm
 
   endif
 

@@ -26,8 +26,11 @@ C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
 C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
-C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp
-C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_DArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_DArena.H
+
+C$(AMREX_BASE)_sources += AMReX_FabAllocator.cpp
+C$(AMREX_BASE)_headers += AMReX_FabAllocator.H
 
 C$(AMREX_BASE)_headers += AMReX_BLProfiler.H
 
@@ -61,6 +64,9 @@ C$(AMREX_BASE)_sources += AMReX_CudaAsyncFabImpl.cpp
 
 C$(AMREX_BASE)_headers += AMReX_CudaAsyncArray.H
 C$(AMREX_BASE)_sources += AMReX_CudaAsyncArray.cpp
+
+C$(AMREX_BASE)_headers += AMReX_CudaElixir.H
+C$(AMREX_BASE)_sources += AMReX_CudaElixir.cpp
 
 #
 # I/O stuff.
@@ -145,8 +151,8 @@ C$(AMREX_BASE)_headers += AMReX_FilCC_C.H AMReX_FilCC_$(DIM)D_C.H
 # Plotfile
 #
 ifneq ($(BL_NO_FORT),TRUE)
-  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp
-  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H
+  C$(AMREX_BASE)_sources += AMReX_PlotFileUtil.cpp AMReX_PlotFileDataImpl.cpp
+  C$(AMREX_BASE)_headers += AMReX_PlotFileUtil.H AMReX_PlotFileDataImpl.H
 endif
 
 #
@@ -162,15 +168,11 @@ ifneq ($(BL_NO_FORT),TRUE)
   F90$(AMREX_BASE)_headers += AMReX_filcc_f.H
 
   F90$(AMREX_BASE)_sources += AMReX_BLutil_F.F90
-  F90$(AMREX_BASE)_sources += AMReX_BLBoxLib_F.F90
   F90$(AMREX_BASE)_sources += AMReX_BLProfiler_F.F90
 
   f90$(AMREX_BASE)_sources +=  AMReX_constants_mod.f90
 
   F90$(AMREX_BASE)_sources += AMReX_filcc_mod.F90
-  ifeq ($(USE_CUDA),TRUE)
-    CUDA_MAXREGCOUNT_AMReX_filcc_mod.F90 := 128
-  endif
 
   F90$(AMREX_BASE)_sources += AMReX_omp_mod.F90 AMReX_acc_mod.F90
   F90$(AMREX_BASE)_sources += AMReX_fort_mod.F90 AMReX_error_mod.F90

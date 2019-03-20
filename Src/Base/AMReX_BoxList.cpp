@@ -239,7 +239,7 @@ BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
 }
 
 bool
-BoxList::ok () const
+BoxList::ok () const noexcept
 {
     for (const auto& b : *this) {
         if (!b.ok()) return false;
@@ -722,7 +722,7 @@ BoxList::maxSize (int chunk)
 }
 
 BoxList&
-BoxList::surroundingNodes ()
+BoxList::surroundingNodes () noexcept
 {
     for (auto& bx : m_lbox)
     {
@@ -732,7 +732,7 @@ BoxList::surroundingNodes ()
 }
 
 BoxList&
-BoxList::surroundingNodes (int dir)
+BoxList::surroundingNodes (int dir) noexcept
 {
     for (auto& bx : m_lbox)
     {
@@ -742,7 +742,7 @@ BoxList::surroundingNodes (int dir)
 }
 
 BoxList&
-BoxList::enclosedCells ()
+BoxList::enclosedCells () noexcept
 {
     for (auto& bx : m_lbox)
     {
@@ -752,7 +752,7 @@ BoxList::enclosedCells ()
 }
 
 BoxList&
-BoxList::enclosedCells (int dir)
+BoxList::enclosedCells (int dir) noexcept
 {
     for (auto& bx : m_lbox)
     {
@@ -762,7 +762,7 @@ BoxList::enclosedCells (int dir)
 }
 
 BoxList&
-BoxList::convert (IndexType typ)
+BoxList::convert (IndexType typ) noexcept
 {
     btype = typ;
     for (auto& bx : m_lbox)
