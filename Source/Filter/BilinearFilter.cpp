@@ -41,6 +41,7 @@ void compute_stencil(Vector<Real> &stencil, int npass){
 }
 
 void BilinearFilter::ComputeStencils(){
+    BL_PROFILE("BilinearFilter::ComputeStencils()");
     stencil_length_each_dir = npass_each_dir;
     stencil_length_each_dir += 1.;
 #if (AMREX_SPACEDIM == 3)
@@ -64,6 +65,7 @@ void BilinearFilter::ComputeStencils(){
 void
 BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
 {
+    BL_PROFILE("BilinearFilter::ApplyStencil()");
     ncomp = std::min(ncomp, srcmf.nComp());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dcomp==0,
                                      "TODO: multi-pass bilinear filter with dcomp>0!");        
