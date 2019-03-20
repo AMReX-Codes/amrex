@@ -3,6 +3,7 @@
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
 #include <AMReX_DArena.H>
+#include <AMReX_EArena.H>
 
 #include <AMReX.H>
 #include <AMReX_Print.H>
@@ -22,6 +23,7 @@ namespace {
 
     bool use_buddy_allocator = false;
     long buddy_allocator_size = 0L;
+    long the_arena_init_size = 0L;
 }
 
 const unsigned int Arena::align_size;
@@ -100,6 +102,7 @@ Arena::Initialize ()
     ParmParse pp("amrex");
     pp.query("use_buddy_allocator", use_buddy_allocator);
     pp.query("buddy_allocator_size", buddy_allocator_size);
+    pp.query("the_arena_init_size", the_arena_init_size);
 
 #ifdef AMREX_USE_GPU
     if (use_buddy_allocator)
@@ -116,6 +119,11 @@ Arena::Initialize ()
     {
 #if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
         the_arena = new CArena(0, ArenaInfo().SetPreferred());
+        if (the_arena_init_size <= 0) {
+            the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
+        }
+        void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
+        the_arena->free(p);
 #else
         the_arena = new BArena;
 #endif
@@ -141,11 +149,9 @@ Arena::Initialize ()
     the_pinned_arena = new BArena;
 #endif
 
-    std::size_t N = 1024*1024*8;
-    void *p = the_arena->alloc(N);
-    the_arena->free(p);
+    std::size_t N = 1024UL*1024UL*8UL;
 
-    p = the_device_arena->alloc(N);
+    void *p = the_device_arena->alloc(N);
     the_device_arena->free(p);
 
     p = the_managed_arena->alloc(N);
