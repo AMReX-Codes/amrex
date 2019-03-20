@@ -36,7 +36,11 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+
+
 using std::ostringstream;
+
+
 
 namespace {
     const char* path_sep_str = "/";
@@ -363,6 +367,17 @@ namespace
     int nthreads;
 
     amrex::Vector<std::mt19937> generators;
+
+#ifdef AMREX_USE_CUDA
+    /**
+    * \brief The random seed array is allocated with an extra buffer space to 
+    *        reduce the computational cost of dynamic memory allocation and 
+    *        random seed generation. 
+    */
+    __device__ curandState_t *glo_RandStates;
+    amrex::Gpu::DeviceVector<curandState_t> dev_RandStates_Seed;
+#endif
+
 }
 
 void
@@ -405,17 +420,34 @@ amrex::RandomNormal (double mean, double stddev)
     return distribution(generators[tid]);
 }
 
-double
+AMREX_GPU_HOST_DEVICE double
 amrex::Random ()
 {
+    double rand;
+
+#ifdef AMREX_USE_CUDA
+
+#ifdef __CUDA_ARCH__
+    int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    double loc_rand = curand_uniform_double(&glo_RandStates[tid]); 
+    rand = loc_rand;
+#endif
+   
+#else
+
 #ifdef _OPENMP
     int tid = omp_get_thread_num();
 #else
     int tid = 0;
 #endif
     std::uniform_real_distribution<double> distribution(0.0, 1.0);
-    return distribution(generators[tid]);
+    rand = distribution(generators[tid]);
+
+#endif
+
+    return rand;
 }
+
 
 unsigned long
 amrex::Random_int(unsigned long n)
@@ -480,6 +512,54 @@ amrex::UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
     }
   }
 }
+
+
+void 
+amrex::InitRandSeedOnDevice (int N)
+{
+  ResizeRandomSeed(N);
+}
+
+void 
+amrex::CheckSeedArraySizeAndResize (int N)
+{
+#ifdef AMREX_USE_CUDA
+  if ( dev_RandStates_Seed.size() < N) {
+     ResizeRandomSeed(N);
+  }
+#endif
+}
+
+void 
+amrex::ResizeRandomSeed (int N)
+{
+
+#ifdef AMREX_USE_CUDA  
+  int Nbuffer = N * 2;
+
+  dev_RandStates_Seed.resize(Nbuffer);
+  curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
+  cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
+ 
+  AMREX_PARALLEL_FOR_1D (Nbuffer, idx,
+  {
+     unsigned long seed = idx + 10*idx;
+     curand_init(seed, seed, 0, &glo_RandStates[idx]);
+  }); 
+#endif
+
+}
+
+void 
+amrex::DeallocateRandomSeedDevArray()
+{
+#ifdef AMREX_USE_CUDA  
+  dev_RandStates_Seed.resize(0);
+  dev_RandStates_Seed.shrink_to_fit();
+#endif
+}
+
+
 
 void
 amrex::NItemsPerBin (int totalItems, Vector<int> &binCounts)
