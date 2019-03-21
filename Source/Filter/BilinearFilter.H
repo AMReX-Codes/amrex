@@ -21,7 +21,6 @@ private:
 
     amrex::Vector<amrex::Real> stencil_x, stencil_y, stencil_z;
 
-    amrex::Dim3 npass;
     amrex::Dim3 slen;
 };
 #endif

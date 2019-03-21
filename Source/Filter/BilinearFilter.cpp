@@ -39,7 +39,6 @@ void compute_stencil(Vector<Real> &stencil, int npass){
     // we use old_s here to make sure the stencil
     // is corrent even when npass = 0
     stencil = old_s;
-
     stencil[0] *= 0.5; // because we will use it twice
 }
 }
@@ -63,8 +62,10 @@ void BilinearFilter::ComputeStencils(){
     compute_stencil(stencil_x, npass_each_dir[0]);
     compute_stencil(stencil_z, npass_each_dir[1]);
 #endif
-    npass = npass_each_dir.dim3();
     slen = stencil_length_each_dir.dim3();
+#if (AMREX_SPACEDIM == 2)
+    slen.z = 1;
+#endif
 }
 
 
@@ -123,8 +124,21 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
                         for     (int j = lo.y; j <= hi.y; ++j) {
                             AMREX_PRAGMA_SIMD
                             for (int i = lo.x; i <= hi.x; ++i) {
+#if (AMREX_SPACEDIM == 3)
                                 dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k-iz,scomp+n)
+                                                          +tmp(i+ix,j-iy,k-iz,scomp+n)
+                                                          +tmp(i-ix,j+iy,k-iz,scomp+n)
+                                                          +tmp(i+ix,j+iy,k-iz,scomp+n)
+                                                          +tmp(i-ix,j-iy,k+iz,scomp+n)
+                                                          +tmp(i+ix,j-iy,k+iz,scomp+n)
+                                                          +tmp(i-ix,j+iy,k+iz,scomp+n)
                                                           +tmp(i+ix,j+iy,k+iz,scomp+n));
+#else
+                                dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k,scomp+n)
+                                                          +tmp(i+ix,j-iy,k,scomp+n)
+                                                          +tmp(i-ix,j+iy,k,scomp+n)
+                                                          +tmp(i+ix,j+iy,k,scomp+n));
+#endif
                             }
                         }
                     }
