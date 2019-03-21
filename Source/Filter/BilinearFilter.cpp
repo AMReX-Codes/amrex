@@ -39,6 +39,7 @@ void compute_stencil(Vector<Real> &stencil, int npass){
     // we use old_s here to make sure the stencil
     // is corrent even when npass = 0
     stencil = old_s;
+    stencil[0] *= 0.5; // because we will use it twice
 }
 }
 
@@ -61,6 +62,10 @@ void BilinearFilter::ComputeStencils(){
     compute_stencil(stencil_x, npass_each_dir[0]);
     compute_stencil(stencil_z, npass_each_dir[1]);
 #endif
+    slen = stencil_length_each_dir.dim3();
+#if (AMREX_SPACEDIM == 2)
+    slen.z = 1;
+#endif
 }
 
 
@@ -69,8 +74,6 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
 {
     BL_PROFILE("BilinearFilter::ApplyStencil()");
     ncomp = std::min(ncomp, srcmf.nComp());
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(dcomp==0,
-                                     "TODO: multi-pass bilinear filter with dcomp>0!");        
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -85,145 +88,63 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             tmpfab.setVal(0.0, gbx, 0, ncomp);
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-#if (AMREX_SPACEDIM == 3)
-            Filter3d(tbx, tmpfab, dstfab);
-#elif (AMREX_SPACEDIM == 2)
-            Filter2d(tbx, tmpfab, dstfab);
+            Filter(tbx, tmpfab, dstfab, 0, dcomp, ncomp);
+        }
+    }
+}
+
+void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox &dstfab,
+                             int scomp, int dcomp, int ncomp)
+{
+    const auto lo = amrex::lbound(tbx);
+    const auto hi = amrex::ubound(tbx);
+    const auto tmp = tmpfab.array();
+    const auto dst = dstfab.array();
+    amrex::Real const* AMREX_RESTRICT sx = stencil_x.data();
+    amrex::Real const* AMREX_RESTRICT sy = stencil_y.data();
+    amrex::Real const* AMREX_RESTRICT sz = stencil_z.data();
+    for (int n = 0; n < ncomp; ++n) {
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    dst(i,j,k,dcomp+n) = 0.0;
+                }
+            }
+        }
+
+        for         (int iz=0; iz < slen.z; ++iz){
+            for     (int iy=0; iy < slen.y; ++iy){
+                for (int ix=0; ix < slen.x; ++ix){
+#if (AMREX_SPACEDIM == 3)        
+                    Real sss = sx[ix]*sy[iy]*sz[iz];
+#else
+                    Real sss = sx[ix]*sz[iy];
 #endif
+                    for         (int k = lo.z; k <= hi.z; ++k) {
+                        for     (int j = lo.y; j <= hi.y; ++j) {
+                            AMREX_PRAGMA_SIMD
+                            for (int i = lo.x; i <= hi.x; ++i) {
+#if (AMREX_SPACEDIM == 3)
+                                dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k-iz,scomp+n)
+                                                          +tmp(i+ix,j-iy,k-iz,scomp+n)
+                                                          +tmp(i-ix,j+iy,k-iz,scomp+n)
+                                                          +tmp(i+ix,j+iy,k-iz,scomp+n)
+                                                          +tmp(i-ix,j-iy,k+iz,scomp+n)
+                                                          +tmp(i+ix,j-iy,k+iz,scomp+n)
+                                                          +tmp(i-ix,j+iy,k+iz,scomp+n)
+                                                          +tmp(i+ix,j+iy,k+iz,scomp+n));
+#else
+                                dst(i,j,k,dcomp+n) += sss*(tmp(i-ix,j-iy,k,scomp+n)
+                                                          +tmp(i+ix,j-iy,k,scomp+n)
+                                                          +tmp(i-ix,j+iy,k,scomp+n)
+                                                          +tmp(i+ix,j+iy,k,scomp+n));
+#endif
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-void BilinearFilter::Filter2d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
-{
-    const int* loVector = tbx.loVect();
-    const int* hiVector = tbx.hiVect();
-    Array4<Real> const& tmparr = tmpfab.array();
-    Array4<Real> const& dstarr = dstfab.array();
-    for(int i=loVector[0]; i<=hiVector[0]; i++){
-    for(int j=loVector[1]; j<=hiVector[1]; j++){
-        dstarr(i,j,0) = stencil_x[0]*stencil_z[0]*tmparr(i,j,0);
-        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
-            dstarr(i,j,0) += stencil_x[ix]*stencil_z[0]*tmparr(i+ix,j,0);
-            dstarr(i,j,0) += stencil_x[ix]*stencil_z[0]*tmparr(i-ix,j,0);
-        }
-        for (int iz=1; iz<stencil_length_each_dir[1]; iz++){
-            dstarr(i,j,0) += stencil_x[0]*stencil_z[iz]*tmparr(i,j+iz,0);
-            dstarr(i,j,0) += stencil_x[0]*stencil_z[iz]*tmparr(i,j-iz,0);
-        }
-        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
-        for (int iz=1; iz<stencil_length_each_dir[1]; iz++){
-            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i+ix,j+iz,0);
-            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i+ix,j-iz,0);
-            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i-ix,j+iz,0);
-            dstarr(i,j,0) += stencil_x[ix]*stencil_z[iz]*tmparr(i-ix,j-iz,0);
-        }
-        }
-    }
-    }
-}
-
-void BilinearFilter::Filter2d_slow(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
-{
-    const int* loVector = tbx.loVect();
-    const int* hiVector = tbx.hiVect();
-    Array4<Real> const& tmparr = tmpfab.array();
-    Array4<Real> const& dstarr = dstfab.array();
-    for(int i=loVector[0]; i<=hiVector[0]; i++){
-    for(int j=loVector[1]; j<=hiVector[1]; j++){
-        dstarr(i,j,0) = 0.;
-        for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
-        for (int iz=-stencil_length_each_dir[1]+1; iz<stencil_length_each_dir[1]; iz++){
-            dstarr(i,j,0) += stencil_x[abs(ix)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iz,0);
-        }
-        }
-    }
-    }
-}
-
-void BilinearFilter::Filter3d(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
-{
-    const int* loVector = tbx.loVect();
-    const int* hiVector = tbx.hiVect();
-    Array4<Real> const& tmparr = tmpfab.array();
-    Array4<Real> const& dstarr = dstfab.array();
-    for(int i=loVector[0]; i<=hiVector[0]; i++){
-    for(int j=loVector[1]; j<=hiVector[1]; j++){
-    for(int k=loVector[2]; k<=hiVector[2]; k++){
-        dstarr(i,j,k) = stencil_x[0]*stencil_y[0]*stencil_z[0]*tmparr(i,j,k);
-        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[0]*tmparr(i+ix,j,k);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[0]*tmparr(i-ix,j,k);
-        }
-        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[0]*tmparr(i,j+iy,k);
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[0]*tmparr(i,j-iy,k);
-        }
-        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[0]*stencil_z[iz]*tmparr(i,j,k+iz);
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[0]*stencil_z[iz]*tmparr(i,j,k-iz);
-        }
-        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
-        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i+ix,j+iy,k);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i+ix,j-iy,k);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i-ix,j+iy,k);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[0]*tmparr(i-ix,j-iy,k);
-        }
-        }
-        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
-        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j+iy,k+iz);
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j+iy,k-iz);
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j-iy,k+iz);
-            dstarr(i,j,k) += stencil_x[0]*stencil_y[iy]*stencil_z[iz]*tmparr(i,j-iy,k-iz);
-        }
-        }
-        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
-        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i+ix,j,k+iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i+ix,j,k-iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i-ix,j,k+iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[0]*stencil_z[iz]*tmparr(i-ix,j,k-iz);
-        }
-        }
-        for (int ix=1; ix<stencil_length_each_dir[0]; ix++){
-        for (int iy=1; iy<stencil_length_each_dir[1]; iy++){
-        for (int iz=1; iz<stencil_length_each_dir[2]; iz++){
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j+iy,k+iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j+iy,k-iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j-iy,k+iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i+ix,j-iy,k-iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j+iy,k+iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j+iy,k-iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j-iy,k+iz);
-            dstarr(i,j,k) += stencil_x[ix]*stencil_y[iy]*stencil_z[iz]*tmparr(i-ix,j-iy,k-iz);
-        }
-        }
-        }
-    }
-    }
-    }
-}
-
-void BilinearFilter::Filter3d_slow(const Box& tbx, FArrayBox &tmpfab, FArrayBox &dstfab)
-{
-    const int* loVector = tbx.loVect();
-    const int* hiVector = tbx.hiVect();
-    Array4<Real> const& tmparr = tmpfab.array();
-    Array4<Real> const& dstarr = dstfab.array();
-    for(int i=loVector[0]; i<=hiVector[0]; i++){
-    for(int j=loVector[1]; j<=hiVector[1]; j++){
-    for(int k=loVector[2]; k<=hiVector[2]; k++){
-        dstarr(i,j,k) = 0.;
-        for (int ix=-stencil_length_each_dir[0]+1; ix<stencil_length_each_dir[0]; ix++){
-        for (int iy=-stencil_length_each_dir[1]+1; iy<stencil_length_each_dir[1]; iy++){
-        for (int iz=-stencil_length_each_dir[2]+1; iz<stencil_length_each_dir[2]; iz++){
-            dstarr(i,j,k) += stencil_x[abs(ix)]*stencil_y[abs(iy)]*stencil_z[abs(iz)]*tmparr(i+ix,j+iy,k+iz);
-        }
-        }
-        }
-    }
-    }
-    }
-}
