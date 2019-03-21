@@ -9,7 +9,6 @@ This explains how to generate the documentation for Warpx, and contribute to it.
 Install the Python requirements for compiling the documentation:
 ```
 pip install sphinx sphinx_rtd_theme
-conda install -c conda-forge pandoc
 ```
 
 ### Compiling the documentation
@@ -27,3 +26,11 @@ In order to remove all of the generated files, use:
 make clean
 ```
 
+### Regenerating the theory documentation
+
+The theory is generated from Latex sources in PICSAR, and the resulting `.rst`
+files are stored in the current repo, in `source/latex_theory`. In order to 
+regenerate the theory documentation:
+```
+make Latex-conversion
+```
