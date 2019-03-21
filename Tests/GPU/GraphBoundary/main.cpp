@@ -123,7 +123,6 @@ int main (int argc, char* argv[])
 
         {
             BL_PROFILE("Standard");
-            *val = 1.0;
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -144,6 +143,7 @@ int main (int argc, char* argv[])
 
             amrex::Print() << "No Graph sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
         }
+
 /*
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Create one graph per MFIter iteration and execute them.
@@ -320,19 +320,21 @@ int main (int argc, char* argv[])
 
             amrex::Print() << "Full-graph-iter sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
+*/
+        x.setVal(0.7);
+        y.setVal(0.0);
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Create a single graph for the MFIter loop:
 //        an empty node at the start linked to each individually captured stream graph.
 
         {
-            BL_PROFILE("cudaGraph-linked-stream");
-            *val = 5.0;
+            BL_PROFILE("cudaGraph");
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec;
 
-            BL_PROFILE_VAR("cudaGraph-linked-stream-create", cgc);
+            BL_PROFILE_VAR("cudaGraph-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -348,12 +350,17 @@ int main (int argc, char* argv[])
 
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
+                Array4<Real> b = y.array(mfi);
 
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
+                int ncells = bx.numPts();
+                const auto lo  = amrex::lbound(bx);
+                const auto len = amrex::length(bx);
+                const auto ec = Cuda::ExecutionConfig(ncells);
+                const Dim3 offset = {0,0,0};
+
+                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
+                                         lo, len, ncells,
+                                         offset, a, b, 0, 0, 1); 
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
@@ -376,12 +383,12 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-linked-stream-instantiate", cgi);
+            BL_PROFILE_VAR("cudaGraph-instantiate", cgi);
 
             AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-linked-stream-launch", cgl);
+            BL_PROFILE_VAR("cudaGraph-launch", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
@@ -391,19 +398,22 @@ int main (int argc, char* argv[])
 
             amrex::Gpu::Device::resetStreamIndex();
 
-            amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
 
-            *val = 10.0;
+            BL_PROFILE_VAR("cudaGraph-relaunch", cgrl);
+
+            x.setVal(0.8675309);
+            y.setVal(0.0);
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
 
-            amrex::Print() << "Rerun with different val = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
+            BL_PROFILE_VAR_STOP(cgrl);
 
-
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
         }
-*/
+
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
         amrex::Print() << "Test Completed." << std::endl;
