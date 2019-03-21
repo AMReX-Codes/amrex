@@ -430,8 +430,7 @@ amrex::Random ()
               + (threadIdx.z * (blockDim.x * blockDim.y)) 
               + (threadIdx.y * blockDim.x) + threadIdx.x ;
 
-    double loc_rand = curand_uniform_double(&glo_RandStates[tid]); 
-    rand = loc_rand;
+    rand = curand_uniform_double(&glo_RandStates[tid]); 
 
 
 #else
