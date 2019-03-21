@@ -1,3 +1,6 @@
+#include <AMReX_MultiFab.H>
+#include <AMReX_Vector.H>
+
 #ifndef WARPX_FILTER_H_
 #define WARPX_FILTER_H_
 

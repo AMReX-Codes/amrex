@@ -8,6 +8,7 @@
 
 using namespace amrex;
 
+namespace {
 void compute_stencil(Vector<Real> &stencil, int npass){
     Vector<Real> old_s(1+npass,0.);
     Vector<Real> new_s(1+npass,0.);
@@ -38,6 +39,7 @@ void compute_stencil(Vector<Real> &stencil, int npass){
     // we use old_s here to make sure the stencil
     // is corrent even when npass = 0
     stencil = old_s;
+}
 }
 
 void BilinearFilter::ComputeStencils(){
