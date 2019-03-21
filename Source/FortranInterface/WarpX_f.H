@@ -40,7 +40,6 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_FILTER                      warpx_filter_3d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_3d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
@@ -71,7 +70,6 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_FILTER                      warpx_filter_2d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
@@ -451,10 +449,6 @@ extern "C"
                         BL_FORT_FAB_ARG_ANYD(crse),
                         const BL_FORT_FAB_ARG_ANYD(fine),
                         const int* ncomp);
-
-    void WRPX_FILTER (const int* lo, const int* hi,
-                      const amrex_real*, const int*, const int*,
-                      amrex_real*, const int*, const int*, int);
 
     void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int,
                                 const amrex::Real, const int);

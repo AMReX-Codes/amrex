@@ -1,4 +1,3 @@
-F90EXE_sources += filter_module.F90
 CEXE_sources += BilinearFilter.cpp
 CEXE_headers += BilinearFilter.H
 
