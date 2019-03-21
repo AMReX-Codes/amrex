@@ -381,13 +381,10 @@ WarpX::SyncCurrent ()
         for (int lev = 0; lev <= finest_level; ++lev) {
             IntVect ng = current_fp[lev][0]->nGrowVect();
             ng += bilinear_filter.stencil_length_each_dir-1;
-            //ng += 1;
             for (int idim = 0; idim < 3; ++idim) {
-                Print()<<"idim "<<idim<<'\n';
                 j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
                                                    current_fp[lev][idim]->DistributionMap(),
                                                    1, ng));
-                // applyFilter(*j_fp[lev][idim], *current_fp[lev][idim]);
                 bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
             }
@@ -395,12 +392,10 @@ WarpX::SyncCurrent ()
         for (int lev = 1; lev <= finest_level; ++lev) {
             IntVect ng = current_cp[lev][0]->nGrowVect();
             ng += bilinear_filter.stencil_length_each_dir-1;
-            //ng += 1;
             for (int idim = 0; idim < 3; ++idim) {
                 j_cp[lev][idim].reset(new MultiFab(current_cp[lev][idim]->boxArray(),
                                                    current_cp[lev][idim]->DistributionMap(),
                                                    1, ng));
-                // applyFilter(*j_cp[lev][idim], *current_cp[lev][idim]);
                 bilinear_filter.ApplyStencil(*j_cp[lev][idim], *current_cp[lev][idim]);
                 std::swap(j_cp[lev][idim], current_cp[lev][idim]);
             }
@@ -409,12 +404,10 @@ WarpX::SyncCurrent ()
             if (current_buf[lev][0]) {
                 IntVect ng = current_buf[lev][0]->nGrowVect();
                 ng += bilinear_filter.stencil_length_each_dir-1;
-                // ng += 1;
                 for (int idim = 0; idim < 3; ++idim) {
                     j_buf[lev][idim].reset(new MultiFab(current_buf[lev][idim]->boxArray(),
                                                         current_buf[lev][idim]->DistributionMap(),
                                                         1, ng));
-                    //applyFilter(*j_buf[lev][idim], *current_buf[lev][idim]);
                     bilinear_filter.ApplyStencil(*j_buf[lev][idim], *current_buf[lev][idim]);
                     std::swap(*j_buf[lev][idim], *current_buf[lev][idim]);
                 }
@@ -563,7 +556,6 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 0; lev <= finest_level; ++lev) {
             const int ncomp = rhof[lev]->nComp();
             IntVect ng = rhof[lev]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             rho_f_g[lev].reset(new MultiFab(rhof[lev]->boxArray(),
                                             rhof[lev]->DistributionMap(),
@@ -574,7 +566,6 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
         for (int lev = 1; lev <= finest_level; ++lev) {
             const int ncomp = rhoc[lev]->nComp();
             IntVect ng = rhoc[lev]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             rho_c_g[lev].reset(new MultiFab(rhoc[lev]->boxArray(),
                                             rhoc[lev]->DistributionMap(),
@@ -586,7 +577,6 @@ WarpX::SyncRho (amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rhof,
             if (charge_buf[lev]) {
                 const int ncomp = charge_buf[lev]->nComp();
                 IntVect ng = charge_buf[lev]->nGrowVect();
-                //ng += 1;
                 ng += bilinear_filter.stencil_length_each_dir-1;
                 rho_buf_g[lev].reset(new MultiFab(charge_buf[lev]->boxArray(),
                                                   charge_buf[lev]->DistributionMap(),
@@ -714,14 +704,12 @@ WarpX::RestrictCurrentFromFineToCoarsePatch (int lev)
 void
 WarpX::ApplyFilterandSumBoundaryJ (int lev, PatchType patch_type)
 {
-    Print()<<"HERE AND SHOULD NOT BE\n";
     const int glev = (patch_type == PatchType::fine) ? lev : lev-1;
     const auto& period = Geom(glev).periodicity();
     auto& j = (patch_type == PatchType::fine) ? current_fp[lev] : current_cp[lev];
     for (int idim = 0; idim < 3; ++idim) {
         if (use_filter) {
             IntVect ng = j[idim]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jf(j[idim]->boxArray(), j[idim]->DistributionMap(), 1, ng);
             bilinear_filter.ApplyStencil(jf, *j[idim]);
@@ -763,7 +751,6 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
         {
             // coarse patch of fine level
             IntVect ng = current_cp[lev+1][idim]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jfc(current_cp[lev+1][idim]->boxArray(),
                          current_cp[lev+1][idim]->DistributionMap(), 1, ng);
@@ -784,7 +771,6 @@ WarpX::AddCurrentFromFineLevelandSumBoundary (int lev)
         {
             // coarse patch of fine level
             IntVect ng = current_cp[lev+1][idim]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab jf(current_cp[lev+1][idim]->boxArray(),
                         current_cp[lev+1][idim]->DistributionMap(), 1, ng);
@@ -835,7 +821,6 @@ WarpX::ApplyFilterandSumBoundaryRho (int lev, PatchType patch_type, int icomp, i
     if (r == nullptr) return;
     if (use_filter) {
         IntVect ng = r->nGrowVect();
-        //ng += 1;
         ng += bilinear_filter.stencil_length_each_dir-1;
         MultiFab rf(r->boxArray(), r->DistributionMap(), ncomp, ng);
         bilinear_filter.ApplyStencil(rf, *r, icomp, 0, ncomp);
@@ -872,7 +857,6 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
         {
             // coarse patch of fine level
             IntVect ng = rho_cp[lev+1]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab rhofc(rho_cp[lev+1]->boxArray(),
                          rho_cp[lev+1]->DistributionMap(), ncomp, ng);
@@ -892,7 +876,6 @@ WarpX::AddRhoFromFineLevelandSumBoundary(int lev, int icomp, int ncomp)
         else if (use_filter) // but no buffer
         {
             IntVect ng = rho_cp[lev+1]->nGrowVect();
-            //ng += 1;
             ng += bilinear_filter.stencil_length_each_dir-1;
             MultiFab rf(rho_cp[lev+1]->boxArray(), rho_cp[lev+1]->DistributionMap(), ncomp, ng);
             bilinear_filter.ApplyStencil(rf, *rho_cp[lev+1], icomp, 0, ncomp);
