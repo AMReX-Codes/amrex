@@ -118,11 +118,13 @@ int main (int argc, char* argv[])
 
         Real points = ba.numPts();
 
+        amrex::Print() << "Testing on " << n_cell << "^3 boxes with max grid size " << max_grid_size << std::endl;
+
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Launch without graphs
 
         {
-            BL_PROFILE("Standard");
+            BL_PROFILE("Standard Copy");
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -144,195 +146,20 @@ int main (int argc, char* argv[])
             amrex::Print() << "No Graph sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
         }
 
-/*
-// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-//      Create one graph per MFIter iteration and execute them.
-
-        {
-            BL_PROFILE("cudaGraph-iter");
-            *val = 2.0;
-
-            cudaGraph_t     graph[x.local_size()];
-            cudaGraphExec_t graphExec[x.local_size()];
-
-            BL_PROFILE_VAR("cudaGraph-iter-create", cgc);
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
-
-                const Box bx = mfi.validbox();
-                Array4<Real> a = x.array(mfi);
-
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
-
-                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
-            }
-
-            BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-iter-instantiate", cgi);
-
-            for (int i = 0; i<x.local_size(); ++i)
-            {
-                AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec[i], graph[i], NULL, NULL, 0));
-            }
-
-            BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-iter-launch", cgl);
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[mfi.LocalIndex()], amrex::Cuda::Device::cudaStream())); 
-            }
-
-            amrex::Gpu::Device::synchronize();
-            BL_PROFILE_VAR_STOP(cgl);
-
-            amrex::Print() << "Graph-per-iter sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
-        }
-
-// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-//      Create one graph per CUDA stream and execute them.
-
-        {
-            BL_PROFILE("cudaGraph-stream");
-            *val = 3.0;
-
-            cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
-            cudaGraphExec_t graphExec[amrex::Gpu::Device::numCudaStreams()];
-
-            BL_PROFILE_VAR("cudaGraph-stream-create", cgc);
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                if (mfi.LocalIndex() == 0)
-                {
-                    for (int i=0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
-                    {
-                        amrex::Gpu::Device::setStreamIndex(i);
-                        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
-                    }
-                    amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
-                } 
-
-                const Box bx = mfi.validbox();
-                Array4<Real> a = x.array(mfi);
-
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
-
-                if (mfi.LocalIndex() == (x.local_size() - 1) )
-                { 
-                    for (int i=0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
-                    {
-                        amrex::Gpu::Device::setStreamIndex(i); 
-                        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[i])));
-                    }  
-                }
-            }
-
-            BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-stream-instantiate", cgi);
-
-            for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
-            {
-                AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec[i], graph[i], NULL, NULL, 0));
-            }
-
-            BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-stream-launch", cgl);
-
-            for (int i = 0; i<amrex::Gpu::Device::numCudaStreams(); ++i)
-            {
-                amrex::Gpu::Device::setStreamIndex(i); 
-                AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec[i], amrex::Cuda::Device::cudaStream())); 
-            }
-
-            amrex::Gpu::Device::synchronize();
-            BL_PROFILE_VAR_STOP(cgl);
-
-            amrex::Gpu::Device::resetStreamIndex();
-
-            amrex::Print() << "Graph-per-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
-        }
-
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Create a single graph for the MFIter loop:
 //        an empty node at the start linked to each individually captured stream graph.
 
-        {
-            BL_PROFILE("cudaGraph-linked-iter");
-            *val = 4.0;
-
-            cudaGraph_t     graph[x.local_size()];
-            cudaGraphExec_t graphExec;
-
-            BL_PROFILE_VAR("cudaGraph-linked-iter-create", cgc);
-
-            for (MFIter mfi(x); mfi.isValid(); ++mfi)
-            {
-                AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
-
-                const Box bx = mfi.validbox();
-                Array4<Real> a = x.array(mfi);
-
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
-
-                AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
-            }
-
-            cudaGraph_t     graphFull;
-            cudaGraphNode_t emptyNode, placeholder;
-
-            AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
-            AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
-            for (int i=0; i<x.local_size(); ++i)
-            {
-                AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
-            }
-
-            BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-linked-instantiate", cgi);
-
-            AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
-
-            BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-linked-launch", cgl);
-
-            amrex::Gpu::Device::setStreamIndex(0); 
-            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
-            amrex::Gpu::Device::synchronize();
-
-            BL_PROFILE_VAR_STOP(cgl);
-
-            amrex::Gpu::Device::resetStreamIndex();
-
-            amrex::Print() << "Full-graph-iter sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
-        }
-*/
         x.setVal(0.7);
         y.setVal(0.0);
-
-// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-//      Create a single graph for the MFIter loop:
-//        an empty node at the start linked to each individually captured stream graph.
 
         {
             BL_PROFILE("cudaGraph");
 
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec;
+
+// --------- Capture each stream in the MFIter loop ----------
 
             BL_PROFILE_VAR("cudaGraph-create", cgc);
 
@@ -372,6 +199,11 @@ int main (int argc, char* argv[])
                 }
             }
 
+// --------- Build full graph ----------
+// --------- Note: Current version assumes there is enough work to put something
+// --------- in every stream. Likely needs modification to test and put together
+// --------- a final graph only with graphs containing captured data. 
+
             cudaGraph_t     graphFull;
             cudaGraphNode_t emptyNode, placeholder;
 
@@ -383,11 +215,17 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
+
+// --------- Instantiate the graph  ----------
+
             BL_PROFILE_VAR("cudaGraph-instantiate", cgi);
 
             AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
 
             BL_PROFILE_VAR_STOP(cgi);
+
+// --------- Launch the graph  ----------
+
             BL_PROFILE_VAR("cudaGraph-launch", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
@@ -399,6 +237,8 @@ int main (int argc, char* argv[])
             amrex::Gpu::Device::resetStreamIndex();
 
             amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
 
             BL_PROFILE_VAR("cudaGraph-relaunch", cgrl);
 
