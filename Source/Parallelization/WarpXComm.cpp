@@ -382,11 +382,18 @@ WarpX::SyncCurrent ()
             IntVect ng = current_fp[lev][0]->nGrowVect();
             ng += bilinear_filter.stencil_length_each_dir-1;
             for (int idim = 0; idim < 3; ++idim) {
+                // Create new MultiFab j_jp with enough guard cells for the
+                // (potentially large) stencil of the multi-pass bilinear filter.
                 j_fp[lev][idim].reset(new MultiFab(current_fp[lev][idim]->boxArray(),
                                                    current_fp[lev][idim]->DistributionMap(),
                                                    1, ng));
+                // Apply the filter to current_fp, store the result in j_fp.
                 bilinear_filter.ApplyStencil(*j_fp[lev][idim], *current_fp[lev][idim]);
+                // Then swap j_fp and current_fp
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
+                // At this point, current_fp may have false values close to the 
+                // edges of each FAB. This will be solved with a SumBoundary later.
+                // j_fp contains the exact MultiFab current_fp before this step.
             }
         }
         for (int lev = 1; lev <= finest_level; ++lev) {
@@ -419,6 +426,9 @@ WarpX::SyncCurrent ()
     for (int lev = 0; lev <= finest_level; ++lev)
     {
         const auto& period = Geom(lev).periodicity();
+        // When using a bilinear filter with many passes, current_fp has
+        // temporarily more ghost cells here, so that its value inside 
+        // the domain is correct at the end of this stage.
         current_fp[lev][0]->SumBoundary(period);
         current_fp[lev][1]->SumBoundary(period);
         current_fp[lev][2]->SumBoundary(period);
@@ -460,8 +470,14 @@ WarpX::SyncCurrent ()
         for (int lev = 0; lev <= finest_level; ++lev)
         {
             for (int idim = 0; idim < 3; ++idim) {
+                // swap j_fp and current_fp so that j_fp has correct values inside
+                // the domain and wrong number of ghost cells.
+                // current_fp has right number of ghost cells.
                 std::swap(j_fp[lev][idim], current_fp[lev][idim]);
+                // Then copy the interior of j_fp to current_fp.
                 MultiFab::Copy(*current_fp[lev][idim], *j_fp[lev][idim], 0, 0, 1, 0);
+                // current_fp has right number of ghost cells and 
+                // correct filtered values here.
             }
         }
         for (int lev = 1; lev <= finest_level; ++lev)

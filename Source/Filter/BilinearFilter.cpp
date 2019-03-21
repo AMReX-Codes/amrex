@@ -84,10 +84,13 @@ BilinearFilter::ApplyStencil (MultiFab& dstmf, const MultiFab& srcmf, int scomp,
             auto& dstfab = dstmf[mfi];
             const Box& tbx = mfi.growntilebox();
             const Box& gbx = amrex::grow(tbx,stencil_length_each_dir-1);
+            // tmpfab has enough ghost cells for the stencil
             tmpfab.resize(gbx,ncomp);
             tmpfab.setVal(0.0, gbx, 0, ncomp);
+            // Copy values in srcfab into tmpfab
             const Box& ibx = gbx & srcfab.box();
             tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
+            // Apply filter
             Filter(tbx, tmpfab, dstfab, 0, dcomp, ncomp);
         }
     }
@@ -100,10 +103,12 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
     const auto hi = amrex::ubound(tbx);
     const auto tmp = tmpfab.array();
     const auto dst = dstfab.array();
+    // tmp and dst are of type Array4 (Fortran ordering)
     amrex::Real const* AMREX_RESTRICT sx = stencil_x.data();
     amrex::Real const* AMREX_RESTRICT sy = stencil_y.data();
     amrex::Real const* AMREX_RESTRICT sz = stencil_z.data();
     for (int n = 0; n < ncomp; ++n) {
+        // Set dst value to 0.
         for         (int k = lo.z; k <= hi.z; ++k) {
             for     (int j = lo.y; j <= hi.y; ++j) {
                 for (int i = lo.x; i <= hi.x; ++i) {
@@ -111,7 +116,7 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
                 }
             }
         }
-
+        // 3 nested loop on 3D stencil
         for         (int iz=0; iz < slen.z; ++iz){
             for     (int iy=0; iy < slen.y; ++iy){
                 for (int ix=0; ix < slen.x; ++ix){
@@ -120,6 +125,7 @@ void BilinearFilter::Filter (const Box& tbx, FArrayBox const& tmpfab, FArrayBox 
 #else
                     Real sss = sx[ix]*sz[iy];
 #endif
+                    // 3 nested loop on 3D array
                     for         (int k = lo.z; k <= hi.z; ++k) {
                         for     (int j = lo.y; j <= hi.y; ++j) {
                             AMREX_PRAGMA_SIMD
