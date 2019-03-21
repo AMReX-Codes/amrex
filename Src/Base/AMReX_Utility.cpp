@@ -422,8 +422,6 @@ amrex::Random ()
 {
     double rand;
 
-#ifdef AMREX_USE_CUDA
-
 #ifdef __CUDA_ARCH__
 
     int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
@@ -435,8 +433,7 @@ amrex::Random ()
     double loc_rand = curand_uniform_double(&glo_RandStates[tid]); 
     rand = loc_rand;
 
-#endif
-   
+
 #else
 
 #ifdef _OPENMP
