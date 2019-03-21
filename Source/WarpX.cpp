@@ -373,7 +373,7 @@ WarpX::ReadParameters ()
         for (int lev=0; lev<maxLevel(); lev++){
           for (int comp=0; comp<AMREX_SPACEDIM; comp++){
             if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
-              amrex::Abort("plot_coarsening_ratio should be an integer divisor the blocking factor.");
+              amrex::Abort("plot_coarsening_ratio should be an integer divisor of the blocking factor.");
             }
           }
         }
