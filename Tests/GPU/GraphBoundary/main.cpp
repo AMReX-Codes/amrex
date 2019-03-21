@@ -126,6 +126,13 @@ int main (int argc, char* argv[])
         {
             BL_PROFILE("Standard Copy");
 
+            // Create the MultiFab and touch the data.
+            // Ensures the data in on the GPU for all further testing.
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+            x.setVal(1.0);
+            y.setVal(2.0);
+
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
                 const Box bx = mfi.validbox();
@@ -140,7 +147,7 @@ int main (int argc, char* argv[])
 
                 AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
                                          lo, len, ncells,
-                                         offset, a, b, 0, 0, 1); 
+                                         offset, a, b, 0, 0, 1);
             }
 
             amrex::Print() << "No Graph sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
@@ -150,14 +157,20 @@ int main (int argc, char* argv[])
 //      Create a single graph for the MFIter loop:
 //        an empty node at the start linked to each individually captured stream graph.
 
-        x.setVal(0.7);
-        y.setVal(0.0);
+        cudaGraphExec_t graphExec;
 
         {
             BL_PROFILE("cudaGraph");
 
+            // Create the MultiFab and touch the data.
+            // Ensures the data in on the GPU for all further testing.
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+            x.setVal(1e-5);
+            y.setVal(0.0);
+
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
-            cudaGraphExec_t graphExec;
+//            cudaGraphExec_t graphExec;
 
 // --------- Capture each stream in the MFIter loop ----------
 
@@ -242,7 +255,7 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR("cudaGraph-relaunch", cgrl);
 
-            x.setVal(0.8675309);
+            x.setVal(8.67530e-9);
             y.setVal(0.0);
 
             amrex::Gpu::Device::setStreamIndex(0); 
@@ -251,10 +264,34 @@ int main (int argc, char* argv[])
 
             BL_PROFILE_VAR_STOP(cgrl);
 
+            amrex::Gpu::Device::resetStreamIndex();
+
             amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
         }
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+        {
+            BL_PROFILE("cudaGraph-newMFabs");
+
+
+            MultiFab v(ba, dm, Ncomp, Nghost);
+            MultiFab w(ba, dm, Ncomp, Nghost);
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+            v.setVal(0.0);
+            w.setVal(0.0);
+            x.setVal(0.15);
+            y.setVal(0.25);
+
+            amrex::Gpu::Device::setStreamIndex(0); 
+            AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
+            amrex::Gpu::Device::synchronize();
+            amrex::Gpu::Device::resetStreamIndex();
+
+            amrex::Print() << "New MultiFabs = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+        }
 
         amrex::Print() << "Test Completed." << std::endl;
     }
