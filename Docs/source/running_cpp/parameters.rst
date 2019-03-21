@@ -377,6 +377,10 @@ Numerics and algorithms
     them from the macroparticles. This uses a bilinear filter
     (see the sub-section **Filtering** in :doc:`../theory/theory`).
 
+* ``warpx.filter_npass_each_dir`` (`3 int`) optional (default `1 1 1`)
+    Number of passes along each direction for the bilinear filter.
+    In 2D simulations, only the first two values are read.
+
 * ``algo.current_deposition`` (`integer`)
     The algorithm for current deposition:
 
