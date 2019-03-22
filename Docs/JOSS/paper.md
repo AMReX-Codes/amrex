@@ -79,9 +79,8 @@ bibliography: paper.bib
 `AMReX` is a C++ software framework that supports the development of 
 block-structured adaptive mesh refinement (AMR) algorithms for solving 
 systems of partial differential equations (PDEs) with complex boundary 
-conditions on current and emerging architectures. 
-AMR reduces the computational cost and memory footprint
-compared to a uniform mesh while preserving the essentially 
+conditions on current and emerging architectures.  AMR reduces the computational cost 
+and memory footprint compared to a uniform mesh while preserving the essentially 
 local descriptions of different physical processes in complex multiphysics algorithms. 
 The origins of AMReX trace back to the BoxLib software framework.
 
@@ -91,7 +90,10 @@ The mesh-based data can be defined on cell centers, cell faces or cell corners (
 Coordinate systems include 1D Cartesian or spherical; 2D Cartesian or cylindrical (r-z); and 3D Cartesian.
 Both particles and embedded boundary representations introduce additional irregularity and complexity to the
 way data is stored and operated on, requiring special attention in the presence of the dynamically
-changing hierarchical mesh structure and AMR timestepping approaches.
+changing hierarchical mesh structure and AMR timestepping approaches.  User-defined kernels that operate 
+on patches of data can be written in C++ or Fortran; there is also a Fortran-interface functionality
+which wraps the core C++ data structures and operations in Fortran wrappers so that an application
+code based on AMReX can be written entirely in Fortran.
 
 AMReX supports a number of different time-stepping strategies
 and spatial discretizations.  Solution strategies supported by AMReX range
@@ -103,60 +105,33 @@ discretization strategy for a large number of applications.
 Current AMReX-based application codes target accelerator design, astrophysics, 
 combustion, cosmology, microfluidics, materials science and multiphase flow. 
 
-AMReX is part of the 2018 xSDK software release.
+AMReX developers believe that interoperability is an important feature of sustainable software.
+AMReX has examples of interfaces to other popular software packages such as SUNDIALS,
+PETSc and hypre, and is part of the 2018 xSDK software release thus installable with spack.  
 
-# Particles
+## Particles
 
 AMReX provides data structures and iterators for performing data-parallel particle simulations. 
-Our approach is particularly suited to particles that interact with data defined on a (possibly adaptive) 
-block-structured hierarchy of meshes. Example applications include Particle-in-Cell (PIC) simulations, 
-Lagrangian tracers, or particles that exert drag forces onto a fluid, such as in multi-phase flow calculations. 
-The overall goals of AMReX’s particle tools are to allow users flexibility in specifying how the particle data 
-is laid out in memory and to handle the parallel communication of particle data. 
+The approach is particularly suited to particles that interact with data defined on a (possibly adaptive) 
+block-structured hierarchy of meshes. Example applications include those that use Particle-in-Cell (PIC) methods, 
+Lagrangian tracers, or solid particles that exchange momentum withe surrounding fluid through drag forces.
+AMReX’s particle implementation allows users flexibility in specifying how the particle data 
+is laid out in memory and in choosing how to optimize parallel communication of particle data. 
 
-# Linear Solvers
+## Linear Solvers
 
 AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
 include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
 PETSc solvers are also provided.
 
-# I/O and Post-processing
+## I/O and Post-processing
 
 AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
 analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
 is supported by VisIt, Paraview, and yt.   AMReX also has linkages to external routines through
 both Conduit and SENSEI.
 
-# Asynchronous Iterators
-
-Hiding communication overheads via overlapping communication with computation requires 
-a sufficiently large amount of task parallelism. This problem is even more challenging due to 
-various types of tasks in an AMReX program, including data parallel tasks 
-(same workload on different data partitions) and control parallel tasks 
-(different types of workload). AMReX’s asynchronous iterators can facilitate the 
-job of identifying tasks in the applications using two types of iterators.
-
-# Fork-Join Support
-
-An AMReX-based application consists of a set of MPI ranks cooperating together on distributed data. 
-Typically, all of the ranks in a job compute in a bulk-synchronous, data-parallel fashion, 
-where every rank does the same sequence of operations, each on different parts of the distributed data.
-
-The fork-join functionality in AMReX allows the user to divide the job’s MPI ranks into subgroups (i.e. fork) 
-and assign each subgroup an independent task to compute in parallel with each other. 
-After all of the forked child tasks complete, they synchronize (i.e. join), and the parent task continues execution as before.
-
-The fork-join operation can also be invoked in a nested fashion, creating a hierarchy of fork-join operations, 
-where each fork further subdivides the ranks of a task into child tasks. 
-This approach enables heterogeneous computation and reduces the strong scaling penalty for 
-operations with less inherent parallelism or with large communication overheads.
-
-# Fortran interfaces
-
-The core of AMReX is written in C++. For Fortran users who want to write all of their 
-programs in Fortran, AMReX provides Fortran interfaces around much of AMReX's core functionality.
-
-# Parallelism
+## Parallelism
 
 AMReX’s GPU strategy focuses on providing performant GPU support with 
 minimal changes to AMReX-based application codes and maximum flexibility. 
@@ -173,13 +148,29 @@ to control the offloading of subroutines to the GPU. This MPI+CUDA+X GPU strateg
 to give users the maximum flexibility to find the best combination of portability, 
 readability and performance for their applications
 
-# Tutorials
+## Asynchronous Iterators and Fork-Join Support
 
-Demonstrations of using AMReX for building application codes are provided in the AMReX Tutorials section.
+AMReX includes a runtime system that can execute asynchronous AMReX-based aplications efficiently
+on large-scale systems.  The runtime system constructs a task dependency graph for the 
+whole coarse time step and executes it asynchronously to the completion of the step.  There
+is also support for more user-specific algorithm such as asynchronous filling of ghost cells
+across multiple ranks, including interpolation of data in space and time.
+
+In addition, AMReX has support for fork-join functionality that allows the user to divide an AMReX-based application
+run's  MPI ranks into subgroups (i.e. fork) and assign each subgroup an independent task to compute in parallel with each other. 
+After all of the forked child tasks complete, they synchronize (i.e. join), and the parent task continues execution as before.
+The fork-join operation can also be invoked in a nested fashion, creating a hierarchy of fork-join operations, 
+where each fork further subdivides the ranks of a task into child tasks. 
+This approach enables heterogeneous computation and reduces the strong scaling penalty for 
+operations with less inherent parallelism or with large communication overheads.
+
+## Documentation, Tutorials and Profiling Tools
+
+Extensive documentation of core AMReX functionality is available online, and many of the application
+codes based on AMReX are publicly available as well.  Smaller examples of using AMReX for building application codes 
+are provided in the AMReX Tutorials section.
 Examples include a Particle-in-Cell (PIC) code, a compressible Navier-Stokes solver in complex geometry, 
 advection-diffusion solvers,  support for spectral deferred corrections time-stepping, and much more.
-
-# AMReX Profiling Tools
 
 AMReX-based application codes can be instrumented using AMReX-specific performance profiling tools that take 
 into account the hierarchical nature of the mesh in most AMReX-based applications. 
