@@ -168,8 +168,21 @@ struct BaseFabData
 
 template <class T>
 struct DataAllocator {
-
+    void* alloc (std::size_t sz) const noexcept { return The_Arena()->alloc(sz); }
+    void free (void* pt) const noexcept { The_Arena()->free(pt); }
+    Arena* arena () const noexcept { return The_Arena(); }
 };
+
+#ifdef AMREX_USE_GPU
+template <class T>
+struct CpuDataAllocator {
+    void* alloc (std::size_t sz) const noexcept { return The_Cpu_Arena()->alloc(sz); }
+    void free (void* pt) const noexcept { The_Cpu_Arena()->free(pt); }
+    Arena* arena () const noexcept { return The_Cpu_Arena(); }
+};
+#else
+template <class T> using CpuDataAllocator = DataAllocator<T>;
+#endif
 
 template <class T, class Allocator = DataAllocator<T> >
 class BaseFab : public BaseFabData<T>
@@ -178,7 +191,7 @@ public:
 
     template <class U, class A> friend class BaseFab;
 
-    typedef T value_type;
+    typedef T         value_type;
     typedef Allocator allocator_type;
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab ();
@@ -1881,7 +1894,7 @@ BaseFab<T,Allocator>::define ()
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
-    this->dptr = static_cast<T*>(amrex::The_Arena()->alloc(this->truesize*sizeof(T)));
+    this->dptr = static_cast<T*>(Allocator{}.alloc(this->truesize*sizeof(T)));
     //
     // Now call T::T() on the raw memory so we have valid Ts.
     //
@@ -2035,7 +2048,7 @@ BaseFab<T,Allocator>::elixir () noexcept
     } else {
         o = false;
     }
-    return Elixir((o ? this->dptr : nullptr), amrex::The_Arena());
+    return Elixir((o ? this->dptr : nullptr), Allocator{}.arena());
 }
 
 template <class T, class Allocator>
@@ -2061,7 +2074,7 @@ BaseFab<T,Allocator>::clear () noexcept
 		ptr->~T();
 	    }
 
-	    amrex::The_Arena()->free(this->dptr);
+	    Allocator{}.free(this->dptr);
 
 	    if (this->nvar > 1) {
 		amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
