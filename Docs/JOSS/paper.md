@@ -17,6 +17,9 @@ authors:
   affiliation: 1
 - name: Vince Beckner
   affiliation: 1
+- name: John Bell
+  orcid: 0000-0002-5749-334X
+  affiliation: 1
 - name: Johannes Blaschke
   orcid: 0000-0002-6024-3990
   affiliation: 1
