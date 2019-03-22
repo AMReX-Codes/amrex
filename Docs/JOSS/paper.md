@@ -38,7 +38,7 @@ authors:
 - name: Daniel Graves
   orcid: 0000-0001-9730-7217
   affiliation: 2
-- name: Maximilian Katz
+- name: Max P. Katz
   orcid: 0000-0003-0439-4556
   affiliation: 4
 - name: Andrew Myers
