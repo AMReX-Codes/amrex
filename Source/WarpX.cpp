@@ -368,6 +368,16 @@ WarpX::ReadParameters ()
         pp.query("plot_divb"         , plot_divb);
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
+        pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+        // Check that the coarsening_ratio can divide the blocking factor
+        for (int lev=0; lev<maxLevel(); lev++){
+          for (int comp=0; comp<AMREX_SPACEDIM; comp++){
+            if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
+              amrex::Abort("plot_coarsening_ratio should be an integer divisor of the blocking factor.");
+            }
+          }
+        }
+        
         if (plot_F){
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
                 "plot_F only works if warpx.do_dive_cleaning = 1");

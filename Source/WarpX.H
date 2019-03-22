@@ -510,6 +510,7 @@ private:
     bool plot_crsepatch     = false;
     bool plot_raw_fields    = false;
     bool plot_raw_fields_guards = false;
+    int plot_coarsening_ratio = 1;
 
     amrex::VisMF::Header::Version checkpoint_headerversion = amrex::VisMF::Header::NoFabHeader_v1;
 //    amrex::VisMF::Header::Version plotfile_headerversion   = amrex::VisMF::Header::NoFabHeader_v1;

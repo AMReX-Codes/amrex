@@ -483,6 +483,12 @@ Diagnostics and output
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
 
+* ``warpx.plot_coarsening_ratio`` (`int` ; default: `1`) 
+    Reduce size of the field output by this ratio in each dimension.
+    (This is done by averaging the field.) ``plot_coarsening_ratio`` should
+    be an integer divisor of ``blocking_factor``.
+
+    
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `plotfiles/plt`
 
