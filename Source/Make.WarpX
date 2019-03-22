@@ -86,6 +86,7 @@ endif
 ifeq ($(USE_RZ),TRUE)
   USERSuffix += .RZ
   DEFINES += -DWARPX_RZ
+  DIM = 2
 endif
 
 ifeq ($(STORE_OLD_PARTICLE_ATTRIBS),TRUE)
