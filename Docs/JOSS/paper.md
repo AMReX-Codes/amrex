@@ -152,8 +152,9 @@ whole coarse time step and executes it asynchronously to the completion of the s
 is also support for more user-specific algorithms such as asynchronous filling of ghost cells
 across multiple ranks, including interpolation of data in space and time.
 
-In addition, AMReX has support for fork-join functionality that allows the user to divide an AMReX-based application
-run's  MPI ranks into subgroups (i.e. fork) and assign each subgroup an independent task to compute in parallel with each other. 
+In addition, AMReX has support for fork-join functionality. During a run of an AMReX-based application,
+the user can divide the MPI ranks into subgroups (i.e. fork) and assign each subgroup an independent task
+to compute in parallel with each other.
 After all of the forked child tasks complete, they synchronize (i.e. join), and the parent task continues execution as before.
 The fork-join operation can also be invoked in a nested fashion, creating a hierarchy of fork-join operations, 
 where each fork further subdivides the ranks of a task into child tasks. 
