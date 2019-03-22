@@ -39,9 +39,9 @@ interpolation.noz = 1
 warpx.cfl = 1.0
 
 # Parameters for the plasma wave
-constants.use_my_constants = 1
-constants.constant_names = epsilon kp k
-constants.constant_values = 0.01 376357.71524190728 314159.2653589793
+my_constants.epsilon = 0.01
+my_constants.kp      = 376357.71524190728
+my_constants.k       = 314159.2653589793
 # Note: kp is calculated in SI for a density of 4e24 (i.e. 2e24 electrons + 2e24 positrons)
 # k is calculated so as to have 2 periods within the 40e-6 wide box.
 

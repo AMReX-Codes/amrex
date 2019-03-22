@@ -4,7 +4,7 @@
 #include <array>
 #include <vector>
 #include <string>
-#include <cstdarg>
+#include <set>
 
 #include "wp_parser_c.h"
 #include "wp_parser_y.h"
@@ -43,6 +43,8 @@ public:
     void print () const;
 
     std::string const& expr () const;
+
+    std::set<std::string> symbols () const;
 
 private:
     void clear ();

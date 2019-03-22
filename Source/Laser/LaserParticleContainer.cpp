@@ -74,10 +74,26 @@ LaserParticleContainer::LaserParticleContainer (AmrCore* amr_core, int ispecies)
         if ( profile == laser_t::parse_field_function ) {
             // Parse the properties of the parse_field_function profile
             pp.get("field_function(X,Y,t)", field_function);
-            // User-defined constants: replace names by value
-            my_constants.ReadParameters();
-            field_function = my_constants.replaceStringValue(field_function);
             parser.define(field_function);
+            parser.registerVariables({"X","Y","t"});
+
+            ParmParse pp("my_constants");
+            std::set<std::string> symbols = parser.symbols();
+            symbols.erase("X");
+            symbols.erase("Y");
+            symbols.erase("t"); // after removing variables, we are left with constants
+            for (auto it = symbols.begin(); it != symbols.end(); ) {
+                Real v;
+                if (pp.query(it->c_str(), v)) {
+                    parser.setConstant(*it, v);
+                    it = symbols.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            for (auto const& s : symbols) { // make sure there no unknown symbols
+                amrex::Abort("Laser Profile: Unknown symbol "+s);
+            }
         }
 
 	// Plane normal
@@ -393,14 +409,8 @@ LaserParticleContainer::Evolve (int lev,
 	    }
 
             if (profile == laser_t::parse_field_function) {
-                Real parser_X, parser_Y, parser_t;
-                parser.registerVariable("X", parser_X);
-                parser.registerVariable("Y", parser_Y);
-                parser.registerVariable("t", t);
                 for (int i = 0; i < np; ++i) {
-                    parser_X = plane_Xp[i];
-                    parser_Y = plane_Yp[i];
-                    amplitude_E[i] = parser.eval();
+                    amplitude_E[i] = parser.eval(plane_Xp[i], plane_Yp[i], t);
                 }
 	    }
 	    // Calculate the corresponding momentum and position for the particles

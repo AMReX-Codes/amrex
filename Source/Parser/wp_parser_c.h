@@ -15,6 +15,9 @@ extern "C" {
 
 #ifdef __cplusplus
 
+#include <set>
+#include <string>
+
 inline
 double
 wp_ast_eval (struct wp_node* node)
@@ -85,6 +88,50 @@ wp_ast_eval (struct wp_node* node)
     }
 
     return result;
+}
+
+inline
+void
+wp_ast_get_symbols (struct wp_node* node, std::set<std::string>& symbols)
+{
+    switch (node->type)
+    {
+    case WP_NUMBER:
+        break;
+    case WP_SYMBOL:
+        symbols.emplace(((struct wp_symbol*)node)->name);
+        break;
+    case WP_ADD:
+    case WP_SUB:
+    case WP_MUL:
+    case WP_DIV:
+    case WP_ADD_PP:
+    case WP_SUB_PP:
+    case WP_MUL_PP:
+    case WP_DIV_PP:
+        wp_ast_get_symbols(node->l, symbols);
+        wp_ast_get_symbols(node->r, symbols);
+        break;
+    case WP_NEG:
+    case WP_NEG_P:
+        wp_ast_get_symbols(node->l, symbols);
+        break;
+    case WP_F1:
+        wp_ast_get_symbols(((struct wp_f1*)node)->l, symbols);
+        break;
+    case WP_F2:
+        wp_ast_get_symbols(((struct wp_f2*)node)->l, symbols);
+        wp_ast_get_symbols(((struct wp_f2*)node)->r, symbols);
+        break;
+    case WP_ADD_VP:
+    case WP_SUB_VP:
+    case WP_MUL_VP:
+    case WP_DIV_VP:
+        wp_ast_get_symbols(node->r, symbols);
+        break;
+    default:
+        yyerror("wp_ast_get_symbols: unknown node type %d\n", node->type);
+    }
 }
 
 #endif

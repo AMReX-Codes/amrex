@@ -1,6 +1,7 @@
 #include "PlasmaInjector.H"
 
 #include <sstream>
+#include <functional>
 
 #include <WarpXConst.H>
 #include <WarpX_f.H>
@@ -72,10 +73,26 @@ CustomDensityProfile::CustomDensityProfile(const std::string& species_name)
 ParseDensityProfile::ParseDensityProfile(std::string parse_density_function)
     : _parse_density_function(parse_density_function)
 {
-    my_constants.ReadParameters();
-    parse_density_function = my_constants.replaceStringValue(parse_density_function);
     parser_density.define(parse_density_function);
     parser_density.registerVariables({"x","y","z"});
+
+    ParmParse pp("my_constants");
+    std::set<std::string> symbols = parser_density.symbols();
+    symbols.erase("x");
+    symbols.erase("y");
+    symbols.erase("z"); // after removing variables, we are left with constants
+    for (auto it = symbols.begin(); it != symbols.end(); ) {
+        Real v;
+        if (pp.query(it->c_str(), v)) {
+            parser_density.setConstant(*it, v);
+            it = symbols.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (auto const& s : symbols) { // make sure there no unknown symbols
+        amrex::Abort("ParseDensityProfile: Unknown symbol "+s);
+    }
 }
 
 Real ParseDensityProfile::getDensity(Real x, Real y, Real z) const
@@ -137,16 +154,32 @@ ParseMomentumFunction::ParseMomentumFunction(std::string parse_momentum_function
       _parse_momentum_function_uy(parse_momentum_function_uy),
       _parse_momentum_function_uz(parse_momentum_function_uz)
 {
-    my_constants.ReadParameters();
-    parse_momentum_function_ux = my_constants.replaceStringValue(parse_momentum_function_ux);
-    parse_momentum_function_uy = my_constants.replaceStringValue(parse_momentum_function_uy);
-    parse_momentum_function_uz = my_constants.replaceStringValue(parse_momentum_function_uz);
     parser_ux.define(parse_momentum_function_ux);
     parser_uy.define(parse_momentum_function_uy);
     parser_uz.define(parse_momentum_function_uz);
-    parser_ux.registerVariables({"x","y","z"});
-    parser_uy.registerVariables({"x","y","z"});
-    parser_uz.registerVariables({"x","y","z"});
+
+    amrex::Array<std::reference_wrapper<WarpXParser>,3> parsers{parser_ux, parser_uy, parser_uz};
+    ParmParse pp("my_constants");
+    for (auto& p : parsers) {
+        auto& parser = p.get();
+        parser.registerVariables({"x","y","z"});
+        std::set<std::string> symbols = parser.symbols();
+        symbols.erase("x");
+        symbols.erase("y");
+        symbols.erase("z"); // after removing variables, we are left with constants
+        for (auto it = symbols.begin(); it != symbols.end(); ) {
+            Real v;
+            if (pp.query(it->c_str(), v)) {
+                parser.setConstant(*it, v);
+                it = symbols.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        for (auto const& s : symbols) { // make sure there no unknown symbols
+            amrex::Abort("ParseMomentumFunction: Unknown symbol "+s);
+        }
+    }
 }
 
 void ParseMomentumFunction::getMomentum(vec3& u, Real x, Real y, Real z)
