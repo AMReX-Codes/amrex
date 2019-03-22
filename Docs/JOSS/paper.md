@@ -79,37 +79,35 @@ bibliography: paper.bib
 `AMReX` is a C++ software framework that supports the development of 
 block-structured adaptive mesh refinement (AMR) algorithms for solving 
 systems of partial differential equations (PDEs) with complex boundary 
-conditions on current and emerging architectures.  AMR reduces the computational cost 
+conditions on current and emerging architectures.  
+
+Block-structured AMR provides the basis for the temporal and spatial 
+discretization strategy for a large number of applications.
+AMR reduces the computational cost 
 and memory footprint compared to a uniform mesh while preserving the essentially 
 local descriptions of different physical processes in complex multiphysics algorithms. 
-The origins of AMReX trace back to the BoxLib software framework.
-
-AMReX supplies data containers and iterators for mesh-based fields,
-particle data and irregular embedded boundary (cut cell) representations of complex geometries.
-The mesh-based data can be defined on cell centers, cell faces or cell corners (nodes).
-Coordinate systems include 1D Cartesian or spherical; 2D Cartesian or cylindrical (r-z); and 3D Cartesian.
-Both particles and embedded boundary representations introduce additional irregularity and complexity to the
-way data is stored and operated on, requiring special attention in the presence of the dynamically
-changing hierarchical mesh structure and AMR timestepping approaches.  User-defined kernels that operate 
-on patches of data can be written in C++ or Fortran; there is also a Fortran-interface functionality
-which wraps the core C++ data structures and operations in Fortran wrappers so that an application
-code based on AMReX can be written entirely in Fortran.
+Current AMReX-based application codes span a number of areas; in particular 
+the AMReX-Astro github repository holds a number of astrophysical modeling tools based on AMReX [@Zingale2018].
+The origins of AMReX trace back to the BoxLib [@BoxLib] software framework.
 
 AMReX supports a number of different time-stepping strategies
 and spatial discretizations.  Solution strategies supported by AMReX range
 from level-by-level approaches (with or without subcycling in time) with
 multilevel synchronization to full-hierarchy approaches, and any combination thereof.
-
-Block-structured AMR provides the basis for the temporal and spatial 
-discretization strategy for a large number of applications.
-Current AMReX-based application codes target accelerator design, astrophysics, 
-combustion, cosmology, microfluidics, materials science and multiphase flow. 
+User-defined kernels that operate 
+on patches of data can be written in C++ or Fortran; there is also a Fortran-interface functionality
+which wraps the core C++ data structures and operations in Fortran wrappers so that an application
+code based on AMReX can be written entirely in Fortran.
 
 AMReX developers believe that interoperability is an important feature of sustainable software.
 AMReX has examples of interfaces to other popular software packages such as SUNDIALS,
 PETSc and hypre, and is part of the 2018 xSDK software release thus installable with spack.  
 
-### Particles
+### Mesh and Particle Data
+
+AMReX supplies data containers and iterators for mesh-based fields and particle data.
+The mesh-based data can be defined on cell centers, cell faces or cell corners (nodes).
+Coordinate systems include 1D Cartesian or spherical; 2D Cartesian or cylindrical (r-z); and 3D Cartesian.
 
 AMReX provides data structures and iterators for performing data-parallel particle simulations. 
 The approach is particularly suited to particles that interact with data defined on a (possibly adaptive) 
@@ -117,6 +115,14 @@ block-structured hierarchy of meshes. Example applications include those that us
 Lagrangian tracers, or solid particles that exchange momentum withe surrounding fluid through drag forces.
 AMReX’s particle implementation allows users flexibility in specifying how the particle data 
 is laid out in memory and in choosing how to optimize parallel communication of particle data. 
+
+### Complex Geometries
+
+AMReX provides support for discretizing complex geometries using the cut cell / embedded boundary 
+approach.   This requires additional data structures for holding face apertures and normals as well
+as volume fractions.   Support for operations on the mesh hierarchy including cut cells is enabled 
+through the use of specialized discretizations at and near cut cells, and masks to ensure that only
+values in the valid domain are computed.  Examples are provided in the tutorials
 
 ### Parallelism
 
@@ -155,7 +161,8 @@ operations with less inherent parallelism or with large communication overheads.
 
 AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
 include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
-PETSc solvers are also provided.
+PETSc solvers are also provided.   The linear solvers operate on regular mesh data as well 
+as data with cut cells.
 
 ### I/O and Post-processing
 
