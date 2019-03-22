@@ -22,6 +22,7 @@
 #include <MultiParticleContainer.H>
 #include <PML.H>
 #include <BoostedFrameDiagnostic.H>
+#include <BilinearFilter.H>
 
 #ifdef WARPX_USE_PSATD
 #include <fftw3.h>
@@ -139,6 +140,9 @@ public:
             return nullptr;
         }
     }
+
+    static amrex::IntVect filter_npass_each_dir;
+    BilinearFilter bilinear_filter;
 
     void ComputeDt ();
     int  MoveWindow (bool move_j);
@@ -342,6 +346,8 @@ private:
     void InitPML ();
     void ComputePMLFactors ();
 
+    void InitFilter ();
+
     void InitDiagnostics ();
 
     void InitNCICorrector ();
@@ -382,9 +388,6 @@ private:
     void ExchangeWithPmlF (int lev);
 
     void LoadBalance ();
-
-    static void applyFilter (amrex::MultiFab& dstmf, const amrex::MultiFab& srcmf,
-                             int scomp = 0, int dcomp = 0, int ncomp = 10000);
 
     void BuildBufferMasks ();
     const amrex::iMultiFab* getCurrentBufferMasks (int lev) const {
