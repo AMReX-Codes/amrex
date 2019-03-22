@@ -44,8 +44,6 @@ public:
 
     virtual void PostRestart () final;
 
-    UserConstants my_constants;
-
 private:
 
     // runtime paramters
