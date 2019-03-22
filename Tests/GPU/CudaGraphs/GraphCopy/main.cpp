@@ -111,10 +111,10 @@ int main (int argc, char* argv[])
 
         // Create the MultiFab and touch the data.
         // Ensures the data in on the GPU for all further testing.
-        MultiFab x(ba, dm, Ncomp, Nghost);
-        MultiFab y(ba, dm, Ncomp, Nghost);
-        x.setVal(1.0);
-        y.setVal(2.0);
+//        MultiFab x(ba, dm, Ncomp, Nghost);
+//        MultiFab y(ba, dm, Ncomp, Nghost);
+//        x.setVal(1.0);
+//        y.setVal(2.0);
 
         Real points = ba.numPts();
 
@@ -124,14 +124,74 @@ int main (int argc, char* argv[])
 //      Launch without graphs
 
         {
-            BL_PROFILE("Standard Copy");
+            // Create the MultiFab and touch the data.
+            // Ensures the data in on the GPU for all further testing.
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+            x.setVal(4.5);
+            y.setVal(5.3);
 
+            BL_PROFILE("First Copy");
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                Array4<Real> src = x.array(mfi);
+                Array4<Real> dst = y.array(mfi);
+                Dim3 offset {0,0,0};
+                int dcomp = 0;
+                int scomp = 0;
+
+                AMREX_HOST_DEVICE_FOR_4D ( bx, Ncomp, i, j, k, n,
+                {
+                    dst(i,j,k,dcomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
+                });
+            }
+
+            amrex::Print() << "First sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+        }
+
+// ---------------------------------------
+
+        {
+            // Create the MultiFab and touch the data.
+            // Ensures the data in on the GPU for all further testing.
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+            x.setVal(4.0);
+            y.setVal(5.0);
+
+            BL_PROFILE("Lambda Copy");
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                const Box& bx = mfi.validbox();
+                Array4<Real> src = x.array(mfi);
+                Array4<Real> dst = y.array(mfi);
+                Dim3 offset {0,0,0};
+                int dcomp = 0;
+                int scomp = 0;
+
+                AMREX_HOST_DEVICE_FOR_4D ( bx, Ncomp, i, j, k, n,
+                {
+                    dst(i,j,k,dcomp+n) = src(i+offset.x,j+offset.y,k+offset.z,scomp+n); 
+                });
+            }
+
+            amrex::Print() << "No Graph Lambda sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+        }
+
+// ---------------------------------------
+
+        {
             // Create the MultiFab and touch the data.
             // Ensures the data in on the GPU for all further testing.
             MultiFab x(ba, dm, Ncomp, Nghost);
             MultiFab y(ba, dm, Ncomp, Nghost);
             x.setVal(1.0);
             y.setVal(2.0);
+
+            BL_PROFILE("Function Copy");
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -150,8 +210,11 @@ int main (int argc, char* argv[])
                                          offset, a, b, 0, 0, 1);
             }
 
-            amrex::Print() << "No Graph sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+            amrex::Print() << "No Graph Function sum = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
         }
+
+
+
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Create a single graph for the MFIter loop:
@@ -159,6 +222,74 @@ int main (int argc, char* argv[])
 
         cudaGraphExec_t graphExec;
 
+        {
+            // Create the MultiFab and touch the data.
+            // Ensures the data in on the GPU for all further testing.
+            MultiFab x(ba, dm, Ncomp, Nghost);
+            MultiFab y(ba, dm, Ncomp, Nghost);
+            x.setVal(1e-5);
+            y.setVal(0.0);
+
+            BL_PROFILE("cudaGraph");
+
+// --------- Capture each stream in the MFIter loop ----------
+
+            BL_PROFILE_VAR("cudaGraph-create", cgc);
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                if (mfi.LocalIndex() == 0)
+                {
+                    amrex::Gpu::Device::startGraphRecording();
+                } 
+
+                const Box bx = mfi.validbox();
+                Array4<Real> a = x.array(mfi);
+                Array4<Real> b = y.array(mfi);
+
+                int ncells = bx.numPts();
+                const auto lo  = amrex::lbound(bx);
+                const auto len = amrex::length(bx);
+                const auto ec = Cuda::ExecutionConfig(ncells);
+                const Dim3 offset = {0,0,0};
+
+                AMREX_CUDA_LAUNCH_GLOBAL(ec, copy,
+                                         lo, len, ncells,
+                                         offset, a, b, 0, 0, 1); 
+
+                if (mfi.LocalIndex() == (x.local_size() - 1) )
+                {
+                    graphExec = amrex::Gpu::Device::stopGraphRecording(); 
+                }
+            }
+
+            BL_PROFILE_VAR_STOP(cgc);
+
+// --------- Launch the graph  ----------
+
+            BL_PROFILE_VAR("cudaGraph-launch", cgl);
+
+            amrex::Gpu::Device::executeGraph(graphExec);
+
+            BL_PROFILE_VAR_STOP(cgl);
+
+            amrex::Print() << "Graphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+
+// --------- Relaunch the graph with a different result  ----------
+
+            x.setVal(8.67530e-9);
+            y.setVal(0.0);
+
+            BL_PROFILE_VAR("cudaGraph-relaunch", cgrl);
+
+            amrex::Gpu::Device::executeGraph(graphExec);
+
+            BL_PROFILE_VAR_STOP(cgrl);
+
+            amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
+        }
+
+/*      Written out version, for reference.
         {
             BL_PROFILE("cudaGraph");
 
@@ -268,13 +399,12 @@ int main (int argc, char* argv[])
 
             amrex::Print() << "Regraphed = " << y.sum() << "; Expected value = " << x.sum() << std::endl;
         }
-
+*/
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+//      Screw with memory a bit and show that the graphExec doesn't do what we want.
+//      Change this example later to test stored pointers to graph input data.
 
         {
-            BL_PROFILE("cudaGraph-newMFabs");
-
-
             MultiFab v(ba, dm, Ncomp, Nghost);
             MultiFab w(ba, dm, Ncomp, Nghost);
             MultiFab x(ba, dm, Ncomp, Nghost);
@@ -283,6 +413,8 @@ int main (int argc, char* argv[])
             w.setVal(0.0);
             x.setVal(0.15);
             y.setVal(0.25);
+
+            BL_PROFILE("cudaGraph-newMFabs");
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
