@@ -146,10 +146,10 @@ readability and performance for their applications
 
 ### Asynchronous Iterators and Fork-Join Support
 
-AMReX includes a runtime system that can execute asynchronous AMReX-based aplications efficiently
+AMReX includes a runtime system that can execute asynchronous AMReX-based applications efficiently
 on large-scale systems.  The runtime system constructs a task dependency graph for the 
 whole coarse time step and executes it asynchronously to the completion of the step.  There
-is also support for more user-specific algorithm such as asynchronous filling of ghost cells
+is also support for more user-specific algorithms such as asynchronous filling of ghost cells
 across multiple ranks, including interpolation of data in space and time.
 
 In addition, AMReX has support for fork-join functionality that allows the user to divide an AMReX-based application
