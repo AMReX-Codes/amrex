@@ -21,6 +21,16 @@ namespace Cuda {
         return r;
     }
 
+    extern bool in_graph_region;
+    inline bool inGraphRegion () { return in_graph_region; }
+    inline bool notInGraphRegion () { return !in_graph_region; }
+
+    inline bool setGraphRegion (bool graph) {
+        bool r =  in_graph_region;
+        in_graph_region = graph;
+        return r;
+    }
+
     struct LaunchSafeGuard
     {
         LaunchSafeGuard (bool flag)
