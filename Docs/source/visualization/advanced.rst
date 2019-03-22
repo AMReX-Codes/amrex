@@ -48,6 +48,8 @@ with
     # Left and right physical boundary of each grid
     ds_index.grid_left_edge
     ds_index.grid_right_edge
+    # List available fields
+    ds.field_list
 
 When ``warpx.plot_raw_fields=1`` and ``warpx.plot_finepatch=1``, here are some useful 
 commands to access properties of a grid and the Ex field on the fine patch:
@@ -71,7 +73,9 @@ Return the ``Ex`` field on the fine patch of grid ``my_grid``:
     my_field = my_grid['raw', 'Ex_fp'].squeeze().v
     
 For a 2D plotfile, ``my_field`` has shape ``(nx,nz,2)``. The last component stands for the 
-two values on the edges of each cell for the electric field, due to field staggering. 
+two values on the edges of each cell for the electric field, due to field staggering. Numpy 
+function ``squeeze`` removes empty components. While ``yt`` arrays are unit-aware, it is 
+sometimes useful to extract the data into unitless numpy arrays. This is achieved with ``.v``. 
 In the case of ``Ex_fp``, the staggering is on direction ``x``, so that 
 ``my_field[:,:-1,1] == my_field[:,1:,0]``. 
 
