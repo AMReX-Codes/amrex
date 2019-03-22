@@ -79,7 +79,7 @@ bibliography: paper.bib
 
 # Summary
 
-`AMReX` is a C++ software framework that supports the development of 
+AMReX is a C++ software framework that supports the development of 
 block-structured adaptive mesh refinement (AMR) algorithms for solving 
 systems of partial differential equations (PDEs) with complex boundary 
 conditions on current and emerging architectures.  
@@ -87,10 +87,10 @@ conditions on current and emerging architectures.
 Block-structured AMR provides the basis for the temporal and spatial 
 discretization strategy for a large number of applications.
 AMR reduces the computational cost 
-and memory footprint compared to a uniform mesh while preserving the essentially 
+and memory footprint compared to a uniform mesh while preserving the
 local descriptions of different physical processes in complex multiphysics algorithms. 
 Current AMReX-based application codes span a number of areas; in particular 
-the AMReX-Astro github repository holds a number of astrophysical modeling tools based on AMReX [@Zingale_2018].
+the AMReX-Astro GitHub repository holds a number of astrophysical modeling tools based on AMReX [@Zingale_2018].
 The origins of AMReX trace back to the BoxLib [@BoxLib] software framework.
 
 AMReX supports a number of different time-stepping strategies
@@ -104,7 +104,7 @@ code based on AMReX can be written entirely in Fortran.
 
 AMReX developers believe that interoperability is an important feature of sustainable software.
 AMReX has examples of interfaces to other popular software packages such as SUNDIALS,
-PETSc and hypre, and is part of the 2018 xSDK software release thus installable with spack.  
+PETSc and hypre, and is part of the 2018 xSDK software release thus installable with Spack.  
 
 ### Mesh and Particle Data
 
@@ -125,7 +125,7 @@ AMReX provides support for discretizing complex geometries using the cut cell / 
 approach.   This requires additional data structures for holding face apertures and normals as well
 as volume fractions.   Support for operations on the mesh hierarchy including cut cells is enabled 
 through the use of specialized discretizations at and near cut cells, and masks to ensure that only
-values in the valid domain are computed.  Examples are provided in the tutorials
+values in the valid domain are computed.  Examples are provided in the tutorials.
 
 ### Parallelism
 
@@ -142,7 +142,7 @@ parallelization techniques like tiling. The most common X is OpenMP. On GPUs, AM
 and can be further combined with other parallel GPU languages, including OpenACC and OpenMP, 
 to control the offloading of subroutines to the GPU. This MPI+CUDA+X GPU strategy has been developed 
 to give users the maximum flexibility to find the best combination of portability, 
-readability and performance for their applications
+readability and performance for their applications.
 
 ### Asynchronous Iterators and Fork-Join Support
 
