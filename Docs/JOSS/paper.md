@@ -109,7 +109,7 @@ AMReX developers believe that interoperability is an important feature of sustai
 AMReX has examples of interfaces to other popular software packages such as SUNDIALS,
 PETSc and hypre, and is part of the 2018 xSDK software release thus installable with spack.  
 
-## Particles
+### Particles
 
 AMReX provides data structures and iterators for performing data-parallel particle simulations. 
 The approach is particularly suited to particles that interact with data defined on a (possibly adaptive) 
@@ -118,20 +118,20 @@ Lagrangian tracers, or solid particles that exchange momentum withe surrounding 
 AMReX’s particle implementation allows users flexibility in specifying how the particle data 
 is laid out in memory and in choosing how to optimize parallel communication of particle data. 
 
-## Linear Solvers
+### Linear Solvers
 
 AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
 include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
 PETSc solvers are also provided.
 
-## I/O and Post-processing
+### I/O and Post-processing
 
 AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
 analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
 is supported by VisIt, Paraview, and yt.   AMReX also has linkages to external routines through
 both Conduit and SENSEI.
 
-## Parallelism
+### Parallelism
 
 AMReX’s GPU strategy focuses on providing performant GPU support with 
 minimal changes to AMReX-based application codes and maximum flexibility. 
@@ -148,7 +148,7 @@ to control the offloading of subroutines to the GPU. This MPI+CUDA+X GPU strateg
 to give users the maximum flexibility to find the best combination of portability, 
 readability and performance for their applications
 
-## Asynchronous Iterators and Fork-Join Support
+### Asynchronous Iterators and Fork-Join Support
 
 AMReX includes a runtime system that can execute asynchronous AMReX-based aplications efficiently
 on large-scale systems.  The runtime system constructs a task dependency graph for the 
@@ -164,7 +164,7 @@ where each fork further subdivides the ranks of a task into child tasks.
 This approach enables heterogeneous computation and reduces the strong scaling penalty for 
 operations with less inherent parallelism or with large communication overheads.
 
-## Documentation, Tutorials and Profiling Tools
+### Documentation, Tutorials and Profiling Tools
 
 Extensive documentation of core AMReX functionality is available online, and many of the application
 codes based on AMReX are publicly available as well.  Smaller examples of using AMReX for building application codes 
