@@ -19,4 +19,8 @@ AverageAndPackScalarField( MultiFab& mf_avg,
                          const MultiFab & scalar_field,
                          const int dcomp, const int ngrow );
 
+void
+WriteRawField( const std::unique_ptr<MultiFab>& F, const DistributionMapping& dm,
+            const std::string& prefix, bool plot_guards );
+
 #endif

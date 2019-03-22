@@ -298,3 +298,63 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
     BL_ASSERT(dcomp == ncomp);
     } // end loop over levels of refinement
 };
+
+
+/** \brief
+
+*/
+void
+WarpX::WriteRawPatch( const std::unique_ptr<MultiFab>& F_fp,
+                      const std::unique_ptr<MultiFab>& F_cp,
+                      const std::unique_ptr<MultiFab>& F_aux,
+                      const std::string field_name, const int lev,
+                      const std::string& filename,
+                      const std::string& level_prefix,
+                      const DistributionMapping& dm ) const
+{
+    std::string prefix;
+
+    // Fine patch: always write directly
+    prefix = amrex::MultiFabFileFullPrefix(lev, filename, level_prefix, field_name+"_fp");
+    WriteRawField( F_fp, dm, prefix, plot_raw_fields_guards );
+
+    // Coarse patch: write unless null (level 0), else use F_fp to get the boxArray
+    prefix = amrex::MultiFabFileFullPrefix(lev, filename, level_prefix, field_name+"_cp");
+    if (F_cp) {
+        WriteRawField( F_cp, dm, prefix, plot_raw_fields_guards );
+    } else {
+        // Dump placeholder fields, filled with 0
+        if (plot_raw_fields_guards){
+            MultiFab tmpF( F_fp->boxArray(), dm, 1, F_fp->nGrow());
+            tmpF.setVal(0.);
+            VisMF::Write(tmpF, prefix);
+        } else {
+            MultiFab tmpF( F_fp->boxArray(), dm, 1, 0); // No guard cells
+            tmpF.setVal(0.);
+            VisMF::Write(tmpF, prefix);
+        }
+    }
+
+    // Aux field: only write if non-null (e.g. for E, B, but not rho, j)
+    if (F_aux) { // Check if null
+        prefix = amrex::MultiFabFileFullPrefix(lev, filename, level_prefix, field_name+"_aux");
+        WriteRawField( F_aux, dm, prefix, plot_raw_fields_guards );
+    }
+}
+
+/** \brief
+ */
+void
+WriteRawField( const MultiFab* F, const DistributionMapping& dm,
+               const std::string& prefix, bool plot_guards )
+{
+    if (plot_guards) {
+        // Dump original MultiFab F
+        VisMF::Write(*F, prefix);
+    } else {
+        // Copy original MultiFab into one that does not have guard cells
+        MultiFab tmpF( F->boxArray(), dm, 1, 0);
+        MultiFab::Copy(tmpF, *F, 0, 0, 1, 0);
+        VisMF::Write(tmpF, prefix);
+    }
+}

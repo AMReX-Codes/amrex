@@ -194,6 +194,13 @@ public:
     void UpdateInSitu () const;
     void AverageAndPackFields( amrex::Vector<std::string>& varnames,
         amrex::Vector<amrex::MultiFab>& mf_avg, const int ngrow) const;
+    void WriteRawPatch( const std::unique_ptr<amrex::MultiFab>& F_fp,
+                        const std::unique_ptr<amrex::MultiFab>& F_cp,
+                        const std::unique_ptr<amrex::MultiFab>& F_aux,
+                        const std::string field_name,
+		                const int lev, const std::string& filename,
+                        const std::string& level_prefix,
+		                const amrex::DistributionMapping& dm ) const;
 
     void WritePlotFileES(const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
                          const amrex::Vector<std::unique_ptr<amrex::MultiFab> >& phi,
