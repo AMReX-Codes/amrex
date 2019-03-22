@@ -90,7 +90,7 @@ AMR reduces the computational cost
 and memory footprint compared to a uniform mesh while preserving the essentially 
 local descriptions of different physical processes in complex multiphysics algorithms. 
 Current AMReX-based application codes span a number of areas; in particular 
-the AMReX-Astro github repository holds a number of astrophysical modeling tools based on AMReX [@Zingale2018].
+the AMReX-Astro github repository holds a number of astrophysical modeling tools based on AMReX [@Zingale_2018].
 The origins of AMReX trace back to the BoxLib [@BoxLib] software framework.
 
 AMReX supports a number of different time-stepping strategies
