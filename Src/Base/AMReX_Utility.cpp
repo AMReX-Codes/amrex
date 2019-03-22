@@ -1,4 +1,3 @@
-
 #include <cstdlib>
 #include <cstring>
 #include <cctype>
@@ -37,9 +36,7 @@
 #include <unistd.h>
 
 
-
 using std::ostringstream;
-
 
 
 namespace {
@@ -427,8 +424,14 @@ amrex::Random ()
 
 #ifdef __CUDA_ARCH__
 
-    int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    rand = curand_uniform_double(&glo_RandStates[tid]);
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x + gridDim.x * gridDim.y * blockIdx.z;
+
+    int tid = blockId * (blockDim.x * blockDim.y * blockDim.z)
+              + (threadIdx.z * (blockDim.x * blockDim.y)) 
+              + (threadIdx.y * blockDim.x) + threadIdx.x ;
+
+    rand = curand_uniform_double(&glo_RandStates[tid]); 
+
 
 #else
 
@@ -532,17 +535,26 @@ amrex::ResizeRandomSeed (int N)
 {
 
 #ifdef AMREX_USE_CUDA  
+
   int Nbuffer = N * 2;
+
+  int PrevSize = dev_RandStates_Seed.size();
+
+  const int MyProc = amrex::ParallelDescriptor::MyProc();
+  int SizeDiff = Nbuffer - PrevSize;
 
   dev_RandStates_Seed.resize(Nbuffer);
   curandState_t *d_RS_Seed = dev_RandStates_Seed.dataPtr();
   cudaMemcpyToSymbol(glo_RandStates,&d_RS_Seed,sizeof(curandState_t *));
- 
-  AMREX_PARALLEL_FOR_1D (Nbuffer, idx,
+
+  AMREX_PARALLEL_FOR_1D (SizeDiff, idx,
   {
-     unsigned long seed = idx + 10*idx;
-     curand_init(seed, seed, 0, &glo_RandStates[idx]);
+     unsigned long seed = MyProc*1234567UL + 12345UL ;
+     int seqstart = idx + 10 * idx ; 
+     int loc = idx + PrevSize;
+     curand_init(seed, seqstart, 0, &glo_RandStates[loc]);
   }); 
+
 #endif
 
 }
