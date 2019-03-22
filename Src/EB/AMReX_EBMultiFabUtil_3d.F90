@@ -531,8 +531,8 @@ contains
                            if ( cent(i,j,k,2) <= zero ) then
                               fracz = - cent(i,j,k,2) * nbr(0,0,-1)
                               ivar(i,j,k,n) = (one-fracz) * (     fracx * var(i-1,j,k  ,n)  + &
-                                   &                        (one-fracx) * var(i-1,j,k  ,n)) + &
-                                   &                fracz * (     fracx * var(i  ,j,k-1,n)  + &
+                                   &                        (one-fracx) * var(i  ,j,k  ,n)) + &
+                                   &                fracz * (     fracx * var(i-1,j,k-1,n)  + &
                                    &                        (one-fracx) * var(i  ,j,k-1,n))
                            else
                               fracz =  cent(i,j,k,2) * nbr(0,0,1)
