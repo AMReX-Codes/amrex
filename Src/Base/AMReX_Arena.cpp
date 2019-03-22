@@ -20,6 +20,7 @@ namespace {
     Arena* the_device_arena = nullptr;
     Arena* the_managed_arena = nullptr;
     Arena* the_pinned_arena = nullptr;
+    Arena* the_cpu_arena = nullptr;
 
     bool use_buddy_allocator = false;
     long buddy_allocator_size = 0L;
@@ -98,6 +99,7 @@ Arena::Initialize ()
     BL_ASSERT(the_device_arena == nullptr);
     BL_ASSERT(the_managed_arena == nullptr);
     BL_ASSERT(the_pinned_arena == nullptr);
+    BL_ASSERT(the_cpu_arena == nullptr);
 
     ParmParse pp("amrex");
     pp.query("use_buddy_allocator", use_buddy_allocator);
@@ -161,6 +163,8 @@ Arena::Initialize ()
 
     p = the_pinned_arena->alloc(N);
     the_pinned_arena->free(p);
+
+    the_cpu_arena = new BArena;
 }
 
 void
@@ -275,6 +279,9 @@ Arena::Finalize ()
     
     delete the_pinned_arena;
     the_pinned_arena = nullptr;
+
+    delete the_cpu_arena;
+    the_cpu_arena = nullptr;
 }
     
 Arena*
@@ -303,6 +310,13 @@ The_Pinned_Arena ()
 {
     BL_ASSERT(the_pinned_arena != nullptr);
     return the_pinned_arena;
+}
+
+Arena*
+The_Cpu_Arena ()
+{
+    BL_ASSERT(the_cpu_arena != nullptr);
+    return the_cpu_arena;
 }
 
 }
