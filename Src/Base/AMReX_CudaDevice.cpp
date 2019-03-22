@@ -303,6 +303,70 @@ Device::streamSynchronize ()
 #endif
 }
 
+#ifdef AMREX_USE_CUDA
+void
+Device::startGraphRecording()
+{
+    // Note: This builds a graph per stream and then assembles them into a single graph. 
+    // Should make multiple options for building for future flexibility.
+    //   (and add each cuda API call to a unique function so users can make their own).
+
+    cudaStream_t currentStream = cuda_stream; 
+    for (int i=0; i<numCudaStreams(); ++i)
+    {
+        setStreamIndex(i);
+        AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(cudaStream()));
+    }
+    cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+}
+
+cudaGraphExec_t
+Device::stopGraphRecording()
+{
+    // Note: This builds a graph per stream and then assembles them into a single graph. 
+    // Should make multiple options for building for future flexibility.
+    //   (and add each cuda API call to a unique function so users can make their own).
+
+    cudaGraph_t     graph[numCudaStreams()];
+    cudaGraphExec_t graphExec;
+
+    cudaStream_t currentStream = cuda_stream; 
+    for (int i=0; i<numCudaStreams(); ++i)
+    {
+        setStreamIndex(i);
+        AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(cudaStream(), &(graph[i])));
+    }
+    cuda_stream = currentStream; // Stream index isn't saved in Device for easy reset. Save it?
+
+    cudaGraph_t     graphFull;
+    cudaGraphNode_t emptyNode, placeholder;
+
+    AMREX_GPU_SAFE_CALL(cudaGraphCreate(&graphFull, 0));
+    AMREX_GPU_SAFE_CALL(cudaGraphAddEmptyNode(&emptyNode, graphFull, &placeholder, 0));
+    for (int i=0; i<numCudaStreams(); ++i)
+    {
+        AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
+    }
+
+    // This is placed here to make testing simple. 
+    // Should probably be removed and given a unique function for flexibility.
+    AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0)); 
+
+    return graphExec;
+}
+
+void
+Device::executeGraph(cudaGraphExec_t &graphExec)
+{
+    setStreamIndex(0);
+    AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, cudaStream()));
+    synchronize();
+    resetStreamIndex();
+}
+
+#endif
+
+
 void
 Device::htod_memcpy (void* p_d, const void* p_h, const std::size_t sz) {
 
