@@ -503,130 +503,18 @@ WarpX::WritePlotFile () const
         const int nlevels = finestLevel()+1;
         for (int lev = 0; lev < nlevels; ++lev)
         {
-            const std::string raw_plotfilename = plotfilename + "/raw_fields";
-            // Plot auxilary patch
-            if (plot_raw_fields_guards) {
-                VisMF::Write(*Efield_aux[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_aux"));
-                VisMF::Write(*Efield_aux[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_aux"));
-                VisMF::Write(*Efield_aux[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_aux"));
-                VisMF::Write(*Bfield_aux[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_aux"));
-                VisMF::Write(*Bfield_aux[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_aux"));
-                VisMF::Write(*Bfield_aux[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_aux"));
-            } else {
-                const DistributionMapping& dm = DistributionMap(lev);
-                MultiFab Ex(Efield_aux[lev][0]->boxArray(), dm, 1, 0);
-                MultiFab Ey(Efield_aux[lev][1]->boxArray(), dm, 1, 0);
-                MultiFab Ez(Efield_aux[lev][2]->boxArray(), dm, 1, 0);
-                MultiFab Bx(Bfield_aux[lev][0]->boxArray(), dm, 1, 0);
-                MultiFab By(Bfield_aux[lev][1]->boxArray(), dm, 1, 0);
-                MultiFab Bz(Bfield_aux[lev][2]->boxArray(), dm, 1, 0);
-                MultiFab::Copy(Ex, *Efield_aux[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(Ey, *Efield_aux[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(Ez, *Efield_aux[lev][2], 0, 0, 1, 0);
-                MultiFab::Copy(Bx, *Bfield_aux[lev][0], 0, 0, 1, 0);
-                MultiFab::Copy(By, *Bfield_aux[lev][1], 0, 0, 1, 0);
-                MultiFab::Copy(Bz, *Bfield_aux[lev][2], 0, 0, 1, 0);
-                VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_aux"));
-                VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_aux"));
-                VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_aux"));
-                VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_aux"));
-                VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_aux"));
-                VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_aux"));
-            }
-
-            // Plot fine patch
-            if (plot_finepatch) {
-                if (plot_raw_fields_guards) {
-                    VisMF::Write(*Efield_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_fp"));
-                    VisMF::Write(*Efield_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_fp"));
-                    VisMF::Write(*Efield_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_fp"));
-                    VisMF::Write(*Bfield_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_fp"));
-                    VisMF::Write(*Bfield_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_fp"));
-                    VisMF::Write(*Bfield_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_fp"));
-                    VisMF::Write(*current_fp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx_fp"));
-                    VisMF::Write(*current_fp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy_fp"));
-                    VisMF::Write(*current_fp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz_fp"));
-                } else {
-                    const DistributionMapping& dm = DistributionMap(lev);
-                    MultiFab Ex(Efield_fp[lev][0]->boxArray(), dm, 1, 0);
-                    MultiFab Ey(Efield_fp[lev][1]->boxArray(), dm, 1, 0);
-                    MultiFab Ez(Efield_fp[lev][2]->boxArray(), dm, 1, 0);
-                    MultiFab Bx(Bfield_fp[lev][0]->boxArray(), dm, 1, 0);
-                    MultiFab By(Bfield_fp[lev][1]->boxArray(), dm, 1, 0);
-                    MultiFab Bz(Bfield_fp[lev][2]->boxArray(), dm, 1, 0);
-                    MultiFab jx(current_fp[lev][0]->boxArray(), dm, 1, 0);
-                    MultiFab jy(current_fp[lev][1]->boxArray(), dm, 1, 0);
-                    MultiFab jz(current_fp[lev][2]->boxArray(), dm, 1, 0);
-                    MultiFab::Copy(Ex, *Efield_fp[lev][0], 0, 0, 1, 0);
-                    MultiFab::Copy(Ey, *Efield_fp[lev][1], 0, 0, 1, 0);
-                    MultiFab::Copy(Ez, *Efield_fp[lev][2], 0, 0, 1, 0);
-                    MultiFab::Copy(Bx, *Bfield_fp[lev][0], 0, 0, 1, 0);
-                    MultiFab::Copy(By, *Bfield_fp[lev][1], 0, 0, 1, 0);
-                    MultiFab::Copy(Bz, *Bfield_fp[lev][2], 0, 0, 1, 0);
-                    MultiFab::Copy(jx, *current_fp[lev][0], 0, 0, 1, 0);
-                    MultiFab::Copy(jy, *current_fp[lev][1], 0, 0, 1, 0);
-                    MultiFab::Copy(jz, *current_fp[lev][2], 0, 0, 1, 0);
-                    VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_fp"));
-                    VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_fp"));
-                    VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_fp"));
-                    VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_fp"));
-                    VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_fp"));
-                    VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_fp"));
-                    VisMF::Write(jx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jx_fp"));
-                    VisMF::Write(jy, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jy_fp"));
-                    VisMF::Write(jz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "jz_fp"));
-                }
-            }
-
-            // Plot coarse patch
-            if (plot_crsepatch)
-            {
-                if (lev == 0)
-                {
-                    const DistributionMapping& dm = DistributionMap(lev);
-                    MultiFab Ex(Efield_aux[lev][0]->boxArray(), dm, 1, 0);
-                    MultiFab Ey(Efield_aux[lev][1]->boxArray(), dm, 1, 0);
-                    MultiFab Ez(Efield_aux[lev][2]->boxArray(), dm, 1, 0);
-                    MultiFab Bx(Bfield_aux[lev][0]->boxArray(), dm, 1, 0);
-                    MultiFab By(Bfield_aux[lev][1]->boxArray(), dm, 1, 0);
-                    MultiFab Bz(Bfield_aux[lev][2]->boxArray(), dm, 1, 0);
-
-                    Ex.setVal(0.0); Ey.setVal(0.0); Ez.setVal(0.0);
-                    Bx.setVal(0.0); By.setVal(0.0); Bz.setVal(0.0);
-
-                    VisMF::Write(Ex, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_cp"));
-                    VisMF::Write(Ey, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_cp"));
-                    VisMF::Write(Ez, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_cp"));
-                    VisMF::Write(Bx, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
-                    VisMF::Write(By, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
-                    VisMF::Write(Bz, amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
-                } else {
-
-                    if (plot_raw_fields_guards) {
-                        VisMF::Write(*Efield_cp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_cp"));
-                        VisMF::Write(*Efield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_cp"));
-                        VisMF::Write(*Efield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_cp"));
-                        VisMF::Write(*Bfield_cp[lev][0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
-                        VisMF::Write(*Bfield_cp[lev][1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
-                        VisMF::Write(*Bfield_cp[lev][2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
-                    } else {
-                        std::array<std::unique_ptr<MultiFab>, 3> E = getInterpolatedE(lev);
-                        std::array<std::unique_ptr<MultiFab>, 3> B = getInterpolatedB(lev);
-
-                        VisMF::Write(*E[0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ex_cp"));
-                        VisMF::Write(*E[1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ey_cp"));
-                        VisMF::Write(*E[2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Ez_cp"));
-                        VisMF::Write(*B[0], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bx_cp"));
-                        VisMF::Write(*B[1], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "By_cp"));
-                        VisMF::Write(*B[2], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "Bz_cp"));
-                    }
-                }
-            }
-
-            if (F_fp[lev]) {
-                VisMF::Write(*F_fp[lev], amrex::MultiFabFileFullPrefix(lev, raw_plotfilename, level_prefix, "F_fp"));
-            }
-
+            const std::string raw_pltname = plotfilename + "/raw_fields";
+            const DistributionMapping& dm = DistributionMap(lev);
+            WriteRawPatch( Efield_fp[lev][0], Efield_cp[lev][0], Efield_aux[lev][0], "Ex", lev, raw_pltname, dm );
+            WriteRawPatch( Efield_fp[lev][1], Efield_cp[lev][1], Efield_aux[lev][1], "Ey", lev, raw_pltname, dm );
+            WriteRawPatch( Efield_fp[lev][2], Efield_cp[lev][2], Efield_aux[lev][2], "Ez", lev, raw_pltname, dm );
+            WriteRawPatch( Bfield_fp[lev][0], Bfield_cp[lev][0], Bfield_aux[lev][0], "Bx", lev, raw_pltname, dm );
+            WriteRawPatch( Bfield_fp[lev][1], Bfield_cp[lev][1], Bfield_aux[lev][1], "By", lev, raw_pltname, dm );
+            WriteRawPatch( Bfield_fp[lev][2], Bfield_cp[lev][2], Bfield_aux[lev][2], "Bz", lev, raw_pltname, dm );
+            WriteRawPatch( current_fp[lev][0], current_cp[lev][0], NULL, "jx", lev, raw_pltname, dm );
+            WriteRawPatch( current_fp[lev][1], current_cp[lev][1], NULL, "jy", lev, raw_pltname, dm );
+            WriteRawPatch( current_fp[lev][2], current_cp[lev][2], NULL, "jz", lev, raw_pltname, dm );
+            if (F_fp[lev]) WriteRawPatch( F_fp[lev], F_cp[lev], NULL, "F", lev, raw_pltname, dm );
         }
     }
 
@@ -662,6 +550,61 @@ WarpX::WritePlotFile () const
     WriteWarpXHeader(plotfilename);
 
     VisMF::SetHeaderVersion(current_version);
+}
+
+/** \brief
+
+*/
+void
+WarpX::WriteRawPatch( const MultiFab* F_fp, const MultiFab* F_cp,
+    const MultiFab* F_aux, const std::string& field_name, const int lev,
+    const std::string& filename, const DistributionMapping& dm )
+{
+    std::string prefix;
+
+    // Fine patch: always write directly
+    prefix = amrex::MultiFabFileFullPrefix(lev, filename, level_prefix, field_name+"_fp");
+    WriteRawField( F_fp, dm, prefix, plot_raw_fields_guards );
+
+    // Coarse patch: write unless null (level 0), else use F_fp to get the boxArray
+    prefix = amrex::MultiFabFileFullPrefix(lev, filename, level_prefix, field_name+"_cp");
+    if (F_cp) {
+        WriteRawField( F_cp, dm, prefix, plot_raw_fields_guards );
+    } else {
+        // Dump placeholder fields, filled with 0
+        if (plot_raw_fields_guards){
+            MultiFab tmpF( F_fp->boxArray(), dm, 1, F_fp->nGrow());
+            tmpF.setVal(0.);
+            VisMF::Write(tmpF, prefix);
+        } else {
+            MultiFab tmpF( F_fp->boxArray(), dm, 1, 0); // No guard cells
+            tmpF.setVal(0.);
+            VisMF::Write(tmpF, prefix);
+        }
+    }
+
+    // Aux field: only write if non-null (e.g. for E, B, but not rho, j)
+    if (F_aux) { // Check if null
+        prefix = amrex::MultiFabFileFullPrefix(lev, filename, level_prefix, field_name+"_aux");
+        WriteRawField( F_aux, dm, prefix, plot_raw_fields_guards );
+    }
+}
+
+/** \brief
+ */
+void
+WriteRawField( const MultiFab* F, const DistributionMapping& dm,
+               const std::string& prefix, bool plot_guards )
+{
+    if (plot_guards) {
+        // Dump original MultiFab F
+        VisMF::Write(*F, prefix);
+    } else {
+        // Copy original MultiFab into one that does not have guard cells
+        MultiFab tmpF( *F.boxArray(), dm, 1, 0);
+        MultiFab::Copy(tmpF, *F, 0, 0, 1, 0);
+        VisMF::Write(tmpF, prefix);
+    }
 }
 
 void
