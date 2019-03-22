@@ -118,19 +118,6 @@ Lagrangian tracers, or solid particles that exchange momentum withe surrounding 
 AMReX’s particle implementation allows users flexibility in specifying how the particle data 
 is laid out in memory and in choosing how to optimize parallel communication of particle data. 
 
-### Linear Solvers
-
-AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
-include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
-PETSc solvers are also provided.
-
-### I/O and Post-processing
-
-AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
-analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
-is supported by VisIt, Paraview, and yt.   AMReX also has linkages to external routines through
-both Conduit and SENSEI.
-
 ### Parallelism
 
 AMReX’s GPU strategy focuses on providing performant GPU support with 
@@ -163,6 +150,19 @@ The fork-join operation can also be invoked in a nested fashion, creating a hier
 where each fork further subdivides the ranks of a task into child tasks. 
 This approach enables heterogeneous computation and reduces the strong scaling penalty for 
 operations with less inherent parallelism or with large communication overheads.
+
+### Linear Solvers
+
+AMReX includes native linear solvers for parabolic and elliptic equations.  Solution procedures
+include geometric multigrid and BiCGStab iterative solvers; interfaces to external hypre and
+PETSc solvers are also provided.
+
+### I/O and Post-processing
+
+AMReX has native I/O for checkpointing and for reading and writing plotfiles for post-processing
+analysis or visualization.   AMReX also supplies interfaces to HDF5.  The AMReX plotfile format
+is supported by VisIt, Paraview, and yt.   AMReX also has linkages to external routines through
+both Conduit and SENSEI.
 
 ### Documentation, Tutorials and Profiling Tools
 
