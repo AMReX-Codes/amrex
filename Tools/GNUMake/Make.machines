@@ -109,6 +109,10 @@ ifeq ($(findstring eagle, $(NREL_CLUSTER)), eagle)
   which_site := nrel
   which_computer := eagle
 endif
+ifeq ($(findstring rhodes, $(NREL_CLUSTER)), rhodes)
+  which_site := nrel
+  which_computer := rhodes
+endif
 
 ifeq ($(findstring daint, $(host_name)), daint)
   which_site := cscs

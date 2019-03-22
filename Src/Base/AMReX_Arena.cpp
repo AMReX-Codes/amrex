@@ -119,11 +119,13 @@ Arena::Initialize ()
     {
 #if defined(BL_COALESCE_FABS) || defined(AMREX_USE_GPU)
         the_arena = new CArena(0, ArenaInfo().SetPreferred());
+#ifdef AMREX_USE_GPU
         if (the_arena_init_size <= 0) {
             the_arena_init_size = Gpu::Device::totalGlobalMem() / 4L * 3L;
         }
         void *p = the_arena->alloc(static_cast<std::size_t>(the_arena_init_size));
         the_arena->free(p);
+#endif
 #else
         the_arena = new BArena;
 #endif
