@@ -292,7 +292,6 @@ $(depEXETempDir)/%.d: %.cpp
 	@echo Depending $< ...
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
@@ -303,7 +302,6 @@ $(depEXETempDir)/%.d: %.c
 	@echo Depending $< ...
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
