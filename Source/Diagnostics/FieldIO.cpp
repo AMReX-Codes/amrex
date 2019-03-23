@@ -8,7 +8,7 @@
 using namespace amrex;
 
 #ifdef WARPX_USE_OPENPMD
-/** \brief 
+/** \brief
  * Convert an IntVect to a std::vector<unsigned long>,
  * and reverse the order of the elements
  * (used for compatibility with the openPMD API)
@@ -32,7 +32,7 @@ getReversedVec( const IntVect& v )
   return u;
 }
 
-/** \brief 
+/** \brief
  * Convert Real* pointer to a std::vector<double>,
  * and reverse the order of the elements
  * (used for compatibility with the openPMD API)
@@ -68,7 +68,7 @@ WriteOpenPMDFields( const std::string& filename,
   BL_PROFILE("WriteOpenPMDFields()");
 
   const int ncomp = mf.nComp();
-  
+
   // Create a few vectors that store info on the global domain
   // Swap the indices for each of them, since AMReX data is Fortran order
   // and since the openPMD API assumes contiguous C order
@@ -100,19 +100,36 @@ WriteOpenPMDFields( const std::string& filename,
   // Loop through the different components, i.e. different fields stored in mf
   for (int icomp=0; icomp<ncomp; icomp++){
 
-    // Create an openPMD mesh, and store the associated metadata
-    const std::string& field_name = varnames[icomp];
+    // Check if this field is a vector or a scalar, and extract the field name
+    const std::string& varname = varnames[icomp];
+    std::string field_name = varname;
+    std::string comp_name = "";
+    bool is_vector = false;
+    for (const char* vector_field: {"E", "B", "j"}){
+        for (const char* comp: {"x", "y", "z"}){
+            if (varname[0] == *vectorfield && field_name[1] == *comp ){
+                is_vector = true;
+                field_name = varname[0] + varname.substr(2); // Strip component
+                comp_name = varname[1];
+            }
+        }
+    }
 
+    // Setup the mesh accordingly
     auto mesh = series_iteration.meshes[field_name];
     mesh.setDataOrder(openPMD::Mesh::DataOrder::F); // MultiFab: Fortran order
     mesh.setAxisLabels( axis_labels );
     mesh.setGridSpacing( grid_spacing );
     mesh.setGridGlobalOffset( global_offset );
 
-    // TODO: Add support for vectors
     // TODO: Set units
     // Create a new mesh record, and store the associated metadata
-    auto mesh_record = mesh[openPMD::MeshRecordComponent::SCALAR];
+    openPMD::MeshRecordComponent mesh_record;
+    if (is_vector){
+        mesh_record = mesh[comp_name];
+    } else {
+        mesh_record = mesh[openPMD::MeshRecordComponent::SCALAR];
+    }
     mesh_record.resetDataset( dataset );
     // Cell-centered data: position is at 0.5 of a cell size.
     mesh_record.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
