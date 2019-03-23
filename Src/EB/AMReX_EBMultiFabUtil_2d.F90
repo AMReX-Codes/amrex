@@ -8,7 +8,9 @@ module amrex_eb_util_module
   private
   public :: amrex_eb_avgdown_sv, amrex_eb_avgdown, amrex_eb_avgdown_faces, &
        amrex_eb_avgdown_boundaries, amrex_compute_eb_divergence, &
-       amrex_eb_avg_fc_to_cc, amrex_eb_set_covered_nodes
+       amrex_eb_avg_fc_to_cc, amrex_eb_set_covered_nodes, &
+       amrex_eb_interpolate_to_face_centroid, &
+       amrex_eb_interpolate_to_face_centroid_per_cell
 
 contains
 
