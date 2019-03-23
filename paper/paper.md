@@ -30,7 +30,7 @@ authors:
   orcid: 0000-0002-1711-3963
   affiliation: 1
 - name: Brian Friesen
-  orcid: 0000-0002-1752-1631
+  orcid: 0000-0002-1572-1631
   affiliation: 3
 - name: Kevin Gott
   orcid: 0000-0003-3244-5525
