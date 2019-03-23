@@ -369,6 +369,9 @@ public:
 
     void setPtr (T* p, long sz) noexcept { AMREX_ASSERT(this->dptr == 0 && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
+    void prefetchToHost () const noexcept;
+    void prefetchToDevice () const noexcept;
+
     AMREX_GPU_HOST_DEVICE
     AMREX_INLINE
     Array4<T const> array () const noexcept
@@ -1694,6 +1697,30 @@ BaseFab<T,Allocator>::dataPtr (const IntVect& p, int n) const noexcept
     AMREX_ASSERT(this->domain.contains(p));
 
     return this->dptr + (this->domain.index(p)+n*this->domain.numPts());
+}
+
+template <class T, class Allocator>
+void
+BaseFab<T,Allocator>::prefetchToHost () const noexcept
+{
+#ifdef AMREX_USE_CUDA
+    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+    AMREX_GPU_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                             cudaCpuDeviceId,
+                                             Cuda::Device::cudaStream()));
+#endif
+}
+
+template <class T, class Allocator>
+void
+BaseFab<T,Allocator>::prefetchToDevice () const noexcept
+{
+#ifdef AMREX_USE_CUDA
+    std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+    AMREX_GPU_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                             Cuda::Device::deviceId(),
+                                             Cuda::Device::cudaStream()));
+#endif
 }
 
 template <class T, class Allocator>
