@@ -8,8 +8,43 @@
 using namespace amrex;
 
 #ifdef WARPX_USE_OPENPMD
+/** \brief For a given field that is to be written to an openPMD file,
+ * set the metadata that indicates the physical unit.
+ */
+void
+setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name )
+{
+    if (field_name[0] == *"E"){  // Electric field
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::L,  1},
+            {openPMD::UnitDimension::M,  1},
+            {openPMD::UnitDimension::T, -3},
+            {openPMD::UnitDimension::I, -1},
+        });
+    } else if (field_name[0] == *"B"){ // Magnetic field
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::M,  1},
+            {openPMD::UnitDimension::I, -1},
+            {openPMD::UnitDimension::T, -2}
+        });
+    } else if (field_name[0] == *"j"){ // current
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::L, -3},
+            {openPMD::UnitDimension::M,  1},
+            {openPMD::UnitDimension::I,  1},
+        });
+    } else if (field_name.substr(0,3) == "rho"){ // charge density
+        mesh.setUnitDimension({
+            {openPMD::UnitDimension::L, -3},
+            {openPMD::UnitDimension::I,  1},
+            {openPMD::UnitDimension::T,  1},
+        });
+    }
+}
+
+
 /** \brief
- * Convert an IntVect to a std::vector<unsigned long>,
+ * Convert an IntVect to a std::vector<unsigned long long>,
  * and reverse the order of the elements
  * (used for compatibility with the openPMD API)
  */
@@ -121,8 +156,8 @@ WriteOpenPMDFields( const std::string& filename,
     mesh.setAxisLabels( axis_labels );
     mesh.setGridSpacing( grid_spacing );
     mesh.setGridGlobalOffset( global_offset );
+    setOpenPMDUnit( mesh, field_name );
 
-    // TODO: Set units
     // Create a new mesh record, and store the associated metadata
     auto mesh_record = mesh[comp_name];
     mesh_record.resetDataset( dataset );
@@ -151,7 +186,6 @@ WriteOpenPMDFields( const std::string& filename,
   series.flush();
 }
 #endif // WARPX_USE_OPENPMD
-
 
 
 void
