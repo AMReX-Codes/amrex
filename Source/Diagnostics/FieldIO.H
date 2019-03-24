@@ -21,7 +21,7 @@ AverageAndPackScalarField( MultiFab& mf_avg,
 
 void
 coarsenCellCenteredFields(
-	Vector<const MultiFab*>& output_mf, Vector<Geometry>& output_geom,
+	Vector<MultiFab>& coarse_mf, Vector<Geometry>& coarse_geom,
 	const Vector<MultiFab>& source_mf, const Vector<Geometry>& source_geom,
 	int coarse_ratio, int finest_level );
 

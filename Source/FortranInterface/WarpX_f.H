@@ -40,7 +40,6 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_3d
 
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_FILTER                      warpx_filter_3d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_3d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_3d
@@ -71,7 +70,6 @@
 #define WRPX_PUSH_LEAPFROG_POSITIONS     warpx_push_leapfrog_positions_2d
 
 #define WRPX_LORENTZ_TRANSFORM_Z         warpx_lorentz_transform_z
-#define WRPX_FILTER                      warpx_filter_2d
 #define WRPX_COPY_SLICE                  warpx_copy_slice_2d
 #define WRPX_PXR_NCI_CORR_INIT           init_godfrey_filter_coeffs
 #define WRPX_PXR_GODFREY_FILTER          apply_godfrey_filter_z_2d
@@ -177,8 +175,6 @@ extern "C"
         void warpx_harris_laser( const long* np,
                                  amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* wavelength,
                                  amrex::Real* e_max, amrex::Real* waist, amrex::Real* duration, amrex::Real* f, amrex::Real* amplitude );
-
-        void parse_function_laser( const long* np, amrex::Real* Xp, amrex::Real* Yp, amrex::Real* t, amrex::Real* amplitude, const int parser_instance_number );
 
   void calculate_laser_plane_coordinates( const long* np,
        amrex::Real* xp, amrex::Real* yp, amrex::Real* zp,
@@ -452,10 +448,6 @@ extern "C"
                         const BL_FORT_FAB_ARG_ANYD(fine),
                         const int* ncomp);
 
-    void WRPX_FILTER (const int* lo, const int* hi,
-                      const amrex_real*, const int*, const int*,
-                      amrex_real*, const int*, const int*, int);
-
     void WRPX_PXR_NCI_CORR_INIT(amrex::Real*, amrex::Real*, const int,
                                 const amrex::Real, const int);
 
@@ -463,11 +455,6 @@ extern "C"
                                   amrex_real* fou, const int* olo, const int* ohi,
                                   const amrex_real* fin, const int* ilo, const int* ihi,
                                   const amrex_real* stencil, const int* nsten);
-
-    int parser_initialize_function(const char *str_func, const int len_func,
-                                   const char *str_var, const int len_var);
-
-    amrex::Real parser_evaluate_function(const amrex::Real*, const int, const int);
 
 #ifdef WARPX_USE_PSATD
     void warpx_fft_mpi_init (int fcomm);

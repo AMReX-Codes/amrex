@@ -91,14 +91,14 @@ IntVect WarpX::jy_nodal_flag(1,1);  // y is the missing dimension to 2D AMReX
 IntVect WarpX::jz_nodal_flag(1,0);  // z is the second dimension to 2D AMReX
 #endif
 
+IntVect WarpX::filter_npass_each_dir(1);
+
 int WarpX::n_field_gather_buffer = 0;
 int WarpX::n_current_deposition_buffer = -1;
 
 int WarpX::do_nodal = false;
 
 WarpX* WarpX::m_instance = nullptr;
-
-
 
 WarpX&
 WarpX::GetInstance ()
@@ -260,14 +260,14 @@ WarpX::ReadParameters ()
 	pp.query("cfl", cfl);
 	pp.query("verbose", verbose);
 	pp.query("regrid_int", regrid_int);
-        pp.query("do_subcycling", do_subcycling);
-
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
-                                         "Subcycling method 1 only works for 2 levels.");
-
-        ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
-
-        pp.queryarr("B_external", B_external);
+    pp.query("do_subcycling", do_subcycling);
+    
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_subcycling != 1 || max_level <= 1,
+                                     "Subcycling method 1 only works for 2 levels.");
+    
+    ReadBoostedFrameParameters(gamma_boost, beta_boost, boost_direction);
+    
+    pp.queryarr("B_external", B_external);
 
 	pp.query("do_moving_window", do_moving_window);
 	if (do_moving_window)
@@ -298,57 +298,67 @@ WarpX::ReadParameters ()
 
 	pp.query("do_plasma_injection", do_plasma_injection);
 	if (do_plasma_injection) {
-            pp.get("num_injected_species", num_injected_species);
-            injected_plasma_species.resize(num_injected_species);
-            pp.getarr("injected_plasma_species", injected_plasma_species,
-                      0, num_injected_species);
-            if (moving_window_v >= 0){
-                // Inject particles continuously from the right end of the box
-                current_injection_position = geom[0].ProbHi(moving_window_dir);
-            } else {
-                // Inject particles continuously from the left end of the box
-                current_injection_position = geom[0].ProbLo(moving_window_dir);
-            }
+        pp.get("num_injected_species", num_injected_species);
+        injected_plasma_species.resize(num_injected_species);
+        pp.getarr("injected_plasma_species", injected_plasma_species,
+                  0, num_injected_species);
+        if (moving_window_v >= 0){
+            // Inject particles continuously from the right end of the box
+            current_injection_position = geom[0].ProbHi(moving_window_dir);
+        } else {
+            // Inject particles continuously from the left end of the box
+            current_injection_position = geom[0].ProbLo(moving_window_dir);
+        }
 	}
 
-        pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
-        if (do_boosted_frame_diagnostic) {
+    pp.query("do_boosted_frame_diagnostic", do_boosted_frame_diagnostic);
+    if (do_boosted_frame_diagnostic) {
+        
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
+               "gamma_boost must be > 1 to use the boosted frame diagnostic.");
 
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(gamma_boost > 1.0,
-                 "gamma_boost must be > 1 to use the boosted frame diagnostic.");
+        std::string s;
+        pp.get("boost_direction", s);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
+               "The boosted frame diagnostic currently only works if the boost is in the z direction.");
 
-            std::string s;
-    	    pp.get("boost_direction", s);
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
-                "The boosted frame diagnostic currently only works if the boost is in the z direction.");
+        pp.get("num_snapshots_lab", num_snapshots_lab);
+        pp.get("dt_snapshots_lab", dt_snapshots_lab);
+        pp.get("gamma_boost", gamma_boost);
 
-            pp.get("num_snapshots_lab", num_snapshots_lab);
-            pp.get("dt_snapshots_lab", dt_snapshots_lab);
-            pp.get("gamma_boost", gamma_boost);
+        pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
+        pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
+        
+        
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
+               "The moving window should be on if using the boosted frame diagnostic.");
 
-            pp.query("do_boosted_frame_fields", do_boosted_frame_fields);
-            pp.query("do_boosted_frame_particles", do_boosted_frame_particles);
+        pp.get("moving_window_dir", s);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
+               "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
+    }
 
-
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_moving_window,
-                "The moving window should be on if using the boosted frame diagnostic.");
-
-	        pp.get("moving_window_dir", s);
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE( (s == "z" || s == "Z"),
-                "The boosted frame diagnostic currently only works if the moving window is in the z direction.");
-        }
-
-        pp.query("do_electrostatic", do_electrostatic);
-        pp.query("n_buffer", n_buffer);
-        pp.query("const_dt", const_dt);
+    pp.query("do_electrostatic", do_electrostatic);
+    pp.query("n_buffer", n_buffer);
+    pp.query("const_dt", const_dt);
 
 	pp.query("use_laser", use_laser);
+    // Read filter and fill IntVect filter_npass_each_dir with
+    // proper size for AMREX_SPACEDIM
 	pp.query("use_filter", use_filter);
+    Vector<int> parse_filter_npass_each_dir(AMREX_SPACEDIM,1);
+    pp.queryarr("filter_npass_each_dir", parse_filter_npass_each_dir);
+    filter_npass_each_dir[0] = parse_filter_npass_each_dir[0];
+    filter_npass_each_dir[1] = parse_filter_npass_each_dir[1];
+#if (AMREX_SPACEDIM == 3)
+    filter_npass_each_dir[2] = parse_filter_npass_each_dir[2];
+#endif   
+
 	pp.query("serialize_ics", serialize_ics);
 	pp.query("refine_plasma", refine_plasma);
-        pp.query("do_dive_cleaning", do_dive_cleaning);
-        pp.query("n_field_gather_buffer", n_field_gather_buffer);
-        pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
+    pp.query("do_dive_cleaning", do_dive_cleaning);
+    pp.query("n_field_gather_buffer", n_field_gather_buffer);
+    pp.query("n_current_deposition_buffer", n_current_deposition_buffer);
 	pp.query("sort_int", sort_int);
 
         pp.query("do_pml", do_pml);
@@ -371,6 +381,15 @@ WarpX::ReadParameters ()
         pp.query("plot_rho"          , plot_rho);
         pp.query("plot_F"            , plot_F);
         pp.query("plot_coarsening_ratio", plot_coarsening_ratio);
+        // Check that the coarsening_ratio can divide the blocking factor
+        for (int lev=0; lev<maxLevel(); lev++){
+          for (int comp=0; comp<AMREX_SPACEDIM; comp++){
+            if ( blockingFactor(lev)[comp] % plot_coarsening_ratio != 0 ){
+              amrex::Abort("plot_coarsening_ratio should be an integer divisor of the blocking factor.");
+            }
+          }
+        }
+        
         if (plot_F){
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_dive_cleaning,
                 "plot_F only works if warpx.do_dive_cleaning = 1");
@@ -785,7 +804,7 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
             current_buf[lev][0].reset( new MultiFab(amrex::convert(cba,jx_nodal_flag),dm,1,ngJ));
             current_buf[lev][1].reset( new MultiFab(amrex::convert(cba,jy_nodal_flag),dm,1,ngJ));
             current_buf[lev][2].reset( new MultiFab(amrex::convert(cba,jz_nodal_flag),dm,1,ngJ));
-            if (do_dive_cleaning) {
+            if (do_dive_cleaning || plot_rho) {
                 charge_buf[lev].reset( new MultiFab(amrex::convert(cba,IntVect::TheUnitVector()),dm,2,ngRho));
             }
             current_buffer_masks[lev].reset( new iMultiFab(ba, dm, 1, 1) );
@@ -949,33 +968,6 @@ WarpX::ComputeDivE (MultiFab& divE, int dcomp,
 }
 
 void
-WarpX::applyFilter (MultiFab& dstmf, const MultiFab& srcmf, int scomp, int dcomp, int ncomp)
-{
-    ncomp = std::min(ncomp, srcmf.nComp());
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    {
-        FArrayBox tmpfab;
-        for (MFIter mfi(dstmf,true); mfi.isValid(); ++mfi)
-        {
-            const auto& srcfab = srcmf[mfi];
-            auto& dstfab = dstmf[mfi];
-            const Box& tbx = mfi.growntilebox();
-            const Box& gbx = amrex::grow(tbx,1);
-            tmpfab.resize(gbx,ncomp);
-            tmpfab.setVal(0.0, gbx, 0, ncomp);
-            const Box& ibx = gbx & srcfab.box();
-            tmpfab.copy(srcfab, ibx, scomp, ibx, 0, ncomp);
-            WRPX_FILTER(BL_TO_FORTRAN_BOX(tbx),
-                        BL_TO_FORTRAN_ANYD(tmpfab),
-                        BL_TO_FORTRAN_N_ANYD(dstfab,dcomp),
-                        ncomp);
-        }
-    }
-}
-
-void
 WarpX::BuildBufferMasks ()
 {
     int ngbuffer = std::max(n_field_gather_buffer, n_current_deposition_buffer);
@@ -1044,3 +1036,24 @@ WarpX::RestoreCurrent (int lev)
         }
     }
 }
+
+std::string
+WarpX::Version ()
+{
+#ifdef WARPX_GIT_VERSION
+    return std::string(WARPX_GIT_VERSION);
+#else
+    return std::string("Unknown");
+#endif
+}
+
+std::string
+WarpX::PicsarVersion ()
+{
+#ifdef WARPX_GIT_VERSION
+    return std::string(PICSAR_GIT_VERSION);
+#else
+    return std::string("Unknown");
+#endif
+}
+
