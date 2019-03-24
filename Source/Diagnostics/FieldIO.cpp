@@ -13,15 +13,15 @@ using namespace amrex;
  * and reverse the order of the elements
  * (used for compatibility with the openPMD API)
  */
-std::vector<unsigned long>
+std::vector<unsigned long long>
 getReversedVec( const IntVect& v )
 {
   // Convert the IntVect v to and std::vector u
-  std::vector<unsigned long> u = {
+  std::vector<unsigned long long> u = {
     AMREX_D_DECL(
-                 static_cast<unsigned long>(v[0]),
-                 static_cast<unsigned long>(v[1]),
-                 static_cast<unsigned long>(v[2])
+                 static_cast<unsigned long long>(v[0]),
+                 static_cast<unsigned long long>(v[1]),
+                 static_cast<unsigned long long>(v[2])
                  )
   };
   // Reverse the order of elements, if v corresponds to the indices of a
@@ -74,7 +74,7 @@ WriteOpenPMDFields( const std::string& filename,
   // and since the openPMD API assumes contiguous C order
   // - Size of the box, in integer number of cells
   const Box& global_box = geom.Domain();
-  std::vector<unsigned long> global_size = getReversedVec(global_box.size());
+  auto global_size = getReversedVec(global_box.size());
   // - Grid spacing
   std::vector<double> grid_spacing = getReversedVec(geom.CellSize());
   // - Global offset
@@ -103,11 +103,11 @@ WriteOpenPMDFields( const std::string& filename,
     // Check if this field is a vector or a scalar, and extract the field name
     const std::string& varname = varnames[icomp];
     std::string field_name = varname;
-    std::string comp_name = "";
+    std::string comp_name = openPMD::MeshRecordComponent::SCALAR;
     bool is_vector = false;
     for (const char* vector_field: {"E", "B", "j"}){
         for (const char* comp: {"x", "y", "z"}){
-            if (varname[0] == *vectorfield && field_name[1] == *comp ){
+            if (varname[0] == *vector_field && varname[1] == *comp ){
                 is_vector = true;
                 field_name = varname[0] + varname.substr(2); // Strip component
                 comp_name = varname[1];
@@ -124,12 +124,7 @@ WriteOpenPMDFields( const std::string& filename,
 
     // TODO: Set units
     // Create a new mesh record, and store the associated metadata
-    openPMD::MeshRecordComponent mesh_record;
-    if (is_vector){
-        mesh_record = mesh[comp_name];
-    } else {
-        mesh_record = mesh[openPMD::MeshRecordComponent::SCALAR];
-    }
+    auto mesh_record = mesh[comp_name];
     mesh_record.resetDataset( dataset );
     // Cell-centered data: position is at 0.5 of a cell size.
     mesh_record.setPosition(std::vector<double>{AMREX_D_DECL(0.5, 0.5, 0.5)});
@@ -143,8 +138,8 @@ WriteOpenPMDFields( const std::string& filename,
 
       // Determine the offset and size of this chunk
       IntVect box_offset = local_box.smallEnd() - global_box.smallEnd();
-      std::vector<unsigned long> chunk_offset = getReversedVec(box_offset);
-      std::vector<unsigned long> chunk_size = getReversedVec(local_box.size());
+      auto chunk_offset = getReversedVec(box_offset);
+      auto chunk_size = getReversedVec(local_box.size());
 
       // Write local data
       const double* local_data = fab.dataPtr(icomp);
