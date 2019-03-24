@@ -66,7 +66,7 @@ Finally, compile WarpX:
 ::
 
     cd ../WarpX
-    export OPENPMD_LIB_PATH=../openPMD-install/lib64
+    export OPENPMD_LIB_PATH=../openPMD-install/lib
     export OPENPMD_INCLUDE_PATH=../openPMD-install/include
     make -j 4 USE_OPENPMD=TRUE
 
