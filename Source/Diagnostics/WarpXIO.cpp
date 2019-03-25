@@ -513,7 +513,6 @@ WarpX::WritePlotFile () const
             WriteRawField( *Bfield_aux[lev][0], dm, raw_pltname, level_prefix, "Bx_aux", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_aux[lev][1], dm, raw_pltname, level_prefix, "By_aux", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_aux[lev][2], dm, raw_pltname, level_prefix, "Bz_aux", lev, plot_raw_fields_guards);
-
             // Fine patch
             if (plot_finepatch) {
                 WriteRawField( *Efield_fp[lev][0], dm, raw_pltname, level_prefix, "Ex_fp", lev, plot_raw_fields_guards);
@@ -531,6 +530,12 @@ WarpX::WritePlotFile () const
                     WriteRawField( rho_new, dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
                 }
             }
+
+            // Coarse path
+            WriteCoarseVector( "E",
+                Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
+                Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
+                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards );
 
         }
     }
