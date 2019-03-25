@@ -61,6 +61,10 @@ Device::Initialize ()
     pp.query("v", verbose);
     pp.query("verbose", verbose);
 
+    if (amrex::Verbose()) {
+        amrex::Print() << "Initializing CUDA...\n";
+    }
+
     // Count the number of CUDA visible devices.
 
     int cuda_device_count;
