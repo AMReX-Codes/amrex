@@ -187,6 +187,7 @@ namespace amrex
         return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
     }
 
+    inline
     XDim3 makeXDim3 (const Array<Real,AMREX_SPACEDIM>& a) noexcept
     {
 #if (AMREX_SPACEDIM == 1)
