@@ -112,6 +112,8 @@ protected:
 
     static void read_params ();
 
+    const amrex::MultiFab& volFrac () const { return *volfrac; }
+
     CNS& getLevel (int lev) { return dynamic_cast<CNS&>(parent->getLevel(lev)); }
 
     void avgDown ();
@@ -130,9 +132,21 @@ protected:
 
     void printTotal () const;
 
+    const amrex::MultiFab* volfrac;
+    const amrex::MultiCutFab* bndrycent;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> areafrac;
+    std::array<const amrex::MultiCutFab*,AMREX_SPACEDIM> facecent;
+
+    amrex::iMultiFab level_mask;
+
     std::unique_ptr<amrex::FluxRegister> flux_reg;
 
-    static constexpr int NUM_GROW = 2;
+    static constexpr int level_mask_interior   = 0; // valid cells
+    static constexpr int level_mask_covered    = 1; // ghost cells covered by valid cells of this level
+    static constexpr int level_mask_notcovered = 2; // ghost cells not covered
+    static constexpr int level_mask_physbnd    = 3; // outside domain
+
+    static constexpr int NUM_GROW = 5;
     enum StateVariable {
         Density = 0, Xmom, Ymom, Zmom, Eden, Eint, Temp,
         NUM_STATE

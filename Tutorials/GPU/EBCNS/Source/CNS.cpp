@@ -11,6 +11,11 @@
 
 using namespace amrex;
 
+constexpr int CNS::level_mask_interior;
+constexpr int CNS::level_mask_covered;
+constexpr int CNS::level_mask_notcovered;
+constexpr int CNS::level_mask_physbnd;
+
 constexpr int CNS::NUM_GROW;
 
 BCRec     CNS::phys_bc;
@@ -384,6 +389,21 @@ CNS::buildMetrics ()
     if (std::abs(dx[0]-dx[1]) > 1.e-12*dx[0] || std::abs(dx[0]-dx[2]) > 1.e-12*dx[0]) {
         amrex::Abort("CNS: must have dx == dy == dz\n");
     }
+
+    const auto& ebfactory = dynamic_cast<EBFArrayBoxFactory const&>(Factory());
+    
+    volfrac = &(ebfactory.getVolFrac());
+    bndrycent = &(ebfactory.getBndryCent());
+    areafrac = ebfactory.getAreaFrac();
+    facecent = ebfactory.getFaceCent();
+
+    level_mask.clear();
+    level_mask.define(grids,dmap,1,1);
+    level_mask.BuildMask(geom.Domain(), geom.periodicity(), 
+                         level_mask_covered,
+                         level_mask_notcovered,
+                         level_mask_physbnd,
+                         level_mask_interior);
 }
 
 Real
