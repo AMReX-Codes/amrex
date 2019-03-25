@@ -12,12 +12,9 @@ add_library( amrex "" )
 # to target object "amrex".
 # If headers are detected, this function add the
 # header's path to the include paths
-# Variable PUBLIC_HEADERS accumulate all the headers for
-# final installation
 # WARNING: this routine add automatically ${CMAKE_CURRENT_LIST_DIR}
 # to the input source file, so always add sources using the path relative
 # to the directory where add_sources is called from
-set(PUBLIC_HEADERS)
 macro( add_sources )
    foreach( item IN ITEMS ${ARGV} )
       target_sources( amrex PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${item})
@@ -31,16 +28,9 @@ macro( add_sources )
 	 # where <relative-path> is the path relative to the directory containing
 	 # the list file invoking add_sources
 	 get_filename_component( dir ${CMAKE_CURRENT_LIST_DIR}/${item} DIRECTORY )
-	 list( APPEND PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/${item} )
 	 target_include_directories( amrex PUBLIC $<BUILD_INTERFACE:${dir}> )
       endif()
-      
-      # If it's a cpp file and ENABLE_CUDA is on, then force cpp file
-      # to be compiled with CUDA compiler    
-      if ( ENABLE_CUDA AND ( ${ext} STREQUAL ".cpp") ) 
-         set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/${item}
-            PROPERTIES LANGUAGE CUDA )
-      endif ()
+
    endforeach ()
    unset(ext)
    unset(dir)
@@ -127,16 +117,25 @@ if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
       COMMENT "Generating AMReX_buildInfo.cpp" )
    
    target_sources( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
-   if ( ENABLE_CUDA ) 
-      set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/AMReX_buildInfo.cpp 
-         PROPERTIES LANGUAGE CUDA )
-   endif ()
 endif ()
 
 #
-# Set property to export public header
+# Make all headers as PUBLIC HEADERS so that they get installed
 #
-set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+get_target_property(AMREX_SOURCES amrex SOURCES)
+
+set(AMREX_PUBLIC_HEADERS ${AMREX_SOURCES})
+list(FILTER AMREX_PUBLIC_HEADERS INCLUDE REGEX "\\.H")
+set_target_properties( amrex PROPERTIES PUBLIC_HEADER "${AMREX_PUBLIC_HEADERS}")
+
+#
+# If ENABLE_CUDA, make C++ files be compiled as CUDA sources 
+#
+if (ENABLE_CUDA)
+   set(AMREX_CUDA_SOURCES ${AMREX_SOURCES})
+   list(FILTER AMREX_CUDA_SOURCES INCLUDE REGEX "\\.cpp")
+   set_source_files_properties(${AMREX_CUDA_SOURCES} PROPERTIES LANGUAGE CUDA )
+endif ()
 
 
 #
@@ -149,12 +148,6 @@ configure_package_config_file (
    ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
    INSTALL_DESTINATION bin/cmake/AMReX )
-
-# # File for build tree
-# configure_package_config_file (
-#    ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
-#    ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
-#    INSTALL_DESTINATION bin/cmake/AMReX )
 
 # 
 # Package version is a modified form of AMREX_GIT_VERSION
