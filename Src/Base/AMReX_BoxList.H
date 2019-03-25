@@ -91,9 +91,9 @@ public:
     //! Append a Box to this BoxList.
     void push_back (const Box& bn) { BL_ASSERT(ixType() == bn.ixType()); m_lbox.push_back(bn); }
 
-    Box& front () { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
+    Box& front () noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
-    const Box& front () const { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
+    const Box& front () const noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
     //! Join the BoxList to ourselves.
     void join (const BoxList& blist);
@@ -105,29 +105,29 @@ public:
     //! Remove all Boxes from this BoxList.
     void clear ();
     //! The number of Boxes in this BoxList.
-    int size () const { return m_lbox.size(); }
+    int size () const noexcept { return m_lbox.size(); }
 
-    std::size_t capacity () const { return m_lbox.capacity(); }
+    std::size_t capacity () const noexcept { return m_lbox.capacity(); }
 
-    iterator begin () { return m_lbox.begin(); }
-    const_iterator begin () const { return m_lbox.begin(); }
+    iterator begin () noexcept { return m_lbox.begin(); }
+    const_iterator begin () const noexcept { return m_lbox.begin(); }
 
-    iterator end () { return m_lbox.end(); }
-    const_iterator end () const { return m_lbox.end(); }
+    iterator end () noexcept { return m_lbox.end(); }
+    const_iterator end () const noexcept { return m_lbox.end(); }
     /**
     * \brief True if this BoxList is valid; i.e. all the Boxes are
     * valid and they all have the same IndexType.  Also returns
     * true if the BoxList is empty.
     */
-    bool ok () const;
+    bool ok () const noexcept;
     //! Is this BoxList equal to rhs?
     bool operator== (const BoxList& rhs) const;
     //! Is this BoxList notequal to rhs?
     bool operator!= (const BoxList& rhs) const;
     //! Is this BoxList empty?
-    bool isEmpty () const { return m_lbox.empty(); }
+    bool isEmpty () const noexcept { return m_lbox.empty(); }
     //! Is this BoxList not empty?
-    bool isNotEmpty () const { return !m_lbox.empty(); }
+    bool isNotEmpty () const noexcept { return !m_lbox.empty(); }
     //! True if the set of intersecting Boxes is empty.
     bool isDisjoint () const;
     //! True if all Boxes in bl are contained in this BoxList.
@@ -180,30 +180,30 @@ public:
     //! Returns smallest Box that contains all Boxes in this BoxList.
     Box minimalBox () const;
     //! Returns the IndexType of Boxes in this BoxList.
-    IndexType ixType () const { return btype; }
+    IndexType ixType () const noexcept { return btype; }
     //! Set the type of the BoxList.  It's an error if the BoxList isn't empty.
-    void set (IndexType ixtyp) { BL_ASSERT(m_lbox.empty()); btype = ixtyp; }
+    void set (IndexType ixtyp) noexcept { BL_ASSERT(m_lbox.empty()); btype = ixtyp; }
     /**
     * \brief Applies surroundingNodes(Box) to each Box in BoxArray.
     * See the documentation of Box for details.
     */
-    BoxList& surroundingNodes ();
+    BoxList& surroundingNodes () noexcept;
     /**
     * \brief Applies surroundingNodes(Box,int) to each Box in
     * BoxList.  See the documentation of Box for details.
     */
-    BoxList& surroundingNodes (int dir);
+    BoxList& surroundingNodes (int dir) noexcept;
     //! Applies Box::enclosedCells() to each Box in the BoxList.
-    BoxList& enclosedCells ();
+    BoxList& enclosedCells () noexcept;
     //! Applies Box::enclosedCells(int) to each Box in the BoxList.
-    BoxList& enclosedCells  (int dir);
+    BoxList& enclosedCells  (int dir) noexcept;
     //! Applies Box::convert(IndexType) to each Box in the BoxList.
-    BoxList& convert (IndexType typ);
+    BoxList& convert (IndexType typ) noexcept;
 
     //! Returns a reference to the Vector<Box>.
-    Vector<Box>& data() { return m_lbox; }
+    Vector<Box>& data() noexcept { return m_lbox; }
     //! Returns a constant reference to the Vector<Box>.
-    const Vector<Box>& data() const { return m_lbox; }
+    const Vector<Box>& data() const noexcept { return m_lbox; }
 
     void swap (BoxList& rhs) {
 	std::swap(m_lbox, rhs.m_lbox);

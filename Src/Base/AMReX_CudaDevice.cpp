@@ -61,6 +61,10 @@ Device::Initialize ()
     pp.query("v", verbose);
     pp.query("verbose", verbose);
 
+    if (amrex::Verbose()) {
+        amrex::Print() << "Initializing CUDA...\n";
+    }
+
     // Count the number of CUDA visible devices.
 
     int cuda_device_count;
@@ -270,13 +274,13 @@ Device::initialize_cuda ()
 }
 
 int
-Device::deviceId ()
+Device::deviceId () noexcept
 {
     return device_id;
 }
 
 void
-Device::setStreamIndex (const int idx)
+Device::setStreamIndex (const int idx) noexcept
 {
 #ifdef AMREX_USE_CUDA
     if (idx < 0) {
@@ -360,7 +364,14 @@ Device::mem_advise_set_readonly (void* p, const std::size_t sz) {
 #if defined(AMREX_USE_CUDA)
 
 void
-Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
+Device::setNumThreadsMin (int nx, int ny, int nz) noexcept {
+    numThreadsMin.x = nx;
+    numThreadsMin.y = ny;
+    numThreadsMin.z = nz;
+}
+
+void
+Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads) noexcept
 {
     numThreads = AMREX_CUDA_MAX_THREADS;
     numBlocks = std::max((N + AMREX_CUDA_MAX_THREADS - 1) / AMREX_CUDA_MAX_THREADS, 1L); // in case N = 0
@@ -368,14 +379,14 @@ Device::n_threads_and_blocks (const long N, dim3& numBlocks, dim3& numThreads)
 
 void
 Device::c_comps_threads_and_blocks (const int* lo, const int* hi, const int comps,
-                                    dim3& numBlocks, dim3& numThreads)
+                                    dim3& numBlocks, dim3& numThreads) noexcept
 {
     c_threads_and_blocks(lo, hi, numBlocks, numThreads);
     numBlocks.x *= static_cast<unsigned>(comps);
 }
 
 void
-Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads)
+Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim3& numThreads) noexcept
 {
     // Our threading strategy will be to allocate thread blocks
     //preferring the x direction first to guarantee coalesced accesses.
@@ -433,14 +444,13 @@ Device::c_threads_and_blocks (const int* lo, const int* hi, dim3& numBlocks, dim
 }
 
 void
-Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads)
+Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads) noexcept
 {
     int num_SMs = device_prop.multiProcessorCount;
 
     int SM_mult_factor = 32;
 
     if (num_SMs > 0) {
-
 
         numBlocks.x = 1;
         numBlocks.y = SM_mult_factor;
@@ -456,9 +466,32 @@ Device::grid_stride_threads_and_blocks (dim3& numBlocks, dim3& numThreads)
 
     }
 
-    numThreads.x = std::max((int) numThreadsMin.x, 16);
-    numThreads.y = std::max((int) numThreadsMin.y, 16);
-    numThreads.z = std::max((int) numThreadsMin.z, 1);
+#if (AMREX_SPACEDIM == 1)
+
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS);
+    numThreads.x = std::max(numThreads.x, numThreadsMin.x);
+    numThreads.y = 1;
+    numThreads.z = 1;
+
+#elif (AMREX_SPACEDIM == 2)
+
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / numThreadsMin.y);
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / numThreads.x);
+    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
+    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
+    numThreads.z = 1;
+
+#else
+
+    numThreads.x = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[0]), AMREX_CUDA_MAX_THREADS / (numThreadsMin.y * numThreadsMin.z));
+    numThreads.y = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[1]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreadsMin.z));
+    numThreads.z = std::min(static_cast<unsigned>(device_prop.maxThreadsDim[2]), AMREX_CUDA_MAX_THREADS / (numThreads.x    * numThreads.y   ));
+
+    numThreads.x = std::max(numThreadsMin.x, numThreads.x);
+    numThreads.y = std::max(numThreadsMin.y, numThreads.y);
+    numThreads.z = std::max(numThreadsMin.z, numThreads.z);
+
+#endif
 
     // Allow the user to override these at runtime.
 

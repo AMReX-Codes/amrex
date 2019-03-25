@@ -21,14 +21,8 @@ CoordSys::CoordType CoordSys::c_sys = CoordSys::undef;
 
 Real CoordSys::offset[AMREX_SPACEDIM];
 
-CoordSys::CoordType
-CoordSys::Coord ()
-{
-    return c_sys;
-}
-
 int
-CoordSys::CoordInt ()
+CoordSys::CoordInt () noexcept
 {
     switch (c_sys)
     {
@@ -81,8 +75,7 @@ CoordSys::CoordSys (const Real* cell_dx)
 }
 
 void
-CoordSys::CellCenter (const IntVect& point,
-                      Real*          loc) const
+CoordSys::CellCenter (const IntVect& point, Real* loc) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(loc != 0);
@@ -93,8 +86,7 @@ CoordSys::CellCenter (const IntVect& point,
 }
 
 void
-CoordSys::CellCenter (const IntVect& point,
-                      Vector<Real>&   loc) const
+CoordSys::CellCenter (const IntVect& point, Vector<Real>& loc) const noexcept
 {
     AMREX_ASSERT(ok);
     loc.resize(AMREX_SPACEDIM);
@@ -104,7 +96,7 @@ CoordSys::CellCenter (const IntVect& point,
 void
 CoordSys::LoFace (const IntVect& point,
                   int            dir,
-                  Real*          loc) const
+                  Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(loc != 0);
@@ -118,7 +110,7 @@ CoordSys::LoFace (const IntVect& point,
 void
 CoordSys::LoFace (const IntVect& point,
                   int            dir,
-                  Vector<Real>&   loc) const
+                  Vector<Real>&   loc) const noexcept
 {
     loc.resize(AMREX_SPACEDIM);
     LoFace(point,dir, loc.dataPtr());
@@ -127,7 +119,7 @@ CoordSys::LoFace (const IntVect& point,
 void
 CoordSys::HiFace (const IntVect& point,
                   int            dir,
-                  Real*          loc) const
+                  Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(loc != 0);
@@ -141,7 +133,7 @@ CoordSys::HiFace (const IntVect& point,
 void
 CoordSys::HiFace (const IntVect& point,
                   int            dir,
-                  Vector<Real>&   loc) const
+                  Vector<Real>&   loc) const noexcept
 {
     loc.resize(AMREX_SPACEDIM);
     HiFace(point,dir, loc.dataPtr());
@@ -149,7 +141,7 @@ CoordSys::HiFace (const IntVect& point,
 
 void
 CoordSys::LoNode (const IntVect& point,
-                  Real*          loc) const
+                  Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(loc != 0);
@@ -161,7 +153,7 @@ CoordSys::LoNode (const IntVect& point,
 
 void
 CoordSys::LoNode (const IntVect& point,
-                  Vector<Real>&   loc) const
+                  Vector<Real>&   loc) const noexcept
 {
     loc.resize(AMREX_SPACEDIM);
     LoNode(point, loc.dataPtr());
@@ -169,7 +161,7 @@ CoordSys::LoNode (const IntVect& point,
 
 void
 CoordSys::HiNode (const IntVect& point,
-                  Real*          loc) const
+                  Real*          loc) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(loc != 0);
@@ -181,14 +173,14 @@ CoordSys::HiNode (const IntVect& point,
 
 void
 CoordSys::HiNode (const IntVect& point,
-                  Vector<Real>&   loc) const
+                  Vector<Real>&   loc) const noexcept
 {
     loc.resize(AMREX_SPACEDIM);
     HiNode(point, loc.dataPtr());
 }
 
 IntVect
-CoordSys::CellIndex (const Real* point) const
+CoordSys::CellIndex (const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(point != 0);
@@ -201,7 +193,7 @@ CoordSys::CellIndex (const Real* point) const
 }
 
 IntVect
-CoordSys::LowerIndex (const Real* point) const
+CoordSys::LowerIndex (const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(point != 0);
@@ -214,7 +206,7 @@ CoordSys::LowerIndex (const Real* point) const
 }
 
 IntVect
-CoordSys::UpperIndex(const Real* point) const
+CoordSys::UpperIndex(const Real* point) const noexcept
 {
     AMREX_ASSERT(ok);
     AMREX_ASSERT(point != 0);
@@ -547,8 +539,7 @@ CoordSys::Volume (const Real xlo[AMREX_SPACEDIM],
 }                      
 
 Real
-CoordSys::AreaLo (const IntVect& point,
-                  int            dir) const
+CoordSys::AreaLo (const IntVect& point, int dir) const noexcept
 {
 #if (AMREX_SPACEDIM==2)
     Real xlo[AMREX_SPACEDIM];
@@ -583,8 +574,7 @@ CoordSys::AreaLo (const IntVect& point,
 }
 
 Real
-CoordSys::AreaHi (const IntVect& point,
-                  int            dir) const
+CoordSys::AreaHi (const IntVect& point, int dir) const noexcept
 {
 #if (AMREX_SPACEDIM==2)
     Real xhi[AMREX_SPACEDIM];

@@ -5,7 +5,7 @@
 
 namespace amrex {
 
-Mask::Mask ()
+Mask::Mask () noexcept
     :
     BaseFab<int>() {}
 

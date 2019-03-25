@@ -13,7 +13,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_fill_slice_interp (Box const& bx, FArrayBox & slicefab, FArrayBox const& fullfab,
                               int scomp, int fcomp, int ncomp,
-                              int dir, Real coord, GeometryData const& gd)
+                              int dir, Real coord, GeometryData const& gd) noexcept
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);

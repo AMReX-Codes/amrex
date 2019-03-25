@@ -9,7 +9,7 @@ template <class Tto, class Tfrom>
 AMREX_GPU_HOST_DEVICE
 void
 cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
-      Box const& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp)
+      Box const& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);

@@ -288,17 +288,17 @@ public:
     /**
     * \brief The name of the quantity to derive.
     */
-    const std::string& name () const;
+    const std::string& name () const noexcept;
 
     /**
     * \brief The number of extra zones needed for derivation.
     */
-    int nGrow () const;
+    int nGrow () const noexcept;
 
     /**
     * \brief The type of the error tagging.
     */
-    ErrorType errType () const;
+    ErrorType errType () const noexcept;
 
     /**
     * \brief The extern "C" functions to do the error tagging.
@@ -332,12 +332,12 @@ private:
 class ErrorList
 {
 public:
-    ErrorList() {}
+    ErrorList() noexcept {}
 
     /**
     * \brief The number of ErrorRecs in the list.
     */
-    int size () const;
+    int size () const noexcept;
 
     /**
     * \brief Append a new ErrorRec to the list.
@@ -358,7 +358,7 @@ public:
               const ErrorRec::ErrorFunc2&   func);
 
     //! The kth ErrorRec.
-    const ErrorRec& operator[] (int k) const;
+    const ErrorRec& operator[] (int k) const noexcept;
 
     void clear (bool rs0 = false) { vec.clear(); if(rs0) { vec.resize(0); } }
 

@@ -221,7 +221,7 @@ def write_probin(probin_template, param_A_files, param_B_files,
                             fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
                         elif type == "character":
-                            fout.write("{}character (len=256), allocatable, public :: {}\n".format(
+                            fout.write("{}character (len=256), public :: {}\n".format(
                                 indent, pm[n].var, pm[n].value))
                             fout.write("{}!$acc declare create({})\n".format(indent, pm[n].var))
 
@@ -275,13 +275,15 @@ def write_probin(probin_template, param_A_files, param_B_files,
                     elif keyword == "cudaattributesB":
                         pm = paramsB
                     for pmi in pm:
-                        fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
+                        if pmi.type != "character":
+                            fout.write("{}attributes(managed) :: {}\n".format(indent, pmi.var))
 
             elif keyword == "allocations":
                 if managed:
                     pm = paramsA + paramsB
                     for pmi in pm:
-                        fout.write("{}allocate({})\n".format(indent, pmi.var))
+                        if pmi.type != "character":
+                            fout.write("{}allocate({})\n".format(indent, pmi.var))
 
             elif keyword == "initialize":
                 if managed:
@@ -293,7 +295,8 @@ def write_probin(probin_template, param_A_files, param_B_files,
                 if managed:
                     pm = paramsA + paramsB
                     for pmi in pm:
-                        fout.write("{}deallocate({})\n".format(indent, pmi.var))
+                        if pmi.type != "character":
+                            fout.write("{}deallocate({})\n".format(indent, pmi.var))
 
             elif keyword == "namelist":
 

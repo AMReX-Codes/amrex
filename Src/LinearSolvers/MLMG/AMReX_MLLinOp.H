@@ -32,12 +32,12 @@ struct LPInfo
     bool has_metric_term = true;
     int max_coarsening_level = 30;
 
-    LPInfo& setAgglomeration (bool x) { do_agglomeration = x; return *this; }
-    LPInfo& setConsolidation (bool x) { do_consolidation = x; return *this; }
-    LPInfo& setAgglomerationGridSize (int x) { agg_grid_size = x; return *this; }
-    LPInfo& setConsolidationGridSize (int x) { con_grid_size = x; return *this; }
-    LPInfo& setMetricTerm (bool x) { has_metric_term = x; return *this; }
-    LPInfo& setMaxCoarseningLevel (int n) { max_coarsening_level = n; return *this; }
+    LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
+    LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
+    LPInfo& setAgglomerationGridSize (int x) noexcept { agg_grid_size = x; return *this; }
+    LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
+    LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
+    LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
 };
 
 class MLLinOp
@@ -82,7 +82,7 @@ public:
     * \param hibc
     */
     void setDomainBC (const Array<BCType,AMREX_SPACEDIM>& lobc,
-                      const Array<BCType,AMREX_SPACEDIM>& hibc);
+                      const Array<BCType,AMREX_SPACEDIM>& hibc) noexcept;
 
 
     /**
@@ -91,7 +91,7 @@ public:
     * supplying Dirichlet bc at coarse/fine boundary, even when the
     * domain bc is not Dirichlet.
     */
-    bool needsCoarseDataForBC () const { return m_needs_coarse_data_for_bc; }
+    bool needsCoarseDataForBC () const noexcept { return m_needs_coarse_data_for_bc; }
 
 
     /**
@@ -104,7 +104,7 @@ public:
     * \param crse
     * \param crse_ratio
     */
-    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio) noexcept;
 
 
     /**
@@ -124,10 +124,10 @@ public:
     */
     virtual void setLevelBC (int amrlev, const MultiFab* levelbcdata) = 0;
 
-    void setVerbose (int v) { verbose = v; }
+    void setVerbose (int v) noexcept { verbose = v; }
 
-    void setMaxOrder (int o) { maxorder = o; }
-    int getMaxOrder () const { return maxorder; }
+    void setMaxOrder (int o) noexcept { maxorder = o; }
+    int getMaxOrder () const noexcept { return maxorder; }
 
     virtual int getNComp() const { return 1; }
 
@@ -229,7 +229,7 @@ protected:
     MPI_Comm m_bottom_comm = MPI_COMM_NULL;
     struct CommContainer {
         MPI_Comm comm;
-        CommContainer (MPI_Comm m) : comm(m) {}
+        CommContainer (MPI_Comm m) noexcept : comm(m) {}
         CommContainer (const CommContainer&) = delete;
         CommContainer (CommContainer&&) = delete;
         void operator= (const CommContainer&) = delete;
@@ -255,23 +255,23 @@ protected:
     /**
     * \brief functions
     */
-    int NAMRLevels () const { return m_num_amr_levels; }
-    int NMGLevels (int amrlev) const { return m_num_mg_levels[amrlev]; }
-    const Vector<int>& AMRRefRatio () const { return m_amr_ref_ratio; }
-    int AMRRefRatio (int amr_lev) const { return m_amr_ref_ratio[amr_lev]; }
+    int NAMRLevels () const noexcept { return m_num_amr_levels; }
+    int NMGLevels (int amrlev) const noexcept { return m_num_mg_levels[amrlev]; }
+    const Vector<int>& AMRRefRatio () const noexcept { return m_amr_ref_ratio; }
+    int AMRRefRatio (int amr_lev) const noexcept { return m_amr_ref_ratio[amr_lev]; }
 
-    const Geometry& Geom (int amr_lev, int mglev=0) const { return m_geom[amr_lev][mglev]; }
-    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const {
+    const Geometry& Geom (int amr_lev, int mglev=0) const noexcept { return m_geom[amr_lev][mglev]; }
+    FabFactory<FArrayBox> const* Factory (int amr_lev, int mglev=0) const noexcept {
         return m_factory[amr_lev][mglev].get();
     }
 
 #ifdef BL_USE_MPI
-    bool isBottomActive () const { return m_bottom_comm != MPI_COMM_NULL; }
+    bool isBottomActive () const noexcept { return m_bottom_comm != MPI_COMM_NULL; }
 #else
-    bool isBottomActive () const { return true; }
+    bool isBottomActive () const noexcept { return true; }
 #endif
-    MPI_Comm BottomCommunicator () const { return m_bottom_comm; }
-    MPI_Comm Communicator (int amrlev, int mglev) const {
+    MPI_Comm BottomCommunicator () const noexcept { return m_bottom_comm; }
+    MPI_Comm Communicator (int amrlev, int mglev) const noexcept {
         if (amrlev == 0 && mglev == NMGLevels(0)-1) {
             return m_bottom_comm;
         } else {
@@ -279,12 +279,12 @@ protected:
         }
     }
 
-    void setCoarseFineBCLocation (const RealVect& cloc) { m_coarse_bc_loc = cloc; }
+    void setCoarseFineBCLocation (const RealVect& cloc) noexcept { m_coarse_bc_loc = cloc; }
 
-    bool doAgglomeration () const { return m_do_agglomeration; }
-    bool doConsolidation () const { return m_do_consolidation; }
+    bool doAgglomeration () const noexcept { return m_do_agglomeration; }
+    bool doConsolidation () const noexcept { return m_do_consolidation; }
 
-    bool isCellCentered () const { return m_ixtype == 0; }
+    bool isCellCentered () const noexcept { return m_ixtype == 0; }
 
     void make (Vector<Vector<MultiFab> >& mf, int nc, int ng) const;
 

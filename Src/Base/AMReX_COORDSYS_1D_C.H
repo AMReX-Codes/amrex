@@ -13,7 +13,7 @@ inline
 void
 amrex_setvol (Box const& bx, Array4<Real> const& vol,
               GpuArray<Real,1> const& offset,
-              GpuArray<Real,1> const& dx, const int coord)
+              GpuArray<Real,1> const& dx, const int coord) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -55,7 +55,7 @@ inline
 void
 amrex_setarea (Box const& bx, Array4<Real> const& area,
                GpuArray<Real,1> const& offset,
-               GpuArray<Real,1> const& dx, const int /*dir*/, const int coord)
+               GpuArray<Real,1> const& dx, const int /*dir*/, const int coord) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);
@@ -94,7 +94,7 @@ inline
 void
 amrex_setdloga (Box const& bx, Array4<Real> const& dloga,
                 GpuArray<Real,1> const& offset,
-                GpuArray<Real,1> const& dx, const int /*dir*/, const int coord)
+                GpuArray<Real,1> const& dx, const int /*dir*/, const int coord) noexcept
 {
     const auto lo = amrex::lbound(bx);
     const auto hi = amrex::ubound(bx);

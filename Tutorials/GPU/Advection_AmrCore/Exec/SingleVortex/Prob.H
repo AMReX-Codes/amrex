@@ -3,7 +3,6 @@
 
 #include <AmrCoreAdv_F.H>
 
-#include <Prob.H>
 #include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Geometry.H>
@@ -24,12 +23,12 @@ initdata(Box const& bx, Array4<Real> const& phi, GeometryData const& geomdata)
 #ifdef _OPENMP
 #pragma omp parallel for collapse(2) if (GPU::notInLaunchRegion)
 #endif
-    for         (int k = lo.z; k < hi.z; ++k) {
-        for     (int j = lo.y; j < hi.y; ++j) {
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
             Real z = prob_lo[2] + (0.5+k) * dx[2];
             Real y = prob_lo[1] + (0.5+j) * dx[1];
             AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i < hi.x; ++i) {
+            for (int i = lo.x; i <= hi.x; ++i) {
                 Real x = prob_lo[0] + (0.5+i) * dx[0]; 
 #if (AMREX_SPACEDIM == 2)
                 Real r2 = (pow(x-0.5, 2) + pow((y-0.75),2)) / 0.01;

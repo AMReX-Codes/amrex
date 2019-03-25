@@ -76,27 +76,27 @@ public:
     /**
     * \brief Returns the refinement ratio.
     */
-    const IntVect& refRatio () const;
+    const IntVect& refRatio () const noexcept;
 
     /**
     * \brief Returns the level number of the fine level.
     */
-    int fineLevel () const;
+    int fineLevel () const noexcept;
 
     /**
     * \brief Returns the level number of the coarse level (fineLevel()-1).
     */
-    int crseLevel () const;
+    int crseLevel () const noexcept;
 
     /**
     * \brief The number of components.
     */
-    int nComp () const;
+    int nComp () const noexcept;
 
     /**
     * \brief The coarsened boxes.
     */
-    const BoxArray& coarsenedBoxes () const;
+    const BoxArray& coarsenedBoxes () const noexcept;
 
     /**
     * \brief Returns the sum of the registers.
@@ -245,7 +245,7 @@ public:
                   int              srccomp,
                   int              destcomp,
                   int              numcomp,
-                  Real             mult);
+                  Real             mult) noexcept;
 
     /**
     * \brief Increment flux correction with fine data.
@@ -266,7 +266,7 @@ public:
                   int              srccomp,
                   int              destcomp,
                   int              numcomp,
-                  Real             mult);
+                  Real             mult) noexcept;
 
     /**
     * \brief Set flux correction data for a fine box (given by boxno) to a given value.
@@ -282,7 +282,7 @@ public:
                      int              boxno,
                      int              destcomp,
                      int              numcomp,
-                     Real             val);
+                     Real             val) noexcept;
 
     /**
     * \brief Apply flux correction.  Note that this takes the coarse Geometry.
@@ -371,14 +371,6 @@ public:
                  Real scale, int scomp, int dcomp, int nc, const Geometry& geom);
 
 private:
-
-    /**
-    * \brief Helper member function.
-    *
-    * \param fab
-    * \param dir
-    */
-    void increment (const FArrayBox& fab, int dir);
 
     //! Refinement ratio
     IntVect ratio;

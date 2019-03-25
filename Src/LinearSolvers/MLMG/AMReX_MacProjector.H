@@ -25,12 +25,12 @@ public:
     void project (const Vector<MultiFab*>& phi_in, Real reltol, Real atol = 0.0 );
     void project (Real reltol, Real atol = 0.0 );
 
-    void setVerbose (int v) { m_verbose = v; }
+    void setVerbose (int v) noexcept { m_verbose = v; }
 
-    void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in)
+    void setBottomSolver (MLMG::BottomSolver bottom_solver_type_in) noexcept
      { bottom_solver_type = bottom_solver_type_in;}
 
-    MLLinOp& getLinOp () { return *m_linop; }
+    MLLinOp& getLinOp () noexcept { return *m_linop; }
 
 private:
 

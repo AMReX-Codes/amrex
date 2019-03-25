@@ -128,7 +128,7 @@ namespace
 
 
 bool
-Amr::UsingPrecreateDirectories()
+Amr::UsingPrecreateDirectories () noexcept
 {
     return precreateDirectories;
 }
@@ -188,38 +188,38 @@ Amr::DataLog (int i)
 }
 
 int
-Amr::NumDataLogs ()
+Amr::NumDataLogs () noexcept
 {
     return datalog.size();
 }
 
 bool
-Amr::RegridOnRestart () const
+Amr::RegridOnRestart () const noexcept
 {
     return regrid_on_restart;
 }
 
 void
-Amr::setDtMin (const Vector<Real>& dt_min_in)
+Amr::setDtMin (const Vector<Real>& dt_min_in) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         dt_min[i] = dt_min_in[i];
 }
 
 Vector<std::unique_ptr<AmrLevel> >&
-Amr::getAmrLevels ()
+Amr::getAmrLevels () noexcept
 {
     return amr_level;
 }
 
 long
-Amr::cellCount (int lev)
+Amr::cellCount (int lev) noexcept
 {
     return amr_level[lev]->countCells();
 }
 
 int
-Amr::numGrids (int lev)
+Amr::numGrids (int lev) noexcept
 {
     return amr_level[lev]->numGrids();
 }
@@ -655,7 +655,7 @@ Amr::deleteStatePlotVar (const std::string& name)
 }
 
 bool
-Amr::isDerivePlotVar (const std::string& name)
+Amr::isDerivePlotVar (const std::string& name) noexcept
 {
     for (std::list<std::string>::const_iterator li = derive_plot_vars.begin(), End = derive_plot_vars.end();
          li != End;
@@ -670,7 +670,7 @@ Amr::isDerivePlotVar (const std::string& name)
 }
 
 bool
-Amr::isDeriveSmallPlotVar (const std::string& name)
+Amr::isDeriveSmallPlotVar (const std::string& name) noexcept
 {
     for (std::list<std::string>::const_iterator li = derive_small_plot_vars.begin(), End = derive_small_plot_vars.end();
          li != End;
@@ -818,27 +818,27 @@ Amr::setRecordDataInfo (int i, const std::string& filename)
 }
 
 void
-Amr::setDtLevel (const Vector<Real>& dt_lev)
+Amr::setDtLevel (const Vector<Real>& dt_lev) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         dt_level[i] = dt_lev[i];
 }
 
 void
-Amr::setDtLevel (Real dt, int lev)
+Amr::setDtLevel (Real dt, int lev) noexcept
 {
     dt_level[lev] = dt;
 }
 
 void
-Amr::setNCycle (const Vector<int>& ns)
+Amr::setNCycle (const Vector<int>& ns) noexcept
 {
     for (int i = 0; i <= finest_level; i++)
         n_cycle[i] = ns[i];
 }
 
 long
-Amr::cellCount ()
+Amr::cellCount () noexcept
 {
     long cnt = 0;
     for (int i = 0; i <= finest_level; i++)
@@ -847,7 +847,7 @@ Amr::cellCount ()
 }
 
 int
-Amr::numGrids ()
+Amr::numGrids () noexcept
 {
     int cnt = 0;
     for (int i = 0; i <= finest_level; i++)
@@ -856,7 +856,7 @@ Amr::numGrids ()
 }
 
 int
-Amr::okToContinue ()
+Amr::okToContinue () noexcept
 {
     int ok = true;
     for (int i = 0; ok && (i <= finest_level); i++)
@@ -1211,11 +1211,11 @@ Amr::init (Real strt_time,
         initialInit(strt_time,stop_time);
         checkPoint();
 
-        if(plot_int > 0 || plot_per > 0) {
+        if(plot_int > 0 || plot_per > 0 || plot_log_per > 0) {
             writePlotFile();
         }
 
-        if (small_plot_int > 0 || small_plot_per > 0)
+        if (small_plot_int > 0 || small_plot_per > 0 || small_plot_log_per > 0)
 	        writeSmallPlotFile();
 
         updateInSitu();
@@ -1927,7 +1927,7 @@ Amr::checkPoint ()
 }
 
 void
-Amr::RegridOnly (Real time)
+Amr::RegridOnly (Real time, bool do_io)
 {
     BL_ASSERT(regrid_on_restart == 1);
 
@@ -1936,14 +1936,18 @@ Amr::RegridOnly (Real time)
     for (int i = 0; i <= lev_top; i++)
        regrid(i,time);
 
-    if (plotfile_on_restart)
-	writePlotFile();
+    if (do_io) {
 
-    if (checkpoint_on_restart)
-       checkPoint();
+        if (plotfile_on_restart)
+            writePlotFile();
 
-    if (insitu_on_restart)
-        updateInSitu();
+        if (checkpoint_on_restart)
+            checkPoint();
+
+        if (insitu_on_restart)
+            updateInSitu();
+
+    }
 }
 
 void
@@ -2602,7 +2606,7 @@ Amr::coarseTimeStep (Real stop_time)
 }
 
 bool
-Amr::writePlotNow()
+Amr::writePlotNow() noexcept
 {
     int plot_test = 0;
     if (plot_per > 0.0)
@@ -2644,13 +2648,38 @@ Amr::writePlotNow()
 
     }
 
+    if (plot_log_per > 0.0)
+    {
+
+        // Check to see if we've crossed a plot_log_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+        // This only works when cumtime > 0.
+
+        int num_per_old = 0;
+        int num_per_new = 0;
+
+        if (cumtime-dt_level[0] > 0.) {
+            num_per_old = log10(cumtime-dt_level[0]) / plot_log_per;
+        }
+        if (cumtime > 0.) {
+            num_per_new = log10(cumtime) / plot_log_per;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            plot_test = 1;
+        }
+
+    }
+
     return ( (plot_int > 0 && level_steps[0] % plot_int == 0) || 
               plot_test == 1 ||
               amr_level[0]->writePlotNow());
 } 
 
 bool
-Amr::writeSmallPlotNow()
+Amr::writeSmallPlotNow() noexcept
 {
     int plot_test = 0;
     if (small_plot_per > 0.0)
@@ -2689,6 +2718,31 @@ Amr::writeSmallPlotNow()
 	{
             plot_test = 1;
 	}
+
+    }
+
+    if (small_plot_log_per > 0.0)
+    {
+
+        // Check to see if we've crossed a small_plot_log_per interval by comparing
+        // the number of intervals that have elapsed for both the current
+        // time and the time at the beginning of this timestep.
+        // This only works when cumtime > 0.
+
+        int num_per_old = 0;
+        int num_per_new = 0;
+
+        if (cumtime-dt_level[0] > 0.) {
+            num_per_old = log10(cumtime-dt_level[0]) / small_plot_log_per;
+        }
+        if (cumtime > 0.) {
+            num_per_new = log10(cumtime) / small_plot_log_per;
+        }
+
+        if (num_per_old != num_per_new)
+        {
+            plot_test = 1;
+        }
 
     }
 
@@ -3427,6 +3481,9 @@ Amr::initPltAndChk ()
     plot_per = -1.0;
     pp.query("plot_per",plot_per);
 
+    plot_log_per = -1.0;
+    pp.query("plot_log_per",plot_log_per);
+
     if (plot_int > 0 && plot_per > 0)
     {
         if (ParallelDescriptor::IOProcessor())
@@ -3441,6 +3498,9 @@ Amr::initPltAndChk ()
 
     small_plot_per = -1.0;
     pp.query("small_plot_per",small_plot_per);
+
+    small_plot_log_per = -1.0;
+    pp.query("small_plot_log_per",small_plot_log_per);
 
     if (small_plot_int > 0 && small_plot_per > 0)
     {
@@ -3474,7 +3534,7 @@ Amr::initPltAndChk ()
 
 
 bool
-Amr::okToRegrid(int level)
+Amr::okToRegrid(int level) noexcept
 {
     if (regrid_int[level] < 0)
         return false;
@@ -3529,7 +3589,7 @@ Amr::computeOptimalSubcycling(int n, int* best, Real* dt_max, Real* est_work, in
     return best_dt;
 }
 
-const Vector<BoxArray>& Amr::getInitialBA()
+const Vector<BoxArray>& Amr::getInitialBA() noexcept
 {
   return initial_ba;
 }

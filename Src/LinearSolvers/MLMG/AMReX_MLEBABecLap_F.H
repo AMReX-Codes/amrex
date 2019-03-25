@@ -103,8 +103,7 @@ extern "C" {
                                   const amrex_real* bc, const int* bclo, const int* bchi,
                                   const amrex_real* beb, const int* elo, const int* ehi,
                                   const int is_dirichlet, const int is_ho_dirichlet,
-                                  const amrex_real* phieb, const int* plo, const int* phi,
-                                  const int is_inhomog, const amrex_real* dxinv,
+                                  const amrex_real* dxinv,
                                   const amrex_real alpha, const amrex_real beta, const int redblack);
 
     void amrex_mlebabeclap_flux( const int* lo, const int* hi, 

@@ -109,6 +109,15 @@ function ( set_amrex_defines )
 
    add_amrex_define( AMREX_FORT_USE_${FORTLINK} )
 
+   # SENSEI Insitu
+   add_amrex_define( AMREX_USE_SENSEI_INSITU IF ENABLE_SENSEI_INSITU )
+
+   # Conduit Support
+   add_amrex_define( AMREX_USE_CONDUIT IF ENABLE_CONDUIT )
+
+   # Ascent Support
+   add_amrex_define( AMREX_USE_ASCENT IF ENABLE_ASCENT )
+
    # 
    # CUDA
    #

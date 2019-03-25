@@ -53,7 +53,7 @@ public:
     enum MaskVal { covered = 0, not_covered = 1, outside_domain = 2, NumMaskVals = 3 };
 
     //! Default constructor
-    BndryData();
+    BndryData() noexcept;
 
     /**
     * \brief constructor specifying number of components and box of physical
@@ -82,10 +82,10 @@ public:
                  int             ncomp,
                  const Geometry& geom);
     //
-    const MultiMask& bndryMasks (Orientation face) const { return masks[face]; }
+    const MultiMask& bndryMasks (Orientation face) const noexcept { return masks[face]; }
 
     //! Return FabSet on given face.
-    const FabSet& bndryValues (Orientation face) const { return bndry[face]; }
+    const FabSet& bndryValues (Orientation face) const noexcept { return bndry[face]; }
 
     //! Some useful typedefs
     using RealTuple = Tuple<Real,2*AMREX_SPACEDIM>;
@@ -95,53 +95,53 @@ public:
     * It's an error if we don't own that grid.
     * RealTuple is indexed with Orientation.
     */
-    const RealTuple& bndryLocs (int igrid) const;
-    const RealTuple& bndryLocs (const MFIter& mfi) const;
+    const RealTuple& bndryLocs (int igrid) const noexcept;
+    const RealTuple& bndryLocs (const MFIter& mfi) const noexcept;
 
     /**
     * \brief Return boundary type specifier on given face for grids we own.
     * It's an error if we don't own that grid.
     */
-    const Vector< Vector<BoundCond> >& bndryConds (int igrid) const;
-    const Vector< Vector<BoundCond> >& bndryConds (const MFIter& mfi) const;
+    const Vector< Vector<BoundCond> >& bndryConds (int igrid) const noexcept;
+    const Vector< Vector<BoundCond> >& bndryConds (const MFIter& mfi) const noexcept;
 
     //! return number of components for which this object is intended
-    int nComp () const { return m_ncomp; }
+    int nComp () const noexcept { return m_ncomp; }
 
     //! return domain used to define masks
-    const Box& getDomain () const { return geom.Domain(); }
+    const Box& getDomain () const noexcept { return geom.Domain(); }
 
     //! return geometry used to define masks
-    const Geometry& getGeom () const { return geom; }
+    const Geometry& getGeom () const noexcept { return geom; }
 
     //! set values of boundary Fab for given orientation on nth grid
-    void setValue (Orientation face, int n, Real val);
+    void setValue (Orientation face, int n, Real val) noexcept;
 
     //! set boundary type specifier for given orientation on nth grid
     void setBoundCond (Orientation     face,
                        int              n,
                        int              comp,
-                       const BoundCond& bcn);
+                       const BoundCond& bcn) noexcept;
 
     void setBoundCond (Orientation     face,
                        const MFIter&    mfi,
                        int              comp,
-                       const BoundCond& bcn);
+                       const BoundCond& bcn) noexcept;
 
     //! set boundary location for given orientation on nth grid
     void setBoundLoc (Orientation face,
                       int         n,
-                      Real        val);
+                      Real        val) noexcept;
 
     void setBoundLoc (Orientation face,
                       const MFIter& mfi,
-                      Real        val);
+                      Real        val) noexcept;
 
     //! implement public access to const BndryRegister::operator[]
-    const FabSet& operator[] (Orientation face) const { return BndryRegister::bndry[face]; }
+    const FabSet& operator[] (Orientation face) const noexcept { return BndryRegister::bndry[face]; }
 
     //! implement public access to BndryRegister::operator[]
-    FabSet& operator[] (Orientation face) { return BndryRegister::bndry[face]; }
+    FabSet& operator[] (Orientation face) noexcept { return BndryRegister::bndry[face]; }
 
 protected:
     //! Helper function for copy constructor and assigment operator.
