@@ -506,22 +506,6 @@ WarpX::WritePlotFile () const
             const std::string raw_pltname = plotfilename + "/raw_fields";
             const DistributionMapping& dm = DistributionMap(lev);
 
-            // Fine patch
-            WriteRawField( *Efield_fp[lev][0], dm, raw_pltname, level_prefix, "Ex_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *Efield_fp[lev][1], dm, raw_pltname, level_prefix, "Ey_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *Efield_fp[lev][2], dm, raw_pltname, level_prefix, "Ez_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *current_fp[lev][0], dm, raw_pltname, level_prefix, "jx_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *current_fp[lev][1], dm, raw_pltname, level_prefix, "jy_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *current_fp[lev][2], dm, raw_pltname, level_prefix, "jz_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *Bfield_fp[lev][0], dm, raw_pltname, level_prefix, "Bx_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *Bfield_fp[lev][1], dm, raw_pltname, level_prefix, "By_fp", lev, plot_raw_fields_guards);
-            WriteRawField( *Bfield_fp[lev][2], dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
-            if (plot_rho) {
-                // Use the component 1 of `rho_fp`, i.e. rho_new for time synchronization
-                MultiFab rho_new(*rho_fp[lev], amrex::make_alias, 1, 1);
-                WriteRawField( rho_new, dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
-            }
-
             // Auxiliary patch
             WriteRawField( *Efield_aux[lev][0], dm, raw_pltname, level_prefix, "Ex_aux", lev, plot_raw_fields_guards);
             WriteRawField( *Efield_aux[lev][1], dm, raw_pltname, level_prefix, "Ey_aux", lev, plot_raw_fields_guards);
@@ -530,6 +514,23 @@ WarpX::WritePlotFile () const
             WriteRawField( *Bfield_aux[lev][1], dm, raw_pltname, level_prefix, "By_aux", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_aux[lev][2], dm, raw_pltname, level_prefix, "Bz_aux", lev, plot_raw_fields_guards);
 
+            // Fine patch
+            if (plot_finepatch) {
+                WriteRawField( *Efield_fp[lev][0], dm, raw_pltname, level_prefix, "Ex_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *Efield_fp[lev][1], dm, raw_pltname, level_prefix, "Ey_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *Efield_fp[lev][2], dm, raw_pltname, level_prefix, "Ez_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *current_fp[lev][0], dm, raw_pltname, level_prefix, "jx_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *current_fp[lev][1], dm, raw_pltname, level_prefix, "jy_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *current_fp[lev][2], dm, raw_pltname, level_prefix, "jz_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *Bfield_fp[lev][0], dm, raw_pltname, level_prefix, "Bx_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *Bfield_fp[lev][1], dm, raw_pltname, level_prefix, "By_fp", lev, plot_raw_fields_guards);
+                WriteRawField( *Bfield_fp[lev][2], dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
+                if (plot_rho) {
+                    // Use the component 1 of `rho_fp`, i.e. rho_new for time synchronization
+                    MultiFab rho_new(*rho_fp[lev], amrex::make_alias, 1, 1);
+                    WriteRawField( rho_new, dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
+                }
+            }
 
         }
     }
