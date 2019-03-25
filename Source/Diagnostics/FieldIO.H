@@ -20,7 +20,10 @@ AverageAndPackScalarField( MultiFab& mf_avg,
                          const int dcomp, const int ngrow );
 
 void
-WriteRawField( const std::unique_ptr<MultiFab>& F, const DistributionMapping& dm,
-            const std::string& prefix, bool plot_guards );
+WriteRawField( const MultiFab& F, const DistributionMapping& dm,
+             const std::string& filename,
+             const std::string& level_prefix,
+             const std::string& field_name,
+             const int lev, const bool plot_guards );
 
 #endif

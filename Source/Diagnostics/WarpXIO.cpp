@@ -505,16 +505,27 @@ WarpX::WritePlotFile () const
             const std::unique_ptr<MultiFab> empty_ptr;
             const std::string raw_pltname = plotfilename + "/raw_fields";
             const DistributionMapping& dm = DistributionMap(lev);
-            WriteRawPatch( Efield_fp[lev][0], Efield_cp[lev][0], Efield_aux[lev][0], "Ex", lev, raw_pltname, level_prefix, dm );
-            WriteRawPatch( Efield_fp[lev][1], Efield_cp[lev][1], Efield_aux[lev][1], "Ey", lev, raw_pltname, level_prefix, dm );
-            WriteRawPatch( Efield_fp[lev][2], Efield_cp[lev][2], Efield_aux[lev][2], "Ez", lev, raw_pltname, level_prefix, dm );
-            WriteRawPatch( Bfield_fp[lev][0], Bfield_cp[lev][0], Bfield_aux[lev][0], "Bx", lev, raw_pltname, level_prefix, dm );
-            WriteRawPatch( Bfield_fp[lev][1], Bfield_cp[lev][1], Bfield_aux[lev][1], "By", lev, raw_pltname, level_prefix, dm );
-            WriteRawPatch( Bfield_fp[lev][2], Bfield_cp[lev][2], Bfield_aux[lev][2], "Bz", lev, raw_pltname, level_prefix, dm );
-            WriteRawPatch( current_fp[lev][0], current_cp[lev][0], empty_ptr, "jx", lev, level_prefix, raw_pltname, dm );
-            WriteRawPatch( current_fp[lev][1], current_cp[lev][1], empty_ptr, "jy", lev, level_prefix, raw_pltname, dm );
-            WriteRawPatch( current_fp[lev][2], current_cp[lev][2], empty_ptr, "jz", lev, level_prefix, raw_pltname, dm );
-            if (F_fp[lev]) WriteRawPatch( F_fp[lev], F_cp[lev], empty_ptr, "F", lev, level_prefix, raw_pltname, dm );
+
+            // Fine patch
+            WriteRawField( *Efield_fp[lev][0], dm, raw_pltname, level_prefix, "Ex_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *Efield_fp[lev][1], dm, raw_pltname, level_prefix, "Ey_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *Efield_fp[lev][2], dm, raw_pltname, level_prefix, "Ez_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *current_fp[lev][0], dm, raw_pltname, level_prefix, "jx_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *current_fp[lev][1], dm, raw_pltname, level_prefix, "jy_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *current_fp[lev][2], dm, raw_pltname, level_prefix, "jz_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *Bfield_fp[lev][0], dm, raw_pltname, level_prefix, "Bx_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *Bfield_fp[lev][1], dm, raw_pltname, level_prefix, "By_fp", lev, plot_raw_fields_guards);
+            WriteRawField( *Bfield_fp[lev][2], dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
+
+            // Auxiliary patch
+            WriteRawField( *Efield_aux[lev][0], dm, raw_pltname, level_prefix, "Ex_aux", lev, plot_raw_fields_guards);
+            WriteRawField( *Efield_aux[lev][1], dm, raw_pltname, level_prefix, "Ey_aux", lev, plot_raw_fields_guards);
+            WriteRawField( *Efield_aux[lev][2], dm, raw_pltname, level_prefix, "Ez_aux", lev, plot_raw_fields_guards);
+            WriteRawField( *Bfield_aux[lev][0], dm, raw_pltname, level_prefix, "Bx_aux", lev, plot_raw_fields_guards);
+            WriteRawField( *Bfield_aux[lev][1], dm, raw_pltname, level_prefix, "By_aux", lev, plot_raw_fields_guards);
+            WriteRawField( *Bfield_aux[lev][2], dm, raw_pltname, level_prefix, "Bz_aux", lev, plot_raw_fields_guards);
+
+
         }
     }
 
