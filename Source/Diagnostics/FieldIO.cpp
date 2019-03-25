@@ -2,6 +2,8 @@
 #include <WarpX.H>
 #include <FieldIO.H>
 
+#include <AMReX_FillPatchUtil_F.H>
+
 using namespace amrex;
 
 void
@@ -331,12 +333,11 @@ WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
                 const std::string& filename,
                 const std::string& level_prefix,
                 const std::string& field_name,
-                const int lev, const bool plot_guards )
+                const int lev, const int ng )
 {
     std::string prefix = amrex::MultiFabFileFullPrefix(lev,
                             filename, level_prefix, field_name);
-    int ng = 0;
-    if (plot_guards) ng = F.nGrow();
+
     MultiFab tmpF(F.boxArray(), dm, 1, ng);
     tmpF.setVal(0.);
     VisMF::Write(tmpF, prefix);
@@ -355,14 +356,121 @@ WriteCoarseVector( const std::string field_name,
     const DistributionMapping& dm,
     const std::string& filename,
     const std::string& level_prefix,
-    const int lev, const bool plot_guards )
+    const int lev, const bool plot_guards,
+    const int r_ratio, const Real* dx )
 {
+    int ng = 0;
+    if (plot_guards) ng = Fx_fp->nGrow();
+
     if (lev == 0) {
         // No coarse field for level 0: instead write a MultiFab
         // filled with 0, with the same number of cells as the _fp field
-        WriteZeroRawField( *Fx_fp, dm, filename, level_prefix, field_name+"x_cp", lev, plot_guards);
-        WriteZeroRawField( *Fy_fp, dm, filename, level_prefix, field_name+"y_cp", lev, plot_guards);
-        WriteZeroRawField( *Fz_fp, dm, filename, level_prefix, field_name+"z_cp", lev, plot_guards);
+        WriteZeroRawField( *Fx_fp, dm, filename, level_prefix, field_name+"x_cp", lev, ng );
+        WriteZeroRawField( *Fy_fp, dm, filename, level_prefix, field_name+"y_cp", lev, ng );
+        WriteZeroRawField( *Fz_fp, dm, filename, level_prefix, field_name+"z_cp", lev, ng );
+    } else {
+        auto F = getInterpolated( Fx_cp, Fy_cp, Fz_cp, Fx_fp, Fy_fp, Fz_fp,
+                                    dm, r_ratio, dx, ng );
     }
 
+}
+
+
+std::array<std::unique_ptr<MultiFab>, 3>
+getInterpolated(
+    const std::unique_ptr<MultiFab>& Fx_cp,
+    const std::unique_ptr<MultiFab>& Fy_cp,
+    const std::unique_ptr<MultiFab>& Fz_cp,
+    const std::unique_ptr<MultiFab>& Fx_fp,
+    const std::unique_ptr<MultiFab>& Fy_fp,
+    const std::unique_ptr<MultiFab>& Fz_fp,
+    const DistributionMapping& dm,
+    const int r_ratio, const Real* dx,
+    const int ngrow )
+{
+
+    // Prepare the structure that will contain the returned fields
+    std::array<std::unique_ptr<MultiFab>, 3> interpolated_F;
+    interpolated_F[0].reset( new MultiFab(Fx_fp->boxArray(), dm, 1, ngrow) );
+    interpolated_F[1].reset( new MultiFab(Fy_fp->boxArray(), dm, 1, ngrow) );
+    interpolated_F[2].reset( new MultiFab(Fz_fp->boxArray(), dm, 1, ngrow) );
+    for (int i=0; i<3; i++) interpolated_F[i]->setVal(0.);
+
+    // Loop through the boxes and interpolate the values from the _cp data
+    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        std::array<FArrayBox,3> ffab; // Temporary array ; contains interpolated fields
+        for (MFIter mfi(*interpolated_F[0]); mfi.isValid(); ++mfi)
+        {
+            Box ccbx = mfi.fabbox();
+            ccbx.enclosedCells();
+            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+
+            const FArrayBox& cxfab = (*Fx_cp)[mfi];
+            const FArrayBox& cyfab = (*Fy_cp)[mfi];
+            const FArrayBox& czfab = (*Fz_cp)[mfi];
+            ffab[0].resize(amrex::convert(ccbx,(*Fx_fp)[mfi].box().type()));
+            ffab[1].resize(amrex::convert(ccbx,(*Fy_fp)[mfi].box().type()));
+            ffab[2].resize(amrex::convert(ccbx,(*Fz_fp)[mfi].box().type()));
+
+            // - Face centered, in the same way as B on a Yee grid
+            if ( Fx_fp->is_nodal(0) ){
+#if (AMREX_SPACEDIM == 3)
+                amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                             BL_TO_FORTRAN_ANYD(ffab[0]),
+                                             BL_TO_FORTRAN_ANYD(ffab[1]),
+                                             BL_TO_FORTRAN_ANYD(ffab[2]),
+                                             BL_TO_FORTRAN_ANYD(cxfab),
+                                             BL_TO_FORTRAN_ANYD(cyfab),
+                                             BL_TO_FORTRAN_ANYD(czfab),
+                                             dx, &r_ratio, &use_limiter);
+#else
+                amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                             BL_TO_FORTRAN_ANYD(ffab[0]),
+                                             BL_TO_FORTRAN_ANYD(ffab[2]),
+                                             BL_TO_FORTRAN_ANYD(cxfab),
+                                             BL_TO_FORTRAN_ANYD(czfab),
+                                             dx, &r_ratio, &use_limiter);
+                amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                       BL_TO_FORTRAN_ANYD(ffab[1]),
+                                       BL_TO_FORTRAN_ANYD(cyfab),
+                                       &r_ratio, &use_limiter);
+#endif
+            // - Edge centered, in the same way as E on a Yee grid
+            } else {
+#if (AMREX_SPACEDIM == 3)
+                amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                    BL_TO_FORTRAN_ANYD(ffab[0]),
+                                    BL_TO_FORTRAN_ANYD(ffab[1]),
+                                    BL_TO_FORTRAN_ANYD(ffab[2]),
+                                    BL_TO_FORTRAN_ANYD(cxfab),
+                                    BL_TO_FORTRAN_ANYD(cyfab),
+                                    BL_TO_FORTRAN_ANYD(czfab),
+                                    &r_ratio, &use_limiter);
+#else
+                amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
+                                    BL_TO_FORTRAN_ANYD(ffab[0]),
+                                    BL_TO_FORTRAN_ANYD(ffab[2]),
+                                    BL_TO_FORTRAN_ANYD(cxfab),
+                                    BL_TO_FORTRAN_ANYD(czfab),
+                                    &r_ratio,&use_limiter);
+                amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
+                                       BL_TO_FORTRAN_ANYD(ffab[1]),
+                                       BL_TO_FORTRAN_ANYD(cyfab),
+                                       &r_ratio);
+#endif
+            }
+
+            // Add temporary array to the returned structure
+            for (int i = 0; i < 3; ++i) {
+                const Box& bx = (*interpolated_F[i])[mfi].box();
+                (*interpolated_F[i])[mfi].plus(ffab[i], bx, bx, 0, 0, 1);
+            }
+        }
+    }
+
+    return interpolated_F;
 }
