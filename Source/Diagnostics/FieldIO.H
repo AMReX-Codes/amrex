@@ -26,4 +26,24 @@ WriteRawField( const MultiFab& F, const DistributionMapping& dm,
              const std::string& field_name,
              const int lev, const bool plot_guards );
 
+void
+WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
+             const std::string& filename,
+             const std::string& level_prefix,
+             const std::string& field_name,
+             const int lev, const bool plot_guards );
+
+void
+WriteCoarseVector( const std::string field_name,
+	const std::unique_ptr<MultiFab>& Fx_cp,
+	const std::unique_ptr<MultiFab>& Fy_cp,
+	const std::unique_ptr<MultiFab>& Fz_cp,
+	const std::unique_ptr<MultiFab>& Fx_fp,
+	const std::unique_ptr<MultiFab>& Fy_fp,
+	const std::unique_ptr<MultiFab>& Fz_fp,
+	const DistributionMapping& dm,
+	const std::string& filename,
+	const std::string& level_prefix,
+	const int lev, const bool plot_guards );
+
 #endif

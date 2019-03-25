@@ -513,6 +513,7 @@ WarpX::WritePlotFile () const
             WriteRawField( *Bfield_aux[lev][0], dm, raw_pltname, level_prefix, "Bx_aux", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_aux[lev][1], dm, raw_pltname, level_prefix, "By_aux", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_aux[lev][2], dm, raw_pltname, level_prefix, "Bz_aux", lev, plot_raw_fields_guards);
+
             // Fine patch
             if (plot_finepatch) {
                 WriteRawField( *Efield_fp[lev][0], dm, raw_pltname, level_prefix, "Ex_fp", lev, plot_raw_fields_guards);

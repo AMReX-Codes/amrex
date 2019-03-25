@@ -327,6 +327,24 @@ WriteRawField( const MultiFab& F, const DistributionMapping& dm,
 /** \brief TODO
  */
 void
+WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
+                const std::string& filename,
+                const std::string& level_prefix,
+                const std::string& field_name,
+                const int lev, const bool plot_guards )
+{
+    std::string prefix = amrex::MultiFabFileFullPrefix(lev,
+                            filename, level_prefix, field_name);
+    int ng = 0;
+    if (plot_guards) ng = F.nGrow();
+    MultiFab tmpF(F.boxArray(), dm, 1, ng);
+    tmpF.setVal(0.);
+    VisMF::Write(tmpF, prefix);
+}
+
+/** \brief TODO Writes same size as fp for compatibility with yt
+ */
+void
 WriteCoarseVector( const std::string field_name,
     const std::unique_ptr<MultiFab>& Fx_cp,
     const std::unique_ptr<MultiFab>& Fy_cp,
@@ -337,8 +355,14 @@ WriteCoarseVector( const std::string field_name,
     const DistributionMapping& dm,
     const std::string& filename,
     const std::string& level_prefix,
-    const std::string& field_name,
     const int lev, const bool plot_guards )
 {
-    
+    if (lev == 0) {
+        // No coarse field for level 0: instead write a MultiFab
+        // filled with 0, with the same number of cells as the _fp field
+        WriteZeroRawField( *Fx_fp, dm, filename, level_prefix, field_name+"x_cp", lev, plot_guards);
+        WriteZeroRawField( *Fy_fp, dm, filename, level_prefix, field_name+"y_cp", lev, plot_guards);
+        WriteZeroRawField( *Fz_fp, dm, filename, level_prefix, field_name+"z_cp", lev, plot_guards);
+    }
+
 }
