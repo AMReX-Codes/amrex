@@ -538,8 +538,15 @@ WarpX::WritePlotFile () const
             WriteCoarseVector( "E",
                 Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
                 Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
-                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
-                r_ratio, dx );
+                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+            WriteCoarseVector( "B",
+                Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
+                Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
+                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+            WriteCoarseVector( "j",
+                current_cp[lev][0], current_cp[lev][1], current_cp[lev][2],
+                current_fp[lev][0], current_fp[lev][1], current_fp[lev][2],
+                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
 
         }
     }
@@ -701,125 +708,23 @@ std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedE(int lev) const
 {
 
     const int ngrow = 0;
-
-    std::array<std::unique_ptr<MultiFab>, 3> interpolated_E;
-    for (int i = 0; i < 3; ++i) {
-        interpolated_E[i].reset( new MultiFab(Efield_aux[lev][i]->boxArray(), dmap[lev], 1, ngrow) );
-        interpolated_E[i]->setVal(0.0);
-    }
-
+    const DistributionMapping& dm = DistributionMap(lev);
+    const Real* dx = Geom(lev-1).CellSize();
     const int r_ratio = refRatio(lev-1)[0];
-    const int use_limiter = 0;
-#ifdef _OPEMP
-#pragma omp parallel
-#endif
-    {
-        std::array<FArrayBox,3> efab;
-        for (MFIter mfi(*interpolated_E[0]); mfi.isValid(); ++mfi)
-        {
-            Box ccbx = mfi.fabbox();
-            ccbx.enclosedCells();
-            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
 
-            const FArrayBox& cxfab = (*Efield_cp[lev][0])[mfi];
-            const FArrayBox& cyfab = (*Efield_cp[lev][1])[mfi];
-            const FArrayBox& czfab = (*Efield_cp[lev][2])[mfi];
-
-            efab[0].resize(amrex::convert(ccbx,Ex_nodal_flag));
-            efab[1].resize(amrex::convert(ccbx,Ey_nodal_flag));
-            efab[2].resize(amrex::convert(ccbx,Ez_nodal_flag));
-
-#if (AMREX_SPACEDIM == 3)
-            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                BL_TO_FORTRAN_ANYD(efab[0]),
-                                BL_TO_FORTRAN_ANYD(efab[1]),
-                                BL_TO_FORTRAN_ANYD(efab[2]),
-                                BL_TO_FORTRAN_ANYD(cxfab),
-                                BL_TO_FORTRAN_ANYD(cyfab),
-                                BL_TO_FORTRAN_ANYD(czfab),
-                                &r_ratio,&use_limiter);
-#else
-            amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
-                                BL_TO_FORTRAN_ANYD(efab[0]),
-                                BL_TO_FORTRAN_ANYD(efab[2]),
-                                BL_TO_FORTRAN_ANYD(cxfab),
-                                BL_TO_FORTRAN_ANYD(czfab),
-                                &r_ratio,&use_limiter);
-            amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
-                                   BL_TO_FORTRAN_ANYD(efab[1]),
-                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                   &r_ratio);
-#endif
-
-            for (int i = 0; i < 3; ++i) {
-                const Box& bx = (*interpolated_E[i])[mfi].box();
-                (*interpolated_E[i])[mfi].plus(efab[i], bx, bx, 0, 0, 1);
-            }
-        }
-    }
-
-    return interpolated_E;
+    return getInterpolated( Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
+                            Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
+                            dm, r_ratio, dx, ngrow );
 }
 
 std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
 {
     const int ngrow = 0;
-
-    std::array<std::unique_ptr<MultiFab>, 3> interpolated_B;
-    for (int i = 0; i < 3; ++i) {
-        interpolated_B[i].reset( new MultiFab(Bfield_aux[lev][i]->boxArray(), dmap[lev], 1, ngrow) );
-        interpolated_B[i]->setVal(0.0);
-    }
-
+    const DistributionMapping& dm = DistributionMap(lev);
     const Real* dx = Geom(lev-1).CellSize();
     const int r_ratio = refRatio(lev-1)[0];
-    const int use_limiter = 0;
-#ifdef _OPEMP
-#pragma omp parallel
-#endif
-    {
-        std::array<FArrayBox,3> bfab;
-        for (MFIter mfi(*interpolated_B[0]); mfi.isValid(); ++mfi)
-        {
-            Box ccbx = mfi.fabbox();
-            ccbx.enclosedCells();
-            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
 
-            const FArrayBox& cxfab = (*Bfield_cp[lev][0])[mfi];
-            const FArrayBox& cyfab = (*Bfield_cp[lev][1])[mfi];
-            const FArrayBox& czfab = (*Bfield_cp[lev][2])[mfi];
-
-            bfab[0].resize(amrex::convert(ccbx,Bx_nodal_flag));
-            bfab[1].resize(amrex::convert(ccbx,By_nodal_flag));
-            bfab[2].resize(amrex::convert(ccbx,Bz_nodal_flag));
-
-#if (AMREX_SPACEDIM == 3)
-            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                         BL_TO_FORTRAN_ANYD(bfab[0]),
-                                         BL_TO_FORTRAN_ANYD(bfab[1]),
-                                         BL_TO_FORTRAN_ANYD(bfab[2]),
-                                         BL_TO_FORTRAN_ANYD(cxfab),
-                                         BL_TO_FORTRAN_ANYD(cyfab),
-                                         BL_TO_FORTRAN_ANYD(czfab),
-                                         dx, &r_ratio, &use_limiter);
-#else
-            amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                         BL_TO_FORTRAN_ANYD(bfab[0]),
-                                         BL_TO_FORTRAN_ANYD(bfab[2]),
-                                         BL_TO_FORTRAN_ANYD(cxfab),
-                                         BL_TO_FORTRAN_ANYD(czfab),
-                                         dx, &r_ratio, &use_limiter);
-            amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                   BL_TO_FORTRAN_ANYD(bfab[1]),
-                                   BL_TO_FORTRAN_ANYD(cyfab),
-                                   &r_ratio, &use_limiter);
-#endif
-
-            for (int i = 0; i < 3; ++i) {
-                const Box& bx = (*interpolated_B[i])[mfi].box();
-                (*interpolated_B[i])[mfi].plus(bfab[i], bx, bx, 0, 0, 1);
-            }
-        }
-    }
-    return interpolated_B;
+    return getInterpolated( Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
+                            Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
+                            dm, r_ratio, dx, ngrow );
 }
