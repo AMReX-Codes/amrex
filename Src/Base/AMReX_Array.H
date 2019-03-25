@@ -24,6 +24,7 @@ namespace amrex {
     using IntArray  = Array<int , AMREX_SPACEDIM>;
 
     struct Dim3 { int x; int y; int z; };
+    struct XDim3 { Real x; Real y; Real z; };
 
     template <typename T>
     struct Array4
@@ -184,6 +185,17 @@ namespace amrex
     std::array<T const*,AMREX_SPACEDIM> GetArrOfConstPtrs (const std::array<std::unique_ptr<T>,AMREX_SPACEDIM>& a) noexcept
     {
         return {AMREX_D_DECL(a[0].get(), a[1].get(), a[2].get())};
+    }
+
+    XDim3 makeXDim3 (const Array<Real,AMREX_SPACEDIM>& a) noexcept
+    {
+#if (AMREX_SPACEDIM == 1)
+        return XDim3{a[0], 0., 0.};
+#elif (AMREX_SPACEDIM == 2)
+        return XDim3{a[0], a[1], 0.};
+#else
+        return XDim3{a[0], a[1], a[2]};
+#endif
     }
 }
 
