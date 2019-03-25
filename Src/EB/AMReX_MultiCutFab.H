@@ -90,20 +90,20 @@ public:
     void define (const BoxArray& ba, const DistributionMapping& dm,
                  int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags);
 
-    const CutFab& operator[] (const MFIter& mfi) const;
-    CutFab& operator[] (const MFIter& mfi);
+    const CutFab& operator[] (const MFIter& mfi) const noexcept;
+    CutFab& operator[] (const MFIter& mfi) noexcept;
 
-    bool ok (const MFIter& mfi) const;
+    bool ok (const MFIter& mfi) const noexcept;
 
     void setVal (Real val);
 
-    FabArray<CutFab>& data () { return m_data; }
-    const FabArray<CutFab>& data () const { return m_data; }
+    FabArray<CutFab>& data () noexcept { return m_data; }
+    const FabArray<CutFab>& data () const noexcept { return m_data; }
 
-    const BoxArray& boxArray () const { return m_data.boxArray(); }
-    const DistributionMapping& DistributionMap () const { return m_data.DistributionMap(); }
-    int nComp () const { return m_data.nComp(); }
-    int nGrow () const { return m_data.nGrow(); }
+    const BoxArray& boxArray () const noexcept { return m_data.boxArray(); }
+    const DistributionMapping& DistributionMap () const noexcept { return m_data.DistributionMap(); }
+    int nComp () const noexcept { return m_data.nComp(); }
+    int nGrow () const noexcept { return m_data.nGrow(); }
 
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng,
                        const Periodicity& period = Periodicity::NonPeriodic());

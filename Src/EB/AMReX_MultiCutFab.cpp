@@ -46,21 +46,21 @@ MultiCutFab::remove ()
 }
 
 const CutFab&
-MultiCutFab::operator[] (const MFIter& mfi) const
+MultiCutFab::operator[] (const MFIter& mfi) const noexcept
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
 }
 
 CutFab&
-MultiCutFab::operator[] (const MFIter& mfi)
+MultiCutFab::operator[] (const MFIter& mfi) noexcept
 {
     AMREX_ASSERT(ok(mfi));
     return m_data[mfi];
 }
 
 bool
-MultiCutFab::ok (const MFIter& mfi) const
+MultiCutFab::ok (const MFIter& mfi) const noexcept
 {
     return (*m_cellflags)[mfi].getType() == FabType::singlevalued;
 }
