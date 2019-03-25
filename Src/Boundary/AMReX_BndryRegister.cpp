@@ -10,7 +10,7 @@ namespace {
     static const Real BL_SAFE_BOGUS = std::numeric_limits<Real>::quiet_NaN();
 }
 
-BndryRegister::BndryRegister () {}
+BndryRegister::BndryRegister () noexcept {}
 
 BndryRegister::~BndryRegister () {}
 
@@ -165,7 +165,7 @@ BndryBATransformer::operator() (const Box& a_bx) const
 }
 
 bool 
-BndryBATransformer::operator== (const BndryBATransformer& rhs) const
+BndryBATransformer::operator== (const BndryBATransformer& rhs) const noexcept
 {
     // Note that m_nodal_shft is computed form m_typ, so no need to compare it.
     return m_typ == rhs.m_typ 

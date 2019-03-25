@@ -28,31 +28,31 @@ FluxRegister::FluxRegister (const BoxArray&            fine_boxes,
 }
 
 const IntVect&
-FluxRegister::refRatio () const
+FluxRegister::refRatio () const noexcept
 {
     return ratio;
 }
 
 int
-FluxRegister::fineLevel () const
+FluxRegister::fineLevel () const noexcept
 {
     return fine_level;
 }
 
 int
-FluxRegister::crseLevel () const
+FluxRegister::crseLevel () const noexcept
 {
     return fine_level-1;
 }
 
 int
-FluxRegister::nComp () const
+FluxRegister::nComp () const noexcept
 {
     return ncomp;
 }
 
 const BoxArray&
-FluxRegister::coarsenedBoxes () const
+FluxRegister::coarsenedBoxes () const noexcept
 {
     return grids;
 }
@@ -330,7 +330,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              srccomp,
                        int              destcomp,
                        int              numcomp,
-                       Real             mult)
+                       Real             mult) noexcept
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -375,7 +375,7 @@ FluxRegister::FineAdd (const FArrayBox& flux,
                        int              srccomp,
                        int              destcomp,
                        int              numcomp,
-                       Real             mult)
+                       Real             mult) noexcept
 {
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
@@ -420,7 +420,7 @@ FluxRegister::FineSetVal (int              dir,
                           int              boxno,
                           int              destcomp,
                           int              numcomp,
-                          Real             val)
+                          Real             val) noexcept
 {
     // This routine used by FLASH does NOT run on gpu for safety.
 

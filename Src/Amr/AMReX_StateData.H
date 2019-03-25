@@ -286,32 +286,32 @@ public:
     /**
     * \brief Returns the StateDescriptor.
     */
-    const StateDescriptor* descriptor () const { return desc; }
+    const StateDescriptor* descriptor () const noexcept { return desc; }
 
     /**
     * \brief Returns the valid domain.
     */
-    const Box& getDomain () const { return domain; }
+    const Box& getDomain () const noexcept { return domain; }
 
     /**
     * \brief Returns the BoxArray.
     */
-    const BoxArray& boxArray () const { return grids; }
+    const BoxArray& boxArray () const noexcept { return grids; }
 
-    const DistributionMapping& DistributionMap () const { return dmap; }
+    const DistributionMapping& DistributionMap () const noexcept { return dmap; }
 
     /**
     *
     * \param new_dmap
     */
-    void setDistributionMap ( DistributionMapping& new_dmap ) { dmap = new_dmap; }
+    void setDistributionMap ( DistributionMapping& new_dmap ) noexcept { dmap = new_dmap; }
 
-    const FabFactory<FArrayBox>& Factory () const { return *m_factory; }
+    const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
 
     /**
     * \brief Returns the current time.
     */
-    Real curTime () const {
+    Real curTime () const noexcept {
 	return (desc->timeType() == StateDescriptor::Point) ?
 	    new_time.stop : 0.5*(new_time.start + new_time.stop);
     }
@@ -319,7 +319,7 @@ public:
     /**
     * \brief Returns the previous time.
     */
-    Real prevTime () const {
+    Real prevTime () const noexcept {
 	return (desc->timeType() == StateDescriptor::Point) ?
 	    old_time.stop : 0.5*(old_time.start + old_time.stop);
     }
@@ -327,36 +327,36 @@ public:
     /**
     * \brief Returns the new data.
     */
-    MultiFab& newData () { BL_ASSERT(new_data != nullptr); return *new_data; }
+    MultiFab& newData () noexcept { BL_ASSERT(new_data != nullptr); return *new_data; }
 
     /**
     * \brief Returns the new data.
     */
-    const MultiFab& newData () const { BL_ASSERT(new_data != nullptr); return *new_data; }
+    const MultiFab& newData () const noexcept { BL_ASSERT(new_data != nullptr); return *new_data; }
 
     /**
     * \brief Returns the old data.
     */
-    MultiFab& oldData () { BL_ASSERT(old_data != nullptr); return *old_data; }
+    MultiFab& oldData () noexcept { BL_ASSERT(old_data != nullptr); return *old_data; }
 
     /**
     * \brief Returns the old data.
     */
-    const MultiFab& oldData () const { BL_ASSERT(old_data != nullptr); return *old_data; }
+    const MultiFab& oldData () const noexcept { BL_ASSERT(old_data != nullptr); return *old_data; }
 
     /**
     * \brief Returns the FAB of new data at grid index `i'.
     *
     * \param i
     */
-    FArrayBox& newGrid (int i) { BL_ASSERT(new_data != nullptr); return (*new_data)[i]; }
+    FArrayBox& newGrid (int i) noexcept { BL_ASSERT(new_data != nullptr); return (*new_data)[i]; }
 
     /**
     * \brief Returns the FAB of old data at grid index `i'.
     *
     * \param i
     */
-    FArrayBox& oldGrid (int i) { BL_ASSERT(old_data != nullptr); return (*old_data)[i]; }
+    FArrayBox& oldGrid (int i) noexcept { BL_ASSERT(old_data != nullptr); return (*old_data)[i]; }
 
     /**
     * \brief Returns boundary conditions of specified component on the specified grid.
@@ -364,7 +364,7 @@ public:
     * \param comp
     * \param i
     */
-    BCRec getBC (int comp, int i) const;
+    BCRec getBC (int comp, int i) const noexcept;
 
     /**
     * \brief Prints out the time interval.
@@ -376,12 +376,12 @@ public:
     /**
     * \brief True if there is any old data available.
     */
-    bool hasOldData () const { return old_data != nullptr; }
+    bool hasOldData () const noexcept { return old_data != nullptr; }
 
     /**
     * \brief True if there is any new data available.
     */
-    bool hasNewData () const { return new_data != nullptr; }
+    bool hasNewData () const noexcept { return new_data != nullptr; }
 
     void getData (Vector<MultiFab*>& data,
 		  Vector<Real>& datatime,

@@ -463,7 +463,7 @@ MultiFab::Finalize ()
     initialized = false;
 }
 
-MultiFab::MultiFab ()
+MultiFab::MultiFab () noexcept
 {
 #ifdef BL_MEM_PROFILING
     ++num_multifabs;
@@ -627,19 +627,19 @@ MultiFab::contains_inf (bool local) const
 }
 
 bool 
-MultiFab::is_nodal () const
+MultiFab::is_nodal () const noexcept
 {
     return boxArray().ixType().nodeCentered();
 }
 
 bool 
-MultiFab::is_nodal (int dir) const
+MultiFab::is_nodal (int dir) const noexcept
 {
     return boxArray().ixType().nodeCentered(dir);
 }
 
 bool 
-MultiFab::is_cell_centered () const
+MultiFab::is_cell_centered () const noexcept
 {
     return boxArray().ixType().cellCentered();
 }

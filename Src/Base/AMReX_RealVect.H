@@ -45,9 +45,9 @@ public:
   /**
      Construct a RealVect whose components are zero.
   */
-  RealVect ();
+  RealVect () noexcept;
 
-  explicit RealVect (const std::vector<Real>&);
+  explicit RealVect (const std::vector<Real>&) noexcept;
 
   ///
   /**
@@ -55,13 +55,13 @@ public:
      coordinates.  AMREX_D_DECL is a macro that sets the constructor to
      take AMREX_SPACEDIM arguments.
   */
-  RealVect (AMREX_D_DECL(Real i, Real j, Real k));
+  RealVect (AMREX_D_DECL(Real i, Real j, Real k)) noexcept;
 
   ///
   /**
      The copy constructor.
   */
-  RealVect (const RealVect& rhs);
+  RealVect (const RealVect& rhs) noexcept;
 
 
   ///
@@ -69,7 +69,7 @@ public:
      Construct a RealVect from an IntVect by coercing each component
      from <tt>int</tt> to Real.
   */
-  RealVect (const IntVect & iv)
+  RealVect (const IntVect & iv) noexcept
   {
     for (int d=0 ; d<SpaceDim ; ++d)
     {
@@ -81,7 +81,7 @@ public:
   /**
      The assignment operator.
   */
-  RealVect& operator= (const RealVect& rhs);
+  RealVect& operator= (const RealVect& rhs) noexcept;
 
   ///
   /**
@@ -89,14 +89,14 @@ public:
      RealVect.
   */
   inline
-  Real& operator[] (int i);
+  Real& operator[] (int i) noexcept;
 
   ///
   /**
      Returns the <i>i</i>'th coordinate of the RealVect.
   */
   inline
-  const Real& operator[] (int i) const;
+  const Real& operator[] (int i) const noexcept;
 
   /*@}*/
 
@@ -110,14 +110,14 @@ public:
      Returns true if this RealVect is equivalent to argument RealVect.  All
      comparisons between analogous components must be satisfied.
   */
-  bool operator== (const RealVect& p) const;
+  bool operator== (const RealVect& p) const noexcept;
 
   ///
   /**
      Returns true if this RealVect is different from argument RealVect.
      All comparisons between analogous components must be satisfied.
   */
-  bool operator!= (const RealVect& p) const;
+  bool operator!= (const RealVect& p) const noexcept;
 
   ///
   /**
@@ -127,7 +127,7 @@ public:
      an RealVect to be neither greater than, less than, nor equal to
      another.
   */
-  bool operator< (const RealVect& p) const;
+  bool operator< (const RealVect& p) const noexcept;
 
   ///
   /**
@@ -137,7 +137,7 @@ public:
      is possible for an RealVect to be neither greater than or equal
      to, less than or equal to, nor equal to another.
   */
-  bool operator<= (const RealVect& p) const;
+  bool operator<= (const RealVect& p) const noexcept;
 
   ///
   /**
@@ -147,7 +147,7 @@ public:
      for an RealVect to be neither greater than, less than, nor equal
      to another.
   */
-  bool operator> (const RealVect& p) const;
+  bool operator> (const RealVect& p) const noexcept;
 
   ///
   /**
@@ -158,7 +158,7 @@ public:
      to, less than or equal to, nor equal to another.
   */
 
-  bool operator>= (const RealVect& p) const;
+  bool operator>= (const RealVect& p) const noexcept;
 
   /*@}*/
 
@@ -171,58 +171,58 @@ public:
   /**
      Modifies this RealVect by addition of a scalar to each component.
   */
-  RealVect& operator+= (Real s);
+  RealVect& operator+= (Real s) noexcept;
 
   ///
   /**
      Returns a RealVect that is this RealVect with a scalar s added
      to each component.
   */
-  RealVect operator+ (Real s) const;
+  RealVect operator+ (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise addition by argument.
   */
-  RealVect& operator+= (const RealVect& p);
+  RealVect& operator+= (const RealVect& p) noexcept;
 
   ///
   /**
      Modifies this RealVect by subtraction of a scalar from each
      component.
   */
-  RealVect& operator-= (Real s);
+  RealVect& operator-= (Real s) noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise subtraction by argument.
   */
-  RealVect& operator-= (const RealVect& p);
+  RealVect& operator-= (const RealVect& p) noexcept;
 
   ///
   /**
      Returns a RealVect that is this RealVect with a scalar s subtracted
      from each component.
   */
-  RealVect operator- (Real s) const;
+  RealVect operator- (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by multiplying each component by a scalar.
   */
-  RealVect& operator*= (Real s);
+  RealVect& operator*= (Real s) noexcept;
 
   ///
   /**
 
   */
-  Real dotProduct(const RealVect& a_rhs) const;
+  Real dotProduct(const RealVect& a_rhs) const noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise multiplication by argument.
   */
-  RealVect& operator*= (const RealVect& p);
+  RealVect& operator*= (const RealVect& p) noexcept;
 
 //XXX  ///
 //XXX  /**
@@ -235,19 +235,19 @@ public:
      Returns a RealVect that is this RealVect with each component
      multiplied by a scalar.
   */
-  RealVect operator* (Real s) const;
+  RealVect operator* (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by dividing each component by a scalar.
   */
-  RealVect& operator/= (Real s);
+  RealVect& operator/= (Real s) noexcept;
 
   ///
   /**
      Modifies this RealVect by component-wise division by argument.
   */
-  RealVect& operator/= (const RealVect& p);
+  RealVect& operator/= (const RealVect& p) noexcept;
 
 //XXX  ///
 //XXX  /**
@@ -260,13 +260,13 @@ public:
      Returns a RealVect that is this RealVect with each component
      divided by a scalar.
   */
-  RealVect operator/ (Real s) const;
+  RealVect operator/ (Real s) const noexcept;
 
   ///
   /**
      Modifies this RealVect by multiplying each component by a scalar.
   */
-  RealVect& scale (Real s);
+  RealVect& scale (Real s) noexcept;
 
   /*@}*/
 
@@ -280,7 +280,7 @@ public:
      Modifies this RealVect by taking component-wise min with RealVect
      argument.
   */
-  RealVect& min (const RealVect& p);
+  RealVect& min (const RealVect& p) noexcept;
 
   ///
   /**
@@ -288,14 +288,14 @@ public:
      argument RealVects.
   */
   friend inline RealVect min (const RealVect& p1,
-                              const RealVect& p2);
+                              const RealVect& p2) noexcept;
 
   ///
   /**
      Modifies this RealVect by taking component-wise max with RealVect
      argument.
   */
-  RealVect& max (const RealVect& p);
+  RealVect& max (const RealVect& p) noexcept;
 
   ///
   /**
@@ -303,7 +303,7 @@ public:
      argument RealVects.
   */
   friend inline RealVect max (const RealVect& p1,
-                              const RealVect& p2);
+                              const RealVect& p2) noexcept;
 
   /*@}*/
 
@@ -316,51 +316,51 @@ public:
   /**
      Unary plus -- for completeness.
   */
-  RealVect operator+ () const;
+  RealVect operator+ () const noexcept;
 
   ///
   /**
      Unary minus -- negates all components of this RealVect.
   */
-  RealVect operator- () const;
+  RealVect operator- () const noexcept;
 
   ///
   /**
      Sum of all components of this RealVect.
   */
-  Real sum () const;
+  Real sum () const noexcept;
 
   ///
   /**
      sqrt(sum squares)
   */
-  Real vectorLength() const;
+  Real vectorLength() const noexcept;
 
   ///
   /**
      sum squares--no square root
   */
-  Real radSquared() const;
+  Real radSquared() const noexcept;
 
   ///
   /**
      Product of all components of this RealVect.
   */
-  Real product () const;
+  Real product () const noexcept;
 
   ///
   /**
      Component with the minimum value of this RealVect (returns 0 if they are all the same).
      a_doAbs : if true then take the absolute value before comparing
   */
-  int minDir(const bool& a_doAbs) const;
+  int minDir(const bool& a_doAbs) const noexcept;
 
   ///
   /**
      Component with the maximum value of this RealVect (returns 0 if they are all the same).
      a_doAbs : if true then take the absolute value before comparing
   */
-  int maxDir(const bool& a_doAbs) const;
+  int maxDir(const bool& a_doAbs) const noexcept;
 
   /*@}*/
 
@@ -373,13 +373,13 @@ public:
   /**
      Only for sending stuff to Fortran
    */
-  const Real* dataPtr() const;
+  const Real* dataPtr() const noexcept;
 
   ///
   /**
      Only for sending stuff to Fortran
    */
-  Real* dataPtr() ;
+  Real* dataPtr() noexcept;
 
   /*@}*/
 
@@ -400,7 +400,7 @@ public:
      BASISREALV(2) == (0.,0.,1.).<br>
      Note that the coordinate directions are based at zero.
   */
-  friend RealVect BASISREALV(int dir);
+  friend RealVect BASISREALV(int dir) noexcept;
 
   ///
   /**
@@ -427,14 +427,14 @@ public:
      a scalar <i>s</i> added to each component.
   */
   friend RealVect operator+ (Real            s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
 
   ///
   /**
      Returns <i>s - p</i>.
   */
   friend RealVect operator- (Real            s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
 
   ///
   /**
@@ -442,41 +442,41 @@ public:
      multiplied by a scalar <i>s</i>.
   */
   friend RealVect operator* (Real            s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
   ///
   /**
      Returns a RealVect that is a RealVect <i>p</i> with each component
      divided by a scalar <i>s</i>.
   */
   friend RealVect operator/ (Real            s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
 
   ///
   /**
      Returns component-wise sum of RealVects <i>s</i> and <i>p</i>.
   */
   friend RealVect operator+ (const RealVect& s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
 
   ///
   /**
      Returns <i>s - p</i>.
   */
   friend RealVect operator- (const RealVect& s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
 
   ///
   /**
      Returns component-wise product of <i>s</i> and <i>p</i>.
   */
   friend RealVect operator* (const RealVect& s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
   ///
   /**
      Returns component-wise quotient <i>p / s</i>.
   */
   friend RealVect operator/ (const RealVect& s,
-                             const RealVect& p);
+                             const RealVect& p) noexcept;
 
   ///
   /**
@@ -484,7 +484,7 @@ public:
      of the given RealVect by a scalar.
   */
   friend inline RealVect scale (const RealVect& p,
-                                Real            s);
+                                Real            s) noexcept;
 
   /*@}*/
 
@@ -496,7 +496,6 @@ public:
                                    const RealVect& p);
 
   friend std::istream& operator>> (std::istream& is, RealVect& iv);
-  friend class HDF5Handle;
 
 protected:
 
@@ -507,26 +506,26 @@ protected:
 
 };
 
-inline Real& RealVect::operator[] (int i)
+inline Real& RealVect::operator[] (int i) noexcept
 {
   assert(i>=0 && i < SpaceDim);
   return vect[i];
 }
 
-inline const Real& RealVect::operator[] (int i) const
+inline const Real& RealVect::operator[] (int i) const noexcept
 {
   assert(i>=0 && i < SpaceDim);
   return vect[i];
 }
 
-inline RealVect::RealVect (const RealVect &iv)
+inline RealVect::RealVect (const RealVect &iv) noexcept
 {
   AMREX_D_EXPR(vect[0]=iv.vect[0], vect[1]=iv.vect[1], vect[2]=iv.vect[2]);
 }
 
 inline
 RealVect&
-RealVect::operator-= (Real s)
+RealVect::operator-= (Real s) noexcept
 {
   AMREX_D_EXPR(vect[0] -= s, vect[1] -= s, vect[2] -= s);
   return *this;
@@ -534,7 +533,7 @@ RealVect::operator-= (Real s)
 
 inline
 RealVect&
-RealVect::operator-= (const RealVect& p)
+RealVect::operator-= (const RealVect& p) noexcept
 {
   AMREX_D_EXPR(vect[0] -= p[0], vect[1] -= p[1], vect[2] -= p[2]);
 
@@ -543,21 +542,21 @@ RealVect::operator-= (const RealVect& p)
 
 inline
 RealVect
-RealVect::operator+ () const
+RealVect::operator+ () const noexcept
 {
   return RealVect(*this);
 }
 
 inline
 RealVect
-RealVect::operator- () const
+RealVect::operator- () const noexcept
 {
   return RealVect(AMREX_D_DECL(-vect[0], -vect[1], -vect[2]));
 }
 
 inline
 RealVect&
-RealVect::scale (Real s)
+RealVect::scale (Real s) noexcept
 {
   AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
   return *this;
@@ -565,14 +564,14 @@ RealVect::scale (Real s)
 
 inline
 Real
-RealVect::sum () const
+RealVect::sum () const noexcept
 {
   return AMREX_D_TERM(vect[0], + vect[1], + vect[2]);
 }
 
 inline
 Real
-RealVect::vectorLength () const
+RealVect::vectorLength () const noexcept
 {
   Real len = this->radSquared();
   len = std::sqrt(len);
@@ -582,7 +581,7 @@ RealVect::vectorLength () const
 
 inline
 Real
-RealVect::radSquared() const
+RealVect::radSquared() const noexcept
 {
   Real len = 0;
   for (int idir = 0; idir < SpaceDim; idir++)
@@ -595,7 +594,7 @@ RealVect::radSquared() const
 
 inline
 Real
-RealVect::product () const
+RealVect::product () const noexcept
 {
   return AMREX_D_TERM(vect[0], * vect[1], * vect[2]);
 }
@@ -603,42 +602,42 @@ RealVect::product () const
 inline
 RealVect
 scale (const RealVect& p,
-       Real            s)
+       Real            s) noexcept
 {
   return RealVect(AMREX_D_DECL(s * p[0], s * p[1], s * p[2]));
 }
 
 inline
 bool
-RealVect::operator< (const RealVect& p) const
+RealVect::operator< (const RealVect& p) const noexcept
 {
   return AMREX_D_TERM(vect[0] < p[0], && vect[1] < p[1], && vect[2] < p[2]);
 }
 
 inline
 bool
-RealVect::operator<= (const RealVect& p) const
+RealVect::operator<= (const RealVect& p) const noexcept
 {
   return AMREX_D_TERM(vect[0] <= p[0], && vect[1] <= p[1], && vect[2] <= p[2]);
 }
 
 inline
 bool
-RealVect::operator> (const RealVect& p) const
+RealVect::operator> (const RealVect& p) const noexcept
 {
   return AMREX_D_TERM(vect[0] > p[0], && vect[1] > p[1], && vect[2] > p[2]);
 }
 
 inline
 bool
-RealVect::operator>= (const RealVect& p) const
+RealVect::operator>= (const RealVect& p) const noexcept
 {
   return AMREX_D_TERM(vect[0] >= p[0], && vect[1] >= p[1], && vect[2] >= p[2]);
 }
 
 inline
 RealVect&
-RealVect::min (const RealVect& p)
+RealVect::min (const RealVect& p) noexcept
 {
   AMREX_D_EXPR(vect[0] = std::min(vect[0], p.vect[0]),
          vect[1] = std::min(vect[1], p.vect[1]),
@@ -649,7 +648,7 @@ RealVect::min (const RealVect& p)
 
 inline
 RealVect&
-RealVect::max (const RealVect& p)
+RealVect::max (const RealVect& p) noexcept
 {
   AMREX_D_EXPR(vect[0] = std::max(vect[0], p.vect[0]),
          vect[1] = std::max(vect[1], p.vect[1]),
@@ -660,7 +659,7 @@ RealVect::max (const RealVect& p)
 inline
 RealVect
 min (const RealVect& p1,
-     const RealVect& p2)
+     const RealVect& p2) noexcept
 {
   RealVect p(p1);
   return p.min(p2);
@@ -669,13 +668,13 @@ min (const RealVect& p1,
 inline
 RealVect
 max (const RealVect& p1,
-     const RealVect& p2)
+     const RealVect& p2) noexcept
 {
   RealVect p(p1);
   return p.max(p2);
 }
 
-extern RealVect BASISREALV(int idir);
+extern RealVect BASISREALV(int idir) noexcept;
 
 }
 

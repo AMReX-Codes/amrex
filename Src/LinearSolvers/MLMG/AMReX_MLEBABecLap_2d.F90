@@ -243,7 +243,6 @@ contains
 
   end subroutine amrex_mlebabeclap_adotx
 
-
   subroutine amrex_mlebabeclap_gsrb(lo, hi, phi, hlo, hhi, rhs, rlo, rhi, a, alo, ahi, &
        bx, bxlo, bxhi, by, bylo, byhi, &
        ccm, cmlo, cmhi, &
@@ -254,18 +253,18 @@ contains
        flag, flo, fhi, vfrc, vlo, vhi, &
        apx, axlo, axhi, apy, aylo, ayhi, fcx, cxlo, cxhi, fcy, cylo, cyhi, &
        ba, balo, bahi, bc, bclo, bchi, beb, elo, ehi, &
-       is_dirichlet, is_ho_dirichlet, phieb, p_lo, p_hi, &
-       is_inhomog, dxinv, alpha, beta, redblack) &
+       is_dirichlet, is_ho_dirichlet, &
+       dxinv, alpha, beta, redblack) &
        bind(c,name='amrex_mlebabeclap_gsrb')
 
     integer, dimension(2), intent(in) :: lo, hi, hlo, hhi, rlo, rhi, alo, ahi, bxlo, bxhi, bylo, byhi, &
          cmlo, cmhi, m0lo, m0hi, m1lo, m1hi, m2lo, m2hi, m3lo, m3hi, &
          f0lo, f0hi, f1lo, f1hi, f2lo, f2hi, f3lo, f3hi, &
          flo, fhi, vlo, vhi, axlo, axhi, aylo, ayhi, cxlo, cxhi, cylo, cyhi, &
-         balo, bahi, bclo, bchi, elo, ehi, p_lo, p_hi
+         balo, bahi, bclo, bchi, elo, ehi
 
     real(amrex_real), intent(in) :: dxinv(2)
-    integer         , intent(in   ) :: is_dirichlet, is_ho_dirichlet, is_inhomog
+    integer         , value, intent(in) :: is_dirichlet, is_ho_dirichlet
     real(amrex_real), value, intent(in) :: alpha, beta
     integer, value, intent(in) :: redblack
     real(amrex_real), intent(inout) ::  phi( hlo(1): hhi(1), hlo(2): hhi(2))
@@ -291,7 +290,6 @@ contains
     real(amrex_real), intent(in   ) ::   ba(balo(1):bahi(1),balo(2):bahi(2))
     real(amrex_real), intent(in   ) ::   bc(bclo(1):bchi(1),bclo(2):bchi(2),2)
     real(amrex_real), intent(in   ) ::  beb( elo(1): ehi(1), elo(2): ehi(2))
-    real(amrex_real), intent(in   ) ::phieb(p_lo(1):p_hi(1),p_lo(2):p_hi(2))
 
     integer :: i,j,ioff,ii,jj
     real(amrex_real) :: cf0, cf1, cf2, cf3, delta, gamma, rho, res, vfrcinv
@@ -305,9 +303,6 @@ contains
     real(amrex_real), parameter :: omega = 1._amrex_real
 
     real(amrex_real) :: dphidn
-    logical          :: is_inhomogeneous
-
-    is_inhomogeneous = is_inhomog .ne. 0
 
     dhx = beta*dxinv(1)*dxinv(1)
     dhy = beta*dxinv(2)*dxinv(2)
@@ -405,11 +400,8 @@ contains
                    anrmx = (apx(i,j)-apx(i+1,j)) * anorminv
                    anrmy = (apy(i,j)-apy(i,j+1)) * anorminv
 
-                   if (is_inhomogeneous) then
-                      phib = phieb(i,j)
-                   else
-                      phib = zero
-                   end if
+                   ! In gsrb we are always in residual-correction form so phib = 0
+                   phib = zero
 
                    call compute_dphidn_2d(dphidn, dxinv, i, j, &
                                           phi,  hlo,  hhi, &
@@ -496,14 +488,8 @@ contains
                    phig_gamma = w1*phig1_gamma
                    phig = w1*phig1 + w2*phig2
 
-                   if (is_inhomogeneous) then
-                      phib = phieb(i,j)
-                   else
-                      phib = zero
-                   end if
-
                    feb_gamma = -phig_gamma/dg * ba(i,j) * beb(i,j)
-                   feb       = (phib-phig)/dg * ba(i,j) * beb(i,j)
+                   feb       = (    -phig)/dg * ba(i,j) * beb(i,j)
 
                    gamma = gamma + vfrcinv*(-dhx)*feb_gamma
                    rho = rho - vfrcinv*(-dhx)*feb
@@ -837,7 +823,6 @@ contains
       real(amrex_real),        intent(  out) :: dudn
 
       ! Local variable
-      real(amrex_real) :: dapx, dapy
       real(amrex_real) :: anrm
       real(amrex_real) :: xit, yit, s, s2
       real(amrex_real) :: d1, d2, ddinv

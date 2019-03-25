@@ -227,13 +227,29 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
-	@if [ "$(CUDA_MAXREGCOUNT_$(<F))" != "" ]; then \
-	  $(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT_$(<F)), $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
-	else \
-	  $(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION); \
-	fi
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) $(FORT_EXE_OUTPUT_OPTION)
 else
 	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $< $(FORT_EXE_OUTPUT_OPTION)
+endif
+
+# Handle the special case of amrex_filccn for CUDA -- we need to reduce the register count.
+
+ifeq ($(USE_CUDA),TRUE)
+ifeq ($(USE_GPU_PRAGMA),TRUE)
+
+ifneq ($(BL_NO_FORT),TRUE)
+
+$(objEXETempDir)/AMReX_filcc_mod.o: AMReX_filcc_mod.F90
+	@echo Compiling $(<F) ...
+	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
+	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
+	@$(SHELL) -ec 'cp $< $(srcTempDir)'
+	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
+	$(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:128, $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
+
+endif
+
+endif
 endif
 
 #
@@ -276,7 +292,6 @@ $(depEXETempDir)/%.d: %.cpp
 	@echo Depending $< ...
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
@@ -287,7 +302,6 @@ $(depEXETempDir)/%.d: %.c
 	@echo Depending $< ...
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
@@ -333,7 +347,8 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --cxx "$(CEXE_sources)" \
              --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
-             --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
+             --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \
+	     --num_workers "16"
 endif
 
 #

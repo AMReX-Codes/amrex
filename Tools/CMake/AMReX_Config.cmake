@@ -129,10 +129,14 @@ function (configure_amrex)
       set_target_properties ( amrex PROPERTIES POSITION_INDEPENDENT_CODE True )
    endif ()
 
-   if (ENABLE_CUDA OR BUILD_SHARED_LIBS)
-      set_target_properties( amrex PROPERTIES INTERFACE_LINK_OPTIONS "-Wl,--warn-unresolved-symbols")
-   endif ()
-      
+   if ( BUILD_SHARED_LIBS OR ENABLE_CUDA )
+      if(APPLE)
+         target_link_options(amrex PUBLIC -Wl,-undefined,warning)
+      else()
+         target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
+      endif()
+   endif()
+
    # 
    # Location of Fortran modules
    # 
@@ -189,6 +193,11 @@ function (configure_amrex)
       find_package(SENSEI REQUIRED)
       target_link_libraries( amrex PUBLIC sensei )     
    endif()
+
+   #
+   # Setup other third party libs
+   #
+   include(AMReX_SetupThirdPartyLibs)
 
    #
    # Print out summary

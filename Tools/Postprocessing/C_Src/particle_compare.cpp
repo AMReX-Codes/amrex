@@ -205,6 +205,8 @@ std::ostream& operator<< (std::ostream& stream, const ParticleHeader& header) {
             stream << header.offsets[j][i] << std::endl;
         }
     }
+
+    return stream;
 }
 
 std::istream& operator>> (std::istream& stream, ParticleHeader& header) {
@@ -252,6 +254,8 @@ std::istream& operator>> (std::istream& stream, ParticleHeader& header) {
             header.offsets[i].push_back(num);
         }
     }
+
+    return stream;
 }
 
 std::string getDataFileName(const std::string& prefix, int level, int file_num) {

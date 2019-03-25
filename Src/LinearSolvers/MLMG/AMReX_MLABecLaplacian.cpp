@@ -53,7 +53,7 @@ MLABecLaplacian::~MLABecLaplacian ()
 {}
 
 void
-MLABecLaplacian::setScalars (Real a, Real b)
+MLABecLaplacian::setScalars (Real a, Real b) noexcept
 {
     m_a_scalar = a;
     m_b_scalar = b;

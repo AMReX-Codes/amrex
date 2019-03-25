@@ -9,7 +9,7 @@ void mlabeclap_adotx (Box const& box, Array4<Real> const& y,
                       Array4<Real const> const& a,
                       Array4<Real const> const& bX,
                       GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                      Real alpha, Real beta)
+                      Real alpha, Real beta) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
 
@@ -29,7 +29,7 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
                           Array4<Real const> const& a,
                           Array4<Real const> const& bX,
                           GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                          Real alpha, Real beta)
+                          Real alpha, Real beta) noexcept
 {
     const Real dhx = beta*dxinv[0]*dxinv[0];
 
@@ -44,7 +44,7 @@ void mlabeclap_normalize (Box const& box, Array4<Real> const& x,
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
-                       Array4<Real const> const& bx, Real fac)
+                       Array4<Real const> const& bx, Real fac) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -57,7 +57,7 @@ void mlabeclap_flux_x (Box const& box, Array4<Real> const& fx, Array4<Real const
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void mlabeclap_flux_xface (Box const& box, Array4<Real> const& fx, Array4<Real const> const& sol,
-                           Array4<Real const> const& bx, Real fac, int xlen)
+                           Array4<Real const> const& bx, Real fac, int xlen) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -75,7 +75,7 @@ void abec_gsrb (Box const& box, Array4<Real> const& phi,
                 Array4<Real const> const& bX,
                 Array4<Real const> const& f0, Array4<int const> const& m0,
                 Array4<Real const> const& f1, Array4<int const> const& m1,
-                Box const& vbox, int nc, int redblack)
+                Box const& vbox, int nc, int redblack) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

@@ -299,7 +299,7 @@ MFIter::Initialize ()
 }
 
 Box 
-MFIter::tilebox () const
+MFIter::tilebox () const noexcept
 { 
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
@@ -320,7 +320,7 @@ MFIter::tilebox () const
 }
 
 Box
-MFIter::tilebox (const IntVect& nodal) const
+MFIter::tilebox (const IntVect& nodal) const noexcept
 {
     BL_ASSERT(tile_array != 0);
     Box bx((*tile_array)[currentIndex]);
@@ -342,7 +342,7 @@ MFIter::tilebox (const IntVect& nodal) const
 }
 
 Box
-MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
+MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const noexcept
 {
     Box bx = tilebox(nodal);
     const Box& vbx = validbox();
@@ -358,7 +358,7 @@ MFIter::tilebox (const IntVect& nodal, const IntVect& ngrow) const
 }
 
 Box
-MFIter::nodaltilebox (int dir) const 
+MFIter::nodaltilebox (int dir) const noexcept
 { 
     BL_ASSERT(dir < AMREX_SPACEDIM);
     BL_ASSERT(tile_array != 0);
@@ -386,7 +386,7 @@ MFIter::nodaltilebox (int dir) const
 
 // Note that a small negative ng is supported.
 Box 
-MFIter::growntilebox (int a_ng) const 
+MFIter::growntilebox (int a_ng) const noexcept
 {
     Box bx = tilebox();
     IntVect ngv{a_ng};
@@ -404,7 +404,7 @@ MFIter::growntilebox (int a_ng) const
 }
 
 Box
-MFIter::growntilebox (const IntVect& ng) const
+MFIter::growntilebox (const IntVect& ng) const noexcept
 {
     Box bx = tilebox();
     const Box& vbx = validbox();
@@ -420,7 +420,7 @@ MFIter::growntilebox (const IntVect& ng) const
 }
 
 Box
-MFIter::grownnodaltilebox (int dir, int a_ng) const
+MFIter::grownnodaltilebox (int dir, int a_ng) const noexcept
 {
     IntVect ngv(a_ng);
     if (a_ng < -100) ngv = fabArray.nGrowVect();
@@ -428,7 +428,7 @@ MFIter::grownnodaltilebox (int dir, int a_ng) const
 }
 
 Box
-MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const
+MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const noexcept
 {
     BL_ASSERT(dir < AMREX_SPACEDIM);
     Box bx = nodaltilebox(dir);
@@ -445,7 +445,7 @@ MFIter::grownnodaltilebox (int dir, IntVect const& a_ng) const
 }
 
 void
-MFIter::operator++ ()
+MFIter::operator++ () noexcept
 {
 #ifdef _OPENMP
     int numOmpThreads = omp_get_num_threads();

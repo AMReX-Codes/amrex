@@ -106,12 +106,12 @@ namespace ParallelDescriptor
 
     //! return the rank number local to the current Parallel Context
     inline int
-    MyProc ()
+    MyProc () noexcept
     {
         return ParallelContext::MyProcAll();
     }
     inline int
-    MyProc (MPI_Comm comm)
+    MyProc (MPI_Comm comm) noexcept
     {
 #ifdef BL_USE_MPI
 	int r;
@@ -186,12 +186,12 @@ namespace ParallelDescriptor
     extern ProcessTeam m_Team;
 
     extern int m_MinTag, m_MaxTag;
-    inline int MinTag () { return m_MinTag; }
-    inline int MaxTag () { return m_MaxTag; }
+    inline int MinTag () noexcept { return m_MinTag; }
+    inline int MaxTag () noexcept { return m_MaxTag; }
 
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
-    NProcs ()
+    NProcs () noexcept
     {
         return ParallelContext::NProcsAll();
     }
@@ -201,7 +201,7 @@ namespace ParallelDescriptor
     */
     extern const int ioProcessor;
     inline int
-    IOProcessorNumber ()
+    IOProcessorNumber () noexcept
     {
         return ioProcessor;
     }
@@ -210,73 +210,73 @@ namespace ParallelDescriptor
     * To get the rank number, call IOProcessorNumber()
     */
     inline bool
-    IOProcessor ()
+    IOProcessor () noexcept
     {
          return MyProc() == IOProcessorNumber();
     }
     //
     inline int
-    TeamSize ()
+    TeamSize () noexcept
     {
 	return m_Team.m_size;
     }
     inline int
-    NTeams ()
+    NTeams () noexcept
     {
 	return m_Team.m_numTeams;
     }
     inline int
-    MyTeamColor ()
+    MyTeamColor () noexcept
     {
 	return m_Team.m_color;
     }
     inline int
-    MyTeamLead ()
+    MyTeamLead () noexcept
     {
 	return m_Team.m_lead;
     }
     inline int
-    MyRankInTeam ()
+    MyRankInTeam () noexcept
     {
 	return m_Team.m_rankInTeam;
     }
     inline int
-    TeamLead (int rank)
+    TeamLead (int rank) noexcept
     {
 	return (rank >= 0) ? (rank - rank % m_Team.m_size) : MPI_PROC_NULL;
     }
     inline bool
-    isTeamLead ()
+    isTeamLead () noexcept
     {
 	return MyRankInTeam() == 0;
     }
     inline bool
-    sameTeam (int rank)
+    sameTeam (int rank) noexcept
     {
 	return MyTeamLead() == TeamLead(rank);
     }
     inline bool
-    sameTeam (int rankA, int rankB)
+    sameTeam (int rankA, int rankB) noexcept
     {
 	return TeamLead(rankA) == TeamLead(rankB);
     }
     inline int
-    RankInLeadComm (int rank)
+    RankInLeadComm (int rank) noexcept
     {
 	return (rank >= 0) ? (rank / m_Team.m_size) : MPI_PROC_NULL;
     }
     inline bool
-    doTeamReduce ()
+    doTeamReduce () noexcept
     {
 	return m_Team.m_do_team_reduce;
     }
     inline const ProcessTeam&
-    MyTeam ()
+    MyTeam () noexcept
     {
 	return m_Team;
     }
     inline std::pair<int,int>
-    team_range (int begin, int end, int rit = -1, int nworkers = 0)
+    team_range (int begin, int end, int rit = -1, int nworkers = 0) noexcept
     {
 	int rb, re;
 	{
@@ -344,7 +344,7 @@ namespace ParallelDescriptor
 	}
     }
     extern MPI_Comm m_comm;
-    inline MPI_Comm Communicator () { return m_comm; }
+    inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     void Barrier (const std::string& message = Unnamed);
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
@@ -357,7 +357,7 @@ namespace ParallelDescriptor
     //! ErrorString return string associated with error internal error condition
     const char* ErrorString (int errcode);
     //! Returns wall-clock seconds since start of execution.
-    double second ();
+    double second () noexcept;
 
     //! And-wise boolean reduction.
     void ReduceBoolAnd (bool& rvar);
@@ -471,7 +471,7 @@ namespace ParallelDescriptor
     * \brief Returns sequential message sequence numbers, usually used as
     * tags for send/recv.
     */
-    inline int SeqNum () { return ParallelContext::get_inc_mpi_tag(); }
+    inline int SeqNum () noexcept { return ParallelContext::get_inc_mpi_tag(); }
 
     template <class T> Message Asend(const T*, size_t n, int pid, int tag);
     template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);

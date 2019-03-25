@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-
-project (AMReX)
-
-enable_language(C)
+project(AMReX)
 enable_language(CXX)
 enable_language(Fortran)
 

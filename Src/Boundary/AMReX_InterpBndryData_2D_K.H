@@ -10,7 +10,7 @@ namespace amrex {
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void interpbndrydata_x_o1 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
-                           Array4<Real const> const& crse, int nc, Dim3 const& r)
+                           Array4<Real const> const& crse, int nc, Dim3 const& r) noexcept
 {
     Real c = crse(ic,jc,0,n+nc);
     const int i = ic*r.x + islo*(r.x-1);
@@ -23,7 +23,7 @@ void interpbndrydata_x_o1 (int islo, int ic, int jc, int /*kc*/, int n,
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void interpbndrydata_y_o1 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
-                           Array4<Real const> const& crse, int nc, Dim3 const& r)
+                           Array4<Real const> const& crse, int nc, Dim3 const& r) noexcept
 {
     Real c = crse(ic,jc,0,n+nc);
     const int j = jc*r.y + islo*(r.y-1);
@@ -37,7 +37,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void interpbndrydata_x_o3 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
                            Array4<Real const> const& crse, int nc, Dim3 const& r,
-                           Array4<int const> const& mask, int not_covered)
+                           Array4<int const> const& mask, int not_covered) noexcept
 {
     const int i = ic*r.x + islo*(r.x-1);
     int j = jc*r.y;
@@ -86,7 +86,7 @@ AMREX_GPU_HOST_DEVICE AMREX_INLINE
 void interpbndrydata_y_o3 (int islo, int ic, int jc, int /*kc*/, int n,
                            Array4<Real> const& bdry, int nb,
                            Array4<Real const> const& crse, int nc, Dim3 const& r,
-                           Array4<int const> const& mask, int not_covered)
+                           Array4<int const> const& mask, int not_covered) noexcept
 {
     int i = ic*r.x;
     const int j = jc*r.y + islo*(r.y-1);

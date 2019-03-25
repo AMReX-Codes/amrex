@@ -31,7 +31,7 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FArrayBox> const*>& a_factory = {});
 
-    void setScalars (Real a, Real b);
+    void setScalars (Real a, Real b) noexcept;
     void setACoeffs (int amrlev, const MultiFab& alpha);
 
     virtual void prepareForSolve () final override;

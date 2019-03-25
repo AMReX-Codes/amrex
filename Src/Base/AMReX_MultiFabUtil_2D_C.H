@@ -11,7 +11,7 @@ namespace amrex {
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_nd_to_cc (Box const& bx, FArrayBox& ccfab, FArrayBox const& ndfab,
-                         int cccomp, int ndcomp, int ncomp)
+                         int cccomp, int ndcomp, int ncomp) noexcept
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -32,7 +32,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_eg_to_cc (Box const& bx, FArrayBox& ccfab,
                          FArrayBox const& exfab, FArrayBox const& eyfab,
-                         int cccomp)
+                         int cccomp) noexcept
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -53,7 +53,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_fc_to_cc (Box const& bx, FArrayBox& ccfab,
                          FArrayBox const& fxfab, FArrayBox const& fyfab,
-                         int cccomp)
+                         int cccomp) noexcept
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);
@@ -74,7 +74,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
                          FArrayBox& fxfab, FArrayBox& fyfab,
-                         FArrayBox const& ccfab)
+                         FArrayBox const& ccfab) noexcept
 {
     const auto lo = lbound(ndbx);
     const auto fx = fxfab.view(lo);
@@ -101,7 +101,7 @@ void amrex_avg_cc_to_fc (Box const& ndbx, Box const& xbx, Box const& ybx,
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
-                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir) noexcept
 {
     const auto len = length(bx);
     const auto clo = lbound(bx);
@@ -155,7 +155,7 @@ void amrex_avgdown_faces (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
-                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir)
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio, int idir) noexcept
 {
     const auto len = length(bx);
     const auto clo = lbound(bx);
@@ -209,7 +209,7 @@ void amrex_avgdown_edges (Box const& bx, FArrayBox& crsefab, FArrayBox const& fi
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
-                    int ccomp, int fcomp, int ncomp, IntVect const& ratio)
+                    int ccomp, int fcomp, int ncomp, IntVect const& ratio) noexcept
 {
     const auto len = length(bx);
     const auto clo = lbound(bx);
@@ -241,7 +241,7 @@ void amrex_avgdown (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
 AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_nodes (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
-                          int ccomp, int fcomp, int ncomp, IntVect const& ratio)
+                          int ccomp, int fcomp, int ncomp, IntVect const& ratio) noexcept
 {
     const auto len = length(bx);
     const auto clo = lbound(bx);
@@ -267,7 +267,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_avgdown_with_vol (Box const& bx, FArrayBox& crsefab, FArrayBox const& finefab,
                              FArrayBox const& finevolfab, int ccomp, int fcomp, int ncomp,
-                             IntVect const& ratio)
+                             IntVect const& ratio) noexcept
 {
     const auto len = length(bx);
     const auto clo = lbound(bx);
@@ -301,7 +301,7 @@ AMREX_GPU_HOST_DEVICE
 inline
 void amrex_compute_divergence (Box const& bx, FArrayBox& divufab,
                                FArrayBox const& ufab, FArrayBox const& vfab,
-                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
+                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
 {
     const auto len = length(bx);
     const auto lo  = lbound(bx);

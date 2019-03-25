@@ -49,18 +49,18 @@ operator>> (std::istream& is,
     return is;
 }
 
-Geometry::Geometry () {}
+Geometry::Geometry () noexcept {}
 
 Geometry::Geometry (const Box&     dom,
                     const RealBox* rb,
                     int            coord,
-                    int const*     is_per)
+                    int const*     is_per) noexcept
 {
     define(dom,rb,coord,is_per);
 }
 
 Geometry::Geometry (const Box& dom, const RealBox& rb, int coord,
-                    Array<int,AMREX_SPACEDIM> const& is_per)
+                    Array<int,AMREX_SPACEDIM> const& is_per) noexcept
 {
     define(dom, &rb, coord, is_per.data());
 }
@@ -254,7 +254,7 @@ Geometry::GetFaceArea (FArrayBox&      area,
 void
 Geometry::periodicShift (const Box&      target,
                          const Box&      src, 
-                         Vector<IntVect>& out) const
+                         Vector<IntVect>& out) const noexcept
 {
     out.resize(0);
 
@@ -330,7 +330,7 @@ Geometry::periodicShift (const Box&      target,
 }
 
 Box
-Geometry::growNonPeriodicDomain (int ngrow) const
+Geometry::growNonPeriodicDomain (int ngrow) const noexcept
 {
     Box b = Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -342,7 +342,7 @@ Geometry::growNonPeriodicDomain (int ngrow) const
 }
 
 Box
-Geometry::growPeriodicDomain (int ngrow) const
+Geometry::growPeriodicDomain (int ngrow) const noexcept
 {
     Box b = Domain();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

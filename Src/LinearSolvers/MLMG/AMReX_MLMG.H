@@ -60,35 +60,35 @@ public:
     */
     void apply (const Vector<MultiFab*>& out, const Vector<MultiFab*>& in);
 
-    void setVerbose (int v) { verbose = v; }
-    void setMaxIter (int n) { max_iters = n; }
-    void setMaxFmgIter (int n) { max_fmg_iters = n; }
-    void setFixedIter (int nit) { do_fixed_number_of_iters = nit; }
+    void setVerbose (int v) noexcept { verbose = v; }
+    void setMaxIter (int n) noexcept { max_iters = n; }
+    void setMaxFmgIter (int n) noexcept { max_fmg_iters = n; }
+    void setFixedIter (int nit) noexcept { do_fixed_number_of_iters = nit; }
 
-    void setPreSmooth (int n) { nu1 = n; }
-    void setPostSmooth (int n) { nu2 = n; }
-    void setFinalSmooth (int n) { nuf = n; }
-    void setBottomSmooth (int n) { nub = n; }
+    void setPreSmooth (int n) noexcept { nu1 = n; }
+    void setPostSmooth (int n) noexcept { nu2 = n; }
+    void setFinalSmooth (int n) noexcept { nuf = n; }
+    void setBottomSmooth (int n) noexcept { nub = n; }
 
-    void setBottomSolver (BottomSolver s) { bottom_solver = s; }
-    void setBottomVerbose (int v) { bottom_verbose = v; }
-    void setBottomMaxIter (int n) { bottom_maxiter = n; }
-    void setBottomTolerance (Real t) { bottom_reltol = t; }
-    void setCGVerbose (int v) { bottom_verbose = v; }
-    void setCGMaxIter (int n) { bottom_maxiter = n; }
-    void setCGTolerance (Real t) { bottom_reltol = t; }
+    void setBottomSolver (BottomSolver s) noexcept { bottom_solver = s; }
+    void setBottomVerbose (int v) noexcept { bottom_verbose = v; }
+    void setBottomMaxIter (int n) noexcept { bottom_maxiter = n; }
+    void setBottomTolerance (Real t) noexcept { bottom_reltol = t; }
+    void setCGVerbose (int v) noexcept { bottom_verbose = v; }
+    void setCGMaxIter (int n) noexcept { bottom_maxiter = n; }
+    void setCGTolerance (Real t) noexcept { bottom_reltol = t; }
 
-    void setAlwaysUseBNorm (int flag) { always_use_bnorm = flag; }
+    void setAlwaysUseBNorm (int flag) noexcept { always_use_bnorm = flag; }
 
-    void setFinalFillBC (int flag) { final_fill_bc = flag; }
+    void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
 
-    int numAMRLevels () const { return namrlevs; }
+    int numAMRLevels () const noexcept { return namrlevs; }
 
-    void setNSolve (int flag) { do_nsolve = flag; }
-    void setNSolveGridSize (int s) { nsolve_grid_size = s; }
+    void setNSolve (int flag) noexcept { do_nsolve = flag; }
+    void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
 #ifdef AMREX_USE_HYPRE
-    void setHypreInterface (Hypre::Interface f) {
+    void setHypreInterface (Hypre::Interface f) noexcept {
         // must use ij interface for EB
 #ifndef AMREX_USE_EB
         hypre_interface = f;

@@ -47,16 +47,16 @@ public:
         /**
         * \brief Bogus constructor.
         */
-        BndryFunc () = default;
+        BndryFunc () noexcept = default;
 
         /**
         * \brief A Constructor.
         */
-        BndryFunc (BndryFuncDefault inFunc) : m_func(inFunc) {}
+        BndryFunc (BndryFuncDefault inFunc) noexcept : m_func(inFunc) {}
 
-        BndryFunc (BndryFunc3DDefault inFunc) : m_func3D(inFunc) {}
+        BndryFunc (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
-        BndryFunc (BndryFuncFabDefault inFunc) : m_funcfab(inFunc) {}
+        BndryFunc (BndryFuncFabDefault inFunc) noexcept : m_funcfab(inFunc) {}
 
         /**
         * \brief Another Constructor.
@@ -64,10 +64,10 @@ public:
         * \param inFunc
         * \param gFunc
         */
-        BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc)
+        BndryFunc (BndryFuncDefault inFunc,BndryFuncDefault gFunc) noexcept
             : m_func(inFunc), m_gfunc(gFunc) {}
 
-        BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc)
+        BndryFunc (BndryFunc3DDefault inFunc,BndryFunc3DDefault gFunc) noexcept
             : m_func3D(inFunc), m_gfunc3D(gFunc) {}
 
         /**
@@ -124,11 +124,11 @@ public:
                                   const Vector<BCRec>& bcr, const int bcomp,
                                   const int scomp) const;
 
-        bool RunOnGPU () const { return m_run_on_gpu; }
+        bool RunOnGPU () const noexcept { return m_run_on_gpu; }
 
-        void setRunOnGPU (bool b) { m_run_on_gpu = b; }
+        void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
-        bool hasFabVersion () const { return m_funcfab != nullptr; }
+        bool hasFabVersion () const noexcept { return m_funcfab != nullptr; }
 
     private:
 
@@ -143,7 +143,7 @@ public:
     /**
     * \brief The default constructor.
     */
-    StateDescriptor ();
+    StateDescriptor () noexcept;
 
     /**
     * \brief Constructor that sets all data members.
@@ -295,60 +295,60 @@ public:
     /**
     * \brief Returns the IndexType.
     */
-    IndexType getType () const;
+    IndexType getType () const noexcept;
 
     /**
     * \brief Returns StateDescriptor::TimeCenter.
     */
-    StateDescriptor::TimeCenter timeType () const;
+    StateDescriptor::TimeCenter timeType () const noexcept;
 
     /**
     * \brief Returns number of components.
     */
-    int nComp () const;
+    int nComp () const noexcept;
 
     /**
     * \brief Returns the grow factor.
     */
-    int nExtra () const;
+    int nExtra () const noexcept;
 
     /**
     * \brief Returns the interpolater.
     */
-    Interpolater* interp () const;
+    Interpolater* interp () const noexcept;
 
     /**
     * \brief Returns the interpolater of specified component.
     *
     * \param i
     */
-    Interpolater* interp (int i) const;
+    Interpolater* interp (int i) const noexcept;
 
     /**
     * \brief Returns the name of specified component.
     *
     * \param i
     */
-    const std::string& name (int i) const;
+    const std::string& name (int i) const noexcept;
 
     /**
     * \brief Returns the BCRec of specified component.
     *
     * \param i
     */
-    const BCRec& getBC (int i) const;
+    const BCRec& getBC (int i) const noexcept;
 
     /**
     * \brief Returns all BCRecs.
     */
-    const Vector<BCRec>& getBCs () const;
+    const Vector<BCRec>& getBCs () const noexcept;
 
     /**
     * \brief Returns the BndryFunc of specified component.
     *
     * \param i
     */
-    const BndryFunc& bndryFill (int i) const;
+    const BndryFunc& bndryFill (int i) const noexcept;
 
     /**
     * \brief Is sc\>=0 \&\& sc+nc\<=ncomp ?
@@ -356,7 +356,7 @@ public:
     * \param sc
     * \param nc
     */
-    int inRange (int sc, int nc) const;
+    int inRange (int sc, int nc) const noexcept;
 
     /**
     * \brief Are the interpolaters in the specified range identical?
@@ -364,7 +364,7 @@ public:
     * \param scomp
     * \param ncomp
     */
-    bool identicalInterps (int scomp, int ncomp) const;
+    bool identicalInterps (int scomp, int ncomp) const noexcept;
     //
     // Returns contiguous ranges of comps with identical interpolaters.
     //
@@ -373,29 +373,31 @@ public:
     /**
     * \brief Can extrapolate in time.
     */
-    bool extrap () const;
+    bool extrap () const noexcept;
 
     /**
     * \brief Should store this StateData in the checkpoint file
     */
-    bool store_in_checkpoint () const;
+    bool store_in_checkpoint () const noexcept;
 
-    bool master (int i) const { return m_master[i]; }
+    bool master (int i) const noexcept { return m_master[i]; }
 
-    int groupsize (int i) const { return m_groupsize[i]; }
+    int groupsize (int i) const noexcept { return m_groupsize[i]; }
 
 
     /**
     * \brief will it run on gpu?
     */
-    bool RunOnGPU () const { return bc_func[0]->RunOnGPU(); }
+    bool RunOnGPU () const noexcept { return bc_func[0]->RunOnGPU(); }
 
     /**
     * \brief has new fab version of BndryFunc?
     */
-    bool hasBndryFuncFab () const { return bc_func[0]->hasFabVersion(); }
+    bool hasBndryFuncFab () const noexcept { return bc_func[0]->hasFabVersion(); }
 
-    static void setBndryFuncThreadSafety (int ext_dir_safe) { bf_ext_dir_threadsafe = ext_dir_safe; }
+    static void setBndryFuncThreadSafety (int ext_dir_safe) noexcept {
+        bf_ext_dir_threadsafe = ext_dir_safe;
+    }
 
 private:
 
@@ -452,7 +454,10 @@ public:
     /**
     * \brief The constructor.
     */
-    DescriptorList ();
+    DescriptorList () noexcept;
+
+    DescriptorList (const DescriptorList&) = delete;
+    DescriptorList& operator= (const DescriptorList&) = delete;
 
     /**
     * \brief Set the list to its default state.
@@ -462,7 +467,7 @@ public:
     /**
     * \brief Returns number of elements in the list.
     */
-    int size () const;
+    int size () const noexcept;
 
     /**
     * \brief Adds new StateDescriptor at index indx to list.
@@ -538,16 +543,9 @@ public:
     /**
     * Returns StateDescriptor at index k.
     */
-    const StateDescriptor& operator[] (int k) const;
+    const StateDescriptor& operator[] (int k) const noexcept;
 
 private:
-
-    /**
-    * \brief These are disallowed.
-    *
-    */
-    DescriptorList (const DescriptorList&);
-    DescriptorList& operator= (const DescriptorList&);
 
     Vector<std::unique_ptr<StateDescriptor> > desc;
 };

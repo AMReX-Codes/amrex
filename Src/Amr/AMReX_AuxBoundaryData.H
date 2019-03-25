@@ -11,7 +11,7 @@ class AuxBoundaryData
 {
 public:
 
-    AuxBoundaryData ();
+    AuxBoundaryData () noexcept;
 
     AuxBoundaryData (const BoxArray& grids,
                      int             n_grow,
@@ -19,6 +19,8 @@ public:
                      const Geometry& geom);
 
     AuxBoundaryData (const AuxBoundaryData& rhs);
+
+    AuxBoundaryData& operator= (const AuxBoundaryData& rhs) = delete;
 
     void copyTo (MultiFab& destmf,
                  int       src_comp,
@@ -31,7 +33,7 @@ public:
                    int             num_comp,
 		   int             src_ng = 0);
 
-    size_t size () const
+    size_t size () const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.size();
     }
@@ -46,44 +48,44 @@ public:
                      int             n_comp,
                      const Geometry& geom);
 
-    const BoxArray& equivBoxArray () const
+    const BoxArray& equivBoxArray () const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.boxArray();
     }
 
     void setVal (Real r) { BL_ASSERT(m_initialized); if (!m_empty) m_fabs.setVal(r); }
 
-    const DistributionMapping& DistributionMap () const
+    const DistributionMapping& DistributionMap () const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.DistributionMap();
     }
 
-    FArrayBox&       operator[] (const MFIter& mfi)
+    FArrayBox&       operator[] (const MFIter& mfi) noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];
     }
-    const FArrayBox& operator[] (const MFIter& mfi) const
+    const FArrayBox& operator[] (const MFIter& mfi) const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];
     }
 
-    FArrayBox      * fabPtr (const MFIter& mfi)
+    FArrayBox      * fabPtr (const MFIter& mfi) noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.fabPtr(mfi);
     }
-    FArrayBox const* fabPtr (const MFIter& mfi) const
+    FArrayBox const* fabPtr (const MFIter& mfi) const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.fabPtr(mfi);
     }
 
-    int nGrow () const { BL_ASSERT(m_initialized); return m_ngrow; }
+    int nGrow () const noexcept { BL_ASSERT(m_initialized); return m_ngrow; }
 
-    int nComp () const
+    int nComp () const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.nComp();
     }
 
-    bool isEmpty () const { return m_empty; }
+    bool isEmpty () const noexcept { return m_empty; }
 
 private:
 
@@ -91,10 +93,6 @@ private:
     int      m_ngrow;
     bool     m_empty;
     bool     m_initialized;
-    //
-    // Not defined -- but could be if it's needed.
-    //
-    AuxBoundaryData& operator= (const AuxBoundaryData& rhs);
 };
 // \endcond
 

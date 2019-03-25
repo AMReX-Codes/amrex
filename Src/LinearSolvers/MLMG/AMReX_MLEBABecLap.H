@@ -126,8 +126,8 @@ private:
     //
     // functions
     //
-    bool isEBDirichlet   () const { return m_eb_phi[0] != nullptr; }
-    bool isHOEBDirichlet () const { return m_is_eb_ho_dir;}
+    bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
+    bool isHOEBDirichlet () const noexcept { return m_is_eb_ho_dir;}
 
     void averageDownCoeffsSameAmrLevel (Vector<MultiFab>& a,
                                         Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,

@@ -43,7 +43,7 @@ IArrayBox::Finalize ()
     initialized = false;
 }
 
-IArrayBox::IArrayBox () {}
+IArrayBox::IArrayBox () noexcept {}
 
 IArrayBox::IArrayBox (const Box& b,
                       int        n,
@@ -73,7 +73,7 @@ IArrayBox::IArrayBox (const IArrayBox& rhs, MakeType make_type)
 #endif
 
 IArrayBox&
-IArrayBox::operator= (int v)
+IArrayBox::operator= (int v) noexcept
 {
     BaseFab<int>::operator=(v);
     return *this;
