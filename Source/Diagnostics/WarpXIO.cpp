@@ -516,6 +516,11 @@ WarpX::WritePlotFile () const
             WriteRawField( *Bfield_fp[lev][0], dm, raw_pltname, level_prefix, "Bx_fp", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_fp[lev][1], dm, raw_pltname, level_prefix, "By_fp", lev, plot_raw_fields_guards);
             WriteRawField( *Bfield_fp[lev][2], dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
+            if (plot_rho) {
+                // Use the component 1 of `rho_fp`, i.e. rho_new for time synchronization
+                MultiFab rho_new(*rho_fp[lev], amrex::make_alias, 1, 1);
+                WriteRawField( rho_new, dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
+            }
 
             // Auxiliary patch
             WriteRawField( *Efield_aux[lev][0], dm, raw_pltname, level_prefix, "Ex_aux", lev, plot_raw_fields_guards);
