@@ -525,6 +525,7 @@ WarpX::WritePlotFile () const
                 WriteRawField( *Bfield_fp[lev][0], dm, raw_pltname, level_prefix, "Bx_fp", lev, plot_raw_fields_guards);
                 WriteRawField( *Bfield_fp[lev][1], dm, raw_pltname, level_prefix, "By_fp", lev, plot_raw_fields_guards);
                 WriteRawField( *Bfield_fp[lev][2], dm, raw_pltname, level_prefix, "Bz_fp", lev, plot_raw_fields_guards);
+                if (F_fp[lev]) WriteRawField( *F_fp[lev], dm, raw_pltname, level_prefix, "F_fp", lev, plot_raw_fields_guards);
                 if (plot_rho) {
                     // Use the component 1 of `rho_fp`, i.e. rho_new for time synchronization
                     MultiFab rho_new(*rho_fp[lev], amrex::make_alias, 1, 1);
@@ -539,15 +540,18 @@ WarpX::WritePlotFile () const
                 WriteCoarseVector( "E",
                     Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
                     Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
-                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
+                    r_ratio, dx );
                 WriteCoarseVector( "B",
                     Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
                     Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
-                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
+                    r_ratio, dx );
                 WriteCoarseVector( "j",
                     current_cp[lev][0], current_cp[lev][1], current_cp[lev][2],
                     current_fp[lev][0], current_fp[lev][1], current_fp[lev][2],
-                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
+                    r_ratio, dx );
             }
         }
     }
