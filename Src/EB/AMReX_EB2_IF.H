@@ -30,6 +30,8 @@ namespace amrex { namespace EB2 { namespace {
 
         static_assert(IsGPUable<ComplementIF<BoxIF> >::value, "ComplementIF<BoxIF> not GPUable");
         static_assert(!IsGPUable<ComplementIF<PolynomialIF> >::value, "ComplementIF<PolynomialIF> GPUable");
+
+        static_assert(!IsGPUable<PolynomialIF>::value, "PolynomialIF GPUable");
     }
 }}}
 #endif
