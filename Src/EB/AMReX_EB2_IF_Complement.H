@@ -31,7 +31,7 @@ public:
         return -m_f(p);
     }
 
-    template<class = typename std::enable_if<IsGPUable<F>::value> >
+    template<class U=F, class = typename std::enable_if<IsGPUable<U>::value>::type >
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {

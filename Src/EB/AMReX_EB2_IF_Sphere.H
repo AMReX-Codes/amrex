@@ -9,7 +9,7 @@
 namespace amrex { namespace EB2 {
 
 class SphereIF
-    : public GPUable
+//    : public GPUable
 {
 public:
 
