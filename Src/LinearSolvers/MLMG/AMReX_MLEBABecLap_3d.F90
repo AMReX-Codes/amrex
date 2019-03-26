@@ -12,7 +12,7 @@ module amrex_mlebabeclap_3d_module
   private
   public :: amrex_mlebabeclap_adotx, amrex_mlebabeclap_gsrb, amrex_mlebabeclap_normalize, & 
             amrex_eb_mg_interp, amrex_mlebabeclap_grad, amrex_mlebabeclap_flux, &
-            compute_dphidn_3d
+            compute_dphidn_3d, compute_dphidn_3d_ho
 
 contains
 
