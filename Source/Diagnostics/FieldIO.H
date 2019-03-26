@@ -75,6 +75,7 @@ getInterpolatedVector(
     const int r_ratio, const Real* dx,
     const int ngrow );
 
+void
 coarsenCellCenteredFields(
 	Vector<MultiFab>& coarse_mf, Vector<Geometry>& coarse_geom,
 	const Vector<MultiFab>& source_mf, const Vector<Geometry>& source_geom,
