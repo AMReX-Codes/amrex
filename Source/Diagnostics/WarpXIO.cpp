@@ -533,21 +533,22 @@ WarpX::WritePlotFile () const
             }
 
             // Coarse path
-            const Real* dx = Geom(lev-1).CellSize();
-            const int r_ratio = refRatio(lev-1)[0];
-            WriteCoarseVector( "E",
-                Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
-                Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
-                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
-            WriteCoarseVector( "B",
-                Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
-                Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
-                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
-            WriteCoarseVector( "j",
-                current_cp[lev][0], current_cp[lev][1], current_cp[lev][2],
-                current_fp[lev][0], current_fp[lev][1], current_fp[lev][2],
-                dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
-
+            if (plot_crsepatch) {
+                const Real* dx = Geom(lev-1).CellSize();
+                const int r_ratio = refRatio(lev-1)[0];
+                WriteCoarseVector( "E",
+                    Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
+                    Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+                WriteCoarseVector( "B",
+                    Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
+                    Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+                WriteCoarseVector( "j",
+                    current_cp[lev][0], current_cp[lev][1], current_cp[lev][2],
+                    current_fp[lev][0], current_fp[lev][1], current_fp[lev][2],
+                    dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards, r_ratio, dx );
+            }
         }
     }
 
