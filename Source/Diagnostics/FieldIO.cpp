@@ -346,6 +346,30 @@ WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
 /** \brief TODO Writes same size as fp for compatibility with yt
  */
 void
+WriteCoarseScalar( const std::string field_name,
+    const MultiFab& F_cp, const MultiFab& F_fp,
+    const DistributionMapping& dm,
+    const std::string& filename,
+    const std::string& level_prefix,
+    const int lev, const bool plot_guards,
+    const int r_ratio, const Real* dx )
+{
+    int ng = 0;
+    if (plot_guards) ng = F_fp.nGrow();
+
+    if (lev == 0) {
+        // No coarse field for level 0: instead write a MultiFab
+        // filled with 0, with the same number of cells as the _fp field
+        WriteZeroRawField( F_fp, dm, filename, level_prefix, field_name+"_cp", lev, ng );
+    } else {
+        auto F = getInterpolatedScalar( F_cp, F_fp, dm, r_ratio, dx, ng );
+        WriteRawField( *F, dm, filename, level_prefix, field_name+"_cp", lev, plot_guards );
+    }
+}
+
+/** \brief TODO Writes same size as fp for compatibility with yt
+ */
+void
 WriteCoarseVector( const std::string field_name,
     const std::unique_ptr<MultiFab>& Fx_cp,
     const std::unique_ptr<MultiFab>& Fy_cp,
@@ -369,27 +393,81 @@ WriteCoarseVector( const std::string field_name,
         WriteZeroRawField( *Fy_fp, dm, filename, level_prefix, field_name+"y_cp", lev, ng );
         WriteZeroRawField( *Fz_fp, dm, filename, level_prefix, field_name+"z_cp", lev, ng );
     } else {
-        auto F = getInterpolated( Fx_cp, Fy_cp, Fz_cp, Fx_fp, Fy_fp, Fz_fp,
+        auto F = getInterpolatedVector( Fx_cp, Fy_cp, Fz_cp, Fx_fp, Fy_fp, Fz_fp,
                                     dm, r_ratio, dx, ng );
         WriteRawField( *F[0], dm, filename, level_prefix, field_name+"x_cp", lev, plot_guards );
         WriteRawField( *F[1], dm, filename, level_prefix, field_name+"y_cp", lev, plot_guards );
         WriteRawField( *F[2], dm, filename, level_prefix, field_name+"z_cp", lev, plot_guards );
     }
-
 }
 
+/** \brief TODO
+  *
+  */
+std::unique_ptr<MultiFab>
+getInterpolatedScalar(
+    const MultiFab& F_cp, const MultiFab& F_fp,
+    const DistributionMapping& dm, const int r_ratio,
+    const Real* dx, const int ngrow )
+{
+    // Prepare the structure that will contain the returned fields
+    std::unique_ptr<MultiFab> interpolated_F;
+    interpolated_F.reset( new MultiFab(F_fp.boxArray(), dm, 1, ngrow) );
+    interpolated_F->setVal(0.);
 
+    // Loop through the boxes and interpolate the values from the _cp data
+    const int use_limiter = 0;
+#ifdef _OPEMP
+#pragma omp parallel
+#endif
+    {
+        FArrayBox ffab; // Temporary array ; contains interpolated fields
+        for (MFIter mfi(*interpolated_F); mfi.isValid(); ++mfi)
+        {
+            Box ccbx = mfi.fabbox();
+            ccbx.enclosedCells();
+            ccbx.coarsen(r_ratio).refine(r_ratio); // so that ccbx is coarsenable
+
+            const FArrayBox& cfab = (F_cp)[mfi];
+            ffab.resize(amrex::convert(ccbx,(F_fp)[mfi].box().type()));
+
+            // - Fully centered
+            if ( F_fp.is_cell_centered() ){
+                amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
+                                       BL_TO_FORTRAN_ANYD(ffab),
+                                       BL_TO_FORTRAN_ANYD(cfab),
+                                       &r_ratio, &use_limiter);
+            // - Edge centered, in the same way as E on a Yee grid
+            } else if ( F_fp.is_nodal() ){
+                amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
+                                       BL_TO_FORTRAN_ANYD(ffab),
+                                       BL_TO_FORTRAN_ANYD(cfab),
+                                       &r_ratio);
+            } else {
+                amrex::Abort("Unknown field staggering.");
+            }
+
+            // Add temporary array to the returned structure
+            const Box& bx = (*interpolated_F)[mfi].box();
+            (*interpolated_F)[mfi].plus(ffab, bx, bx, 0, 0, 1);
+        }
+    }
+    return interpolated_F;
+}
+
+/** \brief TODO
+  *
+  */
 std::array<std::unique_ptr<MultiFab>, 3>
-getInterpolated(
+getInterpolatedVector(
     const std::unique_ptr<MultiFab>& Fx_cp,
     const std::unique_ptr<MultiFab>& Fy_cp,
     const std::unique_ptr<MultiFab>& Fz_cp,
     const std::unique_ptr<MultiFab>& Fx_fp,
     const std::unique_ptr<MultiFab>& Fy_fp,
     const std::unique_ptr<MultiFab>& Fz_fp,
-    const DistributionMapping& dm,
-    const int r_ratio, const Real* dx,
-    const int ngrow )
+    const DistributionMapping& dm, const int r_ratio,
+    const Real* dx, const int ngrow )
 {
 
     // Prepare the structure that will contain the returned fields
@@ -474,11 +552,8 @@ getInterpolated(
                 const Box& bx = (*interpolated_F[i])[mfi].box();
                 (*interpolated_F[i])[mfi].plus(ffab[i], bx, bx, 0, 0, 1);
             }
-
         }
-
     }
-
     return interpolated_F;
 }
 
@@ -490,9 +565,10 @@ std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedE(int lev) const
     const Real* dx = Geom(lev-1).CellSize();
     const int r_ratio = refRatio(lev-1)[0];
 
-    return getInterpolated( Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
-                            Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
-                            dm, r_ratio, dx, ngrow );
+    return getInterpolatedVector(
+        Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
+        Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
+        dm, r_ratio, dx, ngrow );
 }
 
 std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
@@ -502,7 +578,8 @@ std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
     const Real* dx = Geom(lev-1).CellSize();
     const int r_ratio = refRatio(lev-1)[0];
 
-    return getInterpolated( Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
-                            Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
-                            dm, r_ratio, dx, ngrow );
+    return getInterpolatedVector(
+        Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
+        Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
+        dm, r_ratio, dx, ngrow );
 }

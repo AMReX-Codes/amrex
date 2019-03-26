@@ -552,6 +552,18 @@ WarpX::WritePlotFile () const
                     current_fp[lev][0], current_fp[lev][1], current_fp[lev][2],
                     dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
                     r_ratio, dx );
+                if (F_cp[lev]) {
+                    WriteCoarseScalar( "F", *F_cp[lev], *F_fp[lev],
+                        dm, raw_pltname, level_prefix, lev,
+                        plot_raw_fields_guards, r_ratio, dx );
+                    }
+                if (plot_rho) {
+                    // Use the component 1 of `rho_cp`, i.e. rho_new for time synchronization
+                    MultiFab rho_new(*rho_cp[lev], amrex::make_alias, 1, 1);
+                    WriteCoarseScalar( "rho", rho_new, *rho_fp[lev],
+                        dm, raw_pltname, level_prefix, lev,
+                        plot_raw_fields_guards, r_ratio, dx );
+                    }
             }
         }
     }
