@@ -347,7 +347,8 @@ WriteZeroRawField( const MultiFab& F, const DistributionMapping& dm,
  */
 void
 WriteCoarseScalar( const std::string field_name,
-    const MultiFab& F_cp, const MultiFab& F_fp,
+    const std::unique_ptr<MultiFab>& F_cp,
+    const std::unique_ptr<MultiFab>& F_fp,
     const DistributionMapping& dm,
     const std::string& filename,
     const std::string& level_prefix,
@@ -355,14 +356,14 @@ WriteCoarseScalar( const std::string field_name,
     const int r_ratio, const Real* dx )
 {
     int ng = 0;
-    if (plot_guards) ng = F_fp.nGrow();
+    if (plot_guards) ng = F_fp->nGrow();
 
     if (lev == 0) {
         // No coarse field for level 0: instead write a MultiFab
         // filled with 0, with the same number of cells as the _fp field
-        WriteZeroRawField( F_fp, dm, filename, level_prefix, field_name+"_cp", lev, ng );
+        WriteZeroRawField( *F_fp, dm, filename, level_prefix, field_name+"_cp", lev, ng );
     } else {
-        auto F = getInterpolatedScalar( F_cp, F_fp, dm, r_ratio, dx, ng );
+        auto F = getInterpolatedScalar( *F_cp, *F_fp, dm, r_ratio, dx, ng );
         WriteRawField( *F, dm, filename, level_prefix, field_name+"_cp", lev, plot_guards );
     }
 }

@@ -1,4 +1,3 @@
-
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_FillPatchUtil_F.H>
@@ -553,14 +552,12 @@ WarpX::WritePlotFile () const
                     dm, raw_pltname, level_prefix, lev, plot_raw_fields_guards,
                     r_ratio, dx );
                 if (F_cp[lev]) {
-                    WriteCoarseScalar( "F", *F_cp[lev], *F_fp[lev],
+                    WriteCoarseScalar( "F", F_cp[lev], F_fp[lev],
                         dm, raw_pltname, level_prefix, lev,
                         plot_raw_fields_guards, r_ratio, dx );
                     }
                 if (plot_rho) {
-                    // Use the component 1 of `rho_cp`, i.e. rho_new for time synchronization
-                    MultiFab rho_new(*rho_cp[lev], amrex::make_alias, 1, 1);
-                    WriteCoarseScalar( "rho", rho_new, *rho_fp[lev],
+		    WriteCoarseScalar( "rho", rho_cp[lev], rho_fp[lev],
                         dm, raw_pltname, level_prefix, lev,
                         plot_raw_fields_guards, r_ratio, dx );
                     }
