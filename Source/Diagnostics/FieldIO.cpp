@@ -353,7 +353,7 @@ WriteCoarseScalar( const std::string field_name,
     const std::string& filename,
     const std::string& level_prefix,
     const int lev, const bool plot_guards,
-    const int r_ratio, const Real* dx )
+    const int r_ratio, const Real* dx, const int icomp )
 {
     int ng = 0;
     if (plot_guards) ng = F_fp->nGrow();
@@ -363,7 +363,9 @@ WriteCoarseScalar( const std::string field_name,
         // filled with 0, with the same number of cells as the _fp field
         WriteZeroRawField( *F_fp, dm, filename, level_prefix, field_name+"_cp", lev, ng );
     } else {
-        auto F = getInterpolatedScalar( *F_cp, *F_fp, dm, r_ratio, dx, ng );
+        // Create an alias to the component `icomp` of F_cp
+        MultiFab F_comp(*F_cp, amrex::make_alias, 1, icomp);
+        auto F = getInterpolatedScalar( F_comp, *F_fp, dm, r_ratio, dx, ng );
         WriteRawField( *F, dm, filename, level_prefix, field_name+"_cp", lev, plot_guards );
     }
 }
