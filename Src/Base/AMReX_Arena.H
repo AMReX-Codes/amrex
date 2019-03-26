@@ -14,6 +14,7 @@ Arena* The_Arena ();
 Arena* The_Device_Arena ();
 Arena* The_Managed_Arena ();
 Arena* The_Pinned_Arena ();
+Arena* The_Cpu_Arena ();
 
 struct ArenaInfo
 {

@@ -139,7 +139,7 @@ FABio::write_header (std::ostream&    os,
                      const FArrayBox& f,
                      int              nvar) const
 {
-    BL_PROFILE("FABio::write_header");
+//    BL_PROFILE("FABio::write_header");
     BL_ASSERT(nvar <= f.nComp());
     amrex::StreamRetry sr(os, "FABio_write_header", 4);
     while(sr.TryOutput()) {
@@ -473,7 +473,7 @@ FABio*
 FABio::read_header (std::istream& is,
                     FArrayBox&    f)
 {
-    BL_PROFILE("FArrayBox::read_header_is");
+//    BL_PROFILE("FArrayBox::read_header_is");
     int nvar;
     Box bx;
     FABio* fio = 0;
@@ -550,7 +550,7 @@ FABio::read_header (std::istream& is,
 		    int           compIndex,
 		    int&          nCompAvailable)
 {
-    BL_PROFILE("FArrayBox::read_header_is_i");
+//    BL_PROFILE("FArrayBox::read_header_is_i");
     int nvar;
     Box bx;
     FABio *fio = 0;
@@ -629,7 +629,7 @@ FArrayBox::writeOn (std::ostream& os,
                     int           comp,
                     int           num_comp) const
 {
-    BL_PROFILE("FArrayBox::writeOn");
+//    BL_PROFILE("FArrayBox::writeOn");
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= nComp());
     fabio->write_header(os, *this, num_comp);
     os.flush();  // 2016-08-30: Titan requires this flush() (probably due to a bug).
@@ -639,7 +639,7 @@ FArrayBox::writeOn (std::ostream& os,
 void
 FArrayBox::readFrom (std::istream& is)
 {
-    BL_PROFILE("FArrayBox::readFrom_is");
+//    BL_PROFILE("FArrayBox::readFrom_is");
     FABio* fabrd = FABio::read_header(is, *this);
     fabrd->read(is, *this);
     delete fabrd;
@@ -649,7 +649,7 @@ FArrayBox::readFrom (std::istream& is)
 int
 FArrayBox::readFrom (std::istream& is, int compIndex)
 {
-    BL_PROFILE("FArrayBox::readFrom_is_i");
+//    BL_PROFILE("FArrayBox::readFrom_is_i");
     int nCompAvailable;
     FABio* fabrd = FABio::read_header(is, *this, compIndex, nCompAvailable);
     BL_ASSERT(compIndex >= 0 && compIndex < nCompAvailable);
@@ -891,7 +891,7 @@ FABio_binary::write_header (std::ostream&    os,
                             const FArrayBox& f,
                             int              nvar) const
 {
-    BL_PROFILE("FABio_binary::write_header");
+//    BL_PROFILE("FABio_binary::write_header");
     os << "FAB " << *realDesc;
     FABio::write_header(os, f, nvar);
 }
@@ -900,7 +900,7 @@ void
 FABio_binary::read (std::istream& is,
                     FArrayBox&    f) const
 {
-    BL_PROFILE("FABio_binary::read");
+//    BL_PROFILE("FABio_binary::read");
     const long base_siz = f.box().numPts();
     Real* comp_ptr      = f.dataPtr(0);
     const long siz      = base_siz*f.nComp();
@@ -916,7 +916,7 @@ FABio_binary::write (std::ostream&    os,
                      int              comp,
                      int              num_comp) const
 {
-    BL_PROFILE("FABio_binary::write");
+//    BL_PROFILE("FABio_binary::write");
     BL_ASSERT(comp >= 0 && num_comp >= 1 && (comp+num_comp) <= f.nComp());
 
     const long base_siz  = f.box().numPts();

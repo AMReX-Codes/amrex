@@ -1,4 +1,3 @@
-
 #ifndef BL_UTILITY_H
 #define BL_UTILITY_H
 
@@ -21,6 +20,8 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParallelDescriptor.H>
+
+
 
 namespace amrex
 {
@@ -186,7 +187,7 @@ namespace amrex
     *  uniformly distributed on [0,1)-interval for each call.
     *
     */
-    double Random (); // [0,1)
+    AMREX_GPU_HOST_DEVICE double Random (); // [0,1)
 
     /**
     * \brief Generate a psuedo-random int using C++11's mt19937.
@@ -241,6 +242,24 @@ namespace amrex
     /* \brief cumulative refinement ratio between levels */
     int CRRBetweenLevels(int fromlevel, int tolevel,
                          const Vector<int> &refratios);
+
+    /**
+    * \brief Set the seeds of the random number generator for each CUDA thread .
+    *  An in-built CUDA library, curand_init is used here.
+    *  The pseusorandom sequence currently implemented is obtained 
+    *  from the XORWOW and MRG32k3a generator
+    */
+    void InitRandSeedOnDevice(int N); 
+   
+
+    /**
+    * \brief Resize seed array and copy address to global symbol 
+    */
+    void ResizeRandomSeed(int N);
+
+    void CheckSeedArraySizeAndResize (int N);
+
+    void DeallocateRandomSeedDevArray();
 
     class expect;
     std::istream& operator>>(std::istream&, const expect& exp);

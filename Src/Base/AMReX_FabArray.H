@@ -273,6 +273,12 @@ public:
     FAB      * fabDevicePtr (int K) noexcept;
     FAB const* fabDevicePtr (int K) const noexcept;
 
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value> >
+    void prefetchToHost (const MFIter& mfi) const noexcept;
+
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value> >
+    void prefetchToDevice (const MFIter& mfi) const noexcept;
+
     template <class T, typename std::enable_if<!IsBaseFab<T>::value>::type* = nullptr>
     bool checkDataPtrConsistence (T const* d, T const* h) const noexcept {
         return true;
@@ -926,6 +932,26 @@ FabArray<FAB>::fabPtr (int K) const noexcept
     return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(K) : this->fabHostPtr(K);
 #else
     return this->fabHostPtr(K);
+#endif
+}
+
+template <class FAB>
+template <class,class>
+void
+FabArray<FAB>::prefetchToHost (const MFIter& mfi) const noexcept
+{
+#ifdef AMREX_USE_CUDA
+    this->fabHostPtr(mfi)->prefetchToHost();
+#endif
+}
+
+template <class FAB>
+template <class,class>
+void
+FabArray<FAB>::prefetchToDevice (const MFIter& mfi) const noexcept
+{
+#ifdef AMREX_USE_CUDA
+    this->fabHostPtr(mfi)->prefetchToDevice();
 #endif
 }
 
