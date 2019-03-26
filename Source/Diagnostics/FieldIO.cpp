@@ -298,7 +298,36 @@ WarpX::AverageAndPackFields ( Vector<std::string>& varnames,
         }
 
     BL_ASSERT(dcomp == ncomp);
-    } // end loop over levels of refinement
+
+  } // end loop over levels of refinement
+
+};
+
+/** \brief Reduce the size of all the fields in `source_mf`
+  * by `coarse_ratio` and store the results in `coarse_mf`.
+  * Calculate the corresponding coarse Geometry from `source_geom`
+  * and store the results in `coarse_geom` */
+void
+coarsenCellCenteredFields(
+    Vector<MultiFab>& coarse_mf, Vector<Geometry>& coarse_geom,
+    const Vector<MultiFab>& source_mf, const Vector<Geometry>& source_geom,
+    int coarse_ratio, int finest_level )
+{
+    // Check that the Vectors to be filled have an initial size of 0
+    AMREX_ALWAYS_ASSERT( coarse_mf.size()==0 );
+    AMREX_ALWAYS_ASSERT( coarse_geom.size()==0 );
+
+    // Fill the vectors with one element per level
+    int ncomp = source_mf[0].nComp();
+    for (int lev=0; lev<=finest_level; lev++) {
+        AMREX_ALWAYS_ASSERT( source_mf[lev].is_cell_centered() );
+
+        coarse_geom.push_back(amrex::coarsen( source_geom[lev], IntVect(coarse_ratio)));
+
+        BoxArray small_ba = amrex::coarsen(source_mf[lev].boxArray(), coarse_ratio);
+        coarse_mf.push_back( MultiFab(small_ba, source_mf[lev].DistributionMap(), ncomp, 0) );
+        average_down(source_mf[lev], coarse_mf[lev], 0, ncomp, IntVect(coarse_ratio));
+    }
 };
 
 

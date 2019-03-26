@@ -49,7 +49,7 @@ Setting up the field mesh
     extent is given here by the coordinates of the lower corner (``geometry.prob_lo``) and
     upper corner (``geometry.prob_hi``).
 
-* ``warpx.fine_tag_lo`` and ``warpx.fine_tag_hi`` (`2 floats in 2D`, `3 integers in 3D`; in meters)
+* ``warpx.fine_tag_lo`` and ``warpx.fine_tag_hi`` (`2 floats in 2D`, `3 integers in 3D`; in meters) optional
     **When using static mesh refinement with 1 level**, the extent of the refined patch.
     This patch is rectangular, and thus its extent is given here by the coordinates
     of the lower corner (``warpx.fine_tag_lo``) and upper corner (``warpx.fine_tag_hi``).
@@ -58,7 +58,7 @@ Distribution across MPI ranks and parallelization
 -------------------------------------------------
 
 
-* ``amr.max_grid_size`` (`integer`)
+* ``amr.max_grid_size`` (`integer`) optional (default `128`)
     Maximum allowable size of each **subdomain**
     (expressed in number of grid points, in each direction).
     Each subdomain has its own ghost cells, and can be handled by a
@@ -73,7 +73,7 @@ Distribution across MPI ranks and parallelization
     When using mesh refinement, this number applies to the subdomains
     of the coarsest level, but also to any of the finer level.
 
-* ``warpx.load_balance_int`` (`integer`)
+* ``warpx.load_balance_int`` (`integer`) optional (default `-1`)
     How often WarpX should try to redistribute the work across MPI ranks,
     in order to have better load balancing (expressed in number of PIC cycles
     inbetween two consecutive attempts at redistributing the work).
@@ -128,7 +128,7 @@ Particle initialization
     The name of each species. This is then used in the rest of the input deck ;
     in this documentation we use `<species_name>` as a placeholder.
 
-* ``particles.use_fdtd_nci_corr`` (`0` or `1`)
+* ``particles.use_fdtd_nci_corr`` (`0` or `1`) optional (default `0`)
     Whether to activate the FDTD Numerical Cherenkov Instability corrector.
 
 * ``particles.rigid_injected_species`` (`strings`, separated by spaces)
@@ -223,7 +223,7 @@ Particle initialization
 Laser initialization
 --------------------
 
-* ``warpx.use_laser`` (`0 or 1`)
+* ``warpx.use_laser`` (`0 or 1`) optional (default `0`)
     Whether to activate the injection of a laser pulse in the simulation
 
 * ``laser.position`` (`3 floats in 3D and 2D` ; in meters)
@@ -377,6 +377,10 @@ Numerics and algorithms
     them from the macroparticles. This uses a bilinear filter
     (see the sub-section **Filtering** in :doc:`../theory/theory`).
 
+* ``warpx.filter_npass_each_dir`` (`3 int`) optional (default `1 1 1`)
+    Number of passes along each direction for the bilinear filter.
+    In 2D simulations, only the first two values are read.
+
 * ``algo.current_deposition`` (`integer`)
     The algorithm for current deposition:
 
@@ -483,6 +487,12 @@ Diagnostics and output
     Only used when mesh refinement is activated and ``warpx.plot_raw_fields`` is ``1``.
     Whether to output the data of the coarse patch, in the plot files.
 
+* ``warpx.plot_coarsening_ratio`` (`int` ; default: `1`) 
+    Reduce size of the field output by this ratio in each dimension.
+    (This is done by averaging the field.) ``plot_coarsening_ratio`` should
+    be an integer divisor of ``blocking_factor``.
+
+    
 * ``amr.plot_file`` (`string`)
     Root for output file names. Supports sub-directories. Default `plotfiles/plt`
 
