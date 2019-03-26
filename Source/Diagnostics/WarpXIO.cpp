@@ -703,28 +703,3 @@ WarpX::WriteJobInfo (const std::string& dir) const
 	jobInfoFile.close();
     }
 }
-
-std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedE(int lev) const
-{
-
-    const int ngrow = 0;
-    const DistributionMapping& dm = DistributionMap(lev);
-    const Real* dx = Geom(lev-1).CellSize();
-    const int r_ratio = refRatio(lev-1)[0];
-
-    return getInterpolated( Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
-                            Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
-                            dm, r_ratio, dx, ngrow );
-}
-
-std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
-{
-    const int ngrow = 0;
-    const DistributionMapping& dm = DistributionMap(lev);
-    const Real* dx = Geom(lev-1).CellSize();
-    const int r_ratio = refRatio(lev-1)[0];
-
-    return getInterpolated( Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
-                            Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
-                            dm, r_ratio, dx, ngrow );
-}

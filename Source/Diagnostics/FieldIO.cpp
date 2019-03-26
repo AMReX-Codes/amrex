@@ -420,7 +420,7 @@ getInterpolated(
             ffab[2].resize(amrex::convert(ccbx,(*Fz_fp)[mfi].box().type()));
 
             // - Face centered, in the same way as B on a Yee grid
-            if ( Fx_fp->is_nodal(0) ){
+            if ( (*Fx_fp)[mfi].box().type() == IntVect{AMREX_D_DECL(1,0,0)} ){
 #if (AMREX_SPACEDIM == 3)
                 amrex_interp_div_free_bfield(ccbx.loVect(), ccbx.hiVect(),
                                              BL_TO_FORTRAN_ANYD(ffab[0]),
@@ -443,7 +443,7 @@ getInterpolated(
                                        &r_ratio, &use_limiter);
 #endif
             // - Edge centered, in the same way as E on a Yee grid
-            } else {
+            } else if ( (*Fx_fp)[mfi].box().type() == IntVect{AMREX_D_DECL(0,1,1)} ){
 #if (AMREX_SPACEDIM == 3)
                 amrex_interp_efield(ccbx.loVect(), ccbx.hiVect(),
                                     BL_TO_FORTRAN_ANYD(ffab[0]),
@@ -465,6 +465,8 @@ getInterpolated(
                                        BL_TO_FORTRAN_ANYD(cyfab),
                                        &r_ratio);
 #endif
+            } else {
+                amrex::Abort("Unknown field staggering.");
             }
 
             // Add temporary array to the returned structure
@@ -472,8 +474,35 @@ getInterpolated(
                 const Box& bx = (*interpolated_F[i])[mfi].box();
                 (*interpolated_F[i])[mfi].plus(ffab[i], bx, bx, 0, 0, 1);
             }
+
         }
+
     }
 
     return interpolated_F;
+}
+
+std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedE(int lev) const
+{
+
+    const int ngrow = 0;
+    const DistributionMapping& dm = DistributionMap(lev);
+    const Real* dx = Geom(lev-1).CellSize();
+    const int r_ratio = refRatio(lev-1)[0];
+
+    return getInterpolated( Efield_cp[lev][0], Efield_cp[lev][1], Efield_cp[lev][2],
+                            Efield_fp[lev][0], Efield_fp[lev][1], Efield_fp[lev][2],
+                            dm, r_ratio, dx, ngrow );
+}
+
+std::array<std::unique_ptr<MultiFab>, 3> WarpX::getInterpolatedB(int lev) const
+{
+    const int ngrow = 0;
+    const DistributionMapping& dm = DistributionMap(lev);
+    const Real* dx = Geom(lev-1).CellSize();
+    const int r_ratio = refRatio(lev-1)[0];
+
+    return getInterpolated( Bfield_cp[lev][0], Bfield_cp[lev][1], Bfield_cp[lev][2],
+                            Bfield_fp[lev][0], Bfield_fp[lev][1], Bfield_fp[lev][2],
+                            dm, r_ratio, dx, ngrow );
 }
