@@ -9,6 +9,9 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Gpu.H>
 
+// Current timers:
+// Ignore resetting of value and output. All else included.
+
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 using namespace amrex;
@@ -123,10 +126,9 @@ int main (int argc, char* argv[])
             BL_PROFILE("cudaGraph-iter");
             *val = 2.0;
 
+            BL_PROFILE_VAR("cudaGraph-iter-create", cgc);
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec[x.local_size()];
-
-            BL_PROFILE_VAR("cudaGraph-iter-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -173,10 +175,10 @@ int main (int argc, char* argv[])
             BL_PROFILE("cudaGraph-stream");
             *val = 3.0;
 
+            BL_PROFILE_VAR("cudaGraph-stream-create", cgc);
+
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec[amrex::Gpu::Device::numCudaStreams()];
-
-            BL_PROFILE_VAR("cudaGraph-stream-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -227,9 +229,8 @@ int main (int argc, char* argv[])
             }
 
             amrex::Gpu::Device::synchronize();
-            BL_PROFILE_VAR_STOP(cgl);
-
             amrex::Gpu::Device::resetStreamIndex();
+            BL_PROFILE_VAR_STOP(cgl);
 
             amrex::Print() << "Graph-per-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
@@ -242,10 +243,10 @@ int main (int argc, char* argv[])
             BL_PROFILE("cudaGraph-linked-iter");
             *val = 4.0;
 
+            BL_PROFILE_VAR("cudaGraph-linked-iter-create", cgc);
+
             cudaGraph_t     graph[x.local_size()];
             cudaGraphExec_t graphExec;
-
-            BL_PROFILE_VAR("cudaGraph-linked-iter-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -284,10 +285,9 @@ int main (int argc, char* argv[])
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
+            amrex::Gpu::Device::resetStreamIndex();
 
             BL_PROFILE_VAR_STOP(cgl);
-
-            amrex::Gpu::Device::resetStreamIndex();
 
             amrex::Print() << "Full-graph-iter sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
         }
@@ -300,10 +300,10 @@ int main (int argc, char* argv[])
             BL_PROFILE("cudaGraph-linked-stream");
             *val = 5.0;
 
+            BL_PROFILE_VAR("cudaGraph-linked-stream-create", cgc);
+
             cudaGraph_t     graph[amrex::Gpu::Device::numCudaStreams()];
             cudaGraphExec_t graphExec;
-
-            BL_PROFILE_VAR("cudaGraph-linked-stream-create", cgc);
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
@@ -357,18 +357,22 @@ int main (int argc, char* argv[])
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
+            amrex::Gpu::Device::resetStreamIndex();
 
             BL_PROFILE_VAR_STOP(cgl);
 
-            amrex::Gpu::Device::resetStreamIndex();
-
             amrex::Print() << "Linked-graph-stream sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
+
+            BL_PROFILE_VAR("cudaGraph-linked-stream-launch", cgrl);
 
             *val = 10.0;
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
             amrex::Gpu::Device::synchronize();
+
+            BL_PROFILE_VAR_STOP(cgrl);
+
 
             amrex::Print() << "Rerun with different val = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
 
