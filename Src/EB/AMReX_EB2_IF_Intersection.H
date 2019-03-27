@@ -28,6 +28,18 @@ namespace IIF_detail {
     {
         return std::min(f(p), do_min(p, std::forward<Fs>(fs)...));
     }
+
+    template <typename F>
+    Real do_min (AMREX_D_DECL(Real x, Real y, Real z), F&& f)
+    {
+        return f(AMREX_D_DECL(x,y,z));
+    }
+
+    template <typename F, typename... Fs>
+    Real do_min (AMREX_D_DECL(Real x, Real y, Real z), F&& f, Fs&... fs)
+    {
+        return std::min(f(AMREX_D_DECL(x,y,z)), do_min(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
+    }
 }
 
 template <class... Fs>
