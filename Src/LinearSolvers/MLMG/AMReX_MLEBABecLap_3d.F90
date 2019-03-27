@@ -1032,7 +1032,7 @@ contains
 
   end subroutine compute_dphidn_3d
 
-  subroutine compute_dphidn_3d_ho (dudn, dxinv, i, j, k, &
+  subroutine compute_dphidn_3d_ho (dphidn, dxinv, i, j, k, &
         phi,  p_lo, p_hi,     &
         flag,  flo,  fhi,     &
         bct, phib, anrmx, anrmy, anrmz)
@@ -1056,7 +1056,7 @@ contains
       real(amrex_real),  intent(in   ) :: bct(3), phib
       real(amrex_real),  intent(in   ) :: anrmx, anrmy, anrmz
 
-      real(amrex_real),        intent(  out) :: dudn
+      real(amrex_real),        intent(  out) :: dphidn
 
       ! Local variable
       real(amrex_real) :: anrm
@@ -1163,7 +1163,7 @@ contains
       ! compute derivatives on the wall given that phi is zero on the wall.
       !
       ddinv = one/(d1*d2*(d2-d1))
-      dudn = -ddinv*( d2*d2*(u1-phib) - d1*d1*(u2-phib) )  ! note that the normal vector points toward the wall
+      dphidn = -ddinv*( d2*d2*(u1-phib) - d1*d1*(u2-phib) )  ! note that the normal vector points toward the wall
 
   end subroutine compute_dphidn_3d_ho
 
