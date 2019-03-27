@@ -2,6 +2,7 @@
 #define AMREX_EB2_IF_ELLIPSOID_H_
 
 #include <AMReX_Array.H>
+#include <AMReX_EB2_IF_Base.H>
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 

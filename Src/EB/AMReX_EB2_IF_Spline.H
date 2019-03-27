@@ -3,6 +3,7 @@
 #define AMREX_EB2_IF_SPLINE_H_
 
 #include <vector>
+#include <AMReX_EB2_IF_Base.H>
 #include "AMReX_RealVect.H"
 #include "AMReX.H"
 #include "AMReX_Vector.H"
