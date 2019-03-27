@@ -12,9 +12,25 @@
 // Current timers:
 // Ignore resetting of value and output. All else included.
 
-// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 using namespace amrex;
+
+// MFIterLoop
+// Written as a seperate function for each changes/testing.
+
+void MFIterLoopFunc(const Box &bx, double* val, Array4<Real> &a)
+{
+
+    amrex::ParallelFor(bx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
+    {
+        a(i,j,k) = *val;
+    });
+
+}
+
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 int main (int argc, char* argv[])
 {
@@ -109,11 +125,7 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
+                MFIterLoopFunc(bx, val, a);
             }
 
             amrex::Print() << "No Graph sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
@@ -137,11 +149,7 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
+                MFIterLoopFunc(bx, val, a);
 
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
@@ -195,11 +203,7 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
+                MFIterLoopFunc(bx, val, a);
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
@@ -255,11 +259,7 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
+                MFIterLoopFunc(bx, val, a);
 
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
@@ -320,11 +320,7 @@ int main (int argc, char* argv[])
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
-                amrex::ParallelFor(bx,
-                [=] AMREX_GPU_DEVICE (int i, int j, int k)
-                {
-                    a(i,j,k) = *val;
-                });
+                MFIterLoopFunc(bx, val, a);
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
