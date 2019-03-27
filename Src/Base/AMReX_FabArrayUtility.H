@@ -907,6 +907,28 @@ Abs (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
     }
 }
 
+template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+prefetchToHost (FabArray<FAB> const& fa)
+{
+#ifdef AMREX_USE_CUDA
+    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+        fa.prefetchToHost(mfi);
+    }
+#endif
+}
+
+template <class FAB, class bar = amrex::EnableIf_t<IsBaseFab<FAB>::value> >
+void
+prefetchToDevice (FabArray<FAB> const& fa)
+{
+#ifdef AMREX_USE_CUDA
+    for (MFIter mfi(fa); mfi.isValid(); ++mfi) {
+        fa.prefetchToDevice(mfi);
+    }
+#endif
+}
+
 }
 
 #endif

@@ -87,13 +87,13 @@ EBFArrayBoxFactory::clone () const
 }
 
 EB2::IndexSpace const*
-EBFArrayBoxFactory::getEBIndexSpace () const
+EBFArrayBoxFactory::getEBIndexSpace () const noexcept
 {
     return (m_parent) ? m_parent->getEBIndexSpace() : nullptr;
 }
 
 int
-EBFArrayBoxFactory::maxCoarseningLevel () const
+EBFArrayBoxFactory::maxCoarseningLevel () const noexcept
 {
     if (m_parent) {
         EB2::IndexSpace const* ebis = m_parent->getEBIndexSpace();
@@ -104,13 +104,13 @@ EBFArrayBoxFactory::maxCoarseningLevel () const
 }
 
 const DistributionMapping&
-EBFArrayBoxFactory::DistributionMap () const
+EBFArrayBoxFactory::DistributionMap () const noexcept
 {
     return m_ebdc->getVolFrac().DistributionMap();
 }
 
 const BoxArray&
-EBFArrayBoxFactory::boxArray () const
+EBFArrayBoxFactory::boxArray () const noexcept
 {
     return m_ebdc->getVolFrac().boxArray();
 }
