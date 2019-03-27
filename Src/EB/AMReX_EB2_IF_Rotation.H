@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_IF_ROTATION_H_
 #define AMREX_EB2_IF_ROTATION_H_
 
+#include <AMReX_EB2_IF_Base.H>
 #include <AMReX_Array.H>
 #include <type_traits>
 #include <cmath>
