@@ -290,6 +290,7 @@ int main (int argc, char* argv[])
         }
 
 /*      Written out version, for reference.
+        Above version uses Device::() functions to allow pattern to be placed elsewhere.
         {
             BL_PROFILE("cudaGraph");
 
