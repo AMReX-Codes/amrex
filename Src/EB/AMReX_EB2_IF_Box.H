@@ -23,13 +23,7 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    AMREX_GPU_HOST_DEVICE
-    BoxIF (const BoxIF& rhs) noexcept
-        : m_lo(rhs.m_lo),
-          m_hi(rhs.m_hi),
-          m_sign(rhs.m_sign)
-        {}
- 
+    BoxIF (const BoxIF& rhs) noexcept = default;
     BoxIF (BoxIF&& rhs) noexcept = default;
     BoxIF& operator= (const BoxIF& rhs) = delete;
     BoxIF& operator= (BoxIF&& rhs) = delete;

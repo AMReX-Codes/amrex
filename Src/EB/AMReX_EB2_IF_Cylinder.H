@@ -36,15 +36,7 @@ public:
             AMREX_ASSERT(m_direction < AMREX_SPACEDIM);
         }
 
-    AMREX_GPU_HOST_DEVICE
-    CylinderIF (const CylinderIF& rhs) noexcept
-        : m_radius(rhs.m_radius),
-          m_height(rhs.m_height),
-          m_direction(rhs.m_direction),
-          m_center(rhs.m_center),
-          m_sign(rhs.m_sign)
-        {}
-
+    CylinderIF (const CylinderIF& rhs) noexcept = default;
     CylinderIF (CylinderIF&& rhs) noexcept = default;
     CylinderIF& operator= (const CylinderIF& rhs) = delete;
     CylinderIF& operator= (CylinderIF&& rhs) = delete;
