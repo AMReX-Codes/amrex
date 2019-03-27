@@ -273,10 +273,10 @@ public:
     FAB      * fabDevicePtr (int K) noexcept;
     FAB const* fabDevicePtr (int K) const noexcept;
 
-    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value> >
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void prefetchToHost (const MFIter& mfi) const noexcept;
 
-    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value> >
+    template <class F=FAB, class = typename std::enable_if<IsBaseFab<F>::value>::type >
     void prefetchToDevice (const MFIter& mfi) const noexcept;
 
     template <class T, typename std::enable_if<!IsBaseFab<T>::value>::type* = nullptr>
