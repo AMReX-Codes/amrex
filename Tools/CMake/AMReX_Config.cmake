@@ -117,10 +117,11 @@ function (configure_amrex)
       list( GET VERSION_LIST 0 GCC_VERSION_MAJOR )
       list( GET VERSION_LIST 1 GCC_VERSION_MINOR )
 
-      target_compile_definitions( amrex PUBLIC
+      target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:
          BL_GCC_VERSION=${CMAKE_CXX_COMPILER_VERSION}
          BL_GCC_MAJOR_VERSION=${GCC_VERSION_MAJOR}
          BL_GCC_MINOR_VERSION=${GCC_VERSION_MINOR}
+         >
          )
    endif ()
 

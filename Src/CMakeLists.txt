@@ -139,71 +139,75 @@ endif ()
 
 
 #
-# Write and install configure file 
 #
-include(CMakePackageConfigHelpers)
-
-# File for install tree
-configure_package_config_file (
-   ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
-   ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
-   INSTALL_DESTINATION bin/cmake/AMReX )
-
 # 
-# Package version is a modified form of AMREX_GIT_VERSION
-#
-if (AMREX_GIT_VERSION)
-   string (FIND "${AMREX_GIT_VERSION}" "-" IDX REVERSE)
-   string (SUBSTRING "${AMREX_GIT_VERSION}" 0 "${IDX}" AMREX_VERSION)
-   string (FIND "${AMREX_VERSION}" "-" IDX REVERSE)
-   string (SUBSTRING "${AMREX_VERSION}" 0 "${IDX}" AMREX_VERSION )
-   string (REPLACE "-" "." AMREX_VERSION "${AMREX_VERSION}")
-endif ()
+include(AMReXInstallHelpers)
 
-write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
-   VERSION ${AMREX_VERSION}
-   COMPATIBILITY AnyNewerVersion )
-
-install ( FILES
-   ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
-   ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
-   DESTINATION lib/cmake/AMReX ) 
-
-#
-# Define install  
-#
-install ( TARGETS amrex
-   EXPORT        AMReXTargets
-   ARCHIVE       DESTINATION lib 
-   LIBRARY       DESTINATION lib 
-   INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
-   PUBLIC_HEADER DESTINATION include )
-
-install ( EXPORT AMReXTargets
-   NAMESPACE AMReX::
-   DESTINATION lib/cmake/AMReX )
-
-# Install fortran modules
-get_target_property (AMREX_Fortran_MODULE_DIR amrex Fortran_MODULE_DIRECTORY )
-install ( DIRECTORY ${AMREX_Fortran_MODULE_DIR}/ # Trailing backslash is crucial here!
-   DESTINATION include )
-
-# This header in a weird path has to be copied to install includes
-install ( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
-   DESTINATION include )
-
-# Install Tools directory
-install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/
-   DESTINATION Tools 
-   USE_SOURCE_PERMISSIONS )
+install_amrex()
+# make_amrex_config_header()
 
 
+# #
+# # Write and install configure file 
+# #
+# include(CMakePackageConfigHelpers)
 
-# #Export targets in build-tree ( so third-party can use amrex without installing???)
-# #Check this
+# # File for install tree
+# configure_package_config_file (
+#    ${AMREX_CMAKE_MODULES_PATH}/AMReXConfig.cmake.in
+#    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
+#    INSTALL_DESTINATION bin/cmake/AMReX )
 
-# export ( TARGETS
-#          amrex
-# 	 NAMESPACE AMReX::
-# 	 FILE "${CMAKE_BINARY_DIR}/AMReXTargets.cmake" )
+# # 
+# # Package version is a modified form of AMREX_GIT_VERSION
+# #
+# if (AMREX_GIT_VERSION)
+#    string (FIND "${AMREX_GIT_VERSION}" "-" IDX REVERSE)
+#    string (SUBSTRING "${AMREX_GIT_VERSION}" 0 "${IDX}" AMREX_VERSION)
+#    string (FIND "${AMREX_VERSION}" "-" IDX REVERSE)
+#    string (SUBSTRING "${AMREX_VERSION}" 0 "${IDX}" AMREX_VERSION )
+#    string (REPLACE "-" "." AMREX_VERSION "${AMREX_VERSION}")
+# endif ()
+
+# write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+#    VERSION ${AMREX_VERSION}
+#    COMPATIBILITY AnyNewerVersion )
+
+# install ( FILES
+#    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
+#    ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
+#    DESTINATION lib/cmake/AMReX ) 
+
+# #
+# # Define install  
+# #
+# install ( TARGETS amrex
+#    EXPORT        AMReXTargets
+#    ARCHIVE       DESTINATION lib 
+#    LIBRARY       DESTINATION lib 
+#    INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
+#    PUBLIC_HEADER DESTINATION include )
+
+# install ( EXPORT AMReXTargets
+#    NAMESPACE AMReX::
+#    DESTINATION lib/cmake/AMReX )
+
+# # Install fortran modules
+# get_target_property (AMREX_Fortran_MODULE_DIR amrex Fortran_MODULE_DIRECTORY )
+# install ( DIRECTORY ${AMREX_Fortran_MODULE_DIR}/ # Trailing backslash is crucial here!
+#    DESTINATION include )
+
+# # This header in a weird path has to be copied to install includes
+# install ( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
+#    DESTINATION include )
+
+# # Install Tools directory
+# install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/
+#    DESTINATION Tools 
+#    USE_SOURCE_PERMISSIONS )
+
+# # Modify installed headers by calling external script
+# install(SCRIPT "${AMREX_CMAKE_MODULES_PATH}/install_headers.cmake" )
+
+
 

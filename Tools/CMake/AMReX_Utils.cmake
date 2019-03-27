@@ -353,7 +353,7 @@ function ( add_amrex_define new_define )
       return()
    endif ()
 
-   target_compile_definitions( amrex PUBLIC ${new_define} )
+   target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:${new_define}> )
 
    if ( NOT DEFINE_NO_LEGACY )
       # Add legacy definition
@@ -361,7 +361,7 @@ function ( add_amrex_define new_define )
 
       if (${out} GREATER -1 )
 	 string(REPLACE "AMREX_" "BL_" legacy_define ${new_define})
-	 target_compile_definitions( amrex PUBLIC ${legacy_define} )
+	 target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:${legacy_define}> )
       endif ()
    endif () 
    
