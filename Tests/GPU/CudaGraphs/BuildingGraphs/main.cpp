@@ -114,6 +114,26 @@ int main (int argc, char* argv[])
         Real points = ba.numPts();
 
 // &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+//      Initial launch to remove any unknown costs in HtoD setup. 
+
+        {
+            BL_PROFILE("Initial");
+            *val = 0.42;
+
+            for (MFIter mfi(x); mfi.isValid(); ++mfi)
+            {
+                const Box bx = mfi.validbox();
+                Array4<Real> a = x.array(mfi);
+
+                MFIterLoopFunc(bx, val, a);
+            }
+
+            amrex::Print() << "Initial sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
+        }
+
+
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 //      Launch without graphs
 
         {
@@ -275,12 +295,12 @@ int main (int argc, char* argv[])
             }
 
             BL_PROFILE_VAR_STOP(cgc);
-            BL_PROFILE_VAR("cudaGraph-linked-instantiate", cgi);
+            BL_PROFILE_VAR("cudaGraph-linked-iter-instantiate", cgi);
 
             AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0));
 
             BL_PROFILE_VAR_STOP(cgi);
-            BL_PROFILE_VAR("cudaGraph-linked-launch", cgl);
+            BL_PROFILE_VAR("cudaGraph-linked-iter-launch", cgl);
 
             amrex::Gpu::Device::setStreamIndex(0); 
             AMREX_GPU_SAFE_CALL(cudaGraphLaunch(graphExec, amrex::Cuda::Device::cudaStream())); 
