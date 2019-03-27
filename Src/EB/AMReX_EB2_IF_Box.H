@@ -20,15 +20,10 @@ public:
     BoxIF (const RealArray& a_lo, const RealArray& a_hi, bool a_inside)
         : m_lo(makeXDim3(a_lo)),
           m_hi(makeXDim3(a_hi)),
-          m_inside(a_inside),
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    AMREX_GPU_HOST_DEVICE
-    BoxIF (const BoxIF& rhs) noexcept
-        : m_lo(rhs.m_lo), m_hi(rhs.m_hi), m_inside(rhs.m_inside), m_sign(rhs.m_sign)
-        {}
- 
+    BoxIF (const BoxIF& rhs) noexcept = default;
     BoxIF (BoxIF&& rhs) noexcept = default;
     BoxIF& operator= (const BoxIF& rhs) = delete;
     BoxIF& operator= (BoxIF&& rhs) = delete;
@@ -56,7 +51,6 @@ protected:
 
     XDim3     m_lo;
     XDim3     m_hi;
-    bool      m_inside;
     //
     Real      m_sign;
 };
