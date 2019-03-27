@@ -122,10 +122,13 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
+                // ..................
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
+                // ..................
+
             }
 
             amrex::Print() << "Initial sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
@@ -142,10 +145,12 @@ int main (int argc, char* argv[])
 
             for (MFIter mfi(x); mfi.isValid(); ++mfi)
             {
+                // ..................
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
+                // ..................
             }
 
             amrex::Print() << "No Graph sum = " << x.sum() << ". Expected = " << points*(*val) << std::endl;
@@ -166,10 +171,12 @@ int main (int argc, char* argv[])
             {
                 AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
 
+                // ..................
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
+                // ..................
 
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
@@ -220,10 +227,12 @@ int main (int argc, char* argv[])
                     amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
                 } 
 
+                // ..................
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
+                // ..................
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
@@ -276,10 +285,12 @@ int main (int argc, char* argv[])
             {
                 AMREX_GPU_SAFE_CALL(cudaStreamBeginCapture(amrex::Cuda::Device::cudaStream()));
 
+                // ..................
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
+                // ..................
 
                 AMREX_GPU_SAFE_CALL(cudaStreamEndCapture(amrex::Cuda::Device::cudaStream(), &(graph[mfi.LocalIndex()])));
             }
@@ -337,10 +348,12 @@ int main (int argc, char* argv[])
                     amrex::Gpu::Device::setStreamIndex(mfi.tileIndex());
                 } 
 
+                // ..................
                 const Box bx = mfi.validbox();
                 Array4<Real> a = x.array(mfi);
 
                 MFIterLoopFunc(bx, val, a);
+                // ..................
 
                 if (mfi.LocalIndex() == (x.local_size() - 1) )
                 { 
