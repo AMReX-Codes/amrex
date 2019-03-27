@@ -12,7 +12,7 @@ struct VoidCopyTag {
 };
 
 template <class FAB>
-template <class FOO>  // FOO fools nvcc
+template <class FOO, class BAR>  // FOO fools nvcc
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
@@ -349,7 +349,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 }
 
 template <class FAB>
-template <class FOO>  // FOO fools nvcc
+template <class FOO, class BAR>  // FOO fools nvcc
 void
 FabArray<FAB>::FillBoundary_finish ()
 {

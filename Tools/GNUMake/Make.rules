@@ -292,7 +292,6 @@ $(depEXETempDir)/%.d: %.cpp
 	@echo Depending $< ...
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
@@ -303,7 +302,6 @@ $(depEXETempDir)/%.d: %.c
 	@echo Depending $< ...
 ifeq ($(USE_GPU_PRAGMA),TRUE)
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
-	@$(SHELL) -ec 'cp $? $(srcTempDir)'
 endif
 	@if [ ! -d $(depEXETempDir) ]; then mkdir -p $(depEXETempDir); fi
 	@$(SHELL) -ec '$(MKDEP) $(includes) $< | \
@@ -349,7 +347,8 @@ $(TmpBuildDir)/$(optionsSuffix)_cuda_done: $(CEXE_sources)
              --cxx "$(CEXE_sources)" \
              --cpp "gcc -E -P -std=c99" \
              --defines "$(CPPFLAGS) $(includes)" \
-             --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI"
+             --exclude_defines "-DAMREX_USE_MPI -DBL_USE_MPI" \
+	     --num_workers "16"
 endif
 
 #
