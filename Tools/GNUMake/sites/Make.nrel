@@ -1,4 +1,4 @@
-ifneq ($(which_computer),$(filter $(which_computer),peregrine eagle))
+ifneq ($(which_computer),$(filter $(which_computer),peregrine eagle rhodes))
   $(error Unknown NREL computer, $(which_computer))
 endif
 
@@ -28,6 +28,14 @@ else ifeq ($(which_computer), eagle)
     CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
     FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
     F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
+  endif
+else ifeq ($(which_computer), rhodes)
+# Rhodes is dedicated single node machine for testing
+  ifeq ($(COMP), intel)
+    CXXFLAGS += -xCORE-AVX2
+    CFLAGS   += -xCORE-AVX2
+    FFLAGS   += -xCORE-AVX2
+    F90FLAGS += -xCORE-AVX2
   endif
 endif
 

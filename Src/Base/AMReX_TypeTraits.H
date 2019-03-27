@@ -12,14 +12,15 @@
 
 namespace amrex
 {
-    template <class T> class BaseFab;
+    template <class T, class Allocator> class BaseFab;
     template <class FAB> class FabArray;
 
     template <class A, class Enable = void> struct IsBaseFab : std::false_type {};
     //
     template <class D>
     struct IsBaseFab<D, typename std::enable_if<
-                            std::is_base_of<BaseFab<typename D::value_type>,
+                            std::is_base_of<BaseFab<typename D::value_type,
+                                                    typename D::allocator_type>,
                                             D>::value>::type>
         : std::true_type {};
 

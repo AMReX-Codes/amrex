@@ -10,6 +10,7 @@
 #include <cmath>
 #ifdef AMREX_USE_CUDA
 #include <cuda.h>
+#include <curand_kernel.h>
 #endif
 
 namespace amrex {
