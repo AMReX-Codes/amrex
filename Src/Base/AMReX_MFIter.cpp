@@ -14,6 +14,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -30,6 +31,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -47,6 +49,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -65,6 +68,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -83,6 +87,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tilin
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -103,6 +108,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     dynamic(false),
+    device_sync(true),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -126,6 +132,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
 #else
     dynamic(false),
 #endif
+    device_sync(info.device_sync),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -154,6 +161,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
 #else
     dynamic(false),
 #endif
+    device_sync(info.device_sync),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -181,7 +189,7 @@ MFIter::~MFIter ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    Gpu::Device::synchronize();
+    if (device_sync) Gpu::Device::synchronize();
 #endif
 
 #ifdef AMREX_USE_GPU
@@ -482,7 +490,7 @@ MFIter::operator++ () noexcept
             Gpu::Device::setStreamIndex(currentIndex);
             AMREX_GPU_ERROR_CHECK();
 #ifdef DEBUG
-            Gpu::Device::synchronize();
+//            Gpu::Device::synchronize();
 #endif
         }
 #endif
