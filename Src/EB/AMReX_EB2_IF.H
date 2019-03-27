@@ -21,19 +21,4 @@
 #include <AMReX_EB2_IF_Translation.H>
 #include <AMReX_EB2_IF_Union.H>
 
-#if 1
-namespace amrex { namespace EB2 { namespace {
-    void AMREX_EB2_IF_TEST () {
-        static_assert(IsGPUable<AllRegularIF>::value, "AllRegularIF not GPUable");
-
-        static_assert(IsGPUable<BoxIF>::value, "BoxIF not GPUable");
-
-        static_assert(IsGPUable<ComplementIF<BoxIF> >::value, "ComplementIF<BoxIF> not GPUable");
-        static_assert(!IsGPUable<ComplementIF<PolynomialIF> >::value, "ComplementIF<PolynomialIF> GPUable");
-
-        static_assert(!IsGPUable<PolynomialIF>::value, "PolynomialIF GPUable");
-    }
-}}}
-#endif
-
 #endif
