@@ -54,7 +54,7 @@ public:
 
     int getBoxType (const Box& bx, const Geometry& geom) const;
 
-    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* = nullptr >
+    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const noexcept
     {
         const auto problo = geom.ProbLoArray();
