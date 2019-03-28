@@ -45,10 +45,9 @@ struct gpu_tuple_impl<I, Head, Tail...>
           gpu_tuple_element<I, Head>(a_head)
         {}
 
-    template <typename U, typename... Vs>
-    gpu_tuple_impl (U&& a_head, Vs &&... a_tail)
-        : gpu_tuple_impl<I+1, Tail...>(std::forward<Vs>(a_tail)...),
-          gpu_tuple_element<I, Head>(std::forward<U>(a_head))
+    gpu_tuple_impl (Head&& a_head, Tail &&... a_tail)
+        : gpu_tuple_impl<I+1, Tail...>(std::forward<Tail>(a_tail)...),
+          gpu_tuple_element<I, Head>(std::forward<Head>(a_head))
         {}
 };
 
@@ -62,9 +61,8 @@ struct gpu_tuple_impl<I, Head>
         : gpu_tuple_element<I, Head>(a_head)
         {}
 
-    template <typename U>
-    explicit gpu_tuple_impl (U&& a_head)
-        : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
+    explicit gpu_tuple_impl (Head&& a_head)
+        : gpu_tuple_element<I, Head>(std::forward<Head>(a_head))
         {}
 };
 
@@ -83,9 +81,8 @@ public:
         : detail::gpu_tuple_impl<0, Ts...>(args...)
         {}
 
-    template <typename... Us>
-    explicit GpuTuple (Us&&... args)
-        : detail::gpu_tuple_impl<0, Us...>(std::forward<Us>(args)...)
+    explicit GpuTuple (Ts&&... args)
+        : detail::gpu_tuple_impl<0, Ts...>(std::forward<Ts>(args)...)
         {}
 };
 
