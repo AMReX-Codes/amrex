@@ -4,6 +4,8 @@
 
 #include <array>
 
+#include <tuple>
+#include <functional>
 #include <type_traits>
 
 namespace amrex {
@@ -141,6 +143,22 @@ typename GpuTupleElement<I, GpuTuple<Ts...> >::type const&
 get (GpuTuple<Ts...> const& tup) noexcept
 {
     return detail::get_impl<I,Ts...>(tup);
+}
+
+// makeTuple
+
+namespace detail {
+    template <typename T> struct unwrap { using type = T; };
+    template <typename T> struct unwrap<std::reference_wrapper<T> > { using type = T&; };
+    template <typename T>
+    using tuple_decay_t = typename unwrap<typename std::decay<T>::type>::type;
+}
+
+template <typename... Ts>
+GpuTuple<Ts...>
+makeTuple (Ts &&... args)
+{
+    return GpuTuple<detail::tuple_decay_t<Ts>...>(std::forward<Ts>(args)...);
 }
 
 }
