@@ -8,6 +8,8 @@
 #include <functional>
 #include <type_traits>
 
+#include <AMReX_GpuQualifiers.H>
+
 namespace amrex {
     template <class T, std::size_t N>
     using Tuple = std::array<T,N>;
@@ -114,6 +116,7 @@ struct GpuTupleElement<0, GpuTuple<Head, Tail...> > {
 namespace detail {
 
 template <std::size_t I, typename... Ts>
+AMREX_GPU_HOST_DEVICE
 constexpr
 typename GpuTupleElement<I, GpuTuple<Ts...> >::type&
 get_impl (detail::gpu_tuple_element
@@ -123,6 +126,7 @@ get_impl (detail::gpu_tuple_element
 }
 
 template <std::size_t I, typename... Ts>
+AMREX_GPU_HOST_DEVICE
 constexpr
 typename GpuTupleElement<I, GpuTuple<Ts...> >::type const&
 get_impl (detail::gpu_tuple_element
@@ -134,6 +138,7 @@ get_impl (detail::gpu_tuple_element
 } // detail
 
 template <std::size_t I, typename... Ts>
+AMREX_GPU_HOST_DEVICE
 constexpr
 typename GpuTupleElement<I, GpuTuple<Ts...> >::type&
 get (GpuTuple<Ts...>& tup) noexcept
@@ -142,6 +147,7 @@ get (GpuTuple<Ts...>& tup) noexcept
 }
 
 template <std::size_t I, typename... Ts>
+AMREX_GPU_HOST_DEVICE
 constexpr
 typename GpuTupleElement<I, GpuTuple<Ts...> >::type const&
 get (GpuTuple<Ts...> const& tup) noexcept
