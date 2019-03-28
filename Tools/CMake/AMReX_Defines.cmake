@@ -118,6 +118,9 @@ function ( set_amrex_defines )
    # Ascent Support
    add_amrex_define( AMREX_USE_ASCENT IF ENABLE_ASCENT )
 
+   # EB
+   add_amrex_define( AMREX_USE_EB NO_LEGACY IF ENABLE_EB )
+
    # 
    # CUDA
    #
