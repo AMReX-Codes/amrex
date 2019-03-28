@@ -5,16 +5,6 @@
 
 namespace amrex {
 
-#if __cplusplus >= 201402L
-
-    template <std::size_t... ISs>
-    using IndexSequence = std::integer_sequence<std::size_t, ISs...>;
-
-    template <std::size_t N>
-    using makeIndexSequence = std::make_index_sequence<N>;
-
-#else
-
     template <std::size_t... ISs> struct IndexSequence {};
 
     template <std::size_t N, std::size_t... ISs>
@@ -31,8 +21,6 @@ namespace amrex {
 
     template <std::size_t N>
     using makeIndexSequence = typename makeIndexSequenceHelper<N>::type;
-
-#endif
 
 }
 
