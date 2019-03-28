@@ -60,6 +60,8 @@ buildNeighborMask()
     const BoxArray& ba = this->ParticleBoxArray(lev);
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
+
     if (m_neighbor_mask_ptr == nullptr ||
         ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
         ! DistributionMapping::SameRefs(m_neighbor_mask_ptr->DistributionMap(), dmap))
@@ -139,6 +141,8 @@ sortParticlesByNeighborDestGPU()
     auto& plev  = this->GetParticles(lev);
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
+
+    if (ba.size() == 1 and (not geom.isAnyPeriodic()) ) return;
 
     for(MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -256,6 +260,8 @@ updateNeighborsGPU()
     auto& ba = this->ParticleBoxArray(lev);
     auto& dmap = this->ParticleDistributionMap(lev);
     
+    if (ba.size() == 1 and (not this->Geom(lev).isAnyPeriodic()) ) return;
+
     std::map<int, SendBuffer> not_ours;
     std::map<int, size_t> grid_counts;
     
