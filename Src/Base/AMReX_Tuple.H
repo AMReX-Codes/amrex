@@ -1,12 +1,151 @@
 
-#ifndef BL_TUPLE_H
-#define BL_TUPLE_H
+#ifndef AMREX_TUPLE_H_
+#define AMREX_TUPLE_H_
 
 #include <array>
+
+#include <type_traits>
 
 namespace amrex {
     template <class T, std::size_t N>
     using Tuple = std::array<T,N>;
 }
 
-#endif /*BL_TUPLE_H*/
+namespace amrex {
+
+namespace detail {
+
+template <std::size_t I, typename T>
+struct gpu_tuple_element
+{
+    gpu_tuple_element () = default;
+
+    explicit gpu_tuple_element (T const& a_value)
+        : m_value(a_value)
+        {}
+
+    explicit gpu_tuple_element (T && a_value)
+        : m_value(std::move(a_value))
+        {}
+
+    T m_value;
+};
+
+template <std::size_t I, typename... Ts> struct gpu_tuple_impl;
+
+template <std::size_t I, typename Head, typename... Tail>
+struct gpu_tuple_impl<I, Head, Tail...>
+    : public gpu_tuple_impl<I+1, Tail...>,
+      public gpu_tuple_element<I, Head>
+{
+    gpu_tuple_impl () = default;
+
+    gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
+        : gpu_tuple_impl<I+1, Tail...>(a_tail...),
+          gpu_tuple_element<I, Head>(a_head)
+        {}
+
+    template <typename U, typename... Vs>
+    gpu_tuple_impl (U&& a_head, Vs &&... a_tail)
+        : gpu_tuple_impl<I+1, Tail...>(std::forward<Vs>(a_tail)...),
+          gpu_tuple_element<I, Head>(std::forward<U>(a_head))
+        {}
+};
+
+template <std::size_t I, typename Head>
+struct gpu_tuple_impl<I, Head>
+    : public gpu_tuple_element<I, Head>
+{
+    gpu_tuple_impl () = default;
+
+    explicit gpu_tuple_impl (Head const& a_head)
+        : gpu_tuple_element<I, Head>(a_head)
+        {}
+
+    template <typename U>
+    explicit gpu_tuple_impl (U&& a_head)
+        : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
+        {}
+};
+
+} // detail
+
+// GpuTuple
+
+template <typename... Ts>
+class GpuTuple
+    : public detail::gpu_tuple_impl<0, Ts...>
+{
+public:
+    GpuTuple () = default;
+
+    explicit GpuTuple (Ts const&... args)
+        : detail::gpu_tuple_impl<0, Ts...>(args...)
+        {}
+
+    template <typename... Us>
+    explicit GpuTuple (Us&&... args)
+        : detail::gpu_tuple_impl<0, Us...>(std::forward<Us>(args)...)
+        {}
+};
+
+// GpuTupleSize
+
+template <typename T> struct GpuTupleSize;
+
+template <typename... Ts>
+struct GpuTupleSize<GpuTuple<Ts...> >
+    : public std::integral_constant<std::size_t, sizeof...(Ts)> {};
+
+// GpuTupleElement
+
+template <std::size_t I, typename T> struct GpuTupleElement;
+
+template <std::size_t I, typename Head, typename... Tail>
+struct GpuTupleElement<I, GpuTuple<Head, Tail...> >
+    : GpuTupleElement<I-1, GpuTuple<Tail...> > {};
+
+template <typename Head, typename... Tail>
+struct GpuTupleElement<0, GpuTuple<Head, Tail...> > {
+    using type = Head;
+};
+
+// get
+
+namespace detail {
+
+template <std::size_t I, typename... Ts>
+typename GpuTupleElement<I, GpuTuple<Ts...> >::type&
+get_impl (detail::gpu_tuple_element
+          <I, typename GpuTupleElement<I, GpuTuple<Ts...> >::type>& te) noexcept
+{
+    return te.m_value;
+}
+
+template <std::size_t I, typename... Ts>
+typename GpuTupleElement<I, GpuTuple<Ts...> >::type const&
+get_impl (detail::gpu_tuple_element
+          <I, typename GpuTupleElement<I, GpuTuple<Ts...> >::type> const& te) noexcept
+{
+    return te.m_value;
+}
+
+} // detail
+
+template <std::size_t I, typename... Ts>
+typename GpuTupleElement<I, GpuTuple<Ts...> >::type&
+get (GpuTuple<Ts...>& tup) noexcept
+{
+    return detail::get_impl<I,Ts...>(tup);
+}
+
+template <std::size_t I, typename... Ts>
+typename GpuTupleElement<I, GpuTuple<Ts...> >::type const&
+get (GpuTuple<Ts...> const& tup) noexcept
+{
+    return detail::get_impl<I,Ts...>(tup);
+}
+
+}
+
+#endif /*AMREX_TUPLE_H_*/
