@@ -187,13 +187,6 @@ function (configure_amrex)
    if (ENABLE_CUDA)
       target_link_libraries(amrex PUBLIC cuda)   
    endif ()
-   #
-   # Setup SENSEI
-   #
-   if (ENABLE_SENSEI_INSITU)
-      find_package(SENSEI REQUIRED)
-      target_link_libraries( amrex PUBLIC sensei )     
-   endif()
 
    #
    # Setup other third party libs

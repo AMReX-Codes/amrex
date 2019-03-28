@@ -93,8 +93,11 @@ if (AMREX_ENABLE_3D_NODAL_MLMG)
 endif ()
 
 if (AMREX_ENABLE_SUNDIALS)
-   include(CMakeFindDependencyMacro)
    find_dependency(SUNDIALS COMPONENTS nvecserial cvode arkode REQUIRED )
+endif ()
+
+if (AMREX_ENABLE_SENSEI_INSITU)
+   find_dependency(SENSEI REQUIRED)
 endif ()
 
 
