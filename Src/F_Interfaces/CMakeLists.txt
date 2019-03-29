@@ -6,6 +6,12 @@
 #
 target_compile_definitions( amrex PUBLIC $<BUILD_INTERFACE:AMREX_USE_F_INTERFACES BL_USE_F_INTERFACES>)
 
+# MPI Fortran library is required only when Fortran Interfaces are used
+if (ENABLE_MPI)
+   find_package(MPI REQUIRED Fortran)
+   target_link_libraries(amrex PUBLIC MPI::MPI_Fortran)
+endif ()  
+
 #
 # BASE subdir
 #

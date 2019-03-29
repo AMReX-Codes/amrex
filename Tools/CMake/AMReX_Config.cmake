@@ -136,27 +136,7 @@ function (configure_amrex)
       else()
          target_link_options(amrex PUBLIC -Wl,--warn-unresolved-symbols)
       endif()
-   endif()
-
-   # 
-   # Location of Fortran modules
-   # 
-   set ( AMREX_Fortran_MODULE_DIR ${PROJECT_BINARY_DIR}/mod_files )
-
-   set_target_properties ( amrex
-      PROPERTIES
-      Fortran_MODULE_DIRECTORY ${AMREX_Fortran_MODULE_DIR} )
-   
-   target_include_directories ( amrex
-      PUBLIC "$<BUILD_INTERFACE:${AMREX_Fortran_MODULE_DIR}>" )
-   
-   #
-   # Setup MPI
-   #  
-   if (ENABLE_MPI)
-      find_package(MPI REQUIRED)
-      target_link_libraries(amrex PUBLIC MPI::MPI_CXX MPI::MPI_Fortran)
-   endif ()  
+   endif() 
    
    #
    # Setup OpenMP 
@@ -187,11 +167,6 @@ function (configure_amrex)
    if (ENABLE_CUDA)
       target_link_libraries(amrex PUBLIC cuda)   
    endif ()
-
-   #
-   # Setup other third party libs
-   #
-   include(AMReX_SetupThirdPartyLibs)
 
    #
    # Print out summary

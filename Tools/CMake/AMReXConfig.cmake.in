@@ -55,7 +55,6 @@ set(AMREX_ENABLE_3D_NODAL_MLMG      @ENABLE_3D_NODAL_MLMG@)
 set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
 set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
 
-
 # Compilation options 
 set(AMREX_ENABLE_FPE                @ENABLE_FPE@)
 set(AMREX_ENABLE_ASSERTIONS         @ENABLE_ASSERTIONS@)
@@ -72,12 +71,27 @@ set(AMREX_ENABLE_PROFPARSER         @ENABLE_PROFPARSER@)
 # SUNDIALS support
 set(AMREX_ENABLE_SUNDIALS           @ENABLE_SUNDIALS@)
 
+# Conduit and Ascent
+set(AMREX_ENABLE_CONDUIT            @ENABLE_CONDUIT@)
+set(AMREX_ENABLE_ASCENT             @ENABLE_ASCENT@)
+
 
 if (AMREX_ENABLE_MPI)
    find_dependency(MPI REQUIRED)
 endif()
 
+# 
 # Find dependencies if needed
+#
+if (AMREX_ENABLE_MPI)
+   set( _mpi_components CXX )
+   if (AMREX_ENABLE_FORTRAN_INTERFACES)
+         set( _mpi_components "${_mpi_components} Fortran" )
+   endif ()
+   find_dependency(MPI REQUIRED ${_mpi_components})
+   unset(_mpi_components)
+endif()
+
 if (AMREX_ENABLE_3D_NODAL_MLMG)
    # External libs
    set(BLITZ_INSTALL_PREFIX @BLITZ_INSTALL_PREFIX@)
@@ -98,6 +112,13 @@ endif ()
 
 if (AMREX_ENABLE_SENSEI_INSITU)
    find_dependency(SENSEI REQUIRED)
+endif ()
+
+if (AMREX_ENABLE_CONDUIT)
+   find_dependency(Conduit REQUIRED)
+   if (ENABLE_AMREX_ASCENT)
+      find_dependency(Ascent REQUIRED)     
+   endif ()
 endif ()
 
 
