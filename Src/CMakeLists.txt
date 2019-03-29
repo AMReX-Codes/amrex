@@ -31,7 +31,7 @@ macro ( add_sources )
 	 get_filename_component ( dir ${CMAKE_CURRENT_LIST_DIR}/${item} DIRECTORY )
 	 list ( APPEND PUBLIC_HEADERS ${CMAKE_CURRENT_LIST_DIR}/${item} )
 	 target_include_directories ( amrex PUBLIC $<BUILD_INTERFACE:${dir}> )
-      endif()      
+      endif()
    endforeach ()
    unset (ext)
    unset (dir)
@@ -77,7 +77,7 @@ if (ENABLE_3D_NODAL_MLMG)
    include(Extern/Algoim/CMakeLists.txt)
 endif ()
 
-if (ENABLE_FORTRAN_INTERFACES) 
+if (ENABLE_FORTRAN_INTERFACES)
    include (F_Interfaces/CMakeLists.txt)
 endif ()
 
@@ -90,7 +90,7 @@ if (ENABLE_SENSEI_INSITU)
 endif ()
 
 if (ENABLE_SUNDIALS)
-   include(Extern/SUNDIALS3/CMakeLists.txt)   
+   include(Extern/SUNDIALS4/CMakeLists.txt)
 endif ()
 
 if (ENABLE_CONDUIT)
@@ -105,7 +105,7 @@ endif ()
 #
 # Check for Python >= 2.7: this is needed to build AMReX_BuildInfo.cpp
 # This is not a required package. This provides PYTHONINTERP_FOUND and
-# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR  
+# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR
 #
 find_package (PythonInterp QUIET)
 
@@ -119,7 +119,7 @@ if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
       OUTPUT AMReX_buildInfo.cpp
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating AMReX_buildInfo.cpp" )
-   
+
    target_sources ( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
 endif ()
 
@@ -130,7 +130,7 @@ set_target_properties ( amrex PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 
 #
-# Write and install configure file 
+# Write and install configure file
 #
 include(CMakePackageConfigHelpers)
 
@@ -146,7 +146,7 @@ configure_package_config_file (
 #    ${CMAKE_BINARY_DIR}/AMReXConfig.cmake
 #    INSTALL_DESTINATION bin/cmake/AMReX )
 
-# 
+#
 # Package version is a modified form of AMREX_GIT_VERSION
 #
 if (AMREX_GIT_VERSION)
@@ -166,16 +166,16 @@ write_basic_package_version_file ( ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
 install ( FILES
    ${CMAKE_BINARY_DIR}/export/AMReXConfig.cmake
    ${CMAKE_BINARY_DIR}/AMReXConfigVersion.cmake
-   DESTINATION lib/cmake/AMReX ) 
+   DESTINATION lib/cmake/AMReX )
 
 #
-# Define install  
+# Define install
 #
 install ( TARGETS amrex
    EXPORT        AMReXTargets
-   ARCHIVE       DESTINATION lib 
-   LIBRARY       DESTINATION lib 
-   INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES 
+   ARCHIVE       DESTINATION lib
+   LIBRARY       DESTINATION lib
+   INCLUDES      DESTINATION include # Adds proper directory to INTERFACE_INCLUDE_DIRECTORIES
    PUBLIC_HEADER DESTINATION include )
 
 install ( EXPORT AMReXTargets
@@ -193,7 +193,7 @@ install ( FILES ${PROJECT_SOURCE_DIR}/Tools/C_scripts/AMReX_buildInfo.H
 
 # Install Tools directory
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/Tools/
-   DESTINATION Tools 
+   DESTINATION Tools
    USE_SOURCE_PERMISSIONS )
 
 
