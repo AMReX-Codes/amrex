@@ -100,7 +100,7 @@ foreach(_comp IN LISTS _sundials_findlist)
    # Include path is always the path to the top-level "include" directory in the install tree
    # App codes should include headers by using relative paths
    set(SUNDIALS_${_comp_upper}_INCLUDE_DIRS ${_sundials_include_path})
-   find_library(SUNDIALS_${_comp_upper}_LIBRARY NAMES sundials_${_comp_lower}  PATH_SUFFIXES  lib)
+   find_library(SUNDIALS_${_comp_upper}_LIBRARY NAMES sundials_${_comp_lower} PATH_SUFFIXES lib lib64)
 
    find_package_handle_standard_args(SUNDIALS_${_comp_upper}
       REQUIRED_VARS
