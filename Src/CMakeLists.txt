@@ -5,14 +5,24 @@
 # the properties of this object, like setting the sources,
 # setting the compile definitions and so on
 #
-add_library( amrex "" )
+add_library( amrex )
 
+# Where to store Fortran modules
+set_target_properties( amrex
+   PROPERTIES
+   Fortran_MODULE_DIRECTORY
+   ${PROJECT_BINARY_DIR}/mod_files 
+   INTERFACE_INCLUDE_DIRECTORIES
+   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
+   )
+   
+   
 # General configuration
 include ( AMReX_Config )
 configure_amrex ()
 
 #
-# Now, one by one, let's add all the source files in the subdirectories
+# Core components
 #
 add_subdirectory(Base)
 add_subdirectory(Boundary)
@@ -68,7 +78,7 @@ endif ()
 #
 # Here we generate AMReX_BuildInfo.cpp
 # If Python < 2.7, script won't work so
-# we do not include this in library
+# we do not include this in the library
 #
 #
 # Check for Python >= 2.7: this is needed to build AMReX_BuildInfo.cpp
@@ -115,6 +125,4 @@ endif ()
 # 
 include(AMReXInstallHelpers)
 install_amrex()
-
-
 

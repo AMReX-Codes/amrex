@@ -1,5 +1,11 @@
 target_include_directories(amrex PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 
+# MPI header is incapsulated in AMReX_ccse-mpi.H
+if (ENABLE_MPI)
+   find_package(MPI REQUIRED CXX)
+   target_link_libraries(amrex PUBLIC MPI::MPI_CXX) 
+endif ()  
+
 target_sources( amrex
    PRIVATE 
    # Utility classes ---------------------------------------------------------

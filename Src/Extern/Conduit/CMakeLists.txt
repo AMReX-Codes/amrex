@@ -7,4 +7,29 @@ target_sources(amrex
    AMReX_Conduit_Blueprint.cpp
    )
 
+#
+# Dependencies
+#
+
+# For now do not look for specific components (if Conduit has any)
+# It would be good to check whether component conduit_mpi is available
+# or not
+find_package(Conduit REQUIRED)
+
+target_link_libraries(amrex PUBLIC conduit:conduit)
+
+if (ENABLE_MPI)
+   target_link_libraries(amrex PUBLIC conduit:conduit_mpi)   
+endif ()
+
+if (ENABLE_ASCENT)
+   find_package(Ascent)
+   
+   if (ENABLE_MPI)
+      target_link_libraries( amrex PUBLIC ascent::ascent_mpi )
+   else ()
+      target_link_libraries( amrex PUBLIC ascent::ascent )
+   endif ()
+   
+endif ()
 

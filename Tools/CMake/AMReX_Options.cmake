@@ -151,9 +151,10 @@ print_option( ENABLE_SENSEI_INSITU )
 option ( ENABLE_CONDUIT "Enable Conduit support" OFF )
 print_option ( ENABLE_CONDUIT )
 
-option ( ENABLE_ASCENT "Enable Ascent support" OFF )
-print_option ( ENABLE_ASCENT )
-
+if (ENABLE_CONDUIT)
+   option ( ENABLE_ASCENT "Enable Ascent support" OFF )
+   print_option ( ENABLE_ASCENT )
+endif ()
 
 
 if (ENABLE_LINEAR_SOLVERS AND (DIM EQUAL 3) AND (NOT USE_XSDK_DEFAULTS) )
