@@ -16,7 +16,7 @@ set_target_properties( amrex
    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/mod_files>
    )
    
-   
+
 # General configuration
 include ( AMReX_Config )
 configure_amrex ()
@@ -68,7 +68,7 @@ if (ENABLE_SENSEI_INSITU)
 endif ()
 
 if (ENABLE_SUNDIALS)
-   add_subdirectory(Extern/SUNDIALS3)   
+   add_subdirectory(Extern/SUNDIALS4)   
 endif ()
 
 if (ENABLE_CONDUIT)
@@ -83,7 +83,7 @@ endif ()
 #
 # Check for Python >= 2.7: this is needed to build AMReX_BuildInfo.cpp
 # This is not a required package. This provides PYTHONINTERP_FOUND and
-# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR  
+# PYTHON_VERSION_STRING, PYTHON_VERSION_MAJOR and PYTHON_VERSION_MINOR
 #
 find_package (PythonInterp QUIET)
 
@@ -97,7 +97,7 @@ if ( (NOT (PYTHON_VERSION_STRING VERSION_LESS "2.7") ) AND PYTHONINTERP_FOUND )
       OUTPUT AMReX_buildInfo.cpp
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
       COMMENT "Generating AMReX_buildInfo.cpp" )
-   
+  
    target_sources( amrex PRIVATE  ${CMAKE_CURRENT_BINARY_DIR}/AMReX_buildInfo.cpp )
 endif ()
 
@@ -125,4 +125,5 @@ endif ()
 # 
 include(AMReXInstallHelpers)
 install_amrex()
+
 

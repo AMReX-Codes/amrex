@@ -29,9 +29,10 @@ struct MFItInfo
 {
     bool do_tiling;
     bool dynamic;
+    bool device_sync;
     IntVect tilesize;
     MFItInfo () noexcept
-        : do_tiling(false), dynamic(false), tilesize(IntVect::TheZeroVector()) {}
+        : do_tiling(false), dynamic(false), device_sync(true), tilesize(IntVect::TheZeroVector()) {}
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
         tilesize = ts;
@@ -39,6 +40,10 @@ struct MFItInfo
     }
     MFItInfo& SetDynamic (bool f) noexcept {
         dynamic = f;
+        return *this;
+    }
+    MFItInfo& DisableDeviceSync () noexcept {
+        device_sync = false;
         return *this;
     }
 };
@@ -184,6 +189,7 @@ protected:
     IndexType     typ;
 
     bool          dynamic;
+    bool          device_sync = true;
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;

@@ -1,0 +1,39 @@
+# Not using cray-tpsl version, since 18.06.1 still loads Sundials 2.7
+
+USE_CVODE_LIBS ?= TRUE
+CPPFLAGS += -DAMREX_USE_SUNDIALS_3x4x
+
+ifeq ($(lowercase_comp),pgi)
+    USE_FORT_ODE = FALSE
+else
+   USE_FORT_ODE ?= TRUE
+endif
+
+ifeq (${USE_FORT_ODE},TRUE)
+include $(AMREX_HOME)/Src/Extern/SUNDIALS4/Make.package
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS4
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SUNDIALS4
+endif
+
+CVODE_LIB_DIR ?= ../../../../sundials/instdir/lib
+INCLUDE_LOCATIONS += $(CVODE_LIB_DIR)/../include
+
+ifeq ($(USE_CVODE_LIBS),TRUE)
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_cvode
+endif
+
+ifeq ($(USE_ARKODE_LIBS),TRUE)
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_arkode
+endif
+
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecserial
+
+ifeq ($(USE_CUDA),TRUE)
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nveccuda
+endif
+
+ifeq ($(USE_OMP),TRUE)
+LIBRARIES += -L$(CVODE_LIB_DIR) -lsundials_nvecopenmp
+endif
+
+LIBRARIES += -Wl,-rpath,${CVODE_LIB_DIR}

@@ -72,6 +72,7 @@ target_sources(amrex
    AMReX_EB2_IF_Extrusion.H
    AMReX_EB2_IF_Difference.H
    AMReX_EB2_IF.H
+   AMReX_EB2_IF_Base.H
    AMReX_distFcnElement.H
    AMReX_distFcnElement.cpp
    AMReX_EB2.cpp
@@ -79,3 +80,4 @@ target_sources(amrex
    AMReX_EB2_MultiGFab.cpp
    AMReX_eb2_${DIM}d.F90
 )
+

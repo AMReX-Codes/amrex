@@ -1,8 +1,11 @@
 PERILLA_LIB=EXE
 
-C$(PERILLA_LIB)_sources += PackageQueue.cpp Barrier.cpp Perilla.cpp RegionGraph.cpp RegionQueue.cpp WorkerThread.cpp AsyncMultiFabUtil.cpp PerillaRts.cpp
+C$(PERILLA_LIB)_sources += Barrier.cpp RGIter.cpp RegionQueue.cpp PackageQueue.cpp Perilla.cpp RegionGraph.cpp WorkerThread.cpp AsyncMultiFabUtil.cpp PerillaRts.cpp
 
 C$(PERILLA_LIB)_headers += Barrier.H Config.H LocalConnection.H PackageQueue.H RegionGraph.H RegionQueue.H RemoteConnection.H WorkerThread.H AsyncMultiFabUtil.H PerillaRts.H
 
-VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/Perilla_omp
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/Perilla_omp
+include $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi_omp/perilla.mak
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi_omp
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/AmrTask/rts_impls/mpi_omp
+
+
