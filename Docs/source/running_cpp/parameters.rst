@@ -107,9 +107,13 @@ user-defined constant and ``x`` and ``y`` are variables. The names are case sens
 ``(x>0)`` is `1` where `x>0` and `0` where `x<=0`. It allows the user to
 define functions by intervals. User-defined constants can be used in parsed
 functions only (i.e., ``density_function(x,y,z)`` and ``field_function(X,Y,t)``,
-see below).  For example, parameter ``a0`` can be specified with:
+see below). User-defined constants can contain only letter, numbers and character _.
+The name of each constant has to begin with a letter. The following names are used 
+by WarpX, and cannot be used as user-defined constants: `x`, `y`, `z`, `X`, `Y`, `t`.
+For example, parameters ``a0`` and ``z_plateau`` can be specified with:
 
 * ``my_constants.a0 = 3.0``
+* ``my_constants.z_plateau = 150.e-6``
 
 Particle initialization
 -----------------------
