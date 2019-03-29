@@ -8,6 +8,7 @@
 #include <PerillaConfig.H>
 using namespace perilla;
 #include <PerillaRts.H>
+#include "RGIter.H"
 
 namespace amrex{
 
@@ -158,13 +159,44 @@ namespace amrex{
 
 #else
 
-    void RGIter::exec(){
+    RGIter::RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
+            amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr):
+        itrGraph(afpi[itr-1]->destGraph),
+        m_level_afpi(afpi),
+        m_upper_level_afpi(upper_afpi),
+	_dest(&dest),
+        boxGrow(bG),
+        time(tm),
+        index(ind),
+        scomp(sc),
+        ncomp(nc),
+        iteration(itr),
+        implicit(true),
+        ppteams(true),
+        haveDepGraph(false),
+        depGraph(NULL),
+        getFireableTime(0.)
+   {
         int myProc = amrex::ParallelDescriptor::MyProc();
         bool push = true;
 
-        tid = perilla::tid();
-        tg = perilla::wid();
-        ntid = perilla::wtid();
+        int tid = perilla::tid();
+        int tg = perilla::wid();
+        int ntid = perilla::wtid();
+
+        if(perilla::isCommunicationThread())
+        {
+            std::vector<RegionGraph*> flattenedGraphArray;
+            Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, flattenedGraphArray);
+            while(true){
+                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+                {
+                    break;
+                }
+            }
+        }else
+{
 
         AsyncFillPatchIterator::initialSend(m_level_afpi, m_upper_level_afpi, boxGrow, time, index, scomp, ncomp, iteration);
         syncAllWorkerThreads();
@@ -218,32 +250,10 @@ namespace amrex{
             //fout.close();
             init();
         }
+}
+
     }
 
-    RGIter::RGIter(Vector<amrex::AsyncFillPatchIterator*> afpi, Vector<amrex::AsyncFillPatchIterator*> upper_afpi,
-            amrex::MultiFab& dest, int  bG, double tm, int  ind, int  sc, int nc, int itr):
-        itrGraph(afpi[itr-1]->destGraph),
-        m_level_afpi(afpi),
-        m_upper_level_afpi(upper_afpi),
-	_dest(&dest),
-        boxGrow(bG),
-        time(tm),
-        index(ind),
-        scomp(sc),
-        ncomp(nc),
-        iteration(itr),
-        implicit(true),
-        ppteams(true),
-        haveDepGraph(false),
-        depGraph(NULL),
-        getFireableTime(0.)
-    {
-        RTS rts;
-        rts.Init(ParallelDescriptor::MyProc(), ParallelDescriptor::NProcs());
-        std::vector<RegionGraph*> flattenedGraphArray;
-        Perilla::flattenGraphHierarchy(m_level_afpi[iteration-1]->m_amrlevel.parent->graphArray, flattenedGraphArray);
-        rts.invokeOnDemand(flattenedGraphArray, this);
-    }
 #endif
     using namespace perilla;
 
