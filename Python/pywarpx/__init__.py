@@ -1,5 +1,5 @@
 from .WarpX import warpx
-from .Constants import constants
+from .Constants import my_constants
 from .Amr import amr
 from .Geometry import geometry
 from .Algo import algo

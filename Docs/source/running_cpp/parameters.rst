@@ -103,20 +103,17 @@ distribution or the laser field (see below `Particle initialization` and
 
 The parser reads python-style expressions between double quotes, for instance
 ``"a0*x**2 * (1-y*1.e2) * (x>0)"`` is a valid expression where ``a0`` is a
-user-defined constant and ``x`` and ``y`` are variables. The factor
+user-defined constant and ``x`` and ``y`` are variables. The names are case sensitive. The factor
 ``(x>0)`` is `1` where `x>0` and `0` where `x<=0`. It allows the user to
 define functions by intervals. User-defined constants can be used in parsed
-functions only (i.e., ``density_function(x,y,z)`` and ``field_function(x,y,t)``,
-see below). They are specified with:
+functions only (i.e., ``density_function(x,y,z)`` and ``field_function(X,Y,t)``,
+see below). User-defined constants can contain only letter, numbers and character _.
+The name of each constant has to begin with a letter. The following names are used 
+by WarpX, and cannot be used as user-defined constants: `x`, `y`, `z`, `X`, `Y`, `t`.
+For example, parameters ``a0`` and ``z_plateau`` can be specified with:
 
-* ``constants.use_my_constants`` (`bool`)
-    Whether to use user-defined constants.
-
-* ``constants.constant_names`` (`strings, separated by spaces`)
-    A list of variables the user wants to define, e.g., ``constants.constant_names = a0 n0``.
-
-* ``constants.constant_values`` (`floats, sepatated by spaces`)
-    Values for the user-defined constants., e.g., ``constants.constant_values = 3. 1.e24``.
+* ``my_constants.a0 = 3.0``
+* ``my_constants.z_plateau = 150.e-6``
 
 Particle initialization
 -----------------------
@@ -164,8 +161,7 @@ Particle initialization
       It requires additional argument ``<species_name>.density_function(x,y,z)``, which is a
       mathematical expression for the density of the species, e.g.
       ``electrons.density_function(x,y,z) = "n0+n0*x**2*1.e12"`` where ``n0`` is a
-      user-defined constant, see above. Note that using this density profile will turn
-      ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
+      user-defined constant, see above.
 
 * ``<species_name>.momentum_distribution_type`` (`string`)
     Distribution of the normalized momentum (`u=p/mc`) for this species. The options are:
@@ -187,8 +183,6 @@ Particle initialization
       file. It requires additional arguments ``<species_name>.momentum_function_ux(x,y,z)``,
       ``<species_name>.momentum_function_uy(x,y,z)`` and ``<species_name>.momentum_function_uz(x,y,z)``,
       which gives the distribution of each component of the momentum as a function of space.
-      Note that using this momentum distribution type will turn
-      ``warpx.serialize_ics`` to ``1``, which may slow down the simulation.
 
 * ``<species_name>.zinject_plane`` (`float`)
     Only read if  ``<species_name>`` is in ``particles.rigid_injected_species``.
