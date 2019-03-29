@@ -29,8 +29,7 @@ setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name )
         });
     } else if (field_name[0] == *"j"){ // current
         mesh.setUnitDimension({
-            {openPMD::UnitDimension::L, -3},
-            {openPMD::UnitDimension::M,  1},
+            {openPMD::UnitDimension::L, -2},
             {openPMD::UnitDimension::I,  1},
         });
     } else if (field_name.substr(0,3) == "rho"){ // charge density
