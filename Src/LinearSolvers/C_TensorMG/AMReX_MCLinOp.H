@@ -5,7 +5,6 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
-#include <AMReX_Tuple.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
@@ -323,20 +322,20 @@ protected:
     */
     void initConstruct (const Real* _h);
 
-    //! Array (on level) of Tuples (on dimension) of grid spacings
-    Vector< Tuple<Real, BL_SPACEDIM> > h;
+    //! Vector (on level) of Arrays (on dimension) of grid spacings
+    Vector< Array<Real, BL_SPACEDIM> > h;
 
-    //! Array (on level) of pointers to BoxArray's of MCLinOp's domain
+    //! Vector (on level) of pointers to BoxArray's of MCLinOp's domain
     Vector< BoxArray > gbox;
 
-    //! Array (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
+    //! Vector (on level) of pointers to BndryRegisters along each grid for scratch data required to modify internal stencil on boundary
     Vector< BndryRegister > undrrelxr;
 
-    //! Array (on level) of pointers to BndryRegisters along each grid for tangential derivative data
+    //! Vector (on level) of pointers to BndryRegisters along each grid for tangential derivative data
     Vector< BndryRegister > tangderiv;
 
     /**
-    * \brief Array (on level) of Arrays (on orientation) of MultiMasks for
+    * \brief Vector (on level) of Vectors (on orientation) of MultiMasks for
     * whether boundary Fabs are covered, not_covered, outside_domain
     */
     Vector<Vector<MultiMask> > maskvals;
@@ -344,7 +343,7 @@ protected:
     //! boundary data class
     BndryData bgb;
 
-    //! Array (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
+    //! Vector (on level) of geometry objects.  Needed for determining whether stuff intersects on periodic domains
     Vector< Geometry > geomarray;
 
     //! flag (=1 if use harmonic averaged interpolation for coefficients, =0 is arithmetic averaging)

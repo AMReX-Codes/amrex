@@ -1,0 +1,11 @@
+ifeq ($(USE_ARKODE_LIBS), TRUE)
+f90EXE_sources += arkode_interface.f90 farkode_mod.f90 farkode_arkstep_mod.f90
+endif
+
+ifeq ($(USE_CVODE_LIBS), TRUE)
+f90EXE_sources += cvode_interface.f90 fcvode_mod.f90
+endif
+
+f90EXE_sources += fsundials_types_mod.f90
+f90EXE_sources += fnvector_mod.f90 fsunmatrix_mod.f90 fsunlinsol_mod.f90
+f90EXE_sources += fnvector_serial_mod.f90 fsunmatrix_dense_mod.f90 fsunlinsol_dense_mod.f90

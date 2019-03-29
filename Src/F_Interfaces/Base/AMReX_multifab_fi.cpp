@@ -308,6 +308,11 @@ extern "C" {
 	return mfi->index();
     }
 
+    int amrex_fi_mfiter_local_tile_index (MFIter* mfi)
+    {
+	return mfi->LocalTileIndex();
+    }
+
     void amrex_fi_mfiter_tilebox (MFIter* mfi, int lo[3], int hi[3], int nodal[3])
     {
 	const Box& bx = mfi->tilebox();

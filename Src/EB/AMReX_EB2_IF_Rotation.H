@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_IF_ROTATION_H_
 #define AMREX_EB2_IF_ROTATION_H_
 
+#include <AMReX_EB2_IF_Base.H>
 #include <AMReX_Array.H>
 #include <type_traits>
 #include <cmath>
@@ -14,14 +15,18 @@ class RotationIF
 {
 public:
 
-    RotationIF (F&& a_f, const Real angle, const int dir)
-        : m_f(std::move(a_f)), m_angle(angle), m_dir(dir)
+    RotationIF (F&& a_f, Real angle, int dir)
+        : m_f(std::move(a_f)),
+          m_cos_angle(std::cos(angle)),
+          m_sin_angle(std::sin(angle)),
+          m_dir(dir)
         {}
-    RotationIF (F const& a_f, const Real angle, const int dir)
-        : m_f(a_f), m_angle(angle), m_dir(dir)
+    RotationIF (F const& a_f, Real angle, int dir)
+        : m_f(a_f),
+          m_cos_angle(std::cos(angle)),
+          m_sin_angle(std::sin(angle)),
+          m_dir(dir)
         {}
-
-    ~RotationIF () {}
 
     RotationIF (const RotationIF& rhs) = default;
     RotationIF (RotationIF&& rhs) = default;
@@ -30,42 +35,85 @@ public:
 
 // Note that angle is measured in radians 
 #if (AMREX_SPACEDIM==2)
-    Real operator() (const RealArray& p) const
-	    {
-		Real x =  p[0]*std::cos(m_angle) + p[1]*std::sin(m_angle); 
-		Real y = -p[0]*std::sin(m_angle) + p[1]*std::cos(m_angle); 
-	        return m_f({x, y});
-	    }
+    inline Real operator() (const RealArray& p) const noexcept
+    {
+        Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle; 
+        Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle; 
+        return m_f({x, y});
+    }
 
+    template <class U=F, class = typename std::enable_if<IsGPUable<U>::value>::type>
+    AMREX_GPU_HOST_DEVICE inline
+    Real operator() (Real x, Real y) const noexcept
+    {
+        return m_f( x*m_cos_angle + y*m_sin_angle,
+                   -x*m_sin_angle + y*m_cos_angle);   
+    }
 #endif
 
 #if (AMREX_SPACEDIM==3)
-    Real operator() (const RealArray& p) const
+    inline Real operator() (const RealArray& p) const noexcept
+    {
+        switch(m_dir) {
+        case(0):
+   	{
+            Real y =  p[1]*m_cos_angle + p[2]*m_sin_angle; 
+            Real z = -p[1]*m_sin_angle + p[2]*m_cos_angle; 
+            return m_f({p[0], y, z});
+        }
+        case(1):
+        {
+            Real x = p[0]*m_cos_angle - p[2]*m_sin_angle; 
+            Real z = p[0]*m_sin_angle + p[2]*m_cos_angle; 
+            return m_f({x, p[1], z});
+	}
+        default:
 	{
-   	if(m_dir==0){
-		Real y =  p[1]*std::cos(m_angle) + p[2]*std::sin(m_angle); 
-		Real z = -p[1]*std::sin(m_angle) + p[2]*std::cos(m_angle); 
-	        return m_f({p[0], y, z});
-	 }
-	else if(m_dir==1){
-		Real x = p[0]*std::cos(m_angle) - p[2]*std::sin(m_angle); 
-		Real z = p[0]*std::sin(m_angle) + p[2]*std::cos(m_angle); 
-	        return m_f({x, p[1], z});
+            Real x =  p[0]*m_cos_angle + p[1]*m_sin_angle; 
+            Real y = -p[0]*m_sin_angle + p[1]*m_cos_angle; 
+            return m_f({x, y, p[2]});
 	}
-	else {  // if(m_dir==2){
-		Real x =  p[0]*std::cos(m_angle) + p[1]*std::sin(m_angle); 
-		Real y = -p[0]*std::sin(m_angle) + p[1]*std::cos(m_angle); 
-	        return m_f({x, y, p[2]});
+        }
+    }
+
+    template <class U=F, class = typename std::enable_if<IsGPUable<U>::value>::type>
+    AMREX_GPU_HOST_DEVICE inline
+    Real operator() (Real x, Real y, Real z) const noexcept
+    {
+        switch(m_dir) {
+        case(0):
+   	{
+            return m_f(x,
+                        y*m_cos_angle + z*m_sin_angle,
+                       -y*m_sin_angle + z*m_cos_angle); 
+        }
+        case(1):
+        {
+            return m_f(x*m_cos_angle - z*m_sin_angle,
+                       y,
+                       x*m_sin_angle + z*m_cos_angle);
 	}
+        default:
+	{
+            return m_f( x*m_cos_angle + y*m_sin_angle,
+                       -x*m_sin_angle + y*m_cos_angle,
+                        z);
 	}
+        }
+    }
 #endif
 
 protected:
 
     F m_f;
-    Real m_angle; 
+    Real m_cos_angle;
+    Real m_sin_angle;
     int m_dir; 
 };
+
+template <class F>
+struct IsGPUable<RotationIF<F>, typename std::enable_if<IsGPUable<F>::value>::type>
+    : std::true_type {};
 
 template <class F>
 constexpr RotationIF<typename std::decay<F>::type>

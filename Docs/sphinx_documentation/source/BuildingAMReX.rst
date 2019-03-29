@@ -161,6 +161,22 @@ also have an ``amrex/Tools/GNUMake/Make.local`` file to override various
 variables. See ``amrex/Tools/GNUMake/Make.local.template`` for more examples of
 how to customize the build process.
 
+If you need to pass macro definitions to the preprocessor, you can add
+them to your make file as follows,
+
+::
+
+        DEFINES += -Dmyname1 -Dmyname2=mydefinition
+
+To link to an additional library say ``foo`` with headers located at
+``foopath/include`` and library at ``foopath/lib``, you can add the
+following to your make file,
+
+::
+
+        INCLUDE_LOCATIONS += foopath/include
+        LIBRARY_LOCATIONS += foopath/lib
+        LIBRARIES += -lfoo
 
 .. _sec:build:local:
 
