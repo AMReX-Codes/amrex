@@ -243,7 +243,7 @@ cap_registers := $(shell expr $(CUDA_MAXREGCOUNT) \> 128)
 
 ifeq ($(lowercase_comp),pgi)
   cap_register_flag := -Mcuda=maxregcount:
-else if ($(lowercase_comp),ibm)
+else ifeq ($(lowercase_comp),ibm)
   cap_register_flag := -Xptxas -maxrregcount=
 else
   $(error Unknown CUDA Fortran compiler)
