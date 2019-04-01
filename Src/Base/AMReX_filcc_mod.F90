@@ -20,7 +20,7 @@ module amrex_filcc_module
 #if (AMREX_SPACEDIM == 2)
   public :: amrex_hoextraptocc_2d
 #endif
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_CUDA) && defined(AMREX_USE_GPU_PRAGMA)
   public :: amrex_filccn_device
 #endif
 
