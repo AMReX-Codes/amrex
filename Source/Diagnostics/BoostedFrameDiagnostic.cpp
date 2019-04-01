@@ -166,7 +166,7 @@ namespace
     }
 
     /*
-      Creates an extendible dataset, suitable for storing particle data.
+      Resize an extendible dataset, suitable for storing particle data.
       Should be run only by the master rank.
     */
     long output_resize_particle_field(const std::string& file_path, const std::string& field_path,
@@ -205,7 +205,7 @@ namespace
     }
 
     /*
-      Creates an extendible dataset, suitable for storing particle data.
+      Writes to a dataset that has been extended to the proper size. Suitable for writing particle data.
       Should be run on all ranks collectively.
     */
     void output_write_particle_field(const std::string& file_path, const std::string& field_path,
@@ -717,6 +717,8 @@ writeParticleDataHDF5(const WarpXParticleContainer::DiagnosticParticleData& pdat
         }
     }
 
+    // Note, this has the effect of an MPI Barrier between the above resize operation
+    // and the below write.
     ParallelDescriptor::ReduceLongMax(old_np);
     
     // Write data here
