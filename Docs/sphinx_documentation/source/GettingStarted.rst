@@ -72,7 +72,9 @@ The result may look like,
 
 ::
 
+      AMReX (17.05-30-g5775aed933c4-dirty) initialized
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
+      AMReX (17.05-30-g5775aed933c4-dirty) finalized
 
 The version string means the current commit 5775aed933c4 (note that the first
 letter g in g577.. is not part of the hash) is based on 17.05 with 30
@@ -104,12 +106,15 @@ The result may look like,
 ::
 
       MPI initialized with 4 MPI processes
+      AMReX (17.05-30-g5775aed933c4-dirty) initialized
       Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
+      AMReX (17.05-30-g5775aed933c4-dirty) finalized
 
 If the compilation fails, you are referred to :ref:`Chap:BuildingAMReX` for
 more details on how to configure the build system.  The *optional* command line
 argument ``amrex.v=1`` sets the AMReX verbosity level
-to 1 to print the number of MPI processes used.
+to 1 to print the number of MPI processes used.  The default verbosity
+level is 1, and you can pass ``amrex.v=0`` to turn it off.
 More details on how runtime parameters are handled can be found in
 section :ref:`sec:basics:parmparse`.
 
@@ -122,7 +127,7 @@ You can then run,
 
 ::
 
-      OMP_NUM_THREADS=4 ./main3d.gnu.DEBUG.OMP.ex amrex.v=1
+      OMP_NUM_THREADS=4 ./main3d.gnu.DEBUG.OMP.ex
 
 The result may look like,
 
@@ -131,7 +136,9 @@ The result may look like,
 ::
 
       OMP initialized with 4 OMP threads
-      Hello world from AMReX version 17.06-287-g51875485fe51-dirty
+      AMReX (17.05-30-g5775aed933c4-dirty) initialized
+      Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
+      AMReX (17.05-30-g5775aed933c4-dirty) finalized
 
 Note that you can build with both ``USE_MPI=TRUE`` and ``USE_OMP=TRUE``.  You
 can then run,
@@ -150,7 +157,9 @@ The result may look like,
 
       MPI initialized with 2 MPI processes
       OMP initialized with 4 OMP threads
-      Hello world from AMReX version 17.06-287-g51875485fe51-dirty
+      AMReX (17.05-30-g5775aed933c4-dirty) initialized
+      Hello world from AMReX version 17.05-30-g5775aed933c4-dirty
+      AMReX (17.05-30-g5775aed933c4-dirty) finalized
 
 .. _sec:heat equation:
 
