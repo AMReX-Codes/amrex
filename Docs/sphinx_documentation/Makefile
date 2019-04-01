@@ -2,8 +2,9 @@
 #
 
 # You can set these variables from the command line.
+PYTHON       ?= python
 SPHINXOPTS    =
-SPHINXBUILD   = python -msphinx
+SPHINXBUILD   = $(PYTHON) -msphinx
 SPHINXPROJ    = amrex
 SOURCEDIR     = source
 BUILDDIR      = build
