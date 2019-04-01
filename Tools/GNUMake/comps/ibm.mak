@@ -132,8 +132,8 @@ endif
 FORTLINK = LOWERCASE
 
 ifeq ($(USE_CUDA),TRUE)
-  F90FLAGS += -qcuda
-  FFLAGS += -qcuda
+  F90FLAGS += -qcuda -qtgtarch=sm_$(CUDA_ARCH)
+  FFLAGS += -qcuda -qtgtarch=sm_$(CUDA_ARCH)
 
   ifdef CUDA_MAXREGCOUNT
     F90FLAGS += -Xptxas -maxrregcount=$(CUDA_MAXREGCOUNT)

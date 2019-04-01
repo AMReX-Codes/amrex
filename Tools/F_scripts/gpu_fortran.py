@@ -33,6 +33,11 @@ Limitations:
   statement that imports only functions and ends in "! function". Cannot span multiple lines.
 
 - In general use/only statements that continue to multiple lines via "&" are not handled properly
+
+- Unrestricted private statements are disallowed, since we do not generate public statements for
+  the newly created device functions. Doing this generation would require us to keep track of which
+  ifdefs should be applied, since the IBM compiler won't allow you to generate a public statement
+  if the corresponding function is ifdef'd out.
 """
 
 from __future__ import print_function
@@ -466,33 +471,24 @@ def update_fortran_procedures(ffile):
             # Detect any used functions from other modules
             subroutine_imported_functions = subroutine_imported_functions + get_function_uses(line)
 
-        # Explicitly mark all newly created device targets as public.
-
-        if "contains" in line.lower() and not line.strip().startswith('!'):
-            fout.write('\n')
-            for target in gpu_targets:
-                fout.write('  public :: ' + target + '_device\n')
-            fout.write('\n')
-
         # If there are any calls inside a device procedure to
         # a known device procedure but it is missing the _device
         # suffix, add that now. The most likely case will be
         # calls to functions, where it wasn't possible in the initial
         # processing to know what is a function (versus a variable).
 
-        else:
-            for target in gpu_targets:
-                if "end function " + target.lower() + "_device" in line.lower() or "end subroutine " + target.lower() + "_device" in line.lower():
-                    in_device_subroutine = False
-                    subroutine_imported_functions = []
-                    break
+        for target in gpu_targets:
+            if "end function " + target.lower() + "_device" in line.lower() or "end subroutine " + target.lower() + "_device" in line.lower():
+                in_device_subroutine = False
+                subroutine_imported_functions = []
+                break
 
-                elif "function " + target.lower() + "_device" in line.lower() or "subroutine " + target.lower() + "_device" in line.lower():
-                    in_device_subroutine = True
-                    break
+            elif "function " + target.lower() + "_device" in line.lower() or "subroutine " + target.lower() + "_device" in line.lower():
+                in_device_subroutine = True
+                break
 
-            if in_device_subroutine:
-                line = append_device_to_line(line, set(gpu_targets + subroutine_imported_functions))
+        if in_device_subroutine:
+            line = append_device_to_line(line, set(gpu_targets + subroutine_imported_functions))
 
         fout.write(line)
 
