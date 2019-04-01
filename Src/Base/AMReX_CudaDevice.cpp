@@ -65,6 +65,13 @@ Device::Initialize ()
         amrex::Print() << "Initializing CUDA...\n";
     }
 
+    // XL CUDA Fortran support needs to be initialized
+    // before any CUDA API calls.
+
+#if (defined(__ibmxl__) && !defined(BL_NO_FORT))
+    __xlcuf_init();
+#endif
+
     // Count the number of CUDA visible devices.
 
     int cuda_device_count;
