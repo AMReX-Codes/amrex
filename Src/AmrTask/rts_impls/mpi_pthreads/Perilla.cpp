@@ -2933,15 +2933,6 @@ void Perilla::multifabCopyPull(RegionGraph* destGraph, RegionGraph* srcGraph, am
         int np = amrex::ParallelDescriptor::NProcs();
         if(np == 1)
           return;
-
-        //if(myProc==26 && srcGraph->graphID==18  && ntid == 0)
-        //std::cout << "Notw its sgID 18,"<< f <<" turn lets see " << cpSrc->r_con.nsnd <<std::endl;
-
-        //if(myProc==28 && srcGraph->graphID==18  && ntid == 0)
-        //std::cout << "Notw its sgID 18,"<< f <<" turn lets see " << cpSrc->r_con.nsnd <<std::endl;
-
-        //if(srcGraph->graphID==18 && f ==316)   
-        //BL_ASSERT(cpSrc->r_con.nsnd == 177);
         if(singleT)
         {
             //pthread_mutex_lock(&(srcGraph->sCopyMapHead->map[f]->r_con.sndLock));

@@ -239,13 +239,27 @@ ifeq ($(USE_GPU_PRAGMA),TRUE)
 
 ifneq ($(BL_NO_FORT),TRUE)
 
+cap_registers := $(shell expr $(CUDA_MAXREGCOUNT) \> 128)
+
+ifeq ($(lowercase_comp),pgi)
+  cap_register_flag := -Mcuda=maxregcount:
+else ifeq ($(lowercase_comp),ibm)
+  cap_register_flag := -Xptxas -maxrregcount=
+else
+  $(error Unknown CUDA Fortran compiler)
+endif
+
 $(objEXETempDir)/AMReX_filcc_mod.o: AMReX_filcc_mod.F90
 	@echo Compiling $(<F) ...
 	@if [ ! -d $(objEXETempDir) ]; then mkdir -p $(objEXETempDir); fi
 	@if [ ! -d $(srcTempDir) ]; then mkdir -p $(srcTempDir); fi
 	@$(SHELL) -ec 'cp $< $(srcTempDir)'
 	$(AMREX_HOME)/Tools/F_scripts/gpu_fortran.py --fortran "$(srcTempDir)/$(<F)"
-	$(SILENT) $(F90CACHE) $(F90) $(patsubst -Mcuda=maxregcount:$(CUDA_MAXREGCOUNT), -Mcuda=maxregcount:128, $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
+ifeq ($(cap_registers),1)
+	$(SILENT) $(F90CACHE) $(F90) $(patsubst $(cap_register_flag)$(CUDA_MAXREGCOUNT), $(cap_register_flag)128, $(F90FLAGS)) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
+else
+	$(SILENT) $(F90CACHE) $(F90) $(F90FLAGS) -DBL_LANG_FORT -DAMREX_LANG_FORT $(FCPPFLAGS) $(fincludes) -c $(srcTempDir)/$(<F) -o $(objEXETempDir)/AMReX_filcc_mod.o
+endif
 
 endif
 

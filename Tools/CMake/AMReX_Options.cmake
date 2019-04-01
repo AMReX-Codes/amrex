@@ -166,7 +166,7 @@ endif ()
 #
 # External packages
 #
-option(ENABLE_SUNDIALS "Enable SUNDIALS3 interfaces" OFF)
+option(ENABLE_SUNDIALS "Enable SUNDIALS4 interfaces" OFF)
 print_option(ENABLE_SUNDIALS)
 
 #

@@ -1,3 +1,22 @@
+# 19.04
+
+  -- SUNDIALS 4 support.
+
+  -- Option to disable device sync in MFIter.
+
+  -- Functions for prefetch unified memory.
+
+  -- GNU Make system: It is now an error if a function with return
+     type does not return.
+
+  -- GNU Make system: Pass C++ flags to nvcc when compiling C codes.
+
+  -- Allocate 3/4 of gpu memory upfront in The_Arena.
+
+  -- BaseFab now has Allocator template parameter.
+
+  -- Random number generation on gpu.
+
 # 19.03
 
   -- Deprecated Fortran framework F_BaseLib and linear solver F_MG

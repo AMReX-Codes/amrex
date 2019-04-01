@@ -28,7 +28,7 @@ namespace UIF_detail {
         return std::max(f(p), do_max(p, std::forward<Fs>(fs)...));
     }
 
-    template <typename F, class = typename std::enable_if<IsGPUable<F>::value>::type>
+    template <typename F>
     AMREX_GPU_HOST_DEVICE inline
     Real do_max (AMREX_D_DECL(Real x, Real y, Real z), F&& f) noexcept
     {
@@ -55,7 +55,7 @@ public:
         return op_impl(p, makeIndexSequence<sizeof...(Fs)>());
     }
 
-    template <class U=IntersectionIF<Fs...>, class = typename std::enable_if<IsGPUable<U>::value>::type>
+    template <class U=UnionIF<Fs...>, class = typename std::enable_if<IsGPUable<U>::value>::type>
     AMREX_GPU_HOST_DEVICE inline
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
