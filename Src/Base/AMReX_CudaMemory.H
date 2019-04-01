@@ -104,7 +104,7 @@ struct DeviceScalar
     void operator= (DeviceScalar const&) = delete;
     void operator= (DeviceScalar &&) = delete;
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
 
     DeviceScalar (T init_val) {
         if (Cuda::inLaunchRegion()) {
@@ -154,7 +154,7 @@ private:
 #endif
 };
 
-#if AMREX_USE_CUDA
+#ifdef AMREX_USE_CUDA
 
 template <class T>
 struct SharedMemory
