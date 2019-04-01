@@ -5,6 +5,12 @@
 #include <AMReX_Box.H>
 #include <PackageQueue.H>
 
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include "PerillaMemCheck.H"
+extern PerillaMemCheck memcheck;
+#endif
+
 class RemoteCommDescriptor
 {
 public:
@@ -24,7 +30,16 @@ public:
     sz(0), pr(0),
     cnt(0), r_gid(0),
     r_grids(0)
-  {}
+  {
+#ifdef PERILLA_DEBUG
+                memcheck.add(memcheck.genKey(this), (void*)this, "RemoteCommDescriptor");
+#endif
+  }
+  ~RemoteCommDescriptor(){
+#ifdef PERILLA_DEBUG
+                memcheck.remove(memcheck.genKey(this));
+#endif
+  }
 };
 
 class TransDescriptor
@@ -66,10 +81,13 @@ public:
 
   ~RemoteConnection()
   {
-    if(!snd)
+    if(snd)
       delete[] snd;
-    if(!rcv)
+    if(rcv)
       delete[] rcv;
+    delete sndLock;
+    delete rcvLock;
+    delete ghostLock;
   }
 };
 

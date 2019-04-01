@@ -6,6 +6,11 @@
 #include <AMReX_Box.H>
 #include <omp.h>
 
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include "PerillaMemCheck.H"
+extern PerillaMemCheck memcheck;
+#endif
 using namespace amrex;
 
 class LocalCopyDescriptor

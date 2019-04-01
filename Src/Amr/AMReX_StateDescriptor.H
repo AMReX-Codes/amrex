@@ -47,7 +47,7 @@ public:
         /**
         * \brief Bogus constructor.
         */
-        BndryFunc () noexcept = default;
+        BndryFunc () noexcept {}
 
         /**
         * \brief A Constructor.

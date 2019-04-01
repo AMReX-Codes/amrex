@@ -3,6 +3,7 @@
 
 #include <AMReX_Amr.H>
 #include <PerillaConfig.H>
+#include <RGIter.H>
 
 namespace perilla{
 
@@ -42,6 +43,7 @@ class RTS
 //	double Time();
 	void Barrier();
 	void runAMR(Amr* amrptr, int tid, int numthreads, int max_step, Real stop_time);
+        void invokeOnDemand(std::vector<RegionGraph *> rg, RGIter *rgi);
 };
 
 }
