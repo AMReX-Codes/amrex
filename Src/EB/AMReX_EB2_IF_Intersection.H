@@ -28,7 +28,7 @@ namespace IIF_detail {
         return std::min(f(p), do_min(p, std::forward<Fs>(fs)...));
     }
 
-    template <typename F, class = typename std::enable_if<IsGPUable<F>::value>::type>
+    template <typename F>
     AMREX_GPU_HOST_DEVICE inline
     Real do_min (AMREX_D_DECL(Real x, Real y, Real z), F&& f) noexcept
     {
