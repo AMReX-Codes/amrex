@@ -66,8 +66,15 @@ list( GET _cuda_compiler_version 1 _nvcc_version_minor )
 set(NVCC_VERSION_MAJOR "${_nvcc_version_major}" CACHE INTERNAL "CUDA compiler version (major)")
 set(NVCC_VERSION_MINOR "${_nvcc_version_minor}" CACHE INTERNAL "CUDA compiler version (minor)")
 
+
+set(_cuda_version_truncated "${NVCC_VERSION_MAJOR}.${NVCC_VERSION_MINOR}")
+if (ENABLE_EB AND ( _cuda_version_truncated VERSION_EQUAL "9.2") )
+   message(FATAL_ERROR "EB component of AMReX is not compatible with CUDA 9.2")
+endif ()
+
 # We gotta set CUDA flags globally since there is no other way at this time to pass CUDA flags to
 # device linking stage
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr --expt-extended-lambda")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-gpu-targets -m64 ${NVCC_ARCH_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -maxrregcount=${CUDA_MAXREGCOUNT} --use_fast_math")
+
