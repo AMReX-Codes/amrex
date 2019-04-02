@@ -180,6 +180,8 @@ sortParticlesByNeighborDestGPU()
         });
 
         Gpu::ManagedDeviceVector<int> index_sequence_tmp(np);
+        thrust::sequence(thrust::device, index_sequence_tmp.begin(), index_sequence_tmp.end());
+
         ParticleVector aos_r(np);
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             neighbor_codes.begin(),
