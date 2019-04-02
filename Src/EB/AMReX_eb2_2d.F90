@@ -151,7 +151,7 @@ contains
                 apy(i,j) = one
                 fcy(i,j) = zero
                 fy(i,j) = regular
-             else if (fy(i,j) .eq. covered) then
+             else if (apy(i,j) .lt. small) then
                 apy(i,j) = zero
                 fcy(i,j) = zero
                 fy(i,j) = covered
