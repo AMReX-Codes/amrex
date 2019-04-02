@@ -1433,7 +1433,8 @@ void
 VisMF::Read (FabArray<FArrayBox> &mf,
              const std::string   &mf_name,
 	     const char *faHeader,
-	     int coordinatorProc)
+	     int coordinatorProc,
+	     int allow_empty_mf)
 {
     BL_PROFILE("VisMF::Read()");
 
@@ -1466,6 +1467,19 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
         hEndTime = amrex::second();
     }
+
+    // This allows us to read in an empty MultiFab without an error -- but only if explicitly told to
+    if (allow_empty_mf > 0)
+    {
+        if (hdr.m_ba.size() == 0) return; 
+    } else {
+        if (hdr.m_ba.size() == 0) 
+        {
+            amrex::Print() << "In trying to read " << mf_name << std::endl;
+            amrex::Error("Empty box array");
+        }
+    }
+
 
     if (mf.empty()) {
 	DistributionMapping dm(hdr.m_ba);
