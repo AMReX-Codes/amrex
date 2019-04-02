@@ -92,6 +92,10 @@ if (AMREX_ENABLE_MPI)
    unset(_mpi_components)
 endif()
 
+if (AMREX_ENABLE_OMP)
+   find_dependency(OpenMP REQUIRED)
+endif ()
+
 if (AMREX_ENABLE_3D_NODAL_MLMG)
    # External libs
    set(BLITZ_INSTALL_PREFIX @BLITZ_INSTALL_PREFIX@)
