@@ -6,6 +6,7 @@ module my_kernel_module
 
 contains
 
+#ifdef AMREX_USE_CUDA_FORTRAN   
   AMREX_CUDA_FORT_DEVICE subroutine plusone_cudafort (lo, hi, dat, dlo, dhi) &
        bind(c,name='plusone_cudafort')
     integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
@@ -21,8 +22,9 @@ contains
        end do
     end do
   end subroutine plusone_cudafort
-
-
+#endif
+  
+#ifdef AMREX_USE_ACC
   subroutine plusone_acc (lo, hi, dat, dlo, dhi) &
        bind(c,name='plusone_acc')
     integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
@@ -39,8 +41,10 @@ contains
        end do
     end do
     !$acc end kernels
-  end subroutine plusone_acc
-
+ end subroutine plusone_acc
+#endif
+ 
+#ifdef AMREX_OMP_OFFLOAD
   subroutine plusone_omp (lo, hi, dat, dlo, dhi) &
        bind(c,name='plusone_omp')
     integer(c_int), intent(in) :: lo(3), hi(3), dlo(3), dhi(3)
@@ -56,6 +60,7 @@ contains
           end do
        end do
     end do
-  end subroutine plusone_omp
+ end subroutine plusone_omp
+#endif
 
 end module my_kernel_module
