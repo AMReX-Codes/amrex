@@ -1,11 +1,7 @@
-cmake_minimum_required (VERSION 3.13)
-
-project (AMReX)
-
-
-enable_language (C)
-enable_language (CXX)
-enable_language (Fortran)
+cmake_minimum_required(VERSION 3.14)
+project(AMReX)
+enable_language(CXX)
+enable_language(Fortran)
 
 #
 # Load required modules 
@@ -27,6 +23,13 @@ endif ()
 include( AMReX_Utils )
 include( AMReX_Options )
 include( AMReX_Machines )
+
+#
+# Enable CUDA if requested
+#
+if (ENABLE_CUDA)
+   include(AMReX_SetupCUDA)
+endif ()
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined
@@ -58,27 +61,15 @@ endif ()
 set ( AMREX_GIT_VERSION "${TMP}" CACHE INTERNAL "" )
 unset (TMP)
 
-#
-# Install Blitz and Algoim at configuration time
-# if needed.
-# This is only required if ENABLE_3D_NODAL_MLMG is ON
-# and external libraries paths are not given 
-#
-# if ( ENABLE_3D_NODAL_MLMG AND
-#       NOT ( ALGOIM_INSTALL_DIR AND BLITZ_INSTALL_DIR ) )
-#    include(AMReX_InstallExternalLibs) 
-# endif ()
-
-
 # 
 # Source files for all binaries and libraries found under src
 # 
-add_subdirectory (Src)
+add_subdirectory(Src)
 
 #
 # Tutorials and "test_install" target
 #
-add_subdirectory (Tutorials)
+add_subdirectory(Tutorials)
 
 
 

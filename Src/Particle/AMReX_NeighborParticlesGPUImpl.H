@@ -363,7 +363,7 @@ fillNeighborsMPIGPU (std::map<int, SendBuffer>& not_ours)
 
     AMREX_ALWAYS_ASSERT(this->numLevels() == 1);
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int lev = 0;
     
