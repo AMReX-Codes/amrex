@@ -28,8 +28,9 @@ public:
     MLMG (MLLinOp& a_lp);
     ~MLMG ();
 
+    // Optional argument checkpoint_file is for debugging only.
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-                Real a_tol_rel, Real a_tol_abs);
+                Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file = nullptr);
 
     void getGradSolution (const Vector<Array<MultiFab*,AMREX_SPACEDIM> >& a_grad_sol,
                           Location a_loc = Location::FaceCenter);
@@ -223,6 +224,9 @@ private:
 
     enum timer_types { solve_time=0, iter_time, bottom_time, ntimers };
     Vector<Real> timer;
+
+    void checkPoint (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
+                     Real a_tol_rel, Real a_tol_abs, const char* a_file_name) const;
 };
 
 }
