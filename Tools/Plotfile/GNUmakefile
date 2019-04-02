@@ -1,4 +1,4 @@
-AMREX_HOME ?= ..
+AMREX_HOME ?= ../..
 
 DEBUG = FALSE
 DIM = 3
