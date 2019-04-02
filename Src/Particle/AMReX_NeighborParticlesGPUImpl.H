@@ -175,10 +175,24 @@ sortParticlesByNeighborDestGPU()
             pcodes[i] = code;
         });
 
+        Gpu::ManagedDeviceVector<int> index_sequence_tmp(np);
+        ParticleVector aos_r(np);
         thrust::sort_by_key(thrust::cuda::par(Cuda::The_ThrustCachedAllocator()),
                             neighbor_codes.begin(),
                             neighbor_codes.end(),
-                            aos().begin());
+                            index_sequence_tmp.begin());
+
+        //
+        // Reorder the particle data 
+        //
+        {
+	    // reorder structs
+	    aos_r.resize(np);
+            thrust::gather(thrust::device,
+                           index_sequence_tmp.begin(), index_sequence_tmp.end(),
+                           aos().begin(), aos_r.begin());
+            aos().swap(aos_r);
+        }
 
         int num_codes = m_grid_map[gid].size();
         Gpu::ManagedDeviceVector<int> neighbor_code_begin(num_codes + 1);
