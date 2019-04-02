@@ -284,7 +284,7 @@ amrex::UniqueString()
 void
 amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
@@ -307,7 +307,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 void
 amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) 
+  if(ParallelContext::IOProcessorSub()) 
   {
     if(amrex::FileExists(path)) 
     {
@@ -337,7 +337,7 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 void
 amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 {
-  if(ParallelDescriptor::IOProcessor()) {
+  if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
