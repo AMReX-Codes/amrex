@@ -841,7 +841,7 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi) noexcept
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
     return m_fabs_v[li];
@@ -856,7 +856,7 @@ FabArray<FAB>::fabHostPtr (const MFIter& mfi) const noexcept
     BL_ASSERT(DistributionMap() == mfi.DistributionMap());
     int li = mfi.LocalIndex();
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
     return m_fabs_v[li];
@@ -870,7 +870,7 @@ FabArray<FAB>::fabHostPtr (int K) noexcept
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
     return m_fabs_v[li];
@@ -884,7 +884,7 @@ FabArray<FAB>::fabHostPtr (int K) const noexcept
     int li = localindex(K);
     BL_ASSERT(li >=0 && li < indexArray.size());
     AMREX_GPU_ASSERT(checkDataPtrConsistence(m_fabs_v[li],m_host_fabs_v[li]));
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return m_host_fabs_v[li];
 #else
     return m_fabs_v[li];
@@ -895,7 +895,7 @@ template <class FAB>
 FAB*
 FabArray<FAB>::fabPtr (const MFIter& mfi) noexcept
 {
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(mfi) : this->fabHostPtr(mfi);
 #else
     return this->fabHostPtr(mfi);
@@ -906,7 +906,7 @@ template <class FAB>
 FAB const*
 FabArray<FAB>::fabPtr (const MFIter& mfi) const noexcept
 {
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(mfi) : this->fabHostPtr(mfi);
 #else
     return this->fabHostPtr(mfi);
@@ -917,7 +917,7 @@ template <class FAB>
 FAB*
 FabArray<FAB>::fabPtr (int K) noexcept
 {
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(K) : this->fabHostPtr(K);
 #else
     return this->fabHostPtr(K);
@@ -928,7 +928,7 @@ template <class FAB>
 FAB const*
 FabArray<FAB>::fabPtr (int K) const noexcept
 {
-#if AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     return (Gpu::inLaunchRegion()) ? this->fabDevicePtr(K) : this->fabHostPtr(K);
 #else
     return this->fabHostPtr(K);
