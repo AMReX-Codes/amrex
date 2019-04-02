@@ -2299,4 +2299,89 @@ MLNodeLaplacian::buildIntegral ()
 }
 #endif
 
+void
+MLNodeLaplacian::checkPoint (std::string const& file_name) const
+{
+    if (ParallelContext::IOProcessorSub())
+    {
+        UtilCreateCleanDirectory(file_name, false);
+        {
+            std::string HeaderFileName(file_name+"/Header");
+            std::ofstream HeaderFile;
+            HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                    std::ofstream::trunc |
+                                                    std::ofstream::binary);
+            if( ! HeaderFile.good()) {
+                FileOpenFailed(HeaderFileName);
+            }
+            
+            HeaderFile.precision(17);
+
+            // MLLinop stuff
+            HeaderFile << "verbose = " << verbose << "\n"
+                       << "nlevs = " << NAMRLevels() << "\n"
+                       << "do_agglomeration = " << info.do_agglomeration << "\n"
+                       << "do_consolidation = " << info.do_consolidation << "\n"
+                       << "agg_grid_size = " << info.agg_grid_size << "\n"
+                       << "con_grid_size = " << info.con_grid_size << "\n"
+                       << "has_metric_term = " << info.has_metric_term << "\n"
+                       << "max_coarsening_level = " << info.max_coarsening_level << "\n";
+#if (AMREX_SPACEDIM == 1)
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0]) << "\n";
+#elif (AMREX_SPACEDIM == 2)
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0])
+                       << " "       << static_cast<int>(m_lobc[1]) << "\n";
+#else
+            HeaderFile << "lobc = " << static_cast<int>(m_lobc[0])
+                       << " "       << static_cast<int>(m_lobc[1])
+                       << " "       << static_cast<int>(m_lobc[2]) << "\n";
+#endif
+#if (AMREX_SPACEDIM == 1)
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0]) << "\n";
+#elif (AMREX_SPACEDIM == 2)
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0])
+                       << " "       << static_cast<int>(m_hibc[1]) << "\n";
+#else
+            HeaderFile << "hibc = " << static_cast<int>(m_hibc[0])
+                       << " "       << static_cast<int>(m_hibc[1])
+                       << " "       << static_cast<int>(m_hibc[2]) << "\n";
+#endif
+            // m_coarse_data_for_bc: not used
+            HeaderFile << "maxorder = " << getMaxOrder() << "\n";
+
+            // MLNodeLaplacian stuff
+            HeaderFile << "is_rz = " << m_is_rz << "\n";
+            HeaderFile << "use_gauss_seidel = " << m_use_gauss_seidel << "\n";
+            HeaderFile << "use_harmonic_average = " << m_use_harmonic_average << "\n";
+            HeaderFile << "coarsen_strategy = " << static_cast<int>(m_coarsening_strategy) << "\n";
+            // No level bc multifab
+        }
+
+        for (int ilev = 0; ilev < NAMRLevels(); ++ilev)
+        {
+            UtilCreateCleanDirectory(file_name+"/Level_"+std::to_string(ilev), false);
+            std::string HeaderFileName(file_name+"/Level_"+std::to_string(ilev)+"/Header");
+            std::ofstream HeaderFile;
+            HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                    std::ofstream::trunc |
+                                                    std::ofstream::binary);
+            if( ! HeaderFile.good()) {
+                FileOpenFailed(HeaderFileName);
+            }
+            
+            HeaderFile.precision(17);
+
+            HeaderFile << Geom(ilev) << "\n";
+            m_grids[ilev][0].writeOn(HeaderFile);  HeaderFile << "\n";
+        }
+    }
+
+    ParallelContext::BarrierSub();
+
+    for (int ilev = 0; ilev < NAMRLevels(); ++ilev)
+    {
+        VisMF::Write(*m_sigma[ilev][0][0], file_name+"/Level_"+std::to_string(ilev)+"/sigma");
+    }
+}
+
 }

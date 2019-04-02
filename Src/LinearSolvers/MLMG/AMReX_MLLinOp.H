@@ -73,6 +73,7 @@ public:
                  const LPInfo& a_info,
                  const Vector<FabFactory<FArrayBox> const*>& a_factory);
 
+    virtual std::string name () const { return std::string("Unspecified"); }
 
     /**
     * \brief Boundary of the whole domain. This functions must be called,
@@ -305,6 +306,10 @@ private:
                                       int ratio, int strategy);
     MPI_Comm makeSubCommunicator (const DistributionMapping& dm);
     void remapNeighborhoods (Vector<DistributionMapping> & dms);
+
+    virtual void checkPoint (std::string const& file_name) const {
+        amrex::Abort("MLLinOp:checkPoint: not implemented");
+    }
 };
 
 }

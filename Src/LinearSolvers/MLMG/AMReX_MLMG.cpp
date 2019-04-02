@@ -52,9 +52,13 @@ MLMG::~MLMG ()
 
 Real
 MLMG::solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
-             Real a_tol_rel, Real a_tol_abs)
+             Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file)
 {
     BL_PROFILE("MLMG::solve()");
+
+    if (checkpoint_file != nullptr) {
+        checkPoint(a_sol, a_rhs, a_tol_rel, a_tol_abs, checkpoint_file);
+    }
 
     if (bottom_solver == BottomSolver::hypre) {
         int mo = linop.getMaxOrder();
@@ -1726,6 +1730,61 @@ MLMG::bottomSolveWithPETSc (MultiFab& x, const MultiFab& b)
     }
     petsc_solver->solve(x, b, bottom_reltol, -1., bottom_maxiter, *petsc_bndry, linop.getMaxOrder());
 #endif
+}
+
+void
+MLMG::checkPoint (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
+                  Real a_tol_rel, Real a_tol_abs, const char* a_file_name) const
+{
+    std::string file_name(a_file_name);
+    UtilCreateCleanDirectory(file_name, false);
+
+    if (ParallelContext::IOProcessorSub())
+    {
+        std::string HeaderFileName(std::string(a_file_name)+"/Header");
+        std::ofstream HeaderFile;
+        HeaderFile.open(HeaderFileName.c_str(), std::ofstream::out   |
+                                                std::ofstream::trunc |
+                                                std::ofstream::binary);
+        if( ! HeaderFile.good()) {
+            FileOpenFailed(HeaderFileName);
+        }
+
+        HeaderFile.precision(17);
+        
+        HeaderFile << linop.name() << "\n"
+                   << "a_tol_rel = " << a_tol_rel << "\n"
+                   << "a_tol_abs = " << a_tol_abs << "\n"
+                   << "verbose = " << verbose << "\n"
+                   << "max_iters = " << max_iters << "\n"
+                   << "nu1 = " << nu1 << "\n"
+                   << "nu2 = " << nu2 << "\n"
+                   << "nuf = " << nuf << "\n"
+                   << "nub = " << nub << "\n"
+                   << "max_fmg_iters = " << max_fmg_iters << "\n"
+                   << "bottom_solver = " << static_cast<int>(bottom_solver) << "\n"
+                   << "bottom_verbose = " << bottom_verbose << "\n"
+                   << "bottom_maxiter = " << bottom_maxiter << "\n"
+                   << "bottom_reltol = " << bottom_reltol << "\n"
+                   << "always_use_bnorm = " << always_use_bnorm << "\n"
+                   << "namrlevs = " << namrlevs << "\n"
+                   << "finest_amr_lev = " << finest_amr_lev << "\n"
+                   << "linop_prepared = " << linop_prepared << "\n"
+                   << "solve_called = " << solve_called << "\n";
+        
+        for (int ilev = 0; ilev <= finest_amr_lev; ++ilev) {
+            UtilCreateCleanDirectory(file_name+"/Level_"+std::to_string(ilev), false);
+        }
+    }
+
+    ParallelContext::BarrierSub();
+
+    for (int ilev = 0; ilev <= finest_amr_lev; ++ilev) {
+        VisMF::Write(*a_sol[ilev], file_name+"/Level_"+std::to_string(ilev)+"/sol");
+        VisMF::Write(*a_rhs[ilev], file_name+"/Level_"+std::to_string(ilev)+"/rhs");
+    }
+
+    linop.checkPoint(file_name+"/linop");
 }
     
 }
