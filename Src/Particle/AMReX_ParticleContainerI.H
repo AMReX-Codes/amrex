@@ -1545,7 +1545,7 @@ ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 {
     BL_PROFILE("ParticleContainer::RedistributeMPIGPU()");
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
     const int NProcs = ParallelDescriptor::NProcs();
     const int lev = 0;
 
@@ -2118,7 +2118,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
     BL_PROFILE_VAR_NS("RedistributeMPI_locate", blp_locate);
     BL_PROFILE_VAR_NS("RedistributeMPI_copy", blp_copy);
 
-#if BL_USE_MPI
+#ifdef BL_USE_MPI
 
     const int NProcs = ParallelDescriptor::NProcs();
     const int NNeighborProcs = neighbor_procs.size();

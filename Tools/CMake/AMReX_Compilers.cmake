@@ -1,22 +1,26 @@
 # 
 #
-# FUNCTION: set_amrex_compiler_flags
+# FUNCTION:  set_compiler_flags_preset
 # 
-# Set the compiler flags for target "amrex".
-# This function requires target "amrex" to be already existent.
+# Set the compiler flags for target "_target".
+# This function requires target "_target" to be already existent.
 #
 # Author: Michele Rosso
-# Date  : June 26, 2018
+# Date  : Mar 6, 2019
 #
 # 
-function ( set_amrex_compiler_flags )
+function ( set_compiler_flags_preset _target )
+
+   #
+   # WARNING: since cmake 3.14 the genex Fortran_COMPILER_ID is available!!!
+   #
 
    # 
-   # Check if target "amrex" has been defined before
+   # Check if target "_target" has been defined before
    # calling this macro
    #
-   if ( NOT TARGET amrex )
-      message (FATAL_ERROR "Target 'amrex' must be defined before calling function 'set_amrex_compilers'" )
+   if ( NOT TARGET ${_target} )
+      message (FATAL_ERROR "Target '${_target}' does not exist" )
    endif ()
 
    #
@@ -27,147 +31,148 @@ function ( set_amrex_compiler_flags )
 	 NOT (DEFINED CMAKE_CXX_COMPILER_ID) )
       message ( FATAL_ERROR "Compiler ID is UNDEFINED" )
    endif ()
-  
+
+   #
+   # Helper variables
+   # 
+   set(_cxx             "$<COMPILE_LANGUAGE:CXX>")
+   set(_fortran         "$<COMPILE_LANGUAGE:Fortran>")
+
+   set(_debug           "$<CONFIG:Debug>")
+   set(_release         "$<CONFIG:Release>")
+
+   set(_gnu             "$<CXX_COMPILER_ID:GNU>")
+   set(_cxx_gnu         "$<AND:${_cxx},${_gnu}>")
+   set(_cxx_gnu_dbg     "$<AND:${_cxx},${_debug},${_gnu}>")
+   set(_cxx_gnu_rel     "$<AND:${_cxx},${_release},${_gnu}>")
+
+   set(_intel           "$<CXX_COMPILER_ID:Intel>")
+   set(_cxx_intel       "$<AND:${_cxx},${_intel}>")
+   set(_cxx_intel_dbg   "$<AND:${_cxx},${_debug},${_intel}>")
+   set(_cxx_intel_rel   "$<AND:${_cxx},${_release},${_intel}>")
+
+   set(_pgi             "$<CXX_COMPILER_ID:PGI>")
+   set(_cxx_pgi         "$<AND:${_cxx},${_pgi}>")
+   set(_cxx_pgi_dbg     "$<AND:${_cxx},${_debug},${_pgi}>")
+   set(_cxx_pgi_rel     "$<AND:${_cxx},${_release},${_pgi}>")
+
+   set(_cray            "$<CXX_COMPILER_ID:Cray>")
+   set(_cxx_cray        "$<AND:${_cxx},${_cray}>")
+   set(_cxx_cray_dbg    "$<AND:${_cxx},${_debug},${_cray}>")
+   set(_cxx_cray_rel    "$<AND:${_cxx},${_release},${_cray}>")
+
+   set(_clang           "$<CXX_COMPILER_ID:Clang>")
+   set(_cxx_clang       "$<AND:${_cxx},${_clang}>")
+   set(_cxx_clang_dbg   "$<AND:${_cxx},${_debug},${_clang}>")
+   set(_cxx_clang_rel   "$<AND:${_cxx},${_release},${_clang}>")
+   
+   set(_apple           "$<CXX_COMPILER_ID:AppleClang>")
+   set(_cxx_apple       "$<AND:${_cxx},${_apple}>")
+   set(_cxx_apple_dbg   "$<AND:${_cxx},${_debug},${_apple}>")
+   set(_cxx_apple_rel   "$<AND:${_cxx},${_release},${_apple}>")
+
+
    #
    # Set Fortran Flags only if not provided by user
    # Since genex "Fortran_COMPILER_ID" is not supported, we use genex
    # "STREQUAL" as workaround 
    #
    if ( NOT CMAKE_Fortran_FLAGS )     
-       target_compile_options ( amrex
+       target_compile_options ( ${_target}
          PUBLIC
          # GNU Debug
-         $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan -finit-integer=2147483647>>>>
+         $<BUILD_INTERFACE:
+         $<${_debug}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<${_fortran}:
+         -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -finit-real=snan -finit-integer=2147483647>>>
          # GNU Release
-         $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<$<COMPILE_LANGUAGE:Fortran>:
-         >>>>
+         $<${_release}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<${_fortran}:
+         >>>
          # Intel Debug
-         $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -O0 -traceback -check bounds,uninit,pointers>>>>
+         $<${_debug}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<${_fortran}:
+         -O0 -traceback -check bounds,uninit,pointers>>>
          # Intel Release
-         $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -ip -qopt-report=5 -qopt-report-phase=vec>>>>
+         $<${_release}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<${_fortran}:
+         -ip -qopt-report=5 -qopt-report-phase=vec>>>
          # Cray Debug
-         $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -O0 -e i>>>>
+         $<${_debug}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<${_fortran}:-O0 -e i>>>
          # Cray Release 
-         $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<$<COMPILE_LANGUAGE:Fortran>:
-         >>>>
+         $<${_release}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<${_fortran}:>>>
          # PGI Debug
-         $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -O0 -Mbounds -Mchkptr>>>>
+         $<${_debug}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<${_fortran}:-O0 -Mbounds -Mchkptr>>>
          # PGI Release
-         $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-         -gopt -fast>>>>
+         $<${_release}:$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<${_fortran}:-gopt -fast>>>
+         >
          )            
    endif ()
-
+   
    #
-   # Set REQUIRED fortran flags 
+   # Set REQUIRED fortran flags (required by at least amrdata)
    # 
-   target_compile_options ( amrex
+   target_compile_options ( ${_target}
       PRIVATE
-      # GNU 
-      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -ffixed-line-length-none -ffree-line-length-none >> 
-      # Intel 
-      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -extend_source>>
-      # Cray 
-      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -N 255 -h list=a>>
-      # PGI 
-      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-      -Mextend>> )
+      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<${_fortran}:-ffixed-line-length-none -ffree-line-length-none>> 
+      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<${_fortran}:-extend_source>>
+      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<${_fortran}:-N 255 -h list=a>>
+      $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<${_fortran}:-Mextend>> )
 
    #
    # Set C++ Flags only if not provided by user
    # 
    if ( NOT CMAKE_CXX_FLAGS )
-      target_compile_options ( amrex
-	 PUBLIC
-	 # GNU Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O0 -fno-inline -ggdb -Wall -Wno-sign-compare>>>>
-	 # GNU Release
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
-	 >>>>
-	 # Intel Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O0 -traceback -Wcheck>>>>
-	 # Intel Release
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -ip -qopt-report=5 -qopt-report-phase=vec>>>>
-	 # Cray Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O0>>>>
-	 # Cray Release 
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
-	 >>>>
-	 # PGI Debug
-	 $<BUILD_INTERFACE:$<$<CONFIG:Debug>:$<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -O0 -Mbounds>>>>
-	 # PGI Release
-	 $<BUILD_INTERFACE:$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	 -gopt -fast>>>>
-	 )	  
+      target_compile_options ( ${_target}
+         PUBLIC
+         $<BUILD_INTERFACE:
+         $<${_cxx_gnu_dbg}:-O0 -fno-inline -ggdb -Wall -Wno-sign-compare>
+         $<${_cxx_gnu_rel}:>
+         $<${_cxx_intel_dbg}:-O0 -traceback -Wcheck>
+         $<${_cxx_intel_rel}:-ip -qopt-report=5 -qopt-report-phase=vec>
+         $<${_cxx_pgi_dbg}:-O0 -Mbounds>
+         $<${_cxx_pgi_rel}:-gopt -fast>
+         $<${_cxx_cray_dbg}:-O0>
+         $<${_cxx_cray_rel}:>
+         >
+         )          
    endif ()
-
 
    # C++ REQUIRED flags
    # Until "cxx_std_11" and similar options are available (CMake >= 3.8 )
    # add c++11 support manually in order to have transitive property
-   if (NOT ENABLE_3D_NODAL_MLMG)
-      target_compile_options ( amrex
-         PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++11 -h list=a>>
-         $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>>
-         $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++11>> )
+   # Maybe here we should use the NOT genex 
+   if (ENABLE_3D_NODAL_MLMG)
+      set(_cxx_std c++14)
    else ()
-      target_compile_options ( amrex
-         PUBLIC
-         $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:-h std=c++14 -h list=a>>
-         $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:Clang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:AppleClang>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>>
-         $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:-std=c++14>> )
+      set(_cxx_std c++11)
    endif ()
-
+   
+   target_compile_options(  ${_target}
+         PUBLIC
+         $<${_cxx_gnu}:-std=${_cxx_std}>
+         $<${_cxx_intel}:-std=${_cxx_std}>
+         $<${_cxx_cray}:-h std=${_cxx_std} -h list=a>
+         $<${_cxx_pgi}:-std=${_cxx_std}>
+         $<${_cxx_clang}:-std=${_cxx_std}>
+         $<${_cxx_apple}:-std=${_cxx_std}>
+         )
    
    #
    # Floating-point exceptions flags only if enabled
-   # (I think these flags could be added tp both Fortran and
-   # c++ without differentiating by language)
    # 
    if (DEFINED ENABLE_FPE)
       if (ENABLE_FPE)
-   	 target_compile_options ( amrex
+   	 target_compile_options ( ${_target}
    	    PUBLIC
 	    # GNU
-	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<$<COMPILE_LANGUAGE:Fortran>:
-	    -ffpe-trap=invalid,zero -ftrapv>>
-	    $<$<CXX_COMPILER_ID:GNU>:$<$<COMPILE_LANGUAGE:CXX>:
-	    -ftrapv>>
+	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:$<${_fortran}:-ffpe-trap=invalid,zero -ftrapv>>
+	    $<${_cxx_gnu}:-ftrapv>
 	    # Intel
-	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<$<COMPILE_LANGUAGE:Fortran>:
-	    -fpe3>>
-	    $<$<CXX_COMPILER_ID:Intel>:$<$<COMPILE_LANGUAGE:CXX>:
-	    -fpe3>>
+	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:$<${_fortran}:-fpe3>>
+	    $<${_cxx_intel}:-fpe3>
 	    # Cray
-	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<$<COMPILE_LANGUAGE:Fortran>:
-	    -K trap=fp>>
-	    $<$<CXX_COMPILER_ID:Cray>:$<$<COMPILE_LANGUAGE:CXX>:
-	    -K trap=fp>>
+	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Cray">:$<${_fortran}:-K trap=fp>>
+	    $<${_cxx_cray}:-K trap=fp>
 	    #  PGI
-	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<$<COMPILE_LANGUAGE:Fortran>:
-	    -Ktrap=divz,inv>>
-	    $<$<CXX_COMPILER_ID:PGI>:$<$<COMPILE_LANGUAGE:CXX>:
-	    >> )
+	    $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","PGI">:$<${_fortran}:-Ktrap=divz,inv>>
+	    $<${_cxx_pgi}:> )
       endif ()
    else ()
       message (AUTHOR_WARNING "Variable ENABLE_FPE is not defined")
