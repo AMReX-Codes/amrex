@@ -1,5 +1,6 @@
 #include <AMReX_HypreNodeLap.H>
 #include <AMReX_VisMF.H>
+#include <AMReX_MLNodeLaplacian.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBMultiFabUtil.H>
@@ -17,9 +18,10 @@ namespace amrex {
 HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                             const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                             const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                            MPI_Comm comm_)
-    : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_), comm(comm_),
-      owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_)
+                            MPI_Comm comm_, MLNodeLaplacian const* linop_)
+    : grids(grids_), dmap(dmap_), geom(geom_), factory(&factory_),
+      owner_mask(&owner_mask_), dirichlet_mask(&dirichlet_mask_),
+      comm(comm_), linop(linop_)
 {
     Gpu::LaunchSafeGuard lsg(false); // xxxxx TODO: gpu
 
@@ -33,9 +35,9 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     const BoxArray& nba = amrex::convert(grids,IntVect::TheNodeVector());
 
 #if defined(AMREX_DEBUG) || defined(AMREX_TESTING)
-    if (sizeof(HYPRE_Int) < sizeof(long)) {
+    if (sizeof(Int) < sizeof(long)) {
         long nnodes_grids = nba.numPts();
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnodes_grids < static_cast<long>(std::numeric_limits<HYPRE_Int>::max()),
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nnodes_grids < static_cast<long>(std::numeric_limits<Int>::max()),
                                          "You might need to configure Hypre with --enable-bigint");
     }
 #endif
@@ -45,7 +47,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     node_id.define(nba,dmap,1,1);
     node_id_vec.define(grids,dmap);
 
-    HYPRE_Int nnodes_proc = 0;
+    Int nnodes_proc = 0;
 
 //    int i = 0;
 //    amrex::Print() << "i = " << i << std::endl;
@@ -73,7 +75,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                     for (int i = lo.x; i <= hi.x; ++i) {
                         if (!owner(i,j,k) or dirichlet(i,j,k))
                         {
-                            nid(i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
+                            nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
 #if (AMREX_SPACEDIM == 2)
                         else if (flag(i-1,j-1,k).isCovered() and
@@ -92,7 +94,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                                  flag(i  ,j  ,k  ).isCovered())
 #endif
                         {
-                            nid(i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
+                            nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
                         else
                         {
@@ -125,7 +127,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                     for (int i = lo.x; i <= hi.x; ++i) {
                         if (!owner(i,j,k) or dirichlet(i,j,k))
                         {
-                            nid(i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
+                            nid(i,j,k) = std::numeric_limits<Int>::lowest();
                         }
                         else
                         {
@@ -139,24 +141,24 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
         }
     }
 
-    Vector<HYPRE_Int> nnodes_allprocs(num_procs);
-    MPI_Allgather(&nnodes_proc, sizeof(HYPRE_Int), MPI_CHAR,
-                  nnodes_allprocs.data(), sizeof(HYPRE_Int), MPI_CHAR,
+    Vector<Int> nnodes_allprocs(num_procs);
+    MPI_Allgather(&nnodes_proc, sizeof(Int), MPI_CHAR,
+                  nnodes_allprocs.data(), sizeof(Int), MPI_CHAR,
                   comm);
-    HYPRE_Int proc_begin = 0;
+    Int proc_begin = 0;
     for (int i = 0; i < myid; ++i) {
         proc_begin += nnodes_allprocs[i];
     }
 
 #ifdef AMREX_DEBUG
-    HYPRE_Int nnodes_total = 0;
+    Int nnodes_total = 0;
     for (auto n : nnodes_allprocs) {
         nnodes_total += n;
     }
 #endif
 
-    LayoutData<HYPRE_Int> offset(grids,dmap);
-    HYPRE_Int proc_end = proc_begin;
+    LayoutData<Int> offset(grids,dmap);
+    Int proc_end = proc_begin;
     for (MFIter mfi(nnodes_grid); mfi.isValid(); ++mfi)
     {
         offset[mfi] = proc_end;
@@ -176,8 +178,8 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
     node_id.FillBoundary(geom.periodicity());
 
     // Create and initialize A, b & x
-    HYPRE_Int ilower = proc_begin;
-    HYPRE_Int iupper = proc_end-1;
+    Int ilower = proc_begin;
+    Int iupper = proc_end-1;
 
     //
     HYPRE_IJMatrixCreate(comm, ilower, iupper, ilower, iupper, &A);
@@ -192,9 +194,34 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
 
     // A.SetValues() & A.assemble()
 
+    Vector<Int> ncols;
+    Vector<Int> cols;
+    Vector<Real> mat;
+    constexpr Int max_stencil_size = AMREX_D_TERM(3,*3,*3);
+
     for (MFIter mfi(node_id); mfi.isValid(); ++mfi)
     {
-        constexpr HYPRE_Int max_stencil_size = AMREX_D_TERM(3,*3,*3);
+        const Int nrows = nnodes_grid[mfi];
+        if (nrows > 0)
+        {
+            ncols.clear();
+            ncols.reserve(nrows);
+
+            Vector<Int> rows = node_id_vec[mfi];
+            rows.reserve(nrows);
+
+            cols.clear();
+            cols.reserve(nrows*max_stencil_size);
+
+            mat.clear();
+            mat.reserve(nrows*max_stencil_size);
+
+            const Array4<Int const> nid = node_id.array(mfi);
+
+            linop->fillIJMatrix(mfi, nid, ncols, rows, cols, mat);
+
+            HYPRE_IJMatrixSetValues(A, nrows, ncols.data(), rows.data(), cols.data(), mat.data());
+        }
     }
 
     amrex::Abort("HypreNodeLap ctor");

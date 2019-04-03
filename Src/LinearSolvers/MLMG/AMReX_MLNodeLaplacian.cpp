@@ -2397,10 +2397,31 @@ MLNodeLaplacian::makeHypreNodeLap () const
     MPI_Comm comm = BottomCommunicator();
 
     std::unique_ptr<HypreNodeLap> hypre_solver
-        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask, comm));
+        (new amrex::HypreNodeLap(ba, dm, geom, factory, owner_mask, dirichlet_mask, comm, this));
 
     return hypre_solver;
 }
+
+void
+MLNodeLaplacian::fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                               Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                               Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const
+{
+    const Box& ndbx = mfi.validbox();
+    const auto lo = amrex::lbound(ndbx);
+    const auto hi = amrex::ubound(ndbx);
+    for         (int k = lo.z; k <= hi.z; ++k) {
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                if (nid(i,j,k) >= 0)
+                {
+                    
+                }
+            }
+        }
+    }
+}
+
 #endif
 
 }
