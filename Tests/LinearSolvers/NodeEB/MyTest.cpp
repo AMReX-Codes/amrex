@@ -78,8 +78,10 @@ MyTest::solve ()
     mlmg.setBottomVerbose(bottom_verbose);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
-#if (USE_HYPRE)
-    mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#ifdef AMREX_USE_HYPRE
+    if (use_hypre) {
+        mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+    }
 #endif
 
     Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
@@ -133,6 +135,7 @@ MyTest::readParameters ()
     pp.query("max_coarsening_level", max_coarsening_level);
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
+    if (use_hypre) max_coarsening_level = 0;
 #endif
 
     pp.query("sigma", sigma);
