@@ -59,40 +59,53 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             }
 
             // GRAPH
-            cudaGraphExec_t graphExec;
+//            cudaGraphExec_t graphExec;
+
+            // ONLY DO THIS REGION IF NEED TO MAKE A NEW GRAPH
+            {
 
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
-                // GRAPH
+/*  
+               // GRAPH
                 if (mfi.LocalIndex() == 0)
                 {
                     amrex::Gpu::Device::startGraphRecording();
                 }
-
+*/
                 const auto& tags = loc_copy_tags[mfi];
                 auto dfab = this->array(mfi);
                 for (auto const & tag : tags)
                 {
                     auto const sfab = tag.sfab->array();
                     const auto offset = tag.offset.dim3();
+
+                    // REWRITE AS A FUNCTION TO ALLOW REUSE OF THE GRAPH
                     AMREX_HOST_DEVICE_FOR_4D ( tag.dbox, ncomp, i, j, k, n,
                     {
                         dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
                     });
                 }
-
-                // GRAPH
+/*
+                // GRAPH                
                 if (mfi.LocalIndex() == (this->local_size() - 1) )
                 {
-                    graphExec = amrex::Gpu::Device::stopGraphRecording();
+                    amrex::Gpu::Device::stopGraphRecording(graphExec);
                 }
+*/
             }
 
+            }
+/*
             // GRAPH
-            amrex::Gpu::Device::executeGraph(graphExec);
+            if (this->local_size() > 0)
+            {
+                amrex::Gpu::Device::executeGraph(graphExec);
+            }
+*/
         }
         else
         {
@@ -241,11 +254,24 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     if (N_snds > 0)
     {
         bool is_thread_safe = FAB::isCopyOMPSafe();
+
+        // GRAPH
+//        cudaGraphExec_t graphExec;
+
+
 #ifdef _OPENMP
 #pragma omp parallel if (is_thread_safe && Gpu::notInLaunchRegion())
 #endif
         for (Gpu::StreamIter sit(N_snds,is_thread_safe); sit.isValid(); ++sit)
         {
+/*
+            // GRAPH - WON'T NECESSARILY HOLD. NEED A CONSISTENT "1ST CHECK" IN CASE
+            //         OF FUTURE if(CUDA) CHANGES.
+            if (sit() == 0)
+            {
+                amrex::Gpu::Device::startGraphRecording();
+            }
+*/
             const int j = sit();
             char* dptr = send_data[j];
             if (dptr != nullptr)
@@ -264,8 +290,22 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                 }
                 BL_ASSERT(dptr == send_data[j] + send_size[j]); 
             }
+/*
+            // GRAPH
+            // MORE ROBUST CHECK HERE SEEMS IMPORTANT (BOTH STREAMITER & MFITER)
+            if (sit() == (N_snds - 1) )
+            {
+                amrex::Gpu::Device::stopGraphRecording(graphExec);
+            }
+*/
         }
-
+/*
+        // GRAPH
+        if (this->local_size() > 0)
+        {
+            amrex::Gpu::Device::executeGraph(graphExec);
+        }
+*/
         int send_counter = 0;
         while (send_counter < N_snds)
         {
@@ -322,8 +362,19 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             {
                 LayoutData<Array<Vector<FabCopyTag<FAB> >,AMREX_SPACEDIM> >
                     dtags(loc_copy_tags.boxArray(), loc_copy_tags.DistributionMap());
+/*
+                // GRAPH
+                cudaGraphExec_t graphExec;
+*/
                 for (MFIter mfi(*this); mfi.isValid(); ++mfi)
                 {
+/*
+                    // GRAPH
+                    if (mfi.LocalIndex() == 0)
+                    {
+                        amrex::Gpu::Device::startGraphRecording();
+                    }
+*/
                     FAB* dfab = this->fabPtr(mfi);
                     const Box& vbx = mfi.validbox();
 
@@ -384,7 +435,21 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                                 });
                         }
                     }
+/*
+                    // GRAPH                
+                    if (mfi.LocalIndex() == (this->local_size() - 1) )
+                    {
+                        amrex::Gpu::Device::stopGraphRecording(graphExec);
+                    }
+*/
                 }
+/*
+                // GRAPH
+                if (this->local_size() > 0)
+                {
+                    amrex::Gpu::Device::executeGraph(graphExec);
+                }
+*/
             }
             else
             {
@@ -495,11 +560,22 @@ FabArray<FAB>::FillBoundary_finish ()
     {
         if (!recv_copy_tags.empty())
         {
+/*
+        // GRAPH
+        cudaGraphExec_t graphExec;
+*/
 #ifdef _OPENMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(*this); mfi.isValid(); ++mfi)
             {
+/*
+                // GRAPH
+                if (mfi.LocalIndex() == 0)
+                {
+                    amrex::Gpu::Device::startGraphRecording();
+                }
+*/
                 const auto& tags = recv_copy_tags[mfi];
                 auto dfab = this->array(mfi);
                 const int scomp = fb_scomp;
@@ -512,7 +588,21 @@ FabArray<FAB>::FillBoundary_finish ()
                         dfab(i,j,k,n+scomp) = pfab(i,j,k,n);
                     });
                 }
+/*
+                // GRAPH                
+                if (mfi.LocalIndex() == (this->local_size() - 1) )
+                {
+                    amrex::Gpu::Device::stopGraphRecording(graphExec);
+                }
+*/
             }
+/*
+            // GRAPH
+            if (this->local_size() > 0)
+            {
+                amrex::Gpu::Device::executeGraph(graphExec);
+            }
+*/
         }
         else
         {
