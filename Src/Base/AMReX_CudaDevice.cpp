@@ -326,6 +326,7 @@ Device::startGraphRecording()
 cudaGraphExec_t
 Device::stopGraphRecording()
 {
+
     cudaGraphExec_t graphExec;
 
     if (inLaunchRegion() && inGraphRegion())
@@ -335,8 +336,6 @@ Device::stopGraphRecording()
         //   (and add each cuda API call to a unique function so users can make their own).
 
         cudaGraph_t     graph[numCudaStreams()];
-        cudaGraphExec_t graphExec;
-
         cudaStream_t currentStream = cuda_stream; 
         for (int i=0; i<numCudaStreams(); ++i)
         {
@@ -354,13 +353,36 @@ Device::stopGraphRecording()
         {
             AMREX_GPU_SAFE_CALL(cudaGraphAddChildGraphNode(&placeholder, graphFull, &emptyNode, 1, graph[i]));
         }
+/*
+        int log_size = 1028;
+        char graph_log[log_size];
 
-        // This is placed here to make testing simple. 
+        for (int j=0; j<log_size; ++j)
+        {
+            graph_log[j] = ' ';
+        }
+*/
+        // Instantiate is placed here to make testing simple. 
         // Should probably be removed and given a unique function for flexibility.
         AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, NULL, 0)); 
+//        AMREX_GPU_SAFE_CALL(cudaGraphInstantiate(&graphExec, graphFull, NULL, &(graph_log[0]), log_size)); 
+/*
+        if (graph_log[0] != '\0')
+        {
+            amrex::Print() << "Cuda Graph Error Log: ";
+            int j = 0;
+            while ((graph_log[j] != '\0') && (j < log_size))
+            { 
+               amrex::Print() << graph_log[j];
+               j++;
+            }
+            amrex::Print() << std::endl;
+        }
+*/
     }
 
     return graphExec;
+
 }
 
 void
