@@ -32,7 +32,7 @@ coarsenCellCenteredFields(
 void
 setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name );
 
-std::vector<unsigned long long>
+std::vector<std::uint64_t>
 getReversedVec( const IntVect& v );
 
 std::vector<double>
