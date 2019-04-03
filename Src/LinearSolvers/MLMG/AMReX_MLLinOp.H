@@ -15,6 +15,7 @@
 
 #ifdef AMREX_USE_HYPRE
 #include <AMReX_Hypre.H>
+#include <AMReX_HypreNodeLap.H>
 #endif
 
 namespace amrex {
@@ -188,6 +189,10 @@ public:
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
+        return {nullptr};
+    }
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap () const {
+        amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }
 #endif

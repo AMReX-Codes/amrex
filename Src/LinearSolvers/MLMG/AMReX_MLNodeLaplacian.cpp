@@ -2384,4 +2384,20 @@ MLNodeLaplacian::checkPoint (std::string const& file_name) const
     }
 }
 
+#ifdef AMREX_USE_HYPRE
+std::unique_ptr<HypreNodeLap>
+MLNodeLaplacian::makeHypreNodeLap () const
+{
+    const BoxArray& ba = m_grids[0].back();
+    const DistributionMapping& dm = m_dmap[0].back();
+    const Geometry& geom = m_geom[0].back();
+    const auto& factory = *(m_factory[0].back());
+    MPI_Comm comm = BottomCommunicator();
+
+    auto hypre_solver = amrex::makeHypreNodeLap(ba, dm, geom, comm);
+
+    return hypre_solver;
+}
+#endif
+
 }

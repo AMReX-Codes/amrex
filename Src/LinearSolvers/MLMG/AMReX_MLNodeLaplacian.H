@@ -115,6 +115,10 @@ public :
     void buildIntegral ();
 #endif
 
+#ifdef AMREX_USE_HYPRE
+    virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap () const override;
+#endif
+
 private:
 
     int m_is_rz = 0;

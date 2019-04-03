@@ -78,6 +78,9 @@ MyTest::solve ()
     mlmg.setBottomVerbose(bottom_verbose);
     mlmg.setMaxIter(max_iter);
     mlmg.setMaxFmgIter(max_fmg_iter);
+#if (USE_HYPRE)
+    mlmg.setBottomSolver(MLMG::BottomSolver::hypre);
+#endif
 
     Real mlmg_err = mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs),
                                1.e-11, 0.0);
