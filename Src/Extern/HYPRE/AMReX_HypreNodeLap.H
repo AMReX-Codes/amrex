@@ -18,14 +18,18 @@
 
 namespace amrex {
 
+class MLNodeLaplacian;
+
 class HypreNodeLap
 {
 public:
     HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
                   const Geometry& geom_, const FabFactory<FArrayBox>& factory_,
                   const iMultiFab& owner_mask_, const iMultiFab& dirichlet_mask_,
-                  MPI_Comm comm_);
+                  MPI_Comm comm_, MLNodeLaplacian const* linop_);
     ~HypreNodeLap ();
+
+    using Int = HYPRE_Int;
 
 private:
 
@@ -33,18 +37,19 @@ private:
     DistributionMapping dmap;
     Geometry geom;
     FabFactory<FArrayBox> const* factory = nullptr;
-    MPI_Comm comm = MPI_COMM_NULL;
     iMultiFab const* owner_mask = nullptr;
     iMultiFab const* dirichlet_mask = nullptr;
+    MPI_Comm comm = MPI_COMM_NULL;
+    MLNodeLaplacian const* linop = nullptr;
 
     HYPRE_IJMatrix A = NULL;
     HYPRE_IJVector b = NULL;
     HYPRE_IJVector x = NULL;
     HYPRE_Solver solver = NULL;
 
-    LayoutData<HYPRE_Int> nnodes_grid;
-    LayoutData<Vector<HYPRE_Int> > node_id_vec;
-    FabArray<BaseFab<HYPRE_Int> > node_id;
+    LayoutData<Int> nnodes_grid;
+    LayoutData<Vector<Int> > node_id_vec;
+    FabArray<BaseFab<Int> > node_id;
 };
 
 }

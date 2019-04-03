@@ -2,6 +2,9 @@
 #define AMREX_ML_NODE_LAPLACIAN_H_
 
 #include <AMReX_MLNodeLinOp.H>
+#ifdef AMREX_USE_HYPRE
+#include <AMReX_HypreNodeLap.H>
+#endif
 
 namespace amrex {
 
@@ -117,6 +120,10 @@ public :
 
 #ifdef AMREX_USE_HYPRE
     virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap () const override;
+
+    void fillIJMatrix (MFIter const& mfi, Array4<HypreNodeLap::Int const> const& nid,
+                       Vector<HypreNodeLap::Int>& ncols, Vector<HypreNodeLap::Int>& rows,
+                       Vector<HypreNodeLap::Int>& cols, Vector<Real>& mat) const;
 #endif
 
 private:
