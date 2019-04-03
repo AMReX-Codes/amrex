@@ -3,6 +3,7 @@
 #include <FieldIO.H>
 
 #include <AMReX_FillPatchUtil_F.H>
+#include <AMReX_Interpolater.H>
 
 using namespace amrex;
 
@@ -463,18 +464,11 @@ getInterpolatedScalar(
             const FArrayBox& cfab = (F_cp)[mfi];
             ffab.resize(amrex::convert(ccbx,(F_fp)[mfi].box().type()));
 
-            // - Fully centered
-            if ( F_fp.is_cell_centered() ){
-                amrex_interp_cc_bfield(ccbx.loVect(), ccbx.hiVect(),
-                                       BL_TO_FORTRAN_ANYD(ffab),
-                                       BL_TO_FORTRAN_ANYD(cfab),
-                                       &r_ratio, &use_limiter);
-            // - Edge centered, in the same way as E on a Yee grid
-            } else if ( F_fp.is_nodal() ){
-                amrex_interp_nd_efield(ccbx.loVect(), ccbx.hiVect(),
-                                       BL_TO_FORTRAN_ANYD(ffab),
-                                       BL_TO_FORTRAN_ANYD(cfab),
-                                       &r_ratio);
+            // - Fully nodal
+            if ( F_fp.is_nodal() ){
+                IntVect refinement_vector{AMREX_D_DECL(r_ratio, r_ratio, r_ratio)};
+                node_bilinear_interp.interp(cfab, 0, ffab, 0, 1,
+                        ccbx, refinement_vector, {}, {}, {}, 0, 0);
             } else {
                 amrex::Abort("Unknown field staggering.");
             }
