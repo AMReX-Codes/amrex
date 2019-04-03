@@ -14,20 +14,20 @@ using namespace amrex;
 void
 setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name )
 {
-    if (field_name[0] == *"E"){  // Electric field
+    if (field_name[0] == 'E'){  // Electric field
         mesh.setUnitDimension({
             {openPMD::UnitDimension::L,  1},
             {openPMD::UnitDimension::M,  1},
             {openPMD::UnitDimension::T, -3},
             {openPMD::UnitDimension::I, -1},
         });
-    } else if (field_name[0] == *"B"){ // Magnetic field
+    } else if (field_name[0] == 'B'){ // Magnetic field
         mesh.setUnitDimension({
             {openPMD::UnitDimension::M,  1},
             {openPMD::UnitDimension::I, -1},
             {openPMD::UnitDimension::T, -2}
         });
-    } else if (field_name[0] == *"j"){ // current
+    } else if (field_name[0] == 'j'){ // current
         mesh.setUnitDimension({
             {openPMD::UnitDimension::L, -2},
             {openPMD::UnitDimension::I,  1},
@@ -43,19 +43,19 @@ setOpenPMDUnit( openPMD::Mesh mesh, const std::string field_name )
 
 
 /** \brief
- * Convert an IntVect to a std::vector<unsigned long long>,
+ * Convert an IntVect to a std::vector<std::uint64_t>
  * and reverse the order of the elements
  * (used for compatibility with the openPMD API)
  */
-std::vector<unsigned long long>
+std::vector<std::uint64_t>
 getReversedVec( const IntVect& v )
 {
   // Convert the IntVect v to and std::vector u
-  std::vector<unsigned long long> u = {
+  std::vector<std::uint64_t> u = {
     AMREX_D_DECL(
-                 static_cast<unsigned long long>(v[0]),
-                 static_cast<unsigned long long>(v[1]),
-                 static_cast<unsigned long long>(v[2])
+                 static_cast<std::uint64_t>(v[0]),
+                 static_cast<std::uint64_t>(v[1]),
+                 static_cast<std::uint64_t>(v[2])
                  )
   };
   // Reverse the order of elements, if v corresponds to the indices of a
