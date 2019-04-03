@@ -33,9 +33,9 @@ public:
     static void streamSynchronize ();
 
 #if defined(AMREX_USE_CUDA)
-    static void             startGraphRecording();
-    static cudaGraphExec_t  stopGraphRecording();
-    static void             executeGraph(cudaGraphExec_t &graphExec);
+    static void startGraphRecording();
+    static cudaGraphExec_t stopGraphRecording();
+    static void executeGraph(cudaGraphExec_t &graphExec);
 #endif
 
     static void htod_memcpy       (void* p_d, const void* p_h, const std::size_t sz);
