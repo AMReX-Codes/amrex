@@ -13,7 +13,7 @@ class MLNodeLaplacian
 {
 public :
 
-    enum struct CoarseningStrategy { Sigma, RAP };
+    enum struct CoarseningStrategy : int { Sigma, RAP };
 
     MLNodeLaplacian () noexcept {}
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
@@ -48,6 +48,8 @@ public :
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 #endif
+
+    virtual std::string name () const override { return std::string("MLNodeLaplacian"); }
 
     void setRZCorrection (bool rz) noexcept { m_is_rz = rz; }
 
@@ -137,6 +139,8 @@ private:
 
     bool m_is_bottom_singular = false;
     bool m_masks_built = false;
+
+    virtual void checkPoint (std::string const& file_name) const final;
 };
 
 }

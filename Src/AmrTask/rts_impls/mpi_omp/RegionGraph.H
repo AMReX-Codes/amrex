@@ -10,6 +10,12 @@
 #include <AMReX_Box.H>
 #include <omp.h>
 
+using namespace perilla;
+#ifdef PERILLA_DEBUG
+#include "PerillaMemCheck.H"
+extern PerillaMemCheck memcheck;
+#endif
+
 namespace amrex{
 
     class RegionGraph;
@@ -29,6 +35,10 @@ namespace amrex{
 		prev=0;
 		graphPartner=0;
 	    }
+            ~FabCopyAssoc()
+            {
+                if(next) delete next;
+            }
     };
 
     class pTileArray
@@ -90,6 +100,15 @@ namespace amrex{
 	    RegionQueue* computedRegionQueue;
 	    RegionQueue* completedRegionQueue;
 	    Worker():init(false), l_barr(0), barr(0), totalTasks(0){}
+
+            ~Worker(){
+                delete barr;
+                delete l_barr;
+                delete fireableRegionQueue;
+                delete unfireableRegionQueue;
+                delete computedRegionQueue;
+                delete completedRegionQueue;
+            }
     };
 
     //template <class FAB>
@@ -101,13 +120,18 @@ namespace amrex{
 	    CopyMap()
 		:
 		    next(0)
-	{}
+	{
+#ifdef PERILLA_DEBUG
+                memcheck.add(memcheck.genKey(this), (void*)this, "CopyMap");
+#endif
+
+        }
 
 	    void alloc_CopyMap(const MultiFab& mf)
 	    {
 
 		Vector<int> IndArr = mf.IndexArray();
-		const int n = IndArr.size(); //mf.indexArray.size();
+		const int n = IndArr.size();
 		//const int n = mf.size();
 		map.reserve(n);
 		//sMap.resize(n);
@@ -120,9 +144,16 @@ namespace amrex{
 	    }
 	    ~CopyMap()
 	    {
+                for (int i = 0; i < map.size(); ++i)
+                {
+                    delete map[i];
+                }
 		map.clear();
 		if(next !=0 )
 		    delete next;
+#ifdef PERILLA_DEBUG
+                memcheck.remove(memcheck.genKey(this));
+#endif
 	    }
     };
 
@@ -164,9 +195,11 @@ namespace amrex{
 	    void enableAllRegions();
 	    void disableRegion(int r, int tg);
 	    void finalizeRegion(int r);
+            void finalizeRegionGraph();
 	    void regionComputed(int r);
 	    bool isFireableRegion(int r);
 	    int  getAnyFireableRegion();
+            int  getAnyFireableRegion(RegionGraph& depGraph);
 	    int  getPulledFireableRegion();
 	    int  getFireableRegion(bool isSingleThread=false);
 	    void setFireableRegion(int r);
@@ -260,6 +293,28 @@ namespace amrex{
 		    fabTiles_gtbx[mfi.LocalIndex()]->tileBx.push_back(new Box(mfi.growntilebox(ng)));
 		}
 	    }
+
+            void buildTileArray(const amrex::MultiFab& mf, const amrex::IntVect& tilesize)
+            {
+                int myProc = amrex::ParallelDescriptor::MyProc();
+                const int n = mf.indexArray.size();
+                fabTiles.resize(n);
+
+                //typ = mf.boxArray().ixType();
+
+                for (int i = 0; i < n; ++i)
+                {
+                    fabTiles[i] = new pTileArray();
+                }
+                for (amrex::MFIter mfi(mf, tilesize); mfi.isValid(); ++mfi)
+                {
+                    if( fabTiles[mfi.LocalIndex()]->numTiles == 0 )
+                        fabTiles[mfi.LocalIndex()]->validBx = new amrex::Box(mfi.validbox());
+                    fabTiles[mfi.LocalIndex()]->numTiles++;
+                    fabTiles[mfi.LocalIndex()]->tileBx.push_back(new amrex::Box(mfi.tilebox()));
+                }
+            }
+
 
 	    ~RegionGraph();
     };

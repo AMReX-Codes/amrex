@@ -203,7 +203,8 @@ public:
     static void Read (FabArray<FArrayBox> &fafab,
                       const std::string &name,
 		      const char *faHeader = nullptr,
-		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber());
+		      int coordinatorProc = ParallelDescriptor::IOProcessorNumber(),
+		      int allow_empty_mf = 0);
 
     //! Does FabArray exist?
     static bool Exist (const std::string &name);

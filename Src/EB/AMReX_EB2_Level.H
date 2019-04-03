@@ -29,8 +29,8 @@ class Level
 {
 public:
 
-    bool isAllRegular () const { return m_allregular; }
-    bool isOK () const { return m_ok; }
+    bool isAllRegular () const noexcept { return m_allregular; }
+    bool isOK () const noexcept { return m_ok; }
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
     void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
@@ -46,14 +46,14 @@ public:
     void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
     void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facefrac, const Geometry& geom) const;
 
-    const BoxArray& boxArray () const { return m_grids; }
-    const DistributionMapping& DistributionMap () const { return m_dmap; }
+    const BoxArray& boxArray () const noexcept { return m_grids; }
+    const DistributionMapping& DistributionMap () const noexcept { return m_dmap; }
 
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
     void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect ngrow);
 
-    const Geometry& Geom () const { return m_geom; }
-    IndexSpace const* getEBIndexSpace () const { return m_parent; }
+    const Geometry& Geom () const noexcept { return m_geom; }
+    IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
 protected:
 

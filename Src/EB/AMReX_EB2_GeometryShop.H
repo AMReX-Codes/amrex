@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_GEOMETRYSHOP_H_
 #define AMREX_EB2_GEOMETRYSHOP_H_
 
+#include <AMReX_EB2_IF_Base.H>
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BaseFab.H>
@@ -52,7 +53,50 @@ public:
     F&& GetImpFunc () && { return std::move(m_f); }
 
     int getBoxType (const Box& bx, const Geometry& geom) const;
-    void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const;
+
+    template <class U=F, typename std::enable_if<IsGPUable<U>::value>::type* FOO = nullptr >
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const noexcept
+    {
+        const auto problo = geom.ProbLoArray();
+        const auto dx = geom.CellSizeArray();
+        const Box& bx = levelset.box();
+        const auto lo = amrex::lbound(bx);
+        const auto hi = amrex::ubound(bx);
+        const auto& a = levelset.array();
+        
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    a(i,j,k) = m_f(AMREX_D_DECL(problo[0]+i*dx[0],
+                                                problo[1]+j*dx[1],
+                                                problo[2]+k*dx[2]));
+                }
+            }
+        }
+    }
+
+    template <class U=F, typename std::enable_if<!IsGPUable<U>::value>::type* = nullptr >
+    void fillFab (BaseFab<Real>& levelset, const Geometry& geom) const noexcept
+    {
+        const Real* AMREX_RESTRICT problo = geom.ProbLo();
+        const Real* AMREX_RESTRICT dx = geom.CellSize();
+        
+        const Box& bx = levelset.box();
+        const auto len = amrex::length(bx);
+        const auto lo  = amrex::lbound(bx);
+        const auto dp  = levelset.view(lo);
+        
+        for         (int k = 0; k < len.z; ++k) {
+            for     (int j = 0; j < len.y; ++j) {
+                for (int i = 0; i < len.x; ++i) {
+                    RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo.x)*dx[0],
+                                                problo[1]+(j+lo.y)*dx[1],
+                                                problo[2]+(k+lo.z)*dx[2])};
+                    dp(i,j,k,0) = m_f(xyz);
+                }
+            }
+        }
+    }
 
     Real getIntercept (int edgedir, const IntVect& iv, const Geometry& geom) const;
 
@@ -105,30 +149,6 @@ GeometryShop<F>::getBoxType (const Box& bx, const Geometry& geom) const
         return allcovered;
     } else {
         return mixedcells;
-    }
-}
-
-template <class F>
-void
-GeometryShop<F>::fillFab (BaseFab<Real>& levelset, const Geometry& geom) const
-{
-    const Real* AMREX_RESTRICT problo = geom.ProbLo();
-    const Real* AMREX_RESTRICT dx = geom.CellSize();
-
-    const Box& bx = levelset.box();
-    const auto len = amrex::length(bx);
-    const auto lo  = amrex::lbound(bx);
-    const auto dp  = levelset.view(lo);
-
-    for         (int k = 0; k < len.z; ++k) {
-        for     (int j = 0; j < len.y; ++j) {
-            for (int i = 0; i < len.x; ++i) {
-                RealArray xyz {AMREX_D_DECL(problo[0]+(i+lo.x)*dx[0],
-                                            problo[1]+(j+lo.y)*dx[1],
-                                            problo[2]+(k+lo.z)*dx[2])};
-                dp(i,j,k,0) = m_f(xyz);
-            }
-        }
     }
 }
 

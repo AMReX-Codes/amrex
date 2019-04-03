@@ -1,6 +1,7 @@
 #ifndef AMREX_EB2_IF_POLYNOMIAL_H_
 #define AMREX_EB2_IF_POLYNOMIAL_H_
 
+#include <AMReX_EB2_IF_Base.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>

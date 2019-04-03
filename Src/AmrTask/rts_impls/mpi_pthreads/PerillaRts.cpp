@@ -187,6 +187,90 @@ namespace perilla{
 #endif
     }
 
+#ifdef USE_PERILLA_ON_DEMAND
+    void myrun(void* threadInfo){
+        argT *args= (argT*)threadInfo;
+        int numaID= args->numaID;
+        int tid= args->tid;
+        int g_tid= args->g_tid;
+        int nThreads= args->nThreads;
+        int nTotalThreads= args->nTotalThreads;
+        RTS* rts= args->thisRTS;
+        Perilla::registerId(g_tid);
+        //done with thread id setup, now wait for the start signal from master
+        pthread_mutex_lock(&startLock);
+        startSignal++;
+        pthread_mutex_unlock(&startLock);
+        while(startSignal!= nTotalThreads){}
+	RGIter *rgIter= args->rgi; 
+        rgi->exec();
+    }
+
+    void RTS::invokeOnDemand(vector<RegionGraph*> flattenedGraphArray, RGIter *rgi){
+            int numa_nodes= perilla::NUM_THREAD_TEAMS;
+            int worker_per_numa = perilla::NUM_THREADS_PER_TEAM;
+            int _nWrks= numa_nodes*worker_per_numa;
+            int base=0;
+            int localID=-1;
+            WorkerThread::init();
+            //create a list of persistent threads for each NUMA node
+            cpu_set_t cpuset;
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            dom= new RtsDomain[numa_nodes];
+            for(int i=0; i<numa_nodes; i++){
+                dom[i]._threads= new pthread_t[worker_per_numa];
+            }
+            for(int i=0, domNo=-1; i<_nWrks; i++){
+                localID++;
+                if(localID==0){
+                    domNo++;
+                }
+                CPU_ZERO(&cpuset);
+                CPU_SET(base+localID, &cpuset);
+                if(! (localID==0 && domNo==0)){
+                    pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &cpuset);
+                    argT* arg= new argT;
+                    arg->numaID= domNo;
+                    arg->tid= localID;
+                    arg->g_tid= domNo*worker_per_numa+localID;
+                    arg->nThreads= worker_per_numa;
+                    arg->nTotalThreads= _nWrks;
+                    arg->thisRTS= this;
+                    int err = pthread_create(&(dom[domNo]._threads[localID]), &attr, (void*(*)(void*))myrun, arg);
+                }else{ //master thread
+                    dom[domNo]._threads[localID]= pthread_self();
+                    Perilla::registerId(0);
+                    //enable worker threads to start computing
+                    pthread_mutex_lock(&startLock);
+                    startSignal++;
+                    pthread_mutex_unlock(&startLock);
+                }
+                dom[domNo]._size++;
+                if(localID == (worker_per_numa-1)){
+                    localID=-1;
+                    base+= worker_per_numa;
+                }
+            }
+            while(startSignal!= _nWrks){}//wait until all threads have done the setup phase
+        //run 
+        if(perilla::isCommunicationThread())
+        {
+            //std::vector<RegionGraph*> flattenedGraphArray= rGraph;
+            //Perilla::flattenGraphHierarchy(amr->graphArray, flattenedGraphArray);
+            while(true){
+                Perilla::serviceMultipleGraphCommDynamic(flattenedGraphArray,true,perilla::tid());
+                if( Perilla::numTeamsFinished == perilla::NUM_THREAD_TEAMS)
+                {
+                    break;
+                }
+            }
+        }
+        for(int i=1; i<_nWrks; i++) pthread_join(dom[i/worker_per_numa]._threads[i%worker_per_numa], NULL);
+    }
+#endif
+
+
 #if 0
     const double kMicro = 1.0e-6;
     double RTS::Time()

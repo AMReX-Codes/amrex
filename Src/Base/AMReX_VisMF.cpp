@@ -619,7 +619,7 @@ VisMF::Write (const FArrayBox&   fab,
               std::ostream&      os,
               long&              bytes)
 {
-    BL_PROFILE("VisMF::Write_fab");
+//    BL_PROFILE("VisMF::Write_fab");
     VisMF::FabOnDisk fab_on_disk(filename, VisMF::FileOffset(os));
 
     fab.writeOn(os);
@@ -656,7 +656,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     m_ba(mf.boxArray()),
     m_fod(m_ba.size())
 {
-    BL_PROFILE("VisMF::Header");
+//    BL_PROFILE("VisMF::Header");
 
     if(version == NoFabHeader_v1) {
       m_min.clear();
@@ -696,7 +696,7 @@ void
 VisMF::Header::CalculateMinMax (const FabArray<FArrayBox>& mf,
                                 int procToWrite)
 {
-    BL_PROFILE("VisMF::CalculateMinMax");
+//    BL_PROFILE("VisMF::CalculateMinMax");
 
     m_min.resize(m_ba.size());
     m_max.resize(m_ba.size());
@@ -859,7 +859,7 @@ VisMF::WriteHeader (const std::string &mf_name,
                     VisMF::Header     &hdr,
 		    int                procToWrite)
 {
-    BL_PROFILE("VisMF::WriteHeader");
+//    BL_PROFILE("VisMF::WriteHeader");
     long bytesWritten(0);
 
     if(ParallelDescriptor::MyProc() == procToWrite) {
@@ -1083,7 +1083,7 @@ VisMF::WriteOnlyHeader (const FabArray<FArrayBox> & mf,
                         const std::string         & mf_name,
                         VisMF::How                  how)
 {
-    BL_PROFILE("VisMF::WriteOnlyHeader(FabArray)");
+//    BL_PROFILE("VisMF::WriteOnlyHeader(FabArray)");
     BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
     BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
@@ -1120,7 +1120,7 @@ VisMF::FindOffsets (const FabArray<FArrayBox> &mf,
 		    VisMF::Header::Version whichVersion,
 		    NFilesIter &nfi)
 {
-    BL_PROFILE("VisMF::FindOffsets");
+//    BL_PROFILE("VisMF::FindOffsets");
 
     const int myProc(ParallelDescriptor::MyProc());
     const int nProcs(ParallelDescriptor::NProcs());
@@ -1349,7 +1349,7 @@ VisMF::readFAB (int                  idx,
                 const VisMF::Header &hdr,
 		int                  whichComp)
 {
-    BL_PROFILE("VisMF::readFAB_idx");
+//    BL_PROFILE("VisMF::readFAB_idx");
     Box fab_box(hdr.m_ba[idx]);
     if(hdr.m_ngrow.max() > 0) {
         fab_box.grow(hdr.m_ngrow);
@@ -1404,7 +1404,7 @@ VisMF::readFAB (FabArray<FArrayBox> &mf,
                 const std::string&   mf_name,
                 const VisMF::Header& hdr)
 {
-    BL_PROFILE("VisMF::readFAB_mf");
+//    BL_PROFILE("VisMF::readFAB_mf");
     FArrayBox &fab = mf[idx];
 
     std::string FullName(VisMF::DirName(mf_name));
@@ -1433,7 +1433,8 @@ void
 VisMF::Read (FabArray<FArrayBox> &mf,
              const std::string   &mf_name,
 	     const char *faHeader,
-	     int coordinatorProc)
+	     int coordinatorProc,
+	     int allow_empty_mf)
 {
     BL_PROFILE("VisMF::Read()");
 
@@ -1466,6 +1467,19 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
         hEndTime = amrex::second();
     }
+
+    // This allows us to read in an empty MultiFab without an error -- but only if explicitly told to
+    if (allow_empty_mf > 0)
+    {
+        if (hdr.m_ba.size() == 0) return; 
+    } else {
+        if (hdr.m_ba.size() == 0) 
+        {
+            amrex::Print() << "In trying to read " << mf_name << std::endl;
+            amrex::Error("Empty box array");
+        }
+    }
+
 
     if (mf.empty()) {
 	DistributionMapping dm(hdr.m_ba);
@@ -1892,7 +1906,7 @@ void
 VisMF::ReadFAHeader (const std::string &fafabName,
 	             Vector<char> &faHeader)
 {
-    BL_PROFILE("VisMF::ReadFAHeader()");
+//    BL_PROFILE("VisMF::ReadFAHeader()");
 
     std::string FullHdrFileName(fafabName + TheMultiFabHdrFileSuffix);
     ParallelDescriptor::ReadAndBcastFile(FullHdrFileName, faHeader);
@@ -1902,7 +1916,7 @@ VisMF::ReadFAHeader (const std::string &fafabName,
 bool
 VisMF::Check (const std::string& mf_name)
 {
-  BL_PROFILE("VisMF::Check()");
+//  BL_PROFILE("VisMF::Check()");
 
   int isOk(true);  // ---- int to broadcast
   int v1(true);
